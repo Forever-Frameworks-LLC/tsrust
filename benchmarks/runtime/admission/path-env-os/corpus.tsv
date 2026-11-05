@@ -1,0 +1,38 @@
+# operation style input-or-result root dir base ext name
+parse	posix						
+parse	posix	/	/	/			
+parse	posix	file.txt			file.txt	.txt	file
+parse	posix	/srv/releases/file.tar.gz	/	/srv/releases	file.tar.gz	.gz	file.tar
+parse	posix	reports/é😊.txt		reports	é😊.txt	.txt	é😊
+parse	posix	alpha/.gitignore		alpha	.gitignore		.gitignore
+parse	posix	alpha/file.		alpha	file.	.	file
+parse	posix	.			.		.
+parse	posix	..			..		..
+parse	posix	//server/share/file.txt	/	//server/share	file.txt	.txt	file
+parse	posix	a//b///		a/	b		b
+parse	win32	C:\path\dir\file.txt	C:\	C:\path\dir	file.txt	.txt	file
+parse	win32	C:file.txt	C:	C:	file.txt	.txt	file
+parse	win32	C:\	C:\	C:\			
+parse	win32	\\server\share\dir\file.txt	\\server\share\	\\server\share\dir	file.txt	.txt	file
+parse	win32	C:\文\é😊.txt	C:\	C:\文	é😊.txt	.txt	é😊
+parse	win32	C:\dir\.gitignore	C:\	C:\dir	.gitignore		.gitignore
+parse	win32	C:/dir/file.	C:/	C:/dir	file.	.	file
+# For format, blank fields mean omitted (empty-string precedence is checked separately).
+format	posix	/home/user/dir/file.txt	/ignored	/home/user/dir	file.txt	ignored	ignored
+format	posix	/file.txt	/		file.txt	ignored	ignored
+format	posix	/file.txt	/			txt	file
+format	posix	file					file
+format	posix						
+format	win32	C:\path\dir\file.txt		C:\path\dir	file.txt		
+format	win32	C:\file.txt	C:\			txt	file
+# resolve rows: operation style cwd drive-cwd expected remaining-input-segments...
+resolve	posix	/work/project		/work/project
+resolve	posix	/work/project		/work/project		
+resolve	posix	/work/project		/tmp/file	/first	/tmp/file/
+resolve	posix	/work/project		/work/assets/a.txt	..	assets	a.txt
+resolve	posix	/work/project		/	/a	../..
+resolve	win32	C:\work\project		C:\work\project
+resolve	win32	C:\work\project		D:\data\file	C:\ignored	D:\data	file
+resolve	win32	C:\work\project		C:\logs	\logs
+resolve	win32	D:\work	C:\drive	C:\drive\file	C:file
+resolve	win32	C:\work		\\server\share\file	\\server\share\dir	..\file

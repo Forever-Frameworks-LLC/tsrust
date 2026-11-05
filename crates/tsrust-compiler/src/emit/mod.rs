@@ -3283,6 +3283,8 @@ impl Emitter<'_> {
             }
         }
         if self.program.records.iter().any(|r|r.native_type.and_then(crate::stdlib::date::runtime_type).is_some()){output.push_str(crate::stdlib::date::RUNTIME);}
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].features.contains(&"hostname")){output.push_str(crate::stdlib::os::HOSTNAME_RUNTIME);}
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].features.contains(&"os-observations")){output.push_str(&format!("mod tsrust_native_os {{ {} }}",include_str!("../stdlib/os/runtime.rs")));}
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::SignalListener)){output.push_str(crate::stdlib::signals::RUNTIME);}
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Uuid)){output.push_str(crate::stdlib::uuid::RUNTIME);}
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Decimal)){output.push_str(crate::stdlib::decimal::RUNTIME);}
@@ -3300,10 +3302,11 @@ impl Emitter<'_> {
             }
             if binding.module == "std:ui-runtime" {
                 output.push_str(&crate::stdlib::ui::emit::bridge(self.program,binding)); }
-            if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding,&self.record_runtime.ordered)); }
+            if binding.module == "std:path" {output.push_str(&crate::stdlib::path::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
+            if binding.module == "std:env" {let inline_pairs=binding.name=="vars"&&self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::EnvVar)).is_some_and(|id|self.small_record(id));output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding,&self.record_runtime.ordered,inline_pairs));}
             if binding.module == "std:time" { output.push_str(crate::stdlib::time::RUNTIME); }
             if binding.module == "std:os" {
-                output.push_str(&crate::stdlib::os::bridge(binding.name));
+                if matches!(binding.name,"hostname"|"availableParallelism"){output.push_str(&crate::stdlib::os::emit::observation(self.program,binding,&self.record_runtime.ordered));}else{output.push_str(&crate::stdlib::os::bridge(binding.name));}
             }
         }
         let issue_bridge = crate::stdlib::schema::emit::issue_bridge(self.program, &self.record_runtime.ordered);

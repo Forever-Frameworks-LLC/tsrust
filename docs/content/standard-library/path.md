@@ -1,5 +1,5 @@
 <!-- tsrust-docs
-{"id":"reference-standard-library-path","group":"standard-library","order":20,"status":"partial","targets":["web","native"],"api":[{"receiver":"std:path","name":"join"},{"receiver":"std:path","name":"basename"},{"receiver":"std:path","name":"dirname"},{"receiver":"std:path","name":"extname"},{"receiver":"std:path","name":"isAbsolute"},{"receiver":"std:path","name":"normalize"},{"receiver":"std:path","name":"relative"}]}
+{"id":"reference-standard-library-path","group":"standard-library","order":20,"status":"partial","targets":["web","native"],"api":[{"receiver":"std:path","name":"join"},{"receiver":"std:path","name":"basename"},{"receiver":"std:path","name":"dirname"},{"receiver":"std:path","name":"extname"},{"receiver":"std:path","name":"isAbsolute"},{"receiver":"std:path","name":"normalize"},{"receiver":"std:path","name":"relative"},{"receiver":"std:path","name":"PathParts"},{"receiver":"std:path","name":"PathFormatOptions"},{"receiver":"std:path","name":"PathError"},{"receiver":"std:path","name":"parse"},{"receiver":"std:path","name":"format"},{"receiver":"std:path","name":"resolve"},{"receiver":"std:path","name":"separator"},{"receiver":"std:path","name":"delimiter"}]}
 -->
 # Path
 

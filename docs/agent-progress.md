@@ -13,6 +13,24 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**Current combined B03 candidate:** root6429ff83 checkpoints optional hostname
+wiring and unchanged old pins; runtimea7f35ad5 +coree30c8459 merge cleanly in the
+canonical tree. Runtime source/support is complete, including17catalog entries,
+15unique executable examples, native example/feature witnesses,25parse/format
+cases,22Windows lexical cases and checked relativeUnicode failures, Unix env
+parent/child Unicode/path/cwd fixtures, os observer checks,17help cases×4phases,
+11completion matrix rows and5checker receiver rows/16fields. Seven new workload
+registrations are unmeasured; counterparts/oracles/guards are prepared.
+Root must whole-format the merged tree, commit it, then one both-package
+--all-targets check and focused no-run/direct affected batch underwatchdog. Native
+B03 acceptance remains unproven. Keep existing lifetime/URL/FS passed scopes;
+only changed/failed keeper scopes need execution. Compiler workspace Cargo/lock
+unchanged;3standalone hostname locks/default-vs-feature trees passed as below.
+Core prototype e30c8459 contains source preparation, not executed Rust evidence;
+postdirective CLI strict recheck+direct exact-artifact Tokio preflight remain next
+small lease. No worker heavy/formatter process remains. No CI/push/release/full
+regression/actual new API throughput or ingestion occurred.
+
 **Next B03 integration ready (2026-11-05):** runtime source checkpointa7f35ad5
 (parent prototypea6ca7db2, base1b3aaf40) contains60files/12functions/5records,
 Windows signal extension, full17catalog docs, native/runtime/editor witnesses and

@@ -1,0 +1,1 @@
+fn function0(value0:i64,value1:i64)->i64 {let mut checksum=value1;for _ in 0..value0{let count=std::thread::available_parallelism().unwrap().get();let value=i64::try_from(count).unwrap();assert!(value>0);checksum+=1;}checksum}fn main(){}

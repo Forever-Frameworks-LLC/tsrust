@@ -1,0 +1,18 @@
+import { Job, allSettled } from 'std:futures';
+import { strictEqual } from 'std:testing';
+
+async function done(): Task<void> {}
+
+async function main(): Task<void> {
+  const job: Job<void, undefined> = done().start();
+  const results = await allSettled([done(), job]);
+  strictEqual(results.length, 2);
+  for (const result of results) {
+    match (result) {
+      Ok(_) => {},
+      Err(error) => {
+        throw String(error.code);
+      }
+    }
+  }
+}

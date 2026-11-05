@@ -5737,6 +5737,50 @@
         }
       ],
       "documentation": "Returns the executable compilation target’s CPU architecture name. Takes no arguments and has no defaults. Returns one of arm, arm64, ia32, loong64, mips, mipsel, ppc64, riscv64, s390x or x64; the result remains constant during execution. It describes the compiled executable, including a translated executable, rather than physical hardware. Unsupported target components produce a native compilation error. No receiver or external state is mutated.\n\n```tsrust\nimport { arch } from 'std:os';\n\nfunction main() {\n  console.log(arch() === arch());\n} // prints true\n```\n\nOwnership: returns an independent string value."
+    },
+    {
+      "name": "OsError",
+      "signature": "type OsError = { code: string; message: string; }",
+      "parameters": [],
+      "documentation": "An owned OS observation failure returned as Result data. Io reports a failed query, NotUnicode reports a host name that cannot be represented as Unicode, and Range reports a parallelism count outside int.\n\nOwnership: owns its message; no rejected non-Unicode value is disclosed.\n\n```tsrust\nimport { OsError } from 'std:os';\n\nfunction main() {\n  const error: OsError = {\n    code: 'Io', message: 'observation unavailable'\n  };\n  console.log(error.code);\n}\n```\n\nExpected output: Io.",
+      "examples": [
+        {
+          "source": "import {OsError} from 'std:os';function main(){const error:OsError={code:'Io',message:'observation unavailable'};console.log(error.code);}",
+          "output": "Io\n"
+        }
+      ],
+      "fields": {
+        "code": {
+          "documentation": "Io, NotUnicode or Range, according to the failed observation.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "message": {
+          "documentation": "Human-readable failure description.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        }
+      }
+    },
+    {
+      "name": "availableParallelism",
+      "signature": "availableParallelism(): Result<int, OsError>",
+      "parameters": [],
+      "documentation": "Queries a positive estimate of the parallelism the running program can use. No arguments. The estimate may differ from CPU count and can change with resource limits; each call queries again. Does not account for all load or hardware topology, cache results, cap values or substitute one on failure. OS query failures return Io; an unrepresentable int count returns Range.\n\nOwnership: no input is borrowed; Result owns its value or error.\n\n```tsrust\nimport { availableParallelism } from 'std:os';\n\nfunction main() {\n  match (availableParallelism()) {\n    Ok(value) => {},\n    Err(error) => {\n      if (error.code !== 'Io' && error.code !== 'NotUnicode' && error.code !== 'Range') {\n        throw error.message;\n      }\n    }\n  }\n\n  console.log('OS observation completed');\n}\n```\n\nExpected output: OS observation completed.",
+      "examples": [
+        {
+          "source": "import {availableParallelism} from 'std:os';function main(){match(availableParallelism()){Ok(value)=>{},Err(error)=>{if(error.code!=='Io'&&error.code!=='NotUnicode'&&error.code!=='Range'){throw error.message;}}}console.log('OS observation completed');}",
+          "output": "OS observation completed\n"
+        }
+      ]
+    },
+    {
+      "name": "hostname",
+      "signature": "hostname(): Result<string, OsError>",
+      "parameters": [],
+      "documentation": "Queries the OS host name as independently owned Unicode text. No arguments. Does not perform DNS lookup, read a configuration environment variable or change the host name. Returns Io on OS failure and NotUnicode without lossy replacement for an unrepresentable name. Windows reports the physical DNS host name; platform naming rules may differ.\n\nOwnership: no input is borrowed; Result owns its value or error.\n\n```tsrust\nimport { hostname } from 'std:os';\n\nfunction main() {\n  match (hostname()) {\n    Ok(value) => {},\n    Err(error) => {\n      if (error.code !== 'Io' && error.code !== 'NotUnicode' && error.code !== 'Range') {\n        throw error.message;\n      }\n    }\n  }\n\n  console.log('OS observation completed');\n}\n```\n\nExpected output: OS observation completed.",
+      "examples": [
+        {
+          "source": "import {hostname} from 'std:os';function main(){match(hostname()){Ok(value)=>{},Err(error)=>{if(error.code!=='Io'&&error.code!=='NotUnicode'&&error.code!=='Range'){throw error.message;}}}console.log('OS observation completed');}",
+          "output": "OS observation completed\n"
+        }
+      ]
     }
   ],
   "std:path": [
@@ -5885,6 +5929,159 @@
         {
           "source": "import { relative } from \"std:path\";\nfunction main() {\n    console.log(relative(\"reports\", \"reports/2026\"));\n    console.log(relative(\"é😊\", \"é😊\"));\n}\n",
           "output": "2026\n\n"
+        }
+      ]
+    },
+    {
+      "name": "PathParts",
+      "signature": "type PathParts = { root: string; dir: string; base: string; ext: string; name: string; }",
+      "parameters": [],
+      "documentation": "An independently owned lexical decomposition returned by parse. All five string fields are present, including empty fields. No path existence, normalization or symlink lookup is implied.\n\nOwnership: owns every field; later input changes do not change this record.\n\n```tsrust\nimport { parse } from 'std:path';\n\nfunction main() {\n  const value = parse('file.tar.gz');\n  console.log(value.root, value.dir, value.base, value.ext, value.name);\n}\n```\n\nExpected output:   file.tar.gz .gz file.tar.",
+      "examples": [
+        {
+          "source": "import {parse} from 'std:path';function main(){const value=parse('file.tar.gz');console.log(value.root,value.dir,value.base,value.ext,value.name);}",
+          "output": "  file.tar.gz .gz file.tar\n"
+        }
+      ],
+      "fields": {
+        "root": {
+          "documentation": "Lexical root, preserving its original separators and drive or UNC spelling; empty for a relative path without a drive.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "dir": {
+          "documentation": "Lexical parent spelling, without the final component; empty for a bare filename. A root remains its own directory.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "base": {
+          "documentation": "Final component without trailing separators, including its extension; empty for a root-only or empty input.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "ext": {
+          "documentation": "Final dot suffix including its dot. Leading-dot names and dot-dot have no extension; a trailing dot is an extension.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "name": {
+          "documentation": "Final component with ext removed, preserving the remaining spelling.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        }
+      }
+    },
+    {
+      "name": "PathFormatOptions",
+      "signature": "type PathFormatOptions = { root?: string; dir?: string; base?: string; ext?: string; name?: string; }",
+      "parameters": [],
+      "documentation": "Optional string fields accepted by format. Missing and empty values have the same precedence. Fields are not coerced or normalized.\n\nOwnership: this ordinary record owns supplied fields; format borrows it.\n\n```tsrust\nimport { PathFormatOptions, format } from 'std:path';\n\nfunction main() {\n  const options: PathFormatOptions = {\n    name: 'notes', ext: 'txt'\n  };\n  console.log(format(options));\n}\n```\n\nExpected output: notes.txt.",
+      "examples": [
+        {
+          "source": "import {PathFormatOptions,format} from 'std:path';function main(){const options:PathFormatOptions={name:'notes',ext:'txt'};console.log(format(options));}",
+          "output": "notes.txt\n"
+        }
+      ],
+      "fields": {
+        "root": {
+          "documentation": "Optional root used when dir is missing or empty. Defaults to empty.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "dir": {
+          "documentation": "Optional directory, overriding a nonempty root when nonempty. Defaults to empty.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "base": {
+          "documentation": "Optional complete filename, overriding name and ext when nonempty. Defaults to empty.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "ext": {
+          "documentation": "Optional extension appended to name when base is empty. A nonempty extension receives a leading dot if needed. Defaults to empty.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "name": {
+          "documentation": "Optional filename stem used when base is empty. Defaults to empty.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        }
+      }
+    },
+    {
+      "name": "PathError",
+      "signature": "type PathError = { code: string; message: string; }",
+      "parameters": [],
+      "documentation": "An owned recoverable resolve failure. Resolve returns this record in Err rather than throwing; unwrap may propagate it. Lexical absolute inputs avoid unnecessary directory observations.\n\nOwnership: independently owns its message.\n\n```tsrust\nimport { PathError } from 'std:path';\n\nfunction main() {\n  const error: PathError = {\n    code: 'Io', message: 'cwd unavailable'\n  };\n  console.log(error.code);\n}\n```\n\nExpected output: Io.",
+      "examples": [
+        {
+          "source": "import {PathError} from 'std:path';function main(){const error:PathError={code:'Io',message:'cwd unavailable'};console.log(error.code);}",
+          "output": "Io\n"
+        }
+      ],
+      "fields": {
+        "code": {
+          "documentation": "Io for a required OS context failure; NotUnicode for a required directory that cannot be represented as Unicode.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "message": {
+          "documentation": "Human-readable failure description. Does not include a rejected non-Unicode directory value.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        }
+      }
+    },
+    {
+      "name": "parse",
+      "signature": "parse(path: string): PathParts",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required lexical path. Empty, rooted, relative, drive-relative and UNC forms follow the executable target syntax."
+        }
+      ],
+      "documentation": "Splits one required string using the executable target's path syntax. Returns root, dir, base, ext and name without changing spelling or normalizing dot segments. Empty input returns five empty strings. Dotfiles have no extension unless a later dot exists; trailing separators are excluded from base. No filesystem reads or recoverable errors occur.\n\nOwnership: borrows path and returns independently owned fields.\n\n```tsrust\nimport { parse } from 'std:path';\n\nfunction main() {\n  const value = parse('file.tar.gz');\n  console.log(value.root, value.dir, value.base, value.ext, value.name);\n}\n```\n\nExpected output:   file.tar.gz .gz file.tar.",
+      "examples": [
+        {
+          "source": "import {parse} from 'std:path';function main(){const value=parse('file.tar.gz');console.log(value.root,value.dir,value.base,value.ext,value.name);}",
+          "output": "  file.tar.gz .gz file.tar\n"
+        }
+      ]
+    },
+    {
+      "name": "format",
+      "signature": "format(parts: ReadOnly<PathFormatOptions>): string",
+      "parameters": [
+        {
+          "label": "parts: ReadOnly<PathFormatOptions>",
+          "documentation": "Required record; each root, dir, base, ext and name field is optional and defaults to empty."
+        }
+      ],
+      "documentation": "Composes an owned path from optional string fields. A nonempty dir overrides root; nonempty base overrides name plus ext. Missing and empty fields act alike. Add a dot for nonempty ext only when it has no leading dot. Insert the target separator between a non-root directory and the filename; preserve supplied spelling otherwise. All-empty options return an empty string. Does not normalize, check existence, coerce fields or mutate options.\n\nOwnership: borrows the record and its fields; returns independent text.\n\n```tsrust\nimport { PathFormatOptions, format } from 'std:path';\n\nfunction main() {\n  const options: PathFormatOptions = {\n    name: 'notes', ext: 'txt'\n  };\n  console.log(format(options));\n}\n```\n\nExpected output: notes.txt.",
+      "examples": [
+        {
+          "source": "import {PathFormatOptions,format} from 'std:path';function main(){const options:PathFormatOptions={name:'notes',ext:'txt'};console.log(format(options));}",
+          "output": "notes.txt\n"
+        }
+      ]
+    },
+    {
+      "name": "resolve",
+      "signature": "resolve(...paths: string[]): Result<string, PathError>",
+      "parameters": [
+        {
+          "label": "...paths: string[]",
+          "documentation": "Zero or more path segments in source order. No default segment is inserted unless resolution requires the current directory."
+        }
+      ],
+      "documentation": "Resolves zero or more borrowed string segments into an owned absolute lexical path. Empty segments are ignored; zero segments use the current directory. Scan from the right, stopping when an absolute root and any needed Windows device are known. Drive-relative paths use the corresponding drive directory when available, then the current directory. Dot segments and repeated separators are resolved lexically. Required OS context failures return Io; required non-Unicode context returns NotUnicode without lossy replacement. Fully qualified operands skip unneeded lookups. Does not canonicalize, inspect symlinks or establish containment.\n\nOwnership: borrows every segment; Result owns either text or an error.\n\n```tsrust\nimport { resolve } from 'std:path';\n\nfunction main() {\n  const result = resolve();\n  match (result) {\n    Ok(value) => {\n      console.log(value.length > 0);\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import {resolve} from 'std:path';function main(){const result=resolve();match(result){Ok(value)=>{console.log(value.length>0);},Err(error)=>{throw error.message;}}}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "separator",
+      "signature": "separator(): string",
+      "parameters": [],
+      "documentation": "Returns the executable target's directory separator: backslash on Windows, slash elsewhere. No arguments, mutation or recoverable errors.\n\nOwnership: returns immutable text; no process state is borrowed.\n\n```tsrust\nimport { separator } from 'std:path';\n\nfunction main() {\n  const value = separator();\n  console.log(value === '/' || value === '\\\\');\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import {separator} from 'std:path';function main(){const value=separator();console.log(value==='/'||value==='\\\\');}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "delimiter",
+      "signature": "delimiter(): string",
+      "parameters": [],
+      "documentation": "Returns the executable target's path-list delimiter: semicolon on Windows, colon elsewhere. No arguments, mutation or recoverable errors.\n\nOwnership: returns immutable text; no process state is borrowed.\n\n```tsrust\nimport { delimiter } from 'std:path';\n\nfunction main() {\n  const value = delimiter();\n  console.log(value === ':' || value === ';');\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import {delimiter} from 'std:path';function main(){const value=delimiter();console.log(value===':'||value===';');}",
+          "output": "true\n"
         }
       ]
     }
@@ -9541,7 +9738,7 @@
       "name": "EnvError",
       "signature": "type EnvError = { code: string; message: string }",
       "parameters": [],
-      "documentation": "Describes an environment or process-argument failure. code is InvalidName for an empty name or a name containing = or NUL, or NotUnicode when a value or process argument cannot be represented as Unicode. message explains the failure without including the environment value or argument. Missing variables are successful lookups, not errors. Fields are ordinary strings.\n\n```tsrust\nimport { get } from \"std:env\";\n\nfunction main() {\n  match (get(\"BAD=NAME\")) {\n    Ok(value) => {\n      console.log(value ?? \"missing\");\n    },\n    Err(error) => {\n      console.log(error.code);\n    }\n  }\n}\n// prints: InvalidName\n```\n\nOwnership: an owned record; explicit clone creates independent storage.",
+      "documentation": "Describes an environment or process-argument failure. code is InvalidName for an empty name or a name containing = or NUL, or NotUnicode when a value or process argument cannot be represented as Unicode. message explains the failure without including the environment value or argument. Missing variables are successful lookups, not errors. Fields are ordinary strings.\n\n```tsrust\nimport { get } from \"std:env\";\n\nfunction main() {\n  match (get(\"BAD=NAME\")) {\n    Ok(value) => {\n      console.log(value ?? \"missing\");\n    },\n    Err(error) => {\n      console.log(error.code);\n    }\n  }\n}\n// prints: InvalidName\n```\n\nIo reports an OS path observation failure. Non-Unicode path and snapshot failures use NotUnicode, with no rejected value in the message.\n\nOwnership: an owned record; explicit clone creates independent storage.",
       "examples": [
         {
           "source": "import {EnvError} from \"std:env\"; function describe(error:ReadOnly<EnvError>):string{return error.code + \": \" + error.message;} function main(){}",
@@ -9575,6 +9772,86 @@
         {
           "source": "import {args} from \"std:env\"; function main(){const values=unwrap(args());console.log(values.length);}",
           "output": "0\n"
+        }
+      ]
+    },
+    {
+      "name": "EnvVar",
+      "signature": "type EnvVar = { name: string; value: string; }",
+      "parameters": [],
+      "documentation": "One owned environment name/value pair returned by vars. Empty values remain empty; names are not filtered through get's lookup-name validator. Snapshot ordering is unspecified.\n\nOwnership: both strings belong to this record and remain independent of process state.\n\n```tsrust\nimport { EnvVar } from 'std:env';\n\nfunction main() {\n  const row: EnvVar = {\n    name: 'APP_MODE', value: ''\n  };\n  console.log(row.name, row.value.length);\n}\n```\n\nExpected output: APP_MODE 0.",
+      "examples": [
+        {
+          "source": "import {EnvVar} from 'std:env';function main(){const row:EnvVar={name:'APP_MODE',value:''};console.log(row.name,row.value.length);}",
+          "output": "APP_MODE 0\n"
+        }
+      ],
+      "fields": {
+        "name": {
+          "documentation": "Exact Unicode variable name supplied by the OS snapshot.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        },
+        "value": {
+          "documentation": "Exact Unicode variable value, including an empty string.\n\nOwnership: this field belongs to the containing owned record; reading text borrows it."
+        }
+      }
+    },
+    {
+      "name": "vars",
+      "signature": "vars(): Result<EnvVar[], EnvError>",
+      "parameters": [],
+      "documentation": "Reads a complete owned snapshot of process environment pairs with no arguments. Preserves empty values and OS-provided names, including names that get cannot look up. Ordering is unspecified and later process changes do not alter the snapshot. If any name or value is not Unicode, returns NotUnicode with no partial array or lossy replacement. Error text does not disclose the rejected value. Does not mutate process state.\n\nOwnership: Result owns the array and every pair.\n\n```tsrust\nimport { vars } from 'std:env';\n\nfunction main() {\n  match (vars()) {\n    Ok(rows) => {\n      for (const row of rows) {\n        if (typeof row.name !== 'string' || typeof row.value !== 'string') {\n          throw 'invalid snapshot';\n        }\n      }\n    },\n    Err(error) => {\n      if (error.code !== 'NotUnicode') {\n        throw error.message;\n      }\n    }\n  }\n\n  console.log('snapshot observed');\n}\n```\n\nExpected output: snapshot observed.",
+      "examples": [
+        {
+          "source": "import {vars} from 'std:env';function main(){match(vars()){Ok(rows)=>{for(const row of rows){if(typeof row.name!=='string'||typeof row.value!=='string'){throw 'invalid snapshot';}}},Err(error)=>{if(error.code!=='NotUnicode'){throw error.message;}}}console.log('snapshot observed');}",
+          "output": "snapshot observed\n"
+        }
+      ]
+    },
+    {
+      "name": "currentDir",
+      "signature": "currentDir(): Result<string, EnvError>",
+      "parameters": [],
+      "documentation": "Returns the current working directory as owned Unicode text. No arguments. OS lookup failures return Io; non-Unicode paths return NotUnicode. Does not change directories or add normalization.\n\nOwnership: success owns its text; absence borrows no state.\n\n```tsrust\nimport { currentDir } from 'std:env';\n\nfunction main() {\n  match (currentDir()) {\n    Ok(value) => {},\n    Err(error) => {\n      if (error.code !== 'Io' && error.code !== 'NotUnicode') {\n        throw error.message;\n      }\n    }\n  }\n\n  console.log('directory observed');\n}\n```\n\nExpected output: directory observed.",
+      "examples": [
+        {
+          "source": "import {currentDir} from 'std:env';function main(){match(currentDir()){Ok(value)=>{},Err(error)=>{if(error.code!=='Io'&&error.code!=='NotUnicode'){throw error.message;}}}console.log('directory observed');}",
+          "output": "directory observed\n"
+        }
+      ]
+    },
+    {
+      "name": "currentExe",
+      "signature": "currentExe(): Result<string, EnvError>",
+      "parameters": [],
+      "documentation": "Returns the running executable path as owned Unicode text. No arguments. OS lookup failures return Io; non-Unicode paths return NotUnicode. Does not resolve additional symlinks, strip OS decorations or promise that the file still exists.\n\nOwnership: success owns its text; absence borrows no state.\n\n```tsrust\nimport { currentExe } from 'std:env';\n\nfunction main() {\n  match (currentExe()) {\n    Ok(value) => {},\n    Err(error) => {\n      if (error.code !== 'Io' && error.code !== 'NotUnicode') {\n        throw error.message;\n      }\n    }\n  }\n\n  console.log('executable observed');\n}\n```\n\nExpected output: executable observed.",
+      "examples": [
+        {
+          "source": "import {currentExe} from 'std:env';function main(){match(currentExe()){Ok(value)=>{},Err(error)=>{if(error.code!=='Io'&&error.code!=='NotUnicode'){throw error.message;}}}console.log('executable observed');}",
+          "output": "executable observed\n"
+        }
+      ]
+    },
+    {
+      "name": "tempDir",
+      "signature": "tempDir(): Result<string, EnvError>",
+      "parameters": [],
+      "documentation": "Returns the OS-selected temporary-directory path as owned Unicode text. No arguments. Uses platform environment and OS fallback rules, preserving any returned empty path. Non-Unicode paths return NotUnicode. Creates nothing and does not promise that the path exists or is private.\n\nOwnership: success owns its text; absence borrows no state.\n\n```tsrust\nimport { tempDir } from 'std:env';\n\nfunction main() {\n  match (tempDir()) {\n    Ok(value) => {},\n    Err(error) => {\n      if (error.code !== 'Io' && error.code !== 'NotUnicode') {\n        throw error.message;\n      }\n    }\n  }\n\n  console.log('temporary directory observed');\n}\n```\n\nExpected output: temporary directory observed.",
+      "examples": [
+        {
+          "source": "import {tempDir} from 'std:env';function main(){match(tempDir()){Ok(value)=>{},Err(error)=>{if(error.code!=='Io'&&error.code!=='NotUnicode'){throw error.message;}}}console.log('temporary directory observed');}",
+          "output": "temporary directory observed\n"
+        }
+      ]
+    },
+    {
+      "name": "homeDir",
+      "signature": "homeDir(): Result<string | undefined, EnvError>",
+      "parameters": [],
+      "documentation": "Returns the current user home directory when known, or Ok(undefined) when unavailable or unsupported. No arguments. Uses the platform environment and account-directory fallback rules. A returned empty path remains an empty string; non-Unicode paths return NotUnicode. Does not create or validate the directory.\n\nOwnership: success owns its text; absence borrows no state.\n\n```tsrust\nimport { homeDir } from 'std:env';\n\nfunction main() {\n  match (homeDir()) {\n    Ok(value) => {},\n    Err(error) => {\n      if (error.code !== 'Io' && error.code !== 'NotUnicode') {\n        throw error.message;\n      }\n    }\n  }\n\n  console.log('home directory observed');\n}\n```\n\nExpected output: home directory observed.",
+      "examples": [
+        {
+          "source": "import {homeDir} from 'std:env';function main(){match(homeDir()){Ok(value)=>{},Err(error)=>{if(error.code!=='Io'&&error.code!=='NotUnicode'){throw error.message;}}}console.log('home directory observed');}",
+          "output": "home directory observed\n"
         }
       ]
     }
@@ -15161,7 +15438,7 @@
       "name": "listen",
       "signature": "listen(): Result<SignalListener, SignalError>",
       "parameters": [],
-      "documentation": "Registers SIGINT and SIGTERM immediately in an active async runtime. No arguments. Register before announcing readiness, then await receive(listener). Unix targets only; other targets return unsupported. Registration/runtime failures return signal/runtime errors. Signal deliveries may coalesce; no counting or delivery-order guarantee.\n\n```tsrust\nconst signals = unwrap(listen());\n// Start service, then await receive(signals).\n```\n\nOwnership: returns a unique owned listener. Dropping releases this subscription but does not restore process-wide default signal handling.\n\nThe complete example waits with a zero-millisecond timeout, handles unsupported platforms, and prints done without requiring an external signal.\n\n```tsrust\nimport { listen, receive, SignalListener, SignalError } from 'std:signals';\nasync function waitBriefly(listener: Mutable<SignalListener>): Task<void> {\n  try {\n    await receive(listener).timeout(0);\n  } catch (error) {\n    if (error.code !== 'timeout') throw error;\n  }\n}\n\nfunction unsupported(error: Owned<SignalError>): void {\n  if (error.code !== 'unsupported') throw error;\n}\n\nasync function main(): Task<void> {\n  match (listen()) {\n    Ok(listener) => {\n      await waitBriefly(listener);\n    },\n    Err(error) => {\n      unsupported(error);\n    }\n  }\n\n  console.log('done');\n}\n```",
+      "documentation": "Registers Unix SIGINT/SIGTERM or Windows console interrupt/control-break immediately in an active async runtime. No arguments. Register before announcing readiness, then await receive(listener). Unix and Windows targets; other targets return unsupported. Windows events are reported as SIGINT and SIGBREAK. Registration/runtime failures return signal/runtime errors. Signal deliveries may coalesce; no counting or delivery-order guarantee.\n\n```tsrust\nconst signals = unwrap(listen());\n// Start service, then await receive(signals).\n```\n\nOwnership: returns a unique owned listener. Dropping releases this subscription but does not restore process-wide default signal handling.\n\nThe complete example waits with a zero-millisecond timeout, handles unsupported platforms, and prints done without requiring an external signal.\n\n```tsrust\nimport { listen, receive, SignalListener, SignalError } from 'std:signals';\nasync function waitBriefly(listener: Mutable<SignalListener>): Task<void> {\n  try {\n    await receive(listener).timeout(0);\n  } catch (error) {\n    if (error.code !== 'timeout') throw error;\n  }\n}\n\nfunction unsupported(error: Owned<SignalError>): void {\n  if (error.code !== 'unsupported') throw error;\n}\n\nasync function main(): Task<void> {\n  match (listen()) {\n    Ok(listener) => {\n      await waitBriefly(listener);\n    },\n    Err(error) => {\n      unsupported(error);\n    }\n  }\n\n  console.log('done');\n}\n```",
       "examples": [
         {
           "source": "import { listen, receive, SignalListener, SignalError } from 'std:signals';\nasync function waitBriefly(listener: Mutable<SignalListener>): Task<void> {\n  try {\n    await receive(listener).timeout(0);\n  } catch (error) {\n    if (error.code !== 'timeout') throw error;\n  }\n}\n\nfunction unsupported(error: Owned<SignalError>): void {\n  if (error.code !== 'unsupported') throw error;\n}\n\nasync function main(): Task<void> {\n  match (listen()) {\n    Ok(listener) => {\n      await waitBriefly(listener);\n    },\n    Err(error) => {\n      unsupported(error);\n    }\n  }\n\n  console.log('done');\n}\n",
@@ -15179,7 +15456,7 @@
           "documentation": "Registered Unix shutdown-signal listener, borrowed exclusively."
         }
       ],
-      "documentation": "Creates a lazy task waiting for SIGINT or SIGTERM; awaiting returns that signal name. listen must already have registered the listener. A closed listener throws SignalError. Cancelling the task releases its exclusive loan but keeps the listener available.\n\n```tsrust\nconst signal = await receive(signals); // SIGINT or SIGTERM\nawait server.shutdown();\n```\n\nOwnership: exclusively borrows listener until task completion or disposal; concurrent receives on one listener are rejected.\n\nThe complete example waits with a zero-millisecond timeout, handles unsupported platforms, and prints done without requiring an external signal.\n\n```tsrust\nimport { listen, receive, SignalListener, SignalError } from 'std:signals';\nasync function waitBriefly(listener: Mutable<SignalListener>): Task<void> {\n  try {\n    await receive(listener).timeout(0);\n  } catch (error) {\n    if (error.code !== 'timeout') throw error;\n  }\n}\n\nfunction unsupported(error: Owned<SignalError>): void {\n  if (error.code !== 'unsupported') throw error;\n}\n\nasync function main(): Task<void> {\n  match (listen()) {\n    Ok(listener) => {\n      await waitBriefly(listener);\n    },\n    Err(error) => {\n      unsupported(error);\n    }\n  }\n\n  console.log('done');\n}\n```",
+      "documentation": "Creates a lazy task waiting for Unix SIGINT/SIGTERM or Windows SIGINT/SIGBREAK; awaiting returns that signal name. listen must already have registered the listener. A closed listener throws SignalError. Cancelling the task releases its exclusive loan but keeps the listener available.\n\n```tsrust\nconst signal = await receive(signals); // SIGINT or SIGTERM\nawait server.shutdown();\n```\n\nOwnership: exclusively borrows listener until task completion or disposal; concurrent receives on one listener are rejected.\n\nThe complete example waits with a zero-millisecond timeout, handles unsupported platforms, and prints done without requiring an external signal.\n\n```tsrust\nimport { listen, receive, SignalListener, SignalError } from 'std:signals';\nasync function waitBriefly(listener: Mutable<SignalListener>): Task<void> {\n  try {\n    await receive(listener).timeout(0);\n  } catch (error) {\n    if (error.code !== 'timeout') throw error;\n  }\n}\n\nfunction unsupported(error: Owned<SignalError>): void {\n  if (error.code !== 'unsupported') throw error;\n}\n\nasync function main(): Task<void> {\n  match (listen()) {\n    Ok(listener) => {\n      await waitBriefly(listener);\n    },\n    Err(error) => {\n      unsupported(error);\n    }\n  }\n\n  console.log('done');\n}\n```",
       "examples": [
         {
           "source": "import { listen, receive, SignalListener, SignalError } from 'std:signals';\nasync function waitBriefly(listener: Mutable<SignalListener>): Task<void> {\n  try {\n    await receive(listener).timeout(0);\n  } catch (error) {\n    if (error.code !== 'timeout') throw error;\n  }\n}\n\nfunction unsupported(error: Owned<SignalError>): void {\n  if (error.code !== 'unsupported') throw error;\n}\n\nasync function main(): Task<void> {\n  match (listen()) {\n    Ok(listener) => {\n      await waitBriefly(listener);\n    },\n    Err(error) => {\n      unsupported(error);\n    }\n  }\n\n  console.log('done');\n}\n",
@@ -15192,7 +15469,7 @@
       "name": "SignalListener",
       "signature": "type SignalListener",
       "parameters": [],
-      "documentation": "Unique subscription to SIGINT and SIGTERM. Register with listen; wait with receive. No clone or transport to concurrent HTTP handlers.\n\n```tsrust\nimport { listen, receive } from \"std:signals\";\n\nasync function main(): Task<void> {\n  const signals = unwrap(listen());\n  console.log(\"ready\");\n  // A real service awaits this; here a zero deadline ends the wait at once.\n  try {\n    console.log(await receive(signals).timeout(0));\n  } catch (error) {\n    console.log(error.code);\n  }\n}\n// prints: ready\n// prints: timeout\n```\n\nRegister before announcing readiness so a shutdown request sent right after startup is not missed.",
+      "documentation": "Unique subscription to Unix SIGINT/SIGTERM or Windows console SIGINT/SIGBREAK. Register with listen; wait with receive. No clone or transport to concurrent HTTP handlers.\n\n```tsrust\nimport { listen, receive } from \"std:signals\";\n\nasync function main(): Task<void> {\n  const signals = unwrap(listen());\n  console.log(\"ready\");\n  // A real service awaits this; here a zero deadline ends the wait at once.\n  try {\n    console.log(await receive(signals).timeout(0));\n  } catch (error) {\n    console.log(error.code);\n  }\n}\n// prints: ready\n// prints: timeout\n```\n\nRegister before announcing readiness so a shutdown request sent right after startup is not missed.",
       "examples": [
         {
           "source": "import { listen, receive, SignalListener, SignalError } from 'std:signals';\nasync function waitBriefly(listener: Mutable<SignalListener>): Task<void> {\n  try {\n    await receive(listener).timeout(0);\n  } catch (error) {\n    if (error.code !== 'timeout') throw error;\n  }\n}\n\nfunction unsupported(error: Owned<SignalError>): void {\n  if (error.code !== 'unsupported') throw error;\n}\n\nasync function main(): Task<void> {\n  match (listen()) {\n    Ok(listener) => {\n      await waitBriefly(listener);\n    },\n    Err(error) => {\n      unsupported(error);\n    }\n  }\n\n  console.log('done');\n}\n",

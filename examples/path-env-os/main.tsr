@@ -1,0 +1,43 @@
+import { PathParts, PathFormatOptions, parse, format, resolve, join, separator, delimiter } from 'std:path';
+import { vars, get, currentDir, currentExe, tempDir, homeDir } from 'std:env';
+import { availableParallelism, hostname } from 'std:os';
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const parts: PathParts = parse('file.tar.gz');
+  strictEqual(parts.root, '');
+  strictEqual(parts.dir, '');
+  strictEqual(parts.base, 'file.tar.gz');
+  strictEqual(parts.ext, '.gz');
+  strictEqual(parts.name, 'file.tar');
+  const options: PathFormatOptions = {
+    dir: 'reports', name: parts.name, ext: 'gz'
+  };
+  strictEqual(format(options), join('reports', 'file.tar.gz'));
+  strictEqual(parts.base, 'file.tar.gz');
+  strictEqual(separator() === '/' || separator() === '\\', true);
+  strictEqual(delimiter(), separator() === '\\' ? ';' : ':');
+  const directory = unwrap(currentDir());
+  strictEqual(unwrap(resolve()), directory);
+  strictEqual(unwrap(resolve(directory, 'one', '..', 'two')), join(directory, 'two'));
+  const pairs = unwrap(vars());
+  for (const pair of pairs) {
+    if (pair.name === 'TSRUST_B03_TEXT') {
+      strictEqual(pair.value, 'héllo 🦀');
+      pair.value = 'independent snapshot';
+      strictEqual(unwrap(get('TSRUST_B03_TEXT')), 'héllo 🦀');
+    }
+  }
+
+  strictEqual(unwrap(currentExe()).length > 0, true);
+  const temporary = unwrap(tempDir());
+  const home = unwrap(homeDir());
+  if (home !== undefined) {
+    strictEqual(typeof home, 'string');
+  }
+
+  strictEqual(typeof temporary, 'string');
+  strictEqual(unwrap(availableParallelism()) > 0, true);
+  strictEqual(typeof unwrap(hostname()), 'string');
+  console.log('Path, environment and OS checks passed');
+}

@@ -13,6 +13,7 @@ use support::session::Session;
 enum Kind {
     Filesystem,
     Url,
+    PathEnvOs,
     Ui,
     Crypto,
     Signals,
@@ -58,9 +59,10 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 45] = [
+const KINDS: [Kind; 46] = [
     Kind::Filesystem,
     Kind::Url,
+    Kind::PathEnvOs,
     Kind::Ui,
     Kind::Crypto,
     Kind::Signals,
@@ -137,6 +139,17 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row{kind:Kind::PathEnvOs,name:"path public imports",before:"import { ".into(),typed:"",after:" } from 'std:path';function main(){}",includes:&["PathParts","PathFormatOptions","PathError","parse","format","resolve","separator","delimiter"],excludes:&["hostname","setCurrentDir"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path partial import",before:"import { ".into(),typed:"Path",after:" } from 'std:path';function main(){}",includes:&["PathParts","PathFormatOptions","PathError"],excludes:&["parse","format"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"environment public imports",before:"import { ".into(),typed:"",after:" } from 'std:env';function main(){}",includes:&["EnvVar","EnvError","get","args","vars","currentDir","currentExe","tempDir","homeDir"],excludes:&["set","remove","setCurrentDir"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"OS observation imports",before:"import { ".into(),typed:"",after:" } from 'std:os';function main(){}",includes:&["OsError","hostname","availableParallelism","platform","arch","endianness"],excludes:&["setHostname","kill"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path parsed components",before:"import {parse} from 'std:path';function main(){const value=parse('file.txt');".into(),typed:"value.",after:"name;}",includes:&["root","dir","base","ext","name"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path component prefix",before:"import {PathParts as Parts} from 'std:path';function inspect(value:ReadOnly<Parts>){".into(),typed:"value.ex",after:"t;}function main(){}",includes:&["ext"],excludes:&["base","root","name","function"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path format option fields",before:"import {PathFormatOptions} from 'std:path';function inspect(value:ReadOnly<PathFormatOptions>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["root","dir","base","ext","name"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"environment pair fields",before:"import {EnvVar} from 'std:env';function inspect(value:ReadOnly<EnvVar>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["name","value"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"environment snapshot indexed fields",before:"import {vars} from 'std:env';function main(){const rows=unwrap(vars());".into(),typed:"rows[0].v",after:"alue;}",includes:&["value"],excludes:&["name","function","main"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path checked error fields",before:"import {PathError} from 'std:path';function inspect(value:ReadOnly<PathError>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"OS checked error fields",before:"import {OsError} from 'std:os';function inspect(value:ReadOnly<OsError>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
  Row {kind:Kind::StringMember,name:"ordinary string literal union readonly members",before:"type Origin='start'|'current'|'end';function inspect(value:ReadOnly<Origin>){".into(),typed:"value.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase","normalize","concat","codePointAt","valueOf"],excludes:&["push","start","current","end","main"],silent:None,needs_check:false},
  Row {kind:Kind::StringMember,name:"grouped string literal union indexed members",before:"type Origin=('left'|'right');function inspect(values:ReadOnly<Origin[]>){".into(),typed:"values[0].",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase"],excludes:&["push","left","right","main"],silent:None,needs_check:false},
  Row {kind:Kind::Filesystem,name:"native string literal alias readonly members",before:"import {SeekOrigin as Origin} from 'std:fs';function inspect(value:ReadOnly<Origin>){".into(),typed:"value.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase","substring","toString"],excludes:&["push","start","current","end","main"],silent:None,needs_check:false},
@@ -534,7 +547,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if (matches!(mode, Mode::Immediate | Mode::Paced) || matches!(row.kind,Kind::Url|Kind::Filesystem) && mode==Mode::ErrorElsewhere) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || matches!(row.kind,Kind::Url|Kind::Filesystem|Kind::PathEnvOs) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);
