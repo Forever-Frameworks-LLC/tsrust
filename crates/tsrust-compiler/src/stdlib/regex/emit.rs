@@ -67,7 +67,8 @@ impl Emitter<'_> {
             setup.push_str(&format!("let {name}={value};"));
             if parameter.optional {
                 let optional=self.native_optional_argument(parameter,name.clone(),argument.ty.unwrap());
-                let ty=crate::native_binding_types::resolve(&self.program.records,&Signature::Named(NativeTypeId::RegexOptions)).expect("prepared RegexOptions");
+                let signature=crate::native_binding_types::resolve(&self.program.records,&parameter.ty.signature()).expect("prepared optional RegexOptions");
+                let ty=self.program.unions[signature.union().expect("optional RegexOptions").index()].members.iter().copied().find(|ty|*ty!=Type::Undefined).expect("RegexOptions payload");
                 let options=format!("({optional}).map(|value:&{}|{})",self.native_type(ty),self.regex_options(ty,"value"));
                 setup.push_str(&format!("let regex_options={options};"));values.push("regex_options.as_ref()".into());
             }else if parameter.ty.signature()==Signature::String{values.push(format!("{name}.as_ref()"));}else{values.push(name);}

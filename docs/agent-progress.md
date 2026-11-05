@@ -14,8 +14,8 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `938f57b2`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
-built successfully. Native fixture absence assertions are being repaired alongside this live handoff. Preserve both. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint `11ae1144`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
@@ -41,6 +41,18 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
+**B12 effect repair build23323 passed:** exact11ae1144, terminal build-finished:true,
+490.966s/3,765,587KiB. `/tmp/tsrust-b12-effects-{artifacts.jsonl,build.log}`.
+Driver20276 completed29.517s/147,520KiB: all13 native effect classifications and
+existing unreviewed-effect guard passed. Native ownership and18catalog examples
+failed at emitter's lookup of bare RegexOptions signature (only optional signature
+was prepared); fixed emitter to read payload from the prepared parameter signature.
+Portable export reached its manifest assertion: missing default regex feature;
+added the module feature hook beside URL. Those two fixes are pending checkpoint.
+`/tmp/tsrust-b12-effects-gates.{json,log}` preserves each scope. No heavy work live.
+Whole-format/token/idempotence before11ae passed1562files,4.667s/204,032KiB and
+4.651s/204,128KiB,0changes; benchmark source/oracle self-check passed.
+
 **B12 repair build40800 completed:** exact938f57b2, terminal build-finished:true,
 watchdog213.078s/2,622,290KiB; Cargo64431 and supervisor64380 absent. JSON/log
 `/tmp/tsrust-b12-repair-{artifacts.jsonl,build.log}`. Feature selection and hidden
