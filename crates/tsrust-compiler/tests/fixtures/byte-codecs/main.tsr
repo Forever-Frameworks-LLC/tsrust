@@ -40,6 +40,12 @@ function main() {
   strictEqual(unwrap(toHex(big)), "0041d83dde00");
   strictEqual(unwrap(toUtf16(little, "little")), "A😀");
   strictEqual(unwrap(toUtf16(big, "big")), "A😀");
+  const encode16 = fromUtf16;
+  const decode16 = toUtf16;
+  const order: "little" | "big" = "big";
+  const encoded16 = unwrap(encode16("B", order));
+  const encodedView = unwrap(view(encoded16, 0, length(encoded16)));
+  strictEqual(unwrap(decode16(encodedView, order)), "B");
   const bom = unwrap(fromUtf16("\uFEFF\u0000é", "little"));
   strictEqual(unwrap(toUtf16(bom, "little")), "\uFEFF\u0000é");
   const bad = unwrap(fromArray([65, 195, 40]));

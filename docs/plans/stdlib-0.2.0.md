@@ -208,6 +208,30 @@ overlapping ranges, endianness, unaligned reads, NaN/signed zero and no partial
 writes. Performance: token/4 KiB/1 MiB codecs and packet parsing/writing into reused
 buffers, with independent byte checksums and equivalent strict Node validation.
 
+Search backend prerequisite (2026-11-04): pin `memchr =2.8.3` with its default
+std/alloc features, optional behind `byte-search` in both runtime graphs. Other
+byte operations remain std-backed. The version was already locked in compiler
+and runtime graphs; only the independent Rust reference graph adds a package.
+Offline resolution preserves every previous package/version/checksum and all
+default feature selections. Cached archive checksum
+`cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98` matches
+the lock. The crate declares edition2021/MSRV1.61, Unlicense OR MIT, no required
+runtime dependencies. Keep optional logging/libc/core features disabled. Official
+RustSec snapshot965bf9ad083b58e6340d65829d85217b18be9290 contains no memchr advisory;
+platform execution and actual Tsrust API measurements remain pending.
+
+The direct-Rust prototype supports using `memmem::find` for indexOf: linear time,
+constant auxiliary space and portable fallback avoid the naive windows search's
+adversarial growth. Token-sized inputs favored windows (10.19ns vs20.55ns), while
+4KiB/1MiB tail matches and65KiB repetitive misses favored memchr (107/20,969/
+66,063ns vs1,428/465,823/377,313ns). These are prototype samples, not released
+Tsrust workload measurements. Do not add a hand-written size hybrid without an
+accepted need. Pinned Node24.11.1 independent oracle preflight passed; earlier
+Node26 prototype timings are supplementary, not canonical reference controls.
+Sources: [pinned memmem find](https://docs.rs/memchr/2.8.3/memchr/memmem/fn.find.html),
+[crate manifest](https://docs.rs/crate/memchr/2.8.3/source/Cargo.toml),
+[reviewed advisory tree](https://github.com/RustSec/advisory-db/tree/965bf9ad083b58e6340d65829d85217b18be9290/crates).
+
 ### B03 — Path, environment, OS and signal completion
 
 Backend: existing lexical path implementation, std and existing Tokio signals;

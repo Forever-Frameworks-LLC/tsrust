@@ -77,7 +77,7 @@ pub(crate) fn validate(provider:&Candidate,root:&Path,manifest:&Path,temporary:&
 fn compile(source:&str,backend:&str,cache:&Path,root:&Path,execute:Option<&Path>)->Result<(),String>{
  fs::create_dir(root).map_err(|error|error.to_string())?;
  let mut prepared=crate::runtime_build::Prepared::new(source,backend,cache,root,false)?;
- if let Some(mut command)=prepared.command.take(){let output=command.output().map_err(|error|error.to_string())?;if !output.status.success(){return Err(format!("Candidate Rust dependency build failed:\n{}",String::from_utf8_lossy(&output.stderr)));}prepared.publish();}
+ if let Some(mut command)=prepared.command.take(){prepared.acquire_target(true)?;let output=command.output().map_err(|error|error.to_string())?;if !output.status.success(){return Err(format!("Candidate Rust dependency build failed:\n{}",prepared.compilation_error(&String::from_utf8_lossy(&output.stderr))));}prepared.finish()?;prepared.publish();}
  let executable=root.join("program");let mut command=crate::backend_command();prepared.link(&mut command)?;
  let output=command.args(["--edition=2024","-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&executable).output().map_err(|error|error.to_string())?;
  if !output.status.success(){return Err(format!("Candidate adapter/caller compilation failed:\n{}",String::from_utf8_lossy(&output.stderr)));}

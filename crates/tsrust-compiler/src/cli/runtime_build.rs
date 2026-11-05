@@ -1,6 +1,7 @@
 //! Shared runtime build preparation; callers own subprocess supervision.
 use std::{fs,path::{Path,PathBuf},process::Command};
 use tsrust_compiler::{native_cache::NativeCache,native_runtime};
+#[path="runtime_artifacts.rs"] mod artifacts;
 // MSVC link.exe rejects deep output paths; Rust's bundled LLVM linker supports them.
 pub(crate) const MSVC_LINKER_FLAG:&str="-Clinker-flavor=lld-link";
 pub(crate) fn exported_linker_config()->String {
@@ -27,6 +28,7 @@ pub(crate) struct Prepared {
  dependencies:Option<PathBuf>,
  packed:Option<PathBuf>,
  _workspace:Option<crate::native_workspace::Workspace>,
+ cargo:Option<artifacts::Build>,
 }
 impl Prepared {
  pub fn new(source:&str,backend:&str,root:&Path,temporary:&Path,release:bool)->Result<Self,String> {
@@ -37,7 +39,7 @@ impl Prepared {
  }
  fn prepare(source:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
   let units=native_runtime::separate(source);let application=temporary.join("program.rs");fs::write(&application,units.application).map_err(|e|e.to_string())?;
-  let Some(runtime)=units.runtime else{return Ok(Self{application,library:None,command:None,state:"none",shared_sources:false,source_snapshot:None,cache:None,opportunistic,dependencies:None,packed:None,_workspace:None});};
+  let Some(runtime)=units.runtime else{return Ok(Self{application,library:None,command:None,state:"none",shared_sources:false,source_snapshot:None,cache:None,opportunistic,dependencies:None,packed:None,_workspace:None,cargo:None});};
   if units.dependencies {return Self::with_dependencies(application,&runtime,backend,root,temporary,release,opportunistic);}
   let library=temporary.join("libtsrust_runtime.rlib");
   let cache=NativeCache::runtime(&root.join("runtime"),&[b"runtime-rlib-abi-1",backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on;crate=tsrust_runtime",runtime.as_bytes()]);
@@ -46,23 +48,23 @@ impl Prepared {
    let input=temporary.join("runtime.rs");fs::write(&input,runtime).map_err(|e|e.to_string())?;
    let mut command=crate::backend_command();command.args(["--edition=2024","--crate-type=rlib","--crate-name=tsrust_runtime","-C",if release{"opt-level=3"}else{"opt-level=0"},"-C","overflow-checks=on"]).arg(input).arg("-o").arg(&library);Some(command)
   };
-  Ok(Self{application,library:Some(library),command,state:if reused{"hit"}else{"miss"},shared_sources:false,source_snapshot:None,cache:Some(cache),opportunistic,dependencies:None,packed:None,_workspace:None})
+  Ok(Self{application,library:Some(library),command,state:if reused{"hit"}else{"miss"},shared_sources:false,source_snapshot:None,cache:Some(cache),opportunistic,dependencies:None,packed:None,_workspace:None,cargo:None})
  }
  fn with_dependencies(application:PathBuf,runtime:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
   use crate::native_dependency_bundle as bundle;
-  let absolute_root=crate::absolute(root)?;let root=absolute_root.as_path();
+  let absolute_root=crate::absolute(root)?;fs::create_dir_all(&absolute_root).map_err(|e|e.to_string())?;let absolute_root=absolute_root.canonicalize().map_err(|e|e.to_string())?;let root=absolute_root.as_path();
   let packages=crate::rust_binding_packages::packages(runtime)?;
   let binding=crate::rust_binding_packages::checked(&packages)?;
   let shared=crate::backend_sources::shared(runtime)?;
   let dependency_identity=if shared{crate::backend_sources::dependency_identity()}else{bundle::dependency_identity()};
   let shared_inputs=if shared{Some(crate::backend_sources::identity(root)?)}else{None};
-  let mut cache_parts:Vec<&[u8]>=vec![b"runtime-dependencies-abi-4-import-libraries",dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
+  let mut cache_parts:Vec<&[u8]>=vec![b"runtime-dependencies-abi-5-selected-artifacts",dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
   let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");
   let copied=if opportunistic{cache.try_copy_to(&packed)}else{cache.copy_to(&packed)};
   if copied && bundle::unpack(&packed,&restored).is_ok() {
-   return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:shared,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None});
+   return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:shared,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None,cargo:None});
   }
   let native_ui=runtime.contains("pub mod tsrust_native_ui {") && runtime.contains("use vello::");
   let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(native_ui))).map_err(|e|e.to_string())?;
@@ -80,9 +82,11 @@ impl Prepared {
   text.push_str("\n[lib]\nname = \"tsrust_runtime\"\n");
   text.push_str(profiles(native_ui));
   crate::native_workspace::write_changed(&manifest,text)?;crate::native_workspace::write_changed(&package.join("src/lib.rs"),runtime)?;
-  let target=build_root.join("native-target");let profile=target.join(if release{"release"}else{"debug"});
-  let mut command=crate::backend_cargo_command();command.current_dir(&package).args(["build","--offline","--locked","--lib","--manifest-path"]).arg(&manifest)
-   .arg("--config").arg(package.join(".cargo/config.toml")).arg("--target-dir").arg(&target).env("CARGO_INCREMENTAL","0");
+  let explicit_target=std::env::var_os("CARGO_TARGET_DIR");
+  let cargo=artifacts::Build::new(root,manifest.clone(),build_root.join("artifacts"),temporary.join("runtime.stdout"),explicit_target.as_deref().map(Path::new))?;
+  let target=&cargo.target;
+  let mut command=crate::backend_cargo_command();command.current_dir(&package).args(["build","--offline","--locked","--lib","--message-format=json-render-diagnostics","--manifest-path"]).arg(&manifest)
+   .arg("--config").arg(package.join(".cargo/config.toml")).arg("--target-dir").arg(target).env("CARGO_INCREMENTAL","0");
   if shared{command.current_dir(root).env("CARGO_HOME",crate::backend_sources::cargo_home()?);}
   else{command.env("CARGO_HOME",build_root.join("cargo-home"));}
   // Compiler-owned support must not inherit user Cargo profiles or wrappers:
@@ -92,7 +96,9 @@ impl Prepared {
   if cfg!(all(windows,target_env="msvc")){command.env("CARGO_ENCODED_RUSTFLAGS",MSVC_LINKER_FLAG);}
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if tsrust_compiler::native_runtime::requires_byte_codecs(runtime){command.args(["--features","byte-codecs"]);}
+  if tsrust_compiler::native_runtime::requires_byte_search(runtime){command.args(["--features","byte-search"]);}
   if runtime.contains("pub mod tsrust_native_files {"){command.args(["--features","files"]);}
+  if tsrust_compiler::native_runtime::requires_temporary_files(runtime){command.args(["--features","temporary-files"]);}
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_url {"){command.args(["--features","url"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
@@ -108,7 +114,14 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_sql {"){command.args(["--features","sql"]);}
   if runtime.contains("pub mod tsrust_native_sqlite {"){command.args(["--features","sqlite"]);}
   if release {command.arg("--release");}
-  Ok(Self{application,library:Some(profile.join("libtsrust_runtime.rlib")),command:Some(command),state:"miss",shared_sources:shared,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(profile.join("deps")),packed:Some(packed),_workspace:workspace})
+  cargo.capture(&mut command)?;
+  Ok(Self{application,library:None,command:Some(command),state:"miss",shared_sources:shared,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:None,packed:Some(packed),_workspace:workspace,cargo:Some(cargo)})
+ }
+ /// Acquire before spawning Cargo; dev polls this without blocking cancellation.
+ pub fn acquire_target(&mut self,blocking:bool)->Result<bool,String>{match &mut self.cargo{Some(cargo)=>cargo.acquire(blocking),None=>Ok(true)}}
+ pub fn finish(&mut self)->Result<(),String>{
+  if let Some(cargo)=&mut self.cargo {let directory=cargo.finish()?;self.library=Some(directory.join("libtsrust_runtime.rlib"));self.dependencies=Some(directory);}
+  Ok(())
  }
  pub fn publish(&self) {
   if let Some((root,expected))=&self.source_snapshot
@@ -117,10 +130,12 @@ impl Prepared {
    if crate::native_dependency_bundle::pack(library,dependencies,packed).is_err(){return;}packed
   }else{library};let _=if self.opportunistic{cache.try_publish(artifact)}else{cache.publish(artifact)};}}
  pub fn compilation_error(&self,detail:&str)->String {
+  let diagnostics=self.cargo.as_ref().map(artifacts::Build::diagnostics).unwrap_or_default();
+  let combined=format!("{detail}{diagnostics}");let detail=combined.as_str();
   let hint=if self.shared_sources && (detail.contains("offline") || detail.contains("no matching package")) {"\nPrepare missing sources explicitly with `tsrust setup --dependencies --yes`, or use `--offline` with a populated Cargo home. For binding dependencies, run `tsrust bindings resolve <file.bindings.json>` instead. Native builds never fetch sources."}else{""};
   format!("Runtime compilation failed:\n{detail}{hint}")
  }
- pub fn link(&self,command:&mut Command)->Result<(),String> {if let Some(dependencies)=&self.dependencies {
+ pub fn link(&self,command:&mut Command)->Result<(),String> {if self.cargo.is_some() && self.dependencies.is_none(){return Err("Cargo runtime artifacts have not been staged".into());}if let Some(dependencies)=&self.dependencies {
   let imports=crate::native_dependency_bundle::restore_import_libraries(dependencies).map_err(|e|e.to_string())?;
   command.arg("-L").arg(format!("dependency={}",dependencies.display()));
   if imports>0{command.arg("-L").arg(format!("native={}",dependencies.display()));}
@@ -156,18 +171,24 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
   struct Cleanup(PathBuf);impl Drop for Cleanup{fn drop(&mut self){let _=fs::remove_dir_all(&self.0);}}
   let dir=Cleanup(std::env::temp_dir().join(format!("tsrust-runtime-reuse-test-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos())));fs::create_dir(&dir.0).unwrap();
   let cache=dir.0.join("cache");let mut previous=None;
-  for (index,value) in [42,43].into_iter().enumerate(){
+  for (index,value) in [42,43,43].into_iter().enumerate(){
    let temporary=dir.0.join(format!("build-{index}"));fs::create_dir(&temporary).unwrap();let application=temporary.join("program.rs");
    fs::write(&application,format!("fn main(){{assert_eq!(tsrust_runtime::answer(),{value});}}")).unwrap();
    let runtime=format!("pub fn answer()->i64{{let value:serde_json::Value=serde_json::from_str(\"{value}\").unwrap();value.as_i64().unwrap()}}");
-   let mut prepared=Prepared::with_dependencies(application,&runtime,"pinned-backend-test",&cache,&temporary,false,false).unwrap();assert_eq!(prepared.state,"miss");
+   let mut prepared=Prepared::with_dependencies(application,&runtime,"pinned-backend-test",&cache,&temporary,false,false).unwrap();
+   if index<2 {assert_eq!(prepared.state,"miss");
    let mut command=prepared.command.take().unwrap();let package=command.get_current_dir().unwrap().to_owned();
-   let output=command.output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+   prepared.acquire_target(true).unwrap();
+   let output=command.output().unwrap();assert!(output.status.success(),"{}",prepared.compilation_error(&String::from_utf8_lossy(&output.stderr)));
+   prepared.finish().unwrap();
    let dependencies=prepared.dependencies.as_ref().unwrap();
-   let json=fs::read_dir(dependencies).unwrap().map(Result::unwrap).find(|entry|entry.file_name().to_string_lossy().starts_with("libserde_json-") && entry.path().extension().is_some_and(|extension|extension=="rlib")).unwrap().path();
+   assert_eq!(prepared.library.as_deref(),Some(dependencies.join("libtsrust_runtime.rlib").as_path()));
+   let json=prepared.cargo.as_ref().unwrap().sources.iter().find(|(name,_)|name.starts_with("libserde_json-") && name.ends_with(".rlib")).unwrap().1.clone();
+   assert_ne!(json.parent().unwrap(),dependencies);assert!(!package.join("native-target").exists());
    let stamp=fs::metadata(&json).unwrap().modified().unwrap();
    if let Some((previous_package,previous_json,previous_stamp))=&previous {assert_eq!(&package,previous_package);assert_eq!(&json,previous_json);assert_eq!(&stamp,previous_stamp);assert!(!String::from_utf8_lossy(&output.stderr).contains("Compiling serde_json"));}
    previous=Some((package,json,stamp));prepared.publish();
+   }else{assert_eq!(prepared.state,"hit");assert!(prepared.command.is_none());assert!(prepared.cargo.is_none());}
    let binary=temporary.join("program");let mut command=crate::backend_command();prepared.link(&mut command).unwrap();let output=command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert!(Command::new(binary).status().unwrap().success());
   }
  }

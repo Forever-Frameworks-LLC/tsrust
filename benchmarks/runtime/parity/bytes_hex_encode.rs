@@ -14,7 +14,7 @@ fn function0(value0: i64, value1: i64, value2: &String) -> NumericArray<i64> {
     let size=match value2.as_ref() {"4k"=>4096,"1m"=>1048576,_=>32};
     let text="é😀Ab".repeat(size/8);
     let bytes=text.as_bytes();
-    let mut output=Vec::new();
+    let mut output=Vec::with_capacity(usize::try_from(value0.max(0)).unwrap().checked_mul(3).unwrap());
     for _ in 0..value0 { let result=hex(bytes); output.extend([result.len() as i64,i64::from(result.starts_with("c3a9")),i64::from(result.ends_with("4162"))]); }
     NumericArray(output)
 }
