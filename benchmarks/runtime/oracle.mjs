@@ -1,3 +1,4 @@
+import {taskErgonomicsIDs,taskErgonomicsChecksum} from './task-ergonomics-contract.mjs';
 import {regexTextChecksum,regexTextSpecs} from './regex-text-contract.mjs';
 import {expectedByteOperationObservation} from './byte-operations-oracle.mjs';
 import {expectedByteCodecObservation} from './byte-codecs-oracle.mjs';
@@ -224,6 +225,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
+ if(taskErgonomicsIDs.includes(id))return taskErgonomicsChecksum(id,n,seed);
  if(id.startsWith("byte_ops_"))return expectedByteOperationObservation(id,n,seed,inputText).checksum;
  if(id.startsWith("bytes_"))return expectedByteCodecObservation(id,n,seed,inputText).checksum;
  if(Object.hasOwn(regexTextSpecs,id))return regexTextChecksum(id,n,seed,inputText);

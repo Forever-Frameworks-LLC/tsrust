@@ -283,6 +283,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
         })
         .chain(emitter.uses_url_runtime().then_some("url"))
         .chain(emitter.uses_regex_runtime().then_some("regex"))
+        .chain(rust.contains("mod tsrust_native_cancellation {").then_some("cancellation"))
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect();
@@ -2472,7 +2473,8 @@ impl Emitter<'_> {
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
-        let asynchronous_runtime = !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql")));
+        let asynchronous_runtime = !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql") || id==crate::native_signatures::NativeTypeId::Interval));
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CancellationToken)){output.push_str(crate::stdlib::futures::CANCELLATION_RUNTIME);}
         if asynchronous_runtime { output.push_str(include_str!("async_runtime.rs")); output.push_str(crate::stdlib::futures::RUNTIME); }
         self.set_types(&mut output);
         self.map_types(&mut output);
@@ -3250,7 +3252,8 @@ impl Emitter<'_> {
         if self.uses_regex_runtime() { output.push_str(crate::stdlib::regex::RUNTIME); }
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
             || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
-            output.push_str(crate::stdlib::threads::RUNTIME);
+            let asynchronous=self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:threads"&&binding.name=="__taskAsync"});
+            output.push_str(if asynchronous{crate::stdlib::threads::ASYNC_RUNTIME}else{crate::stdlib::threads::RUNTIME});
         }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id]
@@ -7921,6 +7924,7 @@ impl Emitter<'_> {
     fn native_collection_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->String {
         if let Some(code) = self.http_constructor_expression(fun,expr,mode) {return code;}
         if let Some(code) = self.cache_constructor_expression(fun,expr,mode) {return code;}
+        if let Some(code)=self.future_constructor(fun,expr,mode){return code;}
         if let Some(code) = self.channel_constructor_expression(fun, expr, mode) { return code; }
         if let Some(Type::Map(_))=expr.ty {
             let native=self.native_type(expr.ty.unwrap());let code=format!("<{native}>::new()");

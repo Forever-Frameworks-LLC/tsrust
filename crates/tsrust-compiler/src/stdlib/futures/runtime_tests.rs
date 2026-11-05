@@ -33,8 +33,8 @@ fn timeout_and_race_drain_losers_and_channels_apply_backpressure(){
         let (ready,started)=tokio::sync::oneshot::channel();
         let job=start(async move {let _guard=guard;let _=ready.send(());std::future::pending::<()>().await;Ok::<_,Failure<()>>(())});
         started.await.unwrap();assert!(matches!(timeout(job.join(),0).await,Err(Failure::Timeout)));assert_eq!(drops.load(Ordering::SeqCst),1);
-        let channel=Channel::new(1).unwrap();channel.send::<()>(1).await.ok().unwrap();
-        let sender=channel.sender();let send=start(async move {sender.send::<()>(2).await});
+        let channel=Channel::new(1).unwrap();channel.send(1).await.ok().unwrap();
+        let sender=channel.sender();let send=start(async move {sender.send(2).await.map_err(Failure::Worker)});
         assert_eq!(channel.receive::<()>().await.ok(),Some(1));assert!(send.join().await.is_ok());assert_eq!(channel.receive::<()>().await.ok(),Some(2));
         assert!(matches!(race::<std::future::Ready<Result<(),Failure<()>>>,_,_>(vec![]).await,Err(Failure::Empty)));
         let results=all_settled(vec![std::future::ready(Ok::<_,Failure<()>>(1)),std::future::ready(Err(Failure::Cancelled))]).await;
@@ -54,9 +54,9 @@ fn timers_closed_channels_and_worker_errors_keep_their_contracts(){
         assert!(matches!(delay::<()>(-1).await,Err(Failure::Range)));
         yield_now::<()>().await.unwrap_or_else(|_|panic!("yield failed"));
         let mut channel=Channel::new(1).unwrap();
-        channel.send::<()>(7).await.unwrap_or_else(|_|panic!("send failed"));
+        channel.send(7).await.unwrap_or_else(|_|panic!("send failed"));
         channel.close();
-        assert!(matches!(channel.send::<()>(8).await,Err(Failure::Closed)));
+        assert!(matches!(channel.send(8).await,Err(SendError{code:"closed",value:8})));
         assert!(matches!(channel.receive::<()>().await,Ok(7)));
         assert!(matches!(channel.receive::<()>().await,Err(Failure::Closed)));
         let failed=start(async {Err::<(),_>(Failure::Worker(9))});
@@ -113,10 +113,10 @@ fn race_failure_drains_started_loser_and_cancelled_send_releases_message(){
         assert!(matches!(race(inputs).await,Err(Failure::Worker(()))));
         assert_eq!(drops.load(Ordering::SeqCst),1);
         let mut queue=Channel::new(1).unwrap();
-        assert!(queue.send::<()>(DropCount(drops.clone())).await.is_ok());
+        assert!(queue.send(DropCount(drops.clone())).await.is_ok());
         let sender=queue.sender();let message=DropCount(drops.clone());
         let (ready,started)=tokio::sync::oneshot::channel();
-        let blocked=start(async move{let _=ready.send(());sender.send::<()>(message).await});
+        let blocked=start(async move{let _=ready.send(());sender.send(message).await.map_err(Failure::Worker)});
         started.await.unwrap();blocked.cancel();assert!(matches!(blocked.join().await,Err(Failure::Cancelled)));
         assert_eq!(drops.load(Ordering::SeqCst),2);
         queue.close();drop(queue.receive::<()>().await);assert_eq!(drops.load(Ordering::SeqCst),3);
@@ -168,9 +168,9 @@ fn bounded_queue_pending_sends_preserve_identity_and_drop_only_the_cancelled_own
   let mut queue=Channel::new(1).unwrap();
   let first=Payload{bytes:vec![1,2,3].into_boxed_slice(),drops:drops.clone()};
   let identity=first.bytes.as_ptr();
-  assert!(queue.send::<()>(first).await.is_ok());
+  assert!(queue.send(first).await.is_ok());
   let sender=queue.sender();
-  let mut blocked=Box::pin(sender.send::<()>(Payload{bytes:vec![4].into_boxed_slice(),drops:drops.clone()}));
+  let mut blocked=Box::pin(sender.send(Payload{bytes:vec![4].into_boxed_slice(),drops:drops.clone()}));
   assert!(std::future::poll_fn(|cx|Poll::Ready(matches!(blocked.as_mut().poll(cx),Poll::Pending))).await);
   assert_eq!(drops.load(Ordering::SeqCst),0);
   drop(blocked);
@@ -183,7 +183,73 @@ fn bounded_queue_pending_sends_preserve_identity_and_drop_only_the_cancelled_own
   assert_eq!(drops.load(Ordering::SeqCst),2);
   assert!(matches!(queue.receive::<()>().await,Err(Failure::Closed)));
   let rejected=Payload{bytes:vec![5].into_boxed_slice(),drops:drops.clone()};
-  assert!(matches!(sender.send::<()>(rejected).await,Err(Failure::Closed)));
+  assert!(matches!(sender.send(rejected).await,Err(SendError{code:"closed",..})));
   assert_eq!(drops.load(Ordering::SeqCst),3);
+ });
+}
+
+#[test]
+fn all_orders_unit_and_non_unpin_borrowed_results_and_drains_failure_siblings(){
+ block_on(async {
+  let cell=std::rc::Rc::new(std::cell::Cell::new(0));
+  let value=&cell;
+  let local=async {yield_now::<()>().await?;value.set(1);Ok::<_,Failure<()>>(7)};
+  assert_eq!(all(vec![local]).await.ok(),Some(vec![7]));
+  assert_eq!(cell.get(),1);
+  assert_eq!(all::<std::future::Ready<Result<(),Failure<()>>>,_,_>(vec![]).await.ok(),Some(vec![]));
+  assert_eq!(all(vec![std::future::ready(Ok::<_,Failure<()>>(())),std::future::ready(Ok(()))]).await.ok(),Some(vec![(),()]));
+  let drops=Arc::new(AtomicUsize::new(0));let guard=DropCount(drops.clone());
+  let(ready,started)=tokio::sync::oneshot::channel();
+  let sibling=start(async move{let _guard=guard;let _=ready.send(());std::future::pending::<()>().await;Ok::<_,Failure<i64>>(1)});
+  started.await.unwrap();
+  let sibling=Box::pin(sibling.join()) as std::pin::Pin<Box<dyn std::future::Future<Output=Result<i64,Failure<i64>>>>>;
+  let failed=Box::pin(std::future::ready(Err(Failure::Worker(9)))) as std::pin::Pin<Box<dyn std::future::Future<Output=Result<i64,Failure<i64>>>>>;
+  assert!(matches!(all(vec![sibling,failed]).await,Err(Failure::Worker(9))));
+  assert_eq!(drops.load(Ordering::SeqCst),1);
+ });
+}
+#[test]
+fn try_and_awaited_send_retain_exact_unsent_owners_and_sender_close_is_local(){
+ block_on(async {
+  let mut queue=Channel::new(1).unwrap();let mut sender=queue.sender();let other=queue.sender();
+  assert!(matches!(queue.try_receive(),Err("empty")));
+  let first=vec![1,2];let first_pointer=first.as_ptr();assert!(sender.try_send(first).is_ok());
+  let full=vec![3,4];let full_pointer=full.as_ptr();let full=other.try_send(full).err().unwrap();
+  assert_eq!(full.code,"full");assert_eq!(full.value.as_ptr(),full_pointer);
+  assert_eq!(queue.try_receive().ok().unwrap().as_ptr(),first_pointer);
+  sender.close();sender.close();
+  let closed=vec![5,6];let pointer=closed.as_ptr();let closed=sender.send(closed).await.err().unwrap();
+  assert_eq!(closed.code,"closed");assert_eq!(closed.value.as_ptr(),pointer);
+  assert!(other.try_send(vec![7]).is_ok());queue.close();assert_eq!(queue.try_receive().ok(),Some(vec![7]));
+  assert!(matches!(queue.try_receive(),Err("closed")));
+  let closed=vec![8];let pointer=closed.as_ptr();let closed=other.send(closed).await.err().unwrap();
+  assert_eq!(closed.code,"closed");assert_eq!(closed.value.as_ptr(),pointer);
+ });
+}
+#[test]
+fn interval_constructor_checks_context_and_ticks_are_cancel_safe(){
+ assert!(matches!(Interval::new(1,"burst"),Err("runtime")));
+ block_on(async {
+  assert!(matches!(Interval::new(0,"burst"),Err("range")));
+  assert!(matches!(Interval::new(-1,"burst"),Err("range")));
+  assert!(matches!(Interval::new(1,"unknown"),Err("range")));
+  for policy in ["burst","delay","skip"]{
+   let mut interval=Interval::new(60_000,policy).unwrap();
+   assert!(timeout::<_,_,()>(async{interval.tick().await;Ok(())},1000).await.is_ok());
+   let mut waiting=Box::pin(interval.tick());
+   std::future::poll_fn(|cx|{assert!(std::future::Future::poll(waiting.as_mut(),cx).is_pending());std::task::Poll::Ready(())}).await;
+   drop(waiting);
+  }
+ });
+}
+
+#[test]
+fn actual_deadline_and_capacity_ranges_replace_old_policy_ceilings(){
+ block_on(async {
+  assert!(matches!(timeout(delay::<()>(31_536_000_001),0).await,Err(Failure::Timeout)));
+  assert!(Channel::<()>::new(1_000_001).is_ok());
+  assert!(Channel::<()>::new(0).is_err());assert!(Channel::<()>::new(-1).is_err());
+  let above=tokio::sync::Semaphore::MAX_PERMITS.checked_add(1).and_then(|value|i64::try_from(value).ok());
+  if let Some(above)=above{assert!(Channel::<()>::new(above).is_err());}
  });
 }

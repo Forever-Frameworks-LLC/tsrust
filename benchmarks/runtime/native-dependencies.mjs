@@ -28,10 +28,13 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
  const codecs=/\bfn codec_base64_engine\(/.test(emitted);
  const search=/\bpub fn index_of\(bytes: &\[u8\], needle: &\[u8\], from_index: i64\)/.test(emitted);
  const regex=/(?:^|[;}]\s*)mod\s+tsrust_native_regex\s*\{/m.test(emitted);
+ const asynchronous=/(?:^|[;}]\s*)mod\s+tsrust_native_futures\s*\{/m.test(emitted);
+ const cancellation=/(?:^|[;}]\s*)mod\s+tsrust_native_cancellation\s*\{/m.test(emitted);
+ const threads=/(?:^|[;}]\s*)mod\s+tsrust_native_threads\s*\{/m.test(emitted);
  const urls=/(?:^|[;}]\s*)mod\s+tsrust_native_url\s*\{/m.test(emitted);
  const hostname=/(?:^|[;}]\s*)mod\s+tsrust_native_hostname\s*\{/m.test(emitted);
- if(!needsJsonDependencies(emitted)&&!files&&!codecs&&!search&&!urls&&!hostname&&!regex)return {args:[],evidence:null};
- const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(codecs?['base64']:[]),...(search?['memchr']:[]),...(urls?['url','percent_encoding']:[]),...(hostname?['hostname']:[]),...(regex?['regex']:[])];
+ if(!needsJsonDependencies(emitted)&&!files&&!codecs&&!search&&!urls&&!hostname&&!regex&&!asynchronous&&!cancellation&&!threads)return {args:[],evidence:null};
+ const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(codecs?['base64']:[]),...(search?['memchr']:[]),...(urls?['url','percent_encoding']:[]),...(hostname?['hostname']:[]),...(regex?['regex']:[]),...(asynchronous?['tokio']:[]),...(cancellation?['tokio_util']:[]),...(threads?['rayon']:[])];
  // Stable source paths keep rebuilt dependency artifacts identical across A/B runs.
  const scratch=path.join(build,'package-native-dependencies');
  fs.mkdirSync(scratch); // Fail closed if another preparation owns this directory.

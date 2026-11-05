@@ -24,7 +24,7 @@ async fn kernel(name:&str,pool:&tsrust_native_threads::OwnedPool,closed:&tsrust_
         "try_direct"=>{let(tx,mut rx)=tokio::sync::mpsc::channel(64);for value in 0..64u64{tx.try_send(value).unwrap();}(0..64).map(|_|rx.try_recv().unwrap()).sum()},
         "try_exclusive"=>{let(tx,rx)=tokio::sync::mpsc::channel(64);let mut rx=tokio::sync::Mutex::new(rx);for value in 0..64u64{tx.try_send(value).unwrap();}(0..64).map(|_|rx.get_mut().try_recv().unwrap()).sum()},
         "async_direct"=>{let(tx,mut rx)=tokio::sync::mpsc::channel(64);for value in 0..64u64{tx.send(value).await.unwrap();}let mut sum=0;for _ in 0..64{sum+=rx.recv().await.unwrap();}sum},
-        "async_existing"=>{let channel=tsrust_native_futures::Channel::new(64).unwrap();for value in 0..64u64{channel.send::<()>(value).await.unwrap_or_else(|_|panic!("send"));}let mut sum=0;for _ in 0..64{sum+=channel.receive::<()>().await.unwrap_or_else(|_|panic!("receive"));}sum},
+        "async_existing"=>{let channel=tsrust_native_futures::Channel::new(64).unwrap();for value in 0..64u64{channel.send(value).await.unwrap_or_else(|_|panic!("send"));}let mut sum=0;for _ in 0..64{sum+=channel.receive::<()>().await.unwrap_or_else(|_|panic!("receive"));}sum},
         "cap_construct"=>{drop(black_box(selected_task(black_box(pool),||Ok::<_,()>(7))));1},
         "cap_closed_poll"=>{let result=selected_task(black_box(closed),||->Result<u64,()>{panic!("closed work executed")}).await;assert!(matches!(result,Err(tsrust_native_threads::ProbeError::<()>::Admission(error))if error.code=="closed"));1},
         "cpu_async"=>{let mut sum=0;for value in 0..64{sum+=selected_task(pool,move||Ok::<_,()>(cpu(value,4096))).await.unwrap_or_else(|_|panic!("async CPU"));}sum},

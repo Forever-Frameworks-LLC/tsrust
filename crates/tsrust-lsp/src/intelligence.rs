@@ -2074,7 +2074,7 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
-        if self.text(id) == "new" && matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool | tsrust_compiler::native_signatures::NativeTypeId::HttpRouter | tsrust_compiler::native_signatures::NativeTypeId::HttpApp | tsrust_compiler::native_signatures::NativeTypeId::HttpClient)) {
+        if self.text(id) == "new" && matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool | tsrust_compiler::native_signatures::NativeTypeId::Interval | tsrust_compiler::native_signatures::NativeTypeId::CancellationToken | tsrust_compiler::native_signatures::NativeTypeId::HttpRouter | tsrust_compiler::native_signatures::NativeTypeId::HttpApp | tsrust_compiler::native_signatures::NativeTypeId::HttpClient)) {
             let open = self.member_call_open(id + 1)?;
             let ty = if self.text(id + 2) == "<" { self.snippet(id + 1, open) } else { self.text(id + 1).into() };
             return Some((ty, self.pairs.get(open).copied().flatten()? + 1));
@@ -3910,7 +3910,7 @@ impl SourceIndex {
                 _ => {}
             }
         }
-        for (open, _) in stack.into_iter().rev() {
+        for (open, parameter) in stack.into_iter().rev() {
             if self.text(open) != "(" {
                 continue;
             }
@@ -3939,10 +3939,11 @@ impl SourceIndex {
                 let label=entry["signature"].as_str().unwrap().replace(&format!("new {name}("),&format!("new {}(",self.text(callee))).replace(&format!(": {name}"),&format!(": {}",self.text(callee)));
                 return json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
             }
-            if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) {
-                let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "ThreadPool").expect("documented ThreadPool constructor");
-                let label = entry["signature"].as_str().unwrap().replace("new ThreadPool(", &format!("new {}(", self.text(callee))).replace(": ThreadPool", &format!(": {}", self.text(callee)));
-                return json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
+            if callee > 0 && self.text(callee - 1)=="new" && matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool|tsrust_compiler::native_signatures::NativeTypeId::Interval|tsrust_compiler::native_signatures::NativeTypeId::CancellationToken)) {
+                let declaration=tsrust_compiler::native_types::declaration(self.native_type_aliases[self.text(callee)]);
+                let entry=builtins_for(declaration.module).into_iter().find(|entry|entry["name"]==declaration.name).expect("documented native constructor");
+                let label=entry["signature"].as_str().unwrap().replace(&format!("new {}(",declaration.name),&format!("new {}(",self.text(callee))).replace(&format!(": {}",declaration.name),&format!(": {}",self.text(callee)));
+                return json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":parameter});
             }
             if callee > 0 && self.text(callee - 1) == "new"
                 && matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap)) {

@@ -6,6 +6,8 @@ impl Emitter<'_> {
         let binding = &crate::native_bindings::BINDINGS[id];
         if binding.module != "std:threads" { return None; }
         self.native_bindings.borrow_mut().insert(id);
+        if binding.name=="__poolSubmission"{return Some(format!("({}).submission()",self.expr(fun,&args[0],Mode::Read)));}
+        if binding.name=="__taskAsync"{return Some(self.thread_async_native(fun,expr,args));}
         if let Some(code) = self.channel_native(fun, expr, binding.name, args) { return Some(code); }
         if matches!(binding.name, "__ownedPoolStats") {
             let call = format!("({}).stats()", self.expr(fun, &args[0], Mode::Read));
@@ -95,6 +97,38 @@ impl Emitter<'_> {
         };
         Some(call)
     }
+    fn thread_async_native(&self,fun:&CheckedFunction,expr:&Expr,args:&[Expr])->String {
+        let Type::Union(union)=expr.ty.unwrap()else{unreachable!("checked taskAsync Result")};
+        let variants=self.program.unions[union.index()].members.iter().enumerate().map(|(tag,ty)|{let Type::Record(id)=ty else{unreachable!()};(self.program.records[*id].application.as_ref().unwrap().declaration.text.as_str(),tag,*id)}).collect::<Vec<_>>();
+        let(_,ok_tag,ok)=*variants.iter().find(|(name,_,_)|*name=="Result#Ok").unwrap();
+        let(_,err_tag,err)=*variants.iter().find(|(name,_,_)|*name=="Result#Err").unwrap();
+        let failures=self.program.records[err].fields[0].ty.unwrap();
+        let Type::Union(errors)=failures else{unreachable!("admission and completion errors")};
+        let completion=self.program.unions[errors.index()].members.iter().find_map(|ty|{let Type::Record(id)=ty else{return None;};(self.program.records[*id].native_type==Some(NativeTypeId::ThreadError)).then_some(*id)}).unwrap();
+        let admission=self.program.unions[errors.index()].members.iter().find_map(|ty|{let Type::Record(id)=ty else{return None;};(self.program.records[*id].native_type==Some(NativeTypeId::SpawnError)).then_some(*id)}).unwrap();
+        let own_error=self.program.records[completion].application.as_ref().unwrap().resolved_arguments[0];
+        let cause=self.program.records[completion].fields[1].ty.unwrap();
+        let wrap=|tag:usize,id:usize,payload:&str|{let field=if self.program.records[id].fields.is_empty(){String::new()}else{format!("field0:{payload},")};format!("Union{}::V{tag}(Record{}{{{field}{}}})",union.index(),self.native_record_declaration(id),self.schema_record_order(id).trim_start_matches(','))};
+        let success=wrap(ok_tag,ok,"value");
+        let admission_value=format!("Record{}{{field0:String::Borrowed(error.code),field1:String::Owned(error.to_string()){}}}",self.native_record_declaration(admission),self.schema_record_order(admission));
+        let rejected=wrap(err_tag,err,&self.future_inject(Type::Record(admission),failures,&admission_value));
+        let failed=|code:&str,payload:String|{let error=format!("Record{}{{field0:String::Borrowed({code:?}),field1:{payload}{}}}",self.native_record_declaration(completion),self.schema_record_order(completion));wrap(err_tag,err,&self.future_inject(Type::Record(completion),failures,&error))};
+        let worker=failed("worker",self.future_inject(own_error,cause,"error"));
+        let panic=failed("panic",self.future_inject(Type::Undefined,cause,"TsrUndefined"));
+        let cancelled=failed("cancelled",self.future_inject(Type::Undefined,cause,"TsrUndefined"));
+        let Type::Closure(origin)=args[1].ty.unwrap()else{unreachable!("checked worker callback")};
+        let argument=self.program.closures[origin].parameters.first().map(|&id|match self.program.closures[origin].function.bindings[id].mode{Mode::Read=>"&task_context",Mode::Mutate=>"&mut task_context",_=>"task_context"}).unwrap_or("");
+        let setup=if argument.is_empty(){""}else if argument=="&mut task_context"{"let mut task_context=tsrust_native_threads::TaskContext::current();"}else{"let task_context=tsrust_native_threads::TaskContext::current();"};
+        let result=if let Some(name)=self.result_closures.borrow().get(&origin){
+            let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError").map(Type::Record);
+            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
+            let converted=exception_contract_emit::checked_catch_value("error",name,&self.program.error_effects.closure_errors[origin],&unions,runtime,expr.span).expect("checked worker errors");
+            format!("callback.call({argument}).map_err(|error|{converted})")
+        }else{format!("Ok::<_,{}>(callback.call({argument}))",self.native_type(own_error))};
+        let mutable=if self.program.closures[origin].invocation==Mode::Mutate{"mut "}else{""};
+        let capability=self.expr(fun,&args[0],Mode::Consume);let callback=self.expr(fun,&args[1],Mode::Consume);
+        format!("{{let capability={capability};let {mutable}callback={callback};match tsrust_native_threads::task_async(capability,move||{{{setup}{result}}}).await{{Ok(value)=>{success},Err(tsrust_native_threads::AsyncTaskError::Admission(error))=>{rejected},Err(tsrust_native_threads::AsyncTaskError::Completion(tsrust_native_threads::JoinError::Worker(error)))=>{worker},Err(tsrust_native_threads::AsyncTaskError::Completion(tsrust_native_threads::JoinError::Panic))=>{panic},Err(tsrust_native_threads::AsyncTaskError::Completion(tsrust_native_threads::JoinError::Cancelled))=>{cancelled}}}}}")
+    }
     pub(super) fn thread_record(&self, output: &mut String, id: usize) -> bool {
         let record = &self.program.records[id];
         if matches!(record.native_type, Some(NativeTypeId::Channel | NativeTypeId::Sender)) {
@@ -104,6 +138,7 @@ impl Emitter<'_> {
             writeln!(output, "type Record{id} = tsrust_native_threads::{name}<{}>;", self.native_type(payload)).unwrap();
             return true;
         }
+        if record.native_type==Some(NativeTypeId::PoolSubmission){writeln!(output,"type Record{id}=tsrust_native_threads::PoolSubmission;").unwrap();return true;}
         if record.native_type == Some(NativeTypeId::TaskContext) { writeln!(output,"type Record{id} = tsrust_native_threads::TaskContext;").unwrap(); return true; }
         if record.native_type == Some(NativeTypeId::ThreadPool) { writeln!(output,"type Record{id} = tsrust_native_threads::OwnedPool;").unwrap(); return true; }
         if !matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) { return false; }

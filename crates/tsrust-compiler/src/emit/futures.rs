@@ -14,13 +14,13 @@ impl Emitter<'_>{
         }}true
     }
 
-    fn future_inject(&self,source:Type,destination:Type,value:&str)->String{
+    pub(super) fn future_inject(&self,source:Type,destination:Type,value:&str)->String{
         if source==destination{return value.into();}
         let Type::Union(target)=destination else{return value.into();};
         let members=&self.program.unions[target.index()].members;
         if let Type::Union(source)=source {
-            let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(payload)=>{}",source.index(),self.future_inject(*ty,destination,"payload"))).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
-        }else{let tag=members.iter().position(|ty|*ty==source).expect("checked future error alternative");format!("Union{}::V{tag}({value})",target.index())}
+            let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(payload)=>Union{}::V{}({})",source.index(),target.index(),members.iter().position(|member|member==ty).expect("checked future error member"),self.union_transfer_payload(source,target,*ty,"payload"))).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
+        }else{let tag=members.iter().position(|ty|*ty==source).expect("checked future error alternative");format!("Union{}::V{tag}({})",target.index(),self.union_store_payload(target,source,value))}
     }
     pub(super) fn future_error_type(&self,ty:Type,span:Span)->Type{
         if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::Job){return self.program.records[id].application.as_ref().unwrap().resolved_arguments[1];}
@@ -70,10 +70,53 @@ impl Emitter<'_>{
         }
         format!("match {call}{{Ok(value)=>{success},Err(failure)=>{failure}}}")
     }
+    fn future_channel_result(&self,ty:Type,call:&str,sending:bool)->String {
+        let Type::Union(union)=ty else{unreachable!("checked channel Result")};
+        let mut ok=String::new();let mut err=String::new();
+        for(tag,member)in self.program.unions[union.index()].members.iter().enumerate(){
+            let Type::Record(id)=member else{unreachable!()};let record=&self.program.records[*id];
+            if record.application.as_ref().unwrap().declaration.text=="Result#Ok"{
+                let field=if record.fields.is_empty(){""}else{"field0:value,"};
+                ok=format!("Union{}::V{tag}(Record{}{{{field}{}}})",union.index(),self.native_record_declaration(*id),self.schema_record_order(*id).trim_start_matches(','));
+            }else{
+                let Type::Record(error)=record.fields[0].ty.unwrap()else{unreachable!()};
+                let fields=if sending{"field0:String::Borrowed(error.code),field1:error.value"}else{"field0:String::Borrowed(error)"};
+                err=format!("Union{}::V{tag}(Record{}{{field0:Record{}{{{fields}{}}}{}}})",union.index(),self.native_record_declaration(*id),self.native_record_declaration(error),self.schema_record_order(error),self.schema_record_order(*id));
+            }
+        }
+        format!("match {call}{{Ok(value)=>{ok},Err(error)=>{err}}}")
+    }
+    fn future_policy(&self,ty:Type,value:&str)->String {
+        match ty {
+            Type::Literal(id,_)=>{let crate::literal_types::LiteralValue::String(policy)=self.program.records[id].literal_definition.as_ref().unwrap()else{unreachable!()};format!("{{let _policy={value};{policy:?}}}")},
+            Type::Union(id)=>{let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(policy)=>{}",id.index(),self.future_policy(*ty,"policy"))).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")},
+            _=>unreachable!("checked missed tick policy"),
+        }
+    }
+    pub(super) fn future_constructor(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->Option<String>{
+        let Some(Type::Record(id))=expr.ty else{return None;};
+        let ExprKind::NativeConstructor(args,_)=&expr.kind else{return None;};
+        let code=match self.program.records[id].native_type {
+            Some(NativeTypeId::CancellationToken)=>"tsrust_native_cancellation::CancellationToken::new()".into(),
+            Some(NativeTypeId::Interval)=>{
+                let period=self.expr(fun,&args[0],Mode::Read);
+                let policy=args.get(1).map(|arg|self.future_policy(arg.ty.unwrap(),&self.expr(fun,arg,Mode::Consume))).unwrap_or_else(||"\"burst\"".into());
+                let range=self.runtime_failure_exit("RangeError","range","Interval period must be positive and fit the target timer deadline.",expr.span).expect("checked interval range error");
+                let runtime=self.runtime_failure_exit("RuntimeError","runtime","Interval requires an active async runtime.",expr.span).expect("checked interval runtime error");
+                format!("match tsrust_native_futures::Interval::new({period},{policy}){{Ok(interval)=>interval,Err(\"runtime\")=>{{{runtime}}},Err(_)=>{{{range}}}}}")
+            },_=>return None,
+        };
+        Some(match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code})
+    }
     pub(super) fn future_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
         let binding=&crate::native_bindings::BINDINGS[id];if binding.module!="std:futures"{return None;}
         self.native_bindings.borrow_mut().insert(id);
         let result=expr.ty.unwrap();
+        if matches!(binding.name,"__tick"|"__tokenShare"|"__tokenChild"|"__tokenCancel"|"__tokenIsCancelled"|"__tokenCancelled"){
+            let receiver=self.expr(fun,&args[0],if binding.name=="__tick"{Mode::Mutate}else{Mode::Read});
+            let method=match binding.name{"__tick"=>"tick","__tokenShare"=>"share","__tokenChild"=>"child","__tokenCancel"=>"cancel","__tokenIsCancelled"=>"is_cancelled",_=>"cancelled"};
+            return Some(format!("({receiver}).{method}(){}",if matches!(binding.name,"__tick"|"__tokenCancelled"){".await"}else{""}));
+        }
         if matches!(binding.name,"__cancel"|"__sender"|"__close"){
             let receiver=self.expr(fun,&args[0],if binding.name=="__close"{Mode::Mutate}else{Mode::Read});
             return Some(format!("({receiver}).{}()",match binding.name{"__cancel"=>"cancel","__sender"=>"sender",_=>"close"}));
@@ -84,6 +127,11 @@ impl Emitter<'_>{
             // Strip only the runtime wrapper; source failures remain typed payloads.
             return Some(format!("{{let task={value};tsrust_native_futures::start(async move{{{poll}}})}}"));
         }
+        if matches!(binding.name,"__send"|"__trySend"|"__tryReceive") {
+            let receiver=self.expr(fun,&args[0],if binding.name=="__tryReceive"{Mode::Mutate}else{Mode::Read});
+            let call=if binding.name=="__tryReceive"{format!("({receiver}).try_receive()") }else{let value=self.expr(fun,&args[1],Mode::Consume);format!("({receiver}).{}({value}){}",if binding.name=="__send"{"send"}else{"try_send"},if binding.name=="__send"{".await"}else{""})};
+            return Some(self.future_channel_result(result,&call,binding.name!="__tryReceive"));
+        }
         let result_item=if let Type::Array(item)=result{item.ty()}else{result};
         let Type::Union(union)=result_item else{unreachable!("future operation result")};
         let error=self.program.unions[union.index()].members.iter().find_map(|ty|{let Type::Record(record)=ty else{return None;};let record=&self.program.records[*record];if record.application.as_ref()?.declaration.text!="Result#Err"{return None;}let Type::Record(error)=record.fields[0].ty? else{return None;};Some(self.program.records[error].application.as_ref().unwrap().resolved_arguments[0])}).unwrap();
@@ -92,8 +140,8 @@ impl Emitter<'_>{
             "__yield"=>"tsrust_native_futures::yield_now().await".into(),
             "__join"=>format!("({}).join().await",self.expr(fun,&args[0],Mode::Consume)),
             "__timeout"=>{let value=self.expr(fun,&args[0],Mode::Consume);let duration=self.expr(fun,&args[1],Mode::Read);let poll=self.future_poll(args[0].ty.unwrap(),"task",error,expr.span);format!("{{let task={value};let milliseconds={duration};tsrust_native_futures::timeout(async move{{{poll}}},milliseconds).await}}")},
-            "__race"|"__allSettled"=>{
-                let operation=if binding.name=="__race"{"race"}else{"all_settled"};
+            "__race"|"__allSettled"|"__all"=>{
+                let operation=match binding.name{"__race"=>"race","__all"=>"all",_=>"all_settled"};
                 if args.is_empty(){format!("tsrust_native_futures::{operation}(Vec::<std::future::Ready<Result<(),tsrust_native_futures::Failure<{}>>>>::new()).await",self.native_type(error))}else{
                 let values=self.expr(fun,&args[0],Mode::Consume);
                 if let Type::Array(item)=args[0].ty.unwrap(){
@@ -103,6 +151,7 @@ impl Emitter<'_>{
                     let Type::Record(id)=args[0].ty.unwrap()else{unreachable!()};
                     let fields=&self.program.records[id].fields;
                     let result_type=self.program.unions[union.index()].members.iter().find_map(|ty|{let Type::Record(id)=ty else{return None;};let record=&self.program.records[*id];(record.application.as_ref()?.declaration.text=="Result#Ok").then(||record.fields.first().and_then(|field|field.ty).unwrap_or(Type::Void))}).unwrap();
+                    let result_type=if binding.name=="__all"{let Type::Array(element)=result_type else{unreachable!("checked all output")};element.ty()}else{result_type};
                     let send=if self.future_owned(args[0].ty.unwrap()){ "+Send" }else{""};
                     let items=fields.iter().enumerate().map(|(index,field)|{
                         let poll=self.future_poll(field.ty.unwrap(),"task",error,expr.span);
@@ -117,7 +166,12 @@ impl Emitter<'_>{
         Some(if binding.name=="__allSettled"{format!("({call}).into_iter().map(|result|{}).collect::<Vec<_>>()",self.future_result(result_item,"result"))}else{self.future_result(result,&call)})
     }
     pub(super) fn future_record(&self,output:&mut String,id:usize)->bool{
-        let record=&self.program.records[id];let name=match record.native_type{Some(NativeTypeId::Job)=>"Job",Some(NativeTypeId::AsyncChannel)=>"Channel",Some(NativeTypeId::AsyncSender)=>"Sender",_=>return false};
+        let record=&self.program.records[id];
+        if matches!(record.native_type,Some(NativeTypeId::Interval|NativeTypeId::CancellationToken)){
+            let native=if record.native_type==Some(NativeTypeId::Interval){"tsrust_native_futures::Interval"}else{"tsrust_native_cancellation::CancellationToken"};
+            writeln!(output,"type Record{id}={native};").unwrap();return true;
+        }
+        let name=match record.native_type{Some(NativeTypeId::Job)=>"Job",Some(NativeTypeId::AsyncChannel)=>"Channel",Some(NativeTypeId::AsyncSender)=>"Sender",_=>return false};
         if let Some(application)=&record.application{let args=application.resolved_arguments.iter().map(|ty|self.native_type(*ty)).collect::<Vec<_>>().join(",");writeln!(output,"type Record{id}=tsrust_native_futures::{name}<{args}>;").unwrap();}true
     }
 }

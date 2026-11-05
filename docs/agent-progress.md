@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `31738942`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+`codex/stdlib-0.2.0`, source checkpoint `7ac738fb`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
 built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
@@ -41,6 +41,22 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
+**B06 public source batch integrated, executable acceptance pending:** worker52715935
+was whole-formatted/token-checked across1572files (4.628s/206,096KiB then
+4.651s/199,184KiB). Root no-commit integration resolved two overlapping lines by
+preserving both Regex imports/effects and B06 timer/token/async-pool additions.
+Root added exact optional tokio-util0.7.20/default-features=false, cancellation
+feature/runtime/export hooks, compiler dev dependency and reserved pin. Three
+locks changed only direct dependency lists; no packages/versions added or updated.
+Mixed threads+async+cancellation export now accumulates features independently;
+added relocated offline O0/O3/forbid-unsafe witness. Benchmark source/ABI tests
+initially failed because4096 was inside the Node Worker template literal; guard
+now inspects that literal's code tokens, preserving mutation rejection. Both tests
+pass; unchanged regex source/oracle self-check passes. No B06 Rust/native/editor
+checks or timings have run. Next: whole-project format, source checkpoint, combined
+compiler/LSP no-run build (B06 + pending B12 native scope) under shared watchdog.
+No heavy process currently live; workers have no build slot.
+
 **B12 options/export build73122 passed:** exact31738942, terminal build-finished:true,
 209.083s/2,664,402KiB. `/tmp/tsrust-b12-options-export-{artifacts.jsonl,build.log}`.
 Direct runner81043 terminal77.134s/494,352KiB: all18catalog examples passed O0/O3
@@ -48,9 +64,14 @@ Direct runner81043 terminal77.134s/494,352KiB: all18catalog examples passed O0/O
 Native ownership failed4.27s: E0716 borrowing options(true/false) temporaries across
 staged statements. Fix now converts the borrowed optional record into owned backend
 Options in the same statement; no clone or lifetime widening. Existing true/false
-native fixture witnesses the failure. Pending source checkpoint/revalidation.
+native fixture witnesses the failure. Checkpointed7ac738fb; native revalidation pending.
 `/tmp/tsrust-b12-options-export-gates.{json,log}` preserves passes and failure.
-No heavy process remains live. Whole-format before31738942 passed1562files,
+Root heavy slot released to B06 worker for whole-project formatting/token/idempotence
+and local source checkpoint ONLY; no Cargo build granted. Integrate the completed
+B06 batch, add root-managed tokio-util dependency hooks, then combine affected
+B06+B12 build once. Preserve B12 catalog/export/effect/editor passes.
+Whole-format before7ac738fb passed1562files,4.684s/201,376KiB and
+4.654s/201,488KiB;0changes. Whole-format before31738942 passed1562files,
 4.662s/203,152KiB and4.132s/203,616KiB;0changes.
 
 B06 worker remains source-only in isolated stdlib-files worktree: runtime/compiler,

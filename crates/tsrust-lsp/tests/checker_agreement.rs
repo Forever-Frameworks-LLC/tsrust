@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Interval,CancellationToken,Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -134,10 +134,12 @@ Receiver {ty:"SqliteError",parameter:"x: SqliteError"},
     Receiver {ty:"ClientOptions",parameter:"x: ClientOptions"},
     Receiver {ty:"HttpError",parameter:"x: HttpError"},
 
+    Receiver {ty:"Interval",parameter:"x: Mutable<Interval>"},
+    Receiver {ty:"CancellationToken",parameter:"x: ReadOnly<CancellationToken>"},
     Receiver { ty: "Job<int, undefined>", parameter: "x: ReadOnly<Job<int, undefined>>" },
     Receiver { ty: "AsyncError<string>", parameter: "x: ReadOnly<AsyncError<string>>" },
-    Receiver { ty: "AsyncChannel<int>", parameter: "x: ReadOnly<AsyncChannel<int>>" },
-    Receiver { ty: "AsyncSender<int>", parameter: "x: ReadOnly<AsyncSender<int>>" },
+    Receiver { ty: "AsyncChannel<int>", parameter: "x: Mutable<AsyncChannel<int>>" },
+    Receiver { ty: "AsyncSender<int>", parameter: "x: Mutable<AsyncSender<int>>" },
     Receiver { ty: "Task<int>", parameter: "x: Task<int>" },
     Receiver { ty: "Channel<int>", parameter: "x: ReadOnly<Channel<int>>" },
     Receiver { ty: "Sender<int>", parameter: "x: Sender<int>" },

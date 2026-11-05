@@ -1253,10 +1253,10 @@
       "parameters": [
         {
           "label": "milliseconds: int",
-          "documentation": "Creates a lazy timer. Awaiting waits without blocking a worker thread. milliseconds is an integer from 0 through 31536000000; zero imposes no positive delay. Invalid values throw AsyncError code range when awaited. No receiver mutation."
+          "documentation": "Creates a lazy timer. Awaiting waits without blocking a worker thread. milliseconds is an integer from zero through the target-representable timer deadline; zero imposes no positive delay. Invalid values throw AsyncError code range when awaited. No receiver mutation."
         }
       ],
-      "documentation": "Creates a lazy timer. Awaiting waits without blocking a worker thread. milliseconds is an integer from 0 through 31536000000; zero imposes no positive delay. Invalid values throw AsyncError code range when awaited. No receiver mutation.\n\n```tsrust\nawait delay(10); // waits at least 10 ms\n```\n\nOwnership: uniquely owned task; await once or transfer it.",
+      "documentation": "Creates a lazy timer. Awaiting waits without blocking a worker thread. milliseconds is an integer from zero through the target-representable timer deadline; zero imposes no positive delay. Invalid values throw AsyncError code range when awaited. No receiver mutation.\n\n```tsrust\nawait delay(10); // waits at least 10 ms\n```\n\nOwnership: uniquely owned task; await once or transfer it.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures'; async function main():Task<void>{await delay(1); console.log('ready');}",
@@ -1344,10 +1344,10 @@
       "parameters": [
         {
           "label": "capacity: int",
-          "documentation": "Creates a bounded async channel. capacity is the maximum number of queued messages, 1..1000000; invalid capacity throws RangeError. A full channel makes send wait without blocking a worker. receive waits for a message. close rejects further sends while allowing queued messages to drain. Each message moves to one receiver."
+          "documentation": "Creates a bounded async channel. capacity is the maximum number of queued messages, positive and within the target backend limit; invalid capacity throws RangeError. A full channel makes send wait without blocking a worker. receive waits for a message. close rejects further sends while allowing queued messages to drain. Each message moves to one receiver."
         }
       ],
-      "documentation": "Creates a bounded async channel. capacity is the maximum number of queued messages, 1..1000000; invalid capacity throws RangeError. A full channel makes send wait without blocking a worker. receive waits for a message. close rejects further sends while allowing queued messages to drain. Each message moves to one receiver.\n\n```tsrust\nconst queue = new Channel<int>(2);\nawait queue.send(42);\nconsole.log(await queue.receive()); // 42\n```\n\nOwnership: unique channel owner; sender() creates an owned sending endpoint. Messages must be owned transferable data without endpoints or jobs.",
+      "documentation": "Creates a bounded async channel. capacity is the maximum number of queued messages, positive and within the target backend limit; invalid capacity throws RangeError. A full channel makes send wait without blocking a worker. receive waits for a message. close rejects further sends while allowing queued messages to drain. Each message moves to one receiver.\n\n```tsrust\nconst queue = new Channel<int>(2);\nawait queue.send(42);\nconsole.log(await queue.receive()); // 42\n```\n\nOwnership: unique channel owner; sender() creates an owned sending endpoint. Messages must be owned transferable data without endpoints or jobs.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
@@ -1359,11 +1359,97 @@
       "name": "Sender",
       "signature": "type Sender<T>",
       "parameters": [],
-      "documentation": "Owned sending endpoint from Channel.sender(). send waits for queue capacity; a closed channel throws AsyncError code closed. Dropping an endpoint releases it.\n\n```tsrust\nconst sender = queue.sender();\nawait sender.send(42);\n```\n\nOwnership: may move into an async function; cannot be cloned implicitly.",
+      "documentation": "Owned sending endpoint from Channel.sender(). send waits for queue capacity; a closed channel throws SendError<T> code closed retaining the unsent value. Dropping an endpoint releases it.\n\n```tsrust\nconst sender = queue.sender();\nawait sender.send(42);\n```\n\nOwnership: may move into an async function; cannot be cloned implicitly.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
           "output": "42\nclosed\n"
+        }
+      ]
+    },
+    {
+      "name": "all",
+      "signature": "all(inputs: (Task<T> | Job<T, E>)[]): Task<T[]>",
+      "parameters": [
+        {
+          "label": "inputs: (Task<T> | Job<T, E>)[]",
+          "documentation": "Homogeneous owned tasks or jobs; empty literal gives void[]. First observed failure cancels siblings and awaits cleanup."
+        }
+      ],
+      "documentation": "Creates a lazy group. Polls inputs together and returns results in input order. All inputs have the same result type; void results form void[]. Empty literal input returns void[]. The first observed failure throws AsyncError<E>; ready ties prefer input order. Cancels remaining work and waits for scope cleanup before returning. Mix concrete tasks and jobs in a call-site array literal; stored arrays hold one input type.\n\n```tsrust\nconst values = await all([first(), second().start()]);\n```\n\nOwnership: consumes the input array and every task/job. Borrowed local inputs stay local; start requires owned transferable captures.",
+      "examples": [
+        {
+          "source": "import {all} from 'std:futures';async function value(n:int):Task<int>{return n;}async function unit():Task<void>{}async function main():Task<void>{const values=await all([value(2),value(1).start()]);console.log(values[0],values[1]);console.log((await all([unit(),unit()])).length,(await all([])).length);}",
+          "output": "2 1\n2 0\n"
+        }
+      ]
+    },
+    {
+      "name": "Interval",
+      "signature": "new Interval(periodMs: int, missedTickBehavior?: MissedTickBehavior): Interval",
+      "parameters": [
+        {
+          "label": "periodMs: int",
+          "documentation": "Positive integer milliseconds within the target deadline range; no artificial duration ceiling."
+        },
+        {
+          "label": "missedTickBehavior?: MissedTickBehavior",
+          "documentation": "burst by default; delay shifts the schedule after lateness; skip omits missed ticks."
+        }
+      ],
+      "documentation": "Creates a periodic timer on an active async runtime. periodMs must be positive and fit the target timer deadline; invalid periods throw RangeError. Calling outside a runtime throws RuntimeError. missedTickBehavior is burst (default), delay or skip. First tick is immediately ready. burst catches up missed ticks, delay schedules from the late tick, and skip resumes the original schedule after skipped ticks. Timing resolution depends on the platform.\n\n```tsrust\nconst timer = new Interval(10, 'skip');\nawait timer.tick(); // first tick is immediate\n```\n\nOwnership: unique timer; tick retains an exclusive borrow until completion or disposal.",
+      "examples": [
+        {
+          "source": "import {Interval,MissedTickBehavior} from 'std:futures';async function main():Task<void>{const policy:MissedTickBehavior='skip';const timer=new Interval(1,policy);await timer.tick();console.log('tick');}",
+          "output": "tick\n"
+        }
+      ]
+    },
+    {
+      "name": "MissedTickBehavior",
+      "signature": "type MissedTickBehavior = 'burst' | 'delay' | 'skip'",
+      "parameters": [],
+      "documentation": "Controls how Interval handles missed ticks. burst is the default and catches up; delay shifts the next deadline from the late tick; skip omits missed ticks and preserves the original schedule. Applies when lateness exceeds the backend timer tolerance.\n\n```tsrust\nconst timer = new Interval(10, 'burst');\n```\n\nOwnership: immutable literal data.",
+      "examples": [
+        {
+          "source": "import {Interval,MissedTickBehavior} from 'std:futures';async function main():Task<void>{const policy:MissedTickBehavior='skip';const timer=new Interval(1,policy);await timer.tick();console.log('tick');}",
+          "output": "tick\n"
+        }
+      ]
+    },
+    {
+      "name": "CancellationToken",
+      "signature": "new CancellationToken(): CancellationToken",
+      "parameters": [],
+      "documentation": "Creates an uncancelled cooperative signal. No arguments or runtime is required. share explicitly creates another handle to the same signal; child creates a descendant signal. cancel wakes cancelled waiters and propagates to descendants. Dropping a handle does not cancel it. A child cannot cancel its parent.\n\n```tsrust\nconst token = new CancellationToken();\ntoken.cancel();\nawait token.cancelled(); // already ready\n```\n\nOwnership: explicit share/child handles; operations borrow the handle.",
+      "examples": [
+        {
+          "source": "import {CancellationToken} from 'std:futures';async function main():Task<void>{const token=new CancellationToken();const shared=token.share();const child=token.child();child.cancel();console.log(token.isCancelled(),child.isCancelled());shared.cancel();await token.cancelled();console.log(token.isCancelled());}",
+          "output": "false true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "SendError",
+      "signature": "type SendError<T>",
+      "parameters": [],
+      "documentation": "The same SendError<T> identity exported by std:threads. code is full or closed for trySend, and closed for awaited send. value retains the exact unsent owned message; no implicit clone occurs. Cancellation instead disposes a pending message.\n\n```tsrust\ntry {\n  await sender.send(9);\n} catch (error) {\n  console.log(error.value);\n}\n```\n\nOwnership: error owns the original message.",
+      "examples": [
+        {
+          "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const sender=queue.sender();unwrap(sender.trySend(7));console.log(unwrap(queue.tryReceive()));sender.close();sender.close();try{await sender.send(9);}catch(error){console.log(error.code,error.value);}queue.close();}",
+          "output": "7\nclosed 9\n"
+        }
+      ]
+    },
+    {
+      "name": "ChannelError",
+      "signature": "type ChannelError",
+      "parameters": [],
+      "documentation": "The same ChannelError identity exported by std:threads. tryReceive returns empty for an open empty queue and closed after closure once buffered messages have drained.\n\n```tsrust\nconst value = unwrap(queue.tryReceive());\n```\n\nOwnership: owned error data.",
+      "examples": [
+        {
+          "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const sender=queue.sender();unwrap(sender.trySend(7));console.log(unwrap(queue.tryReceive()));sender.close();sender.close();try{await sender.send(9);}catch(error){console.log(error.code,error.value);}queue.close();}",
+          "output": "7\nclosed 9\n"
         }
       ]
     }
@@ -1387,10 +1473,10 @@
       "parameters": [
         {
           "label": "milliseconds: int",
-          "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled."
+          "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from zero through the target-representable timer deadline. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled."
         }
       ],
-      "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled.\n\n```tsrust\nconst value = await calculate().timeout(1000);\n```\n\nOwnership: consumes the receiver. Started-job obligations remain in the wrapper. Cancellation does not promise source finally execution.",
+      "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from zero through the target-representable timer deadline. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled.\n\n```tsrust\nconst value = await calculate().timeout(1000);\n```\n\nOwnership: consumes the receiver. Started-job obligations remain in the wrapper. Cancellation does not promise source finally execution.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures';async function main():Task<void>{const job=delay(60000).start();job.cancel();try{await job;}catch(error){console.log(error.code);}try{await delay(60000).timeout(0);}catch(error){console.log(error.code);}try{await delay(60000).start().timeout(0);}catch(error){console.log(error.code);}}",
@@ -1418,10 +1504,10 @@
       "parameters": [
         {
           "label": "milliseconds: int",
-          "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled."
+          "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from zero through the target-representable timer deadline. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled."
         }
       ],
-      "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled.\n\n```tsrust\nconst value = await calculate().timeout(1000);\n```\n\nOwnership: consumes the receiver. Started-job obligations remain in the wrapper. Cancellation does not promise source finally execution.",
+      "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from zero through the target-representable timer deadline. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled.\n\n```tsrust\nconst value = await calculate().timeout(1000);\n```\n\nOwnership: consumes the receiver. Started-job obligations remain in the wrapper. Cancellation does not promise source finally execution.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures';async function main():Task<void>{const job=delay(60000).start();job.cancel();try{await job;}catch(error){console.log(error.code);}try{await delay(60000).timeout(0);}catch(error){console.log(error.code);}try{await delay(60000).start().timeout(0);}catch(error){console.log(error.code);}}",
@@ -1449,10 +1535,10 @@
       "parameters": [
         {
           "label": "value: T",
-          "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message."
+          "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw SendError<T> code closed retaining value. A cancelled pending send releases its owned message."
         }
       ],
-      "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message.\n\n```tsrust\nawait queue.send(42);\n```\n\nOwnership: task retains a read borrow of the endpoint until completion or disposal.",
+      "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw SendError<T> code closed with the exact unsent value. Starting this task wraps that error in AsyncError as for other Jobs. A cancelled pending send releases its owned message.\n\n```tsrust\nawait queue.send(42);\n```\n\nOwnership: task retains a read borrow of the endpoint until completion or disposal.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
@@ -1483,6 +1569,35 @@
           "output": "42\nclosed\n"
         }
       ]
+    },
+    {
+      "name": "trySend",
+      "signature": "trySend(value: T): Result<void, SendError<T>>",
+      "parameters": [
+        {
+          "label": "value: T",
+          "documentation": "Owned transferable message; returned intact on full or closed."
+        }
+      ],
+      "documentation": "Attempts one send immediately. Success queues the consumed value. Returns full when capacity is exhausted, or closed when this endpoint or its receiver is closed. Both errors retain the original unsent value. Never waits.\n\n```tsrust\nunwrap(sender.trySend(7));\n```\n\nOwnership: borrows the endpoint and consumes value; the error owns value on failure.",
+      "examples": [
+        {
+          "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const sender=queue.sender();unwrap(sender.trySend(7));console.log(unwrap(queue.tryReceive()));sender.close();sender.close();try{await sender.send(9);}catch(error){console.log(error.code,error.value);}queue.close();}",
+          "output": "7\nclosed 9\n"
+        }
+      ]
+    },
+    {
+      "name": "tryReceive",
+      "signature": "tryReceive(): Result<T, ChannelError>",
+      "parameters": [],
+      "documentation": "Attempts to remove one queued message immediately. Returns empty for an open empty queue and closed for a closed empty queue. Buffered messages remain available after close. Never waits; no arguments.\n\n```tsrust\nconsole.log(unwrap(queue.tryReceive()));\n```\n\nOwnership: exclusively borrows the receiver and returns ownership of one message.",
+      "examples": [
+        {
+          "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const sender=queue.sender();unwrap(sender.trySend(7));console.log(unwrap(queue.tryReceive()));sender.close();sender.close();try{await sender.send(9);}catch(error){console.log(error.code,error.value);}queue.close();}",
+          "output": "7\nclosed 9\n"
+        }
+      ]
     }
   ],
   "AsyncSender": [
@@ -1492,14 +1607,43 @@
       "parameters": [
         {
           "label": "value: T",
-          "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message."
+          "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw SendError<T> code closed retaining value. A cancelled pending send releases its owned message."
         }
       ],
-      "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message.\n\n```tsrust\nawait queue.send(42);\n```\n\nOwnership: task retains a read borrow of the endpoint until completion or disposal.",
+      "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw SendError<T> code closed with the exact unsent value. Starting this task wraps that error in AsyncError as for other Jobs. A cancelled pending send releases its owned message.\n\n```tsrust\nawait queue.send(42);\n```\n\nOwnership: task retains a read borrow of the endpoint until completion or disposal.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
           "output": "42\nclosed\n"
+        }
+      ]
+    },
+    {
+      "name": "trySend",
+      "signature": "trySend(value: T): Result<void, SendError<T>>",
+      "parameters": [
+        {
+          "label": "value: T",
+          "documentation": "Owned transferable message; returned intact on full or closed."
+        }
+      ],
+      "documentation": "Attempts one send immediately. Success queues the consumed value. Returns full when capacity is exhausted, or closed when this endpoint or its receiver is closed. Both errors retain the original unsent value. Never waits.\n\n```tsrust\nunwrap(sender.trySend(7));\n```\n\nOwnership: borrows the endpoint and consumes value; the error owns value on failure.",
+      "examples": [
+        {
+          "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const sender=queue.sender();unwrap(sender.trySend(7));console.log(unwrap(queue.tryReceive()));sender.close();sender.close();try{await sender.send(9);}catch(error){console.log(error.code,error.value);}queue.close();}",
+          "output": "7\nclosed 9\n"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "signature": "close(): void",
+      "parameters": [],
+      "documentation": "Releases only this sending endpoint. Repeated close is harmless. Other senders and the channel remain usable. Future sends through this endpoint return closed with their unsent value. No arguments or return value.\n\n```tsrust\nsender.close();\n```\n\nOwnership: exclusively borrows this sender; finish its outstanding send loans first.",
+      "examples": [
+        {
+          "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const sender=queue.sender();unwrap(sender.trySend(7));console.log(unwrap(queue.tryReceive()));sender.close();sender.close();try{await sender.send(9);}catch(error){console.log(error.code,error.value);}queue.close();}",
+          "output": "7\nclosed 9\n"
         }
       ]
     }
@@ -1532,7 +1676,7 @@
       "parameters": [
         {
           "label": "capacity: int",
-          "documentation": "Maximum unread messages held in the queue, 1..1000000; required. At capacity, send() waits until receive() removes a message; trySend() returns full with the unsent value. Counts messages, not bytes or workers."
+          "documentation": "Maximum unread messages held in the queue, positive and within the target backend limit; required. At capacity, send() waits until receive() removes a message; trySend() returns full with the unsent value. Counts messages, not bytes or workers."
         }
       ],
       "documentation": "Creates a bounded FIFO with one receiving owner and explicitly created senders. capacity limits how many unread messages the queue can hold, not bytes or workers. For capacity 2, two sends can finish before any receive; a third send waits until a receiver removes a message. trySend returns full immediately instead of waiting, preserving the unsent value. This backpressure prevents producers from building an unlimited queue; larger capacity buffers bigger bursts but can retain more payload memory. capacity is an integer from 1 through 1000000; there is no default. Invalid capacity throws RangeError. Message types cannot contain channel endpoints, preventing queue ownership cycles. No senders exist initially. Create senders before receiving; receiving with no senders closes the channel. receiver.sender() creates each transferable sender.\n\nOwnership: the receiver owns unread messages; dropping it closes the channel and disposes them.\n\n```tsrust\nimport { Channel, spawn } from 'std:threads';\n\nfunction listen(inbox: Channel<string>): void {\n  while (true) {\n    match (inbox.receive()) {\n      Ok(message) => console.log(message),\n      Err(_) => {\n        return;\n      },\n    }\n  }\n}\n\nfunction main() {\n  const inbox = new Channel<string>(8);\n  const messages = inbox.sender();\n  const worker = unwrap(spawn((): void => listen(inbox)));\n  unwrap(messages.send('hello'));\n  unwrap(messages.send('goodbye'));\n  messages.close();\n  unwrap(worker.join());\n}\n// hello\n// goodbye\n\n```\nExpected output: hello, goodbye.",
@@ -1803,10 +1947,10 @@
       "parameters": [
         {
           "label": "options?: { workers: int; capacity: int }",
-          "documentation": "Omit options for available CPU parallelism clamped to 2..256 workers (fallback 2) and capacity 1024. When provided, both integer fields are required: workers 1..256, capacity 1..1000000."
+          "documentation": "Omit options for available CPU parallelism within the Rayon backend limit (fallback 1) and capacity 1024. When provided, both integer fields are required: workers positive and within the Rayon backend limit, capacity positive and within the target backend limit."
         }
       ],
-      "documentation": "Creates an independent reusable worker pool. Options are optional: new ThreadPool() uses available CPU parallelism clamped to 2..256 workers (fallback 2) and outstanding capacity 1024. To override defaults, supply both workers: int (1..256) and capacity: int (1..1000000). Capacity includes queued, running and completed uncollected tasks. Returns ThreadPool directly; no unwrap is needed. Throws SpawnError code range for invalid limits or spawn if worker creation fails. Limits are fixed at construction. There is no global pool or configure operation. Share one owner by borrowing it when several caller functions need the same pool. shutdown permanently closes that instance; create a fresh ThreadPool for new work. Scope exit drains queued and running work, including detached tasks; retained results remain joinable.\n\nOwnership: unique, non-cloneable owner; may move between caller functions or be borrowed as ReadOnly<ThreadPool>. Cannot be captured by worker callbacks or stored in containers.\n\n```tsrust\nimport { ThreadPool, join } from 'std:threads';\n\nfunction main() {\n  const jobs = new ThreadPool();\n  const task = unwrap(jobs.task((): int => 42));\n  console.log(unwrap(join(task)));\n}\n```\nExpected output: 42. Scope exit cleans up the pool.",
+      "documentation": "Creates an independent reusable worker pool. Options are optional: new ThreadPool() uses available CPU parallelism within the Rayon backend limit (fallback 1) and outstanding capacity 1024. To override defaults, supply both workers: int (positive and within the Rayon backend limit) and capacity: int (positive and within the target backend limit). Capacity includes queued, running and completed uncollected tasks. Returns ThreadPool directly; no unwrap is needed. Throws SpawnError code range for invalid limits or spawn if worker creation fails. Limits are fixed at construction. There is no global pool or configure operation. Share one owner by borrowing it when several caller functions need the same pool. shutdown permanently closes that instance; create a fresh ThreadPool for new work. Scope exit drains queued and running work, including detached tasks; retained results remain joinable.\n\nOwnership: unique, non-cloneable owner; may move between caller functions or be borrowed as ReadOnly<ThreadPool>. Cannot be captured by worker callbacks or stored in containers.\n\n```tsrust\nimport { ThreadPool, join } from 'std:threads';\n\nfunction main() {\n  const jobs = new ThreadPool();\n  const task = unwrap(jobs.task((): int => 42));\n  console.log(unwrap(join(task)));\n}\n```\nExpected output: 42. Scope exit cleans up the pool.",
       "examples": [
         {
           "source": "import { ThreadPool, join } from 'std:threads';\n\nfunction main() {\n  const jobs = new ThreadPool();\n  const task = unwrap(jobs.task((): int => 42));\n  console.log(unwrap(join(task)));\n}\n",
@@ -1821,7 +1965,7 @@
     {
       "name": "ThreadPoolOptions",
       "signature": "type ThreadPoolOptions = { workers: int; capacity: int }",
-      "documentation": "Explicit limits for new ThreadPool(options). Both fields are required when options are supplied: workers is 1..256 and capacity is 1..1000000 outstanding tasks. Invalid ranges throw SpawnError. Omit the constructor argument entirely to use system-based defaults. Construction does not mutate options; the record can be reused for independent pools.\n\nOwnership: construction borrows the record and copies its two integers.\n\n```tsrust\nimport { ThreadPool, ThreadPoolOptions } from 'std:threads';\n\nfunction main() {\n  const options: ThreadPoolOptions = {\n    workers: 2, capacity: 16\n  };\n  const jobs = new ThreadPool(options);\n  console.log(jobs.stats().workers);\n  console.log(options.capacity);\n}\n```\nExpected output: 2, 16 on separate lines.",
+      "documentation": "Explicit limits for new ThreadPool(options). Both fields are required when options are supplied: workers is positive and within the Rayon backend limit and capacity is positive and within the target backend limit outstanding tasks. Invalid ranges throw SpawnError. Omit the constructor argument entirely to use system-based defaults. Construction does not mutate options; the record can be reused for independent pools.\n\nOwnership: construction borrows the record and copies its two integers.\n\n```tsrust\nimport { ThreadPool, ThreadPoolOptions } from 'std:threads';\n\nfunction main() {\n  const options: ThreadPoolOptions = {\n    workers: 2, capacity: 16\n  };\n  const jobs = new ThreadPool(options);\n  console.log(jobs.stats().workers);\n  console.log(options.capacity);\n}\n```\nExpected output: 2, 16 on separate lines.",
       "examples": [
         {
           "source": "import { join, ThreadPool, Thread } from 'std:threads';\n\nconst pool = new ThreadPool({\n  workers: 2, capacity: 16\n});\n\nfunction calculate(jobs: ReadOnly<ThreadPool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = new ThreadPool({\n      workers: 1, capacity: 4\n    });\n    const background = new ThreadPool({\n      workers: 2, capacity: 8\n    });\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n",
@@ -1838,10 +1982,10 @@
       ],
       "fields": {
         "workers": {
-          "documentation": "Required reusable worker count, 1..256. Construction throw SpawnError code range outside that interval. Read as int; reading does not change options. Ownership: copies the integer. Example: options = {workers: 2, capacity: 16}; options.workers is 2."
+          "documentation": "Required reusable worker count, positive and within the Rayon backend limit. Construction throw SpawnError code range outside that interval. Read as int; reading does not change options. Ownership: copies the integer. Example: options = {workers: 2, capacity: 16}; options.workers is 2."
         },
         "capacity": {
-          "documentation": "Required outstanding task limit, 1..1000000. Includes queued, running and completed uncollected tasks. Construction throw SpawnError code range outside that interval. Read as int; reading does not change options. Ownership: copies the integer. Example: options = {workers: 2, capacity: 16}; options.capacity is 16."
+          "documentation": "Required outstanding task limit, positive and within the target backend limit. Includes queued, running and completed uncollected tasks. Construction throw SpawnError code range outside that interval. Read as int; reading does not change options. Ownership: copies the integer. Example: options = {workers: 2, capacity: 16}; options.capacity is 16."
         }
       }
     }
@@ -12387,6 +12531,23 @@
           "output": "42\nindependent\n0\n7\n"
         }
       ]
+    },
+    {
+      "name": "taskAsync",
+      "signature": "taskAsync(callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>): Task<T>",
+      "parameters": [
+        {
+          "label": "callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>",
+          "documentation": "Owned concrete CPU callback; T and E are inferred return and thrown types. Caller loans and program state cannot cross workers."
+        }
+      ],
+      "documentation": "Creates a lazy CPU task for this explicit bounded pool. Owns callback captures immediately; submits only when first polled. The callback takes zero arguments or one TaskContext. Full or closed admission throws SpawnError without waiting for capacity. Completion throws ThreadError<E> for worker errors, panic or cancellation. Starting and joining adds the ordinary AsyncError wrapper. Await uses completion notification and does not block an executor worker. Cancelling before work starts drops captures once; after start it requests cooperative cancellation and waits for actual cleanup. Dropping an unpolled task submits nothing. Dropping or shutting down the pool closes later admission.\n\n```tsrust\nconst answer = await pool.taskAsync((): int => 42);\n```\n\nOwnership: consumes owned transferable captures and retains private weak submission identity, not the public pool owner. Results and errors must be owned transferable data.",
+      "examples": [
+        {
+          "source": "import {ThreadPool} from 'std:threads';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:2});const task=pool.taskAsync(():int=>42);console.log(pool.stats().outstanding);console.log(await task);console.log(pool.stats().outstanding);unwrap(pool.shutdown());}",
+          "output": "0\n42\n0\n"
+        }
+      ]
     }
   ],
   "Channel": [
@@ -17736,6 +17897,82 @@
         {
           "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(a)'));console.log(value.replaceAll('a a','${1}$$')); }\n",
           "output": "a$ a$\n"
+        }
+      ]
+    }
+  ],
+  "Interval": [
+    {
+      "name": "tick",
+      "signature": "tick(): Task<void>",
+      "parameters": [],
+      "documentation": "Creates a lazy wait for the next tick. First tick is immediately ready. Later deadlines follow periodMs and the selected missed-tick behavior. Cancelling a wait does not consume a tick. No arguments or return value.\n\n```tsrust\nawait timer.tick();\n```\n\nOwnership: retains an exclusive timer borrow; finish or dispose this task before another timer operation.",
+      "examples": [
+        {
+          "source": "import {Interval,MissedTickBehavior} from 'std:futures';async function main():Task<void>{const policy:MissedTickBehavior='skip';const timer=new Interval(1,policy);await timer.tick();console.log('tick');}",
+          "output": "tick\n"
+        }
+      ]
+    }
+  ],
+  "CancellationToken": [
+    {
+      "name": "share",
+      "signature": "share(): CancellationToken",
+      "parameters": [],
+      "documentation": "Returns an explicit handle to the same cancellation signal. Cancel through either handle to wake both sets of waiters. No arguments or ordinary failure.\n\n```tsrust\ntoken.share();\n```\n\nOwnership: borrows the token; share and child return explicit owned handles.",
+      "examples": [
+        {
+          "source": "import {CancellationToken} from 'std:futures';async function main():Task<void>{const token=new CancellationToken();const shared=token.share();const child=token.child();child.cancel();console.log(token.isCancelled(),child.isCancelled());shared.cancel();await token.cancelled();console.log(token.isCancelled());}",
+          "output": "false true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "child",
+      "signature": "child(): CancellationToken",
+      "parameters": [],
+      "documentation": "Returns a descendant signal. Parent cancellation cancels it; cancelling the child does not affect its parent. A child of an already cancelled parent is cancelled immediately. No arguments or ordinary failure.\n\n```tsrust\ntoken.child();\n```\n\nOwnership: borrows the token; share and child return explicit owned handles.",
+      "examples": [
+        {
+          "source": "import {CancellationToken} from 'std:futures';async function main():Task<void>{const token=new CancellationToken();const shared=token.share();const child=token.child();child.cancel();console.log(token.isCancelled(),child.isCancelled());shared.cancel();await token.cancelled();console.log(token.isCancelled());}",
+          "output": "false true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "cancel",
+      "signature": "cancel(): void",
+      "parameters": [],
+      "documentation": "Signals cancellation and wakes current waiters, including descendant tokens. Repeated cancellation is harmless. Does not forcibly stop work; workers must cooperate. No arguments or return value.\n\n```tsrust\ntoken.cancel();\n```\n\nOwnership: borrows the token; share and child return explicit owned handles.",
+      "examples": [
+        {
+          "source": "import {CancellationToken} from 'std:futures';async function main():Task<void>{const token=new CancellationToken();const shared=token.share();const child=token.child();child.cancel();console.log(token.isCancelled(),child.isCancelled());shared.cancel();await token.cancelled();console.log(token.isCancelled());}",
+          "output": "false true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "isCancelled",
+      "signature": "isCancelled(): boolean",
+      "parameters": [],
+      "documentation": "Returns whether this signal has been cancelled. No arguments, mutation or ordinary failure; concurrent cancellation may change the answer immediately.\n\n```tsrust\ntoken.isCancelled();\n```\n\nOwnership: borrows the token; share and child return explicit owned handles.",
+      "examples": [
+        {
+          "source": "import {CancellationToken} from 'std:futures';async function main():Task<void>{const token=new CancellationToken();const shared=token.share();const child=token.child();child.cancel();console.log(token.isCancelled(),child.isCancelled());shared.cancel();await token.cancelled();console.log(token.isCancelled());}",
+          "output": "false true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "cancelled",
+      "signature": "cancelled(): Task<void>",
+      "parameters": [],
+      "documentation": "Creates a lazy wait for cancellation. Already cancelled signals return immediately when awaited. Cancelling the waiting task leaves the token unchanged. No arguments or return value.\n\n```tsrust\nawait token.cancelled();\n```\n\nOwnership: borrows the token until the wait completes or is disposed.",
+      "examples": [
+        {
+          "source": "import {CancellationToken} from 'std:futures';async function main():Task<void>{const token=new CancellationToken();const shared=token.share();const child=token.child();child.cancel();console.log(token.isCancelled(),child.isCancelled());shared.cancel();await token.cancelled();console.log(token.isCancelled());}",
+          "output": "false true\ntrue\n"
         }
       ]
     }

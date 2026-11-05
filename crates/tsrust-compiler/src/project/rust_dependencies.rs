@@ -26,6 +26,7 @@ pub fn reserved(name:&str)->bool {
         "accesskit",
         "accesskit_winit",
         "futures-core",
+        "tokio-util",
         "nix",
         "base64",
         "tempfile",

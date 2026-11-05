@@ -133,17 +133,32 @@ mod tsrust_native_futures {
         let runtime=tokio::runtime::Handle::current();
         tokio::task::block_in_place(||runtime.block_on(SCOPE.scope(scope,future)))
     }
+    fn deadline(milliseconds:i64)->Option<tokio::time::Instant> {
+        let milliseconds=u64::try_from(milliseconds).ok()?;
+        tokio::time::Instant::now().checked_add(Duration::from_millis(milliseconds))
+    }
+    pub struct Interval(tokio::time::Interval);
+    impl Interval {
+        pub fn new(milliseconds:i64,behavior:&str)->Result<Self,&'static str> {
+            if milliseconds<=0 {return Err("range");}
+            let start=deadline(milliseconds).ok_or("range")?;
+            // Check the active runtime before Tokio's constructor can panic.
+            tokio::runtime::Handle::try_current().map_err(|_|"runtime")?;
+            let behavior=match behavior {"burst"=>tokio::time::MissedTickBehavior::Burst,"delay"=>tokio::time::MissedTickBehavior::Delay,"skip"=>tokio::time::MissedTickBehavior::Skip,_=>return Err("range")};
+            let mut interval=tokio::time::interval_at(start-Duration::from_millis(milliseconds as u64),Duration::from_millis(milliseconds as u64));
+            interval.set_missed_tick_behavior(behavior);Ok(Self(interval))
+        }
+        pub async fn tick(&mut self){self.0.tick().await;}
+    }
     pub async fn delay<E>(milliseconds:i64)->Result<(),Failure<E>> {
-        if !(0..=31536000000).contains(&milliseconds){return Err(Failure::Range);}
-        tokio::time::sleep(Duration::from_millis(milliseconds as u64)).await;Ok(())
+        let deadline=deadline(milliseconds).ok_or(Failure::Range)?;
+        tokio::time::sleep_until(deadline).await;Ok(())
     }
     pub async fn yield_now<E>()->Result<(),Failure<E>> {tokio::task::yield_now().await;Ok(())}
     pub async fn timeout<F,T,E>(future:F,milliseconds:i64)->Result<T,Failure<E>> where F:Future<Output=Result<T,Failure<E>>> {
         let scope=Scope::group();
         let result=SCOPE.scope(scope.clone(),async move {
-            if !(0..=31536000000).contains(&milliseconds) {drop(future);Err(Failure::Range)} else {
-                tokio::time::timeout(Duration::from_millis(milliseconds as u64),future).await.unwrap_or(Err(Failure::Timeout))
-            }
+            match deadline(milliseconds) {None=>{drop(future);Err(Failure::Range)},Some(deadline)=>tokio::time::timeout_at(deadline,future).await.unwrap_or(Err(Failure::Timeout))}
         }).await;
         scope.drain(false).await;result
     }
@@ -153,6 +168,23 @@ mod tsrust_native_futures {
         let result=SCOPE.scope(scope.clone(),async move {
             let mut futures=futures.into_iter().map(Box::pin).collect::<Vec<_>>();
             std::future::poll_fn(|cx|{for future in &mut futures {if let Poll::Ready(value)=future.as_mut().poll(cx){return Poll::Ready(value);}}Poll::Pending}).await
+        }).await;
+        scope.drain(false).await;result
+    }
+    pub async fn all<F,T,E>(futures:Vec<F>)->Result<Vec<T>,Failure<E>> where F:Future<Output=Result<T,Failure<E>>> {
+        let scope=Scope::group();
+        let result=SCOPE.scope(scope.clone(),async move {
+            let mut futures=futures.into_iter().map(|future|Some(Box::pin(future))).collect::<Vec<_>>();
+            let mut results=(0..futures.len()).map(|_|None).collect::<Vec<_>>();
+            std::future::poll_fn(|cx|{
+                let mut complete=true;
+                for (future,result) in futures.iter_mut().zip(&mut results) {if let Some(value)=future {match value.as_mut().poll(cx){
+                    Poll::Ready(Ok(value))=>{*result=Some(value);*future=None;},
+                    Poll::Ready(Err(error))=>return Poll::Ready(Err(error)),
+                    Poll::Pending=>complete=false,
+                }}}
+                if complete {Poll::Ready(Ok(results.iter_mut().map(|value|value.take().unwrap()).collect()))}else{Poll::Pending}
+            }).await
         }).await;
         scope.drain(false).await;result
     }
@@ -169,15 +201,28 @@ mod tsrust_native_futures {
         }).await;
         scope.drain(false).await;result
     }
+    pub struct SendError<T>{pub code:&'static str,pub value:T}
+    fn try_send<T>(sender:&mpsc::Sender<T>,value:T)->Result<(),SendError<T>> {
+        sender.try_send(value).map_err(|error|match error {mpsc::error::TrySendError::Full(value)=>SendError{code:"full",value},mpsc::error::TrySendError::Closed(value)=>SendError{code:"closed",value}})
+    }
     pub struct Channel<T> {sender:mpsc::Sender<T>,receiver:tokio::sync::Mutex<mpsc::Receiver<T>>}
-    pub struct Sender<T>(mpsc::Sender<T>);
+    pub struct Sender<T>(Option<mpsc::Sender<T>>);
     impl<T> Channel<T> {
-        pub fn new(capacity:i64)->Result<Self,()> {if !(1..=1000000).contains(&capacity){return Err(());}let(sender,receiver)=mpsc::channel(capacity as usize);Ok(Self{sender,receiver:tokio::sync::Mutex::new(receiver)})}
-        pub fn sender(&self)->Sender<T>{Sender(self.sender.clone())}
+        pub fn new(capacity:i64)->Result<Self,()> {
+            let capacity=usize::try_from(capacity).ok().filter(|capacity|*capacity>0&&*capacity<=tokio::sync::Semaphore::MAX_PERMITS).ok_or(())?;
+            let(sender,receiver)=mpsc::channel(capacity);Ok(Self{sender,receiver:tokio::sync::Mutex::new(receiver)})
+        }
+        pub fn sender(&self)->Sender<T>{Sender(Some(self.sender.clone()))}
         pub fn into_receiver(self)->mpsc::Receiver<T>{self.receiver.into_inner()}
-        pub async fn send<E>(&self,value:T)->Result<(),Failure<E>>{self.sender.send(value).await.map_err(|_|Failure::Closed)}
+        pub async fn send(&self,value:T)->Result<(),SendError<T>>{self.sender.send(value).await.map_err(|error|SendError{code:"closed",value:error.0})}
+        pub fn try_send(&self,value:T)->Result<(),SendError<T>>{try_send(&self.sender,value)}
         pub async fn receive<E>(&self)->Result<T,Failure<E>>{self.receiver.lock().await.recv().await.ok_or(Failure::Closed)}
+        pub fn try_receive(&mut self)->Result<T,&'static str>{self.receiver.get_mut().try_recv().map_err(|error|match error{mpsc::error::TryRecvError::Empty=>"empty",mpsc::error::TryRecvError::Disconnected=>"closed"})}
         pub fn close(&mut self){self.receiver.get_mut().close();}
     }
-    impl<T> Sender<T>{pub async fn send<E>(&self,value:T)->Result<(),Failure<E>>{self.0.send(value).await.map_err(|_|Failure::Closed)}}
+    impl<T> Sender<T>{
+        pub async fn send(&self,value:T)->Result<(),SendError<T>>{match &self.0{Some(sender)=>sender.send(value).await.map_err(|error|SendError{code:"closed",value:error.0}),None=>Err(SendError{code:"closed",value})}}
+        pub fn try_send(&self,value:T)->Result<(),SendError<T>>{match &self.0{Some(sender)=>try_send(sender,value),None=>Err(SendError{code:"closed",value})}}
+        pub fn close(&mut self){self.0.take();}
+    }
 }

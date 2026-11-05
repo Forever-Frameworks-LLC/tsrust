@@ -32,6 +32,8 @@ enum Kind {
     Job,
     AsyncChannel,
     AsyncSender,
+    Interval,
+    CancellationToken,
     Local,
     Keyword,
     ImportedValue,
@@ -60,7 +62,7 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 47] = [
+const KINDS: [Kind; 49] = [
     Kind::Filesystem,
     Kind::Url,
     Kind::Regex,
@@ -82,6 +84,8 @@ const KINDS: [Kind; 47] = [
     Kind::Job,
     Kind::AsyncChannel,
     Kind::AsyncSender,
+    Kind::Interval,
+    Kind::CancellationToken,
     Kind::Local,
     Kind::Keyword,
     Kind::ImportedValue,
@@ -261,8 +265,10 @@ fn rows() -> Vec<Row> {
         Row {kind:Kind::Http,name:"Router inferred nested request",before:"import {Router} from 'std:http';function main(){const app=new Router();app.get('/',ctx=>{".into(),typed:"ctx.req.",after:";return ctx.text('ok');});}",includes:&["query","queries","header","text"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Http,name:"HTTP app routes",before:"import {App} from 'std:http';function main(){const app=new App();".into(),typed:"app.",after:";}",includes:&["get","post","use","listen","fallback","configure"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Job,name:"started job lifecycle",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const job=answer().start();".into(),typed:"job.",after:";await job;}",includes:&["cancel","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
-        Row {kind:Kind::AsyncChannel,name:"async channel methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);".into(),typed:"queue.",after:"close();}",includes:&["sender","send","receive","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
-        Row {kind:Kind::AsyncSender,name:"async sender methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await ".into(),typed:"sender.",after:"send(1);}",includes:&["send"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Interval,name:"interval exclusive tick",before:"import {Interval as Timer} from 'std:futures';async function main():Task<void>{const timer=new Timer(1,'skip');await ".into(),typed:"timer.",after:"tick();}",includes:&["tick"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::CancellationToken,name:"explicit cancellation handles",before:"import {CancellationToken as Token} from 'std:futures';async function main():Task<void>{const parent=new Token();const token=parent.child();".into(),typed:"token.",after:"cancel();}",includes:&["share","child","cancel","isCancelled","cancelled"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::AsyncChannel,name:"async channel methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);".into(),typed:"queue.",after:"close();}",includes:&["sender","send","receive","close","trySend","tryReceive"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::AsyncSender,name:"async sender methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await ".into(),typed:"sender.",after:"send(1);}",includes:&["send","trySend","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::ImportNames,name:"future imports",before:"import { ".into(),typed:"yi",after:" } from 'std:futures';function main(){}",includes:&["yield"],excludes:&["yieldNow"],silent:None,needs_check:false},
         Row {kind:Kind::ImportedMember,name:"Rust binding struct",before:"import {reply} from './api.bindings.json';function main(){const response=reply();".into(),typed:"response.",after:"text.toUpperCase();}",includes:&["text","count"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::ImportedMember,name:"Rust bridge result",before:"import {echo} from './compute.rs';function main(){const message=echo('hello');".into(),typed:"message.",after:"toUpperCase();}",includes:&["length","toUpperCase"],excludes:NOT_MEMBERS,silent:None,needs_check:true},

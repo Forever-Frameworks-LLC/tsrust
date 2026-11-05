@@ -8,7 +8,7 @@ fn request(source:&str,needle:&str,method:&str)->Value{
 #[test]
 fn async_imports_and_capacity_help_explain_waiting_and_cleanup(){
  let source="import {delay,Channel} from 'std:futures';async function main():Task<void>{await delay(1);const queue=new Channel<int>(2);}";
- let hover=request(source,"await delay","textDocument/hover").to_string();assert!(hover.contains("lazy")&&hover.contains("31536000000"),"{hover}");
+ let hover=request(source,"await delay","textDocument/hover").to_string();assert!(hover.contains("lazy")&&hover.contains("target-representable"),"{hover}");
  let help=request(source,"new Channel<int>(","textDocument/signatureHelp").to_string();assert!(help.contains("queued messages")&&help.contains("without blocking"),"{help}");
 }
 #[test]
@@ -24,4 +24,12 @@ fn checked_job_and_await_result_have_types_and_abandonment_is_error(){
 fn yield_hover_uses_public_name(){
  let source="import {yield} from 'std:futures';async function main():Task<void>{await yield();}";
  let hover=request(source,"await yield","textDocument/hover").to_string();assert!(hover.contains("yield(): Task&lt;void&gt;") || hover.contains("yield(): Task<void>"),"{hover}");assert!(!hover.contains("yieldNow"));
+}
+
+#[test]
+fn timer_constructor_alias_help_tracks_policy_parameter_and_behavior(){
+ let source="import {Interval as Timer} from 'std:futures';async function main():Task<void>{const timer=new Timer(10,'skip');await timer.tick();}";
+ let help=request(source,"new Timer(10,","textDocument/signatureHelp");
+ assert_eq!(help["activeParameter"],1);let text=help.to_string();assert!(text.contains("MissedTickBehavior")&&text.contains("immediately"),"{help}");
+ let hover=request(source,"timer.tick","textDocument/hover").to_string();assert!(hover.contains("exclusive")&&hover.contains("Task"),"{hover}");
 }

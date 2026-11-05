@@ -26,7 +26,7 @@ const compilerVersion=fs.readFileSync(path.join(root,'crates/tsrust-compiler/src
 const scratch=fs.mkdtempSync(path.join(target,'task-timer-channel-profile-'));
 const run=(command,args,env={})=>{const result=spawnSync(command,args,{cwd:root,encoding:'utf8',timeout:180000,maxBuffer:8*1024*1024,env:{...process.env,CARGO_INCREMENTAL:'0',CARGO_BUILD_JOBS:'1',...env}});if(result.error||result.status!==0)throw new Error(`${command} failed: ${result.error??result.stderr}`);return result.stdout;};
 try{
-    let runtime=fs.readFileSync(path.join(root,'crates/tsrust-compiler/src/stdlib/threads/runtime.rs'),'utf8');
+    let runtime='mod tsrust_native_threads {\n'+['runtime_core.rs','runtime_sync.rs'].map(file=>fs.readFileSync(path.join(root,'crates/tsrust-compiler/src/stdlib/threads',file),'utf8')).join('\n')+'}\n';
     for(const [before,after] of [
         ['pool: Option<Arc<Pool>> }','pool: Option<Arc<Pool>>, probe_done: Mutex<Option<tokio::sync::oneshot::Sender<()>>> }'],
         ['released: AtomicBool::new(false), pool })','released: AtomicBool::new(false), pool, probe_done: Mutex::new(None) })'],
@@ -54,6 +54,6 @@ try{
         quietLoads.push(waitForQuietMachine({log:line=>process.stderr.write(`${line}\n`)}));
         const timing=run(binaries[`${candidate}:false`],args).trim().split('\n').map(line=>JSON.parse(line));validateRecords(timing,candidate,false);measurements.push({processIndex,candidate,records:timing});
     }
-    const sources=Object.fromEntries(['profile.rs','profile.mjs','profile-oracle.mjs','reference.rs','pool_transport.rs','../../probes/counting-allocator.rs','../../quiet-machine.mjs','../../../../crates/tsrust-compiler/src/stdlib/threads/runtime.rs','../../../../crates/tsrust-compiler/src/stdlib/futures/runtime.rs'].map(file=>[file,createHash('sha256').update(fs.readFileSync(path.resolve(here,file))).digest('hex')]));
+    const sources=Object.fromEntries(['profile.rs','profile.mjs','profile-oracle.mjs','reference.rs','pool_transport.rs','../../probes/counting-allocator.rs','../../quiet-machine.mjs','../../../../crates/tsrust-compiler/src/stdlib/threads/runtime.rs','../../../../crates/tsrust-compiler/src/stdlib/threads/runtime_core.rs','../../../../crates/tsrust-compiler/src/stdlib/threads/runtime_sync.rs','../../../../crates/tsrust-compiler/src/stdlib/futures/runtime.rs'].map(file=>[file,createHash('sha256').update(fs.readFileSync(path.resolve(here,file))).digest('hex')]));
     console.log(JSON.stringify({scope:'admission prototype; not generated facade performance',protocol:{processes:3,warmups:8,samples:31,separateAllocationBuild:true},compilerVersion,dependencies,sources,builds,contracts,quietLoads,allocations,measurements}));
 }finally{fs.rmSync(scratch,{recursive:true,force:true});}

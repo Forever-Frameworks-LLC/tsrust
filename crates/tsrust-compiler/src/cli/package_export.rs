@@ -23,14 +23,12 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
    ("[package]\nname = \"tsrust-export\"\nversion = \"0.1.0\"\nedition = \"2024\"\npublish = false\n\n[workspace]\n".into(),
     "version = 4\n\n[[package]]\nname = \"tsrust-export\"\nversion = \"0.1.0\"\n".into())
   };
-  if rust.contains("mod tsrust_native_threads {") || rust.contains("mod tsr_rust") { manifest = manifest.replace("default = []", "default = [\"threads\"]"); }
+  if rust.contains("mod tsrust_native_threads {") || rust.contains("mod tsr_rust") { manifest = manifest.replace("default = [", "default = [\"threads\", "); }
+  if rust.contains("mod tsrust_native_cancellation {"){manifest=manifest.replace("default = [", "default = [\"cancellation\", ");}
   if rust.contains("mod tsrust_native_regex {"){manifest=manifest.replace("default = [", "default = [\"regex\", ");}
   if rust.contains("mod tsrust_native_url {"){manifest=manifest.replace("default = [", "default = [\"url\", ");}
-  if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = []", "default = [\"http\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"http\"]",
-                );}
-  if rust.contains("mod tsrust_native_futures {") {manifest=manifest.replace("default = []", "default = [\"async\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"async\"]",
-                );
-        }
+  if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = [", "default = [\"http\", ");}
+  if rust.contains("mod tsrust_native_futures {"){manifest=manifest.replace("default = [", "default = [\"async\", ");}
   if rust.contains("mod tsrust_native_ui {"){manifest=manifest.replace("default = [", "default = [\"ui\", ");}
         if rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::") {
             let feature=if web_only{"ui-web"}else{"ui-native"};manifest = manifest.replace("default = [", &format!("default = [\"{feature}\", "));}

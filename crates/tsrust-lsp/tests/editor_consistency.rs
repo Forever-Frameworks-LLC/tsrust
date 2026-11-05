@@ -187,6 +187,8 @@ fn every_async_lifecycle_member_is_reachable(){
  for(family,before,after)in[
   ("TaskMethods","async function one():Task<int>{return 1;}async function main():Task<void>{const x=one();x.","timeout(10);}"),
   ("Job","async function one():Task<int>{return 1;}async function main():Task<void>{const x=one().start();x.","cancel();await x;}"),
+  ("Interval","import {Interval} from 'std:futures';async function main():Task<void>{const x=new Interval(1);await x.","tick();}"),
+  ("CancellationToken","import {CancellationToken} from 'std:futures';async function main():Task<void>{const x=new CancellationToken();x.","cancel();}"),
   ("AsyncChannel","import {Channel} from 'std:futures';async function main():Task<void>{const x=new Channel<int>(1);x.","close();}"),
   ("AsyncSender","import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const x=queue.sender();await x.","send(1);}"),
  ]{

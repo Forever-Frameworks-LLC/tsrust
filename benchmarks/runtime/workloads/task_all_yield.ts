@@ -1,0 +1,2 @@
+import {setImmediate} from 'node:timers';
+async function workload(n:number,seed:number):Promise<number>{let sum=0;for(let i=0;i<n;i++){const values=await Promise.all([value(seed+i),value(seed+i+1),value(seed+i+2),value(seed+i+3)]);for(const value of values){sum=(sum+value)%1000000007;}}return sum;}async function value(value:number):Promise<number>{await new Promise<void>(resolve=>setImmediate(resolve));return value;}

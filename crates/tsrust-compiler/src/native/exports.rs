@@ -16,6 +16,7 @@ pub struct Alias {
     pub name: &'static str,
     pub signature: crate::native_signatures::Signature,
 }
+static MISSED_TICK_BEHAVIOR: Alias = Alias {module:"std:futures",name:"MissedTickBehavior",signature:crate::native_signatures::Signature::Union(&[crate::native_signatures::Signature::StringLiteral("burst"),crate::native_signatures::Signature::StringLiteral("delay"),crate::native_signatures::Signature::StringLiteral("skip")])};
 static SEEK_ORIGIN: Alias = Alias { module: "std:fs", name: "SeekOrigin", signature: crate::stdlib::fs::bindings::SEEK_ORIGIN_SIGNATURE };
 
 /// Imported namespace identities survive aliases and ordinary lexical linking.
@@ -41,7 +42,9 @@ impl Export {
 /// Resolve a native export without pretending a type declaration is callable.
 /// Source-name aliases belong to the importing module, never to this registry.
 pub fn lookup(module: &str, name: &str) -> Result<Export, String> {
+    if module==MISSED_TICK_BEHAVIOR.module && name==MISSED_TICK_BEHAVIOR.name{return Ok(Export::Alias(&MISSED_TICK_BEHAVIOR));}
     if module == SEEK_ORIGIN.module && name == SEEK_ORIGIN.name { return Ok(Export::Alias(&SEEK_ORIGIN)); }
+    if module=="std:futures" && matches!(name,"SendError"|"ChannelError") {return Ok(Export::Type(native_types::declaration(if name=="SendError"{crate::native_signatures::NativeTypeId::SendError}else{crate::native_signatures::NativeTypeId::ChannelError})));}
     if module=="std:url" && name=="StringView" {return Ok(Export::Type(native_types::declaration(crate::native_signatures::NativeTypeId::StringView)));}
     if matches!(module, "std:regex" | "std:url" | "std:schema" | "std:threads" | "std:futures" | "std:cache" | "std:http" | "std:sql" | "std:sqlite") && name.starts_with("__") { return Err(format!("Standard-library module {module:?} does not export {name:?}.")); }
     if module == "std:schema" && name == "s" { return Ok(Export::Namespace(Namespace::Schema)); }

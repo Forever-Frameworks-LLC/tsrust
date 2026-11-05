@@ -111,6 +111,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_files {"){command.args(["--features","files"]);}
   if tsrust_compiler::native_runtime::requires_temporary_files(runtime){command.args(["--features","temporary-files"]);}
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
+  if runtime.contains("pub mod tsrust_native_cancellation {"){command.args(["--features","cancellation"]);}
   if runtime.contains("pub mod tsrust_native_regex {"){command.args(["--features","regex"]);}
   if runtime.contains("pub mod tsrust_native_url {"){command.args(["--features","url"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}

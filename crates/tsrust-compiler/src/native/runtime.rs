@@ -53,7 +53,7 @@ pub fn json_module_with_writer(writer:bool)->String {
 pub fn requires_dependencies(source:&str)->bool {
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
     requires_hostname(source) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
-        || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust")
+        || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains(crate::stdlib::threads::ASYNC_RUNTIME) || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("mod tsr_rust")
 }
 
 /// Keep application record/union types, borrow adapters and generic ownership code
@@ -101,6 +101,8 @@ pub fn separate(source:&str)->Units {
     extract("tsrust_native_http",crate::stdlib::http::RUNTIME.to_owned());
     extract("tsrust_native_futures", crate::stdlib::futures::RUNTIME.to_owned());
     extract("tsrust_native_threads", crate::stdlib::threads::RUNTIME.to_owned());
+    extract("tsrust_native_threads", crate::stdlib::threads::ASYNC_RUNTIME.to_owned());
+    extract("tsrust_native_cancellation",crate::stdlib::futures::CANCELLATION_RUNTIME.to_owned());
     // Match complete variants; no feature is added merely because another is used.
     for views in [true,false] {for utf8 in [true,false] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {for operations in [false,true] {for binary in [false,true] {for search in [false,true] {extract("tsrust_native_bytes",bytes_module(views,utf8,codecs,base64,operations,binary,search));}}}}}}
     if let Some(module)=json {extract("tsrust_native_json",module);}
