@@ -35,6 +35,8 @@ struct Receiver {
 
 const RECEIVERS: &[Receiver] = &[
 Receiver {ty:"SeekOrigin",parameter:"x: SeekOrigin"},
+Receiver {ty:"ReadOnly<SeekOrigin>",parameter:"x: ReadOnly<SeekOrigin>"},
+Receiver {ty:"LiteralOrigin",parameter:"x: ReadOnly<LiteralOrigin>"},
 Receiver {ty:"OpenOptions",parameter:"x: ReadOnly<OpenOptions>"},
 Receiver {ty:"FileTime",parameter:"x: ReadOnly<FileTime>"},
 Receiver {ty:"Metadata",parameter:"x: ReadOnly<Metadata>"},
@@ -170,6 +172,7 @@ const EXCEPTIONS: &[Exception] = &[];
 const ABSENT: &str = "zzqqabsent";
 
 fn prelude(parameter: &str) -> String {
+    if parameter=="x: ReadOnly<LiteralOrigin>"{return "type LiteralOrigin=(\"start\"|\"current\"|\"end\");\n".into();}
     let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
     let annotation=["ReadOnly<","Owned<","Mutable<"].iter().find_map(|prefix|annotation.strip_prefix(prefix)).unwrap_or(annotation);
     let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
@@ -220,7 +223,7 @@ fn answer(form: &str, name: &str, parameter: &str) -> Option<(String, String)> {
 /// The checker's type of field `name` of the receiver: the type it names
 /// when a member that cannot exist is read from that field.
 fn field_type(name: &str, parameter: &str) -> Option<String> {
-    let selected=if parameter=="x: ReadOnly<Url>"{format!("x.{name}")}else{format!("x[{}]",serde_json::to_string(name).unwrap())};
+    let selected=if name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_'){format!("x.{name}")}else{format!("x[{}]",serde_json::to_string(name).unwrap())};
     let (_, message) = diagnostic(&format!("console.log({selected}.{ABSENT});"), parameter)?;
     let rest = message.strip_prefix("Type \"")?;
     // Diagnostics spell a native type by its linked name; the editor shows
@@ -327,6 +330,11 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
                     details.insert(label.clone(), item["detail"].as_str().unwrap_or("").to_owned());
                     offered.insert(label);
                 }
+            }
+        }
+        if matches!(receiver.ty,"SeekOrigin"|"ReadOnly<SeekOrigin>"|"LiteralOrigin") {
+            for required in ["length","startsWith","includes","toUpperCase"] {
+                assert!(offered.contains(required)||methods.contains(required),"{}: required string member {required} missing; empty agreement is not acceptance",receiver.ty);
             }
         }
         let mut differences = fields.difference(&offered).map(|name| (name.clone(), "the checker accepts this field; completion does not offer it".to_owned())).collect::<Vec<_>>();

@@ -43,7 +43,7 @@ impl Emitter<'_> {
         let ExprKind::Field(base, _) = &callee.kind else {
             unreachable!("checked string concat receiver");
         };
-        let receiver = emit(base, Mode::Read);
+        let receiver = self.string_observation_view(base.ty.unwrap(),emit(base,Mode::Read));
         let mut arguments = "std::iter::empty::<&String>()".to_string();
         for (index,segment) in plan.segments.iter().enumerate() {
             let copied=if segment.spread && segment.value.ty==Some(Type::String) {""}else{".copied()"};

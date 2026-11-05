@@ -1,0 +1,121 @@
+import { SeekOrigin } from 'std:fs';
+import { strictEqual } from 'std:testing';
+
+type Selection = {
+  origin: SeekOrigin
+};
+
+function observe(value: ReadOnly<SeekOrigin>): void {
+  strictEqual(value.length, 5);
+  strictEqual(value.isWellFormed(), true);
+  strictEqual(value.toWellFormed(), 'start');
+  strictEqual(value.trim(), 'start');
+  strictEqual(value.trimStart(), 'start');
+  strictEqual(value.trimEnd(), 'start');
+  strictEqual(value.trimLeft(), 'start');
+  strictEqual(value.trimRight(), 'start');
+  strictEqual(value.toLowerCase(), 'start');
+  strictEqual(value.toUpperCase(), 'START');
+  strictEqual(value.toLocaleLowerCase(), 'start');
+  strictEqual(value.toLocaleUpperCase(), 'START');
+  strictEqual(value.includes('ta'), true);
+  strictEqual(value.startsWith('st'), true);
+  strictEqual(value.endsWith('rt'), true);
+  strictEqual(value.indexOf('t'), 1);
+  strictEqual(value.lastIndexOf('t'), 4);
+  strictEqual(value.slice(1, 3), 'ta');
+  strictEqual(value.substring(1, 3), 'ta');
+  strictEqual(value.substr(1, 2), 'ta');
+  strictEqual(value.charAt(1), 't');
+  strictEqual(value.concat('!'), 'start!');
+  const tail: string[] = ['!', '?'];
+  strictEqual(value.concat(...tail), 'start!?');
+  strictEqual(value.padStart(7, '0'), '00start');
+  strictEqual(value.padEnd(7, '0'), 'start00');
+  strictEqual(value.repeat(2), 'startstart');
+  strictEqual(value.replace('t', 'X'), 'sXart');
+  strictEqual(value.replaceAll('t', 'X'), 'sXarX');
+  const pieces = value.split('t');
+  strictEqual(pieces.length, 3);
+  strictEqual(pieces[0], 's');
+  strictEqual(pieces[1], 'ar');
+  strictEqual(pieces[2], '');
+  strictEqual(value.anchor('target'), '<a name="target">start</a>');
+  strictEqual(value.big(), '<big>start</big>');
+  strictEqual(value.blink(), '<blink>start</blink>');
+  strictEqual(value.bold(), '<b>start</b>');
+  strictEqual(value.fixed(), '<tt>start</tt>');
+  strictEqual(value.fontcolor('red'), '<font color="red">start</font>');
+  strictEqual(value.fontsize('3'), '<font size="3">start</font>');
+  strictEqual(value.italics(), '<i>start</i>');
+  strictEqual(value.link('/go'), '<a href="/go">start</a>');
+  strictEqual(value.small(), '<small>start</small>');
+  strictEqual(value.strike(), '<strike>start</strike>');
+  strictEqual(value.sub(), '<sub>start</sub>');
+  strictEqual(value.sup(), '<sup>start</sup>');
+  strictEqual(value.valueOf(), 'start');
+  strictEqual(value.toString(), 'start');
+  const character = value.at(1);
+  if (character === undefined) {
+    throw 'missing character';
+  }
+
+  strictEqual(character, 't');
+  const point = value.codePointAt(0);
+  if (point === undefined) {
+    throw 'missing point';
+  }
+
+  strictEqual(point, 115);
+  strictEqual(value.charCodeAt(0), 115);
+  strictEqual(value.normalize(), 'start');
+  strictEqual(value.normalize('NFC'), 'start');
+  strictEqual(value[1], 't');
+  strictEqual(value.trim().toLowerCase(), 'start');
+  strictEqual(value.length, 5);
+}
+
+function source(counter: Mutable<int[]>): SeekOrigin {
+  counter[0] = counter[0] + 1;
+  return 'start';
+}
+
+function search(counter: Mutable<int[]>): string {
+  counter[0] = counter[0] * 10 + 2;
+  return 't';
+}
+
+function position(counter: Mutable<int[]>): int {
+  counter[0] = counter[0] + 1;
+  return 0;
+}
+
+function size(value: ReadOnly<SeekOrigin>): int {
+  return value.length;
+}
+
+function main() {
+  const original: SeekOrigin = 'start';
+  observe(original);
+  strictEqual(size(original), 5);
+  const selection: Selection = {
+    origin: 'start'
+  };
+  strictEqual(selection.origin.toUpperCase(), 'START');
+  strictEqual(size('current'), 7);
+  strictEqual(size('end'), 3);
+  const calls: int[] = [0];
+  strictEqual(source(calls).includes(search(calls)), true);
+  strictEqual(calls[0], 12);
+  calls[0] = 0;
+  strictEqual(source(calls).toUpperCase(), 'START');
+  strictEqual(calls[0], 1);
+  calls[0] = 0;
+  const values: SeekOrigin[] = ['start', 'end'];
+  strictEqual(values[position(calls)].includes(search(calls)), true);
+  strictEqual(calls[0], 12);
+  strictEqual(values[0].length, 5);
+  strictEqual(values[1].length, 3);
+  strictEqual(original.length, 5);
+  console.log('string literal observations accepted');
+}

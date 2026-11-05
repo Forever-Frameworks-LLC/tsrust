@@ -81,3 +81,23 @@ pub(crate) fn family(values:&[Type])->Option<LiteralKind>{
     let Type::Literal(_,kind)=*values.first()? else{return None;};
     values.iter().all(|value|matches!(value,Type::Literal(_,other) if *other==kind)).then_some(kind)
 }
+
+/// Read-only string operations share one scalar representation without changing
+/// literal identities, union membership, assignment rules or nullable guards.
+pub(crate) fn string_observation(ty:Type, members:impl FnOnce(crate::syntax::UnionId)->Vec<Type>)->bool {
+ if ty.scalar_base()==Type::String{return true;}
+ let Some(union)=ty.union() else{return false;};let members=members(union);
+ !members.is_empty() && members.iter().all(|member|member.scalar_base()==Type::String)
+}
+
+#[cfg(test)]mod string_observation_tests{
+ #[test]fn common_string_operations_preserve_canonical_types_and_absence(){
+  use super::*;use crate::{syntax::{Type,ArrayElement},unions::UnionArena};
+  let arena=UnionArena::default();let span=crate::Span::default();
+  let first=Type::Literal(0,LiteralKind::String);let second=Type::Literal(1,LiteralKind::String);
+  let union=arena.intern([first,second],span).unwrap();let snapshot=arena.snapshot();
+  for ty in [Type::String,first,union,Type::BorrowedUnion(union.union().unwrap())]{assert!(string_observation(ty,|id|arena.members(id)));}
+  for ty in [Type::Int,Type::Array(ArrayElement::String(0)),arena.intern([first,Type::Undefined],span).unwrap(),arena.intern([first,Type::Int],span).unwrap()]{assert!(!string_observation(ty,|id|arena.members(id)));}
+  assert_eq!(union.scalar_base(),union);assert_eq!(arena.members(union.union().unwrap()),snapshot[union.union().unwrap().index()].members);
+ }
+}

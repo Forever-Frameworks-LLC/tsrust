@@ -1935,7 +1935,7 @@ impl SourceIndex {
         }
         if method=="parse" && let Some(output)=self.schema_element(&receiver) {return output.to_owned();}
         if method=="safeParseJson" && let Some(output)=self.schema_element(&receiver) {return format!("SafeParseSuccess<{output}> | SafeParseError<{{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>");}
-        let receiver = literal_scalar_family(&receiver).map(str::to_owned).unwrap_or(receiver);
+        let receiver = observation_scalar_family(&receiver).map(str::to_owned).unwrap_or(receiver);
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
         if self.schema_element(&receiver).is_some() && method=="default" {return receiver;}
         if let Some(output)=self.schema_element(&receiver) && matches!(method,"optional"|"nullable") {
@@ -1999,7 +1999,7 @@ impl SourceIndex {
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sql_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::ui_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method).is_some()){return true;}
-        let receiver = literal_scalar_family(receiver).unwrap_or(receiver);
+        let receiver = observation_scalar_family(receiver).unwrap_or(receiver);
         if receiver=="@namespace:std:schema#s" && matches!(method,"string"|"boolean"|"int"|"number"|"null"|"literal"|"enum"|"union"|"discriminatedUnion") {return true;}
         if matches!((self.schema_element(receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return true;}
         if self.schema_element(receiver).is_some() { return matches!(method,"parse"|"safeParse"|"safeParseJson"); }
@@ -2216,7 +2216,7 @@ impl SourceIndex {
                 end = close + 1;
                 continue;
             }
-            if self.text(end) == "[" && (ty == "string" || literal_scalar_family(&ty) == Some("string")) {
+            if self.text(end) == "[" && (ty == "string" || observation_scalar_family(&ty) == Some("string")) {
                 ty = "string".to_owned();
                 // A string position is a one-character string.
                 let close = self.pairs.get(end).copied().flatten()?;
@@ -2568,7 +2568,7 @@ impl SourceIndex {
                 if n==open+2 && let Some(key)=quoted_property_name(self.text(open+1))
                     && let Some(field)=self.common_record_fields(receiver,false).remove(&key) {return field;}
                 // A string position is a one-character string.
-                if receiver == "string" || literal_scalar_family(receiver) == Some("string") {
+                if receiver == "string" || observation_scalar_family(receiver) == Some("string") {
                     return "string".into();
                 }
                 // An unknown indexed receiver is not an array literal.
@@ -4564,6 +4564,24 @@ fn literal_scalar_family(ty: &str) -> Option<&'static str> {
         LiteralAnnotation::Number(_) => "number", LiteralAnnotation::Boolean(_) => "boolean" })
 }
 
+// Observation lookup may use a common string API; literal/schema identity stays
+// with literal_scalar_family and the original checked/aliased source spelling.
+fn observation_scalar_family(ty:&str)->Option<&'static str>{
+ if ty=="string"{return Some("string");}
+ if let Some(family)=literal_scalar_family(ty){return Some(family);}
+ if !ty.contains('|') && !ty.trim_start().starts_with('('){return None;}
+ use tsrust_compiler::type_syntax::{ValueAnnotationKind as Kind,LiteralAnnotation};
+ let annotation=tsrust_compiler::type_syntax::parse(ty).ok()?;let mut pending=vec![&annotation];let mut found=false;
+ while let Some(value)=pending.pop(){match &value.kind{
+  Kind::Group(inner)=>pending.push(inner),
+  Kind::Union(members) if !members.is_empty()=>pending.extend(members),
+  Kind::Literal(LiteralAnnotation::String(_))=>found=true,
+  Kind::Named(name) if name.text=="string"=>found=true,
+  _=>return None,
+ }}
+ found.then_some("string")
+}
+
 fn builtin_catalog() -> &'static Value {
     static DATA: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
     DATA.get_or_init(|| {
@@ -4572,7 +4590,7 @@ fn builtin_catalog() -> &'static Value {
 }
 
 fn builtins_for(ty: &str) -> Vec<Value> {
-    let ty = literal_scalar_family(ty).unwrap_or(ty);
+    let ty = observation_scalar_family(ty).unwrap_or(ty);
     if let Some(result)=ty.strip_prefix("Task<").and_then(|text|text.strip_suffix('>')) {
         let mut entries=builtin_catalog()["TaskMethods"].as_array().cloned().unwrap_or_default();
         for entry in &mut entries {if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("T",result)]));}}
@@ -4714,4 +4732,13 @@ fn builtins_for(ty: &str) -> Vec<Value> {
 fn public_ui_record_aliases_hide_implementation_names(){
  let index=SourceIndex::with_entry_help(include_str!("../../tsrust-compiler/src/stdlib/ui/api.tsr"),false);
  for (private,public) in [("ViewProperties","ViewRenderProps"),("ButtonProperties","ButtonRenderProps"),("ViewComponentProps","ViewProps"),("ButtonComponentProps","ButtonProps")]{assert_eq!(index.public_record_alias(private).as_deref(),Some(public),"aliases={:?}; parameters={:?}",index.public_record_aliases,index.generic_parameters);}
+}
+
+#[cfg(test)]mod string_observation_family_tests{
+ #[test]fn observation_family_preserves_schema_and_nullable_distinctions(){
+  use super::{literal_scalar_family,observation_scalar_family};
+  for ty in ["string","'start'","('start'|'current'|'end')","('left'|('right'))"]{assert_eq!(observation_scalar_family(ty),Some("string"),"{ty}");}
+  for ty in ["'start'|undefined","'start'|int","Schema<'start'|'end'>","NativeCallable","'start'[]"]{assert_eq!(observation_scalar_family(ty),None,"{ty}");}
+  assert_eq!(literal_scalar_family("'start'|'end'"),None,"schema enum identity must not become SchemaLiteral");
+ }
 }
