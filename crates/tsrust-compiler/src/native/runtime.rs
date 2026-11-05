@@ -8,6 +8,8 @@ pub struct Units {
     pub dependencies:bool,
 }
 
+pub fn requires_temporary_files(source:&str)->bool {source.contains("mod tsrust_native_tempfiles {")}
+
 pub(crate) fn bytes_module(views:bool,utf8:bool)->String {
     let mut text=String::from("mod tsrust_native_bytes {\n");
     text.push_str(include_str!("../stdlib/bytes/runtime/mod.rs"));

@@ -4542,6 +4542,7 @@ dependencies = [
  "subtle",
  "syn 3.0.6",
  "tar",
+ "tempfile",
  "tokio",
  "tokio-rustls",
  "toml_edit",
