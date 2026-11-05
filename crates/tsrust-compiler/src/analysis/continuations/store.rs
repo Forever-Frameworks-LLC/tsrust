@@ -68,7 +68,7 @@ impl Analyzer {
             },
             _ => unreachable!("checked assignment target"),
         };
-        let active = Self::selection_loans(selected, loans);
+        let active = self.url_store_selection_loans(context,target,loans).unwrap_or_else(||Self::selection_loans(selected, loans));
         if self.local_record_nullable_callback(context,target) {
             return Err(Diagnostic::new("unsupported","A callback field that can be null or undefined and borrows local variables cannot be replaced yet. Declare a new record with the new value.",target.span));
         }
@@ -159,6 +159,7 @@ impl Analyzer {
         if !self.scoped_native_storage_contract(actual, contract, value.span)? {
             self.require(actual, Some(contract), value.span)?;
         }
+        if self.finish_url_store(context,target,loans)?{return Ok(());}
         let actual = self.recursive_native_field_value(context, target, value, actual)?;
         let binding = Self::root_binding(target).expect("checked field has a binding");
         if let Some((_, path)) = Self::direct_fields(target) {

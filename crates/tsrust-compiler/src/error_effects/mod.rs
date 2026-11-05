@@ -777,6 +777,7 @@ fn native_binding_effect(id:usize)->FailureSet {
         Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"createRegistry"|"shareCallback"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
         // Target constants have no recoverable runtime failures.
         Some(binding) if binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")=>FailureSet::default(),
+        Some(binding) if binding.module=="std:url"=>FailureSet::default(),
         Some(binding) if binding.module=="std:path" && binding.name=="relative"=>FailureSet::runtime(),
         // Lexical UTF-8 processing only: no I/O or recoverable runtime failure.
         Some(binding) if binding.module=="std:path" && matches!(binding.name,"basename"|"dirname"|"extname"|"isAbsolute"|"normalize"|"join")=>FailureSet::default(),

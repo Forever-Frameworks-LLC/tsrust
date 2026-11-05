@@ -1,3 +1,4 @@
+import {urlChecksum,urlSpecs} from './url-contract.mjs';
 import {moduleStateChecksum} from './module-state-contract.mjs';
 import {schemaChecksum} from './schema-contract.mjs';
 import {rawChecksum,rawEncodingChecksum} from './native-json-contract.mjs';
@@ -219,6 +220,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
+ if(Object.hasOwn(urlSpecs,id))return urlChecksum(id,n,seed,inputText);
  if(id==='native_module_state')return moduleStateChecksum(n,seed);
  if(id==='native_schema_json_nested'||id==='native_schema_export'||id==='native_schema_super_refine'||id==='native_schema_recursive'||id==='native_schema_constraint_messages'||id==='native_schema_parse'||id==='native_schema_collections'||id==='native_schema_json_fused'||id==='native_schema_pipeline'||id==='native_schema_string'||id==='native_schema_boolean'||id==='native_schema_int'||id==='native_schema_number'||id==='native_schema_number_int'||id==='native_schema_null'||id==='native_schema_string_bounds'||id==='native_schema_int_bounds'||id==='native_schema_int_exclusive'||id==='native_schema_number_bounds'||id==='native_schema_owned_array'||id==='native_schema_json_array'||id==='native_schema_number_array_int'||id==='native_schema_json_object'||id==='native_schema_json_object_strip'||id==='native_schema_json_object_retain'||id==='native_schema_json_source_retain'||id==='native_schema_json_presence'||id==='native_schema_json_defaults'||id==='native_schema_json_literal'||id==='native_schema_json_enum'||id==='native_schema_json_declared_enum'||id==='native_schema_json_union'||id==='native_schema_json_discriminated_union')return schemaChecksum(n,seed,inputText);
  if(id==='native_json_import')return dataImportChecksum(n,seed);

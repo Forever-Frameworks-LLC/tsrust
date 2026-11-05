@@ -17,6 +17,7 @@ mod threads;
 mod ui;
 mod futures;
 mod http;
+#[path="../stdlib/url/emit.rs"] mod url;
 mod sqlite;
 mod sql;
 mod channels;
@@ -2794,7 +2795,8 @@ impl Emitter<'_> {
                     let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity");
                     self.native_optional_argument(parameter,format!("value{id}"),closure.function.bindings[*id].ty)
                 }).collect::<Vec<_>>();
-                let call=if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
+                let call=if let Some(call)=self.url_forward(&closure.function,&closure.parameters,closure.span,id) {call}
+                else if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
                     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
                     format!("{symbol}(&value0.iter().map(|value|value.as_ref()).collect::<Vec<_>>())")
                 }else if binding.module=="std:testing-runtime" && binding.name=="checkAssertion" {
@@ -4120,6 +4122,7 @@ impl Emitter<'_> {
                         initializer
                     )
                 }
+                StmtKind::Assign {target,value,operator:None} if self.url_assignment_target(target).is_some()=>format!("{};",self.url_assignment(fun,target,value,false)),
                 StmtKind::Assign {
                     target,
                     value,
@@ -8206,6 +8209,7 @@ impl Emitter<'_> {
                 branch,
                 ..
             } => self.coalesce_assignment(fun, expr, target, value, *branch),
+            ExprKind::Assign {target,value,..} if self.url_assignment_target(target).is_some()=>self.url_assignment(fun,target,value,expr.ty!=Some(Type::Void)),
             ExprKind::Assign {target,value,..} if expr.ty==Some(Type::Void) && self.self_appends.assignment(fun,value) => self.self_append_with(fun,target,value,&mut |operand,mode,_|self.expr(fun,operand,mode)),
             ExprKind::Assign { target, value, .. } if expr.ty==Some(Type::Void) => {
                 if matches!(target.kind,ExprKind::Name(_)){
@@ -9229,6 +9233,7 @@ impl Emitter<'_> {
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
+                    if let Some(call)=self.url_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}

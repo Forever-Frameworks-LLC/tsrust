@@ -12,6 +12,7 @@ mod thread_transfer;
 mod threads;
 mod futures;
 mod http;
+mod url;
 mod sqlite;
 mod ui;
 mod sql;
@@ -1546,6 +1547,7 @@ impl Analyzer {
         crate::stdlib::cache::prepare(&mut program)?;
         crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::http::prepare(&mut program)?;
+        crate::stdlib::url::prepare(&mut program)?;
         crate::stdlib::signals::prepare(&mut program)?;
         crate::stdlib::sqlite::prepare(&mut program)?;
         crate::stdlib::sql::prepare(&mut program)?;
@@ -4980,6 +4982,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Option<continuations::prelude::Prelude>, Diagnostic> {
         use continuations::prelude::{Prelude,Frame};
+        if let Some(result)=self.url_getter(context,expr,mode,loans,expected)?{return Ok(Some(Prelude::Ready(result)));}
         if let Some(result)=self.json_typed_encode(context,expr,loans)?{return Ok(Some(Prelude::Ready(result)));}
         if let Some(result)=self.json_typed_decode(context,expr,loans,expected)?{return Ok(Some(Prelude::Ready(result)));}
         if let Some(result)=self.json_string_length(context,expr,mode,loans)?{return Ok(Some(Prelude::Ready(result)));}
@@ -8992,6 +8995,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty) = self.ui_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty) = self.url_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.cache_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.thread_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }

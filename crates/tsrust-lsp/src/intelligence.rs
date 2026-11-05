@@ -1911,6 +1911,9 @@ impl SourceIndex {
         Some(format!("{schema}<{output}>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::url_method(*id,method)) {
+            return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
+        }
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::sql_method(*id,method)) {
             let signature=binding.result.signature();
             let ty=if tsrust_compiler::native_bindings::sql_asynchronous(binding.name){if let tsrust_compiler::native_signatures::Signature::Result(ok,_)=signature{*ok}else{signature}}else{signature};
@@ -1992,6 +1995,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::url_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sql_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::ui_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method).is_some()){return true;}
@@ -2727,7 +2731,7 @@ impl SourceIndex {
             });
             return;
         }
-        if let Some(declaration) = tsrust_compiler::native_types::lookup(module, exported) {
+        if let Ok(tsrust_compiler::native_exports::Export::Type(declaration)) = tsrust_compiler::native_exports::lookup(module, exported) {
             self.import_native_type(declaration, local, span);
             return;
         }

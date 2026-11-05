@@ -1,0 +1,25 @@
+import { parseUrl } from 'std:url';
+
+function workload(n: int, seed: int, input: string): int {
+  const value = unwrap(parseUrl(input));
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    value.pathname = '/changed/path';
+    value.search = '?q=one+two';
+    value.port = 8443;
+    const href = value.href;
+    if (href.length !== 47 || !href.startsWith('https://example.com:8443/changed/path?q=one+two')) {
+      throw 'Invalid URL setters';
+    }
+
+    checksum += href.length;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, 'https://example.com/start'));
+}

@@ -9,6 +9,78 @@
   "compileSamples": 3,
   "workloads": [
     {
+      "id": "native_url_parse_components",
+      "category": "url",
+      "description": "Parse one URL and inspect borrowed normalized components",
+      "source": "workloads/native_url_parse_components.tsr",
+      "counterpart": "workloads/native_url_parse_components.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete URL scenario and full fixed-output observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-url",
+      "inputText": "https://user:secret@EXAMPLE.com:8443/a/../b?tag=one&tag=two#section",
+      "measured": false,
+      "measurementStatus": "unmeasured-url-family",
+      "specification": "Parse every iteration; observe complete canonical href plus scheme, username, password, host, numeric port, path, query and fragment. ASCII output checksum seed + 8558*n.",
+      "notes": "Matched ASCII corpus using Node URL/URLSearchParams and handwritten Rust url. Borrowed Tsrust getters avoid text copies. Snapshot results own their entries. Untimed support only; package/platform and native comparison acceptance pending.",
+      "sourceSha256": "cd2951c86c8741b9548bcb0cf5a94a8195590cb759cf218bc7ee950a61750355",
+      "counterpartSha256": "c70eb59f7c1daa61e9abbc168e4374392475fa9591ee654567264757bc9746a3"
+    },
+    {
+      "id": "native_url_query_snapshot",
+      "category": "url",
+      "description": "Parse, snapshot, mutate and replace an independent URL query",
+      "source": "workloads/native_url_query_snapshot.tsr",
+      "counterpart": "workloads/native_url_query_snapshot.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete URL scenario and full fixed-output observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-url",
+      "inputText": "https://example.com/?tag=one&tag=two&z=last",
+      "measured": false,
+      "measurementStatus": "unmeasured-url-family",
+      "specification": "Parse URL and query pairs, copy entry snapshot, replace duplicate tag, append, stable-sort, serialize, replace URL query and mutate detached pairs. Observe complete query and all original entries. Checksum seed + 59*n.",
+      "notes": "Matched ASCII corpus using Node URL/URLSearchParams and handwritten Rust url. Borrowed Tsrust getters avoid text copies. Snapshot results own their entries. Untimed support only; package/platform and native comparison acceptance pending.",
+      "sourceSha256": "0af70f76d40cd8255a175fb8f09f29eb4920fc9d73084880223bcb1d57483122",
+      "counterpartSha256": "34e94b8c87b604e84021084b6e957d6a20d3d6cd4cd6b822725cc89f187e6da3"
+    },
+    {
+      "id": "native_url_reused_setters",
+      "category": "url",
+      "description": "Repeated component setters on a reused URL owner",
+      "source": "workloads/native_url_reused_setters.tsr",
+      "counterpart": "workloads/native_url_reused_setters.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete URL scenario and full fixed-output observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-url",
+      "inputText": "https://example.com/start",
+      "measured": false,
+      "measurementStatus": "unmeasured-url-family",
+      "specification": "Parse once outside loop. Set pathname, query and numeric port on every iteration, then observe complete href. Checksum seed + 47*n.",
+      "notes": "Matched ASCII corpus using Node URL/URLSearchParams and handwritten Rust url. Borrowed Tsrust getters avoid text copies. Snapshot results own their entries. Untimed support only; package/platform and native comparison acceptance pending.",
+      "sourceSha256": "4d12cb300a032abfa1a702e3ca7cba94d7e6fef549d83bd09127ae014a910b42",
+      "counterpartSha256": "cfa2b41b4008335d8323fbeac235b6bb04878005a92a0963a37cdfa02c033b79"
+    },
+    {
       "id": "native_json_literal_union",
       "category": "json",
       "description": "Checked same-kind scalar literal union JSON record decoding",
