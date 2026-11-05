@@ -240,7 +240,10 @@ async function main(): Task<void> {
   const queue = new Channel<int>(1);
   const outcomes = await allSettled([produce(queue.sender()).start(), consume(queue)]);
   for (const outcome of outcomes) {
-    unwrap(clone(outcome));
+    match (outcome) {
+      Ok(_) => {},
+      Err(_) => { throw 'channel group failed'; }
+    }
   }
 
   queue.close();
@@ -255,9 +258,19 @@ Messages cannot contain worker handles or channel endpoints.
 `close()` rejects new sends and permits queued messages to drain. Receiving from
 an empty closed channel, or sending after closure, throws code `closed`.
 
+`send` throws `SendError<T>` with `code` and the original unsent `value` after
+closure. `trySend` returns this error for `full` or `closed` without waiting.
+This replaces the earlier awaited-send behavior that discarded the failed message.
+A started send adds the ordinary `AsyncError` wrapper around its `SendError`.
+Cancelling a pending send disposes its message once.
+
+`tryReceive` borrows the receiver exclusively and returns `empty` or `closed` if no
+message is buffered. Closing a sender closes only that endpoint; other senders
+remain usable.
+
 ### Handle runtime failures
 
-Awaiting a job, deadline, race, timer or channel operation can throw `AsyncError`.
+Awaiting a job, deadline, race, delay or channel receive can throw `AsyncError`.
 Its `code` identifies the cause:
 
 | Code | Meaning |

@@ -7,7 +7,7 @@ type State = BTreeMap<Place, Tokens>;
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Exit { Next, Return, Throw, Break, Continue }
 struct Path { state: State, exit: Exit }
-struct Tracker<'a> { program: &'a CheckedProgram, warnings: BTreeMap<(usize,usize,usize),Diagnostic>, failures: Vec<State> }
+struct Tracker<'a> { program: &'a CheckedProgram, warnings: BTreeMap<(usize,usize,usize),Diagnostic>, failures: Vec<State>, projections:usize }
 impl CheckedProgram {
     pub(crate) fn task_type(&self, ty: Type) -> bool {
         match ty {
@@ -44,7 +44,7 @@ impl CheckedProgram {
     }
     pub(crate) fn task_warnings(&self)->Vec<Diagnostic> {
         if self.task_origins.is_empty() && !self.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) && !self.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Job)) {return Vec::new();}
-        let mut tracker=Tracker{program:self,warnings:BTreeMap::new(),failures:Vec::new()};
+        let mut tracker=Tracker{program:self,warnings:BTreeMap::new(),failures:Vec::new(),projections:0};
         for function in &self.functions { if !function.template {tracker.function(function, &[]);} }
         for closure in &self.closures {if !closure.function.template && closure.forward.is_none() {tracker.function(&closure.function,&closure.captures);} }
         tracker.warnings.into_values().collect()
@@ -55,6 +55,9 @@ fn place(value:&Expr)->Option<Place> {
         ExprKind::Name(_)=>value.binding.map(|id|(id,Vec::new())),
         ExprKind::Field(base,name)=>{let(id,mut path)=place(base)?;path.push(name.clone());Some((id,std::mem::take(&mut path)))},
         ExprKind::Index(base,index)=>{let(id,mut path)=place(base)?;if let ExprKind::Integer(text)=&index.kind {path.push(text.clone());}else{path.push("*".into());}Some((id,path))},
+        // Await evaluates and consumes its operand; its result is not storage
+        // selected from the task binding (including through field/index syntax).
+        ExprKind::Unary{op:UnaryOp::Await,..}=>None,
         ExprKind::Unary{value,..}|ExprKind::Project{value,..}|ExprKind::TypeAssertion{value,..}=>place(value),
         _=>None,
     }
@@ -79,7 +82,7 @@ impl Tracker<'_> {
             ExprKind::Record(fields)=>for(field,value)in fields{let mut child=destination.clone();child.1.push(field.text.clone());self.store(function,value,state,child);},
             ExprKind::Array(values)=>for(index,value)in values.iter().enumerate(){let mut child=destination.clone();child.1.push(index.to_string());self.store(function,value,state,child);},
             ExprKind::Inject{value,..}|ExprKind::TypeAssertion{value,..}=>self.store(function,value,state,destination),
-            ExprKind::Unary{value:inner,..} if !value.ty.is_some_and(|ty|self.program.task_type(ty))=>self.store(function,inner,state,destination),
+            ExprKind::Unary{op,value:inner,..} if *op!=UnaryOp::Await && !value.ty.is_some_and(|ty|self.program.task_type(ty))=>self.store(function,inner,state,destination),
             _=>{let tokens=self.value(function,value,state,true);let paths=value.ty.map(|ty|self.program.task_paths(ty)).unwrap_or_default();
                 if paths.is_empty(){state.entry(destination).or_default().extend(tokens);}else{for (path,_) in paths {let mut child=destination.clone();child.1.extend(path);state.entry(child).or_default().extend(tokens.iter().copied());}}}
 
@@ -101,6 +104,19 @@ impl Tracker<'_> {
         }
         for path in self.body(function,&function.body,state) {for(_,tokens)in path.state {self.warn(tokens,function.body.last().map_or(Span::default(),|stmt|stmt.span));}}
     }
+    fn projection(&mut self,function:&CheckedFunction,value:&Expr,base:&Expr,index:Option<&Expr>,member:String,state:&mut State,consume:bool)->Tokens {
+        // A projection of an owned rvalue still evaluates its base (including
+        // await) before its index, and can abandon unselected task-bearing data.
+        let temporary=(usize::MAX-2,vec![self.projections.to_string()]);self.projections+=1;
+        self.store(function,base,state,temporary.clone());
+        if let Some(index)=index{let _=self.value(function,index,state,false);}
+        // Bounds/own projection failure occurs while the temporary still owns
+        // its contents; preserve that path before selecting the successful value.
+        if value.own_may_fail{self.failures.push(state.clone());}
+        let mut selected=temporary.clone();selected.1.push(member);
+        let tokens=Self::take(state,&selected);let remaining=Self::take(state,&temporary);self.warn(remaining,value.span);
+        if consume{tokens}else{self.warn(tokens,value.span);Tokens::new()}
+    }
     fn value(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,consume:bool)->Tokens {
         let tokens=self.value_inner(function,value,state,consume);
         if value.own_may_fail {self.failures.push(state.clone());}
@@ -110,6 +126,11 @@ impl Tracker<'_> {
         if let ExprKind::Unary{op:UnaryOp::Void|UnaryOp::Typeof,value,..}=&value.kind {let _=self.value(function,value,state,false);return Tokens::new();}
         if let Some(selected)=place(value) {return if consume {Self::take(state,&selected)}else{Tokens::new()};}
         match &value.kind {
+            ExprKind::Field(base,member)=>self.projection(function,value,base,None,member.clone(),state,consume),
+            ExprKind::Index(base,index)=>{
+                let member=if let ExprKind::Integer(text)=&index.kind{text.clone()}else{"*".into()};
+                self.projection(function,value,base,Some(index),member,state,consume)
+            },
             ExprKind::Unary{op:UnaryOp::Await,value:operand,..}=>{
                 let _=self.value(function,operand,state,true);
                 if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()) {Tokens::from([(value.span.start,value.span.end,value.ty.is_some_and(|ty|self.program.contains_started_job(ty)))])}else{Tokens::new()}

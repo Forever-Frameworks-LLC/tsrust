@@ -7,7 +7,7 @@ backreferences reject. Inline flags such as `(?i)` configure the pattern.
 
 `RegexOptions` has optional `sizeLimit`, `dfaSizeLimit` and `nestLimit` fields.
 Omitted fields preserve backend defaults: a 10 MiB compiled-NFA size limit and
-2 MiB hybrid-DFA cache. Limits are nonnegative integers representable by the
+2 MiB hybrid-DFA cache, with a nesting limit of 250. Limits are nonnegative integers representable by the
 execution target; `nestLimit` is 0..4294967295. Explicit zero is passed through.
 Negative/unrepresentable options return Range before compilation. Invalid syntax
 returns Syntax; an exceeded compiled-size limit returns SizeLimit. Compile is the
@@ -53,5 +53,6 @@ Compile once outside repeated searches. Eager iteration allocates result arrays
 and can have quadratic total search work for adversarial patterns/haystacks;
 there is no implicit result cap or global regex cache.
 
-The example prints `Regex text checks passed`. Public API integration and native
-example verification remain pending while this coherent feature is implemented.
+Run `tsrust run examples/regex-text/main.tsr` from the repository root. The example
+checks ranges, capture absence, replacement templates and rejected syntax, then
+prints `Regex text checks passed`.

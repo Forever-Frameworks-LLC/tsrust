@@ -34,7 +34,7 @@ function main() {
   strictEqual(second.start, 3);
   strictEqual(second.end, 7);
   const snapshots = expression.capturesAll(text);
-  strictEqual(snapshots[1].groups[1], undefined);
+  strictEqual(snapshots[1].groups[1] === undefined, true);
   strictEqual(expression.replace(text, '${2}/${1}'), 'x🦀/é é');
   strictEqual(expression.replaceAll(text, '${2}/${1}'), 'x🦀/é /é');
   const segments = expression.split(text);

@@ -34,3 +34,15 @@ fn populated_arrays_execute_all_in_order_and_without_unused_task_warnings(){
  let directory=support::TempDirectory::new();let source=support::format_round_trip(source);let input=directory.source(&source);
  let result=support::run(support::cli().arg("run").arg(input),120);support::success(&result);assert_eq!(result.stdout,b"3 4\n5 6\n2\n");assert!(!String::from_utf8_lossy(&result.stderr).contains("unused-task"),"{}",String::from_utf8_lossy(&result.stderr));
 }
+
+#[test]
+fn nested_awaited_group_members_and_indices_evaluate_their_responsibilities(){
+ for(kind,invocation)in[("Task<int>","value(3)"),("Job<int,undefined>","value(3).start()"),("Task<void>","unit()")]{
+  let source=format!("import {{all,allSettled,Job}} from 'std:futures';async function value(n:int):Task<int>{{return n;}}async function unit():Task<void>{{}}async function main():Task<void>{{const tasks:{kind}[]=[];tasks.push({invocation});console.log((await all(tasks)).length);const others:{kind}[]=[];others.push({invocation});console.log((await allSettled(others)).length);}}");assert!(checked(&source).unwrap().is_empty(),"{kind}");
+ }
+ let prefix="import {all,Job} from 'std:futures';async function value(n:int):Task<int>{return n;}function fail():int{throw 'argument failed';}";
+ for expression in ["const pending=all(jobs);console.log((await pending).length);","console.log((await all(jobs))[0]);","console.log((await all(jobs))[fail()]);","console.log((await all(jobs)).length,fail());"]{
+  let source=format!("{prefix}async function main():Task<void>{{const jobs:Job<int,undefined>[]=[];jobs.push(value(3).start());{expression}}}");assert!(checked(&source).unwrap().is_empty(),"{expression}");
+ }
+ let source=format!("{prefix}async function main():Task<void>{{const jobs:Job<int,undefined>[]=[];jobs.push(value(3).start());console.log(fail(),(await all(jobs)).length);}}");assert_eq!(checked(&source).unwrap_err(),"unsettled-job");
+}

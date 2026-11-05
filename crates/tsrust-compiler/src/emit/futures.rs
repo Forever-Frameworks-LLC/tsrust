@@ -146,7 +146,7 @@ impl Emitter<'_>{
                 let values=self.expr(fun,&args[0],Mode::Consume);
                 if let Type::Array(item)=args[0].ty.unwrap(){
                     let poll=self.future_poll(item.ty(),"task",error,expr.span);
-                    format!("tsrust_native_futures::{operation}(({values}).into_iter().map(|task|async move{{{poll}}}).collect()).await")
+                    format!("tsrust_native_futures::{operation}(({values}).tsr_owned_items().map(|task|async move{{{poll}}}).collect()).await")
                 }else{
                     let Type::Record(id)=args[0].ty.unwrap()else{unreachable!()};
                     let fields=&self.program.records[id].fields;

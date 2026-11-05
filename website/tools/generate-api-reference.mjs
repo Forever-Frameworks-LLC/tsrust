@@ -20,6 +20,8 @@ const excluded = new Set(['std:ui', 'UiComputed', 'UiSignal', 'std:testing-runti
 // catalog group holding its methods and properties.
 const modules = [
   { module: 'std:env', summary: 'Read command-line arguments and environment variables.' },
+  { module: 'std:url', summary: 'Parse URLs, edit URL components and manage query parameters.', members: { Url: 'Url', SearchParams: 'SearchParams' } },
+  { module: 'std:regex', summary: 'Compile reusable regular expressions and return UTF-8 match ranges.', members: { Regex: 'Regex' } },
   { module: 'std:path', summary: 'Join, split and normalize path text without touching the filesystem.' },
   { module: 'std:fs', summary: 'Open, read, write and buffer files with explicit errors.' },
   { module: 'std:bytes', summary: 'Owned byte buffers and borrowed byte views.' },
@@ -46,6 +48,7 @@ const modules = [
   } },
   { module: 'std:futures', summary: 'Delay, race and cancel async tasks; bounded async channels.', members: {
     'Task methods': 'TaskMethods', Job: 'Job', Channel: 'AsyncChannel', Sender: 'AsyncSender',
+    Interval: 'Interval', CancellationToken: 'CancellationToken',
   } },
   { module: 'std:threads', summary: 'Native threads, scoped threads, thread pools and blocking channels.', members: {
     Thread: 'Thread', ScopedThread: 'ScopedThread', ThreadPool: 'ThreadPool', Channel: 'Channel', Sender: 'Sender',
