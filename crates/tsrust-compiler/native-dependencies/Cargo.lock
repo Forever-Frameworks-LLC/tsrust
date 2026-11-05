@@ -4376,6 +4376,7 @@ dependencies = [
  "accesskit_winit",
  "arboard",
  "axum",
+ "base64 0.23.1",
  "bigdecimal",
  "chrono",
  "chrono-tz",

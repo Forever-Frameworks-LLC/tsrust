@@ -74,6 +74,7 @@ impl Resolver<'_> {
                 return self.signature(&argument, span, depth + 1);
             }
             Signature::String => return Ok(named("string", span)),
+            Signature::StringLiteral(value) => Kind::Literal(crate::type_syntax::LiteralAnnotation::String((*value).into())),
             Signature::Boolean => return Ok(named("boolean", span)),
             Signature::Int => return Ok(named("int", span)),
             Signature::Number => return Ok(named("number", span)),
