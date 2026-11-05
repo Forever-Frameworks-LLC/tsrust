@@ -24,6 +24,12 @@ pub(crate) fn bytes_module(views:bool,utf8:bool,codecs:bool,base64:bool,operatio
     if search {text.push_str(include_str!("../stdlib/bytes/runtime/search.rs"));}
     text.push_str("}\n");text
 }
+pub(crate) fn tempfiles_module()->String {
+    let source=include_str!("../stdlib/fs/runtime/tempfiles.rs").split("\n#[cfg(test)]").next().unwrap()
+        .replace("crate::stdlib::fs::runtime::fs","crate::tsrust_native_files::fs");
+    format!("mod tsrust_native_tempfiles {{\n{source}\n}}\n")
+}
+
 pub(crate) fn files_module()->String {
     let runtime=|source:&'static str|source.split_once("\n#[cfg(test)]").expect("file backend tests follow runtime").0;
     format!("mod tsrust_native_files {{ mod resource {{\n{}\n}} pub mod fs {{\n{}\n}} pub mod buffered_fs {{\n{}\n}} }}\n",runtime(include_str!("../stdlib/fs/runtime/resource.rs")),runtime(include_str!("../stdlib/fs/runtime/fs.rs")),runtime(include_str!("../stdlib/fs/runtime/buffered_fs.rs")))
@@ -87,7 +93,7 @@ pub fn separate(source:&str)->Units {
     // Match complete variants; no feature is added merely because another is used.
     for views in [true,false] {for utf8 in [true,false] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {for operations in [false,true] {for binary in [false,true] {for search in [false,true] {extract("tsrust_native_bytes",bytes_module(views,utf8,codecs,base64,operations,binary,search));}}}}}}
     if let Some(module)=json {extract("tsrust_native_json",module);}
-    extract("tsrust_native_files",files_module());extract("tsrust_native_path",path_module());
+    extract("tsrust_native_files",files_module());extract("tsrust_native_tempfiles",tempfiles_module());extract("tsrust_native_path",path_module());
     if application.contains(crate::runtime::STRINGS) {
         // Other application helpers can still call the small number tie helper.
         application=application.replace(crate::runtime::STRINGS,&format!("use tsrust_runtime::text::*;\n{}",crate::runtime::NUMBER_TIE));

@@ -290,6 +290,35 @@ static FS_ERROR: Declaration = Declaration {
         Field { name: "osCode", signature: Signature::Int, optional: true },
     ],
 };
+static FS_OPEN_OPTIONS: Declaration = Declaration { id: NativeTypeId::FsOpenOptions, name: "OpenOptions", fields: &[
+    Field { name: "read", signature: Signature::Boolean, optional: true },
+    Field { name: "write", signature: Signature::Boolean, optional: true },
+    Field { name: "append", signature: Signature::Boolean, optional: true },
+    Field { name: "create", signature: Signature::Boolean, optional: true },
+    Field { name: "createNew", signature: Signature::Boolean, optional: true },
+    Field { name: "truncate", signature: Signature::Boolean, optional: true },
+], ..FS_ERROR };
+static FS_FILE_TIME: Declaration = Declaration { id: NativeTypeId::FsFileTime, name: "FileTime", fields: &[
+    Field { name: "unixSeconds", signature: Signature::Int, optional: false },
+    Field { name: "nanoseconds", signature: Signature::Int, optional: false },
+], ..FS_ERROR };
+static FS_METADATA: Declaration = Declaration { id: NativeTypeId::FsMetadata, name: "Metadata", fields: &[
+    Field { name: "isFile", signature: Signature::Boolean, optional: false },
+    Field { name: "isDirectory", signature: Signature::Boolean, optional: false },
+    Field { name: "isSymlink", signature: Signature::Boolean, optional: false },
+    Field { name: "size", signature: Signature::Int, optional: false },
+    Field { name: "readOnly", signature: Signature::Boolean, optional: false },
+    Field { name: "modified", signature: Signature::Named(NativeTypeId::FsFileTime), optional: true },
+    Field { name: "accessed", signature: Signature::Named(NativeTypeId::FsFileTime), optional: true },
+    Field { name: "created", signature: Signature::Named(NativeTypeId::FsFileTime), optional: true },
+], ..FS_ERROR };
+static FS_DIR_ENTRY: Declaration = Declaration { id: NativeTypeId::FsDirEntry, name: "DirEntry", fields: &[
+    Field { name: "name", signature: Signature::String, optional: false },
+    Field { name: "path", signature: Signature::String, optional: false },
+    Field { name: "isFile", signature: Signature::Boolean, optional: false },
+    Field { name: "isDirectory", signature: Signature::Boolean, optional: false },
+    Field { name: "isSymlink", signature: Signature::Boolean, optional: false },
+], ..FS_ERROR };
 static ENV_ERROR: Declaration = Declaration {
     id: NativeTypeId::EnvError, module: "std:env", name: "EnvError",
     fields: &[
@@ -484,6 +513,10 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::File => &FILE,
         NativeTypeId::BufferedReader => &BUFFERED_READER,
         NativeTypeId::BufferedWriter => &BUFFERED_WRITER,
+        NativeTypeId::FsOpenOptions => &FS_OPEN_OPTIONS,
+        NativeTypeId::FsFileTime => &FS_FILE_TIME,
+        NativeTypeId::FsMetadata => &FS_METADATA,
+        NativeTypeId::FsDirEntry => &FS_DIR_ENTRY,
         NativeTypeId::FsError => &FS_ERROR,
         NativeTypeId::EnvError => &ENV_ERROR,
         NativeTypeId::UiSignal => &UI_SIGNAL,
@@ -530,7 +563,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
     [&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
         &UI_ERROR,
-        &SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
+        &SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_OPEN_OPTIONS, &FS_FILE_TIME, &FS_METADATA, &FS_DIR_ENTRY, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
     ].into_iter().find(|item| item.module == module && item.name == name)
 }
 

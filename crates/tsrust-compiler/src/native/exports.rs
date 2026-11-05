@@ -16,11 +16,7 @@ pub struct Alias {
     pub name: &'static str,
     pub signature: crate::native_signatures::Signature,
 }
-static SEEK_ORIGIN: Alias = Alias { module: "std:fs", name: "SeekOrigin", signature: crate::native_signatures::Signature::Union(&[
-    crate::native_signatures::Signature::StringLiteral("start"),
-    crate::native_signatures::Signature::StringLiteral("current"),
-    crate::native_signatures::Signature::StringLiteral("end"),
-]) };
+static SEEK_ORIGIN: Alias = Alias { module: "std:fs", name: "SeekOrigin", signature: crate::stdlib::fs::bindings::SEEK_ORIGIN_SIGNATURE };
 
 /// Imported namespace identities survive aliases and ordinary lexical linking.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

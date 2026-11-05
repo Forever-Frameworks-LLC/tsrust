@@ -79,9 +79,11 @@ Only reference graph adds a package. Core worker2bfa53bd complete14API/39-row so
 CLI byte-search selection is added alongside requires_byte_codecs. Source readiness
 includes compiler/runtime/loans/effects/exact96variants/catalog/docs/export and
 all39TSR/TS/independentRust ABI/oracle/resource rows. Native/compiler/LSP/export and
-generated packet/UTF16 allocation acceptance have not run on this combined family. FS44-export source/cursor/sync/5-workload section is ready
-for preservation and combined-base integration. Neither section is natively
-accepted yet. Next heavy leases: FS new std profiles, then full coherent B02
+generated packet/UTF16 allocation acceptance have not run on this combined family. FS44-export source/cursor/sync/5-workload section938fd78f is now merged additively.
+Its pinned Node controls13/13(0.695s), strictTS/referenceABI and full formatter
+controls pass on worker source; no native/compiler/LSP/export/profile/timing
+acceptance is claimed for the added APIs. Combined source is now coherent for
+B01/B02/B04 affected acceptance. New seek/sync std kernels remain unexecuted. Next heavy leases: FS new std profiles, then full coherent B02
 compiler/native/LSP/export/allocation acceptance, followed by B01/B04; serialize
 all heavy work and give quiet timing exclusive access. Full regressions wait for
 the meaningful utility-family milestone.
@@ -220,12 +222,11 @@ claim for the six historical controls and not Windows/Linux acceptance.
 - runtime_api_plan /stdlib-url: clean d11bd018, accepted repair21controls above;
   no owned processes/leases. URL source payload/facade/scaling/editor readiness is
   integrated; URL public native/LSP/package execution and API timings remain open.
-- host_api_plan /stdlib-files:44-export coherent B01 source includes cursors and
-  optional TempDir, shared SeekOrigin signature,5matched rows and four-phase editor
-  coverage. Node24controls13/13(0.695s),strictTS+RustABI pass. Needs source-preservation
-  formatter slot/full repaired canonical merge. Three earlier std profiles pass;
-  new seek/sync kernels unexecuted. Profile those before native/optimization gate.
-  Tempfile pins/helper/portable selector are already canonical; no arbitrary cap.
+- host_api_plan /stdlib-files: clean938fd78f merged completecanonical4a850221 and
+ 44-export B01 source, sharedSeekOrigin,cursors/TempDir,5matchedrows/four-phaseeditor
+ coverage. PinnedNode13/13(0.695s),strictTS+RustABI and wholeformatters pass. Root
+ integrated source; next exclusiveprofile covers only newseek/sync std kernels,
+ 3allocation samples each. Earlier3stdprofiles retained; no native gate claim.
 
 URL patch evidence: upstream67unit+unchanged WPT and direct runtime6passed;
 path-scoped reverse search turns long-authority sizes8192/16384/32768/65536 from

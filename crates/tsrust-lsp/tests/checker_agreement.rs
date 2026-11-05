@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -34,6 +34,13 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"SeekOrigin",parameter:"x: SeekOrigin"},
+Receiver {ty:"OpenOptions",parameter:"x: ReadOnly<OpenOptions>"},
+Receiver {ty:"FileTime",parameter:"x: ReadOnly<FileTime>"},
+Receiver {ty:"Metadata",parameter:"x: ReadOnly<Metadata>"},
+Receiver {ty:"DirEntry",parameter:"x: ReadOnly<DirEntry>"},
+Receiver {ty:"FsError",parameter:"x: ReadOnly<FsError>"},
+
 Receiver {ty:"Url",parameter:"x: ReadOnly<Url>"},
 Receiver {ty:"SearchParams",parameter:"x: SearchParams"},
 Receiver {ty:"UrlError",parameter:"x: ReadOnly<UrlError>"},
