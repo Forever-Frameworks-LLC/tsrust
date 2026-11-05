@@ -14,8 +14,8 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `61871710`. B03 source/measurements are checkpointed; coherent B12 source and handoff/plan
-updates are uncommitted before the next checkpoint. Preserve it. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint `1379a46e`. B12 source checkpoint1379a46e is prepared, not yet compiled. B06 prerequisite
+integration changes are staged, awaiting whole-format and integration checkpoint. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
@@ -41,9 +41,10 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
-**Current continuation: root B12 source checkpoint/integration preparation.**
-No Cargo/native test job is active. Root whole token/idempotence proof70030 is
-running before checkpoint; `/tmp/tsrust-b12-token-proof.log`. Earlier full formatter
+**Current continuation: root combined B12/B06 integration checkpoint preparation.**
+No Cargo/native test job is active. Root whole token/idempotence proof70030
+passed1562files;4.636s/203,072KiB and4.640s/205,328KiB,0changes, before1379a46e.
+`/tmp/tsrust-b12-token-proof.log`. Earlier full formatter
 changed14files/18catalog snippets/13fingerprints; its watchdog could not invoke ps
 inside sandbox, although formatter completed. Subsequent supervised idempotence
 passed5.178s/203,056KiB with0changes. Node24 regex-text source/oracle/13reference
@@ -59,7 +60,9 @@ lib build38941 passed6.728s/551,456KiB, compiler fresh=true, pure4case recovery
 unit passed0.521s/80KiB. Logs `/tmp/tsrust-b06-path-{artifacts.jsonl,build.log}`,
 `/tmp/tsrust-b06-path-gate.log`, `/tmp/tsrust-b06-recovery-editor-gates.log`.
 Earlier native/leaf/clone/mixedtuple/TaskJob/discardspan passes remain preserved.
-Root next integrates these five commits, not entire divergent worker tree.
+Root applied these five commits with --no-commit; resolved only overlapping
+completion-matrix insertion/phase guards, preserving B03/B12 rows and all four
+unit-array rows. Combined source still needs fresh executable acceptance.
 B06 worker is idle after read-only public API tracing; public all/interval/token/
 channel/taskAsync APIs remain unimplemented. Root has its finite implementation
 plan; exact interval/admission/error and send-owner contracts still need freezing.

@@ -185,7 +185,7 @@ impl SourceIndex {
         };
         // `?.` reads the member of the present value only.
         let ty = if optional { self.record_alternatives(&ty, true).join(" | ") } else { ty };
-        Some(json!(self.member_items(&ty, prefix, replace, receiver)))
+        Some(json!(self.member_items(&ty, prefix, replace, receiver, end)))
     }
 
     /// Answer a member completion from a repaired single document.

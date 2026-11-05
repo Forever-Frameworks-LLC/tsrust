@@ -46,6 +46,7 @@ pub(super) fn resolve(root: &crate::type_syntax::ValueAnnotation, allow_void: bo
                                 "string" => Some(ArrayElement::String(depth)),
                                 "null" => Some(ArrayElement::Null(depth)),
                                 "undefined" => Some(ArrayElement::Undefined(depth)),
+                                "void" => Some(ArrayElement::Void(depth)),
                                 _ => names.get(&name.text).copied().and_then(|id| ArrayElement::from_value_type(unions.named_type(id))).map(|leaf| leaf.with_depth(depth)),
                             };
                             results.push(Type::Array(element.ok_or_else(|| array_error(value.span))?));

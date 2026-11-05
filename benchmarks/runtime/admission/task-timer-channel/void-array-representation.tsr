@@ -1,7 +1,15 @@
-// Source-only representation control. Rejection here would identify an existing
-// source array prerequisite, not decide all<void>'s future public mapping.
+// Unit result collections preserve one Rust () entry per completed operation.
+import { strictEqual } from 'std:testing';
+
+function done(): void {}
+
 function main() {
-  // @tsrust ignore - Intentional array-element negative: strict emit must retain the void-array prerequisite.
-  const values: void[] = [];
-  console.log(values.length);
+  const values: void[] = [done(), done()];
+  strictEqual(values.length, 2);
+  let count = 0;
+  for (const value of values) {
+    count += 1;
+  }
+
+  strictEqual(count, 2);
 }

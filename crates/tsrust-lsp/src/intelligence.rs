@@ -93,6 +93,7 @@ pub struct SourceIndex {
     /// Import name regions with the completion items of the imported module.
     import_exports: Vec<(Span, Vec<Value>)>,
     checked_views: Vec<(Span, String)>,
+    checked_array_capabilities: Vec<(Span, tsrust_compiler::ArrayCapabilities)>,
     json_string_receivers: Vec<Span>,
     checked_method_results: Vec<(Span, String)>,
     schema_pipeline_types: std::collections::BTreeMap<String, (String, String, bool, bool, bool, bool)>,
@@ -153,6 +154,7 @@ impl SourceIndex {
             import_exports: vec![],
             type_aliases: Default::default(),generic_aliases:None,public_record_aliases:Default::default(),
             checked_views: vec![],
+            checked_array_capabilities: vec![],
             json_string_receivers: vec![],
             checked_method_results: vec![],
             schema_pipeline_types: Default::default(),
@@ -390,6 +392,13 @@ impl SourceIndex {
             }
         }
         let facts = analysis.checked_type_facts();
+        self.checked_array_capabilities = facts.array_capabilities.iter().filter_map(|(span, capability)| {
+            let mut span = *span;
+            if let Some((start, added, original_end)) = inserted {
+                if span.end <= start {} else if span.start >= start + added && span.end <= original_end + added { span.start -= added; span.end -= added; } else { return None; }
+            }
+            Some((span, *capability))
+        }).collect();
         self.enum_scalar_types=facts.enum_scalars.iter().cloned().collect();
         self.json_string_receivers=facts.json_string_receivers.iter().filter_map(|span|{
             let mut span=*span;
@@ -2545,7 +2554,8 @@ impl SourceIndex {
         for wrapper in ["ReadOnly<", "Mutable<", "Owned<"] {
             if let Some(inner) = ty.strip_prefix(wrapper).and_then(|value| value.strip_suffix('>'))
                 && (self.native_type_aliases.contains_key(inner.split_once('<').map_or(inner, |(name, _)| name.trim()))
-                    || self.is_record_declaration(inner.split_once('<').map_or(inner, |(name, _)| name.trim()))) {
+                    || self.is_record_declaration(inner.split_once('<').map_or(inner, |(name, _)| name.trim()))
+                    || array_element_type(inner).is_some()) {
                 return inner.into();
             }
         }
@@ -3274,15 +3284,11 @@ impl SourceIndex {
             });
         }
         if method == "textDocument/completion" {
-            let items = self.completion(offset);
-            // An unfinished member access that this text cannot answer is
-            // answered from the checker's view of the document without it.
-            if !self.checked && items.as_array().is_some_and(Vec::is_empty)
-                && let Some(repaired) = self.repaired_member_completion(offset)
-            {
+            // Recover the checked receiver before considering tolerant members.
+            if !self.checked && let Some(repaired) = self.repaired_member_completion(offset) {
                 return Ok(repaired);
             }
-            return Ok(items);
+            return Ok(self.completion(offset));
         }
         if method == "textDocument/signatureHelp" {
             return Ok(self.signature_help(offset));
@@ -3450,7 +3456,7 @@ impl SourceIndex {
             ),
             "void" => (
                 "type void",
-                "A function result with no usable value, such as console.log or array.push. It cannot be used as a numeric, string or array result.\n\n```tsrust\nfunction greet():void { console.log(\"Hello\"); }\n```",
+                "A function result with no usable value, such as console.log or array.push. It cannot be used as a numeric or string value. A void[] stores unit results as Rust Vec<()>; its length counts completed results. void and undefined remain distinct types. Unit arrays do not support text conversion, scalar-unit entries() tuples or optional scalar element results such as at(), pop() and shift(). Callback methods can omit the unit parameter; explicitly typed scalar void parameters remain unsupported.\n\n```tsrust\nfunction greet():void { console.log(\"Hello\"); }\n```",
                 vec![],
             ),
             _ => return None,
@@ -3477,7 +3483,7 @@ impl SourceIndex {
         } else {
             self.receiver_type(token - 1)
         };
-        let mut entry = self.receiver_builtins(&receiver)
+        let mut entry = self.receiver_builtins_at(&receiver, token - 2)
             .into_iter()
             .find(|b| b["name"] == self.text(token))?;
         if receiver == "@namespace:std:schema#s" {
@@ -3520,8 +3526,8 @@ impl SourceIndex {
         Some(entry)
     }
     /// Completion items for the members of a receiver of type `ty`.
-    fn member_items(&self, ty: &str, prefix: &str, replace: Range, receiver: &str) -> Vec<Value> {
-        let mut items=self.receiver_builtins(ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
+    fn member_items(&self, ty: &str, prefix: &str, replace: Range, receiver: &str, receiver_token: usize) -> Vec<Value> {
+        let mut items=self.receiver_builtins_at(ty, receiver_token).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
         let ty = self.native_owner(ty);
         let ty = ty.as_str();
         items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":crate::documentation::render(&s.docs)},"textEdit":{"range":replace,"newText":s.name}})));
@@ -3600,7 +3606,7 @@ impl SourceIndex {
             let ty = self.member_receiver_type(dot);
             // After a member separator only members are offered, never names
             // of the enclosing scope.
-            let mut items=self.member_items(&ty, prefix, replace, &self.receiver_text(dot));
+            let mut items=self.member_items(&ty, prefix, replace, &self.receiver_text(dot), dot - 1);
             for item in &mut items {
                 if item["kind"]==5 && let Some(field)=item["label"].as_str() && !name(field) {
                     let field=serde_json::to_string(field).expect("property spelling");
@@ -4692,10 +4698,7 @@ fn builtins_for(ty: &str) -> Vec<Value> {
         });
         for entry in &mut entries {
             if matches!(entry["name"].as_str(), Some("sort" | "toSorted"))
-                && !matches!(
-                    element,
-                    "int" | "number" | "boolean" | "string" | "null" | "undefined"
-                )
+                && !matches!(element, "int" | "number" | "boolean" | "string" | "null" | "undefined")
             {
                 if let Some(signature) = entry["signature"].as_str() {
                     entry["signature"] = json!(signature.replace("compare?:", "compare:"));

@@ -324,6 +324,7 @@ impl SourceIndex {
                 symbol.docs = source.docs.clone();
             }
         }
+        self.checked_array_capabilities = facts.array_capabilities.iter().filter(|(location, _)| location.source == *current).map(|(location, capability)| (location.span, *capability)).collect();
         self.json_string_receivers=facts.json_string_receivers.iter().filter(|location|location.source==*current).map(|location|location.span).collect();
         let mut views = std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
         let mut optional = std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
@@ -516,16 +517,54 @@ impl SourceIndex {
         let mut preceding=tsrust_compiler::project::ProjectCheckedTypeFacts::default();
         let before=|fact:&&tsrust_compiler::project::ProjectExpressionTypeInfo|fact.location.source==*id && fact.location.span.end<=start;
         preceding.record_fields=facts.record_fields.iter().filter(|(_,_,location,_,_)|location.source!=*id || location.span.end<=start).cloned().collect();
+        preceding.array_capabilities=facts.array_capabilities.iter().filter(|(location, _)|location.source==*id && location.span.end<=start).cloned().collect();
         preceding.module_values=facts.module_values.iter().filter(before).cloned().collect();
         preceding.method_results=facts.method_results.iter().filter(before).cloned().collect();
         preceding.parameter_types=facts.parameter_types.iter().filter(before).cloned().collect();
         preceding.projections=facts.projections.iter().filter(before).cloned().collect();
         self.apply_project_checked_facts(&analysis.graph,id,&preceding,&Default::default());
         self.recover_result_payloads();
+        self.checked_array_capabilities=facts.array_capabilities.into_iter().filter_map(|(location, capability)| {
+            if location.source!=*id{return None;}let mut span=location.span;
+            if span.end<=start{}else if span.start>=start+added && span.end<=original_end+added{span.start-=added;span.end-=added;}else{return None;}
+            Some((span, capability))
+        }).collect();
         self.json_string_receivers=facts.json_string_receivers.into_iter().filter_map(|location|{
             if location.source!=*id{return None;}let mut span=location.span;
             if span.end<=start{}else if span.start>=start+added && span.end<=original_end+added{span.start-=added;span.end-=added;}else{return None;}
             Some(span)
         }).collect();
+    }
+}
+
+#[cfg(test)]
+mod array_capability_recovery_tests {
+    use super::*;
+
+    #[test]
+    fn recovery_retains_original_array_receiver_capability_spans() {
+        use tsrust_compiler::project::{SourceId, load_project_headers};
+        let root=std::env::temp_dir().canonicalize().unwrap().join("tsrust-array-capability-recovery");
+        let entry=SourceId(root.join("main.tsr").to_str().unwrap().into());
+        let dependency=SourceId(root.join("units.tsr").to_str().unwrap().into());
+        for source in [
+            "type Units=void[];function probe(values:ReadOnly<Units>){values.}function main(){}",
+            "import {Units} from './units.tsr';function probe(values:ReadOnly<Units>){values.}function main(){}",
+        ] {
+            for broken in ["", "function broken(){const = ;}"] {
+                let source=format!("{source}{broken}");
+                let mut workspace=crate::workspace::Workspace::default();
+                workspace.open(entry.clone(),1,source.clone());
+                workspace.open(dependency.clone(),1,"export type Units=void[];".into());
+                let graph=load_project_headers(&workspace.snapshot(),&entry.0).unwrap();
+                let mut index=SourceIndex::new(&source);
+                index.recover_project_member_receivers(&graph,&entry);
+                let start=source.find("values.").unwrap();
+                let capability=index.checked_array_capabilities.iter().find(|(span,_)|span.start==start && span.end==start+6).expect("recovered original receiver span").1;
+                assert!(!capability.supports("at"));
+                assert!(!capability.supports("join"));
+                assert!(capability.supports("slice"));
+            }
+        }
     }
 }

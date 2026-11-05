@@ -252,15 +252,13 @@ impl ProjectIndex {
             );
         }
         let index = self.indices.get(&id)?;
-        let answer = index.request(method, params, uri);
         if method == "textDocument/completion"
             && !index.checked()
-            && answer.as_ref().is_ok_and(|items| items.as_array().is_some_and(Vec::is_empty))
             && let Some(items) = self.repaired_member_completion(&id, index, params)
         {
             return Some(Ok(items));
         }
-        Some(answer.map(|mut answer| { self.rust_locations(&mut answer); answer }))
+        Some(index.request(method, params, uri).map(|mut answer| { self.rust_locations(&mut answer); answer }))
     }
 
     fn rust_locations(&self, value: &mut Value) {

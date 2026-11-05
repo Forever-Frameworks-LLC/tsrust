@@ -131,7 +131,7 @@ struct Row {
 /// fallen back to scope completion.
 const NOT_MEMBERS: &[&str] = &["function", "const", "main", "greeting"];
 
-const SHAPES: &str = "export type Point = { x: int; y: int; };\nexport function origin(): Point { return { x: 0, y: 0 }; }\nexport function scale(point: ReadOnly<Point>, factor: int): Point { return { x: point.x * factor, y: point.y * factor }; }\n";
+const SHAPES: &str = "export type UnitResults = void[];\nexport type UnitPair = [void[]];\nexport type UnitPairs = UnitPair[];\nexport type Point = { x: int; y: int; };\nexport function origin(): Point { return { x: 0, y: 0 }; }\nexport function scale(point: ReadOnly<Point>, factor: int): Point { return { x: point.x * factor, y: point.y * factor }; }\n";
 const GREETING: &str = "export function greeting(): string { return \"hi\"; }\n";
 const FILES: [(&str, &str); 6] = [("shapes.tsr", SHAPES), ("greeting.tsr", GREETING), ("compute.rs", "pub fn echo(value:String)->String{value}"), ("api.bindings.json",r#"{"schemaVersion":1,"source":"./api.rs","dependencies":{}}"#),("api.bindings.lock","version = 4"),("api.rs","pub struct Reply{pub text:String,pub count:i64}pub fn reply()->Reply{Reply{text:String::new(),count:0}}")];
 
@@ -152,6 +152,10 @@ fn rows() -> Vec<Row> {
  Row{kind:Kind::PathEnvOs,name:"environment snapshot indexed fields",before:"import {vars} from 'std:env';function main(){const rows=unwrap(vars());".into(),typed:"rows[0].v",after:"alue;}",includes:&["value"],excludes:&["name","function","main"],silent:None,needs_check:false},
  Row{kind:Kind::PathEnvOs,name:"path checked error fields",before:"import {PathError} from 'std:path';function inspect(value:ReadOnly<PathError>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
  Row{kind:Kind::PathEnvOs,name:"OS checked error fields",before:"import {OsError} from 'std:os';function inspect(value:ReadOnly<OsError>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::ArrayMember,name:"void result array",before:"type Results<T>=T[];function main(){const values:Results<void>=[];".into(),typed:"values.",after:"length;}",includes:&["length","push","slice","reverse","sort","toSorted"],excludes:&["at","pop","shift","find","findLast","entries","join","toString","toLocaleString","function","main"],silent:None,needs_check:true},
+ Row {kind:Kind::ArrayMember,name:"void result array named tuple alias",before:"type Pair=[void[]];function probe(values:ReadOnly<Pair[]>){".into(),typed:"values.",after:"length;}function main(){}",includes:&["length","at","entries","slice"],excludes:&["join","toString","toLocaleString","function","main"],silent:None,needs_check:true},
+ Row {kind:Kind::ArrayMember,name:"void result array imported unit alias",before:"import {UnitResults as Results} from './shapes.tsr';function probe(values:ReadOnly<Results>){".into(),typed:"values.",after:"length;}function main(){}",includes:&["length","push","slice","reverse"],excludes:&["at","pop","shift","find","findLast","entries","join","toString","toLocaleString","function","main"],silent:None,needs_check:true},
+ Row {kind:Kind::ArrayMember,name:"void result array imported tuple alias",before:"import {UnitPairs as Pairs} from './shapes.tsr';function probe(values:ReadOnly<Pairs>){".into(),typed:"values.",after:"length;}function main(){}",includes:&["length","at","entries","slice"],excludes:&["join","toString","toLocaleString","function","main"],silent:None,needs_check:true},
  Row {kind:Kind::StringMember,name:"ordinary string literal union readonly members",before:"type Origin='start'|'current'|'end';function inspect(value:ReadOnly<Origin>){".into(),typed:"value.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase","normalize","concat","codePointAt","valueOf"],excludes:&["push","start","current","end","main"],silent:None,needs_check:false},
  Row {kind:Kind::StringMember,name:"grouped string literal union indexed members",before:"type Origin=('left'|'right');function inspect(values:ReadOnly<Origin[]>){".into(),typed:"values[0].",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase"],excludes:&["push","left","right","main"],silent:None,needs_check:false},
  Row {kind:Kind::Filesystem,name:"native string literal alias readonly members",before:"import {SeekOrigin as Origin} from 'std:fs';function inspect(value:ReadOnly<Origin>){".into(),typed:"value.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase","substring","toString"],excludes:&["push","start","current","end","main"],silent:None,needs_check:false},
@@ -553,7 +557,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if (matches!(mode, Mode::Immediate | Mode::Paced) || matches!(row.kind,Kind::Url|Kind::Regex|Kind::Filesystem|Kind::PathEnvOs) && mode==Mode::ErrorElsewhere) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Filesystem|Kind::PathEnvOs) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);

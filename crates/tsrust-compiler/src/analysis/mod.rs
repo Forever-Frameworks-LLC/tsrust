@@ -39,7 +39,7 @@ mod native_view_places;
 mod native_view_projections;
 mod native_view_recursive;
 pub(crate) mod native_view_loans;
-mod native_capabilities;
+pub(crate) mod native_capabilities;
 mod retained_capture_projection;
 mod result_construction;
 mod result_matching;
@@ -1612,7 +1612,7 @@ impl Analyzer {
                 &unions,
                 &mut callables,
             )?;
-            callables.resolver(&record_names, &unions).resolve_value_annotation(argument, false)?;
+            callables.resolver(&record_names, &unions).resolve_value_annotation(argument, true)?;
         }
         append_checked_record_fields(
             &mut program.records,
@@ -1793,7 +1793,7 @@ impl Analyzer {
                     .map(|(variable, argument)| {
                         Ok((
                             variable.text.clone(),
-                            analyzer.callables.resolver(&analyzer.record_names, &analyzer.unions).resolve_value_annotation(argument, false)?,
+                            analyzer.callables.resolver(&analyzer.record_names, &analyzer.unions).resolve_value_annotation(argument, true)?,
                         ))
                     })
                     .collect::<Result<HashMap<_, _>, Diagnostic>>()?;
@@ -2568,6 +2568,7 @@ impl Analyzer {
                     ArrayElement::Boolean(_) => "boolean",
                     ArrayElement::Null(_) => "null",
                     ArrayElement::Undefined(_) => "undefined",
+                    ArrayElement::Void(_) => "void",
                     ArrayElement::String(_) => "string",
                     ArrayElement::Record(id, _) | ArrayElement::Enum(id, _, _) | ArrayElement::Set(id, _) | ArrayElement::Map(id, _) => {
                         return format!("{}{}", self.declaration_name(id), "[]".repeat(usize::from(element.depth()) + 1)).into();
@@ -7220,6 +7221,9 @@ impl Analyzer {
         if named {
             Self::storage_access(context, base, Mode::Read, base.span, loans)?;
         }
+        if !native_capabilities::checked_array_capabilities(Type::Array(element), &self.program.records, |id| self.unions.members(id)).expect("checked array").supports("at") {
+            return Err(Diagnostic::new("void-element-option", "at() cannot represent an optional void result; use length and indexed iteration.", base.span));
+        }
         let result = self
             .unions
             .intern([element.ty(), Type::Undefined], base.span)?;
@@ -7258,6 +7262,9 @@ impl Analyzer {
                 base.span,
             ));
         };
+        if !native_capabilities::checked_array_capabilities(Type::Array(element), &self.program.records, |id| self.unions.members(id)).expect("checked array").supports("pop") {
+            return Err(Diagnostic::new("void-element-option", "pop() and shift() cannot represent an optional void result; use length or splice().", span));
+        }
         Self::storage_access(context, base, Mode::Mutate, span, loans)?;
         self.unions.intern([element.ty(), Type::Undefined], span)
     }
@@ -8079,7 +8086,9 @@ self.names_materialized_type(element.with_depth(0).ty())
         self.builtin_literals = true;
         let receiver = self.expression(context, base, Mode::Read, loans, None);
         self.builtin_literals = previous;
-        if !matches!(receiver?, Type::Array(_)) {
+        let receiver = receiver?;
+        self.require_array_text(receiver, base.span)?;
+        if !matches!(receiver, Type::Array(_)) {
             return Err(Diagnostic::new(
                 "type",
                 "join() requires an array.",
@@ -9908,6 +9917,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     return Err(Diagnostic::new("unsupported", "toLocaleString locale and options arguments are unsupported; remove the arguments.", args[0].span));
                 }
                 let actual = self.expression(context, base, Mode::Read, loans, None)?;
+                self.require_array_text(actual, base.span)?;
                 expr.target = Some(match actual {
                     Type::Int => CallTarget::IntToLocaleString,
                     Type::Number => CallTarget::NumberToLocaleString,
@@ -9964,6 +9974,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 let receiver = self.expression(context, base, Mode::Read, loans, None);
                 self.builtin_literals = previous;
                 let actual = receiver?;
+                if name == "toString" { self.require_array_text(actual, base.span)?; }
                 if name == "toString" && matches!(actual, Type::Int | Type::Number) {
                     if args.len() > 1 {
                         return Err(Diagnostic::new(

@@ -59,6 +59,7 @@ impl Cloneability {
                 if !visited.insert(ty) { continue; }
                 match ty {
                     Type::Record(child) | Type::Set(child) | Type::Map(child) => reverse[child].push(parent),
+                    Type::Array(crate::syntax::ArrayElement::Void(_)) => (),
                     Type::Array(element) => pending.push(element.ty()),
                     Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(members(id)),
                     Type::String
@@ -96,6 +97,7 @@ impl Cloneability {
     }
 
     pub(crate) fn allows(&self, ty: Type, members: impl Fn(UnionId) -> Vec<Type>) -> bool {
+        if matches!(ty, Type::Array(crate::syntax::ArrayElement::Void(_))) { return true; }
         let mut leaf = ty;
         while let Type::Array(element) = leaf {
             leaf = element.ty();
@@ -126,6 +128,7 @@ impl Cloneability {
                         return false;
                     }
                 }
+                Type::Array(crate::syntax::ArrayElement::Void(_)) => (),
                 Type::Array(element) => pending.push(element.ty()),
                 Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(members(id)),
                 Type::String
@@ -222,6 +225,7 @@ pub(crate) mod tests {
             eligibility.allows(Type::Array(ArrayElement::Record(3, 127)), |id| unions
                 .members(id))
         );
+        assert!(eligibility.allows(Type::Array(ArrayElement::Void(127)), |id| unions.members(id)));
         for ty in [
             Type::Closure(0),
             Type::Callback(0),

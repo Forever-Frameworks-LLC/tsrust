@@ -406,6 +406,7 @@ impl Context<'_> {
                             ArrayElement::String(_) => Type::String,
                             ArrayElement::Null(_) => Type::Null,
                             ArrayElement::Undefined(_) => Type::Undefined,
+                            ArrayElement::Void(_) => Type::Void,
                             ArrayElement::Record(id, _) => Type::Record(id),
                             ArrayElement::Enum(id, kind, _) => Type::Enum(id, kind),
                             ArrayElement::Set(id, _) => Type::Set(id),

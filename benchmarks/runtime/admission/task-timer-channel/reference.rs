@@ -120,6 +120,7 @@ async fn retained_pool_capability()->(bool,bool){
     let closed=matches!(task.await,Err(ProbeError::Admission(error))if error.code=="closed");assert!(closed);
     (started,closed)
 }
+#[cfg(not(profile_probe))]
 fn main(){
     let(tasks,policies,token,channel,pool,retained)=tsrust_native_futures::block_on(async{(tasks().await,timers().await,tokens().await,channels().await,pools().await,retained_pool_capability().await)});
     println!("{{\"all_order\":{:?},\"all_void_len\":{},\"all_empty_len\":{},\"sibling_drops\":{},\"timer_policies\":{:?},\"token_direction\":{},\"send_owner_retained\":{},\"pool_unpolled_slots\":{},\"pool_cleanup_slots\":{},\"pool_drops\":{},\"pool_retained_start\":{},\"pool_owner_drop_closes\":{}}}",tasks.0,tasks.1,tasks.2,tasks.3,policies,token,channel,pool.0,pool.1,pool.2,retained.0,retained.1);

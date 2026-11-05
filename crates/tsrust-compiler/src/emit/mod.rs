@@ -3517,6 +3517,7 @@ impl Emitter<'_> {
                 output.push_str("}\n");
             }
             for index in 0..self.program.records.len() {
+                if !crate::analysis::native_capabilities::array_text_supported(Type::Record(index), &self.program.records, |id| self.program.unions[id.index()].members.clone()) { continue; }
                 if let Some(registration)=self.record_join_registration(index){output.push_str(&registration);}
                 if record_array_structs.contains(&index) {
                     let _ = writeln!(
@@ -5433,7 +5434,7 @@ impl Emitter<'_> {
                 ArrayElement::Int(0) | ArrayElement::Boolean(0) | ArrayElement::String(0) => {
                     "|a, b| a.cmp(b)".to_owned()
                 }
-                ArrayElement::Null(0) | ArrayElement::Undefined(0) => {
+                ArrayElement::Null(0) | ArrayElement::Undefined(0) | ArrayElement::Void(0) => {
                     "|_, _| std::cmp::Ordering::Equal".to_owned()
                 }
                 _ => unreachable!("checked default sort"),

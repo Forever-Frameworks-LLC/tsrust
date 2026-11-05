@@ -8,6 +8,7 @@ mod records;
 mod callables;
 mod native;
 mod analysis;
+pub use analysis::native_capabilities::ArrayCapabilities;
 mod parameters;
 mod parameter_arity;
 pub use parameters::ParameterOmission;

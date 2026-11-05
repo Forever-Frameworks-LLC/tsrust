@@ -146,6 +146,9 @@ Receiver {ty:"SqliteError",parameter:"x: SqliteError"},
     Receiver { ty: "SpawnError", parameter: "x: ReadOnly<SpawnError>" },
     Receiver { ty: "ThreadError<string>", parameter: "x: ReadOnly<ThreadError<string>>" },
     Receiver { ty: "int[]", parameter: "x: ReadOnly<int[]>" },
+    Receiver { ty: "void[]", parameter: "x: ReadOnly<void[]>" },
+    Receiver { ty: "void[][]", parameter: "x: ReadOnly<void[][]>" },
+    Receiver { ty: "[void[]][]", parameter: "x: ReadOnly<[void[]][]>" },
     Receiver { ty: "string[][]", parameter: "x: ReadOnly<string[][]>" },
     Receiver { ty: "string", parameter: "x: ReadOnly<string>" },
     Receiver { ty: "int", parameter: "x: int" },
@@ -375,10 +378,17 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         }
         let mut differences = fields.difference(&offered).map(|name| (name.clone(), "the checker accepts this field; completion does not offer it".to_owned())).collect::<Vec<_>>();
         differences.extend(offered.difference(&fields).map(|name| (name.clone(), "completion offers this field; the checker rejects it".to_owned())));
+        if matches!(receiver.ty, "void[]" | "void[][]" | "[void[]][]") {
+            for required in ["length", "slice", "map", "keys"] { assert!(offered.contains(required) || methods.contains(required), "{}: required array member {required} missing; empty agreement is not acceptance", receiver.ty); }
+        }
+        if receiver.ty == "void[]" {
+            for method in ["at", "pop", "shift", "find", "findLast", "entries", "join", "toString", "toLocaleString"] { assert!(!methods.contains(method), "{}.{method}: completion offers a compiler-rejected capability", receiver.ty); }
+        }
         for name in &methods {
             let answered = answer(call_form, name, receiver.parameter);
             let receiver_rejected = answered.as_ref().is_some_and(|(_, message)| message.ends_with(&format!(", found {}.", receiver.ty)));
-            if answered == absent_call || receiver_rejected {
+            let capability_rejected = answered.as_ref().is_some_and(|(code, _)| matches!(code.as_str(), "void-array-text" | "void-element-option" | "void-array-entry"));
+            if answered == absent_call || receiver_rejected || capability_rejected {
                 differences.push((name.clone(), format!("completion offers this method; the checker rejects it: {}", answered.map_or_else(String::new, |(_, message)| message))));
             }
         }

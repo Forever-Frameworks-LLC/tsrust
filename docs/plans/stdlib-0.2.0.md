@@ -531,6 +531,14 @@ without rt/default features; do not enable unrelated features. The preflight and
 unimplemented. Source-only void[] support is prepared in the isolated core
 worker and still requires executable compiler/native/editor acceptance.
 
+B06 prerequisite worker candidate f6f14954 is accepted in focused scope:
+unit-array native ownership/callback/alias/TaskJob/mixed-tuple witnesses passed;
+actual checked receiver capabilities survive local/imported aliases, incomplete
+members and unrelated errors. Nonempty3receiver agreement,4rows×4phases and
+editor consistency passed23.895s/79,088KiB; pure4case recovery-span unit passed.
+Canonical source integration is prepared; combined executable validation is still
+pending. This does not complete any public B06 API checklist item.
+
 B06 prototype profile (2026-11-05): three processes ×31 samples after8 warmups,
 separate allocation builds, quiet load3.448, watchdog8.434s/424,832KiB. Direct
 polling all_yield measured48.30ns/input versus1,400.23ns for independently

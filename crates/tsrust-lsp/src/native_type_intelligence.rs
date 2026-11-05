@@ -56,6 +56,22 @@ impl SourceIndex {
         fn all_strings(value:&ValueAnnotation)->bool{match &value.kind{Kind::Literal(LiteralAnnotation::String(_))=>true,Kind::Group(inner)=>all_strings(inner),Kind::Union(members)=>members.iter().all(all_strings),_=>false}}
         tsrust_compiler::type_syntax::parse(element).is_ok_and(|value|matches!(value.kind,Kind::Union(_))&&all_strings(&value))
     }
+    pub(super) fn receiver_builtins_at(&self, ty: &str, token: usize) -> Vec<Value> {
+        let mut entries = self.receiver_builtins(ty);
+        let Some(token) = self.tokens.get(token) else { return entries; };
+        let capability = self.checked_array_capabilities.iter().filter(|(span, _)| span.start <= token.span.start && span.end == token.span.end).min_by_key(|(span, _)| span.end - span.start).map(|(_, capability)| *capability);
+        if let Some(capability) = capability {
+            entries.retain(|entry| capability.supports(entry["name"].as_str().unwrap_or("")));
+            for entry in &mut entries {
+                if matches!(entry["name"].as_str(), Some("sort" | "toSorted")) {
+                    let (before, after) = if capability.default_sort { ("compare:", "compare?:") } else { ("compare?:", "compare:") };
+                    if let Some(signature) = entry["signature"].as_str() { entry["signature"] = json!(signature.replace(before, after)); }
+                    if let Some(parameters) = entry["parameters"].as_array_mut() { for parameter in parameters { if let Some(label) = parameter.as_str() { *parameter = json!(label.replace(before, after)); } } }
+                }
+            }
+        }
+        entries
+    }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
         if let Some((input, output, object_policy, json_input, text_input, scalar_constraints)) = self.schema_pipeline_types.get(ty) {
             let accepted = if *json_input {format!("{input} | JsonValue")}else{input.clone()};
