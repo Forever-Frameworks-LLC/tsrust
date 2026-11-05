@@ -489,6 +489,33 @@ owned `read` remains unchanged, so generated allocation gaps remain observable.
 B05's writable-destination contract must address this reuse case; no B01 API was
 expanded and no generated allocation improvement is claimed from the prototype.
 
+B05 direct-Rust admission (2026-11-05): safe owned blocking-reader staging with
+one reusable buffer passed short/interrupted reads, EOF/zero destination, retained
+partial-error bytes, cancellation/deadline settlement and staged recovery without
+rereading. Synthetic retained Bytes frames preserve the unread tail without a Vec
+bridge; real HTTP integration remains pending. Three negative Rust witnesses reject
+readonly destination, borrowed-destination reuse and reader reuse during a read.
+Current futures runtime correctness passed1.558s/312,304KiB.
+
+Optimized profile passed31.172s/300,432KiB, separate allocation builds,3processes×
+31samples after8warmups, quiet maximum3.816. Both candidates reuse a64-byte caller
+destination; file setup/drop are outside timing but inside allocation counts.
+
+| Reads per operation | Staged median ms | Direct Tokio median ms |
+| --- | ---: | ---: |
+| 64 | 0.327583 | 0.315083 |
+| 1024 | 5.003625 | 4.882750 |
+| 8192 | 39.754334 | 38.860583 |
+
+Staging costs2.3–4.0% over this matched backend floor. Ordinary allocation rows are
+reads+3 staged versus reads+4 Tokio, principally blocking-task scheduling; reusable
+destination storage does not imply allocation-free I/O. One staged1024-read sample
+recorded1032allocations/1reallocation and151retained bytes; other retained deltas
+were0. Keep this observation visible; no source attribution or zero-retention claim
+is inferred. Prepared-source/profiling guards and actual output validate unchanged
+inputs. These are admission prototypes, not generated facade or Node measurements;
+no rows were ingested into generated workload storage. Full public B05 work remains.
+
 ### B06 — Task, timer and channel ergonomics
 
 Backend: existing Tokio; `tokio-util::sync::CancellationToken` where appropriate.
