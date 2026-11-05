@@ -8,6 +8,7 @@ pub(super) struct Build {
  root:PathBuf,
  explicit:bool,
  manifest:PathBuf,
+ library_name:String,
  stdout:PathBuf,
  destination:PathBuf,
  workspace:Option<Workspace>,
@@ -15,9 +16,9 @@ pub(super) struct Build {
  #[cfg(test)] pub sources:BTreeMap<String,PathBuf>,
 }
 impl Build {
- pub fn new(root:&Path,manifest:PathBuf,destination:PathBuf,stdout:PathBuf,explicit:Option<&Path>)->Result<Self,String>{
+ pub fn new(root:&Path,manifest:PathBuf,destination:PathBuf,stdout:PathBuf,explicit:Option<&Path>,library_name:&str)->Result<Self,String>{
   let target=match explicit{Some(path)=>{let path=crate::absolute(path)?;fs::create_dir_all(&path).map_err(|e|e.to_string())?;path.canonicalize().map_err(|e|e.to_string())?},None=>Workspace::location(root,SHARED_TARGET_ID).join("target")};
-  Ok(Self{target,root:root.to_owned(),explicit:explicit.is_some(),manifest,stdout,destination,workspace:None,lock:None,#[cfg(test)] sources:BTreeMap::new()})
+  Ok(Self{target,root:root.to_owned(),explicit:explicit.is_some(),manifest,library_name:library_name.into(),stdout,destination,workspace:None,lock:None,#[cfg(test)] sources:BTreeMap::new()})
  }
  // File stdout avoids pipe backpressure while dev supervises edits and cancellation.
  pub fn capture(&self,command:&mut Command)->Result<(),String>{command.stdout(fs::File::create(&self.stdout).map_err(|e|e.to_string())?);Ok(())}
@@ -46,9 +47,9 @@ impl Build {
  }
  pub fn finish(&mut self)->Result<PathBuf,String>{
   if self.workspace.is_none() && self.lock.is_none(){return Err("Shared Cargo target must remain locked through artifact staging".into());}
-  let artifacts=reported(&self.stdout,&self.target,&self.manifest)?;
+  let artifacts=reported(&self.stdout,&self.target,&self.manifest,&self.library_name)?;
   // The graph workspace is also locked. Independent copies survive later builds
-  // replacing Cargo's un-hashed runtime alias in the shared target.
+  // replacing artifacts or cleaning the shared target.
   let staging=self.destination.with_extension("staging");
   if staging.exists(){fs::remove_dir_all(&staging).map_err(|e|e.to_string())?;}
   fs::create_dir(&staging).map_err(|e|e.to_string())?;
@@ -65,7 +66,7 @@ impl Build {
  }
 }
 
-fn reported(stdout:&Path,target:&Path,manifest:&Path)->Result<BTreeMap<String,PathBuf>,String>{
+fn reported(stdout:&Path,target:&Path,manifest:&Path,library_name:&str)->Result<BTreeMap<String,PathBuf>,String>{
  let target=target.canonicalize().map_err(|e|e.to_string())?;
  let manifest=manifest.canonicalize().map_err(|e|e.to_string())?;
  let file=fs::File::open(stdout).map_err(|e|e.to_string())?;
@@ -80,7 +81,7 @@ fn reported(stdout:&Path,target:&Path,manifest:&Path)->Result<BTreeMap<String,Pa
   let kinds=message["target"]["kind"].as_array().ok_or("Cargo artifact has no target kinds")?;
   let proc_macro=kinds.iter().any(|kind|kind=="proc-macro");
   if !proc_macro && !kinds.iter().any(|kind|matches!(kind.as_str(),Some("lib"|"rlib"|"dylib"|"staticlib"))){continue;}
-  let root=message["target"]["name"]=="tsrust_runtime" && message["manifest_path"].as_str().is_some_and(|path|Path::new(path).canonicalize().ok().as_ref()==Some(&manifest));
+  let root=message["target"]["name"]==library_name && message["manifest_path"].as_str().is_some_and(|path|Path::new(path).canonicalize().ok().as_ref()==Some(&manifest));
   for value in message["filenames"].as_array().ok_or("Cargo artifact has no filenames")?{
    let source=Path::new(value.as_str().ok_or("Cargo artifact filename is not a string")?);
    let extension=source.extension().and_then(|part|part.to_str()).unwrap_or("");
@@ -111,7 +112,7 @@ fn reported(stdout:&Path,target:&Path,manifest:&Path)->Result<BTreeMap<String,Pa
    let root=std::env::temp_dir().join(format!("tsrust-artifacts-test-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
    fs::create_dir(&root).unwrap();let manifest=root.join("Cargo.toml");fs::write(&manifest,"[package]").unwrap();
    let target=root.join("target");fs::create_dir(&target).unwrap();
-   let build=Build::new(&root,manifest,root.join("artifacts"),root.join("stdout"),Some(&target)).unwrap();
+   let build=Build::new(&root,manifest,root.join("artifacts"),root.join("stdout"),Some(&target),"tsrust_runtime").unwrap();
    Self{root,build}
   }
   fn artifact(&self,name:&str,kind:&str,filename:&str)->Value{
@@ -139,36 +140,45 @@ fn reported(stdout:&Path,target:&Path,manifest:&Path)->Result<BTreeMap<String,Pa
   let restored=fixture.root.join("restored");crate::native_dependency_bundle::unpack(&packed,&restored).unwrap();
   assert!(!restored.join("libunrelated.rlib").exists());assert_eq!(fs::read(restored.join("libtsrust_runtime.rlib")).unwrap(),b"reported-runtime.rlib");
  }
+ #[test] fn selected_graph_target_is_exact_and_stages_under_the_stable_external_alias(){
+  let mut fixture=Fixture::new();fixture.build.library_name="tsrust_runtime_graph_a".into();
+  let selected=fixture.artifact("tsrust_runtime_graph_a","lib","libtsrust_runtime_graph_a.rlib");
+  fixture.messages(&[selected]);assert!(fixture.build.acquire(false).unwrap());let directory=fixture.build.finish().unwrap();
+  assert_eq!(fs::read(directory.join("libtsrust_runtime.rlib")).unwrap(),b"libtsrust_runtime_graph_a.rlib");
+  assert!(!directory.join("libtsrust_runtime_graph_a.rlib").exists());
+  let wrong=fixture.artifact("tsrust_runtime_graph_b","lib","libtsrust_runtime_graph_b.rlib");fixture.messages(&[wrong]);
+  assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest,&fixture.build.library_name).unwrap_err().contains("selected runtime"));
+ }
  #[test] fn artifact_metadata_rejects_malformed_traversal_outside_and_wrong_runtime(){
   let fixture=Fixture::new();let root=fixture.artifact("tsrust_runtime","lib","runtime.rlib");
-  fs::write(&fixture.build.stdout,"{bad json\n").unwrap();assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest).unwrap_err().contains("Invalid Cargo"));
+  fs::write(&fixture.build.stdout,"{bad json\n").unwrap();assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest,"tsrust_runtime").unwrap_err().contains("Invalid Cargo"));
   for path in [fixture.root.join("outside.rlib"),fixture.build.target.join("../outside.rlib")] {
-   fs::write(fixture.root.join("outside.rlib"),"outside").unwrap();let mut message=root.clone();message["filenames"]=json!([path]);fixture.messages(&[message]);assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest).is_err());
+   fs::write(fixture.root.join("outside.rlib"),"outside").unwrap();let mut message=root.clone();message["filenames"]=json!([path]);fixture.messages(&[message]);assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest,"tsrust_runtime").is_err());
   }
-  let mut wrong=root.clone();wrong["manifest_path"]=json!(fixture.root.join("other-manifest"));fixture.messages(&[wrong]);assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest).unwrap_err().contains("selected runtime"));
-  fixture.messages(&[root.clone(),root.clone()]);assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest).unwrap_err().contains("multiple runtime"));
-  fs::write(&fixture.build.stdout,format!("{root}\n")).unwrap();assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest).unwrap_err().contains("completed build"));
+  let mut wrong=root.clone();wrong["manifest_path"]=json!(fixture.root.join("other-manifest"));fixture.messages(&[wrong]);assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest,"tsrust_runtime").unwrap_err().contains("selected runtime"));
+  fixture.messages(&[root.clone(),root.clone()]);assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest,"tsrust_runtime").unwrap_err().contains("multiple runtime"));
+  fs::write(&fixture.build.stdout,format!("{root}\n")).unwrap();assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest,"tsrust_runtime").unwrap_err().contains("completed build"));
  }
  #[cfg(unix)] #[test] fn artifact_metadata_rejects_symlink_escape(){
   let fixture=Fixture::new();let mut root=fixture.artifact("tsrust_runtime","lib","runtime.rlib");
   let outside=fixture.root.join("outside.rlib");fs::write(&outside,"outside").unwrap();let alias=fixture.build.target.join("escape.rlib");std::os::unix::fs::symlink(outside,&alias).unwrap();root["filenames"]=json!([alias]);fixture.messages(&[root]);
-  assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest).unwrap_err().contains("outside the selected"));
+  assert!(reported(&fixture.build.stdout,&fixture.build.target,&fixture.build.manifest,"tsrust_runtime").unwrap_err().contains("outside the selected"));
  }
  #[test] fn target_lock_serializes_explicit_default_and_alias_paths_and_releases_on_drop(){
-  let fixture=Fixture::new();let mut first=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("one"),fixture.root.join("one.stdout"),None).unwrap();
+  let fixture=Fixture::new();let mut first=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("one"),fixture.root.join("one.stdout"),None,"tsrust_runtime").unwrap();
   assert!(first.acquire(false).unwrap());fs::create_dir_all(&first.target).unwrap();
-  let mut second=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("two"),fixture.root.join("two.stdout"),Some(&first.target)).unwrap();
+  let mut second=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("two"),fixture.root.join("two.stdout"),Some(&first.target),"tsrust_runtime").unwrap();
   assert!(!second.acquire(false).unwrap());drop(first);
   // Cache clean retains .lock but removes identity. The explicit alias must
   // still serialize with a default build recreating that identity afterward.
   fs::remove_file(second.target.parent().unwrap().join("identity")).unwrap();
   assert!(second.acquire(false).unwrap());assert_eq!(fs::read(second.target.parent().unwrap().join("identity")).unwrap(),SHARED_TARGET_ID);
-  let mut third=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("three"),fixture.root.join("three.stdout"),None).unwrap();
+  let mut third=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("three"),fixture.root.join("three.stdout"),None,"tsrust_runtime").unwrap();
   assert!(!third.acquire(false).unwrap());drop(second);assert!(third.acquire(false).unwrap());
-  let mut external=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("external"),fixture.root.join("external.stdout"),Some(&fixture.build.target)).unwrap();
-  let mut competing=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("competing"),fixture.root.join("competing.stdout"),Some(&fixture.build.target)).unwrap();
+  let mut external=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("external"),fixture.root.join("external.stdout"),Some(&fixture.build.target),"tsrust_runtime").unwrap();
+  let mut competing=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("competing"),fixture.root.join("competing.stdout"),Some(&fixture.build.target),"tsrust_runtime").unwrap();
   assert!(external.acquire(false).unwrap());assert!(!competing.acquire(false).unwrap());drop(external);assert!(competing.acquire(false).unwrap());
-  #[cfg(unix)] {let alias=fixture.root.join("alias");std::os::unix::fs::symlink(&third.target,&alias).unwrap();let mut aliased=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("four"),fixture.root.join("four.stdout"),Some(&alias)).unwrap();assert!(!aliased.acquire(false).unwrap());drop(third);assert!(aliased.acquire(false).unwrap());}
+  #[cfg(unix)] {let alias=fixture.root.join("alias");std::os::unix::fs::symlink(&third.target,&alias).unwrap();let mut aliased=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("four"),fixture.root.join("four.stdout"),Some(&alias),"tsrust_runtime").unwrap();assert!(!aliased.acquire(false).unwrap());drop(third);assert!(aliased.acquire(false).unwrap());}
  }
  #[test] fn diagnostics_preserve_rendered_errors_and_relative_target_is_absolute(){
   let fixture=Fixture::new();fs::write(&fixture.build.stdout,json!({"reason":"compiler-message","message":{"rendered":"error: concrete Rust failure\n"}}).to_string()).unwrap();
@@ -176,7 +186,7 @@ fn reported(stdout:&Path,target:&Path,manifest:&Path)->Result<BTreeMap<String,Pa
   let absolute=fixture.root.join("relative-target");
   #[cfg(unix)] let relative={let cwd=std::env::current_dir().unwrap();let mut path=PathBuf::new();for _ in cwd.components().skip(1){path.push("..");}path.push(absolute.strip_prefix("/").unwrap());path};
   #[cfg(not(unix))] let relative=absolute;
-  let build=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("unused"),fixture.root.join("unused.stdout"),Some(&relative)).unwrap();
+  let build=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("unused"),fixture.root.join("unused.stdout"),Some(&relative),"tsrust_runtime").unwrap();
   assert!(build.target.is_absolute());assert_eq!(build.target,fixture.root.join("relative-target").canonicalize().unwrap());
  }
  #[cfg(unix)] #[test] fn file_capture_does_not_block_a_polled_child_with_large_stdout(){

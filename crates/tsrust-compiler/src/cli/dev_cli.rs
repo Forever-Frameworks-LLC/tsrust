@@ -135,6 +135,7 @@ mod platform {
             if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),optimization.as_bytes(),
         ];
         if let Some(inputs)=&shared_inputs {cache_parts.push(inputs.as_bytes());}
+        if let Some(identity)=crate::runtime_build::application_cache_identity(&frontend.rust){cache_parts.push(identity);}
         let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&cache_parts);
         let cache_started=Instant::now();let reused=cache.try_copy_to(&binary);let cache_elapsed=cache_started.elapsed();
         let native_started=Instant::now();

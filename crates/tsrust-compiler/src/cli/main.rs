@@ -405,6 +405,7 @@ fn run() -> Result<u8, String> {
             optimization.as_bytes(),
         ];
     if let Some(inputs) = &shared_inputs { cache_parts.push(inputs.as_bytes()); }
+    if let Some(identity)=runtime_build::application_cache_identity(&rust){cache_parts.push(identity);}
     let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
     let reused = cache.copy_to(&executable);
