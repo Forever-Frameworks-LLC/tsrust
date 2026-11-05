@@ -23,8 +23,8 @@ function main(){
  strictEqual(choose(false).search(letters),0);strictEqual(letters.isMatch(choose(false)),true);strictEqual(escape(choose(false)),'b');const quote=escape;strictEqual(quote(choose(false)),'b');
  strictEqual(read(expression),true);strictEqual(expression.isMatch('no'),false);
  const found=expression.find('aé');if(found!==undefined){strictEqual(found.start,1);strictEqual(found.end,3);}else{throw 'missing';}
- strictEqual(expression.find('no'),undefined);
- const rows=snapshot();strictEqual(rows.length,2);strictEqual(rows[0].match.end,3);strictEqual(rows[0].groups[1],undefined);
+ strictEqual(expression.find('no')===undefined,true);
+ const rows=snapshot();strictEqual(rows.length,2);strictEqual(rows[0].match.end,3);strictEqual(rows[0].groups[1]===undefined,true);
  const first=expression.captures('é');if(first!==undefined){strictEqual(first.groups.length,2);}else{throw 'missing captures';}
  strictEqual('aé'.search(expression),1);strictEqual('no'.search(expression),-1);
  strictEqual('é é'.matchAll(expression).length,2);const matched='é'.match(expression);if(matched!==undefined){strictEqual(matched.match.end,2);}else{throw 'missing match';}
@@ -35,6 +35,7 @@ function main(){
  strictEqual(unwrap(create(escape('a+b'))).isMatch('a+b'),true);
  strictEqual(unwrap(create('a',undefined)).isMatch('a'),true);strictEqual(unwrap(create('a',options(false))).isMatch('a'),true);
  let caught=false;try{unwrap(create('('));}catch(error){strictEqual(error.code,'Syntax');caught=true;}strictEqual(caught,true);
+ caught=false;try{unwrap(saved('('));}catch(error){strictEqual(error.code,'Syntax');caught=true;}strictEqual(caught,true);
  console.log('regex complete');
 }
 "#,"regex complete\n");

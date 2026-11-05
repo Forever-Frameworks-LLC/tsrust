@@ -14,8 +14,8 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `3de00c52`. B12 source checkpoint1379a46e and integrated B06 checkpoint3de00c52 are
-prepared; fresh combined validation is running. Only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint `938f57b2`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+built successfully. Native fixture absence assertions are being repaired alongside this live handoff. Preserve both. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
@@ -41,7 +41,20 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
-**Current continuation: B12 batched source repairs; no heavy job active.**
+**B12 repair build40800 completed:** exact938f57b2, terminal build-finished:true,
+watchdog213.078s/2,622,290KiB; Cargo64431 and supervisor64380 absent. JSON/log
+`/tmp/tsrust-b12-repair-{artifacts.jsonl,build.log}`. Feature selection and hidden
+exports now pass. Native fixture failed because strictEqual(optional record,
+undefined) requests record equality; fixed assertions to compare absence booleans,
+matching existing native-record fixtures. Catalog execution separately failed at
+RegexError catch typing (unresolved error contract); root cause found: native_binding_effect omitted std:regex, leaving every invocation opaque.
+Added the audited pure Result-data effect arm, all13binding witness, and stored
+compile error catch witness; catalog catches stay unchanged. Logs
+`/tmp/tsrust-b12-repair-gates.log` and `...b12-remaining-gates.log` preserve failures.
+Editor consistency, all16 Regex matrix observations, and5receiver nonempty
+checker agreement pass on938. Portable export also failed at unwrap with the same opaque effect in runner22427;
+`/tmp/tsrust-b12-remaining-editor-export.log`. Runner terminal failure38.970s/217,344KiB; no heavy job remains live.
+Preserve prior runtime/B06 passes; no public B12 measurements yet.
 Combined build12547 exact3de00c52 passed517.850s/3,748,787KiB; terminal
 build-finished:true verified. `/tmp/tsrust-b06-b12-{artifacts.jsonl,build.log}`.
 Driver41346 passed all8 regex runtime tests then failed feature selection at
@@ -57,13 +70,13 @@ Root repair source now clears Regex type parameters, reuses native_optional_argu
 for borrowed ViewUnion options (with explicit closure type for undefined), and
 uses existing zero-copy string-observation dispatch/checking/emission for scalar
 literal/union arguments. Added native literal/union/stored function witnesses and
-five nonempty Regex-family checker-agreement rows. These repairs are not built.
+five nonempty Regex-family checker-agreement rows. These repairs are checkpoint938f57b2 and building.
 Review found the optional union and literal-union gaps before executable witnesses;
-exact metadata failure was observed. Next: whole-format/token/idempotence checkpoint,
-focused no-run without unchanged compiler lib-test harness, then resume B12 gates
-from feature selection, preserving8runtime passes. Include the new agreement rows.
-Prepared original `/tmp/tsrust-b06-b12-gates.py` needs new artifact/source names and
-resume filtering. Keep3threads/shared target/incremental0/jobs1/5GB/30min.
+exact metadata failure was observed. Whole-format/token proof1562files and idempotence passed4.655s/203,152KiB
+and4.657s/204,528KiB; `/tmp/tsrust-b12-repair-format.log`. Resume B12 from feature
+selection after current build, preserving8runtime passes.
+Original `/tmp/tsrust-b06-b12-gates.py` remains evidence; repaired driver above
+uses current artifacts/source and resume filtering. Keep3threads/shared target/incremental0/jobs1/5GB/30min.
 
 B06 worker clean baseline advanced f6f14954→canonical3de00c52 after integration
 acceptance. It is now implementing public B06 source in isolated stdlib-files,
