@@ -366,7 +366,11 @@ integration checks pass, including safe hostname linkage. All seven registered
 workloads pass five independent correctness cases in Node24.11.1 and generated
 O0/O3; this is untimed acceptance, not throughput measurement. Actual Windows
 console signals, Windows/Linux execution, final package admission and generated
-API timings remain pending. Fixture repairs preserve read-only iteration, use
+API timings remain pending. The official runner subsequently exposed a missing
+fallible-family ABI registration; the existing Result-aware path now includes
+path-env-os, with actual seven-workload emission and invalid-result guards. Eight
+focused adapter/source/oracle tests pass; official timing remains pending.
+Fixture repairs preserve read-only iteration, use
 supported module aliases/factory wrappers, and handle macOS filesystem rejection
 of invalid-Unicode names while retaining strict conversion and child-env checks.
 
@@ -486,8 +490,36 @@ lazy private submission capability can retain the existing Arc, submit only on
 first poll, and observe closed admission if the public owner shuts down first.
 Prototype both borrowed and retained transports, .start and awaited CPU cleanup
 before fixing implementation. Locked tokio-util0.7.20 exports CancellationToken
-without rt/default features; do not enable unrelated features. All current B06
-compiler/Rust/oracle sources remain unexecuted preparation, not a public API gate.
+without rt/default features; do not enable unrelated features. The preflight and direct-Rust prototype now pass; public B06 APIs remain
+unimplemented. Source-only void[] support is prepared in the isolated core
+worker and still requires executable compiler/native/editor acceptance.
+
+B06 prototype profile (2026-11-05): three processes ×31 samples after8 warmups,
+separate allocation builds, quiet load3.448, watchdog8.434s/424,832KiB. Direct
+polling all_yield measured48.30ns/input versus1,400.23ns for independently
+spawned JoinSet tasks; these have different scheduling costs, so preserve direct
+polling rather than claiming equivalent public performance. all_ready measured
+21.43ns/input versus2.00ns for a sequential ready-only floor that lacks concurrent
+polling/cleanup semantics. The71-allocation direct-polling batch includes64
+individual future pins. Source review found no safe existing contiguous projection
+for arbitrary !Unpin futures; do not impose Unpin or emit unsafe to remove these
+allocations. The locked try_join_all large-collection path can delay a later error
+behind an earlier pending future, so it does not preserve this fail-fast contract.
+Keep direct polling and existing scoped drop/drain cleanup. Exclusive try-receive measured
+47.64ns/operation versus47.46ns direct, both5 allocations/batch. Existing shared
+async receiver measured190.87ns versus106.12ns direct and one additional64-byte
+allocation/batch; this supports the planned exclusive receiver path.
+Both pool capability variants passed lazy submission, start, owner-drop closed
+admission and awaited cleanup controls with136-byte futures and zero construction
+allocations. Strong retains a closed pool allocation; Weak does not. Select Weak for the lazy
+private capability: public owner Drop closes admission either way, and accepted
+Completion already retains its pool through execution/cleanup. Construction
+5.30/7.50ns and closed polling25.86/30.87ns (Strong/Weak) are small relative to
+CPU work. Async completion adds one64-byte allocation/job; observed CPU medians
+7,410/7,415ns (Strong/Weak) versus6,945ns blocking join are noisy prototype signals,
+not generated API measurements. Dependencies are unoptimized existing exact
+rlibs; optimized probe code does not make this release-build performance. No
+prototype rows were ingested as accepted API workloads.
 
 ### B07 — Subprocesses
 
@@ -636,6 +668,31 @@ Witnesses/performance: invalid/unsupported patterns, Unicode byte offsets, captu
 absence, zero-width matches, reuse and resource lifetime. Separate compilation
 from reused search/capture/replace workloads; use shared-semantic Node patterns
 and independent range oracles. Include allocation counts and adversarial scaling.
+
+B12 admission preparation (2026-11-05; no package wiring or implementation):
+select regex1.13.1 with default std/perf/unicode and regex-syntax/default features.
+The [official index](https://raw.githubusercontent.com/rust-lang/crates.io-index/master/re/ge/regex)
+records a non-yanked July15,2026 release, MSRV1.65 and checksum
+f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d.
+The [selected manifest](https://raw.githubusercontent.com/rust-lang/regex/1.13.1/Cargo.toml)
+uses MIT OR Apache-2.0. The [changelog](https://raw.githubusercontent.com/rust-lang/regex/1.13.1/CHANGELOG.md)
+fixes incorrect leftmost-first offsets in reverse-suffix/inner optimizations;
+do not choose cached1.12.2 solely for availability. Keep the backend builder's
+10MiB compiled-NFA and2MiB hybrid-cache defaults. The
+[package advisory listing](https://rustsec.org/packages/regex.html) identifies
+RUSTSEC-2022-0013 as fixed before this version; resolved-closure advisory review,
+archive verification, target execution and optional-feature/export admission
+remain pending.
+
+Use owned UTF-8 byte-range records for find/capture/split snapshots; borrow regex
+and text only during the call. Missing captures remain distinct from empty ranges.
+Numbered capture slots cover this finite family without copying names into each
+result. Preserve Rust replacement-template expansion with an explicitly named
+replacementTemplate argument and documented numbered/named references, braces
+and literal-dollar escaping. This is a contract direction, not frozen signatures
+or completed APIs. Profile compile/reuse, optional/empty captures, zero-width
+progress, range versus substring allocations and adversarial iteration before
+implementation; include all three String entry points in the coherent gate.
 
 ### B13 — A useful explicit-locale subset
 

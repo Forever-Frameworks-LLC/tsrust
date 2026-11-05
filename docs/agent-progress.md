@@ -13,51 +13,101 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
-**Resume — 2026-11-05, B03 focused results:** verified the terminal successful
-build-finished record and absence of Cargo77647/supervisor86291; no duplicate
-build was started. Direct driver completed27 invocations in124.980s,
-peak480,896KiB. All editor scopes passed (17 help cases across four phases,
-checker agreement and11 completion rows), plus path runtime/relative/allocation,
-OS, dependency selection, effects, literal aliases, forwarded borrows and generic
-native keepers. Individual results:46 passed,5 failed across4 invocations;
-`/tmp/tsrust-b03-gates.{json,log}` retains the exact initial results.
-Failures were fixture assumptions:2 snapshots mutated borrowed for-of elements;
-macOS rejected an invalid-Unicode directory name with EILSEQ;2 SQL visibility
-fixtures used unsupported export-list syntax. Root repairs use indexed snapshot
-mutation, preserve synthetic non-Unicode path conversion plus actual invalid-env
-child checks and conditional real invalid cwd where supported, and use supported
-exported aliases/factory wrappers. Public SQL fixture strict emit now passes.
-These repairs remain uncommitted and require affected native rechecks.
-Offline dependency integration first failed because source packs were not selected/
-prepared. Explicit offline portable setup passed15.975s/149,952KiB with current
-pack127a409706242393405b3fb0aa186b08fc2a750b128f51e3def223868b528af6.
-The real offline export recheck passed all5 tests,128.574s/365,892KiB,
-`/tmp/tsrust-b03-export-recheck.log`. Seven matched B03 workload correctness
-checks then passed5 cases each in Node24.11.1 and generated O0/O3,22.355s/
-427,040KiB; `/tmp/tsrust-b03-verify.{json,log}`. This is untimed correctness,
-not measurement or ingestion. Disposable driver uses registered source guards,
-independent oracles, normal TypeScript config and formatted native sources.
-Whole-project formatter passed5.664s/205,968KiB with no changes. Focused repair no-run passed496.836s/3,692,035KiB, terminal
-build-finished success; `/tmp/tsrust-b03-repair-artifacts.jsonl` and
-`/tmp/tsrust-b03-repair-build.log`. The five repaired tests all passed8.874s/
-377,120KiB in `/tmp/tsrust-b03-repair-gates.{json,log}`. Combined focused
-acceptance is51 tests (46 preserved initial passes plus5 repaired passes).
-No active root heavy process remains. Independent read-only B03 source review
-found no additional defect. B03 plan now marks its12 public functions/records
-implemented with macOS evidence; Windows signals/platform and measurement gates
-remain unchecked. Next: checkpoint these formatted accepted repairs, then run
-B06 prototype profile exclusively before public API implementation.
-B06 Sol worker in existing stdlib-files tree preserved five pending prototype
-files; it added production futures/threads runtime hashes to profile.mjs and
-passed pinned Node syntax checks. Profile remains unrun; requires exclusive quiet
-slot. B06 worker then implemented the coherent void[] prerequisite source-only:
-ArrayElement/resolution/rendering/clone/sort, explicit unsupported optional/text
-results, compiler/native fixtures and compiler-derived editor checks. Static
-review found blanket tuple join registrations could break unrelated joins; worker
-repaired the shared eligibility check and added a fifth mixed-program witness.
-All B06 changes remain uncommitted/unbuilt; root must grant formatter/build slots.
-No public all/taskAsync implementation exists yet. No source push,
-release, timing ingestion or full regression performed. Full B00–B20 stays active.
+**Current continuation — 2026-11-05:** canonical branch remains
+`codex/stdlib-0.2.0`, source checkpoint `db516eac`. Root has uncommitted updates
+only to this handoff and the v0.2 plan; preserve them. Full B00–B20 stays active.
+No push, release, full regression or accepted API timing ingestion occurred.
+
+**Root B03 measurement preparation:** official runner94361 terminated before
+timing on missing path-env-os fallible ABI-family registration. Release tools
+built successfully; no samples/ingestion. Original failure retained in
+`/tmp/tsrust-b03-measure.log`,228.869s/2,282,204KiB. Root added only this family to
+the existing Result-aware benchmark ABI path, plus actual emitted seven-workload
+ABI/invalid-result guards. All8 adapter/source/oracle tests passed. Next: required
+whole-format/local checkpoint, then resume the official execution-only runner
+for native/rust-hand/node-tsc with ordinary protocols/quiet guard. DB has no prior
+rows for these7 workloads, so references are first measurements. Both workers
+are idle; root retains execution slot. Release tools represent canonical source;
+shared debug tools still represent the intermediate B06 worker repair candidate.
+
+**B06 worker state.** Existing managed stdlib-files tree checkpoint2adbe0b0
+(parent e30c8459) plus source-only follow-up changes, not integrated. Repair
+no-run55106 passed504.980s/3,718,435KiB on tracked diff
+SHA256de25de02993d28352c5e04867de355572cfb1ddad79e02635652496851ad64e3;
+JSON/log `/tmp/tsrust-b06-repair-{artifacts.jsonl,build.log}`. Direct gates21307
+passed all7 selected tests13.249s/99,920KiB (four changed native scopes and three
+strengthened primitive editor scopes); `/tmp/tsrust-b06-repair-gates.{json,log}`.
+The earlier mixed tuple/join witness pass remains preserved. Shared debug tools
+represent this worker repair candidate, NOT canonical db516eac.
+Latest follow-up is SOURCE ONLY: actual checked capability facts now travel
+through CheckedTypeFacts/ProjectCheckedTypeFacts/SourceIndex exact receiver spans;
+normal/repaired completion and hover share them. Synthetic type reparsing removed.
+Default-sort predicate matches emitter primitives. Added local/imported tuple and
+unit-alias four-phase rows, nested receiver agreement and Map-array comparator
+control. Static diff check passed; latest15-file diff is unbuilt/unformatted/
+uncommitted. After root measurement releases slot, worker must whole-format,
+checkpoint and rebuild affected tools/harnesses, then validate these latest scopes.
+
+B06 unit-array source adds ArrayElement/resolution/rendering/clone/sort,
+explicit unsupported unit optional/text/entries results, compiler/native fixtures
+and editor coverage. Public all/taskAsync/timer/channel APIs remain unimplemented.
+Initial checkpoint whole-format/token/idempotence passed5.166s/199,184KiB and
+5.155s/203,904KiB. First no-run63971 passed507.507s/3,684,803KiB with only inherited
+decode_plain warning. Direct gate44379 ran3.166s/147,392KiB:2 units +3/5 native
+checks passed;2 positive fixtures failed because standalone checking rejected
+std:testing imports. Their project-aware runner repair is in current build.
+Three editor tests passed11.676s/100,176KiB, but a stronger actual-server probe
+proved rejected methods still advertised. Preserve `/tmp/tsrust-b06-gates.json`,
+`/tmp/tsrust-b06-unit-array-{leaves,cloneability,native}.log`,
+`/tmp/tsrust-b06-editor-gates.log`, `/tmp/tsrust-b06-completion-probe.log`.
+Those editor passes do NOT establish full capability agreement.
+The successful intermediate repair also fixes generic Void type arguments and
+includes zero-parameter callback/nested entries controls. Its passing results do
+not validate the latest exact-context follow-up described above. No B06
+implementation/combined acceptance is claimed yet.
+
+**B03 accepted on db516eac (macOS ARM64).** Initial27 direct invocations:
+46 passed/5 failed,124.980s/480,896KiB; `/tmp/tsrust-b03-gates.{json,log}`.
+Failures were fixture assumptions (borrowed for-of mutation, unsupported export
+lists, macOS invalid-Unicode filename rejection). Repairs preserve ownership and
+strict conversion, use indexed snapshot mutation and supported module wrappers.
+Whole-format5.664s/205,968KiB, repair no-run496.836s/3,692,035KiB, then all5 failed
+tests passed8.874s/377,120KiB in `/tmp/tsrust-b03-repair-gates.{json,log}`.
+Combined51 tests include all B03 native/editor/catalog/dependency/keeper scopes;
+17 help cases ×4 phases,11 completion rows and checker agreement passed.
+Real offline-export integration5/5 passed128.574s/365,892KiB after explicit
+portable setup15.975s/149,952KiB. Use canonical target/portable-source-packs,
+current pack127a409706242393405b3fb0aa186b08fc2a750b128f51e3def223868b528af6;
+log `/tmp/tsrust-b03-export-recheck.log`. Seven registered workload sources passed
+five cases each against Node24.11.1 and generated O0/O3,22.355s/427,040KiB;
+`/tmp/tsrust-b03-verify.{json,log}`. No throughput measurement is claimed.
+Pruned119MiB generated benchmarks/runtime/target cache. Read-only B03 review found
+no further defect. Actual Windows/Linux, Windows signals and timing remain open.
+The older unreproduced URL optional-setter concern remains a milestone risk.
+
+**B06 prototype decision evidence.** `/tmp/tsrust-b06-profile.{json,log}` passed
+8.434s/424,832KiB,3×31 samples after8 warmups, separate allocation builds,
+quiet load3.448. Exact runtime inputs unchanged by later fixture formatting.
+Both strong/Weak136-byte capabilities passed lazy admission/start/owner-drop/
+awaited cleanup with zero construction allocations. Choose Weak: public owner
+Drop closes admission either way; accepted Completion retains its pool, while
+Weak avoids retaining an idle closed executor. Generic all retains per-input
+pins for arbitrary !Unpin futures without unsafe generated code; existing
+try_join_all's ordered large-collection path can delay a later-completed error.
+Keep direct polling plus Scope group/drop/in_scope/drain cleanup. Plan records
+prototype medians/allocations and unoptimized dependency caveat; no API rows ingested.
+
+**B12 source-only worker.** Root verified existing stdlib-url tree clean and
+fast-forwarded it to accepted db516eac; regex worker is its sole writer. It has
+prepared regex-text standalone exact-pin manifest, independent Node oracle,
+all listed operation prototypes and bounded build/profile driver. Pure Node
+syntax/oracle checks pass; no Cargo/fetch/native/profile/formatter/commit slot yet.
+Official regex1.13.1 metadata/checksum/MSRV/license/package advisory reviewed;
+exact closure/archive/features/platform admission remain pending. Root owns
+central manifests/locks; no production B12 API or dependency change. Candidate
+selection, byte-range direction and Rust replacement-template semantics are in
+the plan with official links. After B06 heavy validation, grant bounded package
+resolution/profile work without overlapping builds or quiet timing.
 
 **Transfer follow-up — terminal B03 build:** authoritative Cargo JSON now ends
 with `{"reason":"build-finished","success":true}`. Cargo77647 and supervisor86291
