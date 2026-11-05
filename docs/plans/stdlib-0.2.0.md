@@ -208,17 +208,28 @@ overlapping ranges, endianness, unaligned reads, NaN/signed zero and no partial
 writes. Performance: token/4 KiB/1 MiB codecs and packet parsing/writing into reused
 buffers, with independent byte checksums and equivalent strict Node validation.
 
-- [ ] Count allocations in actual emitted native packet and UTF-16 kernels,
+- [x] Count allocations in actual emitted native packet and UTF-16 kernels,
   including inline endian literals and stored callable aliases with a checked
   literal-union order variable. Compare n=0 setup and several iteration counts
   against independent direct-Rust floors; do not infer bridge behavior from a
   zero-allocation direct-Rust kernel.
-- [ ] Packet field access must not add per-field/per-iteration allocations.
+- [x] Packet field access must not add per-field/per-iteration allocations.
   UTF-16 output buffers are expected allocations; identify extra order/alias
   allocations separately, including mixed Unicode and CJK growth/reallocation.
   Preserve actual borrowed union payloads while profiling. Record actual emitted
   source/binary identity, exact outputs, requested/peak/live/drop counts and
   allocation slopes before considering a literal/storage optimization.
+
+Generated allocation acceptance, 2026-11-05 (macOS ARM64): 104 scoped O0/O3
+cases and 1,872 independent generated/direct-Rust samples pass exact outputs,
+deterministic counters and complete disposal. Inline endian arguments and stored
+aliases add no per-field/per-iteration allocations. Packet kernels keep one
+64-byte setup allocation; UTF-16 encoders allocate one output per iteration.
+Mixed decoding has no output reallocation; CJK decoding has one per output,
+compared with one/two respectively in the direct std floor. This difference
+justifies no sizing redesign. Unmodified generated variants compile with unsafe
+code forbidden. Matched runtime workload timings remain pending; these untimed
+allocation controls do not establish Windows/Linux execution.
 
 Search backend prerequisite (2026-11-04): pin `memchr =2.8.3` with its default
 std/alloc features, optional behind `byte-search` in both runtime graphs. Other
