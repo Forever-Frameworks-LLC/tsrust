@@ -57,9 +57,11 @@ impl Analyzer {
                 else { hint.filter(|ty| matches!(ty, Type::Null | Type::Undefined)).or_else(|| self.unions.payload(contract.ty)) };
             frame.mode = if hint.is_some_and(|ty| matches!(ty, Type::Null | Type::Undefined)) { Mode::Copy } else { Mode::Mutate };
             frame.adaptation = Adaptation::MutableUnion;
-        } else if contract.omission.is_omittable() && contract.mode == Mode::Read
-            && self.nullable_scoped_record_declaration(contract.ty).is_none()
+        } else if contract.mode == Mode::Read
             && let Type::Union(id) = contract.ty && !id.copy
+            && (contract.omission.is_omittable() || (self.unions.payload(contract.ty).is_none()
+                && self.expression_type_hint(context, argument).is_some_and(|ty| ty.union().is_none())))
+            && self.nullable_scoped_record_declaration(contract.ty).is_none()
             && !matches!(argument.kind, ExprKind::Conditional { .. }) {
             let hint = self.expression_type_hint(context, argument);
             frame.expected = if hint.is_some_and(|ty| ty.union().is_some()) { None }

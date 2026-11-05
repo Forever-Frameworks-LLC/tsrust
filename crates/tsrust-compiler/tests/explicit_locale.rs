@@ -55,3 +55,21 @@ function main(){
 import{NumberFormat,parseLocale,createNumberFormat}from'std:locale';import{spawn,join}from'std:threads';
 function main(){const locale=unwrap(parseLocale('en'));const value=unwrap(createNumberFormat(locale,{fractionDigits:2}));const worker=unwrap(spawn(():string=>value.format(1)));console.log(unwrap(join(worker)));const builder=unwrap(spawn(():NumberFormat=>{const en=unwrap(parseLocale('en'));return unwrap(createNumberFormat(en,{fractionDigits:2}));}));const returned=unwrap(join(builder));console.log(returned.format(2));}
 "#,"1.00\n2.00\n");}
+
+#[test]fn decimal_format_arguments_are_borrowed_across_iterations(){let directory=support::TempDirectory::new();native(&directory,r#"
+import {Decimal,parseDecimal} from 'std:decimal';
+import {NumberFormat,parseLocale,createNumberFormat} from 'std:locale';
+import {strictEqual} from 'std:testing';
+function repeated(value:int|Decimal,formatter:ReadOnly<NumberFormat>):string{
+ let text='';let i=0;while(i<3){text=formatter.format(value);i++;}return text;
+}
+function main(){
+ const locale=unwrap(parseLocale('en'));const formatter=unwrap(createNumberFormat(locale,{grouping:'never',fractionDigits:2}));
+ const decimal=unwrap(parseDecimal('2.345'));let i=0;
+ while(i<3){strictEqual(formatter.format(decimal),'2.34');i++;}
+ strictEqual(formatter.format(decimal),'2.34');strictEqual(repeated(decimal,formatter),'2.34');strictEqual(repeated(2,formatter),'2.00');
+ const forward=(value:ReadOnly<Decimal>):string=>formatter.format(value);
+ i=0;while(i<3){strictEqual(forward(decimal),'2.34');i++;}
+ strictEqual(formatter.format(decimal),'2.34');console.log('borrowed decimal pass');
+}
+"#,"borrowed decimal pass\n");}

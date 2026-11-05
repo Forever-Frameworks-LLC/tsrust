@@ -14,36 +14,95 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch
-`codex/stdlib-0.2.0`, source checkpoint **458500b2**. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint **4d84435d**. Full B00–B20 stays active.
 Latest accepted work: literal-all optimization passed8focused witnesses; actual
 ready/yield medians improved40.1%/30.1%,2native histories ingested atbb0677ec.
-Unchanged Rust/Node controls reused. New Once-capture checker repair12c197a3 and
-selected-sync B13 locale integratione0e99430 are checkpointed, public acceptance
-pending. Whole-project formatting/token/idempotence and locale source/oracle pass.
-Only this live handoff is dirty. No push, release or full regression occurred.
+Unchanged Rust/Node controls reused. Actual-parameter task warning repair458500b2
+passes all7responsibility tests; speculative Once change was reverted. Selected-
+sync B13 locale public/runtime/editor/offline acceptance passes, including17catalog
+examples atO0/O3, exact int/Decimal inputs, transfer/suspension, negative cases,
+6completion rows/4modes and8receiver agreements. Callback return-union guard4d84435d
+passes unit+agreement rerun69269,12.095s/62,576KiB. Build56423 terminaltrue,
+271.833s/2,754,370KiB (`/tmp/tsrust-locale-oracle-{artifacts.jsonl,build.log}`).
+Whole-project format/token/idempotence passed before every source checkpoint.
+Borrowed-union repair, focused locale witness, allocation guard wiring and this
+handoff are now dirty. No push, release or full regression occurred.
 
-**First action:** all15repair cases PASSED in runner42695,228.294s/499,056KiB,
-`/tmp/tsrust-locale-repairs-gates{.json,-run.log}`. Repair build19903 passed274.856s/
-2,689,874KiB, terminaltrue. Named-task false warnings fixed by actual parameter
-slots; seven task responsibility cases pass, including ordering/negative controls.
-Locale all seven native scopes are now accepted with preserved optional-activation
-pass, plus3runtime/1effects/1editor/1matrix/1agreement. Catalog17examples,O0/O3,
-worker transfer/await suspension and relocated forbid-unsafe offline builds pass.
-Root adds one final test-oracle guard: do not equate callback-return unions with
-unions of callbacks. No production change. Whole-format/token/idempotence passed;
-checkpoint/rebuild checker_agreement only, run oracle unit and8receiver agreement.
-Then run11locale workloads native/handRust/Node original protocol; no generated
-locale timings exist yet. B05 patch ready, B14 frozen, B07/B15 admissions ready.
+**First action:** resume eleven locale actual workloads after the accepted
+borrowed-union repair. Latest source is the local fix checkpoint following4d84435d.
+Build83174 terminaltrue216.892s/2,700,226KiB; rerun75205 all3passed9.895s/353,408KiB.
+`/tmp/tsrust-locale-borrow-projection-{artifacts.jsonl,build.log,gates.json,gates-run.log}`.
+Required nonnullable read arguments adapt known concrete inputs to borrowed unions;
+existing union inputs/projections and context-dependent inputs keep their old path.
+Decimal concrete/union/forwarding repeated calls preserve the original owner at
+O0/O3. Combined26unique focused tests accepted after preserving24earlierpasses
+and repairing2narrowed-projection regressions. Initial build73667 passed219.896s/
+2,677,074KiB; supplemental60423 passed3.116s/326,432KiB. Earlierfailed run7498:
+63.781s/532,496KiB. Required record-literal/generic-factory inference witness passed.
+Conditional-expression behavior is unchanged, not covered by this repair.
+Allocation runner now reuses locale guards for native/TS and records both contract
+and native dependency support hashes; eleven guards+independent oracle pass.
+Whole-project token/idempotence formatting clean (contextual fixture formatted).
+No generated locale timings exist yet; root owns exclusive heavy/quiet lease.
 
-**Workers:** b03_review prepares B07 admission source in managed
+Repair was prompted by the Decimal loop ownership failure exposed by locale
+measurement82291. Supervisor59168/process59252 are gone; watchdog terminal code1,
+663.499s/2,248,683KiB. `/tmp/tsrust-locale-generated-measure.log` reached
+`locale_number_decimal` preparation then rejected `value.format(decimal)` with
+loop-transfer. Earlier nine workload preparations passed; no timings started and
+nothing was ingested. Preserve their correctness scopes. b03_review traced required-union conversion forcing Consume despite Read binding.
+Root owns heavy lease. Allocation
+runner audit found missing locale source guard and dependency/contract support
+hashes; root is adding the existing guard and two hash entries before profiling.
+After focused repair acceptance, resume eleven locale actual workloads and ingest
+only real timings; independently verify33groups/93samples and SQLite integrity.
+
+B15 admission now counts errored input events toward take/drop budgets; drop
+forwards errors instead of swallowing them. Source-only witnesses added, unrun.
+B16 worker moved to managed `stdlib-crypto-admission` (base4d84435d), preparing
+Argon2/HMAC/HKDF/random admission. Explicit caller ThreadPool uses existing typed
+admission/completion errors and bounded workers. No public crypto implementation
+yet. Existing ctutils0.4.3 advisory RUSTSEC-2026-0385 found by local audit; candidate
+uses patched0.4.8. Coordinate baseline repair with dependency admission and verify
+actual affected callers; do not describe current baseline as advisory-clean.
+
+Accepted repair evidence: build19903 passed274.856s/2,689,874KiB; runner42695
+all15affected cases passed228.294s/499,056KiB. Preserve earlier13passing scopes,
+`/tmp/tsrust-locale-repairs-gates{.json,-run.log}` and original integrated failures.
+Obsolete owned test executables d4807df6ae17c905 (compiler unit),9fee5f09fd1fe48f
+(task_group_stack),563b5e9b608293ae (task_ergonomics) and debug symbols pruned,
+93,459,344bytes. Rebuild from checkpoints if needed; do not invoke removed binaries.
+Current explicit_locale/task_responsibility_arrays/checker_agreement remain available.
+
+Next after locale performance: B05 integration patch ready at
+`/tmp/tsrust-b05-integration.patch` SHA256
+941c18639af79cc9ea966229e537751d2a0dc998503f674ae68180c8673003d5,
+52publicfiles, canonical apply--check passed,16light tests passed/1offline skipped,
+3TypeScript peers pass. Recheck/apply preserving later root fixes, wholeformat,
+checkpoint and scoped native/editor/export/benchmark validation. Seventh B05 direct
+runtime deferred-close witness still unrun. B14 source remains frozen, not integrated.
+B07/B08/B16 admission profiles await serialized heavy lease. B15 admission passed; public
+implementation is now authorized in its isolated worker tree.
+
+**Workers:** b03_review preserves B07 admission source in managed
 `/Users/seancotter/.codex/worktrees/stdlib-process/tsrust` (basee9c6acc4).
-b06 prepares B05 in `/Users/seancotter/.codex/worktrees/stdlib-io-integration/tsrust`
+b06 preserves ready B05 in `/Users/seancotter/.codex/worktrees/stdlib-io-integration/tsrust`
 frome0e99430, resolving shared-file conflicts while preserving frozen `stdlib-io`
 and all52public source changes; no heavy/format/checkpoint yet.
-b14 prepares B15 admission/typed-ownership contract in managed
+b14 implements B15 after accepted admission/typed-ownership contract in managed
 `/Users/seancotter/.codex/worktrees/stdlib-iterators/tsrust` (basee0e99430),
-preserving frozen `stdlib-collections`. No worker heavy lease. Locale's old
+preserving frozen `stdlib-collections`. b03_review prepares B08 source-only admission in new managed
+`/Users/seancotter/.codex/worktrees/stdlib-network-admission/tsrust` (base4d84435d).
+b06 prepares B16 source-only admission in `stdlib-crypto-admission` (base4d84435d).
+No worker heavy lease. Locale's old
 checkpoint+selected-sync worker delta remains preserved in `stdlib-locale`.
+B15 profile62290 passed6.199s/264,368KiB:84correctness cases,336allocation
+records,336timing groups×31samples, retained0 and maxquietload2.22705078125.
+`/tmp/tsrust-owned-iterator-profile.{json,log}`. Static chains/finite owned enums
+accepted; static32B/enum40B/boxedhandle16B (boxes excluded). Concrete collect can
+reuse input allocation; enum collect adds allocation/reallocation. Preserve this
+cost, use ordinary safe variant dispatch if appropriate; no unsafe trait claims.
+No generated-API timing/measurement ingestion yet. b14 implements full B15 now.
 B15 decisions follow Rust: flatMap owned arrays/iterators only; map/flatMap/
 forEach/some/every consume items, filter/find borrow; reduce explicit initial;
 callbacks have Rust arity, no implicit index; next errors consume the triggering
