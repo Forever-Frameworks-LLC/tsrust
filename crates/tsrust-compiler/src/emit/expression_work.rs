@@ -255,7 +255,10 @@ impl<'p> Emitter<'p> {
             _ => None,
         };
         if let Some((target, value)) = assignment {
-            let (_, steps) = self.storage_steps(target);
+            // URL properties select their owner, rather than a physical record
+            // field. Keep its indices before the RHS in the same worklist.
+            let url_receiver=if matches!(&expr.kind,ExprKind::Assign{..}) {self.url_assignment_target(target).map(|(receiver,_)|receiver)} else {None};
+            let (_, steps) = self.storage_steps(url_receiver.unwrap_or(target));
             let mut children = Vec::new();
             let mut discards = Vec::new();
             for step in steps {
@@ -266,14 +269,14 @@ impl<'p> Emitter<'p> {
                 }
             }
             // `text += a + b` that appends in place renders the operands of its right side.
-            let appended = match &expr.kind {
+            let appended = if url_receiver.is_some() {None} else {match &expr.kind {
                 ExprKind::CompoundAssign {target,value,..}=>self.appended_operands(fun,target,value),
                 ExprKind::Assign {target,value,..} if self.self_appends.assignment(fun,value)=>super::self_append::operands(target,value),
                 _=>None,
-            };
+            }};
             if let Some(operands) = appended {
                 for operand in operands { children.push(Self::chain_operand(operand)); discards.push(false); }
-            } else if let Some((value, mode)) = value { children.push((value.as_ref(), mode)); discards.push(false); }
+            } else if let Some((value, mode)) = value { children.push((value.as_ref(), if url_receiver.is_some(){Mode::Consume}else{mode})); discards.push(false); }
             return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Assignment { discards, first_temporary: 0 } });
         }
         if let ExprKind::Binary { op, left, right, .. } = &expr.kind
@@ -890,6 +893,7 @@ impl<'p> Emitter<'p> {
                 let mut values = rendered.into_iter();
                 let mut render = |_: &Expr, _: Mode, _: bool| values.next().expect("scheduled assignment operand");
                 let code = match &expr.kind {
+                    ExprKind::Assign {target,value,..} if self.url_assignment_target(target).is_some()=>self.url_assignment_with(fun,target,value,expr.ty!=Some(Type::Void),&mut render),
                     ExprKind::Assign {target,value,..} if expr.ty==Some(Type::Void) && self.self_appends.assignment(fun,value)=>self.self_append_with(fun,target,value,&mut render),
                     ExprKind::Assign { target, value, .. } if expr.ty == Some(Type::Void) => {
                         if matches!(target.kind, ExprKind::Name(_)) {
