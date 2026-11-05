@@ -4389,6 +4389,7 @@ dependencies = [
  "js-sys",
  "kurbo",
  "matchit",
+ "memchr",
  "nix",
  "parley",
  "percent-encoding",

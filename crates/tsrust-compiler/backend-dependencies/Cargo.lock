@@ -2295,6 +2295,7 @@ dependencies = [
  "http-body-util",
  "hyper-util",
  "matchit",
+ "memchr",
  "nix",
  "percent-encoding",
  "rayon",

@@ -30,6 +30,30 @@ candidate additionally integrates URL facade a5328d77, reproducible scaling
 URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
 No new URL/codec native gate or platform completion is claimed.
 
+**Active shared-target validation:** worker source checkpoint5dc08536 plus
+bfaea2c8 external-target lock assertions is merged with canonical d7ff8603 as
+b24f2299. Whole worker formatter passes0/0/0. Its first all-target check caught
+two cfg(test) Linker constructors missing the new used_native field (39.477s/
+1,816,754KiB, exit101). Root explicitly transferred only those two initializer
+hunks to the runtime worker for repair; do not label d7ff as all-target accepted.
+Worker retains the heavy lease and reruns affected checks, then direct test
+binaries after --no-run for nested Cargo/cache controls. Actual dev cancellation
+requires a descendant-aware watchdog because dev intentionally creates child
+process groups; old PGID-only watchdog evidence does not prove aggregate dev
+memory bounds. Root normal Cargo tests inherit one process group and remain
+covered by their recorded watchdogs. No shared-target acceptance is claimed yet.
+
+Root optional search pin prerequisite is prepared: memchr=2.8.3 in compiler dev
+and both runtimes (`byte-search` only), plus same-stack reference dependency and
+reserved-pin protection. Four offline metadata runs pass0.523/0.522/0.523/0.525s,
+peak25,968KiB; independent comparisons verify all previous packages/checksums and
+defaults unchanged. Only reference graph adds memchr, already locked in the other
+three graphs. Actual bytes backend helper/extraction/14API registration/effects
+and39 matched benchmark rows are owned additively by the core worker; root must
+merge that completed family, then add the CLI byte-search selector alongside
+requires_byte_codecs. No API, generated-code, platform or timing completion is
+implied by the dependency prerequisite.
+
 **URL emission defect repair:** readiness test2b1d3790 first called the single-file
 checker on imports (syntax failure); it now uses the real project loader. That
 exposed genuine synthetic `void` record fields from private URL methods. Native
