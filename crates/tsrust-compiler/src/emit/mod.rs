@@ -338,7 +338,7 @@ struct Emitter<'a> {
     result_callbacks: RefCell<HashMap<usize,(String,crate::error_effects::FailureSet)>>,
     conditional_temporaries: RefCell<Vec<String>>,
     /// Receivers of builtin chain links rendered on the expression work stack.
-    rendered_receivers: RefCell<Vec<(usize, String)>>,
+    rendered_receivers: RefCell<Vec<(usize, Mode, String)>>,
     conditional_next: Cell<usize>,
     expression_depth: Cell<usize>,
     native_bindings: RefCell<std::collections::BTreeSet<usize>>,

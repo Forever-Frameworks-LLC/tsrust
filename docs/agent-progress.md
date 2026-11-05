@@ -72,6 +72,23 @@ prefix in /tmp/tsrust-combined-repair-gates.json. Dev uses --dev separately with
 descendant-aware watchdog. Unrun native/editor/export/75semantic-workload checks
 remain pending; never treat this interrupted batch as full acceptance.
 
+843e20dc checkpoints the grouped concat/hint fix. Remaining-only no-run98455
+PASSED229.493s/2,587,250KiB (unchanged --lib harnesses omitted), artifacts
+/tmp/tsrust-combined-repair-remaining-artifacts.jsonl. Normal CLI51f66905261142fbdc70fbab16b658cdd40ef37f7d5d688d700d23079c97a55d,
+LSP511cb8577a4ec37dbc62583e8912c0e5e06c92367f119492396e84a8130e1836.
+Resume13158 reached the durable String positive; checking succeeds, emission
+panics at expression_work604 because fresh owned union receivers are pre-rendered
+Read but conditional owner staging requests Consume. Root fixes exact cache mode,
+not by reusing a borrowed read as an owner or disabling heap traversal. Cache
+entries now retain mode; owned temporary union call receivers pre-render Consume,
+and retrieval requires the same mode (old Read→copy compatibility stays bounded).
+Added4096 alternating union/String calls as an emission-only single-evaluation/
+stack/cache-cleanup witness. Mode-aware all-target32098 PASSED59.705s/1,867,410KiB;
+then two storage pre-dispatch string/index guards were changed to the same common
+observation predicate before the next execution build. New branch/harness unit
+execution and native positive remain pending. Do not rerun the18passed prefix;
+resume failed index11 after the next combined library/remaining-target compile.
+
 **Owner-requested PR monitoring verified — 2026-11-05:** live GitHub has no open
 PRs, including Dependabot. Release PR#14 merged; main is
 8efaaee21bcc40d0938214bc75299b592ce91db9. Release validation41942318885,
