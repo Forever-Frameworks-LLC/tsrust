@@ -1,4 +1,5 @@
-// Compile with rustc --cfg test --edition=2024 -O and the pinned base64 extern.
+// Compile with rustc --cfg test --edition=2024 -O and pinned base64/memchr externs.
+// Backend-only floor: generated bridges need generated-byte-allocations.mjs.
 // The test configuration includes the exact backend codec source, with no ABI copies.
 #[allow(dead_code, unused_imports)]
 #[path = "../../../crates/tsrust-compiler/src/stdlib/bytes/runtime/mod.rs"]

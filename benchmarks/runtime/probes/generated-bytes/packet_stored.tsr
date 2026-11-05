@@ -1,0 +1,43 @@
+import { alloc, readInt, writeInt, readUint, writeUint, readFloat32, writeFloat32, readFloat64, writeFloat64 } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int {
+  const bytes = unwrap(alloc(64));
+  const order: "little" | "big" = seed % 2 === 0 ? "little" : "big";
+  const savedreadInt = readInt;
+  const savedwriteInt = writeInt;
+  const savedreadUint = readUint;
+  const savedwriteUint = writeUint;
+  const savedreadFloat32 = readFloat32;
+  const savedwriteFloat32 = writeFloat32;
+  const savedreadFloat64 = readFloat64;
+  const savedwriteFloat64 = writeFloat64;
+  let checksum = 0;
+  let i = 0;
+  while (i < n) {
+    unwrap(savedwriteInt(bytes, 1, 65, 1, order));
+    checksum += unwrap(savedreadInt(bytes, 1, 1, order)) * 4;
+    unwrap(savedwriteInt(bytes, 3, -12345, 2, order));
+    checksum += unwrap(savedreadInt(bytes, 3, 2, order)) * 4;
+    unwrap(savedwriteInt(bytes, 5, -1234567, 4, order));
+    checksum += unwrap(savedreadInt(bytes, 5, 4, order)) * 4;
+    unwrap(savedwriteInt(bytes, 9, 123456789, 8, order));
+    checksum += unwrap(savedreadInt(bytes, 9, 8, order)) * 4;
+    unwrap(savedwriteUint(bytes, 17, 255, 1, order));
+    checksum += unwrap(savedreadUint(bytes, 17, 1, order)) * 4;
+    unwrap(savedwriteUint(bytes, 19, 65535, 2, order));
+    checksum += unwrap(savedreadUint(bytes, 19, 2, order)) * 4;
+    unwrap(savedwriteUint(bytes, 21, 4294967295, 4, order));
+    checksum += unwrap(savedreadUint(bytes, 21, 4, order)) * 4;
+    unwrap(savedwriteFloat32(bytes, 25, 1.5, order));
+    checksum += int(unwrap(savedreadFloat32(bytes, 25, order)) * 4.0);
+    unwrap(savedwriteFloat64(bytes, 33, -2.25, order));
+    checksum += int(unwrap(savedreadFloat64(bytes, 33, order)) * 4.0);
+    i += 1;
+  }
+
+  return checksum;
+}
+
+function main() {
+  workload(1, 7, "packet");
+}

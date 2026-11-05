@@ -208,6 +208,18 @@ overlapping ranges, endianness, unaligned reads, NaN/signed zero and no partial
 writes. Performance: token/4 KiB/1 MiB codecs and packet parsing/writing into reused
 buffers, with independent byte checksums and equivalent strict Node validation.
 
+- [ ] Count allocations in actual emitted native packet and UTF-16 kernels,
+  including inline endian literals and stored callable aliases with a checked
+  literal-union order variable. Compare n=0 setup and several iteration counts
+  against independent direct-Rust floors; do not infer bridge behavior from a
+  zero-allocation direct-Rust kernel.
+- [ ] Packet field access must not add per-field/per-iteration allocations.
+  UTF-16 output buffers are expected allocations; identify extra order/alias
+  allocations separately, including mixed Unicode and CJK growth/reallocation.
+  Preserve actual borrowed union payloads while profiling. Record actual emitted
+  source/binary identity, exact outputs, requested/peak/live/drop counts and
+  allocation slopes before considering a literal/storage optimization.
+
 Search backend prerequisite (2026-11-04): pin `memchr =2.8.3` with its default
 std/alloc features, optional behind `byte-search` in both runtime graphs. Other
 byte operations remain std-backed. The version was already locked in compiler

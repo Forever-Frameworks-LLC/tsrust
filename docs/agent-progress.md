@@ -88,6 +88,25 @@ compiler/native/LSP/export/allocation acceptance, followed by B01/B04; serialize
 all heavy work and give quiet timing exclusive access. Full regressions wait for
 the meaningful utility-family milestone.
 
+**Combined utility source checkpoint:**341404d1 integrates accepted shared-target/
+package repair,4a850221 the full14API/39-row byte family plus CLI search selector,
+and810f1557 the44-export/5-row filesystem family. Core9e5f2d57 generated allocation
+witnesses are now merged:9TSR packet/UTF16 inline/stored-alias cases,3independent
+Rust floors and exact ABI/allocation driver. Plan gates require actual generated
+O0/O3 allocation slopes versus setup/directRust; unsafe prohibition is checked on
+unmodified emitted source, instrumentation never substitutes arguments or bodies.
+These probes are source-only. Node24lightchecks and std prototypes are preserved;
+current compiler/native/LSP/export/platform/performance acceptance remains open.
+
+Next executable: grant host exclusive two-kernel seek/sync std profile lease,
+then build this full combined source once with explicit CLI+LSP packages/binaries,
+sharedtarget/incremental0/jobs1/watchdog. Compile affected native test binaries
+with --no-run, execute one at a time with threads3; use descendant watchdog for
+dev/process-group controls. Core B02 unit/native/LSP/export/generated-allocation
+acceptance is first, then host B01 and URL B04, preserving unchanged prior passes.
+No whole-suite or benchmark-matrix rerun was launched. Leave the full B00–B20 app
+goal active; v0.2 publication still requires the concrete release approval.
+
 **URL emission defect repair:** readiness test2b1d3790 first called the single-file
 checker on imports (syntax failure); it now uses the real project loader. That
 exposed genuine synthetic `void` record fields from private URL methods. Native
