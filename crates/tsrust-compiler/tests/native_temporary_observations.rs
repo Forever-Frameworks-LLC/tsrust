@@ -8,9 +8,11 @@ fn checked(source: &str) -> Result<ProjectAnalysis, ProjectDiagnostic> {
 }
 
 #[test]
-fn fresh_url_owners_survive_immediate_direct_and_generic_observations() {
+fn fresh_native_owners_survive_immediate_direct_and_generic_observations() {
     let source = r#"
 import {Url,StringView,parseUrl,resolveUrl,formatUrl,parseQuery} from 'std:url';
+import {Bytes,ByteView,fromUtf8,view,viewMut,length,toUtf8} from 'std:bytes';
+import {JsonValue,parse as parseJson,asString} from 'std:json';
 import {strictEqual} from 'std:testing';
 function identity<T>(value:T):T{return value;}
 type Owners={left:Url;right:Url;};
@@ -28,6 +30,27 @@ function observe(text:ReadOnly<StringView>,expected:ReadOnly<string>):void{
 function changeRight(value:Mutable<Url>):string{
   value.pathname='/changed';
   return 'https://example.com/left';
+}
+function makeBytes(calls:Mutable<int[]>):Bytes{
+  calls[0]=calls[0]*10+3;
+  return unwrap(fromUtf8('hello'));
+}
+function afterBytes(calls:Mutable<int[]>):int{
+  calls[0]=calls[0]*10+4;
+  return calls[0];
+}
+function observeBytes(part:ReadOnly<ByteView>,order:int):void{
+  strictEqual(length(part),5);
+  strictEqual(unwrap(toUtf8(part)),'hello');
+  strictEqual(order,34);
+}
+function makeJson(calls:Mutable<int[]>):JsonValue{
+  calls[0]=calls[0]*10+5;
+  return unwrap(parseJson('"hello"'));
+}
+function afterJson(calls:Mutable<int[]>):string{
+  calls[0]=calls[0]*10+6;
+  return 'hello';
 }
 function main(){
   const base=unwrap(parseUrl('https://example.com/a/b'));
@@ -52,6 +75,23 @@ function main(){
   const owners:Owners={left:unwrap(parseUrl('https://example.com/left')),right:unwrap(parseUrl('https://example.com/right'))};
   observe(owners.left.href,changeRight(owners.right));
   strictEqual(String(owners.right.pathname),'/changed');
+  calls[0]=0;
+  observeBytes(unwrap(view(makeBytes(calls),0,5)),afterBytes(calls));
+  strictEqual(calls[0],34);
+  calls[0]=0;
+  const bytesView=identity(view);
+  observeBytes(unwrap(bytesView(makeBytes(calls),0,5)),afterBytes(calls));
+  strictEqual(calls[0],34);
+  calls[0]=0;
+  strictEqual(length(unwrap(viewMut(makeBytes(calls),0,5))),5);
+  strictEqual(calls[0],3);
+  calls[0]=0;
+  observe(unwrap(asString(makeJson(calls))),afterJson(calls));
+  strictEqual(calls[0],56);
+  calls[0]=0;
+  const jsonText=identity(asString);
+  observe(unwrap(jsonText(makeJson(calls))),afterJson(calls));
+  strictEqual(calls[0],56);
 }
 "#;
     let directory = support::TempDirectory::new();
