@@ -93,6 +93,8 @@ import {parseUrl} from 'std:url';
 import {strictEqual} from 'std:testing';
 function maybeText(present:boolean,text:string):string|undefined{if(present){return text;}return undefined;}
 function maybePort(present:boolean,port:int):int|undefined{if(present){return port;}return undefined;}
+function select(count:Mutable<int[]>):int{count[0]+=1;return 0;}
+function nextPort(count:Mutable<int[]>):int{strictEqual(count[0],1);count[0]+=10;return 4321;}
 function main(){
   const address=unwrap(parseUrl('https://user:secret@example.com:8080/start?q=1#top'));
   address.password=undefined;address.port=undefined;address.search=undefined;address.hash=undefined;
@@ -110,6 +112,10 @@ function main(){
   strictEqual(address.search===undefined,true);strictEqual(address.hash===undefined,true);
   const assigned=(address.port=1234);strictEqual(assigned===1234,true);strictEqual(address.port===1234,true);
   const cleared=(address.port=undefined);strictEqual(cleared===undefined,true);strictEqual(address.port===undefined,true);
+  const normalized=(address.port=443);strictEqual(normalized===443,true);strictEqual(address.port===undefined,true);
+  const addresses=[unwrap(parseUrl('https://example.com/'))];const count=[0];
+  const selected=(addresses[select(count)].port=nextPort(count));
+  strictEqual(selected===4321,true);strictEqual(addresses[0].port===4321,true);strictEqual(count[0],11);
   const host=unwrap(parseUrl('custom://example.com/path'));host.hostname=undefined;
   strictEqual(host.hostname===undefined,true);
   const hostname=maybeText(true,'other.example');host.hostname=hostname;strictEqual(String(host.hostname),'other.example');

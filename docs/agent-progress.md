@@ -13,6 +13,14 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**Combined follow-up candidate:** root6405ec6c checkpoints grouped-union test
+comparison and repaired seek/sync benchmark byte reads/guards. Incoming core
+070fa84f (computed URL assignment worklist) and host55ccf888 (declared parameter
+alias/access presentation) merge cleanly into the canonical tree. Full formatting
+is required before committing this merge; focused rebuilt acceptance is pending.
+Core and host have no active build/formatter jobs. Root owns the next execution
+slot; runtime exact-capacity format prototype A/B is queued and source-only.
+
 **Resume here — independent repairs, temporary-view approval pending:** root is
 the sole canonical writer. Previous turn made source and acceptance progress;
 this turn completed more real gates, not a blocked turn.

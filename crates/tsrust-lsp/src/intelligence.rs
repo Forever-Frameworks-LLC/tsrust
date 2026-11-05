@@ -562,13 +562,20 @@ impl SourceIndex {
         facts: std::collections::BTreeMap<(usize, usize), Option<String>>,
     ) {
         for id in &self.parameter_symbols {
+            // Explicit annotations retain their written alias and access contract in
+            // presentation. Checked types still drive member/callable resolution.
+            let annotated=self.tokens.binary_search_by_key(&self.symbols[*id].span.start,|token|token.span.start).is_ok_and(|token|{
+                let colon=token+if self.text(token+1)=="?"{2}else{1};self.text(colon)==":"
+            });
             let symbol = &mut self.symbols[*id];
             let Some(Some(ty)) = facts.get(&(symbol.span.start, symbol.span.end)) else {
                 continue;
             };
             symbol.ty = ty.clone();
-            let label = symbol.signature.split(':').next().unwrap_or(&symbol.name);
-            symbol.signature = format!("{label}: {ty}");
+            if !annotated {
+                let label = symbol.signature.split(':').next().unwrap_or(&symbol.name);
+                symbol.signature = format!("{label}: {ty}");
+            }
             if let Some(parameters) = callable_parameters(ty) {
                 symbol.kind = 12;
                 symbol.parameters = parameters;
@@ -1762,16 +1769,15 @@ impl SourceIndex {
                 type_end
             };
             if name(self.text(n)) {
-                let declared = if annotated {
-                    self.written_type(&self.snippet(colon + 1, type_end))
-                } else {
-                    String::new()
-                };
+                let written = if annotated {self.snippet(colon+1,type_end)}else{String::new()};
+                let declared = if annotated {self.written_type(&written)}else{String::new()};
                 let ty = if optional {
                     optional_parameter_type(&declared)
                 } else {
                     declared
                 };
+                let display = canonical_data_type(&written);
+                let display = if optional {optional_parameter_type(&display)}else{display};
                 let signature = self.snippet(begin, parameter_end);
                 let access = self.snippet(access_begin, n);
                 let body_signature = format!(
@@ -1782,10 +1788,10 @@ impl SourceIndex {
                         format!("{access} ")
                     },
                     self.text(n),
-                    if ty.is_empty() {
+                    if display.is_empty() {
                         String::new()
                     } else {
-                        format!(": {ty}")
+                        format!(": {display}")
                     }
                 );
                 let parameter = self.add(
@@ -4751,5 +4757,25 @@ fn public_ui_record_aliases_hide_implementation_names(){
   for ty in ["string","'start'","('start'|'current'|'end')","('left'|('right'))","ReadOnly<string>","ReadOnly<'start'>","ReadOnly<(('start'|'current'|'end'))>"]{assert_eq!(observation_scalar_family(ty),Some("string"),"{ty}");}
   for ty in ["'start'|undefined","'start'|int","Schema<'start'|'end'>","NativeCallable","'start'[]","ReadOnly<('start'|undefined)>","ReadOnly<('start'|int)>","ReadOnly<Schema<'start'|'end'>>","ReadOnly<('start'|'end')[]>","ReadOnly<int>","Mutable<('start'|'end')>","Owned<('start'|'end')>"]{assert_eq!(observation_scalar_family(ty),None,"{ty}");}
   assert_eq!(literal_scalar_family("'start'|'end'"),None,"schema enum identity must not become SchemaLiteral");
+ }
+}
+
+#[cfg(test)]mod parameter_presentation_tests {
+ use super::SourceIndex;
+ #[test]fn annotated_alias_parameters_preserve_written_access_while_inferred_parameters_use_checked_types(){
+  for source in [
+   "type Origin=('start'|'current'|'end');function inspect(value:ReadOnly<Origin>):string{return value.toUpperCase();}function main(){}",
+   "type Origin=('start'|'current'|'end');function main(){const callback=(value:ReadOnly<Origin>):string=>value.toUpperCase();console.log(callback('start'));}",
+  ]{
+   for broken in [false,true]{
+    let text=if broken{format!("{source}function broken(){{const = ;}} ")}else{source.into()};let index=SourceIndex::new(&text);
+    if !broken {assert!(index.checked,"valid annotated fixture must receive checked facts");}
+    let parameter=index.symbols.iter().enumerate().find(|(id,symbol)|index.parameter_symbols.contains(id)&&symbol.name=="value").unwrap().1;
+    assert_eq!(parameter.signature,"value: ReadOnly<Origin>","broken={broken}");
+   }
+  }
+  let index=SourceIndex::new("function main(){const values=[1,2];values.map(value=>value+1);}");assert!(index.checked,"inferred callback fixture must check");
+  let parameter=index.symbols.iter().enumerate().find(|(id,symbol)|index.parameter_symbols.contains(id)&&symbol.name=="value").unwrap().1;
+  assert_eq!(parameter.ty,"int");assert_eq!(parameter.signature,"value: int");
  }
 }

@@ -9,10 +9,15 @@ impl Emitter<'_> {
         Some((receiver,crate::stdlib::url::property(name)?.setter.as_ref()?))
     }
     pub(super) fn url_assignment(&self,fun:&CheckedFunction,target:&Expr,value:&Expr,returned:bool)->String {
+        self.url_assignment_with(fun,target,value,returned,&mut |operand,mode,discard| {
+            if discard {self.comma_discard_code(fun,operand)} else {self.expr(fun,operand,mode)}
+        })
+    }
+    pub(super) fn url_assignment_with(&self,fun:&CheckedFunction,target:&Expr,value:&Expr,returned:bool,render:&mut impl FnMut(&Expr,Mode,bool)->String)->String {
         let (receiver,setter)=self.url_assignment_target(target).expect("checked URL assignment");
         let (id,_)=crate::native_bindings::by_symbol(&format!("@native:std:url#{}",setter.name)).unwrap();self.native_bindings.borrow_mut().insert(id);
-        let selection=self.storage_selection(fun,receiver,false);
-        let input=self.expr(fun,value,Mode::Consume);
+        let selection=self.storage_selection_with(fun,receiver,false,render);
+        let input=render(value,Mode::Consume,false);
         let parameter=setter.parameters[1];
         let argument=if parameter.optional {
             if let Some(union)=value.ty.unwrap().union() {
