@@ -89,14 +89,19 @@ impl NativeBinding {
         if self.module == "std:fs" && position == 1 && matches!(self.name, "write" | "writeAll" | "writeFile") {
             return &[ByteView, ByteViewMut];
         }
+        if self.module == "std:bytes" {
+            if matches!(self.name,"concat"|"equals"|"compare"|"indexOf") && position<=1 {return &[ByteView,ByteViewMut];}
+            if self.name=="copyInto" {return match position {0=>&[ByteViewMut],2=>&[ByteView,ByteViewMut],_=>&[]};}
+        }
         if self.module != "std:bytes" || position != 0 {
             return &[];
         }
         match self.name {
             // A view of a view borrows the parent view for as long as it lives.
             "length" | "at" | "copy" | "toUtf8" | "view"
-            | "toHex" | "toBase64" | "toBase64Url" | "toUtf8Lossy" | "toUtf16" => &[ByteView, ByteViewMut],
-            "set" | "viewMut" => &[ByteViewMut],
+            | "toHex" | "toBase64" | "toBase64Url" | "toUtf8Lossy" | "toUtf16"
+            | "readInt" | "readUint" | "readFloat32" | "readFloat64" => &[ByteView, ByteViewMut],
+            "set" | "viewMut" | "copyWithin" | "writeInt" | "writeUint" | "writeFloat32" | "writeFloat64" => &[ByteViewMut],
             _ => &[],
         }
     }
@@ -463,6 +468,20 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::bytes::bindings::FROM_BASE64_URL,
     crate::stdlib::bytes::bindings::FROM_UTF16,
     crate::stdlib::bytes::bindings::TO_UTF16,
+    crate::stdlib::bytes::bindings::CONCAT,
+    crate::stdlib::bytes::bindings::COPY_INTO,
+    crate::stdlib::bytes::bindings::COPY_WITHIN,
+    crate::stdlib::bytes::bindings::EQUALS,
+    crate::stdlib::bytes::bindings::COMPARE,
+    crate::stdlib::bytes::bindings::INDEX_OF,
+    crate::stdlib::bytes::bindings::READ_INT,
+    crate::stdlib::bytes::bindings::WRITE_INT,
+    crate::stdlib::bytes::bindings::READ_UINT,
+    crate::stdlib::bytes::bindings::WRITE_UINT,
+    crate::stdlib::bytes::bindings::READ_FLOAT32,
+    crate::stdlib::bytes::bindings::WRITE_FLOAT32,
+    crate::stdlib::bytes::bindings::READ_FLOAT64,
+    crate::stdlib::bytes::bindings::WRITE_FLOAT64,
     crate::stdlib::testing::bindings::CONTAINS_VALUE,
     crate::stdlib::testing::bindings::LENGTH_VALUE,
     crate::stdlib::testing::bindings::HAS_LENGTH,

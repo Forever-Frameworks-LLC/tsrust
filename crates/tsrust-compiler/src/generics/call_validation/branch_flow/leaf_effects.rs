@@ -8,7 +8,7 @@ pub(super) fn native_observer(symbol: &str) -> bool {
             || binding.module == "std:os"
                 && matches!(binding.name, "platform" | "arch" | "endianness")
             || binding.module == "std:bytes"
-                && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy" | "fromUtf8" | "toUtf8" | "toHex" | "fromHex" | "toUtf8Lossy" | "toBase64" | "fromBase64" | "toBase64Url" | "fromBase64Url" | "fromUtf16" | "toUtf16")
+                && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy" | "fromUtf8" | "toUtf8" | "toHex" | "fromHex" | "toUtf8Lossy" | "toBase64" | "fromBase64" | "toBase64Url" | "fromBase64Url" | "fromUtf16" | "toUtf16" | "concat" | "equals" | "compare" | "indexOf" | "readInt" | "readUint" | "readFloat32" | "readFloat64")
             || binding.module == "std:testing-runtime"
                 && matches!(binding.name, "checkAssertion" | "assertionDetails" | "numericValue" | "lengthValue" | "hasLength" | "containsValue")
     })
@@ -42,6 +42,20 @@ mod tests {
             ("@native:std:testing-runtime#shareCallback", false),
             ("@native:std:path#join", true),
             ("@native:std:os#platform", true),
+            ("@native:std:bytes#concat", true),
+            ("@native:std:bytes#equals", true),
+            ("@native:std:bytes#compare", true),
+            ("@native:std:bytes#indexOf", true),
+            ("@native:std:bytes#readInt", true),
+            ("@native:std:bytes#readUint", true),
+            ("@native:std:bytes#readFloat32", true),
+            ("@native:std:bytes#readFloat64", true),
+            ("@native:std:bytes#copyInto", false),
+            ("@native:std:bytes#copyWithin", false),
+            ("@native:std:bytes#writeInt", false),
+            ("@native:std:bytes#writeUint", false),
+            ("@native:std:bytes#writeFloat32", false),
+            ("@native:std:bytes#writeFloat64", false),
             ("unknown", false),
         ] {
             let program=crate::syntax::parse("function main(){probe();}").unwrap();

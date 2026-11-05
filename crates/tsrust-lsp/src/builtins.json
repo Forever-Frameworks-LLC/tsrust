@@ -8309,6 +8309,380 @@
           "output": "A😀\n"
         }
       ]
+    },
+    {
+      "name": "concat",
+      "signature": "concat(left: ReadOnly<Bytes | ByteView | ByteViewMut>, right: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "left: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "First readable byte sequence."
+        },
+        {
+          "label": "right: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Second readable byte sequence."
+        }
+      ],
+      "documentation": "Returns a new owned buffer containing left followed by right. Empty inputs are allowed. Length addition is checked against exact int and native storage; overflow returns length-range and failed reservation returns allocation. Neither input changes. Process-wide memory exhaustion is not guaranteed to be recoverable. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromArray, concat, toHex } from \"std:bytes\";\n\nfunction main() {\n  const left = unwrap(fromArray([0, 255]));\n  const right = unwrap(fromArray([65]));\n  console.log(unwrap(toHex(unwrap(concat(left, right)))));\n}\n```\n\nExpected output: 00ff41.\n\nOwnership: borrows readable byte inputs for the complete call. Inputs remain unchanged; the result carries no source loan. The returned Bytes owns independent storage.",
+      "examples": [
+        {
+          "source": "import { fromArray, concat, toHex } from \"std:bytes\";\n\nfunction main() {\n  const left = unwrap(fromArray([0, 255]));\n  const right = unwrap(fromArray([65]));\n  console.log(unwrap(toHex(unwrap(concat(left, right)))));\n}\n",
+          "output": "00ff41\n"
+        }
+      ]
+    },
+    {
+      "name": "copyInto",
+      "signature": "copyInto(target: Mutable<Bytes | ByteViewMut>, targetOffset: int, source: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<void, ByteError>",
+      "parameters": [
+        {
+          "label": "target: Mutable<Bytes | ByteViewMut>",
+          "documentation": "Destination owner or writable view. Its length stays unchanged."
+        },
+        {
+          "label": "targetOffset: int",
+          "documentation": "Nonnegative destination byte offset, at most its length. The entire source must fit."
+        },
+        {
+          "label": "source: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Complete readable source sequence, from a distinct byte owner."
+        }
+      ],
+      "documentation": "Copies every source byte into target beginning at targetOffset. The complete source must fit; negative offsets, overflow or insufficient space return range with targetOffset as offset and leave every destination byte unchanged. An empty source is allowed at the destination end. No allocation or resizing occurs. Source and destination must have distinct byte owners. Use copyWithin for same-owner overlap; a temporary source copy is never inserted. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromArray, copyInto, toHex } from \"std:bytes\";\n\nfunction main() {\n  const target = unwrap(fromArray([0, 0, 0, 0]));\n  const source = unwrap(fromArray([65, 255]));\n  unwrap(copyInto(target, 1, source));\n  console.log(unwrap(toHex(target)));\n}\n```\n\nExpected output: 0041ff00.\n\nOwnership: borrows the destination exclusively for this call. A ByteViewMut writes through to its owner. The result carries no source loan. The source stays borrowed readonly through later arguments.",
+      "examples": [
+        {
+          "source": "import { fromArray, copyInto, toHex } from \"std:bytes\";\n\nfunction main() {\n  const target = unwrap(fromArray([0, 0, 0, 0]));\n  const source = unwrap(fromArray([65, 255]));\n  unwrap(copyInto(target, 1, source));\n  console.log(unwrap(toHex(target)));\n}\n",
+          "output": "0041ff00\n"
+        }
+      ]
+    },
+    {
+      "name": "copyWithin",
+      "signature": "copyWithin(bytes: Mutable<Bytes | ByteViewMut>, targetOffset: int, start: int, end: int): Result<void, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: Mutable<Bytes | ByteViewMut>",
+          "documentation": "Owner or writable view to modify."
+        },
+        {
+          "label": "targetOffset: int",
+          "documentation": "First destination byte offset. The entire source range must fit."
+        },
+        {
+          "label": "start: int",
+          "documentation": "Inclusive source byte offset, checked before end."
+        },
+        {
+          "label": "end: int",
+          "documentation": "Exclusive source offset; must satisfy start <= end <= length(bytes)."
+        }
+      ],
+      "documentation": "Copies [start, end) within one writable byte sequence, preserving the original source bytes when ranges overlap in either direction. Bytes outside the destination range stay unchanged; length and storage stay fixed. Requires 0 <= start <= end <= length(bytes) and 0 <= targetOffset <= length(bytes) - (end - start). Bounds never clamp or wrap. Invalid bounds return range before any write; the first invalid source coordinate or targetOffset is reported as offset. Empty ranges, including at the end, succeed when targetOffset is valid. No allocation occurs. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromArray, copyWithin, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromArray([0, 1, 2, 3, 4]));\n  unwrap(copyWithin(bytes, 1, 0, 4));\n  console.log(unwrap(toHex(bytes)));\n}\n```\n\nExpected output: 0000010203.\n\nOwnership: borrows the destination exclusively for this call. A ByteViewMut writes through to its owner. The result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, copyWithin, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromArray([0, 1, 2, 3, 4]));\n  unwrap(copyWithin(bytes, 1, 0, 4));\n  console.log(unwrap(toHex(bytes)));\n}\n",
+          "output": "0000010203\n"
+        }
+      ]
+    },
+    {
+      "name": "equals",
+      "signature": "equals(left: ReadOnly<Bytes | ByteView | ByteViewMut>, right: ReadOnly<Bytes | ByteView | ByteViewMut>): boolean",
+      "parameters": [
+        {
+          "label": "left: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "First readable byte sequence."
+        },
+        {
+          "label": "right: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Second readable byte sequence."
+        }
+      ],
+      "documentation": "Returns true when the two byte sequences have identical lengths and contents. Two empty sequences are equal. Comparison treats bytes as binary values without text decoding or normalization. No allocation or mutation occurs. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromArray, equals } from \"std:bytes\";\n\nfunction main() {\n  const left = unwrap(fromArray([0, 255]));\n  const right = unwrap(fromArray([0, 255]));\n  console.log(equals(left, right));\n}\n```\n\nExpected output: true.\n\nOwnership: borrows readable byte inputs for the complete call. Inputs remain unchanged; the result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, equals } from \"std:bytes\";\n\nfunction main() {\n  const left = unwrap(fromArray([0, 255]));\n  const right = unwrap(fromArray([0, 255]));\n  console.log(equals(left, right));\n}\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "compare",
+      "signature": "compare(left: ReadOnly<Bytes | ByteView | ByteViewMut>, right: ReadOnly<Bytes | ByteView | ByteViewMut>): int",
+      "parameters": [
+        {
+          "label": "left: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "First readable byte sequence."
+        },
+        {
+          "label": "right: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Second readable byte sequence."
+        }
+      ],
+      "documentation": "Compares unsigned byte values lexicographically. Returns exactly -1 when left sorts before right, 0 when contents and lengths match, or 1 when left sorts after right. A shorter matching prefix sorts first. Empty bytes sort before any nonempty sequence. No allocation, mutation, locale or text interpretation is involved. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromArray, compare } from \"std:bytes\";\n\nfunction main() {\n  const left = unwrap(fromArray([0, 255]));\n  const right = unwrap(fromArray([1]));\n  console.log(compare(left, right));\n}\n```\n\nExpected output: -1.\n\nOwnership: borrows readable byte inputs for the complete call. Inputs remain unchanged; the result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, compare } from \"std:bytes\";\n\nfunction main() {\n  const left = unwrap(fromArray([0, 255]));\n  const right = unwrap(fromArray([1]));\n  console.log(compare(left, right));\n}\n",
+          "output": "-1\n"
+        }
+      ]
+    },
+    {
+      "name": "indexOf",
+      "signature": "indexOf(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, needle: ReadOnly<Bytes | ByteView | ByteViewMut>, fromIndex: int): Result<int, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable byte sequence to search."
+        },
+        {
+          "label": "needle: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Literal byte sequence to find, without encoding or normalization."
+        },
+        {
+          "label": "fromIndex: int",
+          "documentation": "Required search-start byte offset in 0..length(bytes), inclusive."
+        }
+      ],
+      "documentation": "Finds the first complete needle occurrence at or after fromIndex and returns its byte offset, or -1 when absent. An empty needle returns fromIndex, including at the end. A needle longer than the remaining input is absent. Negative starts or starts beyond the byte length return range with fromIndex as offset; bounds never clamp or wrap. No allocation or mutation occurs. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromArray, indexOf } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromArray([0, 255, 0, 255]));\n  const needle = unwrap(fromArray([0, 255]));\n  console.log(unwrap(indexOf(bytes, needle, 1)));\n}\n```\n\nExpected output: 2.\n\nOwnership: borrows readable byte inputs for the complete call. Inputs remain unchanged; the result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, indexOf } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromArray([0, 255, 0, 255]));\n  const needle = unwrap(fromArray([0, 255]));\n  console.log(unwrap(indexOf(bytes, needle, 1)));\n}\n",
+          "output": "2\n"
+        }
+      ]
+    },
+    {
+      "name": "readInt",
+      "signature": "readInt(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, offset: int, width: int, byteOrder: \"little\" | \"big\"): Result<int, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owner or view."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Nonnegative byte offset; the complete width must fit."
+        },
+        {
+          "label": "width: int",
+          "documentation": "Required byte width: 1, 2, 4 or 8."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required explicit byte order, \"little\" or \"big\". There is no host-order default or BOM detection."
+        }
+      ],
+      "documentation": "Reads signed two's-complement values in the selected width, including the full signed 64-bit int range at width 8. Reads may be unaligned; offsets count bytes. Unsupported widths return width. A negative offset, overflow or incomplete value returns range with the requested offset. No allocation or mutation occurs. No number conversion truncates or rounds the integer. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromHex, readInt } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromHex(\"000080\"));\n  console.log(unwrap(readInt(bytes, 1, 2, \"little\")));\n}\n```\n\nExpected output: -32768.\n\nOwnership: borrows readable byte inputs for the complete call. Inputs remain unchanged; the result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, readInt } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromHex(\"000080\"));\n  console.log(unwrap(readInt(bytes, 1, 2, \"little\")));\n}\n",
+          "output": "-32768\n"
+        }
+      ]
+    },
+    {
+      "name": "writeInt",
+      "signature": "writeInt(bytes: Mutable<Bytes | ByteViewMut>, offset: int, value: int, width: int, byteOrder: \"little\" | \"big\"): Result<void, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: Mutable<Bytes | ByteViewMut>",
+          "documentation": "Destination owner or writable view."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Nonnegative byte offset; the complete width must fit."
+        },
+        {
+          "label": "value: int",
+          "documentation": "Exact integer to write; must fit the selected signedness and width."
+        },
+        {
+          "label": "width: int",
+          "documentation": "Required byte width: 1, 2, 4 or 8."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required explicit byte order, \"little\" or \"big\". There is no host-order default or BOM detection."
+        }
+      ],
+      "documentation": "Writes signed two's-complement values in the selected width, including the full signed 64-bit int range at width 8. Width is checked first, then byte order and the complete destination range, then value representability. Unsupported widths return width; an invalid offset or incomplete destination returns range with offset; an unrepresentable value returns integer-range. Every failure leaves all bytes unchanged. Negative values never wrap into unsigned values and oversized values never truncate. Unaligned writes are allowed. Length and storage stay fixed, with no allocation. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { alloc, writeInt, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(alloc(4));\n  unwrap(writeInt(bytes, 1, -2, 2, \"big\"));\n  console.log(unwrap(toHex(bytes)));\n}\n```\n\nExpected output: 00fffe00.\n\nOwnership: borrows the destination exclusively for this call. A ByteViewMut writes through to its owner. The result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { alloc, writeInt, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(alloc(4));\n  unwrap(writeInt(bytes, 1, -2, 2, \"big\"));\n  console.log(unwrap(toHex(bytes)));\n}\n",
+          "output": "00fffe00\n"
+        }
+      ]
+    },
+    {
+      "name": "readUint",
+      "signature": "readUint(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, offset: int, width: int, byteOrder: \"little\" | \"big\"): Result<int, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owner or view."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Nonnegative byte offset; the complete width must fit."
+        },
+        {
+          "label": "width: int",
+          "documentation": "Required byte width: 1, 2 or 4."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required explicit byte order, \"little\" or \"big\". There is no host-order default or BOM detection."
+        }
+      ],
+      "documentation": "Reads unsigned values from 0 through 255, 65535 or 4294967295 for widths 1, 2 or 4. Reads may be unaligned; offsets count bytes. Unsupported widths return width. A negative offset, overflow or incomplete value returns range with the requested offset. No allocation or mutation occurs. Unsigned width 8 is not supported; no number conversion truncates or rounds the integer. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromHex, readUint } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromHex(\"00ffffffff00\"));\n  console.log(unwrap(readUint(bytes, 1, 4, \"big\")));\n}\n```\n\nExpected output: 4294967295.\n\nOwnership: borrows readable byte inputs for the complete call. Inputs remain unchanged; the result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, readUint } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromHex(\"00ffffffff00\"));\n  console.log(unwrap(readUint(bytes, 1, 4, \"big\")));\n}\n",
+          "output": "4294967295\n"
+        }
+      ]
+    },
+    {
+      "name": "writeUint",
+      "signature": "writeUint(bytes: Mutable<Bytes | ByteViewMut>, offset: int, value: int, width: int, byteOrder: \"little\" | \"big\"): Result<void, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: Mutable<Bytes | ByteViewMut>",
+          "documentation": "Destination owner or writable view."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Nonnegative byte offset; the complete width must fit."
+        },
+        {
+          "label": "value: int",
+          "documentation": "Exact integer to write; must fit the selected signedness and width."
+        },
+        {
+          "label": "width: int",
+          "documentation": "Required byte width: 1, 2 or 4."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required explicit byte order, \"little\" or \"big\". There is no host-order default or BOM detection."
+        }
+      ],
+      "documentation": "Writes unsigned values from 0 through 255, 65535 or 4294967295 for widths 1, 2 or 4. Width is checked first, then byte order and the complete destination range, then value representability. Unsupported widths return width; an invalid offset or incomplete destination returns range with offset; an unrepresentable value returns integer-range. Every failure leaves all bytes unchanged. Negative values never wrap into unsigned values and oversized values never truncate. Unaligned writes are allowed. Length and storage stay fixed, with no allocation. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { alloc, writeUint, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(alloc(6));\n  unwrap(writeUint(bytes, 1, 4294967295, 4, \"big\"));\n  console.log(unwrap(toHex(bytes)));\n}\n```\n\nExpected output: 00ffffffff00.\n\nOwnership: borrows the destination exclusively for this call. A ByteViewMut writes through to its owner. The result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { alloc, writeUint, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(alloc(6));\n  unwrap(writeUint(bytes, 1, 4294967295, 4, \"big\"));\n  console.log(unwrap(toHex(bytes)));\n}\n",
+          "output": "00ffffffff00\n"
+        }
+      ]
+    },
+    {
+      "name": "readFloat32",
+      "signature": "readFloat32(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, offset: int, byteOrder: \"little\" | \"big\"): Result<number, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owner or view."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Nonnegative byte offset; all 4 bytes must fit."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required explicit byte order, \"little\" or \"big\". There is no host-order default or BOM detection."
+        }
+      ],
+      "documentation": "Reads an IEEE-754 binary32 value from 4 bytes, allowing unaligned offsets. The binary32 value is widened exactly to number. Finite values, NaN, infinities and signed zero are accepted. NaN payload identity is not promised. A negative offset, arithmetic overflow or incomplete value returns range with the requested offset. No allocation or mutation occurs. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromHex, readFloat32 } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromHex(\"0000c03f\"));\n  console.log(unwrap(readFloat32(bytes, 0, \"little\")));\n}\n```\n\nExpected output: 1.5.\n\nOwnership: borrows readable byte inputs for the complete call. Inputs remain unchanged; the result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, readFloat32 } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromHex(\"0000c03f\"));\n  console.log(unwrap(readFloat32(bytes, 0, \"little\")));\n}\n",
+          "output": "1.5\n"
+        }
+      ]
+    },
+    {
+      "name": "writeFloat32",
+      "signature": "writeFloat32(bytes: Mutable<Bytes | ByteViewMut>, offset: int, value: number, byteOrder: \"little\" | \"big\"): Result<void, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: Mutable<Bytes | ByteViewMut>",
+          "documentation": "Destination owner or writable view."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Nonnegative byte offset; all 4 bytes must fit."
+        },
+        {
+          "label": "value: number",
+          "documentation": "IEEE value to write. NaN, infinities and signed zero are accepted."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required explicit byte order, \"little\" or \"big\". There is no host-order default or BOM detection."
+        }
+      ],
+      "documentation": "Writes an IEEE-754 binary32 value into 4 bytes, allowing unaligned offsets. The number is rounded to binary32 using round-to-nearest with ties to even; finite overflow produces signed infinity. Conversion is not restricted to exactly representable values. NaN, infinities and signed zero are accepted; NaN payload identity is not promised. A negative offset, overflow or incomplete destination returns range with the requested offset before any write. Every failure leaves all bytes unchanged. No allocation or resizing occurs. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { alloc, writeFloat32, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(alloc(4));\n  unwrap(writeFloat32(bytes, 0, 1.5, \"big\"));\n  console.log(unwrap(toHex(bytes)));\n}\n```\n\nExpected output: 3fc00000.\n\nOwnership: borrows the destination exclusively for this call. A ByteViewMut writes through to its owner. The result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { alloc, writeFloat32, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(alloc(4));\n  unwrap(writeFloat32(bytes, 0, 1.5, \"big\"));\n  console.log(unwrap(toHex(bytes)));\n}\n",
+          "output": "3fc00000\n"
+        }
+      ]
+    },
+    {
+      "name": "readFloat64",
+      "signature": "readFloat64(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, offset: int, byteOrder: \"little\" | \"big\"): Result<number, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owner or view."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Nonnegative byte offset; all 8 bytes must fit."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required explicit byte order, \"little\" or \"big\". There is no host-order default or BOM detection."
+        }
+      ],
+      "documentation": "Reads an IEEE-754 binary64 value from 8 bytes, allowing unaligned offsets. Finite values, NaN, infinities and signed zero are accepted. NaN payload identity is not promised. A negative offset, arithmetic overflow or incomplete value returns range with the requested offset. No allocation or mutation occurs. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { fromHex, readFloat64 } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromHex(\"3ff8000000000000\"));\n  console.log(unwrap(readFloat64(bytes, 0, \"big\")));\n}\n```\n\nExpected output: 1.5.\n\nOwnership: borrows readable byte inputs for the complete call. Inputs remain unchanged; the result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, readFloat64 } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(fromHex(\"3ff8000000000000\"));\n  console.log(unwrap(readFloat64(bytes, 0, \"big\")));\n}\n",
+          "output": "1.5\n"
+        }
+      ]
+    },
+    {
+      "name": "writeFloat64",
+      "signature": "writeFloat64(bytes: Mutable<Bytes | ByteViewMut>, offset: int, value: number, byteOrder: \"little\" | \"big\"): Result<void, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: Mutable<Bytes | ByteViewMut>",
+          "documentation": "Destination owner or writable view."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Nonnegative byte offset; all 8 bytes must fit."
+        },
+        {
+          "label": "value: number",
+          "documentation": "IEEE value to write. NaN, infinities and signed zero are accepted."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required explicit byte order, \"little\" or \"big\". There is no host-order default or BOM detection."
+        }
+      ],
+      "documentation": "Writes an IEEE-754 binary64 value into 8 bytes, allowing unaligned offsets. The number is stored at binary64 precision. NaN, infinities and signed zero are accepted; NaN payload identity is not promised. A negative offset, overflow or incomplete destination returns range with the requested offset before any write. Every failure leaves all bytes unchanged. No allocation or resizing occurs. Every argument is required; there are no omitted-argument defaults.\n\n```tsrust\nimport { alloc, writeFloat64, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(alloc(8));\n  unwrap(writeFloat64(bytes, 0, 1.5, \"big\"));\n  console.log(unwrap(toHex(bytes)));\n}\n```\n\nExpected output: 3ff8000000000000.\n\nOwnership: borrows the destination exclusively for this call. A ByteViewMut writes through to its owner. The result carries no source loan.",
+      "examples": [
+        {
+          "source": "import { alloc, writeFloat64, toHex } from \"std:bytes\";\n\nfunction main() {\n  const bytes = unwrap(alloc(8));\n  unwrap(writeFloat64(bytes, 0, 1.5, \"big\"));\n  console.log(unwrap(toHex(bytes)));\n}\n",
+          "output": "3ff8000000000000\n"
+        }
+      ]
     }
   ],
   "OrderedSet": [

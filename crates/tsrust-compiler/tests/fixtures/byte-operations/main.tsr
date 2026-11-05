@@ -1,0 +1,121 @@
+import { Bytes, ByteError, alloc, fromArray, fromHex, toHex, view, viewMut, length, set, concat, copyInto, copyWithin, equals, compare, indexOf, readInt, writeInt, readUint, writeUint, readFloat32, writeFloat32, readFloat64, writeFloat64 } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function code<T>(result: Result<T, ByteError>): string {
+  match (result) {
+    Ok(_) => {
+      return "unexpected-success";
+    },
+    Err(error) => {
+      return error.code;
+    }
+  }
+}
+
+function main() {
+  const a = unwrap(fromArray([0, 255]));
+  const b = unwrap(fromArray([65, 0]));
+  const joined = unwrap(concat(a, b));
+  strictEqual(unwrap(toHex(joined)), "00ff4100");
+  unwrap(set(joined, 0, 7));
+  strictEqual(unwrap(toHex(a)), "00ff");
+  strictEqual(equals(a, a), true);
+  strictEqual(equals(a, b), false);
+  strictEqual(compare(a, b), -1);
+  strictEqual(compare(b, a), 1);
+  const same = unwrap(fromArray([0, 255]));
+  strictEqual(equals(a, same), true);
+  strictEqual(compare(a, same), 0);
+  const empty = unwrap(fromArray([]));
+  strictEqual(compare(empty, a), -1);
+  strictEqual(equals(empty, empty), true);
+  const av = unwrap(view(a, 0, 2));
+  const bv = unwrap(view(b, 0, 2));
+  const join = concat;
+  const eq = equals;
+  const cmp = compare;
+  const find = indexOf;
+  strictEqual(unwrap(toHex(unwrap(join(av, b)))), "00ff4100");
+  strictEqual(unwrap(toHex(unwrap(join(a, bv)))), "00ff4100");
+  strictEqual(eq(av, a), true);
+  strictEqual(cmp(bv, av), 1);
+  strictEqual(unwrap(find(av, a, 0)), 0);
+  strictEqual(unwrap(indexOf(joined, b, 0)), 2);
+  strictEqual(unwrap(indexOf(joined, a, 0)), -1);
+  strictEqual(unwrap(indexOf(a, empty, 2)), 2);
+  strictEqual(code(indexOf(a, empty, -1)), "range");
+  strictEqual(code(indexOf(a, empty, 3)), "range");
+  const target = unwrap(alloc(6));
+  const put = copyInto;
+  unwrap(put(target, 1, av));
+  strictEqual(unwrap(toHex(target)), "0000ff000000");
+  {
+    const window = unwrap(viewMut(target, 1, 5));
+    unwrap(put(window, 1, bv));
+    strictEqual(eq(window, window), true);
+    strictEqual(unwrap(indexOf(window, b, 0)), 1);
+  }
+
+  strictEqual(unwrap(toHex(target)), "000041000000");
+  const before = unwrap(toHex(target));
+  strictEqual(code(put(target, 5, a)), "range");
+  strictEqual(unwrap(toHex(target)), before);
+  unwrap(put(target, 6, empty));
+  strictEqual(length(target), 6);
+  const shift = copyWithin;
+  const overlapping = unwrap(fromArray([0, 1, 2, 3, 4]));
+  unwrap(shift(overlapping, 1, 0, 4));
+  strictEqual(unwrap(toHex(overlapping)), "0000010203");
+  unwrap(shift(overlapping, 0, 1, 5));
+  strictEqual(unwrap(toHex(overlapping)), "0001020303");
+  const saved = unwrap(toHex(overlapping));
+  strictEqual(code(shift(overlapping, 5, 0, 1)), "range");
+  strictEqual(unwrap(toHex(overlapping)), saved);
+  const packet = unwrap(alloc(33, 77));
+  const signed = writeInt;
+  const unsigned = writeUint;
+  const read = readInt;
+  const readU = readUint;
+  const order: "little" | "big" = "big";
+  unwrap(signed(packet, 1, -32768, 2, order));
+  strictEqual(unwrap(read(packet, 1, 2, order)), -32768);
+  unwrap(unsigned(packet, 3, 4294967295, 4, "little"));
+  strictEqual(unwrap(readU(packet, 3, 4, "little")), 4294967295);
+  const minimum = unwrap(readInt(unwrap(fromHex("0000000000000080")), 0, 8, "little"));
+  unwrap(writeInt(packet, 7, minimum, 8, "big"));
+  strictEqual(unwrap(readInt(packet, 7, 8, "big")), minimum);
+  {
+    const window = unwrap(viewMut(packet, 15, 23));
+    unwrap(signed(window, 1, -128, 1, "little"));
+    strictEqual(unwrap(read(window, 1, 1, "big")), -128);
+  }
+
+  const stable = unwrap(toHex(packet));
+  strictEqual(code(writeInt(packet, 0, 128, 1, "little")), "integer-range");
+  strictEqual(code(writeUint(packet, 0, -1, 1, "little")), "integer-range");
+  strictEqual(code(writeInt(packet, 0, 0, 3, "little")), "width");
+  strictEqual(code(writeUint(packet, 0, 0, 8, "little")), "width");
+  strictEqual(code(writeInt(packet, 32, 0, 2, "little")), "range");
+  strictEqual(unwrap(toHex(packet)), stable);
+  const f32 = writeFloat32;
+  const f64 = writeFloat64;
+  const r32 = readFloat32;
+  const r64 = readFloat64;
+  unwrap(f32(packet, 1, 1.0000000596046448, "big"));
+  strictEqual(unwrap(r32(packet, 1, "big")), 1.0);
+  unwrap(f64(packet, 5, 1.5, "little"));
+  strictEqual(unwrap(r64(packet, 5, "little")), 1.5);
+  const minusZero = unwrap(readFloat32(unwrap(fromHex("00000080")), 0, "little"));
+  const bits = unwrap(alloc(8));
+  unwrap(writeFloat64(bits, 0, minusZero, "little"));
+  strictEqual(unwrap(toHex(bits)), "0000000000000080");
+  unwrap(writeFloat32(bits, 0, 1.0 / 0.0, "big"));
+  strictEqual(unwrap(toHex(unwrap(view(bits, 0, 4)))), "7f800000");
+  const nan = unwrap(readFloat32(unwrap(fromHex("7fc00000")), 0, "big"));
+  strictEqual(Number.isNaN(nan), true);
+  unwrap(writeFloat64(bits, 0, nan, "big"));
+  strictEqual(Number.isNaN(unwrap(readFloat64(bits, 0, "big"))), true);
+  const fixed = unwrap(toHex(bits));
+  strictEqual(code(writeFloat64(bits, 1, 1.0, "little")), "range");
+  strictEqual(unwrap(toHex(bits)), fixed);
+}

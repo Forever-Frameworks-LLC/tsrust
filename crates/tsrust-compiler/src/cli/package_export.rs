@@ -34,6 +34,7 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
         if rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::") {
             let feature=if web_only{"ui-web"}else{"ui-native"};manifest = manifest.replace("default = [", &format!("default = [\"{feature}\", "));}
   if tsrust_compiler::native_runtime::requires_byte_codecs(rust){manifest=manifest.replace("default = [", "default = [\"byte-codecs\", ");}
+  if tsrust_compiler::native_runtime::requires_byte_search(rust){manifest=manifest.replace("default = [", "default = [\"byte-search\", ");}
   if rust.contains("mod tsrust_native_files {"){manifest=manifest.replace("default = [", "default = [\"files\", ");}
   if rust.contains("mod tsrust_native_date {"){manifest=manifest.replace("default = [", "default = [\"calendar\", ");}
   if rust.contains("mod tsrust_native_crypto {"){manifest=manifest.replace("default = [", "default = [\"crypto\", ");}
