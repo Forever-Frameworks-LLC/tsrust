@@ -56,6 +56,7 @@ fn temporary_directory_package_builds_safely_offline_after_relocation() {
     let directory=support::TempDirectory::new();
     let source=support::format_round_trip("import {createTempDir,stat,removeDirAll} from 'std:fs';import {strictEqual} from 'std:testing';function main(){const parent=unwrap(createTempDir());strictEqual(unwrap(stat(parent)).isDirectory,true);const child=unwrap(createTempDir(parent,'native-'));strictEqual(unwrap(stat(child)).isDirectory,true);unwrap(removeDirAll(parent));match(stat(child)){Ok(_)=>{throw 'cleanup failed';},Err(error)=>{strictEqual(error.code,'not-found');}}}");
     let input=directory.source(&source);let package=directory.0.join("package");
+    support::success(&support::run(support::cli().current_dir(&directory.0).args(["setup","--portable","--offline"]),180));
     support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),60));
     std::fs::remove_file(input).unwrap();let relocated=directory.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
     let main=relocated.join("src/main.rs");let emitted=std::fs::read_to_string(&main).unwrap();assert!(!emitted.contains("unsafe"));std::fs::write(main,format!("#![forbid(unsafe_code)]\n{emitted}")).unwrap();

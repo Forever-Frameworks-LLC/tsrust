@@ -2328,6 +2328,13 @@ impl SourceIndex {
         }
         if let Some((ty, _)) = self.set_constructor_type(id, offset, depth) { return ty; }
         let text = self.text(id);
+        if text=="unwrap" && self.text(id+1)=="(" && !(id>0 && member_separator(self.text(id-1))) && self.resolve_name(text,offset).is_none() {
+            // The builtin's declared Result contract is enough for syntax recovery;
+            // require exactly one complete argument and retain its native payload identity.
+            let Some(close)=self.pairs.get(id+1).copied().flatten()else{return String::new()};
+            let Some((result,end))=self.simple_expression_type(id+2,offset,depth+1)else{return String::new()};
+            return if end==close {self.result_alternatives(&result).map(|(ok,_)|ok).unwrap_or_default()}else{String::new()};
+        }
         if matches!(text.as_bytes().first(), Some(b'\'' | b'"' | b'`')) {
             return "string".into();
         }
@@ -4569,7 +4576,11 @@ fn literal_scalar_family(ty: &str) -> Option<&'static str> {
 fn observation_scalar_family(ty:&str)->Option<&'static str>{
  if ty=="string"{return Some("string");}
  if let Some(family)=literal_scalar_family(ty){return Some(family);}
- if !ty.contains('|') && !ty.trim_start().starts_with('('){return None;}
+ // Parameter access is not a value-annotation kind. Peel only ReadOnly here;
+ // the string-only traversal below still rejects nullable/mixed/schema/array types.
+ let ty=ty.trim().strip_prefix("ReadOnly<").and_then(|inner|inner.strip_suffix('>')).map(str::trim).unwrap_or(ty);
+ if ty=="string"{return Some("string");}
+ if !ty.contains('|') && !ty.trim_start().starts_with(['(', '\'', '"']){return None;}
  use tsrust_compiler::type_syntax::{ValueAnnotationKind as Kind,LiteralAnnotation};
  let annotation=tsrust_compiler::type_syntax::parse(ty).ok()?;let mut pending=vec![&annotation];let mut found=false;
  while let Some(value)=pending.pop(){match &value.kind{
@@ -4737,8 +4748,8 @@ fn public_ui_record_aliases_hide_implementation_names(){
 #[cfg(test)]mod string_observation_family_tests{
  #[test]fn observation_family_preserves_schema_and_nullable_distinctions(){
   use super::{literal_scalar_family,observation_scalar_family};
-  for ty in ["string","'start'","('start'|'current'|'end')","('left'|('right'))"]{assert_eq!(observation_scalar_family(ty),Some("string"),"{ty}");}
-  for ty in ["'start'|undefined","'start'|int","Schema<'start'|'end'>","NativeCallable","'start'[]"]{assert_eq!(observation_scalar_family(ty),None,"{ty}");}
+  for ty in ["string","'start'","('start'|'current'|'end')","('left'|('right'))","ReadOnly<string>","ReadOnly<'start'>","ReadOnly<(('start'|'current'|'end'))>"]{assert_eq!(observation_scalar_family(ty),Some("string"),"{ty}");}
+  for ty in ["'start'|undefined","'start'|int","Schema<'start'|'end'>","NativeCallable","'start'[]","ReadOnly<('start'|undefined)>","ReadOnly<('start'|int)>","ReadOnly<Schema<'start'|'end'>>","ReadOnly<('start'|'end')[]>","ReadOnly<int>","Mutable<('start'|'end')>","Owned<('start'|'end')>"]{assert_eq!(observation_scalar_family(ty),None,"{ty}");}
   assert_eq!(literal_scalar_family("'start'|'end'"),None,"schema enum identity must not become SchemaLiteral");
  }
 }

@@ -31,9 +31,38 @@ fn query_and_parse_signature_help_preserve_public_contracts() {
 
 #[test]
 fn shared_string_view_export_preserves_native_identity_in_editor_aliases() {
-    let source="import {StringView as Text} from 'std:url';function inspect(value:Text):void{console.log(value.length);}";
-    let hover=request(source,"value.length","textDocument/hover").to_string();
-    assert!(hover.contains("int"),"{hover}");
-    let completion=request("import {StringView as Text} from 'std:url';function inspect(value:Text):void{value.;}","value.","textDocument/completion").to_string();
-    assert!(completion.contains("startsWith")&&completion.contains("includes"),"{completion}");
+    for module in ["std:url","std:json"] {for annotation in ["Text","ReadOnly<Text>"] {
+        let prelude=format!("import {{StringView as Text}} from '{module}';type Alias=Text;");
+        let source=format!("{prelude}function inspect(value:{annotation}):void{{console.log(value.length);}}");
+        let hover=request(&source,"value.length","textDocument/hover").to_string();assert!(hover.contains("int"),"{module}/{annotation}: {hover}");
+        let source=format!("{prelude}function inspect(value:{annotation}):void{{value.;}}");
+        let completion=request(&source,"value.","textDocument/completion");let labels=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(labels,["length","startsWith","endsWith","includes","indexOf","lastIndexOf"].into_iter().collect(),"{module}/{annotation}: {completion}");
+        let source=format!("{prelude}function inspect(value:Alias):void{{value.;}}");let aliases=request(&source,"value.","textDocument/completion");assert_eq!(aliases.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<std::collections::BTreeSet<_>>(),labels,"{module}: local alias identity");
+    }}
+}
+
+#[test]
+fn unwrapped_native_results_keep_payload_identity_during_syntax_recovery() {
+    for(source,required,excluded)in[
+        ("import {parseUrl} from 'std:url';function main(){const value=unwrap(parseUrl('https://example.com/'));value.;}function broken(){const = ;}",&["href","hostname","hash"][..],&["trim","seek"][..]),
+        ("import {stat} from 'std:fs';function main(){const value=unwrap(stat('input'));value.;}function broken(){const = ;}",&["size","isFile","isDirectory"][..],&["seek","truncate","href"][..]),
+    ]{
+        let completion=request(source,"value.","textDocument/completion");let labels=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<std::collections::BTreeSet<_>>();
+        for name in required {assert!(labels.contains(name),"missing {name}: {completion}");}for name in excluded {assert!(!labels.contains(name),"unexpected {name}: {completion}");}
+    }
+    for expression in ["unwrap(missing)","unwrap('not a Result')","unwrap(parseUrl('https://example.com/'),parseUrl('https://other.example/'))"] {
+        let source=format!("import {{parseUrl}} from 'std:url';function main(){{const value={expression};value.;}}function broken(){{const = ;}}");let completion=request(&source,"value.","textDocument/completion");assert!(completion.as_array().unwrap().is_empty(),"{expression}: {completion}");
+    }
+}
+
+#[test]
+fn shadowed_unwrap_bindings_keep_their_declared_result_types() {
+    for(source,required,excluded)in[
+        ("function unwrap(value:int):string{return 'known';}function main(){const value=unwrap(1);value.;}function broken(){const = ;}",&["trim","startsWith"][..],&["href","hostname"][..]),
+        ("function inspect(unwrap:(input:int)=>int){const value=unwrap(1);value.;}function broken(){const = ;}",&["toString"][..],&["href","length","includes"][..]),
+    ]{
+        let completion=request(source,"value.","textDocument/completion");let labels=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<std::collections::BTreeSet<_>>();
+        for name in required {assert!(labels.contains(name),"missing {name}: {completion}");}for name in excluded {assert!(!labels.contains(name),"unexpected {name}: {completion}");}
+    }
 }
