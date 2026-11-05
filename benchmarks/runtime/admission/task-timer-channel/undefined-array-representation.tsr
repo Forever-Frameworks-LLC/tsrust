@@ -1,0 +1,9 @@
+import { strictEqual } from 'std:testing';
+
+// Existing distinct zero-sized value representation; not a proposed replacement
+// for all<T>'s T[] contract when T is void.
+function main() {
+  const values: undefined[] = [undefined, undefined];
+  strictEqual(values.length, 2);
+  strictEqual(values[0] === undefined, true);
+}
