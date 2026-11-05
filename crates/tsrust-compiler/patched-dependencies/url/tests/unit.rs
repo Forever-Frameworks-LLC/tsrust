@@ -98,6 +98,62 @@ fn test_set_empty_host() {
 }
 
 #[test]
+fn test_remove_host_preserves_parsed_host_state() {
+    fn assert_parsed_state(value: &Url) {
+        value.check_invariants().unwrap();
+        let parsed = Url::parse(value.as_str()).unwrap();
+        parsed.check_invariants().unwrap();
+        assert_eq!(value.host(), parsed.host());
+        assert_eq!(value.has_host(), parsed.has_host());
+        assert_eq!(value.host_str(), parsed.host_str());
+        assert_eq!(value.domain(), parsed.domain());
+    }
+
+    for source in [
+        "custom://user:secret@example.com:8080/a/b?x=1#fragment",
+        "custom://user:secret@127.0.0.1:8080/a/b?x=1#fragment",
+        "custom://user:secret@[::1]:8080/a/b?x=1#fragment",
+        "file://example.com/a/b?x=1#fragment",
+        "file://127.0.0.1/a/b?x=1#fragment",
+        "file://[::1]/a/b?x=1#fragment",
+    ] {
+        let mut value = Url::parse(source).unwrap();
+        assert_parsed_state(&value);
+        value.set_host(None).unwrap();
+        assert_parsed_state(&value);
+        assert_eq!(value.host(), None);
+        assert!(!value.has_host());
+        assert_eq!(value.host_str(), None);
+        assert_eq!(value.domain(), None);
+        assert_eq!(value.username(), "");
+        assert_eq!(value.password(), None);
+        assert_eq!(value.port(), None);
+        assert_eq!(value.path(), "/a/b");
+        assert_eq!(value.query(), Some("x=1"));
+        assert_eq!(value.fragment(), Some("fragment"));
+
+        let cleared = value.as_str().to_owned();
+        value.set_host(None).unwrap();
+        assert_eq!(value.as_str(), cleared);
+        assert_parsed_state(&value);
+
+        value.set_host(Some("restored.example")).unwrap();
+        assert_parsed_state(&value);
+        assert_eq!(value.host_str(), Some("restored.example"));
+        assert_eq!(value.username(), "");
+        assert_eq!(value.password(), None);
+        assert_eq!(value.port(), None);
+        assert_eq!(value.path(), "/a/b");
+        assert_eq!(value.query(), Some("x=1"));
+        assert_eq!(value.fragment(), Some("fragment"));
+
+        value.set_host(None).unwrap();
+        assert_eq!(value.as_str(), cleared);
+        assert_parsed_state(&value);
+    }
+}
+
+#[test]
 fn test_set_empty_username_and_password() {
     let mut base: Url = "moz://foo:bar@servo/baz".parse().unwrap();
     base.set_username("").unwrap();

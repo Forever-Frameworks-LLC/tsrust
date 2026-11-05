@@ -87,7 +87,12 @@ impl Emitter<'_> {
         let mut setup=String::new();let mut values=Vec::new();
         for (index,parameter) in binding.parameters.iter().enumerate() {
             let Some(argument)=args.get(index) else {values.push("None".into());continue;};
-            let name=format!("url_arg{index}");setup.push_str(&format!("let {name}={};",self.expr(fun,argument,parameter.access)));
+            // A returned substring may leave this adapter block. Stage its source
+            // owner through the enclosing expression, rather than url_arg's block.
+            let value=if binding.returned_borrow.is_some_and(|contract|contract.source_parameter==index) {
+                self.conditional_arm(fun,argument,parameter.access)
+            }else{self.expr(fun,argument,parameter.access)};
+            let name=format!("url_arg{index}");setup.push_str(&format!("let {name}={value};"));
             let value=if parameter.optional {let optional=self.native_optional_argument(parameter,name.clone(),argument.ty.unwrap());if parameter.ty.signature()==Signature::Optional(&Signature::String){format!("({optional}).map(|value|value.as_ref())")}else{optional}}
                 else if parameter.ty.signature()==Signature::String {format!("{name}.as_ref()")}
                 else {name};

@@ -131,6 +131,33 @@ impl Analyzer {
     }
 
     pub(super) fn native_view_value_outputs<'a>(context: &'a Context, expr: &'a Expr, outputs: Option<&'a [super::native_view_calls::Returned]>) -> Result<Vec<Loan>, Diagnostic> {
+        Self::native_view_value_outputs_with(context, expr, outputs, None)
+    }
+
+    /// Only call evaluation may omit a proven fresh owner from its transient
+    /// reservations. Storage, return, capture and mutation summaries use the
+    /// unchanged strict entry point above.
+    pub(super) fn reserve_native_argument_loans(&self, context: &Context, expr: &Expr, active: &mut Loans) -> Result<(), Diagnostic> {
+        if !context.native_view_calls || !expr.ty.is_some_and(|ty|self.native_shape_contains_view(ty)) {
+            return Ok(());
+        }
+        let fresh = |source: &Expr| self.fresh_native_view_owner(context, source);
+        let loans = Self::native_view_value_outputs_with(context, expr, None, Some(&fresh))?;
+        for loan in loans.into_iter().filter(|loan|loan.retained) {
+            // Readonly access to the view descriptor does not weaken an
+            // exclusive borrow of its underlying owner.
+            let mode = if loan.access == BorrowAccess::Exclusive { Mode::Mutate } else { Mode::Read };
+            active.native_argument(loan.root, mode, expr.span, loan.owner_fields);
+        }
+        Ok(())
+    }
+
+    fn native_view_value_outputs_with<'a>(
+        context: &'a Context,
+        expr: &'a Expr,
+        outputs: Option<&'a [super::native_view_calls::Returned]>,
+        fresh: Option<&dyn Fn(&Expr) -> Result<bool, Diagnostic>>,
+    ) -> Result<Vec<Loan>, Diagnostic> {
         if !context.native_view_calls {
             return Ok(Vec::new());
         }
@@ -332,7 +359,9 @@ impl Analyzer {
                             match &output.source {
                                 LifetimeSource::Carried(_)|LifetimeSource::VariantCarried{..}=>pending.push(Task::Returned(argument,output)),
                                 LifetimeSource::Storage=>{
-                                    result.extend(super::native_view_calls::storage(context,argument,output)?);
+                                    if !fresh.map_or(Ok(false), |fresh|fresh(argument))? {
+                                        result.extend(super::native_view_calls::storage(context,argument,output)?);
+                                    }
                                     pending.push(Task::Returned(argument,output));
                                 }
                             }
@@ -368,11 +397,13 @@ impl Analyzer {
                     if let Some(CallTarget::NativeBinding(id)) = value.target
                         && let Some(contract) = crate::native_bindings::BINDINGS[id].returned_borrow
                     {
-                        let mut loans = Self::native_view_source_loans(
-                            context,
-                            &args[contract.source_parameter],
-                            contract,
-                        )?;
+                        let source = &args[contract.source_parameter];
+                        if fresh.map_or(Ok(false), |fresh|fresh(source))? {
+                            // No persistent root is invented for an ephemeral
+                            // owner. Strict extraction never takes this branch.
+                            continue;
+                        }
+                        let mut loans = Self::native_view_source_loans(context, source, contract)?;
                         if matches!(contract.slot, crate::native_return_borrows::ReturnSlot::ResultOk | crate::native_return_borrows::ReturnSlot::ResultOkOptional) {
                             let (variant, optional_payload) = value.ty.and_then(Type::union).and_then(|union| context.native_view_results.as_ref()?.get(&union).copied()).ok_or_else(|| Diagnostic::new("native-view-result", "A native Result view requires its checked success identity.",value.span))?;
                             for loan in &mut loans {

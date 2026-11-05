@@ -91,7 +91,7 @@ pub(super) fn step<'a>(analyzer:&mut Analyzer,context:&mut Context,mut task:Box<
                 Phase::Segment(frame)=>{
                     let Completion::Expression(value,result)=completion.take().expect("spread source") else{unreachable!()};
                     let work=task.work.as_mut().unwrap();work.segments[frame.index].value=value.into_child();
-                    analyzer.finish_spread_segment(work,frame,result?)?;task.phase=Phase::Segments;
+                    analyzer.finish_spread_segment(context,work,frame,result?)?;task.phase=Phase::Segments;
                 }
                 Phase::Variants=>{
                     if let Some(variant)=analyzer.next_spread_variant(context,task.work.as_mut().unwrap()){

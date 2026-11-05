@@ -2121,6 +2121,7 @@ impl Analyzer {
                 for binding in Self::loan_roots(arg, contract.mode) {
                     active.argument(binding, contract.mode, arg);
                 }
+                self.reserve_native_argument_loans(context, arg, &mut active)?;
             }
         }
         for &(slot, mode) in captures {
@@ -8168,6 +8169,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .or_default()
                 .push((Mode::Read, base.span));
         }
+        self.reserve_native_argument_loans(context, base, &mut active)?;
         let needle_proof=if string_receiver{self.json_string_proof(context,&args[0])}else{None};
         if let Some(proof)=needle_proof.clone(){Self::use_json_string_proof(context,proof);}
         let borrowed_needle=string_receiver && (needle_proof.is_some() || self.is_string_view(context,&args[0]));
@@ -9467,6 +9469,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 for binding in Self::loan_roots(arg, mode) {
                     active.argument(binding, mode, arg);
                 }
+                self.reserve_native_argument_loans(context, arg, &mut active)?;
             }
         }
         selected_capture_boundary.unwind(&mut context.capture_loans);
@@ -9885,6 +9888,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                                 .or_default()
                                 .push((Mode::Read, argument.span));
                         }
+                        self.reserve_native_argument_loans(context, argument, &mut active)?;
                     }
                 }
                 capture_boundary.unwind(&mut context.capture_loans);
