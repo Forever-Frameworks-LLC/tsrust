@@ -13,10 +13,53 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
-**Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `12c197a3`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
-built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
-No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
+**Current continuation — 2026-11-05:** canonical branch
+`codex/stdlib-0.2.0`, source checkpoint **e0e99430**. Full B00–B20 stays active.
+Latest accepted work: literal-all optimization passed8focused witnesses; actual
+ready/yield medians improved40.1%/30.1%,2native histories ingested atbb0677ec.
+Unchanged Rust/Node controls reused. New Once-capture checker repair12c197a3 and
+selected-sync B13 locale integratione0e99430 are checkpointed, public acceptance
+pending. Whole-project formatting/token/idempotence and locale source/oracle pass.
+Only this live handoff is dirty. No push, release or full regression occurred.
+
+**First action:** integrated build87301 ended with terminal build-finished:false,
+516.080s/3,759,619KiB. Compiler/library work completed; explicit_locale test
+assertion compared &&str with &str. Root replaces it with features.contains;
+whole-format/checkpoint then resume same no-run selection with new output names.
+Original `/tmp/tsrust-locale-integrated-{artifacts.jsonl,build.log}` preserved.
+After successful build run prepared `/tmp/tsrust-locale-integrated-gates.py`
+(updated artifact path/source required) under watchdog/sharedtarget/portable pack.
+Driver selects21focused cases: task warning regression, locale runtime/native/
+offline/editor, six completion rows and eight receiver agreements. Repair real
+failures, preserve passed scopes, then measure accepted11locale workloads.
+B05 integrated patch is ready at `/tmp/tsrust-b05-integration.patch`,SHA256
+941c18639af79cc9ea966229e537751d2a0dc998503f674ae68180c8673003d5;
+52publicfiles, canonical apply--check passed,16light tests passed/1offline skipped,
+3TypeScript peers pass. B14 source remains frozen, not integrated.
+
+**Workers:** b03_review prepares B07 admission source in managed
+`/Users/seancotter/.codex/worktrees/stdlib-process/tsrust` (basee9c6acc4).
+b06 prepares B05 in `/Users/seancotter/.codex/worktrees/stdlib-io-integration/tsrust`
+frome0e99430, resolving shared-file conflicts while preserving frozen `stdlib-io`
+and all52public source changes; no heavy/format/checkpoint yet.
+b14 prepares B15 admission/typed-ownership contract in managed
+`/Users/seancotter/.codex/worktrees/stdlib-iterators/tsrust` (basee0e99430),
+preserving frozen `stdlib-collections`. No worker heavy lease. Locale's old
+checkpoint+selected-sync worker delta remains preserved in `stdlib-locale`.
+B15 decisions follow Rust: flatMap owned arrays/iterators only; map/flatMap/
+forEach/some/every consume items, filter/find borrow; reduce explicit initial;
+callbacks have Rust arity, no implicit index; next errors consume the triggering
+input but retain remaining chain for retry, while terminals consume/drop on error.
+No generic protocol/generator expansion or mandatory per-adaptor allocation.
+
+B07 admission is frozen13files under `benchmarks/runtime/admission/process`:
+23locked existing identities/checksums, cached yank status/RustSec26fd2d43 clean,
+four target feature comparisons match backend; Node syntax passes,19native
+correctness cases unrun. Exact proposed build/profile commands are in worker
+message; root must grant heavy lease after current validation. B15 public type
+lowering needs internal iterator shapes propagated through owned functions/
+captures and finite branch joins; reuse callable carrier specialization, finite
+owned enums where needed, no generic trait framework or mandatory boxing.
 
 **Literal all optimization validation, latest:** e9c6acc4 focused build62385
 finished successfully, terminal build-finished:true,212.234s/2,668,594KiB.
@@ -92,6 +135,17 @@ Checker repair unwraps only Once layers before literal capture attribution;
 ordering-positive and abandonment-negative regression prepared in
 `tests/task_responsibility_arrays.rs`, not yet executed. Timing checkpointbb0677ec
 preserves accepted literal-all source21c71460 measurements independently.
+
+**LIVE latest build:** session87301, supervisor36831/Cargo group36882, exact
+e0e99430. Serialized watchdog cargo test --offline --locked -p tsrust-compiler
+-p tsrust-lsp --lib --test explicit_locale --test task_responsibility_arrays
+--test completion_matrix --test checker_agreement --test editor_consistency
+--no-run --message-format=json; sharedtarget/incremental0/jobs1. Outputs
+`/tmp/tsrust-locale-integrated-{artifacts.jsonl,build.log}`. Verify live process
+and terminal build-finished before running `/tmp/tsrust-locale-integrated-gates.py`
+under watchdog (21focused test cases:7task,3locale runtime,1binding effects,
+7native/export,1editor,1completion over6rows,1agreement over8receivers).
+Do not duplicate on session loss. Only this handoff is dirty aftere0e99430.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
 471,530KiB, quiet guard enabled/maxload3.917. Exact result
