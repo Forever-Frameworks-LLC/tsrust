@@ -1,0 +1,28 @@
+import { open, seek, read, position, close } from "std:fs";
+import { length, at } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const file = unwrap(open(input));
+  let rows: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const offset = i % 8 === 0 ? 4096 : (i * 97 + seed) % 4096;
+    unwrap(seek(file, offset, "start"));
+    const bytes = unwrap(read(file, 64));
+    const observed = unwrap(position(file));
+    let sum = 0;
+    let index = 0;
+    while (index < length(bytes)) {
+      sum += at(bytes, index);
+      index++;
+    }
+
+    rows.push([observed, sum]);
+    i++;
+  }
+
+  unwrap(close(file));
+  return rows;
+}
+
+function main() {}

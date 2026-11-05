@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -34,6 +34,15 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"SeekOrigin",parameter:"x: SeekOrigin"},
+Receiver {ty:"ReadOnly<SeekOrigin>",parameter:"x: ReadOnly<SeekOrigin>"},
+Receiver {ty:"LiteralOrigin",parameter:"x: ReadOnly<LiteralOrigin>"},
+Receiver {ty:"OpenOptions",parameter:"x: ReadOnly<OpenOptions>"},
+Receiver {ty:"FileTime",parameter:"x: ReadOnly<FileTime>"},
+Receiver {ty:"Metadata",parameter:"x: ReadOnly<Metadata>"},
+Receiver {ty:"DirEntry",parameter:"x: ReadOnly<DirEntry>"},
+Receiver {ty:"FsError",parameter:"x: ReadOnly<FsError>"},
+
 Receiver {ty:"Url",parameter:"x: ReadOnly<Url>"},
 Receiver {ty:"SearchParams",parameter:"x: SearchParams"},
 Receiver {ty:"UrlError",parameter:"x: ReadOnly<UrlError>"},
@@ -163,6 +172,7 @@ const EXCEPTIONS: &[Exception] = &[];
 const ABSENT: &str = "zzqqabsent";
 
 fn prelude(parameter: &str) -> String {
+    if parameter=="x: ReadOnly<LiteralOrigin>"{return "type LiteralOrigin=(\"start\"|\"current\"|\"end\");\n".into();}
     let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
     let annotation=["ReadOnly<","Owned<","Mutable<"].iter().find_map(|prefix|annotation.strip_prefix(prefix)).unwrap_or(annotation);
     let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
@@ -213,7 +223,7 @@ fn answer(form: &str, name: &str, parameter: &str) -> Option<(String, String)> {
 /// The checker's type of field `name` of the receiver: the type it names
 /// when a member that cannot exist is read from that field.
 fn field_type(name: &str, parameter: &str) -> Option<String> {
-    let selected=if parameter=="x: ReadOnly<Url>"{format!("x.{name}")}else{format!("x[{}]",serde_json::to_string(name).unwrap())};
+    let selected=if name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_'){format!("x.{name}")}else{format!("x[{}]",serde_json::to_string(name).unwrap())};
     let (_, message) = diagnostic(&format!("console.log({selected}.{ABSENT});"), parameter)?;
     let rest = message.strip_prefix("Type \"")?;
     // Diagnostics spell a native type by its linked name; the editor shows
@@ -320,6 +330,11 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
                     details.insert(label.clone(), item["detail"].as_str().unwrap_or("").to_owned());
                     offered.insert(label);
                 }
+            }
+        }
+        if matches!(receiver.ty,"SeekOrigin"|"ReadOnly<SeekOrigin>"|"LiteralOrigin") {
+            for required in ["length","startsWith","includes","toUpperCase"] {
+                assert!(offered.contains(required)||methods.contains(required),"{}: required string member {required} missing; empty agreement is not acceptance",receiver.ty);
             }
         }
         let mut differences = fields.difference(&offered).map(|name| (name.clone(), "the checker accepts this field; completion does not offer it".to_owned())).collect::<Vec<_>>();
@@ -440,4 +455,23 @@ fn url_computed_property_read_and_write_types_agree_with_the_checker() {
             },
         }
     }
+}
+
+#[test]
+fn byte_callable_help_and_checker_agree_on_readers_writers_and_distinct_owners() {
+    let cases=[
+        ("readInt","x:ReadOnly<Bytes>","readInt(x,0,1,'little');",true,"ReadOnly<Bytes"),
+        ("writeInt","x:ReadOnly<Bytes>","writeInt(x,0,1,1,'little');",false,"Mutable<Bytes"),
+        ("writeInt","x:Mutable<ByteView>","writeInt(x,0,1,1,'little');",false,"Mutable<Bytes"),
+        ("writeInt","x:Mutable<ByteViewMut>","writeInt(x,0,1,1,'little');",true,"Mutable<Bytes"),
+        ("copyInto","x:Mutable<Bytes>,y:ReadOnly<ByteView>","copyInto(x,0,y);",true,"Mutable<Bytes"),
+        ("copyInto","x:Mutable<Bytes>","copyInto(x,0,x);",false,"Mutable<Bytes"),
+    ];
+    let mut session=Session::start(&[]);
+    for (index,(name,parameters,body,accepted,detail)) in cases.into_iter().enumerate(){
+        let text=format!("import {{Bytes,ByteView,ByteViewMut,{name}}} from 'std:bytes';function probe({parameters}){{{body}}}function main(){{}}");
+        let uri=virtual_uri("byte-callable-agreement");let id=source_id(&uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,text.clone());assert_eq!(workspace.snapshot().check(&id).is_ok(),accepted,"{name}: {text}");
+        if index==0{session.open("main.tsr",&text);}else{session.change("main.tsr",&text);}session.settle();let offset=text.rfind(&format!("{name}(")).unwrap();let hover=session.hover("main.tsr",&text,offset+1).unwrap_or_default();assert!(hover.contains(detail)&&hover.contains("ByteError")&&hover.contains("Ownership:"),"{name}: {hover}");
+    }
+    let counters=session.request("tsrust/counters",serde_json::Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }

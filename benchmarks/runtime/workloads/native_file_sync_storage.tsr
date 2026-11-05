@@ -1,0 +1,32 @@
+import { openFile, writeAll, syncData, syncAll, seek, read, position, close } from "std:fs";
+import { fromUtf8, length, at } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const destination = input + ".out";
+  const file = unwrap(openFile(destination, {
+    read: true, write: true, create: true, truncate: true
+  }));
+  const first = unwrap(fromUtf8("a"));
+  const second = unwrap(fromUtf8("b"));
+  let rows: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    unwrap(writeAll(file, first));
+    unwrap(syncData(file));
+    unwrap(writeAll(file, second));
+    unwrap(syncAll(file));
+    unwrap(seek(file, -2, "current"));
+    const bytes = unwrap(read(file, 2));
+    if (length(bytes) !== 2) {
+      throw "short sync readback";
+    }
+
+    rows.push([unwrap(position(file)), at(bytes, 0) + at(bytes, 1) + (i + seed) % 17]);
+    i++;
+  }
+
+  unwrap(close(file));
+  return rows;
+}
+
+function main() {}

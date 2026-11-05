@@ -238,7 +238,7 @@ impl Analyzer {
             "toSpliced" => {
                 Contract::variadic(vec![integer; 2], value, Mode::Read, Kind::ArrayToSpliced)
             }
-            "concat" if receiver == Some(Type::String) => {
+            "concat" if receiver.is_some_and(|ty|self.is_string_observation(ty)) => {
                 Contract::variadic(vec![], string, Mode::Read, Kind::StringConcat)
             }
             "concat" => Contract::variadic(vec![], observed, Mode::Read, Kind::ArrayConcat),

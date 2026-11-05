@@ -2,6 +2,7 @@
 mod resource;
 pub(crate) mod fs;
 pub(crate) mod buffered_fs;
+pub(crate) mod tempfiles;
 
 // Lifecycle tests inspect release without exposing backend fields outside this module.
 #[cfg(unix)]

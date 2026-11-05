@@ -185,15 +185,21 @@ Sources: [crate manifest](https://docs.rs/crate/tempfile/3.27.0/source/Cargo.tom
 
 Backend: std for binary/hex/UTF-16; `base64` for base64. Depends on B00.
 
-- [ ] `std:bytes.toHex/fromHex`, `toBase64/fromBase64`,
+- [x] `std:bytes.toHex/fromHex`, `toBase64/fromBase64`,
   `toBase64Url/fromBase64Url`, explicit `toUtf8Lossy`, `fromUtf16/toUtf16`.
-- [ ] `concat`, `copyInto`, in-place `copyWithin`, `equals`, `compare`, `indexOf`.
-- [ ] `readInt/writeInt` for widths 1/2/4/8; `readUint/writeUint` for widths
+- [x] `concat`, `copyInto`, in-place `copyWithin`, `equals`, `compare`, `indexOf`.
+- [x] `readInt/writeInt` for widths 1/2/4/8; `readUint/writeUint` for widths
   1/2/4; `readFloat32/writeFloat32`, `readFloat64/writeFloat64`.
-- [ ] Explicit offsets and byte order; reject unsupported widths/unrepresentable
+- [x] Explicit offsets and byte order; reject unsupported widths/unrepresentable
   integer values before mutation. Float32 writes use Rust f64→f32 rounding,
   including nonfinite values, rather than the existing exact-conversion helper.
   Full-u64 values await a separately accepted exact type.
+
+Implementation acceptance (macOS ARM64, worker174218b9): all23 new APIs have
+compiler/runtime/catalog/editor/export witnesses accepted in40focused checks,
+including actual O0/O3 catalog execution and safe relocated offline exports.
+This checks implementation only. All75 matched runtime workloads and Windows/Linux
+execution remain pending; shared performance/platform/release gates stay open.
 
 Contract: readable Bytes/views for observers, writable Bytes/mutable views for
 mutators. `copyInto` respects distinct-owner loans; same-owner overlap uses one
@@ -207,6 +213,53 @@ Witnesses: published codec vectors, all byte values, malformed offsets/encodings
 overlapping ranges, endianness, unaligned reads, NaN/signed zero and no partial
 writes. Performance: token/4 KiB/1 MiB codecs and packet parsing/writing into reused
 buffers, with independent byte checksums and equivalent strict Node validation.
+
+- [x] Count allocations in actual emitted native packet and UTF-16 kernels,
+  including inline endian literals and stored callable aliases with a checked
+  literal-union order variable. Compare n=0 setup and several iteration counts
+  against independent direct-Rust floors; do not infer bridge behavior from a
+  zero-allocation direct-Rust kernel.
+- [x] Packet field access must not add per-field/per-iteration allocations.
+  UTF-16 output buffers are expected allocations; identify extra order/alias
+  allocations separately, including mixed Unicode and CJK growth/reallocation.
+  Preserve actual borrowed union payloads while profiling. Record actual emitted
+  source/binary identity, exact outputs, requested/peak/live/drop counts and
+  allocation slopes before considering a literal/storage optimization.
+
+Generated allocation acceptance, 2026-11-05 (macOS ARM64): 104 scoped O0/O3
+cases and 1,872 independent generated/direct-Rust samples pass exact outputs,
+deterministic counters and complete disposal. Inline endian arguments and stored
+aliases add no per-field/per-iteration allocations. Packet kernels keep one
+64-byte setup allocation; UTF-16 encoders allocate one output per iteration.
+Mixed decoding has no output reallocation; CJK decoding has one per output,
+compared with one/two respectively in the direct std floor. This difference
+justifies no sizing redesign. Unmodified generated variants compile with unsafe
+code forbidden. Matched runtime workload timings remain pending; these untimed
+allocation controls do not establish Windows/Linux execution.
+
+Search backend prerequisite (2026-11-04): pin `memchr =2.8.3` with its default
+std/alloc features, optional behind `byte-search` in both runtime graphs. Other
+byte operations remain std-backed. The version was already locked in compiler
+and runtime graphs; only the independent Rust reference graph adds a package.
+Offline resolution preserves every previous package/version/checksum and all
+default feature selections. Cached archive checksum
+`cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98` matches
+the lock. The crate declares edition2021/MSRV1.61, Unlicense OR MIT, no required
+runtime dependencies. Keep optional logging/libc/core features disabled. Official
+RustSec snapshot965bf9ad083b58e6340d65829d85217b18be9290 contains no memchr advisory;
+platform execution and actual Tsrust API measurements remain pending.
+
+The direct-Rust prototype supports using `memmem::find` for indexOf: linear time,
+constant auxiliary space and portable fallback avoid the naive windows search's
+adversarial growth. Token-sized inputs favored windows (10.19ns vs20.55ns), while
+4KiB/1MiB tail matches and65KiB repetitive misses favored memchr (107/20,969/
+66,063ns vs1,428/465,823/377,313ns). These are prototype samples, not released
+Tsrust workload measurements. Do not add a hand-written size hybrid without an
+accepted need. Pinned Node24.11.1 independent oracle preflight passed; earlier
+Node26 prototype timings are supplementary, not canonical reference controls.
+Sources: [pinned memmem find](https://docs.rs/memchr/2.8.3/memchr/memmem/fn.find.html),
+[crate manifest](https://docs.rs/crate/memchr/2.8.3/source/Cargo.toml),
+[reviewed advisory tree](https://github.com/RustSec/advisory-db/tree/965bf9ad083b58e6340d65829d85217b18be9290/crates).
 
 ### B03 — Path, environment, OS and signal completion
 
@@ -263,6 +316,14 @@ Backend: existing Tokio with needed fs/io-util/io-std features. B01/B02/B06.
   `readLineStdin` using Rust std blocking semantics. Do not expose an async stdin
   Task until portable interruptible/settlement behavior is proven.
 - [ ] `read`, `readExact`, `readAll`, `write`, `writeAll`, `flush`, `copy`.
+- [ ] Freeze and implement writable-destination Reader reads, concretely
+  `readInto(reader: Mutable<Reader>, destination: Mutable<Bytes | ByteViewMut>):
+  Task<Result<int, IoError>>` or the equivalent documented read overload. Return
+  bytes written, observe only that range, and specify EOF versus a zero-length
+  destination. Reuse caller-owned storage without per-read allocation. Keep both
+  the reader and destination exclusively borrowed through actual I/O settlement;
+  cancellation/deadline completion must not release a pending loan early,
+  including blocking-backed file reads. Reject readonly or aliased destinations.
 - [ ] `lines`, `readLine`; UTF-8 split across chunks, LF/CRLF and unterminated
   final-line behavior specified. EOF is distinct from an empty line.
 - [ ] Consuming `close`/writer shutdown; report fallible flush/finish errors.
@@ -287,6 +348,16 @@ flush failure, cancellation, file→HTTP and HTTP→file; controlled blocking-op
 settlement and a process-isolated idle-stdin watchdog witness. Performance: fixed-payload
 copy and line processing with chunk boundaries; allocations and peak retained
 memory alongside throughput against direct Tokio and Node streams.
+
+B01 allocation signal: the owned-read-contract handwritten seek prototype used
+1,024 fresh 64-byte Vec buffers plus one observation Vec, with eight observation
+reallocations and 16 KiB of retained rows. Those samples remain labeled as that
+prototype, rather than the idiomatic Rust floor. Before actual timing, the public
+handwritten reference uses one reusable stack buffer and preallocated observation
+storage; Node likewise reuses one Buffer and reserves its result array. B01's
+owned `read` remains unchanged, so generated allocation gaps remain observable.
+B05's writable-destination contract must address this reuse case; no B01 API was
+expanded and no generated allocation improvement is claimed from the prototype.
 
 ### B06 — Task, timer and channel ergonomics
 

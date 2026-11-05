@@ -21,7 +21,7 @@ fn native_literal_aliases_expand_without_selecting_runtime_dependencies() {
     assert_eq!(alias.signature.render(|_| None).unwrap(), "(\"start\" | \"current\" | \"end\")");
     assert!(tsrust_compiler::native_bindings::selected_features([("std:fs", "SeekOrigin")]).unwrap().is_empty());
     for import in ["import {SeekOrigin as Origin} from 'std:fs';", "import {Origin} from 'alias.tsr';"] {
-        let source = format!("{import} function take(value:Origin):Origin{{return value;}} function main(){{const origin:Origin='current';console.log(take(origin));}}");
+        let source = format!("{import} function take(value:Origin):Origin{{return value;}} function observe(value:ReadOnly<Origin>):int{{if(value.startsWith('c')&&value.includes('r')){{return value.length;}}return value.toUpperCase().length;}}function main(){{const origin:Origin='current';console.log(observe(origin));console.log(take(origin));}}");
         let analysis = checked(&source).unwrap();
         let rust = analysis.emit_rust();
         assert!(!rust.contains("mod tsrust_native_files"), "{rust}");

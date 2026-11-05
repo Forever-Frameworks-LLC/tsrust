@@ -29,6 +29,7 @@ mod json_encoding;
 mod json_typed;
 mod json_literals;
 mod json_refinement;
+mod string_observations;
 mod nullable_link_emit;
 mod recursive_union_payload_emit;
 mod native_view_record_parameters;
@@ -3341,9 +3342,9 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonRaw | crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView | crate::native_signatures::NativeTypeId::JsonlReader | crate::native_signatures::NativeTypeId::JsonlReaderView | crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView))) {output.push_str(&crate::native_runtime::json_module_with_writer(self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView)))));}
         for &id in self.native_bindings.borrow().iter() {let binding=&crate::native_bindings::BINDINGS[id];if binding.module=="std:json" {output.push_str(&crate::stdlib::json::emit::bridge(self.program,binding,&self.record_runtime.ordered));}}
         let byte_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:bytes" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
-        if !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
+        if !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile" | "appendFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
         let file_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:fs" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
-        output.push_str(&crate::stdlib::fs::emit::bridges(self.program, &file_bindings));
+        output.push_str(&crate::stdlib::fs::emit::bridges(self.program, &file_bindings, &self.record_runtime.ordered));
         let numeric_support = output.contains("NumericArray<") || output.contains("NumericArray::");
         let literal_support = output.contains("LiteralStringArray");
         let split_support = output.contains("tsr_string_split(");
@@ -6511,7 +6512,7 @@ impl Emitter<'_> {
         {
             return self.string_concat_integers(fun, base, args, span);
         }
-        let receiver = self.expr(fun, base, Mode::Read);
+        let receiver = self.string_observation(fun,base);
         let mut output = format!("{{ let string_receiver: &String = {receiver}; ");
         for (index, argument) in args.iter().enumerate() {
             let integer = method == CallTarget::StringRepeat
@@ -7473,7 +7474,7 @@ impl Emitter<'_> {
         );
         let failed = self.runtime_failure_exit("RangeError", "bounds", &failure, expr.span)
             .unwrap_or_else(|| format!("panic!({failure:?})"));
-        let text = self.expr(fun, base, Mode::Read);
+        let text = self.string_observation(fun,base);
         let position = self.expr(fun, index, Mode::Copy);
         Self::access_wrapped(expr, mode, format!(
             "(match ({text}, {position}) {{ (indexed_text, indexed_position) => {{ let indexed_text: &String = indexed_text; let indexed_text: &str = &**indexed_text; let indexed_position: i64 = indexed_position; match usize::try_from(indexed_position).ok().and_then(|position| indexed_text.chars().nth(position)) {{ Some(character) => tsr_char_text(character), None => {failed} }} }} }})"
@@ -8238,7 +8239,7 @@ impl Emitter<'_> {
                 prefix,
                 operator,
             } => self.update_expression(fun, target, *increment, *prefix, *operator),
-            ExprKind::Index(base, index) if base.ty.map(Type::scalar_base) == Some(Type::String) => self.string_index(fun, expr, base, index, mode),
+            ExprKind::Index(base, index) if base.ty.is_some_and(|ty|self.is_string_observation(ty)) => self.string_index(fun, expr, base, index, mode),
             ExprKind::Index(base, index)
                 if self.expression_shape(base)
                     == Some(crate::fixed_storage::Shape::LiteralStrings) =>
@@ -8276,10 +8277,10 @@ impl Emitter<'_> {
                 let receiver = self.conditional_arm(fun, base, Mode::Read);
                 format!("{{ let _tuple = {receiver}; {}i64 }}",self.program.records[id].fields.len())
             }
-            ExprKind::Field(base, name) if base.ty.map(Type::scalar_base) == Some(Type::String) && name == "length" => {
+            ExprKind::Field(base, name) if base.ty.is_some_and(|ty|self.is_string_observation(ty)) && name == "length" => {
                 // Fresh receivers survive the complete consuming expression,
                 // including console argument staging, then dispose normally.
-                let value = self.conditional_arm(fun, base, Mode::Read);
+                let value = if base.ty.and_then(Type::union).is_some(){self.string_observation(fun,base)}else{self.conditional_arm(fun,base,Mode::Read)};
                 format!("tsr_length({value})")
             }
             ExprKind::Field(base, name)
@@ -9549,7 +9550,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!()
                     };
-                    let receiver = self.expr(fun, base, Mode::Read);
+                    let receiver = if self.is_string_observation(base.ty.unwrap()){self.string_observation(fun,base)}else{self.expr(fun,base,Mode::Read)};
                     let needle = self.expr(fun, &args[0], Mode::Read);
                     let position = args.get(1).map_or_else(
                         || "None".into(),
@@ -9563,7 +9564,7 @@ impl Emitter<'_> {
                         Some(CallTarget::StringLastIndexOf) => "tsr_string_last_index_of",
                         _ => unreachable!("checked string search"),
                     };
-                    let text=self.json_text_read(base.ty.unwrap(),"string_source");
+                    let text=if self.is_string_observation(base.ty.unwrap()){"string_source.as_ref()".into()}else{self.json_text_read(base.ty.unwrap(),"string_source")};
                     let needle_text=self.json_text_read(args[0].ty.unwrap(),"needle_source");
                     format!(
                         "{{ let string_source = {receiver}; let string_receiver: &str = {text}; let needle_source = {needle}; let string_needle: &str = {needle_text}; let string_position = {position}; {method}(string_receiver, string_needle, string_position) }}"
@@ -9693,7 +9694,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!()
                     };
-                    let receiver = self.expr(fun, base, Mode::Read);
+                    let receiver = self.string_observation(fun,base);
                     // Valid UTF-8 storage guarantees the predicate, but receiver
                     // construction, effects, and ordinary temporary disposal remain.
                     format!(
@@ -9710,7 +9711,7 @@ impl Emitter<'_> {
                     };
                     match expr.target.expect("checked primitive identity") {
                         CallTarget::StringIdentity => {
-                            format!("tsr_string_identity({})", self.expr(fun, base, Mode::Read))
+                            format!("tsr_string_identity({})", self.string_observation(fun,base))
                         }
                         CallTarget::BooleanToString => {
                             format!("tsr_boolean_string({})", self.expr(fun, base, Mode::Copy))
@@ -9750,7 +9751,7 @@ impl Emitter<'_> {
                 }
                 CallTarget::StringNormalize => {
                     let ExprKind::Field(base, _) = &callee.kind else { unreachable!() };
-                    let receiver=self.expr(fun,base,Mode::Read);
+                    let receiver=self.string_observation(fun,base);
                     let (evaluate,form)=args.first().map_or_else(||(std::string::String::new(),"None".to_owned()), |argument| {
                         let temporary=matches!(argument.ty,Some(Type::Union(id)) if !id.copy) && Self::temporary_storage(argument);
                         let value=self.expr(fun,argument,if temporary { Mode::Consume } else { Mode::Read });
@@ -9950,7 +9951,7 @@ impl Emitter<'_> {
                         && let ExprKind::Call(receiver, _) = &base.kind
                         && let ExprKind::Field(input, _) = &receiver.kind
                     {
-                        format!("tsr_normalize({})", self.expr(fun, input, Mode::Read))
+                        format!("tsr_normalize({})", self.string_observation(fun,input))
                     } else {
                         let method = match expr.target {
                             Some(CallTarget::Trim) => "tsr_trim",
@@ -9960,14 +9961,14 @@ impl Emitter<'_> {
                             Some(CallTarget::Upper) => "tsr_upper",
                             _ => unreachable!("checked string transform"),
                         };
-                        format!("{method}({})", self.expr(fun, base, Mode::Read))
+                        format!("{method}({})", self.string_observation(fun,base))
                     }
                 }
                 CallTarget::StringCodePointSlot | CallTarget::StringCharCodeAt => {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!("string receiver")
                     };
-                    let receiver = self.expr(fun, base, Mode::Read);
+                    let receiver = self.string_observation(fun,base);
                     let position = args
                         .first()
                         .map_or_else(|| "0i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
@@ -9987,7 +9988,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!("string receiver")
                     };
-                    let receiver = self.expr(fun, base, Mode::Read);
+                    let receiver = self.string_observation(fun,base);
                     let start = args
                         .first()
                         .map_or_else(|| "0i64".into(), |arg| self.expr(fun, arg, Mode::Copy));

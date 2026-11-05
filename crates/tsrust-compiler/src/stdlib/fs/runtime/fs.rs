@@ -13,10 +13,15 @@ pub struct FsFailure {
     pub os_code: Option<i64>,
 }
 impl FsFailure {
-    pub(super) fn io(operation: &'static str, error: std::io::Error) -> Self {
+    pub fn io(operation: &'static str, error: std::io::Error) -> Self {
         use std::io::ErrorKind;
         let code = match error.kind() {
             ErrorKind::NotFound => "not-found",
+            ErrorKind::AlreadyExists => "already-exists",
+            ErrorKind::NotADirectory => "not-directory",
+            ErrorKind::DirectoryNotEmpty => "directory-not-empty",
+            ErrorKind::CrossesDevices => "cross-device",
+            ErrorKind::Unsupported => "unsupported",
             ErrorKind::PermissionDenied => "permission-denied",
             ErrorKind::InvalidInput => "invalid-input",
             ErrorKind::Interrupted => "interrupted",
@@ -164,6 +169,127 @@ fn close_fd(descriptor: i32) -> std::io::Result<()> {
     nix::unistd::close(descriptor).map_err(std::io::Error::from)
 }
 
+/// File-open switches retain std defaults: all switches start false.
+#[derive(Default)]
+pub struct OpenOptions {
+    pub read: bool, pub write: bool, pub append: bool,
+    pub create: bool, pub create_new: bool, pub truncate: bool,
+}
+pub fn open_file(path:&str,options:&OpenOptions)->Result<FileHandle,FsFailure> {
+    std::fs::OpenOptions::new().read(options.read).write(options.write).append(options.append)
+        .create(options.create).create_new(options.create_new).truncate(options.truncate)
+        .open(path).map(|file|Resource::new(FileBackend(file))).map_err(|error|FsFailure::io("openFile",error))
+}
+#[derive(Clone,Debug,PartialEq,Eq)]
+pub struct FileTime { pub unix_seconds:i64, pub nanoseconds:i64 }
+#[derive(Clone,Debug)]
+pub struct Metadata {
+    pub is_file:bool, pub is_directory:bool, pub is_symlink:bool,
+    pub size:i64, pub read_only:bool,
+    pub modified:Option<FileTime>, pub accessed:Option<FileTime>, pub created:Option<FileTime>,
+}
+#[derive(Clone,Debug)]
+pub struct DirEntry { pub name:String, pub path:String, pub is_file:bool, pub is_directory:bool, pub is_symlink:bool }
+fn failure(code:&'static str,operation:&'static str,message:&str)->FsFailure {
+    FsFailure {code,operation,message:message.into(),os_code:None}
+}
+fn integer(value:u64,operation:&'static str)->Result<i64,FsFailure> {
+    i64::try_from(value).map_err(|_|failure("integer-range",operation,"Filesystem value does not fit int."))
+}
+fn file_time(time:std::time::SystemTime,operation:&'static str)->Result<FileTime,FsFailure> {
+    let (negative,duration)=match time.duration_since(std::time::UNIX_EPOCH) {
+        Ok(duration)=>(false,duration),Err(error)=>(true,error.duration()),
+    };
+    let nanos=i128::from(duration.as_secs())*1_000_000_000+i128::from(duration.subsec_nanos());
+    let nanos=if negative {-nanos} else {nanos};
+    let unix_seconds=i64::try_from(nanos.div_euclid(1_000_000_000))
+        .map_err(|_|failure("integer-range",operation,"Filesystem timestamp seconds do not fit int."))?;
+    Ok(FileTime {unix_seconds,nanoseconds:nanos.rem_euclid(1_000_000_000) as i64})
+}
+fn optional_time(time:std::io::Result<std::time::SystemTime>,operation:&'static str)->Result<Option<FileTime>,FsFailure> {
+    match time {Ok(time)=>file_time(time,operation).map(Some),Err(error) if error.kind()==std::io::ErrorKind::Unsupported=>Ok(None),Err(error)=>Err(FsFailure::io(operation,error))}
+}
+fn metadata(value:std::fs::Metadata,operation:&'static str)->Result<Metadata,FsFailure> {
+    Ok(Metadata {is_file:value.is_file(),is_directory:value.is_dir(),is_symlink:value.is_symlink(),
+        size:integer(value.len(),operation)?,read_only:value.permissions().readonly(),
+        modified:optional_time(value.modified(),operation)?,accessed:optional_time(value.accessed(),operation)?,created:optional_time(value.created(),operation)?})
+}
+pub fn stat(path:&str)->Result<Metadata,FsFailure> {
+    metadata(std::fs::metadata(path).map_err(|error|FsFailure::io("stat",error))?,"stat")
+}
+pub fn lstat(path:&str)->Result<Metadata,FsFailure> {
+    metadata(std::fs::symlink_metadata(path).map_err(|error|FsFailure::io("lstat",error))?,"lstat")
+}
+pub fn file_stat(file:&FileHandle)->Result<Metadata,FsFailure> {
+    metadata(file.get().0.metadata().map_err(|error|FsFailure::io("fileStat",error))?,"fileStat")
+}
+fn unicode(path:std::ffi::OsString,operation:&'static str)->Result<String,FsFailure> {
+    path.into_string().map_err(|_|failure("not-unicode",operation,"Filesystem path is not valid Unicode."))
+}
+pub fn read_dir(path:&str,max_entries:Option<i64>)->Result<Vec<DirEntry>,FsFailure> {
+    let limit=max_entries.map(|limit|usize::try_from(limit).map_err(|_|failure("length-range","readDir","Entry limit must be nonnegative and fit native storage."))).transpose()?;
+    let mut entries=Vec::new();
+    for entry in std::fs::read_dir(path).map_err(|error|FsFailure::io("readDir",error))? {
+        let entry=entry.map_err(|error|FsFailure::io("readDir",error))?;
+        if limit.is_some_and(|limit|entries.len()>=limit) {return Err(failure("length-range","readDir","Directory exceeds the requested entry limit."));}
+        let kind=entry.file_type().map_err(|error|FsFailure::io("readDir",error))?;
+        entries.push(DirEntry {name:unicode(entry.file_name(),"readDir")?,path:unicode(entry.path().into_os_string(),"readDir")?,is_file:kind.is_file(),is_directory:kind.is_dir(),is_symlink:kind.is_symlink()});
+    }
+    Ok(entries)
+}
+pub fn mkdir(path:&str)->Result<(),FsFailure> {std::fs::create_dir(path).map_err(|error|FsFailure::io("mkdir",error))}
+pub fn mkdir_all(path:&str)->Result<(),FsFailure> {std::fs::create_dir_all(path).map_err(|error|FsFailure::io("mkdirAll",error))}
+pub fn rename(path:&str,destination:&str)->Result<(),FsFailure> {std::fs::rename(path,destination).map_err(|error|FsFailure::io("rename",error))}
+pub fn copy_file(path:&str,destination:&str)->Result<i64,FsFailure> {
+    integer(std::fs::copy(path,destination).map_err(|error|FsFailure::io("copyFile",error))?,"copyFile")
+}
+pub fn remove_file(path:&str)->Result<(),FsFailure> {std::fs::remove_file(path).map_err(|error|FsFailure::io("removeFile",error))}
+pub fn remove_dir(path:&str)->Result<(),FsFailure> {std::fs::remove_dir(path).map_err(|error|FsFailure::io("removeDir",error))}
+pub fn remove_dir_all(path:&str)->Result<(),FsFailure> {std::fs::remove_dir_all(path).map_err(|error|FsFailure::io("removeDirAll",error))}
+pub fn canonicalize(path:&str)->Result<String,FsFailure> {
+    unicode(std::fs::canonicalize(path).map_err(|error|FsFailure::io("canonicalize",error))?.into_os_string(),"canonicalize")
+}
+pub fn read_link(path:&str)->Result<String,FsFailure> {
+    unicode(std::fs::read_link(path).map_err(|error|FsFailure::io("readLink",error))?.into_os_string(),"readLink")
+}
+pub fn hard_link(path:&str,destination:&str)->Result<(),FsFailure> {std::fs::hard_link(path,destination).map_err(|error|FsFailure::io("hardLink",error))}
+pub fn append_file(path:&str,bytes:&[u8])->Result<(),FsFailure> {
+    validate_write_length(bytes.len(),"appendFile")?;
+    let mut file=open_file(path,&OpenOptions {append:true,create:true,..OpenOptions::default()}).map_err(|mut error|{error.operation="appendFile";error})?;
+    let result=write_all(&mut file,bytes).map_err(|mut error|{error.operation="appendFile";error});
+    finish_file(file,result,"appendFile")
+}
+pub fn read_text_file(path:&str,limit:Option<i64>)->Result<String,FsFailure> {
+    let limit=limit.map(|length|validate_read_length(length,"readTextFile")).transpose()?;
+    let mut file=open(path).map_err(|mut error|{error.operation="readTextFile";error})?;
+    let result=read_file_with(&mut file.get_mut().0,limit).map_err(|mut error|{error.operation="readTextFile";error})
+        .and_then(|bytes|String::from_utf8(bytes).map_err(|error|failure("invalid-utf8","readTextFile",&error.to_string())));
+    finish_file(file,result,"readTextFile")
+}
+pub fn write_text_file(path:&str,text:&str)->Result<(),FsFailure> {
+    write_file(path,text.as_bytes()).map_err(|mut error|{error.operation="writeTextFile";error})
+}
+pub fn truncate(file:&mut FileHandle,length:i64)->Result<(),FsFailure> {
+    let length=u64::try_from(length).map_err(|_|failure("length-range","truncate","File length must be nonnegative."))?;
+    file.get_mut().0.set_len(length).map_err(|error|FsFailure::io("truncate",error))
+}
+pub fn sync_all(file:&FileHandle)->Result<(),FsFailure> {file.get().0.sync_all().map_err(|error|FsFailure::io("syncAll",error))}
+pub fn sync_data(file:&FileHandle)->Result<(),FsFailure> {file.get().0.sync_data().map_err(|error|FsFailure::io("syncData",error))}
+
+pub fn seek(file:&mut FileHandle,offset:i64,origin:&str)->Result<i64,FsFailure> {
+    use std::io::{Seek,SeekFrom};
+    let origin=match origin {
+        "start"=>SeekFrom::Start(u64::try_from(offset).map_err(|_|failure("offset-range","seek","Start offset must be nonnegative."))?),
+        "current"=>SeekFrom::Current(offset),"end"=>SeekFrom::End(offset),
+        _=>return Err(failure("invalid-input","seek","Origin must be start, current or end.")),
+    };
+    integer(file.get_mut().0.seek(origin).map_err(|error|FsFailure::io("seek",error))?,"seek")
+}
+pub fn position(file:&mut FileHandle)->Result<i64,FsFailure> {
+    use std::io::Seek;
+    integer(file.get_mut().0.stream_position().map_err(|error|FsFailure::io("position",error))?,"position")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -221,6 +347,99 @@ mod tests {
         std::fs::write(&path,[7,8]).unwrap();
         assert_eq!(read_file(&path,None).unwrap(),[7,8]);
     }
+    #[test]
+    fn options_preserve_default_validation_create_new_and_handle_borrows() {
+        let directory=Directory::new();let path=directory.input();
+        assert_eq!(failure(open_file(&path,&OpenOptions::default())).code,"invalid-input");
+        assert_eq!(failure(open_file(&path,&OpenOptions {truncate:true,..OpenOptions::default()})).code,"invalid-input");
+        assert_eq!(read_file(&path,None).unwrap(),[0,65,255,66]);
+        assert_eq!(failure(open_file(&path,&OpenOptions {write:true,create_new:true,truncate:true,..OpenOptions::default()})).code,"already-exists");
+        let mut file=open_file(&path,&OpenOptions {read:true,write:true,..OpenOptions::default()}).unwrap();
+        assert_eq!(file_stat(&file).unwrap().size,4);assert_eq!(read(&mut file,2).unwrap(),[0,65]);
+        assert_eq!(failure(truncate(&mut file,-1)).code,"length-range");truncate(&mut file,1).unwrap();
+        assert_eq!(file.get_mut().0.stream_position().unwrap(),2,"truncate leaves cursor unchanged");
+        write_all(&mut file,&[9]).unwrap();sync_all(&file).unwrap();sync_data(&file).unwrap();file.close().unwrap();
+        assert_eq!(read_file(&path,None).unwrap(),[0,0,9]);
+    }
+    #[test]
+    fn metadata_and_directory_snapshots_are_owned_and_bounds_are_opt_in() {
+        let directory=Directory::new();let path=directory.input();let root=directory.0.to_str().unwrap();
+        std::fs::create_dir(directory.0.join("nested")).unwrap();std::fs::write(directory.0.join("é-🦀"),b"x").unwrap();
+        let value=stat(&path).unwrap();assert!(value.is_file);assert!(!value.is_directory);assert!(!value.is_symlink);assert_eq!(value.size,4);
+        assert_eq!(value.read_only,std::fs::metadata(&path).unwrap().permissions().readonly());
+        for time in [&value.modified,&value.accessed,&value.created].into_iter().flatten() {assert!((0..1_000_000_000).contains(&time.nanoseconds));}
+        assert_eq!(failure(read_dir("missing",Some(-1))).code,"length-range");
+        assert_eq!(failure(read_dir(root,Some(2))).code,"length-range");assert_eq!(failure(read_dir(root,Some(0))).code,"length-range");
+        assert_eq!(read_dir(root,Some(3)).unwrap().len(),3);
+        let entries=read_dir(root,None).unwrap();remove_file(&path).unwrap();
+        let input=entries.iter().find(|entry|entry.name=="input.bin").unwrap();assert!(input.is_file);assert_eq!(input.path,path);
+        assert!(entries.iter().find(|entry|entry.name=="nested").unwrap().is_directory);
+        assert_eq!(entries.iter().filter(|entry|entry.name=="é-🦀").count(),1);
+        let empty=directory.0.join("empty");mkdir(empty.to_str().unwrap()).unwrap();assert!(read_dir(empty.to_str().unwrap(),Some(0)).unwrap().is_empty());
+    }
+    #[test]
+    fn filesystem_utilities_preserve_contents_and_host_error_categories() {
+        let directory=Directory::new();let path=directory.input();let target=directory.0.join("target");let target=target.to_str().unwrap();
+        assert_eq!(copy_file(&path,target).unwrap(),4);assert_eq!(read_file(target,None).unwrap(),[0,65,255,66]);
+        let moved=directory.0.join("moved");let moved=moved.to_str().unwrap();rename(target,moved).unwrap();assert!(!std::path::Path::new(target).exists());
+        hard_link(moved,target).unwrap();remove_file(moved).unwrap();assert_eq!(read_file(target,None).unwrap(),[0,65,255,66]);
+        assert_eq!(canonicalize(target).unwrap(),std::fs::canonicalize(target).unwrap().to_str().unwrap());
+        assert_eq!(failure(read_link(target)).operation,"readLink");remove_file(target).unwrap();
+        let nested=directory.0.join("a/b");mkdir_all(nested.to_str().unwrap()).unwrap();mkdir_all(nested.to_str().unwrap()).unwrap();
+        assert_eq!(failure(mkdir(nested.to_str().unwrap())).code,"already-exists");
+        let parent=directory.0.join("a");assert_eq!(failure(remove_dir(parent.to_str().unwrap())).code,"directory-not-empty");
+        remove_dir_all(parent.to_str().unwrap()).unwrap();assert!(!parent.exists());
+    }
+    #[test]
+    fn text_is_strict_utf8_preserves_bom_and_counts_byte_limits() {
+        let directory=Directory::new();let path=directory.input();
+        write_text_file(&path,"\u{feff}hé🦀").unwrap();assert_eq!(read_text_file(&path,None).unwrap(),"\u{feff}hé🦀");
+        assert_eq!(read_text_file(&path,Some(10)).unwrap(),"\u{feff}hé🦀");
+        assert_eq!(failure(read_text_file(&path,Some(9))).code,"length-range");
+        assert_eq!(failure(read_text_file("missing",Some(-1))).code,"length-range");
+        append_file(&path,b"\n").unwrap();assert_eq!(read_text_file(&path,None).unwrap(),"\u{feff}hé🦀\n");
+        write_file(&path,&[0xff]).unwrap();let error=failure(read_text_file(&path,None));assert_eq!((error.code,error.operation),("invalid-utf8","readTextFile"));
+        let created=directory.0.join("append");append_file(created.to_str().unwrap(),&[]).unwrap();assert!(created.is_file());
+    }
+    #[test]
+    fn timestamp_normalization_and_unsupported_fields_are_explicit() {
+        use std::time::{UNIX_EPOCH,Duration};
+        let epoch=file_time(UNIX_EPOCH,"stat").unwrap();assert_eq!((epoch.unix_seconds,epoch.nanoseconds),(0,0));
+        assert_eq!(file_time(UNIX_EPOCH-Duration::from_nanos(1),"stat").unwrap(),FileTime {unix_seconds:-1,nanoseconds:999999999});
+        assert_eq!(file_time(UNIX_EPOCH-Duration::new(1,500000000),"stat").unwrap(),FileTime {unix_seconds:-2,nanoseconds:500000000});
+        assert_eq!(optional_time(Err(std::io::ErrorKind::Unsupported.into()),"stat").unwrap(),None);
+        assert_eq!(failure(optional_time(Err(std::io::ErrorKind::PermissionDenied.into()),"stat")).code,"permission-denied");
+        assert_eq!(failure(integer(u64::MAX,"stat")).code,"integer-range");
+    }
+    #[cfg(unix)]
+    #[test]
+    fn directory_names_and_symlink_targets_reject_non_unicode_without_loss() {
+        use std::os::unix::{ffi::OsStringExt,fs::symlink};
+        let directory=Directory::new();let input=directory.input();let link=directory.0.join("link");symlink("input.bin",&link).unwrap();
+        assert!(lstat(link.to_str().unwrap()).unwrap().is_symlink);assert!(stat(link.to_str().unwrap()).unwrap().is_file);
+        assert_eq!(read_link(link.to_str().unwrap()).unwrap(),"input.bin");
+        let entry=read_dir(directory.0.to_str().unwrap(),None).unwrap().into_iter().find(|entry|entry.name=="link").unwrap();assert!(entry.is_symlink);assert!(!entry.is_file);
+        let odd=std::ffi::OsString::from_vec(vec![0xff]);let odd_path=directory.0.join(&odd);std::fs::write(&odd_path,b"x").unwrap();
+        assert_eq!(failure(read_dir(directory.0.to_str().unwrap(),None)).code,"not-unicode");
+        std::fs::remove_file(&link).unwrap();symlink(&odd,&link).unwrap();assert_eq!(failure(read_link(link.to_str().unwrap())).code,"not-unicode");
+        remove_file(&input).unwrap();remove_file(link.to_str().unwrap()).unwrap();assert!(odd_path.exists());
+    }
+
+    #[test]
+    fn cursor_origins_eof_validation_and_truncation_use_exact_positions() {
+        let directory=Directory::new();let path=directory.input();
+        let mut file=open_file(&path,&OpenOptions {read:true,write:true,..OpenOptions::default()}).unwrap();
+        assert_eq!(position(&mut file).unwrap(),0);assert_eq!(seek(&mut file,2,"start").unwrap(),2);
+        assert_eq!(read(&mut file,1).unwrap(),[255]);assert_eq!(position(&mut file).unwrap(),3);
+        assert_eq!(seek(&mut file,-2,"current").unwrap(),1);assert_eq!(read(&mut file,3).unwrap(),[65,255,66]);
+        assert_eq!(seek(&mut file,-1,"end").unwrap(),3);assert_eq!(read(&mut file,1).unwrap(),[66]);
+        assert_eq!(seek(&mut file,7,"start").unwrap(),7);assert!(read(&mut file,64).unwrap().is_empty());assert_eq!(position(&mut file).unwrap(),7);
+        let error=failure(seek(&mut file,-1,"start"));assert_eq!((error.code,error.operation,error.os_code),("offset-range","seek",None));assert_eq!(position(&mut file).unwrap(),7);
+        assert_eq!(failure(seek(&mut file,-10,"current")).operation,"seek");assert_eq!(position(&mut file).unwrap(),7);
+        assert_eq!(failure(seek(&mut file,0,"wrong")).code,"invalid-input");truncate(&mut file,1).unwrap();assert_eq!(position(&mut file).unwrap(),7);
+        file.close().unwrap();
+    }
+
     struct ShortReader {bytes:std::io::Cursor<Vec<u8>>,interrupted:bool,fail:bool}
     impl Read for ShortReader {
         fn read(&mut self,buffer:&mut [u8])->std::io::Result<usize> {
@@ -341,6 +560,10 @@ mod tests {
             assert_eq!(closed.get(),1);assert_eq!(error.code,if read_failed {"io"} else {"interrupted"});
             assert_eq!(error.operation,if read_failed {"read"} else {"readFile"});
         }
+        let closed=std::cell::Cell::new(0);
+        let result=Err::<String,_>(super::failure("invalid-utf8","readTextFile","invalid text"));
+        let error=failure(finish_file(Resource::new(FailedClose(&closed)),result,"readTextFile"));
+        assert_eq!(closed.get(),1);assert_eq!((error.code,error.operation),("invalid-utf8","readTextFile"));
     }
 
     #[test]

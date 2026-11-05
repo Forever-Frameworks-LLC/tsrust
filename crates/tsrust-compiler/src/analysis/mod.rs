@@ -132,6 +132,7 @@ mod spread_call_work;
 mod array_spread_work;
 mod collection_constructors;
 mod builtin_receivers;
+mod string_observations;
 mod program_testing;
 pub(crate) use spread_calls::spread_position_range;
 mod spread_builtins;
@@ -4065,7 +4066,7 @@ impl Analyzer {
     #[inline(never)]
     pub(crate) fn string_position(&self, context: &Context, expr: &Expr) -> bool {
         matches!(&expr.kind, ExprKind::Index(base, _)
-            if self.expression_type_hint(context, base).is_some_and(|ty| self.unions.payload(ty).unwrap_or(ty) == Type::String))
+            if self.expression_type_hint(context, base).is_some_and(|ty| self.is_string_observation(self.unions.payload(ty).unwrap_or(ty))))
     }
 
     fn scalar_assignment(&mut self, context: &mut Context, target: &mut Expr, value: &mut Expr, loans: &Loans, operator: Span) -> Result<Type, Diagnostic> {
@@ -6876,7 +6877,7 @@ impl Analyzer {
     #[inline(never)]
     fn reject_string_position_write(&mut self, context: &Context, target: &Expr) -> Result<(), Diagnostic> {
         if let ExprKind::Index(base, _) = &target.kind
-            && self.expression_type_hint(context, base) == Some(Type::String)
+            && self.string_observation_hint(context,base)
         {
             return Err(Diagnostic::new(
                 "unsupported",
@@ -6892,7 +6893,7 @@ impl Analyzer {
     #[inline(never)]
     fn string_index(&mut self,context:&mut Context,base:&mut Expr,index:&mut Expr,loans:&Loans)->Result<Type,Diagnostic> {
         let ty=self.expression(context,base,Mode::Read,loans,None)?;
-        debug_assert_eq!(ty.scalar_base(),Type::String);
+        debug_assert!(self.is_string_observation(ty));
         let mut active=loans.clone();
         for root in Self::loan_roots(base,Mode::Read){active.entry(root).or_default().push((Mode::Read,base.span));}
         let actual=self.expression(context,index,Mode::Copy,&active,Some(Type::Int))?;
@@ -6912,7 +6913,7 @@ impl Analyzer {
             expr.kind = ExprKind::Field(receiver,name);
             return Ok(result);
         }
-        if !Self::optional_hint_boundary(base) && self.expression_type_hint(context,base).map(Type::scalar_base)==Some(Type::String) {
+        if !Self::optional_hint_boundary(base) && self.string_observation_hint(context,base) {
             return self.string_index(context,base,index,loans);
         }
         let result=if Self::named_storage(base) {self.array_index(context,base,index,mode,loans,expr.span)} else {self.temporary_array_index(context,base,index,mode,loans,expected)}?;
@@ -7504,7 +7505,7 @@ impl Analyzer {
         }
         let ty = self.expression(context, base, Mode::Read, loans, None)?;
         if slice {
-            if !matches!(ty, Type::String | Type::Array(_)) {
+            if !matches!(ty, Type::Array(_)) && !self.is_string_observation(ty) {
                 return Err(Diagnostic::new(
                     "type",
                     "slice() requires a string or array.",
@@ -7512,7 +7513,7 @@ impl Analyzer {
                 ));
             }
         } else {
-            self.require(ty, Some(Type::String), base.span)?;
+            self.require_string_observation(ty,base.span)?;
         }
         let mut active = loans.clone();
         for root in Self::loan_roots(base, Mode::Read) {
@@ -7525,7 +7526,7 @@ impl Analyzer {
             let actual = self.expression(context, arg, Mode::Copy, &active, Some(Type::Int))?;
             self.require(actual, Some(Type::Int), arg.span)?;
         }
-        Ok(ty)
+        Ok(if self.is_string_observation(ty){Type::String}else{ty})
     }
 
     fn transform_array_type(ty: Type, span: Span) -> Result<Type, Diagnostic> {
@@ -8000,7 +8001,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             _ => unreachable!("checked string construction method"),
         }
         let receiver = self.expression(context, base, Mode::Read, loans, None)?;
-        self.require(receiver, Some(Type::String), base.span)?;
+        self.require_string_observation(receiver,base.span)?;
         let mut active = loans.clone();
         for root in Self::loan_roots(base, Mode::Read) {
             active
@@ -8040,8 +8041,8 @@ self.names_materialized_type(element.with_depth(0).ty())
     #[inline(never)]
     fn string_normalize(&mut self, context: &mut Context, base: &mut Expr, args: &mut [Expr], loans: &Loans, span: Span) -> Result<Type, Diagnostic> {
         if args.len() > 1 { return Err(Diagnostic::new("arity", "normalize expects zero or one string form argument.", span)); }
-        let receiver=self.expression(context,base,Mode::Read,loans,Some(Type::String))?;
-        self.require(receiver,Some(Type::String),base.span)?;
+        let receiver=self.expression(context,base,Mode::Read,loans,None)?;
+        self.require_string_observation(receiver,base.span)?;
         if let Some(form)=args.first_mut() {
             let mut active=loans.clone();
             for root in Self::loan_roots(base, Mode::Read) { active.entry(root).or_default().push((Mode::Read,base.span)); }
@@ -8117,7 +8118,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let string_proof=self.json_string_proof(context,base);
         if let Some(proof)=string_proof.clone(){Self::use_json_string_proof(context,proof);}
         let ty = self.expression(context, base, Mode::Read, loans, None)?;
-        let string_receiver=ty.scalar_base() == Type::String || string_proof.is_some() || self.is_string_view(context,base);
+        let string_receiver=self.is_string_observation(ty) || string_proof.is_some() || self.is_string_view(context,base);
         let element_type = if string_receiver {
             Type::String
         } else {
@@ -8261,7 +8262,7 @@ self.names_materialized_type(element.with_depth(0).ty())
     ) -> Result<(), Diagnostic> {
         Self::arity(arguments, 0, span)?;
         let actual = self.expression(context, receiver, Mode::Read, loans, None)?;
-        self.require(actual, Some(Type::String), receiver.span)
+        self.require_string_observation(actual,receiver.span)
     }
 
     fn number_parse_float(
@@ -8690,7 +8691,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let ExprKind::Field(base, name) = &mut callee.kind else { return };
         if name != "at"
             || !(matches!(base.kind, ExprKind::String(_))
-                || matches!(self.expression_type_hint(context, base), Some(Type::String)))
+                || self.string_observation_hint(context,base))
         {
             return;
         }
@@ -8715,7 +8716,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             _ => return Ok(()),
         };
         if !(matches!(base.kind, ExprKind::String(_))
-            || matches!(self.expression_type_hint(context, base), Some(Type::String)))
+            || self.string_observation_hint(context,base))
         {
             return Ok(());
         }
@@ -8740,7 +8741,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let ExprKind::Field(base, name) = &mut callee.kind else { return Ok(()) };
         if name != "codePointAt"
             || !(matches!(base.kind, ExprKind::String(_))
-                || matches!(self.expression_type_hint(context, base), Some(Type::String)))
+                || self.string_observation_hint(context,base))
         {
             return Ok(());
         }
@@ -9982,7 +9983,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
                 Self::arity(args.len(), 0, span)?;
                 expr.target = Some(match (name.as_str(), actual) {
-                    (_, Type::String) => CallTarget::StringIdentity,
+                    (_, ty) if self.is_string_observation(ty) => CallTarget::StringIdentity,
                     ("valueOf", Type::Boolean) => CallTarget::BooleanIdentity,
                     ("toString", Type::Boolean) => CallTarget::BooleanToString,
                     ("toString", Type::Array(_)) => CallTarget::ArrayJoin,
@@ -10003,7 +10004,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                         ));
                     }
                 });
-                if name == "toString" {
+                if name == "toString" || self.is_string_observation(actual) {
                     Type::String
                 } else {
                     actual
@@ -10023,7 +10024,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 Self::arity(args.len(), 0, span)?;
                 let actual = self.expression(context, base, Mode::Read, loans, None)?;
-                self.require(actual, Some(Type::String), callee.span)?;
+                self.require_string_observation(actual,callee.span)?;
                 expr.target = Some(match name.as_str() {
                     "trim" => CallTarget::Trim,
                     "trimStart" | "trimLeft" => CallTarget::TrimStart,
@@ -10037,7 +10038,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             ExprKind::Field(base, name)
                 if (name == STRING_CODE_POINT_SLOT || name == "charCodeAt")
                     && (matches!(base.kind, ExprKind::String(_))
-                        || matches!(self.expression_type_hint(context, base), Some(Type::String))) =>
+                        || self.string_observation_hint(context,base)) =>
             {
                 let slot = name == STRING_CODE_POINT_SLOT;
                 if args.len() > 1 {
@@ -10047,8 +10048,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                         span,
                     ));
                 }
-                let receiver = self.expression(context, base, Mode::Read, loans, Some(Type::String))?;
-                self.require(receiver, Some(Type::String), base.span)?;
+                let receiver = self.expression(context, base, Mode::Read, loans, None)?;
+                self.require_string_observation(receiver,base.span)?;
                 if let Some(position) = args.first_mut() {
                     let mut active = loans.clone();
                     for root in Self::loan_roots(base, Mode::Read) {
@@ -10208,7 +10209,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 let json_string=self.json_string_proof(context,base).is_some() || self.is_string_view(context,base);
                 let ty = self.collection_search(context, base, args, loans, span, name)?;
-                expr.target = Some(match (if json_string{Some(Type::String)}else{base.ty.map(Type::scalar_base)}, name.as_str()) {
+                expr.target = Some(match (if json_string || base.ty.is_some_and(|ty|self.is_string_observation(ty)){Some(Type::String)}else{base.ty.map(Type::scalar_base)}, name.as_str()) {
                     (Some(Type::String), "startsWith") => CallTarget::StringStartsWith,
                     (Some(Type::String), "endsWith") => CallTarget::StringEndsWith,
                     (Some(Type::String), "includes") => CallTarget::StringIncludes,

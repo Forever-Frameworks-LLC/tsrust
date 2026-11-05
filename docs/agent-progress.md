@@ -28,7 +28,193 @@ codec wiringacbd5440 and measured portable-files46cfc4b8. The current combined
 candidate additionally integrates URL facade a5328d77, reproducible scaling
 458a539f, behavioral controls0a19267f and editor readinessa25985df, plus root
 URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
-No new URL/codec native gate or platform completion is claimed.
+B02 codec/binary functional and allocation acceptance now passes below; URL and
+platform completion remain pending.
+
+**Canonical integration:**422331a4 tempfile pins; e3d1110b native literal aliases;
+d7ff8603 void/native-use/URL emission fixes;067eda23 optional measured search pin;
+2c5dc860 exact Linker fixture repairs;3f41116f codec acceptance preservation.
+Worker d11bd018 shared-target/URL resolver repair is now merged additively. No new
+canonical API timing/DB entries occurred in this continuation. Codec O0/O3/export/
+LSP/allocation witnesses remain prepared, not executed on the combined source.
+
+**Shared target blocker resolved locally:** CLI cache misses now honor normalized
+CARGO_TARGET_DIR, otherwise use one cache-owned shared target. A safe std file lock
+spans Cargo build through exact Cargo-JSON artifact copies into graph staging;
+unreported shared-target libraries are excluded. All three callers finalize
+before link/publication. Dev writes Cargo stdout to a file, keeps cancellation
+responsive even while waiting for a target lock, and shares cache-clean ownership
+with explicit/default/symlink target aliases. Cache ABI changed to reject old
+unbounded artifact bundles. Package add/repin/bindings resolution also normalizes
+the compiler-owned URL patch and installs its exact payload into owned temporary
+roots; canonical Bindings::manifest bytes and pinned lock identity stay unchanged.
+
+Accepted worker evidence on d11bd018 and its unchanged ancestors:21focused controls
+(artifact6,Workspace1,runtime-reuse1,native_json4,dev5,cache-clean1,package1,both-schema
+payload1,bindings/native/lock-drift1). Runtime42→43 reused the exact shared serde
+artifact/path/mtime;43 restored cache. Real CLI proved miss→runtime hit→application
+hit without a second Cargo target. Reuse6.222s/299,952KiB; native_json6.275s/
+326,512KiB; dev6.822s/178,336KiB; package15.064s/360,064KiB; bindings4.166s/
+363,872KiB. Subsecond sampled RSS is not reported as true peak memory.
+
+All-target compiler+LSP check passed8dcc5426 in60.196s/1,818,450KiB and5319dcd6
+in3.100s/382,864KiB, only inherited decode_plain warning. Later test assertion and
+resolver changes compiled in affected no-run passes (3.639s/388,208KiB and33.196s/
+800,385KiB) and passed their actual callers. First no-run219.675s/2,629,122KiB;
+warm32.150s/637,104KiB. Two earlier all-target failures (39.477s/1,816,754KiB and
+55.517s/1,763,090KiB) diagnosed missing used_native fields/mutability in Linker test
+fixtures; exact fixes are canonical2c5dc860. Original package failure exposed the
+missing URL payload and passed after the shared resolver fix; nothing bypassed.
+
+All worker heavy/formatter leases released and owned processes terminal at this
+handback. Native tests compile with --no-run, then execute binaries directly so
+nested Cargo cannot contend with the outer Cargo target lock. Dev must use the
+descendant/observed-PGID watchdog `/tmp/tsrust-artifacts-watch.py` (same5GB/1800s);
+plain `/tmp/tsrust-watch.py` covers normal inherited-PGID Cargo commands only.
+Windows/Linux execution, full suites and shared-target timing remain unrun.
+
+Optional memchr=2.8.3 is canonical (`byte-search`, dev/reference/reserved pins).
+Four offline metadata resolutions preserved all previous packages/checksums and
+defaults; only reference graph added the already-locked package. Full byte and FS
+source integrations are4a850221/810f1557; generated witnesses initiallybf3a1983.
+Worker174218b9 is now merged for coherent functional acceptance, not publication.
+
+**B02 functional/allocation acceptance — 2026-11-05:** accepted MacARM64 scope is
+40checks:22runtime/extraction/effect units, genericResult1, codecnegative1,
+codecpositive1, operations2, safe export4, focusedLSP7, representativefullfiles1,
+compilerliteralaliases1. Positive native/catalog examples cover all23new APIs at
+O0/O3, exactint/IEEE/endian/view/alias vectors, no partial writes and readonly/
+same-owner/late-argument loan rejection. Exports prove preciseoptionalfeatures,
+licenses, forbiddenunsafe and relocatedofflineemptyCARGO_HOME O0/O3. B02 public
+signatures and four-phase editor phase/agreement rows pass. Implementation items
+are checked separately in the existing plan;75actualworkloadtimings and Windows/
+Linux/full regressions are NOT complete. No canonical DB entry was added here.
+
+Actual emitted allocation controls pass104O0/O3 cases/1872independent generated/
+Rust samples:0extraalloc/iteration/field slopes,0live-after-drop for every sample.
+Packets have exactlyone64B setupallocation and0realloc atn0/1/256. UTF16 encode
+hasoneoutputalloc/iteration; mixeddecode0realloc vsstd1, CJK1vsstd2. All48decode
+cases haveonefewerrealloc thanstd, not an alias/order overhead. Raw temporary
+results target/generated-byte-allocation-prototype/results.json,
+SHA45a0d356b65630d1cc0bce5a61a3e85c72c81dc8181743eb8d01b70277724eca;
+41.521s/329,088KiB,24compiledartifactrecords. CompilerSHA
+7fb03db70fbd02497216d0605690edd535933ffb79c054b680ef96b4f2eef4f6 is the verified
+871production candidate;289support edits do not change producer inputs. All
+unmodified generated variants compile-Funsafe_code; instrumentation never replaces
+arguments/calls/bodies. Prototype is not a canonical throughput measurement.
+
+Accepted source IDs: e7ffcf67/tree74cb61b =bf3+2focusedLSProws; all-target
+compiler+LSP check59.371s/1,288,576KiB (inheriteddecode_plain warning only).
+Initial no-run498.768s/1,734,016KiB produced18executables. Actual codec positive
+then caught a real ModeRead union ABI mismatch (14sites,E0308): bridge expected
+&Union but lowering correctly passed ViewUnion.87142ee9 fixes byte order and FS
+seek origin with existing emit::ty(BorrowedUnion), byvalueview and actual borrowed
+payload; no clones/static substitution/global lowering/mode weakening. Fields
+are &'a Cow, so payload lives through the backend call. Repair no-run without
+unchanged--lib222.927s/1,650,192KiB produced16artifacts. Both normalCLI/LSP artifacts
+profile.test=false/fresh=false were verified separately from harnessbins.
+
+Compatible passes were preserved, not replayed: units4.368s/47,344KiB;
+LSP7checks19.918s/65,536KiB; repairedcodec10.995s/392,128KiB;
+operations5.881s/367,712KiB; exports91.601s/402,176KiB;
+representativeFS+alias10.228s/384,448KiB. Final support-only289da5b5 repaired
+authored int(...) calls, integer Math.min setup and a late length-read while
+exclusive set loan was active. Matched TSR/TS/Rust observations/oracles/hashes
+updated; no production numeric/loan change. All13benchmark+9probe strictCLI ABI
+emits and pinnedNode/TS controls pass. Priorfailedprobes stopped atfrontend,
+not native profiling. Core pruned92owned disposableprototype consumers34,245,642B;
+sharedCargo/test/normalCLI artifacts remain for the FS queue. No owned process or
+lease remains at core's clean174218b9 handback. Never restart old terminalhandles.
+
+Next: host corrected seek-only stdfloor profile, then B01 focused native/compiler/
+LSP/export gate. To preserve Cargo packagepaths/cache, transfer idle byte worktree
+validation ownership explicitly to host only; core must not write there during
+that lease. Compile unrun FS targets with --no-run, then directbinarythreads3.
+Use verified normal binaries/CargoJSON at /private/tmp/tsrust-b02-cargo-artifacts.json;
+no released TSRUST override, no outerCargo lock during nested CLI tests. Preserve
+unchanged prior unit/LSP passes by source scope. Fullgoal B00–B20 remainsactive.
+
+**Current next gate:** root7bd05562 cleanly integrates worker174 and checks B02
+implementation items separately from pending75timings/platforms. Validation-only
+ownership of idle `/Users/seancotter/.codex/worktrees/stdlib-bytes/tsrust` (clean174,
+no node_modules symlinks) is explicitly transferred to host_api_plan; core stays
+idle/no writes. This preserves Cargo package paths and accepted artifact caches.
+Host first corrected seek-only floor profile PASSES1contract/3samples:1alloc,
+0realloc,16,384requested/retained/peak bytes,0live-after-drop;checksum488447505,
+quietload1.46875,3.124s/236,832KiB,O3build402.917ms/bin487592B. Current reference
+SHAec570df711d3ad1498d9dfe757c8fea0b6a38de58e9ea511aa946c521ed74812;
+raw `/tmp/tsrust-fs-seek-floor-profile.json`. Owned-read/sync/earlier3stdprofiles
+are preserved. No API throughput or canonical DB measurement was added.
+
+TIMINGlease released; host retains exclusiveBUILD for B01. Plan: verify/reuse
+normal871CLI/LSP identities, reuse FS libtest only after unchanged runtime source/
+symbol proof, otherwise rebuildaffected; no-run ONLY unrun filesystem_utilities/
+temp_directories/file_cleanup/file_writes/focusednative_package_export and LSP
+native_file_catalog/project_intelligence/completion_matrix. Reuse unchanged
+checker_agreement/editor_consistency binaries, run FS-only four-phase/receiver/
+help filters and actual native/catalog/offline relocated temp/file export.
+Then quick five-case workload ABI/oracles. Compile tests first, execute direct
+binaries one at a time withthreads3 andwatchdog; no outerCargo/nested target lock,
+no old releasedTSRUST, no full-suite/B02replay/newfeature/retiming. Report real
+failures before source patches. Root is sole canonical writer; no root heavywork.
+
+**Live B01 gate — 2026-11-05:** host owns transferred byte tree, now clean
+fixture-only6f804c40(parent174); core idle. Reused e7FS runtime binary only after
+all5runtime files matched3c666a11 bytes and listed newcursor/temp tests.29/30
+pass; onefixture failed before API access because Mac filesystem rejects creating
+raw0xff filename (OS92/EILSEQ). Actualbackend conversion is not disproved. Mac
+raw symlink TARGET probe supports0xff unchanged, so realreadLinkstrictness stays
+allUnix. Fixture repair3authorized files: splitUnicode/symlink controls; direct
+unicode(OsString::from_vec(ff),operation) guard; actualrawfilename and malformedcwd
+cleanup tests Linux-only, not ignored. Linuxexecution remains pending.
+
+Also corrected authored false-positive test harness: imports had been passed to
+single-file check in temporary selection/negativeownership cases. Realproject
+loader now used; action-only cases get main,9negatives assert exact codes
+[parameter-access,transferred,type,parameter-access,parameter-access,transferred,
+type,type,type], not arbitrary errors. No production/loan guard weakened. Scope
+is fs/runtime/fs.rs(testmodule),native_temp_directories.rs,filesystem_utilities.rs.
+Wholeformatter0/0/0 twice10.340s/468,961KiB; missingdependencylink firstfailed
+before changes, corrected; borrowedlinkremoved. Changedruntime testcode requires
+fresh--lib binary; don'trerun the knownoldfailedbinary as acceptance.
+
+Supersededcompiler-only no-run51224 finished226.786s/2,635,426KiB before stop
+arrived; dependencyrebuilds proved its packagefeaturegraph differed. It is not a
+new acceptedgate. Correct ONE combined no-run is confirmed LIVE session21642,
+artifactstream /tmp/tsrust-b01-combined-artifacts.jsonl: both compiler/LSP packages,
+both explicitbins, changed--lib, unrun5FScompiler +3LSP targets, same byte tree/
+originaltarget/jobs1/incremental0/lockedoffline/watchdog5GB/1800s. Native tests
+not started. Preserve/poll same livehandle; don'trestart on observationtimeout.
+Host retainsBUILD+formatter. Root onlyhandoffprose/lightformat, no productionedit.
+
+FS seek/sync std contracts PASS2/2,3allocation samples each,0live after drop,
+quietload2.02393,3.623s/270,464KiB. Sync n16:20alloc/3realloc,740requested,
+256retained-output/432peak,checksum233949518;O3build193.187ms/bin490552B. Seek
+original owned-read control n1024:1025alloc/8realloc,98,240requested,16,384retained/
+16,448peak,checksum488447505;O3build392.880ms/bin487592B. Exact originalseek source
+80196e7cc4e1f4424dabad821338459d71f3651a0e96987d5e696e9017e17987;
+sync774999a52c47ba13bb62083b224ca5c28ce9f393f60a8a267d341cf940dae753.
+These are std contract/allocation/build observations, not native API throughput.
+
+Important fair-reference correction integrated via791dff76/87142ee9: old seek Rust control
+allocated Vec64 inside all1024reads just like Tsrust;1024input+1output allocation,
+8output growths. That is an owned-read-contract control, not minimal idiomatic
+Rust. Preserve `/tmp/tsrust-fs-cursors-std-profile.json` labeled accordingly;
+currentPublicReference=false for its seek entry, sync unchanged. Corrected Rust
+uses one reusable stack buffer and reserved output Vec; Node uses one Buffer and
+preallocated observations, counting only bytes actually read including EOF.
+Tsrust source/runtime unchanged so its real allocation gap remains visible.
+Narrow Node5semantic cases, strictTS and RustABI pass. Reference/guard/Node/B05
+checklist edits are committed; corrected floor profile and B01 native gate remain
+unrun.
+Next only corrected seek reprofile writes `/tmp/tsrust-fs-seek-floor-profile.json`
+via prepared existing driver, after core heavylease releases; do not retime sync
+or prior3stdprofiles. Freeze writable-destination Reader API in B05 with pending
+loans/cancellation/blocking settlement; do not silently expand B01.
+
+B02 scoped functional/allocation gate now passes above; B01/B04 and all actual
+new workload timings/platform/release requirements remain open. Root integration
+of174 includes the source fixes; this checkpoint is not overall goal completion.
 
 **URL emission defect repair:** readiness test2b1d3790 first called the single-file
 checker on imports (syntax failure); it now uses the real project loader. That
@@ -51,10 +237,9 @@ import/opaque construction1/1 passes3.634s/344,688KiB; strict/tolerant graph ali
 byte arity/ownership and UTF8 argument controls3/3 pass0.521s/5,536KiB. Earlier
 witness failures are retained in /tmp logs. No CLI cache-miss, native URL execution,
 new timing, full regression or current LSP acceptance is claimed for this repair.
-Next: merge this committed prerequisite into runtime worker5dc08536 and validate
-shared-target staging/caller/reuse controls before returning native leases to FS
-and bytes. Runtime worker must use --no-run then direct test binaries for nested
-Cargo controls. Root codec acceptance c7898da is still pending integration.
+Shared-target caller/reuse acceptance now passes as recorded above. Codec acceptance
+source c7898da is integrated in3f41116f; positive native/editor/package gates remain
+pending on the combined candidate.
 
 Byte operations prototype (not a measured feature gate) passes std and independent
 Node/BigInt/DataView vectors. Three rotated processes,8 warmups/31 samples each;
@@ -102,18 +287,14 @@ shared-target repair; filesystem worker awaits that repair plus these pins. Live
 GitHub recheck confirms PR15 and promotion PR14 merged; release41942318885,
 publisher41944583887 and docs41944660013 succeeded. No open PRs remain.
 
-**Shared target blocker discovered:** inherited cli/runtime_build.rs chooses a
+**Resolved blocker provenance:** inherited cli/runtime_build.rs chose a
 private build_root/native-target and removes CARGO_TARGET_DIR; outer test env did
-not prove inner CLI target reuse. Prior FS correctness remains valid, but sole-
-target compliance for CLI cache misses was not established. Benchmark dependency
-preparation already passes an explicit shared --target-dir. Do not run further
-CLI cache-miss native tests until the committed repair lands. Merely changing
-that path is insufficient: native_dependency_bundle::pack globs all .rlib/.lib/
-DLL files, so a shared compiler target would include unrelated artifacts. Repair
-must select exact Cargo-reported artifacts, isolate the runtime library from
-cross-graph alias races, preserve cancellation/errors and dependency reuse, and
-bound cache bundles to the selected closure. No hidden second target or new
-arbitrary API cap. All heavy/formatter leases are released at this checkpoint.
+not prove inner CLI target reuse. Prior FS correctness remains valid; its sole-
+target compliance was not established then. Benchmark dependency preparation
+already passed an explicit shared --target-dir. The exact-artifact/lock/caller
+repair above now passes locally; no hidden second target or arbitrary API cap
+was added. Historical private native-target outputs must be pruned only after
+all current consumers are known terminal; do not delete owner/active caches.
 
 Root URL wiring embeds the17 reviewed payload files, verifies exact bytes/file
 sets and rejects links/tampering, relocates only the parsed TOML path span without
@@ -159,27 +340,19 @@ of every prior history entry and SQLite integrity. Timing JSONs are now disposab
 current diagnostic profiles remain with FS worker. This is not a new fresh A/B
 claim for the six historical controls and not Windows/Linux acceptance.
 
-**Workers, one writer per managed tree:**
-- core_api_plan /stdlib-bytes: original generic fixture restored; mandatory native
-  generic regression has no ignore. Runtime3/extraction1 passed before shared
-  fixes; original positive native fixture was blocked on generic/effect defects.
-  Prepared O0/O3 catalog+native, LSP, feature/relocated export controls,36registrations/
-  12independent references and mixed/CJK allocation probes. No heavy process.
-  Its merge of46cfc4b8 and codec acceptance additions remain uncommitted; preserve
-  them. Use followup_task to wake with committed shared fixes and a lease.
-- runtime_api_plan /stdlib-url: payload da8edd91, facade a5328d77, scaling458a539f,
-  runtime controls0a19267f and editor readinessa25985df are integrated. Skip local
-  prerequisite82c17631. Prepared URL feature-only witness8cases is not executed.
-  Source selection/cache/export and actual compiler/LSP URL controls remain open.
-- host_api_plan /stdlib-files: first slice67b90e1a integrated. Next B01 section has
-  21directory/metadata/utilities APIs/four records, createTempDir optional module,
-  docs/catalog/native/editor matrices and three matched workloads in progress.
-  Pinned Node controls11/11 and TS noEmit pass; native unaccepted. Direct std
-  four-kernel prototype/profile passes2.081s/295,472KiB,0retained allocations;
-  these are allocation/build observations, not throughput. No native process.
-  Needs tempfile dependency-only handback; cursors still need shared SeekOrigin
-  literal alias metadata. Private temporary-files feature must not enter ordinary
-  files_module. Package admission facts below/plan; root owns dependency locks/DB.
+**Workers / next validation ownership:**
+- core_api_plan /stdlib-bytes: clean174218b9, no ownedprocess/lease. B02 scope and
+  data above accepted; both normalbins and exactunit/integrationartifacts retained.
+  Root will transfer this idle tree to host for B01 validation to avoid changing
+  Cargo package paths; core must not write/run until ownership returns.
+- host_api_plan /stdlib-files: clean791dff76 on bf3 lineage, FS borrowed-origin ABI,
+  fair seek Rust/Node controls and B05 destination-reader plan are integrated in
+  core174.44FSexports/5matchedrows/four-phase editor source is coherent. Next
+  corrected seek-only std floor profile, then focused B01 gate on transferred
+  clean byte tree with exact artifact/source identities. No full-suite/timing claim.
+- runtime_api_plan /stdlib-url: clean d11bd018, accepted21repaircontrols; no process
+  orlease. URL payload/facade/scaling/editor readiness is integrated. Public URL
+  compiler/native/LSP/package execution and11newAPI timings remain queued.
 
 URL patch evidence: upstream67unit+unchanged WPT and direct runtime6passed;
 path-scoped reverse search turns long-authority sizes8192/16384/32768/65536 from
@@ -188,11 +361,14 @@ path-scoped reverse search turns long-authority sizes8192/16384/32768/65536 from
 that control. Empty-host mutation preguard addresses1174;1164 EmptyHost behavior
 is documented, not claimed WHATWG parity. Public API timing/DB ingestion pending.
 
-Next: checkpoint the coherent shared candidate, repair the inherited shared-target
-artifact path, provide committed prerequisites to workers, resume affected native/
-editor/package validation serially. Root owns shared alias architecture, manifests/
+Next: preserve/merge complete FS source and generated allocation witnesses, profile
+FS new std seek/sync kernels under exclusive timing, then build the combined
+candidate and execute coherent affected B02/B01/B04 gates serially. Root owns shared alias architecture, manifests/
 locks, canonical checkpoints, measurements.sqlite and this sole handoff. Keep old
 accepted checks; fix/rerun only affected cases. No pushes or full suites on a timer.
+
+Earlier planning snapshots below are retained context; the active goal/release and
+implementation status above supersede their then-pending instructions.
 
 Owner-requested v0.2.0 planning, 2026-11-04: concrete API/checklist work is now
 written in [stdlib-0.2.0](plans/stdlib-0.2.0.md). It has19implementation bundles,

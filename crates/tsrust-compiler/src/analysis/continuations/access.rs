@@ -160,7 +160,7 @@ impl Analyzer {
             }
             FieldFrame::Length => {
                 let actual = result?;
-                if !matches!(actual, Type::String | Type::Array(_))
+                if !matches!(actual, Type::Array(_)) && !self.is_string_observation(actual)
                     && !matches!(actual, Type::Record(id) if self.program.records[id].is_tuple())
                 {
                     return Err(Diagnostic::new(
@@ -187,7 +187,7 @@ impl Analyzer {
                     }
                     return Ok(Type::Int);
                 }
-                if matches!(ty.scalar_base(), Type::String | Type::Array(_)) && name == "length" {
+                if (matches!(ty,Type::Array(_)) || self.is_string_observation(ty)) && name == "length" {
                     if mode == Mode::Mutate {
                         return Err(Diagnostic::new(
                             "unsupported",
@@ -222,7 +222,7 @@ impl Analyzer {
                 }
                 let base_type = result?;
                 let base_type = self.recursive_array_receiver(context, base, base_type);
-                if (matches!(base_type.scalar_base(), Type::Array(_) | Type::String)
+                if ((matches!(base_type,Type::Array(_)) || self.is_string_observation(base_type))
                     || matches!(base_type, Type::Record(id) if self.program.records[id].is_tuple()))
                     && name == "length"
                 {
@@ -360,10 +360,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<(IndexFrame, Mode, Option<Type>), Diagnostic> {
         if !Self::optional_hint_boundary(base)
-            && self
-                .expression_type_hint(context, base)
-                .map(Type::scalar_base)
-                == Some(Type::String)
+            && self.string_observation_hint(context,base)
         {
             return Ok((
                 IndexFrame {
@@ -413,7 +410,7 @@ impl Analyzer {
     ) -> Result<IndexAdvance, Diagnostic> {
         let (element, active, named) = match frame.kind {
             IndexKind::String => {
-                debug_assert_eq!(ty.scalar_base(), Type::String);
+                debug_assert!(self.is_string_observation(ty));
                 let mut active = loans.clone();
                 for root in Self::loan_roots(base, Mode::Read) {
                     active

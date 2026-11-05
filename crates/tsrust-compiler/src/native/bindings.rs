@@ -86,8 +86,12 @@ impl NativeBinding {
                 _ => {},
             }
         }
-        if self.module == "std:fs" && position == 1 && matches!(self.name, "write" | "writeAll" | "writeFile") {
+        if self.module == "std:fs" && position == 1 && matches!(self.name, "write" | "writeAll" | "writeFile" | "appendFile") {
             return &[ByteView, ByteViewMut];
+        }
+        if self.module == "std:bytes" {
+            if matches!(self.name,"concat"|"equals"|"compare"|"indexOf") && position<=1 {return &[ByteView,ByteViewMut];}
+            if self.name=="copyInto" {return match position {0=>&[ByteViewMut],2=>&[ByteView,ByteViewMut],_=>&[]};}
         }
         if self.module != "std:bytes" || position != 0 {
             return &[];
@@ -95,8 +99,9 @@ impl NativeBinding {
         match self.name {
             // A view of a view borrows the parent view for as long as it lives.
             "length" | "at" | "copy" | "toUtf8" | "view"
-            | "toHex" | "toBase64" | "toBase64Url" | "toUtf8Lossy" | "toUtf16" => &[ByteView, ByteViewMut],
-            "set" | "viewMut" => &[ByteViewMut],
+            | "toHex" | "toBase64" | "toBase64Url" | "toUtf8Lossy" | "toUtf16"
+            | "readInt" | "readUint" | "readFloat32" | "readFloat64" => &[ByteView, ByteViewMut],
+            "set" | "viewMut" | "copyWithin" | "writeInt" | "writeUint" | "writeFloat32" | "writeFloat64" => &[ByteViewMut],
             _ => &[],
         }
     }
@@ -444,6 +449,31 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs::bindings::WRITE_ALL,
     crate::stdlib::fs::bindings::READ,
     crate::stdlib::fs::bindings::CLOSE,
+    crate::stdlib::fs::bindings::OPEN_FILE,
+    crate::stdlib::fs::bindings::STAT,
+    crate::stdlib::fs::bindings::LSTAT,
+    crate::stdlib::fs::bindings::FILE_STAT,
+    crate::stdlib::fs::bindings::READ_DIR,
+    crate::stdlib::fs::bindings::MKDIR,
+    crate::stdlib::fs::bindings::MKDIR_ALL,
+    crate::stdlib::fs::bindings::REMOVE_FILE,
+    crate::stdlib::fs::bindings::REMOVE_DIR,
+    crate::stdlib::fs::bindings::REMOVE_DIR_ALL,
+    crate::stdlib::fs::bindings::RENAME,
+    crate::stdlib::fs::bindings::COPY_FILE,
+    crate::stdlib::fs::bindings::HARD_LINK,
+    crate::stdlib::fs::bindings::CANONICALIZE,
+    crate::stdlib::fs::bindings::READ_LINK,
+    crate::stdlib::fs::bindings::APPEND_FILE,
+    crate::stdlib::fs::bindings::READ_TEXT_FILE,
+    crate::stdlib::fs::bindings::WRITE_TEXT_FILE,
+    crate::stdlib::fs::bindings::TRUNCATE,
+    crate::stdlib::fs::bindings::SYNC_ALL,
+    crate::stdlib::fs::bindings::SYNC_DATA,
+    crate::stdlib::fs::bindings::CREATE_TEMP_DIR,
+    crate::stdlib::fs::bindings::SEEK,
+    crate::stdlib::fs::bindings::POSITION,
+
     crate::stdlib::bytes::bindings::FROM_ARRAY,
     crate::stdlib::bytes::bindings::LENGTH,
     crate::stdlib::bytes::bindings::AT,
@@ -463,6 +493,20 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::bytes::bindings::FROM_BASE64_URL,
     crate::stdlib::bytes::bindings::FROM_UTF16,
     crate::stdlib::bytes::bindings::TO_UTF16,
+    crate::stdlib::bytes::bindings::CONCAT,
+    crate::stdlib::bytes::bindings::COPY_INTO,
+    crate::stdlib::bytes::bindings::COPY_WITHIN,
+    crate::stdlib::bytes::bindings::EQUALS,
+    crate::stdlib::bytes::bindings::COMPARE,
+    crate::stdlib::bytes::bindings::INDEX_OF,
+    crate::stdlib::bytes::bindings::READ_INT,
+    crate::stdlib::bytes::bindings::WRITE_INT,
+    crate::stdlib::bytes::bindings::READ_UINT,
+    crate::stdlib::bytes::bindings::WRITE_UINT,
+    crate::stdlib::bytes::bindings::READ_FLOAT32,
+    crate::stdlib::bytes::bindings::WRITE_FLOAT32,
+    crate::stdlib::bytes::bindings::READ_FLOAT64,
+    crate::stdlib::bytes::bindings::WRITE_FLOAT64,
     crate::stdlib::testing::bindings::CONTAINS_VALUE,
     crate::stdlib::testing::bindings::LENGTH_VALUE,
     crate::stdlib::testing::bindings::HAS_LENGTH,

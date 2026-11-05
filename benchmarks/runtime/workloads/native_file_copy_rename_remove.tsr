@@ -1,0 +1,21 @@
+import { copyFile, stat, rename, removeFile } from "std:fs";
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const source = input + "/source.bin";
+  const target = input + "/copy.bin";
+  const moved = input + "/moved.bin";
+  let rows: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const copied = unwrap(copyFile(source, target));
+    const length = unwrap(stat(target)).size;
+    unwrap(rename(target, moved));
+    unwrap(removeFile(moved));
+    rows.push([copied, length + (i + seed) % 17]);
+    i++;
+  }
+
+  return rows;
+}
+
+function main() {}

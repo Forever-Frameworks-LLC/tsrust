@@ -210,8 +210,8 @@ impl Analyzer{
             Type::Set(_)|Type::Map(_) if name=="size"=>Some(Type::Int),
             Type::Record(id) if name=="length" && self.program.records[id].is_tuple()=>Some(Type::Int),
             Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Url)=>crate::stdlib::url::property(name).map(|property|native_type(property.getter.result,&self.program.records)),
-            Type::Record(id)=>self.fields[id].get(name).copied(),Type::Union(union)=>self.record_union_field(union,name),
-            Type::Array(_)|Type::String if name=="length"=>Some(Type::Int),_=>None,
+            Type::Record(id)=>self.fields[id].get(name).copied(),Type::Union(union) if !(name=="length" && self.is_string_observation(receiver))=>self.record_union_field(union,name),
+            ty if name=="length" && (matches!(ty,Type::Array(_)) || self.is_string_observation(ty))=>Some(Type::Int),_=>None,
         }?;
         if optional{
             let result=self.unions.intern([result,Type::Undefined],span).ok()?;

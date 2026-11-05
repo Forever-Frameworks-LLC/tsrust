@@ -26,9 +26,10 @@ export function needsJsonDependencies(emitted) { return /(?:^|[;}]\s*)mod\s+tsru
 export function prepareNativeDependencies({emitted,compiler,source,build,rustVersion,targetDirectory,env=process.env}) {
  const files=/(?:^|[;}]\s*)mod\s+tsrust_native_files\s*\{/m.test(emitted);
  const codecs=/\bfn codec_base64_engine\(/.test(emitted);
+ const search=/\bpub fn index_of\(bytes: &\[u8\], needle: &\[u8\], from_index: i64\)/.test(emitted);
  const urls=/(?:^|[;}]\s*)mod\s+tsrust_native_url\s*\{/m.test(emitted);
- if(!needsJsonDependencies(emitted)&&!files&&!codecs&&!urls)return {args:[],evidence:null};
- const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(codecs?['base64']:[]),...(urls?['url','percent_encoding']:[])];
+ if(!needsJsonDependencies(emitted)&&!files&&!codecs&&!search&&!urls)return {args:[],evidence:null};
+ const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(codecs?['base64']:[]),...(search?['memchr']:[]),...(urls?['url','percent_encoding']:[])];
  // Stable source paths keep rebuilt dependency artifacts identical across A/B runs.
  const scratch=path.join(build,'package-native-dependencies');
  fs.mkdirSync(scratch); // Fail closed if another preparation owns this directory.
@@ -62,7 +63,7 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
 
 // Reference-only crates never change the emitted compiler or Node dependency path.
 export function prepareReferenceDependencies({workload,rustVersion,targetDirectory,env=process.env}) {
- const selected=workload?.family==='native-url'?['url','percent_encoding']:workload?.family==='byte-codecs'&&workload.id.startsWith('bytes_base64')?'base64':{math_random_range:'rand',string_normalize_forms:'unicode_normalization'}[workload?.id];
+ const selected=workload?.family==='byte-operations'&&workload.id.startsWith('byte_ops_index_')?'memchr':workload?.family==='native-url'?['url','percent_encoding']:workload?.family==='byte-codecs'&&workload.id.startsWith('bytes_base64')?'base64':{math_random_range:'rand',string_normalize_forms:'unicode_normalization'}[workload?.id];
  if(!selected)return {args:[],evidence:null};
  const root=fileURLToPath(new URL('./parity-dependencies/',import.meta.url));
  const target=path.resolve(targetDirectory),childEnv={...env,CARGO_TARGET_DIR:target,CARGO_INCREMENTAL:'0',CARGO_BUILD_JOBS:'1'};

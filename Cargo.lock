@@ -4530,6 +4530,7 @@ dependencies = [
  "hyper-util",
  "libc",
  "matchit",
+ "memchr",
  "nix",
  "percent-encoding",
  "proc-macro2",

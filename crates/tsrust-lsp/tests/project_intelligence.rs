@@ -41,7 +41,7 @@ fn file_api_hover_and_signature_help_preserve_consuming_close() {
     let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &source_id(uri).unwrap().0).unwrap();
     let completion = ask(&ProjectIndex::new(&graph), importing, " }", "textDocument/completion");
     let labels = completion.as_array().unwrap().iter().filter_map(|item| item["label"].as_str()).collect::<Vec<_>>();
-    assert_eq!(labels, ["File", "FsError"], "{completion}");
+    assert_eq!(labels, ["File", "FsError", "FileTime"], "{completion}");
 }
 
 #[test]
@@ -3216,4 +3216,20 @@ fn json_default_limit_help_agrees_for_native_and_typed_calls(){
   let hover=ask(&index,&source,needle,"textDocument/hover");assert!(hover.to_string().contains(expected),"{needle}: {hover}");
   assert!(!hover.to_string().contains("16777216")&&!hover.to_string().contains("1048576"),"{hover}");
  }
+}
+
+#[test]
+fn filesystem_options_metadata_and_entry_help_agree_with_native_signatures() {
+    let entry=tsrust_compiler::format("import {openFile,fileStat,readDir,close} from 'std:fs';function main(){const file=unwrap(openFile('input.bin',{read:true}));const info=unwrap(fileStat(file));console.log(info.size);const entries=unwrap(readDir('.'));for(const entry of entries){console.log(entry.isSymlink);}unwrap(close(file));}").unwrap();
+    let uri=fixture_uri!("/tsrust-intelligence/main.tsr");
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"info.size","textDocument/hover").to_string();
+    assert!(hover.contains("Host metadata length in bytes"),"{hover}");assert!(!hover.contains("__tsrust_private_"));
+    let hover=ask(&index,&entry,"entry.isSymlink","textDocument/hover").to_string();
+    assert!(hover.contains("including links to directories or missing targets"),"{hover}");
+    let options=ask(&index,&entry,"\"input.bin\"","textDocument/signatureHelp").to_string();
+    assert!(options.contains("options: ReadOnly<OpenOptions>"),"{options}");
+    let directory=ask(&index,&entry,"\".\"","textDocument/signatureHelp").to_string();
+    assert!(directory.contains("maxEntries?: int"),"{directory}");assert!(directory.contains("no application entry cap"),"{directory}");
 }

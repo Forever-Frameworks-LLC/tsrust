@@ -244,3 +244,12 @@ include!("codecs.rs");
 include!("base64.rs");
 #[cfg(test)]
 mod codec_tests;
+
+#[cfg(test)]
+include!("operations.rs");
+#[cfg(test)]
+include!("binary.rs");
+#[cfg(test)]
+include!("search.rs");
+#[cfg(test)]
+mod operation_tests;
