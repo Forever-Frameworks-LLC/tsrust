@@ -158,7 +158,7 @@ impl Analyzer {
                 let payload=self.program.records[record].application.as_ref().unwrap().resolved_arguments[0];
                 if binding.name=="__sender"{self.thread_application(NativeTypeId::AsyncSender,&[payload],span)?}else if binding.name=="__close"{Type::Void}else{
                     if matches!(binding.name,"__send"|"__trySend"){let mut active=loans.clone();for root in Self::loan_roots(&args[0],access){active.entry(root).or_default().push((access,args[0].span));}let actual=self.expression(context,&mut args[1],Mode::Consume,&active,Some(payload))?;self.require(actual,Some(payload),args[1].span)?;}
-                    let failure=match binding.name {"__send"|"__trySend"=>self.thread_application(NativeTypeId::SendError,&[payload],span)?,"__tryReceive"=>self.thread_application(NativeTypeId::ChannelError,&[],span)?,_=>self.thread_application(NativeTypeId::AsyncError,&[Type::Undefined],span)?};self.thread_result(if matches!(binding.name,"__receive"|"__tryReceive"){payload}else{Type::Void},failure,span)?
+                    let failure=match binding.name {"__send"|"__trySend"=>self.thread_application(NativeTypeId::SendError,&[payload],span)?,"__tryReceive"=>Type::Record(self.schema_native_dependency(NativeTypeId::ChannelError,span)?),_=>self.thread_application(NativeTypeId::AsyncError,&[Type::Undefined],span)?};self.thread_result(if matches!(binding.name,"__receive"|"__tryReceive"){payload}else{Type::Void},failure,span)?
                 }
             },
             _=>return Err(Diagnostic::new("future-call","Call this future operation directly.",span)),

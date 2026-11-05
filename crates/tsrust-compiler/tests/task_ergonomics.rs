@@ -58,3 +58,8 @@ fn task_async_moves_owned_captures_without_making_the_pool_transferable(){
 fn synchronous_try_operations_prepare_channel_error_types(){
  execute("import {Channel} from 'std:futures';function main(){const channel=new Channel<string>(1);unwrap(channel.trySend('owned'));console.log(unwrap(channel.tryReceive()));try{unwrap(channel.tryReceive());}catch(error){console.log(error.code);}}","owned\nempty\n");
 }
+
+#[test]
+fn all_materializes_scalar_record_and_nested_array_carriers(){
+ execute("import {all} from 'std:futures';type Item={value:int};async function text():Task<string>{return 'owned'.repeat(2);}async function record():Task<Item>{return {value:7};}async function array():Task<int[]>{return [3,4];}async function main():Task<void>{const texts=await all([text(),text().start()]);const records=await all([record(),record().start()]);const arrays=await all([array(),array().start()]);console.log(texts[0],texts[1],records[0].value,records[1].value,arrays[0][0],arrays[1][1]);}","ownedowned ownedowned 7 7 3 4\n");
+}

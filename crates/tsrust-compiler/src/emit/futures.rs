@@ -52,13 +52,13 @@ impl Emitter<'_>{
             format!("({call}).map_err(|error|tsrust_native_futures::Failure::Worker({cause}))")
         }else{format!("Ok::<_,tsrust_native_futures::Failure<{}>>({call})",self.native_type(error))}
     }
-    fn future_result(&self,ty:Type,call:&str)->String{
+    fn future_result(&self,ty:Type,call:&str,collecting:bool)->String{
         let Type::Union(union)=ty else{unreachable!("future result")};
         let mut success=String::new();let mut failure=String::new();
         for (tag,member) in self.program.unions[union.index()].members.iter().enumerate(){
             let Type::Record(record)=*member else{unreachable!()};let declaration=&self.program.records[record];
             if declaration.application.as_ref().unwrap().declaration.text=="Result#Ok"{
-                let fields=if declaration.fields.is_empty(){String::new()}else{"field0:value,".into()};
+                let fields=if declaration.fields.is_empty(){String::new()}else{let value=if collecting{self.flat_array_result(declaration.fields[0].ty.unwrap(),"value")}else{"value".into()};format!("field0:{value},")};
                 success=format!("Union{}::V{tag}(Record{}{{{fields}{}}})",union.index(),self.native_record_declaration(record),self.schema_record_order(record).trim_start_matches(','));
             }else{
                 let Type::Record(error)=declaration.fields[0].ty.unwrap() else{unreachable!()};let cause=self.program.records[error].fields[1].ty.unwrap();let own=self.program.records[error].application.as_ref().unwrap().resolved_arguments[0];
@@ -163,7 +163,7 @@ impl Emitter<'_>{
             "__send"=>format!("({}).send({}).await",self.expr(fun,&args[0],Mode::Read),self.expr(fun,&args[1],Mode::Consume)),
             "__receive"=>format!("({}).receive().await",self.expr(fun,&args[0],Mode::Read)),_=>unreachable!("future operation")
         };
-        Some(if binding.name=="__allSettled"{format!("({call}).into_iter().map(|result|{}).collect::<Vec<_>>()",self.future_result(result_item,"result"))}else{self.future_result(result,&call)})
+        Some(if binding.name=="__allSettled"{format!("({call}).into_iter().map(|result|{}).collect::<Vec<_>>()",self.future_result(result_item,"result",false))}else{self.future_result(result,&call,binding.name=="__all")})
     }
     pub(super) fn future_record(&self,output:&mut String,id:usize)->bool{
         let record=&self.program.records[id];
