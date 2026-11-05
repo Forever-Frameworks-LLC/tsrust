@@ -949,9 +949,21 @@ NumberFormat worker transfer/suspension and relocated offline forbid-unsafe
 builds) passed. Editor exports/hover/signature help,6completion rows across4modes
 and8receiver agreement groups passed. Runtime selection stays optional. Selected
 provider sync preserves all existing dependency versions and the previously
-measured54active-identity production graph. Public11workload measurements,
-allocation/gap review and cross-platform milestone validation remain pending;
-these checked API items do not claim the complete bundle performance gate.
+measured54active-identity production graph. Required borrowed-union input repair
+80795335 adds repeated concrete Decimal/union/forwarding owner reuse atO0/O3 and
+preserves contextual record/generic inference and narrowed union projections;
+26focused tests accepted after repairing two intermediate projection regressions.
+Actual public11workload measurements passed on80795335:165correctness cases,
+33workload/engine groups with3processes×31samples after8warmups, quiet maximum
+3.83447265625. All33actual histories ingested and independently verified against
+checksums,93positive samples, median/rate calculations and SQLite integrity.
+Result `benchmarks/runtime/results/2026-11-05T22-00-33-080Z.json`; watchdog851.767s/
+2,280,220KiB includes release compilation, preparation and quiet wait. Native/hand
+median ratios span0.9855–1.1144; fixed Decimal1.1144 and reusable segmentation1.1013
+need allocation review before optimization claims. Node locale formatting uses an
+already canonical string and comparison uses its ICU backend; do not attribute those
+differences solely to compiler overhead. Allocation/gap review and cross-platform
+milestone validation remain pending; these API items do not close those gates.
 
 B13 admission/profile status (2026-11-05): isolated exact ICU4X locale/collator/
 decimal/segmenter closure passed offline optimized build26.933s/319,104KiB.

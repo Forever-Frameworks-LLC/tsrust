@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch
-`codex/stdlib-0.2.0`, source checkpoint **4d84435d**. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint **80795335**. Full B00–B20 stays active.
 Latest accepted work: literal-all optimization passed8focused witnesses; actual
 ready/yield medians improved40.1%/30.1%,2native histories ingested atbb0677ec.
 Unchanged Rust/Node controls reused. Actual-parameter task warning repair458500b2
@@ -25,11 +25,30 @@ examples atO0/O3, exact int/Decimal inputs, transfer/suspension, negative cases,
 passes unit+agreement rerun69269,12.095s/62,576KiB. Build56423 terminaltrue,
 271.833s/2,754,370KiB (`/tmp/tsrust-locale-oracle-{artifacts.jsonl,build.log}`).
 Whole-project format/token/idempotence passed before every source checkpoint.
-Borrowed-union repair, focused locale witness, allocation guard wiring and this
-handoff are now dirty. No push, release or full regression occurred.
+Borrowed-union repair, focused locale/contextual witnesses and allocation guards
+are committed80795335; only this live handoff is dirty. No push, release or full regression occurred.
 
-**First action:** resume eleven locale actual workloads after the accepted
-borrowed-union repair. Latest source is the local fix checkpoint following4d84435d.
+**First action:** monitor LIVE native locale allocation profile87928,
+`/tmp/tsrust-locale-native-allocation.log`, source80795335. Do not duplicate based
+on missing handle; inspect process and terminal watchdog output. Root owns heavy
+lease. Eleven workloads selected, original3allocation processes perworkload,
+assertchecksums/zero retainedbytes; sourceguards/support hashes repaired.
+Then run prepared /tmp/tsrust-locale-control-allocations.mjs under watchdog,
+Node24/sharedtarget/inc0/jobs1. It instruments unchanged Rust controls for segment,
+Decimal/fixed formatting and compares native/hand allocations atn0/1/full,3each;
+no timed controls rerun. Diagnose gaps from actual counts/generated source.
+
+Locale actual measurement14622 PASSED851.767s/2,280,220KiB, source80795335.
+`results/2026-11-05T22-00-33-080Z.json`, log
+`/tmp/tsrust-locale-borrow-generated-measure.log`. All165correctness cases passed,
+33timing groups×93positivefinite samples, quietmax3.83447265625. Ingested33histories
+via npm store:ingest; /tmp/tsrust-verify-locale-measurement.py independently verifies
+checksums/processes/medians/meanrates/unique timestamps and SQLite integrity.
+DB and plan are dirty with accepted results; no checkpoint yet. Native/handmedian
+ratios0.9855–1.1144; fixed Decimal+11.44%, reused segmentation+10.13% require
+allocation review, not an automatic redesign. Node references preserved unchanged.
+No further actual locale timing needed unless accepted source optimization changes.
+
 Build83174 terminaltrue216.892s/2,700,226KiB; rerun75205 all3passed9.895s/353,408KiB.
 `/tmp/tsrust-locale-borrow-projection-{artifacts.jsonl,build.log,gates.json,gates-run.log}`.
 Required nonnullable read arguments adapt known concrete inputs to borrowed unions;
@@ -43,7 +62,7 @@ Conditional-expression behavior is unchanged, not covered by this repair.
 Allocation runner now reuses locale guards for native/TS and records both contract
 and native dependency support hashes; eleven guards+independent oracle pass.
 Whole-project token/idempotence formatting clean (contextual fixture formatted).
-No generated locale timings exist yet; root owns exclusive heavy/quiet lease.
+Actual generated locale timing is now recorded above; root owns allocation lease.
 
 Repair was prompted by the Decimal loop ownership failure exposed by locale
 measurement82291. Supervisor59168/process59252 are gone; watchdog terminal code1,
@@ -53,12 +72,12 @@ loop-transfer. Earlier nine workload preparations passed; no timings started and
 nothing was ingested. Preserve their correctness scopes. b03_review traced required-union conversion forcing Consume despite Read binding.
 Root owns heavy lease. Allocation
 runner audit found missing locale source guard and dependency/contract support
-hashes; root is adding the existing guard and two hash entries before profiling.
+hashes; existing guard and two hash entries are now committed80795335.
 After focused repair acceptance, resume eleven locale actual workloads and ingest
 only real timings; independently verify33groups/93samples and SQLite integrity.
 
 B15 admission now counts errored input events toward take/drop budgets; drop
-forwards errors instead of swallowing them. Source-only witnesses added, unrun.
+forwards errors instead of swallowing them. Witnesses passed in B15 admission profile62290.
 B16 worker moved to managed `stdlib-crypto-admission` (base4d84435d), preparing
 Argon2/HMAC/HKDF/random admission. Explicit caller ThreadPool uses existing typed
 admission/completion errors and bounded workers. No public crypto implementation
@@ -75,9 +94,11 @@ Obsolete owned test executables d4807df6ae17c905 (compiler unit),9fee5f09fd1fe48
 Current explicit_locale/task_responsibility_arrays/checker_agreement remain available.
 
 Next after locale performance: B05 integration patch ready at
-`/tmp/tsrust-b05-integration.patch` SHA256
-941c18639af79cc9ea966229e537751d2a0dc998503f674ae68180c8673003d5,
-52publicfiles, canonical apply--check passed,16light tests passed/1offline skipped,
+`/tmp/tsrust-b05-integration-80795335.patch` SHA256
+4ea850b5d1723d7ace77ead26e4d8d2db6bc534d640a7aedd9bc75d772df6d49,
+52publicfiles,270786bytes, canonical80795335 apply--check passed; locale source
+guards/support hashes retained. Other51patch sections unchanged. Existing
+16light tests passed/1offline skipped,
 3TypeScript peers pass. Recheck/apply preserving later root fixes, wholeformat,
 checkpoint and scoped native/editor/export/benchmark validation. Seventh B05 direct
 runtime deferred-close witness still unrun. B14 source remains frozen, not integrated.
@@ -94,6 +115,15 @@ b14 implements B15 after accepted admission/typed-ownership contract in managed
 preserving frozen `stdlib-collections`. b03_review prepares B08 source-only admission in new managed
 `/Users/seancotter/.codex/worktrees/stdlib-network-admission/tsrust` (base4d84435d).
 b06 prepares B16 source-only admission in `stdlib-crypto-admission` (base4d84435d).
+b03_review now implements B18 in new managed `stdlib-testing` at80795335;
+B08/B07 remain frozen. Approved reuse: current testing wrappers/observed intrinsics,
+checked async rejects matching throws (Once Task factory/message/Task<void>),
+existing JSON quoting for NDJSON reporter, literal full-name filter, explicit
+async-body timeout with Scope cancellation/drain before teardown. No hidden timeout,
+new framework or serializer. Deep equality preserves Object.is scalar semantics,
+borrowed structural traversal, unsupported callable/opaque diagnostics. No B18
+builds/profile/public acceptance yet. b06 read-only reviews B15 finite owned carrier
+reuse with b14; B16/B05 frozen and no tree has a second writer.
 No worker heavy lease. Locale's old
 checkpoint+selected-sync worker delta remains preserved in `stdlib-locale`.
 B15 profile62290 passed6.199s/264,368KiB:84correctness cases,336allocation
@@ -108,6 +138,31 @@ forEach/some/every consume items, filter/find borrow; reduce explicit initial;
 callbacks have Rust arity, no implicit index; next errors consume the triggering
 input but retain remaining chain for retry, while terminals consume/drop on error.
 No generic protocol/generator expansion or mandatory per-adaptor allocation.
+
+B08 admission in `stdlib-network-admission` is13source/metadata files under
+`benchmarks/runtime/admission/network`:23existing locked archives,20hostlibraries,
+four target graph comparisons, cached yank/currentRustSec clean; Node syntax passes.
+Address std-floor/wrapper probes, TCP16KiB/1MiB raw/boxed owned halves,
+UDP64/1400/60000B raw/ownedreceive, split allocation and DNS correctness prepared.
+No native build/timing. UDP capacity truncation lacks matched Node timing; system
+DNS cancellation does not claim resolver-thread termination. Split retention uses
+signed delta/no positive retention since dropped halves may free preexisting stream
+registration memory. Build/profile like B07 using manifest network/Cargo.toml and
+network-profile executable. Prior B07+locale trees untouched.
+
+B16 admission in `stdlib-crypto-admission` is10new files under
+`benchmarks/runtime/admission/crypto-passwords`, only static metadata/parsing checked.
+First lease: cargo build --offline --locked --release --manifest-path
+benchmarks/runtime/admission/crypto-passwords/Cargo.toml --bin crypto-password-reference
+--message-format=json; separate allocation binary crypto-password-allocation with
+--features allocation-probe, minimal crypto-kernel-minimal with --no-default-features.
+Watchdog/sharedtarget/inc0/jobs1 required. Drivers preserve RFC vectors, Argon2 PHC
+bounds/mismatch, backend unbiased Uniform, owned password lifecycle/cancellation,
+separate allocations and optimized artifact guards. No public source changes.
+Patched ctutils0.4.8 candidate audit clean. Baseline0.4.3 advisory affects specific
+mask/u128 paths (u128 on32-bit); digest MAC byte-slice verification proves dependency
+use, not exploit of those specific operations. Existing subtle timingSafeEqual is
+independent. Do not claim an observed HMAC exploit. B16 worker frozen pending lease.
 
 B07 admission is frozen13files under `benchmarks/runtime/admission/process`:
 23locked existing identities/checksums, cached yank status/RustSec26fd2d43 clean,
