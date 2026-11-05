@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `e9c6acc4`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+`codex/stdlib-0.2.0`, source checkpoint `c0b3c2bc`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
 built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
@@ -25,14 +25,25 @@ finished successfully, terminal build-finished:true,212.234s/2,668,594KiB.
 witnesses passed; remaining6 native tests failed because generated crates cannot
 access Scope/group/drain/in_scope declared pub(crate). Exact failure records:
 `/tmp/tsrust-all-stack-gates.json`, `-gates-run.log` and per-scope logs.
-Root changes only these4 runtime declarations to pub; fields remain private,
-behavior unchanged. Whole-format/token/idempotence passed5.181s/203,152KiB and
+Root checkpointc0b3c2bc changes only these4 runtime declarations to pub; fields remain private,
+behavior unchanged. Focused rebuild75022 is active under supervisor21750/Cargo21801;
+`/tmp/tsrust-all-stack-public-{artifacts.jsonl,build.log}`. Await terminal build-finished
+before `/tmp/tsrust-all-stack-public-gates.py` (six failed native cases only).
+Whole-format/token/idempotence passed5.181s/203,152KiB and
 5.191s/206,432KiB,1572sources,0changes. Rebuild and failed native scopes pending.
 Worker b14 read-only reviewing responsibility warnings in new fixture; B14 draft
 preserved. Worker b03_review assigned B07 admission/profile source preparation in
 a new managed tree, no heavy lease. B13 selected-sync draft remains preserved.
 B05 worker added explicit-close deferred-error cleanup repair and seventh runtime
 witness; six prior runtime passes remain valid for prior source, seventh unrun.
+
+**Scope visibility rebuild passed:** build75022 terminal success213.280s/
+2,659,090KiB. Before native rerun, root repaired the combined construction-order
+fixture: nonthrowing finite order-state assignments replace checked arithmetic;
+scalar pre-await snapshots replace a throwing assertion while lazy tasks remain
+live. Both eager construction and exactly-once order remain asserted after await.
+Whole-format/token/idempotence passed (1572sources,0changes); rebuilding the
+changed integration-test binary only, then running the six failed native scopes.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
 471,530KiB, quiet guard enabled/maxload3.917. Exact result

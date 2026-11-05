@@ -23,12 +23,13 @@ fn literal_all_keeps_borrows_jobs_units_errors_and_dynamic_arrays(){
 async function read(value:ReadOnly<string>):Task<int>{await yield();return value.length;}
 async function value(n:int):Task<int>{await yield();return n;}
 let built=0;
-function construct(n:int):Task<int>{built=built*10+n;return value(n);}
+let inOrder=true;
+function construct(n:int):Task<int>{if((n===1&&built!==0)||(n===2&&built!==1)||(n===3&&built!==2)){inOrder=false;}built=n;return value(n);}
 async function unit():Task<void>{await yield();}
 async function fail():Task<int>{throw 'original';}
 async function main():Task<void>{
  const owner='owned'.repeat(2);const values=await all([read(owner),value(7).start()]);strictEqual(values[0],10);strictEqual(values[1],7);strictEqual(owner.length,10);
- const once=all([construct(1),construct(2),construct(3)]);strictEqual(built,123);const constructed=await once;strictEqual(built,123);strictEqual(constructed[0],1);strictEqual(constructed[2],3);
+ const once=all([construct(1),construct(2),construct(3)]);const builtBeforeAwait=built;const orderBeforeAwait=inOrder;const constructed=await once;strictEqual(builtBeforeAwait,3);strictEqual(orderBeforeAwait,true);strictEqual(built,3);strictEqual(inOrder,true);strictEqual(constructed[0],1);strictEqual(constructed[2],3);
  const units:void[]=await all([unit(),unit().start(),unit()]);strictEqual(units.length,3);strictEqual((await all([])).length,0);
  const tasks=[value(3),value(4)];const dynamic=await all(tasks);strictEqual(dynamic[0],3);strictEqual(dynamic[1],4);
  let failed=false;try{await all([value(1),fail(),value(3)]);}catch(error){if(typeof error.cause==='string'){strictEqual(error.cause,'original');failed=true;}else{throw 'wrong cause';}}strictEqual(failed,true);
