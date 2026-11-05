@@ -1,4 +1,5 @@
 mod support;
+use std::fs;
 #[path = "../src/cli/native_dependency_bundle.rs"]
 #[expect(dead_code, reason = "Artifact-only integration fixture; CLI setup/materialization are exercised independently")]
 mod native_dependency_bundle;
@@ -37,4 +38,26 @@ fn invalid_artifact_members_are_rejected_before_writing() {
   std::fs::write(&packed,bytes).unwrap();let target=dir.0.join(format!("unpack-{index}"));
   assert!(native_dependency_bundle::unpack(&packed,&target).is_err());assert!(!target.exists());
  }
+}
+
+#[test]
+fn dependency_build_honors_shared_target_and_stages_only_reported_artifacts(){
+ let directory=support::TempDirectory::new();let cache=directory.0.join("cache");
+ // Reuse the host's selected Cargo target. Creating another test target would
+ // conceal the production regression and violate the shared-build contract.
+ let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().to_owned()).canonicalize().unwrap();
+ let source=directory.0.join("main.tsr");let binary=directory.0.join(format!("program{}",std::env::consts::EXE_SUFFIX));
+ for (index,value) in [41,42,42].into_iter().enumerate(){
+  let text=format!("import {{fromInt}} from 'std:json';function main(){{console.log(JSON.stringify(fromInt({value})));}}");fs::write(&source,support::format_round_trip(&text)).unwrap();
+  let output=support::run(support::cli().current_dir(&directory.0).arg("build").arg(&source).arg("-o").arg(&binary).env("CARGO_TARGET_DIR",&target).env("TSRUST_CACHE_DIR",&cache).env("TSRUST_BUILD_TIMINGS","1"),180);support::success(&output);
+  let log=String::from_utf8_lossy(&output.stderr);assert!(log.contains(if index==0{"runtime=miss"}else{"runtime=hit"}),"{log}");
+  let output=support::run(&mut std::process::Command::new(&binary),10);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),value.to_string());
+ }
+ let workspaces=fs::read_dir(cache.join("runtime/build-v1")).unwrap().map(Result::unwrap).filter(|entry|entry.path().join("native-support").is_dir()).collect::<Vec<_>>();assert_eq!(workspaces.len(),1);
+ let workspace=workspaces[0].path();assert!(!workspace.join("native-target").exists());
+ let artifacts=workspace.join("artifacts");assert!(artifacts.join("libtsrust_runtime.rlib").is_file());
+ assert!(target.join("debug/libtsrust_runtime.rlib").is_file());
+ // Staging is an independent, graph-local directory, never shared deps itself.
+ assert_ne!(artifacts.canonicalize().unwrap(),target.join("debug/deps").canonicalize().unwrap());
+ let bytes=fs::read(artifacts.join("libtsrust_runtime.rlib")).unwrap();assert!(!bytes.is_empty());
 }
