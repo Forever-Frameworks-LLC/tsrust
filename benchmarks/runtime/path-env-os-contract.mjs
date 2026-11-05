@@ -30,7 +30,7 @@ export function assertPathEnvOsSource(source,row,kind){
  assert.equal(row.iterations,2000);assert.equal(row.operationsPerIteration,spec.operations);assert.equal(row.inputText,spec.input);assert.equal(row.result,'int');assert.deepEqual(row.parameters,['int','int',...(spec.input===undefined?[]:['string'])]);
  for(const snippet of ['let checksum=seed;','while(i<n)','i++;','return checksum;',spec[kind],spec.observation].filter(Boolean))assert(containsCodeSnippet(source,snippet),row.id+': '+snippet);
  if(row.id==='path_parse_parts')for(const field of ['root','dir','base','ext','name'])assert(source.includes('value.'+field));
- if(row.id==='path_format_options')for(const snippet of ["name:'file.tar'","ext:'gz'",'String(input)','value.length!==19'])assert(containsCodeSnippet(source,snippet));
+ if(row.id==='path_format_options')for(const snippet of ["name:'file.tar'","ext:'gz'",'String(input)','value.length!==19',"value.startsWith('reports')"])assert(containsCodeSnippet(source,snippet));
  if(row.id==='path_resolve_parts')assert(containsCodeSnippet(source,"value.endsWith('file.txt')"));
  if(row.id==='env_vars_snapshot')assert(containsCodeSnippet(source,'for(const row of rows)'));
  if(row.id==='env_vars_snapshot')assert(containsCodeSnippet(source,kind==='native'?'checksum+=row.name.length+row.value.length;':"checksum+=row.name.length+Buffer.byteLength(row.value,'utf8');"));

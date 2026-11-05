@@ -365,14 +365,51 @@ path allocation and relative controls,17 help cases across four editor phases,
 integration checks pass, including safe hostname linkage. All seven registered
 workloads pass five independent correctness cases in Node24.11.1 and generated
 O0/O3; this is untimed acceptance, not throughput measurement. Actual Windows
-console signals, Windows/Linux execution, final package admission and generated
-API timings remain pending. The official runner subsequently exposed a missing
+console signals, Windows/Linux execution, final package admission and performance
+gap review remain pending. The official runner subsequently exposed a missing
 fallible-family ABI registration; the existing Result-aware path now includes
 path-env-os, with actual seven-workload emission and invalid-result guards. Eight
-focused adapter/source/oracle tests pass; official timing remains pending.
+focused adapter/source/oracle tests pass; subsequent official timing is recorded below.
 Fixture repairs preserve read-only iteration, use
 supported module aliases/factory wrappers, and handle macOS filesystem rejection
 of invalid-Unicode names while retaining strict conversion and child-env checks.
+
+B03 first registered measurements (macOS ARM64,2026-11-05T14:40:20.088Z):
+all three engines passed five correctness cases/workload, then3 processes ×31
+samples after8 warmups. Quiet-load override was false, maximum observed load3.917;
+watchdog90.710s/471,530KiB. Ingested21 actual run entries with npm run store:ingest;
+verified93 samples per history and SQLite integrity. These are new API baselines,
+not pre-feature speedups. Values below are median milliseconds per2,000 iterations
+(env_get performs3 lookups per iteration).
+
+| Workload | Native | Handwritten Rust | Node after tsc |
+|---|---:|---:|---:|
+| path_parse_parts | 0.181375 | 0.326500 | 0.106625 |
+| path_format_options | 0.052292 | 0.048500 | 0.148167 |
+| path_resolve_parts | 0.337583 | 0.305833 | 0.357708 |
+| env_vars_snapshot | 11.734000 | 10.959166 | 101.418958 |
+| env_get_snapshot | 0.598416 | 0.577208 | 0.999000 |
+| os_parallelism_query | 0.444625 | 0.441541 | 1.008583 |
+| os_hostname_read | 0.550625 | 0.549209 | 0.585625 |
+
+Review: parse trails Node while beating the direct std-based Rust reference;
+format is1.078× its corrected Rust floor. The first Rust format control omitted
+the prefix check observed by native/Node; it measured0.038083ms and remains in
+history. Added the same required prefix observation and remeasured ONLY that
+changed reference at2026-11-05T14:47:48.571Z (93 samples, quiet max1.874,
+watchdog6.757s/325,216KiB), ingesting one additional actual run. Native/Node
+samples remain unchanged. Emitted-code review finds four owned nonempty parse
+field allocations and a repeated basename scan, while format already uses one
+exact-capacity output allocation. These allocation observations are source-derived,
+not measured generated allocation counts. Profile any proposed parse scan change
+before implementation; do not attribute inherent owned-string costs to the bridge.
+Other native/Rust ratios range1.003–1.104. OS identity observations are not broad
+compiler speed claims. Reuse these unchanged Node/Rust controls for later
+compiler-only candidates. Official preparation also exposed compact handwritten
+signatures and duplicate hostname extern selection; references now conform to
+the existing ABI, and explicit reference closures replace generated bindings.
+Nine focused adapter/oracle/emission/reference guards pass. Preserve first-run
+failures as preparation evidence; none produced timing samples or ingested rows.
 
 ### B04 — General URL and query parameters
 

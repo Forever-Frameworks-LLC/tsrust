@@ -428,7 +428,8 @@ function prepare(w) {
   referenceDependencies=prepareReferenceDependencies({workload:w,rustVersion:pins.rust,targetDirectory:path.dirname(path.dirname(compiler)),env});
   const hand = fs.readFileSync(handSourcePath, 'utf8');
   fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source, reference:true}) + '\n' + allocatorHeader);
-  run([...rustc, ...nativeDependencies.args, ...referenceDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
+  // Explicit reference closures replace generated-program bindings for the same crates.
+  run([...rustc, ...(referenceDependencies.args.length ? referenceDependencies.args : nativeDependencies.args), ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
   handSources.set(w.id, {source:referenceSource,sha256:hash(hand)});
  }
  if(isApproximate(w)){

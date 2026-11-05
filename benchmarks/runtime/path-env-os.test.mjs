@@ -32,3 +32,12 @@ test('current compiler exposes each observed workload through the fallible bench
   assert.throws(()=>assertABI(emitted.stdout.replaceAll('Result<i64,','Result<bool,'),row,{source}),/Emitter ABI changed/);
  }
 });
+
+test('all seven handwritten references use the complete registered benchmark ABI',()=>{
+ for(const row of rows){
+  const reference=fs.readFileSync(new URL(row.rustReference,import.meta.url),'utf8');
+  assert.equal(assertABI(reference,row).fallible,false,row.id);
+  if(row.id==='path_format_options')assert(reference.includes('text.starts_with("reports")'),'Rust reference must observe the same directory prefix');
+  assert.throws(()=>assertABI(reference.replace(' -> i64',' -> bool'),row),/Emitter ABI changed/);
+ }
+});

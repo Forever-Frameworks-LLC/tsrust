@@ -14,21 +14,39 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `db516eac`. Root has uncommitted updates
-only to this handoff and the v0.2 plan; preserve them. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint `028daeb0`. Root has uncommitted benchmark reference/driver repairs, measurements and
+handoff/plan updates; preserve them. Full B00–B20 stays active.
 No push, release, full regression or accepted API timing ingestion occurred.
 
-**Root B03 measurement preparation:** official runner94361 terminated before
-timing on missing path-env-os fallible ABI-family registration. Release tools
-built successfully; no samples/ingestion. Original failure retained in
-`/tmp/tsrust-b03-measure.log`,228.869s/2,282,204KiB. Root added only this family to
-the existing Result-aware benchmark ABI path, plus actual emitted seven-workload
-ABI/invalid-result guards. All8 adapter/source/oracle tests passed. Next: required
-whole-format/local checkpoint, then resume the official execution-only runner
-for native/rust-hand/node-tsc with ordinary protocols/quiet guard. DB has no prior
-rows for these7 workloads, so references are first measurements. Both workers
-are idle; root retains execution slot. Release tools represent canonical source;
-shared debug tools still represent the intermediate B06 worker repair candidate.
+**B03 official timing accepted and ingested.** Runner71460 passed90.710s/
+471,530KiB, quiet guard enabled/maxload3.917. Exact result
+`benchmarks/runtime/results/2026-11-05T14-40-20-088Z.json`, log
+`/tmp/tsrust-b03-measure-final.log`: all7 workloads ×3 engines ×5 correctness
+cases, then3 processes ×31 samples after8 warmups. npm run store:ingest added21
+actual histories; verified93 samples each, exact medians and SQLite integrity.
+Keep raw result during gap review; no reference retiming. Plan records medians.
+Parse trails Node (0.181375 vs0.106625ms); format exceeds Rust floor
+(0.052292 vs corrected Rust0.048500ms). First Rust control omitted native/Node's
+prefix observation; added that required check and remeasured ONLY Rust format,
+93 samples at2026-11-05T14:47:48.571Z,6.757s/325,216KiB, quiet max1.874.
+Ingested1 additional actual entry and verified both histories; do not reuse the
+older0.038083ms mismatched reference for current comparisons. Source review found
+no extra substring bridge clone, four nonempty owned parse allocations, one exact
+format output allocation and a repeated basename scan in parse. Allocation counts
+are source-derived; no optimization or generated allocation measurement claimed.
+Initial official preparation failures remain in /tmp/tsrust-b03-measure.log
+(missing fallible family), -recheck.log (compact reference ABI),
+-reference-recheck.log (duplicate hostname externs); none timed/ingested.
+Root repaired only reference signature spacing and explicit reference dependency
+selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
+source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs and this evidence
+await whole formatting/checkpoint.
+Core source-only checked-facts repair is checkpoint1d18e85c (parent2adbe0b0),
+clean worker tree; formatter4.145s/203,600KiB and idempotent4.127s/204,768KiB,
+1540Tsrust files token-preserved. Fresh executable acceptance still pending.
+Root now owns its short formatter/checkpoint; core gets next heavy validation slot.
+Both use shared canonical target/jobs1/incremental0 and5GB/30min watchdog.
+No native job or quiet timing is active now.
 
 **B06 worker state.** Existing managed stdlib-files tree checkpoint2adbe0b0
 (parent e30c8459) plus source-only follow-up changes, not integrated. Repair
