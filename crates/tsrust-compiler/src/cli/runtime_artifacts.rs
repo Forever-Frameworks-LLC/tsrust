@@ -157,6 +157,9 @@ fn reported(stdout:&Path,target:&Path,manifest:&Path)->Result<BTreeMap<String,Pa
   assert!(!second.acquire(false).unwrap());drop(first);assert!(second.acquire(false).unwrap());
   let mut third=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("three"),fixture.root.join("three.stdout"),None).unwrap();
   assert!(!third.acquire(false).unwrap());drop(second);assert!(third.acquire(false).unwrap());
+  let mut external=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("external"),fixture.root.join("external.stdout"),Some(&fixture.build.target)).unwrap();
+  let mut competing=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("competing"),fixture.root.join("competing.stdout"),Some(&fixture.build.target)).unwrap();
+  assert!(external.acquire(false).unwrap());assert!(!competing.acquire(false).unwrap());drop(external);assert!(competing.acquire(false).unwrap());
   #[cfg(unix)] {let alias=fixture.root.join("alias");std::os::unix::fs::symlink(&third.target,&alias).unwrap();let mut aliased=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("four"),fixture.root.join("four.stdout"),Some(&alias)).unwrap();assert!(!aliased.acquire(false).unwrap());drop(third);assert!(aliased.acquire(false).unwrap());}
  }
  #[test] fn diagnostics_preserve_rendered_errors_and_relative_target_is_absolute(){
