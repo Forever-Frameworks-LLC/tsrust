@@ -38,3 +38,4 @@ pub(crate) mod signals;
 pub(crate) mod url;
 
 pub(crate) mod regex;
+pub(crate) mod locale;

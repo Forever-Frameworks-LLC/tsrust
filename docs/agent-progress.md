@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `21c71460`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+`codex/stdlib-0.2.0`, source checkpoint `12c197a3`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
 built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
@@ -79,6 +79,19 @@ B05 frozen52publicfiles at worker base98d63784 (28modified+24new); copied10admis
 files already identical to canonical and excluded from future import. B07 source
 preparation tree `/Users/seancotter/.codex/worktrees/stdlib-process/tsrust` basee9c6acc4.
 No active root heavy process remains; no publication or full matrix.
+
+**Selected-sync B13 source integrated, acceptance pending:** root applied the
+87-file locale source delta from worker92b5bc20 plus selected provider-sync changes,
+base848509fb, preserving canonical later edits. All three existing lockfile
+package/version sets preserved;12root/native and16backend new identities only.
+No existing package version changed. Whole-format/token/idempotence passed5.165s/
+202,656KiB and5.169s/203,856KiB,1587sources,0changes. Node explicit-locale source/
+oracle controls pass. Public compiler/runtime/LSP/offline/generated benchmarking
+still unrun; next build includes locale scopes and checker repair12c197a3.
+Checker repair unwraps only Once layers before literal capture attribution;
+ordering-positive and abandonment-negative regression prepared in
+`tests/task_responsibility_arrays.rs`, not yet executed. Timing checkpointbb0677ec
+preserves accepted literal-all source21c71460 measurements independently.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
 471,530KiB, quiet guard enabled/maxload3.917. Exact result

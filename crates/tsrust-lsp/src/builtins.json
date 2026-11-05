@@ -2943,6 +2943,27 @@
           "output": "1 -1\n"
         }
       ]
+    },
+    {
+      "name": "localeCompare",
+      "signature": "localeCompare(other: string, collator: Collator): int",
+      "parameters": [
+        {
+          "label": "other: string",
+          "documentation": "Text compared with this receiver."
+        },
+        {
+          "label": "collator: Collator",
+          "documentation": "Reusable explicit-locale collator, shared with Collator.compare."
+        }
+      ],
+      "documentation": "Reusable locale-sensitive comparison returns -1,0 or1 and leaves inputs unchanged. Unset options preserve locale defaults, including tertiary strength normally. Numeric ordering and case-first preferences may be supplied through locale Unicode keywords. Data lookup uses backend locale fallback; default compiled data does not include search collations.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('en-u-kn-true'));\n  const value = unwrap(createCollator(locale));\n  console.log('2'.localeCompare('10', value));\n}\n```\n\nExpected output: -1.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('en-u-kn-true'));const value=unwrap(createCollator(locale));console.log('2'.localeCompare('10',value));}\n",
+          "output": "-1\n"
+        }
+      ]
     }
   ],
   "Array": [
@@ -17973,6 +17994,291 @@
         {
           "source": "import {CancellationToken} from 'std:futures';async function main():Task<void>{const token=new CancellationToken();const shared=token.share();const child=token.child();child.cancel();console.log(token.isCancelled(),child.isCancelled());shared.cancel();await token.cancelled();console.log(token.isCancelled());}",
           "output": "false true\ntrue\n"
+        }
+      ]
+    }
+  ],
+  "std:locale": [
+    {
+      "name": "Locale",
+      "signature": "type Locale",
+      "parameters": [],
+      "documentation": "Explicit BCP47 locale input is parsed and canonicalized, including aliases and casing. Underscores, malformed tags and unsupported structural language forms return Syntax. No host locale is selected.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('iw-IL'));\n  console.log(formatLocale(locale));\n}\n```\n\nExpected output: he-IL.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('iw-IL'));console.log(formatLocale(locale));}\n",
+          "output": "he-IL\n"
+        }
+      ]
+    },
+    {
+      "name": "Collator",
+      "signature": "type Collator",
+      "parameters": [],
+      "documentation": "Reusable locale-sensitive comparison returns -1,0 or1 and leaves inputs unchanged. Unset options preserve locale defaults, including tertiary strength normally. Numeric ordering and case-first preferences may be supplied through locale Unicode keywords. Data lookup uses backend locale fallback; default compiled data does not include search collations.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('sv'));\n  const value = unwrap(createCollator(locale));\n  console.log(value.compare('ä', 'z'));\n}\n```\n\nExpected output: 1.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('sv'));const value=unwrap(createCollator(locale));console.log(value.compare('ä','z'));}\n",
+          "output": "1\n"
+        }
+      ]
+    },
+    {
+      "name": "Segmenter",
+      "signature": "type Segmenter",
+      "parameters": [],
+      "documentation": "Segments extended grapheme clusters into half-open UTF-8 byte ranges. Combining marks, CRLF, emoji modifiers, flags and joined emoji remain in their grapheme clusters. Empty text returns[]. This grapheme backend is locale-independent. Ranges retain no input text.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const value = createSegmenter();\n  const ranges = value.segment('e\\u0301🦀');\n  console.log(ranges[0].start, ranges[0].end, ranges[1].end);\n}\n```\n\nExpected output: 0 3 7.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const value=createSegmenter();const ranges=value.segment('e\\u0301🦀');console.log(ranges[0].start,ranges[0].end,ranges[1].end);}\n",
+          "output": "0 3 7\n"
+        }
+      ]
+    },
+    {
+      "name": "NumberFormat",
+      "signature": "type NumberFormat",
+      "parameters": [],
+      "documentation": "Formats exact int or normalized Decimal values with locale symbols and grouping. No conversion through number occurs. Default options preserve the normalized numeric value without rounding or padding; Decimal input trailing zeros were already removed. fractionDigits explicitly requests fixed displayed scale and half-even rounding in0..32768; invalid counts return Range at creation. Grouping defaults to auto; always currently has the same behavior as auto. Well-formed unknown locales may fall back. A numbering-system override can replace digits while retaining locale separators when that symbol bundle is absent; en-u-nu-arab uses Arabic digits with comma/period separators. The formatter owner can move to thread workers; formatting borrows its immutable configuration.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('en'));\n  const value = unwrap(createNumberFormat(locale, {\n    fractionDigits: 2\n  }));\n  console.log(value.format(1234));\n}\n```\n\nExpected output: 1,234.00.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('en'));const value=unwrap(createNumberFormat(locale,{fractionDigits:2}));console.log(value.format(1234));}\n",
+          "output": "1,234.00\n"
+        }
+      ]
+    },
+    {
+      "name": "SegmentRange",
+      "signature": "type SegmentRange = { start: int; end: int; }",
+      "parameters": [],
+      "documentation": "Segments extended grapheme clusters into half-open UTF-8 byte ranges. Combining marks, CRLF, emoji modifiers, flags and joined emoji remain in their grapheme clusters. Empty text returns[]. This grapheme backend is locale-independent. Ranges retain no input text.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const value = createSegmenter();\n  const ranges = value.segment('e\\u0301🦀');\n  console.log(ranges[0].start, ranges[0].end, ranges[1].end);\n}\n```\n\nExpected output: 0 3 7.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const value=createSegmenter();const ranges=value.segment('e\\u0301🦀');console.log(ranges[0].start,ranges[0].end,ranges[1].end);}\n",
+          "output": "0 3 7\n"
+        }
+      ],
+      "fields": {
+        "start": {
+          "documentation": "Inclusive UTF-8 byte offset."
+        },
+        "end": {
+          "documentation": "Exclusive UTF-8 byte offset."
+        }
+      }
+    },
+    {
+      "name": "LocaleError",
+      "signature": "type LocaleError = { code: string; message: string; }",
+      "parameters": [],
+      "documentation": "A checked locale failure: Syntax for malformed locale input, Data for unavailable backend data, Range for an unrepresentable fraction count, or Option for an unsupported runtime option. Unsupported source option fields and enum values are checker diagnostics.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  try {\n    const locale = unwrap(parseLocale('en_US'));\n    console.log(formatLocale(locale));\n  } catch (error) {\n    console.log(error.code);\n  }\n}\n```\n\nExpected output: Syntax.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){try{const locale=unwrap(parseLocale('en_US'));console.log(formatLocale(locale));}catch(error){console.log(error.code);}}\n",
+          "output": "Syntax\n"
+        }
+      ],
+      "fields": {
+        "code": {
+          "documentation": "Named failure category."
+        },
+        "message": {
+          "documentation": "Detailed backend or checked-option explanation."
+        }
+      }
+    },
+    {
+      "name": "CollatorOptions",
+      "signature": "type CollatorOptions = { strength?: 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'identical'; alternateHandling?: 'nonIgnorable' | 'shifted'; maxVariable?: 'space' | 'punctuation' | 'symbol' | 'currency'; caseLevel?: boolean; }",
+      "parameters": [],
+      "documentation": "Reusable locale-sensitive comparison returns -1,0 or1 and leaves inputs unchanged. Unset options preserve locale defaults, including tertiary strength normally. Numeric ordering and case-first preferences may be supplied through locale Unicode keywords. Data lookup uses backend locale fallback; default compiled data does not include search collations. All fields are optional; unsupported fields or values are rejected.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('en'));\n  const value = unwrap(createCollator(locale, {\n    strength: 'primary'\n  }));\n  console.log(value.compare('e', 'é'));\n}\n```\n\nExpected output: 0.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('en'));const value=unwrap(createCollator(locale,{strength:'primary'}));console.log(value.compare('e','é'));}\n",
+          "output": "0\n"
+        }
+      ],
+      "fields": {
+        "strength": {
+          "documentation": "Comparison strength; absent preserves locale default."
+        },
+        "alternateHandling": {
+          "documentation": "Whether variable characters are shifted or compared normally."
+        },
+        "maxVariable": {
+          "documentation": "Highest variable-character group when shifted."
+        },
+        "caseLevel": {
+          "documentation": "Enable a separate case comparison level; absent preserves backend default."
+        }
+      }
+    },
+    {
+      "name": "NumberFormatOptions",
+      "signature": "type NumberFormatOptions = { grouping?: 'auto' | 'never' | 'always' | 'min2'; fractionDigits?: int; }",
+      "parameters": [],
+      "documentation": "Formats exact int or normalized Decimal values with locale symbols and grouping. No conversion through number occurs. Default options preserve the normalized numeric value without rounding or padding; Decimal input trailing zeros were already removed. fractionDigits explicitly requests fixed displayed scale and half-even rounding in0..32768; invalid counts return Range at creation. Grouping defaults to auto; always currently has the same behavior as auto. Well-formed unknown locales may fall back. A numbering-system override can replace digits while retaining locale separators when that symbol bundle is absent; en-u-nu-arab uses Arabic digits with comma/period separators.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('en'));\n  const value = unwrap(createNumberFormat(locale, {\n    grouping: 'never', fractionDigits: 2\n  }));\n  console.log(value.format(1));\n}\n```\n\nExpected output: 1.00.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('en'));const value=unwrap(createNumberFormat(locale,{grouping:'never',fractionDigits:2}));console.log(value.format(1));}\n",
+          "output": "1.00\n"
+        }
+      ],
+      "fields": {
+        "grouping": {
+          "documentation": "auto uses locale grouping, never disables it, min2 requires at least two digits before the first grouping separator, always currently equals auto."
+        },
+        "fractionDigits": {
+          "documentation": "Optional fixed fractional scale0..32768, with half-even rounding and zero padding. Absence preserves exact normalized input."
+        }
+      }
+    },
+    {
+      "name": "parseLocale",
+      "signature": "parseLocale(text: string): Result<Locale, LocaleError>",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "Explicit BCP47 locale tag; no whitespace or underscore rewriting."
+        }
+      ],
+      "documentation": "Explicit BCP47 locale input is parsed and canonicalized, including aliases and casing. Underscores, malformed tags and unsupported structural language forms return Syntax. No host locale is selected.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('iw-IL'));\n  console.log(formatLocale(locale));\n}\n```\n\nExpected output: he-IL.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('iw-IL'));console.log(formatLocale(locale));}\n",
+          "output": "he-IL\n"
+        }
+      ]
+    },
+    {
+      "name": "formatLocale",
+      "signature": "formatLocale(locale: Locale): string",
+      "parameters": [
+        {
+          "label": "locale: Locale",
+          "documentation": "Parsed canonical locale owner."
+        }
+      ],
+      "documentation": "Returns the canonical BCP47 spelling of a parsed locale.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('iw-IL'));\n  console.log(formatLocale(locale));\n}\n```\n\nExpected output: he-IL.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('iw-IL'));console.log(formatLocale(locale));}\n",
+          "output": "he-IL\n"
+        }
+      ]
+    },
+    {
+      "name": "createCollator",
+      "signature": "createCollator(locale: Locale, options?: CollatorOptions): Result<Collator, LocaleError>",
+      "parameters": [
+        {
+          "label": "locale: Locale",
+          "documentation": "Explicit requested locale, including Unicode collation preferences."
+        },
+        {
+          "label": "options?: CollatorOptions",
+          "documentation": "Optional overrides; absent fields preserve backend defaults."
+        }
+      ],
+      "documentation": "Reusable locale-sensitive comparison returns -1,0 or1 and leaves inputs unchanged. Unset options preserve locale defaults, including tertiary strength normally. Numeric ordering and case-first preferences may be supplied through locale Unicode keywords. Data lookup uses backend locale fallback; default compiled data does not include search collations.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('sv'));\n  const value = unwrap(createCollator(locale));\n  console.log(value.compare('ä', 'z'));\n}\n```\n\nExpected output: 1.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('sv'));const value=unwrap(createCollator(locale));console.log(value.compare('ä','z'));}\n",
+          "output": "1\n"
+        }
+      ]
+    },
+    {
+      "name": "createSegmenter",
+      "signature": "createSegmenter(): Segmenter",
+      "parameters": [],
+      "documentation": "Segments extended grapheme clusters into half-open UTF-8 byte ranges. Combining marks, CRLF, emoji modifiers, flags and joined emoji remain in their grapheme clusters. Empty text returns[]. This grapheme backend is locale-independent. Ranges retain no input text.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const value = createSegmenter();\n  const ranges = value.segment('e\\u0301🦀');\n  console.log(ranges[0].start, ranges[0].end, ranges[1].end);\n}\n```\n\nExpected output: 0 3 7.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const value=createSegmenter();const ranges=value.segment('e\\u0301🦀');console.log(ranges[0].start,ranges[0].end,ranges[1].end);}\n",
+          "output": "0 3 7\n"
+        }
+      ]
+    },
+    {
+      "name": "createNumberFormat",
+      "signature": "createNumberFormat(locale: Locale, options?: NumberFormatOptions): Result<NumberFormat, LocaleError>",
+      "parameters": [
+        {
+          "label": "locale: Locale",
+          "documentation": "Explicit requested locale and numbering-system preference."
+        },
+        {
+          "label": "options?: NumberFormatOptions",
+          "documentation": "Optional grouping and checked fixed-scale overrides."
+        }
+      ],
+      "documentation": "Formats exact int or normalized Decimal values with locale symbols and grouping. No conversion through number occurs. Default options preserve the normalized numeric value without rounding or padding; Decimal input trailing zeros were already removed. fractionDigits explicitly requests fixed displayed scale and half-even rounding in0..32768; invalid counts return Range at creation. Grouping defaults to auto; always currently has the same behavior as auto. Well-formed unknown locales may fall back. A numbering-system override can replace digits while retaining locale separators when that symbol bundle is absent; en-u-nu-arab uses Arabic digits with comma/period separators.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('en'));\n  const value = unwrap(createNumberFormat(locale, {\n    fractionDigits: 2\n  }));\n  console.log(value.format(1234));\n}\n```\n\nExpected output: 1,234.00.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('en'));const value=unwrap(createNumberFormat(locale,{fractionDigits:2}));console.log(value.format(1234));}\n",
+          "output": "1,234.00\n"
+        }
+      ]
+    }
+  ],
+  "Collator": [
+    {
+      "name": "compare",
+      "signature": "compare(left: string, right: string): int",
+      "parameters": [
+        {
+          "label": "left: string",
+          "documentation": "First UTF-8 text."
+        },
+        {
+          "label": "right: string",
+          "documentation": "Second UTF-8 text."
+        }
+      ],
+      "documentation": "Reusable locale-sensitive comparison returns -1,0 or1 and leaves inputs unchanged. Unset options preserve locale defaults, including tertiary strength normally. Numeric ordering and case-first preferences may be supplied through locale Unicode keywords. Data lookup uses backend locale fallback; default compiled data does not include search collations.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('sv'));\n  const value = unwrap(createCollator(locale));\n  console.log(value.compare('ä', 'z'));\n}\n```\n\nExpected output: 1.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('sv'));const value=unwrap(createCollator(locale));console.log(value.compare('ä','z'));}\n",
+          "output": "1\n"
+        }
+      ]
+    }
+  ],
+  "Segmenter": [
+    {
+      "name": "segment",
+      "signature": "segment(text: string): SegmentRange[]",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "Original UTF-8 text; ranges address its byte positions."
+        }
+      ],
+      "documentation": "Segments extended grapheme clusters into half-open UTF-8 byte ranges. Combining marks, CRLF, emoji modifiers, flags and joined emoji remain in their grapheme clusters. Empty text returns[]. This grapheme backend is locale-independent. Ranges retain no input text.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const value = createSegmenter();\n  const ranges = value.segment('e\\u0301🦀');\n  console.log(ranges[0].start, ranges[0].end, ranges[1].end);\n}\n```\n\nExpected output: 0 3 7.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const value=createSegmenter();const ranges=value.segment('e\\u0301🦀');console.log(ranges[0].start,ranges[0].end,ranges[1].end);}\n",
+          "output": "0 3 7\n"
+        }
+      ]
+    }
+  ],
+  "NumberFormat": [
+    {
+      "name": "format",
+      "signature": "format(value: int | Decimal): string",
+      "parameters": [
+        {
+          "label": "value: int | Decimal",
+          "documentation": "Exact signed integer or existing normalized Decimal; never a floating-point number."
+        }
+      ],
+      "documentation": "Formats exact int or normalized Decimal values with locale symbols and grouping. No conversion through number occurs. Default options preserve the normalized numeric value without rounding or padding; Decimal input trailing zeros were already removed. fractionDigits explicitly requests fixed displayed scale and half-even rounding in0..32768; invalid counts return Range at creation. Grouping defaults to auto; always currently has the same behavior as auto. Well-formed unknown locales may fall back. A numbering-system override can replace digits while retaining locale separators when that symbol bundle is absent; en-u-nu-arab uses Arabic digits with comma/period separators.\n\n```tsrust\nimport { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\n\nfunction main() {\n  const locale = unwrap(parseLocale('en'));\n  const value = unwrap(createNumberFormat(locale, {\n    fractionDigits: 2\n  }));\n  console.log(value.format(1234));\n}\n```\n\nExpected output: 1,234.00.\n\nOwnership: owners and inputs are borrowed during calls. Returned text and range arrays own their storage.",
+      "examples": [
+        {
+          "source": "import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';\nfunction main(){const locale=unwrap(parseLocale('en'));const value=unwrap(createNumberFormat(locale,{fractionDigits:2}));console.log(value.format(1234));}\n",
+          "output": "1,234.00\n"
         }
       ]
     }

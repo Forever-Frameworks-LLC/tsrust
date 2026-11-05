@@ -1,0 +1,18 @@
+import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';
+
+function workload(n: int, seed: int, input: string): int {
+  const locale = unwrap(parseLocale('en'));
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = unwrap(createNumberFormat(locale));
+    checksum += value.format(1234).length;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, "1234"));
+}

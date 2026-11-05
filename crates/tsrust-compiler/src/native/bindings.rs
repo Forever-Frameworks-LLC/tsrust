@@ -382,6 +382,15 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::DOCUMENT,
     crate::stdlib::ui::RUN,
     crate::stdlib::signals::LISTEN,
+    crate::stdlib::locale::PARSE,
+    crate::stdlib::locale::FORMAT_LOCALE,
+    crate::stdlib::locale::CREATE_COLLATOR,
+    crate::stdlib::locale::COMPARE,
+    crate::stdlib::locale::STRING_COMPARE,
+    crate::stdlib::locale::CREATE_SEGMENTER,
+    crate::stdlib::locale::SEGMENT,
+    crate::stdlib::locale::CREATE_NUMBER,
+    crate::stdlib::locale::FORMAT_NUMBER,
     crate::stdlib::regex::COMPILE,
     crate::stdlib::regex::ESCAPE,
     crate::stdlib::regex::IS_MATCH,
@@ -646,4 +655,5 @@ pub fn ui_method(identity: crate::native_signatures::NativeTypeId, member: &str)
     lookup("std:ui-runtime",member).ok()
 }
 
+pub fn locale_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::locale::method(Some(identity),member)}
 pub fn regex_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::regex::method(Some(identity),member)}

@@ -14,6 +14,7 @@ mod futures;
 mod http;
 mod url;
 mod regex;
+mod locale;
 mod sqlite;
 mod ui;
 mod sql;
@@ -1551,6 +1552,7 @@ impl Analyzer {
         crate::stdlib::http::prepare(&mut program)?;
         crate::stdlib::url::prepare(&mut program)?;
         crate::stdlib::regex::prepare(&mut program)?;
+        crate::stdlib::locale::prepare(&mut program)?;
         crate::stdlib::signals::prepare(&mut program)?;
         crate::stdlib::sqlite::prepare(&mut program)?;
         crate::stdlib::sql::prepare(&mut program)?;
@@ -9009,6 +9011,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty) = self.ui_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty) = self.locale_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty) = self.regex_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.url_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
@@ -9260,7 +9263,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     return Ok(ArgumentContract { ty, mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false });
                 }
                 // Regex observers borrow literal-string alternatives without widening or copying.
-                if binding.module=="std:regex" && parameter.access==Mode::Read && parameter.ty.signature()==crate::native_signatures::Signature::String
+                if matches!(binding.module,"std:regex"|"std:locale") && parameter.access==Mode::Read && parameter.ty.signature()==crate::native_signatures::Signature::String
                     && let Some(ty)=self.expression_type_hint(context,&args[position]).filter(|ty|self.is_string_observation(*ty)) {
                     return Ok(ArgumentContract{ty,mode:Mode::Read,omission:crate::ParameterOmission::Required,rest:false});
                 }

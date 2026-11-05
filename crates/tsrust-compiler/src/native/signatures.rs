@@ -6,6 +6,7 @@
 pub enum NativeTypeId {
     Url, SearchParams, UrlError, QueryEntry,
     Regex, RegexMatch, RegexCaptures, RegexError, RegexOptions,
+    Locale, Collator, Segmenter, NumberFormat, SegmentRange, LocaleError, CollatorOptions, NumberFormatOptions,
     UiSignal,
     UiComputed,
     UiTextBinding,

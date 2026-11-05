@@ -15,6 +15,7 @@ pub fn reserved(name:&str)->bool {
         "color",
         "url",
         "regex",
+        "icu_provider","icu_collator","icu_decimal","icu_locale","icu_segmenter","fixed_decimal",
         "percent-encoding",
         "winit",
         "vello",

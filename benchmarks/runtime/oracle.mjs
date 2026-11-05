@@ -1,4 +1,5 @@
 import {taskErgonomicsIDs,taskErgonomicsChecksum} from './task-ergonomics-contract.mjs';
+import {localeChecksum,localeSpecs} from './explicit-locale-contract.mjs';
 import {regexTextChecksum,regexTextSpecs} from './regex-text-contract.mjs';
 import {expectedByteOperationObservation} from './byte-operations-oracle.mjs';
 import {expectedByteCodecObservation} from './byte-codecs-oracle.mjs';
@@ -228,6 +229,7 @@ export function expectedChecksum(id, n, seed, inputText) {
  if(taskErgonomicsIDs.includes(id))return taskErgonomicsChecksum(id,n,seed);
  if(id.startsWith("byte_ops_"))return expectedByteOperationObservation(id,n,seed,inputText).checksum;
  if(id.startsWith("bytes_"))return expectedByteCodecObservation(id,n,seed,inputText).checksum;
+ if(Object.hasOwn(localeSpecs,id))return localeChecksum(id,n,seed,inputText);
  if(Object.hasOwn(regexTextSpecs,id))return regexTextChecksum(id,n,seed,inputText);
  if(Object.hasOwn(pathEnvOsSpecs,id))return pathEnvOsChecksum(id,n,seed,inputText);
  if(Object.hasOwn(urlSpecs,id))return urlChecksum(id,n,seed,inputText);

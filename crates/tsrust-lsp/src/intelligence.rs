@@ -1926,6 +1926,8 @@ impl SourceIndex {
         Some(format!("{schema}<{output}>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if receiver=="string"&&method=="localeCompare"{return "int".into();}
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::locale_method(*id,method)){return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();}
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::regex_method(*id,method)) {
             return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
         }
@@ -2013,8 +2015,9 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::locale_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::regex_method(*id,method).is_some()){return true;}
-        if receiver=="string" && matches!(method,"match"|"matchAll"|"search"){return true;}
+        if receiver=="string" && matches!(method,"match"|"matchAll"|"search"|"localeCompare"){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::url_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sql_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::ui_method(*id,method).is_some()){return true;}

@@ -25,6 +25,7 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
   };
   if rust.contains("mod tsrust_native_threads {") || rust.contains("mod tsr_rust") { manifest = manifest.replace("default = [", "default = [\"threads\", "); }
   if rust.contains("mod tsrust_native_cancellation {"){manifest=manifest.replace("default = [", "default = [\"cancellation\", ");}
+  if rust.contains("mod tsrust_native_locale {"){manifest=manifest.replace("default = [", "default = [\"locale\", ");}
   if rust.contains("mod tsrust_native_regex {"){manifest=manifest.replace("default = [", "default = [\"regex\", ");}
   if rust.contains("mod tsrust_native_url {"){manifest=manifest.replace("default = [", "default = [\"url\", ");}
   if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = [", "default = [\"http\", ");}

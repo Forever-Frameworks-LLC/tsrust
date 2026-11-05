@@ -573,3 +573,17 @@ fn regex_exports_members_and_parameter_help_agree(){
  }
  let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn locale_exports_members_and_parameter_help_agree(){
+ let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();let before="import { ";let text=format!("{before} }} from 'std:locale';function main(){{}}");
+ let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();let imports=session.completion("main.tsr",&text,before.len()).unwrap();
+ for entry in catalog["std:locale"].as_array().unwrap(){assert!(imports.iter().any(|name|name==entry["name"].as_str().unwrap()),"{imports:?}");}
+ for hidden in["__compare","__formatNumber","locale_intrinsic"]{assert!(!imports.iter().any(|name|name==hidden));}
+ for (owner,method,args) in[("Collator","compare","'a','b'"),("Segmenter","segment","'é🦀'"),("NumberFormat","format","1")]{
+  let before=format!("import {{{owner} as Owner}} from 'std:locale';function inspect(value:ReadOnly<Owner>){{value.");let text=format!("{before}{method}({args});}}function main(){{}}");session.change("main.tsr",&text);session.settle();
+  let offered=session.completion("main.tsr",&text,before.len()).unwrap().into_iter().collect::<BTreeSet<_>>();let expected=catalog[owner].as_array().unwrap().iter().map(|entry|entry["name"].as_str().unwrap().to_owned()).collect::<BTreeSet<_>>();assert_eq!(offered,expected);
+  let hover=session.hover("main.tsr",&text,before.len()+1).unwrap_or_default();assert!(hover.contains("Ownership:")&&hover.contains(method),"{hover}");
+  let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()+method.len()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
+ }
+}

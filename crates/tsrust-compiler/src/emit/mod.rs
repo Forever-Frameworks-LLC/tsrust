@@ -19,6 +19,7 @@ mod futures;
 mod http;
 #[path="../stdlib/url/emit.rs"] mod url;
 #[path="../stdlib/regex/emit.rs"] mod regex;
+#[path="../stdlib/locale/emit.rs"] mod locale;
 mod sqlite;
 mod sql;
 mod channels;
@@ -283,6 +284,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
         })
         .chain(emitter.uses_url_runtime().then_some("url"))
         .chain(emitter.uses_regex_runtime().then_some("regex"))
+        .chain(emitter.uses_locale_runtime().then_some("locale"))
         .chain(rust.contains("mod tsrust_native_cancellation {").then_some("cancellation"))
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
@@ -2426,6 +2428,7 @@ impl Emitter<'_> {
         format!("fn main()->std::process::ExitCode{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup)
     }
 
+    fn uses_locale_runtime(&self)->bool{self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::Locale|crate::native_signatures::NativeTypeId::Collator|crate::native_signatures::NativeTypeId::Segmenter|crate::native_signatures::NativeTypeId::NumberFormat)))||self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:locale")}
     fn uses_regex_runtime(&self) -> bool {
         self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Regex))
             || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:regex")
@@ -2504,6 +2507,7 @@ impl Emitter<'_> {
             }
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::Locale)=>Some("Locale"),Some(crate::native_signatures::NativeTypeId::Collator)=>Some("Collator"),Some(crate::native_signatures::NativeTypeId::Segmenter)=>Some("Segmenter"),Some(crate::native_signatures::NativeTypeId::NumberFormat)=>Some("NumberFormat"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_locale::{name};");continue;}
             if record.native_type==Some(crate::native_signatures::NativeTypeId::Regex) {
                 let _=writeln!(output,"type Record{index}=tsrust_native_regex::Regex;");continue;
             }
@@ -2816,7 +2820,8 @@ impl Emitter<'_> {
                     let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity");
                     self.native_optional_argument(parameter,format!("value{id}"),closure.function.bindings[*id].ty)
                 }).collect::<Vec<_>>();
-                let call=if let Some(call)=self.regex_forward(&closure.function,&closure.parameters,closure.span,id) {call}
+                let call=if let Some(call)=self.locale_forward(&closure.function,&closure.parameters,closure.span,id){call}
+                else if let Some(call)=self.regex_forward(&closure.function,&closure.parameters,closure.span,id) {call}
                 else if let Some(call)=self.url_forward(&closure.function,&closure.parameters,closure.span,id) {call}
                 else if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
                     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
@@ -3250,6 +3255,7 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record|crate::stdlib::cache::is_cache(record.native_type)){output.push_str(&crate::stdlib::cache::runtime());}
         if self.uses_url_runtime() { output.push_str(crate::stdlib::url::RUNTIME); }
         if self.uses_regex_runtime() { output.push_str(crate::stdlib::regex::RUNTIME); }
+        if self.uses_locale_runtime(){output.push_str(crate::stdlib::locale::RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
             || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
             let asynchronous=self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:threads"&&binding.name=="__taskAsync"});
@@ -9263,6 +9269,7 @@ impl Emitter<'_> {
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
+                    if let Some(call)=self.locale_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.regex_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.url_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}

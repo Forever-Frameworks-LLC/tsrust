@@ -47,6 +47,13 @@ libc = "=0.2.183"
 [dev-dependencies]
 tokio-util = { version = "=0.7.20", default-features = false }
 regex = "=1.13.1"
+icu_provider = { version = "=2.3.1", default-features = false, features = ["sync"] }
+icu_collator = { version = "=2.3.1" }
+icu_decimal = { version = "=2.3.0", features = ["alloc"] }
+icu_locale = { version = "=2.3.1" }
+icu_segmenter = { version = "=2.3.0", default-features = false, features = ["compiled_data"] }
+fixed_decimal = { version = "=0.7.3", default-features = false }
+
 memchr = "=2.8.3"
 tempfile = "=3.27.0"
 url = "=2.5.8"
