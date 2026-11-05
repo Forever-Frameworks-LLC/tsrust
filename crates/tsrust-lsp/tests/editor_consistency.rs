@@ -11,6 +11,48 @@ const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { s } fro
 const TAIL: &str = "\n}\n";
 
 #[test]
+fn path_environment_os_help_agrees_across_all_server_phases() {
+    let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+    for module in ["std:path","std:env","std:os"] {
+        let before="import { ";let source=format!("{before} }} from '{module}';function main(){{}}");
+        let mut session=Session::start(&[]);session.open("main.tsr",&source);session.settle();
+        let names=session.completion("main.tsr",&source,before.len()).unwrap();
+        assert!(!names.is_empty(),"{module}");
+        for row in catalog[module].as_array().unwrap(){let name=row["name"].as_str().unwrap();assert!(names.iter().any(|item|item==name),"{module}.{name}: {names:?}");}
+    }
+    let mut cases=Vec::new();
+    for (module,name,arguments,result) in [
+        ("std:path","parse","'file.txt'","PathParts"),("std:path","format","{name:'file',ext:'txt'}","ReadOnly<PathFormatOptions>"),
+        ("std:path","resolve","'file.txt'","PathError"),("std:path","separator","","string"),("std:path","delimiter","","string"),
+        ("std:env","vars","","EnvVar"),("std:env","currentDir","","EnvError"),("std:env","currentExe","","EnvError"),("std:env","tempDir","","EnvError"),("std:env","homeDir","","undefined"),
+        ("std:os","availableParallelism","","OsError"),("std:os","hostname","","OsError"),
+    ] {cases.push((format!("import {{{name}}} from '{module}';function main(){{"),name,format!("({arguments});}}"),result,true));}
+    for (module,ty,name,result) in [("std:path","PathParts","ext","string"),("std:path","PathFormatOptions","name","undefined"),("std:path","PathError","code","string"),("std:env","EnvVar","value","string"),("std:os","OsError","message","string")] {
+        cases.push((format!("import {{{ty}}} from '{module}';function inspect(value:ReadOnly<{ty}>){{console.log(value."),name,");}function main(){}".into(),result,false));
+    }
+    for (before,typed,after,expected,callable) in cases {
+        let mut baseline=None;let mut signature_baseline:Option<Value>=None;
+        for (mode,delay,broken) in [("settled",None,false),("typed-fast",Some(Duration::ZERO),false),("80ms",Some(Duration::from_millis(80)),false),("syntax-error",None,true)] {
+            let after=if broken{format!("{after}\nfunction broken(){{const = ;}}") }else{after.clone()};let source=format!("{before}{typed}{after}");
+            let mut session=Session::start(&[]);
+            if let Some(delay)=delay{session.open("main.tsr",&format!("{before}{after}"));session.settle();session.type_text("main.tsr",&before,typed,&after,delay);}else{session.open("main.tsr",&source);session.settle();}
+            let response=session.completion_items("main.tsr",&source,before.len()+typed.len());let items=if response.is_array(){response}else{response["items"].clone()};
+            let items=items.as_array().unwrap();assert!(!items.is_empty(),"{typed} [{mode}]");
+            let item=items.iter().find(|item|item["label"]==typed).unwrap_or_else(||panic!("{typed} [{mode}]: {items:?}"));
+            let detail=item["detail"].as_str().unwrap().to_owned();let hover=session.hover("main.tsr",&source,before.len()+1).unwrap_or_default();let text=format!("{detail}\n{hover}");
+            assert!(text.contains(expected)&&text.contains("Ownership:"),"{typed} [{mode}]: {text}");
+            if let Some((prior_detail,prior_hover))=&baseline{assert_eq!((&detail,&hover),(prior_detail,prior_hover),"{typed} [{mode}]");}else{baseline=Some((detail.clone(),hover.clone()));}
+            if callable {
+                let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()+typed.len()+1}}));
+                assert!(help.to_string().contains(expected),"{typed} [{mode}]: {help}");
+                if let Some(previous)=&signature_baseline{assert_eq!(&help,previous,"{typed} [{mode}] signature");}else{signature_baseline=Some(help);}
+            }
+            let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{typed} [{mode}]: {counters}");}
+        }
+    }
+}
+
+#[test]
 fn nested_native_request_keeps_hover_and_completion() {
     let text=tsrust_compiler::format("import {Context} from 'std:http';function probe(ctx:Mutable<Context>){const tags=ctx.req.queries('tag');}function main(){}").unwrap();
     let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();

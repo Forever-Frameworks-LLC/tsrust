@@ -60,12 +60,11 @@ fn resolved_tail(text: &str, windows: bool) -> std::string::String {
     }
     components.join(if windows { "\\" } else { "/" })
 }
-fn resolve_path(
-    path: &str,
-    windows: bool,
-    cwd: &mut impl FnMut() -> Result<std::string::String, std::string::String>,
-    drive_cwd: &mut impl FnMut(&str) -> Option<std::string::String>,
-) -> Result<std::string::String, std::string::String> {
+fn resolve_path_checked<E>(
+    path:&str,windows:bool,
+    cwd:&mut impl FnMut()->Result<std::string::String,E>,
+    drive_cwd:&mut impl FnMut(&str)->Result<Option<std::string::String>,E>,
+)->Result<std::string::String,E> {
     if !windows {
         let text = if path.starts_with('/') {
             path.to_owned()
@@ -81,7 +80,7 @@ fn resolve_path(
         let mut base = if root.device.is_empty() {
             cwd()?
         } else {
-            drive_cwd(&root.device)
+            drive_cwd(&root.device)?
                 .filter(|directory| !directory.is_empty())
                 .map(Ok)
                 .unwrap_or_else(&mut *cwd)?
@@ -167,6 +166,13 @@ pub fn relative_with(
     mut cwd: impl FnMut() -> Result<std::string::String, std::string::String>,
     mut drive_cwd: impl FnMut(&str) -> Option<std::string::String>,
 ) -> Result<std::string::String, std::string::String> {
+    relative_checked(from,to,windows,&mut cwd,&mut |drive|Ok(drive_cwd(drive)))
+}
+pub fn relative_checked<E>(
+    from:&str,to:&str,windows:bool,
+    mut cwd:impl FnMut()->Result<std::string::String,E>,
+    mut drive_cwd:impl FnMut(&str)->Result<Option<std::string::String>,E>,
+)->Result<std::string::String,E> {
     if from == to {
         return Ok(std::string::String::new());
     }
@@ -187,8 +193,8 @@ pub fn relative_with(
         observed = Some(value.clone());
         Ok(value)
     };
-    let from = resolve_path(from, windows, &mut context, &mut drive_cwd)?;
-    let to = resolve_path(to, windows, &mut context, &mut drive_cwd)?;
+    let from = resolve_path_checked(from, windows, &mut context, &mut drive_cwd)?;
+    let to = resolve_path_checked(to, windows, &mut context, &mut drive_cwd)?;
     let equal = |left: &str, right: &str| {
         if windows {
             left.to_lowercase() == right.to_lowercase()
@@ -280,18 +286,46 @@ pub fn relative_with(
 }
 /// Read host context only when required; report unavailable or non-UTF-8 cwd.
 pub fn relative_host(from: &str, to: &str) -> Result<std::string::String, std::string::String> {
-    relative_with(
-        from,
-        to,
-        cfg!(windows),
-        || {
-            let directory = std::env::current_dir()
-                .map_err(|error| format!("Cannot read current working directory: {error}"))?;
-            directory
-                .into_os_string()
-                .into_string()
-                .map_err(|_| "Current working directory is not valid UTF-8.".into())
-        },
-        |drive| std::env::var(format!("={drive}")).ok(),
-    )
+    relative_checked(from,to,cfg!(windows),host_cwd,host_drive_cwd).map_err(|error|error.message)
+}
+
+#[derive(Debug,PartialEq,Eq)]
+pub struct PathError {pub code:&'static str,pub message:std::string::String}
+fn host_cwd()->Result<std::string::String,PathError> {
+    std::env::current_dir().map_err(|error|PathError{code:"Io",message:format!("Cannot read current working directory: {error}")})?
+        .into_os_string().into_string().map_err(|_|PathError{code:"NotUnicode",message:"Current working directory is not valid UTF-8.".into()})
+}
+fn host_drive_cwd(drive:&str)->Result<Option<std::string::String>,PathError> {
+    match std::env::var(format!("={drive}")) {
+        Ok(value)=>Ok(Some(value)),
+        Err(std::env::VarError::NotPresent)=>Ok(None),
+        Err(std::env::VarError::NotUnicode(_))=>Err(PathError{code:"NotUnicode",message:"Drive working directory is not valid UTF-8.".into()}),
+    }
+}
+/// Resolve operands using only the contexts required by the rightmost root.
+pub fn resolve_with<E>(paths:&[&str],windows:bool,mut cwd:impl FnMut()->Result<std::string::String,E>,mut drive_cwd:impl FnMut(&str)->Result<Option<std::string::String>,E>)->Result<std::string::String,E> {
+    if !windows {
+        let first=paths.iter().rposition(|path|path.starts_with('/')).unwrap_or(0);
+        let joined=paths[first..].iter().copied().filter(|path|!path.is_empty()).collect::<Vec<_>>().join("/");
+        return resolve_path_checked(&joined,false,&mut cwd,&mut drive_cwd);
+    }
+    let mut device=std::string::String::new();let mut absolute=false;let mut tails=Vec::new();
+    for path in paths.iter().rev().copied().filter(|path|!path.is_empty()) {
+        let root=windows_root(path);
+        if !root.device.is_empty() {
+            if !device.is_empty() && !device.eq_ignore_ascii_case(&root.device){continue;}
+            if device.is_empty(){device=root.device;}
+        }
+        if !absolute {
+            if !path[root.tail..].is_empty(){tails.push(&path[root.tail..]);}
+            absolute=root.absolute;
+        }
+        if absolute && !device.is_empty(){break;}
+    }
+    let tail=tails.into_iter().rev().collect::<Vec<_>>().join("\\");
+    let composed=if absolute{format!("{device}\\{tail}")}else{format!("{device}{tail}")};
+    resolve_path_checked(&composed,true,&mut cwd,&mut drive_cwd)
+}
+pub fn resolve_host(paths:&[&str])->Result<std::string::String,PathError> {
+    resolve_with(paths,cfg!(windows),host_cwd,host_drive_cwd)
 }

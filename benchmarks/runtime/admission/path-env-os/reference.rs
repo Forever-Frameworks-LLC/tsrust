@@ -35,7 +35,7 @@ unsafe impl GlobalAlloc for Meter {
 pub mod lexical;
 pub mod existing_resolution {
  include!("../../../../crates/tsrust-compiler/src/stdlib/path/relative.rs");
- pub fn one(path:&str,windows:bool,cwd:&str,drive:&str)->Result<String,String>{resolve_path(path,windows,&mut ||Ok(cwd.into()),&mut |_|if drive.is_empty(){None}else{Some(drive.into())})}
+ pub fn one(path:&str,windows:bool,cwd:&str,drive:&str)->Result<String,String>{resolve_path_checked(path,windows,&mut ||Ok(cwd.into()),&mut |_|Ok(if drive.is_empty(){None}else{Some(drive.into())}))}
  // A narrow prototype over existing lexical resolution, not a new path parser.
  // Windows multi-part drive selection remains a separate required control.
  pub fn posix(parts:&[&str],cwd:&mut impl FnMut()->Result<String,String>)->Result<String,String>{
@@ -45,9 +45,9 @@ pub mod existing_resolution {
    if !joined.is_empty(){joined.push('/');}
    joined.push_str(part);
   }
-  resolve_path(&joined,false,cwd,&mut |_|None)
+  resolve_path_checked(&joined,false,cwd,&mut |_|Ok(None))
  }
- pub fn resolve_absolute_without_cwd(observations:&mut usize)->String{resolve_path("/logs",false,&mut ||{*observations+=1;Err("cwd unavailable".into())},&mut |_|None).unwrap()}
+ pub fn resolve_absolute_without_cwd(observations:&mut usize)->String{resolve_path_checked("/logs",false,&mut ||{*observations+=1;Err("cwd unavailable".into())},&mut |_|Ok(None)).unwrap()}
 }
 #[derive(Clone,Debug,PartialEq,Eq)]struct Parts {root:String,dir:String,base:String,ext:String,name:String}
 const COMMON:&[&str]=&["/srv/releases/file.tar.gz","reports/é😊.txt","alpha/.gitignore","alpha/file."];

@@ -326,6 +326,17 @@ static ENV_ERROR: Declaration = Declaration {
         Field { name: "message", signature: Signature::String, optional: false },
     ], ..FS_ERROR
 };
+static ENV_VAR:Declaration=Declaration{id:NativeTypeId::EnvVar,module:"std:env",name:"EnvVar",fields:&[
+    Field{name:"name",signature:Signature::String,optional:false},Field{name:"value",signature:Signature::String,optional:false},
+],..ENV_ERROR};
+static PATH_PARTS:Declaration=Declaration{id:NativeTypeId::PathParts,module:"std:path",name:"PathParts",fields:&[
+    Field{name:"root",signature:Signature::String,optional:false},Field{name:"dir",signature:Signature::String,optional:false},Field{name:"base",signature:Signature::String,optional:false},Field{name:"ext",signature:Signature::String,optional:false},Field{name:"name",signature:Signature::String,optional:false},
+],..ENV_ERROR};
+static PATH_FORMAT_OPTIONS:Declaration=Declaration{id:NativeTypeId::PathFormatOptions,module:"std:path",name:"PathFormatOptions",fields:&[
+    Field{name:"root",signature:Signature::String,optional:true},Field{name:"dir",signature:Signature::String,optional:true},Field{name:"base",signature:Signature::String,optional:true},Field{name:"ext",signature:Signature::String,optional:true},Field{name:"name",signature:Signature::String,optional:true},
+],..ENV_ERROR};
+static PATH_ERROR:Declaration=Declaration{id:NativeTypeId::PathError,module:"std:path",name:"PathError",..ENV_ERROR};
+static OS_ERROR:Declaration=Declaration{id:NativeTypeId::OsError,module:"std:os",name:"OsError",..ENV_ERROR};
 static TIMEOFDAY: Declaration = Declaration {id:NativeTypeId::TimeOfDay,module:"std:date",name:"Time",..BYTES};
 static UTCINSTANT: Declaration = Declaration {id:NativeTypeId::UtcInstant,module:"std:date",name:"Instant",..BYTES};
 static TIMEDURATION: Declaration = Declaration {id:NativeTypeId::TimeDuration,module:"std:date",name:"Duration",..BYTES};
@@ -519,6 +530,11 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::FsDirEntry => &FS_DIR_ENTRY,
         NativeTypeId::FsError => &FS_ERROR,
         NativeTypeId::EnvError => &ENV_ERROR,
+        NativeTypeId::EnvVar => &ENV_VAR,
+        NativeTypeId::PathParts => &PATH_PARTS,
+        NativeTypeId::PathFormatOptions => &PATH_FORMAT_OPTIONS,
+        NativeTypeId::PathError => &PATH_ERROR,
+        NativeTypeId::OsError => &OS_ERROR,
         NativeTypeId::UiSignal => &UI_SIGNAL,
         NativeTypeId::UiComputed => &UI_COMPUTED,
         NativeTypeId::UiNode => &UI_NODE,
@@ -563,7 +579,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
     [&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
         &UI_ERROR,
-        &SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_OPEN_OPTIONS, &FS_FILE_TIME, &FS_METADATA, &FS_DIR_ENTRY, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
+        &SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR,&ENV_VAR,&PATH_PARTS,&PATH_FORMAT_OPTIONS,&PATH_ERROR,&OS_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_OPEN_OPTIONS, &FS_FILE_TIME, &FS_METADATA, &FS_DIR_ENTRY, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
     ].into_iter().find(|item| item.module == module && item.name == name)
 }
 

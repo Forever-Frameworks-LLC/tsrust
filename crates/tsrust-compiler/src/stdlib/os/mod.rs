@@ -1,4 +1,8 @@
 pub(crate) mod bindings;
+pub(crate) mod emit;
+pub(crate) const HOSTNAME_RUNTIME:&str=include_str!("hostname.rs");
+#[cfg(test)]
+mod runtime;
 
 // These predicates are evaluated by rustc for the emitted executable, never by
 // the compiler host. Each referenced export has its own unsupported-target check.

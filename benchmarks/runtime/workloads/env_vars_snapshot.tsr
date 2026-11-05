@@ -1,0 +1,22 @@
+import { vars } from 'std:env';
+
+function workload(n: int, seed: int): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const rows = unwrap(vars());
+    for (const row of rows) {
+      if (row.name === 'TSRUST_B03_TEXT' || row.name === 'TSRUST_B03_EMPTY') {
+        checksum += row.name.length + row.value.length;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0));
+}

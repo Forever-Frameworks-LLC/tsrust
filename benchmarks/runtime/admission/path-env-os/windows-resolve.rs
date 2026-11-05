@@ -39,5 +39,5 @@ pub fn windows_many(
     } else {
         None
     };
-    resolve_path(&composed, true, &mut cwd, &mut |_| drive.clone())
+    resolve_path_checked(&composed, true, &mut cwd, &mut |_| Ok(drive.clone()))
 }

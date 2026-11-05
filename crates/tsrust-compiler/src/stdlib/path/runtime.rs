@@ -228,3 +228,55 @@ pub fn join(paths: &[&str], windows: bool) -> std::string::String {
     }
     normalize(&joined,windows)
 }
+
+/// Independently owned lexical components; no filesystem observation occurs.
+#[derive(Debug,PartialEq,Eq)]
+pub struct PathParts {
+    pub root:std::string::String,
+    pub dir:std::string::String,
+    pub base:std::string::String,
+    pub ext:std::string::String,
+    pub name:std::string::String,
+}
+pub fn parse_parts(path:&str,windows:bool)->PathParts {
+    let bytes=path.as_bytes();
+    let mut root=usize::from(bytes.first().is_some_and(|byte|separator(*byte,windows)));
+    if windows && root==1 && bytes.len()>2 && separator(bytes[1],true) && !separator(bytes[2],true) {
+        let mut cursor=2;
+        while cursor<bytes.len() && !separator(bytes[cursor],true) {cursor+=1;}
+        if cursor<bytes.len() {
+            while cursor<bytes.len() && separator(bytes[cursor],true) {cursor+=1;}
+            let share=cursor;
+            while cursor<bytes.len() && !separator(bytes[cursor],true) {cursor+=1;}
+            if cursor>share {root=(cursor+usize::from(cursor<bytes.len())).min(bytes.len());}
+        }
+    }else if windows && drive_prefix(bytes) {
+        root=if bytes.get(2).is_some_and(|byte|separator(*byte,true)){3}else{2};
+    }
+    let mut end=bytes.len();
+    while end>root && separator(bytes[end-1],windows) {end-=1;}
+    let start=(root..end).rev().find(|&index|separator(bytes[index],windows)).map_or(root,|index|index+1);
+    let base=path[start..end].to_owned();
+    let ext=if base.is_empty(){std::string::String::new()}else{extname(path,windows)};
+    let name=base[..base.len()-ext.len()].to_owned();
+    let dir=if start>root {&path[..start-1]}else{&path[..root]};
+    PathParts{root:path[..root].to_owned(),dir:dir.to_owned(),base,ext,name}
+}
+/// Field precedence matches the public options record; omitted fields pass "".
+pub fn format_parts(root:&str,dir:&str,base:&str,ext:&str,name:&str,windows:bool)->std::string::String {
+    let directory=if dir.is_empty(){root}else{dir};
+    let separator=usize::from(!directory.is_empty() && directory!=root);
+    let dot=usize::from(base.is_empty() && !ext.is_empty() && !ext.starts_with('.'));
+    let base_len=if base.is_empty(){name.len().checked_add(dot).and_then(|length|length.checked_add(ext.len()))}else{Some(base.len())};
+    let capacity=base_len.and_then(|length|length.checked_add(directory.len())).and_then(|length|length.checked_add(separator)).expect("path format output length overflow");
+    let mut output=std::string::String::with_capacity(capacity);
+    output.push_str(directory);
+    if separator!=0 {output.push(if windows{'\\'}else{'/'});}
+    if base.is_empty() {
+        output.push_str(name);
+        if dot!=0 {output.push('.');}
+        output.push_str(ext);
+    }else{output.push_str(base);}
+    debug_assert_eq!(output.len(),capacity);
+    output
+}
