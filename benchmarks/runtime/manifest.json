@@ -25335,7 +25335,7 @@
       "notes": "Compile and escape are separate workloads. Matching reuses one compiled expression; captures include owned group snapshots. Keep 8 warmups and 3 processes of 31 samples. No generated API timing accepted yet.",
       "inputText": "a=12 b=3",
       "sourceSha256": "0f3c54284f5feb3adea984ae037a34e6ad2f640c432936b8af32b7b4cf7e9e62",
-      "counterpartSha256": "c991caff6ec4cd2921847090f7131aff2908150f8078f8d72d369b677c5f7736"
+      "counterpartSha256": "9fa8cd5f55ffd546fe8730d09f364a6a85299661f71bb922296a835e31614229"
     },
     {
       "id": "regex_find_all",
@@ -25360,7 +25360,7 @@
       "notes": "Compile and escape are separate workloads. Matching reuses one compiled expression; captures include owned group snapshots. Keep 8 warmups and 3 processes of 31 samples. No generated API timing accepted yet.",
       "inputText": "a=12 b=3",
       "sourceSha256": "8b0f891c4c0c9f1469fc8d8a3b099a124f56a06dbc0e49e39daa2179d87d5d5c",
-      "counterpartSha256": "ccbc088c1a9fb61e74a98fa14f826140f1d71ad07da2490429a8635ef813289b"
+      "counterpartSha256": "d51215e6a7059f9756877b89cbdc8444a96a5e249f66db8ba99b4648a6acccba"
     },
     {
       "id": "regex_captures",

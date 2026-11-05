@@ -550,8 +550,19 @@ threads/async/cancellation portable export coverage. Benchmark source/oracle/ABI
 mutation checks pass; generated workloads and timings remain unrun. Initial
 combined no-run build exposed three test-only type/migration errors, repaired in
 72ad2f9f together with deterministic cancellation cleanup witnesses. Combined
-executable validation is pending; none of these source changes completes a public
-B06 checklist item yet.
+validation now has preserved passes through118539c4:18 runtime tests (including
+cancelled-drain registration and deterministic missed ticks),2 CPU cleanup tests,
+HTTP producer disposal, sync thread/channel baselines, taskAsync admission/owned
+captures, all ordered/unit/scalar/record/nested-array outputs, catalog examples,
+portable relocated offline export at O0/O3, five receiver agreement cases, eight
+matrix rows×4phases and async editor consistency. Two final public failures led to
+9ba4fa48: select futures runtime for synchronous async-channel operations and
+correct the fixture to assert existing ThreadError.error beneath AsyncError.cause.
+Their focused rebuild/validation remains pending. Benchmark references now have
+optional exact regex/Tokio dependencies; task group/channel observations detect
+reordering through a matched ordered fold and independent BigInt oracle. Original
+sample counts remain3×31after8. Generated workload validation and actual timing
+are still pending; no public B06 checklist item is fully accepted yet.
 
 B06 prototype profile (2026-11-05): three processes ×31 samples after8 warmups,
 separate allocation builds, quiet load3.448, watchdog8.434s/424,832KiB. Direct
