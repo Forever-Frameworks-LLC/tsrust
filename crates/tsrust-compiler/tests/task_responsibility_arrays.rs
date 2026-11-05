@@ -69,3 +69,17 @@ fn named_place_indices_evaluate_awaits_mutations_and_failure_order_once(){
   "const holder={rows:[[7]]};const position=index().start();console.log(holder.rows[fail()][await position]);",
  ]{let source=format!("{prefix}async function main():Task<void>{{{body}}}");assert_eq!(checked(&source).unwrap_err(),"unsettled-job","{body}");}
 }
+
+#[test]
+fn named_task_awaits_do_not_alias_later_group_closure_captures(){
+ let header="import {all} from 'std:futures';async function value(n:int):Task<int>{return n;}async function unit():Task<void>{}async function fail():Task<int>{throw 'cause';}";
+ for prefix in ["const pending=all([value(1),value(2)]);await pending;","const pending=value(1);await pending;"]{
+  for tail in ["await all([unit(),unit().start(),unit()]);","console.log((await all([])).length);","const inputs=[value(3),value(4)];await all(inputs);","try{await all([value(1),fail(),value(3)]);}catch(error){console.log('caught');}"]{
+   for body in [format!("{prefix}{tail}"),format!("{tail}{prefix}")]{let source=format!("{header}async function main():Task<void>{{{body}}}");assert!(checked(&source).unwrap().is_empty(),"{body}");}
+  }
+ }
+ for body in ["const pending=value(1);await pending;all([value(2)]);","const pending=all([value(1)]);throw 'before await';"]{
+  let source=format!("{header}async function main():Task<void>{{{body}}}");assert!(checked(&source).unwrap().iter().any(|code|code=="unused-task"),"{body}");
+ }
+ let source=format!("{header}async function main():Task<void>{{const pending=value(1);await pending;const job=value(2).start();all([job]);}}");assert_eq!(checked(&source).unwrap_err(),"unsettled-job");
+}

@@ -158,7 +158,11 @@ impl Tracker<'_> {
             }
             ExprKind::Closure{..}=>{
                 let mut tokens=Tokens::new();
-                if let Some(Type::Closure(origin))=value.ty && let Some(closure)=self.program.closures.get(origin) {for capture in &closure.captures {if capture.storage==Mode::Consume {tokens.extend(Self::take(state,&(capture.outer,Vec::new())));}}}
+                if let Some(Type::Closure(mut origin))=value.ty {
+                    // Once captures belong to its constructor, not this lexical environment.
+                    while let Some(ClosureForward::Once(inner))=self.program.closures.get(origin).and_then(|closure|closure.forward){origin=inner;}
+                    if let Some(closure)=self.program.closures.get(origin){for capture in &closure.captures {if capture.storage==Mode::Consume {tokens.extend(Self::take(state,&(capture.outer,Vec::new())));}}}
+                }
                 tokens
             }
             ExprKind::Call(callee,args)=>{
