@@ -7,6 +7,8 @@ publish = false
 [workspace]
 
 [dependencies]
+regex = { version = "=1.13.1", optional = true }
+tokio = { version = "=1.53.3", optional = true, features = ["rt-multi-thread", "time", "sync", "macros"] }
 hostname = { version = "=0.4.2", default-features = false, optional = true }
 memchr = "=2.8.3"
 url = "=2.5.8"
@@ -16,6 +18,8 @@ rand = "=0.10.3"
 unicode-normalization = "=0.1.25"
 
 [features]
+regex = ["dep:regex"]
+task-join = ["dep:tokio"]
 hostname = ["dep:hostname"]
 
 [patch.crates-io]

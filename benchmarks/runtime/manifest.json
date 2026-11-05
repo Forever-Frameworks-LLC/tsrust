@@ -25582,8 +25582,8 @@
       "measurementStatus": "unmeasured-task-ergonomics",
       "specification": "task-ergonomics-contract.mjs",
       "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
-      "sourceSha256": "f2d027f1c149c6ea70502ffc7b53e15018ca3b092c1a36daf49870e2ec3e667e",
-      "counterpartSha256": "f7579431d052f62b3d2f637bf276e8a7c01a04a98a2f43ae69c709b01cf24347"
+      "sourceSha256": "d6460423e957db081354d9f782a548e124a563d1b9192e9c475d2542b14322af",
+      "counterpartSha256": "0964db96c00039ce552a74dbe4539be06af6fbfe351d26737e7662d8c697b498"
     },
     {
       "id": "task_all_yield",
@@ -25605,8 +25605,8 @@
       "measurementStatus": "unmeasured-task-ergonomics",
       "specification": "task-ergonomics-contract.mjs",
       "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
-      "sourceSha256": "bc7f83cc9a50dfdc2beae9b40c3d17d9c1c7dc0b27de1089d6a513b89f9743b9",
-      "counterpartSha256": "5cf0d598548483cf55409abb950e1a4c5038e2a7c00c6c197ab28e40f3aff907"
+      "sourceSha256": "01e1c507aa34d3b3d30d62a5edbf1a5a2a70c295ba96dc81641db376129ffe47",
+      "counterpartSha256": "3cd6d25879b97784130ca011a9b9856fd692be95b994bdbf8ef80093d4667ab0"
     },
     {
       "id": "async_channel_try",
@@ -25628,8 +25628,8 @@
       "measurementStatus": "unmeasured-task-ergonomics",
       "specification": "task-ergonomics-contract.mjs",
       "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
-      "sourceSha256": "6eaa70a5319167e533f039627c615c29cbb009b11a97ea3fd349f92d669b2c89",
-      "counterpartSha256": "f8e25d80efd8564a175e050cabeb659db44670fbc0094b65ab9d0efe22da8610"
+      "sourceSha256": "a1a68da56ccba00e0082934fef8348012fdc6f0fb1883f0a822e89ea79b78796",
+      "counterpartSha256": "74c0ce5ec40b453c4d45b6b3af9b8bb26ed2d2865997e21fdfaa21e1a5930709"
     },
     {
       "id": "async_channel_await",
@@ -25651,8 +25651,8 @@
       "measurementStatus": "unmeasured-task-ergonomics",
       "specification": "task-ergonomics-contract.mjs",
       "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
-      "sourceSha256": "ea11ff0bbab9c56a70f171fba43a3f43c6234c5ca2bb744c5dfca52ecf8042a3",
-      "counterpartSha256": "3d339d0620830191480e2e1a1cda3a3004b80ba042ec8f49ceff46d9b6b03d4e"
+      "sourceSha256": "ec1fb298d04ca2a782a28dd5ab5c03a5e3062130e22d240702572ba3ff545879",
+      "counterpartSha256": "9f0ca72ea8d525f022c84e1eb5d40c6f60229de7b1b9b0030b5ca26e8d17a31c"
     },
     {
       "id": "cancellation_fanout",

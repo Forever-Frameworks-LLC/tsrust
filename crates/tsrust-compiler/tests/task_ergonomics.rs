@@ -31,7 +31,13 @@ fn exclusive_tick_and_try_receive_loans_and_invalid_policies_are_rejected(){
 
 #[test]
 fn task_async_typed_causes_survive_direct_started_and_all_transports(){
- execute("import {ThreadPool} from 'std:threads';import {all} from 'std:futures';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:2});try{await pool.taskAsync(():int=>{throw 'cause';});}catch(error){console.log(JSON.stringify(error));}try{await pool.taskAsync(():int=>{throw 'cause';}).start();}catch(error){console.log(JSON.stringify(error));}try{await all([pool.taskAsync(():int=>{throw 'cause';}).start()]);}catch(error){console.log(JSON.stringify(error));}unwrap(pool.shutdown());}","{\"code\":\"worker\",\"cause\":\"cause\"}\n{\"code\":\"worker\",\"cause\":{\"code\":\"worker\",\"cause\":\"cause\"}}\n{\"code\":\"worker\",\"cause\":{\"code\":\"worker\",\"cause\":\"cause\"}}\n");
+ let source="import {ThreadPool} from 'std:threads';import {all} from 'std:futures';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:2});try{await pool.taskAsync(():int=>{throw 'cause';});}catch(error){console.log(JSON.stringify(error));}try{await pool.taskAsync(():int=>{throw 'cause';}).start();}catch(error){console.log(JSON.stringify(error));}try{await all([pool.taskAsync(():int=>{throw 'cause';}).start()]);}catch(error){console.log(JSON.stringify(error));}unwrap(pool.shutdown());}";
+ let directory=support::TempDirectory::new();let input=directory.source(&support::format_round_trip(source));
+ let output=support::run(support::cli().arg("run").arg(input),120);support::success(&output);
+ let actual=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();
+ let direct=serde_json::json!({"code":"worker","error":"cause"});
+ let wrapped=serde_json::json!({"code":"worker","cause":direct});
+ assert_eq!(actual,vec![direct,wrapped.clone(),wrapped]);
 }
 
 #[test]

@@ -216,7 +216,7 @@ fn try_and_awaited_send_retain_exact_unsent_owners_and_sender_close_is_local(){
   let first=vec![1,2];let first_pointer=first.as_ptr();assert!(sender.try_send(first).is_ok());
   let full=vec![3,4];let full_pointer=full.as_ptr();let full=other.try_send(full).err().unwrap();
   assert_eq!(full.code,"full");assert_eq!(full.value.as_ptr(),full_pointer);
-  assert_eq!(queue.try_receive().ok().unwrap().as_ptr(),first_pointer);
+  let received=queue.try_receive().ok().unwrap();assert_eq!(received.as_ptr(),first_pointer);
   sender.close();sender.close();
   let closed=vec![5,6];let pointer=closed.as_ptr();let closed=sender.send(closed).await.err().unwrap();
   assert_eq!(closed.code,"closed");assert_eq!(closed.value.as_ptr(),pointer);

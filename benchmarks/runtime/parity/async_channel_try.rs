@@ -1,2 +1,2 @@
 mod tsrust_native_futures {pub fn block_on<F:std::future::Future>(future:F)->F::Output{tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap().block_on(future)}}
-async fn function0(n:i64,seed:i64)->i64{let(tx,mut rx)=tokio::sync::mpsc::channel(4);let mut sum=0;for i in 0..n{for j in 0..4{tx.try_send(seed+i+j).unwrap();}for _ in 0..4{sum=(sum+rx.try_recv().unwrap())%1000000007;}}drop(tx);rx.close();sum}fn main(){}
+async fn function0(n:i64,seed:i64)->i64{let(tx,mut rx)=tokio::sync::mpsc::channel(4);let mut sum=0;for i in 0..n{for j in 0..4{tx.try_send(seed+i+j).unwrap();}for _ in 0..4{sum=(sum*131+rx.try_recv().unwrap())%1000000007;}}drop(tx);rx.close();sum}fn main(){}

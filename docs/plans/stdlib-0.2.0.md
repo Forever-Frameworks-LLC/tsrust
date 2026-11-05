@@ -738,8 +738,9 @@ passed11ae1144. Native/catalog execution exposed optional-input signature lookup
 portable export exposed missing default feature activation. Both are repaired in
 31738942. All18 catalog examples and portable relocation/offline/forbid-unsafe
 export now pass at O0/O3. Native ownership exposed a temporary-borrow staging
-error for computed optional options; its same-statement conversion fix awaits
-revalidation. No checklist item is accepted yet;
+error for computed optional options; its same-statement conversion fix passed
+formatted native ownership/options/stored-call execution at O0/O3 on72ad2f9f
+(32.088s). No checklist item is accepted yet;
 generated benchmark correctness, actual timings and remaining platform checks
 remain pending. Prototype evidence below is not generated API performance.
 
