@@ -122,7 +122,7 @@ pub(crate) fn unchanged(expected: Option<&str>, root: &Path) -> bool {
 }
 
 pub(crate) fn application_identity(source: &str, root: &Path) -> Result<Option<String>, String> {
-    if tsrust_compiler::native_runtime::separate(source).dependencies && shared(source)? {Ok(Some(identity(root)?))} else {Ok(None)}
+    if tsrust_compiler::native_runtime::requires_dependencies(source) && shared(source)? {Ok(Some(identity(root)?))} else {Ok(None)}
 }
 
 pub(crate) fn dependency_identity()-> &'static str {

@@ -543,7 +543,6 @@ fn completion_answers_at_typing_speed() {
     }
     if let Some(path) = report {
         std::fs::write(path, lines.join("\n") + "\n").unwrap();
-        return;
     }
     assert!(failed.is_empty(), "{} completion failures:\n{}", failed.len(), failed.join("\n"));
 }

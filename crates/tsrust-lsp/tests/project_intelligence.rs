@@ -3224,9 +3224,9 @@ fn filesystem_options_metadata_and_entry_help_agree_with_native_signatures() {
     let uri=fixture_uri!("/tsrust-intelligence/main.tsr");
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
-    let hover=ask(&index,&entry,"info.size","textDocument/hover").to_string();
+    let hover=ask(&index,&entry,"size","textDocument/hover").to_string();
     assert!(hover.contains("Host metadata length in bytes"),"{hover}");assert!(!hover.contains("__tsrust_private_"));
-    let hover=ask(&index,&entry,"entry.isSymlink","textDocument/hover").to_string();
+    let hover=ask(&index,&entry,"isSymlink","textDocument/hover").to_string();
     assert!(hover.contains("including links to directories or missing targets"),"{hover}");
     let options=ask(&index,&entry,"\"input.bin\"","textDocument/signatureHelp").to_string();
     assert!(options.contains("options: ReadOnly<OpenOptions>"),"{options}");

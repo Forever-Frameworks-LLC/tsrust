@@ -30,6 +30,10 @@ impl NativeCache {
         }
     }
     pub fn runtime(root:&Path,fields:&[&[u8]])->Self {Self::new(root,fields)}
+    /// Opaque compiler cache graph identifier; exact identity bytes still validate cache lookup.
+    #[doc(hidden)]
+    pub fn identity_key(&self)->&str {self.directory.file_name().unwrap().to_str().unwrap()}
+
     pub fn lookup(&self) -> Option<PathBuf> {
         let executable = self
             .directory

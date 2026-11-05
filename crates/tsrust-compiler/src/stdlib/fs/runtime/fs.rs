@@ -413,17 +413,36 @@ mod tests {
     }
     #[cfg(unix)]
     #[test]
-    fn directory_names_and_symlink_targets_reject_non_unicode_without_loss() {
+    fn non_unicode_conversion_rejects_raw_bytes_without_loss() {
+        use std::os::unix::ffi::OsStringExt;
+        for operation in ["readDir","readLink","createTempDir"] {
+            let error=failure(unicode(std::ffi::OsString::from_vec(vec![0xff]),operation));
+            assert_eq!((error.code,error.operation,error.os_code),("not-unicode",operation,None));
+        }
+    }
+    #[cfg(unix)]
+    #[test]
+    fn link_metadata_and_raw_symlink_targets_preserve_host_values() {
         use std::os::unix::{ffi::OsStringExt,fs::symlink};
         let directory=Directory::new();let input=directory.input();let link=directory.0.join("link");symlink("input.bin",&link).unwrap();
         assert!(lstat(link.to_str().unwrap()).unwrap().is_symlink);assert!(stat(link.to_str().unwrap()).unwrap().is_file);
         assert_eq!(read_link(link.to_str().unwrap()).unwrap(),"input.bin");
         let entry=read_dir(directory.0.to_str().unwrap(),None).unwrap().into_iter().find(|entry|entry.name=="link").unwrap();assert!(entry.is_symlink);assert!(!entry.is_file);
-        let odd=std::ffi::OsString::from_vec(vec![0xff]);let odd_path=directory.0.join(&odd);std::fs::write(&odd_path,b"x").unwrap();
-        assert_eq!(failure(read_dir(directory.0.to_str().unwrap(),None)).code,"not-unicode");
-        std::fs::remove_file(&link).unwrap();symlink(&odd,&link).unwrap();assert_eq!(failure(read_link(link.to_str().unwrap())).code,"not-unicode");
-        remove_file(&input).unwrap();remove_file(link.to_str().unwrap()).unwrap();assert!(odd_path.exists());
+        std::fs::remove_file(&link).unwrap();let odd=std::ffi::OsString::from_vec(vec![0xff]);symlink(&odd,&link).unwrap();
+        assert_eq!(std::fs::read_link(&link).unwrap(),std::path::PathBuf::from(odd));
+        assert_eq!(failure(read_link(link.to_str().unwrap())).code,"not-unicode");
+        remove_file(&input).unwrap();remove_file(link.to_str().unwrap()).unwrap();
     }
+    // macOS rejects this filename at creation with EILSEQ; Linux admits raw names.
+    #[cfg(target_os="linux")]
+    #[test]
+    fn raw_directory_entry_names_reject_non_unicode_without_loss() {
+        use std::os::unix::ffi::OsStringExt;
+        let directory=Directory::new();let odd=std::ffi::OsString::from_vec(vec![0xff]);let path=directory.0.join(odd);
+        std::fs::write(&path,b"x").unwrap();assert_eq!(failure(read_dir(directory.0.to_str().unwrap(),None)).code,"not-unicode");
+        assert_eq!(std::fs::read(path).unwrap(),b"x");
+    }
+
 
     #[test]
     fn cursor_origins_eof_validation_and_truncation_use_exact_positions() {

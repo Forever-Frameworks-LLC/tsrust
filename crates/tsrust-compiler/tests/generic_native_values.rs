@@ -11,14 +11,16 @@ fn checked(source: &str) -> Result<tsrust_compiler::project::ProjectAnalysis, ts
 fn generic_native_values_keep_aliases_optional_rest_and_returned_views() {
     let source=r#"
 import {basename as name,join} from 'std:path';
-import {fromUtf8,view,length,toUtf8} from 'std:bytes';
+import {fromUtf8,view,viewMut,set,length,toUtf8} from 'std:bytes';
 import {strictEqual} from 'std:testing';
 function identity<T>(value:T):T{return value;}
 function main(){
   const base=identity(name);strictEqual(base('hello.txt'),'hello.txt');strictEqual(base('hello.txt','.txt'),'hello');
   const original=join;const combined=identity(original);strictEqual(combined('a','b','c'),join('a','b','c'));
-  const bytes=unwrap(fromUtf8('hello'));const observe=identity(view);
-  const part=unwrap(observe(bytes,1,4));strictEqual(length(part),3);strictEqual(unwrap(toUtf8(part)),'ell');
+  const bytes=unwrap(fromUtf8('hello'));
+  {const observe=identity(view);const part=unwrap(observe(bytes,1,4));strictEqual(length(part),3);strictEqual(unwrap(toUtf8(part)),'ell');}
+  {const exclusive=identity(viewMut);const part=unwrap(exclusive(bytes,0,1));unwrap(set(part,0,72));}
+  strictEqual(unwrap(toUtf8(bytes)),'Hello');
 }
 "#;
     checked(source).unwrap();

@@ -8,6 +8,13 @@ pub(crate) fn exported_linker_config()->String {
  format!("\n[target.'cfg(all(target_os = \"windows\", target_env = \"msvc\"))']\nrustflags = [{:?}]\n",MSVC_LINKER_FLAG)
 }
 
+// Old bundles could contain another Cargo graph's un-hashed primary library.
+const DEPENDENCY_RUNTIME_ABI:&[u8]=b"runtime-dependencies-abi-6-graph-library";
+/// Scope the application cache migration to programs that use a Cargo runtime.
+pub(crate) fn application_cache_identity(source:&str)->Option<&'static [u8]> {
+ native_runtime::requires_dependencies(source).then_some(DEPENDENCY_RUNTIME_ABI)
+}
+
 fn artifact_override(key:&str)->bool {
  key.starts_with("CARGO_PROFILE_") || (key.starts_with("CARGO_BUILD_") && key!="CARGO_BUILD_JOBS") || key.starts_with("CARGO_TARGET_") || matches!(key,"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER")
 }
@@ -58,9 +65,12 @@ impl Prepared {
   let shared=crate::backend_sources::shared(runtime)?;
   let dependency_identity=if shared{crate::backend_sources::dependency_identity()}else{bundle::dependency_identity()};
   let shared_inputs=if shared{Some(crate::backend_sources::identity(root)?)}else{None};
-  let mut cache_parts:Vec<&[u8]>=vec![b"runtime-dependencies-abi-5-selected-artifacts",dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
+  let mut cache_parts:Vec<&[u8]>=vec![DEPENDENCY_RUNTIME_ABI,dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
+  // Cargo primary aliases/fingerprints can otherwise collide across support workspaces.
+  // A stable external alias is supplied when linking the application.
+  let library_name=format!("tsrust_runtime_{}",cache.identity_key());
   let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");
   let copied=if opportunistic{cache.try_copy_to(&packed)}else{cache.copy_to(&packed)};
   if copied && bundle::unpack(&packed,&restored).is_ok() {
@@ -79,11 +89,11 @@ impl Prepared {
   if shared{crate::backend_sources::validate(&package,input_manifest,input_lock)?;}
   let manifest=package.join("Cargo.toml");
   let mut text=tsrust_compiler::native_url_patch::normalize_manifest(if shared{input_manifest}else{include_str!("../../native-dependencies/Cargo.toml")}).map_err(|e|e.to_string())?;
-  text.push_str("\n[lib]\nname = \"tsrust_runtime\"\n");
+  text.push_str(&format!("\n[lib]\nname = {library_name:?}\n"));
   text.push_str(profiles(native_ui));
   crate::native_workspace::write_changed(&manifest,text)?;crate::native_workspace::write_changed(&package.join("src/lib.rs"),runtime)?;
   let explicit_target=std::env::var_os("CARGO_TARGET_DIR");
-  let cargo=artifacts::Build::new(root,manifest.clone(),build_root.join("artifacts"),temporary.join("runtime.stdout"),explicit_target.as_deref().map(Path::new))?;
+  let cargo=artifacts::Build::new(root,manifest.clone(),build_root.join("artifacts"),temporary.join("runtime.stdout"),explicit_target.as_deref().map(Path::new),&library_name)?;
   let target=&cargo.target;
   let mut command=crate::backend_cargo_command();command.current_dir(&package).args(["build","--offline","--locked","--lib","--message-format=json-render-diagnostics","--manifest-path"]).arg(&manifest)
    .arg("--config").arg(package.join(".cargo/config.toml")).arg("--target-dir").arg(target).env("CARGO_INCREMENTAL","0");
@@ -167,6 +177,40 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
 
 #[cfg(test)] mod dependency_reuse_tests {
  use super::*;
+ #[test] fn application_cache_migration_only_tags_dependency_runtimes(){
+  use tsrust_compiler::project::{SourceId,SourceProvider,load_project,check_graph};
+  struct Provider(String);
+  impl SourceProvider for Provider {
+   fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+   fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing {}",id.0))}}
+  }
+  for(source,dependencies)in[("function main(){console.log(1);}",false),("import {alloc,length} from 'std:bytes';function main(){console.log(length(unwrap(alloc(1))));}",false),("import {readFile} from 'std:fs';function main(){readFile('input');}",true)]{
+   let checked=check_graph(load_project(&Provider(source.into()),"main.tsr").unwrap()).unwrap();
+   assert_eq!(application_cache_identity(&checked.emit_rust()),dependencies.then_some(DEPENDENCY_RUNTIME_ABI));
+  }
+ }
+ #[test] fn distinct_runtime_workspaces_preserve_fresh_cargo_graphs_and_warm_cache_links(){
+  let directory=crate::TempDirectory::new().unwrap();
+  let runtimes=["pub mod tsrust_native_files {pub fn witness()->i64{1}}pub mod tsrust_native_bytes {pub fn witness()->i64{serde_json::from_str::<i64>(\"41\").unwrap()}}", "pub mod tsrust_native_files {pub fn witness()->i64{serde_json::from_str::<i64>(\"7\").unwrap()}}"];
+  let mut first_library=None;let mut first_target=None;let mut first_name=None;
+  for(index,graph)in[0usize,1,0,0].into_iter().enumerate(){
+   let temporary=directory.0.join(format!("build-{index}"));fs::create_dir(&temporary).unwrap();let application=temporary.join("program.rs");
+   let expression=if graph==0{"tsrust_runtime::tsrust_native_bytes::witness()+tsrust_runtime::tsrust_native_files::witness(),42"}else{"tsrust_runtime::tsrust_native_files::witness(),7"};
+   fs::write(&application,format!("fn main(){{assert_eq!({expression});}}")).unwrap();
+   let cache=directory.0.join(format!("cache-{graph}"));let mut prepared=Prepared::with_dependencies(application,runtimes[graph],"pinned-graph-alias-test",&cache,&temporary,false,false).unwrap();
+   if index<3 {
+    assert_eq!(prepared.state,"miss");let mut command=prepared.command.take().unwrap();let manifest=command.get_args().skip_while(|arg|*arg!="--manifest-path").nth(1).map(PathBuf::from).unwrap();
+    let manifest=fs::read_to_string(manifest).unwrap().parse::<toml_edit::DocumentMut>().unwrap();let name=manifest["lib"]["name"].as_str().unwrap().to_owned();
+    let target=prepared.cargo.as_ref().unwrap().target.clone();if let Some(first)=&first_target{assert_eq!(first,&target);}else{first_target=Some(target);}
+    prepared.acquire_target(true).unwrap();let output=command.output().unwrap();assert!(output.status.success(),"{}",prepared.compilation_error(&String::from_utf8_lossy(&output.stderr)));
+    if index==2 {let text=fs::read_to_string(temporary.join("runtime.stdout")).unwrap();let fresh=text.lines().filter_map(|line|serde_json::from_str::<serde_json::Value>(line).ok()).any(|row|row["reason"]=="compiler-artifact"&&row["target"]["name"]==name&&row["fresh"]==true);assert!(fresh,"Unchanged A must use Cargo's fresh graph");}
+    prepared.finish().unwrap();let bytes=fs::read(prepared.library.as_ref().unwrap()).unwrap();
+    if index==0 {first_library=Some(bytes);first_name=Some(name);}else if index==1 {assert_ne!(first_name.as_ref(),Some(&name));assert_ne!(first_library.as_ref(),Some(&bytes));}else{assert_eq!(first_library.as_ref(),Some(&bytes));}
+    if index>0 {prepared.publish();}
+   }else{assert_eq!(prepared.state,"hit");assert!(prepared.command.is_none());assert!(prepared.cargo.is_none());}
+   let binary=temporary.join(format!("program{}",std::env::consts::EXE_SUFFIX));let mut command=crate::backend_command();prepared.link(&mut command).unwrap();let output=command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert!(Command::new(binary).status().unwrap().success());
+  }
+ }
  #[test] fn changed_runtime_reuses_dependency_builds_and_links_current_values() {
   struct Cleanup(PathBuf);impl Drop for Cleanup{fn drop(&mut self){let _=fs::remove_dir_all(&self.0);}}
   let dir=Cleanup(std::env::temp_dir().join(format!("tsrust-runtime-reuse-test-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos())));fs::create_dir(&dir.0).unwrap();
