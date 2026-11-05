@@ -987,8 +987,20 @@ avoids the temporary Vec. Three runtime tests, expanded snapshot thresholds at
 O0/O3,17catalog examples and relocated offline forbid-unsafe builds passed6focused
 cases (130.575s/425,024KiB); no public API or editor contract changed. Build501.188s/
 3,794,563KiB, with the same3unit-harness warnings as the prior accepted builds.
-Fresh actual timing for only2changed native workloads remains pending; all prior
-Rust/Node timing controls and other locale measurements stay unchanged.
+Fresh actual timing for only2changed native workloads passed on86664712:
+`results/2026-11-05T22-35-31-237Z.json`,458.599s/2,323,996KiB including compilation
+and quiet wait, quietmax3.67236328125. Both93-sample histories were ingested and
+independently verified. Reuse0.189833ms and construct0.170250ms are higher than the
+prior0.174416/0.167708ms; all observations remain recorded without outlier removal.
+Process medians vary substantially (reuse0.213208/0.189833/0.149916ms).
+One controlled A/B used identical current libraries, source pathname/crate name and
+flags, alternating variant order: all six pairs favored the iterator, but substantial
+process variation prevents a stable cross-run speed claim (372samples,quietmax2.515,
+4.135s/293,408KiB). No Rust/Node controls were retimed or duplicate histories invented.
+The accepted benefit is removal of the temporary allocation. Exact newly measured
+sources/library hashes passed18allocation invocations atn0/1/full, all zero allocation,
+reallocation and retention (3.642s/304,432KiB). Source remains selected; no further
+local retiming solely for presentation. Other locale measurements remain unchanged.
 
 B13 admission/profile status (2026-11-05): isolated exact ICU4X locale/collator/
 decimal/segmenter closure passed offline optimized build26.933s/319,104KiB.

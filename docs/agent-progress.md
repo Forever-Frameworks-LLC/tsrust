@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch
-`codex/stdlib-0.2.0`, source checkpoint **3bd92b7c** (code80795335). Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint **86664712**. Full B00–B20 stays active.
 Latest accepted work: literal-all optimization passed8focused witnesses; actual
 ready/yield medians improved40.1%/30.1%,2native histories ingested atbb0677ec.
 Unchanged Rust/Node controls reused. Actual-parameter task warning repair458500b2
@@ -26,23 +26,40 @@ passes unit+agreement rerun69269,12.095s/62,576KiB. Build56423 terminaltrue,
 271.833s/2,754,370KiB (`/tmp/tsrust-locale-oracle-{artifacts.jsonl,build.log}`).
 Whole-project format/token/idempotence passed before every source checkpoint.
 Borrowed-union repair, focused locale/contextual witnesses and allocation guards
-are committed80795335; only this live handoff is dirty. No push, release or full regression occurred.
+are committed80795335; actual locale measurements3bd92b7c and selected segmentation
+iterator optimization86664712 are now committed. Only this live handoff is dirty. No push, release or full regression occurred.
 
-**First action:** checkpoint accepted locale iterator source after wholeformat,
-then launch original2changed native workloads (`locale_segmenter_construct`,
-`locale_segment`) with --execution-only --engines=native underwatchdog/sharedtarget/
-inc0/jobs1. Reuse existing Rust/Node controls and9unchanged native observations.
-Build45289 terminaltrue501.188s/3,794,563KiB; gates25364 all6PASSED130.575s/
-425,024KiB. `/tmp/tsrust-locale-iterator-{artifacts.jsonl,build.log,gates.json,gates-run.log}`.
-Runtime helper now returns a borrowed Iterator; existing emitter still collects an
-owned Array. Tests cover0/1/4/5/64snapshots afterinput/segmenter ownerdrop,O0/O3,
-17catalogexamples and relocatedoffline forbidunsafe builds. Editor/API unchanged.
-Threeunitwarnings decode_plain/try_send/Error.message match prior integrated and
-assertion artifactlogs. No claim ofwarning-free fullmatrix. Wholeformatclean.
-After actualtimings, npm store:ingest and independent verifier
-/tmp/tsrust-verify-locale-measurement.py --segment-native --database; compareoldnative
-only andcachedcontrols. Then verify changednative allocation2workloads andprune
-obsoleteownedexperiment binaries. B05integrationnext; otherworkerheavychecksqueued.
+**First action:** checkpoint accepted locale measurement/allocation review after
+wholeformat, then integrate ready52file B05patch listedbelow (applycheck86664712
+passed). Fix its check-helper formatting requirement; complete coherent section,
+wholeformat/checkpoint and targeted compiler/native/editor/export/benchmark gates.
+No live rootheavyprocess remains. B18/B15 drafts and B07/B08/B09/B16/B19 admission
+profiles queue for serialized leases; all source-only unless explicitly accepted.
+
+Actual segmentation95113 PASSED458.599s/2,323,996KiB on86664712.
+`results/2026-11-05T22-35-31-237Z.json`;2nativehistories ingested/independentlyverified,
+186positivefinite samples,quietmax3.67236328125. Native reuse0.189833ms andconstruct
+0.170250ms versusprior0.174416/0.167708; retain unfavorable actualobservations.
+Perprocessreuse0.213208/0.189833/0.149916 shows strongvariation. ControlledA/B56780
+passed4.135s/293,408KiB,372samples withsamecurrentlibs/path/crate/flags androtatedorder;
+all6pairs favorediterator, quietmax2.514648, butno stablecross-run speedclaim.
+`/tmp/tsrust-locale-segment-controlled-ab.{json,log}`. No furtherretimingforpresentation.
+Fresh exactmeasuredsources/deps allocationcheck86442 passed3.642s/304,432KiB,
+18n0/1/full invocationsallzeroallocation/reallocation/retention;
+`/tmp/tsrust-locale-iterator-allocation-check.{json,log}`. RemovedtemporaryVec is
+provenbenefit; retainselectedruntime. OriginalRust/Nodecontrols+9nativeworkloads reused.
+Pruned34completed allocation/experiment outputs (21,818,357bytes), including
+segment-iterator-admission/segment-controlled-ab andlocale allocationbinaries/sources.
+Rebuildfromcommits/scripts ifneeded; sharedCargo caches andtimedbinaries retained.
+
+Source86664712 validation: build45289 terminaltrue501.188s/3,794,563KiB; gates25364
+all6PASSED130.575s/425,024KiB (runtime3,ownedthresholds/catalog/offlineO0/O3).
+Threeunitwarnings matchprioracceptedlogs. Wholeformatclean. DB/plan/currenthandoff
+nowdirty withactualrecords/review; runtime/testsourcealreadycommitted86664712.
+B20 reporting note: storage latest intentionally chooses latestsharedtimestamp;
+native-only optimizedhistories arestored but its pairedCLI view staysatpriorjoint
+run. Preserveactualhistories/no fabricatedcontrol runs; accountforcachedcontrols
+explicitly whencompleting publicmetricrefresh.
 
 b06 segment iterator candidate PASSED5.204s/325,056KiB, session90649 terminal,
 `/tmp/tsrust-locale-segment-iterator-experiment.{json,log}`. Original/candidate owned
