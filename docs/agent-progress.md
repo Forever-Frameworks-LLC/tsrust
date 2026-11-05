@@ -55,6 +55,15 @@ not used to choose the engine. Crate opt3 compile1.83s/149MBRSS, rlib720,440byte
 probe488,576bytes. These are admission probes, not Tsrust workload measurements.
 Filesystem prototype/affected native validation now owns the heavy slot; patched
 URL upstream controls follow. Worker acceptance remains pending.
+Codec dependency preparation now explicitly pins base640.23.1 as optional
+byte-codecs in both native/backend manifests, reserves the package name, and
+adds the same dev/reference pin. Cargo targeted offline lock updates add only
+package dependency edges; the reference lock adds the already-pinned crate.
+Four lock checksums and non-activation by default are verified; no unrelated
+version changed. This is dependency preparation, not final package admission:
+fresh advisory/feature-selection/platform/portable/export acceptance stays pending.
+Whole formatter5.692s/179,040KiB passes with0changes; diff check passes.
+
 Obsolete57MiB local distribution-candidate and verified downloaded-package scratch
 were pruned after successful release verification; shared Cargo target retained.
 The release formatter passed4.159s/194,544KiB,0files/snippets/fingerprints.
