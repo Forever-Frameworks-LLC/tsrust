@@ -13,6 +13,35 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**B05 dependency-link repair accepted locally — 2026-11-05:** focused real
+export/link test36076 PASSED123.626s/408,224KiB. JSON,ordinaryfiles,tempdir+cleanup
+andhostname compile/executeoffline with exactCargoartifact identities. tempfile
+selected onlywhen emittedtemporary-directory moduleexists; no guessedcachehash.
+Whole-project format0changes andgit diff--checkpassed. Checkpoint sharedbenchmark
+helper and regression, then resume3workloads with sameprotocol. No sourcecompiler
+orpublicAPI behavior changed inthisrepair. Noheavyjobremains atthisentry.
+
+**Current B05 benchmark dependency repair — 2026-11-05:** timing79711
+terminatedFAIL113.825s/631,658KiB before timing. io_read_into and correctedio_lines
+passed all5correctness inputs across3engines. io_file_copy native rustc failed:
+missing --extern tempfile for emitted tsrust_native_tempfiles. Rootadded narrow
+module discovery/selectedartifact tempfile in shared native-dependencies.mjs;
+existingfiles-only nix closure unchanged. Extended realoffline export/link test
+with createTempDir/removeDirAll and expected[nix,tempfile] libraries.
+LIVE focused Node test36076 underwatchdog, sharedtarget/inc0/jobs1/pinnedNode/
+portablepack/releasecompiler; log `/tmp/tsrust-b05-tempfile-link-test.log`.
+PSconfirmedownednode/cargo/rustc stillactive. Do not duplicate. Next collectterminal,
+repairifneeded, wholeformat/checkpoint, then resume3workload actualprotocol.
+No benchmark timings accepted/ingested; pendingallocationreview andfullv0.2 remain.
+
+**LIVE corrected I/O measurement79711 — 2026-11-05:** sourcecheckpoint
+5e915b2c follows6f3ce381. Byte-length peer/oracle repair committed after4contract
+PASS andwholeformat0changes. Currentwatchdog runs same3workloads/3engines with
+pinnedNode, sharedtarget/inc0/jobs1 andexplicitportablepack env. Log
+`/tmp/tsrust-b05-public-timing.log`. Inspect live/terminal before nextheavy job.
+No actual timing accepted oringested yet; allocationreview pending. Previous35510
+is terminalfailure below; older LIVE paragraphs are superseded by thisentry.
+
 **B05 benchmark semantic repair — 2026-11-05:** session35510 terminatedFAIL
 81.053s/629,866KiB during correctness, before timing. io_read_into prepared/validated;
 io_lines native n1seed7 returned140721128 vsoracle140703967. Exactdelta17161=131²

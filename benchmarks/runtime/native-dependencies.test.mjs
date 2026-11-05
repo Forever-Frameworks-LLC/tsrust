@@ -54,6 +54,13 @@ test('exported dependencies link instrumented JSON, files and hostname programs 
   fs.writeFileSync(instrumented,fileEmitted);
   run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...fileDependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'not-found\n');
+  fs.writeFileSync(source,`import {createTempDir,removeDirAll} from 'std:fs';function main(){const path=unwrap(createTempDir());unwrap(removeDirAll(path));console.log('temporary');}`);
+  const temporaryEmitted=run(process.env.TSRUST,['emit',source]);
+  const temporaryDependencies=prepareNativeDependencies({...options,emitted:temporaryEmitted});
+  assert.deepEqual(temporaryDependencies.evidence.libraries.map(library=>library.name),['nix','tempfile']);
+  fs.writeFileSync(instrumented,temporaryEmitted);
+  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...temporaryDependencies.args,instrumented,'-o',binary]);
+  assert.equal(run(binary,[]),'temporary\n');
   fs.writeFileSync(source,`import {hostname} from 'std:os';function main(){match(hostname()){Ok(value)=>{console.log(value.length>=0);},Err(error)=>{console.log(error.code==='Io'||error.code==='NotUnicode');}}}`);
   const hostnameEmitted=run(process.env.TSRUST,['emit',source]);
   const hostnameDependencies=prepareNativeDependencies({...options,emitted:hostnameEmitted});

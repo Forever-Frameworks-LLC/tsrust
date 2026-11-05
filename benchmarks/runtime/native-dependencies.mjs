@@ -25,6 +25,7 @@ export function dependencyArtifacts(stdout,target,requiredNames=names) {
 export function needsJsonDependencies(emitted) { return /(?:^|[;}]\s*)mod\s+tsrust_native_json\s*\{/m.test(emitted); }
 export function prepareNativeDependencies({emitted,compiler,source,build,rustVersion,targetDirectory,env=process.env}) {
  const files=/(?:^|[;}]\s*)mod\s+tsrust_native_files\s*\{/m.test(emitted);
+ const tempfiles=/(?:^|[;}]\s*)mod\s+tsrust_native_tempfiles\s*\{/m.test(emitted);
  const codecs=/\bfn codec_base64_engine\(/.test(emitted);
  const search=/\bpub fn index_of\(bytes: &\[u8\], needle: &\[u8\], from_index: i64\)/.test(emitted);
  const locale=/(?:^|[;}]\s*)mod\s+tsrust_native_locale\s*\{/m.test(emitted);
@@ -34,8 +35,8 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
  const threads=/(?:^|[;}]\s*)mod\s+tsrust_native_threads\s*\{/m.test(emitted);
  const urls=/(?:^|[;}]\s*)mod\s+tsrust_native_url\s*\{/m.test(emitted);
  const hostname=/(?:^|[;}]\s*)mod\s+tsrust_native_hostname\s*\{/m.test(emitted);
- if(!needsJsonDependencies(emitted)&&!files&&!codecs&&!search&&!urls&&!hostname&&!regex&&!locale&&!asynchronous&&!cancellation&&!threads)return {args:[],evidence:null};
- const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(codecs?['base64']:[]),...(search?['memchr']:[]),...(urls?['url','percent_encoding']:[]),...(hostname?['hostname']:[]),...(regex?['regex']:[]),...(locale?['icu_collator','icu_decimal','icu_locale','icu_segmenter','fixed_decimal','bigdecimal']:[]),...(asynchronous?['tokio']:[]),...(cancellation?['tokio_util']:[]),...(threads?['rayon']:[])];
+ if(!needsJsonDependencies(emitted)&&!files&&!tempfiles&&!codecs&&!search&&!urls&&!hostname&&!regex&&!locale&&!asynchronous&&!cancellation&&!threads)return {args:[],evidence:null};
+ const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(tempfiles?['tempfile']:[]),...(codecs?['base64']:[]),...(search?['memchr']:[]),...(urls?['url','percent_encoding']:[]),...(hostname?['hostname']:[]),...(regex?['regex']:[]),...(locale?['icu_collator','icu_decimal','icu_locale','icu_segmenter','fixed_decimal','bigdecimal']:[]),...(asynchronous?['tokio']:[]),...(cancellation?['tokio_util']:[]),...(threads?['rayon']:[])];
  // Stable source paths keep rebuilt dependency artifacts identical across A/B runs.
  const scratch=path.join(build,'package-native-dependencies');
  fs.mkdirSync(scratch); // Fail closed if another preparation owns this directory.
