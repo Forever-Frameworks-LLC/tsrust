@@ -30,6 +30,43 @@ candidate additionally integrates URL facade a5328d77, reproducible scaling
 URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
 No new URL/codec native gate or platform completion is claimed.
 
+**URL emission defect repair:** readiness test2b1d3790 first called the single-file
+checker on imports (syntax failure); it now uses the real project loader. That
+exposed genuine synthetic `void` record fields from private URL methods. Native
+void signatures now resolve directly to Type::Void without creating an illegal
+field. Native imports are prepared from resolved AST references/annotations after
+lexical linking, not import presence; this preserves renames, source aliases,
+shadowing and property-name distinctions. URL methods are prepared for opaque
+Url/SearchParams storage only. Runtime emission and the url feature follow actual
+storage/calls, including owner-free component encoding and source-only Url
+signatures; plain UrlError/QueryEntry records need no URL dependency. No lexical
+source-token heuristic or weakened ownership rule was introduced.
+
+Focused source evidence: URL manifest+emission2/2 (13 use/omission cases), final
+2.602s/377,504KiB; native literal alias1/1 passed in the initial combined rebuild
+204.826s/2,565,474KiB. That first repaired run reached all8 original cases but its
+last whitespace-sensitive alias assertion failed; only that assertion was made
+format-independent, and5 cases added before the final passing run. Existing native
+import/opaque construction1/1 passes3.634s/344,688KiB; strict/tolerant graph aliases,
+byte arity/ownership and UTF8 argument controls3/3 pass0.521s/5,536KiB. Earlier
+witness failures are retained in /tmp logs. No CLI cache-miss, native URL execution,
+new timing, full regression or current LSP acceptance is claimed for this repair.
+Next: merge this committed prerequisite into runtime worker5dc08536 and validate
+shared-target staging/caller/reuse controls before returning native leases to FS
+and bytes. Runtime worker must use --no-run then direct test binaries for nested
+Cargo controls. Root codec acceptance c7898da is still pending integration.
+
+Byte operations prototype (not a measured feature gate) passes std and independent
+Node/BigInt/DataView vectors. Three rotated processes,8 warmups/31 samples each;
+quiet loads2.285–2.337,12.601s/253,056KiB. Concat has one exact output allocation,
+other kernels zero allocations/reallocations and zero retained storage after drop.
+Memchr2.8.3 search candidate:4KiB tail107ns vs std1428ns;1MiB20,969ns vs465,823ns;
+65KiB repetitive miss66,063ns vs377,313ns. Small inputs favor std; no hand-built
+hybrid selected. Node26 prototype timings remain supplementary; pinned Node24.11.1
+independent preflight passed once. Driver now enforces24.11.1. Byte worker proceeds
+14 APIs with optional search-only memchr; root pins/closure and platform controls
+remain pending. No prototype measurements were ingested into the benchmark DB.
+
 **Cursor alias prerequisite:** compiler native exports now distinguish transparent
 aliases from nominal record declarations and functions. `std:fs.SeekOrigin` expands
 through existing alias parsing to exactly `"start" | "current" | "end"`; source
