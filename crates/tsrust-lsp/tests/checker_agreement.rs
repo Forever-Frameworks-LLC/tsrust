@@ -307,6 +307,7 @@ fn alternatives(ty: &str) -> BTreeSet<String> {
     let mut escaped = false;
     let mut parts = Vec::new();
     let mut normalized = String::new();
+    let mut function_return = false;
     let mut begin = 0;
     for (offset, ch) in ty.char_indices() {
         if quote.is_some() || !ch.is_whitespace() {normalized.push(ch);}
@@ -320,8 +321,9 @@ fn alternatives(ty: &str) -> BTreeSet<String> {
             '\'' | '"' => quote = Some(ch),
             '(' | '[' | '<' | '{' => depth += 1,
             ')' | ']' | '}' => depth -= 1,
+            '>' if ty[..offset].ends_with('=') && depth==0 => function_return=true,
             '>' if !ty[..offset].ends_with('=') => depth -= 1,
-            '|' if depth == 0 => {
+            '|' if depth == 0 && !function_return => {
                 parts.push(&ty[begin..offset]);
                 begin = offset + 1;
             }
@@ -344,6 +346,7 @@ fn displayed_union_grouping_preserves_alternatives_and_nested_contracts() {
     assert_ne!(alternatives("(value: string | undefined) => string"),alternatives("((value: string) => string) | undefined"));
     assert_ne!(alternatives("\"a b\""),alternatives("\"ab\""));
     assert_eq!(alternatives("((value: string) => string) | undefined").len(),2);
+    assert_ne!(alternatives("() => string | undefined"),alternatives("(() => string) | undefined"));
 }
 
 fn candidates() -> BTreeSet<String> {

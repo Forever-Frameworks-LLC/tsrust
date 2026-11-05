@@ -928,12 +928,12 @@ implementation; include all three String entry points in the coherent gate.
 Backend: selected ICU4X components, not automatic inclusion of the meta-crate.
 B00/B02; measure locale-data footprint before API acceptance.
 
-- [ ] `Locale` parsing/canonicalization with explicit locale input.
-- [ ] Reusable `Collator.compare`, and `String.localeCompare` using that contract.
-- [ ] `Segmenter.segment` for grapheme boundaries with UTF-8 byte ranges.
-- [ ] Reusable `NumberFormat.format` for exact int/Decimal inputs; document
+- [x] `Locale` parsing/canonicalization with explicit locale input.
+- [x] Reusable `Collator.compare`, and `String.localeCompare` using that contract.
+- [x] `Segmenter.segment` for grapheme boundaries with UTF-8 byte ranges.
+- [x] Reusable `NumberFormat.format` for exact int/Decimal inputs; document
   supported rounding/grouping/options and reject unsupported options.
-- [ ] Pin selected compiled data and document backend locale fallback/coverage.
+- [x] Pin selected compiled data and document backend locale fallback/coverage.
   Do not label this full ECMAScript Intl or infer host-user locale silently.
 
 Witnesses: combining text, emoji clusters, collation fixtures, negative/large exact
@@ -941,6 +941,17 @@ decimals, unsupported options and data fallback. Performance: construct once ver
 format/compare repeatedly, allocation counts, binary size and cold/build memory.
 Node ICU and Rust ICU versions/locales are recorded; differing data is not a
 compiler defect or permission to combine incomparable timing rows.
+
+B13 focused public acceptance (2026-11-05, source458500b2):3 runtime cases,
+7 compiler/native cases (including17catalog examples atO0/O3, exact int/Decimal
+union inputs, optional options, aliases/stored calls, negative constructors,
+NumberFormat worker transfer/suspension and relocated offline forbid-unsafe
+builds) passed. Editor exports/hover/signature help,6completion rows across4modes
+and8receiver agreement groups passed. Runtime selection stays optional. Selected
+provider sync preserves all existing dependency versions and the previously
+measured54active-identity production graph. Public11workload measurements,
+allocation/gap review and cross-platform milestone validation remain pending;
+these checked API items do not claim the complete bundle performance gate.
 
 B13 admission/profile status (2026-11-05): isolated exact ICU4X locale/collator/
 decimal/segmenter closure passed offline optimized build26.933s/319,104KiB.
