@@ -7620,6 +7620,167 @@
           "output": "Hello\n"
         }
       ]
+    },
+    {
+      "name": "toHex",
+      "signature": "toHex(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes each byte as two lowercase hexadecimal digits, including leading zeroes. Empty bytes produce empty text. No separator or prefix is added. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromArray([0, 255])))));\n}\n```\n\nExpected output: 00ff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromArray([0, 255])))));\n}\n",
+          "output": "00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "fromHex",
+      "signature": "fromHex(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete even-length ASCII hexadecimal text."
+        }
+      ],
+      "documentation": "Decodes pairs of hexadecimal ASCII digits, accepting either letter case. Empty text produces empty bytes. Odd byte length returns hex-length before examining digits; a non-hexadecimal byte returns hex-digit with its UTF-8 byte offset. Whitespace and 0x prefixes are not accepted. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromHex, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromHex(\"00FF\")))));\n}\n```\n\nExpected output: 00ff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromHex(\"00FF\")))));\n}\n",
+          "output": "00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "toBase64",
+      "signature": "toBase64(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes bytes using the standard base64 alphabet (+ and /), with canonical = padding. Empty bytes produce empty text. It does not insert whitespace or line breaks. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromUtf8, toBase64 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64(unwrap(fromUtf8(\"f\")))));\n}\n```\n\nExpected output: Zg==.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromUtf8, toBase64 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64(unwrap(fromUtf8(\"f\")))));\n}\n",
+          "output": "Zg==\n"
+        }
+      ]
+    },
+    {
+      "name": "fromBase64",
+      "signature": "fromBase64(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete canonical padded standard base64; no whitespace."
+        }
+      ],
+      "documentation": "Decodes standard base64 (+ and /), requiring canonical padding whenever the final group needs it. Rejects whitespace, URL alphabet symbols, malformed padding and nonzero unused trailing bits. Empty text produces empty bytes. Errors are base64-byte, base64-length, base64-padding or base64-trailing-bits. An offending symbol has a byte offset when available; padding and structural length errors have no offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromBase64, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64(\"Zg==\")))));\n}\n```\n\nExpected output: 66.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromBase64, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64(\"Zg==\")))));\n}\n",
+          "output": "66\n"
+        }
+      ]
+    },
+    {
+      "name": "toBase64Url",
+      "signature": "toBase64Url(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes bytes using the URL-safe base64 alphabet (- and _), without = padding. Empty bytes produce empty text. It does not percent-encode or insert line breaks. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toBase64Url } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64Url(unwrap(fromArray([251, 255])))));\n}\n```\n\nExpected output: -_8.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toBase64Url } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64Url(unwrap(fromArray([251, 255])))));\n}\n",
+          "output": "-_8\n"
+        }
+      ]
+    },
+    {
+      "name": "fromBase64Url",
+      "signature": "fromBase64Url(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete canonical unpadded URL-safe base64; no whitespace."
+        }
+      ],
+      "documentation": "Decodes URL-safe base64 (- and _), requiring omitted padding. Rejects = padding, whitespace, standard + or / symbols and nonzero unused trailing bits. Empty text produces empty bytes. Errors are base64-byte, base64-length, base64-padding or base64-trailing-bits. Symbol errors report a byte offset when available; padding and structural length errors have no offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromBase64Url, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64Url(\"-_8\")))));\n}\n```\n\nExpected output: fbff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromBase64Url, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64Url(\"-_8\")))));\n}\n",
+          "output": "fbff\n"
+        }
+      ]
+    },
+    {
+      "name": "toUtf8Lossy",
+      "signature": "toUtf8Lossy(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable bytes, which may contain malformed UTF-8."
+        }
+      ],
+      "documentation": "Decodes bytes as UTF-8, replacing each malformed subsequence with U+FFFD (�). It preserves NUL and BOM characters and returns independently owned text, including for valid input. Empty bytes produce empty text. Use toUtf8 for strict rejection and an invalid-sequence offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toUtf8Lossy } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf8Lossy(unwrap(fromArray([65, 195, 40])))));\n}\n```\n\nExpected output: A�(.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toUtf8Lossy } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf8Lossy(unwrap(fromArray([65, 195, 40])))));\n}\n",
+          "output": "A�(\n"
+        }
+      ]
+    },
+    {
+      "name": "fromUtf16",
+      "signature": "fromUtf16(text: ReadOnly<string>, byteOrder: \"little\" | \"big\"): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Valid Unicode text to encode."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required byte order: \"little\" or \"big\". No BOM detection or implicit host byte order."
+        }
+      ],
+      "documentation": "Encodes valid native Unicode text as UTF-16 bytes in the explicitly selected byte order. Characters above U+FFFF become surrogate pairs. Empty text produces empty bytes. No BOM is added or removed; an existing U+FEFF is encoded as ordinary text. There is no platform-dependent byte-order default. Native strings cannot contain lone surrogates. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromUtf16, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromUtf16(\"A😀\", \"little\")))));\n}\n```\n\nExpected output: 41003dd800de.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromUtf16, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromUtf16(\"A😀\", \"little\")))));\n}\n",
+          "output": "41003dd800de\n"
+        }
+      ]
+    },
+    {
+      "name": "toUtf16",
+      "signature": "toUtf16(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, byteOrder: \"little\" | \"big\"): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Complete UTF-16 bytes in the selected order."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required byte order: \"little\" or \"big\". No BOM detection or implicit host byte order."
+        }
+      ],
+      "documentation": "Decodes UTF-16 bytes in the explicitly selected byte order into valid Unicode text. Odd byte length or an unpaired surrogate returns utf16 with the byte offset of the unmatched final byte or surrogate unit. Empty bytes produce empty text. A BOM is preserved as U+FEFF, with no automatic byte-order detection or replacement of malformed input. There is no byte-order default. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromHex, toUtf16 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf16(unwrap(fromHex(\"41003dd800de\")), \"little\")));\n}\n```\n\nExpected output: A😀.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, toUtf16 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf16(unwrap(fromHex(\"41003dd800de\")), \"little\")));\n}\n",
+          "output": "A😀\n"
+        }
+      ]
     }
   ],
   "OrderedSet": [

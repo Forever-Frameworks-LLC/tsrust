@@ -1,0 +1,30 @@
+import { fromBase64Url, toBase64Url, fromUtf8, length, at } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[] {
+  let size = 32;
+  if (input === "4k") {
+    size = 4096;
+  }
+
+  if (input === "1m") {
+    size = 1048576;
+  }
+
+  const text = "é😀Ab".repeat(size / 8);
+  const encoded = unwrap(toBase64Url(unwrap(fromUtf8(text))));
+  const output: int[] = [];
+  let i = 0;
+  while (i < n) {
+    const result = unwrap(fromBase64Url(encoded));
+    output.push(length(result));
+    output.push(unwrap(at(result, 0)));
+    output.push(unwrap(at(result, length(result) - 1)));
+    i += 1;
+  }
+
+  return output;
+}
+
+function main() {
+  workload(1, 7, "token");
+}
