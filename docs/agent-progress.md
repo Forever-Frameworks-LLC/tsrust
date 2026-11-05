@@ -13,6 +13,40 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**Owner-requested PR monitoring verified — 2026-11-05:** live GitHub has no open
+PRs, including Dependabot. Release PR#14 merged; main is
+8efaaee21bcc40d0938214bc75299b592ce91db9. Release validation41942318885,
+publisher41944583887 and production documentation41944660013 all succeeded.
+Public v0.1.2 is neither draft nor prerelease and contains checksums, all four
+platform archives and the VSIX. This promotion is complete; the separate full
+v0.2.0 implementation goal remains active. No new release is authorized here.
+
+**B01 continuation results supersede the live21642 paragraph below:** combined
+no-run passed508.464s/3,678,547KiB. Fresh FS runtime31/31 passed; temporary
+directories2/2 and cleanup1 passed. Utilities3/5 passed: two real generic native
+function inference failures remain for identity(copyFile/seek/position). File
+writes2/3 passed: mixed FS+byte views fails generated Rust with missing runtime
+bytes module. Extraction variants cover this combination; investigate exact
+emitted units and A(FS+bytes)→B(FS-only distinct workspace)→fresh A shared-target
+artifact selection before changing production code. Cargo may report an unhashed
+root rlib alias overwritten by another graph; this is a hypothesis, not proven.
+Focused LSP7/9 passed; remaining issues are a corrected hover fixture and genuine
+missing String observations on homogeneous string-literal unions. Preserve exact
+literal identity, native callable forwarding and returned-owner loans in repairs.
+Do not replace generic/view witnesses with weaker aliases or cloned buffers.
+
+Ordinary and temporary safe relocated offline exports passed O0/O3. Host owns
+transferred byte tree341913d3(parent6f804c40), with fixture-only fixes for actual
+project checking, Mac Unicode controls, hover cursors, non-bypassing matrix report
+assertions and durable temp export. These commits are not integrated into the
+canonical63eef1a3 yet. Host was instructed to stop owned40807 if still compiling
+and batch changed fixtures with shared repairs; confirm terminal state before
+another heavy job. No new API throughput measurements or SQLite ingestion here.
+Next: repair native generic identity without erasing borrowing metadata, reproduce
+the shared-target bytes artifact failure, and implement consistent readonly String
+observations for string-literal unions across checker/emitter/LSP. Then batch only
+affected B01 gates before B04 harness acceptance; retain accepted B02 evidence.
+
 **Active v0.2.0 — 2026-11-04:** owner renewed the active goal and explicitly
 requires autonomous continuation without routine approval. Scope remains all
 B00–B20 in plans/stdlib-0.2.0.md and agent-goal.md; implementation is authorized,
