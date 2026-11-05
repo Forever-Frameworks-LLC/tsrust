@@ -4403,6 +4403,7 @@ dependencies = [
  "subtle",
  "svgtypes",
  "taffy",
+ "tempfile",
  "tokio",
  "tokio-rustls",
  "tower-http",
