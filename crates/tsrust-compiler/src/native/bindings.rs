@@ -94,7 +94,8 @@ impl NativeBinding {
         }
         match self.name {
             // A view of a view borrows the parent view for as long as it lives.
-            "length" | "at" | "copy" | "toUtf8" | "view" => &[ByteView, ByteViewMut],
+            "length" | "at" | "copy" | "toUtf8" | "view"
+            | "toHex" | "toBase64" | "toBase64Url" | "toUtf8Lossy" | "toUtf16" => &[ByteView, ByteViewMut],
             "set" | "viewMut" => &[ByteViewMut],
             _ => &[],
         }

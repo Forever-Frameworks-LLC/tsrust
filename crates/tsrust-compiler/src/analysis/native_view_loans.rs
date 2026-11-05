@@ -378,6 +378,11 @@ impl Analyzer {
                             for loan in &mut loans {
                                 native_view_projections::result(loan, variant, optional_payload);
                             }
+                        } else if contract.slot == crate::native_return_borrows::ReturnSlot::DirectOptional {
+                            let payload = value.ty.and_then(Type::union).and_then(|union| context.native_optional_views.as_ref()?.get(&union).copied()).ok_or_else(|| Diagnostic::new("native-view-result", "An optional native view requires its checked payload identity.", value.span))?;
+                            for loan in &mut loans {
+                                native_view_projections::guard(loan, payload);
+                            }
                         }
                         result.extend(loans);
                     }
