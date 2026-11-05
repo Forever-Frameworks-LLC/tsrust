@@ -22604,6 +22604,34 @@
       "notes": "Handwritten TypeScript reference for throwing validation. Unmeasured.",
       "sourceSha256": "41501fb5551809d42afba45390c514a0fb9f9539ef2b58cff8d111c7a2b9161d",
       "counterpartSha256": "60c3687ff1694bff0965748b90497c93e0f8a8c6b3975675f340575005526cde"
+    },
+    {
+      "id": "native_file_unbounded_full_write_read",
+      "family": "native-files",
+      "source": "workloads/native_file_unbounded_full_write_read.tsr",
+      "counterpart": "workloads/native_file_unbounded_full_write_read.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 3,
+      "operationsPerIteration": 1,
+      "operationUnit": "One unbounded full-file write/read and byte sum",
+      "inputText": "native-file-fixture-v1",
+      "fixtureSha256": "929b11f47a02202e710632002203f7ea8dd3c1bc51ef818e59b6a3cd1dc2d5dc",
+      "category": "resources",
+      "measurementStatus": "measured-pending-store-ingest",
+      "sourceAccepted": false,
+      "nativeSourceAccepted": false,
+      "implementationAccepted": false,
+      "measured": true,
+      "notes": "New v0.2 file-default workload. Reuses existing sample/process protocols. Cycles 64 KiB, 1 MiB and 64 MiB plus one byte; allocation, file write/read and complete byte observation are timed. Private output preparation is untimed. Local correctness and timing passed; integration acceptance and measurement-store ingestion remain pending.",
+      "specification": "For iteration i, use byte length [65536,1048576,67108865][i%3] and fill (i+seed)%256. Allocate filled bytes, write the complete file, read through EOF without an explicit bound, and return [length,length*fill] after observing every byte. Handwritten Rust uses std::fs::write/read; Node uses writeFileSync/readFileSync.",
+      "sourceSha256": "c4d7542d5292bc8ce8c8f7baa0447b6c9709c2e26ef178e666dd914818954c87",
+      "counterpartSha256": "678649a0a31f7e7718cf7534cd676f2cb625780a587e6fa9d284ad85fb63fe7e"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

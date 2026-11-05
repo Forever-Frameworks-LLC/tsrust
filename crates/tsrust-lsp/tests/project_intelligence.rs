@@ -32,7 +32,7 @@ fn file_api_hover_and_signature_help_preserve_consuming_close() {
     assert!(hover.to_string().contains("consumed even when close fails"), "{hover}");
     assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
     let help = ask(&index, &entry, "file, 4", "textDocument/signatureHelp");
-    assert!(help.to_string().contains("Mutable<File | BufferedReader>") && help.to_string().contains("67108864"), "{help}");
+    assert!(help.to_string().contains("Mutable<File | BufferedReader>") && help.to_string().contains("nonnegative"), "{help}");
     let hover = ask(&index, &entry, "error.osCode", "textDocument/hover");
     assert!(!hover.is_null());
     let importing = "import { F } from 'std:fs';function main(){}";
@@ -1873,7 +1873,7 @@ fn file_write_signature_help_documents_borrowed_views_and_partial_progress() {
     let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let index = ProjectIndex::checked(&checked);
     let help = ask(&index, &entry, "file, bytes", "textDocument/signatureHelp");
-    for phrase in ["ByteView", "ByteViewMut", "67108864"] { assert!(help.to_string().contains(phrase), "{help}"); }
+    for phrase in ["ByteView", "ByteViewMut", "no additional operation-size ceiling"] { assert!(help.to_string().contains(phrase), "{help}"); }
     let hover = ask(&index, &entry, "writeAll(file", "textDocument/hover");
     assert!(hover.to_string().contains("not rolled back"), "{hover}");
     assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
@@ -1886,9 +1886,9 @@ fn full_file_helpers_document_limits_defaults_and_view_inputs() {
  workspace.open(source_id(uri).unwrap(),1,entry.clone());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let help=ask(&index,&entry,"4);","textDocument/signatureHelp");
- assert!(help.to_string().contains("67108864")&&help.to_string().contains("maxBytes"),"{help}");
+ assert!(help.to_string().contains("no application-size ceiling")&&help.to_string().contains("maxBytes"),"{help}");
  let hover=ask(&index,&entry,"writeFile(","textDocument/hover");
- assert!(hover.to_string().contains("ByteViewMut")&&hover.to_string().contains("before the destination changes"),"{hover}");
+ assert!(hover.to_string().contains("ByteViewMut")&&hover.to_string().contains("not an atomic replacement"),"{hover}");
 }
 
 #[test]

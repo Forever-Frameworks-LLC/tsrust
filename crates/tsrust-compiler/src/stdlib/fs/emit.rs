@@ -41,7 +41,7 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             "open" => ("path: &String".into(), "tsrust_native_files::fs::open(path.as_ref())".into(), format!("{file} {{ handle: success }}")),
             "readFile" => {
                 let bytes=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::Bytes)).expect("readFile Bytes");
-                ("path: &String, limit: Option<i64>".into(),"tsrust_native_files::fs::read_file(path.as_ref(),limit.unwrap_or(67108864))".into(),format!("Record{bytes} {{ bytes: success }}"))
+                ("path: &String, limit: Option<i64>".into(),"tsrust_native_files::fs::read_file(path.as_ref(),limit)".into(),format!("Record{bytes} {{ bytes: success }}"))
             }
             "writeFile" => ("path: &String, bytes: &impl TsrReadableBytes".into(),"tsrust_native_files::fs::write_file(path.as_ref(),bytes.readable_bytes())".into(),"success".into()),
             "create" => ("path: &String".into(), "tsrust_native_files::fs::create(path.as_ref())".into(), format!("{file} {{ handle: success }}")),

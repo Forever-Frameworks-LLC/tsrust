@@ -174,6 +174,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const build = path.join(root, 'target/runtime-comparisons');
 fs.mkdirSync(build, {recursive: true});
+fs.mkdirSync(path.join(here, 'results'), {recursive: true});
 const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json')));
 const pins = JSON.parse(fs.readFileSync(path.join(here, 'versions.json')));
 const plan = measurementPlan(process.argv, manifest);
