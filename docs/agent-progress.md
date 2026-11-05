@@ -16,6 +16,14 @@ this note. Inspect current source and `git status` before acting.
 **Resume here — independent repairs, temporary-view approval pending:** root is
 the sole canonical writer; no heavy process remains. Previous turn made source
 and acceptance progress; this turn completed more real gates, not a blocked turn.
+Current source is9d3573ee, integrating hosta4543ba0 and coreb0204dd6 with the
+native-import module fixf6d59e58. Its both-package all-target check passed
+87.329s/1,848,802KiB. Focused combined no-run53586 is terminal: authoritative
+/tmp/tsrust-independent-url-editor-artifacts.jsonl ends with build-finished
+success=true. The old session is no longer available; do not restart the build.
+Fresh direct-binary repair execution is next; add this fourth artifact stream
+to the existing driver or use a focused driver, preserving passed scopes.
+Elapsed/RSS for this no-run were not recovered, so no numbers are claimed.
 Source a8d4c300 no-run92195 PASSED504.419s/3,702,803KiB. Normal compiler SHA
 9fa0511fcb16b0d6ed4c4d46aeac8571aaa51deeae802cdb68c43dfbb7c518fb;
 normal LSP9bc649f0f9692624335d968526bd8b375adcf2bbb66f7d0cfadf67c18e9434f7.
@@ -35,12 +43,12 @@ also PASSES under descendant watchdog7.306s/244,288KiB. Temporary reports are
 /tmp/tsrust-combined-repair-{gates,receiver,independent,dev}.json; do not rerun
 passed scopes merely because other cases failed.
 
-Next integrate hosta4543ba0 (LSP readonly string/view identity, strict unwrap
+Integrated hosta4543ba0 (LSP readonly string/view identity, strict unwrap
 recovery, stable help cursors/optional expectations, explicit portable setup) and
 coreb0204dd6 (optional URL setter type annotation, canonical diagnostic paths,
-newO0/O3setter witness). Both source-only checkpoints passed full formatting;
-their changed gates remain unexecuted. Root additionally fixes native-import
-groups retaining the written module: a final shared StringView import previously
+newO0/O3setter witness). Both checkpoints and their canonical integration passed
+full formatting; changed direct-binary gates remain unexecuted. Root also fixed
+native-import groups retaining the written module: a final shared StringView import previously
 changed the whole std:url group to std:json and panicked on Url. New witnesses
 cover both binding orders and reexports, without selecting JSON runtime.
 
@@ -133,6 +141,14 @@ then two storage pre-dispatch string/index guards were changed to the same commo
 observation predicate before the next execution build. New branch/harness unit
 execution and native positive remain pending. Do not rerun the18passed prefix;
 resume failed index11 after the next combined library/remaining-target compile.
+
+**Owner-requested PR monitoring reverified live — 2026-11-05:**
+The GitHub connector returned unknown-tool errors; authenticated read-only gh
+queries succeeded. PR#14 is MERGED at2026-11-05T00:53:10Z, and the live main
+ref matches8efaaee21bcc40d0938214bc75299b592ce91db9. There are zero open PRs,
+including Dependabot. Runs41942318885,41944583887 and41944660013 are completed
+success; public v0.1.2 is stable with all six assets uploaded. No further merge,
+push, rerun or publication was necessary.
 
 **Owner-requested PR monitoring verified — 2026-11-05:** live GitHub has no open
 PRs, including Dependabot. Release PR#14 merged; main is
