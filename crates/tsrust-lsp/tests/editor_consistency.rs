@@ -347,3 +347,70 @@ fn empty_heading_field_help_matches_completion_and_diagnostics(){
  let source="import {ThemeTypography} from 'std:ui';function main(){const typography:ThemeTypography={base:16,xl:24,headingFamily:'mono'};console.log(typography.headingFamily??'sans');}";
  let mut session=Session::start(&[]);session.open("main.tsr",source);let diagnostics=session.wait_for_diagnostics("main.tsr");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();let at=source.rfind("headingFamily").unwrap()+2;let hover=session.hover("main.tsr",source,at).unwrap_or_default();assert!(hover.contains("sans")&&hover.contains("Ownership:"),"{hover}");let labels=session.completion("main.tsr",source,at).unwrap();assert!(labels.contains(&"headingFamily".into()),"{labels:?}");let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn url_exports_and_documented_members_are_reachable() {
+    let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+    let before="import { ";let text=format!("{before} }} from 'std:url';function main(){{}}");
+    let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+    let imports=session.completion("main.tsr",&text,before.len()).unwrap();
+    for entry in catalog["std:url"].as_array().unwrap() {
+        let name=entry["name"].as_str().unwrap();assert!(imports.iter().any(|label|label==name),"std:url.{name}: {imports:?}");
+    }
+    for hidden in ["__href","__setHref","__get","url_intrinsic"]{assert!(!imports.iter().any(|label|label==hidden),"{imports:?}");}
+    for (family,ty,member) in [("Url","Url","href"),("SearchParams","SearchParams","get('x')")] {
+        let before=format!("import {{{ty}}} from 'std:url';function inspect(value:Mutable<{ty}>){{value.");
+        let text=format!("{before}{member};}}function main(){{}}");
+        session.change("main.tsr",&text);session.settle();
+        let offered=session.completion("main.tsr",&text,before.len()).unwrap();
+        let expected=catalog[family].as_array().unwrap().iter().map(|entry|entry["name"].as_str().unwrap().to_owned()).collect::<BTreeSet<_>>();
+        assert_eq!(offered.into_iter().collect::<BTreeSet<_>>(),expected,"{family}");
+    }
+    let counters=session.request("tsrust/counters",Value::Null);
+    for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}
+
+#[test]
+fn url_read_write_help_agrees_at_typing_speed_and_during_syntax_recovery() {
+    let cases=[
+        ("read pathname","import {Url} from 'std:url';function inspect(value:ReadOnly<Url>){console.log(value.","pathname",
+            ");}function main(){}",&["StringView","assign string","throws UrlError","Ownership:"][..]),
+        ("write pathname","import {Url} from 'std:url';function inspect(value:Mutable<Url>){value.","pathname",
+            "='/next';}function main(){}",&["StringView","assign string","throws UrlError","Ownership:"][..]),
+        ("write optional port","import {Url} from 'std:url';function inspect(value:Mutable<Url>){value.","port",
+            "=8443;}function main(){}",&["int","undefined","assign int","throws UrlError","Ownership:"][..]),
+        ("write optional hostname","import {Url} from 'std:url';function inspect(value:Mutable<Url>){value.","hostname",
+            "='other.example';}function main(){}",&["StringView","undefined","assign string","throws UrlError","Ownership:"][..]),
+        ("readonly origin","import {Url} from 'std:url';function inspect(value:ReadOnly<Url>){console.log(value.","origin",
+            ");}function main(){}",&["string","read-only","Ownership:"][..]),
+        ("query borrowed get","import {SearchParams} from 'std:url';function inspect(params:SearchParams){params.","get",
+            "('x');}function main(){}",&["StringView","undefined","Ownership:"][..]),
+    ];
+    for (name,before,typed,after,expected) in cases {
+        let mut baseline=None;
+        for (mode,delay,broken) in [("settled",None,false),("typed-fast",Some(Duration::ZERO),false),("80ms",Some(Duration::from_millis(80)),false),("syntax-error",None,true)] {
+            let after=if broken{format!("{after}\nfunction broken(){{const = ;}}") }else{after.to_owned()};
+            let text=format!("{before}{typed}{after}");let mut session=Session::start(&[]);
+            if let Some(delay)=delay {
+                session.open("main.tsr",&format!("{before}{after}"));session.settle();
+                session.type_text("main.tsr",before,typed,&after,delay);
+            }else{session.open("main.tsr",&text);session.settle();}
+            let reply=session.completion_items("main.tsr",&text,before.len()+typed.len());
+            let items=if reply.is_array(){reply}else{reply["items"].clone()};
+            let item=items.as_array().unwrap().iter().find(|item|item["label"]==typed).unwrap_or_else(||panic!("{name} [{mode}]: {items}"));
+            let detail=item["detail"].as_str().unwrap().to_owned();
+            let hover=session.hover("main.tsr",&text,before.len()+1).unwrap_or_default();
+            let combined=format!("{detail}\n{hover}");
+            for fragment in expected{assert!(combined.contains(fragment),"{name} [{mode}]: missing {fragment}: {combined}");}
+            for hidden in ["ResultUnwrap","__set","__tsrust_private_"]{assert!(!combined.contains(hidden),"{name} [{mode}]: {combined}");}
+            if let Some((prior_detail,prior_hover))=&baseline{assert_eq!((&detail,&hover),(prior_detail,prior_hover),"{name} [{mode}] disagrees with settled help");}
+            else{baseline=Some((detail,hover));}
+            if typed=="get" {
+                let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()+typed.len()+1}}));
+                let signature=help.to_string();assert!(signature.contains("StringView")&&signature.contains("undefined"),"{name} [{mode}]: {help}");
+            }
+            let counters=session.request("tsrust/counters",Value::Null);
+            for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{name} [{mode}]: {counters}");}
+        }
+    }
+}

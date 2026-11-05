@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Url,
     Ui,
     Crypto,
     Signals,
@@ -56,7 +57,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 43] = [
+const KINDS: [Kind; 44] = [
+    Kind::Url,
     Kind::Ui,
     Kind::Crypto,
     Kind::Signals,
@@ -133,6 +135,17 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::Url,name:"URL import path prefix",before:"import {Url} from '".into(),typed:"std:u",after:"';function main(){}",includes:&["std:url"],excludes:&["std:sql"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL public imports",before:"import { ".into(),typed:"",after:" } from 'std:url';function main(){}",includes:&["Url","UrlError","SearchParams","QueryEntry","StringView","parseUrl","resolveUrl","formatUrl","parseQuery","formatQuery","searchParams","setSearchParams","pathToFileUrl","fileUrlToPath","encodeURIComponent","decodeURIComponent"],excludes:&["__href","__setHref","__get","url_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL partial imports",before:"import { ".into(),typed:"parse",after:" } from 'std:url';function main(){}",includes:&["parseUrl","parseQuery"],excludes:&["formatUrl","__get"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL aliased computed properties",before:"import {Url as Address} from 'std:url';function inspect(value:ReadOnly<Address>){".into(),typed:"value.",after:"href;}function main(){}",includes:&["href","protocol","username","password","hostname","port","pathname","search","hash","origin"],excludes:&["function","main","__href","__setHref","clone"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL partial computed property write",before:"import {Url} from 'std:url';function inspect(value:Mutable<Url>){".into(),typed:"value.pa",after:"thname='/next';}function main(){}",includes:&["pathname","password"],excludes:&["port","protocol","__pathname","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL parsed owner property prefix",before:"import {parseUrl} from 'std:url';function main(){const value=unwrap(parseUrl('https://example.com/'));".into(),typed:"value.h",after:"ref;}",includes:&["href","hostname","hash"],excludes:&["pathname","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL borrowed pathname members",before:"import {Url} from 'std:url';function inspect(value:ReadOnly<Url>){".into(),typed:"value.pathname.",after:"length;}function main(){}",includes:&["length","startsWith","endsWith","includes","indexOf","lastIndexOf"],excludes:&["trim","split","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL SearchParams aliased methods",before:"import {SearchParams as Query} from 'std:url';function inspect(params:Mutable<Query>){".into(),typed:"params.",after:"append('x','one');}function main(){}",includes:&["get","getAll","has","append","set","delete","entries","sort"],excludes:&["href","pathname","__get","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL SearchParams partial methods",before:"import {SearchParams} from 'std:url';function inspect(params:SearchParams){".into(),typed:"params.get",after:"('x');}function main(){}",includes:&["get","getAll"],excludes:&["append","sort","__get","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL error fields",before:"import {UrlError} from 'std:url';function inspect(error:ReadOnly<UrlError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","operation","message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL query entry fields",before:"import {QueryEntry} from 'std:url';function inspect(entry:ReadOnly<QueryEntry>){".into(),typed:"entry.",after:"value;}function main(){}",includes:&["name","value"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
  Row {kind:Kind::Http,name:"HTTP body readers owned request",before:"import {Request} from 'std:http';async function inspect(input:Request):Task<void>{await ".into(),typed:"input.",after:"json();}function main(){}",includes:&["json","body","text","form","multipart"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Http,name:"HTTP body readers contextual request",before:"import {Context} from 'std:http';async function inspect(context:Mutable<Context>):Task<void>{await ".into(),typed:"context.req.",after:"json();}function main(){}",includes:&["json","body","text","form","multipart"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::RecordField,name:"input change target",before:"import {InputChangeEvent} from 'std:ui';function inspect(event:ReadOnly<InputChangeEvent>){".into(),typed:"event.target.",after:"value;}function main(){}",includes:&["value","name","id"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
@@ -502,7 +515,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if matches!(mode, Mode::Immediate | Mode::Paced) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || row.kind==Kind::Url && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);
