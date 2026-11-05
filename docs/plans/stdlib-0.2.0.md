@@ -515,7 +515,7 @@ missed ticks and move/drop tests. Performance: direct Tokio task/channel batches
 and Node Promise/timer counterparts with equivalent work; timers themselves are
 not a CPU speed benchmark. This is not JS Promise.then/catch compatibility.
 
-B06 preparation findings, not accepted implementation: allSettled<void> stores
+B06 initial preparation findings, before the accepted unit-array prerequisite: allSettled<void> stores
 Result<void,E>[] with empty Ok payloads; it does not establish a void[] mapping.
 Task output and generic inference preserve Void, while current value/array type
 resolution lacks a Void leaf. Preserve the ordered T[] contract for all, including
@@ -527,17 +527,19 @@ lazy private submission capability can retain the existing Arc, submit only on
 first poll, and observe closed admission if the public owner shuts down first.
 Prototype both borrowed and retained transports, .start and awaited CPU cleanup
 before fixing implementation. Locked tokio-util0.7.20 exports CancellationToken
-without rt/default features; do not enable unrelated features. The preflight and direct-Rust prototype now pass; public B06 APIs remain
-unimplemented. Source-only void[] support is prepared in the isolated core
-worker and still requires executable compiler/native/editor acceptance.
+without rt/default features; do not enable unrelated features. The preflight and direct-Rust prototype passed. Public B06 APIs are now being
+implemented in an isolated worker, with no public API acceptance claimed. The
+unit-array prerequisite has since passed the focused acceptance below.
 
 B06 prerequisite worker candidate f6f14954 is accepted in focused scope:
 unit-array native ownership/callback/alias/TaskJob/mixed-tuple witnesses passed;
 actual checked receiver capabilities survive local/imported aliases, incomplete
 members and unrelated errors. Nonempty3receiver agreement,4rows×4phases and
 editor consistency passed23.895s/79,088KiB; pure4case recovery-span unit passed.
-Canonical source integration is prepared; combined executable validation is still
-pending. This does not complete any public B06 API checklist item.
+Canonical integration3de00c52 subsequently built successfully517.850s/3,748,787KiB.
+Focused integrated native/discard checks, nonempty3receiver agreement and all16
+matrix observations passed18.660s/218,240KiB. This completes the prerequisite,
+not any public B06 API checklist item.
 
 B06 prototype profile (2026-11-05): three processes ×31 samples after8 warmups,
 separate allocation builds, quiet load3.448, watchdog8.434s/424,832KiB. Direct
@@ -714,7 +716,22 @@ absence, zero-width matches, reuse and resource lifetime. Separate compilation
 from reused search/capture/replace workloads; use shared-semantic Node patterns
 and independent range oracles. Include allocation counts and adversarial scaling.
 
-B12 admission preparation (2026-11-05; no package wiring or implementation):
+B12 implementation status (2026-11-05): source preparation1379a46e and repairs
+938f57b2/11ae1144/31738942 cover compiler/runtime/LSP/catalog/examples, optional
+backend dependency wiring and13 matched workload registrations. Eight direct
+runtime tests, feature selection/hidden exports, all18entry editor consistency,
+16matrix observations and5receiver checker agreement passed in their focused
+scopes. All13 intrinsic error-effect contracts and the unreviewed-effect guard
+passed11ae1144. Native/catalog execution exposed optional-input signature lookup;
+portable export exposed missing default feature activation. Both are repaired in
+31738942. All18 catalog examples and portable relocation/offline/forbid-unsafe
+export now pass at O0/O3. Native ownership exposed a temporary-borrow staging
+error for computed optional options; its same-statement conversion fix awaits
+revalidation. No checklist item is accepted yet;
+generated benchmark correctness, actual timings and remaining platform checks
+remain pending. Prototype evidence below is not generated API performance.
+
+B12 initial admission preparation (2026-11-05; before package wiring):
 select regex1.13.1 with default std/perf/unicode and regex-syntax/default features.
 The [official index](https://raw.githubusercontent.com/rust-lang/crates.io-index/master/re/ge/regex)
 records a non-yanked July15,2026 release, MSRV1.65 and checksum

@@ -64,14 +64,16 @@ impl Emitter<'_> {
             let Some(argument)=args.get(index)else{values.push("None".into());continue;};
             let name=format!("regex_arg{index}");
             let value=if parameter.ty.signature()==Signature::String{self.string_observation(fun,argument)}else{self.expr(fun,argument,parameter.access)};
-            setup.push_str(&format!("let {name}={value};"));
             if parameter.optional {
-                let optional=self.native_optional_argument(parameter,name.clone(),argument.ty.unwrap());
+                let optional=self.native_optional_argument(parameter,value,argument.ty.unwrap());
                 let signature=crate::native_binding_types::resolve(&self.program.records,&parameter.ty.signature()).expect("prepared optional RegexOptions");
                 let ty=self.program.unions[signature.union().expect("optional RegexOptions").index()].members.iter().copied().find(|ty|*ty!=Type::Undefined).expect("RegexOptions payload");
                 let options=format!("({optional}).map(|value:&{}|{})",self.native_type(ty),self.regex_options(ty,"value"));
                 setup.push_str(&format!("let regex_options={options};"));values.push("regex_options.as_ref()".into());
-            }else if parameter.ty.signature()==Signature::String{values.push(format!("{name}.as_ref()"));}else{values.push(name);}
+            }else{
+                setup.push_str(&format!("let {name}={value};"));
+                if parameter.ty.signature()==Signature::String{values.push(format!("{name}.as_ref()"));}else{values.push(name);}
+            }
         }
         let function=match binding.name{"compile"=>"compile","escape"=>"escape","__isMatch"=>"is_match","__find"=>"find","__findAll"=>"find_all","__captures"=>"captures","__capturesAll"=>"captures_all","__replace"=>"replace","__replaceAll"=>"replace_all","__split"=>"split","__stringMatch"=>"string_match","__stringMatchAll"=>"string_match_all","__stringSearch"=>"string_search",_=>unreachable!()};
         let call=format!("tsrust_native_regex::{function}({})",values.join(","));

@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `11ae1144`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+`codex/stdlib-0.2.0`, source checkpoint `31738942`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
 built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
@@ -41,6 +41,25 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
+**B12 options/export build73122 passed:** exact31738942, terminal build-finished:true,
+209.083s/2,664,402KiB. `/tmp/tsrust-b12-options-export-{artifacts.jsonl,build.log}`.
+Direct runner81043 terminal77.134s/494,352KiB: all18catalog examples passed O0/O3
+(10.718s), portable relocation/offline/forbid-unsafe export passed O0/O3 (61.519s).
+Native ownership failed4.27s: E0716 borrowing options(true/false) temporaries across
+staged statements. Fix now converts the borrowed optional record into owned backend
+Options in the same statement; no clone or lifetime widening. Existing true/false
+native fixture witnesses the failure. Pending source checkpoint/revalidation.
+`/tmp/tsrust-b12-options-export-gates.{json,log}` preserves passes and failure.
+No heavy process remains live. Whole-format before31738942 passed1562files,
+4.662s/203,152KiB and4.132s/203,616KiB;0changes.
+
+B06 worker remains source-only in isolated stdlib-files worktree: runtime/compiler,
+editor/catalog/docs/native ownership witnesses and six matching runtime-once
+benchmark drivers/oracles prepared; static review only, no executions. Root must wire optional exact tokio-util0.7.20,
+default-features=false, when integrating; marker `mod tsrust_native_cancellation {`.
+B13 worker now prepares admission/locale prototype sources and dependency closure
+in isolated stdlib-url tree, preserving prior untracked B12 files. No heavy slot granted.
+
 **B12 effect repair build23323 passed:** exact11ae1144, terminal build-finished:true,
 490.966s/3,765,587KiB. `/tmp/tsrust-b12-effects-{artifacts.jsonl,build.log}`.
 Driver20276 completed29.517s/147,520KiB: all13 native effect classifications and
@@ -48,7 +67,7 @@ existing unreviewed-effect guard passed. Native ownership and18catalog examples
 failed at emitter's lookup of bare RegexOptions signature (only optional signature
 was prepared); fixed emitter to read payload from the prepared parameter signature.
 Portable export reached its manifest assertion: missing default regex feature;
-added the module feature hook beside URL. Those two fixes are pending checkpoint.
+added the module feature hook beside URL. Those two fixes are checkpointed31738942.
 `/tmp/tsrust-b12-effects-gates.{json,log}` preserves each scope. No heavy work live.
 Whole-format/token/idempotence before11ae passed1562files,4.667s/204,032KiB and
 4.651s/204,128KiB,0changes; benchmark source/oracle self-check passed.
