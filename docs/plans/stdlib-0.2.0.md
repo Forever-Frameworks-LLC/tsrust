@@ -5,8 +5,9 @@ one explicit v0.2.0 checklist; bundle related implementation and acceptance work
 use Sol 6.1 subagents in parallel; design and measure performance from the first
 gate. Popular, maintained, well-tested Rust packages are approved backends.
 
-Status: proposed release contract and execution plan, not implemented acceptance
-or permission to publish v0.2.0. The current v0.1.2 promotion must finish first.
+Status: finite release contract with implementation in progress, not completed
+acceptance or permission to publish v0.2.0. The v0.1.2 main/tag/assets/docs
+promotion is verified complete at main8efaaee2.
 This plan supersedes historical stdlib scheduling and parallel-worker instructions
 where they conflict. `docs/agent-progress.md` remains the only continuation note.
 Update this checklist with accepted commits and evidence; do not create worker
@@ -293,6 +294,68 @@ and optional setter features remain disabled. This is not completed advisory,
 platform, runtime or public API acceptance. Direct-Rust allocation/build/timing
 prototypes are prepared separately; no production B03 implementation is claimed.
 
+B03 contracts frozen for implementation (2026-11-05; native/platform acceptance
+remains separate):
+
+| Module | New public signature or record |
+|---|---|
+| `std:path` | `PathParts {root:string; dir:string; base:string; ext:string; name:string}`; `PathFormatOptions {root?:string; dir?:string; base?:string; ext?:string; name?:string}`; `PathError {code:string; message:string}` |
+| `std:path` | `parse(path:string):PathParts`; `format(parts:ReadOnly<PathFormatOptions>):string`; `resolve(...paths:string[]):Result<string,PathError>`; `separator():string`; `delimiter():string` |
+| `std:env` | `EnvVar {name:string; value:string}`; `vars():Result<EnvVar[],EnvError>`; `currentDir():Result<string,EnvError>`; `currentExe():Result<string,EnvError>`; `tempDir():Result<string,EnvError>`; `homeDir():Result<string\|undefined,EnvError>` |
+| `std:os` | `OsError {code:string; message:string}`; `availableParallelism():Result<int,OsError>`; `hostname():Result<string,OsError>` |
+
+These are exactly12 functions and5 new ordinary record identities. String input
+modes are Read, including resolve's rest inputs; spelling follows existing path
+metadata, whose scalar signatures omit redundant access wrappers. Results are
+independent values, with no returned-borrow contract or implicit input cloning.
+Constants may use the existing static string representation. No public path-style
+argument is added: execution-target cfg selects native separators and delimiters.
+
+Parse returns all five fields, preserves lexical root/dir spelling and existing
+dotfile/extname behavior; empty input returns five empty strings. Format treats
+omitted and empty fields alike: nonempty dir precedes root, nonempty base precedes
+name/ext; add a dot only for nonempty undotted ext and a separator only between a
+non-root directory and the selected base. Use the measured checked exact-capacity
+single-output adapter, ordinary Rust allocation behavior and no arbitrary cap.
+Resolve ignores empty segments, stops right-to-left when an absolute device/root
+is sufficient, observes cwd/drive context only as needed, and never canonicalizes.
+New PathError codes are Io/NotUnicode; new resolve propagates bad-Unicode drive
+context only when needed. Keep relative’s public signature and successful lexical
+behavior; repair its known invalid-Unicode drive-context fallback through the
+existing error channel, with focused demand/error witnesses.
+
+Existing env get/args already preserve strict Unicode and explicit Result errors;
+no getter migration is needed. Keep existing EnvError identity and InvalidName/
+NotUnicode code spelling; add Io for fallible OS observers. vars converts both
+names and values from vars_os into a complete owned unsorted snapshot, accepts
+names that get's lookup validator rejects, and returns no partial data or raw
+values on Unicode error. homeDir delegates pinned std::env::home_dir, including
+its platform fallback and unavailable/unsupported None behavior; returned empty
+paths remain empty. tempDir delegates std::env::temp_dir and creates nothing.
+Convert all returned paths strictly. availableParallelism queries std each call,
+checks positive usize-to-int conversion and never caches, caps or invents1.
+Hostname uses selected hostname0.4.2, strict Unicode and no DNS/env fallback.
+OsError codes are Io/NotUnicode/Range. New recoverable failures are Result data;
+only ordinary unwrap introduces a throwing effect.
+
+Windows extends existing listen/receive exports with Tokio ctrl_c/ctrl_break
+and SIGINT/SIGBREAK results; Unix retains SIGINT/SIGTERM. No event selector,
+configuration setting, process-global setter, kill API or listener framework.
+Actual Windows console/OS acceptance remains required. The22 injected Windows
+lexical controls (including demand/error ordering) passed both Rust and pinned
+Node locally; they do not prove Windows OS behavior. Baseline/format allocation
+profiles and their cached Node controls remain prototype evidence, not measured
+Tsrust workloads or SQLite ingestion.
+
+Source ownership: bundle worker owns stdlib path/env/os/signals runtime/bindings/
+emission, bounded additive native signature/type/binding and feature predicate
+hunks, effects audit, complete catalog/docs/examples/fixtures/editor agreement and
+matched benchmark support. Integrator owns dependency manifests/locks/admission,
+sourcepack/cache/export and benchmark dependency wiring, goal/plan/sole handoff.
+Only hostname selects its optional dependency; all other new observers remain
+std-only and unused imports add no runtime/dependency closure. Finish the entire
+coherent section before batched affected checks.
+
 ### B04 — General URL and query parameters
 
 Backend: `url` plus its form-query support; `percent-encoding` if directly needed.
@@ -396,6 +459,21 @@ Witnesses: ordering, failures, cancellation-before-wait, nested child cleanup,
 missed ticks and move/drop tests. Performance: direct Tokio task/channel batches
 and Node Promise/timer counterparts with equivalent work; timers themselves are
 not a CPU speed benchmark. This is not JS Promise.then/catch compatibility.
+
+B06 preparation findings, not accepted implementation: allSettled<void> stores
+Result<void,E>[] with empty Ok payloads; it does not establish a void[] mapping.
+Task output and generic inference preserve Void, while current value/array type
+resolution lacks a Void leaf. Preserve the ordered T[] contract for all, including
+void, rather than silently substituting undefined[] or rejecting that case.
+Prototype Rust Vec<()> and explicit compiler witnesses must settle this prerequisite.
+Existing OwnedPool contains Arc<Pool>; cloning the public close-on-Drop owner or
+marking it globally transferable would change shutdown/transfer semantics. A
+lazy private submission capability can retain the existing Arc, submit only on
+first poll, and observe closed admission if the public owner shuts down first.
+Prototype both borrowed and retained transports, .start and awaited CPU cleanup
+before fixing implementation. Locked tokio-util0.7.20 exports CancellationToken
+without rt/default features; do not enable unrelated features. All current B06
+compiler/Rust/oracle sources remain unexecuted preparation, not a public API gate.
 
 ### B07 — Subprocesses
 

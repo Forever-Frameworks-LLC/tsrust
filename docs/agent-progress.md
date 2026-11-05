@@ -13,31 +13,70 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
-**Next integration ready:** approved lifetimec9d887be plus test-only50551356
-(fresh Bytes/JsonValue as well as URL; four groups remain) and URL backend
-host-state fixebcab37b are committed/formatted in their isolated trees. No worker
-jobs remain. Root is sole canonical writer and owns next formatting/integration/
-validation. Core labelled diagnostic22003 failed exactly the hostname-absence
-assertion after all earlier optional/returned/default-port/index-order assertions
-passed;4.176s/268,720KiB. Exact pinned URL oracle confirmed mutated custom:/path
-has_host=true/host_str=Some(empty), versus fresh parse false/None. One-line
-HostInternal::None reset restores actual backend state; no reparsing workaround.
-New retained six-case unit covers non-special/file and domain/IP hosts, invariants,
-credentials/port removal, query/hash offsets, repeated removal and restoration.
-Payload hash already covers lib/unit/provenance, so caches/portable exports must
-use the new embedded source identity. No registry checksum/ABI shortcut.
-Batch only affected native lifetime/URL acceptance after merging;53library unit
-keepers +8integration +2spreadkeepers=63tests, plus existing optional setter,
-backend six-case exact retained-unit extraction against fresh URLrlib and changed
-patch-payload relocation controls. Optional upstream unit Cargo would add missing
-bencher devdep/lock churn, so compile exact retained function with rustc --test
-and exact fresh CargoJSON artifact instead. Do not weaken or rewrite its cases.
-Cross-family source audit: public SQL cursor calls stage receivers into internal
-Let/Name before NativeBinding; hypothetical internal Call-emission risk has no
-public reproduction and justifies no SQL patch. Prepared /tmp check-only controls
-remain unrun, not acceptance. B06 preparation likewise remains source-only.
-Closed filesystem build output target/fs-b01-verify (~681MiB) was removed after
-75cases closed; source and current semantic reports remain, shared target intact.
+**Resume here — B03 implementation dependency-ready, one diagnostic risk open:**
+Canonical branchcodex/stdlib-0.2.0 is at3562678. Approved lifetimec9d887be +
+50551356 and backend host-state repairebcab37b are integrated/formatted.
+Root no-run95202 PASSED514.977s/3,670,595KiB; artifacts
+/tmp/tsrust-approved-lifetime-artifacts.jsonl. Current normal CLI SHA
+67acb12a6ad010a7b83f46d68a9ba622758430d943aadcfdf300fa3f86ba2838;
+LSP SHA0ea6fcdab32607e6362e73102dadb423e45c8ce9e12571f8582e9481b249e4af.
+Every build/test/formatter/probe handle below is TERMINAL; no heavy job remains.
+Root remains sole canonical writer. Full B00–B20 goal stays active/incomplete.
+
+Accepted exact native/editor scopes: retained backend six-case unit61700 PASS
+2.648s/106,368KiB against exact fresh URLrlib; its verbatim function SHA
+c03d5e245053c59d572be0b8a21d5775ee8a5b16dc53147b8d48b21eb17e992d.
+Serial driver53754 terminal152.822s/425,680KiB:24invocations,77passedtests,
+1failedoptional-setterassertion. All53native-loan unit keepers,2payload controls,
+4new temporary groups (URL/Bytes/JSON O0/O3 plus16negative cases),34catalog
+examples+URLexampleO0/O3, forwarded/generic/spread keepers, URL LSP6/agreement/
+consistency/matrix and relocated offline export61.66s PASSED. Preserve these
+scopes in/tmp/tsrust-approved-lifetime-gates.{json,log}; do not replay them.
+
+Open diagnostic risk: initial optional-setter assertion did not reproduce.
+Verified-current CLI labelled and unchanged exact formatted fixture passed both
+O0/O3 (13.498s/378,592;18.206s/358,400;2.604s/302,944;4.170s/300,432KiB).
+Exact same retained integration binary/filter recheck29315 also PASSED8.800s/
+360,848KiB atO0/O3; normal hashes unchanged. First failure remains recorded,
+not silently relabelled transient/accepted. Controlled old505URL→new356URL→fresh
+old root→new O0 Cargo sequence81678 PASS4.669s/216,960KiB REFUTED the proposed
+foreign-URL alias reproduction: distinct cbaefa/07c61rlibs, correct old/new host
+observations and depinfo paths, freshflagsfalse,false,true,true. All35dependency
+tuples were already admitted; no canonical lock/network change. Data
+/tmp/tsrust-url-foreign-artifact-4pftlnk2/observations.json. No speculative cache
+patch, expectation change, isolatedcache retry or broad rerun was made. This
+unexplained first-run assertion remains a release/milestone concern; independent
+B03/B06 work is available, so it is not a goal-wide blocker.
+
+B03 Windows22 admission95440 PASSED3.127s/120,208KiB: actual pinned Rust1.96.1
+commit31fca3adb... and Node24.11.1 guards, both22output/context-count controls.
+Original20row prefix SHA486f4c375bd0805585fb6eea2ccc8f3613a9fefe94290765462e671478ffac44
+preserved; only2drive-Unicode/error-demand rows added. Std-only prototype binary
+SHA604a928d08f2db4ddbfaedc6e7299e5e209768b6bc95db513ad2388c269cb5f4;
+output originaltarget/tsrust-admission/path-windows-22-9fac83708292. No actual
+Windows OS/console acceptance, timing or SQLite ingestion claimed.
+
+Next: checkpoint frozen B03 contracts in docs/plans/stdlib-0.2.0.md, then hand
+runtime worker finite12functions+5records+Windows signal extension implementation.
+Worker owns bounded registry/runtime/emitter/catalog/editor/examples/benchmark
+source hunks; root owns manifests/locks/sourcepack/cache/export dependency wiring
+and sole handoff/goal/plan. Preserve ordinary relative signature/success behavior,
+but repair discovered invalid-Unicode drive fallback via existing error channel.
+Runtime source/admission dir is untracked; full-format/checkpoint prototypes before
+risky production edits. Core B06 eleven-source preparation is untracked/unexecuted;
+next bounded evidence is7compiler checks+2emissions for actual void/Task/pool
+capture prerequisites, then directTokio primitive prototype. No silent undefined[]
+substitution or taskAsync.start exclusion. Profiles are required before API design.
+
+SQL audit correction: ordinary public cursor methods stage Call receivers into
+Let/Name, but exports::lookup omits SQL from its internal-__name rejection. A
+concrete imported__cursor freshPool compile-only control therefore remains UNRUN,
+/tmp/tsrust-sql-cursor-direct-native-check.tsr; do not claim public reachability
+fully ruled out. No SQL production change yet. Validate this control serially
+under the next granted small diagnostic lease; no network/DB execution.
+Closed FS validation target/fs-b01-verify (~681MiB) was pruned after75cases passed;
+shared target/current semantic reports retained. Full regressions, actual new API
+throughput/ingestion, Windows/Linux and v0.2 publication remain pending.
 
 **Owner scoped lifetime approval received:** actual async answer is
 “Approve scoped lifetime fix and tests (Recommended)” for the exact proposed
