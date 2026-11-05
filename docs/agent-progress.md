@@ -36,6 +36,14 @@ Keep the already-passed scopes below and repair/rerun affected failures only.
 No full suites, actual new API timings, SQLite ingestion, remote push or release
 publication occurred. Full B00–B20 objective remains active and incomplete.
 
+Combined source is now committed at a4d91280 (core2cb merge included). First
+all-target70854 failed9.364s/1,370,752KiB with16E0624 errors: three new emitter
+String observation helpers needed pub(super) for parent/sibling callers. Root
+corrected those three visibility declarations; affected all-target93731 now
+PASSES59.753s/1,901,986KiB, only inherited decode_plain warning. No expectations,
+ownership checks or generated operations were weakened. Next compile the focused
+direct-binary batch; all new native/editor acceptance remains pending execution.
+
 **Owner-requested PR monitoring verified — 2026-11-05:** live GitHub has no open
 PRs, including Dependabot. Release PR#14 merged; main is
 8efaaee21bcc40d0938214bc75299b592ce91db9. Release validation41942318885,
