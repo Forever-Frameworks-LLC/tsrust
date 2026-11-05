@@ -2071,6 +2071,7 @@ impl Url {
             self.username_end = new_path_start;
             self.host_start = new_path_start;
             self.host_end = new_path_start;
+            self.host = HostInternal::None;
             self.port = None;
             if let Some(ref mut index) = self.query_start {
                 *index -= offset
