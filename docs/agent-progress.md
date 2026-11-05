@@ -30,6 +30,25 @@ candidate additionally integrates URL facade a5328d77, reproducible scaling
 URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
 No new URL/codec native gate or platform completion is claimed.
 
+**Canonical checkpoints in this continuation:**422331a4 adds tempfile pins,
+e3d1110b native literal aliases, d7ff8603 void/native-use/URL emission fixes,
+067eda23 optional measured search pin, and2c5dc860 the exact Linker fixture repair.
+Codec acceptance preservation c7898da is now merged additively (21files), including
+actual borrowed UTF16 literal-union payload use, original generic Result fixture,
+O0/O3 catalog/relocated export/LSP witnesses and independent result buffers plus
+UTF16 allocation probe. This is source readiness, not positive native acceptance;
+no compiler/test process ran on that merged codec delta yet. No DB change or new
+canonical API timing occurred in this continuation.
+
+Runtime worker clean8dcc5426 contains the shared-target repair, both fixture
+corrections and real dev interruption while target lock is contended. Its final
+all-target rerun is live handle34387; worker retains exclusive heavy lease and
+will run direct binaries only after successful check/no-run. Root performs only
+light source integration/formatting. FS clean mergee3211f93 preserves its complete
+42-export source section and canonical e3 base; cursors and matched seek/read
+benchmark are in progress. Byte worker completes14binary/buffer APIs and39matched
+rows, with fullcanonical2c handback available after its source preservation.
+
 **Active shared-target validation:** worker source checkpoint5dc08536 plus
 bfaea2c8 external-target lock assertions is merged with canonical d7ff8603 as
 b24f2299. Whole worker formatter passes0/0/0. Its first all-target check caught

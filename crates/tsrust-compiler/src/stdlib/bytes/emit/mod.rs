@@ -86,7 +86,7 @@ fn byte_order_bridge(program: &CheckedProgram) -> (String, String) {
         let Type::Literal(record, crate::literal_types::LiteralKind::String) = member else { unreachable!("byte order literals") };
         let Some(crate::literal_types::LiteralValue::String(value)) = &program.records[*record].literal_definition else { unreachable!() };
         assert!(matches!(value.as_str(), "little" | "big"));
-        format!("Union{}::V{tag}(_) => {value:?}", id.index())
+        format!("Union{}::V{tag}(value) => value.as_ref()", id.index())
     }).collect::<Vec<_>>().join(", ");
     (format!("Union{}", id.index()), format!("match byte_order {{ {arms} }}"))
 }

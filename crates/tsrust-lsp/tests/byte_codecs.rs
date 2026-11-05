@@ -30,3 +30,19 @@ fn codec_examples_alias_hover_and_order_parameter_help_agree_with_compiler() {
     let hover = ask(&index, &source, "saved(bytes)", "textDocument/hover");
     assert!(hover.to_string().contains("canonical") && hover.to_string().contains("padding"), "{hover}");
 }
+
+#[test]
+fn codec_exports_are_discoverable_from_partial_imports() {
+    for (prefix, expected) in [
+        ("toB", vec!["toBase64", "toBase64Url"]),
+        ("fromUtf", vec!["fromUtf8", "fromUtf16"]),
+        ("toUtf", vec!["toUtf8", "toUtf8Lossy", "toUtf16"]),
+    ] {
+        let source = format!("import {{ {prefix} }} from 'std:bytes';function main(){{}}");
+        let mut workspace = Workspace::default(); workspace.open(source_id(uri()).unwrap(), 1, source.clone());
+        let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &source_id(uri()).unwrap().0).unwrap();
+        let completion = ask(&ProjectIndex::new(&graph), &source, " }", "textDocument/completion");
+        let labels = completion.as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(labels, expected.into_iter().collect(), "{completion}");
+    }
+}
