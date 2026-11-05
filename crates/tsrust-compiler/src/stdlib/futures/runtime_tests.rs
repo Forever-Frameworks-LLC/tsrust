@@ -200,10 +200,10 @@ fn all_orders_unit_and_non_unpin_borrowed_results_and_drains_failure_siblings(){
   assert_eq!(all(vec![std::future::ready(Ok::<_,Failure<()>>(())),std::future::ready(Ok(()))]).await.ok(),Some(vec![(),()]));
   let drops=Arc::new(AtomicUsize::new(0));let guard=DropCount(drops.clone());
   let(ready,started)=tokio::sync::oneshot::channel();
-  let sibling=start(async move{let _guard=guard;let _=ready.send(());std::future::pending::<()>().await;Ok::<_,Failure<i64>>(1)});
+  let sibling=start(async move{let _guard=guard;let _=ready.send(());std::future::pending::<()>().await;Ok::<_,Failure<i64>>(1_i64)});
   started.await.unwrap();
   let sibling=Box::pin(sibling.join()) as std::pin::Pin<Box<dyn std::future::Future<Output=Result<i64,Failure<i64>>>>>;
-  let failed=Box::pin(std::future::ready(Err(Failure::Worker(9)))) as std::pin::Pin<Box<dyn std::future::Future<Output=Result<i64,Failure<i64>>>>>;
+  let failed=Box::pin(std::future::ready(Err(Failure::Worker(9_i64)))) as std::pin::Pin<Box<dyn std::future::Future<Output=Result<i64,Failure<i64>>>>>;
   assert!(matches!(all(vec![sibling,failed]).await,Err(Failure::Worker(9))));
   assert_eq!(drops.load(Ordering::SeqCst),1);
  });

@@ -334,7 +334,7 @@ fn producer_channel_backpressure_end_and_disposal(){
   let blocked=sender.send(vec![2]);tokio::pin!(blocked);
   assert!(std::future::poll_fn(|cx|std::task::Poll::Ready(matches!(std::future::Future::poll(blocked.as_mut(),cx),std::task::Poll::Pending))).await);
   drop(response);
-  assert!(matches!(blocked.await,Err(tsrust_native_futures::Failure::Closed)));
+  assert!(matches!(blocked.await,Err(tsrust_native_futures::SendError{code:"closed",value}) if value==vec![2]));
   let channel=tsrust_native_futures::Channel::new(1).unwrap();let sender=channel.sender();
   assert!(Response::stream_channel(channel,199,|bytes:Vec<u8>|bytes).is_err());
   assert!(matches!(sender.send(vec![1]).await,Err(tsrust_native_futures::SendError{code:"closed",..})));

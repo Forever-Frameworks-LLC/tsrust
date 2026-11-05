@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `7ac738fb`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+`codex/stdlib-0.2.0`, source checkpoint `cb7d5a08`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
 built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
@@ -41,6 +41,23 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
+**B06 public no-run build87149 terminal failed:** exactcb7d5a08,
+237.880s/2,717,090KiB; build-finished:false verified. Cargo89379/supervisor89328
+are no longer active. Three test compile errors: inferred i32 literals in all's
+boxed i64 future witnesses, and HTTP channel-disposal test retaining old
+Failure::Closed shape after owner-preserving SendError migration. Root repaired
+literals to i64 and asserts the closed error retains vec![2]. No production defect
+or executable pass claimed from this build. `/tmp/tsrust-b06-public-{artifacts.jsonl,build.log}`.
+Worker B06 test-only checkpoint5b73d9cc is now integrated without conflicts:
+reviewed task_runtime hardenings include release-on-unwind gates, queued invocation counter, deterministic
+post-cancellation Pending join and independent5s bounds. Worker whole-format/token1572/idempotence passed4.648s/202,320KiB and
+4.636s/203,984KiB,0changes. Whole-format/checkpoint root repairs, then resume combined no-run;
+keep feature graph identical. Prepared `/tmp/tsrust-b06-public-gates.py` includes
+pending B12 native witness, all runtime16, HTTP disposal, task/public/legacy/thread/
+channel/editor checks. Add hardened task_runtime2 after integration. No native
+checks run yet oncb7d5a08. Root integrated whole-format proof1572files passed
+4.635s/204,208KiB and4.630s/203,216KiB,0changes.
+
 **B06 public source batch integrated, executable acceptance pending:** worker52715935
 was whole-formatted/token-checked across1572files (4.628s/206,096KiB then
 4.651s/199,184KiB). Root no-commit integration resolved two overlapping lines by
@@ -53,9 +70,7 @@ added relocated offline O0/O3/forbid-unsafe witness. Benchmark source/ABI tests
 initially failed because4096 was inside the Node Worker template literal; guard
 now inspects that literal's code tokens, preserving mutation rejection. Both tests
 pass; unchanged regex source/oracle self-check passes. No B06 Rust/native/editor
-checks or timings have run. Next: whole-project format, source checkpoint, combined
-compiler/LSP no-run build (B06 + pending B12 native scope) under shared watchdog.
-No heavy process currently live; workers have no build slot.
+checks or timings have run. Combined build is now live as recorded above. Workers have no build slot.
 
 **B12 options/export build73122 passed:** exact31738942, terminal build-finished:true,
 209.083s/2,664,402KiB. `/tmp/tsrust-b12-options-export-{artifacts.jsonl,build.log}`.
