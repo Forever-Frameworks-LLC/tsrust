@@ -29,6 +29,7 @@ pub fn reserved(name:&str)->bool {
         "base64",
         "tempfile",
         "memchr",
+        "hostname",
         "sha2","subtle","uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","tower-http","matchit","tokio-rustls","reqwest","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime",
     ].contains(&name)
 }

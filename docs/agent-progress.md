@@ -13,6 +13,41 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**Next B03 integration ready (2026-11-05):** runtime source checkpointa7f35ad5
+(parent prototypea6ca7db2, base1b3aaf40) contains60files/12functions/5records,
+Windows signal extension, full17catalog docs, native/runtime/editor witnesses and
+7matched workload supports. Worker tree clean; fullformatter11.886s/460,577KiB,
+8TSRfiles/17snippets formatted,7source fingerprints updated,4987token inputs
+preserved/7736idempotent hashes. Source-only: public B03 tests/timing remain unrun.
+Root hostname wiring is the only canonical source WIP:3optional feature manifests/
+locks, reserved inventory, runtime/export hooks and benchmark native/reference
+preparation +real offline link test. Offline lockupdate28092 PASS1.040s/158,144KiB:
+532native/271backend/48reference old identities preserved; onlyhostname0.4.2 and
+already-admitted windows-link0.2.1(reference only) added.6default/hostname trees
+68573 PASS1.043s/24,064KiB. Compiler/workspace manifest/lock stay unchanged because
+hostname is payload-only there. Initial no-deps metadata didn't write locks and
+wrong root-workspace package update matched none; neither changed source/pins.
+Root wiringformatter7481 PASSED5.195s/171,856KiB. Checkpoint wiring, then merge
+runtimea7f35ad5 plus coree30c8459 (includes SQLvisibility6000db08 +B06prototypes).
+Format merged tree before committing and run ONE combined affected validation.
+
+New SQL visibility defect is proven, not hypothetical: ordinary public-method
+control rejects native-view-call; imported__cursor passes check+emit, and exact
+fresh Tokio/SQLx/futures_core rustc metadata rejects generated code E0716
+(92623terminal2.610s/133,376KiB). Source-only6000db08 hides SQL/SQLite intrinsics
+using existing policy;2meaningful import/alias/barrel-negative and public-method
+keepers in native_declarations await fresh merged execution. No SQLruntime/emitter
+or extra loan relaxation. Public temporary async capture remains distinct/open.
+Core eleven-source B06 prep is honest prototypecheckpointe30c8459, formatter
+11.408s/447,104KiB. Actual7strict check+emit witnesses show4pass (Task/Job void,
+undefined arrays, localpool.start) and3reject (void[] array-element, borrowedpool
+andownedpublicpool.start task-transfer). AllSettled<void> emits Job<(),E> and
+emptyOk payloads, not a void[] mapping.3negative statements now have reasoned
+reporting directives; their postdirective strict revalidation is pending.
+Direct Tokio/pool retained-Arc prototype remains entirely UNRUN. Next lease must
+revalidate7witnesses and use exact approved-lifetime CargoJSON Tokio2f83245c...,
+TokioUtil80af1fd... and Rayonc4b3b17... rlibs, no Cargo/newdependency/hiddenpool.
+
 **Resume here — B03 implementation dependency-ready, one diagnostic risk open:**
 Canonical branchcodex/stdlib-0.2.0 is at3562678. Approved lifetimec9d887be +
 50551356 and backend host-state repairebcab37b are integrated/formatted.

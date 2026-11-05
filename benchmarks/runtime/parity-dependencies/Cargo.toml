@@ -7,12 +7,16 @@ publish = false
 [workspace]
 
 [dependencies]
+hostname = { version = "=0.4.2", default-features = false, optional = true }
 memchr = "=2.8.3"
 url = "=2.5.8"
 percent-encoding = "=2.3.2"
 base64 = "=0.23.1"
 rand = "=0.10.3"
 unicode-normalization = "=0.1.25"
+
+[features]
+hostname = ["dep:hostname"]
 
 [patch.crates-io]
 url = { path = "../../../crates/tsrust-compiler/patched-dependencies/url" }

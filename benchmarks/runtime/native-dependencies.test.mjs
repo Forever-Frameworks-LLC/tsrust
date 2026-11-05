@@ -21,7 +21,7 @@ test('dependency artifacts require both exact Cargo library identities',()=>{
  assert.throws(()=>dependencyArtifacts(`${serde}\n${json}\n${artifact('serde','/target/release/deps/libserde-c.rlib')}`,target),/Ambiguous/);
 });
 
-test('exported JSON dependencies link a separately instrumented native program offline',{skip:!process.env.TSRUST},()=>{
+test('exported dependencies link instrumented JSON, files and hostname programs offline',{skip:!process.env.TSRUST},()=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-bench-dependencies-'));
  try {
   const source=path.join(root,'input.tsr');
@@ -54,6 +54,13 @@ test('exported JSON dependencies link a separately instrumented native program o
   fs.writeFileSync(instrumented,fileEmitted);
   run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...fileDependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'not-found\n');
+  fs.writeFileSync(source,`import {hostname} from 'std:os';function main(){match(hostname()){Ok(value)=>{console.log(value.length>=0);},Err(error)=>{console.log(error.code==='Io'||error.code==='NotUnicode');}}}`);
+  const hostnameEmitted=run(process.env.TSRUST,['emit',source]);
+  const hostnameDependencies=prepareNativeDependencies({...options,emitted:hostnameEmitted});
+  assert.deepEqual(hostnameDependencies.evidence.libraries.map(library=>library.name),['hostname']);
+  fs.writeFileSync(instrumented,hostnameEmitted);
+  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...hostnameDependencies.args,instrumented,'-o',binary]);
+  assert.equal(run(binary,[]),'true\n');
   assert.ok(!fs.readdirSync(root).some(name=>name.startsWith('package-')));
  } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
