@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch
-`codex/stdlib-0.2.0`, source checkpoint **80795335**. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint **3bd92b7c** (code80795335). Full B00–B20 stays active.
 Latest accepted work: literal-all optimization passed8focused witnesses; actual
 ready/yield medians improved40.1%/30.1%,2native histories ingested atbb0677ec.
 Unchanged Rust/Node controls reused. Actual-parameter task warning repair458500b2
@@ -28,15 +28,51 @@ Whole-project format/token/idempotence passed before every source checkpoint.
 Borrowed-union repair, focused locale/contextual witnesses and allocation guards
 are committed80795335; only this live handoff is dirty. No push, release or full regression occurred.
 
-**First action:** monitor LIVE native locale allocation profile87928,
-`/tmp/tsrust-locale-native-allocation.log`, source80795335. Do not duplicate based
-on missing handle; inspect process and terminal watchdog output. Root owns heavy
-lease. Eleven workloads selected, original3allocation processes perworkload,
-assertchecksums/zero retainedbytes; sourceguards/support hashes repaired.
-Then run prepared /tmp/tsrust-locale-control-allocations.mjs under watchdog,
-Node24/sharedtarget/inc0/jobs1. It instruments unchanged Rust controls for segment,
-Decimal/fixed formatting and compares native/hand allocations atn0/1/full,3each;
-no timed controls rerun. Diagnose gaps from actual counts/generated source.
+**First action:** checkpoint accepted locale iterator source after wholeformat,
+then launch original2changed native workloads (`locale_segmenter_construct`,
+`locale_segment`) with --execution-only --engines=native underwatchdog/sharedtarget/
+inc0/jobs1. Reuse existing Rust/Node controls and9unchanged native observations.
+Build45289 terminaltrue501.188s/3,794,563KiB; gates25364 all6PASSED130.575s/
+425,024KiB. `/tmp/tsrust-locale-iterator-{artifacts.jsonl,build.log,gates.json,gates-run.log}`.
+Runtime helper now returns a borrowed Iterator; existing emitter still collects an
+owned Array. Tests cover0/1/4/5/64snapshots afterinput/segmenter ownerdrop,O0/O3,
+17catalogexamples and relocatedoffline forbidunsafe builds. Editor/API unchanged.
+Threeunitwarnings decode_plain/try_send/Error.message match prior integrated and
+assertion artifactlogs. No claim ofwarning-free fullmatrix. Wholeformatclean.
+After actualtimings, npm store:ingest and independent verifier
+/tmp/tsrust-verify-locale-measurement.py --segment-native --database; compareoldnative
+only andcachedcontrols. Then verify changednative allocation2workloads andprune
+obsoleteownedexperiment binaries. B05integrationnext; otherworkerheavychecksqueued.
+
+b06 segment iterator candidate PASSED5.204s/325,056KiB, session90649 terminal,
+`/tmp/tsrust-locale-segment-iterator-experiment.{json,log}`. Original/candidate owned
+snapshot probes passed6Unicodecases aftertext/owner drop. Bothworkloads n0/1/2000×3:
+originalalloc0/1/2000, candidate0/0/0, retained0. Candidate0..4graphemesalloc0;
+5alloc1,realloc0;64alloc1,realloc3. Candidate93-sample medians segment0.165583ms,
+construct0.157875ms,quietmax2.290527. Comparisons to cachedtimingsprovisional:
+prior rlibpathhadchangedbytes aftersharedtargetrebuild. Initial hashguardfailed
+beforecompile (log `...-initial-hash-guard.log`), then exact6currentlibs were resolved
+uniquely by completedcontrolhashes withmatchingbackendmanifest/lock, noCargo or
+filenameguess. Bothclosures retained inJSON; no claim ofidentical binary controls.
+Ownedcorrectness+removedtemporaryVec justify sourceoptimization; freshnative timing
+will verifyperformance. Candidate/sourceparitycontrols remain unchanged.
+
+Root native allocation profile87928 PASSED504.716s/530,651KiB;11groups×3stable
+samples,allretained0. `diagnostics/2026-11-05T22-09-20-074Z-native-allocations.json`.
+Matched control9549 PASSED2.590s/259,584KiB,18groups/54samples atn0/1/full,
+`/tmp/tsrust-locale-control-allocations.{json,log}`. Per-op large Decimal6alloc/
+4realloc/231bytes;fixed4/0/28bytes matches Rust. Native setup extras2alloc32bytes
+and1alloc5bytes respectively. Segmentnative/hand1alloc64bytes/call; generated
+backendVec is consumed into Array inline4storage for3ranges, candidate removesit.
+No further Decimal redesign justified by these allocation signals.
+
+B15 carrier profile71377 PASSED48.146s/210,192KiB including quietwait, lease released.
+2contracts+2representations+48correctness,192allocation records/192timinggroups×31,
+allretained0,maxquietload3.9228515625. Callback ABI reduction~parity/noadaptoralloc;
+pulltoArray loses std in-place collection (input1alloc32768bytes versus2alloc+
+1realloc32864bytes). Preserve backendcollect specialization where simple/safe;
+no unsafe traits/reimplemented std algorithms. b14 source-only implementation
+continues, including stored-family task responsibility traversal witnesses.
 
 Locale actual measurement14622 PASSED851.767s/2,280,220KiB, source80795335.
 `results/2026-11-05T22-00-33-080Z.json`, log
@@ -44,7 +80,7 @@ Locale actual measurement14622 PASSED851.767s/2,280,220KiB, source80795335.
 33timing groups×93positivefinite samples, quietmax3.83447265625. Ingested33histories
 via npm store:ingest; /tmp/tsrust-verify-locale-measurement.py independently verifies
 checksums/processes/medians/meanrates/unique timestamps and SQLite integrity.
-DB and plan are dirty with accepted results; no checkpoint yet. Native/handmedian
+DB/plan/measurement evidence committed3bd92b7c after wholeformat0changes. Native/handmedian
 ratios0.9855–1.1144; fixed Decimal+11.44%, reused segmentation+10.13% require
 allocation review, not an automatic redesign. Node references preserved unchanged.
 No further actual locale timing needed unless accepted source optimization changes.
@@ -90,7 +126,8 @@ all15affected cases passed228.294s/499,056KiB. Preserve earlier13passing scopes,
 `/tmp/tsrust-locale-repairs-gates{.json,-run.log}` and original integrated failures.
 Obsolete owned test executables d4807df6ae17c905 (compiler unit),9fee5f09fd1fe48f
 (task_group_stack),563b5e9b608293ae (task_ergonomics) and debug symbols pruned,
-93,459,344bytes. Rebuild from checkpoints if needed; do not invoke removed binaries.
+93,459,344bytes. Compiler unit d4807df6ae17c905 was subsequently rebuilt by45289
+and is current; other removed binaries still require rebuilding from checkpoints.
 Current explicit_locale/task_responsibility_arrays/checker_agreement remain available.
 
 Next after locale performance: B05 integration patch ready at
@@ -126,6 +163,35 @@ builds/profile/public acceptance yet. b06 read-only reviews B15 finite owned car
 reuse with b14; B16/B05 frozen and no tree has a second writer.
 No worker heavy lease. Locale's old
 checkpoint+selected-sync worker delta remains preserved in `stdlib-locale`.
+B15 public draft frozen/reconciled through80795335 in stdlib-iterators:
+/tmp/tsrust-b15-public-draft.patch (167518bytes), canonical apply--check passed.
+Exact root repairs imported into8files, B15 task_paths traversal retained; root
+progress/SQLite/plan and pendinglocale iterator excluded. Public reference moved
+to docs/content/standard-library/iterator.md. Generated/native/editor/workload gates
+remainunverified. First isolatedbuild whenleased: compiler --test owned_iterators
+--no-run, then focusednative/taskownership, LSPowned_iterator_catalog, Nodecontract,
+example and4workloads. b14 now prepares B09admission source-only in newmanaged
+stdlib-compression at3bd92b7c. Existing flate2=1.1.10/miniz_oxide0.9.1/zlib-rs0.6.8
+arebackendcandidates; explicit featureisolation required toavoidCargo unification.
+No B09publicimplementation/build/profile yet.
+b06 now prepares B19architecture/sourceadmission in a newmanaged worktree from3bd;
+coordinate B15sharedboundary, noheavychecks yet. B18staticreview found docs needed
+to distinguish directpanic/outercancellation from checked Jobfailuretransport in
+rejects; b03_review preservesanycheckedpayload and addsactualnativewitnesses plus
+borrowedrecord/MapSetnumeric-key/aliascoverage. No B18acceptanceclaimed.
+
+B15 public source work now uses existing scoped finite-origin callable families
+with explicit fully-owned StorageContract admission/zero lifetime slots, preserving
+ABI/invocation/capture/return-borrow checks; no parallel shape registry. b06 reviewed
+this read-only. Ordinary callback family identities stay unchanged; actual recursive
+capture graphs retain existing indirection. Source facade/leaf/constructor lowering
+started, unverified. Before finalizing architecture, grant tiny separate
+`benchmarks/runtime/admission/owned-iterator-carriers/profile.mjs` lease in
+stdlib-iterators after root allocations: exact house Callback pull ABI versus std
+chains with existing ownership/retry/drop witnesses and3×31protocol. Command is
+Node24 under watchdog/sharedtarget/inc0/jobs1; outputs
+`/tmp/tsrust-owned-iterator-carrier-profile.{json,log}`. Original B15 profile sources
+preserved. No worker builds or source checkpoints yet.
 B15 profile62290 passed6.199s/264,368KiB:84correctness cases,336allocation
 records,336timing groups×31samples, retained0 and maxquietload2.22705078125.
 `/tmp/tsrust-owned-iterator-profile.{json,log}`. Static chains/finite owned enums

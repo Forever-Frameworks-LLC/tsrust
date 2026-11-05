@@ -965,6 +965,31 @@ already canonical string and comparison uses its ICU backend; do not attribute t
 differences solely to compiler overhead. Allocation/gap review and cross-platform
 milestone validation remain pending; these API items do not close those gates.
 
+Allocation review on80795335 passed11workloads×3stable samples, all zero retained
+bytes (`diagnostics/2026-11-05T22-09-20-074Z-native-allocations.json`,504.716s/
+530,651KiB watchdog). Reused and constructed collators/String.localeCompare allocate
+zero; locale strings and integer format outputs allocate once per operation.
+Separate unchanged Rust controls passed54samples acrossn0/1/full for segmentation
+and both Decimal cases (`/tmp/tsrust-locale-control-allocations.json`,2.590s/259,584KiB).
+Per formatting operation, Decimal matches Rust at6allocations/4reallocations/231
+requested bytes; fixed Decimal matches at4allocations/0reallocations/28bytes.
+Setup-only native differences are2allocations/32bytes for large Decimal and1/5bytes
+for fixed formatting. No measured per-iteration allocation penalty explains the
+fixed-format timing gap. Segmentation matches Rust at1allocation/64bytes per call,
+but generated Array stores this three-range result inline after consuming a backend
+Vec. The direct backend iterator-to-owned-array candidate passed owned Unicode
+snapshot and allocation controls: zero allocations for0..4graphemes, one at5, and
+one plus3reallocations at64, all retained0. Candidate timing was provisional because
+shared-target rebuilds changed dependency artifact bytes; it reused exact current
+control-library hashes and retained prior timing identities separately.
+The selected runtime change keeps the existing emitter's owned collection and
+avoids the temporary Vec. Three runtime tests, expanded snapshot thresholds at
+O0/O3,17catalog examples and relocated offline forbid-unsafe builds passed6focused
+cases (130.575s/425,024KiB); no public API or editor contract changed. Build501.188s/
+3,794,563KiB, with the same3unit-harness warnings as the prior accepted builds.
+Fresh actual timing for only2changed native workloads remains pending; all prior
+Rust/Node timing controls and other locale measurements stay unchanged.
+
 B13 admission/profile status (2026-11-05): isolated exact ICU4X locale/collator/
 decimal/segmenter closure passed offline optimized build26.933s/319,104KiB.
 Initial32record correctness classification has31 matching Node contracts and one

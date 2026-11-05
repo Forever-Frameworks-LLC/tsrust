@@ -27,7 +27,7 @@ mod tsrust_native_locale {
     pub fn compare(value:&Collator,left:&str,right:&str)->i64{match value.0.compare(left,right){std::cmp::Ordering::Less=>-1,std::cmp::Ordering::Equal=>0,std::cmp::Ordering::Greater=>1}}
     pub fn string_compare(left:&str,right:&str,value:&Collator)->i64{compare(value,left,right)}
     pub fn create_segmenter()->Segmenter{Segmenter}
-    pub fn segment(_value:&Segmenter,text:&str)->Vec<Range>{let mut start=0;icu_segmenter::GraphemeClusterSegmenter::new().segment_str(text).skip(1).map(|end|{let range=Range{start:i64::try_from(start).expect("valid string offset"),end:i64::try_from(end).expect("valid string offset")};start=end;range}).collect()}
+    pub fn segment<'a>(_value:&Segmenter,text:&'a str)->impl Iterator<Item=Range>+'a{let mut start=0;icu_segmenter::GraphemeClusterSegmenter::new().segment_str(text).skip(1).map(move|end|{let range=Range{start:i64::try_from(start).expect("valid string offset"),end:i64::try_from(end).expect("valid string offset")};start=end;range})}
     pub fn create_number_format(locale:&Locale,options:Option<&NumberFormatOptions>)->Result<NumberFormat,Error>{
         let mut backend=DecimalFormatterOptions::default();let mut fraction_position=None;
         if let Some(options)=options{

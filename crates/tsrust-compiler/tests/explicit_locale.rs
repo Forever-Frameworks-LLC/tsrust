@@ -6,6 +6,7 @@ fn native(directory:&support::TempDirectory,source:&str,expected:&str){let path=
 import {Locale,Collator,SegmentRange,NumberFormat,NumberFormatOptions,parseLocale,formatLocale,createCollator,createSegmenter,createNumberFormat} from 'std:locale';
 import {Decimal,parseDecimal} from 'std:decimal';import {strictEqual} from 'std:testing';
 function snapshot():SegmentRange[]{const value=createSegmenter();const text='e\u0301🦀';return value.segment(text);}
+function repeatedSnapshot(count:int):SegmentRange[]{const value=createSegmenter();const text='e\u0301'.repeat(count);return value.segment(text);}
 function options(enabled:boolean):NumberFormatOptions|undefined{if(enabled){return{grouping:'never',fractionDigits:2};}return undefined;}
 function render(value:int|Decimal,formatter:ReadOnly<NumberFormat>):string{return formatter.format(value);}
 function compare(value:ReadOnly<Collator>):int{const left:'é'='é';return value.compare(left,'e\u0301');}
@@ -15,6 +16,7 @@ function main(){
  const numeric=unwrap(parseLocale('en-u-kn-true'));const numbers=unwrap(createCollator(numeric));strictEqual(numbers.compare('2','10'),-1);
  const base=unwrap(createCollator(locale,{strength:'primary',caseLevel:false,alternateHandling:'nonIgnorable',maxVariable:'punctuation'}));strictEqual(base.compare('é','e'),0);
  const ranges=snapshot();strictEqual(ranges[0].start,0);strictEqual(ranges[0].end,3);strictEqual(ranges[1].start,3);strictEqual(ranges[1].end,7);const segmenter=createSegmenter();strictEqual(segmenter.segment('').length,0);
+ for(const count of [0,1,4,5,64]){const points=repeatedSnapshot(count);strictEqual(points.length,count);let i=0;while(i<count){strictEqual(points[i].start,i*3);strictEqual(points[i].end,(i+1)*3);i++;}}
  const noFraction=unwrap(createNumberFormat(locale,{fractionDigits:0}));strictEqual(noFraction.format(1),'1');const named:NumberFormatOptions={grouping:'never',fractionDigits:2};const explicit=unwrap(createNumberFormat(locale,named));strictEqual(explicit.format(1),'1.00');
  const create=createNumberFormat;const formatter=unwrap(create(locale,options(true)));strictEqual(render(1,formatter),'1.00');const decimal=unwrap(parseDecimal('2.3450'));strictEqual(render(decimal,formatter),'2.34');
  const edge=unwrap(createNumberFormat(locale,{grouping:'never',fractionDigits:32768}));strictEqual(edge.format(1).length,32770);

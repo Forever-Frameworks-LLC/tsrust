@@ -3,7 +3,7 @@ use tsrust_native_locale::*;
  let locale=parse_locale("EN-us").unwrap();assert_eq!(format_locale(&locale),"en-US");assert!(parse_locale("en_US").is_err());
  let numeric=parse_locale("en-u-kn-true").unwrap();let numeric=create_collator(&numeric,None).unwrap();assert_eq!(compare(&numeric,"2","10"),-1);
  let en=create_collator(&locale,None).unwrap();assert_eq!(string_compare("e\u{301}","é",&en),0);
- let segmenter=create_segmenter();assert!(segment(&segmenter,"").is_empty());assert_eq!(segment(&segmenter,"e\u{301}🦀"),vec![Range{start:0,end:3},Range{start:3,end:7}]);
+ let segmenter=create_segmenter();assert!(segment(&segmenter,"").next().is_none());assert_eq!(segment(&segmenter,"e\u{301}🦀").collect::<Vec<_>>(),vec![Range{start:0,end:3},Range{start:3,end:7}]);
  let number=create_number_format(&locale,None).unwrap();assert_eq!(format_int(&number,i64::MIN),"-9,223,372,036,854,775,808");
  assert_eq!(format_decimal(&number,"12345678901234567890.12"),"12,345,678,901,234,567,890.12");
  for digits in [-1,i64::MIN,32769,i64::MAX]{assert!(matches!(create_number_format(&locale,Some(&NumberFormatOptions{fraction_digits:Some(digits),..Default::default()})),Err(Error{code:"Range",..})));}
