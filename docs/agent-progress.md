@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `c0b3c2bc`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+`codex/stdlib-0.2.0`, source checkpoint `21c71460`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
 built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
@@ -44,6 +44,41 @@ scalar pre-await snapshots replace a throwing assertion while lazy tasks remain
 live. Both eager construction and exactly-once order remain asserted after await.
 Whole-format/token/idempotence passed (1572sources,0changes); rebuilding the
 changed integration-test binary only, then running the six failed native scopes.
+
+**Literal all generated acceptance passed:** fixture-only rebuild24049 completed
+2.086s/265,792KiB, terminal success in `/tmp/tsrust-all-stack-fixture-artifacts.jsonl`.
+Runner67668 passed all6 previously failing native scopes22.817s/384,384KiB;
+`/tmp/tsrust-all-stack-public-gates{.json,-run.log}` and per-scope logs. Combined
+with preserved2 structural/drop-order passes,8/8 targeted tests accepted.
+Explicit construction fixture check passed0.521s/6016KiB but4 directly-awaited
+all warnings remain (`/tmp/tsrust-all-stack-construction-check.log`); b14 is tracing
+these read-only, no warning suppression. Legitimate pre-await assertion/overflow
+hazards are removed by21c71460. Production native behavior passes.
+Native-only ready/yield timing runner69444 active, source21c71460; log
+`/tmp/tsrust-all-stack-generated-measure.log`. Command uses execution-only,
+engines=native, task_all_ready/task_all_yield, original3process×31after8 protocol
+and correctness preflight. Reuse unchanged1c2367cd handwrittenRust/Node controls.
+Do not ingest until actual successful timings exist. All workers have no heavy
+lease; root owns release bootstrap/quiet measurement. B13 complete selected-sync
+patch from848509fb passes git apply --check against currentroot, integration next.
+
+**Literal all actual timing accepted/ingested:** runner69444 finished373.261s/
+2,291,916KiB including release bootstrap and quiet wait. Exact file
+`benchmarks/runtime/results/2026-11-05T20-40-11-695Z.json`, source21c71460.
+Both native workloads passed five correctness cases and3process×31after8;
+quiet max3.619629<4. Ready0.506292ms (40.1% below old0.845209), yield0.670125ms
+(30.1% below old0.959041). npm run store:ingest added2actual histories;
+independent93sample/positivefinite/checksum/process/median/ops/timestamp/integrity
+verification passed. Rust/Node controls unchanged, no retiming/fabricated records.
+Root next: narrow checker Once-wrapper capture attribution repair and regression,
+then selected-sync B13 integration. Worker b14 identified existing error_effects
+precedent: synthetic Once captures use outer0 in a wrapper constructor, not the
+source lexical environment. task_diagnostics must unwrap Once before inspecting
+literal-closure captures; verify positive ordering and negative abandonment cases.
+B05 frozen52publicfiles at worker base98d63784 (28modified+24new); copied10admission
+files already identical to canonical and excluded from future import. B07 source
+preparation tree `/Users/seancotter/.codex/worktrees/stdlib-process/tsrust` basee9c6acc4.
+No active root heavy process remains; no publication or full matrix.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
 471,530KiB, quiet guard enabled/maxload3.917. Exact result

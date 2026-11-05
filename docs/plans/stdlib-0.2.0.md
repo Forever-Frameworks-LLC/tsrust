@@ -642,8 +642,8 @@ integrity independently verified. No unchanged control was retimed after ingesti
 | thread_pool_async | 100 | 1.798625 | 1.777958 | 17.904041 |
 
 Task groups show material costs against the naked Tokio join floor: about27.6×
-ready and12.5×yield. The generated literal path currently boxes each future for
-type erasure, then the generic runtime pins it in another box; group scope/drain
+ready and12.5×yield. The pre-optimization generated literal path boxed each future for
+type erasure, then the generic runtime pinned it in another box; group scope/drain
 and owned result storage also differ from the narrower hand control. These are
 source observations, not isolated allocation attribution. Profile safe single-pin
 and stack-pinned literal candidates while preserving arbitrary !Unpin futures,
@@ -651,6 +651,22 @@ borrowed inputs, ordered results, fail-fast drop and exact cancellation/cleanup
 scope behavior before optimizing. Async-channel await is1.85×hand Rust and also
 needs gap review; other3 rows are close to that backend floor. Full family/platform
 acceptance and the measured optimization review remain pending.
+
+B06 literal-all optimization (2026-11-05, source21c71460): safe stack-pinned
+fixed inputs replace double-boxed futures and dynamic polling scratch storage.
+Eight focused witnesses passed, including borrowed !Unpin futures, construction
+order, typed failure, drop order, dynamic-array fallback and catalog execution.
+A crate-visibility defect was repaired atc0b3c2bc before native acceptance.
+Native-only actual run `2026-11-05T20-40-11-695Z.json` passed373.261s/
+2,291,916KiB including release bootstrap and quiet waiting; five correctness cases
+per workload,3processes×31samples after8warmups, maximum quiet load3.620.
+Ready median0.506292ms versus0.845209ms previously (40.1% lower); yield0.670125ms
+versus0.959041ms (30.1% lower). Both93sample histories ingested and independently
+verified with SQLite integrity. Existing handwritten-Rust/Node controls remain
+unchanged and were not retimed. Ready is still16.5×the narrower Rust join floor;
+yield8.7×. Scope registration/draining and owned results remain required work,
+so these ratios do not isolate compiler overhead. Four false unused-task warnings
+after a named task await remain a separate checker repair; native behavior passes.
 
 ### B07 — Subprocesses
 
