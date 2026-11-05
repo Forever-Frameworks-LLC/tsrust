@@ -421,7 +421,7 @@ function prepare(w) {
  fs.writeFileSync(path.join(build, `${w.id}.ts`), ts + '\n' + adaptTSDriver(driverTS, w));
  const allocatorArgs = allocatorRlib ? ['--extern', `mimalloc=${allocatorRlib}`, '-L', `dependency=${path.dirname(allocatorRlib)}`] : [];
  const nativeCommand = [...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}.rs`), '-o', path.join(build, w.id)];
- fs.writeFileSync(path.join(build, `${w.id}.json`), JSON.stringify({extends: path.join(here, 'tsconfig.json'), files: [path.join(build, `${w.id}.ts`)], compilerOptions: {outDir: build, ...dataOptions, ...(['task-ergonomics','testing-assertions','byte-codecs','byte-operations'].includes(w.family)?{typeRoots:[path.join(here,'node_modules/@types')]}:{})}}));
+ fs.writeFileSync(path.join(build, `${w.id}.json`), JSON.stringify({extends: path.join(here, 'tsconfig.json'), files: [path.join(build, `${w.id}.ts`)], compilerOptions: {outDir: build, ...dataOptions, ...(['task-ergonomics','testing-assertions','byte-codecs','byte-operations'].includes(w.family)?{typeRoots:[path.join(here,'node_modules/@types')],...(w.family==='task-ergonomics'?{types:['node']}:{})}:{})}}));
  const tsCommand = [...tsc, '--project', path.join(build, `${w.id}.json`)];
  // Prime normal filesystem/tool caches. Compiler bootstrap and downloads are excluded.
  run(nativeCommand); run(tsCommand);

@@ -585,7 +585,15 @@ portable relocated offline export at O0/O3, five receiver agreement cases, eight
 matrix rows×4phases and async editor consistency. Two final public failures led to
 9ba4fa48: select futures runtime for synchronous async-channel operations and
 correct the fixture to assert existing ThreadError.error beneath AsyncError.cause.
-Their focused rebuild/validation remains pending. Benchmark references now have
+Their focused rebuild/validation passed all3 affected scopes in6.234s/383,648KiB.
+Additional populated-array probes found fictitious ArrayPush failures, unsupported
+owned Job-array iteration and skipped task evaluation inside rvalue/named indices.
+Repairs reuse owned array storage and evaluate index side effects before token
+transfer, preserving failure ordering and diagnostic severity. Source98d63784
+passed all42 affected tests (6array,24async,12Tokio),27.490s/785,536KiB.
+Named-index tests cover settled tasks/jobs, stores/assignments/indexed receivers,
+hidden abandoned jobs and throwing evaluation order. No full regressions claimed.
+Benchmark references now have
 optional exact regex/Tokio dependencies; task group/channel observations detect
 reordering through a matched ordered fold and independent BigInt oracle. Original
 sample counts remain3×31after8. Generated workload validation and actual timing
