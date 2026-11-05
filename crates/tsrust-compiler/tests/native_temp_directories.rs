@@ -1,11 +1,20 @@
 mod support;
+use tsrust_compiler::project::{SourceId,SourceProvider,check_graph,load_project};
+struct Provider(String);
+impl SourceProvider for Provider {
+    fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+    fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing {}",id.0))}}
+}
+fn checked(source:&str)->tsrust_compiler::project::ProjectAnalysis {
+    check_graph(load_project(&Provider(support::format_round_trip(source)),"main.tsr").unwrap()).unwrap()
+}
 
 #[test]
 fn temporary_runtime_is_selected_independently_of_ordinary_files() {
-    let plain=tsrust_compiler::check("import {readFile} from 'std:fs';function main(){readFile('input');}").unwrap().emit_rust();
+    let plain=checked("import {readFile} from 'std:fs';function main(){readFile('input');}").emit_rust();
     assert!(!plain.contains("tempfile::"));assert!(!plain.contains("mod tsrust_native_tempfiles"));
     assert!(!tsrust_compiler::native_runtime::requires_temporary_files(&plain));
-    let temporary=tsrust_compiler::check("import {createTempDir} from 'std:fs';function main(){createTempDir();}").unwrap().emit_rust();
+    let temporary=checked("import {createTempDir} from 'std:fs';function main(){createTempDir();}").emit_rust();
     assert!(temporary.contains("mod tsrust_native_tempfiles"));assert!(temporary.contains("tempfile::Builder::new()"));assert!(!temporary.contains("crate::stdlib::fs::runtime"));assert!(!temporary.contains("unsafe"));
     assert!(tsrust_compiler::native_runtime::requires_temporary_files(&temporary));
     let units=tsrust_compiler::native_runtime::separate(&temporary);assert!(units.dependencies);
@@ -32,7 +41,7 @@ function main(){
 "#);let path=directory.source(&source);support::success(&support::run(support::cli().arg("run").arg(path).current_dir(&directory.0),120));
 }
 
-#[cfg(unix)]
+#[cfg(target_os="linux")]
 #[test]
 fn non_unicode_absolute_temp_path_fails_before_keep_and_attempts_cleanup() {
     use std::os::unix::ffi::OsStringExt;

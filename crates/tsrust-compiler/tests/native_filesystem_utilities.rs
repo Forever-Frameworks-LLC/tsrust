@@ -48,19 +48,22 @@ function main(){
 
 #[test]
 fn new_file_observers_do_not_relax_mutable_or_consumed_owner_checks() {
-    for source in [
-        "import {File,truncate} from 'std:fs';function action(file:ReadOnly<File>){truncate(file,0);}",
-        "import {open,close,fileStat} from 'std:fs';function main(){const file=unwrap(open('input'));unwrap(close(file));fileStat(file);}",
-        "import {create,bufferWriter,truncate} from 'std:fs';function main(){const writer=unwrap(bufferWriter(unwrap(create('input'))));truncate(writer,0);}",
-        "import {File,seek} from 'std:fs';function action(file:ReadOnly<File>){seek(file,0,'start');}",
-        "import {File,position} from 'std:fs';function action(file:ReadOnly<File>){position(file);}",
-        "import {open,close,position} from 'std:fs';function main(){const file=unwrap(open('input'));unwrap(close(file));position(file);}",
-        "import {File,seek} from 'std:fs';function action(file:Mutable<File>,origin:string){seek(file,0,origin);}",
-        "import {File,seek} from 'std:fs';function action(file:Mutable<File>){seek(file,0,'middle');}",
-        "import {open,bufferReader,position} from 'std:fs';function main(){const reader=unwrap(bufferReader(unwrap(open('input'))));position(reader);}",
+    for (source,code) in [
+        ("import {File,truncate} from 'std:fs';function action(file:ReadOnly<File>){truncate(file,0);}function main(){}","parameter-access"),
+        ("import {open,close,fileStat} from 'std:fs';function main(){const file=unwrap(open('input'));unwrap(close(file));fileStat(file);}","transferred"),
+        ("import {create,bufferWriter,truncate} from 'std:fs';function main(){const writer=unwrap(bufferWriter(unwrap(create('input'))));truncate(writer,0);}","type"),
+        ("import {File,seek} from 'std:fs';function action(file:ReadOnly<File>){seek(file,0,'start');}function main(){}","parameter-access"),
+        ("import {File,position} from 'std:fs';function action(file:ReadOnly<File>){position(file);}function main(){}","parameter-access"),
+        ("import {open,close,position} from 'std:fs';function main(){const file=unwrap(open('input'));unwrap(close(file));position(file);}","transferred"),
+        ("import {File,seek} from 'std:fs';function action(file:Mutable<File>,origin:string){seek(file,0,origin);}function main(){}","type"),
+        ("import {File,seek} from 'std:fs';function action(file:Mutable<File>){seek(file,0,'middle');}function main(){}","type"),
+        ("import {open,bufferReader,position} from 'std:fs';function main(){const reader=unwrap(bufferReader(unwrap(open('input'))));position(reader);}","type"),
     ] {
         let source=support::format_round_trip(source);
-        assert!(tsrust_compiler::check(&source).is_err(),"{source}");
+        let directory=support::TempDirectory::new();let path=directory.source(&source);
+        let graph=tsrust_compiler::project::load_project(&tsrust_compiler::project::FileSourceProvider,path.to_str().unwrap()).unwrap();
+        let error=match tsrust_compiler::project::check_graph(graph){Ok(_)=>panic!("Expected {code}: {source}"),Err(error)=>error};
+        assert_eq!(error.code,code,"{source}: {error:?}");
     }
 }
 
