@@ -3,21 +3,21 @@ mod tsrust_native_futures {
     use tokio::{sync::{Notify, oneshot, mpsc}, task::AbortHandle};
     tokio::task_local! { static SCOPE: Arc<Scope>; }
     #[derive(Default)]
-    pub(crate) struct Scope {
+    pub struct Scope {
         children: Mutex<std::collections::BTreeMap<usize,Arc<Control>>>,
         cleanup: Mutex<Vec<Arc<Cleanup>>>,
         groups: Mutex<std::collections::BTreeMap<usize,Arc<Scope>>>,
         parent: std::sync::Weak<Scope>,
     }
     impl Scope {
-        pub(crate) fn group()->Arc<Self> {
+        pub fn group()->Arc<Self> {
             SCOPE.with(|parent| {
                 let scope=Arc::new(Self{parent:Arc::downgrade(parent),..Self::default()});
                 parent.groups.lock().unwrap().insert(Arc::as_ptr(&scope) as usize,scope.clone());
                 scope
             })
         }
-        pub(crate) async fn drain(self:&Arc<Self>, cancel_all:bool) {
+        pub async fn drain(self:&Arc<Self>, cancel_all:bool) {
             let mut children = std::mem::take(&mut *self.children.lock().unwrap());
             let mut cleanup=self.cleanup.lock().unwrap().clone();
             let mut groups=std::mem::take(&mut *self.groups.lock().unwrap()).into_values().collect::<Vec<_>>();
@@ -85,7 +85,7 @@ mod tsrust_native_futures {
     pub fn start<F,T,E>(future:F)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {
         start_with_shutdown(future,None)
     }
-    pub(crate) async fn in_scope<F:Future>(scope:Arc<Scope>,future:F)->F::Output {SCOPE.scope(scope,future).await}
+    pub async fn in_scope<F:Future>(scope:Arc<Scope>,future:F)->F::Output {SCOPE.scope(scope,future).await}
     pub(crate) fn start_with_shutdown<F,T,E>(future:F,shutdown:Option<Box<dyn FnOnce()+Send>>)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {
         let scope=Arc::new(Scope{parent:SCOPE.with(Arc::downgrade),..Scope::default()});
         let (gate,ready)=oneshot::channel::<Arc<Control>>();

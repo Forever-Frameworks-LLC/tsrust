@@ -14,9 +14,25 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `72ad2f9f`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+`codex/stdlib-0.2.0`, source checkpoint `e9c6acc4`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
 built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
+
+**Literal all optimization validation, latest:** e9c6acc4 focused build62385
+finished successfully, terminal build-finished:true,212.234s/2,668,594KiB.
+`/tmp/tsrust-all-stack-fixed-{artifacts.jsonl,build.log}`. Gates58528 finished
+14.027s/471,056KiB: emitted drop-order and unchanged race/allSettled structural
+witnesses passed; remaining6 native tests failed because generated crates cannot
+access Scope/group/drain/in_scope declared pub(crate). Exact failure records:
+`/tmp/tsrust-all-stack-gates.json`, `-gates-run.log` and per-scope logs.
+Root changes only these4 runtime declarations to pub; fields remain private,
+behavior unchanged. Whole-format/token/idempotence passed5.181s/203,152KiB and
+5.191s/206,432KiB,1572sources,0changes. Rebuild and failed native scopes pending.
+Worker b14 read-only reviewing responsibility warnings in new fixture; B14 draft
+preserved. Worker b03_review assigned B07 admission/profile source preparation in
+a new managed tree, no heavy lease. B13 selected-sync draft remains preserved.
+B05 worker added explicit-close deferred-error cleanup repair and seventh runtime
+witness; six prior runtime passes remain valid for prior source, seventh unrun.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
 471,530KiB, quiet guard enabled/maxload3.917. Exact result
@@ -41,6 +57,329 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
+**B12 generated correctness passed:** runner72437 sourcebe086e3a,
+667.830s/2,327,595KiB including release bootstrap; all13workloads×3engines
+(native/rust-hand/node-tsc)×5cases. Output
+`benchmarks/runtime/results/2026-11-05T18-16-40-608Z-verify.json`, log
+`/tmp/tsrust-b12-generated-verify.log`; verifiedOnly:true, no execution timings.
+**B12 actual timings accepted and ingested:** runner6876 completed535.232s/
+526,155KiB. Output `benchmarks/runtime/results/2026-11-05T18-26-31-084Z.json`;
+39 workload/engine groups,93samples each, max quiet load3.690, all checksums pass.
+npm run store:ingest added39 histories; independently verified exact medians,
+sample counts, one matching timestamp each and SQLite integrity. Initial verification
+script used wrong cwd and failed before ingestion; post-ingestion full verification
+passed. No rows were invented or retimed. Plan includes all13×3engine medians.
+Native/direct-Rust ratios0.944–1.071; reuse these unchanged controls. Constructor
+Node/Rust gap is backend repeated-construction cost, not isolated bridge overhead.
+**Build14677 passed:** exact0eec0437, terminal build-finished:true,
+494.437s/3,803,027KiB. `/tmp/tsrust-b06-array-effects-{artifacts.jsonl,build.log}`.
+Runner41073 completed3.654s/334,512KiB: ArrayPush effect unit and3 checker tests
+passed. Combined native test exposed Array<Job<...>> missing IntoIterator and
+false unused-task warning on nested `(await all(units)).length`. Root changed
+only group array emission to existing tsr_owned_items() adapter (uncommitted).
+Worker owns nested Field/Index responsibility traversal repair; no severity weakening.
+Do not rerun passing effect/checker scopes without changed inputs.
+**B13 prototype build54255 passed:**26.933s/319,104KiB,
+terminal build-finished:true; `/tmp/tsrust-locale-{artifacts.jsonl,build.log}`.
+32correctness records collected. Pinned Node24.11.1(ICU77.1/CLDR47) originally
+rejected en-u-nu-arab punctuation. Verified ICU4X2.3 packaged upstream test proves
+intentional locale-symbol fallback with numbering-system digits: Rust١,٢٣٤.٥٠,
+Node١٬٢٣٤٫٥٠. Worker oracle now explicitly asserts both raw outputs and reports
+one known untimed backend difference; other31records strictly match. No custom
+normalization; profile locales remain en/de/hi-IN. Use absolute Node24 path in workers
+because cwd shell default wasNode26. Node syntax checks pass;32record oracle passes.
+**B13 profile78912 passed:**7.752s/318,880KiB,
+`/tmp/tsrust-locale-profile.{json,log}`.32correctness records classified explicitly;
+99rows/process,3processes×31samples after8warmups, separate allocation builds and
+quiet guard. Worker reviewing profile-supported contract/bridge/footprint choices.
+Admission evidence only; not ingested into generated API measurements.
+Expanded limits/footprint profile1470 PASSED9.315s/274,640KiB:43 correctness
+records,6 same-source linked-footprint controls,original99 profile rows. Output
+`/tmp/tsrust-locale-limits-footprint-profile.{json,log}`. Existing release artifacts
+reused; original32-record profile retained. All checksum/limit guards pass,
+quiet max2.145. Plan records footprint deltas; worker reviewing minimal API contract.
+B06 generated verify33551 completed release build, then failed preparation because
+root omitted TSRUST_SOURCE_PACK_DIR;228.296s/2,324,092KiB, no cases/timings passed.
+Log `/tmp/tsrust-b06-generated-verify.log`.
+B06 generated verify31969 failed29.039s/551,594KiB on first workload because
+the benchmark ABI guard did not accept generic TsrClosureError<Record...> carriers.
+Root inspected emitted outputs of all6 workloads; extended only that carrier shape,
+retaining i64 result/error guard. All3 task contract Node tests pass, including
+malformed/output-type rejection. Log `/tmp/tsrust-b06-generated-verify-recheck.log`.
+No benchmark correctness cases completed; resume after named-index validation.
+No execution timings yet. After correctness, original3×31after8 timing/ingestion.
+B05 worker added profile-only optimized-artifact guard; focused Node rejection test
+passed. Optimized native-dependencies artifact refresh command is prepared, not run.
+**Named-index responsibility defect confirmed (new scope):** current848 debug CLI
+checks produce false unused-task for data[await task], false unsettled-job for
+ data[await job], and miss a started job created in data[(jobs.push(work().start()),0)].
+Logs `/tmp/tsrust-b06-named-index-*.log`; named-place fast path skips index
+traversal. Worker b06 prepared focused shared traversal fix/tests; root integrated only those
+two files after benchmark runner terminated. Existing41
+passes remain valid, but B06 final acceptance waits this actual soundness repair.
+New evaluate_place walks index operands/failures in source order before alias transfer,
+including stores, assignments and method receivers. Sixth array test adds positive
+Task/Job settlement and negative hidden-job/throw-order controls. Whole-project
+format/token1572/idempotence passed11.353s/176,304KiB,
+`/tmp/tsrust-b06-named-index-format.log`; source checkpoint98d63784.
+**Named-index no-run build57557 PASSED:**499.360s/3,782,131KiB,
+terminal build-finished:true. **Focused runner44563 PASSED all42:**
+6arrays+24async+12Tokio,27.490s/785,536KiB.
+`/tmp/tsrust-b06-named-index-{artifacts.jsonl,build.log}`; compiler lib+array/async/Tokio
+targets,shared target/incremental0/jobs1/watchdog. Supervisor70148/Cargo group70199
+now terminal. Ran `/tmp/tsrust-b06-named-index-gates.py` (6+24+12),
+log `/tmp/tsrust-b06-named-index-gates.log`.
+Named-index repair accepted by affected checks; benchmark correctness/timings next.
+**Dependency refresh36874 PASSED:**15.551s/613,312KiB,terminal build-finished:true. existing native-dependencies release/offline/
+locked features async,tokio/fs,tokio/io-util,calendar,shared target. Artifacts
+`/tmp/tsrust-b05-release-artifacts.jsonl`; log `/tmp/tsrust-b05-release-build.log`.
+Prepared optimized B05 Tokio/Bytes and B14 chrono without manifest changes.
+**B05 prototype correctness24013 PASSED:**1.558s/312,304KiB, all runtime assertions
+and3 negative lifetime/readonly/reuse witnesses. `/tmp/tsrust-b05-admission-correctness.{json,log}`.
+B06 generated verify47148 terminal failure292.623s/2,297,052KiB at TypeScript
+preparation of task_all_yield: tsconfig inherited types:[] despite explicit typeRoots,
+so node:timers could not resolve. task_all_ready completed3engine×5case correctness;
+preserve that scope. Log `/tmp/tsrust-b06-generated-verify-carriers.log`.
+Root added types:[node] only for task-ergonomics benchmark programs; actual generated
+task_all_yield tsc --noEmit now passes with that setting. Whole-format/token1572/
+idempotence passed11.371s/176,752KiB; source checkpoint1c2367cd.
+B06 remaining5 verify26838 PASSED138.140s/582,826KiB.
+`benchmarks/runtime/results/2026-11-05T19-34-27-788Z-verify.json` is verifiedOnly:true,
+5workloads×3engines×5cases; prior task_all_ready scope passed in47148.
+Log `/tmp/tsrust-b06-generated-verify-node-types.log`; all6 correctness scopes now pass.
+**B06 actual timing85865 PASSED:**294.179s/589,146KiB,quietmax3.878.
+`benchmarks/runtime/results/2026-11-05T19-40-03-159Z.json`; log
+`/tmp/tsrust-b06-generated-measure.log`.18groups,93samples each, source1c2367cd.
+npm run store:ingest added18actual histories; verified exact medians,one timestamp
+each and SQLite integrity. Plan records6×3table. Ready/yield task groups have27.6×/
+12.5×gap vs narrower handTokiojoin; asyncawaitchannel1.85×;other3nearbackendfloor.
+Actual B06 table/SQLite checkpoint94aa8b4c after whole-format/token1572/idempotence
+11.397s/166,800KiB (`/tmp/tsrust-b06-measured-format.log`). Throughput means also
+verified against original samples; unchanged Rust/Node controls must be reused.
+Taskgroup attribution36422 PASSED14.685s/425,616KiB,3contractrows+50cases,
+3×31after8. `/tmp/tsrust-task-group-profile.{json,log}`. Existingparity task-join
+release metadata refreshed0.524s/3184KiB into `/tmp/tsrust-task-group-artifacts.jsonl`
+after B05 metadata correctly rejected missingTokio/macros.
+Ready/yield2048group mediansms:double .902584/1.009542,single .759500/.887208,
+stack .611917/.685166; allocations/group15/11/5,retained0. Channelruntime .336625
+vsbare .212250,6vs5totalallocations. Originalnakedcontrols remainunchanged.
+Quietguard executed, but driver spread its numeric return into object and lostload
+values; do not inventmaxload. Workerfixes recording only; no needrerununchanged
+controls. Profiles are admission, not generatedoptimized timings/SQLite rows.
+B14 worker now preparing emitter-only literal __all stackpin at arbitrary arity,
+using existingScope/in_scope/drain; no runtimeAPIchange. Reversepin declarations
+preserve Vec droporder, sourceorderpolling, resultstorage dropsfirst, immediate
+completedfutureDrop. Dynamicarrays/race/allSettled unchanged. Focused fixtures
+prepared. Root now copied ONLY emit/futures.rs, tests/task_group_stack.rs,
+tests/fixtures/task-group-stack/drop-order.rs and3admission/task-groups files.
+20line emitter-only change; runtime/dynamicarrays/race/allSettled untouched.
+Root source checkpointe6674d7f after whole-format/token1572/idempotence
+11.376s/176,448KiB (`/tmp/tsrust-all-stack-format.log`); source unvalidated.
+Prepared `/tmp/tsrust-all-stack-gates.py`:4new tests+2typedall+1CPUcause+1catalog,
+8focused tests. Build only compiler test_group_stack/task_ergonomics no-run (actual
+target task_group_stack; omit--lib/LSP since runtime/checker/editor unchanged).
+B05 standalone build PASS2.584s/180,912KiB;6runtime tests PASS5.321s/4032KiB.
+Logs `/tmp/tsrust-b05-io-runtime-{build,tests}.log`; initial sandboxps failure preserved
+separately. Worker noticed5second timing exposes a lost-waker race: cleanup and
+resumedread both poll oneJoinHandle, overwriting notification until outertimer wakes.
+Worker fixes sharedcompletion notification and tightens promptness witness source-only.
+These6passes are pre-repair evidence, NOT finalruntime acceptance. Lease released.
+All-stack build13432 failed10.339s/1,312,241KiB on one unmatchedformatbrace
+in emit/futures.rs:60. Rootfixedonlythatbrace, whole-format/token1572/idempotence
+passed11.338s/176,016KiB; checkpointe9c6acc4. Failedlogs/artifacts retained at
+`/tmp/tsrust-all-stack-{artifacts.jsonl,build.log}`.
+B05 wake-fixed runtime rebuild PASSED2.579s/184,496KiB;6tests PASSED0.521s/
+80KiB sampled watchdog (harness0.00s). Resumed read wakes immediately, no5s rescue.
+Logs `/tmp/tsrust-b05-io-runtime-{build,tests}-wake-fixed.log`; priorlogs preserved.
+Publiccompiler/editor/export/B05generatedtimings remainpending. Lease released.
+**EXCLUSIVE LIVE all-stack fixed no-run62385:** rootretry nowstarted after B05 lease.
+Use `/tmp/tsrust-all-stack-fixed-{artifacts.jsonl,build.log}` for retry and existing
+8testdriver updated to e9c6acc4/fixedartifacts. Build only compiler task_group_stack/
+task_ergonomics, omit--lib/LSP;sharedtarget/incremental0/jobs1/watchdog.
+Use native-only ready/yield remeasurement after acceptance, reusing stored controls.
+B14 worker (publicdraft frozen) owns task-group admission controls in its tree,
+exact scope/drain + single-pin/stackpin candidates, no unsafe/publicruntime edits.
+B14 expanded layout profile60561 PASSED11.419s/277,616KiB;
+`/tmp/tsrust-b14-profile-expanded.{json,log}`. At1024keys clone/sort mediansns:
+monotonic10548.22/1499.51,seeded9548.10/6038.66,reverse10633.14/5734.58,
+duplicates9221.76/2909.55. Both1allocation/8192B;allretainedbaseline guards pass.
+Singleton favorsclone~16–17ns vs~19–20ns,sortreserves32B vs8B; retain simple
+snapshot+sort without heuristic. These layout-specific observations are not a
+universal speedup claim; public B14/compiler/editor/generated workloads unrun.
+B13 exact-production build71085 PASSED22.260s/317,952KiB,terminaltrue.
+`/tmp/tsrust-locale-production-{artifacts.jsonl,build.log}` in stdlib-locale tree,
+shared target/incremental0/jobs1. Base profile failed preflight0.521s due
+metadata over-approximating optional features/packages (icu_properties expected
+compiled_data, actual[]). Worker proved cargo tree normal/build and actual JSON
+agree:54active registry IDs;57lock/archive identities include3inactive optional
+packages. No manifest change/rebuild needed. Worker repairing strict graph guards
+against build-aware tree/native graph. Repair completed using independent build-aware native Cargo tree;71085 artifacts
+reused. Base profile80999 PASSED9.336s/276,928KiB,43correctness+6footprints+
+original99rows/process, `/tmp/tsrust-locale-production-profile.{json,log}`.
+Sync-provider build70545 PASSED10.385s/255,360KiB; sync profile91144 PASSED
+9.360s/314,496KiB. `/tmp/tsrust-locale-sync-{artifacts.jsonl,build.log,profile.json,profile.log}`.
+Both base/sync43correctness+6footprints+99kernels×3×31after8 pass; quietmaxbase2.317,
+sync1.651. PublicOwnerSendSyncWitness=true for sync actualruntime; all4owners.
+Combined binary2103864→2104184bytes (+320B);99pooledmedian ratio median1.0025,
+range.8187–1.104. Decimalbridge sampled+2.4–7.0%; no zero-overhead claim.
+Root selected exactprovider sync feature, preservinglocale defaults/options/data
+and avoidingnewgeneric suspensionanalysis. Locale worker formatter slot complete; baselinecandidate source checkpoint
+92b5bc20 in codex/stdlib-locale (whole15files/17snippets/11fingerprints,1587sources/
+1087fence tokenproof,1590files idempotent). Production sync delta now prepared/uncommitted over92b5bc20: exactprovider sync
+workspace/backend/native,NumberFormat transfer true,docs/scheduling/worker witnesses.
+Actual54 selectedgraph equals70545 artifacts; runtime/kernel/footprint source
+hashes equal91144. Public acceptance stillpending;
+publiccompiler/native/editor/exportacceptance remainspending. Originalprofiles
+retained distinct. No claim from initial failed preflight.
+This compares actual production graph and verifies public Send+Sync trait candidate
+without a new suspension-liveness framework. Worker locale source frozen for hashes.
+**B05 profile59031 PASSED:**31.172s/300,432KiB,18groups/93samples each,
+quietmax3.816. Plan records medians/allocation/retention findings. `/tmp/tsrust-b05-admission-profile.{json,log}`,
+optimized dependencies,3×31after8,staged/directTokio,64/1024/8192read sizes,
+separate allocation builds and quiet guard. No generated facade acceptance claimed.
+B14 direct-Rust profile76910 also PASSED4.661s/226,704KiB,quiet3.354,
+`/tmp/tsrust-b14-profile.{json,log}`. Worker reviewing measured heap choices before
+coherent implementation; root has not copied B14 source yet.
+B05 worker owns `/Users/seancotter/.codex/worktrees/stdlib-io/tsrust`, branch
+codex/stdlib-io at98d63784 for full B05 implementation,
+preserving old stdlib-files. No worker heavy lease. B13 remains source-only in locale.
+**B05 prototype checkpointee99f72c:** whole-format/token1572/idempotence
+passed11.402s/176,416KiB, `/tmp/tsrust-b05-admission-format.log`. root copied only10files
+`benchmarks/runtime/admission/async-io/` from stdlib-files, preserving worker dirt.
+Driver uses current canonical futures runtime when executed here, requires successful
+terminal artifact metadata, optimized Tokio/Bytes for timings, and pre/post source
+hash agreement. Worker lightweight Node guards passed5/5 after signed retained-byte reporting
+was added after sample owner teardown (negative runtime-cache shrink stays visible).
+Root copied the3 updated profile/oracle files; Rust correctness/profile passed as recorded above. Optimized exact existing native-
+dependencies artifacts were refreshed using --release --offline --locked --no-default-features
+--features async,tokio/fs,tokio/io-util and shared target. Then admission.mjs
+--artifacts=/tmp/tsrust-b05-release-artifacts.jsonl --toolchain=1.96.1; profile only
+with --profile and exclusive quiet lease. No public Reader implementation yet.
+**B14 admission worker:** /root/b14 uses managed
+`/Users/seancotter/.codex/worktrees/stdlib-collections/tsrust` at98d63784.
+Initial profile passed as recorded above; worker now implementing full coherent B14.
+Heap clone+into_sorted_vec versus iter+cloned+sort_unstable medians at1024elements
+were10503.13ns versus1499.67ns for monotonic input, both one8192B allocation.
+The layout-specific gap is not a universal claim: root requested seeded, reverse and
+duplicate-heavy controls before final acceptance. Standard snapshot+sort selected
+provisionally. Endpoint/scalar/date controls allocate0; snapshots1nonempty allocation;
+live baseline restored. No public implementation checks/heavy lease yet.
+**B13 implementation delegated:** b03_review owns new managed `/Users/seancotter/.codex/worktrees/stdlib-locale/tsrust`
+at848509fb, preserving old stdlib-url prototype/untracked B12 files. Full coherent
+std:locale runtime/compiler/editor/docs/benchmarks source prepared; no heavy lease or root writes.
+Offline4manifest metadata preserved every preexisting version. Caveat:8transitive
+prototype identities differ from canonical-selected old versions (smallvec,syn,tinystr,
+unicode-ident,utf8_iter,yoke,zerovec,zerovec-derive). Root directed preserving canonical
+versions and realigning admission inputs to actual feature-selected native graph,
+then rerunning43correctness/profile/footprint before acceptance. Original profile
+remains distinct evidence; same direct ICU pins alone do not prove equivalence.
+
+**Build37790 passed:** exact848509fb, terminal build-finished:true,
+498.266s/3,751,443KiB.
+`/tmp/tsrust-b06-array-projections-{artifacts.jsonl,build.log}`. Compiler/LSP libs+
+task_responsibility_arrays/async_tasks/tokio_tasks, one shared target/incremental0/
+jobs1/5GB30min watchdog. Runner68403 passed all41 focused tests:
+5 task arrays,24 async ownership,12 Tokio responsibilities;26.979s/720,944KiB.
+Results/logs: `/tmp/tsrust-b06-array-projections-gates.{json,log}`. Preserve passes.
+Root848509fb includes group .tsr_owned_items() and nested-projection repair (Await
+excluded from place/store aliases; rvalue field/index evaluates base/index/failure
+paths and remaining temporary responsibilities). No severity weakened. Whole-format/
+token1572/idempotence passed; `/tmp/tsrust-b06-array-projections-format.log`.
+
+Public documentation follow-up prepared while build14677 runs: reference generator
+failed on unmapped std:url/Url/SearchParams/std:regex/Regex/Interval/CancellationToken.
+Root added only mappings; generation now passes37pages/110catalog groups. Updated
+website async channel example to match outcomes without cloning SendError owners,
+and documented owner-retaining send/trySend errors. Regex checked-in example still
+used unsupported record-vs-undefined strictEqual; root changed it to boolean absence.
+README now gives run command and all default limits. Native example O0/O3 passed26.430s/442,608KiB; site build passed5.177s/1,146,873KiB,
+70routes/120HTML files; all120 rendered pages passed links/anchors/assets, expected
+URL/regex/timer/token sections present. Guide channel snippet tokens match accepted
+native fixture. Whole-format/checkpoint848509fb complete; executable compiler inputs were0eec0437.
+No new standalone legacy docs page is needed: website reference derives from catalog.
+
+B06 populated-array diagnosis: ArrayPush inherits a fictitious checked RuntimeError
+from native_effect's unaudited fallback; responsibility tracking correctly preserves
+those exceptional exits, producing false abandonment warnings/rejections. Worker
+prepared only ArrayPush's own-effect audit plus positive Task/Job/unit array,
+all/allSettled/race and negative abandoned/throwing-argument/branch tests. Receiver
+and argument errors remain checked; task_diagnostics is unchanged. Root reviewed
+source; worker added one combined native ordered/length witness. Root integrated the two compiler files in0eec0437 after required formatting;
+worker still retains its uncommitted copies plus earlier work. No executable
+acceptance for this repair yet.
+Root9ba4fa48 final3 tests already pass; B06 full acceptance waits this new defect.
+
+**Build46303 passed:** exact9ba4fa48, terminal build-finished:true,
+511.560s/3,757,107KiB. `/tmp/tsrust-b06-selection-{artifacts.jsonl,build.log}`.
+Runner20904 passed all3 affected tests6.234s/383,648KiB: channel-owner runtime,
+typed taskAsync cause direct/start/all, synchronous try operations. Preserve passes.
+Extra runner70931 exposed a real ownership-analysis gap: populated Task<int>[] and
+Task<void>[] passed native output but emitted false unused-task warnings; populated
+Job<int,undefined>[] was rejected as unsettled despite awaiting all(jobs).
+`/tmp/tsrust-b06-array-selection-probe.{py,json,log}`; per-case /tmp/tsrust-b06-*-array.log.
+Plain/unused Channel/unused CancellationToken emission all passed dependency
+isolation. Worker B06 now owns task-responsibility analysis repair in isolated tree;
+root must not edit that shared slice. Preserve rejection for genuinely abandoned jobs.
+B12 independent correctness is ready; next verify is13regex workloads
+only while B06 array responsibility is repaired. Original benchmark samplecounts
+remain3×31after8; no actual B06/B12 timings yet.
+
+**Build78167 passed:** source118539c4, terminal build-finished:true,
+541.140s/3,756,371KiB. `/tmp/tsrust-b06-carrier-{artifacts.jsonl,build.log}`.
+**Runner55692 completed:**30.565s/381,264KiB, seven of nine scopes passed:
+all numeric/unit/order/failure, new scalar/record/nested-array carriers, catalog
+examples, borrowed group fixture, legacy documented futures, both unchanged
+native_threads callback controls. Preserve those passes. Two failures: typed cause
+fixture incorrectly expected ThreadError.cause rather than the existing .error,
+and synchronous async-channel-only program omitted futures runtime entirely.
+Root repaired runtime selection for Job/AsyncChannel/AsyncSender, changed the typed
+cause witness to semantic JSON comparison, and removed a test-only temporary
+pointer warning by retaining the received Vec through its identity assertion.
+Runtime selection/fixture repairs await rebuilt focused validation. Current whole
+format/token1572/idempotence passed using118539c4 CLI; log
+`/tmp/tsrust-b06-runtime-selection-format.log`. No broad regression or timing.
+
+Benchmark readiness audit during build: regex source/oracle controls and both task
+contract tests pass on Node24.11.1. Two reference dependency blockers must be fixed
+before generated workload verification: parity-dependencies/Cargo.toml lacks regex
+although prepareReferenceDependencies selects it; task_all_ready/task_all_yield
+references use tokio::join! but generated dependency Tokio omits macros. Prefer
+optional reference-only exact regex1.13.1 and Tokio1.53.3 with macros, selected only
+for affected references; do not write custom join polling or expand production
+features. Root prepared optional reference regex/Tokio manifest and selection changes;
+offline lock resolution passed:7 new package identities all match admitted native
+lock; all prior reference versions unchanged. Native verification remains pending. Worker B06
+found order-insensitive checksums; root integrated14-file native/TS/Rust/oracle
+repair and refreshed four workload hashes. All3 task contract tests pass, including
+swapped-output/input mutation controls. Workload iterations/API work unchanged;
+no previous B06 actual timings exist to invalidate. Whole formatting and source checkpoint9ba4fa48 complete. Worker retains its uncommitted14files;
+do not overwrite them. Root currently owns benchmarks and docs pending changes. B13 worker reviewed prototype APIs/bridge,
+found no likely compile issue; commands available from worker when slot clears.
+
+**Build95371 passed:** exact1e43c4d1, terminal build-finished:true,
+524.283s/3,760,387KiB. Runner67250 completed109.499s/492,896KiB;
+no live build/test processes remain. `/tmp/tsrust-b06-drain-{artifacts.jsonl,build.log,gates.json}`.
+Passed runtime18 (including cancelled drain and missed ticks), HTTP disposal1,
+cleanup2, taskAsync admission/completion, owned captures, offline relocated export
+O0/O3, reusable endpoints, returned jobs, editor consistency and sender matrix.
+Six failed scopes remain: four numeric `all` result carrier mismatches, synchronous
+tryReceive generic error preparation, and borrowed group fixture cloning a now
+nonclonable send-error payload. Root repaired all emitter with existing array
+carrier helper; worker diagnosed remaining errors without edits/builds.
+Preserve passed scopes. Additional shared-callback regression still pending:
+old unchanged native_threads worker_inputs_must_be_owned_and_handles_are_single_use
+and owned_captures_handle_transfer_and_error_unions_execute against new CLI.
+Whole-format/token1572/idempotence passed before1e43;0changes, final log
+`/tmp/tsrust-b06-diagnostics-drain-final-format.log`.
+
+B13 prototype preparation updated in isolated stdlib-url admission/locale only:
+actual normalized BigDecimal0.4.11->to_plain_string->fixed_decimal bridge now
+profiled by prepared sources; fixed_decimal trailing-zero fixtures are explicitly
+backend controls, not Tsrust Decimal scale guarantees. Current32correctness records/
+99profile rows,52archive checksums verified; RustSec0vulnerabilities/0warnings.
+Prototype lock SHA256621b81a82004b4fb0682bd50b570a195fe1ba9d0e6ae3f8212a560c225510fad.
+No Rust build/profile/formatter yet, no heavy slot. Preserve old untracked B12 files.
+
 **B06 repair build71699 passed:** exact72ad2f9f, terminal build-finished:true,
 316.058s/3,785,379KiB. `/tmp/tsrust-b06-public-repair-{artifacts.jsonl,build.log}`.
 Driver37731 passed B12 final native ownership O0/O3 (32.088s), futures runtime16
@@ -8001,3 +8340,23 @@ Owner direction (2026-10-29): remove limits like the 128-level nesting limit.
   `-catch-cleanup` time out at 256 levels and `scoped-map-mixed` at 1,024 in
   ownership analysis; `builtin-string-chains`, `captured-local-functions`,
   `field-*-cleanup`, `fresh-generic-adapters` time out at 4,096.
+
+B05 read-only next-slice review (worker B06; no implementation): reuse writable
+byte traits/view loans, resource lifecycle/error mapping and existing buffers.
+Prototype gated blocking-file actual settlement plus dual borrowed readInto before
+implementation. Lazy-module staging currently preserves only argument-zero loans;
+use NativeParameter access metadata for all borrowed arguments. HTTP reader should
+retain frames+offset (Body.next currently copies Vec). Preserve buffered unread/
+pending data and model fallible shutdown. Match Rust defaults for zero reads,
+partial readExact/cancellation and explicit limit recovery; prototypes must verify
+those contracts. No B05 profiling or acceptance claimed.
+
+Worker B06 prepared10 untracked B05 sources under admission/async-io, no builds,
+tests or formatting. Preserve with prior14benchmark edits; source work paused for
+B06 ownership repair. Candidate retains completed backend bytes/errors in Reader
+staging after cancelled incomplete read, caller destination unchanged until copy;
+prototype policy needs review against backend semantics before public implementation.
+B12 audit found unused `d` flag index allocations in Node find/findAll. Root removed
+only those flags, refreshed hashes, source/oracle checks pass; source checkpointbe086e3a
+complete after whole formatting/token1572/idempotence. Captures keep indices; no matching input uses Unicode,
+escape explicitly observes UTF8bytes. No other reference mismatch found statically.
