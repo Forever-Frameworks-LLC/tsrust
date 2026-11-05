@@ -587,3 +587,23 @@ fn locale_exports_members_and_parameter_help_agree(){
   let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()+method.len()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
  }
 }
+
+#[test]
+fn io_exports_error_fields_and_parameter_help_agree(){
+ let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+ let before="import { ";let text=format!("{before} }} from 'std:io';function main(){{}}");
+ let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+ let imports=session.completion("main.tsr",&text,before.len()).unwrap();
+ for entry in catalog["std:io"].as_array().unwrap(){assert!(imports.iter().any(|name|name==entry["name"].as_str().unwrap()),"{imports:?}");}
+ assert!(!imports.iter().any(|name|name.starts_with("__")));
+ let before="import {IoError as Failure} from 'std:io';function inspect(value:ReadOnly<Failure>){value.";
+ let text=format!("{before}code;}}function main(){{}}");session.change("main.tsr",&text);session.settle();
+ let offered=session.completion("main.tsr",&text,before.len()).unwrap().into_iter().collect::<BTreeSet<_>>();
+ assert_eq!(offered,["code","operation","message","osCode"].into_iter().map(str::to_owned).collect());
+ let hover=session.hover("main.tsr",&text,before.len()+1).unwrap_or_default();assert!(hover.contains("Ownership:")&&hover.contains("Failure category"),"{hover}");
+ let before="import {Reader,readInto} from 'std:io';import {Bytes} from 'std:bytes';async function inspect(input:Mutable<Reader>,output:Mutable<Bytes>):Task<void>{await readInto(";
+ let text=format!("{before}input,output);}}function main(){{}}");session.change("main.tsr",&text);session.settle();
+ let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()}}));
+ let signatures=help["signatures"].as_array().unwrap();assert!(!signatures.is_empty(),"{help}");
+ let label=signatures[0]["label"].as_str().unwrap();assert!(label.contains("destination")&&label.contains("Task<Result<int"),"{label}");
+}

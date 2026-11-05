@@ -20,6 +20,7 @@ unicode-normalization = "=0.1.25"
 [features]
 regex = ["dep:regex"]
 task-join = ["dep:tokio"]
+async-io = ["dep:tokio", "tokio/io-util", "tokio/fs"]
 hostname = ["dep:hostname"]
 
 [patch.crates-io]

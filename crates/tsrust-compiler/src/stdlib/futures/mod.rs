@@ -49,14 +49,21 @@ pub(crate) fn unwrap(value:crate::syntax::Expr)->crate::syntax::Expr {
 pub(crate) fn lazy(expression:&mut crate::syntax::Expr,name:&str,args:Vec<crate::syntax::Expr>) {
     lazy_module(expression,"std:futures",name,args);
 }
-pub(crate) fn lazy_module(expression:&mut crate::syntax::Expr,module:&str,name:&str,mut args:Vec<crate::syntax::Expr>){
+pub(crate) fn lazy_module(expression:&mut crate::syntax::Expr,module:&str,name:&str,args:Vec<crate::syntax::Expr>){
+    lazy_native(expression,module,name,args,false);
+}
+/// Preserve an explicit Result payload rather than translating it into task failure.
+pub(crate) fn lazy_result(expression:&mut crate::syntax::Expr,module:&str,name:&str,args:Vec<crate::syntax::Expr>){
+    lazy_native(expression,module,name,args,true);
+}
+fn lazy_native(expression:&mut crate::syntax::Expr,module:&str,name:&str,mut args:Vec<crate::syntax::Expr>,preserve_result:bool){
     use crate::syntax::{Expr,ExprKind,Stmt,StmtKind,Token,TokenKind,ResultAnnotation,UnaryOp};
     let span=expression.span;let id=usize::MAX/2+span.start;
     let statement=|kind|Stmt{kind,span,labels:Vec::new(),control_target:None};
     let mut body=Vec::new();let mut inputs=Vec::new();
     if matches!(name,"__race"|"__allSettled"|"__all") && matches!(args.as_slice(),[Expr{kind:ExprKind::Array(values),..}] if values.is_empty()){args.clear();}
     for (index,mut value) in args.into_iter().enumerate(){
-        if index==0 && ((module=="std:signals" && name=="__receive") || (module=="std:futures" && matches!(name,"__send"|"__receive"|"__tick"|"__tokenCancelled")) || (module=="std:http" && matches!(name,"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__contextNext"|"__send"|"__bodyNext")) || (module=="std:sql" && matches!(name,"__cursor"|"__cursorNext"|"__migrate"|"__begin"|"__query"|"__execute"|"__txquery"|"__txexecute"))) && stable_receiver(&value) {inputs.push(value);continue;}
+        if borrows_native_input(module,name,index) && stable_receiver(&value) {inputs.push(value);continue;}
         if index==0 && matches!(name,"__race"|"__allSettled"|"__all") && let ExprKind::Array(items)=&mut value.kind {
             if !items.is_empty() && !items.iter().any(|item|matches!(item.kind,ExprKind::Unary{op:UnaryOp::Spread,..})) {
                 value.kind=ExprKind::Record(std::mem::take(items).into_iter().enumerate().map(|(index,value)|(Token{kind:TokenKind::Name,text:format!("future#task{index}"),span:value.span},value)).collect());
@@ -65,7 +72,7 @@ pub(crate) fn lazy_module(expression:&mut crate::syntax::Expr,module:&str,name:&
         let name=format!("future#{id}#{index}");inputs.push(Expr::new(ExprKind::Name(name.clone()),span));
         body.push(statement(StmtKind::Let{rebindable:false,name:Token{kind:TokenKind::Symbol,text:name,span},annotation:None,value,binding:None}));
     }
-    let value=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:{module}#{name}")),span)),inputs),span);let value=if matches!(name,"__allSettled"|"__tick"|"__tokenCancelled"){value}else{unwrap(value)};
+    let value=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:{module}#{name}")),span)),inputs),span);let value=if preserve_result || matches!(name,"__allSettled"|"__tick"|"__tokenCancelled"){value}else{unwrap(value)};
     let closure=Expr::new(ExprKind::Closure{id,params:Vec::new(),result:ResultAnnotation::Inferred(span),body:vec![statement(StmtKind::Return(Some(value)))]},span);
     let task=Expr::new(ExprKind::Unary{op:UnaryOp::TaskCreate,value:Box::new(closure),operator:span},span);
     let yielded=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@match:yield".into()),span)),vec![task]),span);
@@ -99,7 +106,7 @@ pub(crate) mod tests {
     include!("runtime_tests.rs");
 }
 
-pub(crate) fn borrows_receiver(value:&crate::syntax::Expr)->bool {
+pub(crate) fn borrows_inputs(value:&crate::syntax::Expr)->bool {
     use crate::syntax::{ExprKind,StmtKind};
     let ExprKind::Closure{id,body,..}=&value.kind else{return false;};
     if *id<usize::MAX/2{return false;}
@@ -115,8 +122,25 @@ pub(crate) fn borrows_receiver(value:&crate::syntax::Expr)->bool {
     let (callee,inputs)=if matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:result#unwrap"){
         let Some(crate::syntax::Expr{kind:ExprKind::Call(callee,inputs),..})=arguments.first()else{return false;};(callee,inputs)
     }else{(callee,arguments)};
-    !matches!(inputs.first().map(|value|&value.kind),Some(ExprKind::Name(name)) if name.starts_with("future#"))
-        && matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@native:std:signals#__receive"|"@native:std:futures#__send"|"@native:std:futures#__receive"|"@native:std:futures#__tick"|"@native:std:futures#__tokenCancelled"|"@native:std:http#__send"|"@native:std:http#__contextRequestForm"|"@native:std:http#__contextRequestMultipart"|"@native:std:http#__contextRequestText"|"@native:std:http#__contextNext"|"@native:std:http#__bodyNext"|"@native:std:sql#__cursor"|"@native:std:sql#__cursorNext"|"@native:std:sql#__migrate"|"@native:std:sql#__begin"|"@native:std:sql#__query"|"@native:std:sql#__execute"|"@native:std:sql#__txquery"|"@native:std:sql#__txexecute"))
+    let ExprKind::Name(symbol)=&callee.kind else{return false;};
+    let Some((_,binding))=crate::native_bindings::by_symbol(symbol)else{return false;};
+    inputs.iter().enumerate().any(|(index,input)|
+        borrows_native_input(binding.module,binding.name,index)
+        && stable_receiver(input)
+        && !matches!(&input.kind,ExprKind::Name(name) if name.starts_with("future#")))
+}
+
+// Existing lazy APIs keep their established receiver loans and owned snapshots.
+// I/O alone borrows every stable Read/Mutate argument through task settlement.
+fn borrows_native_input(module:&str,name:&str,index:usize)->bool{
+    if module=="std:io"{return crate::native_bindings::lookup(module,name).ok().and_then(|binding|binding.parameters.get(index)).is_some_and(|parameter|matches!(parameter.access,Mode::Read|Mode::Mutate));}
+    index==0 && match module{
+        "std:signals"=>name=="__receive",
+        "std:futures"=>matches!(name,"__send"|"__receive"|"__tick"|"__tokenCancelled"),
+        "std:http"=>matches!(name,"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__contextNext"|"__send"|"__bodyNext"),
+        "std:sql"=>matches!(name,"__cursor"|"__cursorNext"|"__migrate"|"__begin"|"__query"|"__execute"|"__txquery"|"__txexecute"),
+        _=>false,
+    }
 }
 
 fn stable_receiver(mut value:&crate::syntax::Expr)->bool{

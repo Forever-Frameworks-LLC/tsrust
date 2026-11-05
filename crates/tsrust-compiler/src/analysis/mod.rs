@@ -1556,6 +1556,7 @@ impl Analyzer {
         crate::stdlib::signals::prepare(&mut program)?;
         crate::stdlib::sqlite::prepare(&mut program)?;
         crate::stdlib::sql::prepare(&mut program)?;
+        crate::stdlib::io::prepare(&mut program)?;
         crate::stdlib::futures::prepare(&mut program)?;
         crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::stdlib::schema::namespace::prepare(&mut program)?;
@@ -5187,7 +5188,7 @@ impl Analyzer {
                 Ok(Type::Closure(id))
             }
             ExprKind::Unary { op: UnaryOp::TaskCreate, value, .. } => {
-                if let ExprKind::Closure { id, .. } = value.kind { if crate::stdlib::futures::borrows_receiver(value) {self.escaping.remove(&id);}else{self.escaping.insert(id);} self.task_sources.insert(id); }
+                if let ExprKind::Closure { id, .. } = value.kind { if crate::stdlib::futures::borrows_inputs(value) {self.escaping.remove(&id);}else{self.escaping.insert(id);} self.task_sources.insert(id); }
                 let actual = self.expression(context, value, Mode::Consume, loans, None)?;
                 let Type::Closure(origin) = actual else { unreachable!("task environment") };
                 // A task owns its environment even when its body only reads it.
@@ -8489,13 +8490,15 @@ self.names_materialized_type(element.with_depth(0).ty())
 
     fn resolved_call(
         &mut self,
-        context: &Context,
+        context: &mut Context,
         index: usize,
         args: &[Expr],
         span: Span,
     ) -> Result<(usize, Type), Diagnostic> {
         let index = self.specialize(index, args, span)?;
-        self.resolved_prepared_call(context, index, args, span)
+        let (index,result)=self.resolved_prepared_call(context,index,args,span)?;
+        if self.is_task_type(result){self.retain_task_call_loans(context,index,args,span);}
+        Ok((index,result))
     }
 
     fn resolved_prepared_call(&mut self, context: &Context, index: usize, args: &[Expr], span: Span) -> Result<(usize, Type), Diagnostic> {

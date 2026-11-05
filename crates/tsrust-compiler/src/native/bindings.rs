@@ -71,6 +71,17 @@ impl NativeBinding {
     /// A byte observer reads any readable byte storage; a byte mutator writes any
     /// writable one. A stored function value keeps the declared parameter type.
     pub fn argument_alternatives(&self, position: usize) -> &'static [crate::native_signatures::NativeTypeId] {
+        if self.module=="std:io" {
+            use crate::native_signatures::NativeTypeId::*;
+            match (self.name.trim_start_matches('_'),position) {
+                ("reader",0)=>return &[BufferedReader,HttpBody,Bytes],
+                ("writer",0)=>return &[BufferedWriter],
+                ("close",0)=>return &[IoWriter,IoLineReader],
+                ("readInto"|"readExact",1)=>return &[ByteViewMut],
+                ("write"|"writeAll",1)=>return &[ByteView,ByteViewMut],
+                _=>{},
+            }
+        }
         if self.module=="std:sqlite" && self.name=="__prepare" && position==0 {return &[crate::native_signatures::NativeTypeId::SqliteTransaction];}
         use crate::native_signatures::NativeTypeId::{ByteView, ByteViewMut, BufferedReader, BufferedWriter};
         if self.module == "std:json" && position == 0 && matches!(self.name,"asString"|"get"|"at"|"kind"|"asBoolean"|"asInt"|"asNumber"|"stringify") {
@@ -115,6 +126,36 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::io::bindings::READER,
+    crate::stdlib::io::bindings::WRITER,
+    crate::stdlib::io::bindings::STDOUT,
+    crate::stdlib::io::bindings::STDERR,
+    crate::stdlib::io::bindings::STDIN,
+    crate::stdlib::io::bindings::READ,
+    crate::stdlib::io::bindings::READ_POLL,
+    crate::stdlib::io::bindings::READ_INTO,
+    crate::stdlib::io::bindings::READ_INTO_POLL,
+    crate::stdlib::io::bindings::READ_EXACT,
+    crate::stdlib::io::bindings::READ_EXACT_POLL,
+    crate::stdlib::io::bindings::READ_ALL,
+    crate::stdlib::io::bindings::READ_ALL_POLL,
+    crate::stdlib::io::bindings::WRITE,
+    crate::stdlib::io::bindings::WRITE_POLL,
+    crate::stdlib::io::bindings::WRITE_ALL,
+    crate::stdlib::io::bindings::WRITE_ALL_POLL,
+    crate::stdlib::io::bindings::FLUSH,
+    crate::stdlib::io::bindings::FLUSH_POLL,
+    crate::stdlib::io::bindings::COPY,
+    crate::stdlib::io::bindings::COPY_POLL,
+    crate::stdlib::io::bindings::LINES,
+    crate::stdlib::io::bindings::READ_LINE,
+    crate::stdlib::io::bindings::READ_LINE_POLL,
+    crate::stdlib::io::bindings::CLOSE,
+    crate::stdlib::io::bindings::CLOSE_POLL,
+    crate::stdlib::io::bindings::READ_STDIN,
+    crate::stdlib::io::bindings::READ_LINE_STDIN,
+    crate::stdlib::io::bindings::BODY,
+
     crate::stdlib::cache::SHARED_CREATE, crate::stdlib::cache::SHARED_GET, crate::stdlib::cache::SHARED_PEEK, crate::stdlib::cache::SHARED_SET, crate::stdlib::cache::SHARED_REMOVE, crate::stdlib::cache::SHARED_SIZE, crate::stdlib::cache::SHARED_CLEAR, crate::stdlib::cache::SHARE, crate::stdlib::cache::CREATE, crate::stdlib::cache::GET, crate::stdlib::cache::PEEK, crate::stdlib::cache::SET, crate::stdlib::cache::REMOVE, crate::stdlib::cache::SIZE, crate::stdlib::cache::CLEAR,
     crate::stdlib::sql::CONNECT,
     crate::stdlib::sql::CONNECT_POLL,
@@ -657,3 +698,5 @@ pub fn ui_method(identity: crate::native_signatures::NativeTypeId, member: &str)
 
 pub fn locale_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::locale::method(Some(identity),member)}
 pub fn regex_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::regex::method(Some(identity),member)}
+
+pub fn io_asynchronous(name:&str)->bool{crate::stdlib::io::asynchronous(name)}

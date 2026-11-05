@@ -1,0 +1,3 @@
+mod tsrust_native_futures{pub fn block_on<F:std::future::Future>(future:F)->F::Output{tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap().block_on(future)}}
+use tokio::io::AsyncBufReadExt;
+async fn function0(n:i64,seed:i64)->i64{let payload=("a".repeat(8191)+"é\r\n\nlast").into_bytes();let mut sum=0;for i in 0..n{let mut input=tokio::io::BufReader::new(std::io::Cursor::new(payload.clone()));loop{let mut line=String::new();if input.read_line(&mut line).await.unwrap()==0{break;}if line.ends_with('\n'){line.pop();if line.ends_with('\r'){line.pop();}}sum=(sum*131+line.encode_utf16().count()as i64+seed+i)%1000000007;}}sum}fn main(){}

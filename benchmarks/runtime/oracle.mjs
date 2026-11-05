@@ -1,3 +1,4 @@
+import {asyncIoIDs,asyncIoChecksum} from './async-io-contract.mjs';
 import {taskErgonomicsIDs,taskErgonomicsChecksum} from './task-ergonomics-contract.mjs';
 import {localeChecksum,localeSpecs} from './explicit-locale-contract.mjs';
 import {regexTextChecksum,regexTextSpecs} from './regex-text-contract.mjs';
@@ -226,6 +227,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
+ if(asyncIoIDs.includes(id))return asyncIoChecksum(id,n,seed);
  if(taskErgonomicsIDs.includes(id))return taskErgonomicsChecksum(id,n,seed);
  if(id.startsWith("byte_ops_"))return expectedByteOperationObservation(id,n,seed,inputText).checksum;
  if(id.startsWith("bytes_"))return expectedByteCodecObservation(id,n,seed,inputText).checksum;

@@ -220,3 +220,15 @@ fn awaited_values_infer_generic_arguments_and_keep_record_and_native_view_loans(
 fn tasks_returning_multiple_input_borrows_name_their_lifetimes() {
     support::execute("async function size(left:ReadOnly<string>,right:ReadOnly<string>):Task<int>{return left.length+right.length;}async function change(left:Mutable<int[]>,right:ReadOnly<int[]>):Task<void>{left.push(right.length);}async function main():Task<void>{let left='one';let right='two';size(left,right);console.log(await size(left,right));left='x';right='y';console.log(await size(left,right));const values=[1];const input=[2,3];await change(values,input);console.log(values.length);}","6\n2\n2\n",None);
 }
+
+#[test]
+fn stored_task_factories_retain_input_loans_through_returned_tasks(){
+ let prefix="async function append(values:Mutable<int[]>):Task<void>{values.push(1);}function relay(work:Task<void>):Task<void>{return work;}";
+ for invocation in ["action(values)","(true? action:action)(values)","pass(action(values))","pass((true? action:action)(values))"]{
+  let setup=format!("{prefix}async function main():Task<void>{{const values:int[]=[];const action=append;const pass=relay;const pending={invocation};");
+  let invalid=support::format_round_trip(&format!("{setup}values.push(2);await pending;}}"));
+  assert_eq!(check(&invalid).err().expect("factory argument remains borrowed").code,"capture-conflict","lost factory argument loan: {invocation}");
+  let valid=format!("{setup}await pending;values.push(2);console.log(values[0],values[1]);}}");
+  support::execute(&valid,"1 2\n",None);
+ }
+}

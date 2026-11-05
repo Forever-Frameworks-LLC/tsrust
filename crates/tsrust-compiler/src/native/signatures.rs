@@ -69,6 +69,7 @@ pub enum NativeTypeId {
     BufferedReader,
     BufferedWriter,
     FsError,
+    IoReader, IoWriter, IoLineReader, IoStdin, IoError,
     FsOpenOptions,
     FsFileTime,
     FsMetadata,

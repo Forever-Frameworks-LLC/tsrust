@@ -13,6 +13,181 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**B05 local integration checkpoint ready — 2026-11-05:** final build48842
+PASSED234.400s/2,648,178KiB, terminal build-finished true. Final scoped driver
+27685: six groups passed (15literal controls,3optional controls,service examples,
+storedIO,storedTask factories,LSPbuffer-loan diagnostics). Four newfinite-union
+regressions initially3/4: strictEqual(atom,'ready') mismatched literal-vs-widened
+string generic types. Replaced that fixture assertion with boolean equality;
+no compiler relaxation. Rebuilt onlytest target47183 (3.629s/263,376KiB), then
+ALL4PASS62573 (3.621s/374,416KiB), including unknownliteral/widenedstring rejection,
+optional/stored context, exact int/Decimal borrow reuse and contextualrecords.
+Whole-project format0changes; git diff --check passed. Prior runtime/native/catalog/
+export/editor passed scopes remain preserved. I/O runtime and public source now
+ready for local source checkpoint; actual3workload timings and allocation review
+stillpending, so full B05 andrelease remain incomplete. Next serialize:
+`node run.mjs --only=io_read_into,io_lines,io_file_copy --engines=native,rust-hand,node-tsc`
+from benchmarks/runtime under sharedtarget/inc0/jobs1/watchdog; uses original
+3processes×31samples after8warmups and5correctness inputs. Run profile-native for
+same3, ingest actual timings only. No heavy process remains.
+
+Optional-union .length investigation: flow correctly removesundefined, but
+continuations/prelude.rs preserve-physical read clause discards noncopy residual
+union without expectedtype. Existing emitter supports borrowed subset retagging;
+b06 proposes exempt proven all-string residuals only, preserve transport/observer
+cases. No repair applied yet; B20 pending inventory remains explicit.
+
+**B18 source-only follow-up ready — 2026-11-05:** testing worker completed
+`/tmp/tsrust-b18-followup.patch` (89lines, four-file delta over preserved draft).
+Clarifies direct native unwind/outer cancellation versus checked AsyncError from
+awaited started Jobs; adds borrowed/stored record assertions, Map/Set NaN and
+signed-zero cases, alias/stored rejects and checked Job transport. Draft now14native
+and2editor source witnesses. Not integrated, built, executed, formatted or committed.
+Preserve testing worktree; this patch is only the incremental follow-up, not the
+whole B18 implementation. Root reviewed delta while final B05build holds lease.
+
+**Latest feature acceptance — 2026-11-05:** async byte I/O remains the active
+feature. Retained Task-input loan build15888 finished successfully291.885s,
+2,640,434KiB; terminal build-finished true. Focused8groups ALLPASS12.948s,
+380,480KiB under watchdog: stored IO direct/conditional/relay buffer loans,
+IoError-only data/runtime selection, final catalog example, stored ordinary Task
+factories and4 prior Task ownership/native-view controls. Artifacts/logs:
+`/tmp/tsrust-b05-loans-{artifacts.jsonl,build.log,gates.json,gates-run.log}`.
+
+Root restored post-normalization named-call loan registration (idempotent), applied
+reviewed `/tmp/tsrust-service-literal-union.patch` and added format_round_trip to
+its negative fixtures. Four new regression tests preserve finite literal context,
+optional/stored forms, int/Decimal borrowing and contextual record/factory inputs.
+Separate optional-union .length narrowing issue remains explicitly pending in B20.
+Whole-project format passed0changes. Current source uncommitted on77be721c.
+
+LIVE focused no-run build48842: compiler+LSP, literal_union_arguments,
+literal_types,native_optional_arguments,service_sections,async_io,async_tasks;
+sharedtarget/inc0/jobs1/watchdog. `/tmp/tsrust-b05-final-artifacts.jsonl` and
+`/tmp/tsrust-b05-final-build.log`. Verify terminal build-finished before next
+heavy job; prepared `/tmp/tsrust-b05-final-gates.py` resumes only affected scopes.
+Check fixture counts against --list (support helper may add tests). B03worker
+resumed source-only B18 draft clarification/additional edge witnesses in isolated
+testing tree; no worker heavy lease. No publication/push/merge.
+
+**Active retained-loan repair — 2026-11-05:** dirtycanonical77be721c preserved.
+Applied reviewed `/tmp/tsrust-b05-retained-task-input-loans.patch` (SHA256
+6bad8b99dec2417b0cd9920d9753982705eb50ca2ca8eb65950a00e360217248): actualTaskcall
+completion retains checked argumentcontracts, deferredgeneric calls usejoinedmodes,
+consumedforwarded/nestedTask payloads carryloanowners. Source-onlyhelpers remainreadonly.
+Four changedanalysis files; expandedasync_io witnesses coverdirectstored/conditional/
+relaycalls, bothpre-awaitnegative andpost-awaitpositive. Newasync_tasks regression
+covers4ordinaryfactory/relay forms; priorcurrentCLIwronglyacceptedmutation in
+`/tmp/tsrust-b05-task-alias-check.tsr`, proving bug isbroaderthanI/O.
+Wholeformat passed0changes. LIVE no-run build15888, compilerasync_io+async_tasks,
+sharedtarget/inc0/jobs1/watchdog; `/tmp/tsrust-b05-loans-artifacts.jsonl`, `...-build.log`.
+Do notstartanotherheavyjob; inspectterminalbuild-finished. Prepared8group driver
+`/tmp/tsrust-b05-loans-gates.py` resumesonlyIoErrorcatalog plusstored/error-data and
+focusedTaskregressions. Allpriorpassedscopes remainpreserved.
+
+Pending before nextsourcebuild: b06identified ASTordering precaution: restoreoriginal
+named-call retain_task_call_loans immediatelyafter unionargument normalization in
+analysis/mod.rs (nowremoved); shared resolved_call retention happensbefore stripping
+redundantInject. Registrationdedups exacttuples, so keepingbothpreservesknownbehavior.
+Added LSPasync_io thirdtest io_task_argument_loans_are_reported_and_clear_after_await;
+notinlivecompiler-onlybuild. MustrebuildLSP/testrun next.
+
+b03reviewedserviceexampleliteral-union rootcause807 guard dropscontextforstringliteral
+hints. Prepared `/tmp/tsrust-service-literal-union.patch` (notapplied), smallshared
+contextual_literal_member reuse+actualmember requiredguard,4focusedregressions.
+Read/review beforeintegration afterlivebuild; itsnegativefixtures needformat_round_trip.
+Validate service_sections, literal_types, native_optional_arguments, locale/contextual
+borrowcontrols alongside newliteral_union_arguments; avoidwholematrix. B18draft
+preserved; b03andb06read-onlyreviews complete, otherworker drafts frozen.
+
+**Latest B05 repair — 2026-11-05:** source remains dirty on77be721c. Prior turn
+made concrete integration/validation progress. Read-only b06 review isolated stored
+ByteViewMut failure: returned native environment omitted outer reference slots,
+fell back to all'_ and collapsed carried view lifetime into'task. Root repaired
+native_view_environment_emit with ordered Borrow/Value work items, preserving named
+payload lifetimes. Expanded stored I/O witness covers readonly ByteView writeAll too.
+OwnedReader transfer fixture now uses supported await job, exact task-transfer
+negative and positive nativeexecution. Existing SQL snapshot witness passes previous
+releasecompiler and fails initialIObuild; scoped capture-policy repair preserves it.
+Wholeformat passed0changes before expandedinlineRustfixture; rerun beforecheckpoint.
+Direct file→HTTP→file example PASSED58.042s/545,024KiB, expected20bytes/Unicode output;
+`/tmp/tsrust-b05-http-check.log`. No runtime source changed since runtime7PASS.
+
+**Latest validation update:** session35971 terminalFAIL346.112s/833,376KiB.
+18of20groups PASSED (19tests), native12/14PASS; sharedTask/SQL/HTTP/nativeview gates,
+editor2, IOmatrix2rows×4modes,5receiveragreement,consistency allpassed. Twofailedgroups:
+- native catalog finalIoError-onlyexample activatesIOruntime withoutfiles support;
+  rootfixed emitteractivationto4IOowner types andaddedno-backend assertion. Added
+  existingTSRUST_CATALOG_RESUME_FROM mechanism toresumeIoError ratherthanrerun17prior
+  examples. ExpandedstoredIO positive passesincludingnative readInto(ByteViewMut)/writeAll(ByteView)
+  execution. b06isolated NEGATIVEcases erroneouslyaccepted: mutationbeforeawait produces
+  realunused-task warning; overlappingstoredreads accepts warning-free. Rootcause is
+  missingretained argumentloans throughstoredgenericTaskwrapper, notwarningnoise.
+  `/tmp/tsrust-b05-stored-negative-{0,1}.tsr`; b06active read-onlyanalysis.
+  Preserveallnegativecoverage; donotsuppresswarnings orweakenownership.
+- service-example group fails preexistingliteral-union argumentdiagnostics.
+  Priorreleasecompilerreproduces same5diagnostics inservice-observability; log
+  `/tmp/tsrust-b05-service-prior-check.log`. Preservependingmilestonerepair; donotclaim
+  wholeServicegatepass. Its3otherwiseunrunnegativewitnesses checkedformatted withcurrent
+  CLI: conflictingSignalreceive capture-conflict,Signalclone clone-type,Appconfigure
+  missingfields. Originalexamples/service/main+contracts pass beforethirdexamplefails.
+No rootheavyprocess remains. NextfinishstoredTaskargumentloanrepair, wholeformat, rebuiltasync_io
+andrerunonly affectedcatalog/error-data/storedcases; preservepassed compatibilityscopes.
+
+Repaired focused no-run build5830 PASSED229.720s/2,700,178KiB,
+terminalbuild-finishedtrue; `/tmp/tsrust-b05-repaired-artifacts.jsonl`, `...-build.log`.
+Directemission nowproves function4 andstoredforwarder return
+Closure6<'task,'task,'native_input1_0>, preserving payloadstorage independently.
+`/tmp/tsrust-b05-stored-mut-repaired.rs` isdisposablegeneratedoutput.
+Completed session35971 ran `/tmp/tsrust-b05-repaired-gates.py` underwatchdog;
+log `/tmp/tsrust-b05-repaired-gates-run.log`, pergroupJSON/logs sameprefix.
+20scopedgroups, sourcefiltercounts checked. Terminalresults arelistedabove. Selectedcompiler async_io,
+async_tasks,async_sql,http,http_context,task_ergonomics,service_sections,
+native_forward_borrows; LSPasync_io,completion_matrix,checker_agreement,
+editor_consistency. No secondheavylease. Runtime7unchangedaccepted.
+Added Kind::Io to strictsyntax-errorcompletion equality. Allworkersidle.
+Next: collectterminalgates, repairactualfailures andrerunaffectedgroups only;
+wholeformat/sourcecheckpoint then actual3workload measurement/allocation review.
+
+**Active B05 integration — 2026-11-05:** locale measurements/review checkpoint
+77be721c follows source86664712. Updated52file B05 patch applied cleanly; check
+helper uses format_round_trip. Whole-project formatting passed (5sources,
+23documentation snippets,3fingerprints) before further review fixes. Source remains
+uncommitted/unaccepted. Four IO benchmark contract tests and all3strict TypeScript
+counterparts pass (use explicit benchmarks/runtime/node_modules/@types Node types).
+
+Focused compiler/LSP async_io plus compiler async_io_runtime no-run build12432
+PASSED286.582s/2,686,674KiB, terminalbuild-finishedtrue. Artifacts
+`/tmp/tsrust-b05-integrated-artifacts.jsonl`; log `...-build.log`. Standalone included
+runtime reports unused-item warnings; no claim of warning-free milestone acceptance.
+Initial gate harness stopped before tests because imported FS tests inflated listing;
+corrected runtime filter tsrust_native_io::tests::. Runtime7PASS, native8/13PASS
+(session85417;38.814s/630,288KiB). Native log `...-native.log` preserves5failures:
+HTTP/catalog unsafe substring matched a COMMENT; export missing changed-manifest
+portablepack; stored readInto(ByteViewMut) generated lifetime invariance; ownedReader
+Task/start checker returns async#entry/join errors. b06 investigating latter2 read-only.
+
+Root fixed unsafe assertion with recursive Rust token inspection and exported
+#![forbid(unsafe_code)]; offline portable setup27683 PASSED (log
+`/tmp/tsrust-b05-portable-setup.log`). Capture review exposed actual SQL owned URL
+regression (`/tmp/tsrust-b05-sql-capture.tsr`, callback-escape); applied reviewed
+`/tmp/tsrust-b05-preserve-lazy-capture-policy.patch`: metadata multi-input loans apply
+only to IO, old non-IO receiver/snapshot policy preserved. Added SQL/HTTP owned argument
+regressions (newnativecount14). These fixes still need rebuilt validation.
+
+Shared editor completion_matrix/checker_agreement/editor_consistency coverage added:
+IO imports/error rows,5receiver agreements, error fields andsignature help. They are
+not built yet. Original editor2tests PASSED session78631 (12.926s/44,432KiB), existing
+binaryasync_io-9570f601158c5e66 filterio_, log `/tmp/tsrust-b05-integrated-editor.log`;
+initial harness excluded them because support unit made total3. No rootheavyprocess
+remains. Otherworker drafts remain frozen. OwnedReader failure was fixture misuse:
+Job has no join method; await job is supported. Fixed bothcases, addedpositive native
+execution and exact negative task-transfer diagnostic: start rejects caller loans.
+Portable setup passed17.077s/152,208KiB. Remaining realcompiler failure: stored mutable
+ByteView lifetime invariance, b06 investigating read-only. Next: finish lifetime repair,
+wholeformat, rebuild affectedtargets+shared
+editor and focused taskcompatibility tests; preserve runtime7/native8pass scopes.
+
 **Current continuation — 2026-11-05:** canonical branch
 `codex/stdlib-0.2.0`, source checkpoint **86664712**. Full B00–B20 stays active.
 Latest accepted work: literal-all optimization passed8focused witnesses; actual
@@ -27,7 +202,7 @@ passes unit+agreement rerun69269,12.095s/62,576KiB. Build56423 terminaltrue,
 Whole-project format/token/idempotence passed before every source checkpoint.
 Borrowed-union repair, focused locale/contextual witnesses and allocation guards
 are committed80795335; actual locale measurements3bd92b7c and selected segmentation
-iterator optimization86664712 are now committed. Only this live handoff is dirty. No push, release or full regression occurred.
+iterator optimization86664712 are now committed. Locale records are committed77be721c; B05 integration is now dirty. No push, release or full regression occurred.
 
 **First action:** checkpoint accepted locale measurement/allocation review after
 wholeformat, then integrate ready52file B05patch listedbelow (applycheck86664712

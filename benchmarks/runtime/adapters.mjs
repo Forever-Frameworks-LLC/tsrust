@@ -1,3 +1,4 @@
+import {asyncIoABI,asyncIoRustDriver,asyncIoAllocationDriver} from './async-io-contract.mjs';
 import {taskErgonomicsABI,taskErgonomicsRustDriver,taskErgonomicsSupport} from './task-ergonomics-contract.mjs';
 import {moduleStateABI,moduleStateDriver} from './module-state-contract.mjs';
 import {isCopying,assertCopyingPolicy,validateCopyingObservation} from './copying-array-observation.mjs';
@@ -42,6 +43,7 @@ function copyingNativeObserver(w,emitted,source){const binding=verifyCopyingResu
 // Argument/result hooks only; authored workload bodies are never rewritten.
 export const rustResults = {'boolean[][]': 'Array<NumericArray<bool>>', 'number': 'f64', 'number[]': 'Vec<f64>', 'boolean[]': 'NumericArray<bool>', 'number[][]': 'Vec<Vec<f64>>', 'string[][]': 'Vec<Array<String>>', 'int[][][]': 'Vec<Array<NumericArray<i64>>>', 'int': 'i64', 'string[]': 'Array<String>', 'int[]': 'NumericArray<i64>', 'int[][]': 'Array<NumericArray<i64>>'};
 export function assertABI(emitted, workload, {source} = {}) {
+ if(workload.family==='async-io')return asyncIoABI(emitted,workload,source);
  if(workload.family==='task-ergonomics')return taskErgonomicsABI(emitted,workload,source);
  if(workload.family==='module-state')return moduleStateABI(emitted,workload,source);
  if(isCopying(workload))return verifyCopyingResultABI(emitted,workload,source);
@@ -106,6 +108,7 @@ export function rustChecksum(workload, {probe = false,emitted,source,reference=f
  return `fn ${name}(values: ${parameter}) -> i64 { let mut result = 0_i64; ${body} result }`;
 }
 export function adaptRustDriver(driver, workload, {probe = false,emitted,source,reference=false} = {}) {
+ if(workload.family==='async-io'){if(probe)return asyncIoAllocationDriver(driver,workload,emitted,source,{reference});return asyncIoRustDriver(workload,emitted,source,{reference});}
  if(workload.family==='task-ergonomics'){if(probe)throw Error('Task benchmarks use runtime-once correctness invocations');return taskErgonomicsRustDriver(workload,emitted,source,{reference});}
  if(workload.family==='module-state')return moduleStateDriver(driver,workload,emitted,source,{reference});
  if(isCopying(workload))verifyCopyingResultABI(emitted,workload,source);
@@ -157,7 +160,7 @@ export function adaptRustDriver(driver, workload, {probe = false,emitted,source,
  return driver;
 }
 export function adaptTSDriver(driver, workload) {
- if(workload.family==='task-ergonomics')return taskErgonomicsSupport['async-driver.ts'];
+ if(['async-io','task-ergonomics'].includes(workload.family))return taskErgonomicsSupport['async-driver.ts'];
  if(isCopying(workload))assertCopyingPolicy(workload);
  if(isRange(workload))assertRangePolicy(workload);
  if(isHigher(workload))assertHigherPolicy(workload);

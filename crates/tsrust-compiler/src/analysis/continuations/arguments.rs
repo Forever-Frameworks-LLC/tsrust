@@ -60,12 +60,14 @@ impl Analyzer {
         } else if contract.mode == Mode::Read
             && let Type::Union(id) = contract.ty && !id.copy
             && (contract.omission.is_omittable() || (self.unions.payload(contract.ty).is_none()
-                && self.expression_type_hint(context, argument).is_some_and(|ty| ty.union().is_none())))
+                && self.expression_type_hint(context, argument).is_some_and(|ty| self.unions.members(id).contains(&ty))))
             && self.nullable_scoped_record_declaration(contract.ty).is_none()
             && !matches!(argument.kind, ExprKind::Conditional { .. }) {
             let hint = self.expression_type_hint(context, argument);
-            frame.expected = if hint.is_some_and(|ty| ty.union().is_some()) { None }
-                else { hint.filter(|ty| matches!(ty, Type::Null | Type::Undefined)).or_else(|| self.unions.payload(contract.ty)) };
+            frame.expected = self.contextual_literal_member(argument,id).or_else(|| {
+                if hint.is_some_and(|ty| ty.union().is_some()) { None }
+                else { hint.filter(|ty| matches!(ty, Type::Null | Type::Undefined)).or_else(|| self.unions.payload(contract.ty)) }
+            });
             frame.adaptation = Adaptation::BorrowedUnion;
         }
         frame

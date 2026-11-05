@@ -4,7 +4,7 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding], ord
     let order=|id|crate::records::runtime::declaration_order_suffix(program,ordered,id);
     let record_id=|native|program.records.iter().position(|record|record.native_type==Some(native));
     let file = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::File));
-    if file.is_none() && !program.records.iter().any(|record|matches!(record.native_type,Some(NativeTypeId::BufferedReader | NativeTypeId::BufferedWriter | NativeTypeId::JsonlReader | NativeTypeId::JsonlReaderView | NativeTypeId::JsonlWriter | NativeTypeId::JsonlWriterView))) && bindings.is_empty() { return String::new(); }
+    if file.is_none() && !program.records.iter().any(|record|matches!(record.native_type,Some(NativeTypeId::IoReader | NativeTypeId::IoWriter | NativeTypeId::IoLineReader | NativeTypeId::IoStdin | NativeTypeId::BufferedReader | NativeTypeId::BufferedWriter | NativeTypeId::JsonlReader | NativeTypeId::JsonlReaderView | NativeTypeId::JsonlWriter | NativeTypeId::JsonlWriterView))) && bindings.is_empty() { return String::new(); }
     let file = file.map(|id|format!("Record{id}")).unwrap_or_default();
     let mut output = crate::native_runtime::files_module();
     if bindings.iter().any(|binding|binding.name=="createTempDir") {output.push_str(&crate::native_runtime::tempfiles_module());}

@@ -15,6 +15,7 @@ enum Kind {
     Url,
     Regex,
     Locale,
+    Io,
     PathEnvOs,
     Ui,
     Crypto,
@@ -63,11 +64,12 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 50] = [
+const KINDS: [Kind; 51] = [
     Kind::Filesystem,
     Kind::Url,
     Kind::Regex,
     Kind::Locale,
+    Kind::Io,
     Kind::PathEnvOs,
     Kind::Ui,
     Kind::Crypto,
@@ -179,6 +181,8 @@ fn rows() -> Vec<Row> {
  Row {kind:Kind::Filesystem,name:"filesystem aliased directory entry",before:"import {DirEntry as Entry} from 'std:fs';function inspect(value:ReadOnly<Entry>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["name","path","isFile","isDirectory","isSymlink"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
 
 
+ Row {kind:Kind::Io,name:"IO public imports",before:"import { ".into(),typed:"",after:" } from 'std:io';function main(){}",includes:&["Reader","Writer","LineReader","Stdin","IoError","reader","writer","readInto","readExact","readAll","writeAll","copy","close"],excludes:&["__readInto","__copy","io_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Io,name:"IO failure alias fields",before:"import {IoError as Failure} from 'std:io';function inspect(value:ReadOnly<Failure>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code","operation","message","osCode"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
  Row {kind:Kind::Locale,name:"Locale public imports",before:"import { ".into(),typed:"",after:" } from 'std:locale';function main(){}",includes:&["Locale","Collator","Segmenter","NumberFormat","SegmentRange","LocaleError","CollatorOptions","NumberFormatOptions","parseLocale","formatLocale","createCollator","createSegmenter","createNumberFormat"],excludes:&["__compare","__formatNumber","locale_intrinsic"],silent:None,needs_check:false},
  Row {kind:Kind::Locale,name:"Locale collator alias",before:"import {Collator as Owner} from 'std:locale';function inspect(value:ReadOnly<Owner>){".into(),typed:"value.",after:"compare('a','b');}function main(){}",includes:&["compare"],excludes:&["format","segment","clone","__compare"],silent:None,needs_check:false},
  Row {kind:Kind::Locale,name:"Locale segmenter alias",before:"import {Segmenter as Owner} from 'std:locale';function inspect(value:ReadOnly<Owner>){".into(),typed:"value.",after:"segment('a');}function main(){}",includes:&["segment"],excludes:&["compare","format","clone"],silent:None,needs_check:false},
@@ -571,7 +575,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Locale|Kind::Filesystem|Kind::PathEnvOs) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Locale|Kind::Io|Kind::Filesystem|Kind::PathEnvOs) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);

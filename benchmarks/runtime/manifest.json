@@ -25974,6 +25974,75 @@
       "inputText": "2.345",
       "sourceSha256": "5eb88f785b31800600d7821833e856706cc169bf9945e440d291992d6c2e53d6",
       "counterpartSha256": "91d29a1b2bb224e87b5cdf2cfeac48e6296ffab459656c2fb0274b856bae20fb"
+    },
+    {
+      "id": "io_read_into",
+      "category": "async-io",
+      "family": "async-io",
+      "description": "io read into",
+      "source": "workloads/io_read_into.tsr",
+      "counterpart": "workloads/io_read_into.ts",
+      "rustReference": "parity/io_read_into.rs",
+      "iterations": 1000,
+      "operationsPerIteration": 4096,
+      "operationUnit": "Observed payload bytes",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-async-io",
+      "specification": "async-io-contract.mjs",
+      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. No timings claimed.",
+      "sourceSha256": "4e08ec8a91da4fabf032b1464965140aeb918a0c863e37a3bb73c71b83d8dc85",
+      "counterpartSha256": "02cb28cb0f88f60ba879f5366f93ca0dae24953f94b153ab0daef32ef877ff20"
+    },
+    {
+      "id": "io_lines",
+      "category": "async-io",
+      "family": "async-io",
+      "description": "io lines",
+      "source": "workloads/io_lines.tsr",
+      "counterpart": "workloads/io_lines.ts",
+      "rustReference": "parity/io_lines.rs",
+      "iterations": 1000,
+      "operationsPerIteration": 8200,
+      "operationUnit": "Observed payload bytes",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-async-io",
+      "specification": "async-io-contract.mjs",
+      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. No timings claimed. Line input splits the two-byte UTF-8 character across the default 8192-byte working boundary in every engine.",
+      "sourceSha256": "be225afd732d76b86e29293233fec2561c307201d21b24d46a60c345518ec9ff",
+      "counterpartSha256": "6c02438f197e0609465e94fe8c5eaae73c938fa0bb0e468e44483908c0df1073"
+    },
+    {
+      "id": "io_file_copy",
+      "category": "async-io",
+      "family": "async-io",
+      "description": "io file copy",
+      "source": "workloads/io_file_copy.tsr",
+      "counterpart": "workloads/io_file_copy.ts",
+      "rustReference": "parity/io_file_copy.rs",
+      "iterations": 128,
+      "operationsPerIteration": 4096,
+      "operationUnit": "Observed payload bytes",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-async-io",
+      "specification": "async-io-contract.mjs",
+      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. No timings claimed.",
+      "sourceSha256": "39ba024939f6a88cdd241eaa5b6471d4c5f55fc70b2d9f31a94e8ba74572fcdd",
+      "counterpartSha256": "d72dc7ed64f8aea24621ee30382057ec777ee4f9f66c9a9bd0d7b645c59109c6"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

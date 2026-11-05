@@ -22,6 +22,7 @@ mod http;
 #[path="../stdlib/locale/emit.rs"] mod locale;
 mod sqlite;
 mod sql;
+mod io;
 mod channels;
 #[path="../stdlib/cache/emit.rs"] mod cache;
 mod rust_bridge;
@@ -2476,7 +2477,8 @@ impl Emitter<'_> {
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
-        let asynchronous_runtime = !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql") || matches!(id,crate::native_signatures::NativeTypeId::Interval|crate::native_signatures::NativeTypeId::AsyncChannel|crate::native_signatures::NativeTypeId::AsyncSender|crate::native_signatures::NativeTypeId::Job)));
+        let io_runtime=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::IoReader | crate::native_signatures::NativeTypeId::IoWriter | crate::native_signatures::NativeTypeId::IoLineReader | crate::native_signatures::NativeTypeId::IoStdin)));
+        let asynchronous_runtime = io_runtime || !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql") || matches!(id,crate::native_signatures::NativeTypeId::Interval|crate::native_signatures::NativeTypeId::AsyncChannel|crate::native_signatures::NativeTypeId::AsyncSender|crate::native_signatures::NativeTypeId::Job)));
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CancellationToken)){output.push_str(crate::stdlib::futures::CANCELLATION_RUNTIME);}
         if asynchronous_runtime { output.push_str(include_str!("async_runtime.rs")); output.push_str(crate::stdlib::futures::RUNTIME); }
         self.set_types(&mut output);
@@ -2492,6 +2494,7 @@ impl Emitter<'_> {
             output.push_str(include_str!("../stdlib/schema/runtime/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
             output.push_str("\n}\n");
         }
+        if io_runtime{output.push_str(&crate::stdlib::io::runtime());if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpBody)){output.push_str(crate::stdlib::io::HTTP_RUNTIME);}}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sql")){output.push_str(crate::stdlib::sql::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sqlite")){output.push_str(crate::stdlib::sqlite::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(crate::stdlib::http::RUNTIME);}
@@ -2563,6 +2566,7 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "#[derive(Clone)] struct Record{index} {{ bytes: Vec<u8> }}");
                 continue;
             }
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IoReader)=>Some("Reader"),Some(crate::native_signatures::NativeTypeId::IoWriter)=>Some("Writer"),Some(crate::native_signatures::NativeTypeId::IoLineReader)=>Some("LineReader"),Some(crate::native_signatures::NativeTypeId::IoStdin)=>Some("Stdin"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_io::{name};");continue;}
             if let Some(id @ (crate::native_signatures::NativeTypeId::BufferedReader | crate::native_signatures::NativeTypeId::BufferedWriter)) = record.native_type {
                 let backend=crate::native_types::declaration(id).name;
                 let _=writeln!(output,"struct Record{index} {{ handle: tsrust_native_files::buffered_fs::{backend} }}");
@@ -3365,7 +3369,7 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonRaw | crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView | crate::native_signatures::NativeTypeId::JsonlReader | crate::native_signatures::NativeTypeId::JsonlReaderView | crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView))) {output.push_str(&crate::native_runtime::json_module_with_writer(self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView)))));}
         for &id in self.native_bindings.borrow().iter() {let binding=&crate::native_bindings::BINDINGS[id];if binding.module=="std:json" {output.push_str(&crate::stdlib::json::emit::bridge(self.program,binding,&self.record_runtime.ordered));}}
         let byte_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:bytes" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
-        if !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile" | "appendFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
+        if (io_runtime && self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Bytes))) || !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile" | "appendFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
         let file_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:fs" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
         output.push_str(&crate::stdlib::fs::emit::bridges(self.program, &file_bindings, &self.record_runtime.ordered));
         let numeric_support = output.contains("NumericArray<") || output.contains("NumericArray::");
@@ -9272,6 +9276,7 @@ impl Emitter<'_> {
                     if let Some(call)=self.locale_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.regex_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.url_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.io_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}

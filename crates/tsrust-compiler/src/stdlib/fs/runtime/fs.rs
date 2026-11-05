@@ -62,6 +62,9 @@ pub fn create(path:&str)->Result<FileHandle,FsFailure> {
         .map_err(|error|FsFailure::io("create",error))
 }
 
+// Async adapters move this existing unique owner into a blocking operation.
+impl Read for FileHandle{fn read(&mut self,bytes:&mut[u8])->std::io::Result<usize>{self.get_mut().0.read(bytes)}}
+impl Write for FileHandle{fn write(&mut self,bytes:&[u8])->std::io::Result<usize>{self.get_mut().0.write(bytes)}fn flush(&mut self)->std::io::Result<()>{self.get_mut().0.flush()}}
 pub fn write(file:&mut FileHandle,bytes:&[u8])->Result<i64,FsFailure> {
     write_with(&mut file.get_mut().0,bytes,false)
 }

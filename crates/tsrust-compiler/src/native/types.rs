@@ -315,6 +315,11 @@ static FS_ERROR: Declaration = Declaration {
         Field { name: "osCode", signature: Signature::Int, optional: true },
     ],
 };
+static IO_READER: Declaration = Declaration {id:NativeTypeId::IoReader,module:"std:io",name:"Reader",thread_transfer:true,..FILE};
+static IO_WRITER: Declaration = Declaration {id:NativeTypeId::IoWriter,module:"std:io",name:"Writer",thread_transfer:true,..FILE};
+static IO_LINE_READER: Declaration = Declaration {id:NativeTypeId::IoLineReader,module:"std:io",name:"LineReader",thread_transfer:true,..FILE};
+static IO_STDIN: Declaration = Declaration {id:NativeTypeId::IoStdin,module:"std:io",name:"Stdin",..FILE};
+static IO_ERROR: Declaration = Declaration {id:NativeTypeId::IoError,module:"std:io",name:"IoError",..FS_ERROR};
 static FS_OPEN_OPTIONS: Declaration = Declaration { id: NativeTypeId::FsOpenOptions, name: "OpenOptions", fields: &[
     Field { name: "read", signature: Signature::Boolean, optional: true },
     Field { name: "write", signature: Signature::Boolean, optional: true },
@@ -559,6 +564,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::FsMetadata => &FS_METADATA,
         NativeTypeId::FsDirEntry => &FS_DIR_ENTRY,
         NativeTypeId::FsError => &FS_ERROR,
+        NativeTypeId::IoReader=>&IO_READER,NativeTypeId::IoWriter=>&IO_WRITER,NativeTypeId::IoLineReader=>&IO_LINE_READER,NativeTypeId::IoStdin=>&IO_STDIN,NativeTypeId::IoError=>&IO_ERROR,
         NativeTypeId::EnvError => &ENV_ERROR,
         NativeTypeId::EnvVar => &ENV_VAR,
         NativeTypeId::PathParts => &PATH_PARTS,
@@ -608,7 +614,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
     if module=="std:futures" {match name {"SendError"=>return Some(&SEND_ERROR),"ChannelError"=>return Some(&CHANNEL_ERROR),_=>{}}}
-    [&LOCALE_LOCALE,&LOCALE_COLLATOR,&LOCALE_SEGMENTER,&LOCALE_NUMBERFORMAT,&LOCALE_SEGMENTRANGE,&LOCALE_LOCALEERROR,&LOCALE_COLLATOROPTIONS,&LOCALE_NUMBERFORMATOPTIONS,&REGEX,&REGEX_MATCH,&REGEX_CAPTURES,&REGEX_ERROR,&REGEX_OPTIONS,&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
+    [&IO_READER,&IO_WRITER,&IO_LINE_READER,&IO_STDIN,&IO_ERROR,&LOCALE_LOCALE,&LOCALE_COLLATOR,&LOCALE_SEGMENTER,&LOCALE_NUMBERFORMAT,&LOCALE_SEGMENTRANGE,&LOCALE_LOCALEERROR,&LOCALE_COLLATOROPTIONS,&LOCALE_NUMBERFORMATOPTIONS,&REGEX,&REGEX_MATCH,&REGEX_CAPTURES,&REGEX_ERROR,&REGEX_OPTIONS,&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
         &UI_ERROR,
         &SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&INTERVAL,&CANCELLATION_TOKEN,&POOL_SUBMISSION,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR,&ENV_VAR,&PATH_PARTS,&PATH_FORMAT_OPTIONS,&PATH_ERROR,&OS_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_OPEN_OPTIONS, &FS_FILE_TIME, &FS_METADATA, &FS_DIR_ENTRY, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
     ].into_iter().find(|item| item.module == module && item.name == name)

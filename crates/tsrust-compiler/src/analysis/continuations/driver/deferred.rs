@@ -210,6 +210,12 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                 }
                 Phase::Done => {
                     let call = task.final_call.as_ref().unwrap();
+                    // Retain the joined contract, not only the primary declaration.
+                    // Argument cleanup has already completed; this is the real call.
+                    if analyzer.is_task_type(call.result) {
+                        let params=&task.arguments.as_ref().expect("checked deferred arguments").params;
+                        analyzer.retain_task_argument_loans(context,params,task.expression_args(),task.expression.span);
+                    }
                     let result = analyzer.retain_generic_invocation(context, task.selection.as_ref().unwrap().primary, call.method, call.result, task.expression.span)?;
                     return Ok(Action::Done(result));
                 }

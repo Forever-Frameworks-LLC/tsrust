@@ -21,7 +21,7 @@ mod tsrust_native_http {
     }
     pub struct Request {inner:http::Request<ExclusiveBody>,params:BTreeMap<String,String>,limit:usize}
     pub struct Response {inner:http::Response<ExclusiveBody>}
-    pub struct Stream {body:Body,remaining:usize}
+    pub struct Stream {body:Body,remaining:Option<usize>}
     struct ChannelBody<T,F> {receiver:tokio::sync::mpsc::Receiver<T>,bytes:F}
     impl<T:Send+'static,F:Fn(T)->Vec<u8>+Send+Unpin+'static> axum::body::HttpBody for ChannelBody<T,F> {
         type Data=axum::body::Bytes;type Error=Error;
@@ -344,13 +344,14 @@ mod tsrust_native_http {
             }).await;
             match event {Event::Stop=>break,Event::Finished=>{},Event::Accepted(Err(_))=>break,Event::Accepted(Ok((stream,_)))=>{
                 let router=router.clone();let tls=tls.clone();let mut shutdown=shutdown.subscribe();
-                connections.spawn(async move{
+                let connection_scope=scope.clone();
+                connections.spawn(tasks::in_scope(connection_scope,async move{
                     if let Some(tls)=tls {
                         let handshake=tokio::time::timeout(Duration::from_millis(limits.handshake_ms),tls.accept(stream));tokio::pin!(handshake);
                         let accepted={let changed=shutdown.changed();tokio::pin!(changed);std::future::poll_fn(|cx|{if changed.as_mut().poll(cx).is_ready(){return Poll::Ready(None);}handshake.as_mut().poll(cx).map(Some)}).await};
                         if let Some(Ok(Ok(stream)))=accepted{serve_connection(stream,router,shutdown).await;}
                     }else{serve_connection(stream,router,shutdown).await;}
-                });
+                }));
             }}
         }
         drop(listener);
@@ -406,7 +407,7 @@ mod tsrust_native_http {
         pub async fn multipart(self)->Result<Vec<MultipartPart>,Error>{
             use axum::extract::FromRequest;
             let limit=self.limit;let (parts,body)=self.inner.into_parts();
-            let mut request=http::Request::from_parts(parts,Body::new(Stream{body:body.into_body(),remaining:limit}));
+            let mut request=http::Request::from_parts(parts,Body::new(Stream{body:body.into_body(),remaining:Some(limit)}));
             request.extensions_mut().insert(axum::extract::DefaultBodyLimit::disable());
             let mut multipart=axum::extract::Multipart::from_request(request,&()).await.map_err(|_|error("multipart","Invalid multipart content type or boundary"))?;
             let mut output=Vec::new();
@@ -433,7 +434,7 @@ mod tsrust_native_http {
         pub fn queries(&self,name:&str)->Option<Vec<String>>{let values:Vec<_>=self.query_values(name).collect();(!values.is_empty()).then_some(values)}
         pub fn header(&self,name:&str)->Result<Option<String>,Error>{header(self.inner.headers(),name)}
         pub fn set_header(&mut self,name:&str,value:&str)->Result<(),Error>{set_header(self.inner.headers_mut(),name,value)}
-        pub fn body(self)->Stream{Stream{body:self.inner.into_body().into_body(),remaining:self.limit}}
+        pub fn body(self)->Stream{Stream{body:self.inner.into_body().into_body(),remaining:Some(self.limit)}}
         pub async fn text(self)->Result<String,Error>{self.body().text().await}
     }
     impl Response {
@@ -449,7 +450,7 @@ mod tsrust_native_http {
         pub fn status(&self)->i64{self.inner.status().as_u16() as i64}
         pub fn header(&self,name:&str)->Result<Option<String>,Error>{header(self.inner.headers(),name)}
         pub fn set_header(&mut self,name:&str,value:&str)->Result<(),Error>{set_header(self.inner.headers_mut(),name,value)}
-        pub fn body(self)->Stream{Stream{body:self.inner.into_body().into_body(),remaining:1048576}}
+        pub fn body(self)->Stream{Stream{body:self.inner.into_body().into_body(),remaining:Some(1048576)}}
         pub async fn text_body(self)->Result<String,Error>{self.body().text().await}
     }
     fn status_code(status:i64)->Result<StatusCode,Error>{if !(200..=599).contains(&status){return Err(error("status","Response status must be 200 through 599"));}StatusCode::from_u16(status as u16).map_err(|_|error("status","Invalid response status"))}
@@ -459,14 +460,15 @@ mod tsrust_native_http {
         type Data=axum::body::Bytes;type Error=Error;
         fn poll_frame(mut self:Pin<&mut Self>,cx:&mut std::task::Context<'_>)->Poll<Option<Result<http_body::Frame<Self::Data>,Error>>>{
             match Pin::new(&mut self.body).poll_frame(cx){
-                Poll::Ready(Some(Ok(frame)))=>{if let Some(data)=frame.data_ref(){if data.len()>self.remaining{self.body=Body::empty();return Poll::Ready(Some(Err(error("limit","Body exceeds configured byte limit"))));}self.remaining-=data.len();}Poll::Ready(Some(Ok(frame)))},
+                Poll::Ready(Some(Ok(frame)))=>{if let Some(data)=frame.data_ref(){if self.remaining.is_some_and(|remaining|data.len()>remaining){self.body=Body::empty();return Poll::Ready(Some(Err(error("limit","Body exceeds configured byte limit"))));}if let Some(remaining)=&mut self.remaining{*remaining-=data.len();}}Poll::Ready(Some(Ok(frame)))},
                 Poll::Ready(Some(Err(_)))=>Poll::Ready(Some(Err(error("body","Body read failed")))),other=>other.map(|value|value.map(|value|value.map_err(|_|error("body","Body read failed")))),
             }
         }
     }
     impl Stream {
+        pub fn unbounded(body:Body)->Self{Self{body,remaining:None}}
         pub async fn next(&mut self)->Result<Option<Vec<u8>>,Error>{
-            while let Some(frame)=self.body.frame().await {let frame=frame.map_err(|_|error("body","Body read failed"))?;if let Ok(data)=frame.into_data(){if data.len()>self.remaining{self.body=Body::empty();return Err(error("limit","Body exceeds configured byte limit"));}self.remaining-=data.len();return Ok(Some(data.to_vec()));}}Ok(None)
+            while let Some(frame)=self.body.frame().await {let frame=frame.map_err(|_|error("body","Body read failed"))?;if let Ok(data)=frame.into_data(){if self.remaining.is_some_and(|remaining|data.len()>remaining){self.body=Body::empty();return Err(error("limit","Body exceeds configured byte limit"));}if let Some(remaining)=&mut self.remaining{*remaining-=data.len();}return Ok(Some(data.to_vec()));}}Ok(None)
         }
         pub async fn text(mut self)->Result<String,Error>{let mut bytes=Vec::new();while let Some(frame)=self.frame().await{if let Ok(chunk)=frame?.into_data(){bytes.extend_from_slice(&chunk);}}String::from_utf8(bytes).map_err(|_|error("encoding","Body is not UTF-8"))}
     }

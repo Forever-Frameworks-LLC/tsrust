@@ -489,6 +489,16 @@ owned `read` remains unchanged, so generated allocation gaps remain observable.
 B05's writable-destination contract must address this reuse case; no B01 API was
 expanded and no generated allocation improvement is claimed from the prototype.
 
+B05 public integration (2026-11-05): compiler/runtime/LSP/catalog/docs/examples
+and three matched workload registrations are integrated. Runtime7, catalog/native
+including file→HTTP and offline forbidden-unsafe export, shared editor agreement,
+and focused task/SQL/HTTP compatibility scopes passed. Stored/conditional/forwarded
+Task calls now retain reader/destination loans through await; positive native and
+negative compiler/editor witnesses pass. Final service/literal compatibility repairs
+pass their focused scopes. Actual public I/O timing/allocation review remains
+pending; child-pipe/TCP adapters depend on their later bundles. This is local
+integration evidence, not full release/platform acceptance.
+
 B05 direct-Rust admission (2026-11-05): safe owned blocking-reader staging with
 one reusable buffer passed short/interrupted reads, EOF/zero destination, retained
 partial-error bytes, cancellation/deadline settlement and staged recovery without
@@ -1266,6 +1276,13 @@ than Node on every workload is not. Handwritten-Rust parity remains the directio
 an unresolved avoidable adapter gap is work to investigate, not a marketing win.
 
 ## B20 — Feature-family and v0.2.0 release checklist
+
+Pending compiler inventory finding (2026-11-05): an optional readonly finite-string
+union parameter still reports its original union including undefined after
+`if (value === undefined) { return 0; }`, so `value.length` is rejected. Preserve
+this separately from the readonly literal-argument context repair; do not claim
+optional-union narrowing acceptance from equality-only argument witnesses.
+
 
 - [ ] After the owned-I/O/async/iterator foundations form one accepted family,
   run the appropriate complete compiler/LSP milestone and combined ownership,

@@ -18282,5 +18282,438 @@
         }
       ]
     }
+  ],
+  "std:io": [
+    {
+      "name": "reader",
+      "signature": "function reader(source: File | BufferedReader | Body | Bytes): Reader",
+      "parameters": [
+        {
+          "label": "source",
+          "documentation": "File, buffered reader, HTTP Body or owned Bytes to consume."
+        }
+      ],
+      "documentation": "Adapts an owned readable resource to a Reader. Consuming BufferedReader preserves unread buffered bytes; consuming Bytes moves its storage and starts at byte zero. HTTP input retains frames and preserves any limit already configured on the Body. No bytes are read during construction.\n\nOwnership: The resource is transferred; borrowed views are not accepted.\n\n```tsrust\nimport { reader, readInto, readExact, readAll, lines, readLine, close } from \"std:io\";\nimport { fromUtf8, alloc, toUtf8 } from \"std:bytes\";\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8(\"hello\")));\n  const destination = unwrap(alloc(2));\n  console.log(unwrap(await readInto(input, destination)), unwrap(toUtf8(destination)));\n  unwrap(await readExact(input, destination));\n  console.log(unwrap(toUtf8(destination)), unwrap(toUtf8(unwrap(await readAll(input)))));\n  unwrap(await close(input));\n  const rows = unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n  console.log(unwrap(await readLine(rows)), unwrap(await readLine(rows)), unwrap(await readLine(rows)));\n  console.log(unwrap(await readLine(rows)) === undefined);\n  unwrap(await close(rows));\n}\n```\nExpected output: 2 he; ll o; a, empty line, last; true.",
+      "examples": [
+        {
+          "source": "import {reader,readInto,readExact,readAll,lines,readLine,close} from \"std:io\";\nimport {fromUtf8,alloc,toUtf8} from \"std:bytes\";\nasync function main():Task<void>{\n const input=reader(unwrap(fromUtf8(\"hello\")));\n const destination=unwrap(alloc(2));\n console.log(unwrap(await readInto(input,destination)),unwrap(toUtf8(destination)));\n unwrap(await readExact(input,destination));\n console.log(unwrap(toUtf8(destination)),unwrap(toUtf8(unwrap(await readAll(input)))));\n unwrap(await close(input));\n const rows=unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n console.log(unwrap(await readLine(rows)),unwrap(await readLine(rows)),unwrap(await readLine(rows)));\n console.log(unwrap(await readLine(rows))===undefined);\n unwrap(await close(rows));\n}\n",
+          "output": "2 he\nll o\na  last\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "writer",
+      "signature": "function writer(destination: File | BufferedWriter): Writer",
+      "parameters": [
+        {
+          "label": "destination",
+          "documentation": "Open file or buffered writer to consume."
+        }
+      ],
+      "documentation": "Adapts an owned writable resource to a Writer. BufferedWriter retains its pending bytes and writes them in order before later data. Construction performs no write.\n\nOwnership: The destination transfers into the writer.\n\n```tsrust\nimport { reader, writer, write, writeAll, flush, copy, close } from 'std:io';\nimport { createTempDir, create, readFile, removeDirAll } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const directory = unwrap(createTempDir(undefined, 'io-example-'));\n  const path = directory + '/bytes';\n  const output = writer(unwrap(create(path)));\n  unwrap(await writeAll(output, unwrap(fromUtf8('ok'))));\n  unwrap(await flush(output));\n  unwrap(await close(output));\n  console.log(unwrap(toUtf8(unwrap(readFile(path)))));\n  unwrap(removeDirAll(directory));\n}\n```\nExpected stdout: 'ok\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,writer,write,writeAll,flush,copy,close} from 'std:io';import {createTempDir,create,readFile,removeDirAll} from 'std:fs';import {fromUtf8,toUtf8} from 'std:bytes';async function main():Task<void>{const directory=unwrap(createTempDir(undefined,'io-example-'));const path=directory+'/bytes';const output=writer(unwrap(create(path)));unwrap(await writeAll(output,unwrap(fromUtf8('ok'))));unwrap(await flush(output));unwrap(await close(output));console.log(unwrap(toUtf8(unwrap(readFile(path)))));unwrap(removeDirAll(directory));}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "stdout",
+      "signature": "function stdout(): Writer",
+      "parameters": [],
+      "documentation": "Returns an asynchronous writer for standard output. Writes may be short; use writeAll for completion and flush for buffered output visibility. Errors are explicit IoError values. This does not close the process standard output descriptor.\n\nOwnership: The writer is owned; operations borrow it exclusively.\n\n```tsrust\nimport { stdout, writeAll, close } from 'std:io';\nimport { fromUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const output = stdout();\n  unwrap(await writeAll(output, unwrap(fromUtf8('ok'))));\n  unwrap(await close(output));\n}\n```\nExpected stdout: 'ok'.",
+      "examples": [
+        {
+          "source": "import {stdout,writeAll,close} from 'std:io';import {fromUtf8} from 'std:bytes';async function main():Task<void>{const output=stdout();unwrap(await writeAll(output,unwrap(fromUtf8('ok'))));unwrap(await close(output));}",
+          "output": "ok"
+        }
+      ]
+    },
+    {
+      "name": "stderr",
+      "signature": "function stderr(): Writer",
+      "parameters": [],
+      "documentation": "Returns an asynchronous writer for standard error. Writes may be short; writeAll completes the input and flush reports output errors. This does not close the process standard error descriptor.\n\nOwnership: The writer is owned; operations borrow it exclusively.\n\n```tsrust\nimport { stderr, writeAll, close } from 'std:io';\nimport { fromUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const output = stderr();\n  unwrap(await writeAll(output, unwrap(fromUtf8('ok'))));\n  unwrap(await close(output));\n}\n```\nExpected stderr: ok.",
+      "examples": [
+        {
+          "source": "import {stderr,writeAll,close} from 'std:io';import {fromUtf8} from 'std:bytes';async function main():Task<void>{const output=stderr();unwrap(await writeAll(output,unwrap(fromUtf8('ok'))));unwrap(await close(output));}",
+          "output": "",
+          "stderr": "ok"
+        }
+      ]
+    },
+    {
+      "name": "stdin",
+      "signature": "function stdin(): Stdin",
+      "parameters": [],
+      "documentation": "Returns a synchronous standard-input handle. readStdin and readLineStdin block the current thread; they are not Tasks. EOF is an empty byte result or undefined line.\n\nOwnership: The handle is owned; reads borrow it exclusively.\n\n```tsrust\nimport { stdin, Stdin, IoError, readStdin } from 'std:io';\nimport { Bytes } from 'std:bytes';\n\nfunction read(input: Mutable<Stdin>): Result<Bytes, IoError> {\n  return readStdin(input);\n}\n\nfunction main() {\n  const input = stdin();\n}\n```\nExpected stdout: ''.",
+      "examples": [
+        {
+          "source": "import {stdin,Stdin,IoError,readStdin} from 'std:io';import {Bytes} from 'std:bytes';function read(input:Mutable<Stdin>):Result<Bytes,IoError>{return readStdin(input);}function main(){const input=stdin();}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "read",
+      "signature": "function read(reader: Mutable<Reader>, maxBytes?: int): Task<Result<Bytes, IoError>>",
+      "parameters": [
+        {
+          "label": "reader",
+          "documentation": "Reader whose cursor advances."
+        },
+        {
+          "label": "maxBytes",
+          "documentation": "Maximum bytes for this single read; default 8192, nonnegative and target-representable."
+        }
+      ],
+      "documentation": "Reads up to maxBytes and returns newly owned Bytes. A short read is valid; empty Bytes indicates EOF unless maxBytes is zero, which returns immediately without probing input. No total stream cap is imposed. Allocation, range and backend failures return Err.\n\nOwnership: The lazy task retains an exclusive reader loan until settlement; cancelling may advance the backend, with an unfinished staged chunk retained for the next read.\n\n```tsrust\nimport { reader, read, close } from 'std:io';\nimport { fromUtf8, toUtf8, alloc } from 'std:bytes';\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8('hello')));\n  console.log(unwrap(toUtf8(unwrap(await read(input, 2)))));\n  unwrap(await close(input));\n}\n```\nExpected stdout: 'he\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,read,close} from 'std:io';import {fromUtf8,toUtf8,alloc} from 'std:bytes';async function main():Task<void>{const input=reader(unwrap(fromUtf8('hello')));console.log(unwrap(toUtf8(unwrap(await read(input,2)))));unwrap(await close(input));}",
+          "output": "he\n"
+        }
+      ]
+    },
+    {
+      "name": "readInto",
+      "signature": "function readInto(reader: Mutable<Reader>, destination: Mutable<Bytes | ByteViewMut>): Task<Result<int, IoError>>",
+      "parameters": [
+        {
+          "label": "reader",
+          "documentation": "Reader whose cursor advances."
+        },
+        {
+          "label": "destination",
+          "documentation": "Writable existing storage; its length is the maximum read size."
+        }
+      ],
+      "documentation": "Reads into the destination prefix and returns the count written. The remaining bytes are unchanged. A short read is valid; zero means EOF except an empty destination returns zero without a read. Readonly ByteView is rejected. Backend reads use reusable staging storage and copy the completed prefix into the destination.\n\nOwnership: Both resource and writable destination remain exclusively borrowed until task settlement, including cancellation cleanup.\n\n```tsrust\nimport { reader, readInto, close } from 'std:io';\nimport { fromUtf8, toUtf8, alloc } from 'std:bytes';\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8('hello')));\n  const destination = unwrap(alloc(2));\n  console.log(unwrap(await readInto(input, destination)), unwrap(toUtf8(destination)));\n  unwrap(await close(input));\n}\n```\nExpected stdout: '2 he\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,readInto,close} from 'std:io';import {fromUtf8,toUtf8,alloc} from 'std:bytes';async function main():Task<void>{const input=reader(unwrap(fromUtf8('hello')));const destination=unwrap(alloc(2));console.log(unwrap(await readInto(input,destination)),unwrap(toUtf8(destination)));unwrap(await close(input));}",
+          "output": "2 he\n"
+        }
+      ]
+    },
+    {
+      "name": "readExact",
+      "signature": "function readExact(reader: Mutable<Reader>, destination: Mutable<Bytes | ByteViewMut>): Task<Result<void, IoError>>",
+      "parameters": [
+        {
+          "label": "reader",
+          "documentation": "Reader whose cursor advances."
+        },
+        {
+          "label": "destination",
+          "documentation": "Writable storage to fill completely."
+        }
+      ],
+      "documentation": "Fills the existing destination by repeating short reads. An empty destination succeeds without reading. EOF before completion returns unexpected-eof; backend failures return Err. Successfully completed prefix bytes stay written on error or cancellation; no rollback occurs.\n\nOwnership: Both resource and destination remain exclusively borrowed until actual settlement.\n\n```tsrust\nimport { reader, readExact, close } from 'std:io';\nimport { fromUtf8, toUtf8, alloc } from 'std:bytes';\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8('hello')));\n  const destination = unwrap(alloc(2));\n  unwrap(await readExact(input, destination));\n  console.log(unwrap(toUtf8(destination)));\n  unwrap(await close(input));\n}\n```\nExpected stdout: 'he\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,readExact,close} from 'std:io';import {fromUtf8,toUtf8,alloc} from 'std:bytes';async function main():Task<void>{const input=reader(unwrap(fromUtf8('hello')));const destination=unwrap(alloc(2));unwrap(await readExact(input,destination));console.log(unwrap(toUtf8(destination)));unwrap(await close(input));}",
+          "output": "he\n"
+        }
+      ]
+    },
+    {
+      "name": "readAll",
+      "signature": "function readAll(reader: Mutable<Reader>, maxBytes?: int): Task<Result<Bytes, IoError>>",
+      "parameters": [
+        {
+          "label": "reader",
+          "documentation": "Reader to consume through EOF."
+        },
+        {
+          "label": "maxBytes",
+          "documentation": "Optional nonnegative target-representable total byte bound; omitted means no total cap."
+        }
+      ],
+      "documentation": "Reads through EOF into newly owned Bytes. Its working chunks are 8192 bytes; this is not a total cap. Exceeding an explicit bound returns limit after consuming at most one extra byte to detect overrun. Completed reads are not rolled back and partial accumulated Bytes are not returned on failure. Allocation and backend errors return Err.\n\nOwnership: Exclusively borrows the reader for the lazy task and cancellation settlement.\n\n```tsrust\nimport { reader, readAll, close } from 'std:io';\nimport { fromUtf8, toUtf8, alloc } from 'std:bytes';\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8('hello')));\n  console.log(unwrap(toUtf8(unwrap(await readAll(input)))));\n  unwrap(await close(input));\n}\n```\nExpected stdout: 'hello\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,readAll,close} from 'std:io';import {fromUtf8,toUtf8,alloc} from 'std:bytes';async function main():Task<void>{const input=reader(unwrap(fromUtf8('hello')));console.log(unwrap(toUtf8(unwrap(await readAll(input)))));unwrap(await close(input));}",
+          "output": "hello\n"
+        }
+      ]
+    },
+    {
+      "name": "write",
+      "signature": "function write(writer: Mutable<Writer>, bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Task<Result<int, IoError>>",
+      "parameters": [
+        {
+          "label": "writer",
+          "documentation": "Writer whose position advances."
+        },
+        {
+          "label": "bytes",
+          "documentation": "Readable storage to write from its beginning."
+        }
+      ],
+      "documentation": "Attempts one write and returns the accepted byte count, which may be shorter than the input. Empty input returns zero without writing. Blocking-backed writers stage at most 8192 bytes per attempt. Use writeAll to complete a larger input. Backend failures return Err.\n\nOwnership: Exclusively borrows the writer and retains a shared input loan through task settlement; cancellation does not undo accepted output.\n\n```tsrust\nimport { reader, writer, write, writeAll, flush, copy, close } from 'std:io';\nimport { createTempDir, create, readFile, removeDirAll } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const directory = unwrap(createTempDir(undefined, 'io-example-'));\n  const path = directory + '/bytes';\n  const output = writer(unwrap(create(path)));\n  console.log(unwrap(await write(output, unwrap(fromUtf8('ok')))));\n  unwrap(await close(output));\n  console.log(unwrap(toUtf8(unwrap(readFile(path)))));\n  unwrap(removeDirAll(directory));\n}\n```\nExpected stdout: '2\\nok\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,writer,write,writeAll,flush,copy,close} from 'std:io';import {createTempDir,create,readFile,removeDirAll} from 'std:fs';import {fromUtf8,toUtf8} from 'std:bytes';async function main():Task<void>{const directory=unwrap(createTempDir(undefined,'io-example-'));const path=directory+'/bytes';const output=writer(unwrap(create(path)));console.log(unwrap(await write(output,unwrap(fromUtf8('ok')))));unwrap(await close(output));console.log(unwrap(toUtf8(unwrap(readFile(path)))));unwrap(removeDirAll(directory));}",
+          "output": "2\nok\n"
+        }
+      ]
+    },
+    {
+      "name": "writeAll",
+      "signature": "function writeAll(writer: Mutable<Writer>, bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Task<Result<void, IoError>>",
+      "parameters": [
+        {
+          "label": "writer",
+          "documentation": "Writer whose position advances."
+        },
+        {
+          "label": "bytes",
+          "documentation": "Readable input to write completely."
+        }
+      ],
+      "documentation": "Repeats short writes until every input byte is accepted. Empty input succeeds. A zero write before completion returns write-zero. Earlier accepted output remains on later failure or cancellation. This does not flush or guarantee durable storage.\n\nOwnership: Writer and input loans remain active through actual task settlement.\n\n```tsrust\nimport { reader, writer, write, writeAll, flush, copy, close } from 'std:io';\nimport { createTempDir, create, readFile, removeDirAll } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const directory = unwrap(createTempDir(undefined, 'io-example-'));\n  const path = directory + '/bytes';\n  const output = writer(unwrap(create(path)));\n  unwrap(await writeAll(output, unwrap(fromUtf8('ok'))));\n  unwrap(await flush(output));\n  unwrap(await close(output));\n  console.log(unwrap(toUtf8(unwrap(readFile(path)))));\n  unwrap(removeDirAll(directory));\n}\n```\nExpected stdout: 'ok\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,writer,write,writeAll,flush,copy,close} from 'std:io';import {createTempDir,create,readFile,removeDirAll} from 'std:fs';import {fromUtf8,toUtf8} from 'std:bytes';async function main():Task<void>{const directory=unwrap(createTempDir(undefined,'io-example-'));const path=directory+'/bytes';const output=writer(unwrap(create(path)));unwrap(await writeAll(output,unwrap(fromUtf8('ok'))));unwrap(await flush(output));unwrap(await close(output));console.log(unwrap(toUtf8(unwrap(readFile(path)))));unwrap(removeDirAll(directory));}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "flush",
+      "signature": "function flush(writer: Mutable<Writer>): Task<Result<void, IoError>>",
+      "parameters": [
+        {
+          "label": "writer",
+          "documentation": "Writer whose pending buffers should be flushed."
+        }
+      ],
+      "documentation": "Flushes pending backend output and returns success or IoError. Flush is distinct from filesystem durability synchronization. It neither closes nor consumes the writer.\n\nOwnership: Exclusively borrows the writer through settlement.\n\n```tsrust\nimport { reader, writer, write, writeAll, flush, copy, close } from 'std:io';\nimport { createTempDir, create, readFile, removeDirAll } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const directory = unwrap(createTempDir(undefined, 'io-example-'));\n  const path = directory + '/bytes';\n  const output = writer(unwrap(create(path)));\n  unwrap(await writeAll(output, unwrap(fromUtf8('ok'))));\n  unwrap(await flush(output));\n  unwrap(await close(output));\n  console.log(unwrap(toUtf8(unwrap(readFile(path)))));\n  unwrap(removeDirAll(directory));\n}\n```\nExpected stdout: 'ok\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,writer,write,writeAll,flush,copy,close} from 'std:io';import {createTempDir,create,readFile,removeDirAll} from 'std:fs';import {fromUtf8,toUtf8} from 'std:bytes';async function main():Task<void>{const directory=unwrap(createTempDir(undefined,'io-example-'));const path=directory+'/bytes';const output=writer(unwrap(create(path)));unwrap(await writeAll(output,unwrap(fromUtf8('ok'))));unwrap(await flush(output));unwrap(await close(output));console.log(unwrap(toUtf8(unwrap(readFile(path)))));unwrap(removeDirAll(directory));}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "copy",
+      "signature": "function copy(reader: Mutable<Reader>, writer: Mutable<Writer>, bufferSize?: int, maxBytes?: int): Task<Result<int, IoError>>",
+      "parameters": [
+        {
+          "label": "reader",
+          "documentation": "Source whose cursor advances."
+        },
+        {
+          "label": "writer",
+          "documentation": "Destination whose position advances."
+        },
+        {
+          "label": "bufferSize",
+          "documentation": "Positive target-representable working-buffer bytes; default 8192."
+        },
+        {
+          "label": "maxBytes",
+          "documentation": "Optional nonnegative target-representable total bound; omitted means no total cap."
+        }
+      ],
+      "documentation": "Streams from reader to writer through one reusable working buffer and returns bytes copied at EOF. Short writes are completed. An explicit limit writes the allowed prefix, then returns limit if one additional input byte exists; that detection byte is consumed. Errors and cancellation retain completed source/output progress. Copy does not flush or close either resource.\n\nOwnership: Retains exclusive loans on both resources until actual settlement.\n\n```tsrust\nimport { reader, writer, write, writeAll, flush, copy, close } from 'std:io';\nimport { createTempDir, create, readFile, removeDirAll } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const directory = unwrap(createTempDir(undefined, 'io-example-'));\n  const path = directory + '/bytes';\n  const output = writer(unwrap(create(path)));\n  const input = reader(unwrap(fromUtf8('ok')));\n  console.log(unwrap(await copy(input, output, 1)));\n  unwrap(await close(input));\n  unwrap(await close(output));\n  console.log(unwrap(toUtf8(unwrap(readFile(path)))));\n  unwrap(removeDirAll(directory));\n}\n```\nExpected stdout: '2\\nok\\n'.",
+      "examples": [
+        {
+          "source": "import {reader,writer,write,writeAll,flush,copy,close} from 'std:io';import {createTempDir,create,readFile,removeDirAll} from 'std:fs';import {fromUtf8,toUtf8} from 'std:bytes';async function main():Task<void>{const directory=unwrap(createTempDir(undefined,'io-example-'));const path=directory+'/bytes';const output=writer(unwrap(create(path)));const input=reader(unwrap(fromUtf8('ok')));console.log(unwrap(await copy(input,output,1)));unwrap(await close(input));unwrap(await close(output));console.log(unwrap(toUtf8(unwrap(readFile(path)))));unwrap(removeDirAll(directory));}",
+          "output": "2\nok\n"
+        }
+      ]
+    },
+    {
+      "name": "lines",
+      "signature": "function lines(reader: Reader, maxLineBytes?: int): Result<LineReader, IoError>",
+      "parameters": [
+        {
+          "label": "reader",
+          "documentation": "Reader to consume into line iteration."
+        },
+        {
+          "label": "maxLineBytes",
+          "documentation": "Optional nonnegative target-representable raw-byte limit per line, including terminators; omitted means no total line cap."
+        }
+      ],
+      "documentation": "Creates a LineReader without reading. Invalid bounds or buffer reservation return Err. Its 8192-byte read-ahead buffer is a working buffer, not a line or stream cap. Read ahead stays owned by the adapter.\n\nOwnership: Consumes the reader and preserves its staged unread bytes.\n\n```tsrust\nimport { reader, readInto, readExact, readAll, lines, readLine, close } from \"std:io\";\nimport { fromUtf8, alloc, toUtf8 } from \"std:bytes\";\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8(\"hello\")));\n  const destination = unwrap(alloc(2));\n  console.log(unwrap(await readInto(input, destination)), unwrap(toUtf8(destination)));\n  unwrap(await readExact(input, destination));\n  console.log(unwrap(toUtf8(destination)), unwrap(toUtf8(unwrap(await readAll(input)))));\n  unwrap(await close(input));\n  const rows = unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n  console.log(unwrap(await readLine(rows)), unwrap(await readLine(rows)), unwrap(await readLine(rows)));\n  console.log(unwrap(await readLine(rows)) === undefined);\n  unwrap(await close(rows));\n}\n```\nExpected output: 2 he; ll o; a, empty line, last; true.",
+      "examples": [
+        {
+          "source": "import {reader,readInto,readExact,readAll,lines,readLine,close} from \"std:io\";\nimport {fromUtf8,alloc,toUtf8} from \"std:bytes\";\nasync function main():Task<void>{\n const input=reader(unwrap(fromUtf8(\"hello\")));\n const destination=unwrap(alloc(2));\n console.log(unwrap(await readInto(input,destination)),unwrap(toUtf8(destination)));\n unwrap(await readExact(input,destination));\n console.log(unwrap(toUtf8(destination)),unwrap(toUtf8(unwrap(await readAll(input)))));\n unwrap(await close(input));\n const rows=unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n console.log(unwrap(await readLine(rows)),unwrap(await readLine(rows)),unwrap(await readLine(rows)));\n console.log(unwrap(await readLine(rows))===undefined);\n unwrap(await close(rows));\n}\n",
+          "output": "2 he\nll o\na  last\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "readLine",
+      "signature": "function readLine(reader: Mutable<LineReader>): Task<Result<string | undefined, IoError>>",
+      "parameters": [
+        {
+          "label": "reader",
+          "documentation": "LineReader to advance."
+        }
+      ],
+      "documentation": "Returns the next UTF-8 line, stripping LF and an optional immediately preceding CR. An empty line is \"\"; EOF with no remaining bytes is undefined. An unterminated final line is returned. UTF-8 may span read boundaries. Invalid UTF-8 returns encoding. An explicit raw-byte line overrun consumes its prefix plus one detection byte and returns limit; no rollback occurs.\n\nOwnership: Exclusively borrows the line reader; cancellation retains accumulated line bytes and unread read-ahead storage.\n\n```tsrust\nimport { reader, readInto, readExact, readAll, lines, readLine, close } from \"std:io\";\nimport { fromUtf8, alloc, toUtf8 } from \"std:bytes\";\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8(\"hello\")));\n  const destination = unwrap(alloc(2));\n  console.log(unwrap(await readInto(input, destination)), unwrap(toUtf8(destination)));\n  unwrap(await readExact(input, destination));\n  console.log(unwrap(toUtf8(destination)), unwrap(toUtf8(unwrap(await readAll(input)))));\n  unwrap(await close(input));\n  const rows = unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n  console.log(unwrap(await readLine(rows)), unwrap(await readLine(rows)), unwrap(await readLine(rows)));\n  console.log(unwrap(await readLine(rows)) === undefined);\n  unwrap(await close(rows));\n}\n```\nExpected output: 2 he; ll o; a, empty line, last; true.",
+      "examples": [
+        {
+          "source": "import {reader,readInto,readExact,readAll,lines,readLine,close} from \"std:io\";\nimport {fromUtf8,alloc,toUtf8} from \"std:bytes\";\nasync function main():Task<void>{\n const input=reader(unwrap(fromUtf8(\"hello\")));\n const destination=unwrap(alloc(2));\n console.log(unwrap(await readInto(input,destination)),unwrap(toUtf8(destination)));\n unwrap(await readExact(input,destination));\n console.log(unwrap(toUtf8(destination)),unwrap(toUtf8(unwrap(await readAll(input)))));\n unwrap(await close(input));\n const rows=unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n console.log(unwrap(await readLine(rows)),unwrap(await readLine(rows)),unwrap(await readLine(rows)));\n console.log(unwrap(await readLine(rows))===undefined);\n unwrap(await close(rows));\n}\n",
+          "output": "2 he\nll o\na  last\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "signature": "function close(resource: Reader | LineReader | Writer): Task<Result<void, IoError>>",
+      "parameters": [
+        {
+          "label": "resource",
+          "documentation": "Owned adapter to consume."
+        }
+      ],
+      "documentation": "Closes a reader or line reader, or flushes/shuts down a writer, and reports backend failure. The resource is consumed even on Err. Dropping an unclosed adapter releases it automatically; asynchronous scope drainage waits for outstanding blocking operations and release cleanup. Explicit close is required to observe release/flush failures.\n\nOwnership: Consumes the adapter into the lazy task; later access is rejected.\n\n```tsrust\nimport { reader, readInto, readExact, readAll, lines, readLine, close } from \"std:io\";\nimport { fromUtf8, alloc, toUtf8 } from \"std:bytes\";\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8(\"hello\")));\n  const destination = unwrap(alloc(2));\n  console.log(unwrap(await readInto(input, destination)), unwrap(toUtf8(destination)));\n  unwrap(await readExact(input, destination));\n  console.log(unwrap(toUtf8(destination)), unwrap(toUtf8(unwrap(await readAll(input)))));\n  unwrap(await close(input));\n  const rows = unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n  console.log(unwrap(await readLine(rows)), unwrap(await readLine(rows)), unwrap(await readLine(rows)));\n  console.log(unwrap(await readLine(rows)) === undefined);\n  unwrap(await close(rows));\n}\n```\nExpected output: 2 he; ll o; a, empty line, last; true.",
+      "examples": [
+        {
+          "source": "import {reader,readInto,readExact,readAll,lines,readLine,close} from \"std:io\";\nimport {fromUtf8,alloc,toUtf8} from \"std:bytes\";\nasync function main():Task<void>{\n const input=reader(unwrap(fromUtf8(\"hello\")));\n const destination=unwrap(alloc(2));\n console.log(unwrap(await readInto(input,destination)),unwrap(toUtf8(destination)));\n unwrap(await readExact(input,destination));\n console.log(unwrap(toUtf8(destination)),unwrap(toUtf8(unwrap(await readAll(input)))));\n unwrap(await close(input));\n const rows=unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n console.log(unwrap(await readLine(rows)),unwrap(await readLine(rows)),unwrap(await readLine(rows)));\n console.log(unwrap(await readLine(rows))===undefined);\n unwrap(await close(rows));\n}\n",
+          "output": "2 he\nll o\na  last\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "readStdin",
+      "signature": "function readStdin(stdin: Mutable<Stdin>, maxBytes?: int): Result<Bytes, IoError>",
+      "parameters": [
+        {
+          "label": "stdin",
+          "documentation": "Synchronous input handle."
+        },
+        {
+          "label": "maxBytes",
+          "documentation": "Nonnegative target-representable single-read size; default 8192."
+        }
+      ],
+      "documentation": "Blocks the current thread for one short read. Returns owned Bytes; empty Bytes means EOF unless a zero size was requested. Interrupted reads retry. Range, allocation and backend failures return Err.\n\nOwnership: Exclusively borrows the input handle during the call.\n\n```tsrust\nimport { stdin, Stdin, IoError, readStdin } from 'std:io';\nimport { Bytes } from 'std:bytes';\n\nfunction read(input: Mutable<Stdin>): Result<Bytes, IoError> {\n  return readStdin(input);\n}\n\nfunction main() {\n  const input = stdin();\n}\n```\nExpected stdout: ''.",
+      "examples": [
+        {
+          "source": "import {stdin,Stdin,IoError,readStdin} from 'std:io';import {Bytes} from 'std:bytes';function read(input:Mutable<Stdin>):Result<Bytes,IoError>{return readStdin(input);}function main(){const input=stdin();}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "readLineStdin",
+      "signature": "function readLineStdin(stdin: Mutable<Stdin>, maxLineBytes?: int): Result<string | undefined, IoError>",
+      "parameters": [
+        {
+          "label": "stdin",
+          "documentation": "Synchronous input handle."
+        },
+        {
+          "label": "maxLineBytes",
+          "documentation": "Optional nonnegative target-representable raw-byte line bound, including terminators."
+        }
+      ],
+      "documentation": "Blocks until a line or EOF. Removes LF and optional preceding CR; returns empty string for an empty line and undefined at exhausted EOF. Preserves an unterminated final line. Invalid UTF-8 returns encoding. Explicit-limit failure consumes the prefix and one detection byte; completed reads are not rolled back.\n\nOwnership: Exclusively borrows standard input during this blocking call.\n\n```tsrust\nimport { stdin, Stdin, IoError, readLineStdin } from 'std:io';\nimport { Bytes } from 'std:bytes';\n\nfunction read(input: Mutable<Stdin>): Result<string | undefined, IoError> {\n  return readLineStdin(input);\n}\n\nfunction main() {\n  const input = stdin();\n}\n```\nExpected stdout: ''.",
+      "examples": [
+        {
+          "source": "import {stdin,Stdin,IoError,readLineStdin} from 'std:io';import {Bytes} from 'std:bytes';function read(input:Mutable<Stdin>):Result<string|undefined,IoError>{return readLineStdin(input);}function main(){const input=stdin();}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "body",
+      "signature": "function body(reader: Reader): Body",
+      "parameters": [
+        {
+          "label": "reader",
+          "documentation": "Reader to consume into a streaming HTTP body."
+        }
+      ],
+      "documentation": "Creates an HTTP Body that reads the source only as downstream requests frames. It uses bounded working chunks and no total-stream accumulation or implicit total-byte cap. Producer read failures fail the body. Dropping the body releases its reader; already started blocking reads settle through asynchronous scope cleanup.\n\nOwnership: Transfers the reader into the body; do not reuse the reader.\n\n```tsrust\nimport { reader, body } from 'std:io';\nimport { File } from 'std:fs';\nimport { Body } from 'std:http';\n\nfunction fileBody(input: File): Body {\n  return body(reader(input));\n}\n\nfunction main() {}\n```\nExpected stdout: ''.",
+      "examples": [
+        {
+          "source": "import {reader,body} from 'std:io';import {File} from 'std:fs';import {Body} from 'std:http';function fileBody(input:File):Body{return body(reader(input));}function main(){}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "Reader",
+      "signature": "type Reader",
+      "parameters": [],
+      "documentation": "Owned readable adapter with cursor progress and cancellation-safe staging.\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
+      "examples": [
+        {
+          "source": "import {Reader} from \"std:io\";function inspect(value:ReadOnly<Reader>):void{}function main(){}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "Writer",
+      "signature": "type Writer",
+      "parameters": [],
+      "documentation": "Owned writable adapter; writeAll completes short writes, flush reports buffered failures, and close consumes the adapter.\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
+      "examples": [
+        {
+          "source": "import {Writer} from \"std:io\";function inspect(value:ReadOnly<Writer>):void{}function main(){}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "LineReader",
+      "signature": "type LineReader",
+      "parameters": [],
+      "documentation": "Owned UTF-8 line adapter retaining read-ahead and partial line state.\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
+      "examples": [
+        {
+          "source": "import {LineReader} from \"std:io\";function inspect(value:ReadOnly<LineReader>):void{}function main(){}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "Stdin",
+      "signature": "type Stdin",
+      "parameters": [],
+      "documentation": "Owned synchronous standard-input handle; its reads block the calling thread.\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
+      "examples": [
+        {
+          "source": "import {Stdin} from \"std:io\";function inspect(value:ReadOnly<Stdin>):void{}function main(){}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "IoError",
+      "signature": "type IoError",
+      "parameters": [],
+      "documentation": "I/O failure data: code and operation identify the failure, message describes it, and optional osCode carries the platform error number. Completed I/O is not rolled back.\n\nOwnership: Error records clone independently.",
+      "examples": [
+        {
+          "source": "import {IoError} from \"std:io\";function main(){const error:IoError={code:\"range\",operation:\"read\",message:\"invalid length\"};console.log(error.code,error.operation,error.message,error.osCode);}",
+          "output": "range read invalid length undefined\n"
+        }
+      ],
+      "fields": {
+        "code": {
+          "documentation": "Failure category as string, including range, allocation, unexpected-eof, limit, encoding, write-zero and backend I/O categories. Reading the field does not change the failed resource.\n\n```tsrust\nimport { IoError } from \"std:io\";\n\nfunction main() {\n  const error: IoError = {\n    code: \"range\", operation: \"read\", message: \"invalid length\"\n  };\n  console.log(error.code, error.operation, error.message, error.osCode);\n}\n```\nExpected stdout: range read invalid length undefined.\n\nOwnership: string fields can be read through a shared borrow or explicitly cloned; osCode copies."
+        },
+        "operation": {
+          "documentation": "Operation associated with the failure, such as read, write, flush or close. Buffered file failures retain their backend operation name. Reading the field does not change the failed resource.\n\n```tsrust\nimport { IoError } from \"std:io\";\n\nfunction main() {\n  const error: IoError = {\n    code: \"range\", operation: \"read\", message: \"invalid length\"\n  };\n  console.log(error.code, error.operation, error.message, error.osCode);\n}\n```\nExpected stdout: range read invalid length undefined.\n\nOwnership: string fields can be read through a shared borrow or explicitly cloned; osCode copies."
+        },
+        "message": {
+          "documentation": "Human-readable failure explanation. Host I/O text can vary across platforms; branch on code rather than parsing this string. Reading the field does not change the failed resource.\n\n```tsrust\nimport { IoError } from \"std:io\";\n\nfunction main() {\n  const error: IoError = {\n    code: \"range\", operation: \"read\", message: \"invalid length\"\n  };\n  console.log(error.code, error.operation, error.message, error.osCode);\n}\n```\nExpected stdout: range read invalid length undefined.\n\nOwnership: string fields can be read through a shared borrow or explicitly cloned; osCode copies."
+        },
+        "osCode": {
+          "documentation": "Optional platform error number as int | undefined. Validation, allocation and non-OS failures can omit it. Reading the field does not change the failed resource.\n\n```tsrust\nimport { IoError } from \"std:io\";\n\nfunction main() {\n  const error: IoError = {\n    code: \"range\", operation: \"read\", message: \"invalid length\"\n  };\n  console.log(error.code, error.operation, error.message, error.osCode);\n}\n```\nExpected stdout: range read invalid length undefined.\n\nOwnership: string fields can be read through a shared borrow or explicitly cloned; osCode copies."
+        }
+      }
+    }
   ]
 }
