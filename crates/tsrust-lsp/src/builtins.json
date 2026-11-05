@@ -7556,6 +7556,18 @@
   ],
   "std:fs": [
     {
+      "name": "SeekOrigin",
+      "signature": "type SeekOrigin = \"start\" | \"current\" | \"end\"",
+      "parameters": [],
+      "documentation": "A file cursor reference point: \"start\" counts from byte zero, \"current\" from the current cursor, and \"end\" from the file length. This type takes no arguments and changes no file. Offsets use exact signed integers; seeking before byte zero fails. Values outside these three spellings are rejected during checking. Ownership: the literal value copies.\n\n```tsrust\nimport { SeekOrigin } from \"std:fs\";\n\nfunction main() {\n  const origin: SeekOrigin = \"start\";\n  console.log(origin);\n}\n```\n\nExpected output: start.",
+      "examples": [
+        {
+          "source": "import {SeekOrigin} from \"std:fs\"; function main(){const origin:SeekOrigin=\"start\";console.log(origin);}",
+          "output": "start\n"
+        }
+      ]
+    },
+    {
       "name": "File",
       "signature": "type File",
       "parameters": [],

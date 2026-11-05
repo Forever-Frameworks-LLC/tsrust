@@ -66,7 +66,7 @@ pub(crate) fn method(identity:Option<NativeTypeId>,name:&str)->Option<&'static N
 }
 
 pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
- if program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:url")) {
+ if program.records.iter().any(|record|matches!(record.native_type,Some(NativeTypeId::Url | NativeTypeId::SearchParams))) {
   for binding in OPERATIONS {crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}
  }
  Ok(())

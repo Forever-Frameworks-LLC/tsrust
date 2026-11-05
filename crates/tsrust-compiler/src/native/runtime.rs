@@ -10,6 +10,7 @@ pub struct Units {
 
 pub fn requires_byte_codecs(source:&str)->bool {source.contains("fn codec_base64_engine(")}
 pub fn requires_byte_search(source:&str)->bool {source.contains(include_str!("../stdlib/bytes/runtime/search.rs"))}
+pub fn requires_temporary_files(source:&str)->bool {source.contains("mod tsrust_native_tempfiles {")}
 
 pub(crate) fn bytes_module(views:bool,utf8:bool,codecs:bool,base64:bool,operations:bool,binary:bool,search:bool)->String {
     let mut text=String::from("mod tsrust_native_bytes {\n");

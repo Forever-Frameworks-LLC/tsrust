@@ -7,6 +7,8 @@ publish = false
 [workspace]
 
 [dependencies]
+memchr = { version = "=2.8.3", optional = true }
+tempfile = { version = "=3.27.0", optional = true }
 percent-encoding = { version = "=2.3.2", optional = true }
 base64 = { version = "=0.23.1", optional = true }
 nix = { version = "=0.31.2", default-features = false, optional = true }
@@ -50,10 +52,12 @@ arboard = { version = "=3.7.0", default-features = false, features = ["wayland-d
 [features]
 url = ["dep:url", "dep:percent-encoding"]
 byte-codecs = ["dep:base64"]
+byte-search = ["dep:memchr"]
 ui = ["dep:url", "dep:kurbo", "dep:svgtypes"]
 ui-web = ["ui", "dep:wasm-bindgen", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen-futures"]
 default = []
 files = ["dep:nix"]
+temporary-files = ["files", "dep:tempfile"]
 async = ["dep:tokio"]
 http = ["async", "dep:axum", "dep:tower-http", "dep:matchit", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
 threads = ["dep:rayon"]

@@ -30,6 +30,126 @@ candidate additionally integrates URL facade a5328d77, reproducible scaling
 URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
 No new URL/codec native gate or platform completion is claimed.
 
+**Canonical checkpoints in this continuation:**422331a4 adds tempfile pins,
+e3d1110b native literal aliases, d7ff8603 void/native-use/URL emission fixes,
+067eda23 optional measured search pin, and2c5dc860 the exact Linker fixture repair.
+Codec acceptance preservation c7898da is now merged additively (21files), including
+actual borrowed UTF16 literal-union payload use, original generic Result fixture,
+O0/O3 catalog/relocated export/LSP witnesses and independent result buffers plus
+UTF16 allocation probe. This is source readiness, not positive native acceptance;
+no compiler/test process ran on that merged codec delta yet. No DB change or new
+canonical API timing occurred in this continuation.
+
+Runtime worker clean8dcc5426 contains the shared-target repair, both fixture
+corrections and real dev interruption while target lock is contended. Its final
+all-target rerun is live handle34387; worker retains exclusive heavy lease and
+will run direct binaries only after successful check/no-run. Root performs only
+light source integration/formatting. FS clean mergee3211f93 preserves its complete
+42-export source section and canonical e3 base; cursors and matched seek/read
+benchmark are in progress. Byte worker completes14binary/buffer APIs and39matched
+rows, with fullcanonical2c handback available after its source preservation.
+
+**Active shared-target validation:** worker source checkpoint5dc08536 plus
+bfaea2c8 external-target lock assertions is merged with canonical d7ff8603 as
+b24f2299. Whole worker formatter passes0/0/0. Its first all-target check caught
+two cfg(test) Linker constructors missing the new used_native field (39.477s/
+1,816,754KiB, exit101). Root explicitly transferred only those two initializer
+hunks to the runtime worker for repair; do not label d7ff as all-target accepted.
+That repair is worker24f838c4; its affected check then identified the same second
+fixture also needs `let mut linker` after visitor methods became mutable
+(55.517s/1,763,090KiB, exit101). The exact mutability line is also transferred and
+applied with the two constructor fields in canonical source. Both failed checks
+remain evidence; no test failure was bypassed.
+Worker retains the heavy lease and reruns affected checks, then direct test
+binaries after --no-run for nested Cargo/cache controls. Actual dev cancellation
+requires a descendant-aware watchdog because dev intentionally creates child
+process groups; old PGID-only watchdog evidence does not prove aggregate dev
+memory bounds. Root normal Cargo tests inherit one process group and remain
+covered by their recorded watchdogs. No shared-target acceptance is claimed yet.
+
+Root optional search pin prerequisite is prepared: memchr=2.8.3 in compiler dev
+and both runtimes (`byte-search` only), plus same-stack reference dependency and
+reserved-pin protection. Four offline metadata runs pass0.523/0.522/0.523/0.525s,
+peak25,968KiB; independent comparisons verify all previous packages/checksums and
+defaults unchanged. Only reference graph adds memchr, already locked in the other
+three graphs. Actual bytes backend helper/extraction/14API registration/effects
+and39 matched benchmark rows are owned additively by the core worker; root must
+merge that completed family, then add the CLI byte-search selector alongside
+requires_byte_codecs. No API, generated-code, platform or timing completion is
+implied by the dependency prerequisite.
+
+**URL emission defect repair:** readiness test2b1d3790 first called the single-file
+checker on imports (syntax failure); it now uses the real project loader. That
+exposed genuine synthetic `void` record fields from private URL methods. Native
+void signatures now resolve directly to Type::Void without creating an illegal
+field. Native imports are prepared from resolved AST references/annotations after
+lexical linking, not import presence; this preserves renames, source aliases,
+shadowing and property-name distinctions. URL methods are prepared for opaque
+Url/SearchParams storage only. Runtime emission and the url feature follow actual
+storage/calls, including owner-free component encoding and source-only Url
+signatures; plain UrlError/QueryEntry records need no URL dependency. No lexical
+source-token heuristic or weakened ownership rule was introduced.
+
+Focused source evidence: URL manifest+emission2/2 (13 use/omission cases), final
+2.602s/377,504KiB; native literal alias1/1 passed in the initial combined rebuild
+204.826s/2,565,474KiB. That first repaired run reached all8 original cases but its
+last whitespace-sensitive alias assertion failed; only that assertion was made
+format-independent, and5 cases added before the final passing run. Existing native
+import/opaque construction1/1 passes3.634s/344,688KiB; strict/tolerant graph aliases,
+byte arity/ownership and UTF8 argument controls3/3 pass0.521s/5,536KiB. Earlier
+witness failures are retained in /tmp logs. No CLI cache-miss, native URL execution,
+new timing, full regression or current LSP acceptance is claimed for this repair.
+Next: merge this committed prerequisite into runtime worker5dc08536 and validate
+shared-target staging/caller/reuse controls before returning native leases to FS
+and bytes. Runtime worker must use --no-run then direct test binaries for nested
+Cargo controls. Root codec acceptance c7898da is still pending integration.
+
+Byte operations prototype (not a measured feature gate) passes std and independent
+Node/BigInt/DataView vectors. Three rotated processes,8 warmups/31 samples each;
+quiet loads2.285–2.337,12.601s/253,056KiB. Concat has one exact output allocation,
+other kernels zero allocations/reallocations and zero retained storage after drop.
+Memchr2.8.3 search candidate:4KiB tail107ns vs std1428ns;1MiB20,969ns vs465,823ns;
+65KiB repetitive miss66,063ns vs377,313ns. Small inputs favor std; no hand-built
+hybrid selected. Node26 prototype timings remain supplementary; pinned Node24.11.1
+independent preflight passed once. Driver now enforces24.11.1. Byte worker proceeds
+14 APIs with optional search-only memchr; root pins/closure and platform controls
+remain pending. No prototype measurements were ingested into the benchmark DB.
+
+**Cursor alias prerequisite:** compiler native exports now distinguish transparent
+aliases from nominal record declarations and functions. `std:fs.SeekOrigin` expands
+through existing alias parsing to exactly `"start" | "current" | "end"`; source
+renames and cross-file aliases preserve that restriction. It selects no native
+runtime/dependencies and cannot be used as a value. LSP hover/completion share
+this compiler metadata; the catalog includes behavior, ownership and an executable
+example. Focused compiler integration passes1/1 in216.798s/2,565,362KiB (including
+build), checking the allowed aliases, invalid literals, widened strings, value
+misuse and runtime omission. Focused LSP integration passes1/1 in204.001s/
+2,511,090KiB (including its separately selected dependency graph), checking renamed
+alias hover and unfinished import completion. Both used the one absolute target,
+offline/locked, incremental off, jobs1, threads3 and5GB/30min watchdog. No normal
+CLI cache-miss test ran. `seek`/`position`, native/catalog execution and four-phase
+FS editor acceptance remain worker tasks after full committed-base integration.
+Tempfile prerequisite is committed422331a4; FS preservation checkpoint87ceb53f
+is source-only and awaits this alias/base plus shared-target repair. Codec
+preservation checkpointc7898da and URL selection test2b1d3790 remain ready to merge.
+
+**Next dependency prerequisite:** exact `tempfile =3.27.0` is now optional in both
+runtime manifests behind `temporary-files = ["files", "dep:tempfile"]`; compiler
+unit tests have the direct dev dependency and runtime pins are reserved from
+binding overrides. Offline full Cargo metadata resolves all three lockfiles
+(0.517/0.518/0.520s; peaks20,976/21,872/23,824KiB). Independent lock comparison
+proves every pre-existing dependency unchanged; only backend adds tempfile,
+fastrand2.5.0, rustix1.1.5 and linux-raw-sys0.12.1. Default/files features stay
+unchanged. Runtime marker and portable-export feature selection are prepared;
+CLI selection is assigned with the shared-target repair. This is a dependency
+prerequisite, not acceptance of the worker's unmerged temporary-directory API.
+
+Root combined URL/generic checkpoint is1cc4a307. Codec acceptance WIP is preserved
+in worker c7898da (pending integration/native acceptance). Runtime worker owns the
+shared-target repair; filesystem worker awaits that repair plus these pins. Live
+GitHub recheck confirms PR15 and promotion PR14 merged; release41942318885,
+publisher41944583887 and docs41944660013 succeeded. No open PRs remain.
+
 **Shared target blocker discovered:** inherited cli/runtime_build.rs chooses a
 private build_root/native-target and removes CARGO_TARGET_DIR; outer test env did
 not prove inner CLI target reuse. Prior FS correctness remains valid, but sole-
