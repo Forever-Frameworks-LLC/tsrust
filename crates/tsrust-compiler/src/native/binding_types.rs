@@ -14,6 +14,7 @@ fn key(signature:&Signature,parameters:&[Signature])->Result<String,Diagnostic>{
 /// Prepare a concrete type shape. Callable borrowed-result validation remains in
 /// prepare; this helper does not register or authorize a native callable.
 pub(crate) fn prepare_signature(records:&mut Vec<Record>,signature:&Signature,parameters:&[Signature],span:Span)->Result<(),Diagnostic>{
+    if *signature == Signature::Void { return Ok(()); }
     let name=key(signature,parameters)?;
     if records.iter().any(|record|record.name.text==name){return Ok(());}
     let annotation=crate::native_type_resolution::project_with_parameters(records,signature,parameters,span)?;
@@ -26,6 +27,7 @@ pub(crate) fn prepare_signature(records:&mut Vec<Record>,signature:&Signature,pa
 }
 
 pub(crate) fn resolve_signature(records:&[Record],signature:&Signature,parameters:&[Signature])->Option<Type>{
+    if *signature == Signature::Void { return Some(Type::Void); }
     let name=key(signature,parameters).ok()?;
     records.iter().find(|record|record.name.text==name)?.fields.first()?.ty
 }

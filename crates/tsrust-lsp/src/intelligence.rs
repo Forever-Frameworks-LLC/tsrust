@@ -2731,6 +2731,18 @@ impl SourceIndex {
             });
             return;
         }
+        if let Ok(tsrust_compiler::native_exports::Export::Alias(alias)) = tsrust_compiler::native_exports::lookup(module, exported) {
+            let ty = alias.signature.render(|_| None).expect("literal native alias").into_owned();
+            self.type_aliases.insert(local.into(), ty.clone());
+            let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented native alias");
+            self.symbols.push(Symbol {
+                name: local.into(), kind: 26, span, extent: span, scope: 0,
+                signature: format!("type {local} = {ty}"), ty,
+                docs: catalog["documentation"].as_str().unwrap_or("").into(),
+                parameters: vec![], owner: None,
+            });
+            return;
+        }
         if let Ok(tsrust_compiler::native_exports::Export::Type(declaration)) = tsrust_compiler::native_exports::lookup(module, exported) {
             self.import_native_type(declaration, local, span);
             return;

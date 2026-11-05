@@ -219,6 +219,15 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         offset += length + 1;
         let mut imported = crate::type_aliases::Aliases::new();
         for import in &source.imports {
+            if let Some(native) = import.native {
+                for binding in &import.bindings {
+                    if let Ok(crate::native_exports::Export::Alias(alias)) = crate::native_exports::lookup(native, &binding.exported) {
+                        let annotation = crate::native_type_resolution::project(&mut Vec::new(), &alias.signature, binding.span)
+                            .map_err(|value| ProjectDiagnostic { code: value.code, message: value.message, location: SourceLocation { source: id.clone(), span: value.span }, related: vec![], fixes: Box::new([]) })?;
+                        imported.insert(binding.local.clone(), crate::type_aliases::Alias { span: binding.span, parameters: vec![], annotation });
+                    }
+                }
+            }
             let Some(target) = import.target.as_ref().and_then(|target| module_aliases.get(target)) else { continue };
             for binding in &import.bindings {
                 if let Some(alias) = target.get(&binding.exported) {
@@ -395,16 +404,11 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                     if let Some(native) = import.native {
                         match crate::native_exports::lookup(native, &binding.exported).expect("validated native export") {
                             crate::native_exports::Export::Namespace(namespace) => namespace.symbol().into(),
+                            crate::native_exports::Export::Alias(_) => symbol(module, &binding.local),
                             crate::native_exports::Export::Function(function) => {
-                                let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
-                                crate::native_binding_types::prepare(&mut linked.records, function, span)
-                                    .map_err(|value| diagnostic(&graph, &segments, value))?;
-                                format!("@native:{native}#{}", binding.exported)
+                                format!("@native:{native}#{}", function.name)
                             },
                             crate::native_exports::Export::Type(item) => {
-                                let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
-                                crate::native_type_resolution::intern(&mut linked.records, item.id, span)
-                                    .map_err(|value| diagnostic(&graph, &segments, value))?;
                                 crate::native_type_resolution::linked_name(item.id)
                             }
                         }
@@ -424,6 +428,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             names: &names,
             imported_bindings: graph.modules[id].imports.iter().flat_map(|import| import.bindings.iter().map(|binding| binding.local.clone())).collect(),
             assignment_error: None,
+            used_native: BTreeMap::new(),
             testing_types: id.0 == "std:testing",
             module,
             offset: segments[module].1,
@@ -510,6 +515,16 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         if let Some(error) = visitor.assignment_error.take() {
             return Err(diagnostic(&graph, &segments, error));
         }
+        for (name, span) in &visitor.used_native {
+            if let Some((_, binding)) = crate::native_bindings::by_symbol(name) {
+                crate::native_binding_types::prepare(&mut linked.records, binding, *span)
+                    .map_err(|value| diagnostic(&graph, &segments, value))?;
+            } else if let Some((module, name)) = name.strip_prefix(crate::type_aliases::LINKED_PREFIX).and_then(|name| name.strip_prefix("native#")).and_then(|name| name.split_once('#')) {
+                let item = crate::native_types::lookup(module, name).expect("linked native type identity");
+                crate::native_type_resolution::intern(&mut linked.records, item.id, *span)
+                    .map_err(|value| diagnostic(&graph, &segments, value))?;
+            }
+        }
         let declaration_offset = linked.local_declarations.len();
         let scope_offset = linked.local_declarations.iter().map(|declaration| declaration.scope + 1).max().unwrap_or(0);
         let owner_offset = linked.functions.len();
@@ -593,6 +608,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
 struct Linker<'a> {
     imported_bindings: BTreeSet<String>,
     assignment_error: Option<Diagnostic>,
+    used_native: BTreeMap<String, Span>,
     testing_types: bool,
     names: &'a BTreeMap<String, String>,
     module: usize,
@@ -608,7 +624,7 @@ impl Linker<'_> {
     fn token_span(&self, token: &mut Token) {
         self.span(&mut token.span);
     }
-    fn annotation(&self, token: &mut Token) {
+    fn annotation(&mut self, token: &mut Token) {
         token.text = token
             .text
             .split('|')
@@ -635,8 +651,14 @@ impl Linker<'_> {
             .collect::<Vec<_>>()
             .join("|");
         self.token_span(token);
+        for part in token.text.split('|') {
+            let name = part.trim_end_matches("[]");
+            if name.strip_prefix(crate::type_aliases::LINKED_PREFIX).is_some_and(|name| name.starts_with("native#")) {
+                self.used_native.entry(name.into()).or_insert(token.span);
+            }
+        }
     }
-    fn value_annotation(&self, annotation: &mut crate::type_syntax::ValueAnnotation) {
+    fn value_annotation(&mut self, annotation: &mut crate::type_syntax::ValueAnnotation) {
         use crate::type_syntax::ValueAnnotationKind as Kind;
         self.span(&mut annotation.span);
         match &mut annotation.kind {
@@ -670,7 +692,7 @@ impl Linker<'_> {
             }
         }
     }
-    fn parameter(&self, param: &mut CallableParameter) {
+    fn parameter(&mut self, param: &mut CallableParameter) {
         self.token_span(&mut param.name);
         if let Some(access) = &mut param.access {
             self.token_span(access);
@@ -688,14 +710,14 @@ impl Linker<'_> {
             ParameterInitializer::Default { value, span } => { self.span(span); self.expr(value, locals); }
         }
     }
-    fn callback(&self, callback: &mut CallbackAnnotation) {
+    fn callback(&mut self, callback: &mut CallbackAnnotation) {
         self.span(&mut callback.span);
         for param in &mut callback.params {
             self.parameter(param);
         }
         self.result(&mut callback.result);
     }
-    fn result(&self, result: &mut ResultAnnotation) {
+    fn result(&mut self, result: &mut ResultAnnotation) {
         match result {
             ResultAnnotation::Inferred(_) => {},
             ResultAnnotation::Named(token) => self.value_annotation(token),
@@ -873,6 +895,9 @@ impl Linker<'_> {
                     ) {
                         *name = symbol(self.module, name);
                     }
+                }
+                if crate::native_bindings::by_symbol(name).is_some() {
+                    self.used_native.entry(name.clone()).or_insert(expr.span);
                 }
             }
             ExprKind::Optional { base, body, .. } => {
