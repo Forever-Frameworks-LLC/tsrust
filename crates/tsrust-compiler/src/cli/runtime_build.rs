@@ -91,6 +91,7 @@ impl Prepared {
   for (name,_) in std::env::vars_os() {if artifact_override(&name.to_string_lossy()) {command.env_remove(name);}}
   if cfg!(all(windows,target_env="msvc")){command.env("CARGO_ENCODED_RUSTFLAGS",MSVC_LINKER_FLAG);}
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
+  if tsrust_compiler::native_runtime::requires_byte_codecs(runtime){command.args(["--features","byte-codecs"]);}
   if runtime.contains("pub mod tsrust_native_files {"){command.args(["--features","files"]);}
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}

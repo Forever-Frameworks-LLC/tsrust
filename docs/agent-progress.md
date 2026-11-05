@@ -13,31 +13,46 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
-Latest local integration checkpoints:7f356812 validates shared native literal/
-optional-loan foundations;1a27bf89 prepares codec pins. Current benchmark support
-adds a validated optional rustReference path for shared per-operation Rust sources,
-uses it for engine selection/compilation/provenance, and enables the existing Node
-builtin typing hook for byte-codecs. The focused path/control test passes, all933
-legacy reference paths validate, run.mjs syntax and diff checks pass. Whole-project
-formatter5.163s/187,248KiB passes with0changes. No benchmark run or DB ingestion
-was performed merely for this harness change; generated/hand/Node acceptance
-for new codec workloads is still pending.
+Latest integration: codec preparation1189832b and SIMD witness e8189a42 are
+cherry-picked as97a75483/1ed2c684; independently tested URL payload da8edd91 is
+40b72ea5. Shared codec wiring now registers nine functions, selects/extracts exact
+byte support variants, enables base64 only when selected in CLI/export, and
+registers36pending workloads across12operations/3sizes with independent Rust
+references, source guards, oracle routing and report coverage. Three focused Node
+controls pass; canonical oracle routing passes36rows×n0/1/17; JS syntax/diff checks
+pass. Whole formatter5.180s/172,112KiB passes with0changes. New exact-extraction
+unit witness is written but Rust/native/editor/portable/benchmark acceptance for
+the merged codec code is still pending. No new codec measurement was ingested.
 
-Worker state: filesystem backend21tests and affected JSON writer10tests pass;
-first fs compile273.482s/3,622,339KiB, JSON group1.039s/122,544KiB. Current worker
-CLI/native/LSP checks continue under its exclusive heavy lease. Do not launch
-another Cargo/native process tree until it explicitly releases the slot. URL
-patched-dependency upstream tests/scaling follow. Codec pure Node controls pass
-2tests covering36registrations and12operations across3sizes in.619s; no native
-claim. Codec whole-project formatting lease is granted while fs compiles, with
-quiet timing coordination required. All workers must return exact source/checks
-and reviewable commits; root alone integrates the DB and this handoff.
+Filesystem worker67b90e1a is ready to integrate:47focused Rust cases (21fs,
+10JSONwriter,9native,4LSP,2catalog,1relocated offline package) plus8Node controls
+pass. New mixed-size file workload has93samples per engine: Tsrust44.623542ms,
+handwritten Rust44.858791ms, Node-after-tsc64.203500ms. Quiet guard stayed enabled,
+maxload2.286<4. Six unchanged native controls were measured with cached Node/Rust
+references; historical comparisons show no regression, not a fresh A/B claim.
+Native profile9allocations/0reallocations/67,108,955peak requested bytes, zero live
+afterdrop. Raw result files remain in the managed stdlib-files tree at
+benchmarks/runtime/results/2026-11-05T01-43-15-754Z.json and
+2026-11-05T01-44-16-061Z.json; root must ingest/verify once integrated.
+FS owns no heavy process and is beginning the next B01 directory/metadata slice
+from its accepted checkpoint; full B01 is not complete.
 
-Next root work: integrate prepared codec registry/runtime feature extraction and
-CLI/export support when its worker commit arrives; integrate the independently
-validated patched URL payload and exact embedded-source/cache/portable export
-handling before accepting URL APIs. Do not share uncommitted source across trees,
-mutate global Cargo registry source or treat backend bugs as acceptable defaults.
+URL patched payload passes upstream67unit tests, unchanged WPT with original
+expected failures,6facade controls and optimized scaling. Long-authority inputs
+8192/16384/32768/65536 now take.212667/.389875/.786000/1.579916ms (was2.214833/
+9.375167/36.205459/140.928666ms);8warmups/3×31samples, maxload1.23926. The narrow
+path-scoped reverse search preserves root/drive rules. Public setter preguard
+closes reproduced1174; no blanket WHATWG claim. URL compiler --lib check passes
+7.763s/1,258,465KiB after fixing two URL-only compile errors; actual compiler/LSP
+URL execution remains pending. Payload/runtime package/cache/export/platform
+acceptance is not yet complete. All heavy leases are released at this checkpoint;
+codec merged native acceptance is next. No concurrent native jobs or timing.
+
+Root next: integrate FS commit and ingest its original results; commit codec
+wiring and give the codec worker exact merged-source native/editor validation;
+wire embedded patched URL source materialization/cache/portable exports before
+accepting its façade. No global registry edits or uncommitted-source sharing.
+Keep this full B00–B20 goal active without asking routine continuation approval.
 
 **Active v0.2.0 implementation, 2026-11-04:** old optimization/release app goal
 is complete; new full B00–B20 goal is registered and active without a token budget.
