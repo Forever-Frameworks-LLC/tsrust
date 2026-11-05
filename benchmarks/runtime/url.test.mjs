@@ -11,8 +11,8 @@ const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
 const sha=source=>createHash('sha256').update(source).digest('hex');
 
 for(const [id,spec] of Object.entries(urlSpecs))test(`${id} preserves full observations and independent arithmetic`,()=>{
- const native=read(`./workloads/${id}.tsr`),counterpart=read(`./workloads/${id}.ts`);
  const rows=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id===id);assert.equal(rows.length,1);const row=rows[0];
+ const native=read('./'+row.source),counterpart=read('./'+row.counterpart);
  assert.equal(row.measured,false);assert.equal(reportCategory(id),'url');
  assert.equal(assertABI('fn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<i64, TsrFunctionError0> { todo!() }\nfn main() {}',row,{source:native}).fallible,true);
  for(const [kind,source] of [['native',native],['typescript',counterpart]]) {
@@ -24,7 +24,8 @@ for(const [id,spec] of Object.entries(urlSpecs))test(`${id} preserves full obser
  }
  const script=counterpart.replaceAll(': number', '').replaceAll(': string', '')+';workload';
  const workload=vm.runInNewContext(script,{URL,URLSearchParams});
- for(const n of [0,1,17,2000])for(const seed of [0,7,1000000]){assert.equal(workload(n,seed,spec.input),urlChecksum(id,n,seed,spec.input));assert.equal(expectedChecksum(id,n,seed,spec.input),seed+n*spec.weight);}
+ const sizes=id.startsWith('native_url_dot_segments_')?[0,1,3]:[0,1,17,2000];
+ for(const n of sizes)for(const seed of [0,7,1000000]){assert.equal(workload(n,seed,spec.input),urlChecksum(id,n,seed,spec.input));assert.equal(expectedChecksum(id,n,seed,spec.input),seed+n*spec.weight);}
  for(const args of [[id,-1,0,spec.input],[id,1,0,'wrong'],[id,Number.MAX_SAFE_INTEGER,0,spec.input]])assert.throws(()=>urlChecksum(...args));
 });
 
@@ -42,4 +43,16 @@ test('reused owner stays outside the loop for both authored engines',()=>{
   const moved=source.replace(parse,'').replace('while (i < n) {','while (i < n) {'+parse);
   assert.throws(()=>assertUrlSource(moved,{...row,[kind==='native'?'sourceSha256':'counterpartSha256']:sha(moved)},kind));
  }
+});
+
+test('dot-segment scaling keeps construction outside the parse loop and observes the entire URL',()=>{
+ const row=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='native_url_dot_segments_long_65536');
+ assert.equal(row.rustReference,'parity/native_url_dot_segments.rs');
+ for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]) {
+  const source=read('./'+file),key=kind==='native'?'sourceSha256':'counterpartSha256';
+  const changed=source.replace('!href.startsWith(expected)','false');assert.notEqual(changed,source);
+  assert.throws(()=>assertUrlSource(changed,{...row,[key]:sha(changed)},kind));
+ }
+ const count=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id.startsWith('native_url_dot_segments_')).length;
+ assert.equal(count,8);
 });
