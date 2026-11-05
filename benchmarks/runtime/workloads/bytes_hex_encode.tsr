@@ -1,0 +1,30 @@
+import { toHex, fromUtf8, length, at } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[] {
+  let size = 32;
+  if (input === "4k") {
+    size = 4096;
+  }
+
+  if (input === "1m") {
+    size = 1048576;
+  }
+
+  const text = "é😀Ab".repeat(size / 8);
+  const bytes = unwrap(fromUtf8(text));
+  const output: int[] = [];
+  let i = 0;
+  while (i < n) {
+    const result = unwrap(toHex(bytes));
+    output.push(result.length);
+    output.push(result.startsWith("c3a9") ? 1 : 0);
+    output.push(result.endsWith("4162") ? 1 : 0);
+    i += 1;
+  }
+
+  return output;
+}
+
+function main() {
+  workload(1, 7, "token");
+}

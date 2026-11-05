@@ -7,11 +7,120 @@ and do not create separate handoff files. Older handoffs and the long
 ## Start here
 
 Repository: `/Users/seancotter/Desktop/dev/learning/tsrust`.
-Branch: `codex/optimize-native-hot-paths` (staging PR #8; see promotion status below).
+Branch: `codex/stdlib-0.2.0`, based on verified released main8efaaee2.
 Read `AGENTS.md`, `docs/development-workflow.md` and `docs/agent-goal.md`, then
 this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
+
+**Active v0.2.0 — 2026-11-04:** owner renewed the active goal and explicitly
+requires autonomous continuation without routine approval. Scope remains all
+B00–B20 in plans/stdlib-0.2.0.md and agent-goal.md; implementation is authorized,
+v0.2 publication still needs the concrete release authorization. Previous goal
+turn made progress: v0.1.2 reached verified main/release/docs and v0.2 foundations
+started. This turn integrates source, repairs real defects and appends measurements;
+it is progress, not a blocked/no-progress turn. Do not shrink the goal to wave1.
+
+Root branch codex/stdlib-0.2.0 starts at released main8efaaee2. Checkpoints through
+46cfc4b8 include foundation7f356812, pins1a27bf89, reference routing9ec490c7,
+codec preparation97a75483/vector1ed2c684, URL dependency payload40b72ea5,
+codec wiringacbd5440 and measured portable-files46cfc4b8. The current combined
+candidate additionally integrates URL facade a5328d77, reproducible scaling
+458a539f, behavioral controls0a19267f and editor readinessa25985df, plus root
+URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
+No new URL/codec native gate or platform completion is claimed.
+
+**Shared target blocker discovered:** inherited cli/runtime_build.rs chooses a
+private build_root/native-target and removes CARGO_TARGET_DIR; outer test env did
+not prove inner CLI target reuse. Prior FS correctness remains valid, but sole-
+target compliance for CLI cache misses was not established. Benchmark dependency
+preparation already passes an explicit shared --target-dir. Do not run further
+CLI cache-miss native tests until the committed repair lands. Merely changing
+that path is insufficient: native_dependency_bundle::pack globs all .rlib/.lib/
+DLL files, so a shared compiler target would include unrelated artifacts. Repair
+must select exact Cargo-reported artifacts, isolate the runtime library from
+cross-graph alias races, preserve cancellation/errors and dependency reuse, and
+bound cache bundles to the selected closure. No hidden second target or new
+arbitrary API cap. All heavy/formatter leases are released at this checkpoint.
+
+Root URL wiring embeds the17 reviewed payload files, verifies exact bytes/file
+sets and rejects links/tampering, relocates only the parsed TOML path span without
+adding a formatting dependency, and binds both cache identities/sourcepack keys
+to payload content. Portable preparation/materialization/export retains original
+registry vendor checksums and copies the exact separate patch. All four lock
+closures pin the patched URL path; the reference closure adds its dependencies
+without upgrading existing root/backend versions. CLI/export URL features and
+record aliases are wired, package notices include licenses and patch provenance.
+Actual offline relocation/cache/platform execution remains pending.
+
+**Real generic Result defect repaired:** Result<T,E> is a private tagged union,
+while old inference required a record application. Nominal success/error payload
+unification now handles it. Result<void,E> also exposed value-only annotation,
+type-argument cache and publication gates; those now accept unit type arguments
+while ordinary void value parameters remain rejected. Final focused regression
+passes271.538s/3,719,299KiB (int/string/unit/nested Results, incompatible E and
+void-value rejection). Earlier three failures are retained in /tmp logs, not
+rewritten as passes. A frame-only LLDB trace identified generic argument
+publication; an earlier debugger value-formatting attempt hit the5GB watchdog
+(32.872s/5,063,797KiB) and terminated only owned children. Frame-only trace used
+3.653s/1,000,816KiB; no debugger/test remains active.
+
+Root affected evidence: compiler+LSP all-target check passes57.567s/1,878,178KiB;
+only pre-existing decode_plain dead-code warning remains. URL behavioral7,
+payload relocation/tamper2, native effect audit1, existing generic inference9
+and generic function3 unit tests pass (unchanged groups run from the prior built
+binary; final publication repair has its own fresh unit). Codec/URL Result-data
+no-callback error effects are explicitly audited; codec generic observer entries
+are updated. Whole canonical formatter passes5.179s/201,712KiB,0files/snippets/
+fingerprints; diff checks pass. Root Node URL14 plus codec2/reference1 and
+cross-family syntax/oracle checks pass; no new codec/URL timings were run.
+
+**Filesystem measurements ingested:**47 focused Rust cases plus8Node controls,
+O0/O3 catalog/native and relocated package checks passed on the worker source.
+Six unchanged native controls reuse cached Node/Rust references. New mixed-size
+file cycle93samples/engine: Tsrust44.623542ms, handwritten Rust44.858791ms,
+Node-after-tsc64.203500ms; max quiet load2.286<4, no override. Native profile
+9allocations/0reallocations/67,108,955peak requested bytes,0live afterdrop.
+npm run store:ingest added9history entries from the two original worker timing
+JSONs. Independently verified source/reference hashes,93samples/medians, preservation
+of every prior history entry and SQLite integrity. Timing JSONs are now disposable;
+current diagnostic profiles remain with FS worker. This is not a new fresh A/B
+claim for the six historical controls and not Windows/Linux acceptance.
+
+**Workers, one writer per managed tree:**
+- core_api_plan /stdlib-bytes: original generic fixture restored; mandatory native
+  generic regression has no ignore. Runtime3/extraction1 passed before shared
+  fixes; original positive native fixture was blocked on generic/effect defects.
+  Prepared O0/O3 catalog+native, LSP, feature/relocated export controls,36registrations/
+  12independent references and mixed/CJK allocation probes. No heavy process.
+  Its merge of46cfc4b8 and codec acceptance additions remain uncommitted; preserve
+  them. Use followup_task to wake with committed shared fixes and a lease.
+- runtime_api_plan /stdlib-url: payload da8edd91, facade a5328d77, scaling458a539f,
+  runtime controls0a19267f and editor readinessa25985df are integrated. Skip local
+  prerequisite82c17631. Prepared URL feature-only witness8cases is not executed.
+  Source selection/cache/export and actual compiler/LSP URL controls remain open.
+- host_api_plan /stdlib-files: first slice67b90e1a integrated. Next B01 section has
+  21directory/metadata/utilities APIs/four records, createTempDir optional module,
+  docs/catalog/native/editor matrices and three matched workloads in progress.
+  Pinned Node controls11/11 and TS noEmit pass; native unaccepted. Direct std
+  four-kernel prototype/profile passes2.081s/295,472KiB,0retained allocations;
+  these are allocation/build observations, not throughput. No native process.
+  Needs tempfile dependency-only handback; cursors still need shared SeekOrigin
+  literal alias metadata. Private temporary-files feature must not enter ordinary
+  files_module. Package admission facts below/plan; root owns dependency locks/DB.
+
+URL patch evidence: upstream67unit+unchanged WPT and direct runtime6passed;
+path-scoped reverse search turns long-authority sizes8192/16384/32768/65536 from
+2.214833/9.375167/36.205459/140.928666ms into.212667/.389875/.786000/1.579916ms
+(8warmups/3×31samples, maxload1.23926). Reproducible authored workloads now retain
+that control. Empty-host mutation preguard addresses1174;1164 EmptyHost behavior
+is documented, not claimed WHATWG parity. Public API timing/DB ingestion pending.
+
+Next: checkpoint the coherent shared candidate, repair the inherited shared-target
+artifact path, provide committed prerequisites to workers, resume affected native/
+editor/package validation serially. Root owns shared alias architecture, manifests/
+locks, canonical checkpoints, measurements.sqlite and this sole handoff. Keep old
+accepted checks; fix/rerun only affected cases. No pushes or full suites on a timer.
 
 Owner-requested v0.2.0 planning, 2026-11-04: concrete API/checklist work is now
 written in [stdlib-0.2.0](plans/stdlib-0.2.0.md). It has19implementation bundles,

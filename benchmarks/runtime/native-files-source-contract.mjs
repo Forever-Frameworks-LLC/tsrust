@@ -4,6 +4,14 @@ import {nativeFileIDs} from './native-files-oracle.mjs';
 export function assertNativeFilesSource(source,row,kind) {
   if(!nativeFileIDs.includes(row.id)||row.family!=='native-files'||!['native','typescript'].includes(kind))throw Error('Native file family');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Native file fingerprint');
+  if(row.id==='native_file_unbounded_full_write_read') {
+    if(row.iterations!==3||row.operationsPerIteration!==1||row.operationUnit!=='One unbounded full-file write/read and byte sum'||row.resultEncoding!=='array-shape-scalar-v1'||row.inputText!=='native-file-fixture-v1')throw Error('Unbounded file denominator');
+    const required=['const destination=input+".out";','let count=65536;','if(i%3===1){count=1048576;}','if(i%3===2){count=67108865;}','const fill=(i+seed)%256;','output.push(sample(input,count,fill));','while(i<n)'];
+    if(kind==='native')required.push('alloc(count,fill)','writeFile(destination,owner)','readFile(destination)','while(index<length(bytes))','sum+=unwrap(at(bytes,index));','return [length(bytes),sum];');
+    else required.push('new Uint8Array(count).fill(fill)','fileSystem.writeFileSync(destination,owner)','fileSystem.readFileSync(destination)','while(index<bytes.length)','sum+=bytes[index];','return [bytes.length,sum];');
+    for(const snippet of required)if(!containsCodeSnippet(source,snippet))throw Error(`Unbounded file source contract: ${snippet}`);
+    return;
+  }
   if(row.id==='native_file_buffered_write_read') {
     if(row.iterations!==2048||row.operationsPerIteration!==1||row.operationUnit!=='One buffered write and readback with 16-byte buffers and 3-byte chunks'||row.resultEncoding!=='array-shape-scalar-v1'||row.inputText!=='native-file-fixture-v1')throw Error('Buffered file denominator');
     const required=['const count=(i+seed)%64+1;','while(i<n)','output.push(sample(input,count));','const destination=input+".out";','let end=offset+3;','if(end>count){end=count;}','total+=size;','if(size===0){break;}','return [total,sum];'];

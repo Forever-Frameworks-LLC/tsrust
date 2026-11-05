@@ -7559,7 +7559,7 @@
       "name": "File",
       "signature": "type File",
       "parameters": [],
-      "documentation": "An owned open file with private storage. Use open for an existing read-only file, create for a new or truncated write-only file, read/write/writeAll for cursor operations, and close for explicit release. File literals, clone, comparison, hashing, console inspection and implicit sharing are unsupported. Unclosed files release automatically on scope exit. Explicit close consumes the handle even on failure; later use is rejected. No implicit flush or durability synchronization occurs. Ownership: passing by value transfers the handle; Mutable<File> borrows it for cursor-changing reads and writes.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { create, open, read, write, close } from \"std:fs\";\nimport { fromUtf8, toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const output = unwrap(create(\"hello.txt\"));\n  unwrap(write(output, unwrap(fromUtf8(\"hello\"))));\n  unwrap(close(output));\n  const input = unwrap(open(\"hello.txt\"));\n  console.log(unwrap(toUtf8(unwrap(read(input, 3)))));\n  unwrap(close(input));\n}\n// prints: hel\n```",
+      "documentation": "An owned open file with private storage. Use open for an existing read-only file, create for a new or truncated write-only file, read/write/writeAll for cursor operations, and close for explicit release. File literals, clone, comparison, hashing, console inspection and implicit sharing are unsupported. Unclosed files release automatically on scope exit. Explicit close consumes the handle even on failure; later use is rejected. No implicit flush or durability synchronization occurs. Ownership: passing by value transfers the handle; Mutable<File> borrows it for cursor-changing reads and writes.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create, open, read, write, close } from \"std:fs\";\nimport { fromUtf8, toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const output = unwrap(create(\"hello.txt\"));\n  unwrap(write(output, unwrap(fromUtf8(\"hello\"))));\n  unwrap(close(output));\n  const input = unwrap(open(\"hello.txt\"));\n  console.log(unwrap(toUtf8(unwrap(read(input, 3)))));\n  unwrap(close(input));\n}\n// prints: hel\n```",
       "examples": [
         {
           "source": "import {File} from \"std:fs\"; function inspect(file:ReadOnly<File>):void{} function main(){}",
@@ -7602,7 +7602,7 @@
           "documentation": "Required path to an existing file. Relative paths use the process working directory; no default. Borrowed without mutation."
         }
       ],
-      "documentation": "Opens an existing path read-only at cursor zero. Does not create or truncate files. Returns Ok(File) or an open error; missing paths, permissions and embedded NUL are reported. Opening a directory may succeed, but reading it fails. Paths follow normal filesystem symlink resolution. The example assumes input.bin exists. Ownership: path is borrowed; success creates a unique file owner.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { open, close } from \"std:fs\";\n\nfunction main() {\n  match (open(\"input.bin\")) {\n    Ok(file) => {\n      match (close(file)) {\n        Ok(_) => {\n          console.log(\"closed\");\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: closed.",
+      "documentation": "Opens an existing path read-only at cursor zero. Does not create or truncate files. Returns Ok(File) or an open error; missing paths, permissions and embedded NUL are reported. Opening a directory may succeed, but reading it fails. Paths follow normal filesystem symlink resolution. The example assumes input.bin exists. Ownership: path is borrowed; success creates a unique file owner.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { open, close } from \"std:fs\";\n\nfunction main() {\n  match (open(\"input.bin\")) {\n    Ok(file) => {\n      match (close(file)) {\n        Ok(_) => {\n          console.log(\"closed\");\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: closed.",
       "examples": [
         {
           "source": "import {open,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(close(file)){Ok(_)=>{console.log(\"closed\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
@@ -7620,10 +7620,10 @@
         },
         {
           "label": "length: int",
-          "documentation": "Required maximum byte count, 0 through 67108864 inclusive. No default. Zero returns empty Bytes without I/O."
+          "documentation": "Required nonnegative maximum byte count that fits native storage. No default. Zero returns empty Bytes without I/O; allocation can fail."
         }
       ],
-      "documentation": "BufferedReader may read ahead by its capacity. Each call returns at most the currently buffered bytes, or one refill; short reads succeed. Reads at most length bytes from the current cursor into independently owned Bytes. length is required and accepts 0 through 67108864 (64 MiB); zero returns empty bytes without I/O. There is no default length. Short reads and empty EOF results succeed; this does not read to the end automatically. Invalid lengths and allocation failures occur before I/O. Interrupted reads retry; other I/O errors return Err and retain the file for closing. No text decoding occurs. The example assumes input.bin contains four bytes. Ownership: mutably borrows the file, returns independent bytes and never closes the handle.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { open, read, close } from \"std:fs\";\nimport { length } from \"std:bytes\";\n\nfunction main() {\n  match (open(\"input.bin\")) {\n    Ok(file) => {\n      match (read(file, 4)) {\n        Ok(bytes) => {\n          console.log(length(bytes));\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n\n      match (close(file)) {\n        Ok(_) => {},\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: 4.",
+      "documentation": "BufferedReader may read ahead by its capacity. Each call returns at most the currently buffered bytes, or one refill; short reads succeed. Reads at most length bytes from the current cursor into independently owned Bytes. length is required, nonnegative and must fit native storage; zero returns empty bytes without I/O. There is no default length. Short reads and empty EOF results succeed; this does not read to the end automatically. Invalid lengths and allocation failures occur before I/O. Interrupted reads retry; other I/O errors return Err and retain the file for closing. No text decoding occurs. The example assumes input.bin contains four bytes. Ownership: mutably borrows the file, returns independent bytes and never closes the handle.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { open, read, close } from \"std:fs\";\nimport { length } from \"std:bytes\";\n\nfunction main() {\n  match (open(\"input.bin\")) {\n    Ok(file) => {\n      match (read(file, 4)) {\n        Ok(bytes) => {\n          console.log(length(bytes));\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n\n      match (close(file)) {\n        Ok(_) => {},\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: 4.",
       "examples": [
         {
           "source": "import {open,read,close} from \"std:fs\"; import {length} from \"std:bytes\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(read(file,4)){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{throw error.message;}}match(close(file)){Ok(_)=>{},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
@@ -7640,7 +7640,7 @@
           "documentation": "For BufferedWriter, close first attempts to flush pending bytes, then releases the descriptor even on failure. The first error wins; remaining bytes are discarded without retry. BufferedReader discards unread buffered bytes. Required owned open file. Consumed on both Ok and Err; later use and a second close are source errors."
         }
       ],
-      "documentation": "For BufferedWriter, close first attempts to flush pending bytes, then releases the descriptor even on failure. The first error wins; remaining bytes are discarded without retry. BufferedReader discards unread buffered bytes. Releases a file and reports success as Ok(void), or an OS close failure as Err(FsError). The handle is consumed even when close fails. Close is not retried after an error. An unbuffered File has no user-space flush. No handle performs durability synchronization. Unclosed owners have a nonthrowing scope-exit fallback that discards close errors. Ownership: consumes the handle; no closed handle is returned.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { create, write, close } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const file = unwrap(create(\"notes.txt\"));\n  unwrap(write(file, unwrap(fromUtf8(\"saved\"))));\n  match (close(file)) {\n    Ok(_) => {\n      console.log(\"closed\");\n    },\n    Err(error) => {\n      console.log(error.code);\n    }\n  }\n}\n// prints: closed\n```\n\n`file` cannot be used after `close(file)`; a later use is a `transferred` error.",
+      "documentation": "For BufferedWriter, close first attempts to flush pending bytes, then releases the descriptor even on failure. The first error wins; remaining bytes are discarded without retry. BufferedReader discards unread buffered bytes. Releases a file and returns Ok(void). On Unix, an OS close failure returns Err(FsError). On Windows, release uses the standard file destructor, which does not expose OS close failures. The handle is consumed even when close fails. Close is not retried after an error. An unbuffered File has no user-space flush. No handle performs durability synchronization. Unclosed owners have a nonthrowing scope-exit fallback that discards close errors. Ownership: consumes the handle; no closed handle is returned.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create, write, close } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const file = unwrap(create(\"notes.txt\"));\n  unwrap(write(file, unwrap(fromUtf8(\"saved\"))));\n  match (close(file)) {\n    Ok(_) => {\n      console.log(\"closed\");\n    },\n    Err(error) => {\n      console.log(error.code);\n    }\n  }\n}\n// prints: closed\n```\n\n`file` cannot be used after `close(file)`; a later use is a `transferred` error.",
       "examples": [
         {
           "source": "import {open,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(close(file)){Ok(_)=>{console.log(\"closed\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
@@ -7657,7 +7657,7 @@
           "documentation": "Required filesystem path. Relative paths use the process working directory. Existing files are truncated; parent directories must exist."
         }
       ],
-      "documentation": "Creates a write-only file, or truncates an existing file to zero bytes. Returns Ok(File) positioned at the beginning, or Err(FsError) for filesystem failures such as a missing parent or denied access. Existing permissions are preserved; new files use host permissions and umask. This does not create parent directories. There are no optional arguments.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { create } from \"std:fs\";\n\nfunction main() {\n  match (create(\"output.bin\")) {\n    Ok(file) => {\n      console.log(\"created\");\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: created.\n\nOwnership: Returns one owned file. Explicit close consumes it and reports close errors; scope exit closes it automatically.",
+      "documentation": "Creates a write-only file, or truncates an existing file to zero bytes. Returns Ok(File) positioned at the beginning, or Err(FsError) for filesystem failures such as a missing parent or denied access. Existing permissions are preserved; new files use host permissions and umask. This does not create parent directories. There are no optional arguments.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create } from \"std:fs\";\n\nfunction main() {\n  match (create(\"output.bin\")) {\n    Ok(file) => {\n      console.log(\"created\");\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: created.\n\nOwnership: Returns one owned file. Explicit close consumes it and reports observable errors; scope exit closes it automatically.",
       "examples": [
         {
           "source": "import {create} from \"std:fs\"; function main(){match(create(\"output.bin\")){Ok(file)=>{console.log(\"created\");},Err(error)=>{throw error.message;}}}",
@@ -7675,10 +7675,10 @@
         },
         {
           "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
-          "documentation": "Required borrowed byte storage, from 0 through 67108864 bytes. Views write only their selected range. Storage is not mutated or copied."
+          "documentation": "Required borrowed byte storage, with no additional operation-size ceiling. Views write only their selected range. Storage is not mutated or copied."
         }
       ],
-      "documentation": "BufferedWriter may accept bytes into memory before any file write. The returned count includes those bytes; flush or close sends pending bytes. An input at least as large as capacity bypasses the buffer after flushing pending bytes. Writes once at the current cursor and returns Ok(count), where count may be smaller than the input length, including zero. Retry the unwritten suffix when needed. Accepts 0 through 67108864 bytes; larger inputs return length-range before I/O. Empty input succeeds without I/O. Interrupted writes retry; other failures return Err(FsError) and leave the file available. Errors may follow partial writes; changes are not rolled back. The file cursor advances, but input bytes are unchanged. No durability synchronization occurs. Arguments are required; byte lengths do not count Unicode characters.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { create, write } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  match (create(\"output.bin\")) {\n    Ok(file) => {\n      match (fromUtf8(\"ABC\")) {\n        Ok(bytes) => {\n          match (write(file, bytes)) {\n            Ok(count) => {\n              console.log(count);\n            },\n            Err(error) => {\n              throw error.message;\n            }\n          }\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: 3.\n\nOwnership: Mutably borrows the file and reads the byte owner or view for this call. Neither argument is consumed; no byte loan escapes.",
+      "documentation": "BufferedWriter may accept bytes into memory before any file write. The returned count includes those bytes; flush or close sends pending bytes. An input at least as large as capacity bypasses the buffer after flushing pending bytes. Writes once at the current cursor and returns Ok(count), where count may be smaller than the input length, including zero. Retry the unwritten suffix when needed. There is no additional operation-size ceiling. Empty input succeeds without I/O. Interrupted writes retry; other failures return Err(FsError) and leave the file available. Errors may follow partial writes; changes are not rolled back. The file cursor advances, but input bytes are unchanged. No durability synchronization occurs. Arguments are required; byte lengths do not count Unicode characters.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create, write } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  match (create(\"output.bin\")) {\n    Ok(file) => {\n      match (fromUtf8(\"ABC\")) {\n        Ok(bytes) => {\n          match (write(file, bytes)) {\n            Ok(count) => {\n              console.log(count);\n            },\n            Err(error) => {\n              throw error.message;\n            }\n          }\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: 3.\n\nOwnership: Mutably borrows the file and reads the byte owner or view for this call. Neither argument is consumed; no byte loan escapes.",
       "examples": [
         {
           "source": "import {create,write} from \"std:fs\"; import {fromUtf8} from \"std:bytes\"; function main(){match(create(\"output.bin\")){Ok(file)=>{match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(write(file,bytes)){Ok(count)=>{console.log(count);},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
@@ -7696,10 +7696,10 @@
         },
         {
           "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
-          "documentation": "Required borrowed byte storage, from 0 through 67108864 bytes. Views write only their selected range. Storage is not mutated or copied."
+          "documentation": "Required borrowed byte storage, with no additional operation-size ceiling. Views write only their selected range. Storage is not mutated or copied."
         }
       ],
-      "documentation": "BufferedWriter may retain accepted bytes in memory. Success means the whole input was accepted; flush or close sends pending bytes. Writes the entire byte range at the current cursor, retrying short writes, and returns Ok(void). A zero-progress write returns Err with code write-zero. Accepts 0 through 67108864 bytes; larger inputs return length-range before I/O. Empty input succeeds without I/O. Interrupted writes retry; other failures return Err(FsError) and leave the file available. Errors may follow partial writes; changes are not rolled back. The file cursor advances, but input bytes are unchanged. No durability synchronization occurs. Arguments are required; byte lengths do not count Unicode characters.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { create, writeAll } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  match (create(\"output.bin\")) {\n    Ok(file) => {\n      match (fromUtf8(\"ABC\")) {\n        Ok(bytes) => {\n          match (writeAll(file, bytes)) {\n            Ok(_) => {\n              console.log(\"written\");\n            },\n            Err(error) => {\n              throw error.message;\n            }\n          }\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: written.\n\nOwnership: Mutably borrows the file and reads the byte owner or view for this call. Neither argument is consumed; no byte loan escapes.",
+      "documentation": "BufferedWriter may retain accepted bytes in memory. Success means the whole input was accepted; flush or close sends pending bytes. Writes the entire byte range at the current cursor, retrying short writes, and returns Ok(void). A zero-progress write returns Err with code write-zero. There is no additional operation-size ceiling. Empty input succeeds without I/O. Interrupted writes retry; other failures return Err(FsError) and leave the file available. Errors may follow partial writes; changes are not rolled back. The file cursor advances, but input bytes are unchanged. No durability synchronization occurs. Arguments are required; byte lengths do not count Unicode characters.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create, writeAll } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  match (create(\"output.bin\")) {\n    Ok(file) => {\n      match (fromUtf8(\"ABC\")) {\n        Ok(bytes) => {\n          match (writeAll(file, bytes)) {\n            Ok(_) => {\n              console.log(\"written\");\n            },\n            Err(error) => {\n              throw error.message;\n            }\n          }\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: written.\n\nOwnership: Mutably borrows the file and reads the byte owner or view for this call. Neither argument is consumed; no byte loan escapes.",
       "examples": [
         {
           "source": "import {create,writeAll} from \"std:fs\"; import {fromUtf8} from \"std:bytes\"; function main(){match(create(\"output.bin\")){Ok(file)=>{match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(writeAll(file,bytes)){Ok(_)=>{console.log(\"written\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
@@ -7717,10 +7717,10 @@
         },
         {
           "label": "maxBytes?: int",
-          "documentation": "Maximum result size, 0 through 67108864 bytes. Defaults to 67108864. Invalid limits fail before opening the path."
+          "documentation": "Optional nonnegative maximum result size that fits native storage. Omitted or undefined imposes no application-size ceiling. Invalid explicit limits fail before opening the path."
         }
       ],
-      "documentation": "Reads a file through EOF into independent owned bytes, then closes it. Returns Ok(Bytes), or Err(FsError). maxBytes defaults to 67108864 (64 MiB) and accepts 0 through 67108864. An empty file succeeds with a zero limit. An oversized file returns length-range; the reader consumes at most one extra byte to detect excess. This bound is enforced during reading, including when a file grows. Interrupted and short reads are handled. Allocation, read, open and close errors are reported. An earlier I/O failure takes precedence over a close error. No text decoding occurs.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { readFile, writeFile } from \"std:fs\";\nimport { fromUtf8, length } from \"std:bytes\";\n\nfunction main() {\n  unwrap(writeFile(\"input.bin\", unwrap(fromUtf8(\"abcd\"))));\n  console.log(length(unwrap(readFile(\"input.bin\", 4)))); // fits the 4-byte limit\n  match (readFile(\"input.bin\", 3)) {\n    Ok(_) => {},\n    Err(error) => {\n      console.log(error.code); // larger than maxBytes: nothing is returned\n    }\n  }\n}\n// prints: 4\n// prints: length-range\n```\n\nOwnership: Borrows the path and returns an owned buffer. No file handle escapes; the internal handle is closed on success and failure.",
+      "documentation": "Reads a file through EOF into independent owned bytes, then closes it. Returns Ok(Bytes), or Err(FsError). Omitting maxBytes or passing undefined reads through EOF without an application-size ceiling. An explicit maxBytes is nonnegative and must fit native storage. An empty file succeeds with a zero limit. With an explicit maxBytes, an oversized file returns length-range; the reader consumes at most one extra byte to detect excess. An explicit bound is enforced during reading, including when a file grows. Interrupted and short reads are handled. Allocation, read, open and close errors are reported. An earlier I/O failure takes precedence over a close error. No text decoding occurs.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { readFile, writeFile } from \"std:fs\";\nimport { fromUtf8, length } from \"std:bytes\";\n\nfunction main() {\n  unwrap(writeFile(\"input.bin\", unwrap(fromUtf8(\"abcd\"))));\n  console.log(length(unwrap(readFile(\"input.bin\", 4)))); // fits the 4-byte limit\n  match (readFile(\"input.bin\", 3)) {\n    Ok(_) => {},\n    Err(error) => {\n      console.log(error.code); // larger than maxBytes: nothing is returned\n    }\n  }\n}\n// prints: 4\n// prints: length-range\n```\n\nOwnership: Borrows the path and returns an owned buffer. No file handle escapes; the internal handle is closed on success and failure.",
       "examples": [
         {
           "source": "import {readFile} from \"std:fs\";import {length} from \"std:bytes\";function main(){match(readFile(\"input.bin\",4)){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{throw error.message;}}}",
@@ -7738,10 +7738,10 @@
         },
         {
           "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
-          "documentation": "Required borrowed byte range, 0 through 67108864 bytes. Length validation happens before creating or truncating the destination."
+          "documentation": "Required borrowed byte range, with no additional operation-size ceiling. Views write only their selected range."
         }
       ],
-      "documentation": "Creates or truncates a file, writes all input bytes, and closes it. Returns Ok(void), or Err(FsError). Accepts owned bytes, readonly views and mutable views; only a view’s selected range is written. Input must contain at most 67108864 bytes (64 MiB); oversized input returns length-range before the destination changes. Empty input creates or truncates an empty file. Short and interrupted writes retry; zero progress returns write-zero. Other I/O failures may leave a partial file. This operation is not an atomic replacement and performs no durability synchronization. Close errors are reported unless an earlier operation already failed. Input bytes are unchanged; no arguments are optional.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { writeFile } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  match (fromUtf8(\"ABC\")) {\n    Ok(bytes) => {\n      match (writeFile(\"output.bin\", bytes)) {\n        Ok(_) => {\n          console.log(\"written\");\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: written.\n\nOwnership: Borrows the path and byte storage for this call. No borrowed data or file handle escapes; the internal file is closed on success and failure.",
+      "documentation": "Creates or truncates a file, writes all input bytes, and closes it. Returns Ok(void), or Err(FsError). Accepts owned bytes, readonly views and mutable views; only a view’s selected range is written. There is no additional operation-size ceiling. Empty input creates or truncates an empty file. Short and interrupted writes retry; zero progress returns write-zero. Other I/O failures may leave a partial file. This operation is not an atomic replacement and performs no durability synchronization. Close errors are reported unless an earlier operation already failed. Input bytes are unchanged; no arguments are optional.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { writeFile } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  match (fromUtf8(\"ABC\")) {\n    Ok(bytes) => {\n      match (writeFile(\"output.bin\", bytes)) {\n        Ok(_) => {\n          console.log(\"written\");\n        },\n        Err(error) => {\n          throw error.message;\n        }\n      }\n    },\n    Err(error) => {\n      throw error.message;\n    }\n  }\n}\n```\n\nExpected output: written.\n\nOwnership: Borrows the path and byte storage for this call. No borrowed data or file handle escapes; the internal file is closed on success and failure.",
       "examples": [
         {
           "source": "import {writeFile} from \"std:fs\";import {fromUtf8} from \"std:bytes\";function main(){match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(writeFile(\"output.bin\",bytes)){Ok(_)=>{console.log(\"written\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
@@ -7753,7 +7753,7 @@
       "name": "BufferedReader",
       "signature": "type BufferedReader",
       "parameters": [],
-      "documentation": "BufferedReader uniquely owns a File and its byte buffer. Reads return independent Bytes and may read ahead by the buffer capacity. Close discards unread bytes. No durability synchronization occurs. The type has no public fields or literal constructor and does not support cloning, inspection or sharing. Ownership: use Mutable<BufferedReader> for cursor operations; passing by value transfers ownership.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { writeFile, open, bufferReader, read, close } from \"std:fs\";\nimport { fromUtf8, toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  unwrap(writeFile(\"input.txt\", unwrap(fromUtf8(\"abcdef\"))));\n  const reader = unwrap(bufferReader(unwrap(open(\"input.txt\")), 4));\n  console.log(unwrap(toUtf8(unwrap(read(reader, 2)))));\n  console.log(unwrap(toUtf8(unwrap(read(reader, 10)))));\n  unwrap(close(reader));\n}\n// prints: ab\n// prints: cd\n```\n\nThe second read returns only the two bytes still buffered from the first 4-byte refill; short reads are normal.",
+      "documentation": "BufferedReader uniquely owns a File and its byte buffer. Reads return independent Bytes and may read ahead by the buffer capacity. Close discards unread bytes. No durability synchronization occurs. The type has no public fields or literal constructor and does not support cloning, inspection or sharing. Ownership: use Mutable<BufferedReader> for cursor operations; passing by value transfers ownership.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { writeFile, open, bufferReader, read, close } from \"std:fs\";\nimport { fromUtf8, toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  unwrap(writeFile(\"input.txt\", unwrap(fromUtf8(\"abcdef\"))));\n  const reader = unwrap(bufferReader(unwrap(open(\"input.txt\")), 4));\n  console.log(unwrap(toUtf8(unwrap(read(reader, 2)))));\n  console.log(unwrap(toUtf8(unwrap(read(reader, 10)))));\n  unwrap(close(reader));\n}\n// prints: ab\n// prints: cd\n```\n\nThe second read returns only the two bytes still buffered from the first 4-byte refill; short reads are normal.",
       "examples": [
         {
           "source": "import {open,bufferReader,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(bufferReader(file,4)){Ok(buffer)=>{match(close(buffer)){Ok(_)=>{console.log(\"closed\");},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
@@ -7774,7 +7774,7 @@
           "documentation": "Buffer bytes, default 8192; must be positive and fit the platform. Invalid values return capacity-range and release the file. Allocation can fail."
         }
       ],
-      "documentation": "Transfers a File into a BufferedReader. capacity is an optional byte count, default 8192, positive and platform-sized. Returns Ok(BufferedReader) or Err(FsError); invalid capacity returns capacity-range and allocation failure returns allocation. Construction does not read, write or change access permissions. Reads return independent Bytes and may read ahead by the buffer capacity. Close discards unread bytes. Ownership: consumes file on success and failure; a failed construction releases it. No second handle or shared cursor remains.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { open, bufferReader, close } from \"std:fs\";\n\nfunction main() {\n  match (open(\"input.bin\")) {\n    Ok(file) => {\n      match (bufferReader(file, 4)) {\n        Ok(buffer) => {\n          match (close(buffer)) {\n            Ok(_) => {\n              console.log(\"closed\");\n            },\n            Err(e) => {\n              throw e.message;\n            }\n          }\n        },\n        Err(e) => {\n          throw e.message;\n        }\n      }\n    },\n    Err(e) => {\n      throw e.message;\n    }\n  }\n}\n```\n\nExpected output: closed.",
+      "documentation": "Transfers a File into a BufferedReader. capacity is an optional byte count, default 8192, positive and platform-sized. Returns Ok(BufferedReader) or Err(FsError); invalid capacity returns capacity-range and allocation failure returns allocation. Construction does not read, write or change access permissions. Reads return independent Bytes and may read ahead by the buffer capacity. Close discards unread bytes. Ownership: consumes file on success and failure; a failed construction releases it. No second handle or shared cursor remains.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { open, bufferReader, close } from \"std:fs\";\n\nfunction main() {\n  match (open(\"input.bin\")) {\n    Ok(file) => {\n      match (bufferReader(file, 4)) {\n        Ok(buffer) => {\n          match (close(buffer)) {\n            Ok(_) => {\n              console.log(\"closed\");\n            },\n            Err(e) => {\n              throw e.message;\n            }\n          }\n        },\n        Err(e) => {\n          throw e.message;\n        }\n      }\n    },\n    Err(e) => {\n      throw e.message;\n    }\n  }\n}\n```\n\nExpected output: closed.",
       "examples": [
         {
           "source": "import {open,bufferReader,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(bufferReader(file,4)){Ok(buffer)=>{match(close(buffer)){Ok(_)=>{console.log(\"closed\");},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
@@ -7786,7 +7786,7 @@
       "name": "BufferedWriter",
       "signature": "type BufferedWriter",
       "parameters": [],
-      "documentation": "BufferedWriter uniquely owns a File and its byte buffer. Writes may retain bytes in memory until flush or close. Explicit close flushes once and releases the file even on error; scope cleanup does the same but discards errors. Use explicit close when errors matter. No durability synchronization occurs. The type has no public fields or literal constructor and does not support cloning, inspection or sharing. Ownership: use Mutable<BufferedWriter> for cursor operations; passing by value transfers ownership.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { create, bufferWriter, write, close, readFile } from \"std:fs\";\nimport { fromUtf8, toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const writer = unwrap(bufferWriter(unwrap(create(\"log.txt\")), 1024));\n  unwrap(write(writer, unwrap(fromUtf8(\"first \"))));\n  unwrap(write(writer, unwrap(fromUtf8(\"second\"))));\n  unwrap(close(writer)); // flushes both buffered writes\n  console.log(unwrap(toUtf8(unwrap(readFile(\"log.txt\")))));\n}\n// prints: first second\n```",
+      "documentation": "BufferedWriter uniquely owns a File and its byte buffer. Writes may retain bytes in memory until flush or close. Explicit close flushes once and releases the file even on error; scope cleanup does the same but discards errors. Use explicit close when errors matter. No durability synchronization occurs. The type has no public fields or literal constructor and does not support cloning, inspection or sharing. Ownership: use Mutable<BufferedWriter> for cursor operations; passing by value transfers ownership.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create, bufferWriter, write, close, readFile } from \"std:fs\";\nimport { fromUtf8, toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const writer = unwrap(bufferWriter(unwrap(create(\"log.txt\")), 1024));\n  unwrap(write(writer, unwrap(fromUtf8(\"first \"))));\n  unwrap(write(writer, unwrap(fromUtf8(\"second\"))));\n  unwrap(close(writer)); // flushes both buffered writes\n  console.log(unwrap(toUtf8(unwrap(readFile(\"log.txt\")))));\n}\n// prints: first second\n```",
       "examples": [
         {
           "source": "import {open,bufferWriter,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(bufferWriter(file,4)){Ok(buffer)=>{match(close(buffer)){Ok(_)=>{console.log(\"closed\");},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
@@ -7807,7 +7807,7 @@
           "documentation": "Buffer bytes, default 8192; must be positive and fit the platform. Invalid values return capacity-range and release the file. Allocation can fail."
         }
       ],
-      "documentation": "Transfers a File into a BufferedWriter. capacity is an optional byte count, default 8192, positive and platform-sized. Returns Ok(BufferedWriter) or Err(FsError); invalid capacity returns capacity-range and allocation failure returns allocation. Construction does not read, write or change access permissions. Writes may retain bytes in memory until flush or close. Explicit close flushes once and releases the file even on error; scope cleanup does the same but discards errors. Use explicit close when errors matter. Ownership: consumes file on success and failure; a failed construction releases it. No second handle or shared cursor remains.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { open, bufferWriter, close } from \"std:fs\";\n\nfunction main() {\n  match (open(\"input.bin\")) {\n    Ok(file) => {\n      match (bufferWriter(file, 4)) {\n        Ok(buffer) => {\n          match (close(buffer)) {\n            Ok(_) => {\n              console.log(\"closed\");\n            },\n            Err(e) => {\n              throw e.message;\n            }\n          }\n        },\n        Err(e) => {\n          throw e.message;\n        }\n      }\n    },\n    Err(e) => {\n      throw e.message;\n    }\n  }\n}\n```\n\nExpected output: closed.",
+      "documentation": "Transfers a File into a BufferedWriter. capacity is an optional byte count, default 8192, positive and platform-sized. Returns Ok(BufferedWriter) or Err(FsError); invalid capacity returns capacity-range and allocation failure returns allocation. Construction does not read, write or change access permissions. Writes may retain bytes in memory until flush or close. Explicit close flushes once and releases the file even on error; scope cleanup does the same but discards errors. Use explicit close when errors matter. Ownership: consumes file on success and failure; a failed construction releases it. No second handle or shared cursor remains.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { open, bufferWriter, close } from \"std:fs\";\n\nfunction main() {\n  match (open(\"input.bin\")) {\n    Ok(file) => {\n      match (bufferWriter(file, 4)) {\n        Ok(buffer) => {\n          match (close(buffer)) {\n            Ok(_) => {\n              console.log(\"closed\");\n            },\n            Err(e) => {\n              throw e.message;\n            }\n          }\n        },\n        Err(e) => {\n          throw e.message;\n        }\n      }\n    },\n    Err(e) => {\n      throw e.message;\n    }\n  }\n}\n```\n\nExpected output: closed.",
       "examples": [
         {
           "source": "import {open,bufferWriter,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(bufferWriter(file,4)){Ok(buffer)=>{match(close(buffer)){Ok(_)=>{console.log(\"closed\");},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
@@ -7824,7 +7824,7 @@
           "documentation": "Required buffered writer. Exclusively borrowed, retained after success or failure."
         }
       ],
-      "documentation": "Sends pending buffered bytes to the file and returns Ok(void), or Err(FsError). Retries interrupted and short writes; zero progress reports write-zero. On failure, bytes already written are removed and the unwritten suffix remains for an explicit retry. Empty buffers succeed without a data write. Does not synchronize durable storage. Ownership: mutably borrows the writer without consuming it.\n\nFile operations currently support macOS and Linux; other targets produce a native compilation diagnostic.\n\n```tsrust\nimport { create, bufferWriter, flush, close } from \"std:fs\";\n\nfunction main() {\n  match (create(\"flush.bin\")) {\n    Ok(file) => {\n      match (bufferWriter(file)) {\n        Ok(writer) => {\n          match (flush(writer)) {\n            Ok(_) => {\n              console.log(\"flushed\");\n            },\n            Err(e) => {\n              throw e.message;\n            }\n          }\n\n          match (close(writer)) {\n            Ok(_) => {},\n            Err(e) => {\n              throw e.message;\n            }\n          }\n        },\n        Err(e) => {\n          throw e.message;\n        }\n      }\n    },\n    Err(e) => {\n      throw e.message;\n    }\n  }\n}\n```\n\nExpected output: flushed.",
+      "documentation": "Sends pending buffered bytes to the file and returns Ok(void), or Err(FsError). Retries interrupted and short writes; zero progress reports write-zero. On failure, bytes already written are removed and the unwritten suffix remains for an explicit retry. Empty buffers succeed without a data write. Does not synchronize durable storage. Ownership: mutably borrows the writer without consuming it.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create, bufferWriter, flush, close } from \"std:fs\";\n\nfunction main() {\n  match (create(\"flush.bin\")) {\n    Ok(file) => {\n      match (bufferWriter(file)) {\n        Ok(writer) => {\n          match (flush(writer)) {\n            Ok(_) => {\n              console.log(\"flushed\");\n            },\n            Err(e) => {\n              throw e.message;\n            }\n          }\n\n          match (close(writer)) {\n            Ok(_) => {},\n            Err(e) => {\n              throw e.message;\n            }\n          }\n        },\n        Err(e) => {\n          throw e.message;\n        }\n      }\n    },\n    Err(e) => {\n      throw e.message;\n    }\n  }\n}\n```\n\nExpected output: flushed.",
       "examples": [
         {
           "source": "import {create,bufferWriter,flush,close} from \"std:fs\"; function main(){match(create(\"flush.bin\")){Ok(file)=>{match(bufferWriter(file)){Ok(writer)=>{match(flush(writer)){Ok(_)=>{console.log(\"flushed\");},Err(e)=>{throw e.message;}} match(close(writer)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
@@ -8146,6 +8146,167 @@
         {
           "source": "import { fromUtf8, viewMut, set, toUtf8 } from \"std:bytes\";\nfunction main() { match (fromUtf8(\"hello\")) { Ok(bytes) => { match (viewMut(bytes, 0, 1)) { Ok(part) => { match (set(part, 0, 72)) { Ok(_) => {}, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } match (toUtf8(bytes)) { Ok(text) => { console.log(text); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }",
           "output": "Hello\n"
+        }
+      ]
+    },
+    {
+      "name": "toHex",
+      "signature": "toHex(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes each byte as two lowercase hexadecimal digits, including leading zeroes. Empty bytes produce empty text. No separator or prefix is added. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromArray([0, 255])))));\n}\n```\n\nExpected output: 00ff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromArray([0, 255])))));\n}\n",
+          "output": "00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "fromHex",
+      "signature": "fromHex(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete even-length ASCII hexadecimal text."
+        }
+      ],
+      "documentation": "Decodes pairs of hexadecimal ASCII digits, accepting either letter case. Empty text produces empty bytes. Odd byte length returns hex-length before examining digits; a non-hexadecimal byte returns hex-digit with its UTF-8 byte offset. Whitespace and 0x prefixes are not accepted. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromHex, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromHex(\"00FF\")))));\n}\n```\n\nExpected output: 00ff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromHex(\"00FF\")))));\n}\n",
+          "output": "00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "toBase64",
+      "signature": "toBase64(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes bytes using the standard base64 alphabet (+ and /), with canonical = padding. Empty bytes produce empty text. It does not insert whitespace or line breaks. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromUtf8, toBase64 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64(unwrap(fromUtf8(\"f\")))));\n}\n```\n\nExpected output: Zg==.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromUtf8, toBase64 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64(unwrap(fromUtf8(\"f\")))));\n}\n",
+          "output": "Zg==\n"
+        }
+      ]
+    },
+    {
+      "name": "fromBase64",
+      "signature": "fromBase64(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete canonical padded standard base64; no whitespace."
+        }
+      ],
+      "documentation": "Decodes standard base64 (+ and /), requiring canonical padding whenever the final group needs it. Rejects whitespace, URL alphabet symbols, malformed padding and nonzero unused trailing bits. Empty text produces empty bytes. Errors are base64-byte, base64-length, base64-padding or base64-trailing-bits. An offending symbol has a byte offset when available; padding and structural length errors have no offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromBase64, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64(\"Zg==\")))));\n}\n```\n\nExpected output: 66.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromBase64, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64(\"Zg==\")))));\n}\n",
+          "output": "66\n"
+        }
+      ]
+    },
+    {
+      "name": "toBase64Url",
+      "signature": "toBase64Url(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes bytes using the URL-safe base64 alphabet (- and _), without = padding. Empty bytes produce empty text. It does not percent-encode or insert line breaks. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toBase64Url } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64Url(unwrap(fromArray([251, 255])))));\n}\n```\n\nExpected output: -_8.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toBase64Url } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64Url(unwrap(fromArray([251, 255])))));\n}\n",
+          "output": "-_8\n"
+        }
+      ]
+    },
+    {
+      "name": "fromBase64Url",
+      "signature": "fromBase64Url(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete canonical unpadded URL-safe base64; no whitespace."
+        }
+      ],
+      "documentation": "Decodes URL-safe base64 (- and _), requiring omitted padding. Rejects = padding, whitespace, standard + or / symbols and nonzero unused trailing bits. Empty text produces empty bytes. Errors are base64-byte, base64-length, base64-padding or base64-trailing-bits. Symbol errors report a byte offset when available; padding and structural length errors have no offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromBase64Url, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64Url(\"-_8\")))));\n}\n```\n\nExpected output: fbff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromBase64Url, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64Url(\"-_8\")))));\n}\n",
+          "output": "fbff\n"
+        }
+      ]
+    },
+    {
+      "name": "toUtf8Lossy",
+      "signature": "toUtf8Lossy(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable bytes, which may contain malformed UTF-8."
+        }
+      ],
+      "documentation": "Decodes bytes as UTF-8, replacing each malformed subsequence with U+FFFD (�). It preserves NUL and BOM characters and returns independently owned text, including for valid input. Empty bytes produce empty text. Use toUtf8 for strict rejection and an invalid-sequence offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toUtf8Lossy } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf8Lossy(unwrap(fromArray([65, 195, 40])))));\n}\n```\n\nExpected output: A�(.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toUtf8Lossy } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf8Lossy(unwrap(fromArray([65, 195, 40])))));\n}\n",
+          "output": "A�(\n"
+        }
+      ]
+    },
+    {
+      "name": "fromUtf16",
+      "signature": "fromUtf16(text: ReadOnly<string>, byteOrder: \"little\" | \"big\"): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Valid Unicode text to encode."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required byte order: \"little\" or \"big\". No BOM detection or implicit host byte order."
+        }
+      ],
+      "documentation": "Encodes valid native Unicode text as UTF-16 bytes in the explicitly selected byte order. Characters above U+FFFF become surrogate pairs. Empty text produces empty bytes. No BOM is added or removed; an existing U+FEFF is encoded as ordinary text. There is no platform-dependent byte-order default. Native strings cannot contain lone surrogates. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromUtf16, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromUtf16(\"A😀\", \"little\")))));\n}\n```\n\nExpected output: 41003dd800de.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromUtf16, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromUtf16(\"A😀\", \"little\")))));\n}\n",
+          "output": "41003dd800de\n"
+        }
+      ]
+    },
+    {
+      "name": "toUtf16",
+      "signature": "toUtf16(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, byteOrder: \"little\" | \"big\"): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Complete UTF-16 bytes in the selected order."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required byte order: \"little\" or \"big\". No BOM detection or implicit host byte order."
+        }
+      ],
+      "documentation": "Decodes UTF-16 bytes in the explicitly selected byte order into valid Unicode text. Odd byte length or an unpaired surrogate returns utf16 with the byte offset of the unmatched final byte or surrogate unit. Empty bytes produce empty text. A BOM is preserved as U+FEFF, with no automatic byte-order detection or replacement of malformed input. There is no byte-order default. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromHex, toUtf16 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf16(unwrap(fromHex(\"41003dd800de\")), \"little\")));\n}\n```\n\nExpected output: A😀.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, toUtf16 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf16(unwrap(fromHex(\"41003dd800de\")), \"little\")));\n}\n",
+          "output": "A😀\n"
         }
       ]
     }

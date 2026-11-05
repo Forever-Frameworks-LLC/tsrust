@@ -2477,6 +2477,7 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sql")){output.push_str(crate::stdlib::sql::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sqlite")){output.push_str(crate::stdlib::sqlite::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(crate::stdlib::http::RUNTIME);}
+        if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:url")){output.push_str(crate::stdlib::url::RUNTIME);}
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
             if self.sql_record(&mut output,index) || self.http_record(&mut output,index) || self.sqlite_record(&mut output,index){continue;}
@@ -2489,6 +2490,9 @@ impl Emitter<'_> {
             }
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
+            if let Some(name)=match record.native_type {Some(crate::native_signatures::NativeTypeId::Url)=>Some("Url"),Some(crate::native_signatures::NativeTypeId::SearchParams)=>Some("SearchParams"),_=>None} {
+                let _=writeln!(output,"type Record{index}=tsrust_native_url::{name};");continue;
+            }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::ValidationContext) {
                 let _=writeln!(output,"struct Record{index} {{ issues: tsrust_schema_issues::Issues }}");continue;
             }

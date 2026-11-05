@@ -1,0 +1,80 @@
+import { open, create, read, write, writeAll, readFile, writeFile, close, bufferReader, bufferWriter, flush } from "std:fs";
+import { alloc, length, at } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function main() {
+  const count = 67108865;
+  const bytes = unwrap(alloc(count, 165));
+  unwrap(writeFile("large.bin", bytes));
+  {
+    const observed = unwrap(readFile("large.bin"));
+    strictEqual(length(observed), count);
+    strictEqual(unwrap(at(observed, count - 1)), 165);
+  }
+
+  {
+    const observed = unwrap(readFile("large.bin", undefined));
+    strictEqual(length(observed), count);
+  }
+
+  {
+    const observed = unwrap(readFile("large.bin", count));
+    strictEqual(length(observed), count);
+  }
+
+  match (readFile("large.bin", count - 1)) {
+    Ok(_) => {
+      throw "explicit bound ignored";
+    },
+    Err(error) => {
+      strictEqual(error.code, "length-range");
+      strictEqual(error.operation, "readFile");
+    }
+  }
+
+  {
+    const file = unwrap(open("large.bin"));
+    const observed = unwrap(read(file, count));
+    strictEqual(length(observed) > 0, true);
+    unwrap(close(file));
+  }
+
+  {
+    const reader = unwrap(bufferReader(unwrap(open("large.bin")), 4));
+    const observed = unwrap(read(reader, count));
+    strictEqual(length(observed), 4);
+    unwrap(close(reader));
+  }
+
+  {
+    const file = unwrap(create("large.bin"));
+    const written = unwrap(write(file, bytes));
+    strictEqual(written >= 0, true);
+    unwrap(close(file));
+  }
+
+  {
+    const writer = unwrap(bufferWriter(unwrap(create("large.bin")), 4));
+    const written = unwrap(write(writer, bytes));
+    strictEqual(written >= 0, true);
+    unwrap(close(writer));
+  }
+
+  {
+    const file = unwrap(create("large.bin"));
+    unwrap(writeAll(file, bytes));
+    unwrap(close(file));
+  }
+
+  {
+    const writer = unwrap(bufferWriter(unwrap(create("large.bin")), 4));
+    unwrap(writeAll(writer, bytes));
+    unwrap(flush(writer));
+    unwrap(close(writer));
+  }
+
+  const observed = unwrap(readFile("large.bin"));
+  strictEqual(length(observed), count);
+  strictEqual(unwrap(at(observed, 0)), 165);
+  strictEqual(unwrap(at(observed, count - 1)), 165);
+}

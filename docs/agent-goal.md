@@ -6,7 +6,10 @@ The owner approved starting a new autonomous goal from the
 [v0.2.0 standard-library checklist](plans/stdlib-0.2.0.md), including popular
 well-tested Rust package backends and parallel Sol 6.1 implementation/testing.
 The owner also explicitly requires monitoring the pending release PRs all the
-way to main. This ordering supersedes the older scheduling retained below.
+way to main. The owner renewed this active v0.2.0 goal and explicitly
+authorized continuation without routine approval. Complete the full checklist;
+only actual merge/publication or unresolved product design decisions need owner
+input. This ordering supersedes the older scheduling retained below.
 
 1. Finish the already-approved compiler v0.1.2/LSP v0.2.2 release first. Monitor
    repair PR#15 and its exact CI run, merge through stag only after required
@@ -51,11 +54,12 @@ way to main. This ordering supersedes the older scheduling retained below.
    publishing v0.2.0 still needs explicit version/publication approval on a
    concrete validated candidate.
 
-The app goal tool currently refuses a new goal while the prior optimization/
-release goal is unfinished. Do not falsely mark that goal complete to replace
-it. Finish and verify item1, complete the old goal, then register this objective
-with `create_goal` and continue into item2 without another routine permission
-question. No token budget was requested.
+Item1 is verified complete: main/tag v0.1.2, all four platform packages,
+publisher and production docs passed. The old optimization/release app goal was
+truthfully completed and the full B00–B20 objective registered with `create_goal`
+on2026-11-04. It is active without a token budget. Implementation now continues
+from released main on `codex/stdlib-0.2.0`; do not publish v0.2.0 without explicit
+owner approval of a concrete validated release.
 
 ## Retained earlier direction and evidence
 

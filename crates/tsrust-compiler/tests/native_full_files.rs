@@ -29,3 +29,19 @@ function main(){
  support::success(&support::run(support::cli().arg("run").arg(file).current_dir(&directory.0),60));
  assert_eq!(std::fs::read(directory.0.join("output.bin")).unwrap(),[0,255,65]);
 }
+
+#[test]
+fn portable_file_defaults_accept_large_ranges_and_keep_explicit_limits() {
+ let directory=support::TempDirectory::new();
+ let source=support::format_round_trip(include_str!("fixtures/native-files/portable-file-defaults.tsr"));
+ let file=directory.source(&source);
+ for release in [false,true] {
+  let binary=directory.0.join(format!("portable-files{}",std::env::consts::EXE_SUFFIX));
+  let mut command=support::cli();command.arg("build").arg(&file).arg("-o").arg(&binary);
+  if release {command.arg("--release");}
+  support::success(&support::run(&mut command,120));
+  support::success(&support::run(std::process::Command::new(&binary).current_dir(&directory.0),60));
+  let bytes=std::fs::read(directory.0.join("large.bin")).unwrap();
+  assert_eq!(bytes.len(),67108865);assert!(bytes.iter().all(|byte|*byte==165));
+ }
+}

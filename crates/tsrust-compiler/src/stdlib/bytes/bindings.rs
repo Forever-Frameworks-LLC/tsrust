@@ -100,3 +100,30 @@ pub(crate) const TO_UTF8: NativeBinding = NativeBinding { returned_borrow: None,
     result: NativeType::Structured(&Signature::Result(&Signature::String, &Signature::Named(NativeTypeId::ByteError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_std_bytes_to_utf8" }, features: &["bytes"],
 };
+
+const CODEC_BYTES: crate::native_signatures::Signature = Signature::Named(NativeTypeId::Bytes);
+const CODEC_ERROR: crate::native_signatures::Signature = Signature::Named(NativeTypeId::ByteError);
+pub(crate) const BYTE_ORDER: Signature = Signature::Union(&[Signature::StringLiteral("little"), Signature::StringLiteral("big")]);
+const CODEC_READ: &[NativeParameter] = &[NativeParameter { name: "bytes", ty: NativeType::Structured(&CODEC_BYTES), access: Mode::Read, optional: false, rest: false }];
+const CODEC_TEXT: &[NativeParameter] = &[NativeParameter { name: "text", ty: NativeType::String, access: Mode::Read, optional: false, rest: false }];
+const fn codec(name: &'static str, symbol: &'static str, parameters: &'static [NativeParameter], bytes: bool, base64: bool) -> NativeBinding {
+    NativeBinding { module: "std:bytes", name, parameters,
+        result: NativeType::Structured(if bytes { &Signature::Result(&CODEC_BYTES, &CODEC_ERROR) } else { &Signature::Result(&Signature::String, &CODEC_ERROR) }),
+        returned_borrow: None, backend: NativeBackend::Bundled { symbol }, features: if base64 { &["bytes", "byte-codecs"] } else { &["bytes"] },
+    }
+}
+pub(crate) const TO_HEX: NativeBinding = codec("toHex", "tsrust_std_bytes_to_hex", CODEC_READ, false, false);
+pub(crate) const FROM_HEX: NativeBinding = codec("fromHex", "tsrust_std_bytes_from_hex", CODEC_TEXT, true, false);
+pub(crate) const TO_UTF8_LOSSY: NativeBinding = codec("toUtf8Lossy", "tsrust_std_bytes_to_utf8_lossy", CODEC_READ, false, false);
+pub(crate) const TO_BASE64: NativeBinding = codec("toBase64", "tsrust_std_bytes_to_base64", CODEC_READ, false, true);
+pub(crate) const FROM_BASE64: NativeBinding = codec("fromBase64", "tsrust_std_bytes_from_base64", CODEC_TEXT, true, true);
+pub(crate) const TO_BASE64_URL: NativeBinding = codec("toBase64Url", "tsrust_std_bytes_to_base64_url", CODEC_READ, false, true);
+pub(crate) const FROM_BASE64_URL: NativeBinding = codec("fromBase64Url", "tsrust_std_bytes_from_base64_url", CODEC_TEXT, true, true);
+pub(crate) const FROM_UTF16: NativeBinding = codec("fromUtf16", "tsrust_std_bytes_from_utf16", &[
+    NativeParameter { name: "text", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+    NativeParameter { name: "byteOrder", ty: NativeType::Structured(&BYTE_ORDER), access: Mode::Read, optional: false, rest: false },
+], true, false);
+pub(crate) const TO_UTF16: NativeBinding = codec("toUtf16", "tsrust_std_bytes_to_utf16", &[
+    NativeParameter { name: "bytes", ty: NativeType::Structured(&CODEC_BYTES), access: Mode::Read, optional: false, rest: false },
+    NativeParameter { name: "byteOrder", ty: NativeType::Structured(&BYTE_ORDER), access: Mode::Read, optional: false, rest: false },
+], false, false);
