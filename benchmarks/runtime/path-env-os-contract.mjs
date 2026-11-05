@@ -36,6 +36,6 @@ export function assertPathEnvOsSource(source,row,kind){
  if(row.id==='env_vars_snapshot')assert(containsCodeSnippet(source,kind==='native'?'checksum+=row.name.length+row.value.length;':"checksum+=row.name.length+Buffer.byteLength(row.value,'utf8');"));
  if(row.id==='env_get_snapshot')assert(containsCodeSnippet(source,'for(const name of names)'));
  if(row.id==='env_get_snapshot')assert(containsCodeSnippet(source,kind==='native'?'checksum+=value===undefined?1:value.length;':"checksum+=value===undefined?1:Buffer.byteLength(value,'utf8');"));
- if(row.id==='os_hostname_read')assert(containsCodeSnippet(source,kind==='native'?'checksum+=value.length;':'checksum+=Buffer.byteLength(value,'utf8');'));
+ if(row.id==='os_hostname_read')assert(containsCodeSnippet(source,kind==='native'?'checksum+=value.length;':"checksum+=Buffer.byteLength(value,'utf8');"));
  if(row.id==='os_parallelism_query')assert(containsCodeSnippet(source,'checksum+=1;'));
 }

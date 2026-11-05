@@ -166,7 +166,7 @@ pub fn relative_with(
     mut cwd: impl FnMut() -> Result<std::string::String, std::string::String>,
     mut drive_cwd: impl FnMut(&str) -> Option<std::string::String>,
 ) -> Result<std::string::String, std::string::String> {
-    relative_checked(from,to,windows,&mut cwd,&mut |drive|Ok(drive_cwd(drive)))
+    relative_checked(from,to,windows,&mut cwd,&mut |drive:&str|Ok(drive_cwd(drive)))
 }
 pub fn relative_checked<E>(
     from:&str,to:&str,windows:bool,

@@ -18,6 +18,46 @@ fn path_env_os_example_and_controlled_observers_execute_at_o0_and_o3(){
         support::success(&output);assert_eq!(output.stdout,b"Path, environment and OS checks passed\n");
     }
 }
+#[cfg(unix)]
+#[test]
+fn native_environment_observers_match_the_controlled_child_context_at_o0_and_o3(){
+    let directory=support::TempDirectory::new();
+    let home=directory.0.join("home-é");let temporary=directory.0.join("temporary-🦀");let cwd=directory.0.join("cwd-é-🦀");
+    for path in [&home,&temporary,&cwd] {std::fs::create_dir(path).unwrap();}
+    let home=std::fs::canonicalize(home).unwrap();let temporary=std::fs::canonicalize(temporary).unwrap();let cwd=std::fs::canonicalize(cwd).unwrap();
+    let source=support::format_round_trip(r#"
+import {vars,get,currentDir,currentExe,tempDir,homeDir} from 'std:env';
+import {strictEqual} from 'std:testing';
+function main(){
+  const rows=unwrap(vars());let found=0;
+  for(const pair of rows){if(pair.name==='TSRUST_B03_TEXT'){
+    found++;strictEqual(pair.value,'héllo 🦀','snapshot keeps the controlled Unicode value');
+    pair.value='independent snapshot';
+    strictEqual(unwrap(get('TSRUST_B03_TEXT'))==='héllo 🦀',true,'snapshot mutation leaves the process environment unchanged');
+  }}
+  strictEqual(found,1,'snapshot includes the controlled name exactly once');
+  strictEqual(unwrap(get('TSRUST_B03_EMPTY'))==='',true,'empty is present');
+  strictEqual(unwrap(get('TSRUST_B03_MISSING'))===undefined,true,'missing remains absent');
+  strictEqual(unwrap(currentDir())===unwrap(get('TSRUST_B03_EXPECT_CWD')),true,'currentDir uses the child working directory');
+  strictEqual(unwrap(currentExe())===unwrap(get('TSRUST_B03_EXPECT_EXE')),true,'currentExe identifies the executed binary');
+  strictEqual(unwrap(tempDir())===unwrap(get('TSRUST_B03_EXPECT_TEMP')),true,'tempDir observes TMPDIR');
+  strictEqual(unwrap(homeDir())===unwrap(get('TSRUST_B03_EXPECT_HOME')),true,'homeDir observes HOME');
+}
+"#);
+    let path=directory.source(&source);
+    for release in [false,true] {
+        let binary=directory.0.join(if release{"controlled-release"}else{"controlled-debug"});
+        let mut build=support::cli();build.arg("build").arg(&path).arg("-o").arg(&binary);if release{build.arg("--release");}
+        support::success(&support::run(&mut build,180));
+        let binary=std::fs::canonicalize(binary).unwrap();
+        let mut child=std::process::Command::new(&binary);
+        child.current_dir(&cwd).env_clear().env("HOME",&home).env("TMPDIR",&temporary)
+            .env("TSRUST_B03_TEXT","héllo 🦀").env("TSRUST_B03_EMPTY","")
+            .env("TSRUST_B03_EXPECT_CWD",&cwd).env("TSRUST_B03_EXPECT_EXE",&binary)
+            .env("TSRUST_B03_EXPECT_TEMP",&temporary).env("TSRUST_B03_EXPECT_HOME",&home);
+        let output=support::run(&mut child,30);support::success(&output);assert!(output.stdout.is_empty(),"release={release}");
+    }
+}
 #[test]
 fn path_env_os_catalog_examples_execute_without_disclosing_os_values(){
     let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();

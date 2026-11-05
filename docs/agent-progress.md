@@ -13,6 +13,32 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**B03 first compile/guard results:** canonical77816755 integrates rootwiring6429,
+runtimea7f35ad5 and SQLvisibility/B06e30. All-target53672 failed28.116s/
+1,373,025KiB on compatibility wrapper closure HRTB inference. Root explicit
+`drive:&str` repair preserves behavior; both-package all-target19810 now PASSES
+70.166s/1,869,026KiB, only inherited decode_plain warning. Node sourceguard first
+run failed nested quote syntax in hostname contract; one quote fix yields2PASS
+0.521s/1,584KiB. These2root repairs and stronger generated-env witness are not yet
+checkpointed; wholeformat then commit before focused no-run. New Unix native
+witness counts controlled vars row exactly once, proves snapshot mutation leaves
+OS unchanged, checks empty/missing, and compares cwd/exe/HOME/TMPDIR against
+four distinct canonical controlled paths atO0/O3 with emptystdout. Example and
+catalog separator escaping already has2source backslashes (correct); no change.
+No B03 native acceptance or new throughput claim yet.
+
+B06 actual correctness preflight now PASSES unchanged source: postdirective14CLI
+invocations0.523s/6,160KiB:7reporting checks clean,4strict emit positives/3exact
+expected rejects. DirectRust exact Tokio/TokioUtil/Rayon preflight1957 PASSES
+4.215s/338,816KiB; independent pinned Node oracle verifies real ordered/empty/unit,
+siblingdrop,3tick policies, token direction/drop, channelfull/closed owner pointer,
+unpolledpool slots0, cooperative/noninterruptible cleanup/drop counts, retained
+PoolArc via existing.start and publicownerDrop closed admission. Noninterruptible
+control uses thread::sleep(40ms), so this is WAIT cleanup, not CPU throughput.
+No public B06 implementation, void[] resolution or allocation/timing evidence.
+Core prepares source-only Arc-vs-Weak transport/profile variants and backend-default
+limit audit. No worker heavy/formatter job remains. Root has next build slot.
+
 **Current combined B03 candidate:** root6429ff83 checkpoints optional hostname
 wiring and unchanged old pins; runtimea7f35ad5 +coree30c8459 merge cleanly in the
 canonical tree. Runtime source/support is complete, including17catalog entries,
