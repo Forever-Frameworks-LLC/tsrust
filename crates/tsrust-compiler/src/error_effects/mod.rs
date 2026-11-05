@@ -818,6 +818,10 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         }
         StoredCallable(_)|StoredCallableField(_)=>FailureSet::unknown(),
         SchemaConstraint(id)=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
+        // Push itself only transfers an element into storage. Allocation failure
+        // is outside checked transport; receiver/argument effects are folded by
+        // expression traversal and must still retain their exceptional paths.
+        ArrayPush=>FailureSet::default(),
         MatchYield(_)=>FailureSet::default(),
         ResultUnwrap(error)=>FailureSet::thrown(Some(error)),
         SchemaExport(id)=>FailureSet { explicit:vec![Type::Record(id)],runtime:false,opaque:false },
@@ -1265,6 +1269,15 @@ mod tests {
     }
     fn named(program:&CheckedProgram,effects:&ErrorEffects,name:&str)->bool {
         let id=program.functions.iter().position(|function|function.name==name).unwrap();effects.functions[id]
+    }
+    #[test]
+    fn array_push_has_no_own_failure_but_preserves_receiver_and_argument_failures(){
+        let (program,effects)=effects("function plain(values:Mutable<int[]>,value:int):void{values.push(value);}function argument(values:Mutable<int[]>,divisor:int):void{values.push(64/divisor);}function receiver(rows:Mutable<int[][]>,index:int):void{rows[index].push(1);}function failure():int{throw 'argument';}function explicit(values:Mutable<int[]>):void{values.push(failure());}function main(){}");
+        assert!(!named(&program,&effects,"plain"));assert!(named(&program,&effects,"argument"));assert!(named(&program,&effects,"receiver"));
+        let id=program.functions.iter().position(|function|function.name=="explicit").unwrap();assert!(effects.function_errors[id].explicit.contains(&Type::String));
+        let mut count=0;for function in program.functions.iter().filter(|function|matches!(function.name.as_str(),"plain"|"argument"|"receiver"|"explicit")){
+            let push=checked_expressions(function).into_iter().find(|value|value.target==Some(CallTarget::ArrayPush)).unwrap();assert!(!push.own_may_fail,"push has no checked own failure");assert_eq!(push.may_fail,function.name!="plain");count+=1;
+        }assert_eq!(count,4);
     }
     #[test]
     fn checked_bounds_propagate_through_calls_but_number_division_does_not() {

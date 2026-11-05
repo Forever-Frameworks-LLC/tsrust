@@ -752,8 +752,42 @@ export now pass at O0/O3. Native ownership exposed a temporary-borrow staging
 error for computed optional options; its same-statement conversion fix passed
 formatted native ownership/options/stored-call execution at O0/O3 on72ad2f9f
 (32.088s). No checklist item is accepted yet;
-generated benchmark correctness, actual timings and remaining platform checks
-remain pending. Prototype evidence below is not generated API performance.
+Generated benchmark correctness and actual timings now pass as recorded below;
+remaining platform and feature-family checks stay pending. Prototype evidence
+is distinct from generated API performance.
+
+B12 generated workload correctness/timing (2026-11-05, sourcebe086e3a): all13
+workloads passed5cases on native, handwritten Rust and Node-after-tsc. Official
+execution-only run completed535.232s/526,155KiB with quiet guard enabled,
+maxload3.690. Each engine/workload has93samples (3processes×31after8warmups).
+`npm run store:ingest` added39 actual histories at2026-11-05T18:26:31.084Z;
+exact medians/samplecounts and SQLite integrity were verified. Unchanged Rust/Node
+controls are now reusable. Disposable result2026-11-05T18-26-31-084Z.json.
+
+All rows below are milliseconds for2000iterations:
+
+| Workload | Native | Handwritten Rust | Node after tsc |
+|---|---:|---:|---:|
+| regex_compile | 31.836792 | 31.238375 | 0.114375 |
+| regex_escape | 0.126375 | 0.132875 | 0.441833 |
+| regex_is_match | 0.048166 | 0.047041 | 0.032958 |
+| regex_find | 0.057167 | 0.054958 | 0.059459 |
+| regex_find_all | 0.186334 | 0.176667 | 0.584750 |
+| regex_captures | 0.234541 | 0.244167 | 0.306375 |
+| regex_captures_all | 0.651041 | 0.652542 | 1.046167 |
+| regex_replace | 0.399833 | 0.381542 | 0.388208 |
+| regex_replace_all | 0.660791 | 0.664000 | 0.346041 |
+| regex_split | 0.186541 | 0.178292 | 0.482625 |
+| string_regex_match | 0.248500 | 0.232000 | 0.309875 |
+| string_regex_match_all | 0.656959 | 0.696042 | 1.046750 |
+| string_regex_search | 0.055500 | 0.055625 | 0.037292 |
+
+Native/direct-Rust median ratios span0.944–1.071; no large adapter gap appeared
+in this run. Constructor timing measures repeated public construction, not isolated
+fresh backend code generation; the large Node/Rust construction difference must
+not be represented as compiler bridge overhead. Backend operations and eager
+snapshots retain their documented semantics. Platform execution and remaining
+feature-family acceptance stay separate; no v0.2 publication approval is implied.
 
 B12 initial admission preparation (2026-11-05; before package wiring):
 select regex1.13.1 with default std/perf/unicode and regex-syntax/default features.
