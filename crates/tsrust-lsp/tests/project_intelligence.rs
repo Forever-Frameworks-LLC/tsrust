@@ -7,7 +7,9 @@ use tsrust_lsp::{
     project_diagnostics::source_id, project_intelligence::ProjectIndex, workspace::Workspace,
 };
 fn ask(index: &ProjectIndex, source: &str, needle: &str, method: &str) -> Value {
-    let offset = source.rfind(needle).unwrap();
+    ask_at(index,source,source.rfind(needle).unwrap(),method)
+}
+fn ask_at(index:&ProjectIndex,source:&str,offset:usize,method:&str)->Value {
     let prefix = &source[..offset];
     let position = json!({"line":prefix.bytes().filter(|byte| *byte == b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()});
     index
@@ -3228,8 +3230,8 @@ fn filesystem_options_metadata_and_entry_help_agree_with_native_signatures() {
     assert!(hover.contains("Host metadata length in bytes"),"{hover}");assert!(!hover.contains("__tsrust_private_"));
     let hover=ask(&index,&entry,"isSymlink","textDocument/hover").to_string();
     assert!(hover.contains("including links to directories or missing targets"),"{hover}");
-    let options=ask(&index,&entry,"\"input.bin\"","textDocument/signatureHelp").to_string();
+    let options=ask_at(&index,&entry,entry.rfind("openFile(").unwrap()+"openFile(".len(),"textDocument/signatureHelp").to_string();
     assert!(options.contains("options: ReadOnly<OpenOptions>"),"{options}");
-    let directory=ask(&index,&entry,"\".\"","textDocument/signatureHelp").to_string();
+    let directory=ask_at(&index,&entry,entry.rfind("readDir(").unwrap()+"readDir(".len(),"textDocument/signatureHelp").to_string();
     assert!(directory.contains("maxEntries?: int"),"{directory}");assert!(directory.contains("no application entry cap"),"{directory}");
 }

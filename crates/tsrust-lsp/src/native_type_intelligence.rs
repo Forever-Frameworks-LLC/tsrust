@@ -1,6 +1,11 @@
 //! Project imported native declarations into editor symbols using shared metadata.
 use super::*;
 
+// Shared borrowed-string observations are a strict subset of owned string methods.
+fn borrowed_string_builtins()->Vec<Value> {
+    builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect()
+}
+
 impl SourceIndex {
     pub(super) fn deque_element<'a>(&self, ty: &'a str) -> Option<&'a str> {
         self.native_collection_element(ty,tsrust_compiler::native_signatures::NativeTypeId::Deque)
@@ -146,6 +151,9 @@ impl SourceIndex {
             }
             return entries;
         }
+        // Borrowing access changes neither the view's native identity nor its observers.
+        let view=ty.strip_prefix("ReadOnly<").and_then(|inner|inner.strip_suffix('>')).map(str::trim).unwrap_or(ty);
+        if self.native_type_aliases.get(view)==Some(&tsrust_compiler::native_signatures::NativeTypeId::StringView){return borrowed_string_builtins();}
         let (base, arguments) = ty.find('<').map_or((ty, ""), |start| (&ty[..start], &ty[start..]));
         let identity=self.native_type_aliases.get(base).copied().or_else(|| {
             let (module,name)=base.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
@@ -153,6 +161,7 @@ impl SourceIndex {
         });
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
+            if identity==tsrust_compiler::native_signatures::NativeTypeId::StringView{return borrowed_string_builtins();}
 
             if declaration.module=="std:url" {return if declaration.id==tsrust_compiler::native_signatures::NativeTypeId::Url{Vec::new()}else{builtins_for(declaration.name)};}
 
@@ -172,7 +181,7 @@ impl SourceIndex {
             if matches!(declaration.module,"std:threads"|"std:cache") { return builtins_for(&format!("{}{arguments}", declaration.name)); }
         }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
-        if ty=="__tsrust_json_string_read" {return builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect();}
+        if ty=="__tsrust_json_string_read" {return borrowed_string_builtins();}
         if let Some((key,value))=self.ordered_map_types(ty){return builtins_for(&format!("OrderedMap<{key}, {value}>"));}
         let Some((family,element)) = self.deque_element(ty).map(|element|("Deque",element)).or_else(||self.heap_element(ty).map(|element|("Heap",element))).or_else(||self.ordered_set_element(ty).map(|element|("OrderedSet",element))) else { return builtins_for(ty); };
         let mut entries = builtins_for(family);

@@ -32,7 +32,8 @@ impl Emitter<'_> {
         let receiver=&selection.exclusive;
         let invoke=format!("match tsrust_native_url::{function}({receiver},{argument}){{Ok(())=>{{}},Err(error)=>{failure}}}");
         let setup=&selection.setup;let output=if returned{"storage_value"}else{"()"};
-        format!("{{{setup}let storage_value={input};{invoke};{output}}}")
+        let storage_type=self.native_type(value.ty.expect("checked URL setter value"));
+        format!("{{{setup}let storage_value:{storage_type}={input};{invoke};{output}}}")
     }
     fn url_value(&self, ty:Type, value:&str)->String {
         if ty==Type::String {return format!("String::Owned({value})");}

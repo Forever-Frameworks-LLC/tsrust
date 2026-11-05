@@ -59,7 +59,8 @@ fn computed_properties_preserve_whole_owner_and_selected_container_loans() {
         let source=support::format_round_trip(&format!("import {{Url,parseUrl,parseQuery}} from 'std:url';{body}"));
         let error=checked(&directory,&source).err().unwrap_or_else(||panic!("accepted {source}"));
         assert_eq!(error.code,code,"{source}: {}",error.message);
-        assert_eq!(error.location.source.0,directory.0.join("input.tsr").to_str().unwrap());
+        let expected_source=std::fs::canonicalize(directory.0.join("input.tsr")).unwrap();
+        assert_eq!(error.location.source.0,expected_source.to_str().unwrap());
         let start=source.rfind(offending).unwrap();
         assert!(error.location.span.start<start+offending.len() && start<error.location.span.end,"{source}: {error:?}");
         if let Some(creation)=creation {
@@ -82,6 +83,40 @@ fn getter_functions_emit_without_throwing_result_wrappers() {
     let parsed=syn::parse_file(&emitted).unwrap();
     let function=parsed.items.iter().find_map(|item|if let syn::Item::Fn(function)=item{(function.sig.ident=="function0").then_some(function)}else{None}).expect("first source function");
     assert!(matches!(&function.sig.output,syn::ReturnType::Type(_,ty) if matches!(ty.as_ref(),syn::Type::Path(path) if path.path.is_ident("i64"))),"{}",emitted);
+}
+
+#[test]
+fn optional_url_setters_keep_absent_and_stored_union_types_at_o0_and_o3() {
+    let directory=support::TempDirectory::new();
+    let source=r#"
+import {parseUrl} from 'std:url';
+import {strictEqual} from 'std:testing';
+function maybeText(present:boolean,text:string):string|undefined{if(present){return text;}return undefined;}
+function maybePort(present:boolean,port:int):int|undefined{if(present){return port;}return undefined;}
+function main(){
+  const address=unwrap(parseUrl('https://user:secret@example.com:8080/start?q=1#top'));
+  address.password=undefined;address.port=undefined;address.search=undefined;address.hash=undefined;
+  strictEqual(address.password===undefined,true);strictEqual(address.port===undefined,true);
+  strictEqual(address.search===undefined,true);strictEqual(address.hash===undefined,true);
+  const password=maybeText(true,'restored');address.password=password;strictEqual(String(address.password),'restored');
+  const port=maybePort(true,0);address.port=port;strictEqual(address.port===0,true);
+  const search=maybeText(true,'?x=two');address.search=search;strictEqual(String(address.search),'?x=two');
+  const hash=maybeText(true,'#next');address.hash=hash;strictEqual(String(address.hash),'#next');
+  const noPassword=maybeText(false,'unused');address.password=noPassword;
+  const noPort=maybePort(false,1);address.port=noPort;
+  const noSearch=maybeText(false,'unused');address.search=noSearch;
+  const noHash=maybeText(false,'unused');address.hash=noHash;
+  strictEqual(address.password===undefined,true);strictEqual(address.port===undefined,true);
+  strictEqual(address.search===undefined,true);strictEqual(address.hash===undefined,true);
+  const assigned=(address.port=1234);strictEqual(assigned===1234,true);strictEqual(address.port===1234,true);
+  const cleared=(address.port=undefined);strictEqual(cleared===undefined,true);strictEqual(address.port===undefined,true);
+  const host=unwrap(parseUrl('custom://example.com/path'));host.hostname=undefined;
+  strictEqual(host.hostname===undefined,true);
+  const hostname=maybeText(true,'other.example');host.hostname=hostname;strictEqual(String(host.hostname),'other.example');
+  const noHostname=maybeText(false,'unused');host.hostname=noHostname;strictEqual(host.hostname===undefined,true);
+}
+"#;
+    native(&directory,source,"run",Some(b""));
 }
 
 #[test]
