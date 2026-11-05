@@ -43,7 +43,7 @@ impl Export {
 pub fn lookup(module: &str, name: &str) -> Result<Export, String> {
     if module == SEEK_ORIGIN.module && name == SEEK_ORIGIN.name { return Ok(Export::Alias(&SEEK_ORIGIN)); }
     if module=="std:url" && name=="StringView" {return Ok(Export::Type(native_types::declaration(crate::native_signatures::NativeTypeId::StringView)));}
-    if matches!(module, "std:url" | "std:schema" | "std:threads" | "std:futures" | "std:cache" | "std:http" | "std:sql" | "std:sqlite") && name.starts_with("__") { return Err(format!("Standard-library module {module:?} does not export {name:?}.")); }
+    if matches!(module, "std:regex" | "std:url" | "std:schema" | "std:threads" | "std:futures" | "std:cache" | "std:http" | "std:sql" | "std:sqlite") && name.starts_with("__") { return Err(format!("Standard-library module {module:?} does not export {name:?}.")); }
     if module == "std:schema" && name == "s" { return Ok(Export::Namespace(Namespace::Schema)); }
     if let Some(item) = native_types::lookup(module, name) { return Ok(Export::Type(item)); }
     if native_bindings::BINDINGS.iter().any(|item| item.module == module && item.name == name) {

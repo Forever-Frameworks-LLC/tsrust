@@ -163,6 +163,7 @@ impl SourceIndex {
             let declaration = tsrust_compiler::native_types::declaration(identity);
             if identity==tsrust_compiler::native_signatures::NativeTypeId::StringView{return borrowed_string_builtins();}
 
+            if declaration.module=="std:regex" {return builtins_for(declaration.name);}
             if declaration.module=="std:url" {return if declaration.id==tsrust_compiler::native_signatures::NativeTypeId::Url{Vec::new()}else{builtins_for(declaration.name)};}
 
             if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}
@@ -306,7 +307,7 @@ impl SourceIndex {
                 parameters: Vec::new(), owner: Some(local.into()),
             });
         }
-        if matches!(declaration.module,"std:sqlite"|"std:sql"|"std:url") {
+        if matches!(declaration.module,"std:regex"|"std:sqlite"|"std:sql"|"std:url") {
             let mut identities=Vec::new();
             for binding in tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module==declaration.module) {
                 for ty in binding.parameters.iter().map(|parameter|parameter.ty).chain(std::iter::once(binding.result)) {

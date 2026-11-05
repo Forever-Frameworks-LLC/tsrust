@@ -52,7 +52,7 @@ pub fn json_module_with_writer(writer:bool)->String {
 /// This predicate preserves exact bundled module and Rust-binding detection without extraction.
 pub fn requires_dependencies(source:&str)->bool {
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    requires_hostname(source) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
+    requires_hostname(source) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
         || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust")
 }
 
@@ -94,6 +94,7 @@ pub fn separate(source:&str)->Units {
     extract("tsrust_native_decimal",crate::stdlib::decimal::RUNTIME.to_owned(),
     );
     extract("tsrust_native_hostname",crate::stdlib::os::HOSTNAME_RUNTIME.to_owned());
+    extract("tsrust_native_regex",crate::stdlib::regex::RUNTIME.to_owned());
     extract("tsrust_native_url",crate::stdlib::url::RUNTIME.to_owned());
     extract("tsrust_native_sql",crate::stdlib::sql::RUNTIME.to_owned());
     extract("tsrust_native_sqlite",crate::stdlib::sqlite::RUNTIME.to_owned());

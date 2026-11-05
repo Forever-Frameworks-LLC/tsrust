@@ -13,6 +13,7 @@ use support::session::Session;
 enum Kind {
     Filesystem,
     Url,
+    Regex,
     PathEnvOs,
     Ui,
     Crypto,
@@ -59,9 +60,10 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 46] = [
+const KINDS: [Kind; 47] = [
     Kind::Filesystem,
     Kind::Url,
+    Kind::Regex,
     Kind::PathEnvOs,
     Kind::Ui,
     Kind::Crypto,
@@ -167,6 +169,10 @@ fn rows() -> Vec<Row> {
  Row {kind:Kind::Filesystem,name:"filesystem aliased directory entry",before:"import {DirEntry as Entry} from 'std:fs';function inspect(value:ReadOnly<Entry>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["name","path","isFile","isDirectory","isSymlink"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
 
 
+ Row {kind:Kind::Regex,name:"Regex public imports",before:"import { ".into(),typed:"",after:" } from 'std:regex';function main(){}",includes:&["Regex","RegexMatch","RegexCaptures","RegexError","RegexOptions","compile","escape"],excludes:&["__find","__stringMatch","regex_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Regex,name:"Regex aliased owner methods",before:"import {Regex as Pattern} from 'std:regex';function inspect(value:ReadOnly<Pattern>){".into(),typed:"value.",after:"isMatch('a');}function main(){}",includes:&["isMatch","find","findAll","captures","capturesAll","replace","replaceAll","split"],excludes:&["__find","function","main","clone"],silent:None,needs_check:false},
+ Row {kind:Kind::Regex,name:"Regex capture record fields",before:"import {RegexCaptures as Captured} from 'std:regex';function inspect(value:ReadOnly<Captured>){".into(),typed:"value.",after:"match;}function main(){}",includes:&["match","groups"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Regex,name:"Regex String entry points",before:"import {Regex} from 'std:regex';function inspect(text:string,value:ReadOnly<Regex>){".into(),typed:"text.ma",after:"tch(value);}function main(){}",includes:&["match","matchAll"],excludes:&["search","function","main"],silent:None,needs_check:false},
  Row {kind:Kind::Url,name:"URL import path prefix",before:"import {Url} from '".into(),typed:"std:u",after:"';function main(){}",includes:&["std:url"],excludes:&["std:sql"],silent:None,needs_check:false},
  Row {kind:Kind::Url,name:"URL public imports",before:"import { ".into(),typed:"",after:" } from 'std:url';function main(){}",includes:&["Url","UrlError","SearchParams","QueryEntry","StringView","parseUrl","resolveUrl","formatUrl","parseQuery","formatQuery","searchParams","setSearchParams","pathToFileUrl","fileUrlToPath","encodeURIComponent","decodeURIComponent"],excludes:&["__href","__setHref","__get","url_intrinsic"],silent:None,needs_check:false},
  Row {kind:Kind::Url,name:"URL partial imports",before:"import { ".into(),typed:"parse",after:" } from 'std:url';function main(){}",includes:&["parseUrl","parseQuery"],excludes:&["formatUrl","__get"],silent:None,needs_check:false},
@@ -547,7 +553,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if (matches!(mode, Mode::Immediate | Mode::Paced) || matches!(row.kind,Kind::Url|Kind::Filesystem|Kind::PathEnvOs) && mode==Mode::ErrorElsewhere) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || matches!(row.kind,Kind::Url|Kind::Regex|Kind::Filesystem|Kind::PathEnvOs) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);

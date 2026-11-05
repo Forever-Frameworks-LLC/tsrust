@@ -5,6 +5,7 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
     Url, SearchParams, UrlError, QueryEntry,
+    Regex, RegexMatch, RegexCaptures, RegexError, RegexOptions,
     UiSignal,
     UiComputed,
     UiTextBinding,

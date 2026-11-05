@@ -14,9 +14,9 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `028daeb0`. Root has uncommitted benchmark reference/driver repairs, measurements and
-handoff/plan updates; preserve them. Full B00–B20 stays active.
-No push, release, full regression or accepted API timing ingestion occurred.
+`codex/stdlib-0.2.0`, source checkpoint `61871710`. B03 source/measurements are checkpointed; coherent B12 source and handoff/plan
+updates are uncommitted before the next checkpoint. Preserve it. Full B00–B20 stays active.
+No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
 471,530KiB, quiet guard enabled/maxload3.917. Exact result
@@ -39,14 +39,58 @@ Initial official preparation failures remain in /tmp/tsrust-b03-measure.log
 -reference-recheck.log (duplicate hostname externs); none timed/ingested.
 Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
-source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs and this evidence
-await whole formatting/checkpoint.
-Core source-only checked-facts repair is checkpoint1d18e85c (parent2adbe0b0),
-clean worker tree; formatter4.145s/203,600KiB and idempotent4.127s/204,768KiB,
-1540Tsrust files token-preserved. Fresh executable acceptance still pending.
-Root now owns its short formatter/checkpoint; core gets next heavy validation slot.
-Both use shared canonical target/jobs1/incremental0 and5GB/30min watchdog.
-No native job or quiet timing is active now.
+source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
+whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
+**Current continuation: root B12 source checkpoint/integration preparation.**
+No Cargo/native test job is active. Root whole token/idempotence proof70030 is
+running before checkpoint; `/tmp/tsrust-b12-token-proof.log`. Earlier full formatter
+changed14files/18catalog snippets/13fingerprints; its watchdog could not invoke ps
+inside sandbox, although formatter completed. Subsequent supervised idempotence
+passed5.178s/203,056KiB with0changes. Node24 regex-text source/oracle/13reference
+ABI checks passed. Do not claim generated/native/editor acceptance yet.
+
+B06 prerequisite candidate f6f14954 is fully accepted in focused worker scope and
+clean, awaiting root integration. Commit chain from e30c8459:2adbe0b0,1d18e85c,
+98467a47,0873d1e6,f6f14954. Latest production0873 passed nonempty3receiver
+agreement, all4rows×4phases=16observations and consistency (24780 total23.895s/
+79,088KiB). Server SHAe094138acce43077e621d419a2daefa93e1c8c40d12d4dd6cdc07d6df77cafa4.
+Final cfg(test)-only f6 fixes /tmp versus canonical /private/tmp virtual roots;
+lib build38941 passed6.728s/551,456KiB, compiler fresh=true, pure4case recovery
+unit passed0.521s/80KiB. Logs `/tmp/tsrust-b06-path-{artifacts.jsonl,build.log}`,
+`/tmp/tsrust-b06-path-gate.log`, `/tmp/tsrust-b06-recovery-editor-gates.log`.
+Earlier native/leaf/clone/mixedtuple/TaskJob/discardspan passes remain preserved.
+Root next integrates these five commits, not entire divergent worker tree.
+B06 worker is idle after read-only public API tracing; public all/interval/token/
+channel/taskAsync APIs remain unimplemented. Root has its finite implementation
+plan; exact interval/admission/error and send-owner contracts still need freezing.
+
+B12 root now contains thin regex runtime and8Rust witnesses, compiler identities,
+bindings/checking/emission, optional backend/native dependency features and updated
+locks, runtime extraction/CLI activation,18catalog entries/examples,4editor matrix
+rows plus consistency, native/feature/relocated-export tests, full example and
+13matched benchmark rows/sources/oracles/reference dependency support. All remain
+uncompiled source. Imported worker runtime hashes were verified; worker source is
+not itself integrated as a commit. Four TS capture aliases were renamed to avoid
+DOM Range collisions; all13Rust ABI signatures normalized to existing driver syntax.
+Whole formatter refreshed workload hashes; actual timings remain unmeasured.
+Root also migrates explicit Rust regex bindings to exact bundled1.13.1 with defaults
+and no added features; manifest reuses/enables the dependency instead of duplicating
+its key. Other versions/features fail explicitly. Existing rust-regex example
+embedded lock updated from current backend closure; retained adjacent legacy lock
+unchanged. Generated manifest passed offline locked metadata at
+`/tmp/tsrust-regex-binding-admission`; generated execution still pending.
+
+B12 prototype admission preserved: exact regex1.13.1, aho-corasick1.1.5,
+memchr2.8.3, regex-automata0.4.18, regex-syntax0.8.11. All archive checksums,
+licenses/MSRVs verified; current RustSecdb26fd2d43 clean0vulnerabilities/0warnings.
+`/tmp/tsrust-b12-{closure,audit}.json`. Offline optimized build90682 passed13.447s/
+348,064KiB; profile71824 passed2.065s/213,408KiB,10semantic cases+contracts,
+3processes×31samples after8warmups,separate allocation builds,quiet max2.226.
+`/tmp/tsrust-b12-{artifacts.jsonl,build.log,profile.json,profile.log}`. No prototype
+DB ingestion. Plan records range-vs-copy and quadratic iteration findings.
+
+Root pruned closed temporary SQL/ABI diagnostic sources; raw measured results
+remain for pending comparison review and unchanged-reference reuse.
 
 **B06 worker state.** Existing managed stdlib-files tree checkpoint2adbe0b0
 (parent e30c8459) plus source-only follow-up changes, not integrated. Repair
@@ -57,14 +101,14 @@ passed all7 selected tests13.249s/99,920KiB (four changed native scopes and thre
 strengthened primitive editor scopes); `/tmp/tsrust-b06-repair-gates.{json,log}`.
 The earlier mixed tuple/join witness pass remains preserved. Shared debug tools
 represent this worker repair candidate, NOT canonical db516eac.
-Latest follow-up is SOURCE ONLY: actual checked capability facts now travel
+Latest follow-up is checkpoint1d18e85c, built but editor acceptance FAILED: actual checked capability facts now travel
 through CheckedTypeFacts/ProjectCheckedTypeFacts/SourceIndex exact receiver spans;
 normal/repaired completion and hover share them. Synthetic type reparsing removed.
 Default-sort predicate matches emitter primitives. Added local/imported tuple and
 unit-alias four-phase rows, nested receiver agreement and Map-array comparator
-control. Static diff check passed; latest15-file diff is unbuilt/unformatted/
-uncommitted. After root measurement releases slot, worker must whole-format,
-checkpoint and rebuild affected tools/harnesses, then validate these latest scopes.
+control. Static diff check, whole-format/token/idempotence passed (4.145s/203,600KiB
+and4.127s/204,768KiB;1540Tsrust files). Worker tree clean at build launch.
+Fresh native scopes passed; actual editor recovery failed as detailed above. Further source repair is pending.
 
 B06 unit-array source adds ArrayElement/resolution/rendering/clone/sort,
 explicit unsupported unit optional/text/entries results, compiler/native fixtures

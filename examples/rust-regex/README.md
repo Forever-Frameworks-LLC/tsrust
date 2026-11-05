@@ -6,10 +6,15 @@ including exact versions, features and the complete Cargo lock. The adjacent
 lockfile remains as a retained legacy input; managed generations use their embedded lock.
 
 ```sh
-tsrust add regex@1.12.2 --project examples/rust-regex
+tsrust add regex@1.13.1 --project examples/rust-regex
 tsrust run examples/rust-regex/main.tsr
 # Found 314 at byte 6
 ```
+
+Regex bindings reuse the bundled regex1.13.1 backend with its default features.
+Older exact pins or different feature settings are rejected; update the declaration
+and resolve its lock before building. The built-in `std:regex` module is available
+when a handwritten adapter is unnecessary.
 
 Use package commands to change dependencies; no handwritten JSON is needed. Restore
 locked sources with `tsrust bindings resolve examples/rust-regex/regex.bindings.json`

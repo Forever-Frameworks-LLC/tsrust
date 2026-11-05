@@ -1,3 +1,4 @@
+import {regexTextChecksum,regexTextSpecs} from './regex-text-contract.mjs';
 import {expectedByteOperationObservation} from './byte-operations-oracle.mjs';
 import {expectedByteCodecObservation} from './byte-codecs-oracle.mjs';
 import {pathEnvOsChecksum,pathEnvOsSpecs} from './path-env-os-contract.mjs';
@@ -225,6 +226,7 @@ export {expectedNumber} from './number-oracle.mjs';
 export function expectedChecksum(id, n, seed, inputText) {
  if(id.startsWith("byte_ops_"))return expectedByteOperationObservation(id,n,seed,inputText).checksum;
  if(id.startsWith("bytes_"))return expectedByteCodecObservation(id,n,seed,inputText).checksum;
+ if(Object.hasOwn(regexTextSpecs,id))return regexTextChecksum(id,n,seed,inputText);
  if(Object.hasOwn(pathEnvOsSpecs,id))return pathEnvOsChecksum(id,n,seed,inputText);
  if(Object.hasOwn(urlSpecs,id))return urlChecksum(id,n,seed,inputText);
  if(id==='native_module_state')return moduleStateChecksum(n,seed);

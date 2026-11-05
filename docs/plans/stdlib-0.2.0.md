@@ -721,6 +721,38 @@ RUSTSEC-2022-0013 as fixed before this version; resolved-closure advisory review
 archive verification, target execution and optional-feature/export admission
 remain pending.
 
+B12 resolved prototype admission (2026-11-05): standalone lock selects
+aho-corasick1.1.5 (Unlicense OR MIT, MSRV1.60), memchr2.8.3
+(Unlicense OR MIT, MSRV1.61), regex1.13.1, regex-automata0.4.18 and
+regex-syntax0.8.11 (MIT OR Apache-2.0, MSRV1.65). All five archive SHA256s
+match their lock checksums. Current official RustSec database26fd2d43
+(1409 advisories) reports zero vulnerabilities and zero warnings for this closure.
+Offline locked optimized prototype build passed13.447s/348,064KiB; direct
+correctness/allocation/timing driver passed2.065s/213,408KiB with optimized exact
+rlibs, three processes ×31 samples after8 warmups and separate allocation builds.
+Ten semantic cases plus invalid-pattern/explicit-limit/escape/owner-lifetime
+controls passed independent Node oracles. Quiet guard maxload2.226. Driver
+verifies unchanged source/artifact hashes and materializes owned outputs through
+black_box before checksum traversal. Evidence `/tmp/tsrust-b12-{artifacts.jsonl,
+build.log,profile.json,profile.log,closure.json,audit.json}`. This admits a
+prototype, not public APIs, production package wiring, portable export or other
+platforms. No prototype timing is ingested as generated API performance.
+
+Profile decision: retain the thin backend owner, no extra cache or mutable scratch.
+ASCII/Unicode compile costs11.49/18.27µs versus reused isMatch22.12/16.94ns
+with zero allocations. For64matches, findAll ranges take3.161/2.723µs and
+1allocation+4reallocations versus copied strings4.384/4.018µs and65+4;
+requested bytes1,984 versus3,424/3,232. Streaming floors2.819/2.417µs do not
+return equivalent owned snapshots. Captures snapshots132.81/152.34ns allocate2;
+capturesAll9.434/9.185µs allocate130+4 for64matches. Mutable reused
+CaptureLocations is a non-equivalent floor, not grounds for owner locks/caches.
+No-match owned replacement adds one32byte copy by contract. Split ranges use
+one output allocation+5reallocations; avoid counting prepasses. Adversarial
+`a+z|a` iteration64/256/1024bytes takes backend2.136/15.198/166.750µs and
+range snapshots2.354/15.833/166.302µs: potentially quadratic total iteration
+work already exists in the backend and must be documented. These are warmed
+direct Rust prototype medians, not generated workload acceptance measurements.
+
 Use owned UTF-8 byte-range records for find/capture/split snapshots; borrow regex
 and text only during the call. Missing captures remain distinct from empty ranges.
 Numbered capture slots cover this finite family without copying names into each

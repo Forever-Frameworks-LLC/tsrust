@@ -2748,6 +2748,57 @@
           "output": "fi1가 가\n"
         }
       ]
+    },
+    {
+      "name": "match",
+      "signature": "match(regex: ReadOnly<Regex>): RegexCaptures | undefined",
+      "parameters": [
+        {
+          "label": "regex: ReadOnly<Regex>",
+          "documentation": "Previously compiled expression; reused without recompilation or mutation."
+        }
+      ],
+      "documentation": "Returns the first capture snapshot using a compiled Regex; same contract as Regex.captures. Unmatched captures remain undefined. No implicit compilation or mutable match state.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  const found = 'aé'.match(value);\n  if (found !== undefined) {\n    console.log(found.match.start, found.match.end);\n  }\n}\n```\n\nExpected output: 1 3.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));const found='aé'.match(value);if(found!==undefined){console.log(found.match.start,found.match.end);} }\n",
+          "output": "1 3\n"
+        }
+      ]
+    },
+    {
+      "name": "matchAll",
+      "signature": "matchAll(regex: ReadOnly<Regex>): RegexCaptures[]",
+      "parameters": [
+        {
+          "label": "regex: ReadOnly<Regex>",
+          "documentation": "Previously compiled expression; reused without recompilation or mutation."
+        }
+      ],
+      "documentation": "Eagerly returns all nonoverlapping capture snapshots using a compiled Regex; same contract as Regex.capturesAll. Empty matches advance on UTF-8 boundaries. Repeated searches can take quadratic total time and allocate an unbounded result snapshot.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  console.log('é é'.matchAll(value).length);\n}\n```\n\nExpected output: 2.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));console.log('é é'.matchAll(value).length); }\n",
+          "output": "2\n"
+        }
+      ]
+    },
+    {
+      "name": "search",
+      "signature": "search(regex: ReadOnly<Regex>): int",
+      "parameters": [
+        {
+          "label": "regex: ReadOnly<Regex>",
+          "documentation": "Previously compiled expression; reused without recompilation or mutation."
+        }
+      ],
+      "documentation": "Returns the byte offset of the first match using a compiled Regex, or -1 if absent. An empty pattern matches at offset zero. No receiver mutation or implicit compilation occurs.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  console.log('aé'.search(value), 'abc'.search(value));\n}\n```\n\nExpected output: 1 -1.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));console.log('aé'.search(value),'abc'.search(value)); }\n",
+          "output": "1 -1\n"
+        }
+      ]
     }
   ],
   "Array": [
@@ -17406,6 +17457,287 @@
         }
       ],
       "documentation": "Replaces the current state value and returns void. value must have the same int, number, boolean or string type T; no coercion occurs. Reads see the new value immediately; text and disabled bindings refresh after the active handler returns. Example: const label = signal(\"first\"); label.set(\"second\"); label.get(); returns second. int accepts its full signed 64-bit range; checked arithmetic fails before set and leaves state unchanged. number preserves NaN, infinities and signed zero. Throws UiError when its component is disposed. Ownership: borrows state and copies string values; it never extends the owner lifetime."
+    }
+  ],
+  "std:regex": [
+    {
+      "name": "Regex",
+      "signature": "type Regex",
+      "parameters": [],
+      "documentation": "A reusable compiled Unicode regular expression. Compile once and borrow for repeated searches. No lastIndex state, implicit recompilation or mutation occurs. Supports Rust regex syntax, including inline flags and named groups; lookaround and backreferences are rejected. Empty matches progress on UTF-8 boundaries. The owner is opaque and cannot be constructed or cloned directly.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  console.log(value.isMatch('é'));\n}\n```\n\nExpected output: true.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));console.log(value.isMatch('é')); }\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "RegexMatch",
+      "signature": "type RegexMatch = { start: int; end: int; }",
+      "parameters": [],
+      "documentation": "An independently owned half-open UTF-8 byte range [start,end). start equals end for an empty match. Ranges describe the searched text but retain no text; do not apply them to another input.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  console.log(value.findAll('aé')[0].start, value.findAll('aé')[0].end);\n}\n```\n\nExpected output: 1 3.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));console.log(value.findAll('aé')[0].start,value.findAll('aé')[0].end); }\n",
+          "output": "1 3\n"
+        }
+      ],
+      "fields": {
+        "start": {
+          "documentation": "Inclusive byte offset into the original UTF-8 input."
+        },
+        "end": {
+          "documentation": "Exclusive byte offset; equals start for an empty match."
+        }
+      }
+    },
+    {
+      "name": "RegexCaptures",
+      "signature": "type RegexCaptures = { match: RegexMatch; groups: (RegexMatch | undefined)[]; }",
+      "parameters": [],
+      "documentation": "The full match and numbered optional capture ranges. groups[n-1] is capture n; group zero is stored once in match. An unmatched group is undefined; an empty matched group has equal start/end offsets. Named groups occupy their ordinary numeric slot; names are not copied into results.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  const rows = value.capturesAll('é');\n  console.log(rows[0].match.end, rows[0].groups.length);\n}\n```\n\nExpected output: 2 2.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));const rows=value.capturesAll('é');console.log(rows[0].match.end,rows[0].groups.length); }\n",
+          "output": "2 2\n"
+        }
+      ],
+      "fields": {
+        "match": {
+          "documentation": "Whole matched range (capture zero)."
+        },
+        "groups": {
+          "documentation": "Capture n is groups[n-1]; missing captures are undefined, not empty ranges."
+        }
+      }
+    },
+    {
+      "name": "RegexError",
+      "signature": "type RegexError = { code: string; message: string; }",
+      "parameters": [],
+      "documentation": "An owned compile failure. Codes are Syntax, SizeLimit, Range and Compile. message describes the failure and can include pattern text; avoid logging sensitive patterns. Matching an already compiled expression does not return this error.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  try {\n    unwrap(compile('('));\n  } catch (error) {\n    console.log(error.code);\n  }\n}\n```\n\nExpected output: Syntax.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { try{unwrap(compile('('));}catch(error){console.log(error.code);} }\n",
+          "output": "Syntax\n"
+        }
+      ],
+      "fields": {
+        "code": {
+          "documentation": "Stable failure category: Syntax, SizeLimit, Range or Compile."
+        },
+        "message": {
+          "documentation": "Detailed explanation; syntax failures can include the pattern."
+        }
+      }
+    },
+    {
+      "name": "RegexOptions",
+      "signature": "type RegexOptions = { sizeLimit?: int; dfaSizeLimit?: int; nestLimit?: int; }",
+      "parameters": [],
+      "documentation": "Omitted limits retain the compiled-size limit of 10485760 bytes, hybrid DFA cache limit of 2097152 bytes and nesting limit of 250. sizeLimit and dfaSizeLimit accept nonnegative int byte counts representable on the target; nestLimit accepts 0..4294967295. Explicit zero is passed through. Invalid ranges return Range; malformed or unsupported syntax returns Syntax; excessive compiled size returns SizeLimit; other backend compile failures return Compile. Limits do not bound total iteration results or impose a timeout.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('a', {\n    dfaSizeLimit: 0\n  }));\n  console.log(value.isMatch('a'));\n}\n```\n\nExpected output: true.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('a',{dfaSizeLimit:0}));console.log(value.isMatch('a')); }\n",
+          "output": "true\n"
+        }
+      ],
+      "fields": {
+        "sizeLimit": {
+          "documentation": "Optional compiled NFA size limit in bytes; default 10485760. Nonnegative target-representable int."
+        },
+        "dfaSizeLimit": {
+          "documentation": "Optional hybrid DFA cache limit in bytes; default 2097152. Zero disables this cache without disabling matching."
+        },
+        "nestLimit": {
+          "documentation": "Optional syntax nesting limit, 0..4294967295; default 250."
+        }
+      }
+    },
+    {
+      "name": "compile",
+      "signature": "compile(pattern: string, options?: ReadOnly<RegexOptions>): Result<Regex, RegexError>",
+      "parameters": [
+        {
+          "label": "pattern: string",
+          "documentation": "Rust regex pattern, Unicode-aware by default; inline flags select case, multiline and other supported modes."
+        },
+        {
+          "label": "options?: ReadOnly<RegexOptions>",
+          "documentation": "Optional explicit resource limits; omission retains backend defaults."
+        }
+      ],
+      "documentation": "Compiles an independently owned reusable expression and returns Result. Omitted limits retain the compiled-size limit of 10485760 bytes, hybrid DFA cache limit of 2097152 bytes and nesting limit of 250. sizeLimit and dfaSizeLimit accept nonnegative int byte counts representable on the target; nestLimit accepts 0..4294967295. Explicit zero is passed through. Invalid ranges return Range; malformed or unsupported syntax returns Syntax; excessive compiled size returns SizeLimit; other backend compile failures return Compile. Limits do not bound total iteration results or impose a timeout.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  console.log(value.isMatch('é'));\n}\n```\n\nExpected output: true.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));console.log(value.isMatch('é')); }\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "escape",
+      "signature": "escape(text: string): string",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "Literal UTF-8 text to place in a regex pattern."
+        }
+      ],
+      "documentation": "Escapes regex metacharacters so the returned pattern matches the literal text. Does not add anchors, compile a pattern or interpret replacement templates. Empty input returns an empty string.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile(escape('a+b')));\n  console.log(value.isMatch('a+b'));\n}\n```\n\nExpected output: true.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile(escape('a+b')));console.log(value.isMatch('a+b')); }\n",
+          "output": "true\n"
+        }
+      ]
+    }
+  ],
+  "Regex": [
+    {
+      "name": "isMatch",
+      "signature": "isMatch(text: string): boolean",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "UTF-8 text to search; offsets refer to this exact input, in bytes."
+        }
+      ],
+      "documentation": "Reports whether any match exists, without allocating match snapshots. Empty patterns match at valid UTF-8 boundaries.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  console.log(value.isMatch('é'));\n}\n```\n\nExpected output: true.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));console.log(value.isMatch('é')); }\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "find",
+      "signature": "find(text: string): RegexMatch | undefined",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "UTF-8 text to search; offsets refer to this exact input, in bytes."
+        }
+      ],
+      "documentation": "Returns the first leftmost match range or undefined. Empty matches are present ranges with equal endpoints.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  const found = value.find('aé');\n  if (found !== undefined) {\n    console.log(found.start, found.end);\n  }\n}\n```\n\nExpected output: 1 3.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));const found=value.find('aé');if(found!==undefined){console.log(found.start,found.end);} }\n",
+          "output": "1 3\n"
+        }
+      ]
+    },
+    {
+      "name": "findAll",
+      "signature": "findAll(text: string): RegexMatch[]",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "UTF-8 text to search; offsets refer to this exact input, in bytes."
+        }
+      ],
+      "documentation": "Eagerly returns all nonoverlapping match ranges in search order. No match gives an empty array. Empty matches advance on Unicode scalar boundaries and do not overlap the end of an immediately preceding nonempty match. Total repeated searching can take quadratic time; result count and time have no implicit facade cap.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  console.log(value.findAll('é é').length);\n}\n```\n\nExpected output: 2.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));console.log(value.findAll('é é').length); }\n",
+          "output": "2\n"
+        }
+      ]
+    },
+    {
+      "name": "captures",
+      "signature": "captures(text: string): RegexCaptures | undefined",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "UTF-8 text to search; offsets refer to this exact input, in bytes."
+        }
+      ],
+      "documentation": "Returns the first match and its optional numbered capture ranges, or undefined. groups excludes group zero. An unmatched group stays undefined, while an empty matched group has equal endpoints.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  const found = value.captures('é');\n  if (found !== undefined) {\n    console.log(found.match.end, found.groups.length);\n  }\n}\n```\n\nExpected output: 2 2.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));const found=value.captures('é');if(found!==undefined){console.log(found.match.end,found.groups.length);} }\n",
+          "output": "2 2\n"
+        }
+      ]
+    },
+    {
+      "name": "capturesAll",
+      "signature": "capturesAll(text: string): RegexCaptures[]",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "UTF-8 text to search; offsets refer to this exact input, in bytes."
+        }
+      ],
+      "documentation": "Eagerly returns nonoverlapping capture snapshots in search order. groups[n-1] corresponds to capture n. No match gives an empty array. Empty-match progress follows UTF-8 boundaries. Total iteration can take quadratic time; no implicit result cap is added.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  console.log(value.capturesAll('é é').length);\n}\n```\n\nExpected output: 2.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));console.log(value.capturesAll('é é').length); }\n",
+          "output": "2\n"
+        }
+      ]
+    },
+    {
+      "name": "split",
+      "signature": "split(text: string): RegexMatch[]",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "UTF-8 text to search; offsets refer to this exact input, in bytes."
+        }
+      ],
+      "documentation": "Returns ranges of segments between nonoverlapping matches, excluding the separators and without copying text. Preserves leading, trailing and adjacent empty segments. Capturing groups do not insert extra segments. An unmatched separator returns one range spanning the input. Eager iteration can take quadratic total time.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(é)(x)?'));\n  const separator = unwrap(compile(','));\n  console.log(separator.split(',a,,').length);\n}\n```\n\nExpected output: 4.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(é)(x)?'));const separator=unwrap(compile(','));console.log(separator.split(',a,,').length); }\n",
+          "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "replace",
+      "signature": "replace(text: string, replacementTemplate: string): string",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "UTF-8 text to search; offsets refer to this exact input, in bytes."
+        },
+        {
+          "label": "replacementTemplate: string",
+          "documentation": "Rust replacement template; numbered/named captures expand, and $$ emits a literal dollar."
+        }
+      ],
+      "documentation": "Replaces the first match with an expanded replacementTemplate and returns owned text. $1 and ${1} select numbered groups; $name and ${name} select named groups; $0 is the whole match; $$ is a literal dollar. Missing groups or names expand to empty text. Use braces before adjacent identifier characters. The template is not literal replacement text; escape a literal dollar as $$. No match returns an independent copy. Receiver and input remain unchanged.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(a)'));\n  console.log(value.replace('a a', '${1}$$'));\n}\n```\n\nExpected output: a$ a.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(a)'));console.log(value.replace('a a','${1}$$')); }\n",
+          "output": "a$ a\n"
+        }
+      ]
+    },
+    {
+      "name": "replaceAll",
+      "signature": "replaceAll(text: string, replacementTemplate: string): string",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "UTF-8 text to search; offsets refer to this exact input, in bytes."
+        },
+        {
+          "label": "replacementTemplate: string",
+          "documentation": "Rust replacement template; numbered/named captures expand, and $$ emits a literal dollar."
+        }
+      ],
+      "documentation": "Replaces all nonoverlapping matches with an expanded replacementTemplate and returns owned text. $1 and ${1} select numbered groups; $name and ${name} select named groups; $0 is the whole match; $$ is a literal dollar. Missing groups or names expand to empty text. Use braces before adjacent identifier characters. The template is not literal replacement text; escape a literal dollar as $$. No match returns an independent copy. Receiver and input remain unchanged. Empty matches progress at UTF-8 boundaries; total repeated searching can take quadratic time.\n\n```tsrust\nimport { compile, escape } from 'std:regex';\n\nfunction main() {\n  const value = unwrap(compile('(a)'));\n  console.log(value.replaceAll('a a', '${1}$$'));\n}\n```\n\nExpected output: a$ a$.\n\nOwnership: matching borrows the compiled owner and input only during the call. Returned ranges, capture arrays and strings are independently owned.",
+      "examples": [
+        {
+          "source": "import { compile, escape } from 'std:regex';\nfunction main() { const value=unwrap(compile('(a)'));console.log(value.replaceAll('a a','${1}$$')); }\n",
+          "output": "a$ a$\n"
+        }
+      ]
     }
   ]
 }

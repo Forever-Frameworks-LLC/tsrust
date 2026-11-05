@@ -368,6 +368,19 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::DOCUMENT,
     crate::stdlib::ui::RUN,
     crate::stdlib::signals::LISTEN,
+    crate::stdlib::regex::COMPILE,
+    crate::stdlib::regex::ESCAPE,
+    crate::stdlib::regex::IS_MATCH,
+    crate::stdlib::regex::FIND,
+    crate::stdlib::regex::FIND_ALL,
+    crate::stdlib::regex::CAPTURES,
+    crate::stdlib::regex::CAPTURES_ALL,
+    crate::stdlib::regex::REPLACE,
+    crate::stdlib::regex::REPLACE_ALL,
+    crate::stdlib::regex::SPLIT,
+    crate::stdlib::regex::STRING_MATCH,
+    crate::stdlib::regex::STRING_MATCH_ALL,
+    crate::stdlib::regex::STRING_SEARCH,
     crate::stdlib::url::PARSE,
     crate::stdlib::url::RESOLVE,
     crate::stdlib::url::FORMAT,
@@ -618,3 +631,5 @@ pub fn ui_method(identity: crate::native_signatures::NativeTypeId, member: &str)
     if identity!=crate::native_signatures::NativeTypeId::UiSignal || !matches!(member,"get"|"set") {return None;}
     lookup("std:ui-runtime",member).ok()
 }
+
+pub fn regex_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::regex::method(Some(identity),member)}

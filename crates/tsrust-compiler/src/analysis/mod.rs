@@ -13,6 +13,7 @@ mod threads;
 mod futures;
 mod http;
 mod url;
+mod regex;
 mod sqlite;
 mod ui;
 mod sql;
@@ -1549,6 +1550,7 @@ impl Analyzer {
         crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::http::prepare(&mut program)?;
         crate::stdlib::url::prepare(&mut program)?;
+        crate::stdlib::regex::prepare(&mut program)?;
         crate::stdlib::signals::prepare(&mut program)?;
         crate::stdlib::sqlite::prepare(&mut program)?;
         crate::stdlib::sql::prepare(&mut program)?;
@@ -8998,6 +9000,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty) = self.ui_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty) = self.regex_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.url_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.cache_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }

@@ -1,0 +1,33 @@
+import { RegexCaptures, compile } from 'std:regex';
+
+function captureWeight(value: ReadOnly<RegexCaptures>): int {
+  let weight = value.match.start + value.match.end + 1;
+  for (let index = 0; index < value.groups.length; index++) {
+    const group = value.groups[index];
+    if (group !== undefined) {
+      weight += group.start + group.end + 1;
+    }
+  }
+
+  return weight;
+}
+
+function workload(n: int, seed: int, input: string): int {
+  const expression = unwrap(compile('([a-z]+)=([0-9]+)'));
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const values = input.matchAll(expression);
+    for (const value of values) {
+      checksum += captureWeight(value);
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, 'a=12 b=3'));
+}
