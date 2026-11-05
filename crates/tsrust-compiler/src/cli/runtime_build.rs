@@ -12,7 +12,7 @@ pub(crate) fn exported_linker_config()->String {
 const DEPENDENCY_RUNTIME_ABI:&[u8]=b"runtime-dependencies-abi-6-graph-library";
 /// Scope the application cache migration to programs that use a Cargo runtime.
 pub(crate) fn application_cache_identity(source:&str)->Option<&'static [u8]> {
- native_runtime::separate(source).dependencies.then_some(DEPENDENCY_RUNTIME_ABI)
+ native_runtime::requires_dependencies(source).then_some(DEPENDENCY_RUNTIME_ABI)
 }
 
 fn artifact_override(key:&str)->bool {

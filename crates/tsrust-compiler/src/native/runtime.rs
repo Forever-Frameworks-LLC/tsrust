@@ -46,6 +46,14 @@ pub fn json_module_with_writer(writer:bool)->String {
     format!("mod tsrust_native_json {{\npub use serde_json::Map;\n{}\npub mod lines {{\n{}\n}}\npub mod typed {{\n{}\n}}\npub mod raw {{\n{}\n}}\npub mod source {{\n{}\n}}\n{writer}}}\n", concat!(include_str!("../stdlib/json/runtime/parser.rs"), "\n", include_str!("../stdlib/json/runtime/operations.rs")),lines,include_str!("../stdlib/json/typed.rs"),include_str!("../stdlib/json/raw.rs"),include_str!("../stdlib/json/source.rs"))
 }
 
+/// Whether the selected emitted support needs a compiler-owned Cargo dependency graph.
+/// This predicate preserves exact bundled module and Rust-binding detection without extraction.
+pub fn requires_dependencies(source:&str)->bool {
+    let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
+    source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
+        || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust")
+}
+
 /// Keep application record/union types, borrow adapters and generic ownership code
 /// in the application crate. Extract only selected self-contained support modules.
 pub fn separate(source:&str)->Units {
@@ -63,8 +71,7 @@ pub fn separate(source:&str)->Units {
 
     if source.contains("use rayon as tsr_rayon;") {application=application.replace("use rayon as tsr_rayon;","use tsrust_runtime::rayon as tsr_rayon;");runtime.push_str("pub use rayon;\n");}
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    let dependencies=source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
-        || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust");
+    let dependencies=requires_dependencies(source);
     let mut extract=|name:&str,module:String| {
         if application.contains(&module) {
             application=application.replace(&module,&format!("use tsrust_runtime::{name};\n"));
@@ -119,11 +126,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn dependency_predicate_agrees_with_extraction_for_plain_files_url_and_bindings() {
+        let package=crate::project::rust::dependencies::Package {manifest:String::new(),lock:String::new(),crates:vec!["probe_crate".into()]};
+        let binding=format!("{}{}\nmod tsr_rust {{}}",crate::project::rust::dependencies::MARKER,serde_json::to_string(&package).unwrap());
+        for(source,expected)in[("fn main(){}".to_owned(),false),(files_module(),true),(crate::stdlib::url::RUNTIME.to_owned(),true),(binding,true)]{
+            assert_eq!(requires_dependencies(&source),expected);assert_eq!(separate(&source).dependencies,expected);
+        }
+    }
+
+    #[test]
     fn selected_byte_support_extracts_exactly_and_only_base64_or_search_needs_dependencies() {
         for views in [false,true] {for utf8 in [false,true] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {for operations in [false,true] {for binary in [false,true] {for search in [false,true] {
             let source=bytes_module(views,utf8,codecs,base64,operations,binary,search);
             let units=separate(&source);
             assert_eq!(units.dependencies,base64||search);
+            assert_eq!(requires_dependencies(&source),units.dependencies);
             assert_eq!(units.application,"use tsrust_runtime::tsrust_native_bytes;\n");
             let runtime=units.runtime.unwrap();
             assert_eq!(requires_byte_codecs(&runtime),base64);
