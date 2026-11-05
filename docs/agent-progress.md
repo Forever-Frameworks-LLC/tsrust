@@ -30,6 +30,24 @@ candidate additionally integrates URL facade a5328d77, reproducible scaling
 URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
 No new URL/codec native gate or platform completion is claimed.
 
+**Cursor alias prerequisite:** compiler native exports now distinguish transparent
+aliases from nominal record declarations and functions. `std:fs.SeekOrigin` expands
+through existing alias parsing to exactly `"start" | "current" | "end"`; source
+renames and cross-file aliases preserve that restriction. It selects no native
+runtime/dependencies and cannot be used as a value. LSP hover/completion share
+this compiler metadata; the catalog includes behavior, ownership and an executable
+example. Focused compiler integration passes1/1 in216.798s/2,565,362KiB (including
+build), checking the allowed aliases, invalid literals, widened strings, value
+misuse and runtime omission. Focused LSP integration passes1/1 in204.001s/
+2,511,090KiB (including its separately selected dependency graph), checking renamed
+alias hover and unfinished import completion. Both used the one absolute target,
+offline/locked, incremental off, jobs1, threads3 and5GB/30min watchdog. No normal
+CLI cache-miss test ran. `seek`/`position`, native/catalog execution and four-phase
+FS editor acceptance remain worker tasks after full committed-base integration.
+Tempfile prerequisite is committed422331a4; FS preservation checkpoint87ceb53f
+is source-only and awaits this alias/base plus shared-target repair. Codec
+preservation checkpointc7898da and URL selection test2b1d3790 remain ready to merge.
+
 **Next dependency prerequisite:** exact `tempfile =3.27.0` is now optional in both
 runtime manifests behind `temporary-files = ["files", "dep:tempfile"]`; compiler
 unit tests have the direct dev dependency and runtime pins are reserved from

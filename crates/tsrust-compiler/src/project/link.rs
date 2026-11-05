@@ -219,6 +219,15 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         offset += length + 1;
         let mut imported = crate::type_aliases::Aliases::new();
         for import in &source.imports {
+            if let Some(native) = import.native {
+                for binding in &import.bindings {
+                    if let Ok(crate::native_exports::Export::Alias(alias)) = crate::native_exports::lookup(native, &binding.exported) {
+                        let annotation = crate::native_type_resolution::project(&mut Vec::new(), &alias.signature, binding.span)
+                            .map_err(|value| ProjectDiagnostic { code: value.code, message: value.message, location: SourceLocation { source: id.clone(), span: value.span }, related: vec![], fixes: Box::new([]) })?;
+                        imported.insert(binding.local.clone(), crate::type_aliases::Alias { span: binding.span, parameters: vec![], annotation });
+                    }
+                }
+            }
             let Some(target) = import.target.as_ref().and_then(|target| module_aliases.get(target)) else { continue };
             for binding in &import.bindings {
                 if let Some(alias) = target.get(&binding.exported) {
@@ -395,6 +404,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                     if let Some(native) = import.native {
                         match crate::native_exports::lookup(native, &binding.exported).expect("validated native export") {
                             crate::native_exports::Export::Namespace(namespace) => namespace.symbol().into(),
+                            crate::native_exports::Export::Alias(_) => symbol(module, &binding.local),
                             crate::native_exports::Export::Function(function) => {
                                 let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
                                 crate::native_binding_types::prepare(&mut linked.records, function, span)
