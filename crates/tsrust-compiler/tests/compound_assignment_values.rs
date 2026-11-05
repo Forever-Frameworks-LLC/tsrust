@@ -86,7 +86,7 @@ fn all_numeric_operators_return_committed_values_in_contexts_and_preserve_number
     "#;
     let mut body = r#"
         fn integer(operation:fn(i64,i64)->NumericArray<i64>,left:i64,right:i64,expected:i64){let values=operation(std::hint::black_box(left),std::hint::black_box(right));assert_eq!(values.as_slice(),&[expected,expected]);}
-        fn number(operation:fn(f64,f64)->Vec<f64>,left:f64,right:f64,expected:f64){let values=operation(std::hint::black_box(left),std::hint::black_box(right));assert_eq!(values.len(),2);assert_eq!(values[0].to_bits(),values[1].to_bits());if expected.is_nan(){assert!(values[0].is_nan());}else{assert_eq!(values[0].to_bits(),expected.to_bits());}}
+        fn number<T:AsRef<[f64]>>(operation:fn(f64,f64)->T,left:f64,right:f64,expected:f64){let values=operation(std::hint::black_box(left),std::hint::black_box(right));let values=values.as_ref();assert_eq!(values.len(),2);assert_eq!(values[0].to_bits(),values[1].to_bits());if expected.is_nan(){assert!(values[0].is_nan());}else{assert_eq!(values[0].to_bits(),expected.to_bits());}}
         // Independent 32-bit conversion: truncate, reduce modulo 2^32, then reinterpret signed bits.
         fn uint32(value:f64)->u32{if !value.is_finite()||value==0.0{return 0;}let reduced=value.trunc()%4294967296.0;let positive=if reduced<0.0{reduced+4294967296.0}else{reduced};positive as u32}
     "#.to_owned();

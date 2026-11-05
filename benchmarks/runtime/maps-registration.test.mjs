@@ -8,7 +8,7 @@ import {reportCategory} from './report.mjs';
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
 const row=JSON.parse(read('./manifest.json')).workloads.find(x=>x.id==='map_values');
 test('maps retain matched sources, independent oracle and runtime hooks',()=>{
- assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
+ assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-collections-family');assert.equal(reportCategory(row.id),'other');
  for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+name);assertMapsSource(source,row,kind);
   assert.throws(()=>assertMapsSource(source+' ',row,kind));

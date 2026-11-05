@@ -27,6 +27,7 @@ impl LiteralStringArray {
 // String support carries the number text tie helper so it stands alone.
 pub(crate) const STRINGS: &str = concat!(include_str!("strings.rs"), include_str!("number_tie.rs"), include_str!("numeric_string.rs"));
 pub(crate) const ARRAY_JOIN: &str = include_str!("join.rs");
+pub(crate) const STRING_ARRAY_JOIN: &str = include_str!("string_array_join.rs");
 pub(crate) const MATH_EXACT: &str = include_str!("math.rs");
 pub(crate) const NUMBER_TIE: &str = include_str!("number_tie.rs");
 
@@ -65,6 +66,15 @@ pub(crate) const ARRAYS: &str = r#"
 enum Array<T> {
     Small { len: usize, values: [Option<T>; 4] },
     Heap(Vec<T>),
+}
+impl<T> std::iter::FromIterator<T> for Array<T> {
+    fn from_iter<I: std::iter::IntoIterator<Item = T>>(values: I) -> Self {
+        let values = values.into_iter();
+        if values.size_hint().0 > 4 { return Self::Heap(values.collect()); }
+        let mut output = Self::from([]);
+        for value in values { output.push(value); }
+        output
+    }
 }
 impl<T, const N: usize> From<[T; N]> for Array<T> {
     #[inline]
@@ -170,6 +180,17 @@ impl<T: Clone> Array<T> {
             Self::Heap(values) => Self::Heap(values[start..end].to_vec()),
         }
     }
+    fn tsr_inline_slice(&self, start: usize, end: usize) -> Self {
+        match self {
+            Self::Small { values, .. } => {
+                let values = &values[start..end];
+                let mut slots = [const { None }; 4];
+                for (slot, value) in slots.iter_mut().zip(values) { *slot = Some(value.as_ref().expect("occupied inline array slot").clone()); }
+                Self::Small { len: values.len(), values: slots }
+            }
+            Self::Heap(values) => Self::Heap(values[start..end].to_vec()),
+        }
+    }
 }
 enum ArrayIter<'a, T> {
     Small(std::slice::Iter<'a, Option<T>>),
@@ -180,6 +201,10 @@ impl<'a, T> Iterator for ArrayIter<'a, T> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         match self { Self::Small(values) => values.next().map(|value| value.as_ref().expect("occupied inline array slot")), Self::Heap(values) => values.next() }
+    }
+    #[inline]
+    fn nth(&mut self, index: usize) -> Option<Self::Item> {
+        match self { Self::Small(values) => values.nth(index).map(|value| value.as_ref().expect("occupied inline array slot")), Self::Heap(values) => values.nth(index) }
     }
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {

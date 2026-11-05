@@ -1895,12 +1895,20 @@ impl SourceIndex {
         }
         None
     }
-    fn schema_array_type(&self,open:usize,close:usize,depth:usize)->Option<String>{
+    fn schema_collection_type(&self,method:&str,open:usize,close:usize,depth:usize)->Option<String>{
         let (child,end)=self.simple_expression_type(open+1,self.tokens[open].span.start,depth+1)?;
-        if end!=close{return None;}
         let element=self.schema_element(&child)?;
+        let output=if method=="map"{
+            if self.text(end)!=","{return None;}
+            let (value,end)=self.simple_expression_type(end+1,self.tokens[open].span.start,depth+1)?;
+            if end!=close{return None;}
+            format!("Map<{element},{}>",self.schema_element(&value)?)
+        }else{
+            if end!=close{return None;}
+            match method{"array"=>format!("{element}[]"),"set"=>format!("Set<{element}>"),_=>return None}
+        };
         let schema=self.native_type_aliases.iter().find(|(_,identity)|**identity==tsrust_compiler::native_signatures::NativeTypeId::Schema)?.0;
-        Some(format!("{schema}<{element}[]>"))
+        Some(format!("{schema}<{output}>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::sql_method(*id,method)) {
@@ -2231,7 +2239,7 @@ impl SourceIndex {
             if self.text(end) == "." && name(self.text(end + 1)) && self.text(end + 2) != "(" {
                 let field = end + 1;
                 ty = self.checked_view(field).map(str::to_owned).or_else(|| {
-                    if self.text(field) == "size" && (self.deque_element(&ty).is_some() || self.heap_element(&ty).is_some() || self.ordered_set_element(&ty).is_some() || self.ordered_map_types(&ty).is_some()) { return Some("int".into()); }
+                    if self.text(field) == "size" && (self.deque_element(&ty).is_some() || self.heap_element(&ty).is_some() || self.ordered_set_element(&ty).is_some() || self.ordered_map_types(&ty).is_some() || ty.starts_with("Map<") || ty.starts_with("Set<")) { return Some("int".into()); }
                     if ty.contains("SafeParse") {
                         let base = if end == id + 1 { self.narrow_outcome(ty.clone(), id) } else { ty.clone() };
                         return self.common_record_fields(&base, false).remove(self.text(field));
@@ -2251,8 +2259,8 @@ impl SourceIndex {
                 break;
             }
             let close = self.pairs.get(end + 2).copied().flatten()?;
-            if ty=="@namespace:std:schema#s" && self.text(end+1)=="array" {
-                ty=self.schema_array_type(end+2,close,depth)?;end=close+1;continue;
+            if ty=="@namespace:std:schema#s" && matches!(self.text(end+1),"array"|"set"|"map") {
+                ty=self.schema_collection_type(self.text(end+1),end+2,close,depth)?;end=close+1;continue;
             }
             let callable = self.field_callable_result(&ty, self.text(end + 1), end + 1);
             if callable.is_none()
@@ -2613,8 +2621,8 @@ impl SourceIndex {
             }
             if open >= 3 && self.text(open - 2) == "." {
                 let receiver = self.receiver_type_end(open - 3, depth + 1);
-                if receiver=="@namespace:std:schema#s" && self.text(open-1)=="array" {
-                    return self.schema_array_type(open,n,depth).unwrap_or_default();
+                if receiver=="@namespace:std:schema#s" && matches!(self.text(open-1),"array"|"set"|"map") {
+                    return self.schema_collection_type(self.text(open-1),open,n,depth).unwrap_or_default();
                 }
                 if let Some(result) =
                     self.field_callable_result(&receiver, self.text(open - 1), open - 1)
@@ -3277,6 +3285,7 @@ impl SourceIndex {
         if method == "textDocument/hover"
             && let Some(builtin) = self
                 .builtin_at(token)
+                .or_else(|| self.callable_builtin_at(token))
                 .or_else(|| self.global_builtin_at(token))
         {
             return Ok(
@@ -3328,6 +3337,17 @@ impl SourceIndex {
             }
             _ => Err("Method is not supported".into()),
         }
+    }
+    fn callable_builtin_at(&self,token:usize)->Option<Value>{
+        let id=self.resolve_token(token)?;let symbol=&self.symbols[id];
+        if symbol.kind!=13 && !self.parameter_symbols.contains(&id){return None;}
+        let ty=self.written_type(self.checked_view(token).unwrap_or(&symbol.ty));
+        let annotation=tsrust_compiler::type_syntax::parse(&ty).ok()?;
+        let name=match &annotation.kind{tsrust_compiler::type_syntax::ValueAnnotationKind::Named(name)|tsrust_compiler::type_syntax::ValueAnnotationKind::Applied{name,..}=>&name.text,_=>return None};
+        if self.native_type_aliases.get(name)!=Some(&tsrust_compiler::native_signatures::NativeTypeId::HttpContextNext){return None;}
+        let mut entry=builtins_for("std:http").into_iter().find(|entry|entry["name"]=="ContextNext")?;
+        entry["signature"]=json!(format!("{}(): Task<void>",symbol.name));
+        Some(entry)
     }
     fn global_builtin_at(&self, token: usize) -> Option<Value> {
         if (token > 0 && member_separator(self.text(token - 1)))
@@ -3895,7 +3915,7 @@ impl SourceIndex {
             if callee > 0 && self.text(callee - 1) == "function" {
                 return Value::Null;
             }
-            let (label, docs, parameters) = if let Some(b) = self.builtin_at(callee).or_else(|| {
+            let (label, docs, parameters) = if let Some(b) = self.builtin_at(callee).or_else(||self.callable_builtin_at(callee)).or_else(|| {
                 matches!(
                     self.text(callee),
                     "Number" | "clone" | "unwrap" | "String" | "Boolean" | "Set" | "Map" | "Ok" | "Err" | "parseInt" | "parseFloat" | "isNaN" | "isFinite"

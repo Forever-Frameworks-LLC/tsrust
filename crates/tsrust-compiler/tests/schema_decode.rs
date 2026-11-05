@@ -157,3 +157,62 @@ fn direct_typed_decoding_preserves_duplicates_fallback_and_callback_order() {
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
     assert_eq!(String::from_utf8(output.stdout).unwrap(),"first\nsecond\nchoice\nok\n");
 }
+
+
+#[test]
+fn source_retention_preserves_literal_private_keys_in_extras_and_callback_inputs(){
+    let source=r#"
+    import {s} from 'std:schema';
+    import {JsonValue} from 'std:json';
+    import {strictEqual} from 'std:testing';
+    function main(){
+      const text='{"count":3,"extra":{"$serde_json::private::RawValue":"not JSON"}}';
+      const expected='{"$serde_json::private::RawValue":"not JSON"}';
+      const plain=s.object({count:s.int()}).retain();
+      {const outcome=plain.safeParseJson(text);if(outcome.success){const value=outcome.data;
+        strictEqual(value.value.count,3);strictEqual(value.extra.size,1);
+        const extra=value.extra.get('extra');if(extra===undefined){throw 'Plain extra missing';}
+        strictEqual(JSON.stringify(extra),expected);
+      }else{throw 'Plain source rejected';}}
+      const pipeline=s.object({count:s.int().refine(value=>value>0)}).retain();
+      {const outcome=pipeline.safeParseJson(text);if(outcome.success){const value=outcome.data;
+        strictEqual(value.value.count,3);strictEqual(value.extra.size,1);
+        const extra=value.extra.get('extra');if(extra===undefined){throw 'Pipeline extra missing';}
+        strictEqual(JSON.stringify(extra),expected);
+      }else{throw 'Pipeline source rejected';}}
+      const callback=s.int().coerce((input:JsonValue):int=>{
+        strictEqual(JSON.stringify(input),expected);return 7;
+      });
+      {const outcome=callback.safeParseJson('{"$serde_json::private::RawValue":"not JSON"}');if(outcome.success){const value=outcome.data;
+        strictEqual(value,7);
+      }else{throw 'JSON callback source rejected';}}
+    }
+    "#;
+    assert!(execute(source).is_empty());
+}
+
+
+#[test]
+fn empty_object_schemas_initialize_their_own_dependencies() {
+    for policy in ["", ".strip()", ".retain()"] {
+        let empty = if policy == ".retain()" { "strictEqual(Object.keys(value.value).length,0);strictEqual(value.extra.size,0);" } else { "strictEqual(Object.keys(value).length,0);" };
+        let extra = if policy == ".retain()" { "strictEqual(Object.keys(value.value).length,0);strictEqual(value.extra.size,1);const extra=value.extra.get('extra');if(extra===undefined){throw 'Missing extra';}strictEqual(JSON.stringify(extra),'{\"$serde_json::private::RawValue\":\"not JSON\"}');" } else { "strictEqual(Object.keys(value).length,0);" };
+        let text=if policy.is_empty() {"{}"}else{r#"{"extra":{"$serde_json::private::RawValue":"not JSON"}}"#};
+        let unknown=if policy.is_empty() {r#"{const outcome=schema.safeParseJson('{"extra":1}');if(outcome.success){throw 'Unknown field accepted';}else{const error=outcome.error;if(error.kind==='validation'){strictEqual(error.error.issues[0].code,'unknown-field');}else{throw 'Wrong unknown-field failure';}}}"#}else{""};
+        let source=format!(r#"
+import {{s}} from 'std:schema';
+import {{strictEqual}} from 'std:testing';
+function main(){{
+ const schema=s.object({{}}){policy};
+ {{const outcome=schema.safeParse({{}});if(outcome.success){{const value=outcome.data;{empty}}}else{{throw 'Owned empty object rejected';}}}}
+ {{const outcome=schema.safeParseJson('{text}');if(outcome.success){{const value=outcome.data;{extra}}}else{{throw 'Source object rejected';}}}}
+ {unknown}
+ for(const text of ['null','[]','1']){{
+  const outcome=schema.safeParseJson(text);if(outcome.success){{throw 'Non-object accepted';}}else{{const error=outcome.error;if(error.kind==='validation'){{strictEqual(error.error.issues[0].code,'type-mismatch');}}else{{throw 'Wrong failure kind';}}}}
+ }}
+ {{const outcome=schema.safeParseJson('{{');if(outcome.success){{throw 'Malformed input accepted';}}else{{const error=outcome.error;strictEqual(error.kind,'json');}}}}
+}}
+"#);
+        assert!(execute(&source).is_empty(),"{policy}");
+    }
+}

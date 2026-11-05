@@ -170,9 +170,10 @@ function values(): string[] {
     const result: string[] = [captured(), text.concat('!'), text.charAt(1), text.slice(2, 6), '\uD83D\u{de00}'];
     return result;
 }
+function concatOwned(text:string):string{return text.concat('!');}
 function main() {}
 "#;
-    let generated = tsrust_compiler::check(source).unwrap().emit_rust();
+    let generated = tsrust_compiler::check(&support::format_round_trip(source)).unwrap().emit_rust();
     let code = generated.replace("fn main()", "fn source_main()")
         + r#"
 fn main() {
@@ -181,7 +182,8 @@ fn main() {
     assert_eq!(result.len(), expected.len());
     for (index, value) in expected.iter().enumerate() { assert_eq!(result.get(index).unwrap().as_ref(), *value); }
     assert!(matches!(result.get(0).unwrap(), String::Borrowed(_)));
-    assert!(matches!(result.get(1).unwrap(), String::Owned(_)));
+    let input=String::Owned("dynamic é😀".into());let appended=function1(&input);
+    assert!(matches!(appended,String::Owned(_)));drop(input);assert_eq!(appended.as_ref(),"dynamic é😀!");
     assert!(matches!(result.get(3).unwrap(), String::Borrowed(_)));
     drop(result);
 }

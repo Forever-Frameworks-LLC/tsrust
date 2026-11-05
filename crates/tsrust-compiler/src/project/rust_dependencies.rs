@@ -24,6 +24,7 @@ pub fn reserved(name:&str)->bool {
         "accesskit",
         "accesskit_winit",
         "futures-core",
+        "nix",
         "sha2","subtle","uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","tower-http","matchit","tokio-rustls","reqwest","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime",
     ].contains(&name)
 }
@@ -55,8 +56,11 @@ pub const MARKER:&str="// tsrust-binding-package ";
 #[cfg(test)]mod tests {
  use super::*;
  #[test]fn every_bundled_dependency_pin_is_reserved(){
-  let manifest=include_str!("../../native-dependencies/Cargo.toml");let section=manifest.split_once("[dependencies]\n").unwrap().1.split_once("\n[features]").unwrap().0;
-  for line in section.lines().filter(|line|!line.trim().is_empty()) {let name=line.split_once('=').unwrap().0.trim();assert!(reserved(name),"unprotected runtime dependency {name}");}
+  for manifest in [include_str!("../../native-dependencies/Cargo.toml"),include_str!("../../backend-dependencies/Cargo.toml")] {
+   let section=manifest.split_once("[dependencies]\n").unwrap().1.split_once("\n[features]").unwrap().0;
+   for line in section.lines().filter(|line|!line.trim().is_empty()) {let name=line.split_once('=').unwrap().0.trim();assert!(reserved(name),"unprotected runtime dependency {name}");}
+  }
+  for schema in [1,2] {assert!(Bindings::parse(&format!(r#"{{"schemaVersion":{schema},"source":"./adapter.rs","dependencies":{{"nix":{{"version":"=0.30.1"}}}}}}"#)).is_err());}
  }
 
  #[test]fn binding_graphs_are_path_independent_and_preserve_legacy_locks(){

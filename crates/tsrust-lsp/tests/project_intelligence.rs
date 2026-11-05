@@ -1897,7 +1897,7 @@ fn buffered_file_help_documents_transfer_capacity_and_retry() {
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let help=ask(&index,&entry,"8);","textDocument/signatureHelp");
- for phrase in ["8192","1048576","Consumed"] {assert!(help.to_string().contains(phrase),"{help}");}
+ for phrase in ["8192","platform","Consumed"] {assert!(help.to_string().contains(phrase),"{help}");}
  let help=ask(&index,&entry,"writer, bytes","textDocument/signatureHelp");assert!(help.to_string().contains("BufferedWriter"),"{help}");
  let hover=ask(&index,&entry,"flush(writer","textDocument/hover");assert!(hover.to_string().contains("unwritten suffix"),"{hover}");
 }
@@ -1992,7 +1992,7 @@ fn jsonl_editor_contract_exposes_ownership_limits_and_error_locations() {
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,entry,"open('records","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
- for text in ["JsonlReader","JsonlError","1048576","Ownership:","```tsrust"]{assert!(docs.contains(text),"{hover}");}
+ for text in ["JsonlReader","JsonlError","no per-record byte","Ownership:","```tsrust"]{assert!(docs.contains(text),"{hover}");}
  let field=ask(&index,entry,"line);","textDocument/hover");assert!(field.to_string().contains("One-based JSON Lines record"),"{field}");
  let help=ask(&index,entry,"'records.jsonl'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),3);
 }
@@ -2202,7 +2202,7 @@ fn json_construction_has_hover_and_parameter_help() {
 #[test]
 fn json_container_construction_has_ownership_and_limits_help() {
  let source=tsrust_compiler::format("import {fromArray,JsonValue} from 'std:json';function main(){const values:JsonValue[]=[];fromArray(values);}").unwrap();let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
- let hover=ask(&index,&source,"fromArray(values)","textDocument/hover");assert!(hover.to_string().contains("maxNodes"),"{hover}");let signature=ask(&index,&source,"values)","textDocument/signatureHelp");assert!(signature.to_string().contains("Owned<JsonValue[]>"),"{signature}");
+ let hover=ask(&index,&source,"fromArray(values)","textDocument/hover");assert!(hover.to_string().contains("maxNodes")&&hover.to_string().contains("no construction quota")&&hover.to_string().contains("no fixed upper quota"),"{hover}");let signature=ask(&index,&source,"values)","textDocument/signatureHelp");assert!(signature.to_string().contains("Owned<JsonValue[]>"),"{signature}");
 }
 
 #[test]
@@ -2327,7 +2327,7 @@ fn raw_json_validation_has_borrowing_and_limits_help() {
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&source,"borrowRaw(text)","textDocument/hover");let docs=hover.to_string();
- assert!(docs.contains("JsonRaw")&&docs.contains("source must remain alive")&&docs.contains("16777216"),"{hover}");
+ assert!(docs.contains("JsonRaw")&&docs.contains("source must remain alive")&&docs.contains("no byte, entry or node quota"),"{hover}");
  let signature=ask(&index,&source,"text);","textDocument/signatureHelp");assert!(signature.to_string().contains("text: string"),"{signature}");
 }
 
@@ -2363,7 +2363,7 @@ fn raw_json_encoding_hover_describes_exact_output() {
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  for needle in ["stringify(raw)","tryStringify(raw)"] {
   let hover=ask(&index,&source,needle,"textDocument/hover");let docs=hover.to_string();
-  for text in ["original source text exactly","output byte limit","64-container","JSON Lines"] {assert!(docs.contains(text),"{hover}");}
+  for text in ["original source text exactly","output byte limit","no container-depth quota","JSON Lines"] {assert!(docs.contains(text),"{hover}");}
  }
 }
 
@@ -3172,5 +3172,48 @@ fn ui_field_types_keep_public_native_names_and_generic_arguments() {
  let index=ProjectIndex::checked(&checked);
  {
   for needle in ["alue;","hildren;"] {let completion=ask(&index,&source,needle,"textDocument/completion");let item=completion.as_array().unwrap().iter().find(|item|item["label"]==if needle=="alue;"{"value"}else{"children"}).unwrap();let detail=item["detail"].as_str().unwrap();assert!(detail.contains("Signal<int>")&&detail.contains("Signal<string>")&&!detail.contains("NativeSignal"),"{item}");let reply=ask(&index,&source,needle,"textDocument/hover");let text=reply["contents"]["value"].as_str().unwrap_or("");assert!(text.contains("Signal<int>")&&text.contains("Signal<string>")&&!text.contains("NativeSignal"),"{needle}: {source}\n{reply}");}
+ }
+}
+
+#[test]
+fn inferred_local_objects_have_checked_completion_and_hover() {
+    let entry=tsrust_compiler::format("function echo<T>(value:T):T{return value;}function main(){const data=echo({greeting:'hello',nested:{value:3}});console.log(data.greeting,data.nested.value);}").unwrap();
+    let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.clone());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    let fields=ask(&index,&entry,"greeting,","textDocument/completion");
+    let fields=fields.as_array().expect("object members");
+    assert!(fields.iter().any(|item|item["label"]=="greeting"), "{entry}\n{fields:?}\n{:?}", checked.checked_type_facts());assert!(fields.iter().any(|item|item["label"]=="nested"));
+    let declaration=ask(&index,&entry,"greeting:","textDocument/hover");assert!(declaration.to_string().contains("greeting: string"),"{declaration}");
+    let nested_declaration=ask(&index,&entry,"value:","textDocument/hover");assert!(nested_declaration.to_string().contains("value: int"),"{nested_declaration}");
+    let definition=ask(&index,&entry,"greeting,","textDocument/definition");let key=entry.find("greeting:").unwrap();let prefix=&entry[..key];assert_eq!(definition["range"]["start"],json!({"line":prefix.bytes().filter(|byte|*byte==b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}),"{definition}");
+    let hover=ask(&index,&entry,"greeting,","textDocument/hover");assert!(hover.to_string().contains("string"),"{hover}");
+    let nested=ask(&index,&entry,"value);","textDocument/completion");assert!(nested.as_array().unwrap().iter().any(|item|item["label"]=="value"));
+}
+
+#[test]
+fn context_json_keys_and_next_callable_have_checked_hover(){
+ for next in ["next","proceed"]{
+  let entry=tsrust_compiler::format(&format!("import {{Router}} from 'std:http';type State={{greeting:string;}};function main(){{const app=new Router<State>({{greeting:'hello'}});app.use(async(c,{next})=>{{await {next}();c.header('x-done','yes');}});app.get('/',c=>c.json({{greeting:clone(c.env.greeting)}}));}}" )).unwrap();
+  let uri=source_id(fixture_uri!("/tsrust-intelligence/main.tsr")).unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.clone());let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+  let state_key=ask(&index,&entry,"greeting: 'hello'","textDocument/hover");assert!(state_key.to_string().contains("greeting: string"),"{state_key}\n{entry}\n{:?}",checked.checked_type_facts());
+  let key=ask(&index,&entry,"greeting:","textDocument/hover");assert!(key.to_string().contains("greeting: string"),"{key}");
+  let hover=ask(&index,&entry,&format!("{next}()"),"textDocument/hover");
+  for text in ["Task<void>","downstream","Await","Ownership:","cannot be cloned"]{assert!(hover.to_string().contains(text),"{next}: {hover}");}
+  let offset=entry.rfind(&format!("{next}()")).unwrap()+next.len()+1;let prefix=&entry[..offset];
+  let help=index.request("textDocument/signatureHelp",&json!({"position":{"line":prefix.bytes().filter(|byte|*byte==b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}}),fixture_uri!("/tsrust-intelligence/main.tsr")).unwrap().unwrap();
+  assert!(help["signatures"][0]["label"].as_str().unwrap_or("").contains("Task<void>"),"{help}");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),0,"{help}");
+
+
+ }
+}
+
+#[test]
+fn json_default_limit_help_agrees_for_native_and_typed_calls(){
+ let source=tsrust_compiler::format("import {parseJsonc,borrowRaw,openJsonl,createJsonl} from 'std:json';function main(){parseJsonc<int[]>('[1]',false,undefined);const text='null';borrowRaw(text,undefined);openJsonl('input',undefined,1048577);createJsonl('output',undefined,1048577);}").unwrap();
+ let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let id=source_id(uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ for (needle,expected) in [("parseJsonc<int[]>","no input byte"),("borrowRaw(text","no byte, entry or node quota"),("openJsonl(","no per-record byte"),("createJsonl(","no record byte quota")]{
+  let hover=ask(&index,&source,needle,"textDocument/hover");assert!(hover.to_string().contains(expected),"{needle}: {hover}");
+  assert!(!hover.to_string().contains("16777216")&&!hover.to_string().contains("1048576"),"{hover}");
  }
 }

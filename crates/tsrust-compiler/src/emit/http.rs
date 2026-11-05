@@ -10,7 +10,7 @@ impl Emitter<'_>{
   Some(Self::access_wrapped(expr,mode,format!("tsrust_native_http::Router::with_state({state})")))
  }
  fn http_cookie_options(&self,ty:Type)->String{
-  let Type::Record(record)=ty else{unreachable!()};let names=["path","domain","max_age","secure","http_only","same_site","partitioned"];
+  let record=match ty{Type::Record(record)=>record,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).expect("checked optional cookie options")};let names=["path","domain","max_age","secure","http_only","same_site","partitioned"];
   let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{
    let Type::Union(id)=item.ty.unwrap()else{unreachable!()};
    let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|{
@@ -48,13 +48,15 @@ impl Emitter<'_>{
   let binding=&crate::native_bindings::BINDINGS[id];if !matches!(binding.module,"std:http"|"std:signals"){return None;}self.native_bindings.borrow_mut().insert(id);
   let values=args.iter().enumerate().map(|(index,arg)|{let param=&binding.parameters[index.min(binding.parameters.len()-1)];let value=self.expr(fun,arg,param.access);if arg.ty==Some(Type::String){if param.access==Mode::Consume{format!("({value}).as_ref().to_owned()")}else{format!("({value}).as_ref()")}}else{value}}).collect::<Vec<_>>();
   let receiver=values.first().cloned().unwrap_or_default();
+  let raw=|index:usize|self.expr(fun,&args[index],binding.parameters[index].access);
+  let optional=|index:usize|args.get(index).map(|arg|self.native_optional_argument(&binding.parameters[index],values[index].clone(),arg.ty.unwrap())).unwrap_or("None".into());
   let call=match binding.name{
    "listen" if binding.module=="std:signals"=>"tsrust_native_signals::listen()".into(),
    "__receive" if binding.module=="std:signals"=>format!("({receiver}).receive().await"),
    "__router"=>"tsrust_native_http::Router::new()".into(),
-   "__app"=>"tsrust_native_http::App::new()".into(),"__client"=>if args.is_empty(){"tsrust_native_http::Client::new()".into()}else{format!("{{let options={receiver};tsrust_native_http::Client::with_ca(options.field0.as_ref())}}")},
+   "__app"=>"tsrust_native_http::App::new()".into(),"__client"=>if args.is_empty() || args[0].ty==Some(Type::Undefined){format!("{{let _={};tsrust_native_http::Client::new()}}",values.first().map(String::as_str).unwrap_or("()"))}else{format!("match {}{{Some(options)=>tsrust_native_http::Client::with_ca(options.field0.as_ref()),None=>tsrust_native_http::Client::new()}}",optional(0))},
    "__configure"|"__routerConfigure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
-   "__routerStatic"=>format!("({receiver}).serve_static({}, {}, {})",values[1],values[2],values.get(3).map(String::as_str).unwrap_or("\"\"")),
+   "__routerStatic"=>{let fallback=args.get(3).map(|arg|self.native_optional_argument(&binding.parameters[3],"fallback_value".into(),arg.ty.unwrap())).unwrap_or("None".into());format!("{{let app={receiver};let prefix={};let directory={};let fallback_value={};let fallback:Option<&str>={fallback};app.serve_static(prefix.as_ref(),directory.as_ref(),fallback.unwrap_or(\"\"))}}",raw(1),raw(2),args.get(3).map(|_|raw(3)).unwrap_or("()".into()))},
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
@@ -97,7 +99,7 @@ impl Emitter<'_>{
     let route_args=if binding.name=="__route"{format!("let method={};let path={};",values[1],values[2])}else{String::new()};
     format!("{{let app={receiver};{route_args}let callback=std::sync::Arc::new({});{registration}}}",values[index])
    },
-   "__listen"|"__routerListen"=>if args.len()==2{format!("({receiver}).listen({}).await",values[1])}else{format!("{{let app={receiver};let address={};let tls={};app.listen_tls(address,tls.field0.as_ref(),tls.field1.as_ref()).await}}",values[1],values[2])},
+   "__listen"|"__routerListen"=>if args.len()==2{format!("({receiver}).listen({}).await",values[1])}else if args[2].ty==Some(Type::Undefined){format!("{{let app={receiver};let address={};let _={};app.listen(address.as_ref()).await}}",raw(1),values[2])}else{format!("{{let app={receiver};let address={};match {}{{Some(tls)=>app.listen_tls(address.as_ref(),tls.field0.as_ref(),tls.field1.as_ref()).await,None=>app.listen(address.as_ref()).await}}}}",raw(1),optional(2))},
    "__wait"=>format!("{{({receiver}).wait().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__shutdown"=>format!("{{({receiver}).shutdown().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__contextRequestForm"=>format!("({receiver}).request_form().await"),
@@ -108,10 +110,10 @@ impl Emitter<'_>{
    "getCookie"=>format!("({receiver}).cookie({})",values[1]),
    "__setCookie"|"__deleteCookie"=>{
     let index=if binding.name=="__setCookie"{3}else{2};
-    let options=if let Some(value)=args.get(index){format!("let options={};let cookie_options={};",values[index],self.http_cookie_options(value.ty.unwrap()))}else{"let cookie_options=tsrust_native_http::CookieOptions::default();".into()};
-    let value=if index==3{format!("let value={};",values[2])}else{String::new()};
-    let call=if index==3{"context.set_cookie(name,value,cookie_options)"}else{"context.delete_cookie(name,cookie_options)"};
-    format!("{{let context={receiver};let name={};{value}{options}{call}}}",values[1])
+    let options=if let Some(value)=args.get(index){if value.ty==Some(Type::Undefined){format!("let _={};let cookie_options=tsrust_native_http::CookieOptions::default();",values[index])}else{format!("let cookie_options=match {}{{Some(options)=>{},None=>tsrust_native_http::CookieOptions::default()}};",optional(index),self.http_cookie_options(value.ty.unwrap()))}}else{"let cookie_options=tsrust_native_http::CookieOptions::default();".into()};
+    let value=if index==3{format!("let value={};",raw(2))}else{String::new()};
+    let call=if index==3{"context.set_cookie(name.as_ref(),value.as_ref(),cookie_options)"}else{"context.delete_cookie(name.as_ref(),cookie_options)"};
+    format!("{{let context={receiver};let name={};{value}{options}{call}}}",raw(1))
    },
    "__contextSet"=>format!("({receiver}).set({}, {})",values[1],self.expr(fun,&args[2],Mode::Consume)),
    "__contextGet"=>{
@@ -121,7 +123,7 @@ impl Emitter<'_>{
    },
    "__contextHeader"=>format!("({receiver}).header({}, {})",values[1],values[2]),
    "__contextStatus"=>format!("({receiver}).status({})",values[1]),
-   "__contextText"|"__contextHtml"|"__contextJson"=>format!("({receiver}).content({}, {}, {:?})",values[1],values.get(2).map(|value|format!("Some({value})")).unwrap_or_else(||"None".into()),match binding.name{"__contextHtml"=>"text/html; charset=utf-8","__contextJson"=>"application/json",_=>"text/plain; charset=utf-8"}),
+   "__contextText"|"__contextHtml"|"__contextJson"=>format!("({receiver}).content({}, {}, {:?})",values[1],optional(2),match binding.name{"__contextHtml"=>"text/html; charset=utf-8","__contextJson"=>"application/json",_=>"text/plain; charset=utf-8"}),
    "__next"=>format!("Ok::<_,tsrust_native_http::Error>(({receiver}).run({}).await)",values[1]),
    "__send"=>format!("({receiver}).send({}).await",values[1]),
    "__form"|"__multipart"=>format!("({receiver}).{}().await",binding.name.trim_start_matches('_')),

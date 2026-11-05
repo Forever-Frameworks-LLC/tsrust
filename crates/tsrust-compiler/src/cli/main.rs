@@ -64,7 +64,7 @@ Usage:
   tsrust bindings resolve <file.bindings.json> [--offline] [--portable]
   tsrust new [name-or-path] [--app [--target backend]]
   tsrust docs content [--cwd directory]
-  tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
+  tsrust api generate [entry.tsr | --entry file | --config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
   tsrust doctor [--json] [--native]
   tsrust toolchain install --root NEW_DIRECTORY

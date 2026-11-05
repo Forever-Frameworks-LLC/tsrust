@@ -100,8 +100,8 @@ impl Analyzer {
                 }
             }
         }
-        // `JSON.parse<T>(text)` may omit limits; JSONC and JSONL arities are fixed.
-        let plain = !jsonl && !jsonc && args.len() == 1;
+        // Plain JSON and JSONC retain absence instead of injecting a budget.
+        let plain = !jsonl && args.len() == if jsonc {2}else{1};
         if !plain && args.len() != if jsonl {1}else if jsonc {3}else{2} {
             return Err(Diagnostic::new(
                 "arity",
@@ -195,7 +195,10 @@ impl Analyzer {
             let identity=if args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriterView))) {crate::native_signatures::NativeTypeId::JsonlWriterView}else{crate::native_signatures::NativeTypeId::JsonlWriter};
             let writer=self.program.records.iter().position(|record|record.native_type==Some(identity)).unwrap();
             self.expression(context,&mut args[0],Mode::Mutate,loans,Some(Type::Record(writer)))?;
-        }else{self.expression(context, &mut args[1], Mode::Copy, loans, Some(Type::Int))?;}
+        }else{
+            let limit=self.unions.intern([Type::Int,Type::Undefined],args[1].span)?;
+            self.expression(context,&mut args[1],Mode::Copy,loans,Some(limit))?;
+        }
 
         let mut pending = vec![ty];
         let mut seen = std::collections::HashSet::new();

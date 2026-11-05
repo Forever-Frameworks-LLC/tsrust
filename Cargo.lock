@@ -2405,6 +2405,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.31.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d6d0705320c1e6ba1d912b5e37cf18071b6c2e9b7fa8215a1e8a7651966f5d3"
+dependencies = [
+ "bitflags 2.13.2",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
 name = "nom"
 version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4501,7 +4513,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tsrust-compiler"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "bigdecimal",
@@ -4517,6 +4529,7 @@ dependencies = [
  "hyper-util",
  "libc",
  "matchit",
+ "nix",
  "proc-macro2",
  "pulldown-cmark",
  "rayon",
@@ -4540,7 +4553,7 @@ dependencies = [
 
 [[package]]
 name = "tsrust-lsp"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "crossbeam-channel",
  "lsp-server",

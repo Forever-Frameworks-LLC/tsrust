@@ -5,9 +5,9 @@ import {assertOptionalDefaultParameterSource} from './optional-default-parameter
 import {optionalDefaultParameterIds,expectedOptionalDefaultParameterObservation} from './optional-default-parameters-oracle.mjs';
 import {hands} from './optional-default-parameter-hands.mjs';import {observeSliceTree} from './slice-observation.mjs';import {expectedChecksum,expectedExactResult} from './oracle.mjs';import {reportCategory} from './report.mjs';
 const read=path=>fs.readFileSync(new URL(path,import.meta.url),'utf8'),manifest=JSON.parse(read('./manifest.json')),rows=manifest.workloads.filter(row=>row.family==='optional-default-parameters');
-// Freeze the accepted S11 protocol metadata at 6fe878c2; current source hashes
+// Freeze the accepted protocol metadata at 66353533; current source hashes
 // remain checked independently below. No measurement status changes here.
-const acceptedPrefix='e794c426fd497f15498f98e5e9b413dcc5176a1914ecaa5097140233dfb4b935';
+const acceptedPrefix='7d4bb0b9111d3df0acc86eb940e1a9bb4e99c8e76a1b6e6360ed0080d4cd2902';
 test('Optional/default registration preserves accepted earlier rows and binds actual optional/default scenario sources',()=>{
  assert.equal(manifestProtocolFingerprint(manifest.workloads.slice(0,691)),acceptedPrefix);assert.ok(manifest.gate>=98);assert.deepEqual(rows.map(row=>row.id),optionalDefaultParameterIds);assert.equal(rows.length,13);
  for(const row of rows){assert.equal(row.measured,false);assert.equal(row.pendingCheckpoint,101);assert.equal(reportCategory(row.id),'callbacks');for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){const source=read('./'+name);assertOptionalDefaultParameterSource(source,row,kind);assert.throws(()=>assertOptionalDefaultParameterSource(replaceCodeSnippet(source, 'output.push(','void('),row,kind));assert.throws(()=>assertOptionalDefaultParameterSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));}assert.throws(()=>assertOptionalDefaultParameterSource(read('./'+row.source),{...row,operationsPerIteration:2},'native'));}

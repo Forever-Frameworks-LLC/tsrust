@@ -32,7 +32,7 @@ They are outside the active backend scope and are not the renderer for this site
 
 Use a pinned release or a specific source commit for a project. If no release
 assets are available, follow the [source-build instructions](/tsrust/start/installation/#build-from-source).
-Retain [API compatibility baselines](/tsrust/learn/first-service/#evolve-the-api) for rolling
-deployments, and test against your actual operating system and native dependencies.
+Follow [HTTP rollout guidance](/tsrust/learn/first-service/#evolve-the-api) while older
+clients remain deployed, and test against your actual operating system and native dependencies.
 Report reproducible problems through
 [GitHub Issues](https://github.com/Forever-Frameworks-LLC/tsrust/issues).

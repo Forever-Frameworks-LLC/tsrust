@@ -335,3 +335,58 @@ fn nested_reduce_sort_and_transform_callbacks_keep_native_results() {
     let source = support::format_round_trip(&format!("function main(){{console.log({value});}}"));
     native(&source, "7\n", "", "");
 }
+
+#[test]
+fn readonly_local_scalar_slices_reduce_without_heap_copies() {
+    let source=support::format_round_trip(r#"
+        function ints(from:int,to:int):int{const base=[1,2,3,4,5];const values=base.slice(from,to);return values.reduce(digits,0)+values.reduceRight(digits,0)*100000;}
+        function numbers(value:number,from:int,to:int):number{const base:number[]=[value,1.0,2.0,3.0,4.0];const values=base.slice(from,to);return values.reduceRight(last,0.0);}
+        function flags(value:boolean,from:int,to:int):boolean{const base=[value,false,true,false,true];const values=base.slice(from,to);return values.reduce(flip,false);}
+        function digits(a:int,v:int):int{return a*10+v;}
+        function last(a:number,v:number):number{return v;}
+        function flip(a:boolean,v:boolean):boolean{return a!==v;}
+        function heap(from:int,to:int):int{const base=make();const values=base.slice(from,to);return values.reduce(digits,0);}
+        function make():int[]{return [1,2,3,4,5];}
+        function defaults(from:int):int{const base=[1,2,3,4,5];const whole=base.slice();const tail=base.slice(from);return whole.reduce(digits,0)*100000+tail.reduce(digits,0);}
+        function noSeed(from:int,to:int):int{const base=[1,2,3,4,5];const values=base.slice(from,to);return values.reduce(digits);}
+        function main(){}
+    "#);
+    let analysis=native(&source,"",r#"
+        use std::alloc::{GlobalAlloc,Layout,System};use std::sync::atomic::{AtomicUsize,Ordering};
+        static ALLOCS:AtomicUsize=AtomicUsize::new(0);static LIVE:AtomicUsize=AtomicUsize::new(0);struct Observer;
+        unsafe impl GlobalAlloc for Observer{
+            unsafe fn alloc(&self,l:Layout)->*mut u8{let p=unsafe{System.alloc(l)};if !p.is_null(){ALLOCS.fetch_add(1,Ordering::SeqCst);LIVE.fetch_add(l.size(),Ordering::SeqCst);}p}
+            unsafe fn dealloc(&self,p:*mut u8,l:Layout){unsafe{System.dealloc(p,l)};LIVE.fetch_sub(l.size(),Ordering::SeqCst);}
+        }
+        #[global_allocator]static GLOBAL:Observer=Observer;
+    "#,r#"
+        let norm=|x:i64|if x<0{5usize.saturating_sub(usize::try_from(x.unsigned_abs()).unwrap_or(usize::MAX))}else{usize::try_from(x).unwrap_or(usize::MAX).min(5)};
+        let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));
+        assert!(std::panic::catch_unwind(||function9(0,0)).is_err());
+        let before=LIVE.load(Ordering::SeqCst);
+        for from in [i64::MIN,-7,-5,-1,0,1,4,5,i64::MAX]{for to in [i64::MIN,-7,-5,-1,0,1,4,5,i64::MAX]{
+            let start=norm(from);let end=norm(to).max(start);let base=[1i64,2,3,4,5];let range=&base[start..end];
+            let left=range.iter().fold(0,|a,v|a*10+v);let right=range.iter().rev().fold(0,|a,v|a*10+v);
+            ALLOCS.store(0,Ordering::SeqCst);assert_eq!(function0(from,to),left+right*100000);assert_eq!(ALLOCS.load(Ordering::SeqCst),0);
+            for bits in [0x8000000000000000,0,0x7ff0000000000000,0xfff0000000000000,0x7ff8000000001234,0x7ff0000000000001]{
+                let input=f64::from_bits(bits);let values=[input,1.0,2.0,3.0,4.0];let expected=if start==end{0.0}else{values[start]};
+                ALLOCS.store(0,Ordering::SeqCst);assert_eq!(function1(input,from,to).to_bits(),expected.to_bits());assert_eq!(ALLOCS.load(Ordering::SeqCst),0);
+            }
+            for value in [false,true]{let values=[value,false,true,false,true];let expected=values[start..end].iter().fold(false,|a,v|a!=*v);
+                ALLOCS.store(0,Ordering::SeqCst);assert_eq!(function2(value,from,to),expected);assert_eq!(ALLOCS.load(Ordering::SeqCst),0);
+            }
+            ALLOCS.store(0,Ordering::SeqCst);assert_eq!(function6(from,to),left);assert_eq!(ALLOCS.load(Ordering::SeqCst),1,"only the heap source may allocate");
+            let tail=base[start..].iter().fold(0,|a,v|a*10+v);
+            ALLOCS.store(0,Ordering::SeqCst);assert_eq!(function8(from),12345*100000+tail);assert_eq!(ALLOCS.load(Ordering::SeqCst),0);
+            if start==end {assert!(std::panic::catch_unwind(||function9(from,to)).is_err());}
+            else {ALLOCS.store(0,Ordering::SeqCst);assert_eq!(function9(from,to),left);assert_eq!(ALLOCS.load(Ordering::SeqCst),0);}
+            assert_eq!(LIVE.load(Ordering::SeqCst),before);
+        }}
+        std::panic::set_hook(hook);
+    "#);
+    let rust=analysis.emit_rust();
+    assert!(rust.lines().any(|line|line.starts_with("let value") && line.contains(": &[f64]")));
+    assert!(rust.lines().any(|line|line.starts_with("let value") && line.contains(": &[bool]")));
+    let effects=support::format_round_trip("function mark(n:int):int{console.log(n);return n;}function add(a:int,v:int):int{return a+v;}function main(){const base=[10,20,30,40,50];const values=base.slice(mark(1),mark(3));console.log(values.reduce(add,0));}");
+    native(&effects,"1\n3\n50\n","","");
+}

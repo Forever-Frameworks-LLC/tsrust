@@ -29,13 +29,14 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std
   // Without limits JSON.parse is plain serde_json, like JavaScript's JSON.parse.
   let (plain,close)=if binding.name=="parse" {("if limits.is_none() {tsrust_native_json::parse_plain(text.as_ref())} else {","}")}else{("","")};
   (format!("text:&String,{}limits:Option<&Record{limits}>",if binding.name=="parseJsonc" {"allow_trailing_comma:Option<bool>,"} else {""}),
-   format!("{plain}(|| {{let (bytes,depth,entries,nodes)=if let Some(limits)=limits {{(limits.field0,limits.field1,limits.field2,limits.field3)}} else {{(16*1024*1024,64,1_000_000,1_000_000)}}; let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::{parser}(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(bytes)?,depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}}{option})}})(){close}"),
+   format!("{plain}(|| {{let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());let limits=if let Some(limits)=limits{{tsrust_native_json::Limits{{bytes:convert(limits.field0)?,depth:convert(limits.field1)?,entries:convert(limits.field2)?,nodes:convert(limits.field3)?}}}}else{{tsrust_native_json::Limits::default()}};tsrust_native_json::{parser}(text.as_ref().as_bytes(),limits{option})}})(){close}"),
    format!("Record{value}{{value}}"))
  }else if matches!(binding.name,"fromArray"|"fromEntries") {
   let limits=record(NativeTypeId::JsonBuildLimits);
   let element=if binding.name=="fromArray"{value}else{record(NativeTypeId::JsonEntry)};
   let (builder,convert)=if binding.name=="fromArray"{("build_array","item.value")}else{("build_object","(item.field0.into_owned(),item.field1.value)")};
-  (format!("values:RecordArray{element},limits:Option<&Record{limits}>"),format!("(||{{let (depth,entries,nodes)=if let Some(limits)=limits{{(limits.field0,limits.field1,limits.field2)}}else{{(64,1_000_000,1_000_000)}};let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());let limits=tsrust_native_json::BuildLimits{{depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}};tsrust_native_json::validate_build_root(limits,values.len())?;tsrust_native_json::{builder}(values.tsr_owned_items().map(|item|{convert}).collect(),limits)}})()"),format!("Record{value}{{value}}"))
+  let plain=if binding.name=="fromArray" {"tsrust_native_json::Value::Array(values.tsr_owned_items().map(|item|item.value).collect())"}else{"tsrust_native_json::build_object_plain(values.tsr_owned_items().map(|item|(item.field0.into_owned(),item.field1.value)))"};
+  (format!("values:RecordArray{element},limits:Option<&Record{limits}>"),format!("(||{{if let Some(limits)=limits{{let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());let limits=tsrust_native_json::BuildLimits{{depth:convert(limits.field0)?,entries:convert(limits.field1)?,nodes:convert(limits.field2)?}};tsrust_native_json::validate_build_root(limits,values.len())?;tsrust_native_json::{builder}(values.tsr_owned_items().map(|item|{convert}).collect(),limits)}}else{{Ok({plain})}}}})()"),format!("Record{value}{{value}}"))
  }else if binding.name=="fromNumber" {
   ("value:f64".into(),"tsrust_native_json::from_f64(value)".into(),format!("Record{value}{{value}}"))
  }else if matches!(binding.name,"asBoolean"|"asInt"|"asNumber"|"takeString") {
@@ -48,7 +49,7 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std
   };
   (if borrow.is_empty(){format!("value:Record{value}")}else{"value:&B".into()},if borrow.is_empty(){format!("tsrust_native_json::{reader}(value.value)")}else{format!("tsrust_native_json::{reader}(value.json_value())")},payload.to_string())
  }else{
-  ("value:&B,max_bytes:Option<i64>".to_string(),"usize::try_from(max_bytes.unwrap_or(16*1024*1024)).map_err(|_|tsrust_native_json::invalid_limits()).and_then(|limit|tsrust_native_json::stringify(value.json_value(),limit))".to_string(),"String::Owned(value)".to_string())
+  ("value:&B,max_bytes:Option<i64>".to_string(),"max_bytes.map(usize::try_from).transpose().map_err(|_|tsrust_native_json::invalid_limits()).map(|limit|limit.unwrap_or(usize::MAX)).and_then(|limit|tsrust_native_json::stringify(value.json_value(),limit))".to_string(),"String::Owned(value)".to_string())
  };
  let generic=if matches!(binding.name,"asBoolean"|"asInt"|"asNumber"|"stringify"){"<B:tsrust_native_json::Source>"}else{""};
  let order=|id|crate::records::runtime::declaration_order_suffix(program,ordered,id);

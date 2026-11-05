@@ -1,0 +1,41 @@
+pub type Error = Box<dyn std::error::Error + Send + Sync>;
+#[derive(Default)]
+pub struct RequestOptions {
+    pub param: std::collections::BTreeMap<String,String>,
+    pub query: Vec<(String,String)>,
+    pub headers: reqwest::header::HeaderMap,
+    pub json: Option<Value>,
+}
+pub struct Client { base: reqwest::Url, http: reqwest::Client }
+impl Client {
+    pub fn new(base: &str) -> Result<Self, Error> { Self::with_http(base, reqwest::Client::new()) }
+    pub fn with_http(base: &str, http: reqwest::Client) -> Result<Self, Error> {
+        let base = reqwest::Url::parse(base)?;
+        if !matches!(base.scheme(), "http" | "https") { return Err("Expected an HTTP(S) service URL".into()); }
+        Ok(Self { base, http })
+    }
+    async fn request(&self, method: &str, path: &str, options: RequestOptions) -> Result<reqwest::Response, Error> {
+        let mut url = self.base.clone();
+        let mut segments = Vec::new();
+        for segment in path.split('/') {
+            if let Some(key) = segment.strip_prefix(':').or_else(|| (segment == "*").then_some("*")) {
+                let value = options.param.get(key).ok_or_else(|| format!("Missing path parameter: {key}"))?;
+                let parts = if segment == "*" { value.split('/').collect::<Vec<_>>() } else { vec![value.as_str()] };
+                for part in parts {
+                    if matches!(part, "." | "..") { return Err("Dot path parameters are unsupported".into()); }
+                    let mut encoded = self.base.clone();
+                    encoded.path_segments_mut().map_err(|_| "Expected a hierarchical HTTP URL")?.clear().push(part);
+                    segments.push(encoded.path().trim_start_matches('/').to_owned());
+                }
+            } else { segments.push(segment.to_owned()); }
+        }
+        let path = segments.join("/");
+        let path = if path.starts_with('/') { path } else { format!("/{path}") };
+        url.set_path(&(self.base.path().trim_end_matches('/').to_owned() + &path));
+        url.set_query(None); url.set_fragment(None);
+        if !options.query.is_empty() { url.query_pairs_mut().extend_pairs(&options.query); }
+        let mut request = self.http.request(reqwest::Method::from_bytes(method.as_bytes())?, url).headers(options.headers);
+        if let Some(body) = options.json { request = request.header(reqwest::header::CONTENT_TYPE,"application/json").body(serde_json::to_vec(&body)?); }
+        Ok(request.send().await?.error_for_status()?)
+    }
+}

@@ -1,0 +1,11 @@
+[package]
+name = "tsrust-benchmark-reference-dependencies"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+rand = "=0.10.3"
+unicode-normalization = "=0.1.25"

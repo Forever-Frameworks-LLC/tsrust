@@ -10,11 +10,11 @@ impl Emitter<'_>{
   let binding=&crate::native_bindings::BINDINGS[id];if binding.module!="std:sql"{return None;}self.native_bindings.borrow_mut().insert(id);
   let values=args.iter().zip(binding.parameters).map(|(arg,param)|{let value=self.expr(fun,arg,param.access);if arg.ty==Some(Type::String){format!("({value}).as_ref()")}else{value}}).collect::<Vec<_>>();let receiver=&values[0];
   let call=match binding.name{
-   "__connect"=>format!("tsrust_native_sql::Pool::connect({receiver},{},{}).await",values.get(1).map(|v|format!("Some({v})")).unwrap_or("None".into()),values.get(2).map(|v|format!("Some({v})")).unwrap_or("None".into())),
+   "__connect"=>format!("tsrust_native_sql::Pool::connect({receiver},{},{}).await",args.get(1).map(|arg|self.native_optional_argument(&binding.parameters[1],values[1].clone(),arg.ty.unwrap())).unwrap_or("None".into()),args.get(2).map(|arg|self.native_optional_argument(&binding.parameters[2],values[2].clone(),arg.ty.unwrap())).unwrap_or("None".into())),
    "__cursorNext"=>format!("({receiver}).next().await"),
    "__cursorClose"=>return Some(format!("({receiver}).close()")),
    "__cursor"|"__execute"|"__query"|"__txexecute"|"__txquery"=>{
-    let parameters=if args.len()==3{let Type::Array(array)=args[2].ty.unwrap()else{unreachable!()};let element=array.ty();format!("({}).iter().map(|value: &{}|{}).collect::<Vec<_>>()",values[2],self.native_type(element),self.sql_parameter(element,"value"))}else{"Vec::new()".into()};
+    let parameters=args.get(2).map(|arg|self.native_sql_parameters(&binding.parameters[2],values[2].clone(),arg.ty.unwrap(),|ty,value|self.sql_parameter(ty,value))).unwrap_or("Vec::new()".into());
     let query=binding.name.ends_with("query");format!("{{let receiver={receiver};let sql={};let parameters={parameters};receiver.{}(sql,&parameters).await{}}}",values[1],if query{"query"}else if binding.name=="__cursor"{"cursor"}else{"execute"},if query{".map(Array::Heap)"}else{""})
    },
    "__isNull"=>format!("({receiver}).is_null({})",values[1]),

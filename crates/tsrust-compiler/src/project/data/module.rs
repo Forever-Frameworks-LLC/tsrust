@@ -16,7 +16,7 @@ pub(crate) struct Property { pub name_span: Span, pub value: Value }
 use crate::stdlib::json as backend;
 
 pub(crate) fn parse(text: &str, jsonc: bool) -> Result<Value, backend::Error> {
-    let limits = backend::Limits { bytes: 16 * 1024 * 1024, depth: 64, entries: 1_000_000, nodes: 1_000_000 };
+    let limits = backend::Limits::default();
     // Validate before walking: one acceptance contract, bounded recursion, and
     // original UTF-8 byte offsets even when JSONC comments contain Unicode.
     if jsonc { backend::parse_jsonc(text.as_bytes(), limits, true)?; }
@@ -153,7 +153,9 @@ mod tests {
         assert!(parse("[1,]", true).is_ok());
         assert_eq!(parse("null false", false).unwrap_err().code, "trailing-data");
         let deep = format!("{}0{}", "[".repeat(65), "]".repeat(65));
-        assert_eq!(parse(&deep, false).unwrap_err().code, "depth-limit");
+        assert!(parse(&deep,false).is_ok());
+        let too_deep=format!("{}0{}","[".repeat(128),"]".repeat(128));
+        assert!(parse(&too_deep,false).is_err());
         assert!(parse("1e9999", false).is_err());
     }
 }

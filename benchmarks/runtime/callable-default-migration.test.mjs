@@ -1,3 +1,4 @@
+import {compilerExecutable} from './compiler-executable.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,8 +15,8 @@ const ids=["higher_inline_reusable_int", "higher_borrowed_inline_factory_int", "
 const manifest=JSON.parse(fs.readFileSync(path.join(here,'manifest.json'),'utf8'));
 
 test('explicit borrowed callback workload migration preserves native ABI and scalar results',()=>{
- const compiler=path.join(root,'target/editor/debug/tsrust');
- const temporary=fs.mkdtempSync(path.join(root,'target/editor/callback-migration-'));
+ const compiler=(process.env.TSRUST || compilerExecutable(root,here));
+ const temporary=fs.mkdtempSync(path.join(path.dirname(path.dirname(compiler)), 'callback-migration-'));
  try {
   for(const id of ids){
    const row=manifest.workloads.find(row=>row.id===id);

@@ -5,8 +5,9 @@ use crate::analysis::{CheckedFunction, CheckedProgram, Mode};
 use crate::record_runtime::RecordRuntime;
 use crate::syntax::*;
 use std::collections::{BTreeMap, BTreeSet};
+mod rows;
 
-const MAX_STACK_BYTES: usize = 4096;
+pub(crate) const MAX_STACK_BYTES: usize = 4096;
 const MAX_VARIANTS: usize = 64;
 const MAX_PROOF_STEPS: usize = 10_000;
 const MAX_PROOF_DEPTH: usize = 64;
@@ -33,6 +34,8 @@ impl Scalar {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum Shape {
+    Rows { element: rows::Element, width: usize },
+    Row { element: rows::Element, width: usize },
     LiteralStrings,
     ScalarArray {
         scalar: Scalar,
@@ -41,6 +44,7 @@ pub(crate) enum Shape {
     Record {
         record: usize,
         widths: Vec<Option<usize>>,
+        borrowed_strings: Vec<bool>,
     },
     Array {
         record: usize,
@@ -52,6 +56,14 @@ pub(crate) struct FunctionPlan {
     pub(crate) function: usize,
     pub(crate) parameters: Vec<Option<Shape>>,
     pub(crate) bindings: BTreeMap<usize, Shape>,
+    pub(crate) result: Option<Shape>,
+    inline_slices: BTreeSet<usize>,
+}
+
+impl FunctionPlan {
+    pub(crate) fn inline_slice(&self, value: &Expr) -> bool {
+        inline_slice_binding(value).is_some_and(|binding|self.inline_slices.contains(&binding))
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -64,12 +76,13 @@ pub(crate) struct FixedStorage {
     pub(crate) plans: Vec<FunctionPlan>,
     pub(crate) records: Vec<Shape>,
     temporary_arrays: BTreeMap<(Body, usize, usize, Scalar), Shape>,
+    results: BTreeMap<usize, Shape>,
 }
 
 impl FixedStorage {
     pub(crate) fn new(program: &CheckedProgram, runtime: &RecordRuntime) -> Self {
         let mut temporary_arrays = BTreeMap::new();
-        let locals = program
+        let mut locals = program
             .functions
             .iter()
             .enumerate()
@@ -87,7 +100,7 @@ impl FixedStorage {
                         ..
                     } = &stmt.kind
                         && let Some((shape, size)) =
-                            literal_shape(program, runtime, value).or_else(|| {
+                            literal_shape(program, runtime, fun, value).or_else(|| {
                                 if value.target != Some(CallTarget::Clone) {
                                     return None;
                                 }
@@ -118,6 +131,15 @@ impl FixedStorage {
                 bindings
             })
             .collect::<Vec<_>>();
+        let row_facts = rows::Facts::infer(program).validated(program);
+        for (function, bindings) in locals.iter_mut().enumerate() {
+            for binding in 0..program.functions[function].bindings.len() {
+                if let Some(shape) = row_facts.binding(function, binding) { bindings.insert(binding, shape.clone()); }
+            }
+        }
+        let results = (0..program.functions.len()).filter_map(|function| row_facts.result(function).cloned().map(|shape| (function, shape))).collect::<BTreeMap<_,_>>();
+        let local_slices = program.functions.iter().enumerate().map(|(function,fun)| inline_slice_bindings(fun,&locals[function],BTreeSet::new())).collect::<Vec<_>>();
+        let inline_slices = inline_slice_parameters(program,&locals,&local_slices);
         let mut storage = Self {
             plans: program
                 .functions
@@ -126,12 +148,15 @@ impl FixedStorage {
                 .filter(|(_, f)| !f.template)
                 .map(|(function, fun)| FunctionPlan {
                     function,
-                    parameters: vec![None; fun.parameter_count],
+                    parameters: (0..fun.parameter_count).map(|binding| row_facts.binding(function, binding).cloned()).collect(),
                     bindings: locals[function].clone(),
+                    result: results.get(&function).cloned(),
+                    inline_slices: inline_slices[function].clone(),
                 })
                 .collect(),
             records: Vec::new(),
             temporary_arrays,
+            results,
         };
         for (id, closure) in program.closures.iter().enumerate() {
             if !closure.function.template {
@@ -167,7 +192,7 @@ impl FixedStorage {
                             {
                                 return None;
                             }
-                            shape_of(program, &plan.bindings, arg)
+                            rows::expression_shape(&plan.bindings, &storage.results, arg).or_else(|| shape_of(program, &plan.bindings, arg))
                         })
                         .collect::<Vec<_>>();
                     if parameters.iter().any(Option::is_some) {
@@ -188,9 +213,13 @@ impl FixedStorage {
                 if storage.plans.len() - original_count >= MAX_VARIANTS {
                     for plan in storage.plans.iter_mut().take(original_count) {
                         plan.bindings.clear();
+                        plan.parameters.fill(None);
+                        plan.result = None;
+                        plan.inline_slices.clear();
                     }
                     storage.plans.truncate(original_count);
                     storage.temporary_arrays.clear();
+                    storage.results.clear();
                     return storage;
                 }
                 let mut bindings = locals[function].clone();
@@ -203,6 +232,8 @@ impl FixedStorage {
                     function,
                     parameters,
                     bindings,
+                    result: storage.results.get(&function).cloned(),
+                    inline_slices: inline_slices[function].clone(),
                 });
             }
             cursor += 1;
@@ -217,6 +248,10 @@ impl FixedStorage {
         }
         storage.records = records.into_iter().collect();
         storage
+    }
+
+    pub(crate) fn expression_shape(&self, program: &CheckedProgram, bindings: &BTreeMap<usize, Shape>, value: &Expr) -> Option<Shape> {
+        rows::expression_shape(bindings, &self.results, value).or_else(|| shape_of(program, bindings, value))
     }
 
     pub(crate) fn temporary_shape(
@@ -263,7 +298,7 @@ fn selected_shape(program:&CheckedProgram,bindings:&BTreeMap<usize,Shape>,source
             let (root, fields) = source.place.as_ref()?;
             let mut shape = bindings.get(root)?.clone();
             for name in fields {
-                let Shape::Record { record, widths } = shape else {
+                let Shape::Record { record, widths, .. } = shape else {
                     return None;
                 };
                 let field = program.records[record]
@@ -297,7 +332,7 @@ pub(crate) fn shape_of(
         ExprKind::Selected { source, .. } => selected_shape(program, bindings, source),
         ExprKind::SpreadValue(selected) if selected.selection == SpreadSelection::Receiver => selected_shape(program, bindings, &selected.source),
         ExprKind::Field(base, name) => {
-            let Shape::Record { record, widths } = shape_of(program, bindings, base)? else {
+            let Shape::Record { record, widths, .. } = shape_of(program, bindings, base)? else {
                 return None;
             };
             let field = program.records[record]
@@ -495,9 +530,77 @@ fn plan_temporary_arrays(
     arrays
 }
 
+// Unknown receivers keep heap slice results: a polymorphic result bloats heap callers.
+fn inline_slice_binding(value: &Expr) -> Option<usize> {
+    match &value.kind {
+        ExprKind::Name(_) => value.binding,
+        ExprKind::Selected {source,..} => source.place.as_ref().filter(|(_,fields)|fields.is_empty()).map(|(binding,_)|*binding),
+        ExprKind::TypeAssertion {value,..} => inline_slice_binding(value),
+        _ => None,
+    }
+}
+
+fn inline_slice_parameters(program: &CheckedProgram, fixed: &[BTreeMap<usize,Shape>], locals: &[BTreeSet<usize>]) -> Vec<BTreeSet<usize>> {
+    // shortcut: forwarded parameters stay unknown; add indexed propagation if profiling warrants it.
+    let mut incoming = vec![None::<BTreeSet<usize>>; program.functions.len()];
+    let mut forbidden = BTreeSet::new();
+    for closure in &program.closures {
+        if let Some(crate::analysis::ClosureForward::Function(function)) = closure.forward { forbidden.insert(function); }
+        for fun in std::iter::once(&closure.function).chain(closure.methods.iter().map(|method| &method.function)) {
+            visit_function_expressions(fun,&mut |value| {
+                if let Some(CallTarget::Function(function) | CallTarget::ForwardFunction(function)) = value.target { forbidden.insert(function); }
+            });
+        }
+    }
+    for (caller,fun) in program.functions.iter().enumerate() {
+        visit_function_expressions(fun,&mut |value| {
+            if let Some(CallTarget::ForwardFunction(function)) = value.target { forbidden.insert(function); }
+            let Some(CallTarget::Function(function)) = value.target else {return;};
+            let ExprKind::Call(_,args) = &value.kind else {return;};
+            let target = &program.functions[function];
+            let small = (0..target.parameter_count).filter(|&parameter| {
+                let binding = &target.bindings[parameter];
+                !binding.mutable && !binding.rebindable && !binding.omission.is_omittable()
+                    && matches!(binding.ty,Type::Array(_))
+                    && args.get(parameter).is_some_and(|arg| match &arg.kind {
+                        ExprKind::Array(values) => values.len() <= 4,
+                        _ => inline_slice_binding(arg).is_some_and(|id|locals[caller].contains(&id)),
+                    })
+            }).collect::<BTreeSet<_>>();
+            match &mut incoming[function] {
+                Some(previous) => previous.retain(|parameter|small.contains(parameter)),
+                entry @ None => *entry = Some(small),
+            }
+        });
+    }
+    program.functions.iter().enumerate().map(|(function,fun)| {
+        let parameters = if forbidden.contains(&function) {BTreeSet::new()} else {incoming[function].take().unwrap_or_default()};
+        inline_slice_bindings(fun,&fixed[function],parameters)
+    }).collect()
+}
+
+fn inline_slice_bindings(fun: &CheckedFunction, fixed: &BTreeMap<usize,Shape>, mut selected: BTreeSet<usize>) -> BTreeSet<usize> {
+    visit_statements(&fun.body, &mut |statement| {
+        let StmtKind::Let { binding:Some(binding),value,.. } = &statement.kind else {return;};
+        let local = &fun.bindings[*binding];
+        if local.rebindable || local.mutable || fixed.contains_key(binding) || !matches!(local.ty,Type::Array(_)) {return;}
+        let known = |value: &Expr| inline_slice_binding(value).is_some_and(|binding|selected.contains(&binding));
+        let small = match &value.kind {
+            ExprKind::Array(values) => values.len() <= 4,
+            ExprKind::Name(_) => known(value),
+            ExprKind::Call(_,args) if value.target == Some(CallTarget::Clone) => args.first().is_some_and(known),
+            ExprKind::Call(callee,_) if value.target == Some(CallTarget::ArraySlice) => matches!(&callee.kind,ExprKind::Field(base,_) if known(base)),
+            _ => false,
+        };
+        if small {selected.insert(*binding);}
+    });
+    selected
+}
+
 fn literal_shape(
     program: &CheckedProgram,
     runtime: &RecordRuntime,
+    fun: &CheckedFunction,
     expr: &Expr,
 ) -> Option<(Shape, usize)> {
     if let Some(shape) = scalar_literal_shape(expr) {
@@ -537,12 +640,24 @@ fn literal_shape(
         return None;
     };
     let mut widths = vec![None; program.records[record].fields.len()];
+    let mut borrowed_strings = vec![false; widths.len()];
     let mut bytes = 8_usize;
     for (name, value) in values {
         let field = program.records[record]
             .fields
             .iter()
             .position(|f| f.name.text == name.text)?;
+        if value.target == Some(CallTarget::StringConversion)
+            && let ExprKind::Call(_, args) = &value.kind
+            && let [argument] = args.as_slice()
+            && argument.ty == Some(Type::String)
+            && let Some(id) = argument.binding
+            && id < fun.parameter_count
+            && fun.bindings[id].mode == Mode::Read
+            && !fun.bindings[id].rebindable
+        {
+            borrowed_strings[field] = true;
+        }
         let size = if let Some(Type::Array(ArrayElement::Record(child, 0))) = value.ty
             && let ExprKind::Array(items) = &value.kind
         {
@@ -556,10 +671,8 @@ fn literal_shape(
             return None;
         }
     }
-    widths
-        .iter()
-        .any(Option::is_some)
-        .then_some((Shape::Record { record, widths }, bytes))
+    (widths.iter().any(Option::is_some) || borrowed_strings.iter().any(|borrowed| *borrowed))
+        .then_some((Shape::Record { record, widths, borrowed_strings }, bytes))
 }
 
 fn layout_bound(
@@ -575,6 +688,11 @@ fn layout_bound(
         Type::Null | Type::Undefined => Some(0),
         Type::Int | Type::Number | Type::Boolean => Some(8),
         Type::String => Some(crate::storage::string_storage_bound()),
+        Type::Union(id) if program.unions[id.index()].members.iter().all(|ty| ty.is_copy()) => {
+            program.unions[id.index()].members.iter()
+                .map(|ty| layout_bound(program, runtime, *ty, depth + 1))
+                .collect::<Option<Vec<_>>>()?.into_iter().max()?.checked_add(8)
+        }
         Type::Record(record) => {
             if program.records[record].native_type.is_some_and(|id| !crate::native_types::declaration(id).source_constructible()) { return None; }
             let mut bytes = 8_usize;
@@ -599,6 +717,8 @@ fn layout_bound(
 // Recheck every syntactic use, not only final flow-state flags: a move on an
 // exited branch or a capture can otherwise disappear from that final state.
 struct Proof<'a> {
+    row_facts: Option<&'a rows::Facts>,
+    row_function: Option<usize>,
     program: &'a CheckedProgram,
     visiting: BTreeSet<(usize, usize)>,
     remaining: usize,
@@ -608,6 +728,8 @@ struct Proof<'a> {
 impl<'a> Proof<'a> {
     fn new(program: &'a CheckedProgram, scalar: bool) -> Self {
         Self {
+            row_facts: None,
+            row_function: None,
             program,
             visiting: BTreeSet::new(),
             remaining: MAX_PROOF_STEPS,
@@ -616,9 +738,13 @@ impl<'a> Proof<'a> {
         }
     }
     fn binding(&mut self, fun: &CheckedFunction, id: usize) -> bool {
-        fun.bindings.iter().all(|binding| {
+        let previous = self.row_function;
+        if self.row_facts.is_some() { self.row_function = self.program.functions.iter().position(|candidate| std::ptr::eq(candidate, fun)); }
+        let result = fun.bindings.iter().all(|binding| {
             binding.initializer.as_deref().is_none_or(|value| self.expr(id, value, Mode::Consume))
-        }) && self.body(id, &fun.body)
+        }) && self.body(id, &fun.body);
+        self.row_function = previous;
+        result
     }
     fn body(&mut self, id: usize, body: &[Stmt]) -> bool {
         if self.depth >= MAX_PROOF_DEPTH {
@@ -629,6 +755,8 @@ impl<'a> Proof<'a> {
             StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
             StmtKind::Try(_) => false,
             StmtKind::Throw(value) => self.expr(id,value,Mode::Consume),
+            StmtKind::Let { value, binding:Some(binding), .. }
+                if self.row_facts.zip(self.row_function).is_some_and(|(facts,function)| facts.initializer(function,*binding,value)) => self.expr(id,value,Mode::Read),
             StmtKind::Let { value, .. } | StmtKind::Expr(value) => {
                 self.expr(id, value, Mode::Consume)
             }
@@ -648,6 +776,8 @@ impl<'a> Proof<'a> {
                 };
                 self.expr(id, target, Mode::Mutate) && self.expr(id, value, mode)
             }
+            StmtKind::Return(Some(value))
+                if self.row_facts.zip(self.row_function).is_some_and(|(facts,function)| facts.returned(function,value)) => self.expr(id,value,Mode::Read),
             StmtKind::Return(value) => value
                 .as_ref()
                 .is_none_or(|value| self.expr(id, value, Mode::Consume)),
@@ -701,6 +831,18 @@ impl<'a> Proof<'a> {
             return false;
         }
         self.remaining -= 1;
+        if expr.target == Some(CallTarget::ArrayPush)
+            && let ExprKind::Call(callee,args) = &expr.kind
+            && let ExprKind::Field(base,_) = &callee.kind
+            && affected(base,id)
+            && self.row_facts.zip(self.row_function).is_some_and(|(facts,function)| facts.push(function,base,&args[0])) {
+            return self.expr(id,base,Mode::Read) && args.iter().all(|value| self.expr(id,value,Mode::Consume));
+        }
+        if self.row_facts.is_some() && let ExprKind::Call(callee,args) = &expr.kind
+            && !matches!(expr.target,Some(CallTarget::Function(_) | CallTarget::ForwardFunction(_) | CallTarget::Clone)) {
+            let receiver = matches!(&callee.kind, ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Array(_))) && affected(base,id));
+            if receiver || args.iter().any(|arg| matches!(arg.ty,Some(Type::Array(_))) && affected(arg,id)) { return false; }
+        }
         self.depth += 1;
         let mode = if mode != Mode::Mutate && expr.ty.is_some_and(Type::is_copy) {
             Mode::Copy
@@ -1271,7 +1413,9 @@ impl<'a> Proof<'a> {
                         && (expr.target != Some(CallTarget::ForwardFunction(function))
                         || self.expr(id, callee, Mode::Read))
                         && args.iter().enumerate().all(|(param, arg)| {
-                            let mode = self.program.functions[function].bindings[param].mode;
+                            let row_argument = self.row_facts.zip(self.row_function).is_some_and(|(facts,caller)| facts.argument(caller,function,param,arg));
+                            if self.row_facts.is_some() && affected(arg,id) && matches!(arg.ty,Some(Type::Array(_))) && !row_argument { return false; }
+                            let mode = if row_argument {Mode::Read} else {self.program.functions[function].bindings[param].mode};
                             let stable = !affected(arg, id)
                                 || arg.ty.is_some_and(Type::is_copy)
                                 || self.parameter(function, param);
@@ -1336,7 +1480,7 @@ fn affected(expr: &Expr, id: usize) -> bool {
     }
 }
 
-pub(crate) fn visit_statements(body: &[Stmt], visit: &mut impl FnMut(&Stmt)) {
+pub(crate) fn visit_statements<'a>(body: &'a [Stmt], visit: &mut impl FnMut(&'a Stmt)) {
     let mut work: Vec<&Stmt> = body.iter().rev().collect();
     while let Some(stmt) = work.pop() {
         visit(stmt);
@@ -1354,7 +1498,7 @@ pub(crate) fn visit_statements(body: &[Stmt], visit: &mut impl FnMut(&Stmt)) {
     }
 }
 
-pub(crate) fn visit_function_expressions(function: &CheckedFunction, visit: &mut impl FnMut(&Expr)) {
+pub(crate) fn visit_function_expressions<'a>(function: &'a CheckedFunction, visit: &mut impl FnMut(&'a Expr)) {
     for binding in &function.bindings {
         if let Some(initializer) = &binding.initializer {
             visit_expression(initializer, visit);
@@ -1363,7 +1507,7 @@ pub(crate) fn visit_function_expressions(function: &CheckedFunction, visit: &mut
     visit_expressions(&function.body, visit);
 }
 
-pub(crate) fn visit_expression(expr: &Expr, visit: &mut impl FnMut(&Expr)) {
+pub(crate) fn visit_expression<'a>(expr: &'a Expr, visit: &mut impl FnMut(&'a Expr)) {
     let mut work = vec![expr];
     while let Some(expr) = work.pop() {
         visit(expr);
@@ -1389,7 +1533,7 @@ pub(crate) fn visit_expression(expr: &Expr, visit: &mut impl FnMut(&Expr)) {
     }
 }
 
-fn visit_expressions(body: &[Stmt], visit: &mut impl FnMut(&Expr)) {
+pub(crate) fn visit_expressions<'a>(body: &'a [Stmt], visit: &mut impl FnMut(&'a Expr)) {
     visit_statements(body, &mut |stmt| match &stmt.kind {
         StmtKind::Let { value, .. } | StmtKind::Expr(value) => visit_expression(value, visit),
         StmtKind::Assign { target, value, .. } => {

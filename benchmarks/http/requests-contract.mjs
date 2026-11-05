@@ -10,6 +10,12 @@ const scenarios=[
 ];
 export const workloads=Object.freeze(scenarios.flatMap(row=>protocol.concurrency.map(concurrency=>({...row,id:`http_${row.scenario}_c${concurrency}`,concurrency}))));
 export const sourceFiles={'native':'requests.tsr','node-tsc':'requests.ts','rust-hand':'requests.rs'};
+export function requestEngines(flags){
+ const options=flags.filter(flag=>flag.startsWith('--engines='));assert(options.length<=1,'Specify --engines only once');
+ const known=Object.keys(sourceFiles),requested=options.length?options[0].slice('--engines='.length).split(','):known;
+ assert(requested.length&&requested.every(engine=>known.includes(engine))&&new Set(requested).size===requested.length,'Expected unique HTTP engines: native,node-tsc,rust-hand');
+ return known.filter(engine=>requested.includes(engine));
+}
 export const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 export function sourceHashes(){return Object.fromEntries(Object.entries(sourceFiles).map(([engine,file])=>[engine,hash(fs.readFileSync(new URL(file,import.meta.url)))]));}
 export function assertManifest(manifest){assert.deepEqual(manifest.protocol,protocol);assert.deepEqual(manifest.workloads,workloads);assert.deepEqual(manifest.sources,sourceHashes());}

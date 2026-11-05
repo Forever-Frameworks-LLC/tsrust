@@ -27,7 +27,7 @@ impl Code {
 #[derive(Debug, Clone, Copy)]
 pub(super) enum Segment<'a> { Field(&'a str), Index(usize) }
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum OwnedSegment { Field(String), Index(usize) }
+pub(super) enum OwnedSegment { Field(Box<str>), Index(usize) }
 #[derive(Debug)]
 pub(super) struct Issue {
     pub code: Code,
@@ -72,7 +72,7 @@ impl Issues {
         self.truncated |= incoming.truncated;
         for issue in incoming.items {
             let path = prefix.iter().copied().chain(issue.path.iter().map(|segment| match segment {
-                OwnedSegment::Field(name) => Segment::Field(name.as_str()),
+                OwnedSegment::Field(name) => Segment::Field(name.as_ref()),
                 OwnedSegment::Index(index) => Segment::Index(*index),
             })).take(self.max_segments.saturating_add(1)).collect::<Vec<_>>();
             let start = self.items.len();
@@ -101,7 +101,7 @@ impl Issues {
                 Segment::Field(name) => {
                     let mut end = name.len().min(remaining);
                     while !name.is_char_boundary(end) { end -= 1; }
-                    path.push(OwnedSegment::Field(name[..end].to_owned()));
+                    path.push(OwnedSegment::Field(name[..end].into()));
                     remaining -= end;
                     if end < name.len() { path_truncated = true; break; }
                 }

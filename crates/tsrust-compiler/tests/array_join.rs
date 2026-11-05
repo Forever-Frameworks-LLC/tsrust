@@ -208,12 +208,13 @@ fn join_direct_buffer_allocation_and_normal_unwind_disposal_are_observed() {
         "#,
         r#"
         let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));let baseline=LIVE.load(Ordering::SeqCst);
-        for count in [0,1,4,5,256]{
-            let mut inputs=Array::from([]);for _ in 0..count{inputs.push(String::Owned("é😀\0".to_owned()));}
-            let expected=(0..count).map(|_|"é😀\0").collect::<Vec<_>>().join("|");let before=LIVE.load(Ordering::SeqCst);ALLOCS.store(0,Ordering::SeqCst);
-            let result=function0(std::hint::black_box(&inputs),&String::Borrowed("|"));let allocations=ALLOCS.load(Ordering::SeqCst);assert_eq!(result.as_ref(),expected);assert!(matches!(result,String::Owned(_)));assert!(allocations<=16,"no per-element clone or diagnostic allocation: {allocations}");if count==0{assert_eq!(allocations,0);}drop(result);assert_eq!(LIVE.load(Ordering::SeqCst),before);
-            let result=function0(&inputs,&String::Borrowed("|"));drop(inputs);assert_eq!(result.as_ref(),expected);drop(result);drop(expected);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
-        }
+        for count in [0,1,4,5,256]{for text in ["", "é😀\0"]{for separator in ["", "|", "\0é😀"]{
+            let mut inputs=Array::from([]);for _ in 0..count{inputs.push(String::Owned(text.to_owned()));}
+            let expected=(0..count).map(|_|text).collect::<Vec<_>>().join(separator);let before=LIVE.load(Ordering::SeqCst);ALLOCS.store(0,Ordering::SeqCst);
+            let result=function0(std::hint::black_box(&inputs),&String::Borrowed(separator));let allocations=ALLOCS.load(Ordering::SeqCst);assert_eq!(result.as_ref(),expected);if let String::Owned(ref output)=result{assert_eq!(output.capacity(),output.len());}else{panic!("join owns its result");}assert_eq!(allocations,usize::from(!expected.is_empty()),"one final buffer, no growth or element copies");drop(result);assert_eq!(LIVE.load(Ordering::SeqCst),before);
+            let result=function0(&inputs,&String::Borrowed(separator));drop(inputs);assert_eq!(result.as_ref(),expected);drop(result);drop(expected);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        }}}
+
         let inputs=(0..256).map(|n|n as f64+0.25).collect::<Vec<_>>();let expected=(0..256).map(|n|format!("{}.25",n)).collect::<Vec<_>>().join("|");let before=LIVE.load(Ordering::SeqCst);ALLOCS.store(0,Ordering::SeqCst);
         let result=function1(std::hint::black_box(&inputs),&String::Borrowed("|"));assert_eq!(result.as_ref(),expected);assert!(ALLOCS.load(Ordering::SeqCst)<=16,"finite Number leaves append without per-element strings");drop(result);assert_eq!(LIVE.load(Ordering::SeqCst),before);drop(inputs);drop(expected);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
         let inputs=NumericArray::Heap((0..256).map(|n|n-128).collect::<Vec<i64>>());let expected=(-128..128).map(|n|n.to_string()).collect::<Vec<_>>().join("|");ALLOCS.store(0,Ordering::SeqCst);
@@ -225,4 +226,15 @@ fn join_direct_buffer_allocation_and_normal_unwind_disposal_are_observed() {
         let error=std::panic::catch_unwind(function5).unwrap_err();drop(error);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);std::panic::set_hook(hook);
         "#,
     );
+}
+
+#[test]
+fn string_join_helper_text_keeps_runtime_dependencies_valid() {
+    let analysis = native(
+        "function main(){console.log('tsr_string_array_join(');}",
+        "tsr_string_array_join(\n",
+        "",
+        "",
+    );
+    assert!(!analysis.emit_rust().contains("fn tsr_string_array_join("));
 }

@@ -1985,7 +1985,7 @@ impl Analyzer {
             Some(Type::Closure(origin)) => self.closures[origin].parameters.last().is_some_and(|id|self.closures[origin].function.bindings[*id].rest),
             _ => true,
         };
-        self.native_function_shape(id, span, if rest {binding.parameters.len()} else {count}, rest)
+        self.native_function_shape(id, span, if rest {binding.parameters.len()} else {count}, rest, expected)
     }
 
     fn native_function_shape(
@@ -1994,6 +1994,7 @@ impl Analyzer {
         span: Span,
         count: usize,
         rest: bool,
+        expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         let binding = &crate::native_bindings::BINDINGS[id];
         if !binding.accepts_arity(count) {
@@ -2003,23 +2004,45 @@ impl Analyzer {
                 span,
             ));
         }
+        let expected=match expected {
+            Some(Type::Callback(id))=>Some(self.callables.callbacks[id].params.clone()),
+            Some(Type::Callable(id))=>Some(self.callables.results[id].params.clone()),
+            Some(Type::Closure(id))=>Some(self.closures[id].parameters.iter().map(|&p|ArgumentContract::from(&self.closures[id].function.bindings[p])).collect()),
+            _=>None,
+        };
+        let parameters=(0..count).map(|position|*binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity")).collect::<Vec<_>>();
+        let contracts=parameters.iter().enumerate().map(|(position,parameter)| {
+            let mut contract=self.native_argument_contract(parameter,span)?;
+            if rest && position+1==count {contract.ty=Type::Array(ArrayElement::String(0));}
+            if let Some(wanted)=expected.as_ref().and_then(|params|params.get(position)) {
+                // Every advertised input must be accepted by the native operation.
+                self.require(wanted.ty,Some(contract.ty),span)?;
+                if parameter.optional {
+                    if !wanted.ty.union().is_some_and(|id|self.unions.members(id).contains(&Type::Undefined)) {
+                        contract.ty=self.native_parameter_type(parameter.ty)?;
+                    }
+                    contract.omission=wanted.omission;
+                }
+            }
+            Ok(contract)
+        }).collect::<Result<Vec<_>,Diagnostic>>()?;
         let existing = self.closures.iter().position(|closure| {
             matches!(closure.forward, Some(ClosureForward::Native(origin)) if origin == id)
                 && closure.parameters.len() == count
                 && closure.parameters.last().is_some_and(|id|closure.function.bindings[*id].rest) == rest
+                && closure.parameters.iter().zip(&contracts).all(|(&id,contract)| {
+                    let parameter=&closure.function.bindings[id];
+                    parameter.ty==contract.ty && parameter.omission==contract.omission
+                })
         });
-        let parameters=(0..count).map(|position|*binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity")).collect::<Vec<_>>();
-        let parameter_types = parameters.iter().enumerate()
-            .map(|(position,parameter)| { let ty=self.native_parameter_type(parameter.ty)?; Ok(if rest && position+1==count {Type::Array(ArrayElement::String(0))} else {ty}) })
-            .collect::<Result<Vec<_>, Diagnostic>>()?;
         let origin = existing.unwrap_or_else(|| {
             let bindings = parameters
                 .iter()
-                .zip(parameter_types)
+                .zip(contracts)
                 .enumerate()
-                .map(|(position,(parameter, ty))| Binding { rest: rest && position+1==count,
+                .map(|(position,(parameter, contract))| Binding { rest: rest && position+1==count,
                     name: parameter.name.into(),
-                    ty,
+                    ty:contract.ty,
                     parameter: true,
                     input_ty: None,
                     declaration_span: None,
@@ -2040,7 +2063,7 @@ impl Analyzer {
                     used: None,
                     view_roots: Vec::new(),
                     native_view_loans: None,
-                 omission: crate::ParameterOmission::Required, })
+                 omission: contract.omission, })
                 .collect();
             let origin = self.closures.len();
             self.closures.push(CheckedClosure {
@@ -9215,8 +9238,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 if let Some(ty) = alternative {
                     return Ok(ArgumentContract { ty, mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false });
                 }
-                Ok(ArgumentContract { ty: self.native_parameter_type(parameter.ty)?,
-                    mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false })
+                self.native_argument_contract(parameter,args[position].span)
             }).collect::<Result<Vec<_>, Diagnostic>>()?;
             self.check_call_arguments(context, args, &contracts, loans)?;
             let result = native_type(binding.result, &self.program.records);
@@ -9382,6 +9404,16 @@ self.names_materialized_type(element.with_depth(0).ty())
         lowered.wrap_storage(family);
         *expr = lowered;
         Ok(ty)
+    }
+
+    fn native_argument_contract(&mut self,parameter:&crate::native_bindings::NativeParameter,span:Span)->Result<ArgumentContract,Diagnostic>{
+        let ty=self.native_parameter_type(parameter.ty)?;
+        Ok(ArgumentContract {
+            ty:if parameter.optional {self.unions.intern([ty,Type::Undefined],span)?}else{ty},
+            mode:parameter.access,
+            omission:if parameter.optional {crate::ParameterOmission::Optional}else{crate::ParameterOmission::Required},
+            rest:parameter.rest,
+        })
     }
 
     fn native_parameter_type(&mut self, ty: crate::native_bindings::NativeType) -> Result<Type, Diagnostic> {

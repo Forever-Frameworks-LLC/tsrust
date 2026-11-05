@@ -28,3 +28,35 @@ mod support;
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let dir=support::TempDirectory::new();let mut seen=std::collections::BTreeSet::new();
  for(family,entries)in catalog.as_object().unwrap(){if family!="std:sqlite"&&!family.starts_with("Sqlite"){continue;}for entry in entries.as_array().unwrap(){for example in entry["examples"].as_array().unwrap(){let source=support::format_round_trip(example["source"].as_str().unwrap());if !seen.insert(source.clone()){continue;}let output=support::run(support::cli().arg("run").arg(dir.source(&source)).env("TSRUST_CACHE_DIR",dir.0.join("cache")),300);support::success(&output);assert_eq!(output.stdout,example["output"].as_str().unwrap().as_bytes());}}}
 }
+
+#[test]
+fn sqlite_optional_arguments_preserve_defaults_and_supplied_parameters(){
+ let source=r#"
+import {open} from 'std:sqlite';
+import {strictEqual} from 'std:testing';
+function path(trace:int[]):string{trace.push(1);return ':memory:';}
+function absent(trace:int[]):undefined{trace.push(2);return undefined;}
+function main(){
+ const trace:int[]=[];const connect=open;const first=unwrap(connect(path(trace),absent(trace)));strictEqual(trace.join(','),'1,2');unwrap(first.close());
+ for(const supplied of [false,true]){
+  const before=trace.length;const timeout:int|undefined=supplied?0:undefined;const db=unwrap(open(':memory:',timeout));
+  {const create=unwrap(db.prepare('CREATE TABLE IF NOT EXISTS values_table(value INTEGER NOT NULL)'));unwrap(create.execute());unwrap(create.execute(undefined));unwrap(create.execute(absent(trace)));}
+  const parameters:int[]|undefined=supplied?[9]:undefined;
+  {const insert=unwrap(db.prepare(supplied?'INSERT INTO values_table VALUES (?1)':'INSERT INTO values_table VALUES (9)'));strictEqual(unwrap(insert.execute(parameters)),1);}
+  {const select=unwrap(db.prepare('SELECT value FROM values_table'));const omitted=unwrap(select.query());const explicit=unwrap(select.query(undefined));const empty=unwrap(select.query([]));const evaluated=unwrap(select.query(absent(trace)));strictEqual(unwrap(evaluated[0].int('value')),9);strictEqual(unwrap(omitted[0].int('value')),9);strictEqual(unwrap(explicit[0].int('value')),9);strictEqual(unwrap(empty[0].int('value')),9);}
+  {const select=unwrap(db.prepare(supplied?'SELECT ?1 AS value':'SELECT 9 AS value'));const rows=unwrap(select.query(parameters));strictEqual(unwrap(rows[0].int('value')),9);}
+  {const integers:int[]=[9];const strings:string[]=['nine'];const values:int[]|string[]|undefined=supplied?integers:strings;const select=unwrap(db.prepare('SELECT ?1 AS value'));const rows=unwrap(select.query(values));if(supplied){strictEqual(unwrap(rows[0].int('value')),9);}else{strictEqual(unwrap(rows[0].text('value')),'nine');}}
+  strictEqual(trace.length,before+2);unwrap(db.close());
+ }
+}
+"#;
+ let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path),300);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn sqlite_optional_arrays_reject_invalid_present_alternatives(){
+ for ty in ["boolean[]|undefined","int[][]|undefined","int[]|boolean[]|undefined","int[]|null"]{
+  let source=format!("import {{Statement}} from 'std:sqlite';function invalid(statement:ReadOnly<Statement>,values:{ty}):void{{statement.query(values);}}function main(){{}}");
+  let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"accepted {source}");assert!(String::from_utf8_lossy(&output.stderr).contains("error[sql-parameters]"),"{}",String::from_utf8_lossy(&output.stderr));
+ }
+}

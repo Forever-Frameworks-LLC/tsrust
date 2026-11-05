@@ -97,6 +97,10 @@ impl SourceIndex {
     }
 
     fn record_literal_type(&self,open:usize)->Option<String> {
+        if let Some(close)=self.pairs.get(open).copied().flatten(){
+            let span=Span::new(self.tokens[open].span.start,self.tokens[close].span.end);
+            if let Some((_,ty))=self.checked_views.iter().chain(&self.checked_method_results).find(|(location,_)|*location==span){return Some(ty.clone());}
+        }
         if open==0{return None;}
         // `const name: Type = {`: the annotation names the record.
         let ty = if self.text(open - 1) == "=" {

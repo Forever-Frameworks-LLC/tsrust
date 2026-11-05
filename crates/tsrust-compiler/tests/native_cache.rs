@@ -354,6 +354,10 @@ fn cli_run_finds_rustup_in_cargo_home_when_editor_path_omits_it() {
     let home = directory.0.join("editor home");
     std::fs::create_dir(&home).unwrap();
     std::os::unix::fs::symlink(&cargo_home, home.join(".cargo")).unwrap();
+    // Keep installed toolchains visible when testing the HOME-based Cargo fallback.
+    let rustup_home = std::env::var_os("RUSTUP_HOME").map(std::path::PathBuf::from)
+        .unwrap_or_else(||std::path::PathBuf::from(std::env::var_os("HOME").unwrap()).join(".rustup"));
+    std::os::unix::fs::symlink(rustup_home, home.join(".rustup")).unwrap();
     for explicit_cargo_home in [true, false] {
         let mut command = support::cli();
         command.arg("run").arg(&source).env("PATH", "/usr/bin:/bin");
@@ -434,5 +438,23 @@ fn callback_error_layout_identity_is_stable_across_ui_compiler_processes() {
         let output=support::run(support::cli().arg("emit").arg(&entry),30);support::success(&output);
         if let Some(reference)=&reference {assert_eq!(&output.stdout,reference,"unchanged UI source must produce identical Rust across fresh processes");}
         else {reference=Some(output.stdout);}
+    }
+}
+
+#[test]
+fn cache_copy_replaces_outputs_without_mutating_previous_readers(){
+    let directory=support::TempDirectory::new();let artifact=directory.0.join("compiled");
+    std::fs::write(&artifact,b"new native artifact").unwrap();
+    let cache=NativeCache::new(&directory.0.join("cache"),&[b"replacement"]);cache.publish(&artifact).unwrap();
+    for opportunistic in [false,true]{
+        let destination=directory.0.join("output");let previous=directory.0.join("previous");
+        std::fs::write(&destination,b"previous native artifact").unwrap();std::fs::hard_link(&destination,&previous).unwrap();
+        assert!(if opportunistic{cache.try_copy_to(&destination)}else{cache.copy_to(&destination)});
+        assert_eq!(std::fs::read(&destination).unwrap(),b"new native artifact");assert_eq!(std::fs::read(&previous).unwrap(),b"previous native artifact");
+        std::fs::remove_file(previous).unwrap();
+        let occupied=directory.0.join("occupied");std::fs::create_dir(&occupied).unwrap();std::fs::write(occupied.join("keep"),b"owner data").unwrap();
+        assert!(!if opportunistic{cache.try_copy_to(&occupied)}else{cache.copy_to(&occupied)});
+        assert_eq!(std::fs::read(occupied.join("keep")).unwrap(),b"owner data");std::fs::remove_dir_all(occupied).unwrap();
+        assert!(!std::fs::read_dir(&directory.0).unwrap().any(|entry|entry.unwrap().file_name().to_string_lossy().contains("tsrust-copy-")));
     }
 }

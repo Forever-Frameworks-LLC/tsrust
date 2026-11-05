@@ -8,19 +8,20 @@ use super::*;
 pub(super) struct SpreadBuiltinArgument {
     pub ty: Option<Type>,
     pub mode: Mode,
+    omission: crate::ParameterOmission,
 }
 impl SpreadBuiltinArgument {
     fn typed(ty: Type, mode: Mode) -> Self {
-        Self { ty: Some(ty), mode }
+        Self { ty: Some(ty), mode, omission: crate::ParameterOmission::Required }
     }
     fn actual(mode: Mode) -> Self {
-        Self { ty: None, mode }
+        Self { ty: None, mode, omission: crate::ParameterOmission::Required }
     }
     pub fn contract(self, actual: Type) -> ArgumentContract {
         ArgumentContract {
             ty: self.ty.unwrap_or(actual),
             mode: self.mode,
-            omission: crate::ParameterOmission::Required,
+            omission: self.omission,
             rest: false,
         }
     }
@@ -113,8 +114,8 @@ impl Analyzer {
                             binding
                                 .parameters
                                 .iter()
-                                .map(|p| Arg::typed(native_type(p.ty, &self.program.records), p.access))
-                                .collect(),
+                                .map(|p| {let contract=self.native_argument_contract(p,callee.span)?;Ok(Arg{ty:Some(contract.ty),mode:contract.mode,omission:contract.omission})})
+                                .collect::<Result<Vec<_>,Diagnostic>>()?,
                             Mode::Read,
                         )
                     } else {

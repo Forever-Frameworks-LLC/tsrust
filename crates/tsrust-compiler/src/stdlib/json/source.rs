@@ -80,7 +80,7 @@ impl<'source> Node<'source> {
     /// Explicit retention requests an owned dynamic value as final output. Ordinary
     /// typed fields never call this conversion; it is not a validation bridge.
     pub fn retain(self) -> super::Value {
-        serde_json::from_str(self.text).expect("validated source retained as JSON")
+        super::parse_plain(self.text).expect("validated source retained as JSON")
     }
 }
 
@@ -177,6 +177,23 @@ mod tests {
         input.elements(|_,_|{visited+=1;false}).unwrap();assert_eq!(visited,1);
         let output={let source=String::from(r#"{"nested":[1,"two"]}"#);document(&source,limits()).unwrap().retain()};
         assert_eq!(output["nested"][1],"two");
+    }
+    #[test]
+    fn retained_private_token_properties_remain_owned_ordinary_objects() {
+        for payload in ["0", "true", "not JSON"] {
+            let expected=serde_json::json!({"$serde_json::private::RawValue":payload});
+            for plain in [false,true] {
+                let output={
+                    let text=expected.to_string();
+                    let node=if plain {document_plain(&text).unwrap()} else {document(&text,limits()).unwrap()};
+                    node.retain()
+                };
+                assert_eq!(output,expected);
+            }
+        }
+        let expected=serde_json::json!({"items":[{"$serde_json::private::RawValue":"not JSON"}]});
+        let text=expected.to_string();
+        assert_eq!(document_plain(&text).unwrap().retain(),expected);
     }
     #[test]
     fn document_checks_ignored_duplicate_content_and_global_budgets() {

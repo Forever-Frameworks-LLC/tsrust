@@ -3,15 +3,11 @@ title: Understand your project
 description: Find backend source, configuration, clients and disposable build outputs.
 ---
 
-`tsrust new hello --app` creates a backend application with explicit configuration:
+`tsrust new hello --app` creates a backend service with source-defined routes:
 
 ```text
 app/
   main.tsr
-  api/
-    operations.tsr
-    context.tsr
-    access.tsr
   lib/
     greeting.tsr
   tests/
@@ -27,25 +23,31 @@ The generated `.gitignore` excludes `/target/` and `.env.local`.
 ## Entrypoint and targets
 
 `build.entry` names `app/main.tsr`; `build.output` names the native executable.
-Paths are relative to the configuration directory. The explicit `api` section
-selects operations, context and access policy. Ordinary exports stay private
-unless selected. The starter greeting is explicitly public; review its access
-policy before adding sensitive operations.
-
-The server imports dispatch, description and OpenAPI handlers from `api:server`.
-The compiler validates and supplies them in memory. Running the backend does not
-require client generation or a checked-in generated dispatcher.
+Paths are relative to the configuration directory. Define routes with `app.get`,
+`app.post` and the other Router methods in `app/main.tsr`. Register middleware and
+authorization with `app.use`. Shared state belongs in `c.env`; ordinary exports do
+not expose HTTP endpoints. The starter greeting is public; protect sensitive
+routes before deploying them.
 
 ## Independent clients
 
-Generate a TypeScript or asynchronous Rust SDK from the running service's HTTP
-description, or a saved description, into a caller-selected directory. Examples
-are `js-client/`, `rust-client/` or an external consumer project. These are outputs,
-not required backend source directories. Generation does not modify the server
-or install frontend packages. Bring your own UI and call the HTTP API.
+Generate a TypeScript or asynchronous Rust client from the checked service source:
 
-See the [backend application guide](/tsrust/learn/first-service/#create-the-service)
-for commands, access policy, retained compatibility contracts and OpenAPI scope.
+```sh
+tsrust api generate --out js-client
+tsrust api generate --language rust --out rust-client
+```
+
+An explicit entry file works without a project config. API generation requires no
+endpoint list or middleware settings in JSON and does not need a running server.
+Each client includes `http-api.json` and `openapi.json`; a saved contract can be
+shared with another consumer instead of backend source. Generated directories are
+outputs, not required backend source. Generation never changes routes or installs
+frontend packages. Bring your own UI and call HTTP APIs.
+
+See [the service guide](/tsrust/learn/first-service/#generate-api-clients) for client
+calls, regeneration and deployment. Existing `api:server` applications retain
+[configured RPC compatibility](/tsrust/tools/configured-rpc/).
 
 ## Console projects
 

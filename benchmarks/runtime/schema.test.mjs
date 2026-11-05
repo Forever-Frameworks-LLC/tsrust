@@ -7,9 +7,9 @@ import {expectedChecksum} from './oracle.mjs';
 import {reportCategory} from './report.mjs';
 import {assertABI} from './adapters.mjs';
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
-for(const id of ['native_schema_export','native_schema_super_refine','native_schema_recursive','native_schema_constraint_messages','native_schema_parse','native_schema_collections','native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_fused','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum','native_schema_json_declared_enum','native_schema_pipeline','native_schema_json_union','native_schema_json_discriminated_union'])test(`${id} preserves workload, oracle and ABI`,()=>{
+for(const id of ['native_schema_export','native_schema_super_refine','native_schema_recursive','native_schema_constraint_messages','native_schema_parse','native_schema_collections','native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_fused','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_source_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum','native_schema_json_declared_enum','native_schema_pipeline','native_schema_json_union','native_schema_json_discriminated_union'])test(`${id} preserves workload, oracle and ABI`,()=>{
  const rows=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id===id);
- assert.equal(rows.length,1);const row=rows[0];assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'schema');
+ assert.equal(rows.length,1);const row=rows[0];assert.equal(row.measured,id==='native_schema_json_source_retain');assert.equal(reportCategory(row.id),'schema');
  for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+file);assertSchemaSource(source,row,kind);
   assert.throws(()=>assertSchemaSource(source+' ',row,kind));
@@ -18,7 +18,7 @@ for(const id of ['native_schema_export','native_schema_super_refine','native_sch
   assert.throws(()=>assertSchemaSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   assert.throws(()=>assertSchemaSource(source,{...row,operationsPerIteration:1},kind));
  }
- for(const n of [0,1,17,2000])for(const seed of [0,7,1000000])assert.equal(expectedChecksum(row.id,n,seed,row.inputText),seed+n*(id==='native_schema_export'?202:id==='native_schema_super_refine'?7:id==='native_schema_recursive'?4:id==='native_schema_collections'?8:id==='native_schema_pipeline'?7:id==='native_schema_json_union'?13:id==='native_schema_json_discriminated_union'?5:id==='native_schema_json_defaults'?9:id==='native_schema_json_presence'?3:id==='native_schema_json_object_retain'?5:id==='native_schema_json_object_strip'?3:(id==='native_schema_owned_array'||id==='native_schema_json_array'||id==='native_schema_json_object'||id==='native_schema_json_fused')?4:(id==='native_schema_int'||id==='native_schema_int_bounds'||id==='native_schema_int_exclusive')?8:(id==='native_schema_json_declared_enum'||id==='native_schema_boolean'||id==='native_schema_number'||id==='native_schema_number_bounds'||id==='native_schema_number_int'||id==='native_schema_number_array_int'||id==='native_schema_null')?2:6));
+ for(const n of [0,1,17,2000])for(const seed of [0,7,1000000])assert.equal(expectedChecksum(row.id,n,seed,row.inputText),seed+n*(id==='native_schema_export'?202:id==='native_schema_super_refine'?7:id==='native_schema_recursive'?4:id==='native_schema_collections'?8:id==='native_schema_pipeline'?7:id==='native_schema_json_union'?13:id==='native_schema_json_discriminated_union'?5:id==='native_schema_json_defaults'?9:id==='native_schema_json_presence'?3:(id==='native_schema_json_object_retain'||id==='native_schema_json_source_retain')?5:id==='native_schema_json_object_strip'?3:(id==='native_schema_owned_array'||id==='native_schema_json_array'||id==='native_schema_json_object'||id==='native_schema_json_fused')?4:(id==='native_schema_int'||id==='native_schema_int_bounds'||id==='native_schema_int_exclusive')?8:(id==='native_schema_json_declared_enum'||id==='native_schema_boolean'||id==='native_schema_number'||id==='native_schema_number_bounds'||id==='native_schema_number_int'||id==='native_schema_number_array_int'||id==='native_schema_null')?2:6));
  for(const args of [[-1,0,row.inputText],[1,0,'42'],[Number.MAX_SAFE_INTEGER,0,row.inputText]])assert.throws(()=>schemaChecksum(...args));
  assert.equal(assertABI('fn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<i64, TsrFunctionError0> { todo!() }\nfn main() {}',row,{source:read('./'+row.source)}).fallible,true);
 });
@@ -86,4 +86,25 @@ test('nested schema control guards full traversal and arithmetic oracle',()=>{
   assert.throws(()=>assertSchemaSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   assert.throws(()=>assertSchemaSource(source,{...row,operationsPerIteration:2},kind));
  }
+});
+
+
+test('source retention guards reject dropped decoding and payload observations',()=>{
+ const row=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='native_schema_json_source_retain');
+ for(const [kind,file,from,to] of [
+  ['native',row.source,'schema.safeParseJson(input)','schema.safeParse(JSON.parse(input))'],
+  ['native',row.source,'JSON.stringify(extra)','JSON.stringify(null)'],
+  ['typescript',row.counterpart,'JSON.parse(text)','{}'],
+  ['typescript',row.counterpart,"issue.path[0].field!=='count'",'false'],
+ ]){
+  const original=read('./'+file);assert(original.includes(from));const changed=original.replace(from,to);
+  const key=kind==='native'?'sourceSha256':'counterpartSha256';
+  assert.throws(()=>assertSchemaSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
+ }
+});
+
+
+test('source retention standard Rust reference matches the driver ABI',()=>{
+ const row=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='native_schema_json_source_retain');
+ assert.equal(assertABI(read('./parity/'+row.id+'.rs'),row,{source:read('./'+row.source)}).fallible,false);
 });

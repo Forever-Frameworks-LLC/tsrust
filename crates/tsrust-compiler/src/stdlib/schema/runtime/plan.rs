@@ -140,17 +140,22 @@ impl NumberBounds {
 
 /// Consume every element, retaining typed output only while the array is valid.
 /// The caller owns bounded issue collection and path construction.
-pub fn validate_array<I,O>(values:impl IntoIterator<Item=I>,mut validate:impl FnMut(usize,I)->Option<O>)->Option<Vec<O>> {
-    let mut output=Vec::new();
-    let mut valid=true;
+pub fn validate_array<I,O>(values:impl IntoIterator<Item=I>,validate:impl FnMut(usize,I)->Option<O>)->Option<Vec<O>> {
+    validate_array_into(values,validate,Vec::new(),Vec::push)
+}
+
+/// Build the final carrier directly; discard partial output before later callbacks.
+pub fn validate_array_into<I,O,A>(values:impl IntoIterator<Item=I>,mut validate:impl FnMut(usize,I)->Option<O>,output:A,mut push:impl FnMut(&mut A,O))->Option<A> {
+    let mut output=Some(output);
     for (index,value) in values.into_iter().enumerate() {
-        match validate(index,value) {
-            Some(value) if valid=>output.push(value),
-            Some(_)=>{},
-            None=>{valid=false;output.clear();}
+        let value=validate(index,value);
+        match (value,&mut output) {
+            (Some(value),Some(output))=>push(output,value),
+            (None,_)=>output=None,
+            _=>{},
         }
     }
-    valid.then_some(output)
+    output
 }
 
 #[cfg(test)]
@@ -191,6 +196,15 @@ mod tests {
         let empty:Option<Vec<i64>>=validate_array(Vec::<i64>::new(),|_,_|panic!("empty input invoked validator"));
         assert_eq!(empty,Some(vec![]));
     }
+    #[test]
+    fn array_validation_uses_the_requested_carrier_without_clone_or_default() {
+        struct Carrier(Vec<usize>);
+        let output=validate_array_into([3,5,7],|index,value|Some(value+index),Carrier(Vec::new()),|output,value|output.0.push(value)).unwrap();
+        assert_eq!(output.0,[3,6,9]);
+        let empty=validate_array_into([],|_:usize,_:usize|panic!("empty input invoked validator"),Carrier(Vec::new()),|output,value:usize|output.0.push(value)).unwrap();
+        assert!(empty.0.is_empty());
+    }
+
     #[test]
     fn number_bounds_preserve_exclusive_edges_and_negative_zero() {
         let plan=NumberBounds::default().gt(1.0).unwrap().lt(2.0).unwrap().min(0.0).unwrap().max(3.0).unwrap();

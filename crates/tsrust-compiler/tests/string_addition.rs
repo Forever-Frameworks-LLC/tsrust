@@ -244,6 +244,138 @@ unsafe fn realloc(&self,p:*mut u8,layout:Layout,size:usize)->*mut u8{let q=unsaf
 "#;
 
 #[test]
+fn self_assignment_reuses_local_buffers_and_compacts_owned_results() {
+    let source=r#"
+        function build(input:string,n:int):string{
+            let text="";let i=0;
+            while(i<n){text=text+input+"|";i+=1;}
+            return text;
+        }
+        function main(){let text="";text=text+"a"+"é";console.log(text);}
+    "#;
+    let analysis=native(source,"aé\n",r#"
+        let input=String::Owned("é🙂".to_owned());let expected="é🙂|".repeat(63);
+        let baseline=LIVE.load(Ordering::SeqCst);
+        ALLOCATIONS.store(0,Ordering::SeqCst);
+        let output=function0(&input,std::hint::black_box(63));
+        let allocations=ALLOCATIONS.load(Ordering::SeqCst);
+        assert!(allocations<=12,"amortized appends, not63 new destinations: {allocations}");
+        assert_eq!(output.as_ref(),expected);
+        match &output{String::Owned(text)=>assert_eq!(text.capacity(),text.len()),_=>panic!("owned output")}
+        drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        let output=function0(&input,2);drop(input);assert_eq!(output.as_ref(),"é🙂|é🙂|");
+    "#,ALLOCATOR);
+    let rust=analysis.emit_rust();assert!(rust.contains("let sink=tsr_string_reserve("));
+    assert!(rust.contains("tsr_string_finish(value"));
+}
+
+#[test]
+fn self_assignment_preserves_operand_effects_snapshots_comma_and_capture_rules() {
+    let source=r#"
+        type Box={text:string;};
+        function tag(log:string[],text:string):string{log.push(clone(text));return text;}
+        function build(log:string[],input:string):string{
+            let text="start".repeat(1);const saved=clone(text);
+            text=text+tag(log,"a")+tag(log,"b")+input.slice(2);
+            console.log(saved);return text;
+        }
+        function comma():string{
+            let text="x";const number=(text=text+"y"+"z",9);
+            text=text+(number===9?"!":"bad");return text;
+        }
+        function captured(input:string):string{
+            let text=String(input);
+            const action:Once<Function<string>>=():string=>{text=text+"z";return text;};
+            return action();
+        }
+        function selfReference(input:string):string{let text=String(input);text=text+text+"!";return text;}
+        function parameter(text:string):string{let copy=String(text);copy=copy+"!";return copy;}
+        function checked():string{
+            let text="base";
+            try{text=text+"a"+fail();}catch(error){console.log(text);}
+            return text;
+        }
+        function fail():string{throw "boom";}
+        function cleanup():string{
+            let text="before";
+            try{return text;}finally{text="after";text=text+"!";console.log(text);}
+        }
+        function main(){
+            const log:string[]=[];console.log(build(log,"é🙂"),log.join(","));
+            console.log(comma());console.log(captured("é"));
+            console.log(selfReference("é"),parameter("é"));
+            const box:Box={text:"f"};box.text=box.text+"g";console.log(box.text);
+            console.log(checked());
+            console.log(cleanup());
+        }
+    "#;
+    native(source,"start\nstartab🙂 a,b\nxyz!\néz\néé! é!\nfg\nbase\nbase\nafter!\nbefore\n","","");
+    let error=check(r#"function main(){let text="a";const observe=():int=>text.length;text=text+"z";console.log(observe());}"#).err().expect("live capture must prevent replacement");
+    assert_eq!(error.code,"capture-conflict");
+    let error=check(r#"function parameter(text:string):string{text=text+"!";return text;}function main(){}"#).err().expect("parameters remain immutable");
+    assert_eq!(error.code,"unsupported");
+}
+
+#[test]
+fn self_assignment_keeps_fused_numeric_and_mixed_builders_on_the_original_path() {
+    native(r#"
+        function build(n:int):string{
+            let text="";text=text+"seed";let i=0;
+            while(i<n){text=text+String(i)+":";i+=1;}
+            return text;
+        }
+        function main(){}
+    "#,"",r#"
+        let baseline=LIVE.load(Ordering::SeqCst);ALLOCATIONS.store(0,Ordering::SeqCst);
+        let output=function0(std::hint::black_box(3));
+        assert_eq!(ALLOCATIONS.load(Ordering::SeqCst),4);
+        assert_eq!(output.as_ref(),"seed0:1:2:");
+        match &output{String::Owned(text)=>assert_eq!(text.capacity(),33),_=>panic!("owned numeric result")}
+        drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+    "#,ALLOCATOR);
+}
+
+#[test]
+fn self_assignment_proof_budget_falls_back_without_rejecting_source() {
+    let source=format!("function main(){{let text=\"\";{}console.log(text.length);}}","text=text+\"x\";".repeat(11_000));
+    let analysis=check(&source).unwrap();let rust=analysis.emit_rust();
+    assert!(!rust.contains("let sink=tsr_string_reserve("));
+    assert!(!rust.contains("tsr_string_finish(value"));
+}
+
+#[test]
+fn appended_single_digits_reuse_utf8_destinations_and_other_integers_keep_exact_spelling() {
+    native(
+        r#"function label(value:int):string{return "é"+String(value)+"🙂";}function main(){}"#,
+        "",
+        r#"
+        for value in 0..=9i64 {
+            let expected=format!("é{value}🙂");
+            let mut text=std::string::String::with_capacity(64);text.push_str("é");
+            let pointer=text.as_ptr();let capacity=text.capacity();
+            ALLOCATIONS.store(0,Ordering::SeqCst);
+            tsr_push_int(std::hint::black_box(&mut text),std::hint::black_box(value));
+            text.push_str("🙂");
+            assert_eq!(ALLOCATIONS.load(Ordering::SeqCst),0);
+            assert_eq!(text.as_ptr(),pointer);assert_eq!(text.capacity(),capacity);
+            assert_eq!(text,expected);assert_eq!(function0(value).as_ref(),expected);
+        }
+        let mut random=0x715f_32c9_9b8a_408du64;
+        for value in (-19..=19i64).chain([i64::MIN,i64::MAX,99,100,999,1000])
+            .chain((0..1024).map(|_|{random=random.wrapping_mul(6364136223846793005).wrapping_add(1);random as i64})) {
+            assert_eq!(function0(value).as_ref(),format!("é{value}🙂"));
+        }
+        for value in [0.0,-0.0,1.0,9.0,10.0,-1.0] {
+            let mut text=std::string::String::from("é");
+            assert!(tsr_push_whole_number(&mut text,std::hint::black_box(value)));
+            assert_eq!(text,format!("é{}",value as i64));
+        }
+        "#,
+        ALLOCATOR,
+    );
+}
+
+#[test]
 fn appended_numbers_write_digits_into_the_result_in_operand_order() {
     let source = r#"enum Phase { Ready, Busy = 4, Half = 2.5 }
 function next(log: string[], value: int): int { log.push(`n${value}`); return value; }
@@ -343,4 +475,68 @@ fn appended_slices_of_locals_borrow_their_range() {
     let rust = analysis.emit_rust();
     assert_eq!(rust.matches("tsr_slice_str(string_receiver").count(), 5, "{rust}");
     assert!(!rust.contains("tsr_slice(string_receiver"), "no owned slice copies are made for appends");
+}
+
+#[test]
+fn fractional_appends_reuse_output_without_changing_text_or_scientific_allocations() {
+    let source = support::format_round_trip(r#"
+enum Phase { Whole = 4, Half = 2.5 }
+enum Small { Minus = -7, Zero = 0, Exact = 9007199254740991 }
+enum Wide { Above = 9007199254740992, Huge = 1e21 }
+function binary(value:number):string{return "é😀e123:"+String(value);}
+function chain(value:number):string{return "é😀e123:"+String(value)+":end";}
+function append(value:number):string{let output="é😀e123:";output+=String(value)+":end";return output;}
+function enumBinary():string{return "é😀e123:"+String(Phase.Half);}
+function enumChain():string{return "é😀e123:"+String(Phase.Half)+":end";}
+function reference(value:number):string{return String(value);}
+function wholeBinary():string{return "v"+String(Number(Small.Exact));}
+function wholeChain():string{return "v"+String(Small.Minus)+"|"+String(Small.Zero);}
+function wholeAppend():string{let output="v";output+=String(Number(Small.Exact))+"|"+String(Small.Minus);return output;}
+function wide():string{return "v"+String(Wide.Huge)+"|"+String(Wide.Above);}
+function main(){}
+"#);
+    native(&source, "", r#"
+        let baseline=LIVE.load(Ordering::SeqCst);
+        let functions=[(function0 as fn(f64)->String,""),(function1 as fn(f64)->String,":end"),(function2 as fn(f64)->String,":end")];
+        for value in [0.5,1.25,2.5,12.75]{
+            for &(function,suffix) in &functions{
+                let expected=format!("é😀e123:{value}{suffix}");
+                let count=ALLOCATIONS.load(Ordering::SeqCst);let output=function(std::hint::black_box(value));
+                assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,1,"one owned destination, no temporary number text");
+                assert_eq!(output.as_ref(),expected);drop(output);drop(expected);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+            }
+        }
+        for (function,expected) in [(function3 as fn()->String,"é😀e123:2.5"),(function4 as fn()->String,"é😀e123:2.5:end")]{
+            let count=ALLOCATIONS.load(Ordering::SeqCst);let output=function();
+            assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,1);assert_eq!(output.as_ref(),expected);
+            drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        }
+        assert_eq!(function6().as_ref(),"v9007199254740991");
+        assert_eq!(function7().as_ref(),"v-7|0");
+        assert_eq!(function8().as_ref(),"v9007199254740991|-7");
+        assert_eq!(function9().as_ref(),"v1e+21|9007199254740992");
+        assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        let verify=|value:f64|{
+            for &(function,suffix) in &functions{
+                let count=ALLOCATIONS.load(Ordering::SeqCst);
+                let mut old=std::string::String::with_capacity("é😀e123:".len()+24+suffix.len());old.push_str("é😀e123:");
+                if !tsr_push_whole_number(&mut old,value){old.push_str(function5(value).as_ref());}old.push_str(suffix);
+                let old_allocations=ALLOCATIONS.load(Ordering::SeqCst)-count;
+                let count=ALLOCATIONS.load(Ordering::SeqCst);let output=function(std::hint::black_box(value));
+                let new_allocations=ALLOCATIONS.load(Ordering::SeqCst)-count;
+                assert_eq!(output.as_ref(),old);assert!(matches!(output,String::Owned(_)));
+                assert!(new_allocations<=old_allocations,"allocations {value:e}: {old_allocations} -> {new_allocations}");
+                drop(output);drop(old);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+            }
+        };
+        for value in [0.0,-0.0,f64::NAN,f64::INFINITY,f64::NEG_INFINITY,f64::MAX,f64::MIN_POSITIVE,f64::from_bits(1),1e-7,1e-6,1e20,1e21,-1e21,9007199254740991.0,9007199254740992.0,5.960464477539062e-7,123456789012345680000.0]{verify(value);}
+        let mut bits=0x123456789abcdef0u64;
+        for _ in 0..2048{bits=bits.wrapping_mul(6364136223846793005).wrapping_add(1);verify(f64::from_bits(bits));}
+    "#, ALLOCATOR);
+    let isolated = support::format_round_trip("function text(value:number):string{return \"v\"+String(value);}function main(){}");
+    native(&isolated, "", r#"
+        assert_eq!(function0(0.5).as_ref(),"v0.5");
+        assert_eq!(function0(f64::INFINITY).as_ref(),"vInfinity");
+        assert_eq!(function0(1e21).as_ref(),"v1e+21");
+    "#, "");
 }

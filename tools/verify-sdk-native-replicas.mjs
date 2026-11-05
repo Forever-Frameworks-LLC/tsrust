@@ -21,6 +21,18 @@ test('generated SDKs preserve auth and compatibility across native replicas', {t
     await run(compiler, ['new', project, '--app']);
     const configPath = path.join(project, 'tsrust.config.json');
     const config = JSON.parse(fs.readFileSync(configPath));
+    // This wire-protocol compatibility witness owns its legacy fixture, independent of the HTTP starter.
+    fs.mkdirSync(path.join(project, 'app/api'), {recursive: true});
+    for (const file of ['main.tsr', 'api/context.tsr']) {
+      fs.copyFileSync(path.join(root, 'crates/tsrust-compiler/templates/application/app', file + '.template'), path.join(project, 'app', file));
+    }
+    config.build.entry = 'app/main.tsr';
+    config.api = {
+      entry: 'app/api/operations.tsr',
+      package: {name: '@app/api', version: '0.1.0'},
+      server: {context: {module: 'app/api/context.tsr', export: 'AppContext'}, authorize: {module: 'app/api/access.tsr', export: 'authorize'}},
+      operations: [{name: 'greet', module: 'app/api/operations.tsr', export: 'greet', kind: 'mutation'}],
+    };
     config.api.package.version = previous ? '0.2.0' : '0.1.0';
     if (previous) {
       fs.writeFileSync(path.join(project, 'compatibility.json'), JSON.stringify(previous.history));

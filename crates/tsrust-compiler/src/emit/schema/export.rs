@@ -126,7 +126,7 @@ impl Emitter<'_> {
         }
         if let Type::Literal(_,kind)=output {
             let value=if kind.base()==Type::String {"tsrust_native_json::Value::String(schema.expected.as_ref().to_owned())".into()}else{"tsrust_native_json::Value::from(schema.expected)".to_owned()};
-            return format!("Ok(export::object(vec![(\"const\",{value})]))");
+            return format!("Ok(export::object(\"const\",{value}))");
         }
         if let Some(members)=self.schema_enum_members(output) {
             let branches=members.iter().enumerate().map(|(index,member)|{
@@ -166,7 +166,7 @@ impl Emitter<'_> {
                     crate::syntax::EnumValue::String(value)=>format!("tsrust_native_json::Value::String({value:?}.to_owned())"),
                     crate::syntax::EnumValue::Number(value)=>format!("tsrust_native_json::Value::from({})",float_literal(*value)),
                 }).collect::<Vec<_>>().join(",");
-                format!("Ok(export::object(vec![(\"enum\",tsrust_native_json::Value::Array(vec![{values}]))]))")
+                format!("Ok(export::object(\"enum\",tsrust_native_json::Value::Array(vec![{values}])))")
             },
             Type::Union(_) if self.schema_has_choices(output)=>
                 "unreachable!(\"checked union schema has an active choice\")".into(),

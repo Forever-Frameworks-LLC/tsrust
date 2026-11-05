@@ -1,6 +1,6 @@
 ---
 title: "Build your first service"
-description: "A guided track from a new backend project to a deployed service with generated clients."
+description: "Define HTTP routes and middleware in source, generate clients, and deploy a backend."
 head:
   - tag: script
     attrs:
@@ -8,19 +8,16 @@ head:
       defer: true
 ---
 
-This track builds a native HTTP service step by step: create the project, add routes and request bodies, serve files, authorize requests, call other services, generate clients, evolve the API safely and deploy it. Each step links to the [language](/tsrust/language/declarations/) and [standard library](/tsrust/library/overview/) reference for the exact rules.
+Build an HTTP service with source-defined routes, shared state and middleware.
+Generate clients from the same checked source. API endpoints and authorization do
+not need settings in `tsrust.config.json`.
 
-**Before you start:** [install Tsrust](/tsrust/start/installation/), [prepare native build tools](/tsrust/tools/rust-setup/) and run the [quickstart](/tsrust/start/quickstart/). Use [`tsrust test`](/tsrust/tools/testing/) to check each step as you go.
+**Before you start:** [install Tsrust](/tsrust/start/installation/) and
+[prepare native build tools](/tsrust/tools/rust-setup/).
 
 <div data-learn-track="first-service"></div>
 
 ## Create the service
-
-Create a service with a greeting operation, then generate clients independently
-for the applications that call it. You need the CLI and
-[prepared native build tools](/tsrust/tools/rust-setup/).
-
-### Create and run the service
 
 ```sh
 tsrust new hello --app
@@ -28,92 +25,38 @@ cd hello
 tsrust dev
 ```
 
-The starter listens on `127.0.0.1:4318`. Creation refuses an existing destination
-and does not install dependencies. `--target backend` is optional; frontend
-targets are rejected.
-
-| File | Purpose |
-| --- | --- |
-| `app/main.tsr` | HTTP routes, server limits and listening address. |
-| `app/api/operations.tsr` | Exported operation implementations. |
-| `app/api/context.tsr` | Application request context. |
-| `app/api/access.tsr` | Authorization policy. |
-| `app/lib/greeting.tsr` | Reusable greeting logic. |
-| `app/tests/greet.test.tsr` | Native assertions. |
-| `tsrust.config.json` | Build entry and selected API operations. |
-
-Use `tsrust new hello` without `--app` for a console project.
-
-### Review access before deployment
-
-The starter authorization function returns `true`: its greeting API is public.
-Replace `app/api/access.tsr` before adding protected operations. Authentication
-and deployment policy remain your responsibility.
-
-The `api` configuration explicitly selects operations, context and authorization.
-Ordinary function exports do not automatically become API operations. The server
-imports `dispatch`, `describe` and `openapi` from `api:server`; the compiler checks
-and supplies those handlers in memory. Checking and running the service need no
-generated client or checked-in dispatcher.
-
-The starter mounts these routes:
-
-| Route | Purpose |
-| --- | --- |
-| `POST /api` | Dispatch a selected operation. |
-| `GET /api/description` | Return the checked description used by SDK generation. |
-| `GET /api/openapi.json` | Return the OpenAPI document. |
-
-Description and OpenAPI handlers use the same application access policy as
-dispatch. See [authorization](/tsrust/learn/first-service/#authorize-requests) for protected services.
-
-### Check changes
-
-From the project root:
+Open `http://127.0.0.1:4318/` or try:
 
 ```sh
-tsrust check
-tsrust test
-tsrust format --check
+curl http://127.0.0.1:4318/api/greet/Ada
 ```
 
-For rolling deployments, retain prior checked contracts and list them in
-`api.compatible`. Update `api.package.version` for SDK releases; change
-`api.apiVersion` for an intentionally breaking API major. Review
-[compatibility rules](/tsrust/learn/first-service/#evolve-the-api) before changing a public contract.
+The greeting route returns `{"greeting":"Hello, Ada!"}`. Routes and middleware
+live in `app/main.tsr`; reusable logic lives in `app/lib`, and tests in `app/tests`.
+The project config contains ordinary build paths. You do not add an endpoint list,
+context type, authorization policy or client-generation settings to it.
 
-For release builds and destination checks, see [deployment](/tsrust/learn/first-service/#deploy).
+The starter uses this pattern:
 
-### Generate a client
+```tsrust
+import { Router } from 'std:http';
 
-Keep the service running and use a second terminal:
-
-```sh
-tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
-tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
+type State = { greeting: string; };
+async function main(): Task<void> {
+  const app = new Router<State>({ greeting: 'Hello' });
+  app.use(async (c, next) => {
+    c.header('x-content-type-options', 'nosniff');
+    await next();
+  });
+  app.get('/', c => c.json({ greeting: clone(c.env.greeting) }));
+  const server = await app.listen('127.0.0.1:4318');
+  await server.wait();
+}
 ```
 
-Both commands require an explicit output directory. Generation writes client
-files without changing the server or installing packages. Backend development
-does not require Node or npm. The TypeScript client uses named asynchronous calls;
-the Rust client uses awaitable calls and an optional async HTTP transport.
-
-A generated `http-api.json` can be used later without the running service or its
-source:
-
-```sh
-tsrust api generate --description js-client/http-api.json --out another-client
-```
-
-Remote description URLs require HTTPS; loopback HTTP is allowed. Redirects are
-rejected and descriptions are limited to 1 MiB. For protected descriptions and
-consumer setup, see [independent API clients](/tsrust/learn/first-service/#generate-api-clients).
-
-### Understand OpenAPI scope
-
-OpenAPI describes the service's single `POST /api` RPC endpoint. If you mount the
-dispatcher elsewhere, update the deployment specification's path/server URL and
-client endpoint. This export does not import arbitrary REST/OpenAPI services.
+Check changes with `tsrust check`, `tsrust test` and `tsrust format --check`.
+Only registered HTTP routes are served. Exporting a helper function does not
+expose it. Client generation never registers routes or starts a server.
 
 ## Routes and request bodies
 
@@ -213,6 +156,17 @@ Return `c.text(value)`, `c.html(value)` or `c.json(value)` from a handler.
 `c.json(value)` serializes a response; it is separate from `c.req.json()`, which
 reads request data. Use `c.header` to change response headers before or after
 `await next()`.
+
+Response objects can be written inline; their shape is inferred:
+
+```tsrust
+app.get('/', c => {
+  return c.json({ greeting: 'Hello', nested: { ready: true } });
+});
+```
+
+When copying an owned field from shared application state into a response object,
+use `clone`, for example `c.json({ greeting: clone(c.env.greeting) })`.
 
 After `await next()`, read-only `c.res` exposes the response status and headers.
 Before a response returns its status is 404. Unhandled handler errors become a
@@ -345,127 +299,26 @@ Use [Router](/tsrust/learn/first-service/#routes-and-request-bodies) to register
 
 ## Authorize requests
 
-Select the operations clients may call and supply an application-owned access
-policy. Exporting a function alone does not expose it over HTTP. Start with a
-[backend application](/tsrust/learn/first-service/#create-the-service) for a complete working configuration.
+Register access checks with `app.use` before protected routes. Middleware receives
+the request context and `next`; returning a response stops downstream handlers.
+Awaiting `next()` runs them and then resumes middleware.
 
-### Configure the server
-
-In `tsrust.config.json`, the `api.server` object identifies the context type and
-authorization function. This fragment shows the starter's paths; merge it into
-its existing `api` settings rather than replacing the whole configuration:
-
-```json
-{
-  "server": {
-    "context": {
-      "module": "app/api/context.tsr",
-      "export": "AppContext"
-    },
-    "authorize": {
-      "module": "app/api/access.tsr",
-      "export": "authorize"
-    },
-    "maxRequestBytes": 65536,
-    "maxResponseBytes": 65536
+```tsrust
+app.use('/private/*', async (c, next) => {
+  const authorization = c.req.header('authorization');
+  if (authorization !== 'Bearer development-only') {
+    return c.json({ error: 'Unauthorized' }, 401);
   }
-}
+  await next();
+});
+app.get('/private/profile', c => c.json({ name: 'Ada' }));
 ```
 
-Paths are relative to the configuration directory. Use forward slashes, without
-`.` or `..` path segments. Both byte limits default to 65536 and accept integers
-from 1 through 16777216.
-
-Import `dispatch`, `describe` and `openapi` from `api:server` and mount only the
-handlers you need on your Router. The starter mounts all three. They share the
-same authorization hook, including requests for the public API description.
-Compilation checks these handlers in memory; it needs no generated dispatcher
-file or client output directory.
-
-### Make an access decision
-
-The configured authorization function receives the native HTTP context and
-returns `Task<boolean>`. It runs before dispatch reads or decodes the request
-body or calls an operation:
-
-- Return `true` to allow the request.
-- Return `false` to send HTTP 403 with `api-denied`.
-- Throwing sends HTTP 500 with `api-internal`, without exposing the exception.
-
-The starter returns `true`, so its greeting API is public. Replace that policy
-before exposing protected operations. Application credentials, state and policy
-stay in backend modules; the generated SDK does not implement authentication
-for you. See the repository's
-[application-owned bearer policy](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/backend-tasks/access.tsr)
-for a larger example with origin checks and explicit CORS preflight handling.
-
-### Pass private context to an operation
-
-Add `"context": true` to an entry in `api.operations` when its first parameter
-is `ReadOnly<Context<...>>` or `Mutable<Context<...>>`, including a named alias.
-The compiler supplies that parameter on the server. It is absent from the wire
-input and does not change the public contract identity.
-
-The remaining input is zero or one supported plain-data argument. An arbitrary
-pool/resource or an owned `Context` cannot be hidden as the context parameter.
-Keep resources in application state and pass only supported data to clients.
-
-### Bound requests and responses
-
-`maxRequestBytes` limits the UTF-8 request text's byte length after it has
-been read. `maxResponseBytes` bounds serialization of operation results and their
-success envelopes. These guards do not replace the Router's admission limits.
-Configure its body limit, concurrency and timeouts too; see
-[listener limits](/tsrust/learn/first-service/#listener-limits).
-
-Dispatch requires POST and `application/json`. It admits the selected operation
-only when its contract identity or versioned per-operation fingerprint matches a
-supported profile. Use a generated client to supply this protocol metadata.
-
-| Condition | HTTP status | API error code |
-| --- | --- | --- |
-| Policy denies access | 403 | `api-denied` |
-| Method is not POST | 405 | `api-method` |
-| Missing or unsupported content type | 415 | `api-media-type` |
-| Body exceeds the API request limit | 413 | `api-request-limit` |
-| Invalid request or operation arguments | 400 | `api-validation` |
-| Operation is undeclared | 404 | `api-operation` |
-| Incompatible operation profile | 409 | `api-incompatible` |
-| Result fails its checked schema | 500 | `api-result` |
-| Policy, operation or result serialization throws | 500 | `api-internal` |
-
-Router admission failures can occur before these handlers run. The table covers
-ordinary dispatcher failures, not every malformed protocol-metadata case.
-Public errors use bounded messages rather than exposing backend exception text.
-Typed domain-result unions remain successful response data. Failure or
-cancellation does not imply rollback: an operation may already have changed state.
-
-### Retain older contracts
-
-List reviewed baseline files in `api.compatible`; `api.server.compatible` remains
-supported for older configurations. Keep each baseline immutable.
-
-Compatibility checks require old inputs to fit the current operation and current
-results to project into the old client's strict shape. SDK history also checks
-whether old replica results satisfy a new client. Unknown or incompatible shapes
-are rejected before invocation. Schema compatibility cannot prove unchanged
-business behavior; see [versioning and rollout](/tsrust/learn/first-service/#evolve-the-api).
-
-### Export a dispatcher for an existing project
-
-Normal `api:server` compilation needs no physical dispatcher. For an existing
-project that requires one, set `api.server.output` to a private directory such
-as `app/generated-api`, then explicitly run `tsrust api generate`.
-
-Keep that private directory separate from the public client package. Generation
-checks the handler and output ownership before replacing files. Generated hash
-markers and locks protect both destinations; edited files are preserved.
-Replacements are individually atomic and retryable, not one transaction across
-the filesystem.
-
-`--check` writes nothing. `--out` overrides the client destination while the
-configured private server keeps its own destination. Omit `server` for
-client-only generation from source.
+The fixed token illustrates control flow. Replace it with your application's
+credential validation before protecting real data. Keep credentials out of
+source and generated clients. Shared application state uses `c.env`; request-local
+values use `c.set` and `c.get`. See [application state](#application-and-request-state).
+No authorization function or middleware list belongs in JSON configuration.
 
 ## Call other services and stream
 
@@ -516,7 +369,7 @@ async function main(): Task<void> {
 
 `text(value, status = 200)`, `json(value, status = 200)` and
 `html(value, status = 200)` construct responses. JSON uses the existing checked
-serialization rules; give record values a type before serialization. HTML is an
+serialization rules; object literals infer their field types. HTML is an
 explicit raw-content escape hatch, without escaping. Use text for untrusted plain
 text. Status accepts 200 through 599. Transport framing headers cannot be set by
 application code.
@@ -669,346 +522,103 @@ Unhandled application errors become a generic 500 without exposing their payload
 
 ## Generate API clients
 
-The backend is the API source of truth. New applications select their public
-operations and authorization in `tsrust.config.json` and import compiler-owned
-handlers from `api:server`; checking and running never require generated clients
-or dispatcher files. See [backend applications](/tsrust/learn/first-service/#create-the-service).
-
-Generate independent TypeScript or asynchronous Rust SDKs from a live service:
+Generate from the project's checked build entry. The service need not be running:
 
 ```sh
-tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
-tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
+tsrust api generate --out js-client
+tsrust api generate --language rust --out rust-client
 ```
 
-Use `--description http-api.json` instead of `--url` for a saved description, without
-backend source. The same checked description exports OpenAPI.
-
-SDK generation does
-not change application source, register operations or start a server.
-
-URL and saved-description generation always require `--out`. For source-based
-generation, `api.output` can supply the default destination.
-Optional `api.server.output` retains explicit legacy dispatcher export, which new
-applications do not use. Keep deployment compatibility baselines application-owned
-rather than depending on a generated client directory.
-
-### Generate from source configuration
-
-Use the existing `api` settings in `tsrust.config.json`, or create a separate
-`tsrust.api.json` for a client export. The following standalone configuration uses
-the greeting function from the [backend starter](/tsrust/learn/first-service/#create-the-service). Save it at
-the starter project root and select it explicitly with `--config`:
-
-```json
-{
-  "schemaVersion": 1,
-  "apiVersion": 1,
-  "entry": "app/api/operations.tsr",
-  "output": "packages/api",
-  "package": { "name": "@example/api", "version": "0.1.0" },
-  "operations": [
-    {
-      "name": "greet",
-      "module": "app/api/operations.tsr",
-      "export": "greet",
-      "kind": "query"
-    }
-  ]
-}
-```
-
-The entry is checked through the normal module/compiler path and can be a library
-module without an executable main function. Selected modules
-must belong to that checked graph and selected names must be actual named function
-exports. An ordinary export is never automatically an operation. Query/mutation
-kind is explicit metadata, not proof that a query is side-effect-free. Application
-access policy remains a server responsibility when dispatch is added.
+An explicit entry works without a project config:
 
 ```sh
-tsrust api generate --config tsrust.api.json
-tsrust api generate --config tsrust.api.json --check
-tsrust api generate --config tsrust.api.json --out ./client-package
+tsrust api generate app/main.tsr --out js-client
 ```
 
-#### Paths and configuration selection
+The compiler reads registered Router methods, literal paths and checked JSON
+response shapes. It follows handler functions; helpers are not exposed as
+endpoints. Dynamic methods or paths cannot form a static contract. A response
+whose JSON shape cannot be inferred stays an ordinary HTTP response in the client.
+Request bodies remain application-defined; the client does not infer request
+validation from arbitrary parsing code.
 
-Without `--config`, the CLI searches upward for API configuration. If the same
-directory has both inline `api` settings and `tsrust.api.json`, it requires an
-explicit selection. Configured
-entry/module/output paths are relative to that file and exclude `.`/`..` and
-backslashes; use portable forward slashes. An explicit output flag is relative to
-the current directory and can select a standalone destination. Package
-versions require `major.minor.patch`; prerelease labels and build metadata are
-not supported. See [version rules](/tsrust/learn/first-service/#choose-version-numbers).
+### TypeScript client
 
-### Understand generated output
+Use the generated package from your own application. A relative import also works
+while developing locally:
 
-The TypeScript output contains JavaScript ESM, TypeScript declarations, a manifest, package
-metadata and the generated runtime's MIT notice. It has no install scripts or
-framework dependencies. No backend bodies, source paths, credentials, database
-dependencies or source-tree imports are copied into it. The package is private
-by default. Review the generated files, package metadata and your own licensing
-before enabling publication; generation/check/build never publishes anything.
-
-#### Regenerate safely
-
-Existing nonempty application directories are not adopted as generated output.
-Only previously generated files whose recorded hashes still match, or already
-match the intended replacement, are replaced. Edited generated files produce a
-diagnostic and remain untouched. Unrelated files remain user-owned. `--check`
-does not write files and fails for stale outputs or markers. A lock excludes
-concurrent generators, and files are individually replaced atomically. A failed
-partial replacement can be retried using the old/planned hash checks.
-
-### Calls and wire values
-
-The TypeScript package exposes `createClient(transport)`, `ApiError`, a frozen
-manifest and a contract identity. Named calls follow your selected operation
-names: `greet` becomes `api.greet(...)`, while `tasks.list` would become
-`api.tasks.list(...)`.
-
-To try the generated starter client without a running server, save this as
-`try-client.mjs` beside `js-client`, then run `node try-client.mjs`:
-
-```js
+```typescript
 import { createClient } from './js-client/index.js';
 
-const api = createClient({
-  async request(operation, input) {
-    if (operation !== 'greet') throw new Error('Unexpected operation');
-    return { ok: true, value: `Hello, ${input}!` };
-  },
+const client = createClient('http://127.0.0.1:4318');
+const result = await client.get('/api/greet/:name', {
+  param: { name: 'Ada' }
 });
-console.log(await api.greet('Ada')); // Hello, Ada!
+console.log(result.greeting); // Hello, Ada!
 ```
 
-This transport is a local demonstration. Use the HTTP adapter to call the service.
+Method names and path literals are checked by TypeScript. JSON routes return
+parsed, validated response data. TypeScript clients reject integer responses
+outside JavaScript's safe integer range; use strings when JavaScript consumers
+need wider integers. Tsrust values and generated Rust models retain `i64`
+precision. Other routes return a `Response`, so you can
+choose `.text()`, `.arrayBuffer()` or streaming. Options accept ordinary fetch
+settings, plus `param`, `query` and `json`. Use `headers` for application credentials
+and `signal` for cancellation. Non-2xx responses throw `HttpError`; its `response`
+contains the original status, headers and body. The optional `fetch` constructor
+option accepts your application's fetch implementation.
 
-A transport implements
-`request(operation, checkedInput, options)` and returns either
-`{ok:true,value}` or `{ok:false,error:{code,message}}`. Input is validated and copied
-before transport. Result validation rejects malformed values and unexpected
-fields. Calls return promises; they add no caching, retries or implicit mutation
-invalidation. Optional cancellation signals are forwarded to the transport and do
-not imply rollback or backend cleanup completion.
+### Rust client
 
-Operations currently accept no arguments or one required data argument. Put
-multiple inputs in a request record. Rest/default/optional top-level parameters
-and unresolved generic functions require concrete wrapper functions. Async
-operation signatures describe eventual data, not transportable tasks.
+Add the generated crate as a normal path dependency. Its README lists the method
+for each route. Inside an async application:
 
-#### Supported data
+```rust
+use tsrust_service_client::{Client, RequestOptions};
 
-| Value | Contract |
-| --- | --- |
-| Strings | Well-formed Unicode; lone UTF-16 surrogates reject before transport. |
-| Booleans and null | Preserved; null is distinct from a missing field. |
-| Numbers | Finite values only. JSON encodes negative zero as zero. |
-| Native integers | Must fit ±9,007,199,254,740,991; larger values reject instead of rounding. |
-| Arrays and tuples | Dense arrays; tuple length and each element are checked. |
-| Plain records | Declared data properties only; accessors and unknown keys reject. |
-| Optional fields | Missing or undefined properties are omitted. Required fields must exist. |
-| Literals and unions | Values must satisfy a declared alternative. |
-| Void results | Encoded as null, returned as undefined by the TypeScript client. |
-
-Special JSON keys remain data without changing object prototypes. Recursive or
-deeper-than-128-level schemas, functions and native resources are rejected.
-Collections and domain objects need explicit conversion to supported data;
-there is no implicit serialization for them.
-
-### Call the service over HTTP
-
-The separate `@example/api/http` export uses the host Fetch API. The plain package
-entry still requires no DOM types or Fetch globals. TypeScript HTTP consumers need their
-host's Fetch type declarations, whether supplied by browser, Node or React Native
-tooling. Pass an absolute endpoint URL:
-
-With the starter listening on port 4318, save this as `try-http.mjs` beside
-`js-client` and run it with a Node version that provides Fetch:
-
-```js
-import { createClient } from './js-client/index.js';
-import { createHttpTransport } from './js-client/http.js';
-
-const api = createClient(createHttpTransport({
-  url: 'http://127.0.0.1:4318/api',
-}));
-console.log(await api.greet('Ada')); // Hello, Ada!
+let client = Client::new("http://127.0.0.1:4318")?;
+let mut options = RequestOptions::default();
+options.param.insert("name".into(), "Ada".into());
+let result = client.get_api_greet_name(options).await?;
+println!("{}", result.greeting);
 ```
 
-For an installed package, use its configured name, such as `@example/api` and
-`@example/api/http`, instead of relative file imports. Protected services can
-supply `headers` as an object or an async function returning headers. For example,
-`headers: async () => ({ authorization: 'Bearer ' + await currentToken() })`
-requires your own `currentToken` function. Pass `{ signal: controller.signal }`
-as the second call argument when using an application-owned `AbortController`.
+JSON responses use generated Rust models. Other routes return
+`reqwest::Response`. `Client::with_http` accepts an existing Reqwest client for
+application transport settings.
 
-#### Request headers and credentials
+### Share and regenerate
 
-Each call posts `{operation,input}` as JSON to the configured endpoint and sends
-`x-tsrust-contract` with a selected checked wire-profile identity. JSON Content-Type
-parameters carry the requested API major, current operation fingerprint and current checked manifest identity. This adds no new CORS header names. The server retains
-application authorization responsibility. Headers are resolved
-for each call so credential changes take effect; the adapter sets its protocol
-headers after application headers. Cookies are omitted and redirects reject.
-Use HTTPS for remote credentials. Loopback HTTP is available for the desktop bridge.
-URLs containing embedded credentials or fragments reject during construction.
-
-#### Errors and cancellation
-
-Non-2xx responses can carry the same structured public failure envelope. A success
-envelope on a failing HTTP status rejects. HTML, invalid JSON and invalid output
-data reject with protocol/HTTP/validation errors. Host network exception details
-are replaced with an `api-network` error; cancellation uses `api-cancelled`.
-There are no automatic retries, including mutations. Cancellation requests abort
-through the host Fetch API; it does not prove rollback or backend cleanup.
-
-Supply `fetch` explicitly for a host-specific adapter or testing.
-
-#### Response size
-
-Response text is read before parsing; this client
-does not impose a streaming memory limit. Backend request/response bounds and
-mobile Fetch behavior remain service/platform acceptance requirements.
-
-For host Fetch usage, see
-[the Fetch API documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
-
-### Ordinary local package adoption
-
-Generate into an explicit folder, then use the application's package manager:
+Each client includes `http-api.json` and `openapi.json`. Share the contract instead
+of backend source; consumers can generate either language without an API config:
 
 ```sh
-tsrust api generate --config tsrust.api.json --out ./dist/client
-cd dist/client
-npm pack --ignore-scripts
-cd /path/to/existing-app
-npm install /path/to/project/dist/client/example-api-0.1.0.tgz --ignore-scripts
+tsrust api generate --description http-api.json --out client
+tsrust api generate --description http-api.json --language rust --out rust-client
 ```
 
-Replace the absolute paths above with your project and consumer paths.
-The tarball filename follows the configured npm package name/version. Inspect
-`npm pack --json --ignore-scripts` before sharing. Its allowlist includes runtime,
-declarations, contract, README and license; generated ownership markers and
-unrelated files are excluded. Generated packages are private by default; local
-packing works without publication. Consumers need no compiler, backend source or
-generated-directory symlink. Generated plain SDKs have no framework or cache peers.
+`--url` can fetch an application-hosted contract instead. Publishing it is your
+choice; generation adds no description endpoint to your service. Source, saved
+contract and URL selection are mutually exclusive. `--out` is required.
 
-#### Workspace consumers
-
-For an npm workspace, include the generated package directory in the root's
-workspaces and declare its configured name/version in the consuming application's
-normal dependencies. Users own their package manager, scripts and dependencies.
-Other package managers use their ordinary package/workspace workflows; SDK
-export never installs packages or rewrites the consuming application's files.
-
-### Use the Rust client
-
-The Rust export contains `Cargo.toml`, owned DTO types and asynchronous named
-calls. Add it as a normal Cargo path dependency in your consumer. Its default
-`http` feature supplies `HttpTransport`; disable default features when providing
-a custom transport. Run HTTP calls inside your application's Tokio runtime.
-Generation does not fetch Cargo dependencies.
-
-Read the generated `README.md` and `src/lib.rs` for the package name and exact
-operation types. Optional fields use `Option`; nullable unions preserve explicit
-null separately. The Rust generator currently rejects tuples longer than 16
-elements. Do not assume the TypeScript SDK's Fetch behavior describes the Rust
-transport's limits.
-
-### Next steps
-
-- [Configure authorization and dispatch](/tsrust/learn/first-service/#authorize-requests) on the server.
-- [Retain compatible SDK contracts](/tsrust/learn/first-service/#evolve-the-api) for rolling deployments.
+Regenerate after route or response changes. Add `--check` to verify an existing
+client is current. Generated directories carry ownership markers; regeneration
+preserves unrelated application files and rejects edited generated files.
+Generated packages are private local packages by default. Bring your own frontend,
+package manager and release process.
 
 ## Evolve the API
 
-Keep old clients working while deploying new server replicas. Retain the checked
-contracts you have released, and let generation reject incompatible changes
-before it replaces output files.
+Treat method, path, request and response behavior as your public HTTP contract.
+Adding an unrelated route leaves existing clients unchanged. Removing a route,
+changing its method or removing a required response field can break deployed
+clients. Keep old routes while migrating consumers, then regenerate and test
+clients against the destination service. Updating the server executable does not
+update client applications.
 
-### Choose version numbers
-
-In the project's `api` settings:
-
-| Setting | Meaning |
-| --- | --- |
-| `package.version` | SDK version in `major.minor.patch` form, such as `0.2.0`. |
-| `apiVersion` | Positive API compatibility major; defaults to `1`. |
-
-SDK version components must be nonnegative integers without leading zeroes.
-Prerelease labels and build metadata are not accepted. Versions cannot move
-backwards. Raising the API major requires raising the SDK major too.
-
-The generated `contractId` identifies the checked manifest. `wireContractId`
-also includes the API major, while preserving legacy v1 identities. Identical
-schemas in different API majors therefore have different wire identities.
-
-### Decide whether a change is compatible
-
-Generated `compatibility.json` retains deduplicated checked schemas and immutable
-SDK release references. Keep it with generated output.
-
-For source-based generation, the compiler reads canonical history even when using
-`--out` and merges destination history before replacing output files. Generation
-from an HTTP description uses the history carried by that description. It rejects
-a description that omits history already retained by the destination SDK.
-
-| Change | Requirement |
-| --- | --- |
-| Change a checked schema | Choose a new SDK version. |
-| Keep the same API major | The server must still accept released inputs, and older replica results must satisfy the new SDK. |
-| Add an optional result field | Can remain compatible when older replicas omit it. |
-| Require a new result field | Use a new API major, or keep the field optional during rollout. |
-| Raise the API major | Raise the SDK major as well. |
-
-Business semantics still need application review; schema containment cannot prove
-them.
-
-### Publish a changed SDK
-
-These checks preserve release-to-contract identity, not an npm registry's release
-immutability or every generated runtime byte. Regeneration with a newer Tsrust
-compiler can update runtime code without changing DTOs. Select a new package
-version before publishing any changed package, including runtime-only changes.
-Generation does not publish or silently change package versions for the owner.
-
-### Retain application-owned baselines
-
-The server retains its own baseline files under application-owned paths, referenced
-by `api.compatible`. It never needs the generated client's `compatibility.json` directory
-to start. Copy a reviewed release baseline into the app when retaining it for a
-rollout; the served description includes the configured history.
-
-Known published baselines can be imported with `api.compatible`, a list of
-relative `manifest.json` or `compatibility.json` paths. Legacy `api.server.compatible`
-remains supported. A fresh selected client can omit methods from foreign server
-baselines, but subsequent releases cannot silently remove its own published calls.
-Existing owned pre-metadata packages bootstrap from their manifest/package version.
-
-### Roll out across mixed replicas
-
-Both generated clients select a retained profile before I/O. Its input codec must
-accept the actual supplied arguments, and its output must be accepted by the
-current SDK. Modern dispatchers also recognize retained per-operation fingerprints,
-independently of unrelated selected methods.
-
-Strict response codecs and old-client projections remain in force. The clients
-never strip supplied arguments or retry requests to find support. Common calls
-can survive mixed replicas; newly supplied arguments or new operations can require
-newer servers.
-
-#### Handle a compatibility failure
-
-- **TypeScript/JavaScript:** `ApiCompatibilityError` extends `ApiError` and
-  includes the requested `apiVersion`.
-- **Rust:** `ApiError` includes `api_version`; `is_compatibility()` identifies
-  compatibility failures.
-
-Both retain the `api-incompatible` and `api-operation` codes. Do not infer fleet-wide
-capabilities from one replica or retry ambiguous writes. Retain older handlers or
-migrations for as long as older API majors must work.
+Existing applications using `api:server` retain their configured RPC protocol and
+versioned compatibility tools. See [configured RPC compatibility](/tsrust/tools/configured-rpc/).
+Those settings are not part of the Router workflow.
 
 ## Deploy
 
@@ -1053,9 +663,8 @@ network arrangement. A reverse proxy on the same host can forward to loopback;
 remote clients need an appropriately reachable listener or proxy.
 
 The starter greeting is deliberately public. Review
-[authorization](/tsrust/learn/first-service/#authorize-requests) before adding protected operations. Its
-`/api/description` and `/api/openapi.json` handlers use application policy too;
-decide whether those routes should be reachable by your clients.
+[authorization](/tsrust/learn/first-service/#authorize-requests) before adding protected routes. Contract files are local generation outputs;
+the starter does not serve a description or OpenAPI endpoint.
 
 Configure TLS termination, request limits and process supervision for the actual
 service. See [HTTP transport](/tsrust/learn/first-service/#call-other-services-and-stream) for the native TLS and server
@@ -1088,7 +697,5 @@ exercise your production network, certificates or access configuration.
 
 ### Roll out API changes
 
-Generate independent clients from the checked contract. Keep compatible prior
-contracts available while older clients are deployed, and follow the
-[API compatibility guide](/tsrust/learn/first-service/#evolve-the-api) when changing operation shapes or
-versions. Updating the server executable does not update client applications.
+Generate independent clients from checked routes and follow the
+[HTTP rollout guidance](#evolve-the-api) while older clients remain deployed. Updating the server executable does not update client applications.

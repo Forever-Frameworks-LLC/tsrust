@@ -5,6 +5,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {pathToFileURL, fileURLToPath} from 'node:url';
+import {smokeLsp} from './smoke-lsp.mjs';
 const [input, editor] = process.argv.slice(2);
 if (!input || process.argv.length > 4) throw Error('Usage: node tools/smoke-toolchain.mjs CLI [LSP]');
 const compiler = path.resolve(input);
@@ -15,19 +16,7 @@ const run = (...args) => execFileSync(compiler, args, {
 });
 try {
   if (editor) {
-    const messages = [
-      {jsonrpc: '2.0', id: 1, method: 'initialize', params: {processId: null, rootUri: pathToFileURL(directory).href, capabilities: {}}},
-      {jsonrpc: '2.0', method: 'initialized', params: {}},
-      {jsonrpc: '2.0', id: 2, method: 'shutdown', params: null},
-      {jsonrpc: '2.0', method: 'exit', params: null},
-    ].map(message => {
-      const body = JSON.stringify(message);
-      return `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`;
-    }).join('');
-    const output = execFileSync(path.resolve(editor), [], {cwd: directory, input: messages, encoding: 'utf8', timeout: 30000});
-    const responses = output.split(/Content-Length: \d+\r\n\r\n/).slice(1).map(body => JSON.parse(body));
-    assert.ok(responses.find(message => message.id === 1)?.result?.capabilities?.hoverProvider, output);
-    assert.deepEqual(responses.find(message => message.id === 2), {jsonrpc: '2.0', id: 2, result: null});
+    await smokeLsp(path.resolve(editor), [], {cwd: directory, rootUri: pathToFileURL(directory).href});
     console.log('Distributed LSP: initialize, capabilities and clean shutdown passed.');
   }
   assert.match(run('--version'), /^tsrust \d+\.\d+\.\d+/);

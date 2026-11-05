@@ -1,0 +1,64 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.object({
+    count: s.int().min(2)
+  }).retain();
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    {
+      const outcome = schema.safeParseJson(input);
+      if (outcome.success) {
+        const value = outcome.data;
+        const extra = value.extra.get('extra');
+        if (extra === undefined || value.extra.size !== 1) {
+          throw 'Invalid extras';
+        }
+
+        if (JSON.stringify(extra) !== '{"tag":"ready","values":[1,2,3]}') {
+          throw 'Retained payload changed';
+        }
+
+        checksum += value.value.count + value.extra.size;
+      } else {
+        const error = outcome.error;
+        throw 'Expected source success';
+      }
+    }
+
+    {
+      const outcome = schema.safeParseJson('{"extra":true}');
+      if (outcome.success) {
+        const value = outcome.data;
+        throw 'Expected source rejection';
+      } else {
+        const failure = outcome.error;
+        if (failure.kind === 'validation') {
+          const error = failure.error;
+          if (error.truncated || error.issues.length !== 1) {
+            throw 'Invalid count';
+          }
+
+          for (const issue of error.issues) {
+            if (issue.code !== 'missing-field' || issue.expected !== 'integer' || issue.observed !== 'missing' || issue.pathTruncated || issue.path.length !== 1 || issue.path[0].field !== 'count' || issue.path[0].index !== undefined) {
+              throw 'Invalid missing-field issue';
+            }
+
+            checksum += 1;
+          }
+        } else {
+          throw 'Expected validation error';
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '{"count":3,"extra":{"tag":"ready","values":[1,2,3]}}'));
+}

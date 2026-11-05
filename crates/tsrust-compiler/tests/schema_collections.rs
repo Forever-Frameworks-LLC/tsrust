@@ -58,6 +58,8 @@ fn native_collection_schemas_reject_implicit_json_and_input_reuse() {
         ("const schema=s.array(s.set(s.int()));schema.safeParseJson('[[]]');","schema-json-input"),
         ("const schema=s.map(s.string(),s.int());const input=new Map<string,int>();schema.safeParse(input);console.log(input.size);","transferred"),
         ("const child=s.int();const schema=s.record(child);child.safeParse(1);","transferred"),
+        ("const schema=s.set(s.int());const input=new Set<int>();schema.parse(input).size=1;","unsupported"),
+        ("const schema=s.map(s.string(),s.int());const input=new Map<string,int>();schema.parse(input).size=1;","unsupported"),
     ] {
         let source=format!("import {{s}} from 'std:schema';function main(){{{body}}}");
         let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
@@ -92,4 +94,38 @@ fn collections_compose_restore_readonly_rejections_and_commit_collisions(){
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+}
+
+#[test]
+fn identity_collections_preserve_bounds_paths_order_and_union_fallback(){
+    let source=r#"
+import {s} from 'std:schema';
+import {strictEqual} from 'std:testing';
+function main(){
+ const input=new Map<string,int>();input.set('gone',9);input.set('first',2);input.delete('gone');input.set('last',3);
+ const schema=s.map(s.string().min(2),s.int().min(0));
+ const value=schema.parse(input);strictEqual(value.keys().join(','),'first,last');strictEqual(value.get('last'),3);
+ const tags=new Set<string>();tags.add('gone');tags.add('kept');tags.delete('gone');tags.add('last');
+ const result=s.set(s.string().min(2)).parse(tags);strictEqual(result.values().join(','),'kept,last');
+ const choices=s.union([s.map(s.string().min(9),s.int().min(10)),s.map(s.string(),s.int())]);
+ const fallback=new Map<string,int>();fallback.set('short',1);
+ const accepted=choices.parse(fallback);strictEqual(accepted.get('short'),1);
+ const badKey=new Map<string,int>();badKey.set('x',1);
+ const keyOutcome=s.map(s.string().min(2),s.int()).safeParse(badKey);
+ if(keyOutcome.success){throw 'short key accepted';}else{const error=keyOutcome.error;strictEqual(error.issues.length,1);strictEqual(error.issues[0].path[0].index,0);strictEqual(error.issues[0].path[1].field,'key');}
+ const badValue=new Map<string,int>();badValue.set('ok',-1);
+ const valueOutcome=s.map(s.string(),s.int().min(0)).safeParse(badValue);
+ if(valueOutcome.success){throw 'negative value accepted';}else{const error=valueOutcome.error;strictEqual(error.issues[0].path[1].field,'value');}
+ const badSet=new Set<string>();badSet.add('x');
+ const setOutcome=s.set(s.string().min(2)).safeParse(badSet);
+ if(setOutcome.success){throw 'short set entry accepted';}else{const error=setOutcome.error;strictEqual(error.issues[0].path[0].index,0);strictEqual(error.issues[0].path.length,1);}
+ const numbers=new Map<string,number>();numbers.set('nan',NaN);
+ const numberOutcome=s.map(s.string(),s.number()).safeParse(numbers);
+ if(numberOutcome.success){throw 'nonfinite value accepted';}else{const error=numberOutcome.error;strictEqual(error.issues[0].code,'number-nonfinite');}
+ const flags=new Set<boolean>();flags.add(false);flags.add(true);strictEqual(s.set(s.boolean()).parse(flags).size,2);
+ const empty=new Map<string,int>();strictEqual(s.map(s.string().min(9),s.int().min(9)).parse(empty).size,0);
+}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
 }

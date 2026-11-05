@@ -2,39 +2,36 @@
 /// Last path component, with platform separators and optional case-sensitive suffix removal.
 /// Explicit platform selection permits portable boundary testing of both separator conventions.
 pub fn basename(path: &str, suffix: Option<&str>, windows: bool) -> std::string::String {
-    let separator = |ch| ch == '/' || (windows && ch == '\\');
     let bytes = path.as_bytes();
     let drive = windows && bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':';
     let mut start = if drive { 2 } else { 0 };
+    // UTF-8 uses at most three bytes per UTF-16 unit, so short suffixes need no unit count.
     let suffix = suffix.filter(|suffix| {
-        !suffix.is_empty() && suffix.encode_utf16().count() <= path.encode_utf16().count()
+        !suffix.is_empty() && (suffix.len() <= path.len() / 3 || suffix.encode_utf16().count() <= path.encode_utf16().count())
     });
     if suffix == Some(path) {
         return std::string::String::new();
     }
-    let mut expected = suffix.map(|suffix| suffix.chars().rev());
+    let mut expected = suffix.map(|suffix| suffix.as_bytes().iter().rev());
     let mut next = expected.as_mut().and_then(Iterator::next);
     let mut end = None;
     let mut component_end = None;
-    for (offset, ch) in path
-        .char_indices()
-        .rev()
-        .take_while(|(offset, _)| *offset >= start)
-    {
-        if separator(ch) {
+    for offset in (start..bytes.len()).rev() {
+        let ch = bytes[offset];
+        if separator(ch, windows) {
             if component_end.is_some() {
-                start = offset + ch.len_utf8();
+                start = offset + 1;
                 break;
             }
             continue;
         }
-        let first_end = *component_end.get_or_insert(offset + ch.len_utf8());
+        let first_end = *component_end.get_or_insert(offset + 1);
         if suffix.is_none() {
             end.get_or_insert(first_end);
             continue;
         }
         if let Some(wanted) = next {
-            if wanted == ch {
+            if *wanted == ch {
                 next = expected.as_mut().and_then(Iterator::next);
                 if next.is_none() {
                     end = Some(offset);
@@ -56,7 +53,6 @@ pub fn basename(path: &str, suffix: Option<&str>, windows: bool) -> std::string:
     };
     path[start..end].to_owned()
 }
-
 
 fn separator(byte: u8, windows: bool) -> bool {
     byte == b'/' || (windows && byte == b'\\')

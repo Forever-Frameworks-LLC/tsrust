@@ -24,7 +24,7 @@ fn jsonl_errors_are_terminal_and_limits_validate_before_open() {
   match(closeJsonl(reader)){{Ok(_)=>{{}},Err(e)=>{{throw e.message;}}}}
  }},Err(e)=>{{throw e.message;}}}}
  match(openJsonl('missing-never-opened',limits,0)){{Ok(_)=>{{throw 'bad capacity accepted';}},Err(e)=>{{strictEqual(e.code,'capacity-range');}}}}
- const invalid:JsonLimits={{maxBytes:16,maxDepth:65,maxEntries:8,maxNodes:16}};
+ const invalid:JsonLimits={{maxBytes:16,maxDepth:-1,maxEntries:8,maxNodes:16}};
  match(openJsonl('missing-never-opened',invalid)){{Ok(_)=>{{throw 'bad depth accepted';}},Err(e)=>{{strictEqual(e.code,'invalid-limits');}}}}
  match(openJsonl('missing-never-opened')){{Ok(_)=>{{throw 'missing file opened';}},Err(e)=>{{strictEqual(e.code,'not-found');strictEqual(e.operation,'open');}}}}
  console.log('errors passed');}}"#,path=data.to_str().unwrap());

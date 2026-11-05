@@ -80,6 +80,9 @@ pub(crate) fn body(
 ) -> Result<(), Diagnostic> {
     walk(body, &mut [], None, annotation_visit, &mut |value| { expression_visit(value)?; Ok(true) })
 }
+pub(crate) fn body_pruned(body:&mut [Stmt],visit:&mut impl FnMut(&mut Expr)->Result<bool,Diagnostic>)->Result<(),Diagnostic>{
+    walk(body,&mut [],None,&mut |_|Ok(()),visit)
+}
 pub(crate) fn function_body(
     function: &mut Function,
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
@@ -377,4 +380,17 @@ mod annotation_worklist_tests {
         assert_eq!(visited, [1, 3]);
         assert_eq!(error.span, Span { start: 3, end: 4 });
     }
+}
+
+pub(crate) fn returned_values(body:&[Stmt])->Vec<&Expr>{
+    let mut pending=body.iter().collect::<Vec<_>>();let mut values=Vec::new();
+    for expression in crate::error_effects::body_expressions(body){if let ExprKind::Match{body,..}=&expression.kind{pending.extend(body);}}
+    while let Some(statement)=pending.pop(){match &statement.kind{
+        StmtKind::Return(Some(value))=>values.push(value),
+        StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
+        StmtKind::Loop{body,update,..}=>{pending.extend(body);pending.extend(update);},
+        StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+        StmtKind::Try(region)=>pending.extend(region.statements()),
+        _=>{}
+    }}values
 }

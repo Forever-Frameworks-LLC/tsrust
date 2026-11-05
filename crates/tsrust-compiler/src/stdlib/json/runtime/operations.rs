@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(parse(b"[]",Limits{depth:0,..limits()}).unwrap_err().code,"depth-limit");
         assert_eq!(parse(b"[0,1]",Limits{entries:1,..limits()}).unwrap_err().code,"entry-limit");
         assert_eq!(parse(b"[0]",Limits{nodes:1,..limits()}).unwrap_err().code,"node-limit");
-        assert_eq!(parse(b"null",Limits{depth:65,..limits()}).unwrap_err().code,"invalid-limits");
+        assert_eq!(parse(b"null",Limits{depth:65,..limits()}).unwrap(),Value::Null);
     }
     #[test]
     fn exhausted_budgets_stop_before_decoding_the_next_value_or_key() {
@@ -173,7 +173,7 @@ mod tests {
         let nested = format!("{}0{}", "[".repeat(64), "]".repeat(64));
         assert!(parse(nested.as_bytes(), Limits { depth: 64, nodes: 65, ..limits() }).is_ok());
         assert!(parse(nested.as_bytes(), Limits { depth: 63, nodes: 65, ..limits() }).is_err());
-        assert!(parse(b"null", Limits { depth: 65, ..limits() }).is_err());
+        assert!(parse(b"null", Limits { depth: 65, ..limits() }).is_ok());
         for input in ["null", "false", "0", "-0", "-0.0", "1e-300", "[]", "{}", " [true, null] ", r#"{"z":1,"a":2,"z":3}"#, r#""a\n\u0000é""#] {
             assert_eq!(parse(input.as_bytes(), limits()).unwrap(), serde_json::from_str::<Value>(input).unwrap());
         }
@@ -218,7 +218,6 @@ pub struct BuildLimits {pub depth:usize,pub entries:usize,pub nodes:usize}
 struct BuildBudget {limits:BuildLimits,nodes:usize}
 impl BuildBudget {
  fn root(limits:BuildLimits,entries:usize)->Result<Self,Error>{
-  if limits.depth>64{return Err(invalid_limits());}
   if limits.nodes==0{return Err(failure("node-limit",0));}
   if limits.depth==0{return Err(failure("depth-limit",0));}
   if entries>limits.entries{return Err(failure("entry-limit",0));}
@@ -253,9 +252,13 @@ pub fn build_array(values:Vec<Value>,limits:BuildLimits)->Result<Value,Error>{
 pub fn build_object(entries:Vec<(String,Value)>,limits:BuildLimits)->Result<Value,Error>{
  let mut budget=BuildBudget::root(limits,entries.len())?;
  for (_,value) in &entries{budget.visit(value,1)?;}
+ Ok(build_object_plain(entries))
+}
+/// Inserts in source order so duplicate replacement never needs a staging vector.
+pub fn build_object_plain(entries:impl IntoIterator<Item=(String,Value)>)->Value {
  let mut object=serde_json::Map::new();
  for (key,value) in entries{object.insert(key,value);}
- Ok(Value::Object(object))
+ Value::Object(object)
 }
 
 #[cfg(test)]
@@ -274,10 +277,28 @@ mod construction_tests {
   assert_eq!(object.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(),vec!["a","z"]);
  }
  #[test]
+ fn requested_construction_depth_has_no_fixed_ceiling(){
+  fn nested()->Value{let mut value=Value::from(i64::MAX);for _ in 0..256{value=Value::Array(vec![value]);}value}
+  let requested=BuildLimits{depth:257,entries:1,nodes:258};
+  assert!(build_array(vec![nested()],requested).is_ok());
+  assert!(build_object(vec![("nested".into(),nested())],requested).is_ok());
+  assert_eq!(build_array(vec![nested()],BuildLimits{depth:256,..requested}).unwrap_err().code,"depth-limit");
+  assert_eq!(build_object(vec![("nested".into(),nested())],BuildLimits{nodes:257,..requested}).unwrap_err().code,"node-limit");
+ }
+ #[test]
+ fn direct_object_entries_preserve_ownership_order_and_last_duplicate(){
+  let text=String::from("owned payload");let allocation=text.as_ptr();
+  let entries=[("é".into(),Value::from(1)),("a".into(),Value::String(text)),("é".into(),Value::from(i64::MAX))];
+  let object=build_object_plain(entries);
+  assert_eq!(object["a"].as_str().unwrap().as_ptr(),allocation);
+  assert_eq!(object["é"].as_i64(),Some(i64::MAX));
+  assert_eq!(object.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(),vec!["a","é"]);
+ }
+ #[test]
  fn construction_budgets_count_root_nested_values_and_replaced_entries(){
   assert_eq!(build_array(vec![],BuildLimits{depth:0,..limits()}).unwrap_err().code,"depth-limit");
   assert_eq!(build_array(vec![],BuildLimits{nodes:0,..limits()}).unwrap_err().code,"node-limit");
-  assert_eq!(build_array(vec![],BuildLimits{depth:65,..limits()}).unwrap_err().code,"invalid-limits");
+  assert!(build_array(vec![],BuildLimits{depth:65,..limits()}).is_ok());
   assert!(build_array(vec![],BuildLimits{depth:1,entries:0,nodes:1}).is_ok());
   assert_eq!(build_array(vec![Value::Array(vec![])],BuildLimits{depth:1,..limits()}).unwrap_err().code,"depth-limit");
   assert_eq!(build_array(vec![Value::Null;4],limits()).unwrap_err().code,"entry-limit");

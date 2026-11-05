@@ -214,3 +214,44 @@ fn primitive_variadic_arguments_use_no_heap_and_owned_temporaries_dispose_on_suc
     "#,
     );
 }
+
+
+#[test]
+fn hypot_seeded_fold_preserves_bits_and_repairs_nan_infinity_platform_behavior() {
+ let source="function norm(value:number):number{return Math.hypot(value);}function main(){}";
+ let emitted=check(source).unwrap().emit_rust();assert!(!emitted.contains("unsafe"));
+ let harness=r#"
+fn platform_hypot(left:f64,right:f64)->f64 {
+ if EMULATE && ((left.is_nan()&&right.is_infinite())||(left.is_infinite()&&right.is_nan())) { f64::NAN }
+ else { left.hypot(right) }
+}
+fn verify(values:&[f64]) {
+ let expected=if values.iter().any(|value|value.is_infinite()) { f64::INFINITY }
+  else { values.iter().copied().fold(0.0f64,platform_hypot) };
+ assert_eq!(tsr_math_hypot(values).to_bits(),expected.to_bits());
+ let segmented=std::iter::empty().chain(values.iter().copied());
+ assert_eq!(tsr_math_hypot_iter(segmented).to_bits(),expected.to_bits());
+}
+fn main(){
+ let domain=[f64::NEG_INFINITY,-f64::MAX,-1.0,-f64::MIN_POSITIVE,-f64::from_bits(1),-0.0,0.0,f64::from_bits(1),f64::MIN_POSITIVE,1.0,f64::MAX,f64::INFINITY,f64::NAN,f64::from_bits(0xfff0000000000001)];
+ verify(&[]);for a in domain{verify(&[a]);for b in domain{verify(&[a,b]);for c in domain{verify(&[a,b,c]);}}}
+ let mut state=7u64;for length in 0..9{for _ in 0..8192{
+  let mut values=[0.0;8];for value in &mut values[..length]{state=state.wrapping_mul(6364136223846793005).wrapping_add(1);*value=f64::from_bits(state);}verify(&values[..length]);
+ }}
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.0.join("hypot-fold.rs");
+ for emulate in [false,true] {
+  let runtime=if emulate {
+   let seed="0.0f64.hypot(value)";let fold="remaining.fold(first, f64::hypot)";
+   assert_eq!(emitted.matches(seed).count(),1);assert_eq!(emitted.matches(fold).count(),1);
+   emitted.replace(seed,"platform_hypot(0.0,value)").replace(fold,"remaining.fold(first,platform_hypot)")
+  } else {emitted.clone()};
+  std::fs::write(&path,runtime.replace("fn main()","fn source_main()")+&harness.replace("EMULATE",if emulate{"true"}else{"false"})).unwrap();
+  for level in ["0","3"] {
+   let executable=directory.0.join(format!("hypot-{emulate}-{level}"));
+   support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}"),"-C","overflow-checks=on","-F","unsafe_code","-A","warnings"]).arg(&path).arg("-o").arg(&executable),60));
+   let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+  }
+ }
+}

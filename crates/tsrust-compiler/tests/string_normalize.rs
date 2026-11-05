@@ -43,6 +43,21 @@ fn string_normalize_passes_official_unicode_conformance_rows() {
  let data=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/unicode-normalization/data/NormalizationTest.txt").canonicalize().unwrap();
  let harness=r#"
 fn main() {
+ // Mixed strings bypass the whole-string ASCII shortcut and straddle both table bounds.
+ for code in (0..=0xA0).chain(std::iter::once(0x2FF)) {
+  let character=char::from_u32(code).unwrap();
+  let text=format!("{character}\u{315}\u{300}");
+  let canonical=format!("{character}\u{300}\u{315}");
+  let compatibility=if code==0xA0 { " \u{300}\u{315}".to_owned() } else { canonical.clone() };
+  assert_eq!(tsr_string_normalize(&text,Some("NFD"),"boundary").as_ref(),canonical);
+  assert_eq!(tsr_string_normalize(&text,Some("NFKD"),"boundary").as_ref(),compatibility);
+ }
+ // Equal combining classes must remain stable even across a long leading-mark run.
+ let marks="\u{315}\u{301}\u{300}\u{323}".repeat(1024);
+ let ordered=format!("{}{}{}","\u{323}".repeat(1024),"\u{301}\u{300}".repeat(1024),"\u{315}".repeat(1024));
+ for form in ["NFC","NFD","NFKC","NFKD"] {
+  assert_eq!(tsr_string_normalize(&marks,Some(form),"stable classes").as_ref(),ordered);
+ }
  let data=include_str!(DATA_PATH);
  let mut rows=0;let mut part1=false;let mut listed=std::collections::HashSet::new();
  for (line_number,line) in data.lines().enumerate() {
@@ -53,7 +68,11 @@ fn main() {
   assert_eq!(columns.len(),5);
   if part1 { assert_eq!(columns[0].chars().count(),1); if let Some(character)=columns[0].chars().next() { listed.insert(character as u32); } }
   for (form,expected) in [("NFC",[1,1,1,3,3]),("NFD",[2,2,2,4,4]),("NFKC",[3,3,3,3,3]),("NFKD",[4,4,4,4,4])] {
-   for index in 0..5 { assert_eq!(tsr_string_normalize(&columns[index],Some(form),"conformance").as_ref(),columns[expected[index]],"line {} form {} column {}",line_number+1,form,index+1); }
+   for index in 0..5 {
+    let result=tsr_string_normalize(&columns[index],Some(form),"conformance");
+    assert_eq!(result.as_ref(),columns[expected[index]],"line {} form {} column {}",line_number+1,form,index+1);
+    if let String::Owned(output)=result { assert_eq!(output.capacity(),output.len(),"exact output reservation"); }
+   }
   }
   rows+=1;
  }
@@ -95,4 +114,179 @@ fn string_normalize_emits_pinned_tables_and_license_only_when_used() {
  assert!(normalized.contains("TSR_NORMALIZATION_CCC"));
  assert!(normalized.contains("COPYRIGHT AND PERMISSION NOTICE"));
  assert!(normalized.contains("Unicode-3.0"));
+}
+
+#[test]
+fn string_normalize_repeated_mixed_decomposition_sequences_keep_each_form_independent() {
+ execute(r#"function main(){
+ const original="Åﬁ①각à̕é😀";
+ for(let i=1;i<=8;i=i+1){
+  const text=original.repeat(i);
+  console.log(text.normalize("NFC")==="Åﬁ①각à̕é😀".repeat(i),text.normalize("NFD")==="Åﬁ①각à̕é😀".repeat(i),text.normalize("NFKC")==="Åfi1각à̕é😀".repeat(i),text.normalize("NFKD")==="Åfi1각à̕é😀".repeat(i));
+ }
+ console.log(original);
+ }"#,&format!("{}Åﬁ①각à̕é😀\n","true true true true\n".repeat(8)),None);
+}
+
+#[test]
+fn string_normalize_compacts_compositions_without_overwriting_unread_scalars() {
+ execute(r#"function main(){
+ const text="́Ǻ|각|A͂̊".repeat(64);
+ const composed="́Ǻ|각|A͂̊".repeat(64);
+ console.log(text.normalize("NFC")===composed,text.normalize("NFKC")===composed);
+ console.log(composed.normalize("NFD")===text,composed.normalize("NFKD")===text);
+ console.log(text.normalize("NFC").normalize("NFC")===composed);
+ }"#,"true true\ntrue true\ntrue\n",None);
+}
+
+#[test]
+fn normalization_pages_match_full_searches_and_identity_needs_no_pending_allocation() {
+ let source=support::format_round_trip("function normal(text:string):string{return text.normalize();}function main(){}");
+ let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();
+ assert!(!emitted.contains("unsafe"));
+ let allocator=include_str!("../../../benchmarks/runtime/allocation-driver.rs").split("fn main()").next().unwrap();
+ let harness=r#"
+fn main(){
+ for &(key,expected) in TSR_NORMALIZATION_COMPOSE {
+  let left=(key>>21) as u32;let right=(key&u64::from(TSR_NORMALIZATION_SCALAR_MASK)) as u32;
+  assert!(right>=0x300,"composition bound U+{right:X}");
+  assert_eq!(tsr_normalization_compose(left,right),Some(expected));
+ }
+ for left in [0,0x3c,0x41,0x1100,0xac00,0x10ffff,u32::MAX] {
+  for right in [0,0x7f,0x2ff,0x300] {
+   let key=(u64::from(left)<<21)|u64::from(right);
+   let expected=TSR_NORMALIZATION_COMPOSE.binary_search_by_key(&key,|row|row.0).ok().map(|index|TSR_NORMALIZATION_COMPOSE[index].1);
+   assert_eq!(tsr_normalization_compose(left,right),expected);
+  }
+ }
+ for leading in 0..19 {for vowel in 0..21 {
+  let syllable=0xac00+leading*588+vowel*28;
+  assert_eq!(tsr_normalization_compose(0x1100+leading,0x1161+vowel),Some(syllable));
+  for tail in 1..28 {assert_eq!(tsr_normalization_compose(syllable,0x11a7+tail),Some(syllable+tail));}
+ }}
+ for code in (0..=0x10ffff).chain([u32::MAX]) {
+  let expected=TSR_NORMALIZATION_CCC.binary_search_by_key(&code,|row|row.0).map_or(0,|index|TSR_NORMALIZATION_CCC[index].1);
+  assert_eq!(tsr_normalization_class(code),expected,"class U+{code:X}");
+  let rows=&TSR_NORMALIZATION_DECOMPOSE[tsr_normalization_page(code,TSR_NORMALIZATION_DECOMPOSE_PAGES)];
+  let actual=rows.binary_search_by_key(&code,|row|row.0).ok().map(|index|rows[index]);
+  let expected=TSR_NORMALIZATION_DECOMPOSE.binary_search_by_key(&code,|row|row.0).ok().map(|index|TSR_NORMALIZATION_DECOMPOSE[index]);
+  assert_eq!(actual,expected,"decomposition U+{code:X}");
+ }
+ for text in ["😀","Ω","ᄀ","क"] {
+  for form in ["NFC","NFD","NFKC","NFKD"] {
+   let before=ALLOCS.load(Relaxed);let live=LIVE.load(Relaxed);
+   let result=tsr_string_normalize(text,Some(form),"identity");
+   assert_eq!(ALLOCS.load(Relaxed)-before,2,"only scalar storage and owned output: {text} {form}");
+   assert_eq!(result.as_ref(),text);assert!(matches!(result,String::Owned(_)));
+   drop(result);assert_eq!(LIVE.load(Relaxed),live);
+  }
+ }
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.0.join("normalization-pages.rs");
+ std::fs::write(&path,emitted.replace("fn main()","fn source_main()")+allocator+harness).unwrap();
+ for level in ["0","3"] {
+  let executable=directory.0.join(format!("normalization-pages-{level}"));
+  support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-D","unused_assignments","-C",&format!("opt-level={level}"),"-C","overflow-checks=on"]).arg(&path).arg("-o").arg(&executable),60));
+  let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+ }
+}
+
+#[test]
+fn normalization_expanded_decompositions_match_raw_unicode_mappings() {
+ let source=support::format_round_trip("function normal(text:string):string{return text.normalize();}function main(){}");
+ let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();assert!(!emitted.contains("unsafe"));
+ let allocator=include_str!("../../../benchmarks/runtime/allocation-driver.rs").split("fn main()").next().unwrap();
+ let data=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/unicode-normalization/data/UnicodeData.txt");
+ let harness=r#"
+fn reference_decompose(code:u32,compatibility:bool,mappings:&std::collections::BTreeMap<u32,(bool,Vec<u32>)>,output:&mut Vec<u32>){
+ if (0xAC00..0xAC00+11172).contains(&code){
+  let syllable=code-0xAC00;output.push(0x1100+syllable/588);output.push(0x1161+syllable%588/28);
+  if syllable%28!=0{output.push(0x11A7+syllable%28);}return;
+ }
+ if let Some((compatible,values))=mappings.get(&code){
+  if !*compatible||compatibility{for &value in values{reference_decompose(value,compatibility,mappings,output);}return;}
+ }
+ output.push(code);
+}
+fn main(){
+ let mut mappings=std::collections::BTreeMap::new();
+ for line in include_str!(DATA_PATH).lines(){
+  let fields=line.split(';').collect::<Vec<_>>();let code=u32::from_str_radix(fields[0],16).unwrap();
+  let mut values=fields[5].split_whitespace().peekable();let compatible=values.peek().is_some_and(|value|value.starts_with('<'));
+  if compatible{values.next();}let values=values.map(|value|u32::from_str_radix(value,16).unwrap()).collect::<Vec<_>>();
+  if !values.is_empty(){mappings.insert(code,(compatible,values));}
+ }
+ assert_eq!(mappings.len(),5913);assert_eq!(TSR_NORMALIZATION_COMPATIBILITY.len(),16);
+ for &(code,kind,_,_) in TSR_NORMALIZATION_DECOMPOSE{
+  if kind>=2{assert_eq!(TSR_NORMALIZATION_COMPATIBILITY[usize::from(kind-2)].0,code);}
+ }
+ let mut count=0;
+ for code in 0..=0x10ffff{
+  if char::from_u32(code).is_none(){continue;}
+  for compatibility in [false,true]{
+   let mut expected=Vec::new();reference_decompose(code,compatibility,&mappings,&mut expected);
+   let mut actual=Vec::new();tsr_normalization_decompose(code,compatibility,&mut actual);
+   assert_eq!(actual.len(),expected.len(),"U+{code:X} compatibility={compatibility}");
+   for (packed,expected) in actual.into_iter().zip(expected){
+    assert_eq!(packed&TSR_NORMALIZATION_SCALAR_MASK,expected,"U+{code:X} compatibility={compatibility}");
+    assert_eq!(packed>>21,u32::from(tsr_normalization_class(expected)),"class U+{code:X} compatibility={compatibility}");
+   }
+   count+=1;
+  }
+ }
+ assert_eq!(count,2224128);
+ for text in ["Å","ﬁ","\u{385}","\u{1e9b}","\u{fdfa}","각"]{
+  for form in ["NFC","NFD","NFKC","NFKD"]{
+   let before=ALLOCS.load(Relaxed);let live=LIVE.load(Relaxed);
+   let result=tsr_string_normalize(text,Some(form),"expanded mappings");
+   assert_eq!(ALLOCS.load(Relaxed)-before,2,"only scalar storage and owned output: {text} {form}");
+   assert!(matches!(result,String::Owned(_)));drop(result);assert_eq!(LIVE.load(Relaxed),live);
+  }
+ }
+}
+"#.replace("DATA_PATH",&format!("{:?}",data));
+ let directory=support::TempDirectory::new();let path=directory.0.join("expanded-normalization.rs");
+ std::fs::write(&path,emitted.replace("fn main()","fn source_main()")+allocator+&harness).unwrap();
+ for level in ["0","3"]{
+  let executable=directory.0.join(format!("expanded-normalization-{level}"));
+  support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-D","unused_assignments","-C",&format!("opt-level={level}"),"-C","overflow-checks=on"]).arg(&path).arg("-o").arg(&executable),60));
+  let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+ }
+}
+
+#[test]
+fn normalization_reserves_exact_utf8_output_without_growth() {
+ let source=support::format_round_trip("function normal(text:string):string{return text.normalize();}function main(){}");
+ let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();assert!(!emitted.contains("unsafe"));
+ let allocator=include_str!("../../../benchmarks/runtime/allocation-driver.rs").split("fn main()").next().unwrap();
+ let harness=r#"
+fn main(){
+ for code in [0,0x7f,0x80,0x7ff,0x800,0xd7ff,0xe000,0xffff,0x10000,0x10ffff]{
+  let text=char::from_u32(code).unwrap().to_string();
+  for form in ["NFC","NFD","NFKC","NFKD"]{
+   let before=REALLOCS.load(Relaxed);let live=LIVE.load(Relaxed);
+   let result=tsr_string_normalize(&text,Some(form),"UTF-8 boundary");
+   assert_eq!(REALLOCS.load(Relaxed),before,"no output or scalar growth for U+{code:X}");
+   assert_eq!(result.as_ref(),text);
+   if let String::Owned(ref output)=result{assert_eq!(output.capacity(),output.len());}else{panic!("normalization must own its output");}
+   drop(result);assert_eq!(LIVE.load(Relaxed),live);
+  }
+ }
+ for text in ["".to_owned(),"ascii".to_owned(),"e\u{301}Åﬁ①é😀".repeat(128),"\u{fdfa}".repeat(128),"각".repeat(128),"\u{315}\u{301}\u{300}\u{323}".repeat(1024)]{
+  for form in ["NFC","NFD","NFKC","NFKD"]{
+   let live=LIVE.load(Relaxed);let result=tsr_string_normalize(&text,Some(form),"output reservation");
+   if let String::Owned(ref output)=result{assert_eq!(output.capacity(),output.len());}else{panic!("normalization must own its output");}
+   drop(result);assert_eq!(LIVE.load(Relaxed),live);
+  }
+ }
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.0.join("normalization-output.rs");
+ std::fs::write(&path,emitted.replace("fn main()","fn source_main()")+allocator+harness).unwrap();
+ for level in ["0","3"]{
+  let executable=directory.0.join(format!("normalization-output-{level}"));
+  support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-C",&format!("opt-level={level}"),"-C","overflow-checks=on"]).arg(&path).arg("-o").arg(&executable),60));
+  let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+ }
 }

@@ -2,7 +2,7 @@ import {assertModuleStateSource} from './module-state-contract.mjs';
 import {assertSchemaSource} from './schema-contract.mjs';
 import {assertDataImportSource,prepareDataImport} from './typed-data-imports.mjs';
 import {assertNativeJsonSource} from './native-json-contract.mjs';
-import {prepareNativeDependencies} from './native-dependencies.mjs';
+import {prepareNativeDependencies,prepareReferenceDependencies} from './native-dependencies.mjs';
 import {assertMonotonicTimeSource} from './monotonic-time-contract.mjs';
 import {environmentFor,assertEnvironmentSource} from './environment-contract.mjs';
 import {assertCollectionSource} from './collections-contract.mjs';
@@ -198,9 +198,9 @@ const tsnode = [process.execPath, path.join(here, 'node_modules/ts-node/dist/bin
 const deno = path.join(here, 'node_modules/.bin/deno');
 const compiler = compilerExecutable(root, here, env);
 const rustc = ['rustup', 'run', pins.rust, 'rustc'];
-function run(command, args = [], childEnv = env) {
+function run(command, args = [], childEnv = env, timeout = 120000) {
  const start = performance.now();
- const child = spawnSync(command[0], [...command.slice(1), ...args.map(String)], {cwd: here, env: childEnv, encoding: 'utf8', timeout: 120000, maxBuffer: 16 * 1024 * 1024});
+ const child = spawnSync(command[0], [...command.slice(1), ...args.map(String)], {cwd: here, env: childEnv, encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024});
  const ms = performance.now() - start;
  if (child.error || child.status !== 0) throw new Error(`${command.join(' ')} failed: ${child.error ?? (child.stderr + child.stdout)}`);
  return {ms, stdout: child.stdout.trim()};
@@ -218,7 +218,7 @@ for (const [tool, pinned] of Object.entries(pins)) {
  const actual = tool === 'rust' ? versions.rust.split(' ')[1] : tool === 'deno' ? versions.deno.split(' ')[1] : versions[tool];
  if (actual !== pinned) throw new Error(`${tool} version ${actual}; expected ${pinned}. Update pins deliberately and record a new baseline.`);
 }
-run(['cargo'], ['build', '--release', '--offline', '--locked', '--quiet', '--manifest-path', path.join(root, 'Cargo.toml')]);
+run(['cargo'], ['build', '--release', '--offline', '--locked', '--quiet', '--manifest-path', path.join(root, 'Cargo.toml')], env, 30 * 60 * 1000);
 const hash = content => crypto.createHash('sha256').update(content).digest('hex');
 const driverTS = fs.readFileSync(path.join(here, 'driver.ts'), 'utf8');
 const driverRS = fs.readFileSync(path.join(here, 'driver.rs'), 'utf8');
@@ -408,11 +408,13 @@ function prepare(w) {
  const tsCommand = [...tsc, '--project', path.join(build, `${w.id}.json`)];
  // Prime normal filesystem/tool caches. Compiler bootstrap and downloads are excluded.
  run(nativeCommand); run(tsCommand);
+ let referenceDependencies={args:[],evidence:null};
  const handSourcePath = path.join(here, 'parity', `${w.id}.rs`);
  if (plan.engineIDs.includes('rust-hand') && fs.existsSync(handSourcePath)) {
+  referenceDependencies=prepareReferenceDependencies({workload:w,rustVersion:pins.rust,targetDirectory:path.dirname(path.dirname(compiler)),env});
   const hand = fs.readFileSync(handSourcePath, 'utf8');
   fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source, reference:true}) + '\n' + allocatorHeader);
-  run([...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
+  run([...rustc, ...nativeDependencies.args, ...referenceDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
   handSources.set(w.id, hash(hand));
  }
  if(isApproximate(w)){
@@ -448,7 +450,7 @@ function prepare(w) {
   const durations = []; for (let i = 0; i < manifest.compileSamples; i++) durations.push(run(phase.command).ms);
   compilation.push({workload: w.id, ...phase, durations});
  }
- sources.push({...(nativeDependencies.evidence?{nativeDependencies:nativeDependencies.evidence}:{}),...(isCopying(w)?{copyingABI:reductionABI}:isRange(w)?{rangeABI:reductionABI}:isHigher(w)?{higherABI:reductionABI}:isDeclared(w)?{declaredABI:reductionABI}:isConcat(w)?{concatABI:reductionABI}:isReduction(w)?{reductionABI}:reductionABI?{workloadABI:reductionABI}:{}),id: w.id, tsrSha256: hash(source), tsSha256: hash(ts), emittedSha256: hash(emitted), instrumentedSha256: hash(instrumented),...(isApproximate(w)?{approximateCompilation:{nativeCommand,tsCommand,instrumentedTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.ts'))),nativeBinarySha256:hash(fs.readFileSync(path.join(build,w.id))),compiledTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.js')))}}:{})});
+ sources.push({...(referenceDependencies.evidence?{referenceDependencies:referenceDependencies.evidence}:{}),...(nativeDependencies.evidence?{nativeDependencies:nativeDependencies.evidence}:{}),...(isCopying(w)?{copyingABI:reductionABI}:isRange(w)?{rangeABI:reductionABI}:isHigher(w)?{higherABI:reductionABI}:isDeclared(w)?{declaredABI:reductionABI}:isConcat(w)?{concatABI:reductionABI}:isReduction(w)?{reductionABI}:reductionABI?{workloadABI:reductionABI}:{}),id: w.id, tsrSha256: hash(source), tsSha256: hash(ts), emittedSha256: hash(emitted), instrumentedSha256: hash(instrumented),...(isApproximate(w)?{approximateCompilation:{nativeCommand,tsCommand,instrumentedTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.ts'))),nativeBinarySha256:hash(fs.readFileSync(path.join(build,w.id))),compiledTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.js')))}}:{})});
 }
 function execute(engine, iterations, seed, warmups, samples, inputText, workload) {
  if(workload?.family==='native-files'||['native_jsonl_typed','native_jsonl_borrowed','native_jsonl_writer','native_jsonl_borrowed_writer'].includes(workload?.id))inputText=nativeFileInput(workload);

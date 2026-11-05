@@ -44,9 +44,9 @@ impl Emitter<'_> {
         let right_loop=format!("for set_key in set_other.iter(){{set_result.add({right_copy});}}");
         let action=match method{
             SetMethod::Union=>format!("{left_loop}{right_loop}"),
-            SetMethod::Difference=>format!("for set_key in set_receiver.iter(){{if !set_other.has_with(set_key,set_key.tsr_hash(),&set_forward){{set_result.add({left_copy});}}}}"),
-            SetMethod::SymmetricDifference=>format!("for set_key in set_receiver.iter(){{if !set_other.has_with(set_key,set_key.tsr_hash(),&set_forward){{set_result.add({left_copy});}}}}for set_key in set_other.iter(){{if !set_receiver.has_with(set_key,set_key.tsr_hash(),&set_reverse){{set_result.add({right_copy});}}}}"),
-            SetMethod::Intersection=>format!("if set_receiver.len()<=set_other.len(){{for set_key in set_receiver.iter(){{if set_other.has_with(set_key,set_key.tsr_hash(),&set_forward){{set_result.add({left_copy});}}}}}}else{{for other_key in set_other.iter(){{for set_key in set_receiver.matches_with(other_key,other_key.tsr_hash(),&set_reverse){{set_result.add({left_copy});}}}}}}"),
+            SetMethod::Difference=>format!("for set_key in set_receiver.iter(){{if !set_other.has_with(set_key,&set_forward){{set_result.add({left_copy});}}}}"),
+            SetMethod::SymmetricDifference=>format!("for set_key in set_receiver.iter(){{if !set_other.has_with(set_key,&set_forward){{set_result.add({left_copy});}}}}for set_key in set_other.iter(){{if !set_receiver.has_with(set_key,&set_reverse){{set_result.add({right_copy});}}}}"),
+            SetMethod::Intersection=>format!("if set_receiver.len()<=set_other.len(){{for set_key in set_receiver.iter(){{if set_other.has_with(set_key,&set_forward){{set_result.add({left_copy});}}}}}}else{{for other_key in set_other.iter(){{for set_key in set_receiver.matches_with(other_key,&set_reverse){{set_result.add({left_copy});}}}}}}"),
             _=>unreachable!(),
         };
         format!("{{let set_receiver={receiver};let set_other={argument};let set_forward=|set_left:&{},set_right:&{}|{{{forward}}};let set_reverse=|set_left:&{},set_right:&{}|{{{reverse}}};let mut set_result={}::new();{action}set_result}}",self.native_type(a),self.native_type(b),self.native_type(b),self.native_type(a),self.native_type(expression.ty.unwrap()))
@@ -62,7 +62,7 @@ impl Emitter<'_> {
         let right=self.program.records[right].set_definition.as_ref().unwrap().key;
         let (iterated,queried,a,b)=if method==SetMethod::IsSupersetOf{("set_other","set_receiver",right,left)}else{("set_receiver","set_other",left,right)};
         let comparison=self.set_cross_key_same(a,b);
-        let operation=if method==SetMethod::IsDisjointFrom{"all(|key| !set_other.has_with(key,key.tsr_hash(),&set_compare))"}else{"all(|key| set_query.has_with(key,key.tsr_hash(),&set_compare))"};
+        let operation=if method==SetMethod::IsDisjointFrom{"all(|key| !set_other.has_with(key,&set_compare))"}else{"all(|key| set_query.has_with(key,&set_compare))"};
         format!("{{let set_receiver={receiver};let set_other={argument};let set_compare=|set_left:&{},set_right:&{}|{{{comparison}}};let set_query={queried};{iterated}.iter().{operation}}}",self.native_type(a),self.native_type(b))
     }
 

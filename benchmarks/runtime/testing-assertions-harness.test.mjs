@@ -1,3 +1,4 @@
+import {withCurrentSourceFingerprints} from './manifest-metadata-contract.mjs';
 import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,7 +13,7 @@ test('assertion observer preserves independent hand cells',()=>{
  assert.throws(()=>expectedTestingAssertionChecksum(-1,3));
 });
 test('assertion workload uses real APIs and exact current sources',()=>{
- const [row]=JSON.parse(fs.readFileSync(new URL('testing-assertions-manifest-entries.json',import.meta.url)));
+ const [row]=withCurrentSourceFingerprints(JSON.parse(fs.readFileSync(new URL('testing-assertions-manifest-entries.json',import.meta.url))));
  for(const [engine,extension] of [['native','tsr'],['typescript','ts']]){
   const source=fs.readFileSync(new URL('workloads/'+row.id+'.'+extension,import.meta.url),'utf8');
   assert.doesNotThrow(()=>assertTestingAssertionSource(source,row,engine));

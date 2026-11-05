@@ -35,11 +35,25 @@ test('exported JSON dependencies link a separately instrumented native program o
   const dependencies=prepareNativeDependencies(options);
   assert.equal(dependencies.evidence.libraries.length,2);
   assert.ok(dependencies.evidence.lockSha256);
+  const repeated=prepareNativeDependencies(options);
+  assert.deepEqual(repeated.evidence.libraries,dependencies.evidence.libraries);
+  const occupied=path.join(root,'package-native-dependencies');fs.mkdirSync(occupied);
+  fs.writeFileSync(path.join(occupied,'owner'),'keep');
+  assert.throws(()=>prepareNativeDependencies(options),/EEXIST/);
+  assert.equal(fs.readFileSync(path.join(occupied,'owner'),'utf8'),'keep');
+  fs.rmSync(occupied,{recursive:true});
   const instrumented=path.join(root,'probe.rs'),binary=path.join(root,'probe');
   fs.writeFileSync(instrumented,emitted.replace('fn main()','fn source_main()')+'\nfn main(){source_main();println!("instrumented");}\n');
   run('rustup',['run','1.96.1','rustc','--edition=2024','-A','warnings','-C','overflow-checks=on',...dependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'null\ninstrumented\n');
   assert.throws(()=>prepareNativeDependencies({...options,emitted:emitted+'\n// changed'}),/differs/);
+  fs.writeFileSync(source,`import {readFile} from 'std:fs';function main(){match(readFile('missing-dependency-test-file')){Ok(bytes)=>{throw 'unexpected file';},Err(error)=>{console.log(error.code);}}}`);
+  const fileEmitted=run(process.env.TSRUST,['emit',source]);assert.ok(!fileEmitted.includes('unsafe'));
+  const fileDependencies=prepareNativeDependencies({...options,emitted:fileEmitted});
+  assert.deepEqual(fileDependencies.evidence.libraries.map(library=>library.name),['nix']);
+  fs.writeFileSync(instrumented,fileEmitted);
+  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...fileDependencies.args,instrumented,'-o',binary]);
+  assert.equal(run(binary,[]),'not-found\n');
   assert.ok(!fs.readdirSync(root).some(name=>name.startsWith('package-')));
  } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
@@ -47,4 +61,12 @@ test('exported JSON dependencies link a separately instrumented native program o
 test('JSON dependency discovery tolerates adjacent generated modules',()=>{
  for(const source of ['mod tsrust_native_json {', '}mod tsrust_native_json {', '}  mod tsrust_native_json{'])assert.equal(needsJsonDependencies(source),true);
  for(const source of ['fn main() {}', '// mod tsrust_native_json {', 'mod other {'])assert.equal(needsJsonDependencies(source),false);
+});
+
+test('reference dependency selection leaves ordinary/native preparation untouched',async()=>{
+ const {prepareReferenceDependencies}=await import('./native-dependencies.mjs');
+ assert.deepEqual(prepareReferenceDependencies({workload:{id:'native_json_parse'}}),{args:[],evidence:null});
+ const target='/target';const artifact=JSON.stringify({reason:'compiler-artifact',target:{name:'unicode_normalization',kind:['lib']},filenames:['/target/release/deps/libunicode_normalization-a.rlib']});
+ assert.deepEqual(dependencyArtifacts(artifact,target,['unicode_normalization']),{unicode_normalization:'/target/release/deps/libunicode_normalization-a.rlib'});
+ assert.throws(()=>dependencyArtifacts(artifact,target,['rand']),/Missing.*rand/);
 });

@@ -39,6 +39,7 @@ type String=Cow<'static,str>;
 #[derive(Clone)] struct TsrUndefined;
 {}
 {}
+{}
 struct Owner(std::rc::Rc<std::cell::Cell<usize>>);
 impl Drop for Owner{{fn drop(&mut self){{self.0.set(self.0.get()+1);}}}}
 fn main(){{
@@ -51,17 +52,93 @@ fn main(){{
  let mut numbers:TsrMap<f64,i64>=TsrMap::new();numbers.set(f64::NAN,1i64);numbers.set(f64::NAN,2);numbers.set(-0.0,3);numbers.set(0.0,4);
  assert_eq!(numbers.len(),2);assert_eq!(numbers.get(f64::NAN),Some(&2));assert_eq!(numbers.get(-0.0),Some(&4));
  assert!(!numbers.iter().find(|(k,_)|**k==0.0).unwrap().0.is_sign_negative());
+ let numbers:TsrMap<f64,u64>=TsrMap::from_mapped(numbers,|value|value as u64);
+ assert_eq!(numbers.len(),2);assert_eq!(numbers.get(f64::NAN),Some(&2));assert_eq!(numbers.get(-0.0),Some(&4));
+ assert!(!numbers.iter().find(|(k,_)|**k==0.0).unwrap().0.is_sign_negative());
  let dropped=std::rc::Rc::new(std::cell::Cell::new(0));
  let mut owners:TsrMap<i64,Owner>=TsrMap::new();owners.set(1i64,Owner(dropped.clone()));owners.set(1,Owner(dropped.clone()));
  assert_eq!(dropped.get(),1);let read=owners.get(1).unwrap();assert_eq!(read.0.get(),1);
  assert!(owners.delete(1));assert_eq!(dropped.get(),2);
  owners.set(2,Owner(dropped.clone()));owners.clear();assert_eq!(dropped.get(),3);
+ remap_witness();
 }}
-"#,runtime_sets::SET_RUNTIME,runtime_maps::MAP_RUNTIME);
- let path=directory.0.join("runtime.rs");std::fs::write(&path,source).unwrap();
- let binary=directory.0.join("runtime");
- support::success(&support::run(support::rustc().arg(path).arg("-o").arg(&binary),60));
- support::success(&support::run(std::process::Command::new(binary).args(std::iter::empty::<&str>()),60));
+"#,runtime_sets::SET_RUNTIME,"{MAP_FIRST}",runtime_maps::MAP_INLINE_RUNTIME);
+ let source=source+r#"
+struct WrappedOwner(Owner);
+fn remap_witness(){
+ for count in [0_i64,1,8,9,17,64]{
+  let mut values:TsrMap<i64,i64>=TsrMap::new();for key in 0..count{values.set(key,key*10);}
+  for key in 0..count{if key%3==1{assert!(values.delete(key));}}
+  let expected=values.iter().map(|(key,_)|*key).collect::<Vec<_>>();let pointer=values.slots.as_ptr() as usize;let mut calls=0;
+  let mut mapped:TsrMap<i64,u64>=TsrMap::from_mapped(values,|value|{calls+=1;(value+1) as u64});
+  assert_eq!(calls,expected.len());assert_eq!(mapped.len(),expected.len());assert_eq!(mapped.slots.len()+usize::from(mapped.first.as_ref().is_some()),expected.len());
+  if count>1 && count<=TSR_SMALL_SLOTS as i64{assert_eq!(mapped.slots.as_ptr() as usize,pointer);}
+  assert_eq!(mapped.iter().map(|(key,_)|*key).collect::<Vec<_>>(),expected);
+  for key in expected{assert_eq!(mapped.get(key),Some(&((key*10+1) as u64)));}
+  mapped.set(count+3,999);assert_eq!(mapped.get(count+3),Some(&999));
+  mapped.set(0,999);assert!(mapped.delete(0));mapped.set(0,1000);assert_eq!(*mapped.iter().last().unwrap().0,0);
+  mapped.clear();assert_eq!(mapped.len(),0);mapped.set(99,12);assert_eq!(mapped.get(99),Some(&12));
+ }
+ for count in [2_i64,17]{
+  let dropped=std::rc::Rc::new(std::cell::Cell::new(0));
+  let mut values:TsrMap<i64,Owner>=TsrMap::new();
+  for key in 0..count{values.set(key,Owner(dropped.clone()));}
+  for key in 0..count-1{assert!(values.delete(key));}
+  assert_eq!(dropped.get(),count as usize-1);let mut calls=0;
+  let mapped:TsrMap<i64,WrappedOwner>=TsrMap::from_mapped(values,|value|{calls+=1;WrappedOwner(value)});
+  assert_eq!(calls,1);assert_eq!(mapped.len(),1);
+  assert_eq!(mapped.iter().map(|(key,_)|*key).collect::<Vec<_>>(),vec![count-1]);
+  assert!(mapped.get(count-1).is_some());drop(mapped);assert_eq!(dropped.get(),count as usize);
+ }
+ let values:TsrMap<i64,i64>=TsrMap::from_values([(1,11),(2,22)]);
+ let wider:TsrMap<i64,[i64;8]>=TsrMap::from_mapped(values,|value|[value;8]);assert_eq!(wider.get(2),Some(&[22;8]));
+ let narrower:TsrMap<i64,i64>=TsrMap::from_mapped(wider,|value|value[7]);assert_eq!(narrower.get(1),Some(&11));
+ let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));
+ for count in [2,3,17]{
+  let dropped=std::rc::Rc::new(std::cell::Cell::new(0));let mut values:TsrMap<i64,Owner>=TsrMap::new();
+  for key in 0..count{values.set(key,Owner(dropped.clone()));}assert!(values.delete(0));let mut calls=0;let fail_at=if count==2{1}else{2};
+  let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
+   let mapped:TsrMap<i64,WrappedOwner>=TsrMap::from_mapped(values,|value|{calls+=1;if calls==fail_at{panic!("conversion");}WrappedOwner(value)});drop(mapped);
+  }));assert!(result.is_err());assert_eq!(dropped.get(),count as usize);
+ }
+ std::panic::set_hook(hook);
+}
+"#;
+ let source=source+r#"
+fn singleton_storage_witness(){
+ let mut values:TsrMap<i64,i64>=TsrMap::new();values.set(7,11);
+ assert_eq!(values.slots.capacity()==0,TSR_MAP_INLINE_FIRST);
+ assert_eq!(values.get_mut(7).map(|value|{*value+=2;*value}),Some(13));
+ let mut values:TsrMap<i64,u64>=TsrMap::from_mapped(values,|value|value as u64);
+ assert_eq!(values.get(7),Some(&13));
+ assert_eq!(values.clone().into_value(7),Some(13));
+ assert!(values.delete(7));assert!(!values.delete(7));
+ values.set(9,19);values.set(2,22);
+ assert_eq!(values.iter().map(|(key,_)|*key).collect::<Vec<_>>(),vec![9,2]);
+ assert_eq!(values.slots.iter().flatten().count(),2);
+ values.clear();values.set(3,33);assert_eq!(values.into_value(3),Some(33));
+ let mut inline:TsrMap<i64,i64,(i64,i64),Option<(i64,i64)>>=TsrMap::new();inline.set(5,55);
+ let plain:TsrMap<i64,u64,(i64,u64),TsrMapNoFirst<(i64,u64)>>=TsrMap::from_mapped(inline,|v|v as u64);
+ assert_eq!(plain.get(5),Some(&55));assert_eq!(plain.slots.len(),1);
+ let inline:TsrMap<i64,i64,(i64,i64),Option<(i64,i64)>>=TsrMap::from_mapped(plain,|v|v as i64);
+ assert_eq!(inline.get(5),Some(&55));assert_eq!(inline.slots.capacity(),0);
+ let dropped=std::rc::Rc::new(std::cell::Cell::new(0));
+ let mut owners:TsrMap<i64,Owner>=TsrMap::new();owners.set(1,Owner(dropped.clone()));
+ let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));
+ let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
+  let _:TsrMap<i64,WrappedOwner>=TsrMap::from_mapped(owners,|_|panic!("singleton conversion"));
+ }));std::panic::set_hook(hook);assert!(result.is_err());assert_eq!(dropped.get(),1);
+}
+"#;
+ let source=source.replace(" remap_witness();"," remap_witness();singleton_storage_witness();");
+ let path=directory.0.join("runtime.rs");let binary=directory.0.join("runtime");
+ for first in [runtime_maps::MAP_INLINE_FIRST,"const TSR_MAP_INLINE_FIRST:bool=false;type TsrMapFirst<P>=TsrMapNoFirst<P>;"]{
+  std::fs::write(&path,source.replace("{MAP_FIRST}",first)).unwrap();
+  for level in ["0","3"]{
+   support::success(&support::run(support::rustc().arg(&path).args(["-C",&format!("opt-level={level}")]).arg("-o").arg(&binary),60));
+   support::success(&support::run(std::process::Command::new(&binary).args(std::iter::empty::<&str>()),60));
+  }
+ }
 }
 
 #[test]
@@ -122,4 +199,25 @@ fn small_and_indexed_collections_agree_across_the_switch() {
 }"#;
     support::execute(&support::format_round_trip(source), "7:7:100:6:true:false:170 8:8:100:7:true:false:177 9:9:100:8:true:false:185 10:10:100:9:true:false:194 20:20:100:19:true:false:339 cleared:1:9:false sets:2,4|2,4|1,3|1,2,5|false|true|true
 ", None);
+}
+
+#[test]
+fn inline_map_entries_keep_recursive_and_owned_capture_layouts_finite(){
+ for (source,inline,expected) in [
+  ("type Holder={run:ReadOnly<Function<int>>;};function main(){const source=[7];const map=new Map<string,Holder>();map.set('one',{run:():int=>source[0]});const plain=new Map<string,int>();plain.set('n',2);console.log(map.get('one')?.run()??0,plain.size);}",true,"7 1\n"),
+  ("type Node={children:Map<string,Node>;};function main(){const root:Node={children:new Map<string,Node>()};root.children.set('child',{children:new Map<string,Node>()});console.log(root.children.size);}",false,"1\n"),
+  ("type Node={next:Map<string,Node>|undefined;};function main(){const root:Node={next:new Map<string,Node>()};console.log(root.next?.size??-1);}",false,"0\n"),
+  ("function main(){const inner=new Map<string,int>();inner.set('one',7);const outer=new Map<string,Map<string,int>>();outer.set('child',inner);console.log(outer.get('child')?.size??-1);}",false,"1\n"),
+  ("type Handler={run:Once<Function<int>>;};function wrap(values:Map<string,Handler>):Handler{return {run:():int=>values.size};}function main(){const children=new Map<string,Handler>();children.set('child',wrap(new Map<string,Handler>()));const handler=wrap(children);console.log(handler.run());}",false,"1\n"),
+ ] {
+  let source=support::format_round_trip(source);let checked=tsrust_compiler::check(&source).unwrap();let rust=checked.emit_rust();
+  assert_eq!(rust.contains("const TSR_MAP_INLINE_FIRST:bool=true;"),inline);
+  if inline{assert!(rust.lines().any(|line|line.starts_with("type Map") && line.contains("TsrMapNoFirst")),"ordinary Maps keep Vec storage alongside scoped Maps");}else{assert!(rust.contains(runtime_maps::MAP_RUNTIME),"fallback programs retain the original Vec runtime");}
+  let directory=support::TempDirectory::new();let path=directory.0.join("map-layout.rs");std::fs::write(&path,rust).unwrap();
+  for level in ["0","3"] {
+   let binary=directory.0.join("map-layout");
+   support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+   let output=support::run(std::process::Command::new(&binary).args(std::iter::empty::<&str>()),60);support::success(&output);assert_eq!(String::from_utf8(output.stdout).unwrap(),expected);
+  }
+ }
 }
