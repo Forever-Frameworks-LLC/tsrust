@@ -97,7 +97,8 @@ impl Analyzer {
                     params[0].ty = crate::syntax::ParameterAnnotation::Named(Box::new(annotation));
                 }
             }
-            let actual = self.expression(context, &mut arguments[callback_index], Mode::Consume, &active, None)?;
+            let expected=self.expression_type_hint(context,&arguments[callback_index]).filter(|ty|matches!(ty,Type::Closure(_)));
+            let actual = self.expression(context, &mut arguments[callback_index], Mode::Consume, &active, expected)?;
             let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete callback.", arguments[callback_index].span)); };
             let closure = &self.closures[origin];
             if closure.parameters.len() > 1 || closure.parameters.first().is_some_and(|&id| closure.function.bindings[id].ty != context_type) || closure.program_scoped || !closure.program_captures.is_empty() {

@@ -10,7 +10,7 @@ fn documented_task_timer_channel_examples_execute(){
 }
 #[test]
 fn all_preserves_order_unit_arrays_and_original_typed_failure(){
- execute("import {all,yield} from 'std:futures';async function value(n:int):Task<int>{await yield();return n;}async function unit():Task<void>{}async function fail():Task<int>{throw 'cause';}async function main():Task<void>{const values=await all([value(2),value(1).start()]);console.log(values[0],values[1]);const units:void[]=await all([unit(),unit().start()]);console.log(units.length,(await all([])).length);try{await all([value(3),fail()]);}catch(error){console.log(error.code,error.cause);}}","2 1\n2 0\nworker cause\n");
+ execute("import {all,yield} from 'std:futures';async function value(n:int):Task<int>{await yield();return n;}async function unit():Task<void>{}async function fail():Task<int>{throw 'cause';}async function main():Task<void>{const values=await all([value(2),value(1).start()]);console.log(values[0],values[1]);const units:void[]=await all([unit(),unit().start()]);console.log(units.length,(await all([])).length);try{await all([value(3),fail()]);}catch(error){if(typeof error.cause==='string'){console.log(error.code,error.cause);}else{throw 'unexpected failure';}}}","2 1\n2 0\nworker cause\n");
 }
 #[test]
 fn timer_constructor_context_and_range_are_checked_failures(){
@@ -45,4 +45,16 @@ fn cancellation_dependency_is_optional_and_async_export_builds_offline(){
  assert!(relocated.join("vendor/tokio-util-0.7.20/LICENSE").is_file());let file=relocated.join("src/main.rs");let source=std::fs::read_to_string(&file).unwrap();assert!(!source.contains("unsafe"));std::fs::write(file,format!("#![forbid(unsafe_code)]\n{source}")).unwrap();
  let target=std::path::PathBuf::from(std::env::var_os("CARGO_TARGET_DIR").expect("shared target"));assert!(target.is_absolute());let home=directory.0.join("empty-home");std::fs::create_dir(&home).unwrap();
  for release in [false,true]{let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",&home).env("CARGO_TARGET_DIR",&target).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1");if release{command.arg("--release");}support::success(&support::run(&mut command,180));let result=support::run(&mut std::process::Command::new(target.join(if release{"release"}else{"debug"}).join(format!("program{}",std::env::consts::EXE_SUFFIX))),30);support::success(&result);assert_eq!(result.stdout,b"7 true\n");}
+}
+
+#[test]
+fn task_async_moves_owned_captures_without_making_the_pool_transferable(){
+ execute("import {ThreadPool} from 'std:threads';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:1});const payload='owned'.repeat(2);const task=pool.taskAsync(():int=>payload.length);console.log(await task.start());unwrap(pool.shutdown());}","10\n");
+ let directory=support::TempDirectory::new();let source="import {ThreadPool} from 'std:threads';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:1});await pool.taskAsync(():int=>pool.stats().outstanding);}";
+ let output=support::run(support::cli().arg("check").arg(directory.source(source)),30);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("thread-transfer"),"{:?}",output);
+}
+
+#[test]
+fn synchronous_try_operations_prepare_channel_error_types(){
+ execute("import {Channel} from 'std:futures';function main(){const channel=new Channel<string>(1);unwrap(channel.trySend('owned'));console.log(unwrap(channel.tryReceive()));try{unwrap(channel.tryReceive());}catch(error){console.log(error.code);}}","owned\nempty\n");
 }

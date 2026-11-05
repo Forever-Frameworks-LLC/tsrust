@@ -101,8 +101,8 @@ impl Emitter<'_>{
             Some(NativeTypeId::Interval)=>{
                 let period=self.expr(fun,&args[0],Mode::Read);
                 let policy=args.get(1).map(|arg|self.future_policy(arg.ty.unwrap(),&self.expr(fun,arg,Mode::Consume))).unwrap_or_else(||"\"burst\"".into());
-                let range=self.runtime_failure_exit("RangeError","range","Interval period must be positive and fit the target timer deadline.",expr.span).expect("checked interval range error");
-                let runtime=self.runtime_failure_exit("RuntimeError","runtime","Interval requires an active async runtime.",expr.span).expect("checked interval runtime error");
+                let range=self.runtime_failure_exit("RangeError","range","Interval period must be positive and fit the target timer deadline.",expr.span).unwrap_or_else(||"panic!(\"Interval period must be positive and fit the target timer deadline.\")".into());
+                let runtime=self.runtime_failure_exit("RuntimeError","runtime","Interval requires an active async runtime.",expr.span).unwrap_or_else(||"panic!(\"Interval requires an active async runtime.\")".into());
                 format!("match tsrust_native_futures::Interval::new({period},{policy}){{Ok(interval)=>interval,Err(\"runtime\")=>{{{runtime}}},Err(_)=>{{{range}}}}}")
             },_=>return None,
         };

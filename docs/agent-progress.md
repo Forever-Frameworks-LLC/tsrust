@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `cb7d5a08`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
+`codex/stdlib-0.2.0`, source checkpoint `72ad2f9f`. B12 preparation1379a46e and B06 integration3de00c52 built; repair938f57b2
 built successfully. Effect and native fixture repairs are committed; only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
@@ -41,6 +41,38 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
+**B06 repair build71699 passed:** exact72ad2f9f, terminal build-finished:true,
+316.058s/3,785,379KiB. `/tmp/tsrust-b06-public-repair-{artifacts.jsonl,build.log}`.
+Driver37731 passed B12 final native ownership O0/O3 (32.088s), futures runtime16
+and HTTP channel disposal, then stopped on a driver listing mismatch (task_runtime
+also embeds13 core tests). Corrected filtering and resumed without rerunning passes.
+Runner31109 completed79.373s/680,592KiB: cleanup2, thread core13, sync channels4,
+sync native threads18, thread backend4, editor help4, five-receiver agreement and
+seven matrix rows×4phases passed. Public native7 had2passes/5failures; existing task12
+had8passes/4failures; editor consistency and async-sender matrix failed. Preserve
+`/tmp/tsrust-b06-public-{repair,continued}-gates.{json,log}` and per-scope logs.
+Failures traced to missing SendError/ChannelError preparation, named owned callback
+checking without concrete expected hint, Interval emitter expecting a catch transport
+in uncaught contexts, and an all fixture printing an error union without narrowing.
+Root repaired those and added owned capture/nontransferable pool witness. Drain+
+missed-tick worker checkpoint7dc31e21 is integrated; dev-only Tokio test-util enabled.
+No heavy job live. Next: format/checkpoint coherent repairs; rebuild only affected
+compiler/LSP harnesses; run failed individual tests plus changed drain/runtime checks.
+B12 runtime/native/catalog/editor/export correctness now passed in focused scopes;
+generated benchmark correctness/timings remain unrun, full B00-B20 remains active.
+
+**Independent B06 review during rebuild found a required production repair:**
+Scope::drain takes child controls into a local abandoned list before awaiting;
+cancelling that drain loses registrations, so a second drain can finish before
+child cleanup. Existing cancelled_nested_drain_retains_cleanup covers Cleanup
+records, not Control.wait. Root verified source path. B06 worker is preparing a
+focused source+witness patch in isolated stdlib-files (no execution/formatter slot):
+persist abandoned controls until completion, gated child cleanup proving a second
+drain stays Pending, plus missing production Interval burst/delay/skip witness.
+Paused current-thread timer test needs root dev-only Tokio test-util feature after
+current build terminates. Do not mark B06 accepted from existing tests alone.
+Current72ad build remains untouched; preserve unaffected native/editor passes.
+
 **B06 public no-run build87149 terminal failed:** exactcb7d5a08,
 237.880s/2,717,090KiB; build-finished:false verified. Cargo89379/supervisor89328
 are no longer active. Three test compile errors: inferred i32 literals in all's

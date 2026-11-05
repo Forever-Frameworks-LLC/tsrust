@@ -88,7 +88,7 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
             }Ok(())
         })?;
     }
-    if used {for id in [crate::native_signatures::NativeTypeId::Job,crate::native_signatures::NativeTypeId::AsyncError,crate::native_signatures::NativeTypeId::AsyncChannel,crate::native_signatures::NativeTypeId::AsyncSender]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}}
+    if used || program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::AsyncChannel|crate::native_signatures::NativeTypeId::AsyncSender))) {for id in [crate::native_signatures::NativeTypeId::Job,crate::native_signatures::NativeTypeId::AsyncError,crate::native_signatures::NativeTypeId::AsyncChannel,crate::native_signatures::NativeTypeId::AsyncSender,crate::native_signatures::NativeTypeId::SendError,crate::native_signatures::NativeTypeId::ChannelError]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}}
     Ok(())
 }
 

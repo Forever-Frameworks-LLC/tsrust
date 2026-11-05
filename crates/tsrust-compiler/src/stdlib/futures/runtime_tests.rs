@@ -253,3 +253,53 @@ fn actual_deadline_and_capacity_ranges_replace_old_policy_ceilings(){
   if let Some(above)=above{assert!(Channel::<()>::new(above).is_err());}
  });
 }
+
+#[test]
+fn cancelled_drain_retains_abandoned_child_until_its_gated_cleanup_finishes(){
+ struct ReleaseOnDrop(Option<tokio::sync::oneshot::Sender<()>>);
+ impl ReleaseOnDrop {fn release(&mut self){if let Some(sender)=self.0.take(){let _=sender.send(());}}}
+ impl Drop for ReleaseOnDrop {fn drop(&mut self){self.release();}}
+ block_on(async {
+  let outer=Scope::group();let(release,released)=tokio::sync::oneshot::channel();
+  let(started,cleanup_started)=tokio::sync::oneshot::channel();
+  in_scope(outer.clone(),async {
+   let inner=Scope::group();
+   in_scope(inner,async {
+    let child=start(async move {
+     cleanup(async move {let _=started.send(());let _=tokio::time::timeout(std::time::Duration::from_secs(5),released).await;});
+     std::future::pending::<()>().await;Ok::<_,Failure<()>>(())
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(5),cleanup_started).await.expect("child cleanup start deadline").unwrap();
+    drop(child);
+   }).await;
+  }).await;
+  let mut release=ReleaseOnDrop(Some(release));
+  let mut first=Box::pin(outer.drain(true));
+  std::future::poll_fn(|cx|{assert!(std::future::Future::poll(first.as_mut(),cx).is_pending());std::task::Poll::Ready(())}).await;
+  drop(first);
+  let mut second=Box::pin(outer.drain(true));
+  std::future::poll_fn(|cx|{assert!(std::future::Future::poll(second.as_mut(),cx).is_pending(),"cancelled drain lost its abandoned child");std::task::Poll::Ready(())}).await;
+  release.release();tokio::time::timeout(std::time::Duration::from_secs(5),second).await.expect("child drain cleanup deadline");
+ });
+}
+#[test]
+fn interval_wrapper_distinguishes_burst_delay_and_skip_after_missed_ticks(){
+ let runtime=tokio::runtime::Builder::new_current_thread().enable_time().start_paused(true).build().unwrap();
+ runtime.block_on(async {
+  async fn ready(interval:&mut Interval)->bool{
+   let mut tick=Box::pin(interval.tick());
+   std::future::poll_fn(|cx|std::task::Poll::Ready(std::future::Future::poll(tick.as_mut(),cx).is_ready())).await
+  }
+  let mut burst=Interval::new(10,"burst").unwrap();let mut delay=Interval::new(10,"delay").unwrap();let mut skip=Interval::new(10,"skip").unwrap();
+  burst.tick().await;delay.tick().await;skip.tick().await;
+  tokio::time::advance(std::time::Duration::from_millis(35)).await;
+  // Each consumes the overdue 10 ms tick; next deadlines become 20, 45 and 40 ms.
+  let late=tokio::time::Instant::now();
+  burst.tick().await;delay.tick().await;skip.tick().await;assert_eq!(tokio::time::Instant::now(),late);
+  burst.tick().await;assert_eq!(tokio::time::Instant::now(),late);assert!(!ready(&mut delay).await);assert!(!ready(&mut skip).await);
+  tokio::time::advance(std::time::Duration::from_millis(5)).await;
+  let aligned=tokio::time::Instant::now();skip.tick().await;assert_eq!(tokio::time::Instant::now(),aligned);assert!(!ready(&mut delay).await);
+  tokio::time::advance(std::time::Duration::from_millis(5)).await;
+  let delayed=tokio::time::Instant::now();delay.tick().await;assert_eq!(tokio::time::Instant::now(),delayed);
+ });
+}

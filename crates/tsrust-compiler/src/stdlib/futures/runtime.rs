@@ -17,7 +17,7 @@ mod tsrust_native_futures {
                 scope
             })
         }
-        pub(crate) async fn drain(&self, cancel_all:bool) {
+        pub(crate) async fn drain(self:&Arc<Self>, cancel_all:bool) {
             let mut children = std::mem::take(&mut *self.children.lock().unwrap());
             let mut cleanup=self.cleanup.lock().unwrap().clone();
             let mut groups=std::mem::take(&mut *self.groups.lock().unwrap()).into_values().collect::<Vec<_>>();
@@ -30,13 +30,18 @@ mod tsrust_native_futures {
             let parent=self.parent.upgrade();
             let mut abandoned=Vec::new();
             for child in children.into_values() {
-                if !cancel_all && child.handle_alive.load(Ordering::Acquire) && let Some(parent)=&parent {child.register(parent);}else{child.cancel();abandoned.push(child);}
+                if !cancel_all && child.handle_alive.load(Ordering::Acquire) && let Some(parent)=&parent {child.register(parent);}else{
+                    // Keep cancellation responsibility reachable if this drain is dropped while waiting.
+                    // register also moves descendant ownership to this scope for completion removal.
+                    child.register(self);child.cancel();abandoned.push(child);
+                }
             }
             for child in abandoned {child.wait().await;}
             cleanup.extend(self.cleanup.lock().unwrap().iter().cloned());
             for release in cleanup {release.wait().await;}
+            self.children.lock().unwrap().retain(|_,child|!child.finished.load(Ordering::Acquire));
             self.cleanup.lock().unwrap().retain(|release|!release.finished.load(Ordering::Acquire));
-            if let Some(parent)=self.parent.upgrade(){parent.groups.lock().unwrap().remove(&(self as *const Self as usize));}
+            if let Some(parent)=self.parent.upgrade(){parent.groups.lock().unwrap().remove(&(Arc::as_ptr(self) as usize));}
         }
     }
     struct Cleanup {finished:std::sync::atomic::AtomicBool,done:Notify}

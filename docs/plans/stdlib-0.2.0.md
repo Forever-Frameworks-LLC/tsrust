@@ -527,8 +527,8 @@ lazy private submission capability can retain the existing Arc, submit only on
 first poll, and observe closed admission if the public owner shuts down first.
 Prototype both borrowed and retained transports, .start and awaited CPU cleanup
 before fixing implementation. Locked tokio-util0.7.20 exports CancellationToken
-without rt/default features; do not enable unrelated features. The preflight and direct-Rust prototype passed. Public B06 APIs are now being
-implemented in an isolated worker, with no public API acceptance claimed. The
+without rt/default features; do not enable unrelated features. The preflight and direct-Rust prototype passed. Public B06 APIs are now integrated in source checkpointcb7d5a08, with no
+public API acceptance claimed. The
 unit-array prerequisite has since passed the focused acceptance below.
 
 B06 prerequisite worker candidate f6f14954 is accepted in focused scope:
@@ -540,6 +540,18 @@ Canonical integration3de00c52 subsequently built successfully517.850s/3,748,787K
 Focused integrated native/discard checks, nonempty3receiver agreement and all16
 matrix observations passed18.660s/218,240KiB. This completes the prerequisite,
 not any public B06 API checklist item.
+
+B06 public source status (2026-11-05): all/Interval/CancellationToken, owner-retaining
+async send/trySend/tryReceive/close and lazy ThreadPool.taskAsync are integrated with
+compiler/LSP/catalog/examples and six matched workloads. Shared sync/async pool
+transports preserve synchronous dependency isolation; cancellation uses exact
+optional tokio-util0.7.20 with default features disabled. Root also added mixed
+threads/async/cancellation portable export coverage. Benchmark source/oracle/ABI
+mutation checks pass; generated workloads and timings remain unrun. Initial
+combined no-run build exposed three test-only type/migration errors, repaired in
+72ad2f9f together with deterministic cancellation cleanup witnesses. Combined
+executable validation is pending; none of these source changes completes a public
+B06 checklist item yet.
 
 B06 prototype profile (2026-11-05): three processes ×31 samples after8 warmups,
 separate allocation builds, quiet load3.448, watchdog8.434s/424,832KiB. Direct
