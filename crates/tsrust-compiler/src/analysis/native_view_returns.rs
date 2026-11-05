@@ -11,9 +11,24 @@ fn untracked(span: Span) -> Diagnostic {
 }
 
 impl Analyzer {
+    /// A checked native owner call can lend through its enclosing expression.
+    /// This does not provide persistent storage: retained-loan extraction remains
+    /// strict and rejects views whose source is this temporary owner.
+    pub(super) fn fresh_native_view_owner(&self, context: &Context, source: &Expr) -> Result<bool, Diagnostic> {
+        if !matches!(source.kind, ExprKind::Call(..)) || source.target.is_none() {
+            return Ok(false);
+        }
+        let Some(ty @ Type::Record(record)) = source.ty else { return Ok(false); };
+        let Some(native) = self.program.records[record].native_type else { return Ok(false); };
+        if crate::native_types::declaration(native).borrow_access().is_some()
+            || self.native_shape_contains_view(ty) {
+            return Ok(false);
+        }
+        Ok(Self::native_view_value_loans(context, source)?.is_empty())
+    }
+
     pub(super) fn remember_native_call_borrow(&self, context:&mut Context, args:&[Expr], binding:&crate::native_bindings::NativeBinding, result:Type)->Result<(),Diagnostic>{
-            if let Some(contract) = binding.returned_borrow {
-                Self::native_view_source_loans(context, &args[contract.source_parameter], contract)?;
+            if binding.returned_borrow.is_some() {
                 context.native_view_calls = true;
             }
             if binding.returned_borrow.is_some_and(|contract| matches!(contract.slot, crate::native_return_borrows::ReturnSlot::ResultOk | crate::native_return_borrows::ReturnSlot::ResultOkOptional)) {
@@ -28,6 +43,14 @@ impl Analyzer {
                 let contract = binding.returned_borrow.expect("validated optional native borrow");
                 let payload = self.program.records.iter().position(|record| record.native_type == Some(contract.payload)).expect("prepared optional native view");
                 context.native_optional_views.get_or_insert_with(Default::default).insert(result.union().expect("validated optional native borrow"), payload);
+            }
+            // Register optional/Result identities even when a fresh owner needs
+            // no persistent source root during this expression.
+            if let Some(contract) = binding.returned_borrow {
+                let source = &args[contract.source_parameter];
+                if !self.fresh_native_view_owner(context, source)? {
+                    Self::native_view_source_loans(context, source, contract)?;
+                }
             }
         Ok(())
     }

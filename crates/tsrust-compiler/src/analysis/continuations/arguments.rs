@@ -131,6 +131,7 @@ impl Analyzer {
                 if frame.precise { active.argument(binding, contract.mode, arg); }
                 else { active.entry(binding).or_default().push((contract.mode, arg.span)); }
             }
+            self.reserve_native_argument_loans(context, arg, active)?;
         }
         Ok(())
     }
