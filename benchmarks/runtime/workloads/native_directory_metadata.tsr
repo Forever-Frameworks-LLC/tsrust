@@ -1,0 +1,50 @@
+import { readDir, stat } from "std:fs";
+
+function sample(input: ReadOnly<string>, tag: int): int[] {
+  const entries = unwrap(readDir(input));
+  let files = 0;
+  let bytes = 0;
+  let observed = tag;
+  for (const entry of entries) {
+    const metadata = unwrap(stat(entry.path));
+    if (metadata.isFile !== entry.isFile || metadata.isDirectory !== entry.isDirectory) {
+      throw "file kind changed";
+    }
+
+    if (entry.isFile) {
+      files++;
+      bytes += metadata.size;
+    }
+
+    if (entry.isDirectory) {
+      observed++;
+    }
+
+    if (entry.isSymlink) {
+      observed += 16;
+    }
+
+    if (entry.name === "é-🦀.txt") {
+      observed += 7;
+    }
+
+    if (entry.name === ".hidden") {
+      observed++;
+    }
+  }
+
+  return [entries.length, files, bytes, observed];
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  let rows: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    rows.push(sample(input, (i + seed) % 17));
+    i++;
+  }
+
+  return rows;
+}
+
+function main() {}

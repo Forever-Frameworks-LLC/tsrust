@@ -9,6 +9,8 @@ pub(super) fn native_observer(symbol: &str) -> bool {
                 && matches!(binding.name, "platform" | "arch" | "endianness")
             || binding.module == "std:bytes"
                 && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy" | "fromUtf8" | "toUtf8")
+            || binding.module == "std:fs"
+                && matches!(binding.name, "stat" | "lstat" | "fileStat" | "readDir" | "canonicalize" | "readLink" | "readFile" | "readTextFile")
             || binding.module == "std:testing-runtime"
                 && matches!(binding.name, "checkAssertion" | "assertionDetails" | "numericValue" | "lengthValue" | "hasLength" | "containsValue")
     })
@@ -41,6 +43,11 @@ mod tests {
             ("@native:std:testing-runtime#registerTest", false),
             ("@native:std:testing-runtime#shareCallback", false),
             ("@native:std:path#join", true),
+            ("@native:std:fs#stat", true),
+            ("@native:std:fs#readDir", true),
+            ("@native:std:fs#truncate", false),
+            ("@native:std:fs#writeTextFile", false),
+            ("@native:std:fs#openFile", false),
             ("@native:std:os#platform", true),
             ("unknown", false),
         ] {

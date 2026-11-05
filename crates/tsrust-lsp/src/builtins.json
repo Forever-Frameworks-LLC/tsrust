@@ -7031,7 +7031,7 @@
       "name": "File",
       "signature": "type File",
       "parameters": [],
-      "documentation": "An owned open file with private storage. Use open for an existing read-only file, create for a new or truncated write-only file, read/write/writeAll for cursor operations, and close for explicit release. File literals, clone, comparison, hashing, console inspection and implicit sharing are unsupported. Unclosed files release automatically on scope exit. Explicit close consumes the handle even on failure; later use is rejected. No implicit flush or durability synchronization occurs. Ownership: passing by value transfers the handle; Mutable<File> borrows it for cursor-changing reads and writes.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create, open, read, write, close } from \"std:fs\";\nimport { fromUtf8, toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const output = unwrap(create(\"hello.txt\"));\n  unwrap(write(output, unwrap(fromUtf8(\"hello\"))));\n  unwrap(close(output));\n  const input = unwrap(open(\"hello.txt\"));\n  console.log(unwrap(toUtf8(unwrap(read(input, 3)))));\n  unwrap(close(input));\n}\n// prints: hel\n```",
+      "documentation": "An owned open file with private storage. Use open for an existing read-only file, create for a new or truncated write-only file, openFile for explicit opening options, read/write/writeAll for cursor operations, and close for explicit release. File literals, clone, comparison, hashing, console inspection and implicit sharing are unsupported. Unclosed files release automatically on scope exit. Explicit close consumes the handle even on failure; later use is rejected. No implicit flush or durability synchronization occurs. Ownership: passing by value transfers the handle; Mutable<File> borrows it for cursor-changing reads and writes.\n\nFile operations use the host filesystem. On Windows, file release cannot report OS close errors; buffered flush errors remain observable.\n\n```tsrust\nimport { create, open, read, write, close } from \"std:fs\";\nimport { fromUtf8, toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const output = unwrap(create(\"hello.txt\"));\n  unwrap(write(output, unwrap(fromUtf8(\"hello\"))));\n  unwrap(close(output));\n  const input = unwrap(open(\"hello.txt\"));\n  console.log(unwrap(toUtf8(unwrap(read(input, 3)))));\n  unwrap(close(input));\n}\n// prints: hel\n```",
       "examples": [
         {
           "source": "import {File} from \"std:fs\"; function inspect(file:ReadOnly<File>):void{} function main(){}",
@@ -7043,7 +7043,7 @@
       "name": "FsError",
       "signature": "type FsError = { code: string; operation: string; message: string; osCode?: int; }",
       "parameters": [],
-      "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation, capacity-range or write-zero. operation names open, create, read, write, writeAll, readFile, writeFile, bufferReader, bufferWriter, flush or close. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined.",
+      "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation, capacity-range, write-zero, already-exists, not-directory, directory-not-empty, cross-device, unsupported, integer-range, not-unicode or invalid-utf8. operation is the public function name that failed. Filesystem side effects may already have occurred before failure. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined.",
       "examples": [
         {
           "source": "import {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}",
@@ -7055,7 +7055,7 @@
           "documentation": "Stable failure category, as a string. Reading this field changes no file.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
         },
         "operation": {
-          "documentation": "Operation that failed: open, create, read, write, writeAll, readFile, writeFile, bufferReader, bufferWriter, flush or close. Reading this field changes no file.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
+          "documentation": "Public operation name that failed, such as openFile, stat, readDir or writeTextFile. Reading this field changes no file.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
         },
         "message": {
           "documentation": "Human-readable description. Text may vary by platform. Reading this field changes no file.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
@@ -7301,6 +7301,539 @@
         {
           "source": "import {create,bufferWriter,flush,close} from \"std:fs\"; function main(){match(create(\"flush.bin\")){Ok(file)=>{match(bufferWriter(file)){Ok(writer)=>{match(flush(writer)){Ok(_)=>{console.log(\"flushed\");},Err(e)=>{throw e.message;}} match(close(writer)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
           "output": "flushed\n"
+        }
+      ]
+    },
+    {
+      "name": "OpenOptions",
+      "signature": "type OpenOptions = { read?: boolean; write?: boolean; append?: boolean; create?: boolean; createNew?: boolean; truncate?: boolean; }",
+      "parameters": [],
+      "documentation": "File opening switches. Omitted or undefined fields are false. An empty record selects no access and openFile returns invalid-input. createNew requests atomic exclusive creation and overrides create/truncate. Validation occurs before truncation; filesystem errors may still occur. This record itself performs no I/O. Ownership: independent owned record; openFile borrows it.\n\n```tsrust\nimport { OpenOptions, openFile, close } from \"std:fs\";\n\nfunction main() {\n  const options: OpenOptions = {\n    read: true\n  };\n  const file = unwrap(openFile(\"input.bin\", options));\n  unwrap(close(file));\n}\n```\n\nExpected output: no output.",
+      "examples": [
+        {
+          "source": "import {OpenOptions,openFile,close} from \"std:fs\";function main(){const options:OpenOptions={read:true};const file=unwrap(openFile(\"input.bin\",options));unwrap(close(file));}",
+          "output": ""
+        }
+      ],
+      "fields": {
+        "read": {
+          "documentation": "Open for reading; defaults to false.\n\n```tsrust\nimport { OpenOptions, openFile, close } from \"std:fs\";\n\nfunction main() {\n  const options: OpenOptions = {\n    read: true\n  };\n  const file = unwrap(openFile(\"input.bin\", options));\n  unwrap(close(file));\n}\n```\n\nExpected output: no output. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "write": {
+          "documentation": "Open for writing without appending; defaults to false.\n\n```tsrust\nimport { OpenOptions, openFile, close } from \"std:fs\";\n\nfunction main() {\n  const options: OpenOptions = {\n    read: true\n  };\n  const file = unwrap(openFile(\"input.bin\", options));\n  unwrap(close(file));\n}\n```\n\nExpected output: no output. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "append": {
+          "documentation": "Open for append writes; defaults to false. The host positions each write at EOF.\n\n```tsrust\nimport { OpenOptions, openFile, close } from \"std:fs\";\n\nfunction main() {\n  const options: OpenOptions = {\n    read: true\n  };\n  const file = unwrap(openFile(\"input.bin\", options));\n  unwrap(close(file));\n}\n```\n\nExpected output: no output. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "create": {
+          "documentation": "Create when missing; defaults to false. Requires write or append.\n\n```tsrust\nimport { OpenOptions, openFile, close } from \"std:fs\";\n\nfunction main() {\n  const options: OpenOptions = {\n    read: true\n  };\n  const file = unwrap(openFile(\"input.bin\", options));\n  unwrap(close(file));\n}\n```\n\nExpected output: no output. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "createNew": {
+          "documentation": "Atomically create only when absent; defaults to false. Overrides create and truncate. Requires write or append.\n\n```tsrust\nimport { OpenOptions, openFile, close } from \"std:fs\";\n\nfunction main() {\n  const options: OpenOptions = {\n    read: true\n  };\n  const file = unwrap(openFile(\"input.bin\", options));\n  unwrap(close(file));\n}\n```\n\nExpected output: no output. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "truncate": {
+          "documentation": "Truncate on successful open; defaults to false. Requires write, except when createNew overrides it.\n\n```tsrust\nimport { OpenOptions, openFile, close } from \"std:fs\";\n\nfunction main() {\n  const options: OpenOptions = {\n    read: true\n  };\n  const file = unwrap(openFile(\"input.bin\", options));\n  unwrap(close(file));\n}\n```\n\nExpected output: no output. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        }
+      }
+    },
+    {
+      "name": "FileTime",
+      "signature": "type FileTime = { unixSeconds: int; nanoseconds: int; }",
+      "parameters": [],
+      "documentation": "An exact filesystem timestamp relative to the Unix epoch. unixSeconds is the floor of signed elapsed seconds; nanoseconds is the normalized nonnegative remainder, 0..999999999. One nanosecond before the epoch is {-1,999999999}. No calendar-year restriction applies. Timestamp availability and precision depend on the filesystem. Constructing a record changes no file. Ownership: independent scalar record.\n\n```tsrust\nimport { FileTime } from \"std:fs\";\n\nfunction main() {\n  const time: FileTime = {\n    unixSeconds: -1, nanoseconds: 999999999\n  };\n  console.log(time.unixSeconds, time.nanoseconds);\n}\n```\n\nExpected output: -1 999999999.",
+      "examples": [
+        {
+          "source": "import {FileTime} from \"std:fs\";function main(){const time:FileTime={unixSeconds:-1,nanoseconds:999999999};console.log(time.unixSeconds,time.nanoseconds);}",
+          "output": "-1 999999999\n"
+        }
+      ],
+      "fields": {
+        "unixSeconds": {
+          "documentation": "Signed whole seconds from the Unix epoch, rounded down for fractional negative times. Must fit int.\n\n```tsrust\nimport { FileTime } from \"std:fs\";\n\nfunction main() {\n  const time: FileTime = {\n    unixSeconds: -1, nanoseconds: 999999999\n  };\n  console.log(time.unixSeconds, time.nanoseconds);\n}\n```\n\nExpected output: -1 999999999. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "nanoseconds": {
+          "documentation": "Nonnegative fractional nanoseconds, from 0 through 999999999 in filesystem results.\n\n```tsrust\nimport { FileTime } from \"std:fs\";\n\nfunction main() {\n  const time: FileTime = {\n    unixSeconds: -1, nanoseconds: 999999999\n  };\n  console.log(time.unixSeconds, time.nanoseconds);\n}\n```\n\nExpected output: -1 999999999. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        }
+      }
+    },
+    {
+      "name": "Metadata",
+      "signature": "type Metadata = { isFile: boolean; isDirectory: boolean; isSymlink: boolean; size: int; readOnly: boolean; modified?: FileTime; accessed?: FileTime; created?: FileTime; }",
+      "parameters": [],
+      "documentation": "An owned filesystem snapshot returned by stat, lstat or fileStat. Kind flags describe the object inspected; stat follows the final symlink, while lstat does not. size is the host metadata length in bytes, including host-specific directory/link sizes. readOnly reports the host permission flag, not an access test or a promise that deletion is forbidden. Timestamp values are undefined only when the host reports that timestamp unsupported; other failures return FsError. Size or timestamp seconds outside int return integer-range. Snapshot fields do not refresh when a file changes. Ownership: independent record, safely cloned or transferred between threads.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4.",
+      "examples": [
+        {
+          "source": "import {Metadata,stat} from \"std:fs\";function main(){const info:Metadata=unwrap(stat(\"input.bin\"));console.log(info.isFile,info.size);}",
+          "output": "true 4\n"
+        }
+      ],
+      "fields": {
+        "isFile": {
+          "documentation": "Whether the inspected object is a regular file.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "isDirectory": {
+          "documentation": "Whether the inspected object is a directory.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "isSymlink": {
+          "documentation": "Whether the inspected object is a symbolic link; stat follows the final link.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "size": {
+          "documentation": "Host metadata length in bytes as int; directories and links have platform-specific lengths.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "readOnly": {
+          "documentation": "Host readonly permission flag. This is not an effective permission check.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "modified": {
+          "documentation": "Optional modification timestamp; undefined when unsupported.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "accessed": {
+          "documentation": "Optional last-access timestamp; undefined when unsupported. Reads and filesystem mount policies may affect it.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "created": {
+          "documentation": "Optional creation timestamp; undefined when unsupported. This is not the Unix metadata-change time.\n\n```tsrust\nimport { Metadata, stat } from \"std:fs\";\n\nfunction main() {\n  const info: Metadata = unwrap(stat(\"input.bin\"));\n  console.log(info.isFile, info.size);\n}\n```\n\nExpected output: true 4. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        }
+      }
+    },
+    {
+      "name": "DirEntry",
+      "signature": "type DirEntry = { name: string; path: string; isFile: boolean; isDirectory: boolean; isSymlink: boolean; }",
+      "parameters": [],
+      "documentation": "An eager, owned directory-entry snapshot. name is the final filename; path joins the input directory spelling with that name. Kind flags describe the entry without following symlinks. Enumeration order is host-defined, with no implicit sorting, recursion, dot filtering or hidden-file filtering. A name or output path that is not valid Unicode returns not-unicode. The iterator is already closed; entries remain usable after directory changes. Ownership: independent owned strings and scalar flags.\n\n```tsrust\nimport { DirEntry, readDir } from \"std:fs\";\n\nfunction main() {\n  const entries: DirEntry[] = unwrap(readDir(\".\"));\n  console.log(entries.length > 0);\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import {DirEntry,readDir} from \"std:fs\";function main(){const entries:DirEntry[]=unwrap(readDir(\".\"));console.log(entries.length>0);}",
+          "output": "true\n"
+        }
+      ],
+      "fields": {
+        "name": {
+          "documentation": "Unicode filename, without parent components. Hidden entries are included.\n\n```tsrust\nimport { DirEntry, readDir } from \"std:fs\";\n\nfunction main() {\n  const entries: DirEntry[] = unwrap(readDir(\".\"));\n  console.log(entries.length > 0);\n}\n```\n\nExpected output: true. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "path": {
+          "documentation": "Unicode path formed from the supplied directory path and filename. Relative input produces a relative path.\n\n```tsrust\nimport { DirEntry, readDir } from \"std:fs\";\n\nfunction main() {\n  const entries: DirEntry[] = unwrap(readDir(\".\"));\n  console.log(entries.length > 0);\n}\n```\n\nExpected output: true. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "isFile": {
+          "documentation": "Entry type is a regular file, without following symlinks.\n\n```tsrust\nimport { DirEntry, readDir } from \"std:fs\";\n\nfunction main() {\n  const entries: DirEntry[] = unwrap(readDir(\".\"));\n  console.log(entries.length > 0);\n}\n```\n\nExpected output: true. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "isDirectory": {
+          "documentation": "Entry type is a directory, without following symlinks.\n\n```tsrust\nimport { DirEntry, readDir } from \"std:fs\";\n\nfunction main() {\n  const entries: DirEntry[] = unwrap(readDir(\".\"));\n  console.log(entries.length > 0);\n}\n```\n\nExpected output: true. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        },
+        "isSymlink": {
+          "documentation": "Entry type is a symbolic link, including links to directories or missing targets.\n\n```tsrust\nimport { DirEntry, readDir } from \"std:fs\";\n\nfunction main() {\n  const entries: DirEntry[] = unwrap(readDir(\".\"));\n  console.log(entries.length > 0);\n}\n```\n\nExpected output: true. Ownership: fields belong to the snapshot; scalar values copy and strings may be borrowed or cloned."
+        }
+      }
+    },
+    {
+      "name": "openFile",
+      "signature": "openFile(path: string, options: ReadOnly<OpenOptions>): Result<File, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        },
+        {
+          "label": "options: ReadOnly<OpenOptions>",
+          "documentation": "Required open switches. Every omitted or undefined switch is false. An empty record is invalid. createNew overrides create/truncate."
+        }
+      ],
+      "documentation": "Opens a plain file with explicit read/write/append/create behavior. Returns an owned File or FsError. Invalid switch combinations fail before truncating. createNew fails with already-exists if the path exists, including a symlink. Newly created permissions follow platform defaults and umask; existing permissions remain. Append writes do not guarantee a multi-write record is atomic. On Windows sharing and readonly behavior follow the host. Ownership: borrows path/options and returns a unique handle; close consumes it, and scope exit releases it.\n\n```tsrust\nimport { openFile, fileStat, close } from \"std:fs\";\n\nfunction main() {\n  const file = unwrap(openFile(\"input.bin\", {\n    read: true\n  }));\n  console.log(unwrap(fileStat(file)).size);\n  unwrap(close(file));\n}\n```\n\nExpected output: 4.",
+      "examples": [
+        {
+          "source": "import {openFile,fileStat,close} from \"std:fs\";function main(){const file=unwrap(openFile(\"input.bin\",{read:true}));console.log(unwrap(fileStat(file)).size);unwrap(close(file));}",
+          "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "stat",
+      "signature": "stat(path: string): Result<Metadata, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Reads metadata following the final symbolic link. Returns an owned Metadata snapshot; it does not open an escaping file handle. Missing paths fail with not-found. Unsupported timestamp values are undefined; unrepresentable size or timestamp seconds fail with integer-range. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path; the returned record is independent.\n\n```tsrust\nimport { stat } from \"std:fs\";\n\nfunction main() {\n  console.log(unwrap(stat(\"input.bin\")).size);\n}\n```\n\nExpected output: 4.",
+      "examples": [
+        {
+          "source": "import {stat} from \"std:fs\";function main(){console.log(unwrap(stat(\"input.bin\")).size);}",
+          "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "lstat",
+      "signature": "lstat(path: string): Result<Metadata, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Reads metadata without following the final symbolic link. Returns an owned Metadata snapshot; it does not open an escaping file handle. Missing paths fail with not-found. Unsupported timestamp values are undefined; unrepresentable size or timestamp seconds fail with integer-range. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path; the returned record is independent.\n\n```tsrust\nimport { lstat } from \"std:fs\";\n\nfunction main() {\n  console.log(unwrap(lstat(\"input.bin\")).size);\n}\n```\n\nExpected output: 4.",
+      "examples": [
+        {
+          "source": "import {lstat} from \"std:fs\";function main(){console.log(unwrap(lstat(\"input.bin\")).size);}",
+          "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "fileStat",
+      "signature": "fileStat(file: ReadOnly<File>): Result<Metadata, FsError>",
+      "parameters": [
+        {
+          "label": "file: ReadOnly<File>",
+          "documentation": "Required borrowed plain File handle. Buffered handles are not accepted; the file remains open."
+        }
+      ],
+      "documentation": "Reads metadata through an already-open plain file handle, without moving its cursor. The result describes that open file even if its original path was renamed. Unsupported timestamps are undefined; unrepresentable values fail with integer-range. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows the handle and returns an independent record.\n\n```tsrust\nimport { open, fileStat, close } from \"std:fs\";\n\nfunction main() {\n  const file = unwrap(open(\"input.bin\"));\n  console.log(unwrap(fileStat(file)).size);\n  unwrap(close(file));\n}\n```\n\nExpected output: 4.",
+      "examples": [
+        {
+          "source": "import {open,fileStat,close} from \"std:fs\";function main(){const file=unwrap(open(\"input.bin\"));console.log(unwrap(fileStat(file)).size);unwrap(close(file));}",
+          "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "readDir",
+      "signature": "readDir(path: string, maxEntries?: int): Result<DirEntry[], FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        },
+        {
+          "label": "maxEntries?: int",
+          "documentation": "Optional nonnegative maximum entry count that fits native storage. Omitted or undefined means no application entry cap. Invalid bounds fail before opening the directory."
+        }
+      ],
+      "documentation": "Eagerly enumerates one directory into independent DirEntry records, then closes the iterator. The host determines order; hidden entries are included, dot and dot-dot are not returned, and there is no recursion or sorting. Entry type does not follow symlinks. An explicit maxEntries returns length-range on the first excess entry and returns no partial array; an empty directory succeeds with zero. Metadata, enumeration and Unicode failures return FsError. Output paths preserve the supplied relative or absolute form. Concurrent changes can affect entries and later metadata calls. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path; returned strings/records remain usable after enumeration.\n\n```tsrust\nimport { mkdir, readDir, removeDir } from \"std:fs\";\n\nfunction main() {\n  unwrap(mkdir(\"catalog-empty\"));\n  console.log(unwrap(readDir(\"catalog-empty\", 0)).length);\n  unwrap(removeDir(\"catalog-empty\"));\n}\n```\n\nExpected output: 0.",
+      "examples": [
+        {
+          "source": "import {mkdir,readDir,removeDir} from \"std:fs\";function main(){unwrap(mkdir(\"catalog-empty\"));console.log(unwrap(readDir(\"catalog-empty\",0)).length);unwrap(removeDir(\"catalog-empty\"));}",
+          "output": "0\n"
+        }
+      ]
+    },
+    {
+      "name": "mkdir",
+      "signature": "mkdir(path: string): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Creates one directory. Its parent must exist; an existing directory returns already-exists. New permissions use host defaults and umask; there are no options or application size caps. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path and changes filesystem entries; no handle escapes.\n\n```tsrust\nimport { mkdir, stat, removeDirAll } from \"std:fs\";\n\nfunction main() {\n  unwrap(mkdir(\"catalog-dir\"));\n  console.log(unwrap(stat(\"catalog-dir\")).isDirectory);\n  unwrap(removeDirAll(\"catalog-dir\"));\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import {mkdir,stat,removeDirAll} from \"std:fs\";function main(){unwrap(mkdir(\"catalog-dir\"));console.log(unwrap(stat(\"catalog-dir\")).isDirectory);unwrap(removeDirAll(\"catalog-dir\"));}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "mkdirAll",
+      "signature": "mkdirAll(path: string): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Creates missing parent directories and the final directory. Existing directories succeed. Creation is not atomic; a failure may leave newly created parents. New permissions use host defaults and umask; there are no options or application size caps. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path and changes filesystem entries; no handle escapes.\n\n```tsrust\nimport { mkdirAll, stat, removeDirAll } from \"std:fs\";\n\nfunction main() {\n  unwrap(mkdirAll(\"catalog-dir/nested\"));\n  console.log(unwrap(stat(\"catalog-dir\")).isDirectory);\n  unwrap(removeDirAll(\"catalog-dir\"));\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import {mkdirAll,stat,removeDirAll} from \"std:fs\";function main(){unwrap(mkdirAll(\"catalog-dir/nested\"));console.log(unwrap(stat(\"catalog-dir\")).isDirectory);unwrap(removeDirAll(\"catalog-dir\"));}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "rename",
+      "signature": "rename(path: string, destination: string): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        },
+        {
+          "label": "destination: string",
+          "documentation": "Required destination path. Its parent must exist. Overwrite and cross-volume behavior follows the host filesystem."
+        }
+      ],
+      "documentation": "Moves or renames a filesystem entry. Destination replacement, directory restrictions and atomicity follow the host filesystem. Cross-volume moves may fail with cross-device; this function does not fall back to copy/delete. Failures provide no transactional rollback guarantee. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows paths; changes directory entries without consuming any separately open handle.\n\n```tsrust\nimport { writeTextFile, rename, readTextFile, removeFile } from \"std:fs\";\n\nfunction main() {\n  unwrap(writeTextFile(\"catalog-old\", \"ok\"));\n  unwrap(rename(\"catalog-old\", \"catalog-new\"));\n  console.log(unwrap(readTextFile(\"catalog-new\")));\n  unwrap(removeFile(\"catalog-new\"));\n}\n```\n\nExpected output: ok.",
+      "examples": [
+        {
+          "source": "import {writeTextFile,rename,readTextFile,removeFile} from \"std:fs\";function main(){unwrap(writeTextFile(\"catalog-old\",\"ok\"));unwrap(rename(\"catalog-old\",\"catalog-new\"));console.log(unwrap(readTextFile(\"catalog-new\")));unwrap(removeFile(\"catalog-new\"));}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "copyFile",
+      "signature": "copyFile(path: string, destination: string): Result<int, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        },
+        {
+          "label": "destination: string",
+          "documentation": "Required destination path. Its parent must exist. Overwrite and cross-volume behavior follows the host filesystem."
+        }
+      ],
+      "documentation": "Copies a regular file and its host permission bits, replacing/truncating the destination when supported, and returns the number of copied bytes. It follows source symlinks. Do not pass paths naming the same file, including hardlink aliases: host copy behavior can truncate the source. This is not an atomic replacement; failure may leave a partial destination. A copied length outside int returns integer-range after the copy occurred. Optimized host copy operations may be used; timestamps and other metadata are not promised to be preserved. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows both paths; changes destination storage.\n\n```tsrust\nimport { writeTextFile, copyFile, readTextFile, removeFile } from \"std:fs\";\n\nfunction main() {\n  unwrap(writeTextFile(\"catalog-source\", \"abc\"));\n  console.log(unwrap(copyFile(\"catalog-source\", \"catalog-copy\")), unwrap(readTextFile(\"catalog-copy\")));\n  unwrap(removeFile(\"catalog-copy\"));\n  unwrap(removeFile(\"catalog-source\"));\n}\n```\n\nExpected output: 3 abc.",
+      "examples": [
+        {
+          "source": "import {writeTextFile,copyFile,readTextFile,removeFile} from \"std:fs\";function main(){unwrap(writeTextFile(\"catalog-source\",\"abc\"));console.log(unwrap(copyFile(\"catalog-source\",\"catalog-copy\")),unwrap(readTextFile(\"catalog-copy\")));unwrap(removeFile(\"catalog-copy\"));unwrap(removeFile(\"catalog-source\"));}",
+          "output": "3 abc\n"
+        }
+      ]
+    },
+    {
+      "name": "removeFile",
+      "signature": "removeFile(path: string): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Removes one file or symbolic link. A directory target is not recursively removed. Deleting a symlink leaves its target intact. Open-file deletion and readonly behavior depend on the host. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path and removes filesystem entries; no handle escapes.\n\n```tsrust\nimport { writeTextFile, removeFile } from \"std:fs\";\n\nfunction main() {\n  unwrap(writeTextFile(\"catalog-remove\", \"x\"));\n  unwrap(removeFile(\"catalog-remove\"));\n}\n```\n\nExpected output: no output.",
+      "examples": [
+        {
+          "source": "import {writeTextFile,removeFile} from \"std:fs\";function main(){unwrap(writeTextFile(\"catalog-remove\",\"x\"));unwrap(removeFile(\"catalog-remove\"));}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "removeDir",
+      "signature": "removeDir(path: string): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Removes one empty directory. A nonempty directory returns directory-not-empty. Symbolic links are not traversed. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path and removes filesystem entries; no handle escapes.\n\n```tsrust\nimport { mkdir, removeDir } from \"std:fs\";\n\nfunction main() {\n  unwrap(mkdir(\"catalog-remove\"));\n  unwrap(removeDir(\"catalog-remove\"));\n}\n```\n\nExpected output: no output.",
+      "examples": [
+        {
+          "source": "import {mkdir,removeDir} from \"std:fs\";function main(){unwrap(mkdir(\"catalog-remove\"));unwrap(removeDir(\"catalog-remove\"));}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "removeDirAll",
+      "signature": "removeDirAll(path: string): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Recursively removes a directory tree. Symbolic links encountered are removed without traversing their targets. Missing paths return an error; this is not an ignore-missing helper. Partial removal can occur before failure; concurrently changing trees follow host behavior. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path and removes filesystem entries; no handle escapes.\n\n```tsrust\nimport { mkdir, removeDirAll } from \"std:fs\";\n\nfunction main() {\n  unwrap(mkdir(\"catalog-remove\"));\n  unwrap(removeDirAll(\"catalog-remove\"));\n}\n```\n\nExpected output: no output.",
+      "examples": [
+        {
+          "source": "import {mkdir,removeDirAll} from \"std:fs\";function main(){unwrap(mkdir(\"catalog-remove\"));unwrap(removeDirAll(\"catalog-remove\"));}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "canonicalize",
+      "signature": "canonicalize(path: string): Result<string, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Resolves an existing path to the host absolute canonical path, resolving symbolic links. This performs filesystem access and fails for missing/inaccessible components. Returned spelling is platform-specific; Windows may return an extended-length path prefix. It does not guarantee the target remains unchanged after return. Non-Unicode output returns not-unicode. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows input and returns an owned string.\n\n```tsrust\nimport { canonicalize, stat } from \"std:fs\";\n\nfunction main() {\n  const path = unwrap(canonicalize(\"input.bin\"));\n  console.log(unwrap(stat(path)).isFile);\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import {canonicalize,stat} from \"std:fs\";function main(){const path=unwrap(canonicalize(\"input.bin\"));console.log(unwrap(stat(path)).isFile);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "readLink",
+      "signature": "readLink(path: string): Result<string, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        }
+      ],
+      "documentation": "Reads the target stored in a symbolic link, without resolving it or checking that the target exists. A relative target remains relative to the link parent. A regular file returns FsError. Non-Unicode target text returns not-unicode; it is never replaced lossily. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path and returns an independent owned string.\n\n```tsrust\nimport { readLink } from \"std:fs\";\n\nfunction main() {\n  match (readLink(\"input.bin\")) {\n    Ok(_) => {\n      throw \"expected regular-file failure\";\n    },\n    Err(error) => {\n      console.log(error.operation);\n    }\n  }\n}\n```\n\nExpected output: readLink.",
+      "examples": [
+        {
+          "source": "import {readLink} from \"std:fs\";function main(){match(readLink(\"input.bin\")){Ok(_)=>{throw \"expected regular-file failure\";},Err(error)=>{console.log(error.operation);}}}",
+          "output": "readLink\n"
+        }
+      ]
+    },
+    {
+      "name": "hardLink",
+      "signature": "hardLink(path: string, destination: string): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        },
+        {
+          "label": "destination: string",
+          "documentation": "Required destination path. Its parent must exist. Overwrite and cross-volume behavior follows the host filesystem."
+        }
+      ],
+      "documentation": "Creates a new directory entry referring to the existing source file storage. Destination must not exist; links across filesystems usually fail. Later content changes through either name affect the same file. Removing one name leaves the other. Directory/symlink behavior and permission errors follow the host. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows paths; creates a filesystem entry without copying bytes.\n\n```tsrust\nimport { writeTextFile, hardLink, removeFile, readTextFile } from \"std:fs\";\n\nfunction main() {\n  unwrap(writeTextFile(\"catalog-source\", \"ok\"));\n  unwrap(hardLink(\"catalog-source\", \"catalog-link\"));\n  unwrap(removeFile(\"catalog-source\"));\n  console.log(unwrap(readTextFile(\"catalog-link\")));\n  unwrap(removeFile(\"catalog-link\"));\n}\n```\n\nExpected output: ok.",
+      "examples": [
+        {
+          "source": "import {writeTextFile,hardLink,removeFile,readTextFile} from \"std:fs\";function main(){unwrap(writeTextFile(\"catalog-source\",\"ok\"));unwrap(hardLink(\"catalog-source\",\"catalog-link\"));unwrap(removeFile(\"catalog-source\"));console.log(unwrap(readTextFile(\"catalog-link\")));unwrap(removeFile(\"catalog-link\"));}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "appendFile",
+      "signature": "appendFile(path: string, bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        },
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Required borrowed bytes or selected view range. Empty bytes still create a missing file. No application operation-size ceiling applies."
+        }
+      ],
+      "documentation": "Opens or creates a file for appending, writes all supplied bytes, and closes it. Short/interrupted writes retry; zero progress returns write-zero. Each host write appends, but the whole operation is not guaranteed atomic across multiple writes or competing writers. Failure may leave partial appended data. It does not synchronize durable storage. An earlier write error takes priority over close errors; Windows drop cannot report OS close failures. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path/bytes; no file handle escapes and byte storage is unchanged.\n\n```tsrust\nimport { writeTextFile, appendFile, readTextFile, removeFile } from \"std:fs\";\nimport { fromUtf8 } from \"std:bytes\";\n\nfunction main() {\n  unwrap(writeTextFile(\"catalog-text\", \"A\"));\n  unwrap(appendFile(\"catalog-text\", unwrap(fromUtf8(\"B\"))));\n  console.log(unwrap(readTextFile(\"catalog-text\")));\n  unwrap(removeFile(\"catalog-text\"));\n}\n```\n\nExpected output: AB.",
+      "examples": [
+        {
+          "source": "import {writeTextFile,appendFile,readTextFile,removeFile} from \"std:fs\";import {fromUtf8} from \"std:bytes\";function main(){unwrap(writeTextFile(\"catalog-text\",\"A\"));unwrap(appendFile(\"catalog-text\",unwrap(fromUtf8(\"B\"))));console.log(unwrap(readTextFile(\"catalog-text\")));unwrap(removeFile(\"catalog-text\"));}",
+          "output": "AB\n"
+        }
+      ]
+    },
+    {
+      "name": "readTextFile",
+      "signature": "readTextFile(path: string, maxBytes?: int): Result<string, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        },
+        {
+          "label": "maxBytes?: int",
+          "documentation": "Optional nonnegative byte limit fitting native storage, not a character count. Omitted or undefined means no application byte cap. Invalid bounds fail before opening."
+        }
+      ],
+      "documentation": "Reads through EOF, validates strict UTF-8, returns an owned string, and closes the file. Preserves a UTF-8 BOM and all newline bytes; no replacement decoding or newline normalization occurs. Invalid encoding returns invalid-utf8. An explicit byte limit returns length-range for an oversized file, reading at most one excess byte; empty files succeed at zero. Read/decoding errors take priority over close errors. Windows drop cannot report OS close failures. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path and returns independent text; no handle escapes.\n\n```tsrust\nimport { writeTextFile, readTextFile, removeFile } from \"std:fs\";\n\nfunction main() {\n  unwrap(writeTextFile(\"catalog-text\", \"hé🦀\"));\n  console.log(unwrap(readTextFile(\"catalog-text\", 7)));\n  unwrap(removeFile(\"catalog-text\"));\n}\n```\n\nExpected output: hé🦀.",
+      "examples": [
+        {
+          "source": "import {writeTextFile,readTextFile,removeFile} from \"std:fs\";function main(){unwrap(writeTextFile(\"catalog-text\",\"hé🦀\"));console.log(unwrap(readTextFile(\"catalog-text\",7)));unwrap(removeFile(\"catalog-text\"));}",
+          "output": "hé🦀\n"
+        }
+      ]
+    },
+    {
+      "name": "writeTextFile",
+      "signature": "writeTextFile(path: string, text: ReadOnly<string>): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required filesystem path. Relative paths resolve from the process working directory; no path normalization is applied."
+        },
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Required borrowed UTF-8 text. Writes exact bytes with no added BOM/newline or application-size cap; empty text truncates or creates an empty file."
+        }
+      ],
+      "documentation": "Creates or truncates a file, writes exact UTF-8 text bytes, then closes it. Parent directories must exist. New permissions follow host defaults; existing permissions remain. Short/interrupted writes retry; failure may leave partial data. It is not an atomic replacement and does not synchronize durable storage. Earlier write errors take priority over close errors; Windows drop cannot report OS close failures. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows path/text; no file handle escapes.\n\n```tsrust\nimport { writeTextFile, readTextFile, removeFile } from \"std:fs\";\n\nfunction main() {\n  unwrap(writeTextFile(\"catalog-text\", \"hello\"));\n  console.log(unwrap(readTextFile(\"catalog-text\")));\n  unwrap(removeFile(\"catalog-text\"));\n}\n```\n\nExpected output: hello.",
+      "examples": [
+        {
+          "source": "import {writeTextFile,readTextFile,removeFile} from \"std:fs\";function main(){unwrap(writeTextFile(\"catalog-text\",\"hello\"));console.log(unwrap(readTextFile(\"catalog-text\")));unwrap(removeFile(\"catalog-text\"));}",
+          "output": "hello\n"
+        }
+      ]
+    },
+    {
+      "name": "truncate",
+      "signature": "truncate(file: Mutable<File>, length: int): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "file: Mutable<File>",
+          "documentation": "Required mutable plain File handle opened with write permission. Buffered handles are not accepted."
+        },
+        {
+          "label": "length: int",
+          "documentation": "Required nonnegative file length in bytes. Negative values return length-range before changing the file. Native file-size limits still apply."
+        }
+      ],
+      "documentation": "Changes an open file length without moving its current cursor. Shrinking discards trailing bytes; extending makes added bytes read as zero. Writes after shrinking begin at the unchanged cursor, possibly creating a hole. A readonly handle returns FsError; no durability synchronization occurs. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: mutably borrows the handle; it remains open after success or failure.\n\n```tsrust\nimport { openFile, truncate, fileStat, close, removeFile } from \"std:fs\";\n\nfunction main() {\n  const file = unwrap(openFile(\"catalog-truncate\", {\n    write: true, create: true\n  }));\n  unwrap(truncate(file, 3));\n  console.log(unwrap(fileStat(file)).size);\n  unwrap(close(file));\n  unwrap(removeFile(\"catalog-truncate\"));\n}\n```\n\nExpected output: 3.",
+      "examples": [
+        {
+          "source": "import {openFile,truncate,fileStat,close,removeFile} from \"std:fs\";function main(){const file=unwrap(openFile(\"catalog-truncate\",{write:true,create:true}));unwrap(truncate(file,3));console.log(unwrap(fileStat(file)).size);unwrap(close(file));unwrap(removeFile(\"catalog-truncate\"));}",
+          "output": "3\n"
+        }
+      ]
+    },
+    {
+      "name": "syncAll",
+      "signature": "syncAll(file: ReadOnly<File>): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "file: ReadOnly<File>",
+          "documentation": "Required borrowed plain File handle. Buffered handles are not accepted; the file remains open."
+        }
+      ],
+      "documentation": "Requests synchronization of an open file’s data and metadata to durable storage. Does not move the cursor, close the file, or flush a separate user-space BufferedWriter. Durability and failure behavior follow the host/filesystem; this is not a transaction or a promise that directory entries were synchronized. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows a plain File handle, which remains usable.\n\n```tsrust\nimport { openFile, syncAll, close, removeFile } from \"std:fs\";\n\nfunction main() {\n  const file = unwrap(openFile(\"catalog-sync\", {\n    write: true, create: true\n  }));\n  unwrap(syncAll(file));\n  unwrap(close(file));\n  unwrap(removeFile(\"catalog-sync\"));\n}\n```\n\nExpected output: no output.",
+      "examples": [
+        {
+          "source": "import {openFile,syncAll,close,removeFile} from \"std:fs\";function main(){const file=unwrap(openFile(\"catalog-sync\",{write:true,create:true}));unwrap(syncAll(file));unwrap(close(file));unwrap(removeFile(\"catalog-sync\"));}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "syncData",
+      "signature": "syncData(file: ReadOnly<File>): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "file: ReadOnly<File>",
+          "documentation": "Required borrowed plain File handle. Buffered handles are not accepted; the file remains open."
+        }
+      ],
+      "documentation": "Requests synchronization of open file data; the host may omit metadata unrelated to data retrieval. Some platforms implement the same operation as syncAll. Does not move the cursor, close the file, or flush a separate user-space BufferedWriter. Durability and failure behavior follow the host/filesystem; this is not a transaction or a promise that directory entries were synchronized. Returns Ok with the result, or Err(FsError) for filesystem failures; message and osCode may vary by platform. Ownership: borrows a plain File handle, which remains usable.\n\n```tsrust\nimport { openFile, syncData, close, removeFile } from \"std:fs\";\n\nfunction main() {\n  const file = unwrap(openFile(\"catalog-sync\", {\n    write: true, create: true\n  }));\n  unwrap(syncData(file));\n  unwrap(close(file));\n  unwrap(removeFile(\"catalog-sync\"));\n}\n```\n\nExpected output: no output.",
+      "examples": [
+        {
+          "source": "import {openFile,syncData,close,removeFile} from \"std:fs\";function main(){const file=unwrap(openFile(\"catalog-sync\",{write:true,create:true}));unwrap(syncData(file));unwrap(close(file));unwrap(removeFile(\"catalog-sync\"));}",
+          "output": ""
+        }
+      ]
+    },
+    {
+      "name": "createTempDir",
+      "signature": "createTempDir(parent?: string, prefix?: string): Result<string, FsError>",
+      "parameters": [
+        {
+          "label": "parent?: string",
+          "documentation": "Optional existing parent directory, borrowed for this call. Omitted or undefined uses the host temporary directory. Missing parents are not created."
+        },
+        {
+          "label": "prefix?: string",
+          "documentation": "Optional filename-only prefix. Omitted or undefined retains .tmp; empty is allowed. Rejects NUL, either path separator and drive prefixes before filesystem access. Host filename/length restrictions still apply."
+        }
+      ],
+      "documentation": "Exclusively creates a new temporary directory and returns its owned absolute path. Omitted or undefined parent uses the host temporary directory; a provided parent must already exist. Omitted or undefined prefix retains .tmp; an empty prefix is allowed. Six random characters are appended. Prefix must stay within one filename component: NUL, slash, backslash and drive prefixes return invalid-input before parent access. Host filename restrictions still apply. Permissions follow normal platform defaults and umask; this does not guarantee a private directory. Creation retries and randomness follow backend defaults. Filesystem failures return FsError; non-Unicode output returns not-unicode while automatic cleanup ownership is still held. Returned paths preserve platform spelling. Ownership: borrows options, transfers directory cleanup responsibility to the caller on success, and returns an independent string. Use removeDirAll when finished; dropping the string does not delete the directory.\n\n```tsrust\nimport { createTempDir, stat, removeDirAll } from \"std:fs\";\n\nfunction main() {\n  const directory = unwrap(createTempDir(\".\", \"catalog-\"));\n  console.log(unwrap(stat(directory)).isDirectory);\n  unwrap(removeDirAll(directory));\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import {createTempDir,stat,removeDirAll} from \"std:fs\";function main(){const directory=unwrap(createTempDir(\".\",\"catalog-\"));console.log(unwrap(stat(directory)).isDirectory);unwrap(removeDirAll(directory));}",
+          "output": "true\n"
         }
       ]
     }

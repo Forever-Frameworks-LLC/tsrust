@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Filesystem,
     Ui,
     Crypto,
     Signals,
@@ -56,7 +57,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 43] = [
+const KINDS: [Kind; 44] = [
+    Kind::Filesystem,
     Kind::Ui,
     Kind::Crypto,
     Kind::Signals,
@@ -133,6 +135,16 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::Filesystem,name:"filesystem import path prefix",before:"import {openFile} from '".into(),typed:"std:f",after:"';function main(){}",includes:&["std:fs"],excludes:&["std:sql"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem public imports",before:"import { ".into(),typed:"",after:" } from 'std:fs';function main(){}",includes:&["File","FsError","OpenOptions","FileTime","Metadata","DirEntry","openFile","stat","lstat","fileStat","readDir","mkdir","mkdirAll","rename","copyFile","removeFile","removeDir","removeDirAll","canonicalize","readLink","hardLink","appendFile","readTextFile","writeTextFile","truncate","syncAll","syncData","createTempDir"],excludes:&["__open","fs_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem partial imports",before:"import { ".into(),typed:"read",after:" } from 'std:fs';function main(){}",includes:&["read","readFile","readDir","readTextFile","readLink"],excludes:&["writeFile","openFile"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem open option fields",before:"import {OpenOptions} from 'std:fs';function inspect(value:ReadOnly<OpenOptions>){".into(),typed:"value.",after:"read;}function main(){}",includes:&["read","write","append","create","createNew","truncate"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem exact timestamp fields",before:"import {FileTime} from 'std:fs';function inspect(value:ReadOnly<FileTime>){".into(),typed:"value.",after:"unixSeconds;}function main(){}",includes:&["unixSeconds","nanoseconds"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem metadata snapshot fields",before:"import {Metadata} from 'std:fs';function inspect(value:ReadOnly<Metadata>){".into(),typed:"value.",after:"size;}function main(){}",includes:&["isFile","isDirectory","isSymlink","size","readOnly","modified","accessed","created"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem directory entry fields",before:"import {DirEntry} from 'std:fs';function inspect(value:ReadOnly<DirEntry>){".into(),typed:"value.",after:"path;}function main(){}",includes:&["name","path","isFile","isDirectory","isSymlink"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem partial metadata fields",before:"import {Metadata} from 'std:fs';function inspect(value:ReadOnly<Metadata>){".into(),typed:"value.is",after:"File;}function main(){}",includes:&["isFile","isDirectory","isSymlink"],excludes:&["size","readOnly","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem aliased directory entry",before:"import {DirEntry as Entry} from 'std:fs';function inspect(value:ReadOnly<Entry>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["name","path","isFile","isDirectory","isSymlink"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+
  Row {kind:Kind::Http,name:"HTTP body readers owned request",before:"import {Request} from 'std:http';async function inspect(input:Request):Task<void>{await ".into(),typed:"input.",after:"json();}function main(){}",includes:&["json","body","text","form","multipart"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Http,name:"HTTP body readers contextual request",before:"import {Context} from 'std:http';async function inspect(context:Mutable<Context>):Task<void>{await ".into(),typed:"context.req.",after:"json();}function main(){}",includes:&["json","body","text","form","multipart"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::RecordField,name:"input change target",before:"import {InputChangeEvent} from 'std:ui';function inspect(event:ReadOnly<InputChangeEvent>){".into(),typed:"event.target.",after:"value;}function main(){}",includes:&["value","name","id"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
@@ -502,7 +514,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if matches!(mode, Mode::Immediate | Mode::Paced) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || row.kind==Kind::Filesystem && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);

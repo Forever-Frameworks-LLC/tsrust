@@ -347,3 +347,38 @@ fn empty_heading_field_help_matches_completion_and_diagnostics(){
  let source="import {ThemeTypography} from 'std:ui';function main(){const typography:ThemeTypography={base:16,xl:24,headingFamily:'mono'};console.log(typography.headingFamily??'sans');}";
  let mut session=Session::start(&[]);session.open("main.tsr",source);let diagnostics=session.wait_for_diagnostics("main.tsr");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();let at=source.rfind("headingFamily").unwrap()+2;let hover=session.hover("main.tsr",source,at).unwrap_or_default();assert!(hover.contains("sans")&&hover.contains("Ownership:"),"{hover}");let labels=session.completion("main.tsr",source,at).unwrap();assert!(labels.contains(&"headingFamily".into()),"{labels:?}");let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn filesystem_exports_and_documented_record_help_agree_across_server_phases() {
+    let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+    let before="import { ";let text=format!("{before} }} from 'std:fs';function main(){{}}");
+    let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+    let imports=session.completion("main.tsr",&text,before.len()).unwrap();
+    for entry in catalog["std:fs"].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(imports.iter().any(|label|label==name),"std:fs.{name}: {imports:?}");}
+    for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(session.request("tsrust/counters",Value::Null)[key],0);}
+    let cases=[
+        ("file option","import {OpenOptions} from 'std:fs';function inspect(value:ReadOnly<OpenOptions>){console.log(value.","read",
+            ");}function main(){}",&["boolean","undefined","defaults to false","Ownership:"][..]),
+        ("exact timestamp","import {FileTime} from 'std:fs';function inspect(value:ReadOnly<FileTime>){console.log(value.","unixSeconds",
+            ");}function main(){}",&["int","rounded down","Ownership:"][..]),
+        ("optional metadata timestamp","import {Metadata} from 'std:fs';function inspect(value:ReadOnly<Metadata>){console.log(value.","created",
+            ");}function main(){}",&["FileTime","undefined","not the Unix metadata-change time","Ownership:"][..]),
+        ("directory path","import {DirEntry} from 'std:fs';function inspect(value:ReadOnly<DirEntry>){console.log(value.","path",
+            ");}function main(){}",&["string","Relative input produces a relative path","Ownership:"][..]),
+    ];
+    for(name,before,typed,after,expected)in cases{
+        let mut baseline=None;
+        for(mode,delay,broken)in[("settled",None,false),("typed-fast",Some(Duration::ZERO),false),("80ms",Some(Duration::from_millis(80)),false),("syntax-error",None,true)]{
+            let after=if broken{format!("{after}\nfunction broken(){{const = ;}}") }else{after.to_owned()};
+            let text=format!("{before}{typed}{after}");let mut session=Session::start(&[]);
+            if let Some(delay)=delay{session.open("main.tsr",&format!("{before}{after}"));session.settle();session.type_text("main.tsr",before,typed,&after,delay);}else{session.open("main.tsr",&text);session.settle();}
+            let reply=session.completion_items("main.tsr",&text,before.len()+typed.len());let items=if reply.is_array(){reply}else{reply["items"].clone()};
+            let item=items.as_array().unwrap().iter().find(|item|item["label"]==typed).unwrap_or_else(||panic!("{name} [{mode}]: {items}"));
+            let detail=item["detail"].as_str().unwrap().to_owned();let hover=session.hover("main.tsr",&text,before.len()+1).unwrap_or_default();let combined=format!("{detail}\n{hover}");
+            for fragment in expected{assert!(combined.contains(fragment),"{name} [{mode}]: missing {fragment}: {combined}");}
+            assert!(!combined.contains("__tsrust_private_"),"{name} [{mode}]: {combined}");
+            if let Some((prior_detail,prior_hover))=&baseline{assert_eq!((&detail,&hover),(prior_detail,prior_hover),"{name} [{mode}] disagrees with settled help");}else{baseline=Some((detail,hover));}
+            let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{name} [{mode}]: {counters}");}
+        }
+    }
+}

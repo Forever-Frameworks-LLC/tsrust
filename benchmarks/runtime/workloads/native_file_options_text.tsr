@@ -1,0 +1,33 @@
+import { writeTextFile, appendFile, openFile, fileStat, truncate, writeAll, close, readTextFile, stat } from "std:fs";
+import { fromUtf8 } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const destination = input + ".out";
+  const initial = "hé🦀";
+  const newline = unwrap(fromUtf8("\n"));
+  const content = unwrap(fromUtf8(initial));
+  let rows: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    unwrap(writeTextFile(destination, initial));
+    unwrap(appendFile(destination, newline));
+    const file = unwrap(openFile(destination, {
+      read: true, write: true
+    }));
+    const before = unwrap(fileStat(file));
+    unwrap(truncate(file, 0));
+    unwrap(writeAll(file, content));
+    unwrap(close(file));
+    const observed = unwrap(readTextFile(destination));
+    if (observed !== initial) {
+      throw "text changed";
+    }
+
+    rows.push([before.size, unwrap(stat(destination)).size, (i + seed) % 17]);
+    i++;
+  }
+
+  return rows;
+}
+
+function main() {}

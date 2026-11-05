@@ -86,7 +86,7 @@ impl NativeBinding {
                 _ => {},
             }
         }
-        if self.module == "std:fs" && position == 1 && matches!(self.name, "write" | "writeAll" | "writeFile") {
+        if self.module == "std:fs" && position == 1 && matches!(self.name, "write" | "writeAll" | "writeFile" | "appendFile") {
             return &[ByteView, ByteViewMut];
         }
         if self.module != "std:bytes" || position != 0 {
@@ -405,6 +405,29 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs::bindings::WRITE_ALL,
     crate::stdlib::fs::bindings::READ,
     crate::stdlib::fs::bindings::CLOSE,
+    crate::stdlib::fs::bindings::OPEN_FILE,
+    crate::stdlib::fs::bindings::STAT,
+    crate::stdlib::fs::bindings::LSTAT,
+    crate::stdlib::fs::bindings::FILE_STAT,
+    crate::stdlib::fs::bindings::READ_DIR,
+    crate::stdlib::fs::bindings::MKDIR,
+    crate::stdlib::fs::bindings::MKDIR_ALL,
+    crate::stdlib::fs::bindings::REMOVE_FILE,
+    crate::stdlib::fs::bindings::REMOVE_DIR,
+    crate::stdlib::fs::bindings::REMOVE_DIR_ALL,
+    crate::stdlib::fs::bindings::RENAME,
+    crate::stdlib::fs::bindings::COPY_FILE,
+    crate::stdlib::fs::bindings::HARD_LINK,
+    crate::stdlib::fs::bindings::CANONICALIZE,
+    crate::stdlib::fs::bindings::READ_LINK,
+    crate::stdlib::fs::bindings::APPEND_FILE,
+    crate::stdlib::fs::bindings::READ_TEXT_FILE,
+    crate::stdlib::fs::bindings::WRITE_TEXT_FILE,
+    crate::stdlib::fs::bindings::TRUNCATE,
+    crate::stdlib::fs::bindings::SYNC_ALL,
+    crate::stdlib::fs::bindings::SYNC_DATA,
+    crate::stdlib::fs::bindings::CREATE_TEMP_DIR,
+
     crate::stdlib::bytes::bindings::FROM_ARRAY,
     crate::stdlib::bytes::bindings::LENGTH,
     crate::stdlib::bytes::bindings::AT,
