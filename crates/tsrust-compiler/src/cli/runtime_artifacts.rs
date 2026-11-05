@@ -31,8 +31,12 @@ impl Build {
   let canonical=self.target.canonicalize().map_err(|e|e.to_string())?;
   // An explicit path may name the cache-owned target (including via symlinks).
   // Use its existing workspace lock so cache clean and default builds agree.
-  let lock_path=match canonical.parent(){Some(parent) if fs::read(parent.join("identity")).ok().as_deref()==Some(SHARED_TARGET_ID)=>parent.join(".lock"),_=>canonical.join(".tsrust-runtime.lock")};
-  let file=fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(lock_path).map_err(|e|e.to_string())?;
+  // Cache clean removes identity, so recognize the exact owned slot by its
+  // location and let Workspace recreate/check identity under the retained lock.
+  if let Some(parent)=canonical.parent() && let Some(root)=parent.ancestors().nth(3) && Workspace::location(root,SHARED_TARGET_ID)==parent {
+   self.workspace=Workspace::acquire(root,SHARED_TARGET_ID,!blocking)?;return Ok(self.workspace.is_some());
+  }
+  let file=fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(canonical.join(".tsrust-runtime.lock")).map_err(|e|e.to_string())?;
   if blocking{file.lock().map_err(|e|e.to_string())?;}else{match file.try_lock(){Ok(())=>{},Err(fs::TryLockError::WouldBlock)=>return Ok(false),Err(error)=>return Err(error.to_string())}}
   self.lock=Some(file);Ok(true)
  }
@@ -154,7 +158,11 @@ fn reported(stdout:&Path,target:&Path,manifest:&Path)->Result<BTreeMap<String,Pa
   let fixture=Fixture::new();let mut first=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("one"),fixture.root.join("one.stdout"),None).unwrap();
   assert!(first.acquire(false).unwrap());fs::create_dir_all(&first.target).unwrap();
   let mut second=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("two"),fixture.root.join("two.stdout"),Some(&first.target)).unwrap();
-  assert!(!second.acquire(false).unwrap());drop(first);assert!(second.acquire(false).unwrap());
+  assert!(!second.acquire(false).unwrap());drop(first);
+  // Cache clean retains .lock but removes identity. The explicit alias must
+  // still serialize with a default build recreating that identity afterward.
+  fs::remove_file(second.target.parent().unwrap().join("identity")).unwrap();
+  assert!(second.acquire(false).unwrap());assert_eq!(fs::read(second.target.parent().unwrap().join("identity")).unwrap(),SHARED_TARGET_ID);
   let mut third=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("three"),fixture.root.join("three.stdout"),None).unwrap();
   assert!(!third.acquire(false).unwrap());drop(second);assert!(third.acquire(false).unwrap());
   let mut external=Build::new(&fixture.root,fixture.build.manifest.clone(),fixture.root.join("external"),fixture.root.join("external.stdout"),Some(&fixture.build.target)).unwrap();
