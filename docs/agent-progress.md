@@ -13,6 +13,85 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**Next integration ready:** approved lifetimec9d887be plus test-only50551356
+(fresh Bytes/JsonValue as well as URL; four groups remain) and URL backend
+host-state fixebcab37b are committed/formatted in their isolated trees. No worker
+jobs remain. Root is sole canonical writer and owns next formatting/integration/
+validation. Core labelled diagnostic22003 failed exactly the hostname-absence
+assertion after all earlier optional/returned/default-port/index-order assertions
+passed;4.176s/268,720KiB. Exact pinned URL oracle confirmed mutated custom:/path
+has_host=true/host_str=Some(empty), versus fresh parse false/None. One-line
+HostInternal::None reset restores actual backend state; no reparsing workaround.
+New retained six-case unit covers non-special/file and domain/IP hosts, invariants,
+credentials/port removal, query/hash offsets, repeated removal and restoration.
+Payload hash already covers lib/unit/provenance, so caches/portable exports must
+use the new embedded source identity. No registry checksum/ABI shortcut.
+Batch only affected native lifetime/URL acceptance after merging;53library unit
+keepers +8integration +2spreadkeepers=63tests, plus existing optional setter,
+backend six-case exact retained-unit extraction against fresh URLrlib and changed
+patch-payload relocation controls. Optional upstream unit Cargo would add missing
+bencher devdep/lock churn, so compile exact retained function with rustc --test
+and exact fresh CargoJSON artifact instead. Do not weaken or rewrite its cases.
+Cross-family source audit: public SQL cursor calls stage receivers into internal
+Let/Name before NativeBinding; hypothetical internal Call-emission risk has no
+public reproduction and justifies no SQL patch. Prepared /tmp check-only controls
+remain unrun, not acceptance. B06 preparation likewise remains source-only.
+Closed filesystem build output target/fs-b01-verify (~681MiB) was removed after
+75cases closed; source and current semantic reports remain, shared target intact.
+
+**Owner scoped lifetime approval received:** actual async answer is
+“Approve scoped lifetime fix and tests (Recommended)” for the exact proposed
+/tmp/tsrust-temporary-view-proposal.patch SHA
+1cc180040831ec33be3665ecc4f91d8b05f67dcaeb2420344ff26f8a93827851.
+This is specific authorization to implement and validate the previously rejected
+scope. Root relayed it to runtime: preserve retained/mixed-source named owners,
+source/Exclusive argument loans, all4test groups and corrected7thsearch hazard.
+Runtime may apply reviewed scope on its own tree after normally mergingdadcbc1f;
+review any conflicts with the new URL assignment helper before applying. No
+canonical production change during live6648. This supersedes the pending-approval
+language below; publication remains separate and unapproved.
+
+**Focused repair execution completed:** canonicaldadcbc1f no-run6648 PASSED
+554.586s/3,687,075KiB. Fresh CLI SHA
+f1f0947bc42e9de1144ee8c00c4f9a016346baf3f83ca2587d382d2cb54a148b;
+LSP SHA bfb4ba76c844eb43e133c0a84448699f7c5c04240385c2bf3bfb44c0df3df98a.
+Artifacts/tmp/tsrust-url-assignment-identity-artifacts.jsonl. Direct42158 is
+terminal49.518s/456,560KiB:10invocations,21passedtests,1failednativeoptionalsetter
+assertion. All11expression-work units,3String literal suites, new alias/access
+presentation unit and real-server phases, grouped-union helper/URL agreement and
+both generic help controls passed. Broader URL owner fixtureO0/O3 also passed.
+The optional setter no longer panics emitting and now compiles, but fails a native
+assertion. Core owns next bounded labelled O0 fixture/direct-Rust URL probe;
+source review suspects url::set_host(None) leaves stale HostInternal, needing
+actual proof against fresh parse. No expectation was weakened. Reports
+/tmp/tsrust-url-assignment-identity-gates.{json,log}. Node FS registration suite
+26754 is terminal5/5PASS1.033s/201,888KiB.
+Runtime approved lifetime source checkpointc9d887be is ready (exact9files,
+parentdadcbc1f); full formatter11.385s/474,384KiB, token/idempotence passed.
+Initial scanner-dependency preflight0.521s failed; owned node_modules symlink
+reused then removed. No lifetime build/test acceptance yet. Root has not merged
+while core diagnostic lease is active. Core B06 six-source preparation remains
+untracked and unexecuted; runtime B03 prototypes remain untracked.
+Runtime capacity A/B48021 is terminalSUCCESS19.680s/225,856KiB, including quiet
+load wait; no Node/Cargo rerun. Same-run per256calls median17,250ns direct versus
+8,500ns exactcapacity,221allocations each,256→0reallocations,9,769→8,925retained/
+peak bytes. Result/tmp/tsrust-b03-format-ab-c2214d9782c2.json SHA
+b2f2b3e577c6379417a1e2f111b8a0c555497236962ed735bd7a310c5e5b22b1.
+Select checked exact-capacity construction for B03. These are prototype controls;
+original successful admission JSON remains unchanged and no SQLite ingest applies.
+Runtime prepares Windows injected multipart controls/advisory review source-only;
+core audits/prepares B06 Tokio primitives source-only. No worker heavy lease.
+
+**Filesystem workload semantic support accepted locally:** dadcbc1f resumed the
+30unrun seek/sync cases;63804 terminalSUCCESS58.849s/431,897KiB. Combined with
+2533's45passed cases, all5workloads×5original cases×3engines pass75independent
+observations (generatedRust, handRust, pinnedNode24.11.1/TS5.9.3). Fresh result
+/tmp/tsrust-b01-verify.json contains the30new detailed cases and helper/source
+hashes; earlier45scope remains in the first log. CLI SHA9ab024df8e36484de0814d5643669f3a9141d62d1211c1625605ee09fb029775
+is the verified9d compiler; subsequent source changes affect URL/LSP only.
+No throughput claims or ingestion. Runtime now owns the next exclusive exact-
+capacity format A/B slot; root waits before registration tests/combined rebuild.
+
 **Combined follow-up candidate:** root6405ec6c checkpoints grouped-union test
 comparison and repaired seek/sync benchmark byte reads/guards. Incoming core
 070fa84f (computed URL assignment worklist) and host55ccf888 (declared parameter
@@ -21,7 +100,7 @@ is required before committing this merge; focused rebuilt acceptance is pending.
 Core and host have no active build/formatter jobs. Root owns the next execution
 slot; runtime exact-capacity format prototype A/B is queued and source-only.
 
-**Resume here — independent repairs, temporary-view approval pending:** root is
+**Earlier repair evidence — lifetime implementation now approved above:** root is
 the sole canonical writer. Previous turn made source and acceptance progress;
 this turn completed more real gates, not a blocked turn.
 Latest direct batch on9d3573ee is terminal:12invocations,15complete passed tests,
@@ -98,19 +177,11 @@ native-import groups retaining the written module: a final shared StringView imp
 changed the whole std:url group to std:json and panicked on Url. New witnesses
 cover both binding orders and reexports, without selecting JSON runtime.
 
-Automatic approval review rejected TWO temporary-view lifetime edits; NONE was
-applied. Owner async approval is pending for the concrete NON-APPLIED patch
-/tmp/tsrust-temporary-view-proposal.patch, SHA256
-1cc180040831ec33be3665ecc4f91d8b05f67dcaeb2420344ff26f8a93827851.
-Root reviewed it and git apply --check passed read-only. It proposes proven-fresh
-owner observations with outer-expression staging, strict retained/escape and
-mixed-source extraction, and exact readonly/Exclusive/owner-field argument loans
-across normal and spread calls. The reviewer cited generated-reference lifetime/
-aliasing risk and insufficiently specific authorization. Do not apply, retry or
-use another writer/tool until an actual owner answer arrives; elapsed time is not
-approval. Runtime worker tracked source is unchanged; four tests/B03 prototypes
-remain untracked. Continue independent work meanwhile. No goal-wide blocker,
-publication authorization, new throughput measurement or SQLite ingestion here.
+Automatic approval review originally rejected two temporary-view boundary edits
+for lifetime/aliasing risk and insufficient specific authorization. The actual
+owner subsequently approved the exact reviewed patch; runtime applied and
+checkpointed it atc9d887be. See current execution/approval state above. No broader
+lifetime relaxation, mixed-source support or publication is authorized here.
 
 **Current combined repair candidate — 2026-11-05:** root3a9ef5c9 checkpoints the
 native callable identity repair and passed/pending evidence below. Root8a23d39f
