@@ -64,7 +64,7 @@ pub(crate) fn pack(library:&Path,dependencies:&Path,destination:&Path)->io::Resu
     for entry in fs::read_dir(dependencies)? {
         let entry=entry?;if entry.file_type()?.is_file() && entry.path().extension().is_some_and(|e|e=="rlib" || e=="lib" || e==std::env::consts::DLL_EXTENSION) {files.push(entry.path());}
     }
-    files.push(library.to_owned());files.sort();
+    files.push(library.to_owned());files.sort();files.dedup();
     let mut out=fs::File::create(destination)?;out.write_all(b"TSRLIB3\0")?;
     for path in files {
         let name=path.file_name().unwrap().to_str().ok_or_else(||io::Error::other("non-UTF8 native artifact"))?;

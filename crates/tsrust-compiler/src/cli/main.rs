@@ -413,9 +413,10 @@ fn run() -> Result<u8, String> {
     if !reused {
         let mut prepared=runtime_build::Prepared::new(&rust,&backend_identity,&cache_root,&directory.0,release)?;
         if let Some(mut runtime)=prepared.command.take() {
+            prepared.acquire_target(true)?;
             let result=runtime.output().map_err(|e|e.to_string())?;
             if !result.status.success(){return Err(prepared.compilation_error(&String::from_utf8_lossy(&result.stderr)));}
-            prepared.publish();
+            prepared.finish()?;prepared.publish();
         }
         if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
         let mut command=backend_command();prepared.link(&mut command)?;
