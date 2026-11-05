@@ -21,7 +21,7 @@ function workload(n: int, seed: int, input: string): int[][] {
       throw "short sync readback";
     }
 
-    rows.push([unwrap(position(file)), at(bytes, 0) + at(bytes, 1) + (i + seed) % 17]);
+    rows.push([unwrap(position(file)), unwrap(at(bytes, 0)) + unwrap(at(bytes, 1)) + (i + seed) % 17]);
     i++;
   }
 

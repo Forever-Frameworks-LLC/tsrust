@@ -100,10 +100,14 @@ Primary implementation evidence:
 First-wave source preparation identified these concrete shared prerequisites;
 they are not completed implementation gates:
 
-- [ ] Add narrow native signature literal/exported-alias support where required
+- [x] Add narrow native signature literal/exported-alias support where required
   for `SeekOrigin` and similar finite contracts. The source language already has
   literals; the native registry currently does not. Do not invent opaque owners
   or silently widen a promised literal union to arbitrary string.
+  Accepted on9d3573ee: both `native_literal_aliases` tests pass, including
+  shared exported native types in either import order without selecting an
+  unrelated runtime. Homogeneous literal-string operations retain their exact
+  type identity in compiler checks; editor phase identity repair remains open.
 - [ ] Extend readable/writable byte alternatives by argument position for paired
   inputs; preserve input-only borrowed-shape checks and abstract callable
   contracts. Update the current single-byte-generic emission bridge where two
@@ -280,6 +284,14 @@ configuration. Parallelism is an estimate. Unsupported signal events error.
 Witnesses: drives/UNC/roots/dotfiles, controlled child cwd/environment, optional
 home and real Windows interrupt handling. Performance: path corpus and environment
 reads; do not fabricate meaningful speedups for constant target identity.
+
+Preparation: hostname0.4.2 matches its official non-yanked sparse-index checksum
+617aaa3557aef3810a6369d0a99fac8a080891b68bd9f9812a1eeda0c0730cbd,
+MIT license and declared MSRV1.74. Locked metadata/fetch/tree admission kept
+existing cfg-if1.0.5, libc0.2.190 and windows-link0.2.1 pins unchanged. Default
+and optional setter features remain disabled. This is not completed advisory,
+platform, runtime or public API acceptance. Direct-Rust allocation/build/timing
+prototypes are prepared separately; no production B03 implementation is claimed.
 
 ### B04 — General URL and query parameters
 

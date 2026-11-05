@@ -255,6 +255,29 @@ fn callable_field_agrees(receiver:&Receiver,name:&str,shown:&str)->bool {
 }
 
 fn alternatives(ty: &str) -> BTreeSet<String> {
+    let mut ty = ty.trim();
+    while ty.starts_with('(') && ty.ends_with(')') {
+        let mut depth = 0;
+        let mut quote = None;
+        let mut escaped = false;
+        let encloses_all = ty.char_indices().all(|(offset, ch)| {
+            if let Some(delimiter) = quote {
+                if escaped { escaped = false; }
+                else if ch == '\\' { escaped = true; }
+                else if ch == delimiter { quote = None; }
+            } else {
+                match ch {
+                    '\'' | '"' => quote = Some(ch),
+                    '(' => depth += 1,
+                    ')' => depth -= 1,
+                    _ => {}
+                }
+            }
+            depth != 0 || offset + ch.len_utf8() == ty.len()
+        });
+        if !encloses_all { break; }
+        ty = ty[1..ty.len() - 1].trim();
+    }
     let mut depth = 0i32;
     let mut parts = BTreeSet::new();
     let mut begin = 0;
@@ -271,6 +294,14 @@ fn alternatives(ty: &str) -> BTreeSet<String> {
     }
     parts.insert(ty[begin..].split_whitespace().collect::<String>());
     parts
+}
+
+#[test]
+fn displayed_union_grouping_preserves_alternatives_and_nested_contracts() {
+    assert_eq!(alternatives(" ((StringView | undefined)) "), alternatives("StringView | undefined"));
+    assert_ne!(alternatives("(string | undefined)[]"), alternatives("string | undefined[]"));
+    assert_eq!(alternatives("(\"a)b\")"), BTreeSet::from(["\"a)b\"".into()]));
+    assert_eq!(alternatives("(string) | (undefined)"), BTreeSet::from(["(string)".into(), "(undefined)".into()]));
 }
 
 fn candidates() -> BTreeSet<String> {

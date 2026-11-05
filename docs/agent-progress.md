@@ -14,8 +14,46 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Resume here — independent repairs, temporary-view approval pending:** root is
-the sole canonical writer; no heavy process remains. Previous turn made source
-and acceptance progress; this turn completed more real gates, not a blocked turn.
+the sole canonical writer. Previous turn made source and acceptance progress;
+this turn completed more real gates, not a blocked turn.
+Latest direct batch on9d3573ee is terminal:12invocations,15complete passed tests,
+3failed gates,145.343s/453,632KiB under watchdog. Report and output:
+/tmp/tsrust-independent-url-editor-gates.{json,log}. Passed: both native import
+alias tests; URL loan diagnostics; native URL owner/mutation fixtureO0/O3;
+all6URL editor tests; string/schema distinction unit; FS help; URL read/write
+typing-phase consistency18.60s; URL completion matrix11rows/4phases35.00s; portable
+temporary-directory relocated offline export50.01s. Preserve these scopes.
+Remaining failures: optional-setter returned assignment panics in storage_steps
+on computed URL property (core owns expression_work.rs + URL emitter repair);
+syntax-recovery value hover expands ReadOnly<SeekOrigin> instead of preserving
+declared identity (host owns repair); URL checker-agreement helper does not strip
+outer union parentheses (root owns test-only repair). Do not weaken comparisons.
+Runtime B03 prototype lease is RELEASED:13079 terminalSUCCESS7.315s/221,392KiB.
+Actual Rust1.96.1/Node24.11.1 guards,35fixed oracle rows, direct Rust checks,
+separate allocator/timing executables and8warmups/3×31samples passed. Numeric
+result/tmp/tsrust-b03-profile-50c4bb763b6c.json (18,113bytes). Prior failed
+prototype attempts92155(E0753innerdocinclude) and73539(empty resolve segments
+incorrectly skipped cwd) remain failures, repaired before any timing success.
+Per256operations median-of-three: format intermediate19,250ns/404allocations/
+183reallocations; direct output11,000ns/221allocations/256reallocations. Root
+requested exact-sized output candidate before the public format adapter, reusing
+Node controls. PathParts42,333ns/1,025allocations/128reallocations; env snapshot
+103,042ns/3,329allocations/512reallocations; hostname78,125ns/257allocations/0realloc.
+These are admission prototype observations, not new Tsrust API throughput.
+Runtime prepares exact-sized format and injected Windows multi-part resolve;
+core owns next formatter/checkpoint slot, then host, then root integration.
+No actual API throughput measurements or SQLite ingestion occurred.
+B01 untimed driver2533 is terminal86.829s/587,600KiB: directory metadata,
+copy/rename/remove and options/text each passed5cases×3engines (45total).
+/tmp/tsrust-b01-verify.log records the complete passed workload scopes. Seek
+fixture then failed checking: byte at returns Result, but the authored fixture
+summed it directly; sync sibling had the same defect. Root adds explicit unwrap,
+strengthens both source guards with mutation witnesses and refreshes only their
+semantic source hashes. The first preflight separately failed0.519s due to a
+temporary driver duplicated-v version guard; guard repaired before2533. Next
+resume /tmp/tsrust-b01-verify.mjs 3 for the30unrun cases; it now persists each
+completed workload to/tmp/tsrust-b01-verify-progress.json. No prior45case replay.
+
 Current source is9d3573ee, integrating hosta4543ba0 and coreb0204dd6 with the
 native-import module fixf6d59e58. Its both-package all-target check passed
 87.329s/1,848,802KiB. Focused combined no-run53586 is terminal: authoritative

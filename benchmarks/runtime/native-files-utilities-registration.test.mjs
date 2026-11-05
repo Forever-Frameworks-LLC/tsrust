@@ -20,6 +20,11 @@ for(const id of ['native_directory_metadata','native_file_copy_rename_remove','n
  assert.throws(()=>createNativeFileFixture({...row,fixtureSha256:'changed'}));
  for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+file);assertNativeFilesSource(source,row,kind);assert.throws(()=>assertNativeFilesSource(source,{...row,iterations:1},kind));
+  if(kind==='native'&&['native_file_seek_read','native_file_sync_storage'].includes(id)){
+   const byteRead=id==='native_file_seek_read'?'at(bytes,index)':'at(bytes,0)';
+   const unchecked=replaceCodeSnippet(source,`unwrap(${byteRead})`,byteRead);
+   assert.throws(()=>assertNativeFilesSource(unchecked,{...row,sourceSha256:createHash('sha256').update(unchecked).digest('hex')},kind));
+  }
   const needle=id==='native_file_sync_storage'?(kind==='native'?'syncAll(file)':'fileSystem.fsyncSync(file)'):id==='native_file_seek_read'?(kind==='native'?'seek(file, offset, "start")':'fileSystem.readSync(file,bytes,0,64,position)'):id==='native_directory_metadata'?(kind==='native'?'stat(entry.path)':'fileSystem.statSync(entry.path, { bigint: true })'):id==='native_file_copy_rename_remove'?(kind==='native'?'removeFile(moved)':'fileSystem.unlinkSync(moved)'):(kind==='native'?'truncate(file, 0)':'fileSystem.ftruncateSync(file, 0)');
   const changed=replaceCodeSnippet(source,needle,'skipped()');
   const fingerprint=kind==='native'?'sourceSha256':'counterpartSha256';
