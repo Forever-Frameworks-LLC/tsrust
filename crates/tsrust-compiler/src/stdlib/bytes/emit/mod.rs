@@ -84,7 +84,7 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
                 let storage = if write {"bytes: &mut B"} else {"bytes: &B"};
                 let value = if write {if integer {", value: i64"} else {", value: f64"}} else {""};
                 let width = if integer {", width: i64"} else {""};
-                let parameters = format!("{storage}, offset: i64{value}{width}, byte_order: &{order_type}");
+                let parameters = format!("{storage}, offset: i64{value}{width}, byte_order: {order_type}");
                 let storage = if write {"bytes.writable_bytes()"} else {"bytes.readable_bytes()"};
                 let value = if write {", value"} else {""}; let width = if integer {", width"} else {""};
                 output.push_str(&result_bridge(program,binding,&parameters,&format!("tsrust_native_bytes::{operation}({storage}, offset{value}{width}, {order})"),"success"));
@@ -92,9 +92,9 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             "fromUtf16" | "toUtf16" => {
                 let (order_type, order) = byte_order_bridge(program);
                 let (parameters, call, success) = if binding.name == "fromUtf16" {
-                    (format!("text: &String, byte_order: &{order_type}"), format!("tsrust_native_bytes::from_utf16(text.as_ref(), {order})"), format!("Record{bytes} {{ bytes: success }}"))
+                    (format!("text: &String, byte_order: {order_type}"), format!("tsrust_native_bytes::from_utf16(text.as_ref(), {order})"), format!("Record{bytes} {{ bytes: success }}"))
                 } else {
-                    (format!("bytes: &B, byte_order: &{order_type}"), format!("tsrust_native_bytes::to_utf16(bytes.readable_bytes(), {order})"), "String::Owned(success)".into())
+                    (format!("bytes: &B, byte_order: {order_type}"), format!("tsrust_native_bytes::to_utf16(bytes.readable_bytes(), {order})"), "String::Owned(success)".into())
                 };
                 output.push_str(&result_bridge(program, binding, &parameters, &call, &success));
             }
@@ -106,13 +106,15 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
 
 fn byte_order_bridge(program: &CheckedProgram) -> (String, String) {
     let Type::Union(id) = crate::native_binding_types::resolve(&program.records, &crate::stdlib::bytes::bindings::BYTE_ORDER).expect("checked byte order") else { unreachable!() };
+    let order_type = crate::emit::ty(Type::BorrowedUnion(id));
+    let constructor = order_type.split_once('<').map_or(order_type.as_str(), |(name, _)| name);
     let arms = program.unions[id.index()].members.iter().enumerate().map(|(tag, member)| {
         let Type::Literal(record, crate::literal_types::LiteralKind::String) = member else { unreachable!("byte order literals") };
         let Some(crate::literal_types::LiteralValue::String(value)) = &program.records[*record].literal_definition else { unreachable!() };
         assert!(matches!(value.as_str(), "little" | "big"));
-        format!("Union{}::V{tag}(value) => value.as_ref()", id.index())
+        format!("{constructor}::V{tag}(value) => value.as_ref()")
     }).collect::<Vec<_>>().join(", ");
-    (format!("Union{}", id.index()), format!("match byte_order {{ {arms} }}"))
+    (order_type, format!("match byte_order {{ {arms} }}"))
 }
 
 fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: &str, call: &str, success: &str) -> String {

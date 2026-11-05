@@ -20,9 +20,9 @@ function workload(n: int, seed: int, input: string): int {
     unwrap(writeUint(bytes, 21, 4294967295, 4, "little"));
     checksum += unwrap(readUint(bytes, 21, 4, "little")) * 4;
     unwrap(writeFloat32(bytes, 25, 1.5, "little"));
-    checksum += int(unwrap(readFloat32(bytes, 25, "little")) * 4.0);
+    checksum += (unwrap(readFloat32(bytes, 25, "little")) === 1.5 ? 6 : 0);
     unwrap(writeFloat64(bytes, 33, -2.25, "little"));
-    checksum += int(unwrap(readFloat64(bytes, 33, "little")) * 4.0);
+    checksum += (unwrap(readFloat64(bytes, 33, "little")) === -2.25 ? -9 : 0);
     i += 1;
   }
 

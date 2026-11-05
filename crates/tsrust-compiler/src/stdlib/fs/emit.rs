@@ -51,13 +51,15 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding], ord
         let (parameters, call, value): (String, String, String) = match binding.name {
             "seek" => {
                 let Type::Union(origin)=crate::native_binding_types::resolve(&program.records,&crate::stdlib::fs::bindings::SEEK_ORIGIN_SIGNATURE).expect("checked seek origin") else {unreachable!()};
+                let origin_type=crate::emit::ty(Type::BorrowedUnion(origin));
+                let constructor=origin_type.split_once('<').map_or(origin_type.as_str(),|(name,_)|name);
                 let arms=program.unions[origin.index()].members.iter().enumerate().map(|(tag,member)| {
                     let Type::Literal(record,crate::literal_types::LiteralKind::String)=member else {unreachable!("seek origin literal")};
                     let Some(crate::literal_types::LiteralValue::String(value))=&program.records[*record].literal_definition else {unreachable!()};
                     assert!(matches!(value.as_str(),"start"|"current"|"end"));
-                    format!("Union{}::V{tag}(_)=>{value:?}",origin.index())
+                    format!("{constructor}::V{tag}(payload)=>payload.as_ref()")
                 }).collect::<Vec<_>>().join(",");
-                (format!("file:&mut {file},offset:i64,origin:&Union{}",origin.index()),format!("tsrust_native_files::fs::seek(&mut file.handle,offset,match origin {{{arms}}})"),"success".into())
+                (format!("file:&mut {file},offset:i64,origin:{origin_type}"),format!("tsrust_native_files::fs::seek(&mut file.handle,offset,match origin {{{arms}}})"),"success".into())
             }
             "position" => (format!("file:&mut {file}"),"tsrust_native_files::fs::position(&mut file.handle)".into(),"success".into()),
             "createTempDir" => ("parent:Option<&String>,prefix:Option<&String>".into(),"tsrust_native_tempfiles::create_temp_dir(parent.map(|value|value.as_ref()),prefix.map(|value|value.as_ref()))".into(),"String::Owned(success)".into()),

@@ -28,7 +28,8 @@ codec wiringacbd5440 and measured portable-files46cfc4b8. The current combined
 candidate additionally integrates URL facade a5328d77, reproducible scaling
 458a539f, behavioral controls0a19267f and editor readinessa25985df, plus root
 URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
-No new URL/codec native gate or platform completion is claimed.
+B02 codec/binary functional and allocation acceptance now passes below; URL and
+platform completion remain pending.
 
 **Canonical integration:**422331a4 tempfile pins; e3d1110b native literal aliases;
 d7ff8603 void/native-use/URL emission fixes;067eda23 optional measured search pin;
@@ -72,40 +73,95 @@ descendant/observed-PGID watchdog `/tmp/tsrust-artifacts-watch.py` (same5GB/1800
 plain `/tmp/tsrust-watch.py` covers normal inherited-PGID Cargo commands only.
 Windows/Linux execution, full suites and shared-target timing remain unrun.
 
-Optional memchr=2.8.3 is committed in compiler dev/both runtimes (`byte-search`),
-reference graph and reserved pins. Four offline metadata runs pass0.523/0.522/
-0.523/0.525s, peak25,968KiB; all previous packages/checksums/defaults unchanged.
-Only reference graph adds a package. Core worker2bfa53bd complete14API/39-row source section is now merged additively;
-CLI byte-search selection is added alongside requires_byte_codecs. Source readiness
-includes compiler/runtime/loans/effects/exact96variants/catalog/docs/export and
-all39TSR/TS/independentRust ABI/oracle/resource rows. Native/compiler/LSP/export and
-generated packet/UTF16 allocation acceptance have not run on this combined family. FS44-export source/cursor/sync/5-workload section938fd78f is now merged additively.
-Its pinned Node controls13/13(0.695s), strictTS/referenceABI and full formatter
-controls pass on worker source; no native/compiler/LSP/export/profile/timing
-acceptance is claimed for the added APIs. Combined source is now coherent for
-B01/B02/B04 affected acceptance. New seek/sync std kernels remain unexecuted. Next heavy leases: FS new std profiles, then full coherent B02
-compiler/native/LSP/export/allocation acceptance, followed by B01/B04; serialize
-all heavy work and give quiet timing exclusive access. Full regressions wait for
-the meaningful utility-family milestone.
+Optional memchr=2.8.3 is canonical (`byte-search`, dev/reference/reserved pins).
+Four offline metadata resolutions preserved all previous packages/checksums and
+defaults; only reference graph added the already-locked package. Full byte and FS
+source integrations are4a850221/810f1557; generated witnesses initiallybf3a1983.
+Worker174218b9 is now merged for coherent functional acceptance, not publication.
 
-**Combined utility source checkpoint:**341404d1 integrates accepted shared-target/
-package repair,4a850221 the full14API/39-row byte family plus CLI search selector,
-and810f1557 the44-export/5-row filesystem family. Core9e5f2d57 generated allocation
-witnesses are now merged:9TSR packet/UTF16 inline/stored-alias cases,3independent
-Rust floors and exact ABI/allocation driver. Plan gates require actual generated
-O0/O3 allocation slopes versus setup/directRust; unsafe prohibition is checked on
-unmodified emitted source, instrumentation never substitutes arguments or bodies.
-These probes are source-only. Node24lightchecks and std prototypes are preserved;
-current compiler/native/LSP/export/platform/performance acceptance remains open.
+**B02 functional/allocation acceptance — 2026-11-05:** accepted MacARM64 scope is
+40checks:22runtime/extraction/effect units, genericResult1, codecnegative1,
+codecpositive1, operations2, safe export4, focusedLSP7, representativefullfiles1,
+compilerliteralaliases1. Positive native/catalog examples cover all23new APIs at
+O0/O3, exactint/IEEE/endian/view/alias vectors, no partial writes and readonly/
+same-owner/late-argument loan rejection. Exports prove preciseoptionalfeatures,
+licenses, forbiddenunsafe and relocatedofflineemptyCARGO_HOME O0/O3. B02 public
+signatures and four-phase editor phase/agreement rows pass. Implementation items
+are checked separately in the existing plan;75actualworkloadtimings and Windows/
+Linux/full regressions are NOT complete. No canonical DB entry was added here.
 
-Next executable: grant host exclusive two-kernel seek/sync std profile lease,
-then build this full combined source once with explicit CLI+LSP packages/binaries,
-sharedtarget/incremental0/jobs1/watchdog. Compile affected native test binaries
-with --no-run, execute one at a time with threads3; use descendant watchdog for
-dev/process-group controls. Core B02 unit/native/LSP/export/generated-allocation
-acceptance is first, then host B01 and URL B04, preserving unchanged prior passes.
-No whole-suite or benchmark-matrix rerun was launched. Leave the full B00–B20 app
-goal active; v0.2 publication still requires the concrete release approval.
+Actual emitted allocation controls pass104O0/O3 cases/1872independent generated/
+Rust samples:0extraalloc/iteration/field slopes,0live-after-drop for every sample.
+Packets have exactlyone64B setupallocation and0realloc atn0/1/256. UTF16 encode
+hasoneoutputalloc/iteration; mixeddecode0realloc vsstd1, CJK1vsstd2. All48decode
+cases haveonefewerrealloc thanstd, not an alias/order overhead. Raw temporary
+results target/generated-byte-allocation-prototype/results.json,
+SHA45a0d356b65630d1cc0bce5a61a3e85c72c81dc8181743eb8d01b70277724eca;
+41.521s/329,088KiB,24compiledartifactrecords. CompilerSHA
+7fb03db70fbd02497216d0605690edd535933ffb79c054b680ef96b4f2eef4f6 is the verified
+871production candidate;289support edits do not change producer inputs. All
+unmodified generated variants compile-Funsafe_code; instrumentation never replaces
+arguments/calls/bodies. Prototype is not a canonical throughput measurement.
+
+Accepted source IDs: e7ffcf67/tree74cb61b =bf3+2focusedLSProws; all-target
+compiler+LSP check59.371s/1,288,576KiB (inheriteddecode_plain warning only).
+Initial no-run498.768s/1,734,016KiB produced18executables. Actual codec positive
+then caught a real ModeRead union ABI mismatch (14sites,E0308): bridge expected
+&Union but lowering correctly passed ViewUnion.87142ee9 fixes byte order and FS
+seek origin with existing emit::ty(BorrowedUnion), byvalueview and actual borrowed
+payload; no clones/static substitution/global lowering/mode weakening. Fields
+are &'a Cow, so payload lives through the backend call. Repair no-run without
+unchanged--lib222.927s/1,650,192KiB produced16artifacts. Both normalCLI/LSP artifacts
+profile.test=false/fresh=false were verified separately from harnessbins.
+
+Compatible passes were preserved, not replayed: units4.368s/47,344KiB;
+LSP7checks19.918s/65,536KiB; repairedcodec10.995s/392,128KiB;
+operations5.881s/367,712KiB; exports91.601s/402,176KiB;
+representativeFS+alias10.228s/384,448KiB. Final support-only289da5b5 repaired
+authored int(...) calls, integer Math.min setup and a late length-read while
+exclusive set loan was active. Matched TSR/TS/Rust observations/oracles/hashes
+updated; no production numeric/loan change. All13benchmark+9probe strictCLI ABI
+emits and pinnedNode/TS controls pass. Priorfailedprobes stopped atfrontend,
+not native profiling. Core pruned92owned disposableprototype consumers34,245,642B;
+sharedCargo/test/normalCLI artifacts remain for the FS queue. No owned process or
+lease remains at core's clean174218b9 handback. Never restart old terminalhandles.
+
+Next: host corrected seek-only stdfloor profile, then B01 focused native/compiler/
+LSP/export gate. To preserve Cargo packagepaths/cache, transfer idle byte worktree
+validation ownership explicitly to host only; core must not write there during
+that lease. Compile unrun FS targets with --no-run, then directbinarythreads3.
+Use verified normal binaries/CargoJSON at /private/tmp/tsrust-b02-cargo-artifacts.json;
+no released TSRUST override, no outerCargo lock during nested CLI tests. Preserve
+unchanged prior unit/LSP passes by source scope. Fullgoal B00–B20 remainsactive.
+
+FS seek/sync std contracts PASS2/2,3allocation samples each,0live after drop,
+quietload2.02393,3.623s/270,464KiB. Sync n16:20alloc/3realloc,740requested,
+256retained-output/432peak,checksum233949518;O3build193.187ms/bin490552B. Seek
+original owned-read control n1024:1025alloc/8realloc,98,240requested,16,384retained/
+16,448peak,checksum488447505;O3build392.880ms/bin487592B. Exact originalseek source
+80196e7cc4e1f4424dabad821338459d71f3651a0e96987d5e696e9017e17987;
+sync774999a52c47ba13bb62083b224ca5c28ce9f393f60a8a267d341cf940dae753.
+These are std contract/allocation/build observations, not native API throughput.
+
+Important fair-reference correction integrated via791dff76/87142ee9: old seek Rust control
+allocated Vec64 inside all1024reads just like Tsrust;1024input+1output allocation,
+8output growths. That is an owned-read-contract control, not minimal idiomatic
+Rust. Preserve `/tmp/tsrust-fs-cursors-std-profile.json` labeled accordingly;
+currentPublicReference=false for its seek entry, sync unchanged. Corrected Rust
+uses one reusable stack buffer and reserved output Vec; Node uses one Buffer and
+preallocated observations, counting only bytes actually read including EOF.
+Tsrust source/runtime unchanged so its real allocation gap remains visible.
+Narrow Node5semantic cases, strictTS and RustABI pass. Reference/guard/Node/B05
+checklist edits are committed; corrected floor profile and B01 native gate remain
+unrun.
+Next only corrected seek reprofile writes `/tmp/tsrust-fs-seek-floor-profile.json`
+via prepared existing driver, after core heavylease releases; do not retime sync
+or prior3stdprofiles. Freeze writable-destination Reader API in B05 with pending
+loans/cancellation/blocking settlement; do not silently expand B01.
+
+B02 scoped functional/allocation gate now passes above; B01/B04 and all actual
+new workload timings/platform/release requirements remain open. Root integration
+of174 includes the source fixes; this checkpoint is not overall goal completion.
 
 **URL emission defect repair:** readiness test2b1d3790 first called the single-file
 checker on imports (syntax failure); it now uses the real project loader. That
@@ -231,21 +287,19 @@ of every prior history entry and SQLite integrity. Timing JSONs are now disposab
 current diagnostic profiles remain with FS worker. This is not a new fresh A/B
 claim for the six historical controls and not Windows/Linux acceptance.
 
-**Workers, one writer per managed tree:**
-- core_api_plan /stdlib-bytes: clean2bfa53bd,14new buffer/binary APIs,39new matched
-  rows/13TS+Rust counterparts, docs/catalog/central signatures/loans/effects/96
-  runtime selections/export witnesses prepared. Node24oracles2/2,strictTS,ABI and
-  formatter/token/idempotence controls pass. No native gate/DB write. Wake with
-  followup_task after root merged repaired CLI+full byte family; count GENERATED
-  packet/UTF16 byte-order literal-union allocations, not just direct Rust floors.
-- runtime_api_plan /stdlib-url: clean d11bd018, accepted repair21controls above;
-  no owned processes/leases. URL source payload/facade/scaling/editor readiness is
-  integrated; URL public native/LSP/package execution and API timings remain open.
-- host_api_plan /stdlib-files: clean938fd78f merged completecanonical4a850221 and
- 44-export B01 source, sharedSeekOrigin,cursors/TempDir,5matchedrows/four-phaseeditor
- coverage. PinnedNode13/13(0.695s),strictTS+RustABI and wholeformatters pass. Root
- integrated source; next exclusiveprofile covers only newseek/sync std kernels,
- 3allocation samples each. Earlier3stdprofiles retained; no native gate claim.
+**Workers / next validation ownership:**
+- core_api_plan /stdlib-bytes: clean174218b9, no ownedprocess/lease. B02 scope and
+  data above accepted; both normalbins and exactunit/integrationartifacts retained.
+  Root will transfer this idle tree to host for B01 validation to avoid changing
+  Cargo package paths; core must not write/run until ownership returns.
+- host_api_plan /stdlib-files: clean791dff76 on bf3 lineage, FS borrowed-origin ABI,
+  fair seek Rust/Node controls and B05 destination-reader plan are integrated in
+  core174.44FSexports/5matchedrows/four-phase editor source is coherent. Next
+  corrected seek-only std floor profile, then focused B01 gate on transferred
+  clean byte tree with exact artifact/source identities. No full-suite/timing claim.
+- runtime_api_plan /stdlib-url: clean d11bd018, accepted21repaircontrols; no process
+  orlease. URL payload/facade/scaling/editor readiness is integrated. Public URL
+  compiler/native/LSP/package execution and11newAPI timings remain queued.
 
 URL patch evidence: upstream67unit+unchanged WPT and direct runtime6passed;
 path-scoped reverse search turns long-authority sizes8192/16384/32768/65536 from

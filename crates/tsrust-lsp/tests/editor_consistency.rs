@@ -462,3 +462,29 @@ fn filesystem_exports_and_documented_record_help_agree_across_server_phases() {
         }
     }
 }
+
+#[test]
+fn byte_exports_and_callable_help_agree_at_typing_speed_and_during_recovery() {
+    let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+    let before="import { ";let text=format!("{before} }} from 'std:bytes';function main(){{}}");
+    let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+    let imports=session.completion("main.tsr",&text,before.len()).unwrap();
+    for entry in catalog["std:bytes"].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(imports.iter().any(|label|label==name),"std:bytes.{name}: {imports:?}");}
+    let cases=[
+        ("UTF16 codec","import {fromUtf16} from 'std:bytes';function inspect(text:string){","fromUtf16","(text,'big');}function main(){}",&["ByteError","little","big","Ownership:"][..]),
+        ("integer read","import {Bytes,readInt} from 'std:bytes';function inspect(bytes:ReadOnly<Bytes>){","readInt","(bytes,0,1,'little');}function main(){}",&["ByteError","width","Ownership:"][..]),
+        ("distinct-owner copy","import {Bytes,copyInto} from 'std:bytes';function inspect(target:Mutable<Bytes>,source:ReadOnly<Bytes>){","copyInto","(target,0,source);}function main(){}",&["ByteError","distinct","Ownership:"][..]),
+        ("rounded float write","import {Bytes,writeFloat32} from 'std:bytes';function inspect(bytes:Mutable<Bytes>){","writeFloat32","(bytes,0,1.5,'big');}function main(){}",&["ByteError","ties to even","Ownership:"][..]),
+    ];
+    for(name,before,typed,after,expected)in cases{
+        let mut baseline=None;let mut help_baseline:Option<Value>=None;
+        for(mode,delay,broken)in[("settled",None,false),("typed-fast",Some(Duration::ZERO),false),("80ms",Some(Duration::from_millis(80)),false),("syntax-error",None,true)]{
+            let after=if broken{format!("{after}\nfunction broken(){{const = ;}}") }else{after.to_owned()};let text=format!("{before}{typed}{after}");let mut session=Session::start(&[]);
+            if let Some(delay)=delay{session.open("main.tsr",&format!("{before}{after}"));session.settle();session.type_text("main.tsr",before,typed,&after,delay);}else{session.open("main.tsr",&text);session.settle();}
+            let reply=session.completion_items("main.tsr",&text,before.len()+typed.len());let items=if reply.is_array(){reply}else{reply["items"].clone()};let item=items.as_array().unwrap().iter().find(|item|item["label"]==typed).unwrap_or_else(||panic!("{name} [{mode}]: {items}"));let detail=item["detail"].as_str().unwrap().to_owned();let hover=session.hover("main.tsr",&text,before.len()+1).unwrap_or_default();let combined=format!("{detail}\n{hover}");
+            for fragment in expected{assert!(combined.contains(fragment),"{name} [{mode}]: missing {fragment}: {combined}");}assert!(!combined.contains("__tsrust_private_"),"{combined}");if let Some((prior_detail,prior_hover))=&baseline{assert_eq!((&detail,&hover),(prior_detail,prior_hover),"{name} [{mode}]");}else{baseline=Some((detail,hover));}
+            let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()+typed.len()+1}}));assert!(help.to_string().contains("ByteError"),"{name} [{mode}]: {help}");if let Some(prior)=&help_baseline{assert_eq!(&help,prior,"{name} [{mode}] parameter help");}else{help_baseline=Some(help);}
+            let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{name} [{mode}]: {counters}");}
+        }
+    }
+}

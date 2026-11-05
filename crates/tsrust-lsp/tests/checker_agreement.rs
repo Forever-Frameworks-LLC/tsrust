@@ -448,3 +448,22 @@ fn url_computed_property_read_and_write_types_agree_with_the_checker() {
         }
     }
 }
+
+#[test]
+fn byte_callable_help_and_checker_agree_on_readers_writers_and_distinct_owners() {
+    let cases=[
+        ("readInt","x:ReadOnly<Bytes>","readInt(x,0,1,'little');",true,"ReadOnly<Bytes"),
+        ("writeInt","x:ReadOnly<Bytes>","writeInt(x,0,1,1,'little');",false,"Mutable<Bytes"),
+        ("writeInt","x:Mutable<ByteView>","writeInt(x,0,1,1,'little');",false,"Mutable<Bytes"),
+        ("writeInt","x:Mutable<ByteViewMut>","writeInt(x,0,1,1,'little');",true,"Mutable<Bytes"),
+        ("copyInto","x:Mutable<Bytes>,y:ReadOnly<ByteView>","copyInto(x,0,y);",true,"Mutable<Bytes"),
+        ("copyInto","x:Mutable<Bytes>","copyInto(x,0,x);",false,"Mutable<Bytes"),
+    ];
+    let mut session=Session::start(&[]);
+    for (index,(name,parameters,body,accepted,detail)) in cases.into_iter().enumerate(){
+        let text=format!("import {{Bytes,ByteView,ByteViewMut,{name}}} from 'std:bytes';function probe({parameters}){{{body}}}function main(){{}}");
+        let uri=virtual_uri("byte-callable-agreement");let id=source_id(&uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,text.clone());assert_eq!(workspace.snapshot().check(&id).is_ok(),accepted,"{name}: {text}");
+        if index==0{session.open("main.tsr",&text);}else{session.change("main.tsr",&text);}session.settle();let offset=text.rfind(&format!("{name}(")).unwrap();let hover=session.hover("main.tsr",&text,offset+1).unwrap_or_default();assert!(hover.contains(detail)&&hover.contains("ByteError")&&hover.contains("Ownership:"),"{name}: {hover}");
+    }
+    let counters=session.request("tsrust/counters",serde_json::Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}
