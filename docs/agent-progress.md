@@ -13,10 +13,36 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+Latest local integration checkpoints:7f356812 validates shared native literal/
+optional-loan foundations;1a27bf89 prepares codec pins. Current benchmark support
+adds a validated optional rustReference path for shared per-operation Rust sources,
+uses it for engine selection/compilation/provenance, and enables the existing Node
+builtin typing hook for byte-codecs. The focused path/control test passes, all933
+legacy reference paths validate, run.mjs syntax and diff checks pass. Whole-project
+formatter5.163s/187,248KiB passes with0changes. No benchmark run or DB ingestion
+was performed merely for this harness change; generated/hand/Node acceptance
+for new codec workloads is still pending.
+
+Worker state: filesystem backend21tests and affected JSON writer10tests pass;
+first fs compile273.482s/3,622,339KiB, JSON group1.039s/122,544KiB. Current worker
+CLI/native/LSP checks continue under its exclusive heavy lease. Do not launch
+another Cargo/native process tree until it explicitly releases the slot. URL
+patched-dependency upstream tests/scaling follow. Codec pure Node controls pass
+2tests covering36registrations and12operations across3sizes in.619s; no native
+claim. Codec whole-project formatting lease is granted while fs compiles, with
+quiet timing coordination required. All workers must return exact source/checks
+and reviewable commits; root alone integrates the DB and this handoff.
+
+Next root work: integrate prepared codec registry/runtime feature extraction and
+CLI/export support when its worker commit arrives; integrate the independently
+validated patched URL payload and exact embedded-source/cache/portable export
+handling before accepting URL APIs. Do not share uncommitted source across trees,
+mutate global Cargo registry source or treat backend bugs as acceptable defaults.
+
 **Active v0.2.0 implementation, 2026-11-04:** old optimization/release app goal
 is complete; new full B00–B20 goal is registered and active without a token budget.
 Root branch starts at released main and carries the three plan/goal/preparation
-commits plus final release verification (current integration573e3bf4).
+commits plus final release verification (first-wave baseline573e3bf4).
 Sol6.1 workers now have managed isolated trees: stdlib-files, stdlib-bytes,
 stdlib-url under /Users/seancotter/.codex/worktrees/. One writer per tree;
 root owns shared integration, dependencies, measurement DB and this sole handoff.
