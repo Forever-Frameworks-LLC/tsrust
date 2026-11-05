@@ -134,6 +134,59 @@ Use verified normal binaries/CargoJSON at /private/tmp/tsrust-b02-cargo-artifact
 no released TSRUST override, no outerCargo lock during nested CLI tests. Preserve
 unchanged prior unit/LSP passes by source scope. Fullgoal B00–B20 remainsactive.
 
+**Current next gate:** root7bd05562 cleanly integrates worker174 and checks B02
+implementation items separately from pending75timings/platforms. Validation-only
+ownership of idle `/Users/seancotter/.codex/worktrees/stdlib-bytes/tsrust` (clean174,
+no node_modules symlinks) is explicitly transferred to host_api_plan; core stays
+idle/no writes. This preserves Cargo package paths and accepted artifact caches.
+Host first corrected seek-only floor profile PASSES1contract/3samples:1alloc,
+0realloc,16,384requested/retained/peak bytes,0live-after-drop;checksum488447505,
+quietload1.46875,3.124s/236,832KiB,O3build402.917ms/bin487592B. Current reference
+SHAec570df711d3ad1498d9dfe757c8fea0b6a38de58e9ea511aa946c521ed74812;
+raw `/tmp/tsrust-fs-seek-floor-profile.json`. Owned-read/sync/earlier3stdprofiles
+are preserved. No API throughput or canonical DB measurement was added.
+
+TIMINGlease released; host retains exclusiveBUILD for B01. Plan: verify/reuse
+normal871CLI/LSP identities, reuse FS libtest only after unchanged runtime source/
+symbol proof, otherwise rebuildaffected; no-run ONLY unrun filesystem_utilities/
+temp_directories/file_cleanup/file_writes/focusednative_package_export and LSP
+native_file_catalog/project_intelligence/completion_matrix. Reuse unchanged
+checker_agreement/editor_consistency binaries, run FS-only four-phase/receiver/
+help filters and actual native/catalog/offline relocated temp/file export.
+Then quick five-case workload ABI/oracles. Compile tests first, execute direct
+binaries one at a time withthreads3 andwatchdog; no outerCargo/nested target lock,
+no old releasedTSRUST, no full-suite/B02replay/newfeature/retiming. Report real
+failures before source patches. Root is sole canonical writer; no root heavywork.
+
+**Live B01 gate — 2026-11-05:** host owns transferred byte tree, now clean
+fixture-only6f804c40(parent174); core idle. Reused e7FS runtime binary only after
+all5runtime files matched3c666a11 bytes and listed newcursor/temp tests.29/30
+pass; onefixture failed before API access because Mac filesystem rejects creating
+raw0xff filename (OS92/EILSEQ). Actualbackend conversion is not disproved. Mac
+raw symlink TARGET probe supports0xff unchanged, so realreadLinkstrictness stays
+allUnix. Fixture repair3authorized files: splitUnicode/symlink controls; direct
+unicode(OsString::from_vec(ff),operation) guard; actualrawfilename and malformedcwd
+cleanup tests Linux-only, not ignored. Linuxexecution remains pending.
+
+Also corrected authored false-positive test harness: imports had been passed to
+single-file check in temporary selection/negativeownership cases. Realproject
+loader now used; action-only cases get main,9negatives assert exact codes
+[parameter-access,transferred,type,parameter-access,parameter-access,transferred,
+type,type,type], not arbitrary errors. No production/loan guard weakened. Scope
+is fs/runtime/fs.rs(testmodule),native_temp_directories.rs,filesystem_utilities.rs.
+Wholeformatter0/0/0 twice10.340s/468,961KiB; missingdependencylink firstfailed
+before changes, corrected; borrowedlinkremoved. Changedruntime testcode requires
+fresh--lib binary; don'trerun the knownoldfailedbinary as acceptance.
+
+Supersededcompiler-only no-run51224 finished226.786s/2,635,426KiB before stop
+arrived; dependencyrebuilds proved its packagefeaturegraph differed. It is not a
+new acceptedgate. Correct ONE combined no-run is confirmed LIVE session21642,
+artifactstream /tmp/tsrust-b01-combined-artifacts.jsonl: both compiler/LSP packages,
+both explicitbins, changed--lib, unrun5FScompiler +3LSP targets, same byte tree/
+originaltarget/jobs1/incremental0/lockedoffline/watchdog5GB/1800s. Native tests
+not started. Preserve/poll same livehandle; don'trestart on observationtimeout.
+Host retainsBUILD+formatter. Root onlyhandoffprose/lightformat, no productionedit.
+
 FS seek/sync std contracts PASS2/2,3allocation samples each,0live after drop,
 quietload2.02393,3.623s/270,464KiB. Sync n16:20alloc/3realloc,740requested,
 256retained-output/432peak,checksum233949518;O3build193.187ms/bin490552B. Seek
