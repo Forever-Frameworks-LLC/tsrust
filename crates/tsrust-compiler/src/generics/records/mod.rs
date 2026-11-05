@@ -167,7 +167,7 @@ impl Context<'_> {
         let mut pending = vec![value];
         while let Some(value) = pending.pop() {
             match &value.kind {
-                Kind::Literal(_) | Kind::Polymorphic { .. } => {},
+                Kind::Literal(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
                 Kind::Named(name) => {
                     if parameters
                         .iter()

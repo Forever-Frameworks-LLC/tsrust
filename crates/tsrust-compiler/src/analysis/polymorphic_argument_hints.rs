@@ -14,7 +14,13 @@ impl Analyzer {
 
     pub(super) fn prepare_polymorphic_argument_hint(&mut self, context: &Context, argument: &mut Expr) -> Result<Option<Type>,Diagnostic> {
         let ExprKind::Name(name)=&argument.kind else {return Ok(None)};
-        if context.names.contains_key(name) || context.pending_names.contains(name) || self.generic_functions.template(name).is_none() {return Ok(None);}
+        if context.names.contains_key(name) || context.pending_names.contains(name) {return Ok(None);}
+        if let Some((id,_))=crate::native_bindings::by_symbol(name) {
+            let ty=self.native_function_value(id,argument.span,None)?;
+            argument.ty=Some(ty);
+            return Ok(Some(ty));
+        }
+        if self.generic_functions.template(name).is_none() {return Ok(None);}
         if let Some(Type::Closure(origin))=argument.ty && self.deferred_generic_values.get(&origin).is_some_and(|source|source.declaration==*name && source.span==argument.span) {return Ok(argument.ty);}
         // Capture layout checking may access compiler binding state. Use a
         // preparation context so inference never consumes the actual argument.
@@ -27,6 +33,40 @@ impl Analyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_hint_retains_forwarding_optional_rest_and_roundtrip_identity() {
+        let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
+        let context=Context::new("main".into());
+        for symbol in ["@native:std:path#basename","@native:std:path#join"] {
+            let mut argument=Expr::new(ExprKind::Name(symbol.into()),Span::new(100,108));
+            let ty=analyzer.prepare_polymorphic_argument_hint(&context,&mut argument).unwrap().unwrap();
+            let Type::Closure(origin)=ty else {panic!("native closure")};
+            let (id,binding)=crate::native_bindings::by_symbol(symbol).unwrap();
+            assert!(matches!(analyzer.closures[origin].forward,Some(ClosureForward::Native(actual)) if actual==id));
+            for (&parameter,native) in analyzer.closures[origin].parameters.iter().zip(binding.parameters) {
+                let parameter=&analyzer.closures[origin].function.bindings[parameter];
+                assert_eq!(parameter.mode,if native.rest {Mode::Consume} else {native.access});
+                assert_eq!(parameter.rest,native.rest);
+                assert_eq!(parameter.omission.is_omittable(),native.optional);
+            }
+            let annotation=analyzer.checked_value_annotation(ty,argument.span).unwrap();
+            assert!(matches!(annotation.kind,crate::type_syntax::ValueAnnotationKind::NativeCallable {origin:actual} if actual==origin));
+            assert_eq!(analyzer.callable_resolver().resolve_value_annotation(&annotation,false).unwrap(),ty);
+            assert_eq!(annotation.clone(),annotation);
+            let count=analyzer.closures.len();
+            assert_eq!(analyzer.prepare_polymorphic_argument_hint(&context,&mut argument).unwrap(),Some(ty));
+            assert_eq!(analyzer.closures.len(),count);
+            assert!(matches!(&argument.kind,ExprKind::Name(name) if name==symbol));
+            let mut shadowed=context.clone();shadowed.pending_names.insert(symbol.into());
+            assert_eq!(analyzer.prepare_polymorphic_argument_hint(&shadowed,&mut argument).unwrap(),None);
+            let mut remapped=annotation.clone();
+            remap_annotation(&mut remapped,&vec![Some(7);count]).unwrap();
+            assert!(matches!(remapped.kind,crate::type_syntax::ValueAnnotationKind::NativeCallable {origin:7}));
+            assert!(remap_annotation(&mut annotation.clone(),&[]).is_err());
+        }
+        assert!(context.bindings.is_empty());
+    }
+
     #[test]
     fn generic_declaration_hint_retains_source_and_reuses_identity_without_rewriting() {
         let source=crate::format("function identity<T>(value:T):T{return value;}function main(){}").unwrap();
@@ -74,8 +114,8 @@ pub(super) fn remap_annotation(value: &mut crate::type_syntax::ValueAnnotation, 
     let mut pending=vec![value];
     while let Some(value)=pending.pop() {
         match &mut value.kind {
-            Kind::Polymorphic {origin,..} => {
-                *origin=ids.get(*origin).copied().flatten().ok_or_else(||Diagnostic::new("callable-layout","Polymorphic annotation retains an unresolved environment identity.",value.span))?;
+            Kind::NativeCallable {origin} | Kind::Polymorphic {origin,..} => {
+                *origin=ids.get(*origin).copied().flatten().ok_or_else(||Diagnostic::new("callable-layout","Callable annotation retains an unresolved environment identity.",value.span))?;
             }
             Kind::Literal(_) | Kind::Named(_)=>{},
             Kind::Group(inner)|Kind::Array(inner)=>pending.push(inner),

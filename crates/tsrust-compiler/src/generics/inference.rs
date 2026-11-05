@@ -24,7 +24,7 @@ fn may_defer(pattern: &ValueAnnotation) -> bool {
             Kind::Union(_) => return true,
             Kind::Group(inner) | Kind::Array(inner) => pending.push(inner),
             Kind::Applied { arguments, .. } | Kind::Tuple(arguments) => pending.extend(arguments.iter().rev()),
-            Kind::Literal(_) | Kind::Named(_) | Kind::Callable { .. } | Kind::Polymorphic { .. } => {},
+            Kind::Literal(_) | Kind::Named(_) | Kind::Callable { .. } | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
         }
     }
     false
@@ -223,7 +223,7 @@ impl Types<'_> {
             let mismatch_span = pattern.span;
             let mismatch = || constraint_mismatch(mismatch_span);
             match &pattern.kind {
-                Kind::Polymorphic { origin, .. } => if actual==Type::Closure(*origin) {Ok(())} else {Err(mismatch())},
+                Kind::NativeCallable { origin } | Kind::Polymorphic { origin, .. } => if actual==Type::Closure(*origin) {Ok(())} else {Err(mismatch())},
                 Kind::Named(name) if variables.contains(&name.text) => {
                     if let Some(prior) = bindings.get(&name.text) {
                         let same_callable = *prior != actual
@@ -299,7 +299,7 @@ impl Types<'_> {
                     let mut unbound = false;
                     while let Some(value) = pending.pop() {
                         match &value.kind {
-                            Kind::Literal(_) | Kind::Polymorphic { .. } => {},
+                            Kind::Literal(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
                             Kind::Named(name) => {
                                 unbound |=
                                     variables.contains(&name.text) && !bindings.contains_key(&name.text)

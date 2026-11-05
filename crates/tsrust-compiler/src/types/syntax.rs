@@ -72,6 +72,8 @@ impl LiteralAnnotation {
 pub enum ValueAnnotationKind {
     /// Checked polymorphic environment identity; never produced by source parsing.
     Polymorphic { origin: usize, declaration: TypeName },
+    /// Checked native forwarding identity; never produced by source parsing.
+    NativeCallable { origin: usize },
     Named(TypeName),
     Literal(LiteralAnnotation),
     Callable {
@@ -103,7 +105,7 @@ impl ValueAnnotation {
         while let Some((annotation, depth)) = pending.pop() {
             deepest = deepest.max(depth);
             match &annotation.kind {
-                ValueAnnotationKind::Polymorphic { .. } | ValueAnnotationKind::Named(_) | ValueAnnotationKind::Literal(_) => {}
+                ValueAnnotationKind::NativeCallable { .. } | ValueAnnotationKind::Polymorphic { .. } | ValueAnnotationKind::Named(_) | ValueAnnotationKind::Literal(_) => {}
                 ValueAnnotationKind::Callable { parameters, result, .. } => {
                     pending.push((result, depth + 1));
                     pending.extend(parameters.iter().map(|parameter| (&parameter.annotation, depth + 1)));

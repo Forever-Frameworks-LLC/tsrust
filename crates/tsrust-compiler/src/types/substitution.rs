@@ -169,7 +169,7 @@ fn validate_depth(value: &ValueAnnotation, depth: usize, limit: usize) -> Result
             ));
         }
         match &value.kind {
-            Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+            Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {}
             Kind::Group(inner) | Kind::Array(inner) => pending.push((inner, depth + 1)),
             Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                 pending.extend(arguments.iter().map(|value| (value, depth + 1)))

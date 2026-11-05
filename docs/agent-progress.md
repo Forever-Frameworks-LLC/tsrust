@@ -47,6 +47,59 @@ the shared-target bytes artifact failure, and implement consistent readonly Stri
 observations for string-literal unions across checker/emitter/LSP. Then batch only
 affected B01 gates before B04 harness acceptance; retain accepted B02 evidence.
 
+**Active repair continuation — 2026-11-05:** previous turn made authoritative
+progress by verifying the finished release and checkpointing the handoff33ee5167.
+Root now implements a distinct internal NativeCallable annotation, materializes
+native names before generic inference, and preserves exact forwarding origin
+through reconstruction/substitution/keys/remapping. Public callable normalization
+must not erase returned-borrow contracts. Focused compiler/native/editor witnesses
+are prepared. Both-package all-target check passed87.133s/1,901,714KiB, inherited
+decode_plain warning only. Whole formatter passed4.659s/203,248KiB,0source/docs/
+fingerprint changes. Native rest packs intentionally use Consume, while the native
+operation reads each element; the unit assertion was corrected accordingly.
+Combined affected no-run30743 is live: both packages/bins/libs, generic_native_values,
+generic_function_values and byte_codecs_generic_result. Artifact JSON is
+/tmp/tsrust-generic-native-artifacts.jsonl. Do not run nested Cargo tests before
+outer Cargo exits. New contextual_generic_results native identity editor witness
+was added after this build started and is queued for the next affected batch.
+
+Host proved the shared-target artifact collision with dependency-free real Cargo
+A→B→freshA support workspaces: A42 and B7 initially work; unchanged A reports
+fresh=true but selects B's exact library hash and fails missing bytes module.
+Both root alias AND reported hashed metadata alias collide; selecting a random
+deps sibling cannot repair it. Reproducer37893 passed diagnosis2.602s/90,848KiB;
+/tmp/tsrust-runtime-alias-probe.json. Host owns byte tree CLI fix: use a graph-keyed
+Cargo lib target, stable staged --extern alias, exact manifest+target selection,
+and scoped runtime/application ABI invalidation. No source cache fix accepted yet.
+Its earlier40807 build was stopped: terminal-15,259.398s/2,651,266KiB; no test result.
+
+Runtime agent owns homogeneous-string-literal observations in URL tree, preserving
+literal/alias identity and schema enum classification; every offered String member
+needs checker/emitter/editor agreement. Core now owns transferred idle original
+stdlib-files tree, merged33ee5167, preparing only url_values.rs/url_export.rs real
+project, exact diagnostics, O0/O3, Unicode file URLs and safe relocated offline
+export witnesses. All workers are source-only while root owns BUILD/FORMATTER.
+No throughput measurements, DB additions, push or publication in this repair turn.
+
+**Generic repair checks, same continuation:** no-run30743 is now terminalPASS
+504.847s/3,658,275KiB; normal compiler SHA256
+24bd9bcc8566d2cb56cb2939d4efc19f739d13b02b4e884c7ea69687a013c298.
+Direct serial watchdog checks passed12metadata units,17existing generic native
+regressions,1genericResult observer and1new native-identity ownership negative.
+The new combined native positive checks successfully, then O0 Rust compilation
+fails: native view forwarding closure.call returns an anonymous lifetime tied to
+self instead of its input owner; Read/Once/Callback impls have the same defect.
+O3 positive remains unrun. Preserve witness; core owns narrow emitter nativeforward
+repair in transferred FS tree, separate from runtime agent's string hunks. Retained
+diagnostic consumer /tmp/tsrust-generic-native-view.{tsr,rs}. This is a real compiler
+defect, not grounds to reject generic native views or erase returned-borrow metadata.
+First direct driver stopped after12passed units when three requested LSP filters
+matched0tests: those tests live in tests/intelligence.rs, not library tests. Nothing
+was counted as passed for them. Next batch must compile that integration target
+plus contextual_generic_results.rs; the new latter witness covers returned native
+callable hover/help. Remaining native driver finished5.208s/569,696KiB,19pass/1fail.
+Root metadata implementation is a source checkpoint, not complete gate acceptance.
+
 **Active v0.2.0 — 2026-11-04:** owner renewed the active goal and explicitly
 requires autonomous continuation without routine approval. Scope remains all
 B00–B20 in plans/stdlib-0.2.0.md and agent-goal.md; implementation is authorized,

@@ -34,6 +34,9 @@ impl Analyzer {
         if let Type::Closure(origin)=ty && let Some(source)=self.deferred_generic_values.get(&origin) {
             return Ok(Plan::Leaf(ValueAnnotation {kind:Kind::Polymorphic {origin,declaration:TypeName {text:source.declaration.clone(),span}},span}));
         }
+        if let Type::Closure(origin)=ty && matches!(self.closures[origin].forward,Some(ClosureForward::Native(_))) {
+            return Ok(Plan::Leaf(ValueAnnotation {kind:Kind::NativeCallable {origin},span}));
+        }
         let contract = match ty {
             Type::Callable(id) => {
                 let contract = &self.callables.results[id];

@@ -15,7 +15,7 @@ impl Context<'_> {
                 };
                 self.unions.register_literal_type(id,kind);
             },
-            Kind::Polymorphic { .. } => {},
+            Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
             Kind::Named(name) => {
                 if name.text == "Result" {
                     return Err(Diagnostic::new("arity", "Result requires success and error types, for example Result<int, string>.", value.span));
