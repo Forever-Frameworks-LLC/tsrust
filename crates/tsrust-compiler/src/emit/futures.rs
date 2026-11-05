@@ -52,6 +52,22 @@ impl Emitter<'_>{
             format!("({call}).map_err(|error|tsrust_native_futures::Failure::Worker({cause}))")
         }else{format!("Ok::<_,tsrust_native_futures::Failure<{}>>({call})",self.native_type(error))}
     }
+    // Fixed literals keep futures pinned in place; dynamic arrays retain the owned adapter.
+    fn future_literal_all(&self,values:&str,id:usize,error:Type,span:Span)->String {
+        let fields=&self.program.records[id].fields;
+        let tasks=fields.iter().enumerate().map(|(index,field)|{
+            let poll=self.future_poll(field.ty.unwrap(),"task",error,span);
+            format!("{{let task=inputs.field{index};async move{{{poll}}}}")
+        }).collect::<Vec<_>>().join(",");
+        let names=(0..fields.len()).map(|index|format!("all_task{index},")).collect::<String>();
+        // Reverse declarations retain index-order pending drops after result storage drops.
+        let pins=(0..fields.len()).rev().map(|index|format!("let mut all_future{index}=std::pin::pin!(Some(all_task{index}));")).collect::<String>();
+        let results=(0..fields.len()).map(|_|"None,").collect::<String>();
+        let polls=(0..fields.len()).map(|index|format!(
+            "if let Some(future)=all_future{index}.as_mut().as_pin_mut(){{match std::future::Future::poll(future,cx){{std::task::Poll::Ready(Ok(value))=>{{all_results[{index}]=Some(value);all_future{index}.as_mut().set(None);}},std::task::Poll::Ready(Err(error))=>return std::task::Poll::Ready(Err(error)),std::task::Poll::Pending=>complete=false,}}}}"
+        )).collect::<String>();
+        format!("{{let inputs={values};let all_inputs=({tasks},);let all_scope=tsrust_native_futures::Scope::group();let all_result=tsrust_native_futures::in_scope(all_scope.clone(),async move{{let ({names})=all_inputs;{pins}let mut all_results=[{results}];std::future::poll_fn(|cx|{{let mut complete=true;{polls}if complete{{std::task::Poll::Ready(Ok(all_results.iter_mut().map(|value|value.take().unwrap()).collect::<Vec<_>>()))}}else{{std::task::Poll::Pending}}}}).await}}).await;all_scope.drain(false).await;all_result}}")
+    }
     fn future_result(&self,ty:Type,call:&str,collecting:bool)->String{
         let Type::Union(union)=ty else{unreachable!("future result")};
         let mut success=String::new();let mut failure=String::new();
@@ -149,6 +165,10 @@ impl Emitter<'_>{
                     format!("tsrust_native_futures::{operation}(({values}).tsr_owned_items().map(|task|async move{{{poll}}}).collect()).await")
                 }else{
                     let Type::Record(id)=args[0].ty.unwrap()else{unreachable!()};
+                    if binding.name=="__all" && !self.program.records[id].fields.is_empty(){
+                        let call=self.future_literal_all(&values,id,error,expr.span);
+                        return Some(self.future_result(result,&call,true));
+                    }
                     let fields=&self.program.records[id].fields;
                     let result_type=self.program.unions[union.index()].members.iter().find_map(|ty|{let Type::Record(id)=ty else{return None;};let record=&self.program.records[*id];(record.application.as_ref()?.declaration.text=="Result#Ok").then(||record.fields.first().and_then(|field|field.ty).unwrap_or(Type::Void))}).unwrap();
                     let result_type=if binding.name=="__all"{let Type::Array(element)=result_type else{unreachable!("checked all output")};element.ty()}else{result_type};
