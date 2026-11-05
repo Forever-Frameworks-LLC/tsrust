@@ -159,3 +159,21 @@ Permissions use platform defaults and umask; this does not guarantee a private
 ownership is transferred. On success the caller owns cleanup: dropping the path
 string does not remove the directory. Call `removeDirAll(path)` when finished.
 The selected backend attempts automatic cleanup if path conversion fails.
+
+## Plain-file cursors
+
+`SeekOrigin` is the literal-string alias `"start" | "current" | "end"`.
+`seek(file, offset, origin)` requires a mutable plain `File`, an exact integer byte
+offset and an explicit origin. It returns the resulting absolute byte position.
+Start offsets must be nonnegative; a negative start returns `offset-range` before
+I/O. Current/end offsets are signed; before-zero and unsupported positions follow
+host seek errors. Ordinary files allow seeking beyond EOF; subsequent reads can
+return empty. Seeking alone does not change contents or extend the file.
+
+`position(file)` queries the current byte position without moving the cursor.
+It also requires a mutable plain-file borrow, following the seek interface.
+Neither API accepts buffered handles: their cached data would need explicit
+invalidation. Neither flushes, synchronizes durable storage or adds an application
+offset cap. Returned positions must fit `int`; if a successful host seek reaches
+an unrepresentable position, `integer-range` is returned after the cursor moved.
+The file remains open after success and failure.

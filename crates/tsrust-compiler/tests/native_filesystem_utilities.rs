@@ -52,6 +52,12 @@ fn new_file_observers_do_not_relax_mutable_or_consumed_owner_checks() {
         "import {File,truncate} from 'std:fs';function action(file:ReadOnly<File>){truncate(file,0);}",
         "import {open,close,fileStat} from 'std:fs';function main(){const file=unwrap(open('input'));unwrap(close(file));fileStat(file);}",
         "import {create,bufferWriter,truncate} from 'std:fs';function main(){const writer=unwrap(bufferWriter(unwrap(create('input'))));truncate(writer,0);}",
+        "import {File,seek} from 'std:fs';function action(file:ReadOnly<File>){seek(file,0,'start');}",
+        "import {File,position} from 'std:fs';function action(file:ReadOnly<File>){position(file);}",
+        "import {open,close,position} from 'std:fs';function main(){const file=unwrap(open('input'));unwrap(close(file));position(file);}",
+        "import {File,seek} from 'std:fs';function action(file:Mutable<File>,origin:string){seek(file,0,origin);}",
+        "import {File,seek} from 'std:fs';function action(file:Mutable<File>){seek(file,0,'middle');}",
+        "import {open,bufferReader,position} from 'std:fs';function main(){const reader=unwrap(bufferReader(unwrap(open('input'))));position(reader);}",
     ] {
         let source=support::format_round_trip(source);
         assert!(tsrust_compiler::check(&source).is_err(),"{source}");
@@ -92,4 +98,28 @@ function main(){
 "#);
     let path=directory.source(&source);support::success(&support::run(support::cli().arg("run").arg(path).current_dir(&directory.0),120));
     assert_eq!(std::fs::read(directory.0.join("outside/keep")).unwrap(),b"safe");assert!(!directory.0.join("tree").exists());
+}
+
+#[test]
+fn plain_file_cursor_calls_preserve_aliases_offsets_eof_and_unique_handles() {
+    let directory=support::TempDirectory::new();
+    let source=support::format_round_trip(r#"
+import {SeekOrigin as Origin,writeTextFile,openFile,seek,position,read,writeAll,fileStat,close} from "std:fs";
+import {length,toUtf8,fromUtf8} from "std:bytes";
+import {strictEqual} from "std:testing";
+function identity<T>(value:T):T{return value;}
+function main(){
+  unwrap(writeTextFile("cursor.bin","abcd"));const file=unwrap(openFile("cursor.bin",{read:true,write:true}));
+  strictEqual(unwrap(position(file)),0);const move=identity(seek);const query=identity(position);
+  const origin:Origin="start";strictEqual(unwrap(move(file,2,origin)),2);strictEqual(unwrap(toUtf8(unwrap(read(file,1)))),"c");strictEqual(unwrap(query(file)),3);
+  strictEqual(unwrap(seek(file,-2,"current")),1);strictEqual(unwrap(toUtf8(unwrap(read(file,2)))),"bc");
+  strictEqual(unwrap(seek(file,-1,"end")),3);strictEqual(unwrap(toUtf8(unwrap(read(file,1)))),"d");
+  strictEqual(unwrap(seek(file,8,"start")),8);strictEqual(length(unwrap(read(file,64))),0);strictEqual(unwrap(position(file)),8);
+  match(seek(file,-1,"start")){Ok(_)=>{throw "negative start";},Err(error)=>{strictEqual(error.code,"offset-range");strictEqual(error.osCode,undefined);}}
+  strictEqual(unwrap(position(file)),8);unwrap(writeAll(file,unwrap(fromUtf8("Z"))));strictEqual(unwrap(fileStat(file)).size,9);strictEqual(unwrap(position(file)),9);
+  unwrap(close(file));
+}
+"#);
+    let path=directory.source(&source);support::success(&support::run(support::cli().arg("run").arg(path).current_dir(&directory.0),120));
+    assert_eq!(std::fs::read(directory.0.join("cursor.bin")).unwrap(),b"abcd\0\0\0\0Z");
 }

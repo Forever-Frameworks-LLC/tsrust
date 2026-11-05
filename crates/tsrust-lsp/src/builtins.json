@@ -7583,7 +7583,7 @@
       "name": "FsError",
       "signature": "type FsError = { code: string; operation: string; message: string; osCode?: int; }",
       "parameters": [],
-      "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation, capacity-range, write-zero, already-exists, not-directory, directory-not-empty, cross-device, unsupported, integer-range, not-unicode or invalid-utf8. operation is the public function name that failed. Filesystem side effects may already have occurred before failure. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined.",
+      "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation, capacity-range, write-zero, already-exists, not-directory, directory-not-empty, cross-device, unsupported, integer-range, not-unicode, invalid-utf8 or offset-range. operation is the public function name that failed. Filesystem side effects may already have occurred before failure. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined.",
       "examples": [
         {
           "source": "import {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}",
@@ -8374,6 +8374,48 @@
         {
           "source": "import {createTempDir,stat,removeDirAll} from \"std:fs\";function main(){const directory=unwrap(createTempDir(\".\",\"catalog-\"));console.log(unwrap(stat(directory)).isDirectory);unwrap(removeDirAll(directory));}",
           "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "seek",
+      "signature": "seek(file: Mutable<File>, offset: int, origin: SeekOrigin): Result<int, FsError>",
+      "parameters": [
+        {
+          "label": "file: Mutable<File>",
+          "documentation": "Required mutable plain File handle. Buffered readers/writers are rejected because their cached data would need invalidation."
+        },
+        {
+          "label": "offset: int",
+          "documentation": "Required exact byte offset. start requires a nonnegative offset; current/end accept signed offsets. The host rejects unsupported or before-zero positions."
+        },
+        {
+          "label": "origin: SeekOrigin",
+          "documentation": "Required start, current or end selector. No default is supplied; other spellings and widened string values are rejected during checking."
+        }
+      ],
+      "documentation": "Moves a plain file cursor relative to byte zero, its current cursor, or its file length, returning the resulting absolute byte position. It changes no file contents; seeking past EOF is allowed by ordinary files, and later reads return empty until data is available. A negative start offset returns offset-range before accessing the file. Signed current/end offsets use host seek behavior; an invalid resulting position or non-seekable handle returns FsError. The returned position must fit int; integer-range can be reported after a successful host seek has already moved the cursor. No application offset cap or implicit default origin is imposed. Ownership: mutably borrows the unique File and leaves it open; the literal origin selector copies.\n\n```tsrust\nimport { createTempDir, writeTextFile, open, seek, read, close, removeDirAll, SeekOrigin } from \"std:fs\";\nimport { toUtf8 } from \"std:bytes\";\n\nfunction main() {\n  const directory = unwrap(createTempDir(\".\", \"catalog-seek-\"));\n  const path = directory + \"/input\";\n  unwrap(writeTextFile(path, \"abcd\"));\n  const file = unwrap(open(path));\n  const origin: SeekOrigin = \"start\";\n  console.log(unwrap(seek(file, 2, origin)));\n  console.log(unwrap(toUtf8(unwrap(read(file, 2)))));\n  unwrap(close(file));\n  unwrap(removeDirAll(directory));\n}\n```\n\nExpected output:\n```text\n2\ncd\n```",
+      "examples": [
+        {
+          "source": "import {createTempDir,writeTextFile,open,seek,read,close,removeDirAll,SeekOrigin} from \"std:fs\";import {toUtf8} from \"std:bytes\";function main(){const directory=unwrap(createTempDir(\".\",\"catalog-seek-\"));const path=directory+\"/input\";unwrap(writeTextFile(path,\"abcd\"));const file=unwrap(open(path));const origin:SeekOrigin=\"start\";console.log(unwrap(seek(file,2,origin)));console.log(unwrap(toUtf8(unwrap(read(file,2)))));unwrap(close(file));unwrap(removeDirAll(directory));}",
+          "output": "2\ncd\n"
+        }
+      ]
+    },
+    {
+      "name": "position",
+      "signature": "position(file: Mutable<File>): Result<int, FsError>",
+      "parameters": [
+        {
+          "label": "file: Mutable<File>",
+          "documentation": "Required mutable plain File handle. The borrow follows the seek interface; buffered readers/writers are not accepted."
+        }
+      ],
+      "documentation": "Returns the current absolute byte cursor of a plain file without changing its contents or cursor. Requires a mutable borrow because it uses the plain-file seek interface. It returns FsError for a non-seekable handle or host query failure, and integer-range when the position cannot fit int. No default, application offset cap, buffering flush or durability synchronization is added. Ownership: mutably borrows the unique File, which remains open and usable.\n\n```tsrust\nimport { createTempDir, writeTextFile, open, position, read, close, removeDirAll } from \"std:fs\";\n\nfunction main() {\n  const directory = unwrap(createTempDir(\".\", \"catalog-position-\"));\n  const path = directory + \"/input\";\n  unwrap(writeTextFile(path, \"abcd\"));\n  const file = unwrap(open(path));\n  console.log(unwrap(position(file)));\n  unwrap(read(file, 3));\n  console.log(unwrap(position(file)));\n  unwrap(close(file));\n  unwrap(removeDirAll(directory));\n}\n```\n\nExpected output:\n```text\n0\n3\n```",
+      "examples": [
+        {
+          "source": "import {createTempDir,writeTextFile,open,position,read,close,removeDirAll} from \"std:fs\";function main(){const directory=unwrap(createTempDir(\".\",\"catalog-position-\"));const path=directory+\"/input\";unwrap(writeTextFile(path,\"abcd\"));const file=unwrap(open(path));console.log(unwrap(position(file)));unwrap(read(file,3));console.log(unwrap(position(file)));unwrap(close(file));unwrap(removeDirAll(directory));}",
+          "output": "0\n3\n"
         }
       ]
     }

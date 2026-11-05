@@ -279,3 +279,22 @@ pub const CREATE_TEMP_DIR: NativeBinding = NativeBinding {
     result: NativeType::Structured(&Signature::Result(&Signature::String, &Signature::Named(NativeTypeId::FsError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_create_temp_dir" }, features: &["fs", "temporary-files"],
 };
+
+/// The public alias and callable parameter share one literal-string signature.
+pub(crate) const SEEK_ORIGIN_SIGNATURE: Signature = Signature::Union(&[
+    Signature::StringLiteral("start"),Signature::StringLiteral("current"),Signature::StringLiteral("end"),
+]);
+pub const SEEK: NativeBinding = NativeBinding {
+    module: "std:fs", name: "seek", returned_borrow: None,
+    parameters: &[
+        NativeParameter { name: "file", ty: NativeType::Structured(&Signature::Named(NativeTypeId::File)), access: Mode::Mutate, optional: false, rest: false },
+        NativeParameter { name: "offset", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
+        NativeParameter { name: "origin", ty: NativeType::Structured(&SEEK_ORIGIN_SIGNATURE), access: Mode::Read, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Int, &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_seek" }, features: &["fs"],
+};
+pub const POSITION: NativeBinding = NativeBinding {
+    parameters: &[NativeParameter { name: "file", ty: NativeType::Structured(&Signature::Named(NativeTypeId::File)), access: Mode::Mutate, optional: false, rest: false }],
+    name: "position", backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_position" }, ..SEEK
+};

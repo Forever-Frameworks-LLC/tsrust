@@ -466,6 +466,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs::bindings::SYNC_ALL,
     crate::stdlib::fs::bindings::SYNC_DATA,
     crate::stdlib::fs::bindings::CREATE_TEMP_DIR,
+    crate::stdlib::fs::bindings::SEEK,
+    crate::stdlib::fs::bindings::POSITION,
 
     crate::stdlib::bytes::bindings::FROM_ARRAY,
     crate::stdlib::bytes::bindings::LENGTH,

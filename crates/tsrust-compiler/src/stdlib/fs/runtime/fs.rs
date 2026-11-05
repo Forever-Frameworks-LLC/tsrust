@@ -276,6 +276,20 @@ pub fn truncate(file:&mut FileHandle,length:i64)->Result<(),FsFailure> {
 pub fn sync_all(file:&FileHandle)->Result<(),FsFailure> {file.get().0.sync_all().map_err(|error|FsFailure::io("syncAll",error))}
 pub fn sync_data(file:&FileHandle)->Result<(),FsFailure> {file.get().0.sync_data().map_err(|error|FsFailure::io("syncData",error))}
 
+pub fn seek(file:&mut FileHandle,offset:i64,origin:&str)->Result<i64,FsFailure> {
+    use std::io::{Seek,SeekFrom};
+    let origin=match origin {
+        "start"=>SeekFrom::Start(u64::try_from(offset).map_err(|_|failure("offset-range","seek","Start offset must be nonnegative."))?),
+        "current"=>SeekFrom::Current(offset),"end"=>SeekFrom::End(offset),
+        _=>return Err(failure("invalid-input","seek","Origin must be start, current or end.")),
+    };
+    integer(file.get_mut().0.seek(origin).map_err(|error|FsFailure::io("seek",error))?,"seek")
+}
+pub fn position(file:&mut FileHandle)->Result<i64,FsFailure> {
+    use std::io::Seek;
+    integer(file.get_mut().0.stream_position().map_err(|error|FsFailure::io("position",error))?,"position")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -409,6 +423,21 @@ mod tests {
         assert_eq!(failure(read_dir(directory.0.to_str().unwrap(),None)).code,"not-unicode");
         std::fs::remove_file(&link).unwrap();symlink(&odd,&link).unwrap();assert_eq!(failure(read_link(link.to_str().unwrap())).code,"not-unicode");
         remove_file(&input).unwrap();remove_file(link.to_str().unwrap()).unwrap();assert!(odd_path.exists());
+    }
+
+    #[test]
+    fn cursor_origins_eof_validation_and_truncation_use_exact_positions() {
+        let directory=Directory::new();let path=directory.input();
+        let mut file=open_file(&path,&OpenOptions {read:true,write:true,..OpenOptions::default()}).unwrap();
+        assert_eq!(position(&mut file).unwrap(),0);assert_eq!(seek(&mut file,2,"start").unwrap(),2);
+        assert_eq!(read(&mut file,1).unwrap(),[255]);assert_eq!(position(&mut file).unwrap(),3);
+        assert_eq!(seek(&mut file,-2,"current").unwrap(),1);assert_eq!(read(&mut file,3).unwrap(),[65,255,66]);
+        assert_eq!(seek(&mut file,-1,"end").unwrap(),3);assert_eq!(read(&mut file,1).unwrap(),[66]);
+        assert_eq!(seek(&mut file,7,"start").unwrap(),7);assert!(read(&mut file,64).unwrap().is_empty());assert_eq!(position(&mut file).unwrap(),7);
+        let error=failure(seek(&mut file,-1,"start"));assert_eq!((error.code,error.operation,error.os_code),("offset-range","seek",None));assert_eq!(position(&mut file).unwrap(),7);
+        assert_eq!(failure(seek(&mut file,-10,"current")).operation,"seek");assert_eq!(position(&mut file).unwrap(),7);
+        assert_eq!(failure(seek(&mut file,0,"wrong")).code,"invalid-input");truncate(&mut file,1).unwrap();assert_eq!(position(&mut file).unwrap(),7);
+        file.close().unwrap();
     }
 
     struct ShortReader {bytes:std::io::Cursor<Vec<u8>>,interrupted:bool,fail:bool}

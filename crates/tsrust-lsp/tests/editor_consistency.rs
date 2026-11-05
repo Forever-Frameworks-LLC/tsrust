@@ -424,6 +424,12 @@ fn filesystem_exports_and_documented_record_help_agree_across_server_phases() {
     for entry in catalog["std:fs"].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(imports.iter().any(|label|label==name),"std:fs.{name}: {imports:?}");}
     for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(session.request("tsrust/counters",Value::Null)[key],0);}
     let cases=[
+        ("seek callable","import {File,seek} from 'std:fs';function inspect(file:Mutable<File>){","seek",
+            "(file,0,'start');}function main(){}",&["Mutable<File>","int","FsError","Ownership:"][..]),
+        ("position callable","import {File,position} from 'std:fs';function inspect(file:Mutable<File>){","position",
+            "(file);}function main(){}",&["Mutable<File>","int","FsError","Ownership:"][..]),
+        ("cursor alias","import { ","SeekOrigin",
+            " } from 'std:fs';function inspect(origin:SeekOrigin){}function main(){}",&["SeekOrigin","start","current","end","Ownership:"][..]),
         ("file option","import {OpenOptions} from 'std:fs';function inspect(value:ReadOnly<OpenOptions>){console.log(value.","read",
             ");}function main(){}",&["boolean","undefined","defaults to false","Ownership:"][..]),
         ("exact timestamp","import {FileTime} from 'std:fs';function inspect(value:ReadOnly<FileTime>){console.log(value.","unixSeconds",
@@ -435,6 +441,7 @@ fn filesystem_exports_and_documented_record_help_agree_across_server_phases() {
     ];
     for(name,before,typed,after,expected)in cases{
         let mut baseline=None;
+        let mut help_baseline:Option<Value>=None;
         for(mode,delay,broken)in[("settled",None,false),("typed-fast",Some(Duration::ZERO),false),("80ms",Some(Duration::from_millis(80)),false),("syntax-error",None,true)]{
             let after=if broken{format!("{after}\nfunction broken(){{const = ;}}") }else{after.to_owned()};
             let text=format!("{before}{typed}{after}");let mut session=Session::start(&[]);
@@ -445,6 +452,12 @@ fn filesystem_exports_and_documented_record_help_agree_across_server_phases() {
             for fragment in expected{assert!(combined.contains(fragment),"{name} [{mode}]: missing {fragment}: {combined}");}
             assert!(!combined.contains("__tsrust_private_"),"{name} [{mode}]: {combined}");
             if let Some((prior_detail,prior_hover))=&baseline{assert_eq!((&detail,&hover),(prior_detail,prior_hover),"{name} [{mode}] disagrees with settled help");}else{baseline=Some((detail,hover));}
+            if matches!(typed,"seek"|"position") {
+                let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()+typed.len()+1}}));
+                let text=help.to_string();assert!(text.contains("Mutable<File>")&&text.contains("FsError"),"{name} [{mode}]: {help}");
+                if typed=="seek" {assert!(text.contains("offset: int")&&text.contains("origin: SeekOrigin"),"{name} [{mode}]: {help}");}
+                if let Some(prior)=&help_baseline {assert_eq!(&help,prior,"{name} [{mode}] signature help disagrees with settled");}else{help_baseline=Some(help);}
+            }
             let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{name} [{mode}]: {counters}");}
         }
     }
