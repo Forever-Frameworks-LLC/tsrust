@@ -29,9 +29,9 @@ function workload(n: int, seed: int, input: string): int {
     unwrap(savedwriteUint(bytes, 21, 4294967295, 4, order));
     checksum += unwrap(savedreadUint(bytes, 21, 4, order)) * 4;
     unwrap(savedwriteFloat32(bytes, 25, 1.5, order));
-    checksum += int(unwrap(savedreadFloat32(bytes, 25, order)) * 4.0);
+    checksum += (unwrap(savedreadFloat32(bytes, 25, order)) === 1.5 ? 6 : 0);
     unwrap(savedwriteFloat64(bytes, 33, -2.25, order));
-    checksum += int(unwrap(savedreadFloat64(bytes, 33, order)) * 4.0);
+    checksum += (unwrap(savedreadFloat64(bytes, 33, order)) === -2.25 ? -9 : 0);
     i += 1;
   }
 

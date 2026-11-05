@@ -24710,9 +24710,9 @@
       "implementationAccepted": false,
       "measured": false,
       "measurementStatus": "pending-byte-operations",
-      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact scaled numeric checksum; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "5ebae45a411dfbc0d924aa1b8474f4be653ece22d8ea49d7765eb39592fa300c",
-      "counterpartSha256": "e7673b496eedd3b14a9b388baaab24997a00c926548315926bff94bff302b28a"
+      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
+      "sourceSha256": "a7559a4e78b93b0f500475c58e1ddd75ec3fd93991f3223d21629b8ed342d1ef",
+      "counterpartSha256": "4e29f74467bb9423a9d55fd3dcc34c4a0e85f97162911fa2832625dca4aa8131"
     },
     {
       "id": "byte_ops_packet_read_4k",
@@ -24737,9 +24737,9 @@
       "implementationAccepted": false,
       "measured": false,
       "measurementStatus": "pending-byte-operations",
-      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact scaled numeric checksum; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "5ebae45a411dfbc0d924aa1b8474f4be653ece22d8ea49d7765eb39592fa300c",
-      "counterpartSha256": "e7673b496eedd3b14a9b388baaab24997a00c926548315926bff94bff302b28a"
+      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
+      "sourceSha256": "a7559a4e78b93b0f500475c58e1ddd75ec3fd93991f3223d21629b8ed342d1ef",
+      "counterpartSha256": "4e29f74467bb9423a9d55fd3dcc34c4a0e85f97162911fa2832625dca4aa8131"
     },
     {
       "id": "byte_ops_packet_read_1m",
@@ -24764,9 +24764,9 @@
       "implementationAccepted": false,
       "measured": false,
       "measurementStatus": "pending-byte-operations",
-      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact scaled numeric checksum; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "5ebae45a411dfbc0d924aa1b8474f4be653ece22d8ea49d7765eb39592fa300c",
-      "counterpartSha256": "e7673b496eedd3b14a9b388baaab24997a00c926548315926bff94bff302b28a"
+      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
+      "sourceSha256": "a7559a4e78b93b0f500475c58e1ddd75ec3fd93991f3223d21629b8ed342d1ef",
+      "counterpartSha256": "4e29f74467bb9423a9d55fd3dcc34c4a0e85f97162911fa2832625dca4aa8131"
     },
     {
       "id": "byte_ops_packet_write_token",
@@ -24791,7 +24791,7 @@
       "implementationAccepted": false,
       "measured": false,
       "measurementStatus": "pending-byte-operations",
-      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact scaled numeric checksum; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
+      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
       "sourceSha256": "e23458c4dfe154c5ce3328c06a4df3f38943e1af2388e49d1f2e59a857f26f08",
       "counterpartSha256": "36538cfa646d8d45613ea74840e71942a38f1d04425841b0443965402d17302b"
     },
@@ -24818,7 +24818,7 @@
       "implementationAccepted": false,
       "measured": false,
       "measurementStatus": "pending-byte-operations",
-      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact scaled numeric checksum; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
+      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
       "sourceSha256": "e23458c4dfe154c5ce3328c06a4df3f38943e1af2388e49d1f2e59a857f26f08",
       "counterpartSha256": "36538cfa646d8d45613ea74840e71942a38f1d04425841b0443965402d17302b"
     },
@@ -24845,7 +24845,7 @@
       "implementationAccepted": false,
       "measured": false,
       "measurementStatus": "pending-byte-operations",
-      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact scaled numeric checksum; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
+      "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
       "sourceSha256": "e23458c4dfe154c5ce3328c06a4df3f38943e1af2388e49d1f2e59a857f26f08",
       "counterpartSha256": "36538cfa646d8d45613ea74840e71942a38f1d04425841b0443965402d17302b"
     },
@@ -24873,8 +24873,8 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "4cbf207227eb23a315b108248450001f6b6d4b6af1f40c1f2346c2759af83f1c",
-      "counterpartSha256": "88d426ceb2fe5b4a5706719d17cbd2f29152d1565818f5ba675141860aa37a4d"
+      "sourceSha256": "6f50cd96e55ce7cbd7d478318dc3c08604a1dff62caf717c41ffb26040d1f8d6",
+      "counterpartSha256": "340bcd93b9bbb20f24fdb4eb602d8590fe140836bef4f269631ed8c22c058d00"
     },
     {
       "id": "byte_ops_index_repetitive_4096",
@@ -24900,8 +24900,8 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "4cbf207227eb23a315b108248450001f6b6d4b6af1f40c1f2346c2759af83f1c",
-      "counterpartSha256": "88d426ceb2fe5b4a5706719d17cbd2f29152d1565818f5ba675141860aa37a4d"
+      "sourceSha256": "6f50cd96e55ce7cbd7d478318dc3c08604a1dff62caf717c41ffb26040d1f8d6",
+      "counterpartSha256": "340bcd93b9bbb20f24fdb4eb602d8590fe140836bef4f269631ed8c22c058d00"
     },
     {
       "id": "byte_ops_index_repetitive_65536",
@@ -24927,8 +24927,8 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "4cbf207227eb23a315b108248450001f6b6d4b6af1f40c1f2346c2759af83f1c",
-      "counterpartSha256": "88d426ceb2fe5b4a5706719d17cbd2f29152d1565818f5ba675141860aa37a4d"
+      "sourceSha256": "6f50cd96e55ce7cbd7d478318dc3c08604a1dff62caf717c41ffb26040d1f8d6",
+      "counterpartSha256": "340bcd93b9bbb20f24fdb4eb602d8590fe140836bef4f269631ed8c22c058d00"
     },
     {
       "id": "native_directory_metadata",

@@ -43,8 +43,8 @@ function workload(n: int, seed: int, input: string): int[] {
       checksum += unwrap(readUint(bytes, base + 17, 1, order)) * 4;
       checksum += unwrap(readUint(bytes, base + 19, 2, order)) * 4;
       checksum += unwrap(readUint(bytes, base + 21, 4, order)) * 4;
-      checksum += int(unwrap(readFloat32(bytes, base + 25, order)) * 4.0);
-      checksum += int(unwrap(readFloat64(bytes, base + 33, order)) * 4.0);
+      checksum += (unwrap(readFloat32(bytes, base + 25, order)) === 1.5 ? 6 : 0);
+      checksum += (unwrap(readFloat64(bytes, base + 33, order)) === -2.25 ? -9 : 0);
       record += 1;
     }
 

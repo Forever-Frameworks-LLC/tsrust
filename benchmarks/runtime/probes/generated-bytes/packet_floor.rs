@@ -18,9 +18,9 @@ fn function0(value0: i64, value1: i64, value2: &String) -> i64 {
   bytes[21..25].copy_from_slice(&if little{(4294967295 as u32).to_le_bytes()}else{(4294967295 as u32).to_be_bytes()});
   checksum+=(if little{u32::from_le_bytes(bytes[21..25].try_into().unwrap())}else{u32::from_be_bytes(bytes[21..25].try_into().unwrap())}) as i64*4;
   bytes[25..29].copy_from_slice(&if little{(1.5 as f32).to_le_bytes()}else{(1.5 as f32).to_be_bytes()});
-  checksum+=((if little{f32::from_le_bytes(bytes[25..29].try_into().unwrap())}else{f32::from_be_bytes(bytes[25..29].try_into().unwrap())}) as f64*4.0) as i64;
+  checksum+=if (if little{f32::from_le_bytes(bytes[25..29].try_into().unwrap())}else{f32::from_be_bytes(bytes[25..29].try_into().unwrap())})==1.5{6}else{0};
   bytes[33..41].copy_from_slice(&if little{(-2.25 as f64).to_le_bytes()}else{(-2.25 as f64).to_be_bytes()});
-  checksum+=((if little{f64::from_le_bytes(bytes[33..41].try_into().unwrap())}else{f64::from_be_bytes(bytes[33..41].try_into().unwrap())}) as f64*4.0) as i64;
+  checksum+=if (if little{f64::from_le_bytes(bytes[33..41].try_into().unwrap())}else{f64::from_be_bytes(bytes[33..41].try_into().unwrap())})==-2.25{-9}else{0};
  }checksum
 }
 fn main(){}
