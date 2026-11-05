@@ -48,7 +48,7 @@ impl Emitter<'_> {
             Type::Int=>format!("tsrust_native_locale::format_int({formatter},{value})"),
             Type::Record(id)if self.program.records[id].native_type==Some(NativeTypeId::Decimal)=>format!("tsrust_native_locale::format_decimal({formatter},&tsrust_native_decimal::format({value}))"),
             Type::Union(union)|Type::BorrowedUnion(union)=>{
-                let arms=self.program.unions[union.index()].members.iter().enumerate().map(|(tag,ty)|format!("ViewUnion{}::V{tag}(input)=>{}",union.index(),self.locale_number(*ty,"input",formatter))).collect::<Vec<_>>().join(",");
+                let arms=self.program.unions[union.index()].members.iter().enumerate().map(|(tag,ty)|format!("ViewUnion{}::V{tag}(input)=>{}",union.index(),self.locale_number(*ty,if *ty==Type::Int{"*input"}else{"input"},formatter))).collect::<Vec<_>>().join(",");
                 format!("match {value}{{{arms}}}")
             },_=>unreachable!("checked int or Decimal")
         }

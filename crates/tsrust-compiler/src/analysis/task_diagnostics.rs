@@ -45,8 +45,8 @@ impl CheckedProgram {
     pub(crate) fn task_warnings(&self)->Vec<Diagnostic> {
         if self.task_origins.is_empty() && !self.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) && !self.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Job)) {return Vec::new();}
         let mut tracker=Tracker{program:self,warnings:BTreeMap::new(),failures:Vec::new(),projections:0};
-        for function in &self.functions { if !function.template {tracker.function(function, &[]);} }
-        for closure in &self.closures {if !closure.function.template && closure.forward.is_none() {tracker.function(&closure.function,&closure.captures);} }
+        for function in &self.functions { if !function.template {tracker.function(function, &[],None);} }
+        for closure in &self.closures {if !closure.function.template && closure.forward.is_none() {tracker.function(&closure.function,&closure.captures,Some(&closure.parameters));} }
         tracker.warnings.into_values().collect()
     }
 }
@@ -111,11 +111,13 @@ impl Tracker<'_> {
         let temporary=(usize::MAX,Vec::new());self.store(function,value,state,temporary.clone());
         let old=Self::take(state,&destination);self.warn(old,target.span);Self::transfer(state,&temporary,&destination);
     }
-    fn function(&mut self,function:&CheckedFunction,captures:&[Capture]) {
+    fn function(&mut self,function:&CheckedFunction,captures:&[Capture],parameters:Option<&[usize]>) {
         if function.bindings.iter().all(|binding|self.program.task_paths(binding.ty).is_empty()) && crate::error_effects::checked_expressions(function).iter().all(|value|value.ty.is_none_or(|ty|self.program.task_paths(ty).is_empty())) {return;}
         let mut state=State::new();
         for(id,binding)in function.bindings.iter().enumerate() {
-            if (binding.parameter && (binding.mode==Mode::Consume || self.program.task_type(binding.ty))) || captures.iter().any(|capture|capture.inner==id && capture.storage==Mode::Consume) {
+            // Closure binding vectors also contain unused lexical projections, not parameters.
+            let parameter=parameters.map_or(id<function.parameter_count,|slots|slots.contains(&id));
+            if (parameter && (binding.mode==Mode::Consume || self.program.task_type(binding.ty))) || captures.iter().any(|capture|capture.inner==id && capture.storage==Mode::Consume) {
                 let at=binding.declaration_span.or(binding.used).unwrap_or_default();
                 for (path,started) in self.program.task_paths(binding.ty){state.insert((id,path),Tokens::from([(at.start,at.end,started)]));}
             }
@@ -158,11 +160,7 @@ impl Tracker<'_> {
             }
             ExprKind::Closure{..}=>{
                 let mut tokens=Tokens::new();
-                if let Some(Type::Closure(mut origin))=value.ty {
-                    // Once captures belong to its constructor, not this lexical environment.
-                    while let Some(ClosureForward::Once(inner))=self.program.closures.get(origin).and_then(|closure|closure.forward){origin=inner;}
-                    if let Some(closure)=self.program.closures.get(origin){for capture in &closure.captures {if capture.storage==Mode::Consume {tokens.extend(Self::take(state,&(capture.outer,Vec::new())));}}}
-                }
+                if let Some(Type::Closure(origin))=value.ty && let Some(closure)=self.program.closures.get(origin) {for capture in &closure.captures {if capture.storage==Mode::Consume {tokens.extend(Self::take(state,&(capture.outer,Vec::new())));}}}
                 tokens
             }
             ExprKind::Call(callee,args)=>{

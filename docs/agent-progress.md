@@ -14,7 +14,7 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch
-`codex/stdlib-0.2.0`, source checkpoint **e0e99430**. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint **6b82cdc8**. Full B00–B20 stays active.
 Latest accepted work: literal-all optimization passed8focused witnesses; actual
 ready/yield medians improved40.1%/30.1%,2native histories ingested atbb0677ec.
 Unchanged Rust/Node controls reused. New Once-capture checker repair12c197a3 and
@@ -22,20 +22,26 @@ selected-sync B13 locale integratione0e99430 are checkpointed, public acceptance
 pending. Whole-project formatting/token/idempotence and locale source/oracle pass.
 Only this live handoff is dirty. No push, release or full regression occurred.
 
-**First action:** integrated build87301 ended with terminal build-finished:false,
-516.080s/3,759,619KiB. Compiler/library work completed; explicit_locale test
-assertion compared &&str with &str. Root replaces it with features.contains;
-whole-format/checkpoint then resume same no-run selection with new output names.
-Original `/tmp/tsrust-locale-integrated-{artifacts.jsonl,build.log}` preserved.
-After successful build run prepared `/tmp/tsrust-locale-integrated-gates.py`
-(updated artifact path/source required) under watchdog/sharedtarget/portable pack.
-Driver selects21focused cases: task warning regression, locale runtime/native/
-offline/editor, six completion rows and eight receiver agreements. Repair real
-failures, preserve passed scopes, then measure accepted11locale workloads.
-B05 integrated patch is ready at `/tmp/tsrust-b05-integration.patch`,SHA256
-941c18639af79cc9ea966229e537751d2a0dc998503f674ae68180c8673003d5;
-52publicfiles, canonical apply--check passed,16light tests passed/1offline skipped,
-3TypeScript peers pass. B14 source remains frozen, not integrated.
+**First action:** resume focused build after current repairs/checkpoint. Build42791
+passed29.572s/907,920KiB, terminaltrue, `/tmp/tsrust-locale-assertion-artifacts.jsonl`.
+Runner2389 ended106.318s/743,616KiB:13/21tests passed (six older task cases,
+three locale runtime, binding-effects, optional activation, editor, completion).
+Preserve these results in `/tmp/tsrust-locale-integrated-gates{.json,-run.log}`.
+Failures: named-task warning regression; five native/export cases all missing
+integer dereference from borrowed int|Decimal union; negative-import fixture
+unwraps loader rejection; agreement oracle fails to flatten equivalent parenthesized
+literal unions. Root fixes these coherent causes before batched rerun.
+Once-capture hypothesis did not fix warning; reverted. Proven source cause:
+closure context projects all outer bindings with parameter=true, while actual
+parameter slots are closure.parameters. Seed actual slots plus consumed captures
+only; ordinary functions use parameter_count. Add empty-closure ordering witness.
+Locale integer union arm now dereferences only borrowed scalar; loader rejection
+counts as correct negative; test union normalizer respects grouping, quotes and
+arrow signatures. Whole-format/token/idempotence passed,1587sources/0changes.
+Next no-run selection: compiler explicit_locale/task_responsibility_arrays and
+LSP checker_agreement, no unchanged --lib/editor/matrix rebuild. Then7task tests,
+six failed locale tests, agreement and oracle-unit15cases. No locale generated
+workload timings yet. B05 patch remains ready, B14 frozen, B07/B15 admissions ready.
 
 **Workers:** b03_review prepares B07 admission source in managed
 `/Users/seancotter/.codex/worktrees/stdlib-process/tsrust` (basee9c6acc4).

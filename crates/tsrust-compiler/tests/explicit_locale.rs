@@ -32,7 +32,7 @@ function main(){
 "import{parseLocale,createNumberFormat}from'std:locale';function main(){const locale=unwrap(parseLocale('en'));const n=unwrap(createNumberFormat(locale,{grouping:'wrong'}));}",
 "import{parseLocale,createNumberFormat}from'std:locale';function main(){const locale=unwrap(parseLocale('en'));const n=unwrap(createNumberFormat(locale));n.format(1.5);}",
 "import{__compare}from'std:locale';function main(){}",
-]{let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));assert!(check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).is_err(),"{source}");}}
+]{let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));assert!(load_project(&FileSourceProvider,path.to_str().unwrap()).and_then(check_graph).is_err(),"{source}");}}
 #[test]fn locale_dependency_activation_is_optional(){let directory=support::TempDirectory::new();for(source,used)in[("import{parseLocale}from'std:locale';function main(){console.log('plain');}",false),("import{SegmentRange}from'std:locale';function main(){const r:SegmentRange={start:0,end:1};console.log(r.start);}",false),("import{parseLocale,formatLocale}from'std:locale';function main(){const l=unwrap(parseLocale('en'));console.log(formatLocale(l));}",true)]{let(rust,features)=checked(&directory,source).emit_rust_with_native_features();assert_eq!(features.contains(&"locale"),used);assert_eq!(rust.contains("mod tsrust_native_locale"),used);assert!(!rust.contains("unsafe"));}}
 
 #[test]fn locale_package_relocates_and_builds_offline_without_unsafe(){

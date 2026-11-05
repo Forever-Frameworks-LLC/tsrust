@@ -303,21 +303,34 @@ fn alternatives(ty: &str) -> BTreeSet<String> {
         ty = ty[1..ty.len() - 1].trim();
     }
     let mut depth = 0i32;
-    let mut parts = BTreeSet::new();
+    let mut quote = None;
+    let mut escaped = false;
+    let mut parts = Vec::new();
+    let mut normalized = String::new();
     let mut begin = 0;
     for (offset, ch) in ty.char_indices() {
+        if quote.is_some() || !ch.is_whitespace() {normalized.push(ch);}
+        if let Some(delimiter) = quote {
+            if escaped { escaped = false; }
+            else if ch == '\\' { escaped = true; }
+            else if ch == delimiter { quote = None; }
+            continue;
+        }
         match ch {
+            '\'' | '"' => quote = Some(ch),
             '(' | '[' | '<' | '{' => depth += 1,
-            ')' | ']' | '>' | '}' => depth -= 1,
+            ')' | ']' | '}' => depth -= 1,
+            '>' if !ty[..offset].ends_with('=') => depth -= 1,
             '|' if depth == 0 => {
-                parts.insert(ty[begin..offset].split_whitespace().collect::<String>());
+                parts.push(&ty[begin..offset]);
                 begin = offset + 1;
             }
             _ => {}
         }
     }
-    parts.insert(ty[begin..].split_whitespace().collect::<String>());
-    parts
+    parts.push(&ty[begin..]);
+    if parts.len()==1 {return BTreeSet::from([normalized]);}
+    parts.into_iter().flat_map(alternatives).collect()
 }
 
 #[test]
@@ -325,7 +338,12 @@ fn displayed_union_grouping_preserves_alternatives_and_nested_contracts() {
     assert_eq!(alternatives(" ((StringView | undefined)) "), alternatives("StringView | undefined"));
     assert_ne!(alternatives("(string | undefined)[]"), alternatives("string | undefined[]"));
     assert_eq!(alternatives("(\"a)b\")"), BTreeSet::from(["\"a)b\"".into()]));
-    assert_eq!(alternatives("(string) | (undefined)"), BTreeSet::from(["(string)".into(), "(undefined)".into()]));
+    assert_eq!(alternatives("(string) | (undefined)"), alternatives("string | undefined"));
+    assert_eq!(alternatives("(\"primary\" | \"secondary\") | undefined"), alternatives("\"primary\" | \"secondary\" | undefined"));
+    assert_eq!(alternatives("\"a|b\" | undefined"), BTreeSet::from(["\"a|b\"".into(),"undefined".into()]));
+    assert_ne!(alternatives("(value: string | undefined) => string"),alternatives("((value: string) => string) | undefined"));
+    assert_ne!(alternatives("\"a b\""),alternatives("\"ab\""));
+    assert_eq!(alternatives("((value: string) => string) | undefined").len(),2);
 }
 
 fn candidates() -> BTreeSet<String> {
