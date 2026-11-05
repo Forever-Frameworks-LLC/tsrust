@@ -21,10 +21,11 @@ function main() {
   strictEqual(unwrap(resolve()), directory);
   strictEqual(unwrap(resolve(directory, 'one', '..', 'two')), join(directory, 'two'));
   const pairs = unwrap(vars());
-  for (const pair of pairs) {
-    if (pair.name === 'TSRUST_B03_TEXT') {
-      strictEqual(pair.value, 'héllo 🦀');
-      pair.value = 'independent snapshot';
+  for (let index = 0; index < pairs.length; index++) {
+    if (pairs[index].name === 'TSRUST_B03_TEXT') {
+      strictEqual(pairs[index].value, 'héllo 🦀');
+      pairs[index].value = 'independent snapshot';
+      strictEqual(pairs[index].value, 'independent snapshot');
       strictEqual(unwrap(get('TSRUST_B03_TEXT')), 'héllo 🦀');
     }
   }

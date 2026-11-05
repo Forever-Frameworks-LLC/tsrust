@@ -55,7 +55,7 @@ fn database_intrinsics_remain_internal_across_imports_aliases_and_reexports() {
         for (entry,dependency) in [
             (format!("import {{{name}}} from '{module}';function main(){{}}"),None),
             (format!("import {{{name} as operation}} from '{module}';function main(){{}}"),None),
-            ("import {operation} from './database.tsr';function main(){}".into(),Some(format!("export {{{name} as operation}} from '{module}';"))),
+            ("import {operation} from './database.tsr';function main(){}".into(),Some(format!("import {{{name} as privateOperation}} from '{module}';export function operation():void{{}}"))),
         ] {
             if let Some(dependency)=dependency {std::fs::write(directory.0.join("database.tsr"),support::format_round_trip(&dependency)).unwrap();}
             let source=support::format_round_trip(&entry);let path=directory.source(&source);
@@ -78,7 +78,7 @@ fn database_intrinsics_remain_internal_across_imports_aliases_and_reexports() {
 fn database_public_factories_types_and_borrowing_methods_survive_reexports() {
     use tsrust_compiler::project::{FileSourceProvider, check_graph, load_project};
     let directory=support::TempDirectory::new();
-    std::fs::write(directory.0.join("database.tsr"),support::format_round_trip("export {Pool,connect} from 'std:sql';export {Connection,open} from 'std:sqlite';")).unwrap();
+    std::fs::write(directory.0.join("database.tsr"),support::format_round_trip("import {Pool as NativePool,connect as nativeConnect} from 'std:sql';import {Connection as NativeConnection,SqliteError,open as nativeOpen} from 'std:sqlite';export type Pool=NativePool;export type Connection=NativeConnection;export async function connect(url:string,max:int):Task<Pool>{return await nativeConnect(url,max);}export function open(path:string):Result<Connection,SqliteError>{return nativeOpen(path);}")).unwrap();
     let source=support::format_round_trip(r#"
 import {Pool as AsyncPool,Connection as Database,connect,open} from './database.tsr';
 async function cursor(pool:ReadOnly<AsyncPool>):Task<void>{const rows=await pool.cursor('SELECT 1');rows.close();}

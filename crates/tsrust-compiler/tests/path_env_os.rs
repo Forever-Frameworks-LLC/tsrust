@@ -30,9 +30,10 @@ import {vars,get,currentDir,currentExe,tempDir,homeDir} from 'std:env';
 import {strictEqual} from 'std:testing';
 function main(){
   const rows=unwrap(vars());let found=0;
-  for(const pair of rows){if(pair.name==='TSRUST_B03_TEXT'){
-    found++;strictEqual(pair.value,'héllo 🦀','snapshot keeps the controlled Unicode value');
-    pair.value='independent snapshot';
+  for(let index=0;index<rows.length;index++){if(rows[index].name==='TSRUST_B03_TEXT'){
+    found++;strictEqual(rows[index].value,'héllo 🦀','snapshot keeps the controlled Unicode value');
+    rows[index].value='independent snapshot';
+    strictEqual(rows[index].value,'independent snapshot');
     strictEqual(unwrap(get('TSRUST_B03_TEXT'))==='héllo 🦀',true,'snapshot mutation leaves the process environment unchanged');
   }}
   strictEqual(found,1,'snapshot includes the controlled name exactly once');

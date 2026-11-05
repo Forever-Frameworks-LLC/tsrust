@@ -13,6 +13,105 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**Resume — 2026-11-05, B03 focused results:** verified the terminal successful
+build-finished record and absence of Cargo77647/supervisor86291; no duplicate
+build was started. Direct driver completed27 invocations in124.980s,
+peak480,896KiB. All editor scopes passed (17 help cases across four phases,
+checker agreement and11 completion rows), plus path runtime/relative/allocation,
+OS, dependency selection, effects, literal aliases, forwarded borrows and generic
+native keepers. Individual results:46 passed,5 failed across4 invocations;
+`/tmp/tsrust-b03-gates.{json,log}` retains the exact initial results.
+Failures were fixture assumptions:2 snapshots mutated borrowed for-of elements;
+macOS rejected an invalid-Unicode directory name with EILSEQ;2 SQL visibility
+fixtures used unsupported export-list syntax. Root repairs use indexed snapshot
+mutation, preserve synthetic non-Unicode path conversion plus actual invalid-env
+child checks and conditional real invalid cwd where supported, and use supported
+exported aliases/factory wrappers. Public SQL fixture strict emit now passes.
+These repairs remain uncommitted and require affected native rechecks.
+Offline dependency integration first failed because source packs were not selected/
+prepared. Explicit offline portable setup passed15.975s/149,952KiB with current
+pack127a409706242393405b3fb0aa186b08fc2a750b128f51e3def223868b528af6.
+The real offline export recheck passed all5 tests,128.574s/365,892KiB,
+`/tmp/tsrust-b03-export-recheck.log`. Seven matched B03 workload correctness
+checks then passed5 cases each in Node24.11.1 and generated O0/O3,22.355s/
+427,040KiB; `/tmp/tsrust-b03-verify.{json,log}`. This is untimed correctness,
+not measurement or ingestion. Disposable driver uses registered source guards,
+independent oracles, normal TypeScript config and formatted native sources.
+Whole-project formatter passed5.664s/205,968KiB with no changes. Focused repair no-run passed496.836s/3,692,035KiB, terminal
+build-finished success; `/tmp/tsrust-b03-repair-artifacts.jsonl` and
+`/tmp/tsrust-b03-repair-build.log`. The five repaired tests all passed8.874s/
+377,120KiB in `/tmp/tsrust-b03-repair-gates.{json,log}`. Combined focused
+acceptance is51 tests (46 preserved initial passes plus5 repaired passes).
+No active root heavy process remains. Independent read-only B03 source review
+found no additional defect. B03 plan now marks its12 public functions/records
+implemented with macOS evidence; Windows signals/platform and measurement gates
+remain unchecked. Next: checkpoint these formatted accepted repairs, then run
+B06 prototype profile exclusively before public API implementation.
+B06 Sol worker in existing stdlib-files tree preserved five pending prototype
+files; it added production futures/threads runtime hashes to profile.mjs and
+passed pinned Node syntax checks. Profile remains unrun; requires exclusive quiet
+slot. B06 worker then implemented the coherent void[] prerequisite source-only:
+ArrayElement/resolution/rendering/clone/sort, explicit unsupported optional/text
+results, compiler/native fixtures and compiler-derived editor checks. Static
+review found blanket tuple join registrations could break unrelated joins; worker
+repaired the shared eligibility check and added a fifth mixed-program witness.
+All B06 changes remain uncommitted/unbuilt; root must grant formatter/build slots.
+No public all/taskAsync implementation exists yet. No source push,
+release, timing ingestion or full regression performed. Full B00–B20 stays active.
+
+**Transfer follow-up — terminal B03 build:** authoritative Cargo JSON now ends
+with `{"reason":"build-finished","success":true}`. Cargo77647 and supervisor86291
+are both gone. Restored watchdog completed after27.040s with peak3,259,939KiB;
+this is its supervised tail, not the entire build duration. No restart required.
+Next fresh chat should inspect/run the prepared direct-test driver against these
+fresh artifacts, under the watchdog. Native/editor/export acceptance remains
+pending. This update supersedes the live-process instructions below. Root started
+no further builds or tests because the owner is transferring to a new chat.
+
+**Chat transfer — owner request, 2026-11-05:** the owner requested a fresh chat
+because of memory usage. Preserve the active full B00–B20 goal; do not restart
+validation or shrink scope. Canonical source is `72039246`; only this handoff
+has an uncommitted root edit. Unified session35953 disappeared after a turn
+interruption, but authoritative `ps` confirms Cargo PID/process group77647 still
+running (9m11s at last observation), compiler library test harness compiling.
+Its original supervisor died; root restored supervision without restarting Cargo:
+`/tmp/tsrust-b03-existing-watch.py`, detached with start_new_session=True (supervisor PID86291), log
+`/tmp/tsrust-b03-existing-watch.log`. It watches group77647 for5,000,000KiB and
+1,100additional seconds (under the original approximately30minute build limit).
+The first nohup supervisor was removed by shell cleanup; PID86291 was then
+confirmed alive in its own process group. Check actual process state, watchdog log and final `build-finished` in
+`/tmp/tsrust-b03-artifacts.jsonl` before doing anything heavy. No terminal build
+result has been observed. Missing session35953 is NOT evidence the build stopped.
+After success, inspect and run `/tmp/tsrust-b03-gates.py` under the watchdog,
+serial direct binaries/3threads, then the real offline native-dependencies Node
+integration with fresh `TSRUST`, and seven untimed matched B03 workload cases.
+The checker agreement test compares fields/types but does not itself require
+nonempty new record fields; the eleven explicit matrix rows require all16 fields,
+so preserve both scopes. All B03 native acceptance remains pending.
+No full regression, timing, ingestion, CI, push or release was performed here.
+Existing agents belong to the old chat. Core was asked to stop source-only B06
+preparation in its isolated worker; inspect worker status and pending diff before
+reassigning. Runtime and host workers were already idle/clean. Do not duplicate
+heavy work. Existing v0.1.2 release/main verification is complete; publication of
+v0.2.0 still requires owner approval of a concrete candidate.
+
+**Resume — 2026-11-05, B03 native validation:** canonical source checkpoint
+`72039246` contains the compatibility closure annotation, corrected hostname
+source-guard quoting and controlled generated environment observer witness.
+Whole-project formatter passed (5.723s, 201,104KiB; no remaining changes).
+Root owns the only heavy process, unified exec session `35953`: focused compiler/
+LSP no-run with both normal binaries and library harnesses, shared `target`,
+incremental off/jobs1, watchdog 5,000,000KiB/1,800s. Cargo JSON is
+`/tmp/tsrust-b03-artifacts.jsonl`; await its terminal result before native tests.
+The serial direct-test driver is prepared at `/tmp/tsrust-b03-gates.py`, with
+nonzero test-count assertions and eleven explicit completion row filters.
+No new B03 native acceptance or API throughput result is claimed yet.
+Existing lifetime/URL/FS accepted scopes remain preserved. The initial optional
+URL setter assertion remains an unreproduced diagnostic risk, as documented below.
+B06 agent prepares source-only profiling variants; no competing heavy job.
+The older paragraphs below retain prior evidence; their pending integration/
+checkpoint instructions are superseded by this current source and process state.
+
 **B03 first compile/guard results:** canonical77816755 integrates rootwiring6429,
 runtimea7f35ad5 and SQLvisibility/B06e30. All-target53672 failed28.116s/
 1,373,025KiB on compatibility wrapper closure HRTB inference. Root explicit

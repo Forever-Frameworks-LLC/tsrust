@@ -271,9 +271,9 @@ Sources: [pinned memmem find](https://docs.rs/memchr/2.8.3/memchr/memmem/fn.find
 Backend: existing lexical path implementation, std and existing Tokio signals;
 small `hostname`/platform adapter only where std lacks the operation. B00/B01.
 
-- [ ] `PathParts`; `std:path.resolve`, `parse`, `format`, `separator`, `delimiter`.
-- [ ] `std:env.vars`, `currentDir`, `currentExe`, `tempDir`, `homeDir`.
-- [ ] `std:os.availableParallelism`, `hostname`.
+- [x] `PathParts`; `std:path.resolve`, `parse`, `format`, `separator`, `delimiter`.
+- [x] `std:env.vars`, `currentDir`, `currentExe`, `tempDir`, `homeDir`.
+- [x] `std:os.availableParallelism`, `hostname`.
 - [ ] Windows console interrupt/control-break support through existing signals.
 
 Contract: preserve existing POSIX/Windows lexical path rules; normalization is
@@ -290,9 +290,9 @@ Preparation: hostname0.4.2 matches its official non-yanked sparse-index checksum
 617aaa3557aef3810a6369d0a99fac8a080891b68bd9f9812a1eeda0c0730cbd,
 MIT license and declared MSRV1.74. Locked metadata/fetch/tree admission kept
 existing cfg-if1.0.5, libc0.2.190 and windows-link0.2.1 pins unchanged. Default
-and optional setter features remain disabled. This is not completed advisory,
-platform, runtime or public API acceptance. Direct-Rust allocation/build/timing
-prototypes are prepared separately; no production B03 implementation is claimed.
+and optional setter features remain disabled. Advisory and platform admission remain separate from the macOS implementation
+acceptance below. Direct-Rust allocation/build/timing prototypes remain distinct
+from generated API throughput measurements.
 
 B03 contracts frozen for implementation (2026-11-05; native/platform acceptance
 remains separate):
@@ -355,6 +355,20 @@ sourcepack/cache/export and benchmark dependency wiring, goal/plan/sole handoff.
 Only hostname selects its optional dependency; all other new observers remain
 std-only and unused imports add no runtime/dependency closure. Finish the entire
 coherent section before batched affected checks.
+
+Implementation acceptance (macOS ARM64, source72039246 plus fixture repairs):
+all51 focused compiler/native/editor tests now pass; preserve46 initial passes
+and5 repaired-test rechecks rather than replaying passed scopes. Coverage includes
+17 catalog entries/15 unique examples, O0/O3 controlled environment observers,
+path allocation and relative controls,17 help cases across four editor phases,
+11 completion matrix rows and checker agreement. Five offline dependency/export
+integration checks pass, including safe hostname linkage. All seven registered
+workloads pass five independent correctness cases in Node24.11.1 and generated
+O0/O3; this is untimed acceptance, not throughput measurement. Actual Windows
+console signals, Windows/Linux execution, final package admission and generated
+API timings remain pending. Fixture repairs preserve read-only iteration, use
+supported module aliases/factory wrappers, and handle macOS filesystem rejection
+of invalid-Unicode names while retaining strict conversion and child-env checks.
 
 ### B04 — General URL and query parameters
 
