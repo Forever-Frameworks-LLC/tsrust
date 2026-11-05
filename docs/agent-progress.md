@@ -13,6 +13,29 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**Current combined repair candidate — 2026-11-05:** root3a9ef5c9 checkpoints the
+native callable identity repair and passed/pending evidence below. Root8a23d39f
+integrates hostf4f16270 (including6f/341 fixture fixes,397 graph names, shared exact
+dependency predicate);6a0ac75 integrates runtime6b311546 (all47String members on
+homogeneous literal unions, exact identity and borrowed payloads). Core2cb54a1f
+is now staged for normal merge: validated native-forward returned-owner lifetime
+mapping for all4ReturnSlots, native_forward_borrows witness, URL real-project/
+exact-diagnostic/O0/O3/file-URL fixtures and relocated safe offline export.
+All incoming source checkpoints passed whole-project formatting; root integrations
+also format the entire tree before each source checkpoint. Source integration is
+NOT acceptance. Root generic positive additionally covers mutable returned views;
+all new positives and editor witnesses must execute on rebuilt combined tools.
+
+All three workers released their heavy/formatter leases and have no active jobs.
+Root owns the next combined validation: both-package all-target check, then one
+both-package/both-bin/lib --no-run batch for generic/native-forward/string-union,
+failed or changed FS witnesses, URL values/export and focused LSP intelligence/
+project/help/agreement/matrix targets. Execute exact binaries serially afterward
+under5GB/1800s watchdog withthreads3; unset matrix report mode and use row filters.
+Keep the already-passed scopes below and repair/rerun affected failures only.
+No full suites, actual new API timings, SQLite ingestion, remote push or release
+publication occurred. Full B00–B20 objective remains active and incomplete.
+
 **Owner-requested PR monitoring verified — 2026-11-05:** live GitHub has no open
 PRs, including Dependabot. Release PR#14 merged; main is
 8efaaee21bcc40d0938214bc75299b592ce91db9. Release validation41942318885,
