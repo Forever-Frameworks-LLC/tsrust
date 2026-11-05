@@ -1403,7 +1403,9 @@ mod tests {
             let ExprKind::Call(_,args)=&mut base.kind else {panic!("owned union call")};
             &mut args[0]
         }
-        let checked=crate::check("type Origin='start'|'end';function origin(text:ReadOnly<string>):Origin{return 'start';}function probe():string{return origin('leaf').toUpperCase();}function main(){console.log(probe());}").unwrap();
+        for (result,body) in [("Origin","'start'"),("string","text.toUpperCase()")]{
+        let source=format!("type Origin='start'|'end';function origin(text:ReadOnly<string>):{result}{{return {body};}}function probe():string{{return origin('leaf').toUpperCase();}}function main(){{console.log(probe());}}");
+        let checked=crate::check(&source).unwrap();
         let function=checked.program.functions.iter().find(|function|function.name=="probe").unwrap();
         let StmtKind::Return(Some(template))=&function.body[0].kind else {panic!("return")};
         let emitter=super::super::emitter_for(&checked.program,"");
@@ -1416,6 +1418,7 @@ mod tests {
         assert_eq!(emitter.expression_depth.get(),0);
         assert!(emitter.rendered_receivers.borrow().is_empty());
         assert!(emitter.conditional_temporaries.borrow().is_empty());
+        }
     }
 
     #[test]
