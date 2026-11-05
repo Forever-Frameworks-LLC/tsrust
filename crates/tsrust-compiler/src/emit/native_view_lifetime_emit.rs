@@ -11,6 +11,34 @@ pub(super) struct Lifetimes {
     pub(super) declarations: Vec<String>,
     pub(super) bounds: Vec<String>,
 }
+
+#[cfg(test)]
+mod native_forward_tests {
+    use super::*;
+
+    #[test]
+    fn native_forward_signatures_name_the_checked_source_in_every_return_slot() {
+        for (module,name) in [("std:bytes","view"),("std:bytes","viewMut"),("std:url","formatUrl"),("std:url","__hash"),("std:json","get")] {
+            let binding=crate::native_bindings::BINDINGS.iter().find(|binding|binding.module==module && binding.name==name).unwrap();
+            let source=crate::format("function main(){const action=operation;}").unwrap();
+            assert_eq!(crate::format(&source).unwrap(),source);
+            let mut parsed=crate::syntax::parse(&source).unwrap();
+            crate::native_binding_types::prepare(&mut parsed.records,binding,crate::Span::default()).unwrap();
+            let StmtKind::Let{value,..}=&mut parsed.functions[0].body[0].kind else {panic!("native value declaration")};
+            value.kind=ExprKind::Name(format!("@native:{module}#{name}"));
+            let checked=crate::analysis::analyze(parsed).unwrap();
+            let emitter=super::super::emitter_for(&checked,"");
+            let closure=checked.closures.iter().find(|closure|matches!(closure.forward,Some(ClosureForward::Native(_)))).unwrap();
+            let signature=emitter.native_forward_borrow_signature(closure).unwrap();
+            let root=closure.parameters[binding.returned_borrow.unwrap().source_parameter];
+            let lifetime=&signature.storage_lifetimes[&root];
+            assert!(signature.params.contains(&format!("value{root}: &{lifetime} ")) || signature.params.contains(&format!("value{root}: &{lifetime} mut ")),"{module}.{name}: {}",signature.params);
+            assert!(signature.result.contains(lifetime),"{module}.{name}: {}",signature.result);
+            assert!(!signature.result.contains("'_"),"{module}.{name}: {}",signature.result);
+            syn::parse_file(&crate::emit::emit(&checked)).unwrap();
+        }
+    }
+}
 impl Lifetimes {
     pub(super) fn empty_output(&mut self) {
         // A checked empty component carries no owner. Quantify its output
@@ -111,6 +139,7 @@ impl Emitter<'_> {
             let inner = &self.program.closures[inner];
             return self.native_view_closure_signature(inner, None, &inner.function, &inner.parameters);
         }
+        if method.is_none() && let Some(signature)=self.native_forward_borrow_signature(closure) {return Some(signature);}
         if function.native_returns.is_none() && !self.native_views.contains(function.result) && !parameters.iter().any(|&id|self.native_views.contains(function.bindings[id].input_ty.unwrap_or(function.bindings[id].ty)) || self.record_parameter_layout(function,id).is_some()) {return None;}
         let (lifetimes,_)=self.capture_layout(closure);
         let mut next=0;
@@ -145,6 +174,48 @@ impl Emitter<'_> {
             signature.generics=if signature.generics.is_empty() {"<'native_receiver>".into()}else{format!("<'native_receiver, {}",&signature.generics[1..])};
         }
         Some(signature)
+    }
+
+    // Native forwarding bodies are described by binding metadata, rather than
+    // checked source statements. Name the same source and success slot here so
+    // method elision cannot accidentally borrow the callable's empty receiver.
+    fn native_forward_borrow_signature(&self,closure:&crate::analysis::CheckedClosure)->Option<native_function_signature_emit::NativeSignature> {
+        use crate::native_return_borrows::ReturnSlot;
+        let Some(ClosureForward::Native(id))=closure.forward else {return None;};
+        let binding=&crate::native_bindings::BINDINGS[id];
+        let contract=binding.returned_borrow?;
+        binding.validate_returned_borrow().expect("checked native return contract");
+        let root=closure.parameters[contract.source_parameter];
+        let lifetime=format!("'native_input{root}_0");
+        let mut lifetimes=Lifetimes::default();
+        lifetimes.inputs.insert((root,LifetimeSource::Storage),lifetime.clone());
+        lifetimes.declarations.push(lifetime.clone());
+        let mut path=Vec::new();let mut guards=Vec::new();
+        if matches!(contract.slot,ReturnSlot::ResultOk|ReturnSlot::ResultOkOptional) {
+            let union=closure.function.result.union().expect("checked native Result");
+            let [success,_]=crate::result_identity::variants(&self.program.records,&self.program.unions[union.index()].members).expect("checked Result identities");
+            guards.push(VariantGuard{path:Vec::new(),success});
+            path.push(Segment::Field("payload".into()));
+        }
+        if matches!(contract.slot,ReturnSlot::DirectOptional|ReturnSlot::ResultOkOptional) {
+            let success=self.program.records.iter().position(|record|record.native_type==Some(contract.payload)).expect("checked optional native payload");
+            guards.push(VariantGuard{path:path.clone(),success});
+        }
+        lifetimes.outputs.insert((path,guards),lifetime.clone());
+        let params=closure.parameters.iter().map(|&root| {
+            let parameter=ArgumentContract::from(&closure.function.bindings[root]);
+            format!("value{root}: {}",self.native_view_family_argument_type(parameter,root,&lifetimes))
+        }).collect::<Vec<_>>().join(", ");
+        let mut generics=lifetimes.declarations.clone();
+        generics.extend(self.nullable_callback_bounds(closure.parameters.iter().map(|&root|closure.function.bindings[root].ty).chain(std::iter::once(closure.function.result))));
+        Some(native_function_signature_emit::NativeSignature {
+            receiver:None,
+            storage_lifetimes:BTreeMap::from([(root,lifetime)]),
+            params,
+            result:self.native_view_signature_type(closure.function.result,None,&lifetimes),
+            generics:lifetime_parameters(&generics),
+            replacement_where:String::new(),
+        })
     }
 
     fn native_view_capture_slots(&self,ty:Type,root:usize,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>,lifetimes:&[String],next:&mut usize,slots:&mut BTreeMap<(usize,LifetimeSource),String>) {

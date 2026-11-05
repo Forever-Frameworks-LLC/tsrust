@@ -1,18 +1,33 @@
 mod support;
+use tsrust_compiler::project::{FileSourceProvider, ProjectAnalysis, ProjectDiagnostic, check_graph, load_project};
+
+fn checked(directory: &support::TempDirectory, source: &str) -> Result<ProjectAnalysis, ProjectDiagnostic> {
+    let path = directory.source(&support::format_round_trip(source));
+    check_graph(load_project(&FileSourceProvider, path.to_str().unwrap())?)
+}
+
+fn native(directory: &support::TempDirectory, source: &str, command: &str, expected: Option<&[u8]>) {
+    let path = directory.source(&support::format_round_trip(source));
+    for release in [false, true] {
+        let mut invocation = support::cli();
+        invocation.arg(command).arg(&path);
+        if release { invocation.arg("--release"); }
+        let output = support::run(&mut invocation, 180);
+        support::success(&output);
+        if let Some(expected) = expected { assert_eq!(output.stdout, expected, "release={release}"); }
+    }
+}
 
 #[test]
 fn url_owners_properties_queries_and_components_execute() {
     let directory=support::TempDirectory::new();
-    let source=support::format_round_trip(include_str!("fixtures/url/url.test.tsr"));
-    support::success(&support::run(support::cli().arg("test").arg(directory.source(&source)),180));
+    native(&directory, include_str!("fixtures/url/url.test.tsr"), "test", None);
 }
 
 #[test]
 fn url_example_and_all_catalog_examples_execute_together() {
     let directory=support::TempDirectory::new();
-    let source=support::format_round_trip(include_str!("../../../examples/url/urls.tsr"));
-    let output=support::run(support::cli().arg("run").arg(directory.source(&source)),180);support::success(&output);
-    assert_eq!(output.stdout,b"https://example.com/search?tag=one&tag=two\n7\ntag=one&tag=two&page=1\n?tag=one&tag=two&page=1\n/new\n%C3%A9%20%2B\n\xc3\xa9 +\n");
+    native(&directory, include_str!("../../../examples/url/urls.tsr"), "run", Some(b"https://example.com/search?tag=one&tag=two\n7\ntag=one&tag=two&page=1\n?tag=one&tag=two&page=1\n/new\n%C3%A9%20%2B\n\xc3\xa9 +\n"));
     let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
     let mut imports=std::collections::BTreeSet::new();let mut functions=String::new();let mut calls=String::new();let mut expected=String::new();let mut count=0;
     for family in ["std:url","Url","SearchParams"] {
@@ -25,31 +40,67 @@ fn url_example_and_all_catalog_examples_execute_together() {
     }
     assert_eq!(count,34);
     let source=format!("import {{{}}} from 'std:url';{functions}function main(){{{calls}}}",imports.into_iter().collect::<Vec<_>>().join(","));
-    let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(&source))),180);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());
+    native(&directory, &source, "run", Some(expected.as_bytes()));
 }
 
 #[test]
 fn computed_properties_preserve_whole_owner_and_selected_container_loans() {
+    let directory=support::TempDirectory::new();
     let invalid=[
-        "function main(){const value=unwrap(parseUrl('https://example.com/a'));const text=value.pathname;value.hostname='other';console.log(text);}",
-        "function main(){const values=[unwrap(parseUrl('https://example.com/a'))];values[0].pathname=invalidate(values);}function invalidate(values:Mutable<Url[]>):string{values.pop();return '/bad';}",
-        "function edit(value:ReadOnly<Url>):void{value.pathname='/bad';}function main(){}",
-        "function main(){const value=unwrap(parseUrl('https://example.com/'));value.origin='other';}",
-        "function main(){const value=unwrap(parseUrl('https://example.com/'));value.pathname+='more';}",
-        "function main(){const value:Url={};}",
-        "function main(){const params=parseQuery('x=one');const text=params.get('x');params.set('x','two');console.log(text);}",
+        ("function main(){const value=unwrap(parseUrl('https://example.com/a'));const text=value.pathname;value.hostname='other';console.log(text);}", "native-view-conflict", "value.hostname", Some("value.pathname")),
+        ("function main(){const values=[unwrap(parseUrl('https://example.com/a'))];values[0].pathname=invalidate(values);}function invalidate(values:Mutable<Url[]>):string{values.pop();return '/bad';}", "conflicting-access", "invalidate(values)", Some("values[0]")),
+        ("function edit(value:ReadOnly<Url>):void{value.pathname='/bad';}function main(){}", "parameter-access", "value: ReadOnly<Url>", None),
+        ("function main(){const value=unwrap(parseUrl('https://example.com/'));value.origin='other';}", "readonly", "value.origin", None),
+        ("function main(){const value=unwrap(parseUrl('https://example.com/'));value.pathname+='more';}", "url-property", "value.pathname", None),
+        ("function main(){const value:Url={};}", "native-opaque", "{}", None),
+        ("function main(){const params=parseQuery('x=one');const text=params.get('x');params.set('x','two');console.log(text);}", "native-view-conflict", "params.set", Some("params.get")),
     ];
-    for body in invalid {
-        let source=format!("import {{Url,parseUrl,parseQuery}} from 'std:url';{body}");
-        assert!(tsrust_compiler::check(&source).is_err(),"accepted {source}");
+    for (body,code,offending,creation) in invalid {
+        let source=support::format_round_trip(&format!("import {{Url,parseUrl,parseQuery}} from 'std:url';{body}"));
+        let error=checked(&directory,&source).err().unwrap_or_else(||panic!("accepted {source}"));
+        assert_eq!(error.code,code,"{source}: {}",error.message);
+        assert_eq!(error.location.source.0,directory.0.join("input.tsr").to_str().unwrap());
+        let start=source.rfind(offending).unwrap();
+        assert!(error.location.span.start<start+offending.len() && start<error.location.span.end,"{source}: {error:?}");
+        if let Some(creation)=creation {
+            let start=source.find(creation).unwrap();
+            assert!(error.related.iter().any(|(location,_)|location.source==error.location.source && location.span.start<start+creation.len() && start<location.span.end),"{source}: {error:?}");
+        }
     }
+    for body in [
+        "function main(){const value=unwrap(parseUrl('https://example.com/a'));const text=String(value.pathname);value.hostname='other';console.log(text);}",
+        "function read(value:ReadOnly<Url>):string{return String(value.pathname);}function main(){const value=unwrap(parseUrl('https://example.com/a'));console.log(read(value));}",
+        "function main(){const params=parseQuery('x=one');{const text=params.get('x');console.log(text);}params.set('x','two');}",
+    ] {checked(&directory,&format!("import {{Url,parseUrl,parseQuery}} from 'std:url';{body}")).unwrap();}
 }
 
 #[test]
 fn getter_functions_emit_without_throwing_result_wrappers() {
     let source="import {Url,parseUrl} from 'std:url';function length(value:ReadOnly<Url>):int{const text=value.hostname;return text===undefined?0:text.length;}function main(){const value=unwrap(parseUrl('https://example.com/a'));console.log(length(value));}";
-    let emitted=tsrust_compiler::check(source).unwrap().emit_rust();
+    let directory=support::TempDirectory::new();
+    let emitted=checked(&directory,source).unwrap().emit_rust();
     let parsed=syn::parse_file(&emitted).unwrap();
     let function=parsed.items.iter().find_map(|item|if let syn::Item::Fn(function)=item{(function.sig.ident=="function0").then_some(function)}else{None}).expect("first source function");
     assert!(matches!(&function.sig.output,syn::ReturnType::Type(_,ty) if matches!(ty.as_ref(),syn::Type::Path(path) if path.path.is_ident("i64"))),"{}",emitted);
+}
+
+#[test]
+fn public_file_urls_round_trip_absolute_unicode_paths_at_o0_and_o3() {
+    let directory=support::TempDirectory::new();
+    // Path conversion is lexical: the child is intentionally never created.
+    let host=directory.0.join("é 🦀 #%.txt").to_str().unwrap().to_owned();
+    let mut cases=vec![(host,None)];
+    #[cfg(unix)] cases.push(("/tmp/é name#?".to_owned(),Some("file:///tmp/%C3%A9%20name%23%3F")));
+    #[cfg(windows)] {
+        cases.push((r"C:\Temp\é name#%.txt".to_owned(),Some("file:///C:/Temp/%C3%A9%20name%23%25.txt")));
+        cases.push((r"\\server\share\é name#%.txt".to_owned(),Some("file://server/share/%C3%A9%20name%23%25.txt")));
+    }
+    let mut body=String::new();
+    for (index,(path,expected)) in cases.iter().enumerate() {
+        let path=serde_json::to_string(path).unwrap();
+        body.push_str(&format!("const url{index}=unwrap(pathToFileUrl({path}));strictEqual(unwrap(fileUrlToPath(url{index})),{path});"));
+        if let Some(expected)=expected {body.push_str(&format!("strictEqual(String(formatUrl(url{index})),{});",serde_json::to_string(expected).unwrap()));}
+    }
+    let source=format!("import {{pathToFileUrl,fileUrlToPath,formatUrl}} from 'std:url';import {{strictEqual}} from 'std:testing';function main(){{{body}}}");
+    native(&directory,&source,"run",Some(b""));
 }
