@@ -32,6 +32,7 @@ pub(super) enum Selected {
 
 impl Analyzer {
     pub(in crate::analysis) fn prepare_mutation_work(&mut self, context: &mut Context, target: &Expr, suppress_target: bool) -> Mutation {
+        let target=self.url_property_receiver(context,target).unwrap_or(target);
         let place = crate::flow::place(target, &context.names);
         let prior = context.mutation_place.clone();
         context.mutation_place = crate::flow::mutation_footprint(target, &context.names);
@@ -71,6 +72,7 @@ impl Analyzer {
     }
 
     pub(super) fn prepare_assignment_target(&mut self, context: &mut Context, target: &mut Expr, kind: Kind) -> Result<Target, Diagnostic> {
+        if !matches!(kind,Kind::Scalar) && self.url_property_receiver(context,target).is_some() {return Err(Diagnostic::new("url-property","URL properties support plain assignment, not compound or update operations.",target.span));}
         if !matches!(kind, Kind::Scalar) { self.reject_string_position_write(context, target)?; }
         let named = matches!(target.kind, ExprKind::Name(_));
         if named {
@@ -132,7 +134,7 @@ impl Analyzer {
             ExprKind::Field(base, _) | ExprKind::Index(base, _) => base.as_ref(),
             _ => target,
         };
-        let mut active = if matches!(kind, Kind::Logical) && named { loans.clone() } else { Self::selection_loans(selected_parent, loans) };
+        let mut active = self.url_store_selection_loans(context,target,loans).unwrap_or_else(||if matches!(kind, Kind::Logical) && named { loans.clone() } else { Self::selection_loans(selected_parent, loans) });
         if matches!(kind, Kind::Compound { .. }) && ty == Type::String {
             let root = Self::root_binding(target).expect("checked compound target");
             active.entry(root).or_default().push((Mode::Read, target.span));
@@ -148,6 +150,7 @@ impl Analyzer {
     pub(super) fn finish_assignment_value(&mut self, context: &mut Context, target: &Expr, value: &Expr, frame: Value, operator: Span, loans: &Loans, actual: Type) -> Result<Type, Diagnostic> {
         let Value { kind, named, ty, skipped } = frame;
         self.require(actual, Some(ty), if matches!(kind, Kind::Scalar) { value.span } else { operator })?;
+        if self.finish_url_store(context,target,loans)?{return Ok(ty);}
         Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
         for (id, before) in skipped { before.join(Availability::of(&context.bindings[id])).restore(&mut context.bindings[id]); }
         if let Kind::Compound { op, .. } = kind && ty == Type::Int && crate::error_effects::integer_operation(op) {

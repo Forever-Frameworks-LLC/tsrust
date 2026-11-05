@@ -13,102 +13,114 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
-Latest integration: codec preparation1189832b and SIMD witness e8189a42 are
-cherry-picked as97a75483/1ed2c684; independently tested URL payload da8edd91 is
-40b72ea5. Shared codec wiring now registers nine functions, selects/extracts exact
-byte support variants, enables base64 only when selected in CLI/export, and
-registers36pending workloads across12operations/3sizes with independent Rust
-references, source guards, oracle routing and report coverage. Three focused Node
-controls pass; canonical oracle routing passes36rows×n0/1/17; JS syntax/diff checks
-pass. Whole formatter5.180s/172,112KiB passes with0changes. New exact-extraction
-unit witness is written but Rust/native/editor/portable/benchmark acceptance for
-the merged codec code is still pending. No new codec measurement was ingested.
+**Active v0.2.0 — 2026-11-04:** owner renewed the active goal and explicitly
+requires autonomous continuation without routine approval. Scope remains all
+B00–B20 in plans/stdlib-0.2.0.md and agent-goal.md; implementation is authorized,
+v0.2 publication still needs the concrete release authorization. Previous goal
+turn made progress: v0.1.2 reached verified main/release/docs and v0.2 foundations
+started. This turn integrates source, repairs real defects and appends measurements;
+it is progress, not a blocked/no-progress turn. Do not shrink the goal to wave1.
 
-Filesystem worker67b90e1a is ready to integrate:47focused Rust cases (21fs,
-10JSONwriter,9native,4LSP,2catalog,1relocated offline package) plus8Node controls
-pass. New mixed-size file workload has93samples per engine: Tsrust44.623542ms,
-handwritten Rust44.858791ms, Node-after-tsc64.203500ms. Quiet guard stayed enabled,
-maxload2.286<4. Six unchanged native controls were measured with cached Node/Rust
-references; historical comparisons show no regression, not a fresh A/B claim.
-Native profile9allocations/0reallocations/67,108,955peak requested bytes, zero live
-afterdrop. Raw result files remain in the managed stdlib-files tree at
-benchmarks/runtime/results/2026-11-05T01-43-15-754Z.json and
-2026-11-05T01-44-16-061Z.json; root must ingest/verify once integrated.
-FS owns no heavy process and is beginning the next B01 directory/metadata slice
-from its accepted checkpoint; full B01 is not complete.
+Root branch codex/stdlib-0.2.0 starts at released main8efaaee2. Checkpoints through
+46cfc4b8 include foundation7f356812, pins1a27bf89, reference routing9ec490c7,
+codec preparation97a75483/vector1ed2c684, URL dependency payload40b72ea5,
+codec wiringacbd5440 and measured portable-files46cfc4b8. The current combined
+candidate additionally integrates URL facade a5328d77, reproducible scaling
+458a539f, behavioral controls0a19267f and editor readinessa25985df, plus root
+URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
+No new URL/codec native gate or platform completion is claimed.
 
-URL patched payload passes upstream67unit tests, unchanged WPT with original
-expected failures,6facade controls and optimized scaling. Long-authority inputs
-8192/16384/32768/65536 now take.212667/.389875/.786000/1.579916ms (was2.214833/
-9.375167/36.205459/140.928666ms);8warmups/3×31samples, maxload1.23926. The narrow
-path-scoped reverse search preserves root/drive rules. Public setter preguard
-closes reproduced1174; no blanket WHATWG claim. URL compiler --lib check passes
-7.763s/1,258,465KiB after fixing two URL-only compile errors; actual compiler/LSP
-URL execution remains pending. Payload/runtime package/cache/export/platform
-acceptance is not yet complete. All heavy leases are released at this checkpoint;
-codec merged native acceptance is next. No concurrent native jobs or timing.
+**Shared target blocker discovered:** inherited cli/runtime_build.rs chooses a
+private build_root/native-target and removes CARGO_TARGET_DIR; outer test env did
+not prove inner CLI target reuse. Prior FS correctness remains valid, but sole-
+target compliance for CLI cache misses was not established. Benchmark dependency
+preparation already passes an explicit shared --target-dir. Do not run further
+CLI cache-miss native tests until the committed repair lands. Merely changing
+that path is insufficient: native_dependency_bundle::pack globs all .rlib/.lib/
+DLL files, so a shared compiler target would include unrelated artifacts. Repair
+must select exact Cargo-reported artifacts, isolate the runtime library from
+cross-graph alias races, preserve cancellation/errors and dependency reuse, and
+bound cache bundles to the selected closure. No hidden second target or new
+arbitrary API cap. All heavy/formatter leases are released at this checkpoint.
 
-Root next: integrate FS commit and ingest its original results; commit codec
-wiring and give the codec worker exact merged-source native/editor validation;
-wire embedded patched URL source materialization/cache/portable exports before
-accepting its façade. No global registry edits or uncommitted-source sharing.
-Keep this full B00–B20 goal active without asking routine continuation approval.
+Root URL wiring embeds the17 reviewed payload files, verifies exact bytes/file
+sets and rejects links/tampering, relocates only the parsed TOML path span without
+adding a formatting dependency, and binds both cache identities/sourcepack keys
+to payload content. Portable preparation/materialization/export retains original
+registry vendor checksums and copies the exact separate patch. All four lock
+closures pin the patched URL path; the reference closure adds its dependencies
+without upgrading existing root/backend versions. CLI/export URL features and
+record aliases are wired, package notices include licenses and patch provenance.
+Actual offline relocation/cache/platform execution remains pending.
 
-**Active v0.2.0 implementation, 2026-11-04:** old optimization/release app goal
-is complete; new full B00–B20 goal is registered and active without a token budget.
-Root branch starts at released main and carries the three plan/goal/preparation
-commits plus final release verification (first-wave baseline573e3bf4).
-Sol6.1 workers now have managed isolated trees: stdlib-files, stdlib-bytes,
-stdlib-url under /Users/seancotter/.codex/worktrees/. One writer per tree;
-root owns shared integration, dependencies, measurement DB and this sole handoff.
-URL worker holds the first bounded build/timing lease for direct-Rust admission;
-bytes then files are queued. No simultaneous heavy native processes permitted.
-Root shared foundation is locally validated: DirectOptional returned-borrow
-contracts/projected optional identity/presence loan guards; native StringLiteral
-rendering/projection into existing finite literal unions; codec observer byte-view
-alternatives. No public API is declared accepted by this foundation checkpoint.
-Initial test compile exposed a test-only temporary-to-static reference error;
-explicit static fixture fixes it. Repaired compiler --lib build+3selected tests
-pass269.573s/3,619,667KiB; six affected signature/binding/borrow/projection/loan/
-return unit groups pass62total (including those3), serial watchdog0.514–.525s
-per group, peak5,472KiB. Known decode_plain dead-code warning unchanged.
-Whole formatter passes5.194s/162,880KiB,0files/snippets/fingerprints changed;
-git diff --check passes. Full/public URL/codec native/editor acceptance and
-performance remain pending; no Tsrust benchmark measurement or DB ingestion yet.
-URL admission reproduced upstream1174 in release mode (invalid byte range6..4
-on password after empty-host mutation) and1164 (///test and////test EmptyHost,
-while//test succeeds). Direct Rust optimized url2.5.8 profile,8warmups/3×31samples
-per size with load<4(max1.7925): long-authority +dot-segment inputs8192/16384/
-32768/65536 take2.214833/9.375167/36.205459/140.928666ms; short-authority controls
-.187875/.367959/.741959/1.509125ms. Thus1163 is locally confirmed quadratic,
-not an assumed backend floor. Compile2.609s/174,256KiB, correctness.524s/80KiB,
-profile19.767s/18,384KiB under watchdog. Cached optimized release dependency,
-rustc1.96.1, no generated unsafe; earlier debug-linked diagnostic is not a floor.
-Guard the invalid setter mutation and investigate the reported one-function
-backend fix before public admission; no arbitrary cap or blanket WHATWG claim.
-These admission observations are not measured Tsrust workloads or DB ingestions.
-Bytes optimized direct-Rust prototype selected base640.23.1 default SIMD:
-32B/4KiB/1MiB batches use2048/1024/4iterations and93samples each; SIMD versus
-scalar encode medians62.8/64.2µs,.507/1.091ms,.450/1.055ms, decode64.5/60.4µs,
-.545/1.058ms,.500/1.034ms. Both one output allocation,0reallocations/live after
-drop; max quiet load1.836. Earlier dev-rlib profile was diagnostic only and is
-not used to choose the engine. Crate opt3 compile1.83s/149MBRSS, rlib720,440bytes,
-probe488,576bytes. These are admission probes, not Tsrust workload measurements.
-Filesystem prototype/affected native validation now owns the heavy slot; patched
-URL upstream controls follow. Worker acceptance remains pending.
-Codec dependency preparation now explicitly pins base640.23.1 as optional
-byte-codecs in both native/backend manifests, reserves the package name, and
-adds the same dev/reference pin. Cargo targeted offline lock updates add only
-package dependency edges; the reference lock adds the already-pinned crate.
-Four lock checksums and non-activation by default are verified; no unrelated
-version changed. This is dependency preparation, not final package admission:
-fresh advisory/feature-selection/platform/portable/export acceptance stays pending.
-Whole formatter5.692s/179,040KiB passes with0changes; diff check passes.
+**Real generic Result defect repaired:** Result<T,E> is a private tagged union,
+while old inference required a record application. Nominal success/error payload
+unification now handles it. Result<void,E> also exposed value-only annotation,
+type-argument cache and publication gates; those now accept unit type arguments
+while ordinary void value parameters remain rejected. Final focused regression
+passes271.538s/3,719,299KiB (int/string/unit/nested Results, incompatible E and
+void-value rejection). Earlier three failures are retained in /tmp logs, not
+rewritten as passes. A frame-only LLDB trace identified generic argument
+publication; an earlier debugger value-formatting attempt hit the5GB watchdog
+(32.872s/5,063,797KiB) and terminated only owned children. Frame-only trace used
+3.653s/1,000,816KiB; no debugger/test remains active.
 
-Obsolete57MiB local distribution-candidate and verified downloaded-package scratch
-were pruned after successful release verification; shared Cargo target retained.
-The release formatter passed4.159s/194,544KiB,0files/snippets/fingerprints.
+Root affected evidence: compiler+LSP all-target check passes57.567s/1,878,178KiB;
+only pre-existing decode_plain dead-code warning remains. URL behavioral7,
+payload relocation/tamper2, native effect audit1, existing generic inference9
+and generic function3 unit tests pass (unchanged groups run from the prior built
+binary; final publication repair has its own fresh unit). Codec/URL Result-data
+no-callback error effects are explicitly audited; codec generic observer entries
+are updated. Whole canonical formatter passes5.179s/201,712KiB,0files/snippets/
+fingerprints; diff checks pass. Root Node URL14 plus codec2/reference1 and
+cross-family syntax/oracle checks pass; no new codec/URL timings were run.
 
+**Filesystem measurements ingested:**47 focused Rust cases plus8Node controls,
+O0/O3 catalog/native and relocated package checks passed on the worker source.
+Six unchanged native controls reuse cached Node/Rust references. New mixed-size
+file cycle93samples/engine: Tsrust44.623542ms, handwritten Rust44.858791ms,
+Node-after-tsc64.203500ms; max quiet load2.286<4, no override. Native profile
+9allocations/0reallocations/67,108,955peak requested bytes,0live afterdrop.
+npm run store:ingest added9history entries from the two original worker timing
+JSONs. Independently verified source/reference hashes,93samples/medians, preservation
+of every prior history entry and SQLite integrity. Timing JSONs are now disposable;
+current diagnostic profiles remain with FS worker. This is not a new fresh A/B
+claim for the six historical controls and not Windows/Linux acceptance.
+
+**Workers, one writer per managed tree:**
+- core_api_plan /stdlib-bytes: original generic fixture restored; mandatory native
+  generic regression has no ignore. Runtime3/extraction1 passed before shared
+  fixes; original positive native fixture was blocked on generic/effect defects.
+  Prepared O0/O3 catalog+native, LSP, feature/relocated export controls,36registrations/
+  12independent references and mixed/CJK allocation probes. No heavy process.
+  Its merge of46cfc4b8 and codec acceptance additions remain uncommitted; preserve
+  them. Use followup_task to wake with committed shared fixes and a lease.
+- runtime_api_plan /stdlib-url: payload da8edd91, facade a5328d77, scaling458a539f,
+  runtime controls0a19267f and editor readinessa25985df are integrated. Skip local
+  prerequisite82c17631. Prepared URL feature-only witness8cases is not executed.
+  Source selection/cache/export and actual compiler/LSP URL controls remain open.
+- host_api_plan /stdlib-files: first slice67b90e1a integrated. Next B01 section has
+  21directory/metadata/utilities APIs/four records, createTempDir optional module,
+  docs/catalog/native/editor matrices and three matched workloads in progress.
+  Pinned Node controls11/11 and TS noEmit pass; native unaccepted. Direct std
+  four-kernel prototype/profile passes2.081s/295,472KiB,0retained allocations;
+  these are allocation/build observations, not throughput. No native process.
+  Needs tempfile dependency-only handback; cursors still need shared SeekOrigin
+  literal alias metadata. Private temporary-files feature must not enter ordinary
+  files_module. Package admission facts below/plan; root owns dependency locks/DB.
+
+URL patch evidence: upstream67unit+unchanged WPT and direct runtime6passed;
+path-scoped reverse search turns long-authority sizes8192/16384/32768/65536 from
+2.214833/9.375167/36.205459/140.928666ms into.212667/.389875/.786000/1.579916ms
+(8warmups/3×31samples, maxload1.23926). Reproducible authored workloads now retain
+that control. Empty-host mutation preguard addresses1174;1164 EmptyHost behavior
+is documented, not claimed WHATWG parity. Public API timing/DB ingestion pending.
+
+Next: checkpoint the coherent shared candidate, repair the inherited shared-target
+artifact path, provide committed prerequisites to workers, resume affected native/
+editor/package validation serially. Root owns shared alias architecture, manifests/
+locks, canonical checkpoints, measurements.sqlite and this sole handoff. Keep old
+accepted checks; fix/rerun only affected cases. No pushes or full suites on a timer.
 
 Owner-requested v0.2.0 planning, 2026-11-04: concrete API/checklist work is now
 written in [stdlib-0.2.0](plans/stdlib-0.2.0.md). It has19implementation bundles,

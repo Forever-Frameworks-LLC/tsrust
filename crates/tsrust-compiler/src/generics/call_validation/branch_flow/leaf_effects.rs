@@ -8,7 +8,7 @@ pub(super) fn native_observer(symbol: &str) -> bool {
             || binding.module == "std:os"
                 && matches!(binding.name, "platform" | "arch" | "endianness")
             || binding.module == "std:bytes"
-                && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy" | "fromUtf8" | "toUtf8")
+                && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy" | "fromUtf8" | "toUtf8" | "toHex" | "fromHex" | "toUtf8Lossy" | "toBase64" | "fromBase64" | "toBase64Url" | "fromBase64Url" | "fromUtf16" | "toUtf16")
             || binding.module == "std:testing-runtime"
                 && matches!(binding.name, "checkAssertion" | "assertionDetails" | "numericValue" | "lengthValue" | "hasLength" | "containsValue")
     })

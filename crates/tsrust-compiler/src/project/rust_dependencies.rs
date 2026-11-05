@@ -14,6 +14,7 @@ pub fn reserved(name:&str)->bool {
         "arboard",
         "color",
         "url",
+        "percent-encoding",
         "winit",
         "vello",
         "kurbo",

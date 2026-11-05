@@ -54,7 +54,7 @@ impl Prepared {
   let packages=crate::rust_binding_packages::packages(runtime)?;
   let binding=crate::rust_binding_packages::checked(&packages)?;
   let shared=crate::backend_sources::shared(runtime)?;
-  let dependency_identity=if shared{crate::backend_sources::IDENTITY}else{bundle::IDENTITY};
+  let dependency_identity=if shared{crate::backend_sources::dependency_identity()}else{bundle::dependency_identity()};
   let shared_inputs=if shared{Some(crate::backend_sources::identity(root)?)}else{None};
   let mut cache_parts:Vec<&[u8]>=vec![b"runtime-dependencies-abi-4-import-libraries",dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
@@ -74,9 +74,9 @@ impl Prepared {
   if workspace.is_none() || !package.exists(){
    if shared{crate::backend_sources::materialize_with(&package,input_manifest,input_lock)?;}else{bundle::materialize(&package).map_err(|e|e.to_string())?;}
   }
-  if shared{crate::backend_sources::validate(&package,input_lock)?;}
+  if shared{crate::backend_sources::validate(&package,input_manifest,input_lock)?;}
   let manifest=package.join("Cargo.toml");
-  let mut text=if shared{input_manifest.to_owned()}else{include_str!("../../native-dependencies/Cargo.toml").to_owned()};
+  let mut text=tsrust_compiler::native_url_patch::normalize_manifest(if shared{input_manifest}else{include_str!("../../native-dependencies/Cargo.toml")}).map_err(|e|e.to_string())?;
   text.push_str("\n[lib]\nname = \"tsrust_runtime\"\n");
   text.push_str(profiles(native_ui));
   crate::native_workspace::write_changed(&manifest,text)?;crate::native_workspace::write_changed(&package.join("src/lib.rs"),runtime)?;
@@ -94,6 +94,7 @@ impl Prepared {
   if tsrust_compiler::native_runtime::requires_byte_codecs(runtime){command.args(["--features","byte-codecs"]);}
   if runtime.contains("pub mod tsrust_native_files {"){command.args(["--features","files"]);}
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
+  if runtime.contains("pub mod tsrust_native_url {"){command.args(["--features","url"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
   if runtime.contains("pub mod tsrust_native_ui {"){command.args(["--features","ui"]);}
   if runtime.contains("pub mod tsrust_native_ui {") && runtime.contains("use vello::"){command.args(["--features", "ui-native"]);

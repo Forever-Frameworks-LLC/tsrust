@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -34,6 +34,10 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"Url",parameter:"x: ReadOnly<Url>"},
+Receiver {ty:"SearchParams",parameter:"x: SearchParams"},
+Receiver {ty:"UrlError",parameter:"x: ReadOnly<UrlError>"},
+Receiver {ty:"QueryEntry",parameter:"x: ReadOnly<QueryEntry>"},
 Receiver {ty:"ThemeTypography",parameter:"x: ReadOnly<ThemeTypography>"},
 Receiver {ty:"LazyChildrenProps",parameter:"x: ReadOnly<LazyChildrenProps>"},
 Receiver {ty:"SvgProps",parameter:"x: ReadOnly<SvgProps>"},
@@ -209,7 +213,8 @@ fn answer(form: &str, name: &str, parameter: &str) -> Option<(String, String)> {
 /// The checker's type of field `name` of the receiver: the type it names
 /// when a member that cannot exist is read from that field.
 fn field_type(name: &str, parameter: &str) -> Option<String> {
-    let (_, message) = diagnostic(&format!("console.log(x[{}].{ABSENT});",serde_json::to_string(name).unwrap()), parameter)?;
+    let selected=if parameter=="x: ReadOnly<Url>"{format!("x.{name}")}else{format!("x[{}]",serde_json::to_string(name).unwrap())};
+    let (_, message) = diagnostic(&format!("console.log({selected}.{ABSENT});"), parameter)?;
     let rest = message.strip_prefix("Type \"")?;
     // Diagnostics spell a native type by its linked name; the editor shows
     // the declared name.
@@ -335,6 +340,9 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         for name in fields.intersection(&offered) {
             let Some(checked) = field_type(name, receiver.parameter) else { continue };
             let shown = details[name].split_once(": ").map_or("", |(_, ty)| ty);
+            // Computed URL details separately describe their checked write input.
+            // The comparison here concerns reads; the URL test below checks writes.
+            let shown=if receiver.ty=="Url"{shown.split_once("; assign ").map_or(shown,|(read,_)|read).trim_end_matches(" (read-only)")}else{shown};
             if checked.split('|').any(|member|member.trim()=="closure") {
                 if !callable_field_agrees(receiver,name,shown) {failures.push(format!("{}.{}: displayed callback type `{shown}` disagrees with its checked contract",receiver.ty,name));}
                 continue;
@@ -382,5 +390,54 @@ fn generic_prop_callback_details_keep_public_nominal_names() {
         let detail=render["detail"].as_str().unwrap();
         assert!(detail.contains("ViewRenderProps")&&!detail.contains("ViewProperties"),"{phase}: {detail}");
         assert!(callable_field_agrees(&Receiver{ty:"ViewProps",parameter:"x: ReadOnly<ViewProps>"},"render",detail.split_once(": ").unwrap().1),"{phase}: {detail}");
+    }
+}
+
+#[test]
+fn url_computed_property_read_and_write_types_agree_with_the_checker() {
+    let properties=[
+        ("href","StringView",Some(("string","'https://other.example/'"))),
+        ("protocol","StringView",Some(("string","'https:'"))),
+        ("username","StringView",Some(("string","'user'"))),
+        ("password","StringView | undefined",Some(("string | undefined","'secret'"))),
+        ("hostname","StringView | undefined",Some(("string | undefined","'other.example'"))),
+        ("port","int | undefined",Some(("int | undefined","8443"))),
+        ("pathname","StringView",Some(("string","'/next'"))),
+        ("search","StringView | undefined",Some(("string | undefined","'?q=one'"))),
+        ("hash","StringView | undefined",Some(("string | undefined","'#part'"))),
+        ("origin","string",None),
+    ];
+    let before=format!("{}function probe(x:Mutable<Url>){{x.",prelude("x: Mutable<Url>"));
+    let text=format!("{before}href;}}function main(){{}}");
+    let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+    let reply=session.completion_items("main.tsr",&text,before.len());
+    let items=if reply.is_array(){reply}else{reply["items"].clone()};
+    assert!(diagnostic("x.pathname=x.pathname;","x: Mutable<Url>").is_some(),"a borrowed view is not an owned string write input");
+    assert!(diagnostic("x.pathname=String(x.pathname);","x: Mutable<Url>").is_none(),"explicit owned conversion must permit a self read");
+    for (name,read,write) in properties {
+        let checked=diagnostic(&format!("const observed:{read}=x.{name};"),"x: ReadOnly<Url>");
+        assert!(checked.is_none(),"Url.{name} read type {read}: {checked:?}");
+        let item=items.as_array().unwrap().iter().find(|item|item["label"]==name).unwrap();
+        let detail=item["detail"].as_str().unwrap();
+        let shown=detail.split_once(": ").unwrap().1;
+        let shown=shown.split_once("; assign ").map_or(shown,|(read,_)|read).trim_end_matches(" (read-only)");
+        assert_eq!(alternatives(shown),alternatives(read),"Url.{name}: {detail}");
+        match write {
+            Some((input,value))=>{
+                let write=detail.split_once("; assign ").unwrap().1.split_once("; throws ").unwrap();
+                assert_eq!(alternatives(write.0),alternatives(input),"Url.{name}: {detail}");assert_eq!(write.1,"UrlError","{detail}");
+                assert!(diagnostic(&format!("x.{name}={value};"),"x: Mutable<Url>").is_none(),"Url.{name} must accept {input}");
+                if input.contains("undefined"){
+                    assert!(diagnostic(&format!("x.{name}=undefined;"),"x: Mutable<Url>").is_none(),"Url.{name} removal");
+                    assert!(diagnostic(&format!("x.{name}=null;"),"x: Mutable<Url>").is_some(),"Url.{name} accepted null instead of undefined");
+                }
+                assert!(diagnostic(&format!("x.{name}=false;"),"x: Mutable<Url>").is_some(),"Url.{name} accepted boolean");
+                assert!(diagnostic(&format!("x.{name}={value};"),"x: ReadOnly<Url>").is_some(),"Url.{name} accepted readonly mutation");
+            },
+            None=>{
+                assert!(detail.contains("read-only"),"{detail}");
+                assert!(diagnostic("x.origin='other';","x: Mutable<Url>").is_some(),"origin accepted a write");
+            },
+        }
     }
 }

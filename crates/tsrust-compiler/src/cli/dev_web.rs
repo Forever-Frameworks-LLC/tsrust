@@ -21,7 +21,7 @@ impl Web {
   let stop=Arc::new(AtomicBool::new(false));let shared=state.clone();let stopping=stop.clone();
   let server=thread::Builder::new().name("dev-web-http".into()).spawn(move||{while !stopping.load(Ordering::Relaxed){match listener.accept(){Ok((stream,_))=>{let _=serve(stream,&shared);},Err(error) if error.kind()==std::io::ErrorKind::WouldBlock=>thread::sleep(Duration::from_millis(20)),Err(_)=>break}}}).map_err(|e|e.to_string())?;
   report(Status::Info,format_args!("Web: http://{address}/"));
-  let mut key=std::collections::hash_map::DefaultHasher::new();crate::native_dependency_bundle::IDENTITY.hash(&mut key);
+  let mut key=std::collections::hash_map::DefaultHasher::new();crate::native_dependency_bundle::dependency_identity().hash(&mut key);
   Ok(Self{root:root.to_owned(),workspace:cache.join(format!("workspace-{:016x}",key.finish())),_lock:lock,state,stop,server:Some(server),pending:None})
  }
  pub fn ready(&self)->bool{!self.state.lock().unwrap().assets.is_empty()}
@@ -32,10 +32,10 @@ impl Web {
   if !rust.contains("mod tsrust_native_ui {")||rust.split("mod tsrust_native_").skip(1).filter_map(|value|value.split_whitespace().next()).any(|module|!matches!(module,"ui"|"json")){return Err("Web UI currently supports std:ui and JSON; native services, files and task runtimes are not supported".into());}
   let identity=self.workspace.join("tsrust-dependencies.identity");
   if self.workspace.exists(){
-   if fs::read(&identity).ok().as_deref()!=Some(crate::native_dependency_bundle::IDENTITY.as_bytes()){return Err("Web dependency cache identity mismatch; refusing to overwrite an unrelated workspace".into());}
+   if fs::read(&identity).ok().as_deref()!=Some(crate::native_dependency_bundle::dependency_identity().as_bytes()){return Err("Web dependency cache identity mismatch; refusing to overwrite an unrelated workspace".into());}
   }else{
    crate::package_export::export(&self.workspace,rust,true,&crate::ui_cli::attribution_files(&crate::project_config::parse(root,&fs::read_to_string(root.join("tsrust.config.json")).map_err(|e|e.to_string())?)?.entry)?).map_err(|e|e.to_string())?;
-   fs::write(&identity,crate::native_dependency_bundle::IDENTITY).map_err(|e|e.to_string())?;
+   fs::write(&identity,crate::native_dependency_bundle::dependency_identity()).map_err(|e|e.to_string())?;
   }
   let source=format!("{rust}\n#[wasm_bindgen::prelude::wasm_bindgen]\npub fn launch()->Result<js_sys::Array,wasm_bindgen::JsValue>{{tsrust_native_ui::browser::launch(||main()==std::process::ExitCode::SUCCESS)}}\n");write_changed(&self.workspace.join("src/main.rs"),source)?;
   let manifest=self.workspace.join("Cargo.toml");let base=fs::read_to_string(&manifest).map_err(|e|e.to_string())?;let base=base.split("\n# tsrust web dev\n").next().unwrap();let profile=if release{""}else{"\n[profile.release.package.tsrust-export]\nopt-level = 0\ncodegen-units = 16\ndebug = false\n"};write_changed(&manifest,format!("{base}\n# tsrust web dev\n[lib]\npath = \"src/main.rs\"\ncrate-type = [\"cdylib\"]\n{profile}"))?;

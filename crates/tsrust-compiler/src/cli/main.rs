@@ -392,7 +392,7 @@ fn run() -> Result<u8, String> {
     let shared_inputs = backend_sources::application_identity(&rust, &cache_root)?;
     let mut cache_parts: Vec<&[u8]> = vec![
             b"native-cache-abi-4-ui-dev-profile",
-            native_dependency_bundle::IDENTITY.as_bytes(),
+            native_dependency_bundle::dependency_identity().as_bytes(),
             backend_identity.as_bytes(),
             env!("CARGO_PKG_VERSION").as_bytes(),
             env::consts::OS.as_bytes(),

@@ -6,3 +6,6 @@ resolver = "3"
 # Interactive checking and dev rebuilds need optimized compiler code, with debug checks retained.
 [profile.dev.package.tsrust-compiler]
 opt-level = 1
+
+[patch.crates-io]
+url = { path = "crates/tsrust-compiler/patched-dependencies/url" }

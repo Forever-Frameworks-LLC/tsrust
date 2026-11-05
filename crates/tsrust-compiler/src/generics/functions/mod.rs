@@ -193,7 +193,7 @@ impl Cache {
             }
             if callable { continue; }
             let arguments = application.arguments.iter().map(|argument| {
-                crate::analysis::resolve_value_type(argument, false, names, unions)
+                crate::analysis::resolve_value_type(argument, true, names, unions)
             }).collect::<Result<Vec<_>, _>>()?;
             self.checked_instances.entry((declaration.clone(), arguments))
                 .or_insert_with(|| function.name.text.clone());

@@ -6,7 +6,10 @@ The owner approved starting a new autonomous goal from the
 [v0.2.0 standard-library checklist](plans/stdlib-0.2.0.md), including popular
 well-tested Rust package backends and parallel Sol 6.1 implementation/testing.
 The owner also explicitly requires monitoring the pending release PRs all the
-way to main. This ordering supersedes the older scheduling retained below.
+way to main. The owner renewed this active v0.2.0 goal and explicitly
+authorized continuation without routine approval. Complete the full checklist;
+only actual merge/publication or unresolved product design decisions need owner
+input. This ordering supersedes the older scheduling retained below.
 
 1. Finish the already-approved compiler v0.1.2/LSP v0.2.2 release first. Monitor
    repair PR#15 and its exact CI run, merge through stag only after required
