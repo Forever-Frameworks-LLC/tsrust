@@ -152,6 +152,7 @@ impl Analyzer{
         if matches!(name,"reduce"|"reduceRight") || (name=="flatMap" && matches!(result,Type::Array(_))){Some(result)}else{Self::transform_array_type(result,span).ok()}
     }
     fn simple_method_hint(&self,context:&Context,expr:&Expr,receiver_hint:Option<Type>)->Option<Type>{
+        let receiver_hint=receiver_hint.map(|ty|if self.is_string_observation(ty){Type::String}else{ty});
         let ExprKind::Call(callee,arguments)=&expr.kind else{unreachable!()};
         let ExprKind::Field(base,name)=&callee.kind else{unreachable!()};
                     if name == "isArray"

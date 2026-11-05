@@ -28,6 +28,11 @@ function observe(value: ReadOnly<SeekOrigin>): void {
   strictEqual(value.substr(1, 2), 'ta');
   strictEqual(value.charAt(1), 't');
   strictEqual(value.concat('!'), 'start!');
+  strictEqual(value.concat('!').length, 6);
+  strictEqual(value.slice(1).startsWith('t'), true);
+  strictEqual(value.valueOf().repeat(2), 'startstart');
+  strictEqual(value.toString().toUpperCase(), 'START');
+  strictEqual(value[0].toUpperCase(), 'S');
   const tail: string[] = ['!', '?'];
   strictEqual(value.concat(...tail), 'start!?');
   strictEqual(value.padStart(7, '0'), '00start');
@@ -67,7 +72,7 @@ function observe(value: ReadOnly<SeekOrigin>): void {
   }
 
   strictEqual(point, 115);
-  strictEqual(value.charCodeAt(0), 115);
+  strictEqual(value.charCodeAt(0), 115.0);
   strictEqual(value.normalize(), 'start');
   strictEqual(value.normalize('NFC'), 'start');
   strictEqual(value[1], 't');

@@ -223,7 +223,7 @@ impl Analyzer{
         let receiver=if optional && let Some(id)=hint.union(){self.unions.intern(self.unions.members(id).into_iter().filter(|ty|*ty!=Type::Undefined),base.span).ok()?}else{hint};
         let result=match receiver{
             Type::Record(id) if self.program.records[id].is_tuple()=>self.fields[id].get(&Self::flat_literal_depth(index)?.to_string()).copied(),
-            Type::Array(element)=>Some(element.ty()),Type::String=>Some(Type::String),_=>None,
+            Type::Array(element)=>Some(element.ty()),ty if self.is_string_observation(ty)=>Some(Type::String),_=>None,
         }?;
         if optional{self.unions.intern([result,Type::Undefined],span).ok()}else{Some(result)}
     }

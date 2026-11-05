@@ -44,6 +44,34 @@ PASSES59.753s/1,901,986KiB, only inherited decode_plain warning. No expectations
 ownership checks or generated operations were weakened. Next compile the focused
 direct-binary batch; all new native/editor acceptance remains pending execution.
 
+**Combined native gate progress:** a8f921d5 no-run36246 PASSED508.571s/
+3,684,275KiB. Actual normal compiler SHA c2f28ffac3047d7c22295b89f1b7500c7ef3b22dc820394ea0ebfa5c3bff05a8;
+normal LSP dd15a9242d096103fab42e9531376dc7443e5dfcb21c6635d2681d344a4a9585.
+Artifacts /tmp/tsrust-combined-repair-artifacts.jsonl. Direct serial driver8486
+completed11invocations/18tests before the first failed binary: native-forward
+signature5bindingcases/all4slots; string semantic guard; exact dependency predicate
+and96bytevariants; LSP schema/literal distinction;7CLI artifact controls; fresh
+A→B→freshA→warm-cache links; changed-runtime reuse; scoped cache migration; both
+generic-native positives/ownership negatives; actual forwarded shared/exclusive/
+optional URL/JSON views at O0/O3. The earlier native-view lifetime defect is fixed
+by execution. Fresh graph regression9.04s; native-forward actual28.28s; generic
+native2.47s. Entire stopped driver47.254s/460,400KiB. No throughput claims.
+
+String native binary2/3 passed; full47catalog positive failed checking concat's
+old exact-string continuation guard. Root grouped repair uses the common guard,
+normalizes only method result hints to string (valueOf/toString/concat/slice),
+and fixes string-index hints. Added five chaining witnesses. Diagnostic isolation
+also found authored charCodeAt expectation115 must be115.0: API returns number,
+not int. Removing concat only in a disposable diagnostic consumer and fixing that
+expectation checks the rest successfully; durable full fixture retains concat.
+No public numeric/assignability or readonly semantics changed. Repaired all-target
+26921 PASSES59.708s/1,881,938KiB, same inherited warning. Remaining work: rebuild
+only failed/unrun integration/normal binaries (omit unchanged --lib harnesses),
+then resume /tmp/tsrust-combined-repair-gates.py --start 11. Preserve completed
+prefix in /tmp/tsrust-combined-repair-gates.json. Dev uses --dev separately with
+descendant-aware watchdog. Unrun native/editor/export/75semantic-workload checks
+remain pending; never treat this interrupted batch as full acceptance.
+
 **Owner-requested PR monitoring verified — 2026-11-05:** live GitHub has no open
 PRs, including Dependabot. Release PR#14 merged; main is
 8efaaee21bcc40d0938214bc75299b592ce91db9. Release validation41942318885,
