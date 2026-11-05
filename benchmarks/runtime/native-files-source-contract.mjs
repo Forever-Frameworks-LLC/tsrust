@@ -4,6 +4,7 @@ import {nativeFileIDs} from './native-files-oracle.mjs';
 export function assertNativeFilesSource(source,row,kind) {
   if(!nativeFileIDs.includes(row.id)||row.family!=='native-files'||!['native','typescript'].includes(kind))throw Error('Native file family');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Native file fingerprint');
+  if(assertUtilitySource(source,row,kind))return;
   if(row.id==='native_file_unbounded_full_write_read') {
     if(row.iterations!==3||row.operationsPerIteration!==1||row.operationUnit!=='One unbounded full-file write/read and byte sum'||row.resultEncoding!=='array-shape-scalar-v1'||row.inputText!=='native-file-fixture-v1')throw Error('Unbounded file denominator');
     const required=['const destination=input+".out";','let count=65536;','if(i%3===1){count=1048576;}','if(i%3===2){count=67108865;}','const fill=(i+seed)%256;','output.push(sample(input,count,fill));','while(i<n)'];
@@ -45,4 +46,18 @@ export function assertNativeFilesSource(source,row,kind) {
     else if(kind==='typescript') required.push('while (written < count)','if (size === 0)','written += size;');
   }
   for(const snippet of required)if(!containsCodeSnippet(source,snippet))throw Error(`Native file source contract: ${snippet}`);
+}
+
+function assertUtilitySource(source,row,kind) {
+  const specs={
+    native_file_sync_storage:[16,'One write and syncData, write and syncAll, then byte readback',['openFile(destination, { read: true, write: true, create: true, truncate: true })','writeAll(file, first)','syncData(file)','writeAll(file, second)','syncAll(file)','seek(file, -2, "current")','read(file, 2)','position(file)','close(file)'],['openSync(destination,"w+")','writeSync(file,first,0,1,null)','fdatasyncSync(file)','writeSync(file,second,0,1,null)','fsyncSync(file)','readSync(file,bytes,0,2,position)','position+=count','closeSync(file)']],
+    native_file_seek_read:[1024,'One positioned 64-byte read, cursor query and byte sum',['open(input)','seek(file, offset, "start")','read(file, 64)','position(file)','at(bytes, index)','close(file)'],['openSync(input, "r")','new Uint8Array(64)','readSync(file,bytes,0,64,position)','position+=count','closeSync(file)']],
+    native_directory_metadata:[64,'One directory enumeration and metadata pass',['readDir(input)','stat(entry.path)','metadata.size','entry.isSymlink'],['readdirSync(input, { withFileTypes: true })','statSync(entry.path, { bigint: true })','metadata.size','entry.isSymlink']],
+    native_file_copy_rename_remove:[64,'One 1 MiB file copy, metadata, rename and remove',['copyFile(source, target)','stat(target)','rename(target, moved)','removeFile(moved)'],['copyFileSync(source, target)','statSync(target, { bigint: true })','renameSync(target, moved)','unlinkSync(moved)']],
+    native_file_options_text:[128,'One UTF8 write, append, open, truncate, rewrite and read',['writeTextFile(destination, initial)','appendFile(destination, newline)','openFile(destination, { read: true, write: true })','fileStat(file)','truncate(file, 0)','writeAll(file, content)','close(file)','readTextFile(destination)'],['writeFileSync(destination, initial','appendFileSync(destination, newline)','openSync(destination, "r+")','fstatSync(file, { bigint: true })','ftruncateSync(file, 0)','closeSync(file)','fatal: true','ignoreBOM: true']]
+  };
+  const spec=specs[row.id];if(!spec)return false;
+  if(row.iterations!==spec[0]||row.operationsPerIteration!==1||row.operationUnit!==spec[1]||row.result!=='int[][]'||row.resultEncoding!=='array-shape-scalar-v1'||JSON.stringify(row.parameters)!=='["int","int","string"]')throw Error('Native utility manifest contract');
+  for(const snippet of spec[kind==='native'?2:3])if(!containsCodeSnippet(source,snippet))throw Error(`Native utility source contract: ${snippet}`);
+  return true;
 }

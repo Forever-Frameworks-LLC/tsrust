@@ -15,10 +15,7 @@ pub(crate) fn resolve(mut args:impl Iterator<Item=String>)->Result<u8,String>{
  let existing=crate::package_validation::read_optional(&destination)?;
  let pinned=binding.lockfile.as_deref().or(existing.as_deref());
  let temporary=crate::TempDirectory::new().map_err(|error|error.to_string())?;let root=&temporary.0;
- fs::create_dir(root.join("src")).map_err(|error|error.to_string())?;
- fs::write(root.join("src/lib.rs"),"").map_err(|error|error.to_string())?;
- fs::write(root.join("Cargo.toml"),binding.manifest()).map_err(|error|error.to_string())?;
- if let Some(lock)=pinned{fs::write(root.join("Cargo.lock"),lock).map_err(|error|error.to_string())?;}
+ crate::package_cli::prepare(root,&binding,pinned)?;
  if pinned.is_none(){
   let mut command=crate::backend_cargo_command();command.current_dir(root).arg("generate-lockfile").stdout(Stdio::null());
   if offline{command.arg("--offline");}

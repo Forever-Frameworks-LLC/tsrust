@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Filesystem,
     Url,
     Ui,
     Crypto,
@@ -57,7 +58,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 44] = [
+const KINDS: [Kind; 45] = [
+    Kind::Filesystem,
     Kind::Url,
     Kind::Ui,
     Kind::Crypto,
@@ -135,6 +137,20 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::Filesystem,name:"filesystem cursor alias partial import",before:"import { ".into(),typed:"Seek",after:" } from 'std:fs';function main(){}",includes:&["SeekOrigin"],excludes:&["FileTime","seek","position"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem cursor alias string members",before:"import {SeekOrigin} from 'std:fs';function inspect(origin:SeekOrigin){".into(),typed:"origin.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase"],excludes:&["start","current","end","unixSeconds","function","main"],silent:None,needs_check:false},
+
+ Row {kind:Kind::Filesystem,name:"filesystem import path prefix",before:"import {openFile} from '".into(),typed:"std:f",after:"';function main(){}",includes:&["std:fs"],excludes:&["std:sql"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem public imports",before:"import { ".into(),typed:"",after:" } from 'std:fs';function main(){}",includes:&["SeekOrigin","seek","position","File","FsError","OpenOptions","FileTime","Metadata","DirEntry","openFile","stat","lstat","fileStat","readDir","mkdir","mkdirAll","rename","copyFile","removeFile","removeDir","removeDirAll","canonicalize","readLink","hardLink","appendFile","readTextFile","writeTextFile","truncate","syncAll","syncData","createTempDir"],excludes:&["__open","fs_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem partial imports",before:"import { ".into(),typed:"read",after:" } from 'std:fs';function main(){}",includes:&["read","readFile","readDir","readTextFile","readLink"],excludes:&["writeFile","openFile"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem open option fields",before:"import {OpenOptions} from 'std:fs';function inspect(value:ReadOnly<OpenOptions>){".into(),typed:"value.",after:"read;}function main(){}",includes:&["read","write","append","create","createNew","truncate"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem exact timestamp fields",before:"import {FileTime} from 'std:fs';function inspect(value:ReadOnly<FileTime>){".into(),typed:"value.",after:"unixSeconds;}function main(){}",includes:&["unixSeconds","nanoseconds"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem metadata snapshot fields",before:"import {Metadata} from 'std:fs';function inspect(value:ReadOnly<Metadata>){".into(),typed:"value.",after:"size;}function main(){}",includes:&["isFile","isDirectory","isSymlink","size","readOnly","modified","accessed","created"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem directory entry fields",before:"import {DirEntry} from 'std:fs';function inspect(value:ReadOnly<DirEntry>){".into(),typed:"value.",after:"path;}function main(){}",includes:&["name","path","isFile","isDirectory","isSymlink"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem partial metadata fields",before:"import {Metadata} from 'std:fs';function inspect(value:ReadOnly<Metadata>){".into(),typed:"value.is",after:"File;}function main(){}",includes:&["isFile","isDirectory","isSymlink"],excludes:&["size","readOnly","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem aliased directory entry",before:"import {DirEntry as Entry} from 'std:fs';function inspect(value:ReadOnly<Entry>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["name","path","isFile","isDirectory","isSymlink"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+
+
  Row {kind:Kind::Url,name:"URL import path prefix",before:"import {Url} from '".into(),typed:"std:u",after:"';function main(){}",includes:&["std:url"],excludes:&["std:sql"],silent:None,needs_check:false},
  Row {kind:Kind::Url,name:"URL public imports",before:"import { ".into(),typed:"",after:" } from 'std:url';function main(){}",includes:&["Url","UrlError","SearchParams","QueryEntry","StringView","parseUrl","resolveUrl","formatUrl","parseQuery","formatQuery","searchParams","setSearchParams","pathToFileUrl","fileUrlToPath","encodeURIComponent","decodeURIComponent"],excludes:&["__href","__setHref","__get","url_intrinsic"],silent:None,needs_check:false},
  Row {kind:Kind::Url,name:"URL partial imports",before:"import { ".into(),typed:"parse",after:" } from 'std:url';function main(){}",includes:&["parseUrl","parseQuery"],excludes:&["formatUrl","__get"],silent:None,needs_check:false},
@@ -515,7 +531,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if (matches!(mode, Mode::Immediate | Mode::Paced) || row.kind==Kind::Url && mode==Mode::ErrorElsewhere) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || matches!(row.kind,Kind::Url|Kind::Filesystem) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);

@@ -99,7 +99,7 @@ pub(crate) fn run(command:&str,args:impl Iterator<Item=String>)->Result<u8,Strin
  }
  Bindings::parse(&serde_json::to_string(&binding).map_err(|error|error.to_string())?)?;
  // Cargo add may have used a range. Re-pin without re-resolving unrelated packages.
- fs::write(cargo.join("Cargo.toml"),binding.manifest()).map_err(|error|error.to_string())?;
+ fs::write(cargo.join("Cargo.toml"),tsrust_compiler::native_url_patch::normalize_manifest(&binding.manifest()).map_err(|error|error.to_string())?).map_err(|error|error.to_string())?;
  cargo_output(&cargo,&["metadata","--format-version","1","--locked"],options.offline)?;
  let lockfile=fs::read_to_string(cargo.join("Cargo.lock")).map_err(|error|error.to_string())?;
  binding.lockfile=Some(lockfile.clone());let encoded=serde_json::to_string_pretty(&binding).map_err(|error|error.to_string())?+"\n";
@@ -141,7 +141,13 @@ fn select_manifest(root:&Path,explicit:Option<&Path>)->Result<PathBuf,String>{
  fn visit(root:&Path,result:&mut Vec<PathBuf>)->Result<(),String>{for entry in fs::read_dir(root).map_err(|error|error.to_string())?{let entry=entry.map_err(|error|error.to_string())?;let kind=entry.file_type().map_err(|error|error.to_string())?;if kind.is_symlink(){continue;}if kind.is_dir() && !matches!(entry.file_name().to_str(),Some("target"|".git"|"node_modules")){visit(&entry.path(),result)?;}else if kind.is_file() && entry.file_name().to_string_lossy().ends_with(".bindings.json"){result.push(entry.path());}}Ok(())}
  let mut files=Vec::new();visit(root,&mut files)?;match files.as_slice(){[]=>Ok(root.join("native.bindings.json")),[path]=>normalize(path),_=>Err("Multiple binding configurations found; select --bindings explicitly.".into())}
 }
-fn prepare(root:&Path,binding:&Bindings,lock:Option<&str>)->Result<(),String>{fs::create_dir(root.join("src")).map_err(|error|error.to_string())?;fs::write(root.join("src/lib.rs"),"").map_err(|error|error.to_string())?;fs::write(root.join("Cargo.toml"),binding.manifest()).map_err(|error|error.to_string())?;if let Some(lock)=lock{fs::write(root.join("Cargo.lock"),lock).map_err(|error|error.to_string())?;}Ok(())}
+pub(crate) fn prepare(root:&Path,binding:&Bindings,lock:Option<&str>)->Result<(),String>{
+ fs::create_dir(root.join("src")).map_err(|error|error.to_string())?;fs::write(root.join("src/lib.rs"),"").map_err(|error|error.to_string())?;
+ let manifest=binding.manifest();let normalized=tsrust_compiler::native_url_patch::normalize_manifest(&manifest).map_err(|error|error.to_string())?;
+ fs::write(root.join("Cargo.toml"),normalized).map_err(|error|error.to_string())?;
+ tsrust_compiler::native_url_patch::install(root,&manifest).map_err(|error|error.to_string())?;
+ if let Some(lock)=lock{fs::write(root.join("Cargo.lock"),lock).map_err(|error|error.to_string())?;}Ok(())
+}
 fn cargo_owned(root:&Path,args:&[String],offline:bool)->Result<Vec<u8>,String>{let args=args.iter().map(String::as_str).collect::<Vec<_>>();cargo_output(root,&args,offline)}
 fn cargo_output(root:&Path,args:&[&str],offline:bool)->Result<Vec<u8>,String>{let mut command=crate::backend_cargo_command();command.current_dir(root).args(args);if offline{command.arg("--offline");}let output=command.output().map_err(|error|error.to_string())?;if !output.status.success(){return Err(format!("Cargo failed; working setup unchanged:\n{}",String::from_utf8_lossy(&output.stderr)));}Ok(output.stdout)}
 fn root_package(metadata:&Value)->Result<&Value,String>{let id=metadata["resolve"]["root"].as_str().ok_or("Cargo root missing")?;metadata["packages"].as_array().unwrap().iter().find(|package|package["id"]==id).ok_or("Cargo root package missing".into())}
@@ -161,6 +167,19 @@ fn lock_packages(text:&str)->std::collections::BTreeSet<(String,String)>{
 }
 
 #[cfg(test)]mod tests {
+ #[test]fn binding_resolution_prepares_exact_url_patch_without_changing_identity(){
+  for schema in [1,2]{
+   let temporary=crate::TempDirectory::new().unwrap();
+   let binding=super::Bindings{schema_version:schema,source:"./native.rs".into(),dependencies:super::BTreeMap::new(),lockfile:None};
+   let original=binding.manifest();super::prepare(&temporary.0,&binding,Some("locked bytes")).unwrap();
+   let manifest=std::fs::read_to_string(temporary.0.join("Cargo.toml")).unwrap();let document=manifest.parse::<toml_edit::DocumentMut>().unwrap();
+   assert_eq!(document["patch"]["crates-io"]["url"]["path"].as_str(),Some("patched-dependencies/url"));
+   assert_eq!(binding.manifest(),original);assert_eq!(std::fs::read(temporary.0.join("Cargo.lock")).unwrap(),b"locked bytes");
+   assert_eq!(tsrust_compiler::native_url_patch::source_identity(&manifest).unwrap(),tsrust_compiler::native_url_patch::source_identity(&original).unwrap());
+   let mut files=0;tsrust_compiler::native_url_patch::visit(&temporary.0,&manifest,|_,_|{files+=1;Ok(())}).unwrap();assert!(files>0);
+  }
+ }
+
  use super::*;
  #[test]fn failed_or_interrupted_publication_keeps_the_old_generation(){
   let dir=crate::TempDirectory::new().unwrap();let path=dir.0.join("api.bindings.json");let old="{\"generation\":0,\"lock\":0}";fs::write(&path,old).unwrap();

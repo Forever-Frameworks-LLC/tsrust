@@ -1,0 +1,21 @@
+import { createTempDir, mkdirAll, openFile, writeAll, fileStat, truncate, close, readTextFile, writeTextFile, readDir, copyFile, rename, removeDirAll } from "std:fs";
+import { fromUtf8 } from "std:bytes";
+
+function main() {
+  const directory = unwrap(createTempDir(".", "tsrust-example-"));
+  unwrap(mkdirAll(directory + "/nested"));
+  const file = unwrap(openFile(directory + "/nested/message.txt", {
+    read: true, write: true, create: true, truncate: true
+  }));
+  unwrap(writeAll(file, unwrap(fromUtf8("hello"))));
+  console.log(unwrap(fileStat(file)).size);
+  unwrap(truncate(file, 2));
+  unwrap(close(file));
+  console.log(unwrap(readTextFile(directory + "/nested/message.txt")));
+  unwrap(writeTextFile(directory + "/note.txt", "hé🦀"));
+  console.log(unwrap(copyFile(directory + "/note.txt", directory + "/copied.txt")));
+  unwrap(rename(directory + "/copied.txt", directory + "/moved.txt"));
+  const entries = unwrap(readDir(directory, 3));
+  console.log(entries.length);
+  unwrap(removeDirAll(directory));
+}
