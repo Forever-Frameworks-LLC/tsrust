@@ -502,7 +502,7 @@ fn literal_union_string_catalog_and_identity_agree_across_server_phases(){
    let labels=session.completion("main.tsr",&text,before.len()).unwrap().into_iter().collect::<BTreeSet<_>>();assert_eq!(labels,expected,"{annotation} [{mode}]: full shared catalog");
    let hover=session.hover("main.tsr",&text,before.len()+2).unwrap_or_default();assert!(hover.contains("toUpperCase")&&hover.contains("string"),"{annotation} [{mode}]: {hover}");
    let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()+typed.len()+1}}));assert!(help.to_string().contains("toUpperCase"),"{annotation} [{mode}]: {help}");
-   let receiver_at=before.rfind("value.").unwrap()+2;let receiver=session.hover("main.tsr",&text,receiver_at).unwrap_or_default();assert!(receiver.contains(annotation)||(receiver.contains("start")&&receiver.contains("end")),"literal identity lost for {annotation} [{mode}]: {receiver}");
+   let receiver_at=before.rfind("value.").unwrap()+2;let receiver=session.hover("main.tsr",&text,receiver_at).unwrap_or_default();assert!(receiver.contains(&format!("value: ReadOnly<{annotation}>")),"written alias/access lost for {annotation} [{mode}]: {receiver}");
    if let Some(prior)=&baseline{assert_eq!(prior,&(hover.clone(),help.clone(),receiver.clone()),"{annotation} [{mode}] phase disagreement");}else{baseline=Some((hover,help,receiver));}
    for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(session.request("tsrust/counters",Value::Null)[key],0,"{annotation} [{mode}]");}
   }
