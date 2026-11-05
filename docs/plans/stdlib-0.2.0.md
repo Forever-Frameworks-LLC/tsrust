@@ -499,6 +499,16 @@ pass their focused scopes. Actual public I/O timing/allocation review remains
 pending; child-pipe/TCP adapters depend on their later bundles. This is local
 integration evidence, not full release/platform acceptance.
 
+B05 public measurements (2026-11-05, source6f8d3342): all45 correctness
+combinations pass. Original3processes×31samples after8warmups for native/directRust/
+Node; maximum quiet load3.79834. Nine actual histories ingested and SQLite integrity
+verified. Median ms native/Rust/Node: readInto14.366958/14.348959/108.940625;
+lines16.219/2.813625/18.351167; filecopy31.995583/24.175333/53.446625.
+Line reading remains5.76×the Rust floor; filecopy1.32×. Native allocation profiling completed: readInto1003allocations/7reallocations;
+lines5003/11000; filecopy5513/9, at their registered iteration counts. Line-reader
+bytewise append/growth is a concrete candidate for chunk-based comparison before
+implementation. No claim of optimized parity or full bundle/platform acceptance.
+
 B05 direct-Rust admission (2026-11-05): safe owned blocking-reader staging with
 one reusable buffer passed short/interrupted reads, EOF/zero destination, retained
 partial-error bytes, cancellation/deadline settlement and staged recovery without

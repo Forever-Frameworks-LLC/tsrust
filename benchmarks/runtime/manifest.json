@@ -25991,10 +25991,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-async-io",
+      "measured": true,
+      "measurementStatus": "measured-async-io",
       "specification": "async-io-contract.mjs",
-      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. No timings claimed.",
+      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. Actual matched timings stored in measurements.sqlite; allocation counts reviewed separately.",
       "sourceSha256": "4e08ec8a91da4fabf032b1464965140aeb918a0c863e37a3bb73c71b83d8dc85",
       "counterpartSha256": "02cb28cb0f88f60ba879f5366f93ca0dae24953f94b153ab0daef32ef877ff20"
     },
@@ -26014,10 +26014,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-async-io",
+      "measured": true,
+      "measurementStatus": "measured-async-io",
       "specification": "async-io-contract.mjs",
-      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. No timings claimed. Line input splits the two-byte UTF-8 character across the default 8192-byte working boundary in every engine. Line observations count UTF-8 bytes in every engine.",
+      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. Actual matched timings stored in measurements.sqlite; allocation counts reviewed separately. Line input splits the two-byte UTF-8 character across the default 8192-byte working boundary in every engine. Line observations count UTF-8 bytes in every engine.",
       "sourceSha256": "be225afd732d76b86e29293233fec2561c307201d21b24d46a60c345518ec9ff",
       "counterpartSha256": "eb8293134a2d85ff5b89adbede89b30575e5d330706a147774b5dd474503b7f5"
     },
@@ -26037,10 +26037,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-async-io",
+      "measured": true,
+      "measurementStatus": "measured-async-io",
       "specification": "async-io-contract.mjs",
-      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. No timings claimed.",
+      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. Actual matched timings stored in measurements.sqlite; allocation counts reviewed separately.",
       "sourceSha256": "39ba024939f6a88cdd241eaa5b6471d4c5f55fc70b2d9f31a94e8ba74572fcdd",
       "counterpartSha256": "d72dc7ed64f8aea24621ee30382057ec777ee4f9f66c9a9bd0d7b645c59109c6"
     }

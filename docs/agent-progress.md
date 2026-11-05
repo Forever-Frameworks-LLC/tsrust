@@ -13,6 +13,46 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**B05 allocation review complete — 2026-11-05:** session16001 terminalPASS
+94.949s/633,162KiB. Diagnostics2026-11-05T23-54-46-950Z-native-allocations.json;
+readInto1003allocations/7reallocations; lines5003/11000; filecopy5513/9. Three
+allocation samples perworkload verified by existingdriver. Source remains6f8d3342;
+actualtiming9histories inSQLite verified. Manifestnowmarks these3measured with
+actualrecordnotes. Wholeformat/measurementcheckpoint pending. B06 read-only
+preparing bulk-line candidate/profileplan under/tmp beforepublicedit; preserve
+limit consumption,error,UTF8/CRLF semantics. Optionalnarrowpatchremainsseparate.
+No activeheavyjob. Next checkpointactualtimings thenB07 normal/allocation admission
+builds andprofiles serialized, orboundedlinecandidateprofilewhenready.
+
+**B05 actual timings complete — 2026-11-05:** session33084 terminalPASS
+321.405s/634,378KiB including preparation/quietwait. Source6f8d3342; result
+benchmarks/runtime/results/2026-11-05T23-52-27-792Z.json. All45correctness
+combinations and27processgroups pass, original3×31samples after8warmups. Quietmax
+3.79834<4. `npm run store:ingest -- results/2026-11-05T23-52-27-792Z.json` added9
+actualhistories; independentlyverified all9SQLite rows latesttimestamp/93samples,
+integrity_checkok. Medianms native/Rust/Node: readInto14.366958/14.348959/108.940625;
+lines16.219/2.813625/18.351167; filecopy31.995583/24.175333/53.446625.
+Lines5.76×Rust,filecopy1.32×Rust needallocation/implementationreview; preserveactual
+records beforeoptimizing. No unchangedcontrols fabricated.
+LIVE allocationprofile16001 same3workloads underwatchdog/sharedtarget/inc0/jobs1,
+pinnedNode/portablepack; `/tmp/tsrust-b05-public-allocation.log`. Verifyterminal
+before nextheavyjob. Db+handoffdirty; measurementcheckpoint afterwholeformat pending.
+
+**B05 generated benchmark correctness accepted — 2026-11-05:** live33084
+completed preparation and all45workload/engine/input correctness combinations:
+3workloads ×native/directRust/Node ×5inputs, including fullsize/alternateseeds.
+Filecopy nowlinks tempfile andpasses. Currentrunner waitsforquiet load<4 before
+firsttimedprocess (loaddecaying18.95→6.56); no --allow-busy override. Samewatchdog
+lease andlog; donotlaunch anotherheavyjob duringquiet/timing. No actualtiming
+result oringestion yet. Allocationprofiles follow terminalmeasurement.
+
+**LIVE I/O measurement33084 — 2026-11-05:** currentcheckpoint6f8d3342.
+Same3publicworkloads/native+rust-hand+node-tsc underwatchdog, pinnedNode24.11.1,
+sharedtarget/inc0/jobs1 andexplicitpreparedportablepack. Log
+`/tmp/tsrust-b05-public-timing.log`. Currentonlyheavyjob; verify terminal before
+allocationprofiling ornextbuild. Previous79711/36076 areterminalbelow. Noactual
+publicI/O timingsingested yet. Handoffdirtyonly; fullgoal remainsactive.
+
 **B05 dependency-link repair accepted locally — 2026-11-05:** focused real
 export/link test36076 PASSED123.626s/408,224KiB. JSON,ordinaryfiles,tempdir+cleanup
 andhostname compile/executeoffline with exactCargoartifact identities. tempfile
