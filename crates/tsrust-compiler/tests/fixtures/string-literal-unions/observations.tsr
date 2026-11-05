@@ -1,6 +1,10 @@
 import { SeekOrigin } from 'std:fs';
 import { strictEqual } from 'std:testing';
 
+type Selection = {
+  origin: SeekOrigin
+};
+
 function observe(value: ReadOnly<SeekOrigin>): void {
   strictEqual(value.length, 5);
   strictEqual(value.isWellFormed(), true);
@@ -94,9 +98,6 @@ function main() {
   const original: SeekOrigin = 'start';
   observe(original);
   strictEqual(size(original), 5);
-  type Selection = {
-    origin: SeekOrigin
-  };
   const selection: Selection = {
     origin: 'start'
   };
