@@ -7,6 +7,7 @@ import {assertMonotonicTimeSource} from './monotonic-time-contract.mjs';
 import {environmentFor,assertEnvironmentSource} from './environment-contract.mjs';
 import {assertCollectionSource} from './collections-contract.mjs';
 import {assertNativeFilesSource} from './native-files-source-contract.mjs';
+import {rustReferenceSource} from './rust-reference-source.mjs';
 import {nativeFileInput} from './native-files-input.mjs';
 import {assertNativeByteUtf8Source} from './native-byte-utf8-source-contract.mjs';
 import {assertNativeByteCloneSource} from './native-byte-clone-source-contract.mjs';
@@ -222,9 +223,11 @@ run(['cargo'], ['build', '--release', '--offline', '--locked', '--quiet', '--man
 const hash = content => crypto.createHash('sha256').update(content).digest('hex');
 const driverTS = fs.readFileSync(path.join(here, 'driver.ts'), 'utf8');
 const driverRS = fs.readFileSync(path.join(here, 'driver.rs'), 'utf8');
+const handReferenceSources=new Map(manifest.workloads.map(workload=>[workload.id,rustReferenceSource(workload)]));
+const handReferenceSource=id=>handReferenceSources.get(id)??rustReferenceSource({id});
 const engines = (id) => [
  {id: 'native', command: [path.join(build, id)]},
- // Hand-written Rust for the same workload, when parity/<id>.rs exists.
+ // Size variants may share the same independent hand-written implementation.
  {id: 'rust-hand', command: [path.join(build, `${id}-hand`)]},
  {id: 'node-tsc', command: [process.execPath, path.join(build, `${id}.js`)]},
  {id: 'node-ts', command: [process.execPath, path.join(build, `${id}.ts`)]},
@@ -233,7 +236,7 @@ const engines = (id) => [
  {id: 'ts-node-transpile', command: [...tsnode, '--transpileOnly', '--project', path.join(here, 'tsconfig.json'), path.join(build, `${id}.ts`)]},
  {id: 'bun', command: ['bun', 'run', path.join(build, `${id}.ts`)]},
  {id: 'deno', command: [deno, 'run', '--no-config', '--no-check', '--no-remote', '--no-npm', path.join(build, `${id}.ts`)]}
-].filter(engine=>plan.engineIDs.includes(engine.id)&&(engine.id!=='rust-hand'||fs.existsSync(path.join(here,'parity',`${id}.rs`))));
+].filter(engine=>plan.engineIDs.includes(engine.id)&&(engine.id!=='rust-hand'||fs.existsSync(path.join(here,handReferenceSource(id)))));
 const compilation = [], execution = [], sources = [], handSources = new Map();
 const approximateReferences=new Map(),approximateProbes=new Map(),approximateCorrectness=[];
 function prepare(w) {
@@ -404,18 +407,20 @@ function prepare(w) {
  fs.writeFileSync(path.join(build, `${w.id}.ts`), ts + '\n' + adaptTSDriver(driverTS, w));
  const allocatorArgs = allocatorRlib ? ['--extern', `mimalloc=${allocatorRlib}`, '-L', `dependency=${path.dirname(allocatorRlib)}`] : [];
  const nativeCommand = [...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}.rs`), '-o', path.join(build, w.id)];
- fs.writeFileSync(path.join(build, `${w.id}.json`), JSON.stringify({extends: path.join(here, 'tsconfig.json'), files: [path.join(build, `${w.id}.ts`)], compilerOptions: {outDir: build, ...dataOptions, ...(w.family==='testing-assertions'?{typeRoots:[path.join(here,'node_modules/@types')]}:{})}}));
+ fs.writeFileSync(path.join(build, `${w.id}.json`), JSON.stringify({extends: path.join(here, 'tsconfig.json'), files: [path.join(build, `${w.id}.ts`)], compilerOptions: {outDir: build, ...dataOptions, ...(['testing-assertions','byte-codecs'].includes(w.family)?{typeRoots:[path.join(here,'node_modules/@types')]}:{})}}));
  const tsCommand = [...tsc, '--project', path.join(build, `${w.id}.json`)];
  // Prime normal filesystem/tool caches. Compiler bootstrap and downloads are excluded.
  run(nativeCommand); run(tsCommand);
  let referenceDependencies={args:[],evidence:null};
- const handSourcePath = path.join(here, 'parity', `${w.id}.rs`);
+ const referenceSource=handReferenceSource(w.id);
+ const handSourcePath = path.join(here,referenceSource);
+ if(w.rustReference&&!fs.existsSync(handSourcePath))throw new Error(`Missing hand-written Rust source: ${referenceSource}`);
  if (plan.engineIDs.includes('rust-hand') && fs.existsSync(handSourcePath)) {
   referenceDependencies=prepareReferenceDependencies({workload:w,rustVersion:pins.rust,targetDirectory:path.dirname(path.dirname(compiler)),env});
   const hand = fs.readFileSync(handSourcePath, 'utf8');
   fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source, reference:true}) + '\n' + allocatorHeader);
   run([...rustc, ...nativeDependencies.args, ...referenceDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
-  handSources.set(w.id, hash(hand));
+  handSources.set(w.id, {source:referenceSource,sha256:hash(hand)});
  }
  if(isApproximate(w)){
   const loaded=approximateReferences.get(w.id),probe=approximatePointProbeSources(emitted,ts,w,loaded.reference),id=w.id+'_points';
@@ -525,7 +530,7 @@ const compilerInputs = compilerSourceInputs(path.join(root, 'crates/tsrust-compi
 for(const loaded of approximateReferences.values())assertApproximateArtifactsUnchanged(loaded);
 const result = {
  schemaVersion: 1, measurementScope: plan.measurementScope, measuredEngines: plan.engineIDs, measurementPlanSha256: hash(fs.readFileSync(path.join(here,'measurement-plan.mjs'))), semanticEpoch: manifest.semanticEpoch, timestamp: new Date().toISOString(), verifiedOnly: verify,
- handWrittenRust: Object.fromEntries([...handSources].map(([id, sha256]) => [id, {source: `parity/${id}.rs`, sha256}])),
+ handWrittenRust: Object.fromEntries(handSources),
  nativeAllocator: allocatorRlib ? {kind: 'mimalloc', rlibSha256: hash(fs.readFileSync(allocatorRlib))} : {kind: 'system'},
  quietMachine: {allowBusy, loadLimit: quietLoadLimit, maxOneMinuteLoad: loadSamples.length ? Math.max(...loadSamples) : null},
  machine: {platform: os.platform(), release: os.release(), architecture: os.arch(), cpu: os.cpus()[0]?.model, logicalCPUs: os.cpus().length, totalMemoryBytes: os.totalmem()},
