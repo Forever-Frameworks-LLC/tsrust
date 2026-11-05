@@ -97,6 +97,37 @@ Primary implementation evidence:
   execution host. Keep one Cargo target per host, incremental off, jobs=1,
   process-tree memory/time monitoring, and ownership of killed processes clear.
 
+First-wave source preparation identified these concrete shared prerequisites;
+they are not completed implementation gates:
+
+- [ ] Add narrow native signature literal/exported-alias support where required
+  for `SeekOrigin` and similar finite contracts. The source language already has
+  literals; the native registry currently does not. Do not invent opaque owners
+  or silently widen a promised literal union to arbitrary string.
+- [ ] Extend readable/writable byte alternatives by argument position for paired
+  inputs; preserve input-only borrowed-shape checks and abstract callable
+  contracts. Update the current single-byte-generic emission bridge where two
+  independent input storage types are needed. Do not clone views to adapt them.
+- [ ] Reuse existing StringView returned-loan machinery for borrowed URL getters;
+  add computed property lowering rather than treating native getter properties
+  as physical record fields. Prove separate read/write types, receiver/RHS once
+  evaluation, optional loans and mutation blocking through aliases/captures.
+- [ ] Investigate reported url2.5.8 empty-host setter panic, quadratic authority/
+  dot-segment parsing and relative-reference differences before admission:
+  [1174](https://github.com/servo/rust-url/issues/1174),
+  [1163](https://github.com/servo/rust-url/issues/1163),
+  [1164](https://github.com/servo/rust-url/issues/1164). These are upstream
+  reports, not locally reproduced defects. Confirm under the watchdog and fix
+  real failures; do not hide scaling problems with an arbitrary input cap or
+  claim blanket WHATWG conformance from package selection.
+
+Package preparation found url2.5.8 already locked/cached, with a compatible
+declared MSRV, but its full closure/advisory/behavior admission remains open.
+Base640.23.1 is a candidate with default SIMD features; choose its actual engine
+and feature set deliberately, validate scalar fallback/all targets and measure
+on a suitable quiet host. Trusted dependency internals may use unsafe; generated
+Tsrust Rust must remain safe. Neither candidate is declared admitted here.
+
 ## Concrete API checklist
 
 ### B01 — Portable files, directories and file utilities
@@ -108,11 +139,15 @@ Depends on B00. One owner covers file handles, directory operations and cursors.
   Windows; preserve `FsError {code, operation, message, osCode?}` and unique owners.
 - [ ] `OpenOptions`; `openFile(path, options)` with read/write/append/create/
   createNew/truncate. Validate contradictory options before filesystem mutation.
-- [ ] `Metadata`, `DirEntry`; `stat`, `lstat`, `fileStat`, `readDir`.
+- [ ] `FileTime {unixSeconds, nanoseconds}`, `Metadata`, `DirEntry`; `stat`,
+  `lstat`, `fileStat`, `readDir`. Normalize pre-epoch times exactly; do not pull
+  calendar dependencies or impose Instant's year range on basic filesystem times.
 - [ ] `mkdir`, `mkdirAll`, `rename`, `copyFile`, `removeFile`, `removeDir`,
   `removeDirAll`, `canonicalize`, `readLink`, `hardLink`.
 - [ ] `SeekOrigin`; `seek`, `position`, `truncate`, `syncAll`, `syncData`.
 - [ ] `appendFile`, `readTextFile`, `writeTextFile`, `createTempDir`.
+  Use admitted `tempfile::Builder` for exclusive temporary creation; validate a
+  filename-only prefix and path conversion before transferring cleanup ownership.
 - [ ] Remove arbitrary ordinary file-size ceilings through the B00 migration;
   retain explicit optional `maxBytes`/`maxEntries` controls and exact-bound tests.
 
@@ -138,14 +173,18 @@ Backend: std for binary/hex/UTF-16; `base64` for base64. Depends on B00.
 
 - [ ] `std:bytes.toHex/fromHex`, `toBase64/fromBase64`,
   `toBase64Url/fromBase64Url`, explicit `toUtf8Lossy`, `fromUtf16/toUtf16`.
-- [ ] `concat`, `copyInto`, `equals`, `compare`, `indexOf`.
+- [ ] `concat`, `copyInto`, in-place `copyWithin`, `equals`, `compare`, `indexOf`.
 - [ ] `readInt/writeInt` for widths 1/2/4/8; `readUint/writeUint` for widths
   1/2/4; `readFloat32/writeFloat32`, `readFloat64/writeFloat64`.
 - [ ] Explicit offsets and byte order; reject unsupported widths/unrepresentable
-  values before mutation. Full-u64 values await a separately accepted exact type.
+  integer values before mutation. Float32 writes use Rust f64→f32 rounding,
+  including nonfinite values, rather than the existing exact-conversion helper.
+  Full-u64 values await a separately accepted exact type.
 
 Contract: readable Bytes/views for observers, writable Bytes/mutable views for
-mutators; overlap-safe copy. Canonical padded base64 and unpadded base64url output;
+mutators. `copyInto` respects distinct-owner loans; same-owner overlap uses one
+exclusive `copyWithin` receiver and Rust slice copy_within, without a hidden
+temporary or relaxed alias checks. Canonical padded base64 and unpadded base64url output;
 strict input alphabet/padding/trailing-bit checks. Hex output lowercase. UTF-16
 endianness is explicit; malformed pairs/odd bytes error, without BOM guessing.
 Existing strict UTF-8 stays strict; lossy conversion is separately named.
@@ -736,6 +775,8 @@ choices/candidates, not claims of admitted compatible versions or new pins.
   [percent-encoding](https://docs.rs/percent-encoding/latest/percent_encoding/),
   [regex](https://docs.rs/regex/latest/regex/),
   [hostname](https://docs.rs/hostname/latest/hostname/).
+- [tempfile Builder](https://docs.rs/tempfile/latest/tempfile/struct.Builder.html)
+  and [TempDir](https://docs.rs/tempfile/latest/tempfile/struct.TempDir.html).
 - [flate2](https://docs.rs/flate2/latest/flate2/),
   [ICU4X/components](https://docs.rs/icu/latest/icu/),
   [CancellationToken](https://docs.rs/tokio-util/latest/tokio_util/sync/struct.CancellationToken.html).

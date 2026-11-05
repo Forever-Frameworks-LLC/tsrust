@@ -15,7 +15,7 @@ this note. Inspect current source and `git status` before acting.
 
 Owner-requested v0.2.0 planning, 2026-11-04: concrete API/checklist work is now
 written in [stdlib-0.2.0](plans/stdlib-0.2.0.md). It has19implementation bundles,
-shared contract/package foundations and release integration (B00–B20), with140
+shared contract/package foundations and release integration (B00–B20), with144
 unchecked implementation/acceptance items. Three read-only gpt-6.1-sol agents
 audited actual host/core/runtime surfaces and reviewed the finished proposal;
 this primary agent is the only writer here. Named APIs, ordinary Rust/backend
@@ -37,7 +37,7 @@ Package versions/MSRV/features still need admission; no new package/API/version
 was implemented or accepted. The owner asked for a plan, not v0.2 publication.
 Historical stdlib/parallel plans link to the new checklist and mark obsolete
 targets/archive/handoff instructions superseded. Structure/link checks pass:
-21unique bundle IDs,140unchecked items,3new local links. Whole-project formatter
+21unique bundle IDs,140unchecked items at3aadefeb,3new local links. Whole-project formatter
 passes4.156s/200,560KiB,0files/snippets/fingerprints changed; git diff --check
 passes. No product tests or benchmarks were rerun for this documentation-only
 section. Keep it local while PR#15's exact e3fea936 CI runs; do not push a plan
@@ -65,6 +65,19 @@ use the authorized owner-review bypass if automatic squash remains review-blocke
 after CI passes, and observe PR#14's new release run plus publisher/docs to the
 actual final state. Do not dispatch/retime/rebuild merely because observation
 takes time or the old release run is now terminal.
+
+Read-only first-wave B00 preparation has begun while release monitoring continues:
+three existing Sol6.1 agents returned concrete B01 file, B02 codec/binary and B04
+URL contracts, native integration hooks, ownership witnesses and package-admission
+notes. No worker edited files or ran builds/tests. The main plan now records
+native literal/alias metadata, paired byte-view alternatives and computed URL
+getter/loan lowering prerequisites; exact FileTime avoids a calendar dependency;
+tempfile is a candidate for exclusive directory creation; in-place copyWithin
+avoids an illegal mutable/read-only alias in cross-buffer copyInto. URL2.5.8
+upstream issues1174/1163/1164 require bounded reproduction/admission controls;
+they are reports, not locally reproduced failures. Base640.23.1 SIMD/default
+feature selection and full dependency/advisory/platform acceptance remain open.
+No new API/package is accepted and no v0.2 source entered the release PR.
 
 Active owner direction: optimize toward "making Rust as easy to write as
 TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generated
