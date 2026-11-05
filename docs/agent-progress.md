@@ -13,6 +13,31 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**Resume here — source a8d4c300, receiver repair validation LIVE:** root is the
+sole canonical writer; all worker heavy/formatter leases are released. Source
+4e87d08f records exact-mode receiver caching plus observation-aware storage
+dispatch; a8d4c300 extends its phase-isolated4096-chain control to BOTH owned-union
+and ordinary-string returns. No skipped cache invariant, duplicate evaluation,
+borrow-to-owner conversion or arbitrary recursion cap. New no-run session92195
+is confirmed LIVE, original sole target/jobs1/incremental0/lockedoffline under
+5GB/1800s watchdog. It includes both packages/bins/libs plus all failed/unrun
+integration targets; JSON /tmp/tsrust-combined-receiver-artifacts.jsonl. Poll that
+same handle; do not restart on observation timeout. Never execute nested-Cargo
+test bodies while outer Cargo still runs.
+
+After terminal success: direct serial watchdog command
+`python3 /tmp/tsrust-combined-repair-gates.py --receiver-unit` runs11expression-work
+tests (including both4096-chain controls), then the same driver with
+`--start 11` resumes failed String positive and all unrun FS/URL/editor/export
+gates. Driver merges the three exact Cargo-JSON artifact streams by target and
+checks nonzero exact test counts; normal CLI/LSP identities print separately.
+Passed18-test prefix stays in /tmp/tsrust-combined-repair-gates.json, receiver
+controls write a separate temporary receiver report. Run `--dev` only under the
+descendant-aware /tmp/tsrust-artifacts-watch.py, then75untimed new-FS workload/
+engine/case semantic controls using host's prepared driver. No new throughput
+measurements/DB ingestion yet. Preserve all earlier compatible passes; repair
+affected failures and resume unrun groups. Full B00–B20 goal remains active.
+
 **Current combined repair candidate — 2026-11-05:** root3a9ef5c9 checkpoints the
 native callable identity repair and passed/pending evidence below. Root8a23d39f
 integrates hostf4f16270 (including6f/341 fixture fixes,397 graph names, shared exact
