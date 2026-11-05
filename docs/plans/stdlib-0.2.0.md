@@ -299,6 +299,14 @@ Backend: existing Tokio with needed fs/io-util/io-std features. B01/B02/B06.
   `readLineStdin` using Rust std blocking semantics. Do not expose an async stdin
   Task until portable interruptible/settlement behavior is proven.
 - [ ] `read`, `readExact`, `readAll`, `write`, `writeAll`, `flush`, `copy`.
+- [ ] Freeze and implement writable-destination Reader reads, concretely
+  `readInto(reader: Mutable<Reader>, destination: Mutable<Bytes | ByteViewMut>):
+  Task<Result<int, IoError>>` or the equivalent documented read overload. Return
+  bytes written, observe only that range, and specify EOF versus a zero-length
+  destination. Reuse caller-owned storage without per-read allocation. Keep both
+  the reader and destination exclusively borrowed through actual I/O settlement;
+  cancellation/deadline completion must not release a pending loan early,
+  including blocking-backed file reads. Reject readonly or aliased destinations.
 - [ ] `lines`, `readLine`; UTF-8 split across chunks, LF/CRLF and unterminated
   final-line behavior specified. EOF is distinct from an empty line.
 - [ ] Consuming `close`/writer shutdown; report fallible flush/finish errors.
@@ -323,6 +331,16 @@ flush failure, cancellation, file→HTTP and HTTP→file; controlled blocking-op
 settlement and a process-isolated idle-stdin watchdog witness. Performance: fixed-payload
 copy and line processing with chunk boundaries; allocations and peak retained
 memory alongside throughput against direct Tokio and Node streams.
+
+B01 allocation signal: the owned-read-contract handwritten seek prototype used
+1,024 fresh 64-byte Vec buffers plus one observation Vec, with eight observation
+reallocations and 16 KiB of retained rows. Those samples remain labeled as that
+prototype, rather than the idiomatic Rust floor. Before actual timing, the public
+handwritten reference uses one reusable stack buffer and preallocated observation
+storage; Node likewise reuses one Buffer and reserves its result array. B01's
+owned `read` remains unchanged, so generated allocation gaps remain observable.
+B05's writable-destination contract must address this reuse case; no B01 API was
+expanded and no generated allocation improvement is claimed from the prototype.
 
 ### B06 — Task, timer and channel ergonomics
 

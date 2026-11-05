@@ -6,10 +6,10 @@ impl<T> Array<T>{fn iter(&self)->std::slice::Iter<'_,T>{self.0.iter()}}
 struct NumericArray<T>([T;2]);
 impl<T> NumericArray<T>{fn iter(&self)->std::slice::Iter<'_,T>{self.0.iter()}}
 fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i64>> {
- let (n,seed,input)=(value0,value1,value2);let mut file=std::fs::File::open(input.as_ref()).unwrap();let mut rows=Vec::new();
+ let (n,seed,input)=(value0,value1,value2);let mut file=std::fs::File::open(input.as_ref()).unwrap();let mut rows=Vec::with_capacity(usize::try_from(n).unwrap());let mut bytes=[0u8;64];
  for i in 0..n {
   let offset=if i%8==0 {4096} else {(i*97+seed)%4096};file.seek(SeekFrom::Start(u64::try_from(offset).unwrap())).unwrap();
-  let mut bytes=vec![0;64];let count=loop {match file.read(&mut bytes){Err(error) if error.kind()==std::io::ErrorKind::Interrupted=>continue,value=>break value.unwrap()}};
+  let count=loop {match file.read(&mut bytes){Err(error) if error.kind()==std::io::ErrorKind::Interrupted=>continue,value=>break value.unwrap()}};
   let observed=i64::try_from(file.stream_position().unwrap()).unwrap();let sum=bytes[..count].iter().map(|byte|i64::from(*byte)).sum();rows.push(NumericArray([observed,sum]));
  }
  Array(rows)

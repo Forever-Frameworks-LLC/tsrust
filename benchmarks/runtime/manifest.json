@@ -25037,10 +25037,10 @@
       "nativeSourceAccepted": false,
       "implementationAccepted": false,
       "measured": false,
-      "notes": "v0.2 plain-file cursor workload. Native and handwritten Rust use actual seek/read/stream_position. Node tracks the program-owned logical cursor and uses positioned readSync; it does not expose an fd seek/query API. The same-stack Rust control is primary for facade cost. Existing five semantic cases and timing/sample/process protocols retained. No durability synchronization. Acceptance and timing pending.",
+      "notes": "v0.2 plain-file cursor workload. Native and handwritten Rust use actual seek/read/stream_position. Handwritten Rust reuses a stack [u8;64] and reserves observation storage. Node allocates one reusable Buffer and reserves its observation array, tracks the program-owned logical cursor, and uses positioned readSync; it does not expose an fd seek/query API. Tsrust owned read buffers remain unchanged so their allocation gap is visible. The same-stack Rust control is primary for facade cost. Existing five semantic cases and timing/sample/process protocols retained. No durability synchronization. Acceptance and timing pending.",
       "specification": "Open the 4096-byte hexadecimal fixture once. For iteration i use offset 4096 when i%8==0, otherwise (i*97+seed)%4096. Read at most 64 bytes, query/track final position, observe every returned byte, and return [position,sum]. Close once after the loop. Node positioned reads leave the underlying fd cursor unchanged; its logical cursor has the same observable program result.",
       "sourceSha256": "4bf3b2a244b0f2e6bc713279c11736df77ca4f33418038ccf749099c7bb304be",
-      "counterpartSha256": "2e97cd0fff0a25a3e465d7e868f8f06d0d10933c726225477542621fe1bf7250"
+      "counterpartSha256": "5b2c37f08d60191d9d34da2ce303330c1549db43aab8b9b02ed068981a790b81"
     },
     {
       "id": "native_file_sync_storage",

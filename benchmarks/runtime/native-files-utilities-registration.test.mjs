@@ -25,6 +25,10 @@ for(const id of ['native_directory_metadata','native_file_copy_rename_remove','n
   const fingerprint=kind==='native'?'sourceSha256':'counterpartSha256';
   assert.throws(()=>assertNativeFilesSource(changed,{...row,[fingerprint]:createHash('sha256').update(changed).digest('hex')},kind));
  }
+ if(id==='native_file_seek_read'){
+  const rust=read('./parity/'+id+'.rs');assert.ok(rust.includes('Vec::with_capacity(usize::try_from(n).unwrap())'));
+  const buffer=rust.indexOf('let mut bytes=[0u8;64]'),loop=rust.indexOf('for i in 0..n');assert.ok(buffer>=0&&buffer<loop);assert.ok(rust.includes('bytes[..count]'));assert.ok(!rust.includes('vec![0;64]'));
+ }
  const fixture=createNativeFileFixture(row);
  try{
   if(id==='native_directory_metadata'){
