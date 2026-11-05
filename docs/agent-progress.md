@@ -55,16 +55,34 @@ approval is needed. The owner's current instruction explicitly authorizes the
 implementation, but not v0.2.0 publication. Keep source work isolated from the
 pending release until its pipeline is resolved.
 
-Intel macOS old Release41930626606 also failed with the exact same missing
-shutdown-response assertion in smoke-toolchain.mjs:30; completed job log
-/tmp/tsrust-v012-intel-package.log. It is not a second undiagnosed runtime defect.
-The existing lifecycle-client repair in PR#15 covers both macOS failures. Linux
-and Windows package jobs passed. PR#15 CI41934141484 is live in Compiler/CLI
-acceptance; no failed step reported. Continue monitoring that exact run, then
-use the authorized owner-review bypass if automatic squash remains review-blocked
-after CI passes, and observe PR#14's new release run plus publisher/docs to the
-actual final state. Do not dispatch/retime/rebuild merely because observation
-takes time or the old release run is now terminal.
+**Release completed and verified, 2026-11-04 (America/New_York).** Repair
+PR#15 merged as7771cec62903e847f41987281f4b301ed1b42825 after exact-head
+CI41934141484 passed. Release41942318885 passed all four platform packages,
+editor and gate; lifecycle controls and actual packaged smokes passed on each.
+Publisher41944583887 passed and merged promotion PR#14. Main and tag v0.1.2
+are8efaaee21bcc40d0938214bc75299b592ce91db9, tree38d6c307bc00539c1118a4f229ea75052ffc5dc5.
+Production docs41944660013 passed build/deploy. No open PRs remain; Dependabot
+PRs#10/#11/#12 were closed as superseded by the reviewed pins in this release.
+Their remote branches remain after automatic approval review rejected deletion.
+
+Published release has the four platform archives, extension and SHA256SUMS.
+All five payload checksums match GitHub asset digests. Downloaded macOS ARM64
+archive checksum,2020 safe archive members and all1443 manifest file sizes/hashes
+are verified. Manifest reports CLI0.1.2/LSP0.2.2, release distribution and clean
+source. Its tested synthetic merge a3137cd359e1f23fbf6191f187b729f9553e8ec4 has
+exact main tree and parents, so differs only in merge identity. Actual public
+package CLI/LSP smoke passes11.435s/393,664KiB under5GB/1800s watchdog.
+Live public performance HTML verifies933 comparisons,682 Tsrust wins,621 Rust
+wins,1.74× median and selected17.14×/16.20× example; HTTP follows microbenchmarks.
+No full CI dispatch was made. Preserve the earlier local lib transient limitation
+below; successful ordinary hosted checks do not rewrite that invocation.
+
+The old optimization/release milestone is complete under the owner's large-gap
+stopping rule. Local v0.2 plan/goal/preparation commits3aadefeb/2c93c157/54cf0e2e
+remain outside published source. Next: complete old app goal, register the full
+v0.2 goal, move those documentation commits onto accepted main on a new codex/
+branch, then begin B00 and isolated B01/B02/B04 work. Do not recreate the closed
+release branch remotely or publish v0.2 without fresh approval.
 
 Read-only first-wave B00 preparation has begun while release monitoring continues:
 three existing Sol6.1 agents returned concrete B01 file, B02 codec/binary and B04
