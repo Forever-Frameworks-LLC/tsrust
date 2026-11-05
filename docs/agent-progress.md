@@ -36,6 +36,11 @@ b24f2299. Whole worker formatter passes0/0/0. Its first all-target check caught
 two cfg(test) Linker constructors missing the new used_native field (39.477s/
 1,816,754KiB, exit101). Root explicitly transferred only those two initializer
 hunks to the runtime worker for repair; do not label d7ff as all-target accepted.
+That repair is worker24f838c4; its affected check then identified the same second
+fixture also needs `let mut linker` after visitor methods became mutable
+(55.517s/1,763,090KiB, exit101). The exact mutability line is also transferred and
+applied with the two constructor fields in canonical source. Both failed checks
+remain evidence; no test failure was bypassed.
 Worker retains the heavy lease and reruns affected checks, then direct test
 binaries after --no-run for nested Cargo/cache controls. Actual dev cancellation
 requires a descendant-aware watchdog because dev intentionally creates child
