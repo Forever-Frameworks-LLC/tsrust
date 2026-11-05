@@ -596,8 +596,8 @@ hidden abandoned jobs and throwing evaluation order. No full regressions claimed
 Benchmark references now have
 optional exact regex/Tokio dependencies; task group/channel observations detect
 reordering through a matched ordered fold and independent BigInt oracle. Original
-sample counts remain3×31after8. Generated workload validation and actual timing
-are still pending; no public B06 checklist item is fully accepted yet.
+sample counts remain3×31after8. Generated workload validation and actual timing have since passed below;
+performance-gap review and family/platform acceptance remain pending.
 
 B06 prototype profile (2026-11-05): three processes ×31 samples after8 warmups,
 separate allocation builds, quiet load3.448, watchdog8.434s/424,832KiB. Direct
@@ -625,6 +625,32 @@ CPU work. Async completion adds one64-byte allocation/job; observed CPU medians
 not generated API measurements. Dependencies are unoptimized existing exact
 rlibs; optimized probe code does not make this release-build performance. No
 prototype rows were ingested as accepted API workloads.
+
+B06 generated measurement (2026-11-05, source1c2367cd): all6 workloads passed
+native/handwritten-Rust/Node-after-tsc five-case correctness. Actual execution-only
+run passed294.179s/589,146KiB,3processes×31samples after8warmups, quiet maximum3.878.
+All18 workload/engine groups were ingested;93samples each, exact medians and SQLite
+integrity independently verified. No unchanged control was retimed after ingestion.
+
+| Workload | Iterations | Native ms | Hand Rust ms | Node ms |
+| --- | ---: | ---: | ---: | ---: |
+| task_all_ready | 2000 | 0.845209 | 0.030666 | 0.640917 |
+| task_all_yield | 2000 | 0.959041 | 0.076958 | 26.213084 |
+| async_channel_try | 2000 | 0.103417 | 0.110916 | 0.242875 |
+| async_channel_await | 2000 | 0.335333 | 0.181125 | 0.881125 |
+| cancellation_fanout | 2000 | 1.191500 | 1.215875 | 36.341042 |
+| thread_pool_async | 100 | 1.798625 | 1.777958 | 17.904041 |
+
+Task groups show material costs against the naked Tokio join floor: about27.6×
+ready and12.5×yield. The generated literal path currently boxes each future for
+type erasure, then the generic runtime pins it in another box; group scope/drain
+and owned result storage also differ from the narrower hand control. These are
+source observations, not isolated allocation attribution. Profile safe single-pin
+and stack-pinned literal candidates while preserving arbitrary !Unpin futures,
+borrowed inputs, ordered results, fail-fast drop and exact cancellation/cleanup
+scope behavior before optimizing. Async-channel await is1.85×hand Rust and also
+needs gap review; other3 rows are close to that backend floor. Full family/platform
+acceptance and the measured optimization review remain pending.
 
 ### B07 — Subprocesses
 
