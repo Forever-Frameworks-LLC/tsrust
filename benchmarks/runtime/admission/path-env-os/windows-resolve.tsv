@@ -1,0 +1,23 @@
+# cwd drive-cwd expected cwd-reads drive-reads remaining-input-segments...
+C:\work\project		C:\work\project	1	0
+C:\work\project		C:\work\project	1	0		
+C:\work		D:\right\file	0	0	C:\left	D:\right	file
+C:\work	D:\drive	D:\drive\child\leaf	0	1	C:\left	D:child	leaf
+D:\work		C:\child	1	1	D:\left	C:child
+C:\work		C:\work\leaf	1	1	C:base	..\leaf
+C:\work		C:\rooted\file	0	0	C:\left	\rooted	file
+D:\work		D:\rooted	1	0	relative	\rooted
+C:\work		D:\rooted	0	0	D:relative	\rooted
+C:\work		\\server\share\file	0	0	\\server\share\base	..\file
+C:\work		\\right\share\file	0	0	\\left\share\base	\\right\share\dir	..\file
+C:\work		\\server\share\file	0	0	\\SERVER\Share\old	\\server\share\new	..\file
+C:\work		C:\beta	0	0	C:\alpha		.	..	beta
+@error:Io		C:\file	0	0	C:\file
+@error:Io		@error:Io	1	0	\file
+@error:NotUnicode		@error:NotUnicode	1	0	relative
+@error:Io	C:\drive	C:\drive\relative	0	1	C:relative
+@error:Io		@error:Io	1	1	C:relative
+D:\work	C:\drive	c:\drive\leaf	0	1	c:leaf
+@error:Io		\\sérver\文\file	0	0	\\sérver\文\folder	..\file
+@error:Io	@error:NotUnicode	@error:NotUnicode	0	1	C:child
+@error:Io	@error:NotUnicode	C:\absolute	0	0	C:child	C:\absolute
