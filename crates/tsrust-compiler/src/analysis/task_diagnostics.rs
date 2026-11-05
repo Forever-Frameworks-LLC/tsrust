@@ -76,8 +76,25 @@ impl Tracker<'_> {
         let selected=state.keys().filter(|(root,path)|*root==source.0 && path.starts_with(&source.1)).cloned().collect::<Vec<_>>();
         for place in selected {let tokens=state.remove(&place).unwrap();let mut path=destination.1.clone();path.extend_from_slice(&place.1[source.1.len()..]);state.entry((destination.0,path)).or_default().extend(tokens);}
     }
+    fn evaluate_place(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State){
+        enum Work<'a>{Selection(&'a Expr),Index(&'a Expr),Failure(&'a Expr)}
+        let mut pending=vec![Work::Selection(value)];
+        while let Some(work)=pending.pop(){match work{
+            Work::Selection(value)=>{
+                pending.push(Work::Failure(value));
+                match &value.kind{
+                    ExprKind::Field(base,_)=>pending.push(Work::Selection(base)),
+                    ExprKind::Index(base,index)=>{pending.push(Work::Index(index));pending.push(Work::Selection(base));},
+                    ExprKind::Unary{value,..}|ExprKind::Project{value,..}|ExprKind::TypeAssertion{value,..}=>pending.push(Work::Selection(value)),
+                    _=>{},
+                }
+            },
+            Work::Index(index)=>{let tokens=self.value(function,index,state,false);self.warn(tokens,index.span);},
+            Work::Failure(value)=>if value.own_may_fail{self.failures.push(state.clone());},
+        }}
+    }
     fn store(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,destination:Place) {
-        if let Some(source)=place(value){Self::transfer(state,&source,&destination);return;}
+        if let Some(source)=place(value){self.evaluate_place(function,value,state);Self::transfer(state,&source,&destination);return;}
         match &value.kind {
             ExprKind::Record(fields)=>for(field,value)in fields{let mut child=destination.clone();child.1.push(field.text.clone());self.store(function,value,state,child);},
             ExprKind::Array(values)=>for(index,value)in values.iter().enumerate(){let mut child=destination.clone();child.1.push(index.to_string());self.store(function,value,state,child);},
@@ -90,6 +107,7 @@ impl Tracker<'_> {
     }
     fn replace(&mut self,function:&CheckedFunction,target:&Expr,value:&Expr,state:&mut State) {
         let Some(destination)=place(target)else{let _=self.value(function,value,state,true);return;};
+        self.evaluate_place(function,target,state);
         let temporary=(usize::MAX,Vec::new());self.store(function,value,state,temporary.clone());
         let old=Self::take(state,&destination);self.warn(old,target.span);Self::transfer(state,&temporary,&destination);
     }
@@ -119,12 +137,12 @@ impl Tracker<'_> {
     }
     fn value(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,consume:bool)->Tokens {
         let tokens=self.value_inner(function,value,state,consume);
-        if value.own_may_fail {self.failures.push(state.clone());}
+        if value.own_may_fail && place(value).is_none() {self.failures.push(state.clone());}
         tokens
     }
     fn value_inner(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,consume:bool)->Tokens {
         if let ExprKind::Unary{op:UnaryOp::Void|UnaryOp::Typeof,value,..}=&value.kind {let _=self.value(function,value,state,false);return Tokens::new();}
-        if let Some(selected)=place(value) {return if consume {Self::take(state,&selected)}else{Tokens::new()};}
+        if let Some(selected)=place(value) {self.evaluate_place(function,value,state);return if consume {Self::take(state,&selected)}else{Tokens::new()};}
         match &value.kind {
             ExprKind::Field(base,member)=>self.projection(function,value,base,None,member.clone(),state,consume),
             ExprKind::Index(base,index)=>{
@@ -145,6 +163,7 @@ impl Tracker<'_> {
             }
             ExprKind::Call(callee,args)=>{
                 if let ExprKind::Field(base,method)=&callee.kind && let Some(owner)=place(base) {
+                    if matches!(method.as_str(),"pop"|"shift"|"push"|"unshift"){self.evaluate_place(function,base,state);}
                     if matches!(method.as_str(),"pop"|"shift") {
                         let selected=state.keys().filter(|(root,path)|*root==owner.0 && path.starts_with(&owner.1) && path.len()>owner.1.len()).filter_map(|place|place.1[owner.1.len()].parse::<usize>().ok().map(|index|(index,place.clone())));
                         let selected=if method=="pop"{selected.max_by_key(|(index,_)|*index)}else{selected.min_by_key(|(index,_)|*index)};
@@ -169,7 +188,7 @@ impl Tracker<'_> {
                 }
                 let awaited=matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..});
                 let consumes=awaited || callee.ty.is_some_and(|ty|match ty {Type::Closure(id)=>self.program.closures[id].invocation==Mode::Consume,Type::Callback(id)=>self.program.callback_contracts[id].kind.is_once(),_=>false});
-                let mut tokens=if consumes {self.value(function,callee,state,true)}else{Tokens::new()};
+                let mut tokens=self.value(function,callee,state,consumes);
                 for(index,arg)in args.iter().enumerate() {
                     let access=match value.target {
                         Some(CallTarget::Function(id))=>self.program.functions[id].bindings.get(index).map(|binding|binding.mode),

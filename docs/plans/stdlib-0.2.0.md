@@ -865,6 +865,38 @@ format/compare repeatedly, allocation counts, binary size and cold/build memory.
 Node ICU and Rust ICU versions/locales are recorded; differing data is not a
 compiler defect or permission to combine incomparable timing rows.
 
+B13 admission/profile status (2026-11-05): isolated exact ICU4X locale/collator/
+decimal/segmenter closure passed offline optimized build26.933s/319,104KiB.
+Initial32record correctness classification has31 matching Node contracts and one
+explicit untimed backend difference: en-u-nu-arab retains English separators while
+using Arabic digits, as asserted by the selected ICU4X upstream test. Both raw
+outputs are retained; no normalization or comparable timing uses that locale.
+Node24.11.1 uses ICU77.1/CLDR47; selected ICU4X compiled data has its own epoch.
+Profile78912 passed7.752s/318,880KiB,99rows/process,3×31after8warmups with separate
+allocation builds and quiet guard. These are direct Rust prototypes, not public
+API or Node throughput measurements; nothing was ingested as generated performance.
+
+Profile supports reusable Collator (roughly5–7× construct+compare cost reduction),
+owned grapheme byte ranges instead of substring copies, and an initial exact
+normalized BigDecimal-to-fixed_decimal text bridge. The bridge costs about2.9–3.4×
+the fixed-input formatting floor, with4/6/5allocations versus1 for the sampled
+English/German/Hindi cases; do not hide the bridge cost or add an unmeasured cache.
+All measured allocation rows retained0bytes. The2,144,904byte prototype executable
+is a combined size, not incremental compiled-data overhead.
+
+Expanded profile1470 passed9.315s/274,640KiB:43 correctness records (36 matching,
+one explicit fallback difference,6 backend limit controls),99rows/process and
+3×31samples after8warmups; quiet max2.145. Same-source optimized footprint controls
+measured baseline609,800bytes; incremental locale167,168,collator1,296,448,
+decimal87,456,grapheme17,344,all1,494,368bytes. These are reachable service code
+plus compiled data, not pure data sizes or additive costs. All checksum guards pass.
+Explicit fractionDigits requests fixed displayed
+scale plus half-even rounding, not merely a maximum; absent preserves the normalized
+value. Backend checked range is0..32768 (i16 magnitude0..-32768), not an arbitrary
+28digit formatting cap derived from Decimal input precision. Large padding edges
+and rejection without mutation passed. Public option/type signatures and generated
+compiler/runtime/editor/export implementation remain pending.
+
 ### B14 — Small collection, numeric and date completion
 
 Backend: existing Rust containers/numeric/date implementations. B00.

@@ -46,3 +46,26 @@ fn nested_awaited_group_members_and_indices_evaluate_their_responsibilities(){
  }
  let source=format!("{prefix}async function main():Task<void>{{const jobs:Job<int,undefined>[]=[];jobs.push(value(3).start());console.log(fail(),(await all(jobs)).length);}}");assert_eq!(checked(&source).unwrap_err(),"unsettled-job");
 }
+
+#[test]
+fn named_place_indices_evaluate_awaits_mutations_and_failure_order_once(){
+ let prefix="import {Job} from 'std:futures';async function index():Task<int>{return 0;}function fail():int{throw 'index failed';}";
+ for body in [
+  "const data:int[]=[7];const position=index();console.log(data[await position]);",
+  "const data:int[]=[7];const position=index().start();console.log(data[await position]);",
+  "const data:int[]=[7];const position=index().start();const selected=data[await position];console.log(selected);",
+  "const data:int[]=[7];const position=index().start();data[await position]=8;",
+  "const holder={rows:[[7]]};const position=index().start();console.log(holder.rows[await position][0]);",
+  "const data:string[]=['seven'];const position=index().start();console.log(data[await position].toUpperCase());",
+  "const data:int[]=[7];const position=index().start();console.log(data[(await position,fail())]);",
+ ]{let source=format!("{prefix}async function main():Task<void>{{{body}}}");assert!(checked(&source).unwrap().is_empty(),"{body}");}
+ for body in [
+  "const data:int[]=[7];const jobs:Job<int,undefined>[]=[];console.log(data[(jobs.push(index().start()),0)]);",
+  "const data:string[]=['seven'];const jobs:Job<int,undefined>[]=[];console.log(data[(jobs.push(index().start()),0)].toUpperCase());",
+  "const data:int[]=[7];const jobs:Job<int,undefined>[]=[];const selected=data[(jobs.push(index().start()),0)];console.log(selected);",
+  "const data:int[]=[7];const jobs:Job<int,undefined>[]=[];data[(jobs.push(index().start()),0)]=8;",
+  "const data:int[][]=[[]];const jobs:Job<int,undefined>[]=[];data[(jobs.push(index().start()),0)].push(1);",
+  "const data:int[]=[7];const position=index().start();console.log(data[(fail(),await position)]);",
+  "const holder={rows:[[7]]};const position=index().start();console.log(holder.rows[fail()][await position]);",
+ ]{let source=format!("{prefix}async function main():Task<void>{{{body}}}");assert_eq!(checked(&source).unwrap_err(),"unsettled-job","{body}");}
+}

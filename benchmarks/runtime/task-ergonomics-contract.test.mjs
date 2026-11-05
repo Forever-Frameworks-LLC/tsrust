@@ -10,6 +10,8 @@ test('async ABI fails closed and runtime startup surrounds the sample loop',()=>
  const row=manifest.workloads.find(row=>row.id==='task_all_ready');const source=fs.readFileSync(new URL(row.source,import.meta.url),'utf8');
  const emitted='fn function0(value0: i64, value1: i64) -> Closure0 { todo!() }\nimpl Closure0 {\n async fn call(self) -> Result<i64,TsrClosureError0> { todo!() }\n}';
  const abi=taskErgonomicsABI(emitted,row,source);assert.equal(abi.runtimeOnce,true);assert.match(abi.call,/match function0/);
+ for(const output of ['Result<i64,TsrClosureError5<Record2,Record5>>','Result<i64,TsrClosureError1<Record0,Record3,Record8>>'])assert.match(taskErgonomicsABI(emitted.replace('Result<i64,TsrClosureError0>',output),row,source).call,/match function0/);
+ for(const output of ['Result<f64,TsrClosureError5<Record2>>','Result<i64,TsrClosureError5<Record2,>>','Result<i64,OtherError>'])assert.throws(()=>taskErgonomicsABI(emitted.replace('Result<i64,TsrClosureError0>',output),row,source));
  const driver=taskErgonomicsRustDriver(row,emitted,source);assert.equal(driver.match(/block_on\(/g).length,1);assert.ok(driver.indexOf('block_on(')<driver.indexOf('for _ in 0..samples'));assert.match(driver,/unexpected checked async benchmark failure/);
  assert.throws(()=>taskErgonomicsABI(emitted.replace('value1: i64','value1: f64'),row,source));assert.throws(()=>taskErgonomicsABI(emitted.replace('Result<i64,TsrClosureError0>','f64'),row,source));
 });

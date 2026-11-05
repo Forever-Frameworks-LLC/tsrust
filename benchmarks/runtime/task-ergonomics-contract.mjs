@@ -54,7 +54,7 @@ export function taskErgonomicsABI(emitted,w,source,{reference=false}={}){
  if(creators.length!==1||creators[0][1]!=='value0: i64, value1: i64')throw Error('Task workload creator ABI changed');
  const closure=creators[0][2];const start=emitted.indexOf(`impl ${closure} {`);if(start<0)throw Error('Concrete task implementation missing');
  const method=/async fn call\([^\n]*\) -> ([^\n]+) \{/.exec(emitted.slice(start));if(!method)throw Error('Task poll ABI changed');
- const output=method[1];if(output!=='i64'&&!/^Result<i64,\s*TsrClosureError\d+>$/.test(output))throw Error(`Task completion ABI changed: ${output}`);
+ const output=method[1];if(output!=='i64'&&!/^Result<i64,\s*TsrClosureError\d+(?:<Record\d+(?:,\s*Record\d+)*>)?>$/.test(output))throw Error(`Task completion ABI changed: ${output}`);
  const poll='function0(n,seed).call().await';const call=output==='i64'?poll:`match ${poll}{Ok(value)=>value,Err(_)=>{eprintln!("unexpected checked async benchmark failure");std::process::exit(1)}}`;
  return {functionName:'function0',closure,result:'i64',output,call,runtimeOnce:true};
 }
