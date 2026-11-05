@@ -35,3 +35,4 @@ pub(crate) mod date;
 pub(crate) mod uuid;
 pub(crate) mod crypto;
 pub(crate) mod signals;
+pub(crate) mod url;

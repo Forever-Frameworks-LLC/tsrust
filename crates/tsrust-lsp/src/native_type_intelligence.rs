@@ -154,6 +154,8 @@ impl SourceIndex {
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
 
+            if declaration.module=="std:url" {return if declaration.id==tsrust_compiler::native_signatures::NativeTypeId::Url{Vec::new()}else{builtins_for(declaration.name)};}
+
             if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}
             if declaration.module == "std:sqlite" {return builtins_for(&format!("Sqlite{}",declaration.name));}
             if matches!(declaration.module,"std:http"|"std:ui-runtime") {
@@ -275,6 +277,16 @@ impl SourceIndex {
             if !existing.docs.is_empty() { replacement.docs = format!("{}\n\n{}", existing.docs, replacement.docs); }
             *existing = replacement;
         } else { self.symbols.push(symbol); }
+        if declaration.id==tsrust_compiler::native_signatures::NativeTypeId::Url {
+            for member in tsrust_compiler::native_bindings::url_property_names() {
+                let (getter,setter)=tsrust_compiler::native_bindings::url_property(declaration.id,member).unwrap();
+                let ty=getter.result.signature().render(|id|Some(self.native_type_spelling(id).into())).expect("URL property signature").into_owned();
+                let write=setter.map(|setter|setter.parameters[1].ty.signature().render(|id|Some(self.native_type_spelling(id).into())).expect("URL write signature").into_owned());
+                let signature=format!("(property) {local}.{member}: {ty}{}",write.map_or_else(||" (read-only)".into(),|input|format!("; assign {input}; throws UrlError")));
+                let docs=builtins_for("Url").into_iter().find(|entry|entry["name"]==member).and_then(|entry|entry["documentation"].as_str().map(str::to_owned)).unwrap_or_default();
+                self.symbols.push(Symbol{name:member.into(),kind:8,span,extent:span,scope:0,ty,signature,docs,parameters:Vec::new(),owner:Some(local.into())});
+            }
+        }
         for field in declaration.fields {
             let mut ty = render(&field.signature);
             if field.optional { ty.push_str(" | undefined"); }
@@ -285,7 +297,7 @@ impl SourceIndex {
                 parameters: Vec::new(), owner: Some(local.into()),
             });
         }
-        if matches!(declaration.module,"std:sqlite"|"std:sql") {
+        if matches!(declaration.module,"std:sqlite"|"std:sql"|"std:url") {
             let mut identities=Vec::new();
             for binding in tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module==declaration.module) {
                 for ty in binding.parameters.iter().map(|parameter|parameter.ty).chain(std::iter::once(binding.result)) {

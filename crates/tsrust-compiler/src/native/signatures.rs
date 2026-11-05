@@ -4,6 +4,7 @@
 /// not publish source exports: module loading must resolve registered declarations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
+    Url, SearchParams, UrlError, QueryEntry,
     UiSignal,
     UiComputed,
     UiTextBinding,

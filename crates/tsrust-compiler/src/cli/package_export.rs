@@ -24,6 +24,7 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
     "version = 4\n\n[[package]]\nname = \"tsrust-export\"\nversion = \"0.1.0\"\n".into())
   };
   if rust.contains("mod tsrust_native_threads {") || rust.contains("mod tsr_rust") { manifest = manifest.replace("default = []", "default = [\"threads\"]"); }
+  if rust.contains("mod tsrust_native_url {"){manifest=manifest.replace("default = [", "default = [\"url\", ");}
   if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = []", "default = [\"http\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"http\"]",
                 );}
   if rust.contains("mod tsrust_native_futures {") {manifest=manifest.replace("default = []", "default = [\"async\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"async\"]",
