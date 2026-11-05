@@ -9259,6 +9259,11 @@ self.names_materialized_type(element.with_depth(0).ty())
                 if let Some(ty) = alternative {
                     return Ok(ArgumentContract { ty, mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false });
                 }
+                // Regex observers borrow literal-string alternatives without widening or copying.
+                if binding.module=="std:regex" && parameter.access==Mode::Read && parameter.ty.signature()==crate::native_signatures::Signature::String
+                    && let Some(ty)=self.expression_type_hint(context,&args[position]).filter(|ty|self.is_string_observation(*ty)) {
+                    return Ok(ArgumentContract{ty,mode:Mode::Read,omission:crate::ParameterOmission::Required,rest:false});
+                }
                 self.native_argument_contract(parameter,args[position].span)
             }).collect::<Result<Vec<_>, Diagnostic>>()?;
             self.check_call_arguments(context, args, &contracts, loans)?;

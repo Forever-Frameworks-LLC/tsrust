@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -34,6 +34,12 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"Regex",parameter:"x: ReadOnly<Regex>"},
+Receiver {ty:"RegexMatch",parameter:"x: ReadOnly<RegexMatch>"},
+Receiver {ty:"RegexCaptures",parameter:"x: ReadOnly<RegexCaptures>"},
+Receiver {ty:"RegexOptions",parameter:"x: ReadOnly<RegexOptions>"},
+Receiver {ty:"RegexError",parameter:"x: ReadOnly<RegexError>"},
+
 Receiver {ty:"PathParts",parameter:"x: ReadOnly<PathParts>"},
 Receiver {ty:"PathFormatOptions",parameter:"x: ReadOnly<PathFormatOptions>"},
 Receiver {ty:"PathError",parameter:"x: ReadOnly<PathError>"},
@@ -378,6 +384,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         }
         let mut differences = fields.difference(&offered).map(|name| (name.clone(), "the checker accepts this field; completion does not offer it".to_owned())).collect::<Vec<_>>();
         differences.extend(offered.difference(&fields).map(|name| (name.clone(), "completion offers this field; the checker rejects it".to_owned())));
+        if receiver.ty=="Regex" {for required in ["isMatch","find","findAll","captures","capturesAll","replace","replaceAll","split"] {assert!(methods.contains(required),"Regex method {required} missing; empty agreement is not acceptance");}}
         if matches!(receiver.ty, "void[]" | "void[][]" | "[void[]][]") {
             for required in ["length", "slice", "map", "keys"] { assert!(offered.contains(required) || methods.contains(required), "{}: required array member {required} missing; empty agreement is not acceptance", receiver.ty); }
         }

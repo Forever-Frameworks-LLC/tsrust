@@ -64,7 +64,7 @@ static URL_ERROR: Declaration = Declaration {id:NativeTypeId::UrlError,module:"s
 static QUERY_ENTRY: Declaration = Declaration {id:NativeTypeId::QueryEntry,module:"std:url",name:"QueryEntry",fields:&[
  Field{name:"name",signature:Signature::String,optional:false},Field{name:"value",signature:Signature::String,optional:false},
 ],..SPAWN_ERROR};
-static REGEX: Declaration = Declaration {id:NativeTypeId::Regex,module:"std:regex",name:"Regex",thread_transfer:true,..THREAD};
+static REGEX: Declaration = Declaration {id:NativeTypeId::Regex,module:"std:regex",name:"Regex",type_parameters:&[],thread_transfer:true,..THREAD};
 static REGEX_MATCH: Declaration = Declaration {id:NativeTypeId::RegexMatch,module:"std:regex",name:"RegexMatch",fields:&[
  Field{name:"start",signature:Signature::Int,optional:false},Field{name:"end",signature:Signature::Int,optional:false},
 ],..SPAWN_ERROR};

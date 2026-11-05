@@ -16,8 +16,11 @@ import {strictEqual} from 'std:testing';
 function snapshot():RegexCaptures[]{const expression=unwrap(create('(é)(x)?'));return expression.capturesAll('aé éx');}
 function options(enabled:boolean):RegexOptions|undefined{if(enabled){return {dfaSizeLimit:0};}return undefined;}
 function read(value:ReadOnly<Regex>):boolean{return value.isMatch('é');}
+function choose(flag:boolean):'a'|'b'{if(flag){return 'a';}return 'b';}
 function main(){
  const saved=create;const expression=unwrap(saved('(é)(x)?',options(true)));
+ const letters=unwrap(create('b'));const literal:'abc'='abc';strictEqual(literal.search(letters),1);
+ strictEqual(choose(false).search(letters),0);strictEqual(letters.isMatch(choose(false)),true);strictEqual(escape(choose(false)),'b');const quote=escape;strictEqual(quote(choose(false)),'b');
  strictEqual(read(expression),true);strictEqual(expression.isMatch('no'),false);
  const found=expression.find('aé');if(found!==undefined){strictEqual(found.start,1);strictEqual(found.end,3);}else{throw 'missing';}
  strictEqual(expression.find('no'),undefined);
@@ -48,6 +51,8 @@ fn regex_catalog_examples_execute_at_o0_and_o3(){
 #[test]
 fn regex_feature_selection_follows_used_owners_and_calls(){
  let directory=support::TempDirectory::new();
+ for name in ["compile","escape","__isMatch","__find","__captures","__split","__stringMatch"] {tsrust_compiler::native_bindings::lookup("std:regex",name).unwrap();}
+ assert!(tsrust_compiler::native_types::declaration(tsrust_compiler::native_signatures::NativeTypeId::Regex).type_parameters.is_empty());
  for(source,used)in[
  ("import {compile,Regex} from 'std:regex';function main(){console.log('plain');}",false),
  ("import {RegexMatch} from 'std:regex';function main(){const value:RegexMatch={start:0,end:0};console.log(value.start);}",false),

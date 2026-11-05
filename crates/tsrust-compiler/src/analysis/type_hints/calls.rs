@@ -309,7 +309,7 @@ mod tests{
 
 pub(super) fn unwrapped(analyzer:&Analyzer,ty:Type)->Option<Type>{let Type::Union(id)=ty else{return None};let [ok,_]=crate::result_identity::variants(&analyzer.program.records,&analyzer.unions.members(id))?;Some(analyzer.program.records[ok].fields.first().and_then(|field|field.ty).unwrap_or(Type::Void))}
 pub(super) fn http_result(analyzer:&Analyzer,receiver:Option<Type>,member:&str,awaited:bool)->Option<Type>{
- if !awaited && receiver==Some(Type::String) && let Some(binding)=crate::stdlib::regex::string_method(member){return Some(native_type(binding.result,&analyzer.program.records));}
+ if !awaited && receiver.is_some_and(|ty|analyzer.is_string_observation(ty)) && let Some(binding)=crate::stdlib::regex::string_method(member){return Some(native_type(binding.result,&analyzer.program.records));}
  let Type::Record(id)=receiver? else{return None};let identity=analyzer.program.records[id].native_type;
  if !awaited && let Some(binding)=crate::stdlib::regex::method(identity,member){return Some(native_type(binding.result,&analyzer.program.records));}
  if !awaited && let Some(binding)=crate::stdlib::url::method(identity,member){return Some(native_type(binding.result,&analyzer.program.records));}

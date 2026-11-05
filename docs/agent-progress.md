@@ -14,8 +14,8 @@ this note. Inspect current source and `git status` before acting.
 ## Current state — 2026-10-30 (optimization loop; read first)
 
 **Current continuation — 2026-11-05:** canonical branch remains
-`codex/stdlib-0.2.0`, source checkpoint `1379a46e`. B12 source checkpoint1379a46e is prepared, not yet compiled. B06 prerequisite
-integration changes are staged, awaiting whole-format and integration checkpoint. Preserve it. Full B00–B20 stays active.
+`codex/stdlib-0.2.0`, source checkpoint `3de00c52`. B12 source checkpoint1379a46e and integrated B06 checkpoint3de00c52 are
+prepared; fresh combined validation is running. Only this live handoff is dirty. Preserve it. Full B00–B20 stays active.
 No push, release or full regression occurred. B03 actual timing ingestion is recorded below.
 
 **B03 official timing accepted and ingested.** Runner71460 passed90.710s/
@@ -41,17 +41,54 @@ Root repaired only reference signature spacing and explicit reference dependency
 selection after checkpoint028daeb0's fallible-family fix. All9 focused adapter/
 source/oracle/emitted/reference tests pass, including matched prefix guards. Root source repairs/measurements/evidence are checkpointed at61871710 after
 whole-format4.646s/199,440KiB; no files/snippets/fingerprints changed.
-**Current continuation: root combined B12/B06 integration checkpoint preparation.**
-No Cargo/native test job is active. Root whole token/idempotence proof70030
-passed1562files;4.636s/203,072KiB and4.640s/205,328KiB,0changes, before1379a46e.
-`/tmp/tsrust-b12-token-proof.log`. Earlier full formatter
-changed14files/18catalog snippets/13fingerprints; its watchdog could not invoke ps
-inside sandbox, although formatter completed. Subsequent supervised idempotence
-passed5.178s/203,056KiB with0changes. Node24 regex-text source/oracle/13reference
-ABI checks passed. Do not claim generated/native/editor acceptance yet.
+**Current continuation: B12 batched source repairs; no heavy job active.**
+Combined build12547 exact3de00c52 passed517.850s/3,748,787KiB; terminal
+build-finished:true verified. `/tmp/tsrust-b06-b12-{artifacts.jsonl,build.log}`.
+Driver41346 passed all8 regex runtime tests then failed feature selection at
+module import: Regex accidentally inherited Thread's two type parameters.
+`/tmp/tsrust-b06-b12-gates.{json,log}`;1.575s/69,392KiB. B12 later scopes unrun.
+Independent integrated B06 runner76054 passed all4scopes18.660s/218,240KiB:
+discardspan, compound native, nonempty3receiver agreement and16matrix observations.
+`/tmp/tsrust-b06-integrated-gates.{json,log}`. Three unchanged explicit binding
+contract tests also passed on3de's library binary; `/tmp/tsrust-b12-binding-contract.log`.
+Preserve these passes; do not rerun unchanged runtime/B06 scopes routinely.
+
+Root repair source now clears Regex type parameters, reuses native_optional_argument
+for borrowed ViewUnion options (with explicit closure type for undefined), and
+uses existing zero-copy string-observation dispatch/checking/emission for scalar
+literal/union arguments. Added native literal/union/stored function witnesses and
+five nonempty Regex-family checker-agreement rows. These repairs are not built.
+Review found the optional union and literal-union gaps before executable witnesses;
+exact metadata failure was observed. Next: whole-format/token/idempotence checkpoint,
+focused no-run without unchanged compiler lib-test harness, then resume B12 gates
+from feature selection, preserving8runtime passes. Include the new agreement rows.
+Prepared original `/tmp/tsrust-b06-b12-gates.py` needs new artifact/source names and
+resume filtering. Keep3threads/shared target/incremental0/jobs1/5GB/30min.
+
+B06 worker clean baseline advanced f6f14954→canonical3de00c52 after integration
+acceptance. It is now implementing public B06 source in isolated stdlib-files,
+no builds/tests/formatting while root owns next build slot. Frozen direction:
+all([]) yieldsvoid[]; direct polling fail-fast with awaited scope drain; Interval
+constructor positive representablems/burst default/immediate firsttick, explicit
+burst|delay|skip; shared cancellationtoken; awaited send andtrySend preserve exact
+unsent owner using existing SendError<T> cross-module alias; tryReceive exclusive;
+taskAsync lazy Weak capability, direct Task failures SpawnError|ThreadError<E>,
+existing AsyncError wraps only normal started Job settlement. Remove arbitrary
+1year timer/1million channel limits using real Tokio representability/semaphore
+constraints, and audit threadpool256worker/1millioncapacity caps. Root retains
+manifests/locks/DB; worker prepares coherent source/catalog/examples/tests/benchmarks.
+
+Root source checkpoint formatting evidence: `/tmp/tsrust-b12-token-proof.log`
+passed1562files/token preservation,4.636s/203,072KiB then4.640s/205,328KiB
+idempotence. Integration `/tmp/tsrust-b06-b12-integration-format.log` passed
+1562files,4.646s/202,560KiB then4.623s/202,720KiB with0changes. Initial formatter
+changed14files/18snippets/13fingerprints; sandbox watchdog ps failed although
+formatter completed, so the supervised full proof above followed. Node24
+regex-text source/oracle/13reference ABI checks passed; generated/native/editor
+acceptance is not claimed. No root timing or competing heavy process runs.
 
 B06 prerequisite candidate f6f14954 is fully accepted in focused worker scope and
-clean, awaiting root integration. Commit chain from e30c8459:2adbe0b0,1d18e85c,
+clean, integrated at3de00c52. Commit chain from e30c8459:2adbe0b0,1d18e85c,
 98467a47,0873d1e6,f6f14954. Latest production0873 passed nonempty3receiver
 agreement, all4rows×4phases=16observations and consistency (24780 total23.895s/
 79,088KiB). Server SHAe094138acce43077e621d419a2daefa93e1c8c40d12d4dd6cdc07d6df77cafa4.
@@ -60,7 +97,7 @@ lib build38941 passed6.728s/551,456KiB, compiler fresh=true, pure4case recovery
 unit passed0.521s/80KiB. Logs `/tmp/tsrust-b06-path-{artifacts.jsonl,build.log}`,
 `/tmp/tsrust-b06-path-gate.log`, `/tmp/tsrust-b06-recovery-editor-gates.log`.
 Earlier native/leaf/clone/mixedtuple/TaskJob/discardspan passes remain preserved.
-Root applied these five commits with --no-commit; resolved only overlapping
+Root integrated these five commits with --no-commit then checkpoint3de00c52; resolved only overlapping
 completion-matrix insertion/phase guards, preserving B03/B12 rows and all four
 unit-array rows. Combined source still needs fresh executable acceptance.
 B06 worker is idle after read-only public API tracing; public all/interval/token/

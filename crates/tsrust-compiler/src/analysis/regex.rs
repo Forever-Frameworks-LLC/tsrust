@@ -5,7 +5,7 @@ impl Analyzer {
   let ExprKind::Call(callee,args)=&expression.kind else{return Ok(None)};
   let ExprKind::Field(receiver,name)=&callee.kind else{return Ok(None)};
   let ty=self.expression_type_hint(context,receiver);
-  let binding=match ty {Some(Type::String)=>crate::stdlib::regex::string_method(name),Some(Type::Record(id))=>crate::stdlib::regex::method(self.program.records[id].native_type,name),_=>None};
+  let binding=match ty {Some(ty) if self.is_string_observation(ty)=>crate::stdlib::regex::string_method(name),Some(Type::Record(id))=>crate::stdlib::regex::method(self.program.records[id].native_type,name),_=>None};
   let Some(binding)=binding else{return Ok(None)};
   let mut arguments=vec![(**receiver).clone()];arguments.extend(args.iter().cloned());
   let span=expression.span;

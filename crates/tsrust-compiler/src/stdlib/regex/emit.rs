@@ -62,15 +62,13 @@ impl Emitter<'_> {
         let mut setup=String::new();let mut values=Vec::new();
         for(index,parameter)in binding.parameters.iter().enumerate(){
             let Some(argument)=args.get(index)else{values.push("None".into());continue;};
-            let name=format!("regex_arg{index}");setup.push_str(&format!("let {name}={};",self.expr(fun,argument,parameter.access)));
+            let name=format!("regex_arg{index}");
+            let value=if parameter.ty.signature()==Signature::String{self.string_observation(fun,argument)}else{self.expr(fun,argument,parameter.access)};
+            setup.push_str(&format!("let {name}={value};"));
             if parameter.optional {
-                let ty=argument.ty.unwrap();
-                let options=if ty==Type::Undefined{"None".into()}else if let Some(union)=ty.union(){
-                    let arms=self.program.unions[union.index()].members.iter().enumerate().map(|(tag,ty)|{
-                        let result=if *ty==Type::Undefined{"None".into()}else{format!("Some({})",self.regex_options(*ty,"value"))};
-                        format!("Union{}::V{tag}(value)=>{result}",union.index())
-                    }).collect::<Vec<_>>().join(",");format!("match &{name}{{{arms}}}")
-                }else{format!("Some({})",self.regex_options(ty,&name))};
+                let optional=self.native_optional_argument(parameter,name.clone(),argument.ty.unwrap());
+                let ty=crate::native_binding_types::resolve(&self.program.records,&Signature::Named(NativeTypeId::RegexOptions)).expect("prepared RegexOptions");
+                let options=format!("({optional}).map(|value:&{}|{})",self.native_type(ty),self.regex_options(ty,"value"));
                 setup.push_str(&format!("let regex_options={options};"));values.push("regex_options.as_ref()".into());
             }else if parameter.ty.signature()==Signature::String{values.push(format!("{name}.as_ref()"));}else{values.push(name);}
         }
