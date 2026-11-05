@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {smokeLsp} from '../smoke-lsp.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -137,4 +138,46 @@ test('public entry-point documentation links resolve within the checkout', () =>
       assert.ok(fs.existsSync(target), `${relative}: broken link ${link}`);
     }
   }
+});
+
+const server = String.raw`
+const assert = require('node:assert/strict');
+let pending=Buffer.alloc(0), initialized=false, shutdown=false;
+function send(value, done) {
+  const body=Buffer.from(JSON.stringify(value));
+  const frame=Buffer.concat([Buffer.from('Content-Length: '+body.length+'\r\n\r\n'),body]);
+  process.stdout.write(frame.subarray(0,5));
+  setImmediate(()=>process.stdout.write(frame.subarray(5,frame.length-1),()=>
+    setImmediate(()=>process.stdout.write(frame.subarray(frame.length-1),done))));
+}
+process.stdin.on('data',chunk=>{
+  pending=Buffer.concat([pending,chunk]);
+  while(true){
+    const end=pending.indexOf('\r\n\r\n');if(end<0)return;
+    const length=Number(/Content-Length: (\d+)/.exec(pending.subarray(0,end))[1]);
+    if(pending.length<end+4+length)return;
+    const value=JSON.parse(pending.subarray(end+4,end+4+length));pending=pending.subarray(end+4+length);
+    if(value.method==='initialize')send({jsonrpc:'2.0',id:1,result:{capabilities:{hoverProvider:true}}},()=>{initialized=true;});
+    else if(value.method==='initialized')assert.ok(initialized,'await initialize response');
+    else if(value.method==='shutdown'){
+      assert.ok(initialized);
+      if(process.argv[1]==='missing')process.exit(0);
+      if(process.argv[1]==='hang')return;
+      send({jsonrpc:'2.0',method:'window/logMessage',params:{message:'héllo 🦀'}},()=>
+        send({jsonrpc:'2.0',id:2,result:null},()=>{shutdown=true;}));
+    }else if(value.method==='exit'){assert.ok(shutdown,'await shutdown response');process.exit(process.argv[1]==='bad-exit'?3:0);}
+  }
+});
+`;
+const options = {cwd: process.cwd(), rootUri: 'file:///lifecycle'};
+test('LSP smoke awaits replies and handles fragmented UTF-8 frames and notifications', async () => {
+  await smokeLsp(process.execPath, ['-e', server], options);
+});
+test('LSP smoke rejects missing shutdown replies and unsuccessful exit', async () => {
+  await assert.rejects(smokeLsp(process.execPath, ['-e', server, 'missing'], options), /closed before response 2/);
+  await assert.rejects(smokeLsp(process.execPath, ['-e', server, 'bad-exit'], options), /exit cleanly/);
+});
+test('LSP smoke bounds an unresponsive child and reports spawn failures', async () => {
+  await assert.rejects(smokeLsp(process.execPath, ['-e', server, 'hang'], {...options, timeout: 500}), /timed out/);
+  await assert.rejects(smokeLsp('tsrust-missing-lsp-executable', [], options), /ENOENT/);
 });

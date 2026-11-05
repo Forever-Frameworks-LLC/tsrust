@@ -5,8 +5,9 @@ import path from 'node:path';
 import https from 'node:https';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
-import {spawn,execFileSync} from 'node:child_process';
+import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {smokeLsp} from './smoke-lsp.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const linux=process.argv.includes('--linux');
 if(process.argv.slice(2).some(value=>value!=='--linux'))throw Error('Use --linux or no options.');
@@ -41,8 +42,9 @@ try{
   run('docker',['run','--rm','--network','none',...mounts,'--volume',`${registry}:/cargo/registry:ro`,'--workdir','/source','--env','CARGO_HOME=/cargo','--env','CARGO_TARGET_DIR=/target','--env','CARGO_INCREMENTAL=0','rust:1.96.1-slim-bookworm','cargo','build','--offline','--locked','--jobs','1','--target','aarch64-unknown-linux-gnu','--bin','tsrust','--bin','tsrust-lsp']);
   const linuxBin='/target/aarch64-unknown-linux-gnu/debug';
   run('docker',['run','--rm','--network','none',...mounts,'--workdir','/source','--env','CARGO_HOME=/work/empty-compiler-home','rust:1.96.1-slim-bookworm',`${linuxBin}/tsrust`,'emit','examples/service/acceptance.tsr','--package','-o','/work/package']);
-  const messages=[{jsonrpc:'2.0',id:1,method:'initialize',params:{processId:null,rootUri:'file:///source',capabilities:{}}},{jsonrpc:'2.0',method:'initialized',params:{}},{jsonrpc:'2.0',id:2,method:'shutdown',params:null},{jsonrpc:'2.0',method:'exit',params:null}].map(value=>{const body=JSON.stringify(value);return `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`;}).join('');
-  const protocol=run('docker',['run','--rm','--network','none','--interactive',...mounts,'--workdir','/source','rust:1.96.1-slim-bookworm',`${linuxBin}/tsrust-lsp`],{input:messages});assert.ok(protocol.includes('capabilities'),'Linux editor server did not initialize');
+  const lspName=`${name}-lsp`;
+  try{await smokeLsp('docker',['run','--rm','--name',lspName,'--network','none','--interactive',...mounts,'--workdir','/source','rust:1.96.1-slim-bookworm',`${linuxBin}/tsrust-lsp`],{cwd:root,rootUri:'file:///source'});}
+  finally{spawnSync('docker',['rm','--force',lspName],{stdio:'ignore',timeout:10000});}
   run(process.execPath,['tools/package-toolchain.mjs',path.join(target,'aarch64-unknown-linux-gnu/debug/tsrust'),path.join(target,'aarch64-unknown-linux-gnu/debug/tsrust-lsp'),'aarch64-unknown-linux-gnu',path.join(scratch,'toolchain')]);
 
   fs.mkdirSync(path.join(scratch,'examples/service'),{recursive:true});fs.cpSync(path.join(root,'examples/service/migrations'),path.join(scratch,'examples/service/migrations'),{recursive:true});
