@@ -26017,9 +26017,9 @@
       "measured": false,
       "measurementStatus": "unmeasured-async-io",
       "specification": "async-io-contract.mjs",
-      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. No timings claimed. Line input splits the two-byte UTF-8 character across the default 8192-byte working boundary in every engine.",
+      "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. No timings claimed. Line input splits the two-byte UTF-8 character across the default 8192-byte working boundary in every engine. Line observations count UTF-8 bytes in every engine.",
       "sourceSha256": "be225afd732d76b86e29293233fec2561c307201d21b24d46a60c345518ec9ff",
-      "counterpartSha256": "6c02438f197e0609465e94fe8c5eaae73c938fa0bb0e468e44483908c0df1073"
+      "counterpartSha256": "eb8293134a2d85ff5b89adbede89b30575e5d330706a147774b5dd474503b7f5"
     },
     {
       "id": "io_file_copy",

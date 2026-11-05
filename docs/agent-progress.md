@@ -13,6 +13,56 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**B05 benchmark semantic repair — 2026-11-05:** session35510 terminatedFAIL
+81.053s/629,866KiB during correctness, before timing. io_read_into prepared/validated;
+io_lines native n1seed7 returned140721128 vsoracle140703967. Exactdelta17161=131²
+isolated firstline UTF8bytes8193 versusUTF16units8192. Tsrust length followsUTF8;
+Nodepeer now Buffer.byteLength(line,'utf8'), directRustpeer line.len(), independent
+BigIntoracle uses8193 and exactknownchecksum test. Guards require byteobservation.
+All4IOcontract tests PASS inclactualNode execution. IntentionalTSsource semantic
+change reviewed; refreshed onlyio_lines counterpart hash. Wholeformat initially
+correctly refused changedtokens; rerun withreviewedhash pending43194. No timing
+claims/ingestion. Next checkpoint benchmarkrepair then resume same3actual protocol
+with pinnedNode+TSRUST_SOURCE_PACK_DIR andsharedtarget/inc0/jobs1/watchdog.
+
+**Current source checkpoint6f3ce381 — 2026-11-05:** committed validated B05
+async readers/writers, retained buffer loans and literal-context compatibility.
+LIVE measurement session35510 holds sharedheavy lease: watchdog runs
+`node run.mjs --only=io_read_into,io_lines,io_file_copy --engines=native,rust-hand,node-tsc`
+from benchmarks/runtime; sharedroot target/inc0/jobs1. Log
+`/tmp/tsrust-b05-public-timing.log`. Initial session66107 terminated before build/timing because escalated PATH selected
+Node26.3.0. Current43727 explicitly uses installed pinned
+/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node; protocol unchanged.
+Session43727 built release compiler, then terminated233.105s/2,262,332KiB
+before timing because benchmark export lacked TSRUST_SOURCE_PACK_DIR. Current35510
+sets it explicitly to canonical target/portable-source-packs, reusing prepared pack
+and completed release build. Log now reaches Prepare and validate io_read_into.
+Runner first builds currentrelease compiler;
+do not duplicate/restart. Verify live process and terminalwatchdog before nextjob.
+Next inspect correctness/timing result, repair realfailures, preserve passedscopes;
+then same3allocation profiles and actualSQLiteingestion. No timing claimed yet.
+Sourcecheckpoint is local only; no push/publication. B20 optional narrow repair and
+all other release bundles remain active.
+
+**Prepared next work, source-only — 2026-11-05:** B07 runner guard delta is
+complete in process worktree: only profile.mjs and source-hashes.json changed.
+Independent251-byte-block checksum formula verifies all1,395timing rows,
+10allocationcases and19correctnessrecords; timing protocol/workloads/deps unchanged.
+DriverSHA256 b35fdb30ee18c819df553a61d40122e1a8b1705a4d9b9f2f74fb937aaaabd2de.
+No execution. B06 optional-narrow patch `/tmp/tsrust-optional-finite-string-observation.patch`
+(3files,6913bytes; SHA256 b708800f51ca1d20df757d9cd14c7ebccfe4042508550d0fd2b832972d48c961)
+uses existing borrowed-subset emitter and adds native/compiler/LSP regressions,
+including missing guards,mixed unions,readonly and loop invalidation. Only/tmp
+written, no canonical changes/execution. Review/apply after I/O measurement lease,
+then wholeformat and batched affected gates; do notclaim accepted from inspection.
+
+B07 readiness review found missing independent checksum/timing/allocation row-count
+assertions in process profile runner. B03worker is implementing those guards in
+isolated process tree, preserving workloads/protocol, no execution. Existing binary
+1MiB duplex/EOF/flood, cancellation/reap and borrowed-wait assertions reviewed as
+concrete. B06worker prepares optional finite-union narrowing patch only under/tmp;
+no canonical mutation or heavy execution during root measurement lease.
+
 **B05 local integration checkpoint ready — 2026-11-05:** final build48842
 PASSED234.400s/2,648,178KiB, terminal build-finished true. Final scoped driver
 27685: six groups passed (15literal controls,3optional controls,service examples,
