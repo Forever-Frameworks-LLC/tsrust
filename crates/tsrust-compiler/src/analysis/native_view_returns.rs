@@ -24,6 +24,11 @@ impl Analyzer {
                 });
                 context.native_view_results.get_or_insert_with(Default::default).insert(union,(variants[0],optional_payload));
             }
+            if binding.returned_borrow.is_some_and(|contract| contract.slot == crate::native_return_borrows::ReturnSlot::DirectOptional) {
+                let contract = binding.returned_borrow.expect("validated optional native borrow");
+                let payload = self.program.records.iter().position(|record| record.native_type == Some(contract.payload)).expect("prepared optional native view");
+                context.native_optional_views.get_or_insert_with(Default::default).insert(result.union().expect("validated optional native borrow"), payload);
+            }
         Ok(())
     }
 

@@ -91,6 +91,25 @@ mod tests {
     }
 
     #[test]
+    fn native_string_literal_union_retains_finite_checked_members() {
+        static ORDER: Signature = Signature::Union(&[Signature::StringLiteral("little"), Signature::StringLiteral("big")]);
+        let mut program = crate::syntax::parse("function main(){}").unwrap();
+        prepare_signature(&mut program.records, &ORDER, &[], Span::default()).unwrap();
+        let checked = crate::analysis::analyze(program).unwrap();
+        let Type::Union(id) = resolve(&checked.records, &ORDER).unwrap() else { panic!("literal alternatives collapsed"); };
+        let members = &checked.unions[id.index()].members;
+        assert_eq!(members.len(), 2);
+        let mut values = Vec::new();
+        for member in members {
+            let Type::Literal(record, crate::literal_types::LiteralKind::String) = member else { panic!("literal widened to string"); };
+            let Some(crate::literal_types::LiteralValue::String(value)) = &checked.records[*record].literal_definition else { panic!("missing literal identity"); };
+            values.push(value.as_str());
+        }
+        values.sort_unstable();
+        assert_eq!(values, ["big", "little"]);
+    }
+
+    #[test]
     fn numeric_union_signature_preserves_distinct_checked_variants() {
         static LIMIT: Signature=Signature::Union(&[Signature::Int,Signature::Number]);
         assert_eq!(LIMIT.render(|_|None).unwrap(),"(int | number)");
@@ -125,6 +144,23 @@ mod tests {
             assert!(crate::native_types::lookup("std:bytes",crate::native_types::declaration(payload).name).is_some());
         }
     }
+    #[test]
+    fn direct_optional_view_projects_without_a_result_wrapper() {
+        static OPTIONAL: Signature = Signature::Optional(&Signature::Named(NativeTypeId::ByteView));
+        let mut binding = *crate::native_bindings::lookup("std:bytes", "view").unwrap();
+        binding.result = NativeType::Structured(&OPTIONAL);
+        binding.returned_borrow.as_mut().unwrap().slot = crate::native_return_borrows::ReturnSlot::DirectOptional;
+        let mut program = crate::syntax::parse("function main(){}").unwrap();
+        prepare(&mut program.records, &binding, Span::default()).unwrap();
+        let checked = crate::analysis::analyze(program).unwrap();
+        let Type::Union(id) = resolve(&checked.records, &OPTIONAL).unwrap() else { panic!("optional view union"); };
+        let members = &checked.unions[id.index()].members;
+        assert_eq!(members.len(), 2);
+        assert!(members.contains(&Type::Undefined));
+        assert!(members.iter().any(|ty| matches!(ty, Type::Record(id) if checked.records[*id].native_type == Some(NativeTypeId::ByteView))));
+        assert!(crate::result_identity::variants(&checked.records, members).is_none());
+    }
+
     #[test]
     fn optional_result_view_projects_the_checked_nullable_payload() {
         static OPTIONAL: Signature = Signature::Optional(&Signature::Named(NativeTypeId::ByteView));

@@ -1,6 +1,8 @@
 // Direct crate/std profile, independent of compiler runtime and ABI bridges.
 use base64::engine::{general_purpose, GeneralPurposeConfig};
 use std::hint::black_box;
+#[cfg(codec_allocations)]
+include!("counting-allocator.rs");
 #[cfg(not(codec_allocations))]
 use std::time::Instant;
 

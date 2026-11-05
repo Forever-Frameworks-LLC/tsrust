@@ -117,6 +117,17 @@ mod tests {
     }
 
     #[test]
+    fn direct_optional_loan_releases_absence_without_a_result_projection() {
+        let mut loan = recursive();
+        guard(&mut loan, 9);
+        assert!(!narrow(&mut loan.clone(), Type::Undefined));
+        assert!(narrow(&mut loan, Type::Record(9)));
+        assert_eq!(loan.root, 0);
+        assert!(loan.path.is_empty());
+        assert!(loan.guards.is_empty());
+    }
+
+    #[test]
     fn optional_result_loans_keep_only_present_success_payloads() {
         let mut loan = recursive();
         result(&mut loan, 7, Some(9));

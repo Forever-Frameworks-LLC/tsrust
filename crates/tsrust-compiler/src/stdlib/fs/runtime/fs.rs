@@ -1,14 +1,9 @@
-//! Bounded synchronous file operations and consuming native close.
+//! Synchronous file operations, optional whole-file bounds and consuming native close.
 
 use super::resource::{Backend, Resource};
 use std::io::{Read,Write};
+#[cfg(unix)]
 use std::os::fd::IntoRawFd;
-
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
-compile_error!("std:fs consuming close is currently supported on macOS and Linux");
-
-pub const MAX_READ_BYTES: usize = 64 * 1024 * 1024;
-pub const MAX_WRITE_BYTES: usize = 64 * 1024 * 1024;
 
 #[derive(Debug)]
 pub struct FsFailure {
@@ -28,6 +23,7 @@ impl FsFailure {
             ErrorKind::IsADirectory => "is-directory",
             ErrorKind::WouldBlock => "would-block",
             ErrorKind::WriteZero => "write-zero",
+            ErrorKind::OutOfMemory => "allocation",
             _ => "io",
         };
         Self { code, operation, message: error.to_string(), os_code: error.raw_os_error().map(i64::from) }
@@ -41,7 +37,13 @@ pub struct FileBackend(pub(super) std::fs::File);
 pub type FileHandle = Resource<FileBackend>;
 impl Backend for FileBackend {
     type Error = FsFailure;
-    fn close(self) -> Result<(), FsFailure> { close_file_with(self.0, close_fd) }
+    fn close(self) -> Result<(), FsFailure> {
+        #[cfg(unix)]
+        { close_file_with(self.0, close_fd) }
+        // Safe standard file release on Windows does not expose OS close errors.
+        #[cfg(not(unix))]
+        { drop(self.0); Ok(()) }
+    }
 }
 
 pub fn open(path: &str) -> Result<FileHandle, FsFailure> {
@@ -62,9 +64,9 @@ pub fn write_all(file:&mut FileHandle,bytes:&[u8])->Result<(),FsFailure> {
     write_with(&mut file.get_mut().0,bytes,true).map(|_|())
 }
 pub(super) fn validate_write_length(length:usize,operation:&'static str)->Result<(),FsFailure> {
-    if length>MAX_WRITE_BYTES {
+    if i64::try_from(length).is_err() {
         return Err(FsFailure {code:"length-range",operation,
-            message:"Write length must be between 0 and 67108864 bytes.".into(),os_code:None});
+            message:"Write length must fit int.".into(),os_code:None});
     }
     Ok(())
 }
@@ -86,16 +88,20 @@ fn write_with(output:&mut impl Write,bytes:&[u8],all:bool)->Result<i64,FsFailure
     Ok(written as i64)
 }
 
-/// Read through EOF with an explicit ceiling, independent of metadata races.
-pub fn read_file(path:&str,limit:i64)->Result<Vec<u8>,FsFailure> {
-    let limit=usize::try_from(limit).ok().filter(|limit|*limit<=MAX_READ_BYTES)
-        .ok_or_else(||FsFailure {code:"length-range",operation:"readFile",message:"Read limit must be between 0 and 67108864 bytes.".into(),os_code:None})?;
+/// Read through EOF; an optional ceiling is enforced independently of metadata races.
+pub fn read_file(path:&str,limit:Option<i64>)->Result<Vec<u8>,FsFailure> {
+    let limit=limit.map(|length|validate_read_length(length,"readFile")).transpose()?;
     let mut file=open(path).map_err(|mut error|{error.operation="readFile";error})?;
     let result=read_file_with(&mut file.get_mut().0,limit);
     finish_file(file,result,"readFile")
 }
-fn read_file_with(input:&mut impl Read,limit:usize)->Result<Vec<u8>,FsFailure> {
-    let mut bytes=Vec::new();let mut chunk=[0u8;8192];
+fn read_file_with(input:&mut impl Read,limit:Option<usize>)->Result<Vec<u8>,FsFailure> {
+    let mut bytes=Vec::new();
+    let Some(limit)=limit else {
+        input.read_to_end(&mut bytes).map_err(|error|FsFailure::io("readFile",error))?;
+        return Ok(bytes);
+    };
+    let mut chunk=[0u8;8192];
     loop {
         // One extra byte distinguishes exact-limit EOF from an oversized file.
         let size=chunk.len().min(limit-bytes.len()+1);
@@ -120,17 +126,19 @@ pub fn write_file(path:&str,bytes:&[u8])->Result<(),FsFailure> {
     let result=write_all(&mut file,bytes).map_err(|mut error|{error.operation="writeFile";error});
     finish_file(file,result,"writeFile")
 }
-fn finish_file<T>(file:FileHandle,result:Result<T,FsFailure>,operation:&'static str)->Result<T,FsFailure> {
+fn finish_file<T,B:Backend<Error=FsFailure>>(file:Resource<B>,result:Result<T,FsFailure>,operation:&'static str)->Result<T,FsFailure> {
     let closed=file.close().map_err(|mut error|{error.operation=operation;error});
     // Always attempt close once. An earlier I/O error takes precedence.
     let value=result?;closed?;Ok(value)
 }
 
-/// Read at most length bytes once, retrying only interrupted reads. Short reads and
-/// EOF are successful. Validation and reservation precede any cursor change.
+pub(super) fn validate_read_length(length:i64,operation:&'static str)->Result<usize,FsFailure> {
+    usize::try_from(length).ok().filter(|length|*length<=isize::MAX as usize)
+        .ok_or_else(||FsFailure {code:"length-range",operation,message:"Read length must be nonnegative and fit native storage.".into(),os_code:None})
+}
+/// Read at most length bytes once. Validate and reserve before changing the cursor.
 pub fn read(file: &mut FileHandle, length: i64) -> Result<Vec<u8>, FsFailure> {
-    let length = usize::try_from(length).ok().filter(|length| *length <= MAX_READ_BYTES)
-        .ok_or_else(|| FsFailure::read_error("length-range", "Read length must be between 0 and 67108864 bytes."))?;
+    let length = validate_read_length(length,"read")?;
     let mut bytes = Vec::new();
     bytes.try_reserve_exact(length).map_err(|_| FsFailure::read_error("allocation", "Unable to allocate read buffer."))?;
     bytes.resize(length, 0);
@@ -145,11 +153,13 @@ pub fn read(file: &mut FileHandle, length: i64) -> Result<Vec<u8>, FsFailure> {
     Ok(bytes)
 }
 
+#[cfg(unix)]
 fn close_file_with(file: std::fs::File, release: impl FnOnce(i32) -> std::io::Result<()>) -> Result<(), FsFailure> {
     // Transfer ownership out of File before releasing. Neither an error nor the
     // Resource destructor may drop/retry the same descriptor after this call.
     release(file.into_raw_fd()).map_err(|error| FsFailure::io("close", error))
 }
+#[cfg(unix)]
 fn close_fd(descriptor: i32) -> std::io::Result<()> {
     nix::unistd::close(descriptor).map_err(std::io::Error::from)
 }
@@ -201,18 +211,15 @@ mod tests {
     #[test]
     fn full_file_helpers_handle_empty_exact_limit_errors_and_truncation() {
         let directory=Directory::new();let path=directory.input();
-        assert_eq!(read_file(&path,4).unwrap(),[0,65,255,66]);
-        assert_eq!(failure(read_file(&path,3)).code,"length-range");
-        assert_eq!(failure(read_file("missing-file",-1)).code,"length-range");
-        assert_eq!(failure(read_file("missing-file",MAX_READ_BYTES as i64+1)).code,"length-range");
-        assert_eq!(failure(read_file("missing-file",4)).operation,"readFile");
+        assert_eq!(read_file(&path,Some(4)).unwrap(),[0,65,255,66]);
+        assert_eq!(failure(read_file(&path,Some(3))).code,"length-range");
+        assert_eq!(failure(read_file("missing-file",Some(-1))).code,"length-range");
+        assert_eq!(failure(read_file("missing-file",Some(4))).operation,"readFile");
         write_file(&path,&[255,0]).unwrap();assert_eq!(std::fs::read(&path).unwrap(),[255,0]);
-        write_file(&path,&[]).unwrap();assert_eq!(read_file(&path,0).unwrap(),Vec::<u8>::new());
+        write_file(&path,&[]).unwrap();assert_eq!(read_file(&path,Some(0)).unwrap(),Vec::<u8>::new());
         assert_eq!(failure(write_file(directory.0.to_str().unwrap(),&[1])).operation,"writeFile");
         std::fs::write(&path,[7,8]).unwrap();
-        let oversized=vec![0;MAX_WRITE_BYTES+1];
-        assert_eq!(failure(write_file(&path,&oversized)).code,"length-range");
-        assert_eq!(std::fs::read(&path).unwrap(),[7,8],"invalid lengths must not truncate");
+        assert_eq!(read_file(&path,None).unwrap(),[7,8]);
     }
     struct ShortReader {bytes:std::io::Cursor<Vec<u8>>,interrupted:bool,fail:bool}
     impl Read for ShortReader {
@@ -226,12 +233,12 @@ mod tests {
     fn full_file_reads_retry_interruption_accumulate_short_reads_and_stop_on_error() {
         for fail in [false,true] {
             let mut input=ShortReader {bytes:std::io::Cursor::new(vec![1,2,3,4,5]),interrupted:false,fail};
-            let result=read_file_with(&mut input,5);
+            let result=read_file_with(&mut input,Some(5));
             if fail {let error=failure(result);assert_eq!((error.code,error.operation),("permission-denied","readFile"));}
             else {assert_eq!(result.unwrap(),[1,2,3,4,5]);}
         }
         let mut input=std::io::Cursor::new(vec![1,2,3,4]);
-        assert_eq!(failure(read_file_with(&mut input,2)).code,"length-range");
+        assert_eq!(failure(read_file_with(&mut input,Some(2))).code,"length-range");
         assert_eq!(input.position(),3,"read at most one byte beyond the limit");
     }
 
@@ -253,8 +260,8 @@ mod tests {
     #[test]
     fn write_limits_and_create_errors_remain_structured() {
         assert!(validate_write_length(0,"write").is_ok());
-        assert!(validate_write_length(MAX_WRITE_BYTES,"writeAll").is_ok());
-        for length in [MAX_WRITE_BYTES+1,usize::MAX] {
+        assert!(validate_write_length(64*1024*1024+1,"writeAll").is_ok());
+        for length in [usize::MAX].into_iter().filter(|length|i64::try_from(*length).is_err()) {
             let error=failure(validate_write_length(length,"writeAll"));
             assert_eq!((error.code,error.operation,error.os_code),("length-range","writeAll",None));
         }
@@ -290,7 +297,7 @@ mod tests {
         let directory = Directory::new();
         let mut file = open(&directory.input()).unwrap();
         assert!(read(&mut file, 0).unwrap().is_empty());
-        for length in [-1, MAX_READ_BYTES as i64 + 1, i64::MAX] {
+        for length in [-1] {
             let error = failure(read(&mut file, length));
             assert_eq!((error.code, error.operation, error.os_code), ("length-range", "read", None));
             assert_eq!(file.get_mut().0.stream_position().unwrap(), 0);
@@ -311,13 +318,72 @@ mod tests {
         assert!(!error.message.is_empty());
         let error = failure(open("bad\0path"));
         assert_eq!((error.code, error.operation), ("invalid-input", "open"));
-        let mut directory_handle = open(directory.0.to_str().unwrap()).unwrap();
-        let error = failure(read(&mut directory_handle, 1));
-        assert_eq!(error.operation, "read");
-        assert!(error.os_code.is_some());
-        directory_handle.close().unwrap();
+        match open(directory.0.to_str().unwrap()) {
+            Ok(mut file)=>{let error=failure(read(&mut file,1));assert_eq!(error.operation,"read");assert!(error.os_code.is_some());file.close().unwrap();},
+            Err(error)=>{assert_eq!(error.operation,"open");assert!(error.os_code.is_some());},
+        }
     }
 
+    #[test]
+    fn whole_file_completion_closes_once_and_preserves_the_first_io_error() {
+        struct FailedClose<'a>(&'a std::cell::Cell<usize>);
+        impl Backend for FailedClose<'_> {
+            type Error=FsFailure;
+            fn close(self)->Result<(),FsFailure> {
+                self.0.set(self.0.get()+1);
+                Err(FsFailure::io("close",std::io::ErrorKind::Interrupted.into()))
+            }
+        }
+        for read_failed in [false,true] {
+            let closed=std::cell::Cell::new(0);
+            let result=if read_failed {Err(FsFailure::read_error("io","input failed"))} else {Ok(())};
+            let error=failure(finish_file(Resource::new(FailedClose(&closed)),result,"readFile"));
+            assert_eq!(closed.get(),1);assert_eq!(error.code,if read_failed {"io"} else {"interrupted"});
+            assert_eq!(error.operation,if read_failed {"read"} else {"readFile"});
+        }
+    }
+
+    #[test]
+    fn file_owners_release_before_rename_and_remove() {
+        let directory=Directory::new();let original=directory.input();
+        let moved=directory.0.join("moved.bin");
+        for explicit in [false,true] {
+            let file=open(&original).unwrap();
+            if explicit {file.close().unwrap();} else {drop(file);}
+            std::fs::rename(&original,&moved).unwrap();
+            std::fs::rename(&moved,&original).unwrap();
+        }
+        std::fs::remove_file(original).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_close_and_scope_drop_release_exclusive_open_conflicts() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let directory=Directory::new();let path=directory.input();
+        for explicit in [false,true] {
+            let file=open(&path).unwrap();
+            assert!(std::fs::OpenOptions::new().read(true).share_mode(0).open(&path).is_err());
+            if explicit {file.close().unwrap();} else {drop(file);}
+            let exclusive=std::fs::OpenOptions::new().read(true).share_mode(0).open(&path).unwrap();
+            drop(exclusive);
+        }
+    }
+
+    #[test]
+    fn whole_file_reads_keep_optional_bound_and_unbounded_short_read_errors() {
+        for limit in [None,Some(5)] {
+            let mut input=ShortReader {bytes:std::io::Cursor::new(vec![1,2,3,4,5]),interrupted:false,fail:false};
+            assert_eq!(read_file_with(&mut input,limit).unwrap(),[1,2,3,4,5]);
+            let mut failed=ShortReader {bytes:std::io::Cursor::new(vec![1,2,3,4,5]),interrupted:false,fail:true};
+            assert_eq!(failure(read_file_with(&mut failed,limit)).code,"permission-denied");
+        }
+        assert_eq!(failure(read_file_with(&mut std::io::Cursor::new(vec![1]),Some(0))).code,"length-range");
+        assert!(read_file_with(&mut std::io::empty(),Some(0)).unwrap().is_empty());
+        assert_eq!(validate_read_length(64*1024*1024+1,"read").unwrap(),64*1024*1024+1);
+    }
+
+    #[cfg(unix)]
     #[test]
     fn explicit_and_fallback_close_release_real_descriptors_without_retry() {
         let directory = Directory::new();

@@ -8,6 +8,7 @@ import {assertNativeFilesSource} from './native-files-source-contract.mjs';
 import {expectedExactResult, expectedChecksum} from './oracle.mjs';
 import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import {assertABI} from './adapters.mjs';
+import {measurementPlan} from './measurement-plan.mjs';
 import {reportCategory} from './report.mjs';
 import {spawnSync} from 'node:child_process';
 const read = name => fs.readFileSync(new URL(name, import.meta.url), 'utf8');
@@ -116,4 +117,28 @@ test('buffered file workload retains capacity, chunking, release and readback co
   assert.throws(()=>assertNativeFilesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
   assert.throws(()=>assertNativeFilesSource(source,{...row,operationsPerIteration:2},kind));
  }
+});
+
+test('unbounded file workload keeps three sizes, direct references and independent observations',()=>{
+ const row=manifest.workloads.find(row=>row.id==='native_file_unbounded_full_write_read');
+ assert.ok(row);assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-pending-store-ingest');assert.equal(reportCategory(row.id),'resources');
+ for(const [kind,file,key] of [['native',row.source,'sourceSha256'],['typescript',row.counterpart,'counterpartSha256']]) {
+  const source=read('./'+file);assert.equal(row[key],createHash('sha256').update(source).digest('hex'));
+  assertNativeFilesSource(source,row,kind);
+  const changed=replaceCodeSnippet(source,kind==='native'?'readFile(destination)':'fileSystem.readFileSync(destination)',kind==='native'?'readFile(destination,67108864)':'fileSystem.readFileSync(input)');
+  assert.throws(()=>assertNativeFilesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
+ }
+ assert.deepEqual(expectedNativeFilesValues(row.id,3,255,row.inputText),[[65536,65536*255],[1048576,0],[67108865,67108865]]);
+ assert.throws(()=>expectedNativeFilesValues(row.id,2049,0,row.inputText));
+ for(const [n,seed] of measurementPlan(['--verify','--engines=native,rust-hand,node-tsc'],manifest).correctnessCases(row.iterations)) {
+  const expected=expectedNativeFilesObservation(row.id,n,seed,row.inputText);
+  assert.deepEqual(expectedExactResult(row.id,n,seed,row.inputText),expected);
+  assert.equal(expectedChecksum(row.id,n,seed,row.inputText),expected.checksum);
+ }
+ const direct=read('./parity/'+row.id+'.rs');
+ assert.ok(direct.includes('std::fs::write(&destination,&owner)'));
+ assert.ok(direct.includes('std::fs::read(destination)'));
+ assert.ok(!direct.includes('tsrust_native_files'));
+ const fixture=createNativeFileFixture(row);
+ try {assert.equal(fs.statSync(fixture.path+'.out').size,4096);}finally{fixture.cleanup();}
 });

@@ -8,11 +8,15 @@ pub struct Units {
     pub dependencies:bool,
 }
 
-pub(crate) fn bytes_module(views:bool,utf8:bool)->String {
+pub fn requires_byte_codecs(source:&str)->bool {source.contains("fn codec_base64_engine(")}
+
+pub(crate) fn bytes_module(views:bool,utf8:bool,codecs:bool,base64:bool)->String {
     let mut text=String::from("mod tsrust_native_bytes {\n");
     text.push_str(include_str!("../stdlib/bytes/runtime/mod.rs"));
     if views {text.push_str(include_str!("../stdlib/bytes/runtime/views.rs"));}
     if utf8 {text.push_str(include_str!("../stdlib/bytes/runtime/utf8.rs"));}
+    if codecs || base64 {text.push_str(include_str!("../stdlib/bytes/runtime/codecs.rs"));}
+    if base64 {text.push_str(include_str!("../stdlib/bytes/runtime/base64.rs"));}
     text.push_str("}\n");text
 }
 pub(crate) fn files_module()->String {
@@ -48,7 +52,7 @@ pub fn separate(source:&str)->Units {
 
     if source.contains("use rayon as tsr_rayon;") {application=application.replace("use rayon as tsr_rayon;","use tsrust_runtime::rayon as tsr_rayon;");runtime.push_str("pub use rayon;\n");}
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    let dependencies=source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
+    let dependencies=requires_byte_codecs(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
         || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust");
     let mut extract=|name:&str,module:String| {
         if application.contains(&module) {
@@ -75,7 +79,7 @@ pub fn separate(source:&str)->Units {
     extract("tsrust_native_futures", crate::stdlib::futures::RUNTIME.to_owned());
     extract("tsrust_native_threads", crate::stdlib::threads::RUNTIME.to_owned());
     // Match complete variants; no feature is added merely because another is used.
-    for (views,utf8) in [(true,true),(true,false),(false,true),(false,false)] {extract("tsrust_native_bytes",bytes_module(views,utf8));}
+    for views in [true,false] {for utf8 in [true,false] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {extract("tsrust_native_bytes",bytes_module(views,utf8,codecs,base64));}}}
     if let Some(module)=json {extract("tsrust_native_json",module);}
     extract("tsrust_native_files",files_module());extract("tsrust_native_path",path_module());
     if application.contains(crate::runtime::STRINGS) {
@@ -96,4 +100,23 @@ pub fn separate(source:&str)->Units {
         runtime.push_str(console);runtime.push_str("\n}\n");
     }
     Units{application,dependencies,runtime:(!runtime.is_empty()).then(||format!("#![allow(dead_code, unused_variables, unused_mut)]\n{runtime}"))}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn selected_byte_support_extracts_exactly_and_only_base64_needs_dependencies() {
+        for views in [false,true] {for utf8 in [false,true] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {
+            let source=bytes_module(views,utf8,codecs,base64);
+            let units=separate(&source);
+            assert_eq!(units.dependencies,base64);
+            assert_eq!(units.application,"use tsrust_runtime::tsrust_native_bytes;\n");
+            let runtime=units.runtime.unwrap();
+            assert_eq!(requires_byte_codecs(&runtime),base64);
+            assert_eq!(runtime.contains("pub fn to_hex("),codecs);
+            assert_eq!(runtime.contains("pub fn from_utf8("),utf8);
+        }}}
+    }
 }
