@@ -32,8 +32,14 @@ impl Analyzer {
             expression.target=Some(CallTarget::IteratorCursor);ty
         }else{
             let source=self.expression(context,&mut args[0],Mode::Mutate,loans,None)?;
-            if !matches!(source,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::IteratorCursor)){return Err(Diagnostic::new("iterator-source","Iterator array advancement requires its private owning cursor.",args[0].span));}
-            let ty=expected.ok_or_else(||Diagnostic::new("iterator-result","Iterator array advancement requires its declared IteratorResult return type.",expression.span))?;
+            let Type::Record(cursor)=source else{return Err(Diagnostic::new("iterator-source","Iterator array advancement requires its private owning cursor.",args[0].span));};
+            if self.program.records[cursor].native_type!=Some(NativeTypeId::IteratorCursor){return Err(Diagnostic::new("iterator-source","Iterator array advancement requires its private owning cursor.",args[0].span));}
+            let parameters=&self.program.records[cursor].application.as_ref().expect("applied iterator cursor").resolved_arguments;
+            // The declared pull contract fixes the result even during context-free discovery.
+            let ty=self.program.records.iter().enumerate().find_map(|(id,record)|{
+                if record.native_type!=Some(NativeTypeId::OwnedIterator) || !record.application.as_ref().is_some_and(|application|application.resolved_arguments==*parameters){return None;}
+                self.fields[id].get("_pull").and_then(|&pull|self.checked_generic_callable_shape(pull)).map(|(_,result)|result)
+            }).ok_or_else(||Diagnostic::new("iterator-result","Iterator array advancement requires its declared iterator pull contract.",expression.span))?;
             expression.target=Some(CallTarget::IteratorNext);ty
         };
         self.require(result,expected,expression.span)?;

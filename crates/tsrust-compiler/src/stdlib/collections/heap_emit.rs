@@ -8,7 +8,7 @@ impl Emitter<'_> {
         let receiver=self.expr(function,base,if read{Mode::Read}else{Mode::Mutate});
         let selected=match method{
             HeapMethod::Push=>format!("heap_receiver.values.push(TsrOrdered::new({}))",self.expr(function,&arguments[0],Mode::Consume)),
-            HeapMethod::ToSortedArray=>self.flat_array_result(expression.ty.unwrap(),"{let mut values=heap_receiver.values.iter().cloned().collect::<Vec<_>>();values.sort_unstable();values.into_iter().map(|value|value.0).collect::<Vec<_>>()}"),
+            HeapMethod::ToSortedArray=>self.flat_array_result(expression.ty.unwrap(),"{let mut values=heap_receiver.values.values.iter().cloned().collect::<Vec<_>>();values.sort_unstable();values.into_iter().map(|value|value.0).collect::<Vec<_>>()}"),
             HeapMethod::Clear=>"heap_receiver.values.clear()".into(),
             HeapMethod::Pop=>"heap_receiver.values.pop().map(|value|value.0)".into(),
             HeapMethod::Peek=>format!("heap_receiver.values.peek().map(|value|{}value.0)",if element.is_copy(){""}else{"&"}),

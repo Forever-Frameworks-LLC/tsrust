@@ -6775,7 +6775,7 @@ impl Emitter<'_> {
         } else if matches!(receiver_type,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
             "for_each_array.source_iter()"
         } else if matches!(receiver_type,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet)) {
-            "for_each_array.key_iter()"
+            "for_each_array.values.key_iter()"
         } else if method.is_some_and(|method| method.access == Mode::Mutate) {
             "for_each_array.iter_mut()"
         } else {

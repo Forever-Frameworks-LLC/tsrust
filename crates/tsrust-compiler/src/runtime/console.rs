@@ -12,7 +12,7 @@ pub enum TsrConsoleValue {
     Object(Vec<(std::string::String, TsrConsoleValue)>),
     Truncated,
 }
-fn tsr_console_quote(text: &str, json: bool) -> std::string::String {
+pub fn tsr_console_quote(text: &str, json: bool) -> std::string::String {
     let quote = if json || (text.contains('\'') && !text.contains('"')) {
         '"'
     } else if text.contains('\'')

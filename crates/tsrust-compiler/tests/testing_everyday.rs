@@ -62,7 +62,7 @@ async function main():Task<void>{const job=waitForFailure().start();job.cancel()
 #[test]fn borrowed_records_and_stored_structural_assertions_keep_inputs(){native(r#"
 import {deepStrictEqual,notDeepStrictEqual,strictEqual} from 'std:testing';
 type Row={id:int;text:string;values:number[];};
-type Checks={equal:Function<void,[actual:ReadOnly<Row>,expected:ReadOnly<Row>,message:ReadOnly<string>]>;different:Function<void,[actual:ReadOnly<Row>,expected:ReadOnly<Row>,message:ReadOnly<string>]>;};
+type Checks={equal:Function<void,[actual:ReadOnly<Row>,expected:ReadOnly<Row>,message?:ReadOnly<string>]>;different:Function<void,[actual:ReadOnly<Row>,expected:ReadOnly<Row>,message?:ReadOnly<string>]>;};
 function inspect(left:ReadOnly<Row>,right:ReadOnly<Row>,different:ReadOnly<Row>):void{
  const equalAlias=deepStrictEqual;const differentAlias=notDeepStrictEqual;
  equalAlias(left,right,'borrowed alias');differentAlias(left,different,'borrowed alias mismatch');
@@ -87,7 +87,7 @@ function main(){
 import {rejects,fail} from 'std:testing';import {delay} from 'std:futures';
 async function crash():Task<void>{fail('worker panic transported as checked data');}
 async function waitForever():Task<void>{await delay(60000);}
-type Reject=Function<Task<void>,[callback:Owned<Once<Function<Task<void>>>>,message:ReadOnly<string>]>;
+type Reject=Function<Task<void>,[callback:Once<Function<Task<void>>>,message?:ReadOnly<string>]>;
 async function main():Task<void>{
  const alias=rejects;await alias(async()=>{throw {code:'user-payload'};},'alias must observe a checked record');
  const stored:Reject=rejects;await stored(async()=>{throw 'stored checked payload';},'stored rejects must await');

@@ -37,3 +37,10 @@ fn owned_iterator_catalog_examples_execute_and_hide_private_cursor(){
   "import {Iterator} from 'std:iterator';function __tsrust_private_iterator_next(source:Mutable<Iterator<int>>):void{const pull=source._pull;}function main(){const values=Iterator.from([1]);__tsrust_private_iterator_next(values);}",
  ]{assert_eq!(checked(source).unwrap_err(),"iterator-member","{source}");}
 }
+
+#[test]
+fn array_cursor_results_follow_each_declared_item_type(){
+ let source="import {Iterator,IteratorResult} from 'std:iterator';function main(){const left:IteratorResult<int> = Iterator.from([1]).next();const right:IteratorResult<string> = Iterator.from(['x']).next();console.log(left.done,right.done);}";
+ assert!(checked(source).is_ok());
+ assert!(checked(&source.replace("const right:IteratorResult<string>","const right:IteratorResult<int>")).is_err());
+}

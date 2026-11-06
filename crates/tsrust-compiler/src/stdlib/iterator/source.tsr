@@ -39,10 +39,7 @@ function _create<T>(pull: Owned<Function<IteratorResult<T>>>): Iterator<T> {
 
 function _from<T>(values: Owned<T[]>): Iterator<T> {
   const cursor: ArrayCursor<T> = arrayCursor(values);
-  return _create<T>((): IteratorResult<T> => {
-    const result: IteratorResult<T> = arrayNext(cursor);
-    return result;
-  });
+  return _create<T>((): IteratorResult<T> => arrayNext(cursor));
 }
 
 function _next<T>(source: Mutable<Iterator<T>>): IteratorResult<T> {
