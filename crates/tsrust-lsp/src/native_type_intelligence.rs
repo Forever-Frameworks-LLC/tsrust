@@ -179,7 +179,7 @@ impl SourceIndex {
             let declaration = tsrust_compiler::native_types::declaration(identity);
             if identity==tsrust_compiler::native_signatures::NativeTypeId::StringView{return borrowed_string_builtins();}
 
-            if matches!(declaration.module,"std:regex"|"std:locale") {return builtins_for(declaration.name);}
+            if matches!(declaration.module,"std:regex"|"std:locale"|"std:compression"|"std:process"|"std:net") {return builtins_for(declaration.name);}
             if declaration.module=="std:url" {return if declaration.id==tsrust_compiler::native_signatures::NativeTypeId::Url{Vec::new()}else{builtins_for(declaration.name)};}
 
             if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}

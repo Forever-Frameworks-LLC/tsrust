@@ -850,6 +850,23 @@ compilation scope retained. This selects a feasible bridge/backend candidate;
 public compiler/editor/export/application acceptance and matched measurements
 remain unchecked above. Original direct-backend timings are not public API timings.
 
+Focused B08/B09 source acceptance (2026-11-06): all38 selected native/compiler
+scopes pass, combining unchanged successes across attempts6/7/8. This includes
+O0/O3 TCP/codec pipelines, retained and forwarded task inputs, single split
+consumption, byte-error property ordering, every codec catalog/field example,
+and relocated offline packages. Runtime161scopes, focused editor11cases,
+22completion rows in all4phases, all18checker receivers and16consistency subjects
+in all4phases pass. New accumulated unit witnesses pass14selected tests after
+prior23metadata and77affected-unit passes. Exact current handoff links results.
+These are focused checks, not a complete compiler/LSP regression claim.
+
+All47 selected benchmark wrappers (4address,6transport,36compression and affected
+io_file_copy) are source/ABI ready;11JS guards pass. Source preflight executes no
+workloads and records no timings. Actual matched native/Rust/Node correctness,
+family regressions, timing/allocation review and SQLite ingestion remain pending.
+The registered60000-byte UDP case remains required on a supporting host; native
+and Node return EMSGSIZE here. Platform and full-goal checkboxes remain open.
+
 ### B10 — HTTP client completeness and source-owned middleware
 
 Backend: existing Reqwest/Axum/Tower stack. B04/B05/B06; compression uses B09.

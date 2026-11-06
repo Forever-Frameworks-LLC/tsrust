@@ -1,0 +1,50 @@
+import { compressWriter, gunzip } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { get } from 'std:env';
+import { readFile, writeFile, create, removeFile } from 'std:fs';
+import { reader, writer, close } from 'std:io';
+import { length, at } from 'std:bytes';
+async function workload(n: int, seed: int): Task<int> {
+  const directory = unwrap(get('TSRUST_COMPRESSION_INPUT_DIR'));
+  if (directory === undefined) {
+    throw 'missing corpus';
+  }
+
+  const payload = unwrap(readFile(directory + '/random-' + String(seed) + '-plain.bin'));
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  let sum: int = 0;
+  for (let i: int = 0; i < (n === -1 ? 1 : n); i++) {
+    const path = directory + '/working-compression_gzip_writer_random.bin';
+    const transformed = unwrap(compressWriter(pool, writer(unwrap(create(path))), 'gzip'));
+    const input = clone(payload);
+    unwrap(await transformed.writeAll(input));
+    unwrap(await close(unwrap(await transformed.finish())));
+    const output = unwrap(readFile(path));
+    unwrap(removeFile(path));
+    if (n === -1) {
+      const path = unwrap(get('TSRUST_COMPRESSION_PROBE_OUTPUT'));
+      if (path === undefined) {
+        throw 'missing probe path';
+      }
+
+      unwrap(writeFile(path, output));
+      const size = length(output);
+      unwrap(pool.shutdown());
+      return size;
+    }
+
+    const decoded = unwrap(await gunzip(pool, output));
+    if (length(decoded) !== 16384) {
+      throw 'wrong decoded size';
+    }
+
+    for (let j: int = 0; j < 16384; j++) {
+      sum = (sum * 131 + unwrap(at(decoded, j))) % 1000000007;
+    }
+  }
+
+  unwrap(pool.shutdown());
+  return sum;
+}

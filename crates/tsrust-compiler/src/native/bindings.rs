@@ -71,17 +71,22 @@ impl NativeBinding {
     /// A byte observer reads any readable byte storage; a byte mutator writes any
     /// writable one. A stored function value keeps the declared parameter type.
     pub fn argument_alternatives(&self, position: usize) -> &'static [crate::native_signatures::NativeTypeId] {
+        if self.module=="std:net" && self.name=="__sendTo" && position==1{return &[crate::native_signatures::NativeTypeId::ByteView,crate::native_signatures::NativeTypeId::ByteViewMut];}
         if self.module=="std:io" {
             use crate::native_signatures::NativeTypeId::*;
             match (self.name.trim_start_matches('_'),position) {
                 ("reader",0)=>return &[BufferedReader,HttpBody,Bytes],
                 ("writer",0)=>return &[BufferedWriter],
-                ("close",0)=>return &[IoWriter,IoLineReader],
+                ("close",0)=>return &[IoWriter,IoLineReader,CompressionReader,CompressionWriter],
+                ("read"|"readInto"|"readExact"|"readAll"|"copy",0)=>return &[TcpStream,CompressionReader],
+                ("write"|"writeAll"|"flush",0)=>return &[TcpStream,CompressionWriter],
+                ("copy",1)=>return &[TcpStream,CompressionWriter],
                 ("readInto"|"readExact",1)=>return &[ByteViewMut],
                 ("write"|"writeAll",1)=>return &[ByteView,ByteViewMut],
                 _=>{},
             }
         }
+        if self.module=="std:compression"{use crate::native_signatures::NativeTypeId::*;match(self.name,position){("__readerReadInto"|"__readerReadExact",1)=>return &[ByteViewMut],("__writerWrite"|"__writerWriteAll",1)=>return &[ByteView,ByteViewMut],("__copy",0)=>return &[CompressionReader],("__copy",1)=>return &[CompressionWriter],_=>{}}}
         if self.module=="std:sqlite" && self.name=="__prepare" && position==0 {return &[crate::native_signatures::NativeTypeId::SqliteTransaction];}
         use crate::native_signatures::NativeTypeId::{ByteView, ByteViewMut, BufferedReader, BufferedWriter};
         if self.module == "std:json" && position == 0 && matches!(self.name,"asString"|"get"|"at"|"kind"|"asBoolean"|"asInt"|"asNumber"|"stringify") {
@@ -136,6 +141,41 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::process::bindings::WAIT,
     crate::stdlib::process::bindings::TRY_WAIT,
     crate::stdlib::process::bindings::KILL,
+ crate::stdlib::net::bindings::LISTEN,crate::stdlib::net::bindings::LISTEN_POLL,crate::stdlib::net::bindings::CONNECT,crate::stdlib::net::bindings::CONNECT_POLL,crate::stdlib::net::bindings::BIND_UDP,crate::stdlib::net::bindings::BIND_UDP_POLL,crate::stdlib::net::bindings::ACCEPT,crate::stdlib::net::bindings::LISTENER_ADDRESS,crate::stdlib::net::bindings::LISTENER_CLOSE,crate::stdlib::net::bindings::STREAM_LOCAL,crate::stdlib::net::bindings::STREAM_PEER,crate::stdlib::net::bindings::NO_DELAY,crate::stdlib::net::bindings::SHUTDOWN,crate::stdlib::net::bindings::SPLIT,crate::stdlib::net::bindings::STREAM_CLOSE,crate::stdlib::net::bindings::SEND_TO,crate::stdlib::net::bindings::RECEIVE_FROM,crate::stdlib::net::bindings::UDP_ADDRESS,crate::stdlib::net::bindings::UDP_CLOSE,
+ crate::stdlib::net::bindings::PARSE_IP,crate::stdlib::net::bindings::FORMAT_IP,crate::stdlib::net::bindings::PARSE_ADDRESS,crate::stdlib::net::bindings::FORMAT_ADDRESS,crate::stdlib::net::bindings::IS_IPV4,crate::stdlib::net::bindings::IS_IPV6,crate::stdlib::net::bindings::LOOKUP,crate::stdlib::net::bindings::LOOKUP_POLL,
+    crate::stdlib::compression::bindings::COMPRESSREADER,
+    crate::stdlib::compression::bindings::POLL_COMPRESSREADER,
+    crate::stdlib::compression::bindings::DECOMPRESSREADER,
+    crate::stdlib::compression::bindings::POLL_DECOMPRESSREADER,
+    crate::stdlib::compression::bindings::COMPRESSWRITER,
+    crate::stdlib::compression::bindings::POLL_COMPRESSWRITER,
+    crate::stdlib::compression::bindings::DECOMPRESSWRITER,
+    crate::stdlib::compression::bindings::POLL_DECOMPRESSWRITER,
+    crate::stdlib::compression::bindings::READER_READ,
+    crate::stdlib::compression::bindings::READER_READINTO,
+    crate::stdlib::compression::bindings::READER_READEXACT,
+    crate::stdlib::compression::bindings::READER_READALL,
+    crate::stdlib::compression::bindings::READER_FINISH,
+    crate::stdlib::compression::bindings::READER_CLOSE,
+    crate::stdlib::compression::bindings::WRITER_WRITE,
+    crate::stdlib::compression::bindings::WRITER_WRITEALL,
+    crate::stdlib::compression::bindings::WRITER_FLUSH,
+    crate::stdlib::compression::bindings::WRITER_FINISH,
+    crate::stdlib::compression::bindings::WRITER_CLOSE,
+    crate::stdlib::compression::bindings::COPY,
+    crate::stdlib::compression::bindings::GZIP,
+    crate::stdlib::compression::bindings::POLL_GZIP,
+    crate::stdlib::compression::bindings::GUNZIP,
+    crate::stdlib::compression::bindings::POLL_GUNZIP,
+    crate::stdlib::compression::bindings::DEFLATE,
+    crate::stdlib::compression::bindings::POLL_DEFLATE,
+    crate::stdlib::compression::bindings::INFLATE,
+    crate::stdlib::compression::bindings::POLL_INFLATE,
+    crate::stdlib::compression::bindings::DEFLATERAW,
+    crate::stdlib::compression::bindings::POLL_DEFLATERAW,
+    crate::stdlib::compression::bindings::INFLATERAW,
+    crate::stdlib::compression::bindings::POLL_INFLATERAW,
+
     crate::stdlib::io::bindings::READER,
     crate::stdlib::io::bindings::WRITER,
     crate::stdlib::io::bindings::STDOUT,
@@ -714,3 +754,6 @@ pub fn io_asynchronous(name:&str)->bool{crate::stdlib::io::asynchronous(name)}
 pub fn process_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::process::method(Some(identity),member)}
 
 pub fn process_asynchronous(name:&str)->bool{crate::stdlib::process::asynchronous(name)}
+pub fn network_method(identity:crate::native_signatures::NativeTypeId,name:&str)->Option<&'static NativeBinding>{crate::stdlib::net::method(Some(identity),name)}
+pub fn network_asynchronous(name:&str)->bool{crate::stdlib::net::asynchronous(name)}
+pub fn compression_asynchronous(name:&str)->bool{!crate::stdlib::compression::constructor(name.trim_start_matches('_'))}

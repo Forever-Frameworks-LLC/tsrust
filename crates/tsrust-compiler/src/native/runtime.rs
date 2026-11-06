@@ -52,7 +52,7 @@ pub fn json_module_with_writer(writer:bool)->String {
 /// This predicate preserves exact bundled module and Rust-binding detection without extraction.
 pub fn requires_dependencies(source:&str)->bool {
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    source.contains(crate::stdlib::process::RUNTIME) || source.contains(&crate::stdlib::io::runtime()) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
+    source.contains(crate::stdlib::process::RUNTIME) || source.contains(crate::stdlib::compression::RUNTIME) || source.contains(crate::stdlib::net::TRANSPORT_RUNTIME) || source.contains(crate::stdlib::net::DNS_RUNTIME) || source.contains(&crate::stdlib::io::runtime()) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
         || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains(crate::stdlib::threads::ASYNC_RUNTIME) || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("mod tsr_rust")
 }
 
@@ -95,9 +95,15 @@ pub fn separate(source:&str)->Units {
     );
     extract("tsrust_native_hostname",crate::stdlib::os::HOSTNAME_RUNTIME.to_owned());
     extract("tsrust_native_locale",crate::stdlib::locale::RUNTIME.to_owned());
+    extract("tsrust_native_net",crate::stdlib::net::RUNTIME.to_owned());
+    extract("tsrust_native_dns",crate::stdlib::net::DNS_RUNTIME.to_owned());
+    extract("tsrust_native_net_transport",crate::stdlib::net::TRANSPORT_RUNTIME.to_owned());
+    extract("tsrust_native_net_io",crate::stdlib::net::IO_RUNTIME.to_owned());
     extract("tsrust_native_regex",crate::stdlib::regex::RUNTIME.to_owned());
     extract("tsrust_native_url",crate::stdlib::url::RUNTIME.to_owned());
     extract("tsrust_native_process",crate::stdlib::process::RUNTIME.to_owned());
+    extract("tsrust_native_compression_streams",crate::stdlib::compression::STREAM_RUNTIME.to_owned());
+    extract("tsrust_native_compression",crate::stdlib::compression::RUNTIME.to_owned());
     extract("tsrust_native_io",crate::stdlib::io::runtime());
     extract("tsrust_native_http_io",crate::stdlib::io::HTTP_RUNTIME.to_owned());
     extract("tsrust_native_sql",crate::stdlib::sql::RUNTIME.to_owned());

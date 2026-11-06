@@ -11,34 +11,136 @@ Branch: `codex/stdlib-0.2.0`, based on verified released main8efaaee2.
 Read `AGENTS.md`, `docs/development-workflow.md` and `docs/agent-goal.md`, then
 this note. Inspect current source and `git status` before acting.
 
-## Current state — 2026-11-05
+## Current state — 2026-11-06
 
 Canonical source checkpoint **c2045518**, branch `codex/stdlib-0.2.0`: validated
-public subprocess +shared Task/context repairs +matched benchmark support. Only
-planning/evidence docs remain dirty; preserve them. Full B00–B20 remains active. No push/merge/publication.
+public subprocess +shared Task/context repairs +matched benchmark support. B08/B09 source integration is now dirty; preserve it. Full B00–B20 remains active. No push/merge/publication.
+
+**B08/B09 focused source acceptance is complete; full-family acceptance and measurement remain pending.** Public network
+and compression patches (83 and 170 files) are integrated. All 14 merge conflicts
+are resolved. Root is the only canonical writer; all workers are idle, with their
+managed trees and WIP refs preserved below. HEAD remains f479e241, accepted source
+c2045518; preserve the large staged/unstaged feature diff.
+
+**Heavy slot is free.** Attempt9 build passed566.176s/3,843,059KiB; terminal
+Cargo success verified in `/tmp/tsrust-b08-b09-attempt9-artifacts.jsonl` and
+`/tmp/tsrust-b08-b09-attempt9-build.log`. All heavy jobs are terminal. The final
+Regex speculative-hint repair is applied and validated. No rebuild is needed
+merely because session58573 vanished. One shared target, jobs1, incremental off,
+5GB/30minute watchdog, test threads3 remain mandatory.
+
+Accepted local evidence to preserve:
+- Attempt2 build passed561.327s/3,809,524KiB. Unchanged runtime sources passed
+  all161 selected scopes3.623s/24,400KiB: IO38,address4,transport44,buffer16,
+  stream59 (includes imported controls, not161distinct APIs).
+- Attempt3 build passed525.134s/3,819,427KiB. All23 signature/borrow/type units
+  passed0.526s/7,872KiB; focused LSP10/10 passed23.661s/43,328KiB.
+- Attempt5 build passed331.397s/3,830,819KiB after a fixture-only Rust format!
+  brace repair. All77 affected units passed1.577s/18,384KiB: hints3, view loans24,
+  task lifetime rendering4, error effects46. The final14 added/affected units pass below.
+- All22 completion rows now pass four phases. Original module coverage and
+  Compression groups passed; repaired Process/Network groups passed46.147s/
+  45,536KiB (`/tmp/tsrust-b08-b09-attempt5-matrix-gates.json`).
+- Attempt6 build passed274.212s/2,723,970KiB; native batch passed24/35 scopes,
+  terminal268.914s/569,072KiB. Attempt7 build passed274.609s/2,706,898KiB;
+  repaired native batch passed7/12 scopes, terminal171.489s/554,944KiB.
+  Together all focused network native scopes now pass, including offline export,
+  split, full-stream copy, generic task factories and JSON coordinates.
+  Source/result details: `/tmp/tsrust-b08-b09-attempt6-gates-compiler.json` and
+  attempt7 equivalent; preserve passed scopes instead of replaying full batches.
+- All3 locked offline full dependency graphs and all11 JS benchmark guards pass.
+  Portable setup passed15.681s/151,952KiB; current source pack is
+  `target/portable-source-packs/4b1614cc11be85b899f9825bb0a1365878277ca246e280cd5c1a8044a566c671`.
+
+Current fixes are integrated across compiler, native behavior, editor, docs,
+examples and matched support: one static copy kernel; full TCP/transform endpoint
+pairs and typed failures; address arity and applied-signature scopes; Result-data
+codec effects; nested awaited result hints; by-value union descriptor lifetimes
+and named provenance; shared catch owner slots; forwarded temporary ownership;
+source JSON filtering; compiler-only signature metadata classification; single
+split evaluation; ByteError ordering; borrowed codec formats; alias completions;
+all5 compression field docs and executable examples. Runtime bridge traits are
+Rust-public/doc-hidden solely to cross the prepared-library boundary; Tsrust's
+finite endpoint alternatives remain unchanged. A tiny cross-crate proof confirmed
+private associated errors fail and doc-hidden public traits compile.
+
+**Focused native correctness now passes all38 accumulated scopes**, preserving
+unchanged successes across attempts6/7/8. Attempt8's last7 scopes passed130.418s/
+552,352KiB, including both relocated codec exports, all base/transform copy pairs,
+fullTCP/transform copy in both directions at O0/O3, executable field/catalog
+examples, byte-error property order and generic typed-union temporaries.
+Results: `/tmp/tsrust-b08-b09-attempt8-gates-compiler.json`; combine with passed
+attempt6/7 rows, not failed/replayed rows. All focused network scopes already pass.
+The shared union-temporary annotation solved the five E0282 codec failures.
+
+Focused editor11/11 passes23.518s/48,032KiB on attempt8. All22 matrix rows across
+four phases pass, preserving earlier matrix evidence. Final standard consistency
+passed16subjects×4phases53.962s. Checker agreement initially completed17receivers
+before CompressionFormat wrong-arity String.match/matchAll/search probes exposed
+a speculative Regex hint panic; the validated repair is recorded below.
+The Regex speculative-hint repair now passes14 selected unit tests1.566s/
+18,416KiB, including both hint paths,12zero/full-arity cases, schema metadata and
+handler owner-slot assertions. Final CompressionFormat agreement passed2.091s/
+60,976KiB; all18receivers now complete. Consistency16subjects×4phases passed.
+Consolidated38native scopes: `/tmp/tsrust-b08-b09-focused-native-accepted.json`.
+All source/ABI benchmark repairs applied:47wrappers support-ready, including
+three optional character reads and the exact address handwritten-Rust ABI.
+11JS guards pass. Preflight JSONs `/tmp/tsrust-b08-b09-source-preflight-results.json`
+and `/tmp/tsrust-b08-address-proposal-results.json` preserve unchanged scopes.
+No workload execution or timing is claimed by this source preflight.
+
+Next: finish local source checkpoint after whole format/diff check. Then perform
+meaningful-family full compiler/LSP regressions, build verified release consumers
+for the benchmark runner (it uses target/release), execute matched correctness,
+measure affected workloads with original sample counts and ingest actual timings.
+Reuse unchanged controls. Include io_file_copy because the shared kernel changed.
+Do not redefine the full B00–B20 goal around this family. Workspace overrides point
+to target/debug/tsrust and tsrust-lsp; both are fresh. Process inspection found no
+active editor language-server process to restart. Managed stable ~/.cargo/bin
+consumers remain the released version; no unapproved replacement/publication.
+
+Native source records are JSON files in /tmp named by attempt and scope; no new
+public timings exist. Full compiler/LSP regressions, matched Rust/Node correctness,
+actual timing/allocation review and SQLite ingestion remain before closing this
+family. Full B00–B20 and platform requirements remain active, including UDP60000
+on a supporting host (both native and Node return EMSGSIZE on this Mac).
+
+Stored DNS forwarding uses named input storage: independent ordinary ReadOnly
+async task factories reject temporary borrows through a forwarding function too.
+The fixture retains stored/conditional/relay coverage with a named host; direct
+built-in literal/default calls remain covered. Hover/reference explain the rule.
+The lazy pool fixture now saves shutdown Result, awaits pending work, then unwraps
+shutdown: otherwise an early throw abandoned the pending task. No guard weakened.
+Network failure cleanup cancels/awaits child work and preserves the original error.
+All11 changed workload hashes were reviewed; Rust normal-path controls unchanged.
+Whole format/idempotence and diff checks passed; latest formatter is verified
+`target/debug/tsrust`. Before source commits rerun whole format as required.
+
+Disk cleanup removed210 obsolete duplicate executable variants older than2hours,
+6,466,239,968bytes, retaining latest variants and all active dependencies/sources.
+Free disk was7.6GiB after attempt7. Prune obsolete outputs before handoff; rebuild
+old consumers from Git if needed. No push, merge, tag or publication occurred.
 
 **B07 performance is measured and ingested.** Sourcec2045518; planning/evidence
-checkpoint4e0439fc. Actual run62773 PASS285.317s/677,930KiB, quietmax3.95361328125<4,
+checkpoint4e0439fc; measured DB/evidence checkpoint **f479e241**. Actual run62773 PASS285.317s/677,930KiB, quietmax3.95361328125<4,
 4workloads×3engines×93samples. SQLite12new histories verified for medians, mean
 throughput, date/samplecount and integrity. Medianms native/Rust/Node per10ops:
 launch13.416708/13.377709/14.321500; capture15.120458/15.159625/21.699833;
 byte duplex14.037792/14.054167/17.768291; Reader14.072500/14.120167/17.752166.
 Within0.4%ofRust end-to-end; Node/native1.07–1.44. Includes OSlaunch/pipe work;
 not pure compiler overhead. No material regression or optimization indicated.
-Raw run `results/2026-11-06T03-20-26-164Z.json` now ingested; reusable controls stay
-cached. Current-host performance complete; platform/full-family gates still open.
+Raw run `results/2026-11-06T03-20-26-164Z.json` ingested and disposable loose file
+removed after verification; reusable Rust/Node controls stay cached in SQLite. Current-host performance complete; platform/full-family gates still open.
 
 Allocation19786 PASS155.430s/659,930KiB,4cases×3samples after one runtime/warmup,
 allchecksums/helpersource/library guards. Counts per10ops launch61/10alloc/realloc,
 capture191–194/220,byte213–216/110,Reader212–213/110;peaks553/66,640–66,800/
 50,000–50,352/50,352–50,416bytes. Signed globalafterdrop−352..352 (launchall0),
 not a leak/cache proof. `diagnostics/2026-11-06T03-28-04-883Z-native-allocations.json`.
-Both jobs terminal; heavy slot free. Commit measured DB/evidence after format,
-then integrate dependency-ready B08/B09 complete source families from worker
-patches, preserving c204process/callback/context changes. Mixed fullTCP↔compression
-copy gap is concrete: both finite enums misclassify the other's full endpoint.
-B06 recommends one private shared copy kernel with typed errors/monomorphized
-futures, no public protocol/Arc/box; root design review still pending before edits.
+Timing/verify/allocation loose JSONs were removed after durable summaries and
+SQLite verification, per owner retention policy. Both B07 jobs are terminal;
+measured DB/evidence is committed. Current B08/B09 build and next actions are
+recorded above; preserve c204process/callback/context/ABI behavior.
 
 Matched correctness4296 PASS163.719s/675,866KiB:60checks (4×5×3), verify result
 `results/2026-11-06T03-06-16-728Z-verify.json` has empty timing arrays, not ingested.

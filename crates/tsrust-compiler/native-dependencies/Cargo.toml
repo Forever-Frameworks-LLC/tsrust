@@ -59,7 +59,11 @@ accesskit = { version = "=0.25.1", optional = true }
 accesskit_winit = { version = "=0.34.0", optional = true }
 arboard = { version = "=3.7.0", default-features = false, features = ["wayland-data-control"], optional = true }
 
+flate2 = { version = "=1.1.10", default-features = false, features = ["zlib-rs", "runtime_detection"], optional = true }
+
 [features]
+compression-streams = ["compression", "io"]
+compression = ["dep:flate2", "threads", "async"]
 locale = ["dep:icu_provider", "dep:icu_collator", "dep:icu_decimal", "dep:icu_locale", "dep:icu_segmenter", "dep:fixed_decimal", "decimal"]
 cancellation = ["dep:tokio-util"]
 regex = ["dep:regex"]

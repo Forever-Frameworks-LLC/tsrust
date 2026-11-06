@@ -607,6 +607,17 @@ mod tests {
         id
     }
     #[test]
+    fn borrowed_union_injection_preserves_named_storage_but_not_temporary_ownership() {
+        let mut context=Context::new("test".into());let root=local(&mut context,"family");
+        let union=crate::syntax::UnionId{index:0,copy:false,scalar_members:false};
+        let injected=|payload:Expr,borrowed:bool|{let mut value=Expr::new(ExprKind::Inject{value:Box::new(payload),union},Span::default());value.ty=Some(if borrowed{Type::BorrowedUnion(union)}else{Type::Union(union)});value};
+        let sources=super::super::native_view_places::sources(&context,&injected(name(&context,root),true)).unwrap();
+        assert_eq!(sources.len(),1);assert_eq!(sources[0].root,root);
+        let temporary=Expr::new(ExprKind::String("any".into()),Span::default());
+        assert_eq!(super::super::native_view_places::sources(&context,&injected(temporary,true)).unwrap_err().code,"native-view-source");
+        assert_eq!(super::super::native_view_places::sources(&context,&injected(name(&context,root),false)).unwrap_err().code,"native-view-source");
+    }
+    #[test]
     fn readonly_native_view_blocks_owner_mutation_transfer_and_replacement() {
         let mut context = Context::new("test".into());
         let owner = local(&mut context, "owner");

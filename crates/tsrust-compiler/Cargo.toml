@@ -45,6 +45,8 @@ windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Secu
 libc = "=0.2.183"
 
 [dev-dependencies]
+# Compile the exact selected compression backend only for runtime witnesses.
+flate2 = { version = "=1.1.10", default-features = false, features = ["zlib-rs", "runtime_detection"] }
 tokio-util = { version = "=0.7.20", default-features = false }
 regex = "=1.13.1"
 icu_provider = { version = "=2.3.1", default-features = false, features = ["sync"] }

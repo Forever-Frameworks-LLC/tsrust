@@ -57,6 +57,8 @@ pub(super) fn sources(
                     pending.push(last);
                 }
             }
+            // Readonly injection builds a descriptor over the same payload owner.
+            ExprKind::Inject { value: payload, .. } if matches!(value.ty, Some(Type::BorrowedUnion(_))) => pending.push(payload),
             ExprKind::TypeAssertion { value, .. } | ExprKind::Project { value, .. } => {
                 pending.push(value)
             }

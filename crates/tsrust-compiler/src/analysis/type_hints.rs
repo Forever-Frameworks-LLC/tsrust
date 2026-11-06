@@ -48,7 +48,9 @@ impl Analyzer{
                     ExprKind::CoalesceAssign{target,value:child,..}=>work.push(Work::Coalesce{left:target,right:child,span:expr.span,undefined_only:false}),
                     ExprKind::LogicalAssign{target,..}=>{work.push(Work::LogicalAssignment);work.push(Work::Expression(target));},
                     ExprKind::Update{target,..}|ExprKind::Assign{target,..}|ExprKind::CompoundAssign{target,..}=>work.push(Work::Expression(target)),
-                    ExprKind::Unary{op,value:child,..}=>match op{
+                    ExprKind::Unary{op,value:child,..}=>{
+                        if *op==UnaryOp::Await && let Some(result)=crate::stdlib::futures::lazy_native_result(child){work.push(Work::Expression(result));}
+                        else{match op{
                         UnaryOp::Await if matches!(&child.kind,ExprKind::Call(callee,_) if (matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..}) || matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:result#unwrap")))=>work.push(Work::Expression(child)),
                         UnaryOp::Await if matches!(&child.kind,ExprKind::Call(callee,_) if matches!(callee.kind,ExprKind::Field(..)))=>{let ExprKind::Call(callee,_)=&child.kind else{unreachable!()};let ExprKind::Field(base,_)=&callee.kind else{unreachable!()};work.push(Work::AwaitMethod(child));work.push(Work::Expression(base));},
                         UnaryOp::VariantIs(_)|UnaryOp::Not=>value=Some(Type::Boolean),
@@ -56,7 +58,7 @@ impl Analyzer{
                         UnaryOp::BitNot=>value=Some(self.bitwise_or_power_type(context,child,None,None)),
                         UnaryOp::PatternSelection=>work.push(Work::Pattern(child)),
                         _=>{work.push(Work::Unary(*op));work.push(Work::Expression(child));},
-                    },
+                    }}},
                     ExprKind::Binary{op,left,right,..}=>match op{
                         BinaryOp::Coalesce|BinaryOp::PatternDefault=>work.push(Work::Coalesce{left,right,span:expr.span,undefined_only:*op==BinaryOp::PatternDefault}),
                         BinaryOp::And|BinaryOp::Or=>work.push(Work::Logical{left,right,op:*op,span:expr.span}),

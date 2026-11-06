@@ -5,6 +5,8 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
     ProcessChild,ProcessCommandOptions,ProcessExitStatus,ProcessOutput,ProcessError,
+    IpAddress,SocketAddress,NetError,TcpListener,TcpStream,UdpSocket,Datagram,
+    CompressionOptions,DecompressionOptions,CompressionError,CompressionReader,CompressionWriter,
     Url, SearchParams, UrlError, QueryEntry,
     Regex, RegexMatch, RegexCaptures, RegexError, RegexOptions,
     Locale, Collator, Segmenter, NumberFormat, SegmentRange, LocaleError, CollatorOptions, NumberFormatOptions,
@@ -125,6 +127,7 @@ pub enum Intrinsic {
 /// spelling. The resolver must intern it in the destination checked program.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Signature {
+    Undefined,
     String,
     StringLiteral(&'static str),
     Boolean,
@@ -139,6 +142,7 @@ pub enum Signature {
     /// Absence uses the ordinary undefined alternative, including borrowed values.
     Optional(&'static Signature),
     Array(&'static Signature),
+    Tuple(&'static [Signature]),
     Union(&'static [Signature]),
     Result(&'static Signature, &'static Signature),
     Intrinsic(Intrinsic),
@@ -167,14 +171,18 @@ impl Signature {
                 | Self::Boolean
                 | Self::Int
                 | Self::Number
+                | Self::Undefined
                 | Self::Void
                 | Self::Intrinsic(_)
         ) {
             return Ok(false);
         }
-        let mut pending = vec![(self, 0usize)];
+        // Applied record fields resolve parameters in their own argument scope.
+        // Each argument itself resolves in the enclosing scope.
+        let mut scopes = vec![(parameters, 0usize)];
+        let mut pending = vec![(self, 0usize, 0usize)];
         let mut visited = 0;
-        while let Some((signature, depth)) = pending.pop() {
+        while let Some((signature, depth, scope)) = pending.pop() {
             if depth > 128 {
                 return Err(RenderError::Depth);
             }
@@ -183,7 +191,10 @@ impl Signature {
                 return Err(RenderError::Size);
             }
             match signature {
-                Self::Parameter(index) => pending.push((parameters.get(*index).ok_or(RenderError::MissingParameter(*index))?, depth + 1)),
+                Self::Parameter(index) => {
+                    let (arguments, enclosing) = scopes[scope];
+                    pending.push((arguments.get(*index).ok_or(RenderError::MissingParameter(*index))?, depth + 1, enclosing));
+                }
                 Self::Named(id) => {
                     let declaration = crate::native_types::declaration(*id);
                     if !declaration.type_parameters.is_empty() { return Err(RenderError::Arity(*id)); }
@@ -194,21 +205,23 @@ impl Signature {
                         declaration
                             .fields
                             .iter()
-                            .map(|field| (&field.signature, depth + 1)),
+                            .map(|field| (&field.signature, depth + 1, scope)),
                     );
                 }
                 Self::Applied(id, arguments) => {
                     let declaration = crate::native_types::declaration(*id);
                     if declaration.type_parameters.len() != arguments.len() { return Err(RenderError::Arity(*id)); }
                     if declaration.borrow_access().is_some() { return Ok(true); }
-                    pending.extend(arguments.iter().map(|argument| (argument, depth + 1)));
-                    pending.extend(declaration.fields.iter().map(|field| (&field.signature, depth + 1)));
+                    pending.extend(arguments.iter().map(|argument| (argument, depth + 1, scope)));
+                    let applied = scopes.len();
+                    scopes.push((*arguments, scope));
+                    pending.extend(declaration.fields.iter().map(|field| (&field.signature, depth + 1, applied)));
                 }
-                Self::Union(members) => pending.extend(members.iter().map(|member| (member, depth + 1))),
-                Self::Array(element) | Self::Optional(element) => pending.push((element, depth + 1)),
+                Self::Union(members) | Self::Tuple(members) => pending.extend(members.iter().map(|member| (member, depth + 1, scope))),
+                Self::Array(element) | Self::Optional(element) => pending.push((element, depth + 1, scope)),
                 Self::Result(value, error) => {
-                    pending.push((error, depth + 1));
-                    pending.push((value, depth + 1));
+                    pending.push((error, depth + 1, scope));
+                    pending.push((value, depth + 1, scope));
                 }
                 _ => {}
             }
@@ -224,7 +237,7 @@ impl Signature {
 
     pub fn render_with_parameters(&self, mut visible: impl FnMut(NativeTypeId) -> Option<String>, mut parameter: impl FnMut(usize) -> Option<String>) -> Result<std::borrow::Cow<'static, str>, RenderError> {
         let primitive = match self {
-            Self::String => Some("string"), Self::Boolean => Some("boolean"),
+            Self::Undefined => Some("undefined"), Self::String => Some("string"), Self::Boolean => Some("boolean"),
             Self::Int => Some("int"), Self::Number => Some("number"), Self::Void => Some("void"), Self::Null => Some("null"),
             Self::Intrinsic(Intrinsic::ProgramReusableVoidCallback) => Some("Mutable<Function<void>>"),
             Self::Intrinsic(Intrinsic::ProgramVoidCallback) => Some("Owned<Function<void>>"),
@@ -247,6 +260,7 @@ impl Signature {
                     visited += 1;
                     if visited > 4096 { return Err(RenderError::Size); }
                     match signature {
+                        Self::Undefined => output.push_str("undefined"),
                         Self::String => output.push_str("string"),
                         Self::StringLiteral(value) => output.push_str(&serde_json::to_string(value).expect("native string literal")),
                         Self::Boolean => output.push_str("boolean"),
@@ -279,6 +293,10 @@ impl Signature {
                         Self::Array(element) => {
                             pending.push(Work::Text("[]"));
                             pending.push(Work::Type(element, depth + 1));
+                        }
+                        Self::Tuple(members) => {
+                            output.push('[');pending.push(Work::Text("]"));
+                            for(index,member)in members.iter().enumerate().rev(){pending.push(Work::Type(member,depth+1));if index>0{pending.push(Work::Text(", "));}}
                         }
                         Self::Union(members) => {
                             output.push('(');
@@ -425,6 +443,38 @@ mod tests {
             let rendered = ty.signature().render(|_| None).unwrap();
             assert!(matches!(rendered, std::borrow::Cow::Borrowed(_)));
             assert_eq!(rendered, expected);
+        }
+    }
+}
+
+#[cfg(test)]mod tuple_signature_tests{use super::*;#[test]fn tuples_render_and_traverse_nested_borrowed_native_storage(){let signature=Signature::Result(&Signature::Tuple(&[Signature::Named(NativeTypeId::TcpStream),Signature::Named(NativeTypeId::SocketAddress)]),&Signature::Named(NativeTypeId::NetError));assert_eq!(signature.render(|id|Some(crate::native_types::declaration(id).name.into())).unwrap(),"Result<[TcpStream, SocketAddress], NetError>");assert!(!signature.contains_borrowed_native().unwrap());assert!(Signature::Tuple(&[Signature::Named(NativeTypeId::ByteView),Signature::Int]).contains_borrowed_native().unwrap());}}
+
+#[cfg(test)]
+mod applied_record_scope_tests {
+    use super::*;
+    #[test]
+    fn applied_record_fields_resolve_inner_arguments_in_the_outer_scope() {
+        let concrete = Signature::Applied(NativeTypeId::ThreadError, &[Signature::Undefined]);
+        assert_eq!(concrete.contains_borrowed_native(), Ok(false));
+        let generic = Signature::Applied(NativeTypeId::ThreadError, &[Signature::Parameter(0)]);
+        let nested = Signature::Applied(NativeTypeId::SendError, &[
+            Signature::Applied(NativeTypeId::ThreadError, &[Signature::Parameter(0)])
+        ]);
+        for signature in [generic, nested] {
+            assert_eq!(signature.contains_borrowed_native_with_parameters(&[Signature::String]), Ok(false));
+            assert_eq!(signature.contains_borrowed_native_with_parameters(&[Signature::Named(NativeTypeId::ByteView)]), Ok(true));
+            assert_eq!(signature.contains_borrowed_native(), Err(RenderError::MissingParameter(0)));
+        }
+    }
+    #[test]
+    fn concrete_network_and_compression_signatures_have_no_inherited_generics() {
+        for id in [NativeTypeId::IpAddress, NativeTypeId::SocketAddress,
+            NativeTypeId::NetError, NativeTypeId::TcpListener, NativeTypeId::TcpStream,
+            NativeTypeId::UdpSocket, NativeTypeId::Datagram, NativeTypeId::CompressionReader,
+            NativeTypeId::CompressionWriter, NativeTypeId::CompressionOptions,
+            NativeTypeId::DecompressionOptions, NativeTypeId::CompressionError] {
+            assert!(crate::native_types::declaration(id).type_parameters.is_empty(), "{id:?}");
+            assert_eq!(Signature::Named(id).contains_borrowed_native(), Ok(false), "{id:?}");
         }
     }
 }

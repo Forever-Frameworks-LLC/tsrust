@@ -14,7 +14,7 @@ fn key(signature:&Signature,parameters:&[Signature])->Result<String,Diagnostic>{
 /// Prepare a concrete type shape. Callable borrowed-result validation remains in
 /// prepare; this helper does not register or authorize a native callable.
 pub(crate) fn prepare_signature(records:&mut Vec<Record>,signature:&Signature,parameters:&[Signature],span:Span)->Result<(),Diagnostic>{
-    if *signature == Signature::Void { return Ok(()); }
+    if matches!(signature,Signature::Void|Signature::Undefined) { return Ok(()); }
     let name=key(signature,parameters)?;
     if records.iter().any(|record|record.name.text==name){return Ok(());}
     let annotation=crate::native_type_resolution::project_with_parameters(records,signature,parameters,span)?;
@@ -26,8 +26,17 @@ pub(crate) fn prepare_signature(records:&mut Vec<Record>,signature:&Signature,pa
     Ok(())
 }
 
+/// These records hold type-resolution metadata, never runtime-owned fields.
+/// Keep this recognition private to compiler-created, reserved-name witnesses.
+pub(crate) fn is_signature_record(record:&Record)->bool {
+    record.native_type.is_none() && record.application.is_none()
+        && record.name.text.strip_prefix(crate::type_aliases::LINKED_PREFIX).is_some_and(|name|name.starts_with("native-signature#"))
+        && record.fields.len()==1 && record.fields[0].name.text=="signature#value"
+}
+
 pub(crate) fn resolve_signature(records:&[Record],signature:&Signature,parameters:&[Signature])->Option<Type>{
     if *signature == Signature::Void { return Some(Type::Void); }
+    if *signature == Signature::Undefined { return Some(Type::Undefined); }
     let name=key(signature,parameters).ok()?;
     records.iter().find(|record|record.name.text==name)?.fields.first()?.ty
 }
@@ -69,6 +78,17 @@ mod tests {
     use super::*;
     use crate::native_bindings::{NativeBackend, NativeParameter};
     use crate::native_signatures::NativeTypeId;
+    #[test]
+    fn thread_pool_signature_metadata_is_not_owner_storage() {
+        let mut program=crate::syntax::parse("function main(){}").unwrap();
+        prepare_signature(&mut program.records,&Signature::Named(NativeTypeId::ThreadPool),&[],Span::default()).unwrap();
+        assert_eq!(program.records.iter().filter(|record|is_signature_record(record)).count(),1);
+        let checked=crate::analysis::analyze(program).unwrap();
+        let ty=resolve_signature(&checked.records,&Signature::Named(NativeTypeId::ThreadPool),&[]).unwrap();
+        let Type::Record(id)=ty else{panic!("pool identity")};
+        assert_eq!(checked.records[id].native_type,Some(NativeTypeId::ThreadPool));
+    }
+
     #[test]
     fn instantiated_schema_signatures_keep_element_identity() {
         static ARRAY_SCHEMA:Signature=Signature::Applied(NativeTypeId::Schema,&[Signature::Array(&Signature::Parameter(0))]);

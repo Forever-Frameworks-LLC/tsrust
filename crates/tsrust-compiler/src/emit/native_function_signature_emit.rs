@@ -93,7 +93,7 @@ impl Emitter<'_> {
                 let b = &fun.bindings[index];
                 let input_ty = b.input_ty.unwrap_or(b.ty);
                 let qualifier = match b.mode {
-                    Mode::Read if matches!(input_ty,Type::Union(id) if !id.copy) => "",
+                    Mode::Read if matches!(input_ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy) => "",
                     Mode::Read => "&",
                     Mode::Mutate
                         if (b.omission.is_omittable() || self.multiple_data_union(input_ty))
@@ -131,7 +131,7 @@ impl Emitter<'_> {
                                     && b.mode == Mode::Mutate
                                 {
                                     self.native_argument_type(ArgumentContract::from(b), "")
-                                } else if let Type::Union(id) = input_ty
+                                } else if let Type::Union(id) | Type::BorrowedUnion(id) = input_ty
                                     && !id.copy
                                     && b.mode == Mode::Read
                                 {
@@ -144,7 +144,7 @@ impl Emitter<'_> {
                         )
                 };
                 let qualifier = if let Some(lifetime)=native_lifetimes.storage(index) {
-                    match b.mode {Mode::Read=>format!("&{lifetime} "),Mode::Mutate=>format!("&{lifetime} mut "),_=>qualifier.to_owned()}
+                    match b.mode {Mode::Read if matches!(input_ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy)=>String::new(),Mode::Read=>format!("&{lifetime} "),Mode::Mutate=>format!("&{lifetime} mut "),_=>qualifier.to_owned()}
                 } else if borrow_lifetimes.contains_key(&index) && !qualifier.is_empty() {
                     match b.mode {
                         Mode::Read => format!("&'record_input{} ", borrow_lifetimes[&index]),

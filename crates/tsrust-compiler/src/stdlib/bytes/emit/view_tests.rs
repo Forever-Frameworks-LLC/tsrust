@@ -552,6 +552,7 @@ fn native_view_factory_bridges_name_the_source_lifetime() {
             &super::super::bindings::VIEW,
             &super::super::bindings::VIEW_MUT,
         ],
+        &std::collections::HashSet::new(),
     );
     // Readonly projections preserve the original slice lifetime through the
     // shared-source trait; exclusive projections retain the receiver borrow.

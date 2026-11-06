@@ -1,0 +1,1 @@
+function workload(n:number,seed:number,text:string):number{const {SocketAddress,isIP}=require("node:net");let sum=0;for(let i=0;i<n;i++){const family=isIP(text);if(family===0)throw Error("invalid IP");sum=(sum*131+family+seed+i)%1000000007;}return sum;}

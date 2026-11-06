@@ -19,7 +19,7 @@ impl Emitter<'_>{
   format!("match {call}{{Ok(value)=>Union{}::V{}({}),Err(error)=>Union{}::V{}({})}}",id.index(),tag(ok),record(ok,fields),id.index(),tag(err),record(err,format!("field0:{failed},")))
  }
  pub(super) fn io_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
-  let binding=&crate::native_bindings::BINDINGS[id];if binding.module!="std:io"{return None;}self.native_bindings.borrow_mut().insert(id);
+  let binding=&crate::native_bindings::BINDINGS[id];if binding.module!="std:io"{return None;}if let Some(call)=self.compression_io_native(fun,expr,id,args){return Some(call);}self.native_bindings.borrow_mut().insert(id);
   let values=args.iter().zip(binding.parameters).map(|(arg,parameter)|self.expr(fun,arg,parameter.access)).collect::<Vec<_>>();
   let receiver=values.first().cloned().unwrap_or_default();let optional=|index:usize|args.get(index).map(|arg|self.native_optional_argument(&binding.parameters[index],values[index].clone(),arg.ty.unwrap())).unwrap_or("None".into());
   let name=binding.name.trim_start_matches('_');
@@ -34,7 +34,7 @@ impl Emitter<'_>{
    "readInto"|"readExact"=>format!("({receiver}).{}(({}).writable_bytes()).await",if name=="readInto"{"read_into"}else{"read_exact"},values[1]),
    "write"|"writeAll"=>format!("({receiver}).{}(({}).readable_bytes()).await",if name=="write"{"write"}else{"write_all"},values[1]),
    "flush"|"close"=>format!("({receiver}).{name}().await"),
-   "copy"=>format!("tsrust_native_io::copy({receiver},{},{}.unwrap_or(tsrust_native_io::BUFFER_SIZE as i64),{}).await",values[1],optional(2),optional(3)),
+   "copy"=>{let tcp=|index:usize|matches!(args[index].ty,Some(Type::Record(record))if self.program.records[record].native_type==Some(NativeTypeId::TcpStream));if tcp(0)||tcp(1){format!("tsrust_native_net_io::copy(tsrust_native_net_io::CopyReader::{}({receiver}),tsrust_native_net_io::CopyWriter::{}({}),{}.unwrap_or(tsrust_native_io::BUFFER_SIZE as i64),{}).await",if tcp(0){"Tcp"}else{"Io"},if tcp(1){"Tcp"}else{"Io"},values[1],optional(2),optional(3))}else{format!("tsrust_native_io::copy({receiver},{},{}.unwrap_or(tsrust_native_io::BUFFER_SIZE as i64),{}).await",values[1],optional(2),optional(3))}},
    "lines"=>format!("tsrust_native_io::LineReader::new({receiver},{})",optional(1)),
    "readLine"=>format!("({receiver}).read_line().await"),"readLineStdin"=>format!("({receiver}).read_line({})",optional(1)),
    _=>unreachable!("registered I/O operation"),

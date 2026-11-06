@@ -1,4 +1,7 @@
+import {assertNetworkAddressReference} from './network-address-contract.mjs';
 import {processABI,processRustDriver,processAllocationDriver} from './process-contract.mjs';
+import {networkTransportABI,networkTransportRustDriver,networkTransportAllocationDriver} from './network-transport-contract.mjs';
+import {compressionABI,compressionRustDriver,compressionAllocationDriver} from './compression-contract.mjs';
 import {asyncIoABI,asyncIoRustDriver,asyncIoAllocationDriver} from './async-io-contract.mjs';
 import {taskErgonomicsABI,taskErgonomicsRustDriver,taskErgonomicsSupport} from './task-ergonomics-contract.mjs';
 import {moduleStateABI,moduleStateDriver} from './module-state-contract.mjs';
@@ -45,6 +48,8 @@ function copyingNativeObserver(w,emitted,source){const binding=verifyCopyingResu
 export const rustResults = {'boolean[][]': 'Array<NumericArray<bool>>', 'number': 'f64', 'number[]': 'Vec<f64>', 'boolean[]': 'NumericArray<bool>', 'number[][]': 'Vec<Vec<f64>>', 'string[][]': 'Vec<Array<String>>', 'int[][][]': 'Vec<Array<NumericArray<i64>>>', 'int': 'i64', 'string[]': 'Array<String>', 'int[]': 'NumericArray<i64>', 'int[][]': 'Array<NumericArray<i64>>'};
 export function assertABI(emitted, workload, {source} = {}) {
  if(workload.family==='child-processes')return processABI(emitted,workload,source);
+ if(workload.family==='network-transport')return networkTransportABI(emitted,workload,source);
+ if(workload.family==='compression')return compressionABI(emitted,workload,source);
  if(workload.family==='async-io')return asyncIoABI(emitted,workload,source);
  if(workload.family==='task-ergonomics')return taskErgonomicsABI(emitted,workload,source);
  if(workload.family==='module-state')return moduleStateABI(emitted,workload,source);
@@ -63,7 +68,7 @@ function ordinaryWorkloadBinding(emitted, workload, source) {
  const fixed = fixedArrayResults(emitted);
  const parameters = `value0: i64, value1: i64${workload.inputText === undefined ? '' : ', value2: &String'}${workload.scalarCoordinates ? `, value${workload.inputText === undefined ? 2 : 3}: i64` : ''}`;
  const matches = [...emitted.matchAll(/\bfn ((?:tsr_result_)?function\d+)\(([^)\n]*)\) -> ([^\n{]+)\s*\{/g)]
-  .filter(match => match[2] === parameters && (match[3].trim() === result || match[3].trim() === fixedArrayResult(fixed.get(match[1]),workload.result) || (['explicit-locale','regex-text','path-env-os','native-url','byte-codecs','byte-operations','native-schema','native-json','environment','native-files','native-byte-views','native-byte-clone','result-match','caller-borrowed-record-stores','scoped-record-composition','path-relative','generic-callable-replacement','generic-value-adapters','generic-function-contexts','nested-function-rest','nested-function-defaults','nested-function-results','nested-function-owned-escape','fallible-record-callbacks','exception-completion','array-callback-errors','string-indexing'].includes(workload.family) && match[3].trim().startsWith(`Result<${result},`) && /^Result<.*TsrFunctionError\d+.*>$/.test(match[3].trim()))));
+  .filter(match => match[2] === parameters && (match[3].trim() === result || match[3].trim() === fixedArrayResult(fixed.get(match[1]),workload.result) || (['network-addresses','explicit-locale','regex-text','path-env-os','native-url','byte-codecs','byte-operations','native-schema','native-json','environment','native-files','native-byte-views','native-byte-clone','result-match','caller-borrowed-record-stores','scoped-record-composition','path-relative','generic-callable-replacement','generic-value-adapters','generic-function-contexts','nested-function-rest','nested-function-defaults','nested-function-results','nested-function-owned-escape','fallible-record-callbacks','exception-completion','array-callback-errors','string-indexing'].includes(workload.family) && match[3].trim().startsWith(`Result<${result},`) && /^Result<.*TsrFunctionError\d+.*>$/.test(match[3].trim()))));
  // Nongeneric workload-first sources have a stable declaration index. A
  // same-signature helper must not make their actual workload ambiguous.
  const firstDeclaration = typeof source === 'string' ? /\bfunction\s+(\w+)\s*([<(])/.exec(source) : null;
@@ -110,7 +115,10 @@ export function rustChecksum(workload, {probe = false,emitted,source,reference=f
  return `fn ${name}(values: ${parameter}) -> i64 { let mut result = 0_i64; ${body} result }`;
 }
 export function adaptRustDriver(driver, workload, {probe = false,emitted,source,reference=false} = {}) {
+ if(reference&&workload.family==='network-addresses')assertNetworkAddressReference(emitted,workload);
  if(workload.family==='child-processes'){if(probe)return processAllocationDriver(driver,workload,emitted,source,{reference});return processRustDriver(workload,emitted,source,{reference});}
+ if(workload.family==='network-transport'){if(probe)return networkTransportAllocationDriver(driver,workload,emitted,source,{reference});return networkTransportRustDriver(workload,emitted,source,{reference});}
+ if(workload.family==='compression'){if(probe)return compressionAllocationDriver(driver,workload,emitted,source,{reference});return compressionRustDriver(workload,emitted,source,{reference});}
  if(workload.family==='async-io'){if(probe)return asyncIoAllocationDriver(driver,workload,emitted,source,{reference});return asyncIoRustDriver(workload,emitted,source,{reference});}
  if(workload.family==='task-ergonomics'){if(probe)throw Error('Task benchmarks use runtime-once correctness invocations');return taskErgonomicsRustDriver(workload,emitted,source,{reference});}
  if(workload.family==='module-state')return moduleStateDriver(driver,workload,emitted,source,{reference});
@@ -147,7 +155,7 @@ export function adaptRustDriver(driver, workload, {probe = false,emitted,source,
   if (probe) driver = driver.replace('std::hint::black_box(7)))', `std::hint::black_box(7)${argumentsCode}))`);
   else driver = driver.replaceAll('std::hint::black_box(seed),', `std::hint::black_box(seed)${argumentsCode},`);
  }
- if (emitted !== undefined && !isCopying(workload) && !isRange(workload) && !isHigher(workload) && !isDeclared(workload) && !isConcat(workload) && !isReduction(workload)) {
+ if (emitted !== undefined && !(reference&&workload.family==='network-addresses') && !isCopying(workload) && !isRange(workload) && !isHigher(workload) && !isDeclared(workload) && !isConcat(workload) && !isReduction(workload)) {
   const {functionName,parameters,result,fallible} = ordinaryWorkloadBinding(emitted, workload, source);
   if(fallible){
    const args=parameters.split(', ').map(parameter=>parameter.split(':')[0]).join(',');
@@ -163,7 +171,7 @@ export function adaptRustDriver(driver, workload, {probe = false,emitted,source,
  return driver;
 }
 export function adaptTSDriver(driver, workload) {
- if(['async-io','task-ergonomics','child-processes'].includes(workload.family))return taskErgonomicsSupport['async-driver.ts'];
+ if(['async-io','task-ergonomics','child-processes','network-transport','compression'].includes(workload.family))return taskErgonomicsSupport['async-driver.ts'];
  if(isCopying(workload))assertCopyingPolicy(workload);
  if(isRange(workload))assertRangePolicy(workload);
  if(isHigher(workload))assertHigherPolicy(workload);

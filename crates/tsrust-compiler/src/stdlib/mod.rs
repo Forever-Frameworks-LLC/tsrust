@@ -43,3 +43,5 @@ pub(crate) mod locale;
 pub(crate) mod io;
 
 pub(crate) mod process;
+pub(crate) mod net;
+pub(crate) mod compression;

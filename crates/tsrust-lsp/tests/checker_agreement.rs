@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {Reader,Writer,LineReader,Stdin,IoError} from 'std:io';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {Locale,Collator,Segmenter,NumberFormat,SegmentRange,LocaleError,CollatorOptions,NumberFormatOptions} from 'std:locale';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Interval,CancellationToken,Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {Child as ProcessChild,CommandOptions,ExitStatus,Output,ProcessError} from 'std:process';\nimport {IpAddress,SocketAddress,NetError,TcpListener,TcpStream,UdpSocket,Datagram} from 'std:net';\nimport {CompressionOptions,DecompressionOptions,CompressionError,CompressionReader,CompressionWriter,CompressionFormat} from 'std:compression';\nimport {Reader,Writer,LineReader,Stdin,IoError} from 'std:io';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {Locale,Collator,Segmenter,NumberFormat,SegmentRange,LocaleError,CollatorOptions,NumberFormatOptions} from 'std:locale';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Interval,CancellationToken,Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -34,6 +34,24 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"ProcessChild",parameter:"x: ProcessChild"},
+Receiver {ty:"CommandOptions",parameter:"x: ReadOnly<CommandOptions>"},
+Receiver {ty:"ExitStatus",parameter:"x: ReadOnly<ExitStatus>"},
+Receiver {ty:"Output",parameter:"x: ReadOnly<Output>"},
+Receiver {ty:"ProcessError",parameter:"x: ReadOnly<ProcessError>"},
+Receiver {ty:"IpAddress",parameter:"x: ReadOnly<IpAddress>"},
+Receiver {ty:"SocketAddress",parameter:"x: ReadOnly<SocketAddress>"},
+Receiver {ty:"NetError",parameter:"x: ReadOnly<NetError>"},
+Receiver {ty:"TcpListener",parameter:"x: TcpListener"},
+Receiver {ty:"TcpStream",parameter:"x: TcpStream"},
+Receiver {ty:"UdpSocket",parameter:"x: UdpSocket"},
+Receiver {ty:"Datagram",parameter:"x: ReadOnly<Datagram>"},
+Receiver {ty:"CompressionOptions",parameter:"x: ReadOnly<CompressionOptions>"},
+Receiver {ty:"DecompressionOptions",parameter:"x: ReadOnly<DecompressionOptions>"},
+Receiver {ty:"CompressionError",parameter:"x: ReadOnly<CompressionError>"},
+Receiver {ty:"CompressionReader",parameter:"x: CompressionReader"},
+Receiver {ty:"CompressionWriter",parameter:"x: CompressionWriter"},
+Receiver {ty:"CompressionFormat",parameter:"x: ReadOnly<CompressionFormat>"},
 Receiver {ty:"Reader",parameter:"x: ReadOnly<Reader>"},
 Receiver {ty:"Writer",parameter:"x: ReadOnly<Writer>"},
 Receiver {ty:"LineReader",parameter:"x: ReadOnly<LineReader>"},
@@ -366,6 +384,7 @@ fn candidates() -> BTreeSet<String> {
             }
         }
     }
+    for name in ["clearEnv", "code", "cwd", "data", "deadlineMs", "env", "input", "level", "maxOutputBytes", "message", "operation", "osCode", "remote", "signal", "status", "stderr", "stdin", "stdout", "success"] { names.insert(name.to_owned()); }
     for name in ["cert", "key", "ca", "workers", "capacity", "queued", "running", "completed", "outstanding", "payload", "cause", "ok", "value", "error", "id", "name", "issues", "truncated", "code", "message", "path", "pathTruncated", "expected", "observed", "size", "length"] {
         names.insert(name.to_owned());
     }
@@ -422,6 +441,12 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         let mut differences = fields.difference(&offered).map(|name| (name.clone(), "the checker accepts this field; completion does not offer it".to_owned())).collect::<Vec<_>>();
         differences.extend(offered.difference(&fields).map(|name| (name.clone(), "completion offers this field; the checker rejects it".to_owned())));
         if let Some(required)=match receiver.ty{"Collator"=>Some("compare"),"Segmenter"=>Some("segment"),"NumberFormat"=>Some("format"),_=>None}{assert!(methods.contains(required),"{} method {required} missing",receiver.ty);}
+        if receiver.ty=="ProcessChild" {for required in &["id", "takeStdin", "takeStdout", "takeStderr", "wait", "tryWait", "kill"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="CompressionReader" {for required in &["read", "readInto", "readExact", "readAll", "finish", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="CompressionWriter" {for required in &["write", "writeAll", "flush", "finish", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="TcpListener" {for required in &["accept", "localAddress", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="TcpStream" {for required in &["localAddress", "peerAddress", "setNoDelay", "shutdownWrite", "split", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="UdpSocket" {for required in &["sendTo", "receiveFrom", "localAddress", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
         if receiver.ty=="Regex" {for required in ["isMatch","find","findAll","captures","capturesAll","replace","replaceAll","split"] {assert!(methods.contains(required),"Regex method {required} missing; empty agreement is not acceptance");}}
         if matches!(receiver.ty, "void[]" | "void[][]" | "[void[]][]") {
             for required in ["length", "slice", "map", "keys"] { assert!(offered.contains(required) || methods.contains(required), "{}: required array member {required} missing; empty agreement is not acceptance", receiver.ty); }

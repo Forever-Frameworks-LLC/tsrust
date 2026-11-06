@@ -65,6 +65,23 @@ mod native_forward_tests {
             syn::parse_file(&crate::emit::emit(&checked)).unwrap();
         }
     }
+
+    #[test]
+    fn borrowed_union_task_signature_carries_named_descriptor_and_independent_string_slot(){
+        let source="type Family='any'|'ipv4'|'ipv6'|undefined;async function size(family:ReadOnly<Family>,label:ReadOnly<string>):Task<int>{if(family===undefined){return label.length;}return family.length+label.length;}function relay(family:ReadOnly<Family>,label:ReadOnly<string>):Task<int>{return size(family,label);}function invoke<F>(factory:Owned<F>,family:ReadOnly<Family>,label:ReadOnly<string>):Task<int>{return factory(family,label);}async function drive(family:Family,label:string):Task<void>{console.log(await size(family,label));const operation=size;console.log(await operation(family,label));const forwarding=relay;console.log(await forwarding(family,label));console.log(await invoke(operation,family,label));}async function main():Task<void>{await drive('ipv4','x');}";
+        let checked=crate::analysis::analyze(crate::syntax::parse(&crate::format(source).unwrap()).unwrap()).unwrap();
+        let emitter=super::super::emitter_for(&checked,"");let mut count=0;
+        for(index,function)in checked.functions.iter().enumerate(){
+            if function.template || !matches!(function.name.as_str(),"size"|"relay"){continue;}
+            let signature=emitter.native_function_signature(index,&[]);
+            assert!(signature.params.contains("value0: ViewUnion"),"{}",signature.params);
+            assert!(!signature.params.contains("value0: &"),"{}",signature.params);
+            assert!(!signature.params.contains("'_"),"{}",signature.params);
+            for root in 0..2{let name=format!("'native_input{root}_0");assert!(signature.generics.contains(&name));assert!(signature.params.contains(&name));assert!(signature.result.contains(&name));}
+            count+=1;
+        }
+        assert_eq!(count,2);
+    }
 }
 impl Lifetimes {
     pub(super) fn empty_output(&mut self) {
@@ -347,7 +364,7 @@ impl Emitter<'_> {
     pub(super) fn native_view_family_argument_type(&self,parameter:ArgumentContract,root:usize,plan:&Lifetimes)->String {
         let storage=plan.storage(root).unwrap_or("");
         if !self.native_views.contains(parameter.ty) {return self.native_argument_type(parameter,storage);}
-        if let Type::Union(id)=parameter.ty && !id.copy {
+        if let Type::Union(id)|Type::BorrowedUnion(id)=parameter.ty && !id.copy {
             if parameter.mode==Mode::Read {
                 return self.native_view_signature_type(Type::BorrowedUnion(id),Some(root),plan);
             }
@@ -385,7 +402,16 @@ impl Emitter<'_> {
             }
             return format!("NativeViewCallable{family}<{}>",names.join(", "));
         }
-        if !self.native_views.contains(ty) {return self.native_type(ty);}
+        if !self.native_views.contains(ty) {
+            if let Type::BorrowedUnion(id)=ty && let Some(root)=input && let Some(storage)=plan.storage(root) {
+                // The descriptor travels by value; its payload references retain
+                // the checked storage origin without adding an outer reference.
+                let rendered=self.native_type(ty);
+                let prefix=format!("ViewUnion{}<'_",id.index());
+                return rendered.replacen(&prefix,&format!("ViewUnion{}<{storage}",id.index()),1);
+            }
+            return self.native_type(ty);
+        }
         match ty {
             Type::Record(id) if native_view_emit::access(self.program,id).is_some() || self.native_views.recursive(id)=>format!("Record{id}<{}>",plan.slot(input,path,guards)),
             Type::Record(id) if self.program.records[id].native_element().is_some() => {
@@ -425,7 +451,7 @@ impl Emitter<'_> {
                     if variant {guards.pop();}
                     if matches!(ty,Type::Union(_)){self.union_stored_type(id,member,rendered)}else{rendered}
                 }).collect::<Vec<_>>().join(", ");
-                if matches!(ty,Type::BorrowedUnion(_)){format!("ViewUnion{}<'_,{arguments}>",id.index())}else{format!("Union{}<{arguments}>",id.index())}
+                if matches!(ty,Type::BorrowedUnion(_)){let storage=input.and_then(|root|plan.storage(root)).unwrap_or("'_");format!("ViewUnion{}<{storage},{arguments}>",id.index())}else{format!("Union{}<{arguments}>",id.index())}
             }
             _=>self.native_type(ty),
         }

@@ -11,6 +11,9 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Process,
+    Network,
+    Compression,
     Filesystem,
     Url,
     Regex,
@@ -64,7 +67,10 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 51] = [
+const KINDS: [Kind; 54] = [
+    Kind::Process,
+    Kind::Network,
+    Kind::Compression,
     Kind::Filesystem,
     Kind::Url,
     Kind::Regex,
@@ -149,6 +155,28 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::Process,name:"Process public imports",before:"import { ".into(),typed:"",after:" } from 'std:process';function main(){}",includes:&["Child", "CommandOptions", "ExitStatus", "Output", "ProcessError", "spawn", "run"],excludes:&["__run","__lookup","__gzip","__accept"],silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process Child alias members",before:"import {Child as Subject} from 'std:process';function inspect(value:Subject){".into(),typed:"value.",after:"id;}function main(){}",includes:&["id", "takeStdin", "takeStdout", "takeStderr", "wait", "tryWait", "kill"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process CommandOptions alias members",before:"import {CommandOptions as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"cwd;}function main(){}",includes:&["cwd", "env", "clearEnv", "stdin", "stdout", "stderr", "input", "deadlineMs", "maxOutputBytes"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process ExitStatus alias members",before:"import {ExitStatus as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"success;}function main(){}",includes:&["success", "code", "signal"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process Output alias members",before:"import {Output as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"status;}function main(){}",includes:&["status", "stdout", "stderr"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process ProcessError alias members",before:"import {ProcessError as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code", "operation", "message", "osCode"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network public imports",before:"import { ".into(),typed:"",after:" } from 'std:net';function main(){}",includes:&["IpAddress", "SocketAddress", "NetError", "TcpListener", "TcpStream", "UdpSocket", "Datagram", "parseIp", "formatIp", "parseAddress", "formatAddress", "isIPv4", "isIPv6", "listenTcp", "connectTcp", "bindUdp"],excludes:&["__run","__lookup","__gzip","__accept"],silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network IpAddress alias members",before:"import {IpAddress as Subject} from 'std:net';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque address values expose module functions, not members."),needs_check:false},
+ Row {kind:Kind::Network,name:"Network SocketAddress alias members",before:"import {SocketAddress as Subject} from 'std:net';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque address values expose module functions, not members."),needs_check:false},
+ Row {kind:Kind::Network,name:"Network NetError alias members",before:"import {NetError as Subject} from 'std:net';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code", "operation", "message", "osCode"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network TcpListener alias members",before:"import {TcpListener as Subject} from 'std:net';function inspect(value:Subject){".into(),typed:"value.",after:"accept;}function main(){}",includes:&["accept", "localAddress", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network TcpStream alias members",before:"import {TcpStream as Subject} from 'std:net';function inspect(value:Subject){".into(),typed:"value.",after:"localAddress;}function main(){}",includes:&["localAddress", "peerAddress", "setNoDelay", "shutdownWrite", "split", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network UdpSocket alias members",before:"import {UdpSocket as Subject} from 'std:net';function inspect(value:Subject){".into(),typed:"value.",after:"sendTo;}function main(){}",includes:&["sendTo", "receiveFrom", "localAddress", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network Datagram alias members",before:"import {Datagram as Subject} from 'std:net';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"data;}function main(){}",includes:&["data", "remote"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression public imports",before:"import { ".into(),typed:"",after:" } from 'std:compression';function main(){}",includes:&["CompressionOptions", "DecompressionOptions", "CompressionError", "CompressionReader", "CompressionWriter", "CompressionFormat", "gzip", "gunzip", "deflate", "inflate", "deflateRaw", "inflateRaw", "compressReader", "decompressReader", "compressWriter", "decompressWriter"],excludes:&["__run","__lookup","__gzip","__accept"],silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionOptions alias members",before:"import {CompressionOptions as Subject} from 'std:compression';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"level;}function main(){}",includes:&["level"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression DecompressionOptions alias members",before:"import {DecompressionOptions as Subject} from 'std:compression';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"maxOutputBytes;}function main(){}",includes:&["maxOutputBytes"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionError alias members",before:"import {CompressionError as Subject} from 'std:compression';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code", "operation", "message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionReader alias members",before:"import {CompressionReader as Subject} from 'std:compression';function inspect(value:Subject){".into(),typed:"value.",after:"read;}function main(){}",includes:&["read", "readInto", "readExact", "readAll", "finish", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionWriter alias members",before:"import {CompressionWriter as Subject} from 'std:compression';function inspect(value:Subject){".into(),typed:"value.",after:"write;}function main(){}",includes:&["write", "writeAll", "flush", "finish", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionFormat alias members",before:"import {CompressionFormat as Subject} from 'std:compression';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"length;}function main(){}",includes:&["length", "includes", "startsWith"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network DNS imports",before:"import { ".into(),typed:"",after:" } from 'std:dns';function main(){}",includes:&["lookup"],excludes:&["__lookup","lookup_intrinsic"],silent:None,needs_check:false},
  Row{kind:Kind::PathEnvOs,name:"path public imports",before:"import { ".into(),typed:"",after:" } from 'std:path';function main(){}",includes:&["PathParts","PathFormatOptions","PathError","parse","format","resolve","separator","delimiter"],excludes:&["hostname","setCurrentDir"],silent:None,needs_check:false},
  Row{kind:Kind::PathEnvOs,name:"path partial import",before:"import { ".into(),typed:"Path",after:" } from 'std:path';function main(){}",includes:&["PathParts","PathFormatOptions","PathError"],excludes:&["parse","format"],silent:None,needs_check:false},
  Row{kind:Kind::PathEnvOs,name:"environment public imports",before:"import { ".into(),typed:"",after:" } from 'std:env';function main(){}",includes:&["EnvVar","EnvError","get","args","vars","currentDir","currentExe","tempDir","homeDir"],excludes:&["set","remove","setCurrentDir"],silent:None,needs_check:false},
@@ -575,7 +603,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Locale|Kind::Io|Kind::Filesystem|Kind::PathEnvOs) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Locale|Kind::Io|Kind::Filesystem|Kind::PathEnvOs|Kind::Process|Kind::Network|Kind::Compression) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);

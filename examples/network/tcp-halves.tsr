@@ -1,0 +1,35 @@
+import { parseAddress, listenTcp, connectTcp, TcpListener } from 'std:net';
+import { readAll, writeAll, close } from 'std:io';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+async function serve(listener: Owned<TcpListener>): Task<void> {
+  const [stream, remote] = unwrap(await listener.accept());
+  listener.close();
+  const [input, output] = stream.split();
+  const request = unwrap(await readAll(input));
+  unwrap(await writeAll(output, request));
+  unwrap(await close(output));
+  unwrap(await close(input));
+}
+
+async function main(): Task<void> {
+  const listener = unwrap(await listenTcp(unwrap(parseAddress('127.0.0.1:0'))));
+  const endpoint = unwrap(listener.localAddress());
+  const server = serve(listener).start();
+  try {
+    const client = unwrap(await connectTcp(endpoint));
+    const [input, output] = client.split();
+    unwrap(await writeAll(output, unwrap(fromUtf8('reply after EOF'))));
+    unwrap(await close(output));
+    console.log(unwrap(toUtf8(unwrap(await readAll(input)))));
+    unwrap(await close(input));
+  } catch (failure) {
+    server.cancel();
+    try {
+      await server;
+    } catch (cleanupFailure) {}
+
+    throw failure;
+  }
+
+  await server;
+}

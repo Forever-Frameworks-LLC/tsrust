@@ -78,6 +78,7 @@ impl Resolver<'_> {
             Signature::Boolean => return Ok(named("boolean", span)),
             Signature::Int => return Ok(named("int", span)),
             Signature::Number => return Ok(named("number", span)),
+            Signature::Undefined => return Ok(named("undefined", span)),
             Signature::Void => return Ok(named("void", span)),
             Signature::Null => return Ok(named("null", span)),
             Signature::Named(id) => {
@@ -97,6 +98,7 @@ impl Resolver<'_> {
                 }
             }
             Signature::Array(element) => Kind::Array(Box::new(self.signature(element, span, depth + 1)?)),
+            Signature::Tuple(members)=>Kind::Tuple(members.iter().map(|member|self.signature(member,span,depth+1)).collect::<Result<_,_>>()?),
             Signature::Union(members) => Kind::Union(members.iter().map(|member|self.signature(member,span,depth+1)).collect::<Result<_,_>>()?),
             Signature::Optional(element) => Kind::Union(vec![self.signature(element, span, depth + 1)?, named("undefined", span)]),
             Signature::Result(value, error) => Kind::Applied {

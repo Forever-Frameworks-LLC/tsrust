@@ -41,6 +41,7 @@ enum CallState<'p> {
     Forward {
         function: usize,
         once: bool,
+        temporary: Option<usize>,
     },
     Method {
         closure: usize,
@@ -125,6 +126,10 @@ impl<'p> Emitter<'p> {
                     && !call.rendered.is_empty() {
                     code = self.finish_conditional_arm_work(call.children[call.rendered.len()].0, frame.mode, *temporary, code);
                 }
+                if let CallState::Forward { temporary, .. } = &call.state {
+                    let (child,mode)=call.children[call.rendered.len()];
+                    code=self.finish_conditional_arm_work(child,mode,*temporary,code);
+                }
                 call.rendered.push(code);
             }
             if !frame.entered {
@@ -156,6 +161,14 @@ impl<'p> Emitter<'p> {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
                     let mut child_frame = Frame::new(child, mode);
+                    if let CallState::Forward { temporary, .. } = &mut call.state {
+                        *temporary=None;
+                        if !call.rendered.is_empty() {
+                            let (access,pending)=self.prepare_conditional_arm_work(fun,child,mode);
+                            child_frame.mode=access;
+                            *temporary=pending;
+                        }
+                    }
                     if let CallState::Logical { temporary, .. } = &mut call.state {
                         *temporary = None;
                         if !child.ty.unwrap().is_copy() {
@@ -444,7 +457,7 @@ impl<'p> Emitter<'p> {
                         .zip(&self.program.functions[function].bindings)
                         .map(|(arg, p)| (arg, p.mode)),
                 );
-                state = CallState::Forward { function, once };
+                state = CallState::Forward { function, once, temporary: None };
             }
             CallTarget::ClosureMethod(method) => {
                 let Type::Closure(origin) = callee.ty.expect("checked method receiver") else {
@@ -671,7 +684,7 @@ impl<'p> Emitter<'p> {
                     format!("{{let record_call_result={code};{updates}record_call_result}}")
                 }
             }
-            CallState::Forward { function, once } => {
+            CallState::Forward { function, once, .. } => {
                 let receiver = rendered.next().expect("queued receiver");
                 let mut text = format!("{{ let forward_environment = {receiver}; ");
                 if once {

@@ -1,0 +1,34 @@
+import { parseAddress, bindUdp, UdpSocket } from 'std:net';
+import { fromUtf8, toUtf8, length } from 'std:bytes';
+async function serve(socket: Owned<UdpSocket>): Task<void> {
+  for (let i: int = 0; i < 2; i++) {
+    const message = unwrap(await socket.receiveFrom(1400));
+    unwrap(await socket.sendTo(message.data, message.remote));
+  }
+
+  socket.close();
+}
+
+async function main(): Task<void> {
+  const bind = unwrap(parseAddress('127.0.0.1:0'));
+  const server = unwrap(await bindUdp(bind));
+  const endpoint = unwrap(server.localAddress());
+  const worker = serve(server).start();
+  try {
+    const client = unwrap(await bindUdp(bind));
+    console.log(unwrap(await client.sendTo(unwrap(fromUtf8('hello')), endpoint)));
+    console.log(unwrap(toUtf8(unwrap(await client.receiveFrom(1400)).data)));
+    console.log(unwrap(await client.sendTo(unwrap(fromUtf8('')), endpoint)));
+    console.log(length(unwrap(await client.receiveFrom(1400)).data));
+    client.close();
+  } catch (failure) {
+    worker.cancel();
+    try {
+      await worker;
+    } catch (cleanupFailure) {}
+
+    throw failure;
+  }
+
+  await worker;
+}

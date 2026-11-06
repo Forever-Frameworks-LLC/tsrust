@@ -1,7 +1,7 @@
 //! Concrete native ABI bridges reuse checked Result alternatives, including void success.
 use crate::{analysis::CheckedProgram, native_bindings::{NativeBinding, NativeBackend, NativeType}, native_signatures::NativeTypeId, syntax::Type};
 
-pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> String {
+pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding], ordered: &std::collections::HashSet<usize>) -> String {
     let bytes = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::Bytes)).expect("checked Bytes identity");
     let mut output = String::new();
     if bindings.iter().any(|binding| binding.name != "length") {
@@ -14,7 +14,7 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             bindings.iter().any(|binding|matches!(binding.name,"readInt"|"writeInt"|"readUint"|"writeUint"|"readFloat32"|"writeFloat32"|"readFloat64"|"writeFloat64")),
             bindings.iter().any(|binding|binding.name=="indexOf"),
         ));
-        if bindings.iter().any(|binding| matches!(binding.result, NativeType::Structured(crate::native_signatures::Signature::Result(_, _)))) {output.push_str(&error_bridge(program));}
+        if bindings.iter().any(|binding| matches!(binding.result, NativeType::Structured(crate::native_signatures::Signature::Result(_, _)))) {output.push_str(&error_bridge(program, ordered));}
     }
     // Observers and mutators accept every readable or writable byte storage that the
     // program names: the owner and its views share these access traits.
@@ -134,7 +134,7 @@ fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: 
     format!("fn {symbol}{lifetime}({parameters}) -> {result_type} {{ match {call} {{ Ok(success) => Union{}::V{}(Record{ok} {{ {fields} }}), Err(failure) => Union{}::V{}(Record{err} {{ field0: tsrust_std_bytes_error(failure) }}) }} }}\n", result.index(), tag(ok), result.index(), tag(err))
 }
 
-fn error_bridge(program: &CheckedProgram) -> String {
+fn error_bridge(program: &CheckedProgram, ordered: &std::collections::HashSet<usize>) -> String {
     let error = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::ByteError)).expect("checked ByteError identity");
     let mut initializers = Vec::new();
     for (index, field) in program.records[error].fields.iter().enumerate() {
@@ -152,7 +152,8 @@ fn error_bridge(program: &CheckedProgram) -> String {
         };
         initializers.push(format!("field{index}: {value}"));
     }
-    format!("fn tsrust_std_bytes_error(failure: tsrust_native_bytes::ByteFailure) -> Record{error} {{ Record{error} {{ {} }} }}\n", initializers.join(", "))
+    let order=crate::record_runtime::declaration_order_suffix(program,ordered,error);
+    format!("fn tsrust_std_bytes_error(failure: tsrust_native_bytes::ByteFailure) -> Record{error} {{ Record{error} {{ {}{order} }} }}\n", initializers.join(", "))
 }
 
 #[cfg(test)]

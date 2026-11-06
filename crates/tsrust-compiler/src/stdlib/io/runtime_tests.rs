@@ -111,3 +111,34 @@ fn chunk_lines_preserve_limit_detection_suffixes_and_boundary_encoding(){
   let mut lines=LineReader::new(Reader::bytes(vec![255,b'\n',b'o',b'k',b'\n']),None).unwrap();assert_eq!(lines.read_line().await.unwrap_err().code,"encoding");assert_eq!(lines.read_line().await.unwrap().as_deref(),Some("ok"));
  });
 }
+
+#[derive(Debug,PartialEq)]
+enum CopyKernelError{Read,Write,Io(&'static str)}
+struct CopyKernelSink{bytes:Vec<u8>,fail:bool}
+impl CopyWrite for CopyKernelSink{
+ type Error=();
+ fn copy_write_all<'a>(&'a mut self,bytes:&'a[u8])->impl Future<Output=Result<(),()>>+Send+'a{async move{if self.fail{return Err(());}self.bytes.extend_from_slice(bytes);Ok(())}}
+}
+struct CopyKernelFailedReader;
+impl CopyRead for CopyKernelFailedReader{
+ type Error=();
+ fn copy_read<'a>(&'a mut self,_bytes:&'a mut[u8])->impl Future<Output=Result<i64,()>>+Send+'a{std::future::ready(Err(()))}
+}
+#[test]
+fn copy_kernel_is_send_maps_each_error_and_preserves_limit_progress(){
+ fn send<F:Future+Send>(future:F)->F{future}
+ fn io(error:Error)->CopyKernelError{CopyKernelError::Io(error.code)}
+ crate::tsrust_native_futures::block_on(async{
+  let mut reader=Reader::bytes(b"abcde".to_vec());let mut writer=CopyKernelSink{bytes:Vec::new(),fail:false};
+  let result=send(copy_as(&mut reader,&mut writer,2,Some(2),io,|_|CopyKernelError::Write,io)).await;
+  assert_eq!(result,Err(CopyKernelError::Io("limit")));assert_eq!(writer.bytes,b"ab");assert_eq!(reader.read_all(None).await.unwrap(),b"de");
+  let mut reader=Reader::bytes(b"abc".to_vec());let mut writer=CopyKernelSink{bytes:Vec::new(),fail:false};
+  assert_eq!(send(copy_as(&mut reader,&mut writer,2,None,io,|_|CopyKernelError::Write,io)).await,Ok(3));assert_eq!(writer.bytes,b"abc");
+  let mut reader=CopyKernelFailedReader;
+  assert_eq!(send(copy_as(&mut reader,&mut writer,2,None,|_|CopyKernelError::Read,|_|CopyKernelError::Write,io)).await,Err(CopyKernelError::Read));
+  let mut reader=Reader::bytes(b"abc".to_vec());writer.fail=true;
+  assert_eq!(send(copy_as(&mut reader,&mut writer,2,None,io,|_|CopyKernelError::Write,io)).await,Err(CopyKernelError::Write));
+  assert_eq!(send(copy_as(&mut reader,&mut writer,0,None,io,|_|CopyKernelError::Write,io)).await,Err(CopyKernelError::Io("range")));
+  assert_eq!(send(copy_as(&mut reader,&mut writer,2,Some(-1),io,|_|CopyKernelError::Write,io)).await,Err(CopyKernelError::Io("range")));
+ });
+}

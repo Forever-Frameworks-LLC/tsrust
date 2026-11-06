@@ -1,0 +1,21 @@
+import { gzip, decompressReader, compressWriter } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { reader, writer, readAll, writeAll, copy, close } from 'std:io';
+import { create, readFile, removeFile } from 'std:fs';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  const input = unwrap(await gzip(pool, unwrap(fromUtf8('one pool pipeline'))));
+  const decoded = unwrap(decompressReader(pool, reader(input), 'gzip'));
+  const encoded = unwrap(compressWriter(pool, writer(unwrap(create('pipeline.z'))), 'zlib'));
+  console.log(unwrap(await copy(decoded, encoded, 7)));
+  unwrap(await close(decoded));
+  unwrap(await close(encoded));
+  const result = unwrap(decompressReader(pool, reader(unwrap(readFile('pipeline.z'))), 'zlib'));
+  console.log(unwrap(toUtf8(unwrap(await readAll(result)))));
+  unwrap(await close(result));
+  unwrap(removeFile('pipeline.z'));
+  unwrap(pool.shutdown());
+}

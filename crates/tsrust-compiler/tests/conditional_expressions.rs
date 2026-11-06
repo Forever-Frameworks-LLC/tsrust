@@ -646,3 +646,13 @@ fn consuming_borrowed_conditional_carriers_dispose_invoked_and_abandoned_owners_
         let output=support::run(&mut std::process::Command::new(&executable),10);support::success(&output);assert_eq!(output.stdout,b"1\n1\n1\n2\n");
     }
 }
+
+#[test]
+fn borrowed_finite_union_temporaries_keep_all_owned_payload_types(){
+ let source="type Choice='first'|'second'|'third';function observe(value:ReadOnly<Choice>):int{if(value==='first'){return 1;}if(value==='second'){return 2;}return 3;}function main(){console.log(observe('first'),observe('second'),observe('third'));}";
+ let analysis=native(&support::format_round_trip(source),"1 2 3\n","","");
+ let rust=analysis.emit_rust();
+ // Every literal initializes only one variant. All other payload types must
+ // come from the checked union, even when a consumer ignores their values.
+ for slot in 0..3{assert!(rust.contains(&format!("let mut conditional_temporary_{slot}: Union")),"{rust}");}
+}

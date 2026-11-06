@@ -19,11 +19,14 @@ mod futures;
 mod http;
 #[path="../stdlib/url/emit.rs"] mod url;
 #[path="../stdlib/regex/emit.rs"] mod regex;
+#[path="../stdlib/net/emit.rs"] mod net;
 #[path="../stdlib/locale/emit.rs"] mod locale;
 mod sqlite;
 mod sql;
 mod io;
 mod process;
+mod compression;
+mod compression_streams;
 mod channels;
 #[path="../stdlib/cache/emit.rs"] mod cache;
 mod rust_bridge;
@@ -287,6 +290,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
         .chain(emitter.uses_url_runtime().then_some("url"))
         .chain(emitter.uses_regex_runtime().then_some("regex"))
         .chain(emitter.uses_locale_runtime().then_some("locale"))
+        .chain(rust.contains("mod tsrust_native_compression_streams {").then_some("compression-streams"))
         .chain(rust.contains("mod tsrust_native_cancellation {").then_some("cancellation"))
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
@@ -561,7 +565,7 @@ impl Emitter<'_> {
             let payloads = self.program.unions[id.index()].members.iter().copied().filter(|ty|!ty.is_copy()).map(|payload| format!("&{lifetime} mut {}",self.native_type(payload))).collect::<Vec<_>>().join(", ");
             return format!("Union{}<{payloads}>",id.index());
         }
-        if let Type::Union(id) = contract.ty
+        if let Type::Union(id) | Type::BorrowedUnion(id) = contract.ty
             && !id.copy
             && contract.mode == Mode::Read
         {
@@ -2478,7 +2482,7 @@ impl Emitter<'_> {
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
-        let io_runtime=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::IoReader | crate::native_signatures::NativeTypeId::IoWriter | crate::native_signatures::NativeTypeId::IoLineReader | crate::native_signatures::NativeTypeId::IoStdin)));
+        let io_runtime=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::IoReader | crate::native_signatures::NativeTypeId::IoWriter | crate::native_signatures::NativeTypeId::IoLineReader | crate::native_signatures::NativeTypeId::IoStdin | crate::native_signatures::NativeTypeId::CompressionReader | crate::native_signatures::NativeTypeId::CompressionWriter)));
         let asynchronous_runtime = io_runtime || !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql") || matches!(id,crate::native_signatures::NativeTypeId::Interval|crate::native_signatures::NativeTypeId::AsyncChannel|crate::native_signatures::NativeTypeId::AsyncSender|crate::native_signatures::NativeTypeId::Job)));
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CancellationToken)){output.push_str(crate::stdlib::futures::CANCELLATION_RUNTIME);}
         if asynchronous_runtime { output.push_str(include_str!("async_runtime.rs")); output.push_str(crate::stdlib::futures::RUNTIME); }
@@ -2513,6 +2517,8 @@ impl Emitter<'_> {
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::Locale)=>Some("Locale"),Some(crate::native_signatures::NativeTypeId::Collator)=>Some("Collator"),Some(crate::native_signatures::NativeTypeId::Segmenter)=>Some("Segmenter"),Some(crate::native_signatures::NativeTypeId::NumberFormat)=>Some("NumberFormat"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_locale::{name};");continue;}
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::TcpListener)=>Some("Listener"),Some(crate::native_signatures::NativeTypeId::TcpStream)=>Some("Stream"),Some(crate::native_signatures::NativeTypeId::UdpSocket)=>Some("Udp"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_net_transport::{name};");continue;}
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IpAddress)=>Some("IpAddress"),Some(crate::native_signatures::NativeTypeId::SocketAddress)=>Some("SocketAddress"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_net::{name};");continue;}
             if record.native_type==Some(crate::native_signatures::NativeTypeId::Regex) {
                 let _=writeln!(output,"type Record{index}=tsrust_native_regex::Regex;");continue;
             }
@@ -2569,6 +2575,7 @@ impl Emitter<'_> {
                 continue;
             }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::ProcessChild){let _=writeln!(output,"type Record{index}=tsrust_native_process::Child;");continue;}
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::CompressionReader)=>Some("TransformReader"),Some(crate::native_signatures::NativeTypeId::CompressionWriter)=>Some("TransformWriter"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_compression_streams::{name};");continue;}
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IoReader)=>Some("Reader"),Some(crate::native_signatures::NativeTypeId::IoWriter)=>Some("Writer"),Some(crate::native_signatures::NativeTypeId::IoLineReader)=>Some("LineReader"),Some(crate::native_signatures::NativeTypeId::IoStdin)=>Some("Stdin"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_io::{name};");continue;}
             if let Some(id @ (crate::native_signatures::NativeTypeId::BufferedReader | crate::native_signatures::NativeTypeId::BufferedWriter)) = record.native_type {
                 let backend=crate::native_types::declaration(id).name;
@@ -2828,6 +2835,7 @@ impl Emitter<'_> {
                     self.native_optional_argument(parameter,format!("value{id}"),closure.function.bindings[*id].ty)
                 }).collect::<Vec<_>>();
                 let call=if let Some(call)=self.locale_forward(&closure.function,&closure.parameters,closure.span,id){call}
+                else if let Some(call)=self.net_forward(&closure.function,&closure.parameters,closure.span,id){call}
                 else if let Some(call)=self.regex_forward(&closure.function,&closure.parameters,closure.span,id) {call}
                 else if let Some(call)=self.url_forward(&closure.function,&closure.parameters,closure.span,id) {call}
                 else if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
@@ -3265,11 +3273,18 @@ impl Emitter<'_> {
         }
         if self.program.records.iter().any(|record|crate::stdlib::cache::is_cache(record.native_type)){output.push_str(&crate::stdlib::cache::runtime());}
         if self.uses_url_runtime() { output.push_str(crate::stdlib::url::RUNTIME); }
+        if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::IpAddress|crate::native_signatures::NativeTypeId::SocketAddress))){output.push_str(crate::stdlib::net::RUNTIME);}
+        if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::TcpListener|crate::native_signatures::NativeTypeId::TcpStream|crate::native_signatures::NativeTypeId::UdpSocket))){output.push_str(crate::stdlib::net::TRANSPORT_RUNTIME);output.push_str(crate::stdlib::net::IO_RUNTIME);}
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:dns"){output.push_str(crate::stdlib::net::DNS_RUNTIME);}
         if self.uses_regex_runtime() { output.push_str(crate::stdlib::regex::RUNTIME); }
         if self.uses_locale_runtime(){output.push_str(crate::stdlib::locale::RUNTIME);}
-        if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
+        let compression_streams_runtime=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::CompressionReader|crate::native_signatures::NativeTypeId::CompressionWriter)));
+        let compression_runtime=compression_streams_runtime || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:compression");
+        if compression_runtime{output.push_str(crate::stdlib::compression::RUNTIME);}
+        if compression_streams_runtime{output.push_str(crate::stdlib::compression::STREAM_RUNTIME);}
+        if compression_runtime || self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
             || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
-            let asynchronous=self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:threads"&&binding.name=="__taskAsync"});
+            let asynchronous=compression_runtime || self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:threads"&&binding.name=="__taskAsync"});
             output.push_str(if asynchronous{crate::stdlib::threads::ASYNC_RUNTIME}else{crate::stdlib::threads::RUNTIME});
         }
         if self.native_bindings.borrow().iter().any(|&id| {
@@ -3376,7 +3391,7 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonRaw | crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView | crate::native_signatures::NativeTypeId::JsonlReader | crate::native_signatures::NativeTypeId::JsonlReaderView | crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView))) {output.push_str(&crate::native_runtime::json_module_with_writer(self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView)))));}
         for &id in self.native_bindings.borrow().iter() {let binding=&crate::native_bindings::BINDINGS[id];if binding.module=="std:json" {output.push_str(&crate::stdlib::json::emit::bridge(self.program,binding,&self.record_runtime.ordered));}}
         let byte_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:bytes" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
-        if (io_runtime && self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Bytes))) || !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile" | "appendFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
+        if (io_runtime && self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Bytes))) || !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile" | "appendFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings, &self.record_runtime.ordered)); }
         let file_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:fs" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
         output.push_str(&crate::stdlib::fs::emit::bridges(self.program, &file_bindings, &self.record_runtime.ordered));
         let numeric_support = output.contains("NumericArray<") || output.contains("NumericArray::");
@@ -7870,7 +7885,10 @@ impl Emitter<'_> {
         {
             let id = self.conditional_next.get();
             self.conditional_next.set(id + 1);
-            self.conditional_temporaries.borrow_mut().push(format!("let mut conditional_temporary_{id};"));
+            // A discriminant-only consumer cannot infer unselected payloads.
+            // Keep the complete checked owner type before taking its view.
+            let annotation=if let Some(ty)=arm.ty && matches!(ty,Type::Union(union)if !union.copy){format!(": {}",self.native_type(ty.owning()))}else{String::new()};
+            self.conditional_temporaries.borrow_mut().push(format!("let mut conditional_temporary_{id}{annotation};"));
             (Mode::Consume, Some(id))
         } else { (mode, None) }
     }
@@ -9281,9 +9299,11 @@ impl Emitter<'_> {
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
                     if let Some(call)=self.locale_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.net_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.regex_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.url_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.process_native(fun,expr,id,args){return call;}
+                    if let Some(call)=self.compression_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.io_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}

@@ -1,0 +1,14 @@
+import { parseIp, formatIp, isIPv6, parseAddress, formatAddress } from 'std:net';
+
+function workload(n: int, seed: int, text: ReadOnly<string>): int {
+  const address = unwrap(parseAddress(text));
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    const formatted = formatAddress(address);
+    for (let j: int = 0; j < formatted.length; j++) {
+      sum = (sum * 131 + (formatted.codePointAt(j) ?? 0)) % 1000000007;
+    }
+  }
+
+  return sum;
+}

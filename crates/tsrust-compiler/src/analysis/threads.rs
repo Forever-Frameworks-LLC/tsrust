@@ -191,6 +191,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
     if !program.records.iter().any(|record| matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::ThreadPool))) { return Ok(()); }
     let contains = |ty| contains_handle(ty, &program.records, &|id| program.unions[id.index()].members.clone());
     for record in &program.records {
+        if crate::native_binding_types::is_signature_record(record) { continue; }
         if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) || record.application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) { continue; }
         if record.fields.iter().filter_map(|field| field.ty).any(&contains)
             || matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet))

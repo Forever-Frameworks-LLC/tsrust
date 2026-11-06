@@ -112,14 +112,16 @@ impl ProjectAnalysis {
             })
             .collect::<Vec<_>>()
             .join(",");
-        let closures = self.analysis.closures().iter().map(|closure| {
-            let source=self.source_location(closure.span).expect("checked closure source");
-            let captures=closure.captures.iter().map(|capture| {
-                let location=self.source_location(capture.span).expect("checked capture source");
-                format!("{{\"name\":{},\"storage\":{},\"access\":{},\"file\":{},\"start\":{},\"end\":{}}}",crate::json_string(&capture.name),crate::json_string(capture.storage.as_str()),crate::json_string(capture.access.as_str()),crate::json_string(&location.source.0),location.span.start,location.span.end)
+        // Generated adapters retain internal coordinates outside source segments.
+        // Publish source-addressed metadata only when its coordinates are mapped.
+        let closures = self.analysis.closures().iter().filter_map(|closure| {
+            let source=self.source_location(closure.span)?;
+            let captures=closure.captures.iter().filter_map(|capture| {
+                let location=self.source_location(capture.span)?;
+                Some(format!("{{\"name\":{},\"storage\":{},\"access\":{},\"file\":{},\"start\":{},\"end\":{}}}",crate::json_string(&capture.name),crate::json_string(capture.storage.as_str()),crate::json_string(capture.access.as_str()),crate::json_string(&location.source.0),location.span.start,location.span.end))
             }).collect::<Vec<_>>().join(",");
             let parameters=closure.parameters.iter().map(|param|format!("{{\"name\":{},\"access\":{}}}",crate::json_string(&param.name),crate::json_string(param.access.as_str()))).collect::<Vec<_>>().join(",");
-            format!("{{\"id\":{},\"template\":{},\"depth\":{},\"function\":{},\"file\":{},\"start\":{},\"end\":{},\"escapes\":{},\"invocation\":{},\"captures\":[{captures}],\"parameters\":[{parameters}]}}",closure.id,closure.template,closure.depth,crate::json_string(&self.source_name(&closure.function)),crate::json_string(&source.source.0),source.span.start,source.span.end,closure.escapes,crate::json_string(closure.invocation.as_str()))
+            Some(format!("{{\"id\":{},\"template\":{},\"depth\":{},\"function\":{},\"file\":{},\"start\":{},\"end\":{},\"escapes\":{},\"invocation\":{},\"captures\":[{captures}],\"parameters\":[{parameters}]}}",closure.id,closure.template,closure.depth,crate::json_string(&self.source_name(&closure.function)),crate::json_string(&source.source.0),source.span.start,source.span.end,closure.escapes,crate::json_string(closure.invocation.as_str())))
         }).collect::<Vec<_>>().join(",");
         format!(
             "{{\"ok\":true,\"contracts\":{{{contracts}}},\"closures\":[{closures}],\"diagnostics\":[]}}"

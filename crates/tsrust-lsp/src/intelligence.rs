@@ -1928,6 +1928,8 @@ impl SourceIndex {
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::process_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if matches!(method,"wait"|"kill"){format!("Task<{result}>")}else{result};}
         if receiver=="string"&&method=="localeCompare"{return "int".into();}
+
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::network_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if tsrust_compiler::native_bindings::network_asynchronous(method){format!("Task<{result}>")}else{result};}
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::locale_method(*id,method)){return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();}
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::regex_method(*id,method)) {
             return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
@@ -2017,6 +2019,8 @@ impl SourceIndex {
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::process_method(*id,method).is_some()){return true;}
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::network_method(*id,method).is_some()){return true;}
+
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::locale_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::regex_method(*id,method).is_some()){return true;}
         if receiver=="string" && matches!(method,"match"|"matchAll"|"search"|"localeCompare"){return true;}
@@ -2822,7 +2826,7 @@ impl SourceIndex {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
-        let result = if (binding.module=="std:io" && tsrust_compiler::native_bindings::io_asynchronous(binding.name)) || (binding.module=="std:process" && tsrust_compiler::native_bindings::process_asynchronous(binding.name)){format!("Task<{}>",signature_name(binding.result.signature()))}else if (binding.module=="std:sql" && tsrust_compiler::native_bindings::sql_asynchronous(binding.name)) || (binding.module=="std:signals" && binding.name=="receive") {
+        let result = if (binding.module=="std:compression" && tsrust_compiler::native_bindings::compression_asynchronous(binding.name)) || (binding.module=="std:dns" && binding.name=="lookup") || (binding.module=="std:net" && tsrust_compiler::native_bindings::network_asynchronous(binding.name)) || (binding.module=="std:io" && tsrust_compiler::native_bindings::io_asynchronous(binding.name)) || (binding.module=="std:process" && tsrust_compiler::native_bindings::process_asynchronous(binding.name)){format!("Task<{}>",signature_name(binding.result.signature()))}else if (binding.module=="std:sql" && tsrust_compiler::native_bindings::sql_asynchronous(binding.name)) || (binding.module=="std:signals" && binding.name=="receive") {
             let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("SQL task result")};
             format!("Task<{}>",signature_name(*output))
         }else if binding.module=="std:http" && tsrust_compiler::native_bindings::http_unwrapped(binding.name){
@@ -2832,7 +2836,7 @@ impl SourceIndex {
         let signature = self.display_type(&format!("function {local}({}): {result}", parameters.join(", ")));
         let signature=if let Some(inferred)=catalog["inferredSignature"].as_str(){
             parameters=catalog["parameters"].as_array().unwrap().iter().map(|parameter|parameter["label"].as_str().unwrap().to_owned()).collect();
-            inferred.replacen(exported,local,1)
+            if inferred.contains(&format!("function {exported}(")){inferred.replace(&format!("function {exported}("),&format!("function {local}("))}else{inferred.replacen(exported,local,1)}
         }else{signature};
         self.native_parameter_docs.insert(self.symbols.len(), docs);
         if let Some(id) = tsrust_compiler::native_bindings::BINDINGS

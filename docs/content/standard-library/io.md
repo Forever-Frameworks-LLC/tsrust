@@ -67,5 +67,18 @@ owned Bytes read; `readLineStdin` follows the same line/EOF and explicit-bound
 rules and returns a synchronous Result. Both block the calling thread. There is
 no asynchronous stdin Task or hard cancellation guarantee for idle input.
 
-Internal AsyncRead/AsyncWrite adapter points allow future child-pipe and TCP-half
-owners to reuse these contracts without adding a public generic trait system.
+Child stdin/stdout/stderr pipes and owned TCP halves use the same Reader/Writer
+contracts. A full `TcpStream` also supports `read`, `readInto`, `readExact`,
+`readAll`, `write`, `writeAll`, `flush` and either endpoint of `copy` without
+splitting. Exclusive loans reject copying a stream into itself. For independent
+concurrent read/write owners, call `stream.split()`. Full-stream
+`stream.shutdownWrite()` sends write EOF; synchronous consuming `stream.close()`
+releases both sides. The async `std:io.close` overload does not accept full TCP.
+
+
+Compression endpoints from `std:compression` compose through `read`, `readInto`, `readExact`, `readAll`, `write`, `writeAll`, `flush`, `copy` and `close`. Their concrete overloads preserve `CompressionError | IoError | SpawnError | ThreadError<undefined>`; ordinary endpoints retain `IoError`. `copy` does not finish or close a compression stream. Explicit `finish` returns the consumed transform's original base endpoint; compression `close` finishes and closes it. A single explicit CPU worker/slot can serve both ends of a decode→encode pipeline because no worker is held during async I/O. See [Compression](compression.md) for byte policies, flush/finish behavior and ownership.
+
+Copy supports every pairing of Reader, full TcpStream and CompressionReader with
+Writer, a distinct full TcpStream and CompressionWriter. Any transform endpoint
+selects the compression error union; other combinations retain IoError only.
+See `examples/compression/tcp-pipeline.tsr` for a complete TCP/codec request/reply.

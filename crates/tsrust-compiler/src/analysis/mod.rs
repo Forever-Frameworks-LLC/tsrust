@@ -1,3 +1,4 @@
+mod compression;
 mod escape_work;
 mod task_diagnostics;
 mod continuations;
@@ -16,6 +17,7 @@ mod url;
 mod regex;
 mod locale;
 mod process;
+mod net;
 mod sqlite;
 mod ui;
 mod sql;
@@ -1549,6 +1551,7 @@ impl Analyzer {
         }
         crate::stdlib::ui::prepare(&mut program)?;
         crate::stdlib::cache::prepare(&mut program)?;
+        crate::stdlib::compression::prepare(&mut program)?;
         crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::http::prepare(&mut program)?;
         crate::stdlib::url::prepare(&mut program)?;
@@ -1559,6 +1562,7 @@ impl Analyzer {
         crate::stdlib::sql::prepare(&mut program)?;
         crate::stdlib::io::prepare(&mut program)?;
         crate::stdlib::process::prepare(&mut program)?;
+        crate::stdlib::net::prepare(&mut program)?;
         crate::stdlib::futures::prepare(&mut program)?;
         crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::stdlib::schema::namespace::prepare(&mut program)?;
@@ -9017,11 +9021,13 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty)=self.process_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
+        if let Some(ty)=self.network_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty) = self.locale_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty) = self.regex_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.url_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.cache_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty)=self.compression_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty) = self.thread_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if self.map_method_receiver(context, expr) || self.set_method_receiver(context, expr) {
@@ -9269,14 +9275,14 @@ self.names_materialized_type(element.with_depth(0).ty())
                     return Ok(ArgumentContract { ty, mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false });
                 }
                 // Regex observers borrow literal-string alternatives without widening or copying.
-                if matches!(binding.module,"std:regex"|"std:locale") && parameter.access==Mode::Read && parameter.ty.signature()==crate::native_signatures::Signature::String
+                if matches!(binding.module,"std:regex"|"std:locale"|"std:net") && parameter.access==Mode::Read && parameter.ty.signature()==crate::native_signatures::Signature::String
                     && let Some(ty)=self.expression_type_hint(context,&args[position]).filter(|ty|self.is_string_observation(*ty)) {
                     return Ok(ArgumentContract{ty,mode:Mode::Read,omission:crate::ParameterOmission::Required,rest:false});
                 }
                 self.native_argument_contract(parameter,args[position].span)
             }).collect::<Result<Vec<_>, Diagnostic>>()?;
             self.check_call_arguments(context, args, &contracts, loans)?;
-            let result = native_type(binding.result, &self.program.records);
+            let result = self.compression_io_result(binding,args).unwrap_or_else(||native_type(binding.result, &self.program.records));
             self.remember_native_call_borrow(context, args, binding, result)?;
             expr.target = Some(CallTarget::NativeBinding(id));
             expr.ty = Some(result);

@@ -19,6 +19,8 @@ const excluded = new Set(['std:ui', 'UiComputed', 'UiSignal', 'std:testing-runti
 // Public modules in reading order. `members` maps a public type name to the
 // catalog group holding its methods and properties.
 const modules = [
+  { module: 'std:net', summary: 'Parse and format IP/socket addresses; own TCP and UDP endpoints.', members: { TcpListener: 'TcpListener', TcpStream: 'TcpStream', UdpSocket: 'UdpSocket' } },
+  { module: 'std:dns', summary: 'Resolve hostnames with the system resolver.' },
   { module: 'std:env', summary: 'Read command-line arguments and environment variables.' },
   { module: 'std:url', summary: 'Parse URLs, edit URL components and manage query parameters.', members: { Url: 'Url', SearchParams: 'SearchParams' } },
   { module: 'std:locale', summary: 'Canonicalize explicit locales, compare text, segment graphemes and format exact numbers.', members: { Collator: 'Collator', Segmenter: 'Segmenter', NumberFormat: 'NumberFormat' } },
@@ -37,6 +39,7 @@ const modules = [
     'Literal schemas': 'SchemaLiteral', 'Enum schemas': 'SchemaEnum', 'Declared enum schemas': 'SchemaDeclaredEnum',
     'Union schemas': 'SchemaUnion',
   } },
+  { module: 'std:compression', summary: 'Encode and decode owned bytes on an explicit bounded CPU pool.', members: { CompressionReader: 'CompressionReader', CompressionWriter: 'CompressionWriter' } },
   { module: 'std:http', summary: 'Serve HTTP applications and send HTTP requests.', members: {
     Router: 'HttpRouter', Context: 'HttpContext', App: 'HttpApp', Request: 'HttpRequest', Response: 'HttpResponse',
     Body: 'HttpBody', Server: 'HttpServer', Client: 'HttpClient', Next: 'HttpNext', ServerOptions: 'HttpServerOptions',

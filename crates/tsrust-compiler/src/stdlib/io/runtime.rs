@@ -14,8 +14,8 @@ mod tsrust_native_io {
   }
   fn fs(failure:crate::tsrust_native_files::fs::FsFailure)->Self{Self{code:failure.code,operation:failure.operation,message:failure.message,os_code:failure.os_code}}
  }
- fn size(value:i64,operation:&'static str,positive:bool)->Result<usize,Error>{usize::try_from(value).ok().filter(|size|!positive||*size>0).ok_or_else(||error("range",operation,"Byte counts must fit the target and be nonnegative; working buffers must be positive."))}
- fn allocate(length:usize,operation:&'static str)->Result<Vec<u8>,Error>{let mut output=Vec::new();output.try_reserve_exact(length).map_err(|_|error("allocation",operation,"Unable to allocate byte storage."))?;output.resize(length,0);Ok(output)}
+ pub(crate) fn size(value:i64,operation:&'static str,positive:bool)->Result<usize,Error>{usize::try_from(value).ok().filter(|size|!positive||*size>0).ok_or_else(||error("range",operation,"Byte counts must fit the target and be nonnegative; working buffers must be positive."))}
+ pub(crate) fn allocate(length:usize,operation:&'static str)->Result<Vec<u8>,Error>{let mut output=Vec::new();output.try_reserve_exact(length).map_err(|_|error("allocation",operation,"Unable to allocate byte storage."))?;output.resize(length,0);Ok(output)}
  enum Backend{File(crate::tsrust_native_files::fs::FileHandle),Reader(crate::tsrust_native_files::buffered_fs::BufferedReader),Writer(crate::tsrust_native_files::buffered_fs::BufferedWriter),Stdout(io::Stdout),Stderr(io::Stderr),#[cfg(test)] Controlled(Box<dyn Read+Send>)}
  impl Backend{
   fn read(&mut self,bytes:&mut[u8])->Result<usize,Error>{loop{let result=match self{Self::File(file)=>Read::read(file,bytes),Self::Reader(reader)=>Read::read(reader,bytes),#[cfg(test)] Self::Controlled(reader)=>reader.read(bytes),_=>return Err(error("direction","read","This resource is not readable."))};match result{Err(failure)if failure.kind()==io::ErrorKind::Interrupted=>continue,result=>return result.map_err(|failure|Error::io("read",failure))}}}
@@ -120,7 +120,30 @@ mod tsrust_native_io {
   pub async fn flush(&mut self)->Result<(),Error>{match &mut self.inner{WriteBackend::Blocking(writer)=>writer.operation(Operation::Flush,&[]).await.map(|_|()),WriteBackend::Async(writer)=>writer.flush().await.map_err(|failure|Error::io("flush",failure))}}
   pub async fn close(mut self)->Result<(),Error>{match &mut self.inner{WriteBackend::Blocking(writer)=>writer.operation(Operation::Close,&[]).await.map(|_|()),WriteBackend::Async(writer)=>writer.shutdown().await.map_err(|failure|Error::io("close",failure))}}
  }
- pub async fn copy(reader:&mut Reader,writer:&mut Writer,buffer_size:i64,limit:Option<i64>)->Result<i64,Error>{let mut buffer=allocate(size(buffer_size,"copy",true)?,"copy")?;let limit=limit.map(|limit|size(limit,"copy",false)).transpose()?;let mut total=0usize;loop{let remaining=limit.map_or(buffer.len(),|limit|limit.saturating_sub(total).saturating_add(1).min(buffer.len()));let count=reader.read_into(&mut buffer[..remaining]).await? as usize;if count==0{return i64::try_from(total).map_err(|_|error("range","copy","Copied length exceeds int."));}if let Some(limit)=limit && count>limit-total{writer.write_all(&buffer[..limit-total]).await?;return Err(error("limit","copy","Input exceeds the explicit byte limit; the allowed prefix was written and overrun detection consumed one extra byte."));}writer.write_all(&buffer[..count]).await?;total=total.checked_add(count).ok_or_else(||error("range","copy","Copied length exceeds target range."))?;}}
+ // Private, statically dispatched copy endpoints. The returned futures must
+ // remain Send so an owning Task can transfer to the existing async runtime.
+ #[doc(hidden)]
+ pub trait CopyRead:Send{
+  type Error:Send;
+  fn copy_read<'a>(&'a mut self,bytes:&'a mut[u8])->impl Future<Output=Result<i64,Self::Error>>+Send+'a;
+ }
+ #[doc(hidden)]
+ pub trait CopyWrite:Send{
+  type Error:Send;
+  fn copy_write_all<'a>(&'a mut self,bytes:&'a[u8])->impl Future<Output=Result<(),Self::Error>>+Send+'a;
+ }
+ impl CopyRead for Reader{
+  type Error=Error;
+  fn copy_read<'a>(&'a mut self,bytes:&'a mut[u8])->impl Future<Output=Result<i64,Error>>+Send+'a{Reader::read_into(self,bytes)}
+ }
+ impl CopyWrite for Writer{
+  type Error=Error;
+  fn copy_write_all<'a>(&'a mut self,bytes:&'a[u8])->impl Future<Output=Result<(),Error>>+Send+'a{Writer::write_all(self,bytes)}
+ }
+ // Each family keeps its own error type; only the selected call chooses E.
+ #[doc(hidden)]
+ pub async fn copy_as<R:CopyRead+?Sized,W:CopyWrite+?Sized,E:Send>(reader:&mut R,writer:&mut W,buffer_size:i64,limit:Option<i64>,read_error:fn(R::Error)->E,write_error:fn(W::Error)->E,io_error:fn(Error)->E)->Result<i64,E>{let mut buffer=allocate(size(buffer_size,"copy",true).map_err(io_error)?,"copy").map_err(io_error)?;let limit=limit.map(|limit|size(limit,"copy",false)).transpose().map_err(io_error)?;let mut total=0usize;loop{let remaining=limit.map_or(buffer.len(),|limit|limit.saturating_sub(total).saturating_add(1).min(buffer.len()));let count=reader.copy_read(&mut buffer[..remaining]).await.map_err(read_error)? as usize;if count==0{return i64::try_from(total).map_err(|_|io_error(error("range","copy","Copied length exceeds int.")));}if let Some(limit)=limit && count>limit-total{writer.copy_write_all(&buffer[..limit-total]).await.map_err(write_error)?;return Err(io_error(error("limit","copy","Input exceeds the explicit byte limit; the allowed prefix was written and overrun detection consumed one extra byte.")));}writer.copy_write_all(&buffer[..count]).await.map_err(write_error)?;total=total.checked_add(count).ok_or_else(||io_error(error("range","copy","Copied length exceeds target range.")))?;}}
+ pub async fn copy(reader:&mut Reader,writer:&mut Writer,buffer_size:i64,limit:Option<i64>)->Result<i64,Error>{copy_as(reader,writer,buffer_size,limit,std::convert::identity,std::convert::identity,std::convert::identity).await}
  pub struct LineReader{reader:Reader,chunk:Vec<u8>,start:usize,end:usize,line:Vec<u8>,limit:Option<usize>}
  impl LineReader{
   pub fn new(reader:Reader,limit:Option<i64>)->Result<Self,Error>{Ok(Self{reader,chunk:allocate(BUFFER_SIZE,"lines")?,start:0,end:0,line:Vec::new(),limit:limit.map(|limit|size(limit,"lines",false)).transpose()?})}

@@ -451,3 +451,12 @@ fn mutable_recursive_parameter_stores_preserve_owner_obligations() {
         if body==local { assert!(stderr.contains("cannot outlive local owner storage"),"{stderr}"); }
     }
 }
+
+#[test]
+fn native_byte_error_preserves_declared_property_order() {
+ let directory=support::TempDirectory::new();
+ let source="import {fromArray} from 'std:bytes';\nfunction main(){match(fromArray([256])){Ok(bytes)=>{throw 'unexpected success';},Err(error)=>{console.log(Object.keys(error).join(','));}}}";
+ let path=directory.source(&support::format_round_trip(source));
+ let result=support::run(support::cli().arg("run").arg(path),60);support::success(&result);
+ assert_eq!(result.stdout,b"code,message,offset\n");
+}
