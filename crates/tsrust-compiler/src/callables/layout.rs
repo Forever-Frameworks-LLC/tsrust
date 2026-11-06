@@ -37,7 +37,8 @@ pub(crate) fn declared_storage_families(
         pending.push(function.result);
     }
     // Symbolic unions at generic record fields do not require a concrete
-    // owning family. Follow only unions reached from concrete storage roots.
+    // owning family. Follow physical fields only after their actual record instance
+    // is reached from concrete storage roots; do not substitute nominal fields.
     let mut seen=std::collections::HashSet::new();
     while let Some(ty)=pending.pop() {
         if !seen.insert(ty) {continue;}
@@ -45,6 +46,7 @@ pub(crate) fn declared_storage_families(
         match ty {
             Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(program.unions[id.index()].members.iter().copied()),
             Type::Array(element)=>pending.push(element.ty()),
+            Type::Record(id)=>pending.extend(program.records[id].fields.iter().filter_map(|field|field.ty)),
             _=>{},
         }
     }
@@ -523,4 +525,17 @@ fn nullable_record_links_break_layout_cycles_beside_stored_callables() {
     ] {
         crate::check(source).unwrap_or_else(|error| panic!("{error:?}"));
     }
+}
+
+#[cfg(test)]
+#[test]
+fn declared_families_follow_concrete_record_roots_without_symbolic_discovery() {
+    let mut checked=crate::check("type Holder={value:int;};function main(){const value:Holder={value:1};console.log(value.value);}").unwrap();
+    let program=&mut checked.program;
+    let root=program.functions.iter().flat_map(|function|&function.bindings).find_map(|binding|if let Type::Record(id)=binding.ty{Some(id)}else{None}).unwrap();
+    program.records[root].fields[0].ty=Some(Type::StoredCallable(123));
+    program.records.push(crate::cloneability::tests::record(&[Type::StoredCallable(124)]));
+    let families=declared_storage_families(program,|_,_|true);
+    assert!(families.contains(&123),"Physical generic argument must remain reachable");
+    assert!(!families.contains(&124),"Unreached symbolic generic fields must not require families");
 }

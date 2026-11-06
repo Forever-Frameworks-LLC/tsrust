@@ -12,10 +12,10 @@ pub(super) fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Funct
  let offset=program.functions.iter().map(|function|function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0)+1;
  let shift=|span:&mut Span|{span.start+=offset;span.end+=offset;};function.name.text=name(binding.name);function.name.kind=TokenKind::Symbol;shift(&mut function.name.span);shift(&mut function.scope_span);
  let mut replacements=std::collections::HashMap::new();for(index,parameter)in binding.parameters.iter().enumerate(){if !generic.contains(&index){let annotation=crate::native_type_resolution::project(&mut program.records,&parameter.ty.signature(),function.name.span)?;replacements.insert(format!("P{index}"),annotation);}}
- crate::source_walk::function_annotations(&mut function,&mut |annotation|crate::type_substitution::apply(annotation,&replacements))?;
+ crate::source_walk::substitute_function_annotations(&mut function,&replacements)?;
  for(parameter,_,_)in &mut function.params{shift(&mut parameter.span);}
  for parameter in &mut function.type_parameters{shift(&mut parameter.span);}
- crate::source_walk::function_body(&mut function,&mut |annotation|crate::type_substitution::apply(annotation,&replacements),&mut |expression|{shift(&mut expression.span);Ok(())})?;
+ crate::source_walk::substitute_function_body(&mut function,&replacements,&mut |expression|{shift(&mut expression.span);Ok(())})?;
  crate::source_walk::function_body(&mut function,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Call(callee,args)=&mut expression.kind && matches!(&callee.kind,ExprKind::Name(name)if name=="backend"){
   let inputs=std::mem::take(args);if super::asynchronous(binding.name){crate::stdlib::futures::lazy_result(expression,"std:io",&format!("__{}",binding.name),inputs);}else{callee.kind=ExprKind::Name(format!("@native:std:io#{}",binding.name));*args=inputs;}
  }Ok(())})?;

@@ -559,7 +559,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
             Task::ObjectSpread(task) => object_spread::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::ArraySpread(task) => array_spread::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Spread(task) => spread::step(analyzer, contexts.get(task.context), task, completion.take()),
-            Task::Generic(task) => generic::step(analyzer, task, completion.take()),
+            Task::Generic(task) => generic::step(analyzer, &mut contexts, task, completion.take()),
             Task::Deferred(task) => deferred::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Adapter(task) => adapters::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Method(task) => methods::step(analyzer, &mut contexts, task, completion.take()),

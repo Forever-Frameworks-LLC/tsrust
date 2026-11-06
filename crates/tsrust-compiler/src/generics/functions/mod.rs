@@ -279,9 +279,7 @@ impl Cache {
     }) = self.pending.pop()
     {
         self.contextualize(&mut function, &bindings)?;
-        let mut substitute =
-            |value: &mut ValueAnnotation| crate::type_substitution::apply(value, &bindings);
-        crate::source_walk::function_annotations(&mut function, &mut substitute)?;
+        crate::source_walk::substitute_function_annotations(&mut function,&bindings)?;
         // A generic data slot can specialize to a callable. Rebuild the source
         // callable view after substitution before signature/escape analysis.
         for (_, annotation, callback) in &mut function.params {
@@ -309,7 +307,7 @@ impl Cache {
             Ok(())
         })?;
         let enclosing_name = function.name.text.clone();
-        crate::source_walk::function_body(&mut function, &mut substitute, &mut |expression| {
+        crate::source_walk::substitute_function_body(&mut function,&bindings, &mut |expression| {
             let ExprKind::Call(callee, _) = &mut expression.kind else {
                 return Ok(());
             };

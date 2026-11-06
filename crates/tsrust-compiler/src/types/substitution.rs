@@ -45,11 +45,15 @@ fn take(value: &mut ValueAnnotation) -> ValueAnnotation {
     std::mem::replace(value, ValueAnnotation { kind: Kind::Tuple(Vec::new()), span })
 }
 
+pub(crate) fn substitutes_parameter(value:&ValueAnnotation,bindings:&HashMap<String,ValueAnnotation>)->bool {
+    matches!(&value.kind,Kind::Named(name)if bindings.contains_key(&name.text)) ||
+        matches!(&value.kind,Kind::Applied{name,..}if name.text=="@testing:element")
+}
+
 fn descend(mut parent: ValueAnnotation, path: Child, bindings: &HashMap<String, ValueAnnotation>, frames: &mut Vec<Frame>) -> ValueAnnotation {
     let value = take(child(&mut parent, path));
     let adjust_access = matches!(path, Child::Parameter(_)) &&
-        (matches!(&value.kind, Kind::Named(name) if bindings.contains_key(&name.text)) ||
-         matches!(&value.kind, Kind::Applied { name, .. } if name.text == "@testing:element"));
+        substitutes_parameter(&value,bindings);
     frames.push(Frame { parent, child: path, adjust_access });
     value
 }
@@ -144,7 +148,7 @@ fn containment_element(root: &ValueAnnotation) -> ValueAnnotation {
     results.pop().expect("projected containment element")
 }
 
-fn copy_annotation(value: &ValueAnnotation) -> bool {
+pub(crate) fn copy_annotation(value: &ValueAnnotation) -> bool {
     let mut pending = vec![value];
     while let Some(value) = pending.pop() {
         match &value.kind {

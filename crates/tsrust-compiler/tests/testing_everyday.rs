@@ -26,7 +26,7 @@ async function main():Task<void>{await rejects(async()=>{unwrap(compile('('));})
  let directory=support::TempDirectory::new();let source=support::format_round_trip(r#"
 import {describe,test,beforeAll,afterAll} from 'std:testing';
 describe('selected',()=>{beforeAll(()=>{console.log('setup');});afterAll(()=>{console.log('teardown');});test('literal[.]',()=>{console.error('é\n\t"quoted"');});test('other',()=>{throw 'must be filtered';});});describe('excluded',()=>{beforeAll(()=>{throw 'must not run';});test('other',()=>{throw 'must not run';});});
-"#);let path=directory.source(&source);let output=support::run(support::cli().arg("test").arg(&path).arg("--filter").arg("selected > literal[.]").arg("--reporter=json"),180);support::success(&output);let rows=std::str::from_utf8(&output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),1);assert_eq!(tests[0]["status"],"passed");let summary=rows.iter().find(|row|row["event"]=="summary").unwrap();assert_eq!(summary["passed"],1);assert_eq!(summary["skipped"],2);assert!(rows.iter().any(|row|row["event"]=="output"&&row["stream"]=="stderr"&&row["text"]=="é\n\t\"quoted\"\n"));assert!(output.stderr.is_empty());
+"#);let path=directory.source(&source);let output=support::run(support::cli().arg("test").arg(&path).arg("--filter").arg("selected > literal[.]").arg("--reporter=json"),180);support::success(&output);let rows=std::str::from_utf8(&output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),1);assert_eq!(tests[0]["status"],"passed");let summary=rows.iter().find(|row|row["event"]=="summary").unwrap_or_else(||panic!("Missing test summary; stderr: {}",String::from_utf8_lossy(&output.stderr)));assert_eq!(summary["passed"],1);assert_eq!(summary["skipped"],2);assert!(rows.iter().any(|row|row["event"]=="output"&&row["stream"]=="stderr"&&row["text"]=="é\n\t\"quoted\"\n"));assert!(output.stderr.is_empty());
  let report=directory.0.join("actual-reporter.ndjson");std::fs::write(&report,&output.stdout).unwrap();
  let oracle=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../benchmarks/runtime/testing-everyday-reporter-oracle.mjs");
  support::success(&support::run(std::process::Command::new("node").arg(oracle).arg(report).arg(&path),30));
@@ -34,7 +34,7 @@ describe('selected',()=>{beforeAll(()=>{console.log('setup');});afterAll(()=>{co
 #[test]fn explicit_async_deadline_runs_teardown_and_later_tests(){
  let directory=support::TempDirectory::new();let path=directory.source(r#"
 import {test,afterEach,afterAll,strictEqual} from 'std:testing';import {delay} from 'std:futures';let cleaned=0;afterEach(async()=>{await delay(0);cleaned++;console.log('afterEach');});afterAll(()=>{strictEqual(cleaned,2);console.log('afterAll');});test('deadline',async()=>{await delay(60000);throw 'late';});test('continues',async()=>{strictEqual(cleaned,1);});
-"#);let output=support::run(support::cli().arg("test").arg(path).arg("--timeout=20").arg("--reporter=json"),180);assert!(!output.status.success());let rows=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let summary=rows.iter().find(|row|row["event"]=="summary").unwrap();assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);assert!(rows.iter().any(|row|row["event"]=="test"&&row["name"]=="deadline"&&row["messages"].to_string().contains("TestTimeout")));assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="afterAll\n"));
+"#);let output=support::run(support::cli().arg("test").arg(path).arg("--timeout=20").arg("--reporter=json"),180);assert!(!output.status.success());let rows=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let summary=rows.iter().find(|row|row["event"]=="summary").unwrap_or_else(||panic!("Missing test summary; stderr: {}",String::from_utf8_lossy(&output.stderr)));assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);assert!(rows.iter().any(|row|row["event"]=="test"&&row["name"]=="deadline"&&row["messages"].to_string().contains("TestTimeout")));assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="afterAll\n"));
 }
 #[test]fn cli_test_option_errors_precede_compilation(){let directory=support::TempDirectory::new();let path=directory.source("function main(){}");for option in["--timeout=-1","--timeout=18446744073709551616","--reporter=xml"]{let output=support::run(support::cli().arg("test").arg(&path).arg(option),30);assert!(!output.status.success());assert!(!output.stderr.is_empty());}}
 #[test]fn timeout_drains_started_child_owner_before_teardown(){
@@ -43,9 +43,9 @@ import {test,afterEach,strictEqual} from 'std:testing';import {Channel,Sender,de
 let sender:Sender<int>|undefined=undefined;
 async function hold(queue:Owned<Channel<int>>):Task<void>{await queue.receive();}
 afterEach(async()=>{if(sender!==undefined){let closed=false;try{await sender.send(7);}catch(error){strictEqual(error.code,'closed');closed=true;}strictEqual(closed,true);sender=undefined;console.log('child owner released');}});
-test('timeout with child',async()=>{const queue=new Channel<int>(1);sender=queue.sender();const job=hold(queue).start();await delay(60000);job.cancel();await job;});
+test('timeout with child',async()=>{const queue=new Channel<int>(1);sender=queue.sender();const job=hold(queue).start();try{await delay(60000);}finally{job.cancel();await job;}});
 test('next body',async()=>{strictEqual(sender===undefined,true);});
-"#);let output=support::run(support::cli().arg("test").arg(path).arg("--timeout=20").arg("--reporter=json"),180);assert!(!output.status.success());let rows=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let summary=rows.iter().find(|row|row["event"]=="summary").unwrap();assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="child owner released\n"));
+"#);let output=support::run(support::cli().arg("test").arg(path).arg("--timeout=20").arg("--reporter=json"),180);assert!(!output.status.success());let rows=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let summary=rows.iter().find(|row|row["event"]=="summary").unwrap_or_else(||panic!("Missing test summary; stderr: {}",String::from_utf8_lossy(&output.stderr)));assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="child owner released\n"));
 }
 #[test]fn everyday_catalog_examples_execute(){let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();for name in["deepStrictEqual","notDeepStrictEqual","rejects"]{let entry=catalog["std:testing"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();for example in entry["examples"].as_array().unwrap(){let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(example["source"].as_str().unwrap()));let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert_eq!(output.stdout,example["output"].as_str().unwrap().as_bytes());}}}
 #[test]fn transparent_native_snapshots_compare_without_expanding_owners(){native(r#"
@@ -136,7 +136,10 @@ fn timeout_waits_for_admitted_blocking_work_before_teardown() {
         fn marker(&mut self,path:&std::path::Path,seconds:u64) {
             let deadline=Instant::now()+Duration::from_secs(seconds);
             while !path.exists() {
-                assert!(self.child.as_mut().unwrap().try_wait().unwrap().is_none(),"generated test exited before {}",path.display());
+                if self.child.as_mut().unwrap().try_wait().unwrap().is_some() {
+                    let output=self.child.take().unwrap().wait_with_output().unwrap();
+                    panic!("generated test exited before {}: {}",path.display(),String::from_utf8_lossy(&output.stderr));
+                }
                 assert!(Instant::now()<deadline,"missing worker marker {}",path.display());
                 std::thread::sleep(Duration::from_millis(5));
             }
@@ -184,8 +187,10 @@ afterEach(()=>{strictEqual(finished(),true);strictEqual(releaseCount(owner),1);t
 afterAll(()=>{strictEqual(cleaned,2);console.log('all cleanup settled');});
 test('blocking deadline',async()=>{
     const pool=new ThreadPool({workers:1,capacity:1});
+    // The tracker stays in the local async task; worker settlement uses the gate.
     const resource=trackedResource();owner=resourceId(resource);
-    await pool.taskAsync(():int=>{const result=blocked();closeResource(resource);return result;});
+    await pool.taskAsync(():int=>blocked());
+    closeResource(resource);
     throw 'deadline failed to interrupt admitted work';
 });
 test('continues after cleanup',()=>{strictEqual(cleaned,1);strictEqual(finished(),true);});
@@ -209,7 +214,7 @@ test('continues after cleanup',()=>{strictEqual(cleaned,1);strictEqual(finished(
     assert_eq!(tests[0]["name"],"blocking deadline");assert_eq!(tests[0]["status"],"failed");
     assert!(tests[0]["messages"].to_string().contains("TestTimeout"));
     assert_eq!(tests[1]["name"],"continues after cleanup");assert_eq!(tests[1]["status"],"passed");
-    let summary=rows.iter().find(|row|row["event"]=="summary").unwrap();
+    let summary=rows.iter().find(|row|row["event"]=="summary").unwrap_or_else(||panic!("Missing test summary; stderr: {}",String::from_utf8_lossy(&output.stderr)));
     assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);
     assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="all cleanup settled\n"));
 }

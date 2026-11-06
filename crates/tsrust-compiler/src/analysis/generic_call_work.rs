@@ -104,7 +104,9 @@ impl Analyzer {
         let span = expr.span;
         let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!() };
         let (name, _) = Self::generic_call_name(callee).expect("generic name");
-            let callable_shapes = self.generic_callable_shapes(context, args);
+            let mut callable_shapes = self.generic_callable_shapes(context, args);
+            callable_shapes.extend(self.checked_inference_callable_shapes(frame.inline_shapes.values()
+                .flat_map(|(parameters, result)| parameters.iter().copied().chain(std::iter::once(*result)))));
             let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
             annotations.extend(self.polymorphic_argument_annotations(context,args)?);
             let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
@@ -137,7 +139,9 @@ impl Analyzer {
         let expr = call(expr);
         let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!() };
         let (name, callee_span) = Self::generic_call_name(callee).expect("generic name");
-        let callable_shapes = self.generic_callable_shapes(context, args);
+        let mut callable_shapes = self.generic_callable_shapes(context, args);
+            callable_shapes.extend(self.checked_inference_callable_shapes(frame.inline_shapes.values()
+                .flat_map(|(parameters, result)| parameters.iter().copied().chain(std::iter::once(*result)))));
             let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
             annotations.extend(self.polymorphic_argument_annotations(context,args)?);
         let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),

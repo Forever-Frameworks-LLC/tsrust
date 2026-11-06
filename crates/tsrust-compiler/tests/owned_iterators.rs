@@ -44,3 +44,9 @@ fn array_cursor_results_follow_each_declared_item_type(){
  assert!(checked(source).is_ok());
  assert!(checked(&source.replace("const right:IteratorResult<string>","const right:IteratorResult<int>")).is_err());
 }
+
+#[test]
+fn iterator_physical_carriers_survive_owned_returns_captures_and_joins(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function owned(source:Owned<Iterator<int>>):Iterator<int>{return source;}function choose(flag:boolean):Iterator<int>{if(flag){return Iterator.from([2,4]);}return Iterator.from([3,5]).map(value=>value+1);}function capture(source:Owned<Iterator<int>>):Once<Function<int[]>>{return ():int[]=>source.toArray();}function main(){const action=capture(owned(choose(true)));console.log(action().join(','));console.log(owned(choose(false)).toArray().join(','));}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"2,4\n4,6\n");
+}
