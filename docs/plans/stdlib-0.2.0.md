@@ -509,6 +509,16 @@ lines5003/11000; filecopy5513/9, at their registered iteration counts. Line-read
 bytewise append/growth is a concrete candidate for chunk-based comparison before
 implementation. No claim of optimized parity or full bundle/platform acceptance.
 
+B05 line-reader optimization acceptance (2026-11-05): same-path/flags/library
+paired comparison selected chunk scanning/appending over bytewise work, preserving
+exact limit-detection consumption and reservation-failure progress. Three runtime
+boundaries, eight oracle checks,18 allocation observations and186 timing samples
+pass. Paired median15.513792→3.265958ms; full-workload allocations unchanged at
+5003/11000reallocations; quiet max3.984375. Fresh libraries differ from the original
+public measurement, so this is candidate evidence only. Canonical integration
+passes all eight runtime witnesses plus the formatted native example. Fresh public
+native timing remains pending, with unchanged Rust/Node controls reused.
+
 B05 direct-Rust admission (2026-11-05): safe owned blocking-reader staging with
 one reusable buffer passed short/interrupted reads, EOF/zero destination, retained
 partial-error bytes, cancellation/deadline settlement and staged recovery without

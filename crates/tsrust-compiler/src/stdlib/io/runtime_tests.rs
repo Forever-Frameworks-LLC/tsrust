@@ -88,3 +88,26 @@ fn explicit_close_releases_owner_before_reporting_a_deferred_read_failure(){
   let _=close_release.0.take().unwrap().send(());let failure=tokio::time::timeout(std::time::Duration::from_secs(5),close).await.expect("explicit close settlement deadline").unwrap_err();assert_eq!(failure.code,"broken-pipe");assert_eq!(closed.load(std::sync::atomic::Ordering::SeqCst),1);
  });
 }
+
+#[test]
+fn chunk_lines_preserve_limit_detection_suffixes_and_boundary_encoding(){
+ crate::tsrust_native_futures::block_on(async{
+  for (input,limit,tail) in [(b"abcTAIL\n".as_slice(),3,Some("AIL")),(b"ab\nnext\n".as_slice(),2,Some("next")),(b"\nrest".as_slice(),0,Some("rest"))]{
+   let mut lines=LineReader::new(Reader::bytes(input.to_vec()),Some(limit)).unwrap();
+   assert_eq!(lines.read_line().await.unwrap_err().code,"limit");
+   // Lift the bound only to observe exactly which detection byte was consumed.
+   lines.limit=None;assert_eq!(lines.read_line().await.unwrap().as_deref(),tail);
+  }
+  for prefix in [BUFFER_SIZE-2,BUFFER_SIZE-1,BUFFER_SIZE,BUFFER_SIZE+1]{
+   let mut input=vec![b'x';prefix];input.extend_from_slice("é\r\n\nlast\r".as_bytes());
+   let mut lines=LineReader::new(Reader::bytes(input),None).unwrap();
+   let first=lines.read_line().await.unwrap().unwrap();assert_eq!(first.len(),prefix+2);assert!(first.ends_with('é'));
+   assert_eq!(lines.read_line().await.unwrap().as_deref(),Some(""));assert_eq!(lines.read_line().await.unwrap().as_deref(),Some("last\r"));assert!(lines.read_line().await.unwrap().is_none());
+  }
+  for (input,limit,expected) in [(b"ab\r\n".as_slice(),4,"ab"),(b"abc".as_slice(),3,"abc"),(b"".as_slice(),0,"")]{
+   let mut lines=LineReader::new(Reader::bytes(input.to_vec()),Some(limit)).unwrap();
+   assert_eq!(lines.read_line().await.unwrap().as_deref(),if input.is_empty(){None}else{Some(expected)});assert!(lines.read_line().await.unwrap().is_none());
+  }
+  let mut lines=LineReader::new(Reader::bytes(vec![255,b'\n',b'o',b'k',b'\n']),None).unwrap();assert_eq!(lines.read_line().await.unwrap_err().code,"encoding");assert_eq!(lines.read_line().await.unwrap().as_deref(),Some("ok"));
+ });
+}

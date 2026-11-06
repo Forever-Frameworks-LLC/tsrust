@@ -126,9 +126,19 @@ mod tsrust_native_io {
   pub fn new(reader:Reader,limit:Option<i64>)->Result<Self,Error>{Ok(Self{reader,chunk:allocate(BUFFER_SIZE,"lines")?,start:0,end:0,line:Vec::new(),limit:limit.map(|limit|size(limit,"lines",false)).transpose()?})}
   pub async fn read_line(&mut self)->Result<Option<std::string::String>,Error>{loop{
    if self.start==self.end{self.start=0;self.end=self.reader.read_into(&mut self.chunk).await? as usize;if self.end==0{if self.line.is_empty(){return Ok(None);}return self.finish().map(Some);}}
-   let value=self.chunk[self.start];self.start+=1;
-   if self.limit.is_some_and(|limit|self.line.len()>=limit){self.line.clear();return Err(error("limit","readLine","Line exceeds the explicit raw-byte limit, including terminators; consumed prefix is not rolled back."));}
-   self.line.try_reserve(1).map_err(|_|error("allocation","readLine","Unable to grow line buffer."))?;self.line.push(value);if value==b'\n'{return self.finish().map(Some);}
+   let remaining=&self.chunk[self.start..self.end];
+   let newline=remaining.iter().position(|value|*value==b'\n');
+   let stop=self.start+newline.map_or(remaining.len(),|index|index+1);
+   while self.start<stop{
+    let permitted=self.limit.map_or(stop-self.start,|limit|limit.saturating_sub(self.line.len()).min(stop-self.start));
+    if permitted==0{self.start+=1;self.line.clear();return Err(error("limit","readLine","Line exceeds the explicit raw-byte limit, including terminators; consumed prefix is not rolled back."));}
+    // Grow at the same full-capacity boundary as the bytewise implementation.
+    // A failed reservation consumes its detection byte and retains the prior prefix.
+    if self.line.len()==self.line.capacity(){if self.line.try_reserve(1).is_err(){self.start+=1;return Err(error("allocation","readLine","Unable to grow line buffer."));}}
+    let count=permitted.min(self.line.capacity()-self.line.len());
+    self.line.extend_from_slice(&self.chunk[self.start..self.start+count]);self.start+=count;
+   }
+   if newline.is_some(){return self.finish().map(Some);}
   }}
   fn finish(&mut self)->Result<std::string::String,Error>{let mut line=std::mem::take(&mut self.line);if line.last()==Some(&b'\n'){line.pop();if line.last()==Some(&b'\r'){line.pop();}}std::string::String::from_utf8(line).map_err(|_|error("encoding","readLine","Line is not valid UTF-8."))}
   pub async fn close(self)->Result<(),Error>{self.reader.close().await}

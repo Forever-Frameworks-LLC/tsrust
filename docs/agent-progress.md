@@ -11,7 +11,56 @@ Branch: `codex/stdlib-0.2.0`, based on verified released main8efaaee2.
 Read `AGENTS.md`, `docs/development-workflow.md` and `docs/agent-goal.md`, then
 this note. Inspect current source and `git status` before acting.
 
-## Current state — 2026-10-30 (optimization loop; read first)
+## Current state — 2026-11-05
+
+Source checkpoint: **bbbfcfcd**, branch `codex/stdlib-0.2.0`. The line-reader runtime/tests and this handoff
+are dirty in the canonical checkout. The full B00–B20 goal remains active.
+
+Latest acceptance: optional finite-string unions retain their guarded string
+observations. All 14 focused compiler/native/editor witnesses passed; whole-project
+formatting and the local source commit completed. I/O implementation is committed
+at6f3ce381; peer/link repairs at5e915b2c/6f8d3342; nine actual timing histories
+and allocation review at28d8ec49. No push, merge or publication occurred.
+
+The line-reader paired profile completed successfully: session8759,83.944s/
+503,568KiB; three boundary tests, eight independent-oracle checks,18 allocation
+observations and186 timing samples. Median15.513792→3.265958ms; process ratios
+0.21098/0.21073/0.20979; quiet maximum3.984375. Full-workload allocations remain
+5003/11000reallocations, unchanged; n0 runtime retention noise is retained honestly.
+Same fresh libraries for both variants, explicitly different from public baseline.
+Result `/tmp/tsrust-line-chunk-ab.json` SHA256
+acd780ac0e428e3efef87761d8464f0f84042b4c0d883e9394529e0e208184ec;
+final hashes `/tmp/tsrust-line-chunk-ab-final-hashes.json`. Prototypes not ingested.
+
+The selected chunk reader is integrated and locally accepted. Build64554 passed
+231.937s/2,635,906KiB with terminal build-finished true. Gates25283 passed all
+eight runtime cases and the formatted native line-reader example,4.697s/390,064KiB.
+Logs `/tmp/tsrust-line-chunk-integration-{artifacts.jsonl,build.log,gates.json,gates-run.log}`.
+The standalone runtime harness retains existing unused-item warnings; this is not
+a warning-free milestone claim. Whole-project formatting and source checkpoint
+follow, then measure only nativeio_lines with the original protocol, reusing the
+unchanged Rust/Node controls. No fresh public timing is claimed yet.
+
+Original cached-library/preparation failures remain in separate/tmp logs. B06
+released the profiling lease; no heavy job is running at this entry.
+
+Parallel source work: B03 owns the isolated `stdlib-process` tree, aligned to
+28d8ec49, implementing the public subprocess API after its 19 correctness records,
+1,395 timing rows and10 allocation cases passed. B14 owns compression admission
+guard repairs in the isolated `stdlib-compression` tree. Both are source-only for native work. Compression profile.mjs/node-control.mjs
+syntax checks and its independent negative validator self-check passed on pinned
+Node24.11.1; no codec build/profile ran. B06 now repairs network admission guards
+in the isolated network tree, with no execution or shared-target use.
+
+Next: checkpoint the accepted reader, obtain and ingest its fresh native public
+measurement, then continue subprocess integration and the other release bundles.
+Preserve the original timing history. Local acceptance does not complete v0.2.0.
+
+## Earlier checkpoint evidence
+
+Entries below retain completed checks and draft locations. Their process/session
+statements are historical and are superseded by the current-state section above.
+Use a live handle or process observation before treating any old job as active.
 
 **B20 optional finite-string narrowing locally accepted — 2026-11-05:**
 43023 terminalPASS18.181s/431,856KiB, all14witnesses passed. Nativeguarded
