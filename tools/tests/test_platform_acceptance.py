@@ -18,6 +18,24 @@ SPEC.loader.exec_module(RUNNER)
 
 
 class PlatformAcceptance(unittest.TestCase):
+    def test_target_statuses_keep_real_passes_and_reject_missing_duplicate_failed(self):
+        complete = "running 2 tests\ntest a ... ok\ntest b ... ok\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;\n"
+        self.assertEqual(RUNNER.target_statuses(complete, ["a", "b"], True), ({"a": "ok", "b": "ok"}, []))
+        for text in [complete.replace("test b ... ok\n", ""), complete.replace("test b ... ok", "test a ... ok"), complete.replace("test b ... ok", "test b ... FAILED"), complete.replace("test b ... ok", "test b ... ignored"), complete.replace("running 2", "running 1"), complete.replace("test b ... ok", "test unknown ... ok")]:
+            statuses, problems = RUNNER.target_statuses(text, ["a", "b"], True)
+            self.assertTrue(problems)
+        failed = complete.replace("test b ... ok", "test b ... FAILED").replace("test result: ok. 2 passed; 0 failed;", "test result: FAILED. 1 passed; 1 failed;")
+        self.assertEqual(RUNNER.target_statuses(failed, ["a", "b"], True), ({"a": "ok", "b": "FAILED"}, ["b: FAILED"]))
+        nested = failed.replace("test result: FAILED.", "failures:\n---- b stdout ----\nrunning 1 test\ntest nested ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored;\n\ntest result: FAILED.")
+        self.assertEqual(RUNNER.target_statuses(nested, ["a", "b"], True), ({"a": "ok", "b": "FAILED"}, ["b: FAILED"]))
+        statuses, problems = RUNNER.target_statuses("running 2 tests\ntest a ... ok\n", ["a", "b"], False)
+        self.assertEqual(statuses, {"a": "ok"})
+        self.assertIn("b: missing", problems)
+        source = (Path(__file__).resolve().parents[1] / "platform-acceptance.py").read_text()
+        self.assertIn('"--exact", *pending, "--include-ignored", "--test-threads=3"', source)
+        self.assertIn('"scopeCode": row.get("code")', source)
+        self.assertIn('if scope_error:\n                    raise scope_error', source)
+
     def test_selected_build_keeps_exact_package_target_source_artifacts(self):
         root = Path(__file__).resolve().parents[2]
         messages = []

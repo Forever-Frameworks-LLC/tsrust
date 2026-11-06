@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
 import sys
@@ -53,6 +54,33 @@ def selected_test_artifacts(messages, root):
     assert set(artifacts) == selected, ("Missing selected test artifacts", selected - set(artifacts))
     assert len(set(artifacts.values())) == len(selected), "Selected test executables must be distinct"
     return {key: artifacts[key] for key in expected}
+
+
+def target_statuses(text, names, require_summary):
+    assert names and len(set(names)) == len(names)
+    statuses, problems = {}, []
+    counts = re.findall(r"^running (\d+) tests?$", text.split("\nfailures:\n", 1)[0], re.M)
+    if counts != [str(len(names))]:
+        problems.append("Selected test count mismatch")
+    status_output = text.split("\nfailures:\n", 1)[0]
+    for name, status in re.findall(r"^test (.+?) \.\.\. (ok|FAILED|ignored(?:,.*)?)$", status_output, re.M):
+        status = status.split(",", 1)[0]
+        if name not in names:
+            problems.append("Unexpected test: " + name)
+        elif name in statuses:
+            statuses[name] = "duplicate"
+            problems.append("Duplicate test: " + name)
+        else:
+            statuses[name] = status
+    for name in names:
+        if statuses.get(name) != "ok":
+            problems.append(name + ": " + statuses.get(name, "missing"))
+    if require_summary:
+        summaries = re.findall(r"^test result: (?:ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;", text, re.M)
+        observed = tuple(sum(value == status for value in statuses.values()) for status in ["ok", "FAILED", "ignored"])
+        if not summaries or tuple(map(int, summaries[-1])) != observed or sum(observed) != len(names):
+            problems.append("Test summary mismatch")
+    return statuses, problems
 
 
 def owned_rows(rows, pid):
@@ -212,7 +240,7 @@ def main():
             print(json.dumps({"label": label, **{key: row[key] for key in ["code", "stop", "seconds", "peakBytes"]}}), flush=True)
             frozen()
         except BaseException as error:
-            results.setdefault("attempts", []).append({"label": label, "stop": type(error).__name__, "message": str(error)})
+            results.setdefault("attempts", []).append({"label": label, "stop": type(error).__name__, "message": str(error), "stdout": str(prefix.with_suffix(".out")), "stderr": str(prefix.with_suffix(".err"))})
             save()
             raise
         results.setdefault("attempts", []).append({"label": label, **row})
@@ -247,7 +275,8 @@ def main():
             row = run(package + "-" + name + "-list", [str(binary), "--list", "--format", "terse"], package_root)
             assert row["code"] == 0, row
             names = [line[:-6] for line in Path(row["stdout"]).read_text().splitlines() if line.endswith(": test")]
-            assert names, key
+            assert names and len(set(names)) == len(names), key
+            pending = []
             for test in names:
                 if name == "service_sections" and test == "delivered_signals::internal_owned_console_signal_sender":
                     tests[test] = {"status": "excluded", "reason": "Internal ignored console sender runs only as the generated listener test's owned helper; not an independent delivery witness."}
@@ -264,18 +293,38 @@ def main():
                     continue
                 if tests.get(test, {}).get("success"):
                     continue
-                assert sha(binary) == identity["binary"]
-                assert consumers() == identity["consumers"]
-                command = [str(binary), "--exact", test, "--test-threads=3"] + (["--ignored"] if large_datagram else [])
-                row = run(package + "-" + name + "-" + hashlib.sha256(test.encode()).hexdigest()[:12], command, package_root)
+                pending.append(test)
+            if pending:
                 assert sha(binary) == identity["binary"] and consumers() == identity["consumers"]
-                text = Path(row["stdout"]).read_text(errors="replace")
-                row["success"] = row["code"] == 0 and "test result: ok. 1 passed;" in text
-                tests[test] = row
+                label = package + "-" + name + "-pending"
+                command = [str(binary), "--exact", *pending, "--include-ignored", "--test-threads=3", "--format=pretty", "--color=never"]
+                scope_error = None
+                try:
+                    row = run(label, command, package_root)
+                except BaseException as error:
+                    scope_error = error
+                    row = results["attempts"][-1]
+                    assert row["label"] == label
+                assert sha(binary) == identity["binary"] and consumers() == identity["consumers"]
+                output = Path(row["stdout"])
+                text = output.read_text(errors="replace") if output.exists() else ""
+                statuses, problems = target_statuses(text, pending, row.get("stop") is None and row.get("code") in [0, 101])
+                valid_output = not any(problem.startswith(("Selected test count mismatch", "Unexpected test:", "Duplicate test:", "Test summary mismatch")) for problem in problems)
+                if all(statuses.get(test) == "ok" for test in pending) and (row.get("code") != 0 or row.get("stop")):
+                    valid_output = False
+                for test in pending:
+                    status = statuses.get(test, "missing")
+                    success = valid_output and status == "ok" and row.get("stop") != "unsettled child processes"
+                    tests[test] = {**row, "scopeCode": row.get("code"), "scopeStop": row.get("stop"), "code": 0 if success else row.get("code"), "status": status, "success": success}
+                    print(key, test, "passed" if success else "FAILED", flush=True)
+                    if not success:
+                        failures.append(key + "::" + test)
+                if problems or row.get("code") != 0 or row.get("stop"):
+                    failures.append(key + "::pending-scope")
+                results["failures"] = failures
                 save()
-                print(key, test, "passed" if row["success"] else "FAILED", flush=True)
-                if not row["success"]:
-                    failures.append(key + "::" + test)
+                if scope_error:
+                    raise scope_error
             if all(tests.get(test, {}).get("success") or tests.get(test, {}).get("status") == "excluded" for test in names):
                 binary.unlink()
     results["failures"] = failures
