@@ -95,7 +95,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                                     for(position,parameter)in params.iter_mut().enumerate(){
                                         if matches!(parameter.ty,ParameterAnnotation::Inferred(_)) {
                                             let (ty,access)=&pass.frame.parameter_hints[index].as_ref().expect("resolved probe inputs")[position];
-                                            parameter.ty=ParameterAnnotation::Named(analyzer.checked_value_annotation(*ty,parameter.name.span)?);
+                                            parameter.ty=ParameterAnnotation::Named(Box::new(analyzer.checked_value_annotation(*ty,parameter.name.span)?));
                                             parameter.access=access.as_ref().map(|access|crate::syntax::Token{kind:crate::syntax::TokenKind::Name,text:access.mode.as_str().into(),span:access.span});
                                         }
                                     }
