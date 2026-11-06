@@ -202,7 +202,7 @@ mod tests {
             program.type_argument_checks.push(project_with_parameters(&mut program.records, &signature, &[argument], span).unwrap());
         }
         let scalar = project_with_parameters(&mut program.records, &Signature::Parameter(0), &[Signature::String], span).unwrap();
-        assert!(matches!(scalar.kind, Kind::Named(name) if name.text == "string"));
+        assert!(matches!(&scalar.kind, Kind::Named(name) if name.text == "string"));
         crate::generic_records::specialize_in(&mut program, &crate::unions::UnionArena::default(), &mut crate::callable_resolution::Tables::default()).unwrap();
         let instances = program.records.iter().filter(|record| record.native_type == Some(NativeTypeId::IteratorCursor)).collect::<Vec<_>>();
         assert_eq!(instances.len(), 2);
