@@ -9241,6 +9241,7 @@ impl Emitter<'_> {
             ExprKind::TypeAssertion { .. } => unreachable!("assertions use the transparent dispatch"),
             ExprKind::Template(_) => unreachable!("templates emitted in their own frame"),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call target") {
+                CallTarget::IteratorCursor | CallTarget::IteratorNext => unreachable!("iterator leaves use their expression work frame"),
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
                 CallTarget::SchemaChoice(_) => unreachable!("schema choices use constructor expressions"),
                 CallTarget::SchemaDefault => format!("{{let mut schema={};schema.factory=Some(Box::new({}));schema}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume)),

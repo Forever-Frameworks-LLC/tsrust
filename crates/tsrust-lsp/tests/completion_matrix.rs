@@ -617,7 +617,7 @@ fn completion_answers_at_typing_speed() {
     let mut lines = Vec::new();
     let mut failed = Vec::new();
     for row in rows() {
-        if only.as_ref().is_some_and(|only| !row.name.contains(only.as_str())) {
+        if only.as_ref().is_some_and(|only| !only.split(',').any(|wanted| !wanted.is_empty() && row.name.contains(wanted))) {
             continue;
         }
         let settled = observe(&row, Mode::Settled);
@@ -635,6 +635,7 @@ fn completion_answers_at_typing_speed() {
             }
         }
     }
+    assert!(!lines.is_empty(), "No completion rows matched the selected filter");
     if let Some(path) = report {
         std::fs::write(path, lines.join("\n") + "\n").unwrap();
     }

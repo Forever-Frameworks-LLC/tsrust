@@ -1,13 +1,15 @@
 import { ArrayCursor, arrayCursor, arrayNext } from 'std:iterator-runtime';
 
-export type IteratorResult<T> = {
+interface IteratorValue<T> {
   done: false;
   value: T
 }
 
-| {
+interface IteratorEnd {
   done: true
-};
+}
+
+export type IteratorResult<T> = IteratorValue<T> | IteratorEnd;
 
 export interface Iterator<T> {
   _pull: Owned<Function<IteratorResult<T>>>;

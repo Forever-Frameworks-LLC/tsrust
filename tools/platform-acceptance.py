@@ -25,6 +25,36 @@ native_environment_catalog async_io async_tasks native_threads process
 network_addresses network_transport compression stdio""".split()
 
 
+def selected_test_artifacts(messages, root):
+    assert messages and messages[-1].get("reason") == "build-finished" and messages[-1].get("success") is True, "Selected test build did not finish successfully"
+    expected = {(package, name) for package, names in [("tsrust-compiler", COMPILER_TARGETS), ("tsrust-lsp", LSP_TARGETS)] for name in names}
+    selected = {(package, name) for package in ["tsrust-compiler", "tsrust-lsp"] for name in set(COMPILER_TARGETS + LSP_TARGETS) if (root / "crates" / package / "tests" / (name + ".rs")).is_file()}
+    assert expected <= selected
+    packages = {}
+    for package in ["tsrust-compiler", "tsrust-lsp"]:
+        directory = root / "crates" / package
+        version = tomllib.loads((directory / "Cargo.toml").read_text())["package"]["version"]
+        packages["path+" + directory.as_uri() + "#" + version] = package
+    artifacts = {}
+    for message in messages:
+        if message.get("reason") != "compiler-artifact" or "test" not in message.get("target", {}).get("kind", []):
+            continue
+        package = packages.get(message["package_id"])
+        name = message["target"]["name"]
+        key = (package, name)
+        assert key in selected and key not in artifacts, ("Unexpected or duplicate test artifact", key)
+        assert message["manifest_path"] == str(root / "crates" / package / "Cargo.toml")
+        assert message["target"]["src_path"] == str(root / "crates" / package / "tests" / (name + ".rs"))
+        assert message["target"]["kind"] == ["test"] and message["target"]["test"] is True and message["profile"]["test"] is True
+        assert message.get("executable"), key
+        binary = Path(message["executable"])
+        assert binary.parent == root / "target/debug/deps", binary
+        artifacts[key] = binary
+    assert set(artifacts) == selected, ("Missing selected test artifacts", selected - set(artifacts))
+    assert len(set(artifacts.values())) == len(selected), "Selected test executables must be distinct"
+    return {key: artifacts[key] for key in expected}
+
+
 def owned_rows(rows, pid):
     """Include group members and descendants, even if a descendant changed group."""
     owned = {pid}
@@ -197,17 +227,18 @@ def main():
     row = run("portable", [str(target / "debug" / ("tsrust" + suffix)), "setup", "--portable", "--offline", "--yes"])
     assert row["code"] == 0, row
     failures = []
+    selected_names = sorted(set(COMPILER_TARGETS + LSP_TARGETS))
+    row = run("selected-tests-build", cargo + ["test", "--offline", "--locked", "-p", "tsrust-compiler", "-p", "tsrust-lsp", *[argument for name in selected_names for argument in ["--test", name]], "--no-run", "--message-format=json"])
+    if row["code"] != 0:
+        results["failures"] = ["selected-tests::build"]
+        save()
+        raise RuntimeError("Selected test build failed")
+    messages = [json.loads(line) for line in Path(row["stdout"]).read_text().splitlines() if line.startswith("{")]
+    artifacts = selected_test_artifacts(messages, root)
     for package, targets in [("tsrust-compiler", COMPILER_TARGETS), ("tsrust-lsp", LSP_TARGETS)]:
         for name in targets:
             key = package + "::" + name
-            row = run(package + "-" + name + "-build", cargo + ["test", "--offline", "--locked", "-p", package, "--test", name, "--no-run", "--message-format=json"])
-            messages = [json.loads(line) for line in Path(row["stdout"]).read_text().splitlines() if line.startswith("{")]
-            if row["code"] or not messages or messages[-1].get("reason") != "build-finished" or messages[-1].get("success") is not True:
-                failures.append(key + "::build")
-                continue
-            artifacts = [m for m in messages if m.get("reason") == "compiler-artifact" and m.get("executable") and m["target"]["name"] == name and "test" in m["target"]["kind"] and m["profile"]["test"]]
-            assert len(artifacts) == 1, artifacts
-            binary = Path(artifacts[0]["executable"])
+            binary = artifacts[(package, name)]
             identity = {"checkpoint": checkpoint, "binary": sha(binary), "consumers": consumers()}
             previous = results.setdefault("targets", {}).get(key, {})
             tests = previous.get("tests", {}) if previous.get("identity") == identity else {}

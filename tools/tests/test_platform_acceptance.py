@@ -18,6 +18,44 @@ SPEC.loader.exec_module(RUNNER)
 
 
 class PlatformAcceptance(unittest.TestCase):
+    def test_selected_build_keeps_exact_package_target_source_artifacts(self):
+        root = Path(__file__).resolve().parents[2]
+        messages = []
+        expected = {(package, name) for package, names in [("tsrust-compiler", RUNNER.COMPILER_TARGETS), ("tsrust-lsp", RUNNER.LSP_TARGETS)] for name in names}
+        self.assertEqual(len(expected), 39)
+        selected = {(package, name) for package in ["tsrust-compiler", "tsrust-lsp"] for name in set(RUNNER.COMPILER_TARGETS + RUNNER.LSP_TARGETS) if (root / "crates" / package / "tests" / (name + ".rs")).is_file()}
+        self.assertEqual(len(selected), 42)
+        self.assertEqual(selected - expected, {("tsrust-compiler", "async_tasks"), ("tsrust-lsp", "http"), ("tsrust-lsp", "service_sections")})
+        for package, name in sorted(selected):
+            directory = root / "crates" / package
+            version = RUNNER.tomllib.loads((directory / "Cargo.toml").read_text())["package"]["version"]
+            messages.append({"reason": "compiler-artifact", "package_id": "path+" + directory.as_uri() + "#" + version, "manifest_path": str(directory / "Cargo.toml"), "target": {"name": name, "kind": ["test"], "test": True, "src_path": str(directory / "tests" / (name + ".rs"))}, "profile": {"test": True}, "executable": str(root / "target/debug/deps" / (package + "-" + name))})
+        messages.append({"reason": "build-finished", "success": True})
+        self.assertEqual(set(RUNNER.selected_test_artifacts(messages, root)), expected)
+        for field, value in [("package_id", "registry+wrong#0.1.2"), ("manifest_path", "wrong/Cargo.toml"), ("executable", str(root / "other-target/test"))]:
+            changed = [dict(row) for row in messages]
+            changed[0][field] = value
+            with self.assertRaises(AssertionError):
+                RUNNER.selected_test_artifacts(changed, root)
+        for changed in [messages[:-1], messages[1:], messages[:-1] + [messages[0], messages[-1]], messages[:-1] + [{"reason": "build-finished", "success": False}]]:
+            with self.assertRaises(AssertionError):
+                RUNNER.selected_test_artifacts(changed, root)
+        changed = [dict(row) for row in messages]
+        changed[0]["target"] = {**changed[0]["target"], "src_path": "wrong.rs"}
+        with self.assertRaises(AssertionError):
+            RUNNER.selected_test_artifacts(changed, root)
+        changed[0] = {**messages[0], "target": {**messages[0]["target"], "name": "unknown_test"}}
+        with self.assertRaises(AssertionError):
+            RUNNER.selected_test_artifacts(changed, root)
+        changed[0] = {**messages[0], "profile": {"test": False}}
+        with self.assertRaises(AssertionError):
+            RUNNER.selected_test_artifacts(changed, root)
+        source = (root / "tools/platform-acceptance.py").read_text()
+        self.assertEqual(source.count('"--no-run"'), 1)
+        self.assertIn('selected_names = sorted(set(COMPILER_TARGETS + LSP_TARGETS))', source)
+        self.assertIn('binary = artifacts[(package, name)]', source)
+        self.assertNotIn('"--tests"', source)
+
     def test_remaining_scope_budget_caps_shortens_and_rejects_exhaustion(self):
         with patch.object(RUNNER.time, "monotonic", side_effect=[100, 175, 200]):
             self.assertEqual(RUNNER.remaining_scope_seconds(5000), 1800)
