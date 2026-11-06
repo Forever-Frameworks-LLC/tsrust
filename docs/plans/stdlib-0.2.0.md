@@ -922,6 +922,19 @@ not retimed or modified. Compression timings, native allocation review and
 cross-platform acceptance remain pending.
 
 
+Public compression-buffer measurements (2026-11-06): all12gzip/gunzip,
+deflate/inflate andrawdeflate/inflate workloads, each with compressible/random
+input, have actual native/Rust/Node timings ingested withnpm run store:ingest.
+Original3processes×31samples after8warmups remain unchanged:3348samples total.
+Quietguard stayed enabled, every admitted load<4, each workload had the existing
+5GB/30minute watchdog. Exact imported histories and SQLite integrity were verified
+before discarding each closed raw result. Native/Rust median-duration ratios
+range0.972–1.090; Node/native ratios2.49–5.07 in these workloads. The largest
+native overhead is compressible rawdeflate (2.164ms versus Rust1.985916ms), retained
+for allocation review; no speculative optimization or control retiming. Reader/
+writer24timings, native allocation review and platform acceptance remain pending.
+
+
 ### B10 — HTTP client completeness and source-owned middleware
 
 Backend: existing Reqwest/Axum/Tower stack. B04/B05/B06; compression uses B09.
