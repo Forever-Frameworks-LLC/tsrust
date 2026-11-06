@@ -896,15 +896,30 @@ family regressions, timing/allocation review and SQLite ingestion remain pending
 The registered60000-byte UDP case remains required on a supporting host; native
 and Node return EMSGSIZE here. Platform and full-goal checkboxes remain open.
 
-Matched public correctness continuation (2026-11-06):4address,6supported
-transport and12compression-buffer workloads pass all3engines at all5registered
-correctness cases (330engine/case checks), plus36produced-stream cross-decoding
-probes for the buffer workloads. The shared runner now routes these families
+Matched public correctness continuation (2026-11-06): all47local workloads
+(4address,6supportedtransport,36buffer/reader/writercompression,io_file_copy)
+pass all3engines at all5registered correctness cases:705engine/case checks plus
+108produced-stream cross-decoding probes. The shared runner routes these families
 through their existing strict source/ABI guards instead of its scalar-only
 fallback; workload/control bytes and measurement protocols are unchanged. Eleven
-existing source/oracle/provenance guards pass. Reader/writer24 and io_file_copy
-correctness, all public timings, native allocation review and ingestion remain
-pending. No correctness-only run was ingested as a timing measurement.
+existing source/oracle/provenance guards pass. No correctness-only run was ingested
+as a timing measurement. Supporting-host60000-byte UDP remains required.
+
+Public network measurements (2026-11-06): all4address and6supported TCP/UDP
+workloads have actual native/Rust/Node execution timings ingested with
+npm run store:ingest into benchmarks/measurements.sqlite. Each workload/engine
+uses the original3processes×31samples after8warmups (2790samples total), with
+quiet-machine guard enabled and maximum admitted load below4. Exact imported
+medians/rates/sample counts and SQLite integrity were verified before removing
+closed raw result files. Native TCP medians are1–1.5% above handwrittenRust and
+3.9–4.5×faster thanNode in these loopback workloads; address native medians are
+within about1–25% of Rust. These are scoped workload observations, not universal
+networking claims. Affected native io_file_copy timing is also ingested:93samples,
+32.158625ms median versus prior31.995583ms (about0.5% higher). Fresh all-engine
+correctness and exact unchanged control binaries/JS support retaining the prior
+Rust24.175333ms andNode53.446625ms controls, each93samples; those histories were
+not retimed or modified. Compression timings, native allocation review and
+cross-platform acceptance remain pending.
 
 
 ### B10 — HTTP client completeness and source-owned middleware
