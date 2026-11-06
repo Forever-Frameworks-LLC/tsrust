@@ -223,7 +223,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 let initial_runtime = task.environment.runtime;
                 let region = task.region.value();
                 if refresh {
-                    analyzer.check_pending_region_functions(&region.body, result_type)?;
+                    analyzer.check_pending_region_functions(&region.body, result_type, false)?;
                     effects = if partial { analyzer.region_caller_error_effects(context, &region.body, result_type) } else { analyzer.region_error_effects(context)? };
                 }
                 let incoming = crate::error_effects::annotate_region_body(&mut region.body, &effects);

@@ -60,8 +60,10 @@ pub(crate) fn function_annotations(
     function_annotations_with_substitution(function,visit,None)
 }
 fn function_annotations_with_substitution(function:&mut Function,visit:&mut impl FnMut(&mut ValueAnnotation)->Result<(),Diagnostic>,substitutions:Option<&Substitutions>)->Result<(),Diagnostic>{
-    for (_,annotation,callback)in &mut function.params {
+    for (position,(_,annotation,callback))in function.params.iter_mut().enumerate() {
+        let adjust=substitutions.is_some_and(|bindings|crate::type_substitution::substitutes_parameter(annotation,bindings));
         visit(annotation)?;
+        if adjust && crate::type_substitution::copy_annotation(annotation) && let Some(access)=function.parameter_access.get_mut(position) {*access=None;}
         if let Some(callback)=callback {annotations(AnnotationWork::Callback(callback),visit,substitutions)?;}
     }
     if let Some(result)=&mut function.result {annotations(AnnotationWork::Result(result),visit,substitutions)?;}
@@ -426,11 +428,14 @@ mod substitution_access_tests {
             substitute_function_annotations(&mut value,&Substitutions::from([("T".into(),parse(actual).unwrap())])).unwrap();
             let action=callback(&value);assert!(action.kind.is_owned());
             assert_eq!(action.params.iter().map(|value|value.access.as_ref().unwrap().text.as_str()).collect::<Vec<_>>(),vec!["consume","read","mutate"]);
+            let mut data=function("function data<T>(owned:Owned<T>,borrowed:ReadOnly<T>,changed:Mutable<T>):void{}");
+            substitute_function_annotations(&mut data,&Substitutions::from([("T".into(),parse(actual).unwrap())])).unwrap();
+            assert_eq!(data.parameter_access.iter().map(|value|value.as_ref().unwrap().0).collect::<Vec<_>>(),vec![crate::Mode::Consume,crate::Mode::Read,crate::Mode::Mutate]);
         }
     }
     #[test]
     fn substitution_body_visits_closures_and_local_function_mirrors(){
-        let mut value=function("function outer<T>():void{function local(action:Function<T,[value:Owned<T>]>):void{}const action=(value:Owned<T>):T=>value;}");
+        let mut value=crate::syntax::parse_module("function outer<T>():void{function local(action:Function<T,[value:Owned<T>]>):void{}const action=(value:Owned<T>):T=>value;}",false,Default::default(),Default::default()).unwrap().functions.remove(0);
         substitute_function_body(&mut value,&Substitutions::from([("T".into(),parse("int").unwrap())]),&mut |_|Ok(())).unwrap();
         let StmtKind::LocalFunction(local)=&value.body[0].kind else{panic!("local function")};assert!(callback(local).params[0].access.is_none());
         let StmtKind::Let{value,..}=&value.body[1].kind else{panic!("closure binding")};let ExprKind::Closure{params,..}=&value.kind else{panic!("closure")};assert!(params[0].access.is_none());
@@ -441,6 +446,9 @@ mod substitution_access_tests {
         let bindings=Substitutions::from([("T".into(),parse("int").unwrap()),("U".into(),parse("string").unwrap())]);
         let error=substitute_result_annotation(value.result.as_mut().unwrap(),&bindings).unwrap_err();assert_eq!(error.code,"type");
         let Some(ResultAnnotation::Callable{params,..})=&value.result else{panic!("returned callback")};assert!(params[0].access.is_none());assert!(params[1].access.is_some());assert!(params[2].access.is_some());
+        let mut data=function("function data<T,U>(first:Owned<T>,broken:ReadOnly<U<int>>,later:Owned<T>):void{}");
+        assert_eq!(substitute_function_annotations(&mut data,&bindings).unwrap_err().code,"type");
+        assert!(data.parameter_access[0].is_none());assert!(data.parameter_access[1].is_some());assert!(data.parameter_access[2].is_some());
     }
     #[test]
     fn explicit_scalar_and_alias_access_stays_invalid_and_ordinary_walks_do_not_normalize(){
@@ -449,6 +457,10 @@ mod substitution_access_tests {
             substitute_function_annotations(&mut value,&Substitutions::from([("T".into(),parse("int").unwrap())])).unwrap();assert!(callback(&value).params[0].access.is_some());
             let source=format!("type ScalarAlias=int;function invalid(action:Function<int,[value:Owned<{annotation}>]>):void{{}}function main(){{invalid((value:int):int=>value);}}");
             assert_eq!(crate::check(&source).err().unwrap().code,"callback-access");
+            for access in ["Owned","ReadOnly","Mutable"] {
+                let source=format!("type ScalarAlias=int;function invalid<T>(value:{access}<{annotation}>,other:T):T{{return other;}}function main(){{invalid(7,7);}}");
+                assert_eq!(crate::check(&source).err().unwrap().code,"callback-access");
+            }
         }
         let mut value=function("function apply(action:Function<int,[value:Owned<ScalarAlias>]>):void{}");
         function_annotations(&mut value,&mut |annotation|{if matches!(&annotation.kind,crate::type_syntax::ValueAnnotationKind::Named(name)if name.text=="ScalarAlias"){*annotation=parse("int").unwrap();}Ok(())}).unwrap();
@@ -456,6 +468,11 @@ mod substitution_access_tests {
     }
     #[test]
     fn generic_owned_scalar_callback_specialization_checks(){
+        for access in ["Owned","ReadOnly","Mutable"] {
+            let mut value=function(&format!("function data<T>(value:{access}<T>):void{{}}"));
+            substitute_function_annotations(&mut value,&Substitutions::from([("T".into(),parse("int").unwrap())])).unwrap();
+            assert!(value.parameter_access[0].is_none());
+        }
         let source="function apply<T>(value:Owned<T>,action:Owned<Function<T,[value:Owned<T>]>>):T{return action(value);}function main(){console.log(apply(7,(value:int):int=>value+1));}";
         crate::check(source).unwrap();
     }

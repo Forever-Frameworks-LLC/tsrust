@@ -296,6 +296,7 @@ impl Analyzer {
             result
         };
         self.finalize_nullable_locals(&mut context.bindings, body)?;
+        let result = if method_template && !inferred_result { result } else { self.physical_record_result(body,result)? };
         let restoration_bounded=capture_restoration::bounded_body(body);
         let mut captures = Vec::new();
         let mut program_captures = Vec::new();

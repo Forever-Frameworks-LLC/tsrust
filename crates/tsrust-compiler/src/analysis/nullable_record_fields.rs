@@ -249,6 +249,30 @@ impl Analyzer {
     }
 
 impl Analyzer {
+    /// Keep physical callback fields selected by concrete function or closure returns.
+    pub(super) fn physical_record_result(&mut self, body:&mut [Stmt], mut result:Type)->Result<Type,Diagnostic> {
+        // A record annotation names its declaration; the checked result must
+        // retain the concrete callback environment selected by its returns.
+        if let Type::Array(ArrayElement::Record(base, depth)) = result
+            && let Some(joined) = self.joined_array_result(body, base, depth)?
+        {
+            result = joined;
+        }
+        if let Type::Record(base) = result
+            && let Some(joined) = self.joined_record_result(body, base)?
+        {
+            result = joined;
+        } else if let Type::Record(base) = result {
+            let actual = self.inferred_body_result(body)?;
+            if let Type::Record(instance) = actual {
+                if self.scoped_records.declaration(instance) == base {
+                    result = actual;
+                }
+            }
+        }
+        Ok(result)
+    }
+
     /// A record result whose returns differ only in callback environments
     /// takes their join. Each returned value is converted to that join.
     pub(super) fn joined_record_result(&mut self,body:&mut [Stmt],base:usize)->Result<Option<Type>,Diagnostic> {
@@ -280,7 +304,7 @@ impl Analyzer {
         fn absent(value:&Expr)->bool {matches!(&value.kind,ExprKind::Inject{value,..} if matches!(value.kind,ExprKind::Null|ExprKind::Undefined))}
         let joined=match(left,right){
             (Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)
-                && self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(a))).scoped=>self.join_sticky_record_types(a,b,consequent.span)?,
+                && (self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(a))).scoped || self.finite_owned_shape(left) || self.finite_owned_shape(right))=>self.join_sticky_record_types(a,b,consequent.span)?,
             _ if self.nullable_scoped_record_declaration(left).is_some() && self.nullable_scoped_record_declaration(left)==self.nullable_scoped_record_declaration(right)=>{
                 if absent(alternate){Some(left)}else if absent(consequent){Some(right)}else{self.join_nullable_record_unions(left,right,consequent.span)?}
             }

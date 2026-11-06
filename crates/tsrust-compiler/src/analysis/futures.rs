@@ -48,9 +48,10 @@ impl Analyzer {
                 let bodies=std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function))
                     .map(|function|(function.body.clone(),function.result)).collect::<Vec<_>>();
                 if let Some(ClosureForward::Once(inner))=forward{pending.push(inner);}
-                if let Some(ClosureForward::Function(origin))=forward
-                    && self.checked[origin].is_none() && !self.visiting[origin]{self.function(origin)?;}
-                for (body,result) in bodies{self.check_pending_region_functions(&body,result)?;}
+                if let Some(ClosureForward::Function(origin))=forward {
+                    self.prepare_selected_task_function(origin,span,discovering)?;
+                }
+                for (body,result) in bodies{self.check_pending_region_functions(&body,result,discovering)?;}
             }
             Ok::<(),Diagnostic>(())
         })();
@@ -252,4 +253,13 @@ mod tests {
   for id in affected {program.error_effects.closure_errors[id].explicit.push(Type::Undefined);}
   assert_eq!(validate(&program).unwrap_err().code,"future-errors");
  }
+ #[test]
+ fn async_owned_once_callback_capture_observes_without_releasing_ownership(){
+  let source="async function invoke<T>(action:Once<Function<Task<T>>>):Task<T>{return await action();}async function main():Task<void>{const values=[1,2];const count=await invoke(async()=>{const owned=values;return owned.length;});console.log(count);}";
+  drop(crate::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source))).emit_rust());
+  let borrowed="async function invoke(action:ReadOnly<Function<Task<int>>>):Task<int>{return await action();}function main(){}";
+  assert_eq!(crate::check(borrowed).err().expect("a lazy task cannot own a borrowed callback input").code,"callback-escape");
+ }
+
+
 }

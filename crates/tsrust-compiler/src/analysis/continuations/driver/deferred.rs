@@ -8,7 +8,7 @@ enum Target { Primary, Selected { origin: usize, prepared: Prepared } }
 enum Phase {
     Start, Preparation { context: std::rc::Rc<Context>, purpose: Purpose }, Pending { body: Pending, purpose: Purpose }, Join, Receiver(Type), Arguments,
     Argument { index: usize, frame: super::super::arguments::ArgumentFrame },
-    Resolve(Target), Resolved { target: Target, function: usize, result: Option<Type> },
+    Resolve(Target), Resolved { target: Target, function: usize },
     Selected, Done,
 }
 struct Final { function: usize, result: Type, method: usize }
@@ -157,12 +157,13 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                         Target::Selected { prepared, .. } => (prepared.function, &prepared.arguments),
                     };
                     let (function, immediate) = analyzer.prepare_specialization(function, args, span)?;
-                    let result = if immediate { None } else { Some(analyzer.resolved_prepared_call(context, function, args, span)?.1) };
+                    // Preserve pre-body dependency discovery, but never cache its symbolic result.
+                    if !immediate { let _ = analyzer.resolved_prepared_call(context, function, args, span)?; }
                     let child = function_child(analyzer, function)?;
-                    task.phase = Phase::Resolved { target, function, result };
+                    task.phase = Phase::Resolved { target, function };
                     if let Some(child) = child { return Ok(Action::Child(child)); }
                 }
-                Phase::Resolved { target, function, result } => {
+                Phase::Resolved { target, function } => {
                     if let Some(completion) = completion.take() {
                         let Completion::Function(result) = completion else { unreachable!() };
                         result?;
@@ -171,7 +172,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                     match target {
                         Target::Primary => {
                             let args = task.expression_args();
-                            let result = result.map_or_else(|| analyzer.resolved_prepared_call(context, function, args, span).map(|(_, result)| result), Ok)?;
+                            let result = analyzer.resolved_prepared_call(context, function, args, span)?.1;
                             let prepared = task.primary.as_ref().unwrap();
                             let primary = task.selection.as_ref().unwrap().primary;
                             let method = analyzer.materialize_deferred_method(primary, function, result, args, &prepared.accesses, prepared.invocation, span)?;
@@ -180,7 +181,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                                 && (task.selection.as_ref().unwrap().origins.len() > 1 || primary != task.request.origin) { Phase::Selected } else { Phase::Done };
                         }
                         Target::Selected { origin, prepared } => {
-                            let result = result.map_or_else(|| analyzer.resolved_prepared_call(context, function, &prepared.arguments, span).map(|(_, result)| result), Ok)?;
+                            let result = analyzer.resolved_prepared_call(context, function, &prepared.arguments, span)?.1;
                             let method = analyzer.materialize_deferred_method(origin, function, result, &prepared.arguments, &prepared.accesses, prepared.invocation, span)?;
                             task.pairs.push(crate::polymorphic_invocation_plans::Pair { origin, method });
                             task.phase = Phase::Selected;

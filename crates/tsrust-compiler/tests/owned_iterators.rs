@@ -50,3 +50,9 @@ fn iterator_physical_carriers_survive_owned_returns_captures_and_joins(){
  let source=support::format_round_trip("import {Iterator} from 'std:iterator';function owned(source:Owned<Iterator<int>>):Iterator<int>{return source;}function choose(flag:boolean):Iterator<int>{if(flag){return Iterator.from([2,4]);}return Iterator.from([3,5]).map(value=>value+1);}function capture(source:Owned<Iterator<int>>):Once<Function<int[]>>{return ():int[]=>source.toArray();}function main(){const action=capture(owned(choose(true)));console.log(action().join(','));console.log(owned(choose(false)).toArray().join(','));}");
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"2,4\n4,6\n");
 }
+
+#[test]
+fn explicit_iterator_closure_results_and_conditional_shapes_execute(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function conditional(flag:boolean):Iterator<int>{return flag?Iterator.from([8]):Iterator.from([3]).map(value=>value+1);}function main(){const factory=():Iterator<int>=>Iterator.from([2,4]);console.log(factory().toArray().join(','));console.log(conditional(true).toArray().join(','));console.log(conditional(false).toArray().join(','));}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"2,4\n8\n4\n");
+}

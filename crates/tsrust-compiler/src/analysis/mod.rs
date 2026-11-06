@@ -3911,7 +3911,7 @@ impl Analyzer {
     #[inline(never)]
     fn check_current_region_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet,crate::error_effects::ErrorEffects),Diagnostic> {
         let (normal,completions,mut errors)=self.check_region_body(context,body,result)?;
-        self.check_pending_region_functions(body,result)?;
+        self.check_pending_region_functions(body,result,false)?;
         let effects=if context.exception_environment.as_ref().is_some_and(|environment|environment.partial_contracts) {
             self.region_caller_error_effects(context,body,result)
         }else{self.region_error_effects(context)?};
@@ -3932,12 +3932,24 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type)->Result<(),Diagnostic> {
-        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
-        let targets=crate::error_effects::checked_expressions(&caller).into_iter().filter_map(|expression|match expression.target {Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>Some(id),_=>None}).collect::<HashSet<_>>();
-        for id in targets {
-            if self.checked[id].is_none() && !self.visiting[id] {self.function(id)?;}
+    fn prepare_selected_task_function(&mut self,id:usize,span:Span,defer_pending_origins:bool)->Result<(),Diagnostic> {
+        if self.checked[id].is_some() || self.visiting[id] {return Ok(());}
+        // Full checking would restart global result discovery before marking the
+        // callee visiting. Let that discovery's dependency queue find its origin.
+        if defer_pending_origins && self.assumed_modes.is_some()
+            && self.callable_result_type(self.signatures[id].result)
+            && !self.known_results.contains_key(&id)
+        {
+            self.note_result_wait(id,span);
+            return Err(Self::pending_result(span));
         }
+        self.function(id)
+    }
+
+    fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type,defer_pending_origins:bool)->Result<(),Diagnostic> {
+        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
+        let targets=crate::error_effects::checked_expressions(&caller).into_iter().filter_map(|expression|match expression.target {Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>Some((id,expression.span)),_=>None}).collect::<HashMap<_,_>>();
+        for (id,span) in targets {self.prepare_selected_task_function(id,span,defer_pending_origins)?;}
         Ok(())
     }
 
@@ -10405,7 +10417,9 @@ self.names_materialized_type(element.with_depth(0).ty())
             .ok_or_else(|| Diagnostic::new("name", format!("Unknown value {name:?}."), span))?;
         let callback_argument = matches!(expected, Some(Type::Callback(_)));
         let observation =
-            self.observing_values && mode == Mode::Read && (!context.is_capture(index) || self.is_task_type(context.bindings[index].ty));
+            self.observing_values && mode == Mode::Read && (!context.is_capture(index)
+                || self.is_task_type(context.bindings[index].ty)
+                || matches!(context.bindings[index].ty,Type::Callback(id) if self.callables.callbacks[id].kind.is_owned()));
         if let Some(kind) = context.bindings[index].callback_kind {
             if !kind.is_owned()
                 && context.returning_closure && !callback_argument
