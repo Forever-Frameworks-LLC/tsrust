@@ -73,7 +73,7 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 58] = [
+const KINDS: &[Kind] = &[
     Kind::Process,
     Kind::Network,
     Kind::Compression,
@@ -590,7 +590,7 @@ fn failures(row: &Row, mode: Mode, labels: &Result<BTreeSet<String>, String>) ->
 #[test]
 fn every_kind_and_std_module_has_a_row() {
     let rows = rows();
-    for kind in KINDS {
+    for &kind in KINDS {
         assert!(rows.iter().any(|row| row.kind == kind), "no completion row for {kind:?}");
     }
     for row in &rows {
