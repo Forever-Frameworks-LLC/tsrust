@@ -1,5 +1,6 @@
 import ast
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,17 @@ SPEC.loader.exec_module(RUNNER)
 
 
 class PlatformAcceptance(unittest.TestCase):
+    def test_pinned_bun_rejects_corrupt_archive_before_execution(self):
+        source = (Path(__file__).resolve().parents[2] / ".github/workflows/supporting-host-timing.yml").read_text()
+        body = source.split("          python3 - <<'BUN_PYTHON'\n", 1)[1].split("          BUN_PYTHON", 1)[0]
+        installer = compile("\n".join(line[10:] for line in body.splitlines()), "bun-installer", "exec")
+        namespace = {}
+        with patch("urllib.request.urlopen", return_value=io.BytesIO(b"x" * 37975495)), patch("subprocess.check_output") as execute:
+            with self.assertRaises(AssertionError):
+                exec(installer, namespace)
+        execute.assert_not_called()
+        self.assertNotIn("binary", namespace)
+
     def test_supporting_host_timing_is_reusable_bounded_and_uses_original_protocol(self):
         root = Path(__file__).resolve().parents[2]
         source = (root / ".github/workflows/supporting-host-timing.yml").read_text()
@@ -27,7 +39,10 @@ class PlatformAcceptance(unittest.TestCase):
         self.assertIn('limit_seconds=1800, limit_bytes=5_000_000 * 1024', source)
         self.assertIn('"--execution-only", "--engines=native,rust-hand,node-tsc", "--only=net_udp_large"', source)
         self.assertNotIn("--allow-busy", source)
-        self.assertIn("oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6", source)
+        self.assertNotIn("oven-sh/setup-bun@", source)
+        self.assertIn("bun-v1.3.11/bun-linux-x64-baseline.zip", source)
+        self.assertIn("abe346f63414547cdf6b35b7a649a490c728b93d006226156923918a84c0e59b", source)
+        self.assertLess(source.index("hashlib.sha256(payload).hexdigest()"), source.index("archive.read("))
         self.assertIn('messages[-1]["reason"] == "build-finished"', source)
         self.assertLess(source.index('run("portable"'), source.index('run("timing"'))
         self.assertLess(source.index('validate_result(data, expected)\n'), source.index('run("ingest"'))
