@@ -1,7 +1,15 @@
 //! Shared native function signatures preserve record and capture obligations.
 use super::*;
 
+pub(super) struct NativeTaskCallbackSignature {
+    pub(super) arguments:String,
+    pub(super) lifetimes:Vec<String>,
+    pub(super) substitutions:std::collections::HashMap<String,String>,
+    pub(super) replacement_where:String,
+}
+
 pub(super) struct NativeSignature {
+    pub(super) task_callback:Option<NativeTaskCallbackSignature>,
     pub(super) receiver:Option<Mode>,
     pub(super) storage_lifetimes: std::collections::BTreeMap<usize,String>,
     pub(super) params: String,
@@ -250,7 +258,12 @@ impl Emitter<'_> {
 
             generics=if generics.is_empty(){"<'task>".into()}else{format!("<'task,{}",&generics[1..])};
         }
+        let task_callback=if self.program.task_type(fun.result)
+            && fun.native_returns.as_deref().into_iter().flatten().any(|loan|loan.environment_borrow()) {
+            Some(self.native_task_callback_signature(fun,&plan.parameters,borrow_lifetimes,&native_lifetimes,&replacement_where))
+        }else{None};
         NativeSignature {
+            task_callback,
             receiver:None,
             storage_lifetimes:plan.parameters.iter().filter_map(|&root|native_lifetimes.storage(root).map(|name|(root,name.to_owned()))).collect(),
             result,

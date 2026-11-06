@@ -26,6 +26,8 @@ pub(crate) enum LifetimeSource {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Segment {
     CallableAlternative(usize),
+    /// Physical outer reference, separate from the captured payload's own slots.
+    CaptureBorrow(usize),
     Field(String),
     Element,
 }
@@ -34,6 +36,14 @@ pub(crate) enum Segment {
 pub(crate) struct VariantGuard {
     pub path: Vec<Segment>,
     pub success: usize,
+}
+
+impl Loan {
+    /// Signature provenance only. Existing capture-loan owners enforce access,
+    /// settlement and escape rules for ordinary callable references.
+    pub(crate) fn environment_borrow(&self)->bool {
+        self.path.iter().any(|segment|matches!(segment,Segment::CaptureBorrow(_)))
+    }
 }
 
 impl LifetimeSource {
@@ -294,7 +304,12 @@ impl Analyzer {
                 ExprKind::Closure {..} => {
                     if let Some(Type::Closure(origin))=value.ty
                         && let Some(captures)=context.native_view_environments.as_ref().and_then(|environments|environments.get(&origin)) {
-                        for &(inner,outer) in captures {
+                        for &(inner,outer,storage) in captures {
+                            if matches!(storage,Mode::Read|Mode::Mutate) {
+                                result.push(Loan{whole:false,root:outer,owner_fields:vec![],source:LifetimeSource::Storage,
+                                    access:if storage==Mode::Mutate{BorrowAccess::Exclusive}else{BorrowAccess::ReadOnly},
+                                    creation:value.span,retained:false,path:vec![Segment::CaptureBorrow(inner)],guards:vec![]});
+                            }
                             for source in context.bindings[outer].native_view_loans.as_deref().into_iter().flatten() {
                                 let mut loan=source.clone();
                                 native_view_projections::wrap(&mut loan,&Segment::Field(format!("capture{inner}")));
@@ -330,13 +345,13 @@ impl Analyzer {
                                         _=>None,
                                     }.ok_or_else(||Diagnostic::new("native-view-call","A returned receiver view requires a stable callable binding.",value.span))?;
                                     if context.bindings.get(root).is_none() {return Err(Diagnostic::new("native-view-call","Returned receiver storage is outside the current lexical environment.",value.span));}
-                                    let mut loan=output.clone();loan.root=root;loan.retained=true;
+                                    let mut loan=output.clone();loan.root=root;loan.retained=!loan.environment_borrow();
                                     loan.owner_fields.insert(0,format!("capture{capture}"));
                                     result.push(loan);continue;
                                 }
                                 super::native_view_calls::Source::BorrowedCapture(root)=>{
                                     let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured owner is outside the current lexical environment.",value.span))?;
-                                    let mut loan=output.clone();loan.root=root;loan.retained=true;
+                                    let mut loan=output.clone();loan.root=root;loan.retained=!loan.environment_borrow();
                                     result.push(loan);
                                     for inherited in binding.native_view_loans.as_deref().into_iter().flatten() {
                                         let mut actual=inherited.clone();
@@ -514,7 +529,7 @@ impl Analyzer {
             }
         }
         for loan in &mut result {
-            loan.retained = true;
+            loan.retained = !loan.environment_borrow();
         }
         native_view_projections::normalize(&mut result);
         Ok(result)
@@ -550,7 +565,7 @@ impl Analyzer {
             });
         }
         for loan in &mut result {
-            loan.retained = true;
+            loan.retained = !loan.environment_borrow();
         }
         native_view_projections::normalize(&mut result);
         Ok(result)

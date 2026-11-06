@@ -23,6 +23,7 @@ mod http;
 mod sqlite;
 mod sql;
 mod io;
+mod process;
 mod channels;
 #[path="../stdlib/cache/emit.rs"] mod cache;
 mod rust_bridge;
@@ -2494,6 +2495,7 @@ impl Emitter<'_> {
             output.push_str(include_str!("../stdlib/schema/runtime/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
             output.push_str("\n}\n");
         }
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::ProcessChild)){output.push_str(crate::stdlib::process::RUNTIME);}
         if io_runtime{output.push_str(&crate::stdlib::io::runtime());if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpBody)){output.push_str(crate::stdlib::io::HTTP_RUNTIME);}}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sql")){output.push_str(crate::stdlib::sql::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sqlite")){output.push_str(crate::stdlib::sqlite::RUNTIME);}
@@ -2566,6 +2568,7 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "#[derive(Clone)] struct Record{index} {{ bytes: Vec<u8> }}");
                 continue;
             }
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::ProcessChild){let _=writeln!(output,"type Record{index}=tsrust_native_process::Child;");continue;}
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IoReader)=>Some("Reader"),Some(crate::native_signatures::NativeTypeId::IoWriter)=>Some("Writer"),Some(crate::native_signatures::NativeTypeId::IoLineReader)=>Some("LineReader"),Some(crate::native_signatures::NativeTypeId::IoStdin)=>Some("Stdin"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_io::{name};");continue;}
             if let Some(id @ (crate::native_signatures::NativeTypeId::BufferedReader | crate::native_signatures::NativeTypeId::BufferedWriter)) = record.native_type {
                 let backend=crate::native_types::declaration(id).name;
@@ -2901,7 +2904,11 @@ impl Emitter<'_> {
                     // the trait implementation as well as the direct method.
                     || self.native_view_empty_result(&closure.function));
             let mut argument_trait_bounds = String::new();
-            let (arguments, native_result) = if argument_views {
+            let (arguments, native_result) = if let Some(callback)=signature.and_then(|signature|signature.task_callback.as_ref()) {
+                lifetimes.extend(callback.lifetimes.iter().cloned());lifetimes.sort();lifetimes.dedup();
+                argument_trait_bounds=callback.replacement_where.clone();
+                (callback.arguments.clone(),callback_capture_emit::substitute_parameters(&native_result,&callback.substitutions))
+            } else if argument_views {
                 lifetimes.push("'native_arguments".into());
                 let mut result = native_result.replace("'_", "'native_arguments");
                 if let Some(signature) = &native_view_signature {
@@ -9276,6 +9283,7 @@ impl Emitter<'_> {
                     if let Some(call)=self.locale_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.regex_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.url_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.process_native(fun,expr,id,args){return call;}
                     if let Some(call)=self.io_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}

@@ -15,11 +15,14 @@ impl Emitter<'_> {
         if self.native_captures.lifetimes[origin] == 0 {
             return self.native_type(Type::Closure(origin));
         }
-        enum Slot { Borrow, Value(Type, Vec<Segment>, Vec<VariantGuard>) }
+        enum Slot { Borrow(Vec<Segment>,Vec<VariantGuard>), Value(Type, Vec<Segment>, Vec<VariantGuard>) }
         let mut names = Vec::new();
         let mut pending = vec![Slot::Value(Type::Closure(origin), path.to_vec(), guards.to_vec())];
         while let Some(slot) = pending.pop() {
-            let Slot::Value(ty, path, guards) = slot else { names.push("'_".into()); continue; };
+            let (ty,path,guards)=match slot {
+                Slot::Borrow(path,guards)=>{names.push(plan.slot(input,&path,&guards).to_owned());continue;},
+                Slot::Value(ty,path,guards)=>(ty,path,guards),
+            };
             if !self.native_views.contains(ty) && !matches!(ty, Type::Closure(_)) {
                 continue;
             }
@@ -60,7 +63,10 @@ impl Emitter<'_> {
                             guards.clone(),
                         ));
                         // Outer loans precede carried view lifetimes in the physical capture layout.
-                        if matches!(capture.storage, Mode::Read | Mode::Mutate) { pending.push(Slot::Borrow); }
+                        if matches!(capture.storage, Mode::Read | Mode::Mutate) {
+                            let mut borrow=path.clone();borrow.push(Segment::CaptureBorrow(capture.inner));
+                            pending.push(Slot::Borrow(borrow,guards.clone()));
+                        }
                     }
                 }
                 Type::Record(id) if self.program.records[id].native_element().is_some() => {

@@ -232,3 +232,12 @@ fn stored_task_factories_retain_input_loans_through_returned_tasks(){
   support::execute(&valid,"1 2\n",None);
  }
 }
+
+#[test]
+fn consumed_task_relays_preserve_independent_input_lifetimes_at_o0_and_o3(){
+ let source="async function size(left:ReadOnly<string>,right:ReadOnly<int[]>):Task<int>{return left.length+right.length;}function relay<T>(work:Task<T>):Task<T>{return work;}function again<T>(work:Task<T>):Task<T>{const pass=relay;return (true?pass:pass)(work);}async function main():Task<void>{let left='four';const right=[1,2];const pending=again(relay(size(left,right)));console.log(await pending);right.push(3);left='x';console.log(await again(size(left,right)));}";
+ let formatted=support::format_round_trip(source);let checked=check(&formatted).unwrap();assert!(checked.warnings().is_empty());
+ for statement in["left='changed';","right.push(9);"]{let invalid=formatted.replace("console.log(await pending);",&format!("{statement}console.log(await pending);"));assert_eq!(check(&invalid).err().expect("relay keeps caller loans").code,"capture-conflict");}
+ let started="async function size(left:ReadOnly<string>,right:ReadOnly<int[]>):Task<int>{return left.length+right.length;}function relay<T>(work:Task<T>):Task<T>{return work;}async function main():Task<void>{const left='four';const right=[1,2];const pending=relay(size(left,right)).start();await pending;}";assert_eq!(check(&support::format_round_trip(&started)).err().expect("borrowed task cannot transfer").code,"task-transfer");
+ let directory=support::TempDirectory::new();let path=directory.source(&formatted);for release in[false,true]{let binary=directory.0.join(format!("task-relay-{release}{}",std::env::consts::EXE_SUFFIX));let mut build=support::cli();build.arg("build").arg(&path).arg("-o").arg(&binary);if release{build.arg("--release");}support::success(&support::run(&mut build,180));let output=support::run(&mut std::process::Command::new(binary),30);support::success(&output);assert_eq!(output.stdout,b"6\n4\n");assert!(!String::from_utf8_lossy(&output.stderr).contains("unused-task"));}
+}

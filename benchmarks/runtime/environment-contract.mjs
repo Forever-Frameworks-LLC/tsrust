@@ -1,10 +1,11 @@
+import {processEnvironment} from './process-contract.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {observeSliceTree} from './slice-observation.mjs';
 export const environmentID='std_env_get';
 export function environmentFor(row,base=process.env) {
- if(row?.id!==environmentID)return base;
+ if(row?.id!==environmentID)return processEnvironment(row,base);
  const env={...base,TSRUST_BENCH_ENV_TEXT:'héllo 🦀',TSRUST_BENCH_ENV_EMPTY:''};
  delete env.TSRUST_BENCH_ENV_MISSING;return env;
 }

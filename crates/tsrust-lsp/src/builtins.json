@@ -18715,5 +18715,268 @@
         }
       }
     }
+  ],
+  "std:process": [
+    {
+      "name": "CommandOptions",
+      "signature": "type CommandOptions",
+      "parameters": [],
+      "documentation": "Per-child settings. Optional cwd selects the child working directory; env is an EnvVar[] of name/value pairs and clearEnv defaults false. stdin/stdout/stderr accept only inherit, null or pipe. Spawn defaults to inherit for all three. Run defaults to null stdin and captured stdout/stderr; owned Bytes or Reader input selects piped stdin. Reader input is drained and closed, then child stdin is shut down and dropped for EOF. A run stdin pipe without input, or input with null/inherited stdin, returns ProcessError code option before spawning. Spawn rejects input/deadlineMs/maxOutputBytes without consuming the options. deadlineMs and maxOutputBytes are optional nonnegative int values checked against target/backend ranges. The bound combines captured stdout and stderr; exceeding it returns output-limit after terminating/reaping the direct child. No partial Output is returned. Zero is allowed; a zero deadline retains cooperative backend polling semantics.\n\nOwnership: spawn borrows options; run consumes the options and any input. This record's possible Reader field prevents independent clone; construct fresh settings when reuse is needed.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```",
+      "examples": [
+        {
+          "source": "import {run} from 'std:process';async function main():Task<void>{match(await run('unused',[],{stdin:'pipe'})){Ok(_)=>{throw 'unexpected child';},Err(error)=>console.log(error.code)}}",
+          "output": "option\n"
+        }
+      ],
+      "fields": {
+        "cwd": {
+          "documentation": "Optional child working directory as string. Omission inherits the parent directory. Invalid paths fail spawning; the parent cwd never changes.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "env": {
+          "documentation": "Optional EnvVar[] of Unicode name/value overrides applied to this child. Existing environment is inherited unless clearEnv is true. Invalid OS names or values return a spawn error.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "clearEnv": {
+          "documentation": "Optional boolean, false by default. True removes the inherited child environment before applying env overrides; parent variables are unchanged.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "stdin": {
+          "documentation": "Optional inherit/null/pipe mode. Spawn defaults to inherit; run defaults to null or pipe with input. Run rejects pipe without input, and input cannot combine with null/inherit.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "stdout": {
+          "documentation": "Optional inherit/null/pipe mode. Spawn defaults to inherit; run defaults to captured pipe. Inherit/null produces empty run stdout Bytes.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "stderr": {
+          "documentation": "Optional inherit/null/pipe mode. Spawn defaults to inherit; run defaults to captured pipe. Inherit/null produces empty run stderr Bytes.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "input": {
+          "documentation": "Optional owned Bytes or Reader consumed by run and concurrently copied into stdin. The writer closes after EOF. Spawn rejects this field while retaining the borrowed options. Input requires pipe or omitted stdin.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "deadlineMs": {
+          "documentation": "Optional nonnegative int millisecond duration for run, checked against backend Instant range. No default deadline. On expiry, terminate/reap the direct child then return timeout. Zero uses cooperative polling. Spawn rejects this setting.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "maxOutputBytes": {
+          "documentation": "Optional nonnegative int fitting the target, bounding combined captured stdout/stderr bytes. No default total cap. Zero permits only empty captured output; excess returns output-limit after direct-child termination/reaping. Spawn rejects this setting.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('unused', [], {\n    stdin: 'pipe'\n  })) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\noption\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        }
+      }
+    },
+    {
+      "name": "Child",
+      "signature": "type Child",
+      "parameters": [],
+      "documentation": "An owned direct OS child. Inspect id while live, transfer each configured pipe once with takeStdin/takeStdout/takeStderr, and await wait or kill. Cancellation of a borrowed wait leaves this retained owner alive. Dropping an unsettled child schedules termination and wait in the current task scope, with kill-on-drop as a backstop. Outside a live runtime, destructor cleanup is best effort. This does not supervise or terminate a whole process tree.\n\nOwnership: unique nonclonable Send owner. Borrowed operations retain their loans until task settlement.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n```\n\nExpected output:\n```text\ntrue\ntrue true\ntrue\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';async function main():Task<void>{if(unwrap(args()).length>0){return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdout:'null',stderr:'null'}));console.log(child.id()!==undefined);console.log(unwrap(await child.wait()).success,child.id()===undefined);console.log(unwrap(child.tryWait())!==undefined);}",
+          "output": "true\ntrue true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "ExitStatus",
+      "signature": "type ExitStatus",
+      "parameters": [],
+      "documentation": "Owned exit snapshot: success is true for successful termination; optional code is the platform exit code, and optional signal is the Unix termination signal. Signal is absent on non-Unix targets. A nonzero exit code is a completed process, not a spawn failure.\n\nOwnership: ordinary independent data snapshot.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n```\n\nExpected output:\n```text\ntrue\ntrue true\ntrue\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';async function main():Task<void>{if(unwrap(args()).length>0){return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdout:'null',stderr:'null'}));console.log(child.id()!==undefined);console.log(unwrap(await child.wait()).success,child.id()===undefined);console.log(unwrap(child.tryWait())!==undefined);}",
+          "output": "true\ntrue true\ntrue\n"
+        }
+      ],
+      "fields": {
+        "success": {
+          "documentation": "Boolean success flag from the completed platform status; nonzero exit or signal termination is false. Observing it does not reap a live child.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n```\n\nExpected output:\n```text\ntrue\ntrue true\ntrue\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "code": {
+          "documentation": "Optional int platform exit code. Absent when no ordinary exit code is available, including Unix signal termination.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n```\n\nExpected output:\n```text\ntrue\ntrue true\ntrue\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "signal": {
+          "documentation": "Optional int Unix termination signal. Absent for ordinary exits and on non-Unix targets.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n```\n\nExpected output:\n```text\ntrue\ntrue true\ntrue\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        }
+      }
+    },
+    {
+      "name": "Output",
+      "signature": "type Output",
+      "parameters": [],
+      "documentation": "Owned run result with status: ExitStatus and independent stdout/stderr Bytes. Only configured pipe streams are captured; null/inherited streams produce empty Bytes. Data is binary and never decoded or truncated silently.\n\nOwnership: owns all captured storage; clone explicitly when retaining an independent copy.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { run, spawn } from 'std:process';\nimport { toUtf8 } from 'std:bytes';\n\nasync function main(): Task<void> {\n  const arguments = unwrap(args());\n  if (arguments.length > 0) {\n    console.log('child output');\n    return;\n  }\n\n  const executable = unwrap(currentExe());\n  const output = unwrap(await run(executable, ['--child']));\n  console.log(output.status.success, unwrap(toUtf8(output.stdout)) === 'child output\\n');\n  const child = unwrap(spawn(executable, ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n\n```\n\nExpected output:\n```text\ntrue true\ntrue\ntrue true\ntrue\n```",
+      "examples": [
+        {
+          "source": "import { args, currentExe } from 'std:env';\nimport { run, spawn } from 'std:process';\nimport { toUtf8 } from 'std:bytes';\n\nasync function main(): Task<void> {\n  const arguments = unwrap(args());\n  if (arguments.length > 0) {\n    console.log('child output');\n    return;\n  }\n  const executable = unwrap(currentExe());\n  const output = unwrap(await run(executable, ['--child']));\n  console.log(output.status.success, unwrap(toUtf8(output.stdout)) === 'child output\\n');\n  const child = unwrap(spawn(executable, ['--child'], { stdout: 'null', stderr: 'null' }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n",
+          "output": "true true\ntrue\ntrue true\ntrue\n"
+        }
+      ],
+      "fields": {
+        "status": {
+          "documentation": "Owned ExitStatus of the completed direct child. Nonzero status is not a run error.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { run, spawn } from 'std:process';\nimport { toUtf8 } from 'std:bytes';\n\nasync function main(): Task<void> {\n  const arguments = unwrap(args());\n  if (arguments.length > 0) {\n    console.log('child output');\n    return;\n  }\n\n  const executable = unwrap(currentExe());\n  const output = unwrap(await run(executable, ['--child']));\n  console.log(output.status.success, unwrap(toUtf8(output.stdout)) === 'child output\\n');\n  const child = unwrap(spawn(executable, ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n\n```\n\nExpected output:\n```text\ntrue true\ntrue\ntrue true\ntrue\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "stdout": {
+          "documentation": "Owned binary Bytes captured from stdout, with no decoding. Empty for inherited/null stdout.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { run, spawn } from 'std:process';\nimport { toUtf8 } from 'std:bytes';\n\nasync function main(): Task<void> {\n  const arguments = unwrap(args());\n  if (arguments.length > 0) {\n    console.log('child output');\n    return;\n  }\n\n  const executable = unwrap(currentExe());\n  const output = unwrap(await run(executable, ['--child']));\n  console.log(output.status.success, unwrap(toUtf8(output.stdout)) === 'child output\\n');\n  const child = unwrap(spawn(executable, ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n\n```\n\nExpected output:\n```text\ntrue true\ntrue\ntrue true\ntrue\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "stderr": {
+          "documentation": "Owned binary Bytes captured from stderr, drained concurrently with stdout. Empty for inherited/null stderr.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { run, spawn } from 'std:process';\nimport { toUtf8 } from 'std:bytes';\n\nasync function main(): Task<void> {\n  const arguments = unwrap(args());\n  if (arguments.length > 0) {\n    console.log('child output');\n    return;\n  }\n\n  const executable = unwrap(currentExe());\n  const output = unwrap(await run(executable, ['--child']));\n  console.log(output.status.success, unwrap(toUtf8(output.stdout)) === 'child output\\n');\n  const child = unwrap(spawn(executable, ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n\n```\n\nExpected output:\n```text\ntrue true\ntrue\ntrue true\ntrue\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        }
+      }
+    },
+    {
+      "name": "ProcessError",
+      "signature": "type ProcessError",
+      "parameters": [],
+      "documentation": "Failure data: code, operation, message and optional osCode. Codes include not-found, permission-denied, invalid-input, broken-pipe, io, runtime, option, range, timeout, output-limit and allocation. OS failure categories keep their original message/code; do not infer a stable category from message text. Nonzero child exit is an Output/ExitStatus instead.\n\nOwnership: independent error data; no child or stream handle is retained.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('tsrust-deliberately-missing-command', [])) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\nnot-found\n```",
+      "examples": [
+        {
+          "source": "import {run} from 'std:process';async function main():Task<void>{match(await run('tsrust-deliberately-missing-command',[])){Ok(_)=>{throw 'unexpected child';},Err(error)=>console.log(error.code)}}",
+          "output": "not-found\n"
+        }
+      ],
+      "fields": {
+        "code": {
+          "documentation": "Failure category as string: not-found, permission-denied, invalid-input, broken-pipe, io, runtime, option, range, timeout, output-limit or allocation. Nonzero exit is status data, not a failure category.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('tsrust-deliberately-missing-command', [])) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\nnot-found\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "operation": {
+          "documentation": "String identifying the failed operation, such as spawn, wait, stdin.write, stdout.read, cleanup.kill or run.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('tsrust-deliberately-missing-command', [])) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\nnot-found\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "message": {
+          "documentation": "Owned human-readable explanation retaining backend OS text. Platform wording can vary; branch on code instead of parsing message.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('tsrust-deliberately-missing-command', [])) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\nnot-found\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        },
+        "osCode": {
+          "documentation": "Optional int OS error number. Validation, limit, timeout and allocation errors can omit it.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('tsrust-deliberately-missing-command', [])) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\nnot-found\n```\n\nOwnership: belongs to the containing owner. Scalar fields copy; owned text/Bytes/resource fields retain ordinary borrow and move rules."
+        }
+      }
+    },
+    {
+      "name": "spawn",
+      "signature": "spawn(program: ReadOnly<string>, args: ReadOnly<string[]>, options?: ReadOnly<CommandOptions>): Result<Child, ProcessError>",
+      "parameters": [
+        {
+          "label": "program",
+          "documentation": "Executable path/name; resolved using backend OS rules."
+        },
+        {
+          "label": "args",
+          "documentation": "Separate argument strings, excluding program name."
+        },
+        {
+          "label": "options",
+          "documentation": "Optional borrowed per-child settings. Defaults to inherited stdio."
+        }
+      ],
+      "documentation": "Creates a direct child immediately in an active async runtime, inheriting all stdio unless changed explicitly. Args exclude the program name. Bind each child setting locally; parent cwd/environment are unchanged. A synchronous context without a runtime returns code runtime. No shell is inserted. Program and each argument are separate UTF-8 strings. There is no implicit timeout or output limit. ProcessError preserves code, operation, message and optional OS code.\n\nOwnership: borrows program, arguments and options only for this call; returns a unique child. Spawn rejects run-only input/deadline/output options without consuming borrowed resources.\n\n```tsrust\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  match (spawn('tsrust-deliberately-missing-command', [])) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\nnot-found\n```",
+      "examples": [
+        {
+          "source": "import {spawn} from 'std:process';async function main():Task<void>{match(spawn('tsrust-deliberately-missing-command',[])){Ok(_)=>{throw 'unexpected child';},Err(error)=>console.log(error.code)}}",
+          "output": "not-found\n"
+        }
+      ]
+    },
+    {
+      "name": "run",
+      "signature": "run(program: ReadOnly<string>, args: ReadOnly<string[]>, options?: Owned<CommandOptions>): Task<Result<Output, ProcessError>>",
+      "parameters": [
+        {
+          "label": "program",
+          "documentation": "Executable path/name; retained as a scoped task input."
+        },
+        {
+          "label": "args",
+          "documentation": "Separate argument strings; retained through task settlement."
+        },
+        {
+          "label": "options",
+          "documentation": "Consumed settings and optional Bytes/Reader input; no hidden limits."
+        }
+      ],
+      "documentation": "Creates a lazy task that spawns, concurrently writes/closes owned input, drains stdout/stderr and waits for exit. Default stdin is null; stdout/stderr are captured. A nonzero status still returns Ok(Output). Explicit deadline/output limits or cancellation terminate and await reaping of the owned direct child. Descendants retaining pipe handles can delay EOF; no process-tree guarantee is made. No shell is inserted. Program and each argument are separate UTF-8 strings. There is no implicit timeout or output limit. ProcessError preserves code, operation, message and optional OS code.\n\nOwnership: consumes options/input at task creation. Stable program/args are borrowed through await/drop settlement; mutation/transfer during that loan is rejected. Inline/owned temporary arguments move into the task. Dropping an unpolled task drops its owned input without spawning. Use an owned factory/explicit snapshots for started work that must outlive caller loans.\n\n```tsrust\nimport { run } from 'std:process';\nasync function main(): Task<void> {\n  match (await run('tsrust-deliberately-missing-command', [])) {\n    Ok(_) => {\n      throw 'unexpected child';\n    },\n    Err(error) => console.log(error.code)\n  }\n}\n```\n\nExpected output:\n```text\nnot-found\n```",
+      "examples": [
+        {
+          "source": "import {run} from 'std:process';async function main():Task<void>{match(await run('tsrust-deliberately-missing-command',[])){Ok(_)=>{throw 'unexpected child';},Err(error)=>console.log(error.code)}}",
+          "output": "not-found\n"
+        }
+      ]
+    }
+  ],
+  "Child": [
+    {
+      "name": "id",
+      "signature": "id(): int | undefined",
+      "parameters": [],
+      "documentation": "Returns the current process ID, absent after a completed wait/tryWait/kill. It is an observation, not a retained OS handle. No mutation.\n\nOwnership: ReadOnly receiver access. No child clone is created.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n```\n\nExpected output:\n```text\ntrue\ntrue true\ntrue\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';async function main():Task<void>{if(unwrap(args()).length>0){return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdout:'null',stderr:'null'}));console.log(child.id()!==undefined);console.log(unwrap(await child.wait()).success,child.id()===undefined);console.log(unwrap(child.tryWait())!==undefined);}",
+          "output": "true\ntrue true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "takeStdin",
+      "signature": "takeStdin(): Writer | undefined",
+      "parameters": [],
+      "documentation": "Transfers the configured stdin pipe once as a std:io Writer. Absent when not piped or already taken. Closing the writer shuts down/drops it so the child can observe EOF.\n\nOwnership: Mutate receiver access. No child clone is created.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nimport { readAll, writeAll, close, stdin, readStdin, stdout, stderr } from 'std:io';\nimport { fromUtf8, length, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    const input = stdin();\n    while (length(unwrap(readStdin(input, 8192))) > 0) {}\n\n    const output = stdout();\n    unwrap(await writeAll(output, unwrap(fromUtf8('hello'))));\n    unwrap(await close(output));\n    const errors = stderr();\n    unwrap(await writeAll(errors, unwrap(fromUtf8('note'))));\n    unwrap(await close(errors));\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'\n  }));\n  const input = child.takeStdin();\n  const output = child.takeStdout();\n  const errors = child.takeStderr();\n  if (child.takeStdin() !== undefined || child.takeStdout() !== undefined || child.takeStderr() !== undefined) {\n    throw 'pipe transferred twice';\n  }\n\n  if (input === undefined || output === undefined || errors === undefined) {\n    throw 'missing pipe';\n  }\n\n  unwrap(await writeAll(input, unwrap(fromUtf8('input'))));\n  unwrap(await close(input));\n  const captured = unwrap(await readAll(output));\n  const diagnostics = unwrap(await readAll(errors));\n  unwrap(await close(output));\n  unwrap(await close(errors));\n  console.log(unwrap(toUtf8(captured)), unwrap(toUtf8(diagnostics)), unwrap(await child.wait()).success);\n}\n```\n\nExpected output:\n```text\nhello note true\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';import {readAll,writeAll,close,stdin,readStdin,stdout,stderr} from 'std:io';import {fromUtf8,length,toUtf8} from 'std:bytes';async function main():Task<void>{if(unwrap(args()).length>0){const input=stdin();while(length(unwrap(readStdin(input,8192)))>0){}const output=stdout();unwrap(await writeAll(output,unwrap(fromUtf8('hello'))));unwrap(await close(output));const errors=stderr();unwrap(await writeAll(errors,unwrap(fromUtf8('note'))));unwrap(await close(errors));return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdin:'pipe',stdout:'pipe',stderr:'pipe'}));const input=child.takeStdin();const output=child.takeStdout();const errors=child.takeStderr();if(child.takeStdin()!==undefined||child.takeStdout()!==undefined||child.takeStderr()!==undefined){throw 'pipe transferred twice';}if(input===undefined||output===undefined||errors===undefined){throw 'missing pipe';}unwrap(await writeAll(input,unwrap(fromUtf8('input'))));unwrap(await close(input));const captured=unwrap(await readAll(output));const diagnostics=unwrap(await readAll(errors));unwrap(await close(output));unwrap(await close(errors));console.log(unwrap(toUtf8(captured)),unwrap(toUtf8(diagnostics)),unwrap(await child.wait()).success);}",
+          "output": "hello note true\n"
+        }
+      ]
+    },
+    {
+      "name": "takeStdout",
+      "signature": "takeStdout(): Reader | undefined",
+      "parameters": [],
+      "documentation": "Transfers the configured stdout pipe once as a std:io Reader. Absent when not piped or already taken. Read/drop responsibility moves to the caller.\n\nOwnership: Mutate receiver access. No child clone is created.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nimport { readAll, writeAll, close, stdin, readStdin, stdout, stderr } from 'std:io';\nimport { fromUtf8, length, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    const input = stdin();\n    while (length(unwrap(readStdin(input, 8192))) > 0) {}\n\n    const output = stdout();\n    unwrap(await writeAll(output, unwrap(fromUtf8('hello'))));\n    unwrap(await close(output));\n    const errors = stderr();\n    unwrap(await writeAll(errors, unwrap(fromUtf8('note'))));\n    unwrap(await close(errors));\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'\n  }));\n  const input = child.takeStdin();\n  const output = child.takeStdout();\n  const errors = child.takeStderr();\n  if (child.takeStdin() !== undefined || child.takeStdout() !== undefined || child.takeStderr() !== undefined) {\n    throw 'pipe transferred twice';\n  }\n\n  if (input === undefined || output === undefined || errors === undefined) {\n    throw 'missing pipe';\n  }\n\n  unwrap(await writeAll(input, unwrap(fromUtf8('input'))));\n  unwrap(await close(input));\n  const captured = unwrap(await readAll(output));\n  const diagnostics = unwrap(await readAll(errors));\n  unwrap(await close(output));\n  unwrap(await close(errors));\n  console.log(unwrap(toUtf8(captured)), unwrap(toUtf8(diagnostics)), unwrap(await child.wait()).success);\n}\n```\n\nExpected output:\n```text\nhello note true\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';import {readAll,writeAll,close,stdin,readStdin,stdout,stderr} from 'std:io';import {fromUtf8,length,toUtf8} from 'std:bytes';async function main():Task<void>{if(unwrap(args()).length>0){const input=stdin();while(length(unwrap(readStdin(input,8192)))>0){}const output=stdout();unwrap(await writeAll(output,unwrap(fromUtf8('hello'))));unwrap(await close(output));const errors=stderr();unwrap(await writeAll(errors,unwrap(fromUtf8('note'))));unwrap(await close(errors));return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdin:'pipe',stdout:'pipe',stderr:'pipe'}));const input=child.takeStdin();const output=child.takeStdout();const errors=child.takeStderr();if(child.takeStdin()!==undefined||child.takeStdout()!==undefined||child.takeStderr()!==undefined){throw 'pipe transferred twice';}if(input===undefined||output===undefined||errors===undefined){throw 'missing pipe';}unwrap(await writeAll(input,unwrap(fromUtf8('input'))));unwrap(await close(input));const captured=unwrap(await readAll(output));const diagnostics=unwrap(await readAll(errors));unwrap(await close(output));unwrap(await close(errors));console.log(unwrap(toUtf8(captured)),unwrap(toUtf8(diagnostics)),unwrap(await child.wait()).success);}",
+          "output": "hello note true\n"
+        }
+      ]
+    },
+    {
+      "name": "takeStderr",
+      "signature": "takeStderr(): Reader | undefined",
+      "parameters": [],
+      "documentation": "Transfers the configured stderr pipe once as a std:io Reader. Drain it concurrently with stdout to avoid pipe backpressure. Absent after transfer or when not piped.\n\nOwnership: Mutate receiver access. No child clone is created.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nimport { readAll, writeAll, close, stdin, readStdin, stdout, stderr } from 'std:io';\nimport { fromUtf8, length, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    const input = stdin();\n    while (length(unwrap(readStdin(input, 8192))) > 0) {}\n\n    const output = stdout();\n    unwrap(await writeAll(output, unwrap(fromUtf8('hello'))));\n    unwrap(await close(output));\n    const errors = stderr();\n    unwrap(await writeAll(errors, unwrap(fromUtf8('note'))));\n    unwrap(await close(errors));\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'\n  }));\n  const input = child.takeStdin();\n  const output = child.takeStdout();\n  const errors = child.takeStderr();\n  if (child.takeStdin() !== undefined || child.takeStdout() !== undefined || child.takeStderr() !== undefined) {\n    throw 'pipe transferred twice';\n  }\n\n  if (input === undefined || output === undefined || errors === undefined) {\n    throw 'missing pipe';\n  }\n\n  unwrap(await writeAll(input, unwrap(fromUtf8('input'))));\n  unwrap(await close(input));\n  const captured = unwrap(await readAll(output));\n  const diagnostics = unwrap(await readAll(errors));\n  unwrap(await close(output));\n  unwrap(await close(errors));\n  console.log(unwrap(toUtf8(captured)), unwrap(toUtf8(diagnostics)), unwrap(await child.wait()).success);\n}\n```\n\nExpected output:\n```text\nhello note true\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';import {readAll,writeAll,close,stdin,readStdin,stdout,stderr} from 'std:io';import {fromUtf8,length,toUtf8} from 'std:bytes';async function main():Task<void>{if(unwrap(args()).length>0){const input=stdin();while(length(unwrap(readStdin(input,8192)))>0){}const output=stdout();unwrap(await writeAll(output,unwrap(fromUtf8('hello'))));unwrap(await close(output));const errors=stderr();unwrap(await writeAll(errors,unwrap(fromUtf8('note'))));unwrap(await close(errors));return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdin:'pipe',stdout:'pipe',stderr:'pipe'}));const input=child.takeStdin();const output=child.takeStdout();const errors=child.takeStderr();if(child.takeStdin()!==undefined||child.takeStdout()!==undefined||child.takeStderr()!==undefined){throw 'pipe transferred twice';}if(input===undefined||output===undefined||errors===undefined){throw 'missing pipe';}unwrap(await writeAll(input,unwrap(fromUtf8('input'))));unwrap(await close(input));const captured=unwrap(await readAll(output));const diagnostics=unwrap(await readAll(errors));unwrap(await close(output));unwrap(await close(errors));console.log(unwrap(toUtf8(captured)),unwrap(toUtf8(diagnostics)),unwrap(await child.wait()).success);}",
+          "output": "hello note true\n"
+        }
+      ]
+    },
+    {
+      "name": "wait",
+      "signature": "wait(): Task<Result<ExitStatus, ProcessError>>",
+      "parameters": [],
+      "documentation": "Creates a lazy cancel-safe wait for exit and reaping. Repeated waits return the cached status. Waiting closes stdin still retained by Child; transferred stdin remains caller-owned and must be closed separately for EOF. Cancelling this borrowed wait retains the child owner and does not kill it.\n\nOwnership: Mutate receiver access; async loans last through task settlement.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n```\n\nExpected output:\n```text\ntrue\ntrue true\ntrue\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';async function main():Task<void>{if(unwrap(args()).length>0){return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdout:'null',stderr:'null'}));console.log(child.id()!==undefined);console.log(unwrap(await child.wait()).success,child.id()===undefined);console.log(unwrap(child.tryWait())!==undefined);}",
+          "output": "true\ntrue true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "tryWait",
+      "signature": "tryWait(): Result<ExitStatus | undefined, ProcessError>",
+      "parameters": [],
+      "documentation": "Observes completion without blocking. Returns absent while running and a cached/reaped status once complete. No implicit kill or deadline.\n\nOwnership: Mutate receiver access. No child clone is created.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  console.log(child.id() !== undefined);\n  console.log(unwrap(await child.wait()).success, child.id() === undefined);\n  console.log(unwrap(child.tryWait()) !== undefined);\n}\n```\n\nExpected output:\n```text\ntrue\ntrue true\ntrue\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';async function main():Task<void>{if(unwrap(args()).length>0){return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdout:'null',stderr:'null'}));console.log(child.id()!==undefined);console.log(unwrap(await child.wait()).success,child.id()===undefined);console.log(unwrap(child.tryWait())!==undefined);}",
+          "output": "true\ntrue true\ntrue\n"
+        }
+      ]
+    },
+    {
+      "name": "kill",
+      "signature": "kill(): Task<Result<void, ProcessError>>",
+      "parameters": [],
+      "documentation": "Creates a lazy force-termination operation and awaits direct-child reaping before Ok. OS errors are returned. Cancellation can leave a killed-but-not-yet-reaped retained Child; await wait or call kill again to settle it. No process-tree guarantee.\n\nOwnership: Mutate receiver access; async loans last through task settlement.\n\n```tsrust\nimport { args, currentExe } from 'std:env';\nimport { spawn } from 'std:process';\nimport { delay } from 'std:futures';\nasync function main(): Task<void> {\n  if (unwrap(args()).length > 0) {\n    await delay(60000);\n    return;\n  }\n\n  const child = unwrap(spawn(unwrap(currentExe()), ['--child'], {\n    stdout: 'null', stderr: 'null'\n  }));\n  unwrap(await child.kill());\n  console.log(child.id() === undefined);\n}\n```\n\nExpected output:\n```text\ntrue\n```",
+      "examples": [
+        {
+          "source": "import {args,currentExe} from 'std:env';import {spawn} from 'std:process';import {delay} from 'std:futures';async function main():Task<void>{if(unwrap(args()).length>0){await delay(60000);return;}const child=unwrap(spawn(unwrap(currentExe()),['--child'],{stdout:'null',stderr:'null'}));unwrap(await child.kill());console.log(child.id()===undefined);}",
+          "output": "true\n"
+        }
+      ]
+    }
   ]
 }

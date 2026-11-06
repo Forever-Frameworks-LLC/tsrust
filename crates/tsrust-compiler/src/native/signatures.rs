@@ -4,6 +4,7 @@
 /// not publish source exports: module loading must resolve registered declarations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
+    ProcessChild,ProcessCommandOptions,ProcessExitStatus,ProcessOutput,ProcessError,
     Url, SearchParams, UrlError, QueryEntry,
     Regex, RegexMatch, RegexCaptures, RegexError, RegexOptions,
     Locale, Collator, Segmenter, NumberFormat, SegmentRange, LocaleError, CollatorOptions, NumberFormatOptions,

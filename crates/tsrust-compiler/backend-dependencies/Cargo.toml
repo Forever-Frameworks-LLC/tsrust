@@ -61,6 +61,7 @@ files = ["dep:nix"]
 temporary-files = ["files", "dep:tempfile"]
 async = ["dep:tokio"]
 io = ["async", "files", "tokio/io-util"]
+process = ["io", "tokio/process", "tokio/macros"]
 http = ["async", "dep:axum", "dep:tower-http", "dep:matchit", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
 threads = ["dep:rayon"]
 

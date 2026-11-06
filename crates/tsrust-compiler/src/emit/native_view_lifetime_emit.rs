@@ -3,7 +3,7 @@ use super::*;
 use crate::analysis::native_view_loans::{LifetimeSource, Segment, VariantGuard};
 use std::collections::BTreeMap;
 
-#[derive(Default)]
+#[derive(Default,Clone)]
 pub(super) struct Lifetimes {
     inputs: BTreeMap<(usize,LifetimeSource),String>,
     outputs: BTreeMap<(Vec<Segment>,Vec<VariantGuard>),String>,
@@ -15,6 +15,33 @@ pub(super) struct Lifetimes {
 #[cfg(test)]
 mod native_forward_tests {
     use super::*;
+
+    #[test]
+    fn task_factory_callback_impls_bind_storage_and_carried_slots_independently(){
+        // Concrete view payloads retain independent inner lifetimes as well as
+        // the two outer ReadOnly loans. An abstract Task parameter is lowered
+        // through a forwarding specialization, which emits no callback impl.
+        let source="type Window={};type Pair={one:Window;};async function choose(left:ReadOnly<Pair>,right:ReadOnly<Pair>,flag:boolean):Task<int>{if(flag){const value=left.one;return 1;}const value=right.one;return 2;}function main(){const action=choose;}";
+        let mut parsed=crate::syntax::parse(&crate::format(source).unwrap()).unwrap();
+        parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+        let checked=crate::analysis::analyze(parsed).unwrap();let mut emitter=super::super::emitter_for(&checked,"");emitter.callback_traits=true;let rust=emitter.program();let parsed=syn::parse_file(&rust).unwrap();
+        struct Uses(std::collections::HashSet<String>);impl<'ast> syn::visit::Visit<'ast> for Uses{fn visit_lifetime(&mut self,lifetime:&'ast syn::Lifetime){let name=lifetime.ident.to_string();if name.starts_with("native_input"){self.0.insert(name);}}}
+        let mut carried=std::collections::HashSet::new();let mut storage=std::collections::HashSet::new();
+        for item in parsed.items{let syn::Item::Impl(item)=item else{continue;};let Some((path,_))=&item.trait_ else{continue;};let name=path.segments.last().unwrap().ident.to_string();if !matches!(name.as_str(),"OnceCallback"|"ReadCallback"|"Callback"){continue;}
+            let declared=item.generics.lifetimes().map(|parameter|parameter.lifetime.ident.to_string()).collect::<std::collections::HashSet<_>>();let mut uses=Uses(Default::default());syn::visit::Visit::visit_item_impl(&mut uses,&item);assert!(uses.0.is_subset(&declared),"undeclared callback lifetimes: {:?}",uses.0.difference(&declared).collect::<Vec<_>>());
+            if uses.0.len()>=2{carried.insert(name.clone());}if declared.contains("p0")&&declared.contains("p1"){storage.insert(name);}
+        }
+        for name in["OnceCallback","ReadCallback","Callback"]{assert!(carried.contains(name),"missing independent carried slots in {name}");assert!(storage.contains(name),"missing independent storage binders in {name}");}
+        let mapping=std::collections::HashMap::from([("native_input0_1".into(),"p0".into())]);assert_eq!(callback_capture_emit::substitute_parameters("'native_input0_1: 'native_input0_10",&mapping),"'p0: 'native_input0_10");
+    }
+
+    #[test]
+    fn consumed_task_relay_names_each_outer_reference_in_input_and_output(){
+        let source="async function size(left:ReadOnly<string>,right:ReadOnly<int[]>):Task<int>{return left.length+right.length;}function relay<T>(work:Task<T>):Task<T>{return work;}async function main():Task<void>{const left='a';const right=[1];const pending=relay(size(left,right));console.log(await pending);}";
+        let checked=crate::analysis::analyze(crate::syntax::parse(&crate::format(source).unwrap()).unwrap()).unwrap();let emitter=super::super::emitter_for(&checked,"");let mut count=0;
+        for(index,function)in checked.functions.iter().enumerate(){if !function.name.starts_with("relay")||function.template||!function.bindings.first().is_some_and(|binding|matches!(binding.ty,Type::Closure(_))){continue;}count+=1;let signature=emitter.native_function_signature(index,&[]);assert!(!signature.params.contains("'_"));assert!(!signature.result.contains("'_"));for slot in 0..2{let name=format!("'native_input0_{slot}");assert!(signature.generics.contains(&name));assert!(signature.params.contains(&name));assert!(signature.result.contains(&name));}}
+        assert!(count>0);
+    }
 
     #[test]
     fn native_forward_signatures_name_the_checked_source_in_every_return_slot() {
@@ -126,6 +153,45 @@ impl Lifetimes {
     }
 }
 impl Emitter<'_> {
+    /// Trait invocation uses the same typed paths as the inherent call. Only
+    /// an outer storage reference changes spelling to the existing argument
+    /// binder; carried environment/payload slots keep independent lifetimes.
+    pub(super) fn native_task_callback_signature(
+        &self,function:&CheckedFunction,parameters:&[usize],
+        record_borrows:&BTreeMap<usize,usize>,plan:&Lifetimes,replacement_where:&str,
+    )->native_function_signature_emit::NativeTaskCallbackSignature {
+        let mut arguments=plan.clone();
+        let mut substitutions=std::collections::HashMap::<String,String>::new();
+        for(position,&root)in parameters.iter().enumerate(){
+            if !matches!(function.bindings[root].mode,Mode::Read|Mode::Mutate){continue;}
+            let target=format!("p{position}");
+            if let Some(source)=plan.storage(root){substitutions.insert(source.trim_start_matches('\'').to_owned(),target.clone());}
+            else{let lifetime=format!("'{target}");arguments.inputs.insert((root,LifetimeSource::Storage),lifetime.clone());arguments.declarations.push(lifetime);}
+        }
+        // Existing record forwarding bounds use these same parameter binders.
+        for(&root,&group)in record_borrows{if let Some(position)=parameters.iter().position(|parameter|*parameter==root){substitutions.entry(format!("record_input{group}")).or_insert_with(||format!("p{position}"));}}
+        let rename=|text:&str|callback_capture_emit::substitute_parameters(text,&substitutions);
+        for name in arguments.inputs.values_mut(){*name=rename(name);}
+        for name in arguments.outputs.values_mut(){*name=rename(name);}
+        for name in &mut arguments.declarations{*name=rename(name);}
+        let mut lifetimes=arguments.declarations.clone();
+        lifetimes.extend(record_borrows.values().map(|group|rename(&format!("'record_input{group}"))));lifetimes.sort();lifetimes.dedup();
+        let types=parameters.iter().map(|&root|{
+            let parameter=ArgumentContract::from(&function.bindings[root]);let storage=arguments.storage(root).unwrap_or("");
+            let rendered=if matches!(parameter.ty,Type::Closure(_)){
+                let payload=self.native_view_signature_type(parameter.ty,Some(root),&arguments);
+                match parameter.mode{Mode::Read=>format!("&{storage} {payload}"),Mode::Mutate=>format!("&{storage} mut {payload}"),_=>payload}
+            }else{self.native_view_family_argument_type(parameter,root,&arguments)};
+            // Name only the ReadUnion owner's outer reference. Its payload
+            // slots have already been rendered from independent typed paths.
+            if parameter.mode==Mode::Read && let Type::Union(id)=parameter.ty && !id.copy && self.native_views.contains(parameter.ty){
+                let prefix=format!("ViewUnion{}<'_,",id.index());if let Some(payload)=rendered.strip_prefix(&prefix){return format!("ViewUnion{}<{},{}",id.index(),storage,payload);}
+            }
+            rendered
+        }).collect::<Vec<_>>();
+        native_function_signature_emit::NativeTaskCallbackSignature{arguments:tuple(types.into_iter()),lifetimes,replacement_where:rename(replacement_where),substitutions}
+    }
+
     pub(super) fn native_view_empty_result(&self, function: &CheckedFunction) -> bool {
         function.native_returns.as_deref().is_none_or(|loans| loans.is_empty())
             && matches!(function.result, Type::Record(record) if self.native_views.recursive(record) || (self.program.records[record].native_element().is_some() && self.native_views.contains(function.result)))
@@ -209,6 +275,7 @@ impl Emitter<'_> {
         let mut generics=lifetimes.declarations.clone();
         generics.extend(self.nullable_callback_bounds(closure.parameters.iter().map(|&root|closure.function.bindings[root].ty).chain(std::iter::once(closure.function.result))));
         Some(native_function_signature_emit::NativeSignature {
+            task_callback:None,
             receiver:None,
             storage_lifetimes:BTreeMap::from([(root,lifetime)]),
             params,
@@ -223,7 +290,10 @@ impl Emitter<'_> {
             Type::Closure(id)=>{
                 let closure=&self.program.closures[id];
                 for capture in &closure.captures {
-                    *next+=usize::from(matches!(capture.storage,Mode::Read|Mode::Mutate));
+                    if matches!(capture.storage,Mode::Read|Mode::Mutate){
+                        let mut borrow=path.clone();borrow.push(Segment::CaptureBorrow(capture.inner));
+                        slots.insert((root,LifetimeSource::carried(borrow,guards.clone())),lifetimes[*next].clone());*next+=1;
+                    }
                     path.push(Segment::Field(format!("capture{}",capture.inner)));
                     let child=self.native_captures.ty(&closure.function,capture.inner);
                     self.native_view_capture_slots(child,root,path,guards,lifetimes,next,slots);

@@ -98,6 +98,15 @@ impl Analyzer {
         visible.sort_unstable();
         visible.dedup();
         let mut context = capture_context::project(outer, &visible);
+        if origin>=usize::MAX/2 && self.task_sources.contains(&origin) && !escapes {
+            // Compiler-created scoped tasks retain stable native input loans.
+            // Those loans protect the caller's proven alternative until task
+            // settlement. Generic/escaping closures still start without facts.
+            context.flow=outer.flow.iter().filter_map(|(place,fact)|{
+                visible.binary_search(&place.root).ok().map(|root|(
+                    crate::flow::Place{root,fields:place.fields.clone()},fact.clone()))
+            }).collect();
+        }
         context.http_retained_state = self.http_handler_origins.contains(&origin);
         context.program_retained_state=self.program_callback_sites.get(&span.start)==Some(&CallbackKind::Program)
             || matches!(contextual,Some(Type::Callback(id)) if self.callables.callbacks[id].kind==CallbackKind::Program);
@@ -360,7 +369,21 @@ impl Analyzer {
                     program_captures.push(ProgramCapture { declaration, inner, access: storage, span: usage });
                     continue;
                 }
-                Self::access(outer, outer_id, storage, span, loans)?;
+                let keep_start=outer.keep_flow.len();
+                if origin>=usize::MAX/2 && self.task_sources.contains(&origin) && !escapes && storage==Mode::Mutate {
+                    // Reserving a scoped task's capture must not invalidate a
+                    // guarded tag that its checked body only projects through.
+                    // Preserve only facts still true after that body's effects;
+                    // whole-tag writes and ordinary closures retain invalidation.
+                    for (place,fact) in &outer.flow {
+                        if place.root==outer_id && context.flow.get(&crate::flow::Place{root:inner,fields:place.fields.clone()})==Some(fact) {
+                            outer.keep_flow.push(place.clone());
+                        }
+                    }
+                }
+                let accessed=Self::access(outer, outer_id, storage, span, loans);
+                outer.keep_flow.truncate(keep_start);
+                accessed?;
                 if matches!(storage, Mode::Read | Mode::Mutate) {
                     outer.capture_loans.push((outer_id, storage, span));
                 }

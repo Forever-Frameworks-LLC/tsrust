@@ -1,0 +1,21 @@
+import { args, currentExe } from 'std:env';
+import { run, spawn } from 'std:process';
+import { toUtf8 } from 'std:bytes';
+
+async function main(): Task<void> {
+  const arguments = unwrap(args());
+  if (arguments.length > 0) {
+    console.log('child output');
+    return;
+  }
+
+  const executable = unwrap(currentExe());
+  const output = unwrap(await run(executable, ['--child']));
+  console.log(output.status.success, unwrap(toUtf8(output.stdout)) === 'child output\n');
+  const child = unwrap(spawn(executable, ['--child'], {
+    stdout: 'null', stderr: 'null'
+  }));
+  console.log(child.id() !== undefined);
+  console.log(unwrap(await child.wait()).success, child.id() === undefined);
+  console.log(unwrap(child.tryWait()) !== undefined);
+}

@@ -106,3 +106,10 @@ fn existing_lazy_sql_and_http_calls_keep_owned_argument_snapshots(){
  "import {App,Server} from 'std:http';function listening(app:Owned<App>,address:Owned<string>):Task<Server>{return app.listen(address);}async function main():Task<void>{const server=await listening(new App(),'127.0.0.1:0');await server.shutdown();}",
  ]{assert!(check(source).is_ok(),"owned snapshot rejected: {source}");}
 }
+
+#[test]
+fn consumed_io_task_relays_preserve_outer_and_invariant_view_lifetimes_at_o0_and_o3(){
+ let source="import {reader,readInto,close,IoError} from 'std:io';import {fromUtf8,alloc,viewMut,set,toUtf8} from 'std:bytes';function relay(work:Task<Result<int,IoError>>):Task<Result<int,IoError>>{return work;}function again(work:Task<Result<int,IoError>>):Task<Result<int,IoError>>{const pass=relay;return pass(work);}async function main():Task<void>{const input=reader(unwrap(fromUtf8('abc')));const bytes=unwrap(alloc(3));{const destination=unwrap(viewMut(bytes,0,3));const read=readInto;const pending=again(relay(read(input,destination)));console.log(unwrap(await pending));unwrap(set(destination,0,120));}console.log(unwrap(toUtf8(bytes)));unwrap(await close(input));}";
+ let _=check(source).unwrap();for statement in["unwrap(set(destination,0,120));","const other=readInto(input,destination);await other;"]{let invalid=source.replace("console.log(unwrap(await pending));",&format!("{statement}console.log(unwrap(await pending));"));assert_eq!(check(&invalid).unwrap_err(),"capture-conflict");}
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));for release in[false,true]{let binary=directory.0.join(format!("io-task-relay-{release}{}",std::env::consts::EXE_SUFFIX));let mut build=support::cli();build.arg("build").arg(&path).arg("-o").arg(&binary);if release{build.arg("--release");}support::success(&support::run(&mut build,180));let output=support::run(&mut std::process::Command::new(binary),30);support::success(&output);assert_eq!(output.stdout,b"3\nxbc\n");assert!(!String::from_utf8_lossy(&output.stderr).contains("unused-task"));}
+}

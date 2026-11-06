@@ -24,6 +24,8 @@ const modules = [
   { module: 'std:locale', summary: 'Canonicalize explicit locales, compare text, segment graphemes and format exact numbers.', members: { Collator: 'Collator', Segmenter: 'Segmenter', NumberFormat: 'NumberFormat' } },
   { module: 'std:regex', summary: 'Compile reusable regular expressions and return UTF-8 match ranges.', members: { Regex: 'Regex' } },
   { module: 'std:path', summary: 'Join, split and normalize path text without touching the filesystem.' },
+  { module: 'std:io', summary: 'Read and write owned asynchronous byte streams.' },
+  { module: 'std:process', summary: 'Launch direct child processes and own their pipes and exit status.', members: { Child: 'Child' } },
   { module: 'std:fs', summary: 'Open, read, write and buffer files with explicit errors.' },
   { module: 'std:bytes', summary: 'Owned byte buffers and borrowed byte views.' },
   { module: 'std:json', summary: 'Owned JSON values, borrowed views, raw fragments and JSON Lines files.' },

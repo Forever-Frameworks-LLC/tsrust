@@ -26043,6 +26043,98 @@
       "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. Actual matched timings stored in measurements.sqlite; allocation counts reviewed separately.",
       "sourceSha256": "39ba024939f6a88cdd241eaa5b6471d4c5f55fc70b2d9f31a94e8ba74572fcdd",
       "counterpartSha256": "d72dc7ed64f8aea24621ee30382057ec777ee4f9f66c9a9bd0d7b645c59109c6"
+    },
+    {
+      "id": "process_launch_wait",
+      "category": "child-processes",
+      "family": "child-processes",
+      "description": "process launch wait",
+      "source": "workloads/process_launch_wait.tsr",
+      "counterpart": "workloads/process_launch_wait.ts",
+      "rustReference": "parity/process_launch_wait.rs",
+      "iterations": 10,
+      "operationsPerIteration": 1,
+      "operationUnit": "Owned child lifecycle with complete output observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-child-processes",
+      "specification": "process-contract.mjs",
+      "notes": "Same separately compiled Rust child executable for every engine. One runtime/process, 8warmups, 3processes x31samples. Launch includes wait; capture observes both16KiB streams; duplex clones owned16KiB input, observes all output. No shell, deadline or output cap. Helpers compile untimed; setup, allocation, piping, drain/reap and full checksum inside workload. Node Buffer materialization and Rust owned Bytes/Vec materialization retained.",
+      "sourceSha256": "003d3cfa985461ba8c7237fe95a243cc1dd72daca07a87b133a6072e3f6e6f1f",
+      "counterpartSha256": "7ca181db7315de284031800451c162c66a3f18201ab4562a578c297ecaa1f821"
+    },
+    {
+      "id": "process_capture_bytes",
+      "category": "child-processes",
+      "family": "child-processes",
+      "description": "process capture bytes",
+      "source": "workloads/process_capture_bytes.tsr",
+      "counterpart": "workloads/process_capture_bytes.ts",
+      "rustReference": "parity/process_capture_bytes.rs",
+      "iterations": 10,
+      "operationsPerIteration": 1,
+      "operationUnit": "Owned child lifecycle with complete output observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-child-processes",
+      "specification": "process-contract.mjs",
+      "notes": "Same separately compiled Rust child executable for every engine. One runtime/process, 8warmups, 3processes x31samples. Launch includes wait; capture observes both16KiB streams; duplex clones owned16KiB input, observes all output. No shell, deadline or output cap. Helpers compile untimed; setup, allocation, piping, drain/reap and full checksum inside workload. Node Buffer materialization and Rust owned Bytes/Vec materialization retained.",
+      "sourceSha256": "d2254bbc14730b6d9894f6e33b6eb82f1a0ddfd4e40712723f0bf1343572c926",
+      "counterpartSha256": "4e95a6b83515d84215d3dca5a4aa5604f476e0d9c2e5d5f17641a30db88b5923"
+    },
+    {
+      "id": "process_duplex_bytes",
+      "category": "child-processes",
+      "family": "child-processes",
+      "description": "process duplex bytes",
+      "source": "workloads/process_duplex_bytes.tsr",
+      "counterpart": "workloads/process_duplex_bytes.ts",
+      "rustReference": "parity/process_duplex_bytes.rs",
+      "iterations": 10,
+      "operationsPerIteration": 1,
+      "operationUnit": "Owned child lifecycle with complete output observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-child-processes",
+      "specification": "process-contract.mjs",
+      "notes": "Same separately compiled Rust child executable for every engine. One runtime/process, 8warmups, 3processes x31samples. Launch includes wait; capture observes both16KiB streams; duplex clones owned16KiB input, observes all output. No shell, deadline or output cap. Helpers compile untimed; setup, allocation, piping, drain/reap and full checksum inside workload. Node Buffer materialization and Rust owned Bytes/Vec materialization retained.",
+      "sourceSha256": "4ef9bc8d6a41b6e82c1db8fbd2e02dda0dce4b2e916824a655d08ea19519ffc5",
+      "counterpartSha256": "7717e6f4951795f2408328810b348d320d53e868bc594c596c54438aa170a125"
+    },
+    {
+      "id": "process_duplex_reader",
+      "category": "child-processes",
+      "family": "child-processes",
+      "description": "process duplex reader",
+      "source": "workloads/process_duplex_reader.tsr",
+      "counterpart": "workloads/process_duplex_reader.ts",
+      "rustReference": "parity/process_duplex_reader.rs",
+      "iterations": 10,
+      "operationsPerIteration": 1,
+      "operationUnit": "Owned child lifecycle with complete output observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-child-processes",
+      "specification": "process-contract.mjs",
+      "notes": "Same separately compiled Rust child executable for every engine. One runtime/process, 8warmups, 3processes x31samples. Launch includes wait; capture observes both16KiB streams; duplex clones owned16KiB input, observes all output. No shell, deadline or output cap. Helpers compile untimed; setup, allocation, piping, drain/reap and full checksum inside workload. Node Buffer materialization and Rust owned Bytes/Vec materialization retained.",
+      "sourceSha256": "81121b255c4744a5da76d2e545a041281a33959120a3f54510198b160b79b208",
+      "counterpartSha256": "56a8b43f687554dfeacb5f56a87a9048e879141bdaec893af0e3c301b1a45626"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -315,6 +315,15 @@ static FS_ERROR: Declaration = Declaration {
         Field { name: "osCode", signature: Signature::Int, optional: true },
     ],
 };
+static PROCESS_CHILD:Declaration=Declaration{id:NativeTypeId::ProcessChild,module:"std:process",name:"Child",thread_transfer:true,..FILE};
+static PROCESS_ERROR:Declaration=Declaration{id:NativeTypeId::ProcessError,module:"std:process",name:"ProcessError",..FS_ERROR};
+static PROCESS_STATUS:Declaration=Declaration{id:NativeTypeId::ProcessExitStatus,module:"std:process",name:"ExitStatus",fields:&[Field{name:"success",signature:Signature::Boolean,optional:false},Field{name:"code",signature:Signature::Int,optional:true},Field{name:"signal",signature:Signature::Int,optional:true}],..SPAWN_ERROR};
+static PROCESS_OUTPUT:Declaration=Declaration{id:NativeTypeId::ProcessOutput,module:"std:process",name:"Output",fields:&[Field{name:"status",signature:Signature::Named(NativeTypeId::ProcessExitStatus),optional:false},Field{name:"stdout",signature:Signature::Named(NativeTypeId::Bytes),optional:false},Field{name:"stderr",signature:Signature::Named(NativeTypeId::Bytes),optional:false}],..SPAWN_ERROR};
+static PROCESS_OPTIONS:Declaration=Declaration{id:NativeTypeId::ProcessCommandOptions,module:"std:process",name:"CommandOptions",fields:&[
+ Field{name:"cwd",signature:Signature::String,optional:true},Field{name:"env",signature:Signature::Array(&Signature::Named(NativeTypeId::EnvVar)),optional:true},Field{name:"clearEnv",signature:Signature::Boolean,optional:true},
+ Field{name:"stdin",signature:Signature::Union(&[Signature::StringLiteral("inherit"),Signature::StringLiteral("null"),Signature::StringLiteral("pipe")]),optional:true},Field{name:"stdout",signature:Signature::Union(&[Signature::StringLiteral("inherit"),Signature::StringLiteral("null"),Signature::StringLiteral("pipe")]),optional:true},Field{name:"stderr",signature:Signature::Union(&[Signature::StringLiteral("inherit"),Signature::StringLiteral("null"),Signature::StringLiteral("pipe")]),optional:true},
+ Field{name:"input",signature:Signature::Union(&[Signature::Named(NativeTypeId::Bytes),Signature::Named(NativeTypeId::IoReader)]),optional:true},Field{name:"deadlineMs",signature:Signature::Int,optional:true},Field{name:"maxOutputBytes",signature:Signature::Int,optional:true},
+],..SPAWN_ERROR};
 static IO_READER: Declaration = Declaration {id:NativeTypeId::IoReader,module:"std:io",name:"Reader",thread_transfer:true,..FILE};
 static IO_WRITER: Declaration = Declaration {id:NativeTypeId::IoWriter,module:"std:io",name:"Writer",thread_transfer:true,..FILE};
 static IO_LINE_READER: Declaration = Declaration {id:NativeTypeId::IoLineReader,module:"std:io",name:"LineReader",thread_transfer:true,..FILE};
@@ -564,6 +573,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::FsMetadata => &FS_METADATA,
         NativeTypeId::FsDirEntry => &FS_DIR_ENTRY,
         NativeTypeId::FsError => &FS_ERROR,
+        NativeTypeId::ProcessChild=>&PROCESS_CHILD,NativeTypeId::ProcessCommandOptions=>&PROCESS_OPTIONS,NativeTypeId::ProcessExitStatus=>&PROCESS_STATUS,NativeTypeId::ProcessOutput=>&PROCESS_OUTPUT,NativeTypeId::ProcessError=>&PROCESS_ERROR,
         NativeTypeId::IoReader=>&IO_READER,NativeTypeId::IoWriter=>&IO_WRITER,NativeTypeId::IoLineReader=>&IO_LINE_READER,NativeTypeId::IoStdin=>&IO_STDIN,NativeTypeId::IoError=>&IO_ERROR,
         NativeTypeId::EnvError => &ENV_ERROR,
         NativeTypeId::EnvVar => &ENV_VAR,
@@ -614,7 +624,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
     if module=="std:futures" {match name {"SendError"=>return Some(&SEND_ERROR),"ChannelError"=>return Some(&CHANNEL_ERROR),_=>{}}}
-    [&IO_READER,&IO_WRITER,&IO_LINE_READER,&IO_STDIN,&IO_ERROR,&LOCALE_LOCALE,&LOCALE_COLLATOR,&LOCALE_SEGMENTER,&LOCALE_NUMBERFORMAT,&LOCALE_SEGMENTRANGE,&LOCALE_LOCALEERROR,&LOCALE_COLLATOROPTIONS,&LOCALE_NUMBERFORMATOPTIONS,&REGEX,&REGEX_MATCH,&REGEX_CAPTURES,&REGEX_ERROR,&REGEX_OPTIONS,&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
+    [&PROCESS_CHILD,&PROCESS_OPTIONS,&PROCESS_STATUS,&PROCESS_OUTPUT,&PROCESS_ERROR,&IO_READER,&IO_WRITER,&IO_LINE_READER,&IO_STDIN,&IO_ERROR,&LOCALE_LOCALE,&LOCALE_COLLATOR,&LOCALE_SEGMENTER,&LOCALE_NUMBERFORMAT,&LOCALE_SEGMENTRANGE,&LOCALE_LOCALEERROR,&LOCALE_COLLATOROPTIONS,&LOCALE_NUMBERFORMATOPTIONS,&REGEX,&REGEX_MATCH,&REGEX_CAPTURES,&REGEX_ERROR,&REGEX_OPTIONS,&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
         &UI_ERROR,
         &SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&INTERVAL,&CANCELLATION_TOKEN,&POOL_SUBMISSION,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR,&ENV_VAR,&PATH_PARTS,&PATH_FORMAT_OPTIONS,&PATH_ERROR,&OS_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_OPEN_OPTIONS, &FS_FILE_TIME, &FS_METADATA, &FS_DIR_ENTRY, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
     ].into_iter().find(|item| item.module == module && item.name == name)

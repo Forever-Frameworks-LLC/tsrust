@@ -13,6 +13,7 @@ pub(super) struct Returned { pub(super) source:Source, pub(super) loan:Loan }
 
 fn validate_storage_capture(storage:Mode,invocation:Mode,loan:&Loan,span:Span)->Result<(),Diagnostic> {
     use crate::native_return_borrows::BorrowAccess;
+    if loan.environment_borrow(){return Ok(());}
     let message=if storage==Mode::Read && loan.access!=BorrowAccess::ReadOnly {
         Some("A shared capture cannot return exclusive access to its owner.")
     } else if storage!=Mode::Read && invocation==Mode::Consume {
@@ -59,7 +60,7 @@ impl Analyzer {
     pub(super) fn remember_native_function_returns(&self,context:&mut Context,id:usize,span:Span)->Result<(),Diagnostic> {
         // Discovery resolves field types without following calls. Only the
         // definitive pass can require and transport checked owner summaries.
-        if !self.native_borrow_types || self.discovering_results {return Ok(());}
+        if self.discovering_results {return Ok(());}
         let Some(function)=self.checked[id].as_ref() else {
             if self.native_shape_contains_view(self.signatures[id].result) {
                 return Err(Diagnostic::new("native-view-call","Recursive returned views require a stabilized source lifetime summary.",span));
@@ -79,7 +80,6 @@ impl Analyzer {
         Ok(())
     }
     pub(super) fn remember_native_closure_returns(&self,context:&mut Context,origin:usize,method:Option<usize>,span:Span)->Result<(),Diagnostic> {
-        if !self.native_borrow_types {return Ok(());}
         let key_origin=origin;
         let mut origin=origin;
         while method.is_none() && let Some(ClosureForward::Once(inner))=self.closures[origin].forward {origin=inner;}
@@ -153,7 +153,7 @@ pub(super) fn transport(actual:&mut Loan,output:&Loan)->bool {
     if output.access==crate::native_return_borrows::BorrowAccess::Exclusive {
         actual.access=output.access;
     }
-    actual.retained=true;
+    actual.retained=!actual.environment_borrow();
     true
 }
 
@@ -165,7 +165,7 @@ pub(super) fn storage(context:&Context,argument:&Expr,output:&Loan)->Result<Vec<
         loan.owner_fields=place.fields;
         loan.owner_fields.extend(output.owner_fields.iter().cloned());
         loan.creation=argument.span;
-        loan.retained=true;
+        loan.retained=!loan.environment_borrow();
         loan
     }).collect())
 }

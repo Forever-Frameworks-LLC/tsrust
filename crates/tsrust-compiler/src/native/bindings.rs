@@ -126,6 +126,16 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::process::bindings::SPAWN,
+    crate::stdlib::process::bindings::RUN,
+    crate::stdlib::process::bindings::RUN_POLL,
+    crate::stdlib::process::bindings::ID,
+    crate::stdlib::process::bindings::TAKE_STDIN,
+    crate::stdlib::process::bindings::TAKE_STDOUT,
+    crate::stdlib::process::bindings::TAKE_STDERR,
+    crate::stdlib::process::bindings::WAIT,
+    crate::stdlib::process::bindings::TRY_WAIT,
+    crate::stdlib::process::bindings::KILL,
     crate::stdlib::io::bindings::READER,
     crate::stdlib::io::bindings::WRITER,
     crate::stdlib::io::bindings::STDOUT,
@@ -700,3 +710,7 @@ pub fn locale_method(identity:crate::native_signatures::NativeTypeId,member:&str
 pub fn regex_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::regex::method(Some(identity),member)}
 
 pub fn io_asynchronous(name:&str)->bool{crate::stdlib::io::asynchronous(name)}
+
+pub fn process_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::process::method(Some(identity),member)}
+
+pub fn process_asynchronous(name:&str)->bool{crate::stdlib::process::asynchronous(name)}

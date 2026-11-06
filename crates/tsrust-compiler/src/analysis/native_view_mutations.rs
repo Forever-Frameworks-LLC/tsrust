@@ -101,7 +101,7 @@ impl Analyzer {
                     let closure = &self.closures[origin];
                     let capture = closure.captures.iter().find(|capture|capture.inner==inner).expect("checked capture destination");
                     if matches!(capture.storage, Mode::Read | Mode::Mutate) {
-                        let outer = context.native_view_environments.as_ref().and_then(|environments|environments.get(&origin)).and_then(|captures|captures.iter().find(|(captured,_)|*captured==inner)).map(|(_,outer)|*outer)
+                        let outer = context.native_view_environments.as_ref().and_then(|environments|environments.get(&origin)).and_then(|captures|captures.iter().find(|(captured,_,_)|*captured==inner)).map(|(_,outer,_)|*outer)
                             .ok_or_else(||Diagnostic::new("native-view-call", "A captured view destination has no caller storage provenance. Pass the record as a mutable argument.", call.span))?;
                         (outer, Vec::new())
                     } else {

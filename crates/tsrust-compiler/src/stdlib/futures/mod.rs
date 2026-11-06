@@ -78,11 +78,53 @@ fn lazy_native(expression:&mut crate::syntax::Expr,module:&str,name:&str,mut arg
     let yielded=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@match:yield".into()),span)),vec![task]),span);
     body.push(statement(StmtKind::Expr(yielded)));expression.kind=ExprKind::Match{id,body};
 }
+// A lazy call evaluates temporary inputs before entering its task. Retain the
+// native call's contextual type at that evaluation point, particularly for empty
+// arrays and optional owned option literals. Stable borrowed inputs stay in the
+// task and keep their existing loans; typed alternative dispatch stays unchanged.
+fn contextualize_lazy_inputs(records:&mut Vec<crate::syntax::Record>,expression:&mut crate::syntax::Expr)->Result<(),crate::Diagnostic>{
+    use crate::syntax::{ExprKind,StmtKind,UnaryOp};
+    let ExprKind::Match{id,body}=&mut expression.kind else{return Ok(())};
+    if *id<usize::MAX/2{return Ok(());}
+    let Some(statement)=body.last()else{return Ok(())};
+    let StmtKind::Expr(yielded)=&statement.kind else{return Ok(())};
+    let ExprKind::Call(_,values)=&yielded.kind else{return Ok(())};
+    let Some(task)=values.first()else{return Ok(())};
+    let ExprKind::Unary{op:UnaryOp::TaskCreate,value,..}=&task.kind else{return Ok(())};
+    let ExprKind::Closure{body:task_body,..}=&value.kind else{return Ok(())};
+    let [statement]=task_body.as_slice()else{return Ok(())};
+    let StmtKind::Return(Some(call))=&statement.kind else{return Ok(())};
+    let ExprKind::Call(callee,arguments)=&call.kind else{return Ok(())};
+    let ExprKind::Name(symbol)=&callee.kind else{return Ok(())};
+    let Some((_,binding))=crate::native_bindings::by_symbol(symbol)else{return Ok(())};
+    if !matches!(binding.module,"std:io"|"std:process"){return Ok(());}
+    let mut annotations=Vec::new();
+    for (position,(argument,parameter)) in arguments.iter().zip(binding.parameters).enumerate(){
+        let ExprKind::Name(name)=&argument.kind else{continue};
+        if !name.starts_with("future#") || !binding.argument_alternatives(position).is_empty(){continue;}
+        let signature=parameter.ty.signature();
+        let mut annotation=crate::native_type_resolution::project(records,&signature,argument.span)?;
+        if parameter.optional {
+            use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind,TypeName};
+            let absent=ValueAnnotation{kind:ValueAnnotationKind::Named(TypeName{text:"undefined".into(),span:argument.span}),span:argument.span};
+            annotation=ValueAnnotation{kind:ValueAnnotationKind::Union(vec![annotation,absent]),span:argument.span};
+        }
+        annotations.push((name.clone(),annotation));
+    }
+    for statement in body {
+        if let StmtKind::Let{name,annotation,..}=&mut statement.kind
+            && let Some((_,context))=annotations.iter().find(|(input,_)|*input==name.text){
+            *annotation=Some(context.clone());
+        }
+    }
+    Ok(())
+}
 pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
     use crate::syntax::ExprKind;
     if program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Interval)){crate::native_binding_types::prepare_signature(&mut program.records,&MISSED_TICK,&[],crate::Span::default())?;}
     let mut used=false;
     for function in &mut program.functions {
+        crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|contextualize_lazy_inputs(&mut program.records,expression))?;
         crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{
             used |= matches!(&expression.kind,ExprKind::Unary{op:crate::syntax::UnaryOp::TaskCreate,..});
             if let ExprKind::Call(callee,args)=&mut expression.kind {
@@ -131,9 +173,9 @@ pub(crate) fn borrows_inputs(value:&crate::syntax::Expr)->bool {
 }
 
 // Existing lazy APIs keep their established receiver loans and owned snapshots.
-// I/O alone borrows every stable Read/Mutate argument through task settlement.
+// I/O and subprocess operations borrow every stable Read/Mutate input through settlement.
 fn borrows_native_input(module:&str,name:&str,index:usize)->bool{
-    if module=="std:io"{return crate::native_bindings::lookup(module,name).ok().and_then(|binding|binding.parameters.get(index)).is_some_and(|parameter|matches!(parameter.access,Mode::Read|Mode::Mutate));}
+    if matches!(module,"std:io"|"std:process"){return crate::native_bindings::lookup(module,name).ok().and_then(|binding|binding.parameters.get(index)).is_some_and(|parameter|matches!(parameter.access,Mode::Read|Mode::Mutate));}
     index==0 && match module{
         "std:signals"=>name=="__receive",
         "std:futures"=>matches!(name,"__send"|"__receive"|"__tick"|"__tokenCancelled"),

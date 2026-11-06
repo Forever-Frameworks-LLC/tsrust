@@ -28,6 +28,7 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
  const tempfiles=/(?:^|[;}]\s*)mod\s+tsrust_native_tempfiles\s*\{/m.test(emitted);
  const codecs=/\bfn codec_base64_engine\(/.test(emitted);
  const search=/\bpub fn index_of\(bytes: &\[u8\], needle: &\[u8\], from_index: i64\)/.test(emitted);
+ const childProcesses=/\bmod\s+tsrust_native_process\s*\{/.test(emitted);
  const locale=/(?:^|[;}]\s*)mod\s+tsrust_native_locale\s*\{/m.test(emitted);
  const regex=/(?:^|[;}]\s*)mod\s+tsrust_native_regex\s*\{/m.test(emitted);
  const asynchronous=/(?:^|[;}]\s*)mod\s+tsrust_native_futures\s*\{/m.test(emitted);
@@ -35,8 +36,8 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
  const threads=/(?:^|[;}]\s*)mod\s+tsrust_native_threads\s*\{/m.test(emitted);
  const urls=/(?:^|[;}]\s*)mod\s+tsrust_native_url\s*\{/m.test(emitted);
  const hostname=/(?:^|[;}]\s*)mod\s+tsrust_native_hostname\s*\{/m.test(emitted);
- if(!needsJsonDependencies(emitted)&&!files&&!tempfiles&&!codecs&&!search&&!urls&&!hostname&&!regex&&!locale&&!asynchronous&&!cancellation&&!threads)return {args:[],evidence:null};
- const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(tempfiles?['tempfile']:[]),...(codecs?['base64']:[]),...(search?['memchr']:[]),...(urls?['url','percent_encoding']:[]),...(hostname?['hostname']:[]),...(regex?['regex']:[]),...(locale?['icu_collator','icu_decimal','icu_locale','icu_segmenter','fixed_decimal','bigdecimal']:[]),...(asynchronous?['tokio']:[]),...(cancellation?['tokio_util']:[]),...(threads?['rayon']:[])];
+ if(!needsJsonDependencies(emitted)&&!files&&!tempfiles&&!codecs&&!search&&!urls&&!hostname&&!regex&&!locale&&!asynchronous&&!cancellation&&!threads&&!childProcesses)return {args:[],evidence:null};
+ const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(tempfiles?['tempfile']:[]),...(codecs?['base64']:[]),...(search?['memchr']:[]),...(urls?['url','percent_encoding']:[]),...(hostname?['hostname']:[]),...(regex?['regex']:[]),...(locale?['icu_collator','icu_decimal','icu_locale','icu_segmenter','fixed_decimal','bigdecimal']:[]),...((asynchronous||childProcesses)?['tokio']:[]),...(cancellation?['tokio_util']:[]),...(threads?['rayon']:[])];
  // Stable source paths keep rebuilt dependency artifacts identical across A/B runs.
  const scratch=path.join(build,'package-native-dependencies');
  fs.mkdirSync(scratch); // Fail closed if another preparation owns this directory.
@@ -70,15 +71,15 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
 
 // Reference-only crates never change the emitted compiler or Node dependency path.
 export function prepareReferenceDependencies({workload,rustVersion,targetDirectory,env=process.env}) {
- const io=workload?.family==='async-io';
- const selected=io?'tokio':['task_all_ready','task_all_yield'].includes(workload?.id)?'tokio':workload?.family==='explicit-locale'?['icu_collator','icu_decimal','icu_locale','icu_segmenter','fixed_decimal','bigdecimal']:workload?.family==='regex-text'?'regex':workload?.family==='path-env-os'&&workload.id==='os_hostname_read'?'hostname':workload?.family==='byte-operations'&&workload.id.startsWith('byte_ops_index_')?'memchr':workload?.family==='native-url'?['url','percent_encoding']:workload?.family==='byte-codecs'&&workload.id.startsWith('bytes_base64')?'base64':{math_random_range:'rand',string_normalize_forms:'unicode_normalization'}[workload?.id];
+ const io=workload?.family==='async-io',childProcess=workload?.family==='child-processes';
+ const selected=io||childProcess?'tokio':['task_all_ready','task_all_yield'].includes(workload?.id)?'tokio':workload?.family==='explicit-locale'?['icu_collator','icu_decimal','icu_locale','icu_segmenter','fixed_decimal','bigdecimal']:workload?.family==='regex-text'?'regex':workload?.family==='path-env-os'&&workload.id==='os_hostname_read'?'hostname':workload?.family==='byte-operations'&&workload.id.startsWith('byte_ops_index_')?'memchr':workload?.family==='native-url'?['url','percent_encoding']:workload?.family==='byte-codecs'&&workload.id.startsWith('bytes_base64')?'base64':{math_random_range:'rand',string_normalize_forms:'unicode_normalization'}[workload?.id];
  if(!selected)return {args:[],evidence:null};
- const root=fileURLToPath(new URL(workload?.family==='explicit-locale'?'../../crates/tsrust-compiler/backend-dependencies/':'./parity-dependencies/',import.meta.url));
+ const root=fileURLToPath(new URL(workload?.family==='explicit-locale'||childProcess?'../../crates/tsrust-compiler/backend-dependencies/':'./parity-dependencies/',import.meta.url));
  const target=path.resolve(targetDirectory),childEnv={...env,CARGO_TARGET_DIR:target,CARGO_INCREMENTAL:'0',CARGO_BUILD_JOBS:'1'};
  for(const key of Object.keys(childEnv))if(key==='RUSTFLAGS'||key==='CARGO_ENCODED_RUSTFLAGS'||key==='RUSTC'||key.startsWith('RUSTC_')||key.startsWith('CARGO_PROFILE_')||key.startsWith('CARGO_BUILD_')&&key!=='CARGO_BUILD_JOBS'||key.startsWith('CARGO_TARGET_')&&key!=='CARGO_TARGET_DIR')delete childEnv[key];
  const command=['rustup','run',rustVersion,'cargo','build','--manifest-path',path.join(root,'Cargo.toml'),'--offline','--locked','--release','--message-format=json'];
  if(workload?.family==='explicit-locale')command.push('--features','locale');
- if(['hostname','regex','tokio'].includes(selected))command.push('--features',selected==='tokio'?(io?'async-io':'task-join'):selected);
+ if(['hostname','regex','tokio'].includes(selected))command.push('--features',selected==='tokio'?(childProcess?'process':io?'async-io':'task-join'):selected);
  const child=spawnSync(command[0],command.slice(1),{cwd:root,env:childEnv,encoding:'utf8',timeout:120000,maxBuffer:16*1024*1024});
  if(child.error||child.status!==0)throw Error(`Reference dependency preparation failed: ${child.error??child.stderr+child.stdout}`);
  const required=Array.isArray(selected)?selected:[selected];

@@ -15,6 +15,7 @@ mod http;
 mod url;
 mod regex;
 mod locale;
+mod process;
 mod sqlite;
 mod ui;
 mod sql;
@@ -479,7 +480,7 @@ struct Context {
     cache_read_owners: HashSet<(usize,Vec<String>)>,
     /// Lexical depth at which a local holding native views was declared.
     native_view_declaration_depths: HashMap<usize, usize>,
-    native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize)>>>>,
+    native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize,Mode)>>>>,
     native_task_constructions: Option<Box<HashMap<usize,Vec<native_view_loans::Loan>>>>,
     native_shadowed_bindings: Option<Box<Vec<usize>>>,
     native_view_results: Option<Box<HashMap<UnionId,(usize,Option<usize>)>>>,
@@ -1557,6 +1558,7 @@ impl Analyzer {
         crate::stdlib::sqlite::prepare(&mut program)?;
         crate::stdlib::sql::prepare(&mut program)?;
         crate::stdlib::io::prepare(&mut program)?;
+        crate::stdlib::process::prepare(&mut program)?;
         crate::stdlib::futures::prepare(&mut program)?;
         crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::stdlib::schema::namespace::prepare(&mut program)?;
@@ -9014,6 +9016,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty) = self.ui_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty)=self.process_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty) = self.locale_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty) = self.regex_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.url_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }

@@ -89,6 +89,13 @@ impl Analyzer {
     pub(super) fn native_escape_sources(&self, context: &Context, loans: Vec<native_view_loans::Loan>, span: Span) -> Result<Vec<native_view_loans::Loan>, Diagnostic> {
         let mut sources = Vec::new();
         for output in loans {
+            if output.environment_borrow(){
+                // This describes the physical signature, not a second ownership
+                // rule. Capture-loan checking remains authoritative for escapes.
+                let binding=&context.bindings[output.root];
+                if binding.parameter && !(binding.mode==Mode::Consume && matches!(output.source,LifetimeSource::Storage)) {sources.push(output);}
+                continue;
+            }
             let mut pending = vec![(
                 crate::flow::Place {
                     root: output.root,
@@ -178,6 +185,7 @@ impl Analyzer {
 
     pub(super) fn validate_native_returns(&self, context: &Context) -> Result<(), Diagnostic> {
         for source in context.native_returns.as_deref().into_iter().flatten().chain(context.native_mutations.as_deref().into_iter().flatten().map(|(_,loan)|loan)) {
+            if source.environment_borrow(){continue;}
             let binding = &context.bindings[source.root];
             if binding.mode == Mode::Consume && matches!(source.source, LifetimeSource::Storage) {
                 return Err(escape(
