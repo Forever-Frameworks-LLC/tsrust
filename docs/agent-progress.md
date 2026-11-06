@@ -17,24 +17,35 @@ Canonical source checkpoint **c2045518**, branch `codex/stdlib-0.2.0`: validated
 public subprocess +shared Task/context repairs +matched benchmark support. Only
 planning/evidence docs remain dirty; preserve them. Full B00–B20 remains active. No push/merge/publication.
 
-**B07 matched correctness verification4296 terminal PASS**163.719s/675,866KiB.
-All4workloads×5cases×3engines =60checks passed; result
-`benchmarks/runtime/results/2026-11-06T03-06-16-728Z-verify.json` is correctness-only
-(execution/compilation arrays empty, not timing evidence). Compiler/runtime sources
-checkpointed locally as68files,+1304/-58 after whole-project0-change format.
-No heavy job active yet. Next checkpoint the authorized GPUI/planning/evidence
-notes, then measure this accepted4-workload family with original3×31after8 and
-native/rust-hand/node-tsc, quiet timing, watchdog/inc0/jobs1/rootsharedtarget. No
-unchanged B07 timing controls exist yet, so all3engines need a first actual run.
-Ingest actual measurements and inspect SQLite values/integrity. Source/bytecode
-unchanged controls from other families must stay cached, not retimed.
+**B07 performance is measured and ingested.** Sourcec2045518; planning/evidence
+checkpoint4e0439fc. Actual run62773 PASS285.317s/677,930KiB, quietmax3.95361328125<4,
+4workloads×3engines×93samples. SQLite12new histories verified for medians, mean
+throughput, date/samplecount and integrity. Medianms native/Rust/Node per10ops:
+launch13.416708/13.377709/14.321500; capture15.120458/15.159625/21.699833;
+byte duplex14.037792/14.054167/17.768291; Reader14.072500/14.120167/17.752166.
+Within0.4%ofRust end-to-end; Node/native1.07–1.44. Includes OSlaunch/pipe work;
+not pure compiler overhead. No material regression or optimization indicated.
+Raw run `results/2026-11-06T03-20-26-164Z.json` now ingested; reusable controls stay
+cached. Current-host performance complete; platform/full-family gates still open.
 
-Attempts1–3 failed before a matched group passed: optional exit code unwrapped as
-Result (fixed explicit guard+actual source hash); ABI omitted String error generic
-(now finite String/RecordN only); generated TS config omitted child-processes from
-both Node typeRoots/types lists (registered). All4sources pass release compiler
-check, strictTS peers pass, all10process/IO guards pass. No compiler/runtime change
-was needed for those benchmark-support repairs. Logs verify{,2,3,4} retained in/tmp.
+Allocation19786 PASS155.430s/659,930KiB,4cases×3samples after one runtime/warmup,
+allchecksums/helpersource/library guards. Counts per10ops launch61/10alloc/realloc,
+capture191–194/220,byte213–216/110,Reader212–213/110;peaks553/66,640–66,800/
+50,000–50,352/50,352–50,416bytes. Signed globalafterdrop−352..352 (launchall0),
+not a leak/cache proof. `diagnostics/2026-11-06T03-28-04-883Z-native-allocations.json`.
+Both jobs terminal; heavy slot free. Commit measured DB/evidence after format,
+then integrate dependency-ready B08/B09 complete source families from worker
+patches, preserving c204process/callback/context changes. Mixed fullTCP↔compression
+copy gap is concrete: both finite enums misclassify the other's full endpoint.
+B06 recommends one private shared copy kernel with typed errors/monomorphized
+futures, no public protocol/Arc/box; root design review still pending before edits.
+
+Matched correctness4296 PASS163.719s/675,866KiB:60checks (4×5×3), verify result
+`results/2026-11-06T03-06-16-728Z-verify.json` has empty timing arrays, not ingested.
+Attempts1–3 benchmark support repairs preserved: optionalexitcode presenceguard;
+String/RecordN-only async error ABI; child-processes Node typeRoots/types. All4
+source/release checks and strictTS peers pass;10process/IO guards andwhole-format
+0changes pass. No compiler/runtime change was needed for those support repairs.
 
 **B07 local focused acceptance now passes all30 distinct scopes**, reusing
 unchanged checks across coherent repairs, not claiming a full regression run.
@@ -49,8 +60,8 @@ cleanup, portable offline forbidden-unsafe export and native-forward passes.
 Whole-project format0changes and diffcheck passed before that build. Root also
 corrected obsolete workflow archive/binary retention prose to owner SQLite policy.
 
-No public process timing accepted yet. Platform/full-family regressions remain
-later required milestones; do not claim completed v0.2.0.
+Public process timings are accepted on this host above. Platform/full-family
+regressions remain required milestones; do not claim completed v0.2.0.
 
 B08: accepted allocation repair checkpoint8cd62213 (parent timing29f8bdfb), saved
 ref `codex/network-admission-allocation-accepted`. All1,860 old timing rows retained;

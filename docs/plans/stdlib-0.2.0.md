@@ -751,6 +751,28 @@ IO benchmark guards pass; whole-project formatting0changes. These surface boxes
 record local implementation/correctness; public timings and remaining platform/
 full-family acceptance are still required, not silently waived.
 
+B07 generated performance (2026-11-05 local date): all4workloads×3engines passed
+3processes×31samples after8warmups (93samples per row). Actual12histories ingested
+with `npm run store:ingest`; medians, mean throughput, timestamp/sample counts and
+SQLite integrity independently verified. Quiet max3.95361328125<4; watchdog
+285.317s/677,930KiB. Median ms per10operations (native/Rust/Node-after-tsc): launch
+13.416708/13.377709/14.321500; capture15.120458/15.159625/21.699833; byte duplex
+14.037792/14.054167/17.768291; Reader duplex14.072500/14.120167/17.752166.
+End-to-end native/Rust differences are within0.4%; Node/native ratios1.07–1.44.
+These include OS launch/pipe work and do not isolate compiler CPU overhead.
+No material matched regression justifies changing backend/defaults or retiming.
+Original Rust/Node controls remain reusable for later unchanged comparisons.
+
+Generated allocation driver passed155.430s/659,930KiB,4workloads×3process samples,
+one runtime and one warmup each. Allocations/reallocations per10operations:
+launch61/10; capture191–194/220; byte duplex213–216/110; Reader duplex212–213/110.
+Peaks553/66,640–66,800/50,000–50,352/50,352–50,416requested bytes respectively.
+Signed after-drop global deltas span−352..352bytes; launch is0all3samples.
+These are global runtime-inclusive observations, not an adapter leak/cache proof.
+Checksums and helper/source/dependency guards pass. Raw diagnostics are disposable;
+measured histories live in SQLite. Cross-platform and final family regressions
+remain required acceptance; this is current-host implementation/performance.
+
 ### B08 — TCP/UDP, address parsing and system DNS
 
 Backend: existing Tokio net/system resolver; std address types. B05/B06.
