@@ -48,6 +48,10 @@ class PlatformAcceptance(unittest.TestCase):
             directory = root / "crates" / package
             version = RUNNER.tomllib.loads((directory / "Cargo.toml").read_text())["package"]["version"]
             messages.append({"reason": "compiler-artifact", "package_id": "path+" + directory.as_uri() + "#" + version, "manifest_path": str(directory / "Cargo.toml"), "target": {"name": name, "kind": ["test"], "test": True, "src_path": str(directory / "tests" / (name + ".rs"))}, "profile": {"test": True}, "executable": str(root / "target/debug/deps" / (package + "-" + name))})
+        for package, name, source in [("tsrust-compiler", "tsrust", "src/cli/main.rs"), ("tsrust-lsp", "tsrust-lsp", "src/main.rs")]:
+            directory = root / "crates" / package
+            version = RUNNER.tomllib.loads((directory / "Cargo.toml").read_text())["package"]["version"]
+            messages.append({"reason": "compiler-artifact", "package_id": "path+" + directory.as_uri() + "#" + version, "manifest_path": str(directory / "Cargo.toml"), "target": {"name": name, "kind": ["bin"], "src_path": str(directory / source)}, "profile": {"test": False}, "executable": str(root / "target/debug" / (name + (".exe" if os.name == "nt" else "")))})
         messages.append({"reason": "build-finished", "success": True})
         self.assertEqual(set(RUNNER.selected_test_artifacts(messages, root)), expected)
         for field, value in [("package_id", "registry+wrong#0.1.2"), ("manifest_path", "wrong/Cargo.toml"), ("executable", str(root / "other-target/test"))]:
@@ -68,11 +72,21 @@ class PlatformAcceptance(unittest.TestCase):
         changed[0] = {**messages[0], "profile": {"test": False}}
         with self.assertRaises(AssertionError):
             RUNNER.selected_test_artifacts(changed, root)
+        normal_index = next(index for index, row in enumerate(messages) if row.get("target", {}).get("name") == "tsrust")
+        with self.assertRaises(AssertionError):
+            RUNNER.selected_test_artifacts(messages[:normal_index] + messages[normal_index + 1:], root)
+        for field, value in [("package_id", "wrong"), ("manifest_path", "wrong/Cargo.toml"), ("profile", {"test": True}), ("target", {**messages[normal_index]["target"], "src_path": "wrong.rs"}), ("executable", "wrong/tsrust")]:
+            changed = [dict(row) for row in messages]
+            changed[normal_index][field] = value
+            with self.assertRaises(AssertionError):
+                RUNNER.selected_test_artifacts(changed, root)
         source = (root / "tools/platform-acceptance.py").read_text()
         self.assertEqual(source.count('"--no-run"'), 1)
         self.assertIn('selected_names = sorted(set(COMPILER_TARGETS + LSP_TARGETS))', source)
         self.assertIn('binary = artifacts[(package, name)]', source)
         self.assertNotIn('"--tests"', source)
+        self.assertNotIn('run("consumers"', source)
+        self.assertLess(source.index('run("selected-tests-build"'), source.index('run("portable"'))
 
     def test_remaining_scope_budget_caps_shortens_and_rejects_exhaustion(self):
         with patch.object(RUNNER.time, "monotonic", side_effect=[100, 175, 200]):
