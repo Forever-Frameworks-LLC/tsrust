@@ -945,6 +945,17 @@ and native allocation review remain pending. Preserve all existing controls and
 correctness checks; these timings do not establish cross-platform acceptance.
 
 
+Public compression-writer measurements (2026-11-06): all12writer-transform
+workloads now have actual native/Rust/Node timings ingested,3348samples with the
+original3processes×31samples after8warmups, quietguard enabled and per-workload
+5GB/30minute watchdog. Exact histories and SQLite integrity pass. Native/Rust
+median-duration ratios0.979–1.061; Node/native1.65–2.34 in these workloads.
+All36localcompression workloads are now timed (10044samples). Together with
+network10 and affectednativefilecopy, all47localworkloads have matched histories,
+12927newtimings; unchanged Rust/Nodefilecopycontrols remain reused. Native
+allocation review and supporting-host net_udp_large timing remain pending.
+
+
 ### B10 — HTTP client completeness and source-owned middleware
 
 Backend: existing Reqwest/Axum/Tower stack. B04/B05/B06; compression uses B09.

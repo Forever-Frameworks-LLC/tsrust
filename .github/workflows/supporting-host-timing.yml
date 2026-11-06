@@ -1,0 +1,111 @@
+name: Supporting-host UDP timing
+on:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: supporting-host-timing-helper-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  udp-large:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '1'
+      RUSTUP_TOOLCHAIN: '1.96.1'
+      TSRUST_SOURCE_PACK_DIR: ${{ github.workspace }}/../portable-source-packs
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: supporting-host-timing
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.11
+      - name: Measure only the supporting-host large UDP workload
+        id: timing
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import importlib.util
+          import json
+          import math
+          import os
+          from pathlib import Path
+          import subprocess
+          import time
+          import tomllib
+
+          root = Path.cwd()
+          here = root / "benchmarks/runtime"
+          spec = importlib.util.spec_from_file_location("platform", root / "tools/platform-acceptance.py")
+          platform = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(platform)
+          env = dict(os.environ)
+          assert env["CARGO_TARGET_DIR"] == str(root / "target")
+          assert env["CARGO_INCREMENTAL"] == "0" and env["CARGO_BUILD_JOBS"] == "1"
+          pins = json.loads((here / "versions.json").read_text())
+          assert pins["rust"] == env["RUSTUP_TOOLCHAIN"] == tomllib.loads((root / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
+          assert subprocess.check_output(["node", "--version"], text=True).strip() == pins["node"]
+          logs = root / "target/supporting-host-timing"
+          logs.mkdir(parents=True, exist_ok=True)
+          def run(label, command, cwd=root):
+              row = platform.bounded(command, cwd, env, logs / (label + "-" + str(time.time_ns())), limit_seconds=1800, limit_bytes=5_000_000 * 1024)
+              print(json.dumps({"label": label, **row}), flush=True)
+              assert row["code"] == 0 and row["stop"] is None, row
+              return row
+
+          run("npm", ["npm", "ci", "--no-audit", "--no-fund"], here)
+          # run.mjs verifies Bun and the locked npm Deno even for this finite engine selection.
+          assert subprocess.check_output(["bun", "--version"], text=True).strip() == pins["bun"]
+          consumers = run("consumers", ["cargo", "build", "--release", "--offline", "--locked", "-p", "tsrust-compiler", "-p", "tsrust-lsp", "--bin", "tsrust", "--bin", "tsrust-lsp", "--message-format=json"])
+          messages = [json.loads(line) for line in Path(consumers["stdout"]).read_text().splitlines() if line.startswith("{")]
+          assert messages[-1]["reason"] == "build-finished" and messages[-1]["success"] is True
+          executables = {row["target"]["name"]: row["executable"] for row in messages if row.get("reason") == "compiler-artifact" and row.get("executable")}
+          assert executables["tsrust"] == str(root / "target/release/tsrust") and executables["tsrust-lsp"] == str(root / "target/release/tsrust-lsp")
+          run("portable", [str(root / "target/release/tsrust"), "setup", "--portable", "--offline", "--yes"])
+          results = here / "results"
+          before = set(results.glob("*.json"))
+          run("timing", ["node", "run.mjs", "--execution-only", "--engines=native,rust-hand,node-tsc", "--only=net_udp_large"], here)
+          created = set(results.glob("*.json")) - before
+          assert len(created) == 1, created
+          result = created.pop()
+          data = json.loads(result.read_text())
+          expected = json.loads(subprocess.check_output(["node", "--input-type=module", "-e", "import fs from 'node:fs';import {expectedChecksum} from './oracle.mjs';const m=JSON.parse(fs.readFileSync('manifest.json'));const w=m.workloads.find(w=>w.id==='net_udp_large');console.log(JSON.stringify(expectedChecksum(w.id,w.iterations,m.seed,w.inputText)));"], cwd=here, text=True))
+          def validate_result(data, expected):
+              assert data["verifiedOnly"] is False and data["measurementScope"] == "execution-only"
+              engines = {"native", "rust-hand", "node-tsc"}
+              assert set(data["measuredEngines"]) == engines and len(data["measuredEngines"]) == 3
+              manifest = data["manifest"]
+              assert (manifest["processes"], manifest["samples"], manifest["warmups"]) == (3, 31, 8)
+              assert data["machine"]["platform"] == "linux"
+              quiet = data["quietMachine"]
+              assert quiet["allowBusy"] is False
+              assert quiet["loadLimit"] == max(2, data["machine"]["logicalCPUs"] / 2)
+              assert math.isfinite(quiet["maxOneMinuteLoad"]) and 0 <= quiet["maxOneMinuteLoad"] < quiet["loadLimit"]
+              rows = data["execution"]
+              assert len(rows) == 9
+              keys = {(row["workload"], row["engine"], row["processIndex"]) for row in rows}
+              assert keys == {("net_udp_large", engine, index) for engine in engines for index in range(3)}
+              for row in rows:
+                  assert row["checksum"] == expected
+                  assert len(row["durations"]) == 31 and all(math.isfinite(value) and value > 0 for value in row["durations"])
+              assert all(sum(len(row["durations"]) for row in rows if row["engine"] == engine) == 93 for engine in engines)
+          validate_result(data, expected)
+          # Only this independently validated actual result enters the local measurement database.
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("result=" + str(result.relative_to(root)) + "\n")
+          run("ingest", ["npm", "run", "store:ingest", "--", str(result)], here)
+          PYTHON
+      - name: Retain the exact actual timing result for verification and ingestion
+        if: ${{ always() && steps.timing.outputs.result != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: supporting-host-net-udp-large-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.timing.outputs.result }}
+          if-no-files-found: error
+          retention-days: 3

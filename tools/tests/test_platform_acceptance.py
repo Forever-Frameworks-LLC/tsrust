@@ -1,3 +1,4 @@
+import ast
 import importlib.util
 import json
 import os
@@ -15,6 +16,29 @@ SPEC.loader.exec_module(RUNNER)
 
 
 class PlatformAcceptance(unittest.TestCase):
+    def test_supporting_host_timing_is_reusable_bounded_and_uses_original_protocol(self):
+        root = Path(__file__).resolve().parents[2]
+        source = (root / ".github/workflows/supporting-host-timing.yml").read_text()
+        self.assertIn("on:\n  workflow_call:\npermissions:", source)
+        self.assertNotIn("pull_request:", source)
+        self.assertIn("group: supporting-host-timing-helper-${{ github.ref }}", source)
+        self.assertIn("cancel-in-progress: false", source)
+        self.assertIn("runs-on: ubuntu-24.04", source)
+        self.assertIn('limit_seconds=1800, limit_bytes=5_000_000 * 1024', source)
+        self.assertIn('"--execution-only", "--engines=native,rust-hand,node-tsc", "--only=net_udp_large"', source)
+        self.assertNotIn("--allow-busy", source)
+        self.assertIn("oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6", source)
+        self.assertIn('messages[-1]["reason"] == "build-finished"', source)
+        self.assertLess(source.index('run("portable"'), source.index('run("timing"'))
+        self.assertLess(source.index('validate_result(data, expected)\n'), source.index('run("ingest"'))
+        self.assertIn('path: ${{ steps.timing.outputs.result }}', source)
+        body = source.split("          python3 - <<'PYTHON'\n", 1)[1].split("          PYTHON", 1)[0]
+        parsed = ast.parse("\n".join(line[10:] for line in body.splitlines()))
+        validator = next(node for node in ast.walk(parsed) if isinstance(node, ast.FunctionDef) and node.name == "validate_result")
+        text = ast.unparse(validator)
+        for guard in ["(3, 31, 8)", "len(rows) == 9", "== 93", "quiet['allowBusy'] is False", "row['checksum'] == expected", "keys =="]:
+            self.assertIn(guard, text)
+
     def test_process_tree_includes_nested_and_regrouped_children_only(self):
         rows = [
             {"pid": 10, "ppid": 1, "pgid": 10},
@@ -94,7 +118,14 @@ class PlatformAcceptance(unittest.TestCase):
         self.assertEqual({name for name in conditions if enabled(name)}, {"source", "editor"})
         self.assertEqual({name for name in conditions if enabled(name, "platform_acceptance")}, {"platform"})
         self.assertFalse(enabled("platform", "platform_acceptance", "pull_request"))
-        for mode in ["async_acceptance", "toolchain_acceptance", "editor_acceptance", "full_regressions"]:
+        self.assertEqual({name for name in conditions if enabled(name, "supporting_host_timing")}, {"supporting_host_timing"})
+        self.assertFalse(enabled("supporting_host_timing", "supporting_host_timing", "pull_request"))
+        for mode in ["platform_acceptance", "async_acceptance", "toolchain_acceptance", "editor_acceptance", "full_regressions"]:
+            self.assertFalse(enabled("supporting_host_timing", "supporting_host_timing", extra=mode))
+        self.assertIn("uses: ./.github/workflows/supporting-host-timing.yml", jobs["supporting_host_timing"])
+        self.assertIn("supporting-host-timing-caller", workflow)
+        self.assertIn("SUPPORTING_HOST_RESULT: ${{ needs.supporting_host_timing.result }}", jobs["ci"])
+        for mode in ["async_acceptance", "toolchain_acceptance", "editor_acceptance", "full_regressions", "supporting_host_timing"]:
             self.assertFalse(enabled("platform", "platform_acceptance", extra=mode))
         platform = jobs["platform"]
         pairs = lambda source: re.findall(r"- os: (\S+)\s+target: (\S+)", source)

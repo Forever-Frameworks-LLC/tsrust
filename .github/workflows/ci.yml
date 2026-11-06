@@ -4,6 +4,10 @@ on:
     branches: [stag]
   workflow_dispatch:
     inputs:
+      supporting_host_timing:
+        description: Measure only the supporting-host large UDP workload on Linux; not platform acceptance.
+        type: boolean
+        default: false
       platform_acceptance:
         description: Run bounded native I/O family acceptance on Linux, both Macs and Windows, without publishing.
         type: boolean
@@ -45,8 +49,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ inputs.supporting_host_timing && 'supporting-host-timing-caller' || 'ci' }}-${{ github.ref }}
+  cancel-in-progress: ${{ !inputs.supporting_host_timing }}
 env:
   CARGO_INCREMENTAL: '0'
   CARGO_BUILD_JOBS: '1'
@@ -59,7 +63,7 @@ env:
   CARGO_TERM_COLOR: always
 jobs:
   source:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance }}
+    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
     name: Compiler and LSP (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -113,7 +117,7 @@ jobs:
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
   editor:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance }}
+    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
     name: VS Code extension
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -137,7 +141,7 @@ jobs:
           retention-days: 7
   async:
     name: Async testing acceptance (${{ matrix.os }})
-    if: ${{ inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.platform_acceptance }}
+    if: ${{ inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
     strategy:
       fail-fast: false
       matrix:
@@ -162,7 +166,7 @@ jobs:
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
   toolchain:
     name: Windows toolchain and shared-cache acceptance
-    if: ${{ inputs.toolchain_acceptance && !inputs.async_acceptance && !inputs.platform_acceptance }}
+    if: ${{ inputs.toolchain_acceptance && !inputs.async_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
     runs-on: windows-2022
     timeout-minutes: 90
     defaults:
@@ -186,7 +190,7 @@ jobs:
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
   editor_integration:
     name: VS Code integration (${{ matrix.os }})
-    if: ${{ inputs.editor_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.platform_acceptance }}
+    if: ${{ inputs.editor_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
     strategy:
       fail-fast: false
       matrix:
@@ -223,7 +227,7 @@ jobs:
           if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm --prefix editors/vscode run test:integration; else npm --prefix editors/vscode run test:integration; fi
   platform:
     name: Native I/O family (${{ matrix.target }})
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.platform_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.full_regressions }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.platform_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.full_regressions && !inputs.supporting_host_timing }}
     strategy:
       fail-fast: false
       matrix:
@@ -258,14 +262,20 @@ jobs:
           path: target/platform-acceptance/
           if-no-files-found: error
           retention-days: 3
+  supporting_host_timing:
+    name: Supporting-host UDP timing
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.supporting_host_timing && !inputs.platform_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.full_regressions }}
+    uses: ./.github/workflows/supporting-host-timing.yml
   ci:
-    name: ${{ inputs.platform_acceptance && 'Native I/O family acceptance' || inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || inputs.editor_acceptance && 'Editor acceptance' || 'CI' }}
+    name: ${{ inputs.supporting_host_timing && 'Supporting-host UDP timing' || inputs.platform_acceptance && 'Native I/O family acceptance' || inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || inputs.editor_acceptance && 'Editor acceptance' || 'CI' }}
     if: always()
-    needs: [source, editor, async, toolchain, editor_integration, platform]
+    needs: [source, editor, async, toolchain, editor_integration, platform, supporting_host_timing]
     runs-on: ubuntu-24.04
     steps:
       - name: Require all checks
         env:
+          SUPPORTING_HOST_TIMING: ${{ inputs.supporting_host_timing }}
+          SUPPORTING_HOST_RESULT: ${{ needs.supporting_host_timing.result }}
           PLATFORM_ACCEPTANCE: ${{ inputs.platform_acceptance }}
           PLATFORM_RESULT: ${{ needs.platform.result }}
           FULL_REGRESSIONS: ${{ inputs.full_regressions }}
@@ -278,7 +288,9 @@ jobs:
           EDITOR_ACCEPTANCE: ${{ inputs.editor_acceptance }}
           EDITOR_INTEGRATION_RESULT: ${{ needs.editor_integration.result }}
         run: |
-          if [ "$PLATFORM_ACCEPTANCE" = true ]; then
+          if [ "$SUPPORTING_HOST_TIMING" = true ]; then
+            test "$PLATFORM_ACCEPTANCE" != true && test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_ACCEPTANCE" != true && test "$EDITOR_ACCEPTANCE" != true && test "$FULL_REGRESSIONS" != true && test "$SUPPORTING_HOST_RESULT" = success
+          elif [ "$PLATFORM_ACCEPTANCE" = true ]; then
             test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_ACCEPTANCE" != true && test "$EDITOR_ACCEPTANCE" != true && test "$FULL_REGRESSIONS" != true && test "$PLATFORM_RESULT" = success
           elif [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
             test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_RESULT" = success
