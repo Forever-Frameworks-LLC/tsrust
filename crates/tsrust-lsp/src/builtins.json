@@ -9988,7 +9988,7 @@
     {
       "name": "size",
       "signature": "size: int",
-      "parameters": [],
+      "parameters": null,
       "documentation": "The number of distinct stored keys, including at most one NaN and one zero key. This read-only property takes no arguments, returns a nonnegative int, and does not change the set. Ownership: reading size borrows the receiver.\n\n```tsrust\nimport { OrderedSet } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedSet<int>();\n  values.add(2);\n  console.log(values.size);\n}\n```\n\nExpected output: 1.",
       "examples": [
         {
@@ -10205,7 +10205,7 @@
     {
       "name": "size",
       "signature": "size: int",
-      "parameters": [],
+      "parameters": null,
       "documentation": "Returns the number of distinct keys as int. Readonly property with no arguments; assignment is rejected. Empty maps have size 0. The receiver is unchanged.\n\nKeys must match the declared int, number, boolean, string or enum type; mixed unions and object identity keys are unsupported. Numbers use numeric order, with signed zeros equal and NaNs equal and greater than infinity. Strings use Unicode scalar lexicographic order without locale collation or normalization. Booleans place false before true; enums use their backing values. Wrong argument counts and incompatible types are static errors.\n\n```tsrust\nimport { OrderedMap } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedMap<string, int>();\n  values.set(\"b\", 2);\n  values.set(\"a\", 1);\n  console.log(values.size);\n}\n```\n\nExpected output: 2\n\nOwnership: Reading size borrows the receiver.",
       "examples": [
         {

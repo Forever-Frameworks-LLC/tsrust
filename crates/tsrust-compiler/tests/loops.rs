@@ -195,7 +195,7 @@ fn invalid_control_flow_and_return_coverage_fail_in_frontend() {
         reject(source, "unsupported");
     }
     reject(
-        "function f(): int { while (true) { return 7; } } function main() {}",
+        "function f(): int { while (true) { break; } } function main() {}",
         "type",
     );
     // A number condition selects by truthiness: zero ends the loop.
