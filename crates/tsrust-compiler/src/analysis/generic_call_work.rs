@@ -3,6 +3,8 @@ use super::*;
 pub(super) struct Arguments {
     pub inline_shapes: HashMap<(usize, usize), (Vec<Type>, Type)>,
     pub prepared: Vec<bool>,
+    pub value_hints: HashMap<usize,Type>,
+    pub parameter_hints: Vec<Option<Vec<(Type,Option<crate::type_syntax::ParameterAccess>)>>>,
 }
 pub(super) enum Prepared {
     Spread(Box<Expr>),
@@ -97,14 +99,15 @@ impl Analyzer {
                 inline_shapes.insert((pattern.span.start, pattern.span.end), shape);
             }
         }
-        Ok(Prepared::Arguments(Arguments { inline_shapes, prepared: vec![false; args.len()] }))
+        Ok(Prepared::Arguments(Arguments { inline_shapes, prepared: vec![false; args.len()], value_hints:HashMap::new(), parameter_hints:vec![None;args.len()] }))
     }
-    pub(super) fn generic_preparation_contexts(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>, frame: &Arguments) -> Result<Vec<Option<Type>>, Diagnostic> {
+    pub(super) fn generic_preparation_contexts(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>, frame: &mut Arguments) -> Result<Vec<Option<Type>>, Diagnostic> {
         let expr = call(expr);
         let span = expr.span;
         let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!() };
         let (name, _) = Self::generic_call_name(callee).expect("generic name");
             let mut callable_shapes = self.generic_callable_shapes(context, args);
+            callable_shapes.extend(self.checked_inference_callable_shapes(frame.value_hints.values().copied()));
             callable_shapes.extend(self.checked_inference_callable_shapes(frame.inline_shapes.values()
                 .flat_map(|(parameters, result)| parameters.iter().copied().chain(std::iter::once(*result)))));
             let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
@@ -126,13 +129,14 @@ impl Analyzer {
             let hints = args
                 .iter()
                 .zip(&seed)
-                .map(|(argument, expected)| {
-                    self.generic_argument_hint(context, argument, *expected)
+                .enumerate().map(|(index,(argument, expected))| {
+                    frame.value_hints.get(&index).copied().or_else(||self.generic_argument_hint(context, argument, *expected))
                 })
                 .collect::<Vec<_>>();
             let contexts =
                 self.generic_functions
                     .parameter_contexts(name, expected, &types, Some(&hints))?;
+        frame.parameter_hints=self.generic_functions.callable_parameter_contexts(name,expected,&types,Some(&hints))?;
         Ok(contexts)
     }
     pub(super) fn finish_generic_preparation(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>, frame: &Arguments) -> Result<Prepared, Diagnostic> {
@@ -140,6 +144,7 @@ impl Analyzer {
         let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!() };
         let (name, callee_span) = Self::generic_call_name(callee).expect("generic name");
         let mut callable_shapes = self.generic_callable_shapes(context, args);
+            callable_shapes.extend(self.checked_inference_callable_shapes(frame.value_hints.values().copied()));
             callable_shapes.extend(self.checked_inference_callable_shapes(frame.inline_shapes.values()
                 .flat_map(|(parameters, result)| parameters.iter().copied().chain(std::iter::once(*result)))));
             let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
@@ -157,7 +162,7 @@ impl Analyzer {
         let hints = args
             .iter()
             .zip(&seed)
-            .map(|(argument, expected)| self.generic_argument_hint(context, argument, *expected))
+            .enumerate().map(|(index,(argument, expected))|frame.value_hints.get(&index).copied().or_else(||self.generic_argument_hint(context, argument, *expected)))
             .collect::<Vec<_>>();
         let contexts =
             self.generic_functions
@@ -165,7 +170,7 @@ impl Analyzer {
         let hints = args
             .iter()
             .zip(&contexts)
-            .map(|(argument, expected)| self.generic_argument_hint(context, argument, *expected))
+            .enumerate().map(|(index,(argument, expected))|frame.value_hints.get(&index).copied().or_else(||self.generic_argument_hint(context, argument, *expected)))
             .collect::<Vec<_>>();
         let arguments = match self.generic_functions.infer(name, &hints, expected, &types, callee_span) {
             Ok(arguments)=>arguments,

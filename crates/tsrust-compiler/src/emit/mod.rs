@@ -1284,7 +1284,7 @@ impl Emitter<'_> {
             self.exception_regions.throw_value("assertion_error",Type::Record(record),&unions,span).expect("checked native assertion region")
         };
         let succeeded=if closure.is_some(){"Ok(())"}else{"()"};
-        Some(format!("{{let assertion_condition={};let assertion_message={};if assertion_condition{{{succeeded}}}else{{let mut assertion_error={error};assertion_error.field2=String::Owned(assertion_message.as_ref().to_owned());{failed}}}}}",arguments[0],arguments[1]))
+        Some(format!("{{let assertion_condition={};let assertion_message={};if assertion_condition{{{succeeded}}}else{{let mut assertion_error={error};assertion_error.field2=String::Owned(assertion_message.as_ref().to_owned());if let Some(site)=tsrust_testing_assertion_site(){{assertion_error.field3=String::Borrowed(site.source);assertion_error.field4=site.start as i64;assertion_error.field5=site.end as i64;}}{failed}}}}}",arguments[0],arguments[1]))
     }
 
     #[inline(never)]

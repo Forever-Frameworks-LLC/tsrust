@@ -130,3 +130,82 @@ impl Emitter<'_> {
         }))
     }
 }
+
+impl Emitter<'_> {
+    fn assertion_declaration_name(&self,name:&str)->bool {
+        let Some(graph)=self.source_graph else{return false;};
+        let Some(module)=graph.order.iter().position(|id|id.0=="std:testing")else{return false;};
+        ["ok","fail","throws","strictEqual","notStrictEqual","deepStrictEqual","notDeepStrictEqual"].iter()
+            .any(|public|name==format!("{}{module}_{public}",crate::type_aliases::LINKED_PREFIX))
+    }
+    fn assertion_function(&self,mut function:usize)->bool {
+        let mut seen=HashSet::new();
+        while seen.insert(function){
+            if self.program.generic_declarations.get(&function).is_some_and(|declaration|self.assertion_declaration_name(&declaration.text)){return true;}
+            if self.assertion_declaration_name(&self.program.functions[function].name){return true;}
+            let Some(&origin)=self.program.function_specializations.get(&function)else{break;};function=origin;
+        }false
+    }
+    fn assertion_origin(&self,origin:usize)->bool {
+        let mut seen=HashSet::new();let mut pending=vec![origin];
+        while let Some(origin)=pending.pop(){
+            if !seen.insert(origin){continue;}
+            if self.program.deferred_generic_sources.get(&origin).is_some_and(|source|self.assertion_declaration_name(&source.text)){return true;}
+            if self.program.polymorphic_storage.contains(origin){
+                pending.extend(self.program.polymorphic_storage.checked(origin,&self.program.closures,self.program.closures[origin].span).expect("checked assertion candidate storage").origins);
+            }
+            match self.program.closures[origin].forward {
+                Some(ClosureForward::Function(function))=>if self.assertion_function(function){return true;},
+                Some(ClosureForward::Once(inner))=>pending.push(inner),
+                Some(ClosureForward::Abstract(_))=>return true,
+                _=>{},
+            }
+        }false
+    }
+    fn assertion_family(&self,family:usize)->bool {
+        self.program.stored_contracts.origins(family).is_none_or(|origins|origins.is_empty()||origins.iter().any(|&origin|self.assertion_origin(origin)))
+    }
+    pub(super) fn assertion_call_site(&self,function:&CheckedFunction,expression:&Expr)->Option<String>{
+        let graph=self.source_graph?;
+        if !graph.modules.keys().any(|source|source.0=="std:testing"){return None;}
+        let ExprKind::Call(callee,_)=&expression.kind else{return None;};
+        // Task invocation adapters await internally. Only synchronous calls may
+        // hold thread-local provenance; a synchronous factory returning a Task
+        // still qualifies because its callable kind is not Task.
+        let target=expression.target?;
+        let task=callee.ty.is_some_and(|ty|self.program.task_type(ty))||match target {
+            CallTarget::ConditionalClosure(origin)=>self.program.task_type(Type::Closure(origin)),
+            CallTarget::ConditionalCallback(contract)=>self.program.task_type(Type::Callback(contract)),
+            CallTarget::StoredCallableField(family)=>self.program.task_type(Type::StoredCallable(family)),
+            CallTarget::Closure(binding)|CallTarget::Callback(binding)|CallTarget::StoredCallable(binding)=>self.program.task_type(function.bindings[binding].ty),
+            _=>false,
+        };
+        if task{return None;}
+        let candidate=match target {
+            CallTarget::Function(index)|CallTarget::ForwardFunction(index)=>self.assertion_function(index),
+            CallTarget::ClosureMethod(_)|CallTarget::ConditionalClosure(_)=>match callee.ty?{Type::Closure(origin)=>self.assertion_origin(origin),_=>false},
+            CallTarget::Closure(binding)=>match function.bindings[binding].ty{Type::Closure(origin)=>self.assertion_origin(origin),_=>false},
+            CallTarget::StoredCallable(binding)=>match function.bindings[binding].ty{Type::StoredCallable(family)|Type::BorrowedCallable(family)=>self.assertion_family(family),_=>false},
+            CallTarget::StoredCallableField(family)=>self.assertion_family(family),
+            CallTarget::Callback(_)|CallTarget::ConditionalCallback(_)=>true,
+            _=>false,
+        };
+        if !candidate{return None;}
+        let (source,base,_)=self.source_segments.iter().find(|(_,base,len)|callee.span.start>=*base&&expression.span.end<=base+len)?;
+        // Internal facade calls inherit the invocation, never its definition or
+        // the earlier construction of a stored function value.
+        if source.0.starts_with("std:"){return None;}
+        let prefix=graph.modules[source].source.text.get(..callee.span.start-base)?;
+        let line=prefix.bytes().filter(|byte|*byte==b'\n').count()+1;
+        let column=prefix.rsplit('\n').next().unwrap_or("").encode_utf16().count()+1;
+        let binding=crate::native_bindings::BINDINGS.iter().position(|binding|binding.module=="std:testing-runtime"&&binding.name=="checkAssertion").expect("assertion primitive");
+        self.native_bindings.borrow_mut().insert(binding);
+        Some(format!("&TsrAssertionSite{{source:{:?},start:{},end:{},line:{line},column:{column}}}",source.0,callee.span.start-base,expression.span.end-base))
+    }
+    pub(super) fn stage_assertion_call(&self,site:Option<&str>,values:Vec<String>)->(String,Vec<String>){
+        let Some(site)=site else{return (String::new(),values);};
+        let mut prefix=String::from("{ ");let mut arguments=Vec::new();
+        for(index,value)in values.into_iter().enumerate(){let name=format!("assertion_argument{index}");prefix.push_str(&format!("let mut {name}={value}; "));arguments.push(name);}
+        prefix.push_str(&format!("let _assertion_site=TsrAssertionGuard::new({site}); "));(prefix,arguments)
+    }
+}

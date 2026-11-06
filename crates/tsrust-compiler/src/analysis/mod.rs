@@ -10419,6 +10419,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let observation =
             self.observing_values && mode == Mode::Read && (!context.is_capture(index)
                 || self.is_task_type(context.bindings[index].ty)
+                || context.bindings[index].callback_kind.is_some_and(|kind|kind.is_owned())
                 || matches!(context.bindings[index].ty,Type::Callback(id) if self.callables.callbacks[id].kind.is_owned()));
         if let Some(kind) = context.bindings[index].callback_kind {
             if !kind.is_owned()

@@ -489,6 +489,31 @@ fn project_callable_value(ty: &ProjectType) -> bool {
 
 
 impl SourceIndex {
+    // One index-time check of a complete source prefix. This supplies call-site
+    // facts only; the original syntax diagnostics and unchecked status remain.
+    pub(crate) fn recover_project_generic_prefix(&mut self,graph:&ProjectGraph,id:&SourceId,error_start:usize,dependencies:&std::collections::BTreeMap<SourceId,SourceIndex>) {
+        let Some(declaration)=self.symbols.iter().filter(|symbol|symbol.scope==0 && symbol.extent.start<=error_start && error_start<symbol.extent.end)
+            .min_by_key(|symbol|symbol.extent.start) else{return;};
+        let mut cutoff=declaration.extent.start;
+        if let Some(mut token)=self.tokens.iter().position(|token|token.span.start==cutoff){
+            while token>0 && matches!(self.text(token-1),"export"|"default"|"async") {token-=1;cutoff=self.tokens[token].span.start;}
+        }
+        if cutoff==0{return;}
+        let mut repaired=graph.clone();let Some(module)=repaired.modules.get_mut(id)else{return;};
+        for source in [&mut module.source.text,&mut module.declaration_source] {
+            if !source.is_char_boundary(cutoff){return;}
+            // Spaces preserve all original byte offsets, including UTF-8.
+            let mut bytes=source.as_bytes().to_vec();
+            for byte in &mut bytes[cutoff..] {if !matches!(*byte,b'\r'|b'\n'){*byte=b' ';}}
+            *source=String::from_utf8(bytes).expect("masked source is UTF-8");
+        }
+        let Ok(analysis)=tsrust_compiler::project::check_graph(repaired)else{return;};
+        let facts=analysis.checked_type_facts();
+        let calls=facts.generic_calls.into_iter().filter(|fact|fact.location.source==*id && fact.callee.source==*id && fact.location.span.end<=cutoff && fact.callee.span.end<=cutoff).collect::<Vec<_>>();
+        let partial=facts.generic_parameter_calls.into_iter().filter(|fact|fact.location.source==*id && fact.callee.source==*id && fact.location.span.end<=cutoff && fact.callee.span.end<=cutoff).collect::<Vec<_>>();
+        self.apply_project_generic_facts(&analysis.graph,id,&calls,&partial,dependencies);
+    }
+
     pub(crate) fn recover_project_member_receivers(&mut self,graph:&ProjectGraph,id:&SourceId) {
         let Some((probe,start,added,original_end))=self.receiver_probe().or_else(||self.unfinished_member_probe()) else{return};
         let check = |probe: String| {
@@ -522,6 +547,8 @@ impl SourceIndex {
         preceding.method_results=facts.method_results.iter().filter(before).cloned().collect();
         preceding.parameter_types=facts.parameter_types.iter().filter(before).cloned().collect();
         preceding.projections=facts.projections.iter().filter(before).cloned().collect();
+        preceding.generic_calls=facts.generic_calls.iter().filter(|fact|fact.location.source==*id && fact.callee.source==*id && fact.location.span.end<=start && fact.callee.span.end<=start).cloned().collect();
+        preceding.generic_parameter_calls=facts.generic_parameter_calls.iter().filter(|fact|fact.location.source==*id && fact.callee.source==*id && fact.location.span.end<=start && fact.callee.span.end<=start).cloned().collect();
         self.apply_project_checked_facts(&analysis.graph,id,&preceding,&Default::default());
         self.recover_result_payloads();
         self.checked_array_capabilities=facts.array_capabilities.into_iter().filter_map(|(location, capability)| {

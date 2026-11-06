@@ -68,13 +68,7 @@ impl Cache {
         Ok(result)
     }
 
-    pub(crate) fn parameter_contexts(
-        &self,
-        name: &str,
-        expected: Option<Type>,
-        types: &crate::generic_inference::Types<'_>,
-        hints: Option<&[Option<Type>]>,
-    ) -> Result<Vec<Option<Type>>, Diagnostic> {
+    fn parameter_bindings(&self,name:&str,expected:Option<Type>,types:&crate::generic_inference::Types<'_>,hints:Option<&[Option<Type>]>)->Result<(Vec<ValueAnnotation>,HashMap<String,Type>),Diagnostic>{
         let template = &self.templates[name];
         let parameters = template.params.iter().map(|(_, annotation, _)| annotation.clone()).collect::<Vec<_>>();
         let unknown = vec![None; parameters.len()];
@@ -95,7 +89,21 @@ impl Cache {
             Err(error) if error.code == "generic-inference" => {},
             Err(error) => return Err(error),
         }
-        Ok(parameters.iter().map(|annotation| types.contextual_type(annotation, &bindings)).collect())
+        Ok((parameters,bindings))
+    }
+    pub(crate) fn parameter_contexts(&self,name:&str,expected:Option<Type>,types:&crate::generic_inference::Types<'_>,hints:Option<&[Option<Type>]>)->Result<Vec<Option<Type>>,Diagnostic>{
+        let (parameters,bindings)=self.parameter_bindings(name,expected,types,hints)?;
+        Ok(parameters.iter().map(|annotation|types.contextual_type(annotation,&bindings)).collect())
+    }
+    /// A callback result may remain unknown while every input parameter is known.
+    pub(crate) fn callable_parameter_contexts(&self,name:&str,expected:Option<Type>,types:&crate::generic_inference::Types<'_>,hints:Option<&[Option<Type>]>)->Result<Vec<Option<Vec<(Type,Option<crate::type_syntax::ParameterAccess>)>>>,Diagnostic>{
+        let (parameters,bindings)=self.parameter_bindings(name,expected,types,hints)?;
+        Ok(parameters.iter().map(|annotation|{
+            let mut annotation=annotation;
+            while let Kind::Group(inner)=&annotation.kind {annotation=inner;}
+            let Kind::Callable{parameters,..}=&annotation.kind else{return None;};
+            parameters.iter().map(|parameter|types.contextual_type(&parameter.annotation,&bindings).map(|ty|(ty,if ty.is_copy(){None}else{parameter.access.clone()}))).collect()
+        }).collect())
     }
 
     pub(crate) fn infer(

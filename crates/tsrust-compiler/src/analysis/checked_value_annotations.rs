@@ -17,6 +17,7 @@ impl Analyzer {
         while let Some(ty) = pending.pop() {
             if !visited.insert(ty) { continue; }
             if let Some(id) = ty.union() { pending.extend(self.unions.members(id)); }
+            if let Type::Array(element)=ty {pending.push(element.ty());}
             if let Some((parameters, result)) = self.checked_generic_callable_shape(ty) {
                 pending.extend(parameters.iter().copied());
                 pending.push(result);

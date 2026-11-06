@@ -56,3 +56,14 @@ fn explicit_iterator_closure_results_and_conditional_shapes_execute(){
  let source=support::format_round_trip("import {Iterator} from 'std:iterator';function conditional(flag:boolean):Iterator<int>{return flag?Iterator.from([8]):Iterator.from([3]).map(value=>value+1);}function main(){const factory=():Iterator<int>=>Iterator.from([2,4]);console.log(factory().toArray().join(','));console.log(conditional(true).toArray().join(','));console.log(conditional(false).toArray().join(','));}");
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"2,4\n8\n4\n");
 }
+
+#[test]
+fn generic_array_shape_probes_preserve_scalar_nonclone_and_task_contracts(){
+ let identity="function keep<T>(values:Owned<T[]>):T[]{return values;}";
+ for body in ["function main(){const values=keep([1,2]);console.log(values.length);}","import {trackedResource,closeResource} from 'std:testing';function main(){const values=keep([trackedResource()]);closeResource(values.pop()!);}","import {all} from 'std:futures';async function value():Task<int>{return 1;}async function main():Task<void>{await all(keep([value()]));}","import {all} from 'std:futures';async function value():Task<int>{return 1;}async function main():Task<void>{const task=value();await all(keep([task]));}"]{assert!(checked(&format!("{identity}{body}")).is_ok());}
+ assert!(checked(&format!("{identity}function main(){{const wrong=keep<int>(['x']);}}")).is_err());
+ assert!(checked("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]).map(value=>value+1);console.log(values.toArray());}").is_ok());
+ assert!(checked("import {Iterator} from 'std:iterator';import {trackedResource,closeResource} from 'std:testing';function main(){const values=Iterator.from([trackedResource()]).map(value=>{closeResource(value);return 1;});console.log(values.toArray());}").is_ok());
+ assert!(checked("function bad(value:Owned<int>):int{return value;}function main(){bad(1);}").is_err());
+ assert!(checked("function need<T,U>(action:Owned<Function<U,[value:Owned<T>]>>):void{}function main(){need(value=>value);}").is_err());
+}

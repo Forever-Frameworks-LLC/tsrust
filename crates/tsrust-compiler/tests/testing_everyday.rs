@@ -218,3 +218,76 @@ test('continues after cleanup',()=>{strictEqual(cleaned,1);strictEqual(finished(
     assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);
     assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="all cleanup settled\n"));
 }
+
+
+#[test]
+fn assertion_aliases_stored_and_erased_calls_preserve_original_sites(){
+ let directory=support::TempDirectory::new();let path=directory.0.join("assertion-sites.tsr");
+ for(setup,call,needle)in[
+  ("", "strictEqual(1,2,'site mismatch');", "strictEqual("),
+  ("const alias=deepStrictEqual;", "alias([1],[2],'site mismatch');", "alias("),
+  ("const stored:Check=deepStrictEqual;", "stored([1],[2],'site mismatch');", "stored("),
+  ("", "relay(deepStrictEqual);", "callback("),
+  ("let mixed=deepStrictEqual;if(Boolean(true)){mixed=notDeepStrictEqual;}", "mixed([1],[1],'site mismatch');", "mixed("),
+  ("", "strictEqual(inner(),0,'outer mismatch');", "deepStrictEqual("),
+ ]{
+  let source=support::format_round_trip(&format!("import {{strictEqual,deepStrictEqual,notDeepStrictEqual}} from 'std:testing';type Check=Function<void,[actual:ReadOnly<int[]>,expected:ReadOnly<int[]>,message?:ReadOnly<string>]>;function relay(callback:Check){{callback([1],[2],'site mismatch');}}function inner():int{{deepStrictEqual([1],[2],'site mismatch');return 0;}}function main(){{{setup}{call}}}"));
+  let offset=source.rfind(needle).unwrap();let prefix=&source[..offset];let line=prefix.bytes().filter(|byte|*byte==b'\n').count()+1;let column=prefix.rsplit('\n').next().unwrap().encode_utf16().count()+1;let site=format!("assertion-sites.tsr:{line}:{column}");
+  std::fs::write(&path,&source).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);assert!(!output.status.success());let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("site mismatch"),"{stderr}");assert!(stderr.match_indices(&site).any(|(offset,_)|stderr.as_bytes().get(offset+site.len()).is_none_or(|next|!next.is_ascii_digit())),"Missing original call {site}: {stderr}");
+ }
+}
+
+#[test]
+fn checked_assertion_errors_keep_payload_sites_order_and_restore(){
+ let directory=support::TempDirectory::new();let path=directory.0.join("caught-assertion.tsr");
+ let source=support::format_round_trip(r#"
+import {strictEqual,deepStrictEqual} from 'std:testing';
+let sequence=0;
+function item(expected:int):int{sequence++;strictEqual(sequence,expected);return expected;}
+function userFailure():int{return 1/zero();}function zero():int{return 0;}
+function main(){
+ strictEqual(7,7);const alias=deepStrictEqual;alias([1],[1]);
+ try{strictEqual(item(1),item(2),'caught payload');}catch(error){console.log(error.name);console.log(error.code);console.log(error.message.startsWith('caught payload'));console.log(error.source);console.log(error.start);console.log(error.end);}
+ strictEqual(sequence,2);
+ try{userFailure();}catch(error){console.log(error.source);console.log(error.start);console.log(error.end);}
+}
+"#);
+ let start=source.find("strictEqual(item(").unwrap();let end=start+source[start..].find("'caught payload')").unwrap()+"'caught payload')".len();let division=source.find("/zero()").unwrap();
+ std::fs::write(&path,&source).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
+ let stdout=String::from_utf8(output.stdout).unwrap();let lines=stdout.lines().collect::<Vec<_>>();assert_eq!(lines.len(),9,"{stdout}");assert_eq!(lines[0],"AssertionError");assert_eq!(lines[1],"assertion");assert_eq!(lines[2],"true");assert!(lines[3].ends_with("/caught-assertion.tsr"),"{stdout}");assert_eq!(lines[4],start.to_string());assert_eq!(lines[5],end.to_string());assert_eq!(lines[6],lines[3]);assert_eq!(lines[7],division.to_string());assert_eq!(lines[8],(division+1).to_string());
+}
+
+
+#[test]
+fn assertion_provenance_does_not_wrap_known_user_functions(){
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(r#"
+import {strictEqual as assertEqual} from 'std:testing';
+function strictEqual(value:int):int{return value;}
+function ordinary(value:int):int{return strictEqual(value);}
+function main(){assertEqual(ordinary(7),7);}
+"#);let path=directory.source(&source);let output=support::run(support::cli().arg("emit").arg(&path),30);support::success(&output);let rust=String::from_utf8(output.stdout).unwrap();assert_eq!(rust.matches("TsrAssertionGuard::new(").count(),1,"Only the trusted assertion invocation receives provenance");let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}
+
+
+#[test]
+fn assertion_provenance_excludes_task_invocation_but_keeps_sync_factories(){
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(r#"
+import {strictEqual} from 'std:testing';import {delay} from 'std:futures';
+type Work={task:Task<void>;};
+function factory(callback:Once<Function<Task<void>>>):Task<void>{return callback();}
+async function settle(task:Task<void>):Task<void>{await task;}
+async function main():Task<void>{
+ const concrete=delay(0);await concrete;
+ await settle(delay(0));
+ const work:Work={task:delay(0)};await work.task;
+ const optional:Task<void>|undefined=delay(0);if(optional!==undefined){await optional;}
+ await factory(():Task<void>=>delay(0));strictEqual(7,7);
+}
+"#);let path=directory.source(&source);let output=support::run(support::cli().arg("emit").arg(&path),30);support::success(&output);let rust=String::from_utf8(output.stdout).unwrap();
+ // The erased synchronous factory and the assertion both keep their sites.
+ // Actual Task invocation emits await internally and must never hold TLS.
+ let marker="let _assertion_site=TsrAssertionGuard::new(";let mut guards=0;
+ for(site,_)in rust.match_indices(marker){let start=rust[..site].rfind("{ ").expect("provenance block");let mut depth=0;let mut end=None;for(index,byte)in rust.as_bytes()[start..].iter().enumerate(){if *byte==b'{'{depth+=1;}else if *byte==b'}'{depth-=1;if depth==0{end=Some(start+index+1);break;}}}let block=&rust[start..end.expect("balanced provenance block")];assert!(!block.contains(".await"),"Assertion provenance crossed suspension: {block}");guards+=1;}
+ assert_eq!(guards,2,"Only the synchronous factory and assertion receive guards");
+ let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}

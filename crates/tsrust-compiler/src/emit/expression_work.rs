@@ -648,6 +648,8 @@ impl<'p> Emitter<'p> {
         let ExprKind::Call(callee, args) = &expr.kind else {
             unreachable!("scheduled call");
         };
+        let site=self.assertion_call_site(fun,expr);
+        let (assertion_prefix,rendered)=self.stage_assertion_call(site.as_deref(),rendered);
         let mut rendered = rendered.into_iter();
         let code = match state {
             CallState::IteratorLeaf|CallState::Spread|CallState::CollectionConstructor|CallState::BuiltinReceiver(_)|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
@@ -796,10 +798,13 @@ impl<'p> Emitter<'p> {
                 .expect("checked materialized invocation arguments and Result transport")
             }
             CallState::Callable => {
-                return self.finish_bound_callable_work(fun, expr, mode, invocation, &mut rendered);
+                if assertion_prefix.is_empty(){return self.finish_bound_callable_work(fun,expr,mode,invocation,&mut rendered);}
+                let code=self.finish_bound_callable_work(fun,expr,Mode::Consume,invocation,&mut rendered);
+                return Self::access_wrapped(expr,mode,format!("{assertion_prefix}{code} }}"));
             }
         };
         debug_assert!(rendered.next().is_none());
+        let code=if assertion_prefix.is_empty(){code}else{format!("{assertion_prefix}{code} }}")};
         Self::access_wrapped(expr, mode, code)
     }
 

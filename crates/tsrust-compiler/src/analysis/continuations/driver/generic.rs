@@ -3,7 +3,7 @@ use super::*;
 use crate::analysis::generic_call_work::{Arguments, Prepared, call};
 use std::rc::Rc;
 struct Pass { frame: Arguments, contexts: Vec<Option<Type>>, next: usize, progress: bool, deferred: Option<Diagnostic> }
-enum Phase { Start, Spread, Pass(Pass), Argument { pass: Pass, index: usize }, Function { restore_name: Option<String> }, ClosureHint { pass: Pass, index: usize, key: (usize, usize), context: ContextId, discovering: bool, effects: bool }, Done }
+enum Phase { Start, Spread, Pass(Pass), Argument { pass: Pass, index: usize }, Function { restore_name: Option<String> }, ClosureHint { pass: Pass, index: usize, key: Option<(usize, usize)>, context: ContextId, discovering: bool, effects: bool }, Done }
 pub(super) struct GenericTask { expression: Box<Expr>, context: Rc<Context>, expected: Option<Type>, phase: Phase }
 impl GenericTask {
     pub(super) fn new(expression: Box<Expr>, context: Rc<Context>, expected: Option<Type>) -> Self {
@@ -26,23 +26,23 @@ fn prepared<'a>(analyzer: &mut Analyzer, task: &mut GenericTask, value: Prepared
             task.phase = Phase::Function { restore_name };
             if !ready? { return Ok(Some(Task::Function(Box::new(functions::FunctionTask::new(index))))); }
         }
-        Prepared::Arguments(frame) => {
-            let contexts = analyzer.generic_preparation_contexts(&task.context, &mut task.expression, task.expected, &frame)?;
+        Prepared::Arguments(mut frame) => {
+            let contexts = analyzer.generic_preparation_contexts(&task.context, &mut task.expression, task.expected, &mut frame)?;
             task.phase = Phase::Pass(Pass { frame, contexts, next: 0, progress: false, deferred: None });
         }
     }
     Ok(None)
 }
-// Only independently typed inline callable inputs can supply a missing result
-// constraint. Context-dependent parameter inference remains on its ordinary path.
-fn closure_hint_key(analyzer: &mut Analyzer, expression: &mut Expr, index: usize) -> Option<(usize, usize)> {
+// Probe only independently typed or already solved inputs; unknown inputs never
+// become guessed void parameters. Real argument checking retains all effects.
+fn closure_hint_key(analyzer: &mut Analyzer, expression: &mut Expr, index: usize, inputs:Option<&[(Type,Option<crate::type_syntax::ParameterAccess>)]>) -> Option<(usize, usize)> {
     let ExprKind::Call(callee, args) = &mut call(expression).kind else { return None; };
     let ExprKind::Closure { params, result: ResultAnnotation::Inferred(_), .. } = &args[index].kind else { return None; };
-    for parameter in params {
+    for (position,parameter) in params.iter().enumerate() {
         match &parameter.ty {
             ParameterAnnotation::Named(annotation) => { analyzer.resolve_value_annotation(annotation, false).ok()?; }
             ParameterAnnotation::Callback(annotation) => { analyzer.resolve_callback(annotation).ok()?; }
-            ParameterAnnotation::Inferred(_) => return None,
+            ParameterAnnotation::Inferred(_) => {let ty=inputs?.get(position)?.0;if ty==Type::Void || analyzer.has_pending_result(ty){return None;}},
         }
     }
     let (name, _) = Analyzer::generic_call_name(callee)?;
@@ -85,19 +85,26 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                     args[index] = *value;
                     match result {
                         Ok(()) => {
-                            if let Some(key) = closure_hint_key(analyzer, &mut task.expression, index)
-                                && !pass.frame.inline_shapes.contains_key(&key)
-                            {
-                                let ExprKind::Call(_, args) = &call(&mut task.expression).kind else { unreachable!() };
-                                let value = Box::new(args[index].clone());
-                                let context = contexts.push(Box::new((*task.context).clone()));
-                                let discovering = analyzer.discovering_results;
-                                let effects = analyzer.effects_only;
-                                analyzer.discovering_results = true;
-                                analyzer.effects_only = true;
-                                let child = Task::Expression(ExpressionTask::new(Expression::Child(value), context,
-                                    Mode::Consume, ActiveLoans::Shared(Rc::new(Loans::new())), pass.contexts[index]));
-                                task.phase = Phase::ClosureHint { pass, index, key, context, discovering, effects };
+                            let key=closure_hint_key(analyzer,&mut task.expression,index,pass.frame.parameter_hints[index].as_deref());
+                            let ExprKind::Call(_,args)=&call(&mut task.expression).kind else{unreachable!()};
+                            let array=matches!(args[index].kind,ExprKind::Array(_)) && !pass.frame.value_hints.contains_key(&index)
+                                && analyzer.generic_argument_hint(&task.context,&args[index],pass.contexts[index]).is_none();
+                            if key.is_some_and(|key|!pass.frame.inline_shapes.contains_key(&key)) || array {
+                                let mut value=Box::new(args[index].clone());
+                                if let ExprKind::Closure{params,..}=&mut value.kind {
+                                    for(position,parameter)in params.iter_mut().enumerate(){
+                                        if matches!(parameter.ty,ParameterAnnotation::Inferred(_)) {
+                                            let (ty,access)=&pass.frame.parameter_hints[index].as_ref().expect("resolved probe inputs")[position];
+                                            parameter.ty=ParameterAnnotation::Named(analyzer.checked_value_annotation(*ty,parameter.name.span)?);
+                                            parameter.access=access.as_ref().map(|access|crate::syntax::Token{kind:crate::syntax::TokenKind::Name,text:access.mode.as_str().into(),span:access.span});
+                                        }
+                                    }
+                                }
+                                let context=contexts.push(Box::new((*task.context).clone()));
+                                let discovering=analyzer.discovering_results;let effects=analyzer.effects_only;
+                                analyzer.discovering_results=true;analyzer.effects_only=true;
+                                let child=Task::Expression(ExpressionTask::new(Expression::Child(value),context,Mode::Consume,ActiveLoans::Shared(Rc::new(Loans::new())),pass.contexts[index]));
+                                task.phase=Phase::ClosureHint{pass,index,key,context,discovering,effects};
                                 return Ok(Some(child));
                             }
                             pass.frame.prepared[index] = true; pass.progress = true;
@@ -117,11 +124,13 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                     let span = value.into_child().span;
                     let actual = result?;
                     if analyzer.has_pending_result(actual) { return Err(Analyzer::pending_result(span)); }
-                    let shape = analyzer.checked_generic_callable_shape(actual)
-                        .ok_or_else(|| Analyzer::pending_result(span))?;
-                    pass.frame.inline_shapes.insert(key, shape);
+                    if let Some(key)=key {
+                        let shape=analyzer.checked_generic_callable_shape(actual).ok_or_else(||Analyzer::pending_result(span))?;
+                        pass.frame.inline_shapes.insert(key,shape);
+                    }else{pass.frame.value_hints.insert(index,actual);}
                     pass.frame.prepared[index] = true;
                     pass.progress = true;
+                    pass.contexts=analyzer.generic_preparation_contexts(&task.context,&mut task.expression,task.expected,&mut pass.frame)?;
                     task.phase = Phase::Pass(pass);
                 }
                 Phase::Pass(mut pass) => {
@@ -136,11 +145,11 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                         return Ok(Some(child));
                     }
                     if pass.frame.prepared.iter().all(|value| *value) {
-                        let value = analyzer.finish_generic_preparation(&task.context, &mut task.expression, task.expected, &pass.frame)?;
+                        let value = analyzer.finish_generic_preparation(&task.context, &mut task.expression, task.expected, &mut pass.frame)?;
                         if let Some(child) = prepared(analyzer, &mut task, value)? { return Ok(Some(child)); }
                     } else {
                         if !pass.progress { return Err(pass.deferred.expect("unprepared generic argument")); }
-                        pass.contexts = analyzer.generic_preparation_contexts(&task.context, &mut task.expression, task.expected, &pass.frame)?;
+                        pass.contexts = analyzer.generic_preparation_contexts(&task.context, &mut task.expression, task.expected, &mut pass.frame)?;
                         pass.next = 0; pass.progress = false; pass.deferred = None;
                         task.phase = Phase::Pass(pass);
                     }
@@ -248,6 +257,23 @@ mod closure_hint_tests {
         let wrong = source.replace("const number:int", "const number:string");
         let error = crate::check(&wrong).err().expect("the inferred payload remains int");
         assert_ne!(error.code,"generic-inference");
+    }
+    #[test]
+    fn failed_array_shape_discovery_restores_phase_flags_and_source() {
+        let source=crate::format("function keep<T>(values:Owned<T[]>):T[]{return values;}function main(){keep([missing]);identity(7);}function identity<T>(value:T):T{return value;}").unwrap();
+        let mut program=crate::syntax::parse(&source).unwrap();
+        let StmtKind::Expr(value)=program.functions[1].body.remove(0).into_kind() else{panic!("array call")};
+        let StmtKind::Expr(valid)=program.functions[1].body.remove(0).into_kind() else{panic!("valid call")};
+        let mut analyzer=Analyzer::new(program).unwrap();
+        for(discovering,effects)in[(false,false),(true,true)]{
+            analyzer.discovering_results=discovering;analyzer.effects_only=effects;
+            let mut probe=value.clone();let error=analyzer.prepare_generic_call(&Context::new("main".into()),&mut probe,None).expect_err("bad array element");
+            assert_eq!(&source[error.span.start..error.span.end],"missing");
+            assert_eq!((analyzer.discovering_results,analyzer.effects_only),(discovering,effects));
+            let ExprKind::Call(_,arguments)=&probe.kind else{panic!("restored call")};assert!(matches!(arguments[0].kind,ExprKind::Array(_)));
+            let mut next=valid.clone();analyzer.prepare_generic_call(&Context::new("main".into()),&mut next,None).unwrap();
+            assert_eq!((analyzer.discovering_results,analyzer.effects_only),(discovering,effects));
+        }
     }
     #[test]
     fn failed_closure_shape_discovery_restores_phase_flags_and_source() {

@@ -5,7 +5,7 @@ type Failure = {
   code: 'selected'
 };
 
-function failFirst(value: Owned<int>): int {
+function failFirst(value: int): int {
   if (value === 0) {
     const error: Failure = {
       code: 'selected'

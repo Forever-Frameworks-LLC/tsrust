@@ -265,7 +265,7 @@ impl Analyzer {
         } else if let Type::Record(base) = result {
             let actual = self.inferred_body_result(body)?;
             if let Type::Record(instance) = actual {
-                if self.scoped_records.declaration(instance) == base {
+                if self.scoped_records.declaration(instance) == self.scoped_records.declaration(base) {
                     result = actual;
                 }
             }
@@ -276,6 +276,7 @@ impl Analyzer {
     /// A record result whose returns differ only in callback environments
     /// takes their join. Each returned value is converted to that join.
     pub(super) fn joined_record_result(&mut self,body:&mut [Stmt],base:usize)->Result<Option<Type>,Diagnostic> {
+        let base=self.scoped_records.declaration(base);
         let mut values=Vec::new();
         returned_values(body,&mut values);
         let mut joined:Option<usize>=None;
@@ -590,7 +591,8 @@ impl Analyzer {
     /// An array result of capturing records keeps the joined element
     /// environment of its returns.
     pub(super) fn joined_array_result(&mut self,body:&mut [Stmt],base:usize,depth:u8)->Result<Option<Type>,Diagnostic> {
-        if depth!=0 || self.scoped_records.declaration(base)!=base || !self.aggregate_callable_facts(Type::Record(base)).scoped {return Ok(None);}
+        let base=self.scoped_records.declaration(base);
+        if depth!=0 || !self.aggregate_callable_facts(Type::Record(base)).scoped {return Ok(None);}
         let mut values=Vec::new();
         returned_values(body,&mut values);
         let mut joined:Option<usize>=None;
