@@ -47,18 +47,6 @@ fn annotations(
     Ok(())
 }
 
-pub(crate) fn visit_parameter(
-    value: &mut CallableParameter,
-    visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
-) -> Result<(), Diagnostic> {
-    annotations(AnnotationWork::Parameter(value), visit,None)
-}
-pub(crate) fn callback_annotation(
-    value: &mut CallbackAnnotation,
-    visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
-) -> Result<(), Diagnostic> {
-    annotations(AnnotationWork::Callback(value), visit,None)
-}
 pub(crate) fn result_annotation(
     value: &mut ResultAnnotation,
     visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
@@ -429,7 +417,7 @@ mod substitution_access_tests {
         let action=callback(&value);assert_eq!(action.kind,CallbackKind::Program);assert!(action.params[0].access.is_none());
         let ParameterAnnotation::Callback(inner)=&action.params[1].ty else{panic!("nested callback")};assert!(inner.params[0].access.is_none());assert!(inner.kind.is_owned());
         let Some(ResultAnnotation::Callable{params,..})=&value.result else{panic!("returned callback")};assert!(params[0].access.is_none());
-        let raw=crate::callable_annotations::callback(&value.params[0].1).unwrap();assert_eq!(raw.params[0].access,action.params[0].access);
+        let raw=crate::callable_annotations::callback(&value.params[0].1).unwrap();assert!(raw.params[0].access.is_none());
     }
     #[test]
     fn substitution_preserves_owned_nonclone_and_readonly_owner_access(){

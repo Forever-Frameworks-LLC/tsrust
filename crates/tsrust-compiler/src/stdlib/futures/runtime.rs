@@ -139,9 +139,9 @@ mod tsrust_native_futures {
         let runtime=tokio::runtime::Handle::current();
         tokio::task::block_in_place(||runtime.block_on(SCOPE.scope(scope,future)))
     }
-    fn deadline(milliseconds:i64)->Option<tokio::time::Instant> {
+    fn deadline(milliseconds:i64)->Option<Instant> {
         let milliseconds=u64::try_from(milliseconds).ok()?;
-        tokio::time::Instant::now().checked_add(Duration::from_millis(milliseconds))
+        Instant::now().checked_add(Duration::from_millis(milliseconds))
     }
     pub struct Interval(tokio::time::Interval);
     impl Interval {
@@ -164,7 +164,7 @@ mod tsrust_native_futures {
     pub async fn timeout<F,T,E>(future:F,milliseconds:i64)->Result<T,Failure<E>> where F:Future<Output=Result<T,Failure<E>>> {
         let scope=Scope::group();
         let result=SCOPE.scope(scope.clone(),async move {
-            match deadline(milliseconds) {None=>{drop(future);Err(Failure::Range)},Some(deadline)=>tokio::time::timeout_at(deadline,future).await.unwrap_or(Err(Failure::Timeout))}
+            match deadline(milliseconds) {None=>{drop(future);Err(Failure::Range)},Some(deadline)=>timeout_at(deadline,future).await.unwrap_or(Err(Failure::Timeout))}
         }).await;
         scope.drain(false).await;result
     }
