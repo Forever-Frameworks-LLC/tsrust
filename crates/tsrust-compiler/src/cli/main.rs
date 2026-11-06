@@ -98,6 +98,9 @@ Commands:
   test     Discover and run .test.tsr / .spec.tsr files
 
 Options:
+  --filter <text>            Test names containing literal full suite/name text
+  --reporter <mode>          Test reporter: pretty, plain or json (NDJSON)
+  --timeout <milliseconds>   Explicit async test-body deadline; no default
   -h, --help                 Show this help
   -V, --version              Show compiler version
   -o, --output <path>        Output file for emit/build
@@ -217,9 +220,9 @@ fn run() -> Result<u8, String> {
     let mut test_options = Vec::new();
     let source_path = if command == "test" {
         while let Some(arg) = args.next() {
-            if arg == "--color" {
-                test_options.push(arg);
-                test_options.push(args.next().ok_or("--color requires auto, always or never")?);
+            if matches!(arg.as_str(),"--color"|"--filter"|"--reporter"|"--timeout") {
+                let message=format!("{arg} requires a value");test_options.push(arg);
+                test_options.push(args.next().ok_or(message)?);
             } else if arg.starts_with('-') { test_options.push(arg); }
             else { test_paths.push(PathBuf::from(arg)); }
         }
@@ -231,6 +234,7 @@ fn run() -> Result<u8, String> {
     let mut output: Option<PathBuf> = None;
     let mut json = false;
     let mut color_mode = "auto".to_owned();
+    let mut test_filter:Option<String>=None;let mut test_reporter:Option<String>=None;let mut test_timeout:Option<u64>=None;
     let mut release = false;
     let mut package = false;
     while let Some(arg) = args.next() {
@@ -239,6 +243,12 @@ fn run() -> Result<u8, String> {
                 output = Some(PathBuf::from(args.next().ok_or("Missing output path")?))
             }
             "--json" if !json => json = true,
+            "--filter" if command=="test"&&test_filter.is_none()=>test_filter=Some(args.next().ok_or("--filter requires a literal name substring")?),
+            _ if command=="test"&&arg.starts_with("--filter=")&&test_filter.is_none()=>test_filter=Some(arg[9..].to_owned()),
+            "--reporter" if command=="test"&&test_reporter.is_none()=>test_reporter=Some(args.next().ok_or("--reporter requires pretty, plain or json")?),
+            _ if command=="test"&&arg.starts_with("--reporter=")&&test_reporter.is_none()=>test_reporter=Some(arg[11..].to_owned()),
+            "--timeout" if command=="test"&&test_timeout.is_none()=>test_timeout=Some(test_timeout_value(&args.next().ok_or("--timeout requires milliseconds")?)?),
+            _ if command=="test"&&arg.starts_with("--timeout=")&&test_timeout.is_none()=>test_timeout=Some(test_timeout_value(&arg[10..])?),
             "--color" => {
                 color_mode = args
                     .next()
@@ -250,6 +260,7 @@ fn run() -> Result<u8, String> {
             _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
         }
     }
+    if test_reporter.as_deref().is_some_and(|value|!matches!(value,"pretty"|"plain"|"json")){return Err("--reporter requires pretty, plain or json".into());}
     if !matches!(color_mode.as_str(), "auto" | "always" | "never") {
         return Err("--color requires auto, always or never".into());
     }
@@ -455,7 +466,7 @@ fn run() -> Result<u8, String> {
     if command == "run" || command == "test" {
         let mut executable_command=Command::new(&executable);
         executable_command.args(&program_arguments);
-        if command == "test" && std::env::var_os("TSRUST_TEST_REPORTER").is_none() { executable_command.env("TSRUST_TEST_REPORTER", "pretty"); }
+        if command=="test"{if let Some(reporter)=&test_reporter{executable_command.env("TSRUST_TEST_REPORTER",reporter);}else if std::env::var_os("TSRUST_TEST_REPORTER").is_none(){executable_command.env("TSRUST_TEST_REPORTER","pretty");}if let Some(filter)=&test_filter{executable_command.env("TSRUST_TEST_FILTER",filter);}if let Some(timeout)=test_timeout{executable_command.env("TSRUST_TEST_TIMEOUT_MS",timeout.to_string());}}
         if let Some(root)=&project_root {executable_command.current_dir(root);}
         let status = executable_command
             .env("TSRUST_COLOR", &color_mode)
@@ -589,3 +600,5 @@ fn main() -> ExitCode {
         }
     }
 }
+
+fn test_timeout_value(text:&str)->Result<u64,String>{let value=text.parse::<u64>().map_err(|_|"--timeout requires a nonnegative integer millisecond duration".to_owned())?;std::time::Instant::now().checked_add(std::time::Duration::from_millis(value)).ok_or_else(||"--timeout exceeds the backend Instant range".to_owned())?;Ok(value)}

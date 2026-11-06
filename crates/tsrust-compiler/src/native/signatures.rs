@@ -111,6 +111,8 @@ pub enum NativeTypeId {
     OrderedMap,
     OrderedSet,
     Heap,
+    OwnedIterator,
+    IteratorCursor,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

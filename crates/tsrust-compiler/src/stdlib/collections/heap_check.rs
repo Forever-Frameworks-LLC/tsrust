@@ -8,23 +8,25 @@ impl Analyzer {
     pub(super) fn heap_method_type(&self,id:usize,name:&str,span:Span)->Result<Type,Diagnostic>{
         match name {
             "push"|"clear"=>Ok(Type::Void),
+            "toSortedArray"=>Ok(Type::Array(ArrayElement::from_value_type(self.program.records[id].native_element().unwrap()).unwrap())),
             "peek"|"pop"=>self.unions.intern([self.program.records[id].native_element().unwrap(),Type::Undefined],span),
-            _=>Err(Diagnostic::new("heap-member","Heap supports push, peek, pop and clear.",span)),
+            _=>Err(Diagnostic::new("heap-member","Heap supports push, peek, pop, clear and toSortedArray.",span)),
         }
     }
     pub(super) fn heap_method_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{
         let ExprKind::Call(callee,arguments)=&mut expression.kind else{unreachable!()};
         let ExprKind::Field(base,name)=&mut callee.kind else{unreachable!()};
-        let method=match name.as_str(){"push"=>HeapMethod::Push,"peek"=>HeapMethod::Peek,"pop"=>HeapMethod::Pop,"clear"=>HeapMethod::Clear,_=>return Err(Diagnostic::new("heap-member","Heap supports push, peek, pop and clear.",callee.span))};
+        let method=match name.as_str(){"push"=>HeapMethod::Push,"peek"=>HeapMethod::Peek,"pop"=>HeapMethod::Pop,"clear"=>HeapMethod::Clear,"toSortedArray"=>HeapMethod::ToSortedArray,_=>return Err(Diagnostic::new("heap-member","Heap supports push, peek, pop, clear and toSortedArray.",callee.span))};
         Self::arity(arguments.len(),usize::from(method==HeapMethod::Push),expression.span)?;
         let Type::Record(id)=self.expression(context,base,Mode::Read,loans,None)? else{unreachable!()};
-        let read=method==HeapMethod::Peek;
+        let read=matches!(method,HeapMethod::Peek|HeapMethod::ToSortedArray);
+        if method==HeapMethod::ToSortedArray{self.require_cloneable(self.program.records[id].native_element().unwrap(),base.span)?;}
         if !read{Self::storage_access(context,base,Mode::Mutate,expression.span,loans)?;}
         let mut active=loans.clone();
         for root in Self::loan_roots(base,if read{Mode::Read}else{Mode::Mutate}){active.entry(root).or_default().push((if read{Mode::Read}else{Mode::Mutate},base.span));}
         if let Some(argument)=arguments.first_mut(){let element=self.program.records[id].native_element().unwrap();let actual=self.expression(context,argument,Mode::Consume,&active,Some(element))?;self.require(actual,Some(element),argument.span)?;}
         let mut result=self.heap_method_type(id,name,expression.span)?;
-        if read && !result.is_copy(){
+        if method==HeapMethod::Peek && !result.is_copy(){
             if !Self::stable_at_receiver(base){return Err(Diagnostic::new("borrow","Borrowed Heap reads require a stored receiver.",base.span));}
             result=Type::BorrowedUnion(result.union().unwrap());
         }

@@ -1,4 +1,221 @@
 {
+  "std:iterator": [
+    {
+      "name": "Iterator",
+      "signature": "type Iterator<T>",
+      "parameters": [],
+      "documentation": "An owned lazy sequence. Iterator.from(values) consumes an owned array; adaptors own their source and reusable callbacks. next mutably advances it. Terminal operations consume it. Callback parameters follow Rust iterator ownership: values only, readonly predicates for filter/find, and accumulator plus value for reduce. No implicit index or source arguments are supplied.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  const values = Iterator.from([2, 4]);\n  console.log(values.toArray().join(\",\")); // 2,4\n}\n```\n\nExpected output: 2,4.\n\nOwnership: concrete owned state; borrowed stored chains and arbitrary user iterable protocols are unsupported.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconst values = Iterator.from([2, 4]);\nconsole.log(values.toArray().join(\",\")); // 2,4\n}\n",
+          "output": "2,4\n"
+        }
+      ]
+    },
+    {
+      "name": "IteratorResult",
+      "signature": "type IteratorResult<T> = { done: false; value: T } | { done: true }",
+      "parameters": [],
+      "documentation": "The result of one iterator advancement. Check done before reading value. A false done flag carries an owned item; a true flag carries no value. Callback failures propagate as typed errors instead of a result alternative.\n\n```tsrust\nimport { Iterator, IteratorResult } from \"std:iterator\";\n\nfunction main() {\n  const step: IteratorResult<int> = Iterator.from([2]).next();\n  if (!step.done) {\n    console.log(step.value);\n  }\n}\n```\n\nExpected output: 2.\n\nOwnership: value transfers to the caller; dropping an unused result drops its item.",
+      "examples": [
+        {
+          "source": "import {Iterator,IteratorResult} from \"std:iterator\";function main(){const step:IteratorResult<int> = Iterator.from([2]).next();if(!step.done){console.log(step.value);}}",
+          "output": "2\n"
+        }
+      ],
+      "fields": {
+        "done": {
+          "documentation": "Reports whether advancement found no item. false permits reading value; true has no value payload. It is a copied boolean and does not advance or mutate the iterator.\n\nExample: Iterator.from([2]).next().done returns false.\n\nOwnership: reading the flag borrows the result."
+        },
+        "value": {
+          "documentation": "Contains the yielded owned item only when done is false. Narrow the result by checking done before reading value; accessing value on the done alternative is rejected.\n\nExample: const step=Iterator.from([2]).next(); if(!step.done){console.log(step.value);} prints 2.\n\nOwnership: moving value transfers the item; borrowing it keeps the result owner alive."
+        }
+      }
+    }
+  ],
+  "IteratorConstructor": [
+    {
+      "name": "from",
+      "signature": "from<T>(values: Owned<T[]>): Iterator<T>",
+      "parameters": [
+        "values: Owned<T[]>"
+      ],
+      "documentation": "Create a lazy owning iterator over an array in source order. Empty arrays produce no items. Creation does not invoke callbacks or clone elements. Access it as Iterator.from(values).\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  const values = Iterator.from([2, 4]);\n  console.log(values.toArray().join(\",\")); // 2,4\n}\n```\n\nExpected output: 2,4.\n\nOwnership: consumes the array; its elements need not be cloneable.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconst values = Iterator.from([2, 4]);\nconsole.log(values.toArray().join(\",\")); // 2,4\n}\n",
+          "output": "2,4\n"
+        }
+      ]
+    }
+  ],
+  "Iterator": [
+    {
+      "name": "next",
+      "signature": "next(): IteratorResult<T>",
+      "parameters": [],
+      "documentation": "Advance once. Return { done: false, value } with the next owned item, or { done: true } after exhaustion. A callback failure consumes its triggering input and propagates its typed error; remaining inputs and captures stay available for another next call.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  const values = Iterator.from([2, 4]);\n  console.log(values.next().done); // false\n}\n```\n\nExpected output: false.\n\nOwnership: Mutably borrows the iterator for this call; a yielded value transfers ownership.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconst values = Iterator.from([2, 4]);\nconsole.log(values.next().done); // false\n}\n",
+          "output": "false\n"
+        }
+      ]
+    },
+    {
+      "name": "map",
+      "signature": "map<U>(callback: Owned<Function<U, [value: Owned<T>]>>): Iterator<U>",
+      "parameters": [
+        "callback: Owned<Function<U, [value: Owned<T>]>>"
+      ],
+      "documentation": "Lazily transform each item with callback(value). The callback consumes the item, receives no index or source argument, and runs only when the result is advanced. Typed callback errors propagate from advancement.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  const values = Iterator.from([2, 4]).map(value => value * 3);\n  console.log(values.toArray().join(\",\")); // 6,12\n}\n```\n\nExpected output: 6,12.\n\nOwnership: Consumes this iterator and owns its reusable callback and captures.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconst values = Iterator.from([2, 4]).map(value => value * 3);\nconsole.log(values.toArray().join(\",\")); // 6,12\n}\n",
+          "output": "6,12\n"
+        }
+      ]
+    },
+    {
+      "name": "filter",
+      "signature": "filter(callback: Owned<Function<boolean, [value: ReadOnly<T>]>>): Iterator<T>",
+      "parameters": [
+        "callback: Owned<Function<boolean, [value: ReadOnly<T>]>>"
+      ],
+      "documentation": "Lazily retain items for which callback(value) returns true. The callback borrows the item readonly and receives no index. Rejected items are dropped. Typed callback errors propagate from advancement and consume the tested item.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  const values = Iterator.from([1, 2, 3]).filter(value => value > 1);\n  console.log(values.toArray().join(\",\")); // 2,3\n}\n```\n\nExpected output: 2,3.\n\nOwnership: Consumes this iterator and owns its reusable predicate; accepted items retain ownership.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconst values = Iterator.from([1, 2, 3]).filter(value => value > 1);\nconsole.log(values.toArray().join(\",\")); // 2,3\n}\n",
+          "output": "2,3\n"
+        }
+      ]
+    },
+    {
+      "name": "take",
+      "signature": "take(count: int): Iterator<T>",
+      "parameters": [
+        "count: int"
+      ],
+      "documentation": "Lazily yield at most count input events. count must be a nonnegative int; a negative count throws a range error when the adaptor is created. There is no default or additional cap. An input event that throws spends one count. take(0) never advances its source.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  console.log(Iterator.from([1, 2, 3]).take(2).toArray().join(\",\")); // 1,2\n}\n```\n\nExpected output: 1,2.\n\nOwnership: Consumes this iterator; dropping the adaptor drops any remaining source and captures.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconsole.log(Iterator.from([1, 2, 3]).take(2).toArray().join(\",\")); // 1,2\n}\n",
+          "output": "1,2\n"
+        }
+      ]
+    },
+    {
+      "name": "drop",
+      "signature": "drop(count: int): Iterator<T>",
+      "parameters": [
+        "count: int"
+      ],
+      "documentation": "Lazily skip count input events, then yield the remaining items. count must be a nonnegative int; a negative count throws a range error at creation. An input event that throws spends one count and its error propagates; errors are never swallowed. Retrying next resumes with the updated budget.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  console.log(Iterator.from([1, 2, 3]).drop(1).toArray().join(\",\")); // 2,3\n}\n```\n\nExpected output: 2,3.\n\nOwnership: Consumes this iterator; skipped owned items are dropped.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconsole.log(Iterator.from([1, 2, 3]).drop(1).toArray().join(\",\")); // 2,3\n}\n",
+          "output": "2,3\n"
+        }
+      ]
+    },
+    {
+      "name": "flatMap",
+      "signature": "flatMap<U>(callback: Owned<Function<U[] | Iterator<U>, [value: Owned<T>]>>): Iterator<U>",
+      "parameters": [
+        "callback: Owned<Function<U[] | Iterator<U>, [value: Owned<T>]>>"
+      ],
+      "documentation": "Lazily transform each item into an owned array or built-in Iterator and yield that inner sequence in order before advancing the next outer item. No arbitrary iterable protocol is accepted. The callback consumes the outer item and receives no index. Inner and outer typed errors propagate; the remaining state survives a next error.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  console.log(Iterator.from([1, 2]).flatMap(value => [value, value]).toArray().join(\",\")); // 1,1,2,2\n}\n```\n\nExpected output: 1,1,2,2.\n\nOwnership: Consumes this iterator and owns its callback and current inner sequence.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconsole.log(Iterator.from([1, 2]).flatMap(value => [value, value]).toArray().join(\",\")); // 1,1,2,2\n}\n",
+          "output": "1,1,2,2\n"
+        }
+      ]
+    },
+    {
+      "name": "reduce",
+      "signature": "reduce<A>(callback: Owned<Function<A, [accumulator: Owned<A>, value: Owned<T>]>>, initial: Owned<A>): A",
+      "parameters": [
+        "callback: Owned<Function<A, [accumulator: Owned<A>, value: Owned<T>]>>",
+        "initial: Owned<A>"
+      ],
+      "documentation": "Consume the sequence from left to right, replacing the accumulator with callback(accumulator,value). An explicit initial accumulator is required and is returned for empty input. The callback consumes both arguments. Typed errors propagate and drop the unconsumed remainder.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  console.log(Iterator.from([1, 2, 3]).reduce((sum, value) => sum + value, 0)); // 6\n}\n```\n\nExpected output: 6.\n\nOwnership: Consumes the iterator, initial accumulator and callback; returns the final owned accumulator.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconsole.log(Iterator.from([1, 2, 3]).reduce((sum, value) => sum + value, 0)); // 6\n}\n",
+          "output": "6\n"
+        }
+      ]
+    },
+    {
+      "name": "forEach",
+      "signature": "forEach(callback: Owned<Function<void, [value: Owned<T>]>>): void",
+      "parameters": [
+        "callback: Owned<Function<void, [value: Owned<T>]>>"
+      ],
+      "documentation": "Consume each item in source order with callback(value). The callback consumes each value, has no index/source arguments and returns void. Empty input invokes nothing. Typed errors stop iteration and drop its remainder.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  Iterator.from([1, 2]).forEach(value => {\n    console.log(value);\n  }); // 1 then 2\n}\n```\n\nExpected output: 1 then 2.\n\nOwnership: Consumes the iterator and callback, including their remaining captures.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nIterator.from([1, 2]).forEach(value => {\n  console.log(value);\n}); // 1 then 2\n}\n",
+          "output": "1\n2\n"
+        }
+      ]
+    },
+    {
+      "name": "some",
+      "signature": "some(callback: Owned<Function<boolean, [value: Owned<T>]>>): boolean",
+      "parameters": [
+        "callback: Owned<Function<boolean, [value: Owned<T>]>>"
+      ],
+      "documentation": "Return true on the first item for which callback(value) returns true, otherwise false. Empty input returns false. The callback consumes each tested value. Short circuit or typed error drops the unconsumed remainder.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  console.log(Iterator.from([1, 2, 3]).some(value => value === 2)); // true\n}\n```\n\nExpected output: true.\n\nOwnership: Consumes the iterator and callback; no remaining sequence survives this terminal operation.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconsole.log(Iterator.from([1, 2, 3]).some(value => value === 2)); // true\n}\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "every",
+      "signature": "every(callback: Owned<Function<boolean, [value: Owned<T>]>>): boolean",
+      "parameters": [
+        "callback: Owned<Function<boolean, [value: Owned<T>]>>"
+      ],
+      "documentation": "Return false on the first item for which callback(value) returns false, otherwise true. Empty input returns true. The callback consumes each tested value. Short circuit or typed error drops the unconsumed remainder.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  console.log(Iterator.from([1, 2, 3]).every(value => value > 0)); // true\n}\n```\n\nExpected output: true.\n\nOwnership: Consumes the iterator and callback; no remaining sequence survives this terminal operation.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconsole.log(Iterator.from([1, 2, 3]).every(value => value > 0)); // true\n}\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "find",
+      "signature": "find(callback: Owned<Function<boolean, [value: ReadOnly<T>]>>): T | undefined",
+      "parameters": [
+        "callback: Owned<Function<boolean, [value: ReadOnly<T>]>>"
+      ],
+      "documentation": "Return the first owned item for which callback(value) returns true, or undefined when none matches. The predicate borrows the candidate readonly and receives no index. Unmatched items are dropped; matching, exhaustion or typed error drops the remainder.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  console.log(Iterator.from([1, 2, 3]).find(value => value > 1)); // 2\n}\n```\n\nExpected output: 2.\n\nOwnership: Consumes the iterator and callback; transfers the matched item to the caller.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconsole.log(Iterator.from([1, 2, 3]).find(value => value > 1)); // 2\n}\n",
+          "output": "2\n"
+        }
+      ]
+    },
+    {
+      "name": "toArray",
+      "signature": "toArray(): T[]",
+      "parameters": [],
+      "documentation": "Consume all remaining items in source order and return an independent owned array. Empty input returns an empty array. Typed advancement errors propagate and drop the partially collected output and remaining sequence.\n\n```tsrust\nimport { Iterator } from \"std:iterator\";\n\nfunction main() {\n  console.log(Iterator.from([1, 2]).toArray().join(\",\")); // 1,2\n}\n```\n\nExpected output: 1,2.\n\nOwnership: Consumes the iterator and moves items into the returned array without requiring cloneability.",
+      "examples": [
+        {
+          "source": "import { Iterator } from \"std:iterator\";\nfunction main(){\nconsole.log(Iterator.from([1, 2]).toArray().join(\",\")); // 1,2\n}\n",
+          "output": "1,2\n"
+        }
+      ]
+    }
+  ],
   "std:url": [
     {
       "name": "Url",
@@ -6729,6 +6946,77 @@
   ],
   "std:testing": [
     {
+      "name": "deepStrictEqual",
+      "signature": "deepStrictEqual<T>(actual: T, expected: T, message: string = \"Expected data to be deeply equal\"): void",
+      "parameters": [
+        {
+          "label": "actual",
+          "documentation": "Observed supported structural value; borrowed."
+        },
+        {
+          "label": "expected",
+          "documentation": "Expected value of the same concrete type; borrowed."
+        },
+        {
+          "label": "message",
+          "documentation": "Optional borrowed failure description; see the signature for its default."
+        }
+      ],
+      "documentation": "Compares supported structural data recursively using exact scalar values. Numbers treat NaN as equal and distinguish signed zero; integers retain all64bits. Arrays and tuples compare ordered elements, records compare declared fields, and data unions compare matching active alternatives. Maps compare values using existing key lookup semantics, and sets compare membership regardless of insertion order. Callable and opaque native payloads are compile-time errors, including nested payloads. Returns void without mutating inputs. Failure raises AssertionError with the optional message (default \"Expected data to be deeply equal\").\n\n```tsrust\nimport { deepStrictEqual } from 'std:testing';\n\nfunction main() {\n  deepStrictEqual([[1, 2]], [[1, 2]]);\n}\n```\n\nOwnership: both values and the optional message are borrowed. No cloning or serialization is used for comparison.",
+      "examples": [
+        {
+          "source": "import {deepStrictEqual} from 'std:testing';function main(){deepStrictEqual([[1,2]],[[1,2]]);console.log('passed');}",
+          "output": "passed\n"
+        }
+      ]
+    },
+    {
+      "name": "notDeepStrictEqual",
+      "signature": "notDeepStrictEqual<T>(actual: T, expected: T, message: string = \"Expected data to differ deeply\"): void",
+      "parameters": [
+        {
+          "label": "actual",
+          "documentation": "Observed supported structural value; borrowed."
+        },
+        {
+          "label": "expected",
+          "documentation": "Expected value of the same concrete type; borrowed."
+        },
+        {
+          "label": "message",
+          "documentation": "Optional borrowed failure description; see the signature for its default."
+        }
+      ],
+      "documentation": "Fails when supported structural data compares deeply equal. Uses the same scalar, record, array, union, Map and Set rules as deepStrictEqual. Returns void without changing either input. The optional message defaults to \"Expected data to differ deeply\". Unsupported callable or opaque payloads are compile-time errors.\n\n```tsrust\nimport { notDeepStrictEqual } from 'std:testing';\n\nfunction main() {\n  notDeepStrictEqual([1, 2], [1, 3]);\n}\n```\n\nOwnership: both values and the message are borrowed.",
+      "examples": [
+        {
+          "source": "import {notDeepStrictEqual} from 'std:testing';function main(){notDeepStrictEqual([1,2],[1,3]);console.log('passed');}",
+          "output": "passed\n"
+        }
+      ]
+    },
+    {
+      "name": "rejects",
+      "signature": "rejects<T>(callback: Once<Function<Task<T>>>, message: string = \"Expected task to reject\"): Task<void>",
+      "parameters": [
+        {
+          "label": "callback",
+          "documentation": "Consumed zero-argument single-use task factory, invoked exactly once and awaited."
+        },
+        {
+          "label": "message",
+          "documentation": "Optional borrowed failure description; see the signature for its default."
+        }
+      ],
+      "documentation": "Invokes an owned zero-argument task factory once and awaits it. Succeeds only when the task throws a checked failure; the typed payload is observed and discarded. Normal completion raises AssertionError with the optional message (default \"Expected task to reject\"). The assertion's own failure is outside the catch. Direct native unwinding in the factory is not caught. Cancelling the outer rejects task cancels its execution rather than satisfying the assertion. Awaiting a started Job reports that job's panic or cancellation as a checked AsyncError; this checked payload does satisfy rejects, just like any other checked throw. Worker panic diagnostics may still be printed. No payload is accepted or rejected by inspecting its code field.\n\n```tsrust\nimport { rejects } from 'std:testing';\nasync function main(): Task<void> {\n  await rejects(async () => {\n    throw {\n      code: 'expected'\n    };\n  });\n}\n```\n\nOwnership: consumes the single-use factory; task-local resources follow checked failure cleanup. The message is borrowed through settlement.",
+      "examples": [
+        {
+          "source": "import {rejects} from 'std:testing';async function main():Task<void>{await rejects(async()=>{throw {code:'expected'};});console.log('passed');}",
+          "output": "passed\n"
+        }
+      ]
+    },
+    {
       "name": "throws",
       "signature": "throws(callback: Once<Function<void>>, message: string = \"Expected function to throw\"): void",
       "parameters": [
@@ -6965,7 +7253,7 @@
           "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a named test with a synchronous or asynchronous callback and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors.\n\n```tsrust\nimport { test, expect, runTests } from \"std:testing\";\n\nfunction main() {\n  test(\"sample\", (): void => {\n    expect(3).toBe(3);\n  });\n  console.log(runTests());\n}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```\n\nThe required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no options or timeout arguments.\n\n```tsrust\nimport { test, strictEqual, runTests } from \"std:testing\";\nimport { delay } from \"std:futures\";\n\nfunction main() {\n  test(\"async\", async () => {\n    await delay(0);\n    strictEqual(7, 7);\n  });\n  strictEqual(runTests(), 0);\n}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
+      "documentation": "Registers a named test with a synchronous or asynchronous callback and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors.\n\n```tsrust\nimport { test, expect, runTests } from \"std:testing\";\n\nfunction main() {\n  test(\"sample\", (): void => {\n    expect(3).toBe(3);\n  });\n  console.log(runTests());\n}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```\n\nThe required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no per-registration options. The test CLI accepts an explicit --timeout millisecond deadline for async test bodies; there is no default.\n\n```tsrust\nimport { test, strictEqual, runTests } from \"std:testing\";\nimport { delay } from \"std:futures\";\n\nfunction main() {\n  test(\"async\", async () => {\n    await delay(0);\n    strictEqual(7, 7);\n  });\n  strictEqual(runTests(), 0);\n}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {test,expect,runTests} from \"std:testing\";function main(){test(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}",
@@ -6990,7 +7278,7 @@
           "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a named test with a synchronous or asynchronous callback and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. This is an alias of test.\n\n```tsrust\nimport { it, expect, runTests } from \"std:testing\";\n\nfunction main() {\n  it(\"sample\", (): void => {\n    expect(3).toBe(3);\n  });\n  console.log(runTests());\n}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```\n\nThe required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no options or timeout arguments.\n\n```tsrust\nimport { it, test, strictEqual, runTests } from \"std:testing\";\nimport { delay } from \"std:futures\";\n\nfunction main() {\n  it(\"async\", async () => {\n    await delay(0);\n    strictEqual(7, 7);\n  });\n  strictEqual(runTests(), 0);\n}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
+      "documentation": "Registers a named test with a synchronous or asynchronous callback and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. This is an alias of test.\n\n```tsrust\nimport { it, expect, runTests } from \"std:testing\";\n\nfunction main() {\n  it(\"sample\", (): void => {\n    expect(3).toBe(3);\n  });\n  console.log(runTests());\n}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```\n\nThe required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no per-registration options. The test CLI accepts an explicit --timeout millisecond deadline for async test bodies; there is no default.\n\n```tsrust\nimport { it, test, strictEqual, runTests } from \"std:testing\";\nimport { delay } from \"std:futures\";\n\nfunction main() {\n  it(\"async\", async () => {\n    await delay(0);\n    strictEqual(7, 7);\n  });\n  strictEqual(runTests(), 0);\n}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {it,expect,runTests} from \"std:testing\";function main(){it(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}",
@@ -7886,6 +8174,18 @@
         }
       ],
       "parameters": []
+    },
+    {
+      "name": "values",
+      "signature": "values(): Element[]",
+      "parameters": [],
+      "documentation": "Returns an independent array in front-to-back order. Takes no arguments and leaves the deque unchanged. Empty deques return an empty array. Elements must support independent cloning; borrowed views and non-cloneable callbacks are rejected. Mutating or clearing the deque afterwards does not change the snapshot.\n\n```tsrust\nimport { Deque } from \"std:collections\";\n\nfunction main() {\n  const values = new Deque<int>();\n  values.pushBack(2);\n  values.pushFront(1);\n  const snapshot = values.values();\n  values.clear();\n  console.log(snapshot.join(\",\"), values.size);\n}\n```\n\nExpected output: 1,2 0.\n\nOwnership: Borrows the receiver during the call and deep-clones elements into owned array storage.",
+      "examples": [
+        {
+          "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(2);values.pushFront(1);const snapshot=values.values();values.clear();console.log(snapshot.join(\",\"),values.size);}",
+          "output": "1,2 0\n"
+        }
+      ]
     }
   ],
   "std:collections": [
@@ -9750,6 +10050,80 @@
           "output": "0\n"
         }
       ]
+    },
+    {
+      "name": "values",
+      "signature": "values(): Element[]",
+      "parameters": [],
+      "documentation": "Returns an independent array of all unique elements in ascending key order. Takes no arguments and leaves the set unchanged. Empty sets return an empty array. Numeric order places NaN after infinity, treats all NaNs equally and normalizes signed zeros to positive zero; strings use Unicode scalar lexicographic order without locale collation.\n\n```tsrust\nimport { OrderedSet } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedSet<string>();\n  values.add(\"b\");\n  values.add(\"a\");\n  console.log(values.values().join(\",\"));\n}\n```\n\nExpected output: a,b.\n\nOwnership: Borrows the receiver during the call; clones elements into owned array storage.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<string>();values.add(\"b\");values.add(\"a\");console.log(values.values().join(\",\"));}",
+          "output": "a,b\n"
+        }
+      ]
+    },
+    {
+      "name": "keys",
+      "signature": "keys(): Element[]",
+      "parameters": [],
+      "documentation": "Returns an independent array of all unique elements in ascending key order. Takes no arguments and leaves the set unchanged. Empty sets return an empty array. Numeric order places NaN after infinity, treats all NaNs equally and normalizes signed zeros to positive zero; strings use Unicode scalar lexicographic order without locale collation.\n\n```tsrust\nimport { OrderedSet } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedSet<string>();\n  values.add(\"b\");\n  values.add(\"a\");\n  console.log(values.keys().join(\",\"));\n}\n```\n\nExpected output: a,b.\n\nOwnership: Borrows the receiver during the call; clones elements into owned array storage.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<string>();values.add(\"b\");values.add(\"a\");console.log(values.keys().join(\",\"));}",
+          "output": "a,b\n"
+        }
+      ]
+    },
+    {
+      "name": "entries",
+      "signature": "entries(): [Element, Element][]",
+      "parameters": [],
+      "documentation": "Returns independent [value, value] tuples in ascending key order. Takes no arguments, leaves the set unchanged and returns an empty array when empty. Both tuple positions contain the same value. Numeric keys retain the set order: canonical positive zero, equal NaNs after infinity.\n\n```tsrust\nimport { OrderedSet } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedSet<int>();\n  values.add(2);\n  values.add(1);\n  const rows = values.entries();\n  console.log(rows[0][0], rows[0][1], rows.length);\n}\n```\n\nExpected output: 1 1 2.\n\nOwnership: Borrows the set and clones each key into both tuple positions.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);values.add(1);const rows=values.entries();console.log(rows[0][0],rows[0][1],rows.length);}",
+          "output": "1 1 2\n"
+        }
+      ]
+    },
+    {
+      "name": "forEach",
+      "signature": "forEach(callback: (value: Element, key: Element, source: OrderedSet<Element>) => Result): void",
+      "parameters": [
+        "callback: (value: Element, key: Element, source: OrderedSet<Element>) => Result"
+      ],
+      "documentation": "Calls callback once per element in ascending key order, supplying the value twice and then the source set. The single callback may omit trailing parameters. Returns void, ignores callback results and makes no calls for an empty set. Callback errors propagate. The source cannot be mutated or transferred during traversal. Numeric order keeps NaNs after infinity and signed zeros canonical.\n\n```tsrust\nimport { OrderedSet } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedSet<int>();\n  values.add(2);\n  values.add(1);\n  let text = \"\";\n  values.forEach((value, key) => {\n    text += String(value) + String(key);\n  });\n  console.log(text);\n}\n```\n\nExpected output: 1122.\n\nOwnership: Borrows the set and owned element arguments for each callback invocation; no snapshot is created.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);values.add(1);let text=\"\";values.forEach((value,key)=>{text+=String(value)+String(key);});console.log(text);}",
+          "output": "1122\n"
+        }
+      ]
+    },
+    {
+      "name": "first",
+      "signature": "first(): Element | undefined",
+      "parameters": [],
+      "documentation": "Reads the least stored key, or undefined when empty. Takes no arguments and leaves the receiver unchanged. Keys use ascending total order: numbers compare numerically with NaNs equal and after infinity, signed zeros equal and stored as positive zero; strings compare lexicographically by Unicode scalar value.\n\n```tsrust\nimport { OrderedSet } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedSet<string>();\n  values.add(\"b\");\n  values.add(\"a\");\n  console.log(values.first()!);\n}\n```\n\nExpected output: a.\n\nOwnership: Scalar keys copy. Owned string keys borrow readonly from a stored receiver; mutation or transfer is rejected while the borrow remains in scope. Temporary receivers cannot provide owned endpoint borrows.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<string>();values.add(\"b\");values.add(\"a\");console.log(values.first()!);}",
+          "output": "a\n"
+        }
+      ]
+    },
+    {
+      "name": "last",
+      "signature": "last(): Element | undefined",
+      "parameters": [],
+      "documentation": "Reads the greatest stored key, or undefined when empty. Takes no arguments and leaves the receiver unchanged. Keys use ascending total order: numbers compare numerically with NaNs equal and after infinity, signed zeros equal and stored as positive zero; strings compare lexicographically by Unicode scalar value.\n\n```tsrust\nimport { OrderedSet } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedSet<string>();\n  values.add(\"b\");\n  values.add(\"a\");\n  console.log(values.last()!);\n}\n```\n\nExpected output: b.\n\nOwnership: Scalar keys copy. Owned string keys borrow readonly from a stored receiver; mutation or transfer is rejected while the borrow remains in scope. Temporary receivers cannot provide owned endpoint borrows.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<string>();values.add(\"b\");values.add(\"a\");console.log(values.last()!);}",
+          "output": "b\n"
+        }
+      ]
     }
   ],
   "Heap": [
@@ -9813,6 +10187,18 @@
         }
       ],
       "parameters": []
+    },
+    {
+      "name": "toSortedArray",
+      "signature": "toSortedArray(): Element[]",
+      "parameters": [],
+      "documentation": "Returns an independent array sorted from least to greatest. Takes no arguments, preserves the heap and returns an empty array when empty. Numeric keys compare numerically with NaNs equal and after infinity, and signed zeros normalized to positive zero. Strings use Unicode scalar lexicographic order; no locale collation occurs. This array order is ascending even though pop removes the greatest key.\n\n```tsrust\nimport { Heap } from \"std:collections\";\n\nfunction main() {\n  const values = new Heap<int>();\n  values.push(3);\n  values.push(1);\n  values.push(2);\n  console.log(values.toSortedArray().join(\",\"), values.size);\n}\n```\n\nExpected output: 1,2,3 3.\n\nOwnership: Borrows the receiver during the call and clones keys into independently owned sorted storage.",
+      "examples": [
+        {
+          "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);values.push(1);values.push(2);console.log(values.toSortedArray().join(\",\"),values.size);}",
+          "output": "1,2,3 3\n"
+        }
+      ]
     }
   ],
   "OrderedMap": [
@@ -9944,6 +10330,30 @@
         {
           "source": "import {OrderedMap} from \"std:collections\";function main(){const values=new OrderedMap<string,int>();values.set(\"b\",2);values.set(\"a\",1);let text=\"\";values.forEach((value,key)=>{text+=key+String(value)+\"|\";});console.log(text);}",
           "output": "a1|b2|\n"
+        }
+      ]
+    },
+    {
+      "name": "firstKey",
+      "signature": "firstKey(): Key | undefined",
+      "parameters": [],
+      "documentation": "Reads the least stored key, or undefined when empty. Takes no arguments and leaves the receiver unchanged. Keys use ascending total order: numbers compare numerically with NaNs equal and after infinity, signed zeros equal and stored as positive zero; strings compare lexicographically by Unicode scalar value.\n\n```tsrust\nimport { OrderedMap } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedMap<string, int>();\n  values.set(\"b\", 2);\n  values.set(\"a\", 1);\n  console.log(values.firstKey()!);\n}\n```\n\nExpected output: a.\n\nOwnership: Scalar keys copy. Owned string keys borrow readonly from a stored receiver; mutation or transfer is rejected while the borrow remains in scope. Temporary receivers cannot provide owned endpoint borrows.",
+      "examples": [
+        {
+          "source": "import {OrderedMap} from \"std:collections\";function main(){const values=new OrderedMap<string,int>();values.set(\"b\",2);values.set(\"a\",1);console.log(values.firstKey()!);}",
+          "output": "a\n"
+        }
+      ]
+    },
+    {
+      "name": "lastKey",
+      "signature": "lastKey(): Key | undefined",
+      "parameters": [],
+      "documentation": "Reads the greatest stored key, or undefined when empty. Takes no arguments and leaves the receiver unchanged. Keys use ascending total order: numbers compare numerically with NaNs equal and after infinity, signed zeros equal and stored as positive zero; strings compare lexicographically by Unicode scalar value.\n\n```tsrust\nimport { OrderedMap } from \"std:collections\";\n\nfunction main() {\n  const values = new OrderedMap<string, int>();\n  values.set(\"b\", 2);\n  values.set(\"a\", 1);\n  console.log(values.lastKey()!);\n}\n```\n\nExpected output: b.\n\nOwnership: Scalar keys copy. Owned string keys borrow readonly from a stored receiver; mutation or transfer is rejected while the borrow remains in scope. Temporary receivers cannot provide owned endpoint borrows.",
+      "examples": [
+        {
+          "source": "import {OrderedMap} from \"std:collections\";function main(){const values=new OrderedMap<string,int>();values.set(\"b\",2);values.set(\"a\",1);console.log(values.lastKey()!);}",
+          "output": "b\n"
         }
       ]
     }
@@ -13999,18 +14409,22 @@
     },
     {
       "name": "parseInt",
-      "signature": "parseInt(text: string): Result<int, NumericError>",
+      "signature": "parseInt(text: string, radix?: int): Result<int, NumericError>",
       "parameters": [
         {
           "label": "text: string",
-          "documentation": "Entire decimal string; optional leading sign, then at least one ASCII digit."
+          "documentation": "Entire signed integer text, with no whitespace, radix prefixes or separators."
+        },
+        {
+          "label": "radix?: int",
+          "documentation": "Base 2 through 36, default 10; invalid bases return Radix."
         }
       ],
-      "documentation": "Parses the entire string as an exact signed 64-bit decimal integer. An optional + or - sign and leading zeroes are accepted. Whitespace, fractions, exponents, separators, radix prefixes and trailing characters return Syntax. Overflow returns Range. Unlike the global parseInt, this returns Result<int, NumericError> and never accepts a numeric prefix. No receiver is mutated. All arguments are required.\n\n```tsrust\nimport { parseInt as convert } from \"std:numeric\";\n\nfunction main() {\n  console.log(unwrap(convert(\"9223372036854775807\")));\n}\n```\n\nExpected output: 9223372036854775807. Ownership: borrows text for the call; the result is a copied int.",
+      "documentation": "Parses the entire text as an exact signed 64-bit integer. text accepts an optional + or - sign followed by digits valid for radix; ASCII letters are case-insensitive digits for bases above 10. radix is an optional int from 2 through 36, default 10 (also when undefined). Whitespace, prefixes, separators and invalid or missing digits return Syntax. Signed overflow returns Range; an invalid radix returns Radix. No input is mutated.\n\n```tsrust\nimport { parseInt as convert } from \"std:numeric\";\n\nfunction main() {\n  console.log(unwrap(convert(\"ff\", 16)), unwrap(convert(\"-100\", 2)));\n}\n```\n\nExpected output: 255 -4.\n\nOwnership: Borrows text for the call; returns a copied int inside Result.",
       "examples": [
         {
-          "source": "import {parseInt as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(\"9223372036854775807\")));}",
-          "output": "9223372036854775807\n"
+          "source": "import {parseInt as convert} from \"std:numeric\";function main(){console.log(unwrap(convert(\"ff\",16)),unwrap(convert(\"-100\",2)));}",
+          "output": "255 -4\n"
         }
       ]
     },
@@ -14018,11 +14432,133 @@
       "name": "NumericError",
       "signature": "type NumericError",
       "parameters": [],
-      "documentation": "Describes a rejected exact numeric conversion. code is Syntax, Width, NonFinite, Fraction, Range or Precision; message explains the failure. Conversion functions return Err with this record and never round to claim success.\n\n```tsrust\nimport { toInt } from \"std:numeric\";\n\nfunction main() {\n  match (toInt(2.5)) {\n    Ok(value) => {\n      console.log(value);\n    },\n    Err(error) => {\n      console.log(error.code, error.message);\n    }\n  }\n}\n// prints: Fraction Integer conversion requires a whole number\n```\n\nOwnership: independent record with string fields; no resource cleanup.",
+      "documentation": "Describes a rejected numeric conversion, parse or checked arithmetic operation. code is Syntax, Radix, Width, NonFinite, Fraction, Range, Precision or Zero; message explains the failure. Exact conversions and checked integer arithmetic reject out-of-range results. parseNumber follows binary64 rounding, infinity and signed-zero behavior.\n\n```tsrust\nimport { toInt } from \"std:numeric\";\n\nfunction main() {\n  match (toInt(2.5)) {\n    Ok(value) => {\n      console.log(value);\n    },\n    Err(error) => {\n      console.log(error.code, error.message);\n    }\n  }\n}\n// prints: Fraction Integer conversion requires a whole number\n```\n\nOwnership: independent record with string fields; no resource cleanup.",
       "examples": [
         {
           "source": "import {NumericError} from \"std:numeric\"; function describe(error:ReadOnly<NumericError>):string{return error.code+\": \"+error.message;} function main(){}",
           "output": ""
+        }
+      ]
+    },
+    {
+      "name": "parseNumber",
+      "signature": "parseNumber(text: string): Result<number, NumericError>",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "Entire floating-point text; whitespace, separators and trailing text are rejected."
+        }
+      ],
+      "documentation": "Parses the entire required string into a binary64 number. Accepts optional signs, decimal fractions and exponents, plus case-insensitive NaN, inf and infinity. Decimal overflow returns infinity and underflow may return signed zero; precision rounds to binary64. Empty or malformed input, whitespace, radix prefixes and separators return Syntax. The argument is unchanged; there is no partial-prefix parsing or whitespace coercion.\n\n```tsrust\nimport { parseNumber } from \"std:numeric\";\n\nfunction main() {\n  console.log(unwrap(parseNumber(\"1.5e2\")), Object.is(unwrap(parseNumber(\"-0\")), -0.0));\n}\n```\n\nExpected output: 150 true.\n\nOwnership: Borrows text for the call; returns a copied number inside Result.",
+      "examples": [
+        {
+          "source": "import {parseNumber} from \"std:numeric\";function main(){console.log(unwrap(parseNumber(\"1.5e2\")),Object.is(unwrap(parseNumber(\"-0\")),-0.0));}",
+          "output": "150 true\n"
+        }
+      ]
+    },
+    {
+      "name": "checkedAdd",
+      "signature": "checkedAdd(left: int, right: int): Result<int, NumericError>",
+      "parameters": [
+        {
+          "label": "left: int",
+          "documentation": "Signed 64-bit left operand."
+        },
+        {
+          "label": "right: int",
+          "documentation": "Signed 64-bit right operand."
+        }
+      ],
+      "documentation": "Returns the exact signed 64-bit sum of the two required int operands. A result outside -9223372036854775808 through 9223372036854775807 returns Range instead of wrapping or panicking. Operands are unchanged. Existing arithmetic operators keep their current behavior.\n\n```tsrust\nimport { checkedAdd } from \"std:numeric\";\n\nfunction main() {\n  console.log(unwrap(checkedAdd(7, 3)));\n}\n```\n\nExpected output: 10.\n\nOwnership: Reads copied int operands and returns a copied int inside Result.",
+      "examples": [
+        {
+          "source": "import {checkedAdd} from \"std:numeric\";function main(){console.log(unwrap(checkedAdd(7,3)));}",
+          "output": "10\n"
+        }
+      ]
+    },
+    {
+      "name": "checkedSubtract",
+      "signature": "checkedSubtract(left: int, right: int): Result<int, NumericError>",
+      "parameters": [
+        {
+          "label": "left: int",
+          "documentation": "Signed 64-bit left operand."
+        },
+        {
+          "label": "right: int",
+          "documentation": "Signed 64-bit right operand."
+        }
+      ],
+      "documentation": "Returns the exact signed 64-bit difference of the two required int operands. A result outside -9223372036854775808 through 9223372036854775807 returns Range instead of wrapping or panicking. Operands are unchanged. Existing arithmetic operators keep their current behavior.\n\n```tsrust\nimport { checkedSubtract } from \"std:numeric\";\n\nfunction main() {\n  console.log(unwrap(checkedSubtract(7, 3)));\n}\n```\n\nExpected output: 4.\n\nOwnership: Reads copied int operands and returns a copied int inside Result.",
+      "examples": [
+        {
+          "source": "import {checkedSubtract} from \"std:numeric\";function main(){console.log(unwrap(checkedSubtract(7,3)));}",
+          "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "checkedMultiply",
+      "signature": "checkedMultiply(left: int, right: int): Result<int, NumericError>",
+      "parameters": [
+        {
+          "label": "left: int",
+          "documentation": "Signed 64-bit left operand."
+        },
+        {
+          "label": "right: int",
+          "documentation": "Signed 64-bit right operand."
+        }
+      ],
+      "documentation": "Returns the exact signed 64-bit product of the two required int operands. A result outside -9223372036854775808 through 9223372036854775807 returns Range instead of wrapping or panicking. Operands are unchanged. Existing arithmetic operators keep their current behavior.\n\n```tsrust\nimport { checkedMultiply } from \"std:numeric\";\n\nfunction main() {\n  console.log(unwrap(checkedMultiply(7, 3)));\n}\n```\n\nExpected output: 21.\n\nOwnership: Reads copied int operands and returns a copied int inside Result.",
+      "examples": [
+        {
+          "source": "import {checkedMultiply} from \"std:numeric\";function main(){console.log(unwrap(checkedMultiply(7,3)));}",
+          "output": "21\n"
+        }
+      ]
+    },
+    {
+      "name": "checkedDivide",
+      "signature": "checkedDivide(left: int, right: int): Result<int, NumericError>",
+      "parameters": [
+        {
+          "label": "left: int",
+          "documentation": "Signed 64-bit left operand."
+        },
+        {
+          "label": "right: int",
+          "documentation": "Signed 64-bit right operand."
+        }
+      ],
+      "documentation": "Returns the exact signed 64-bit quotient of the two required int operands. A result outside -9223372036854775808 through 9223372036854775807 returns Range instead of wrapping or panicking. Division truncates toward zero; remainder has the dividend sign. A zero divisor returns Zero; MIN divided or remaindered by -1 returns Range. Operands are unchanged. Existing arithmetic operators keep their current behavior.\n\n```tsrust\nimport { checkedDivide } from \"std:numeric\";\n\nfunction main() {\n  console.log(unwrap(checkedDivide(7, 3)));\n}\n```\n\nExpected output: 2.\n\nOwnership: Reads copied int operands and returns a copied int inside Result.",
+      "examples": [
+        {
+          "source": "import {checkedDivide} from \"std:numeric\";function main(){console.log(unwrap(checkedDivide(7,3)));}",
+          "output": "2\n"
+        }
+      ]
+    },
+    {
+      "name": "checkedRemainder",
+      "signature": "checkedRemainder(left: int, right: int): Result<int, NumericError>",
+      "parameters": [
+        {
+          "label": "left: int",
+          "documentation": "Signed 64-bit left operand."
+        },
+        {
+          "label": "right: int",
+          "documentation": "Signed 64-bit right operand."
+        }
+      ],
+      "documentation": "Returns the exact signed 64-bit remainder of the two required int operands. A result outside -9223372036854775808 through 9223372036854775807 returns Range instead of wrapping or panicking. Division truncates toward zero; remainder has the dividend sign. A zero divisor returns Zero; MIN divided or remaindered by -1 returns Range. Operands are unchanged. Existing arithmetic operators keep their current behavior.\n\n```tsrust\nimport { checkedRemainder } from \"std:numeric\";\n\nfunction main() {\n  console.log(unwrap(checkedRemainder(7, 3)));\n}\n```\n\nExpected output: 1.\n\nOwnership: Reads copied int operands and returns a copied int inside Result.",
+      "examples": [
+        {
+          "source": "import {checkedRemainder} from \"std:numeric\";function main(){console.log(unwrap(checkedRemainder(7,3)));}",
+          "output": "1\n"
         }
       ]
     }
@@ -15089,6 +15625,125 @@
         {
           "source": "import {parseISO,startOfSecond,toUnixMilliseconds} from 'std:date';function main(){const value=unwrap(parseISO('1969-12-31T23:59:59.999999999Z'));console.log(unwrap(toUnixMilliseconds(startOfSecond(value))));}",
           "output": "-1000\n"
+        }
+      ]
+    },
+    {
+      "name": "getDay",
+      "signature": "getDay(value: Date): int",
+      "parameters": [
+        {
+          "label": "value: Date",
+          "documentation": "Validated Gregorian date, years 0001 through 9999."
+        }
+      ],
+      "documentation": "Returns weekday 0 through 6, with Sunday 0 and Saturday 6. Takes one required validated Date and leaves it unchanged. Calendar dates have no time zone or time-of-day conversion. Year boundaries stay within years 0001 through 9999.\n\n```tsrust\nimport { parseDate, formatDate, getDay } from \"std:date\";\n\nfunction main() {\n  const value = unwrap(parseDate(\"2024-02-29\"));\n  console.log(getDay(value));\n}\n```\n\nExpected output: 4.\n\nOwnership: Borrows the input date; returns a copied int.",
+      "examples": [
+        {
+          "source": "import {parseDate,formatDate,getDay} from \"std:date\";function main(){const value=unwrap(parseDate(\"2024-02-29\"));console.log(getDay(value));}",
+          "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "startOfYear",
+      "signature": "startOfYear(value: Date): Date",
+      "parameters": [
+        {
+          "label": "value: Date",
+          "documentation": "Validated Gregorian date, years 0001 through 9999."
+        }
+      ],
+      "documentation": "Returns a new date for January 1 in the same year. Takes one required validated Date and leaves it unchanged. Calendar dates have no time zone or time-of-day conversion. Year boundaries stay within years 0001 through 9999.\n\n```tsrust\nimport { parseDate, formatDate, startOfYear } from \"std:date\";\n\nfunction main() {\n  const value = unwrap(parseDate(\"2024-02-29\"));\n  console.log(formatDate(startOfYear(value)));\n}\n```\n\nExpected output: 2024-01-01.\n\nOwnership: Borrows the input date; returns an independently owned date.",
+      "examples": [
+        {
+          "source": "import {parseDate,formatDate,startOfYear} from \"std:date\";function main(){const value=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(startOfYear(value)));}",
+          "output": "2024-01-01\n"
+        }
+      ]
+    },
+    {
+      "name": "endOfYear",
+      "signature": "endOfYear(value: Date): Date",
+      "parameters": [
+        {
+          "label": "value: Date",
+          "documentation": "Validated Gregorian date, years 0001 through 9999."
+        }
+      ],
+      "documentation": "Returns a new date for December 31 in the same year, including leap years. Takes one required validated Date and leaves it unchanged. Calendar dates have no time zone or time-of-day conversion. Year boundaries stay within years 0001 through 9999.\n\n```tsrust\nimport { parseDate, formatDate, endOfYear } from \"std:date\";\n\nfunction main() {\n  const value = unwrap(parseDate(\"2024-02-29\"));\n  console.log(formatDate(endOfYear(value)));\n}\n```\n\nExpected output: 2024-12-31.\n\nOwnership: Borrows the input date; returns an independently owned date.",
+      "examples": [
+        {
+          "source": "import {parseDate,formatDate,endOfYear} from \"std:date\";function main(){const value=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(endOfYear(value)));}",
+          "output": "2024-12-31\n"
+        }
+      ]
+    },
+    {
+      "name": "getHours",
+      "signature": "getHours(value: Time): int",
+      "parameters": [
+        {
+          "label": "value: Time",
+          "documentation": "Validated time of day; no time zone is applied."
+        }
+      ],
+      "documentation": "Returns the hour component of the one required Time as an int in 0 through 23. Leaves the input unchanged. Nanoseconds measure the fraction within the current second; absent fractional digits produce zero. Time values do not admit leap seconds or 24:00:00 and do not apply a time zone.\n\n```tsrust\nimport { parseTime, getHours } from \"std:date\";\n\nfunction main() {\n  const value = unwrap(parseTime(\"23:59:58.123456789\"));\n  console.log(getHours(value));\n}\n```\n\nExpected output: 23.\n\nOwnership: Borrows the input time and returns a copied int.",
+      "examples": [
+        {
+          "source": "import {parseTime,getHours} from \"std:date\";function main(){const value=unwrap(parseTime(\"23:59:58.123456789\"));console.log(getHours(value));}",
+          "output": "23\n"
+        }
+      ]
+    },
+    {
+      "name": "getMinutes",
+      "signature": "getMinutes(value: Time): int",
+      "parameters": [
+        {
+          "label": "value: Time",
+          "documentation": "Validated time of day; no time zone is applied."
+        }
+      ],
+      "documentation": "Returns the minute component of the one required Time as an int in 0 through 59. Leaves the input unchanged. Nanoseconds measure the fraction within the current second; absent fractional digits produce zero. Time values do not admit leap seconds or 24:00:00 and do not apply a time zone.\n\n```tsrust\nimport { parseTime, getMinutes } from \"std:date\";\n\nfunction main() {\n  const value = unwrap(parseTime(\"23:59:58.123456789\"));\n  console.log(getMinutes(value));\n}\n```\n\nExpected output: 59.\n\nOwnership: Borrows the input time and returns a copied int.",
+      "examples": [
+        {
+          "source": "import {parseTime,getMinutes} from \"std:date\";function main(){const value=unwrap(parseTime(\"23:59:58.123456789\"));console.log(getMinutes(value));}",
+          "output": "59\n"
+        }
+      ]
+    },
+    {
+      "name": "getSeconds",
+      "signature": "getSeconds(value: Time): int",
+      "parameters": [
+        {
+          "label": "value: Time",
+          "documentation": "Validated time of day; no time zone is applied."
+        }
+      ],
+      "documentation": "Returns the second component of the one required Time as an int in 0 through 59. Leaves the input unchanged. Nanoseconds measure the fraction within the current second; absent fractional digits produce zero. Time values do not admit leap seconds or 24:00:00 and do not apply a time zone.\n\n```tsrust\nimport { parseTime, getSeconds } from \"std:date\";\n\nfunction main() {\n  const value = unwrap(parseTime(\"23:59:58.123456789\"));\n  console.log(getSeconds(value));\n}\n```\n\nExpected output: 58.\n\nOwnership: Borrows the input time and returns a copied int.",
+      "examples": [
+        {
+          "source": "import {parseTime,getSeconds} from \"std:date\";function main(){const value=unwrap(parseTime(\"23:59:58.123456789\"));console.log(getSeconds(value));}",
+          "output": "58\n"
+        }
+      ]
+    },
+    {
+      "name": "getNanoseconds",
+      "signature": "getNanoseconds(value: Time): int",
+      "parameters": [
+        {
+          "label": "value: Time",
+          "documentation": "Validated time of day; no time zone is applied."
+        }
+      ],
+      "documentation": "Returns the fractional second component of the one required Time as an int in 0 through 999999999. Leaves the input unchanged. Nanoseconds measure the fraction within the current second; absent fractional digits produce zero. Time values do not admit leap seconds or 24:00:00 and do not apply a time zone.\n\n```tsrust\nimport { parseTime, getNanoseconds } from \"std:date\";\n\nfunction main() {\n  const value = unwrap(parseTime(\"23:59:58.123456789\"));\n  console.log(getNanoseconds(value));\n}\n```\n\nExpected output: 123456789.\n\nOwnership: Borrows the input time and returns a copied int.",
+      "examples": [
+        {
+          "source": "import {parseTime,getNanoseconds} from \"std:date\";function main(){const value=unwrap(parseTime(\"23:59:58.123456789\"));console.log(getNanoseconds(value));}",
+          "output": "123456789\n"
         }
       ]
     }

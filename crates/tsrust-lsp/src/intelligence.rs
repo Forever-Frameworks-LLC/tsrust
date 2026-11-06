@@ -4655,7 +4655,7 @@ fn builtins_for(ty: &str) -> Vec<Value> {
     };
     let native_application = tsrust_compiler::type_syntax::parse(ty).ok().and_then(|annotation| {
         let tsrust_compiler::type_syntax::ValueAnnotationKind::Applied { name, arguments } = &annotation.kind else { return None; };
-        let declaration = match name.text.as_str(){"AsyncChannel"=>tsrust_compiler::native_types::lookup("std:futures","Channel"),"AsyncSender"=>tsrust_compiler::native_types::lookup("std:futures","Sender"),_=>tsrust_compiler::native_types::lookup("std:threads", &name.text).or_else(||tsrust_compiler::native_types::lookup("std:futures", &name.text)).or_else(||tsrust_compiler::native_types::lookup("std:cache", &name.text))}?;
+        let declaration = match name.text.as_str(){"AsyncChannel"=>tsrust_compiler::native_types::lookup("std:futures","Channel"),"AsyncSender"=>tsrust_compiler::native_types::lookup("std:futures","Sender"),_=>tsrust_compiler::native_types::lookup("std:threads", &name.text).or_else(||tsrust_compiler::native_types::lookup("std:futures", &name.text)).or_else(||tsrust_compiler::native_types::lookup("std:cache", &name.text)).or_else(||tsrust_compiler::native_types::lookup("std:iterator", &name.text))}?;
         let parameters = declaration.type_parameters.iter().zip(arguments.iter()).map(|(parameter, argument)| (*parameter, ty[argument.span.start..argument.span.end].to_owned())).collect::<Vec<_>>();
         Some((match name.text.as_str(){"AsyncChannel"=>"AsyncChannel","AsyncSender"=>"AsyncSender",_=>declaration.name}, parameters))
     });

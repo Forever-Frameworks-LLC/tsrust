@@ -3,8 +3,10 @@ import {networkTransportIDs,networkTransportChecksum} from './network-transport-
 import {networkAddressIDs,networkAddressChecksum} from './network-address-contract.mjs';
 import {compressionIDs,compressionChecksum} from './compression-contract.mjs';
 import {asyncIoIDs,asyncIoChecksum} from './async-io-contract.mjs';
+import {ownedIteratorIDs,ownedIteratorChecksum} from './owned-iterators-contract.mjs';
 import {taskErgonomicsIDs,taskErgonomicsChecksum} from './task-ergonomics-contract.mjs';
 import {localeChecksum,localeSpecs} from './explicit-locale-contract.mjs';
+import {completionSpecs,completionChecksum} from './collection-numeric-date-contract.mjs';
 import {regexTextChecksum,regexTextSpecs} from './regex-text-contract.mjs';
 import {expectedByteOperationObservation} from './byte-operations-oracle.mjs';
 import {expectedByteCodecObservation} from './byte-codecs-oracle.mjs';
@@ -236,6 +238,8 @@ export function expectedChecksum(id, n, seed, inputText) {
  if(networkAddressIDs.includes(id))return networkAddressChecksum(id,n,seed,inputText);
  if(compressionIDs.includes(id))return compressionChecksum(id,n,seed);
  if(asyncIoIDs.includes(id))return asyncIoChecksum(id,n,seed);
+ if(Object.hasOwn(completionSpecs,id))return completionChecksum(id,n,seed);
+ if(ownedIteratorIDs.includes(id))return ownedIteratorChecksum(id,n,seed);
  if(taskErgonomicsIDs.includes(id))return taskErgonomicsChecksum(id,n,seed);
  if(id.startsWith("byte_ops_"))return expectedByteOperationObservation(id,n,seed,inputText).checksum;
  if(id.startsWith("bytes_"))return expectedByteCodecObservation(id,n,seed,inputText).checksum;
@@ -284,7 +288,7 @@ export function expectedChecksum(id, n, seed, inputText) {
  if(id==='array_callback_errors')return expectedArrayCallbackErrorsObservation(id,n,seed,inputText).checksum; if(id==='map_for_each')return expectedMapForEachObservation(id,n,seed,inputText).checksum; if(id==='set_relations')return expectedSetRelationsObservation(id,n,seed,inputText).checksum; if(id==='string_iteration')return expectedStringIterationObservation(id,n,seed,inputText).checksum; if(id==='comma_contexts')return expectedCommaContextsObservation(id,n,seed,inputText).checksum; if(id==='comma_expressions')return expectedCommaExpressionsObservation(id,n,seed,inputText).checksum; if(id==='string_indexing')return expectedStringIndexingObservation(id,n,seed,inputText).checksum; if(id==='optional_fields')return expectedOptionalFieldsObservation(id,n,seed,inputText).checksum; if(id==='interfaces')return expectedInterfacesObservation(id,n,seed,inputText).checksum; if(id==='type_aliases')return expectedTypeAliasesObservation(id,n,seed,inputText).checksum; if(id==='numeric_literals')return expectedNumericLiteralsObservation(id,n,seed,inputText).checksum; if(id==='map_group_by')return expectedMapGroupByObservation(id,n,seed,inputText).checksum; if(id==='iterable_call_spread')return expectedIterableCallSpreadObservation(id,n,seed,inputText).checksum; if(id==='iterable_array_spread')return expectedIterableArraySpreadObservation(id,n,seed,inputText).checksum; if(id==='array_from_collections')return expectedArrayFromCollectionsObservation(id,n,seed,inputText).checksum; if(id==='map_iteration')return expectedMapIterationObservation(id,n,seed,inputText).checksum; if(id==='set_algebra')return expectedSetAlgebraObservation(id,n,seed,inputText).checksum; if(id==='set_for_each')return expectedSetForEachObservation(id,n,seed,inputText).checksum; if(id==='set_entries')return expectedSetEntriesObservation(id,n,seed,inputText).checksum; if(id==='map_snapshots')return expectedMapSnapshotsObservation(id,n,seed,inputText).checksum; if(id==='map_values')return expectedMapsObservation(id,n,seed,inputText).checksum; if(id==='set_values')return expectedSetsObservation(id,n,seed,inputText).checksum; if(id==='enum_values')return expectedEnumsObservation(id,n,seed,inputText).checksum; if(id==='type_assertions')return expectedTypeAssertionsObservation(id,n,seed,inputText).checksum;
  if(id==='exception_completion')return expectedExceptionCompletionObservation(id,n,seed,inputText).checksum;
  if(id==='testing_expectation_predicates')return expectedTestingExpectationChecksum(n,seed);
- if(id==='testing_scalar_assertions')return expectedTestingAssertionChecksum(n,seed);
+ if(['testing_scalar_assertions','testing_deep_data','testing_deep_collections'].includes(id))return expectedTestingAssertionChecksum(n,seed);
  if(arrayFromIds.includes(id))return expectedArrayFromObservation(id,n,seed,inputText).checksum;
  if(stringAtIds.includes(id))return expectedStringAtObservation(id,n,seed,inputText).checksum;
  if(numberParseIntIds.includes(id))return expectedNumberParseIntObservation(id,n,seed).checksum;

@@ -1,0 +1,215 @@
+mod support;
+fn native(source:&str){let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert!(output.stdout.is_empty(),"{}",String::from_utf8_lossy(&output.stdout));assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));}
+#[test]fn structural_exact_data_borrowing_and_recursive_records_execute(){native(r#"
+import {deepStrictEqual,notDeepStrictEqual,strictEqual} from 'std:testing';
+type Row={label:string;values:number[];key:int;};type Node={value:int;children:Node[];};
+function main(){
+ const left:Row={label:'é🦀',values:[Number.NaN,-0.0,1.0],key:9007199254740993};const right:Row={key:9007199254740993,values:[Number.NaN,-0.0,1.0],label:'é🦀'};
+ deepStrictEqual(left,right);deepStrictEqual(left,right);strictEqual(left.key,9007199254740993);strictEqual(right.label,'é🦀');
+ notDeepStrictEqual([0.0],[-0.0]);notDeepStrictEqual([9007199254740992],[9007199254740993]);deepStrictEqual([[true,false]],[[true,false]]);
+ const empty:undefined[]=[],other:undefined[]=[];deepStrictEqual(empty,other);const tuple:[int,string]=[7,'ready'];deepStrictEqual(tuple,clone(tuple));
+ const a:int|string=7;const b:int|string='7';notDeepStrictEqual(a,b);deepStrictEqual(a,a);
+ const first=new Map<string,int[]>();first.set('a',[1,2]);first.set('b',[3]);const second=new Map<string,int[]>();second.set('b',[3]);second.set('a',[1,2]);deepStrictEqual(first,second);strictEqual(first.size,2);
+ const setA=new Set<int>([1,2,3]);const setB=new Set<int>([3,2,1]);deepStrictEqual(setA,setB);notDeepStrictEqual(setA,new Set<int>([1,2]));
+ let tree:Node={value:0,children:[]};let i=0;while(i<10000){tree={value:i,children:[tree]};i++;}const copied=clone(tree);deepStrictEqual(tree,copied);strictEqual(tree.value,9999);
+}
+"#);}
+#[test]fn rejects_checked_payloads_and_resource_cleanup_execute(){native(r#"
+import {rejects,trackedResource,resourceId,releaseCount,strictEqual} from 'std:testing';import {delay} from 'std:futures';import {compile} from 'std:regex';
+async function main():Task<void>{await rejects(async()=>{unwrap(compile('('));});let id=0;await rejects(async()=>{const resource=trackedResource();id=resourceId(resource);await delay(0);throw {code:'expected',retry:false};});strictEqual(releaseCount(id),1);await rejects(async()=>{const failure:int|string='typed';throw failure;});}
+"#);}
+#[test]fn structural_assertions_reject_unsupported_nested_values_and_report_mismatch(){
+ let directory=support::TempDirectory::new();for(body,code)in[("const callback=():int=>7;deepStrictEqual({callback},{callback});","unsupported"),("const value=trackedResource();deepStrictEqual([value],[trackedResource()]);","native-capability")]{let source=format!("import {{deepStrictEqual,trackedResource}} from 'std:testing';function main(){{{body}}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains(code),"{}",String::from_utf8_lossy(&output.stderr));}
+ let path=directory.source("import {deepStrictEqual} from 'std:testing';function main(){deepStrictEqual([1,2],[1,3],'nested mismatch');}");let output=support::run(support::cli().arg("run").arg(path),180);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("nested mismatch"));
+}
+#[test]fn cli_literal_filter_json_console_and_summary_are_machine_readable(){
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(r#"
+import {describe,test,beforeAll,afterAll} from 'std:testing';
+describe('selected',()=>{beforeAll(()=>{console.log('setup');});afterAll(()=>{console.log('teardown');});test('literal[.]',()=>{console.error('é\n\t"quoted"');});test('other',()=>{throw 'must be filtered';});});describe('excluded',()=>{beforeAll(()=>{throw 'must not run';});test('other',()=>{throw 'must not run';});});
+"#);let path=directory.source(&source);let output=support::run(support::cli().arg("test").arg(&path).arg("--filter").arg("selected > literal[.]").arg("--reporter=json"),180);support::success(&output);let rows=std::str::from_utf8(&output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),1);assert_eq!(tests[0]["status"],"passed");let summary=rows.iter().find(|row|row["event"]=="summary").unwrap();assert_eq!(summary["passed"],1);assert_eq!(summary["skipped"],2);assert!(rows.iter().any(|row|row["event"]=="output"&&row["stream"]=="stderr"&&row["text"]=="é\n\t\"quoted\"\n"));assert!(output.stderr.is_empty());
+ let report=directory.0.join("actual-reporter.ndjson");std::fs::write(&report,&output.stdout).unwrap();
+ let oracle=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../benchmarks/runtime/testing-everyday-reporter-oracle.mjs");
+ support::success(&support::run(std::process::Command::new("node").arg(oracle).arg(report).arg(&path),30));
+}
+#[test]fn explicit_async_deadline_runs_teardown_and_later_tests(){
+ let directory=support::TempDirectory::new();let path=directory.source(r#"
+import {test,afterEach,afterAll,strictEqual} from 'std:testing';import {delay} from 'std:futures';let cleaned=0;afterEach(async()=>{await delay(0);cleaned++;console.log('afterEach');});afterAll(()=>{strictEqual(cleaned,2);console.log('afterAll');});test('deadline',async()=>{await delay(60000);throw 'late';});test('continues',async()=>{strictEqual(cleaned,1);});
+"#);let output=support::run(support::cli().arg("test").arg(path).arg("--timeout=20").arg("--reporter=json"),180);assert!(!output.status.success());let rows=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let summary=rows.iter().find(|row|row["event"]=="summary").unwrap();assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);assert!(rows.iter().any(|row|row["event"]=="test"&&row["name"]=="deadline"&&row["messages"].to_string().contains("TestTimeout")));assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="afterAll\n"));
+}
+#[test]fn cli_test_option_errors_precede_compilation(){let directory=support::TempDirectory::new();let path=directory.source("function main(){}");for option in["--timeout=-1","--timeout=18446744073709551616","--reporter=xml"]{let output=support::run(support::cli().arg("test").arg(&path).arg(option),30);assert!(!output.status.success());assert!(!output.stderr.is_empty());}}
+#[test]fn timeout_drains_started_child_owner_before_teardown(){
+ let directory=support::TempDirectory::new();let path=directory.source(r#"
+import {test,afterEach,strictEqual} from 'std:testing';import {Channel,Sender,delay} from 'std:futures';
+let sender:Sender<int>|undefined=undefined;
+async function hold(queue:Owned<Channel<int>>):Task<void>{await queue.receive();}
+afterEach(async()=>{if(sender!==undefined){let closed=false;try{await sender.send(7);}catch(error){strictEqual(error.code,'closed');closed=true;}strictEqual(closed,true);sender=undefined;console.log('child owner released');}});
+test('timeout with child',async()=>{const queue=new Channel<int>(1);sender=queue.sender();const job=hold(queue).start();await delay(60000);job.cancel();await job;});
+test('next body',async()=>{strictEqual(sender===undefined,true);});
+"#);let output=support::run(support::cli().arg("test").arg(path).arg("--timeout=20").arg("--reporter=json"),180);assert!(!output.status.success());let rows=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let summary=rows.iter().find(|row|row["event"]=="summary").unwrap();assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="child owner released\n"));
+}
+#[test]fn everyday_catalog_examples_execute(){let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();for name in["deepStrictEqual","notDeepStrictEqual","rejects"]{let entry=catalog["std:testing"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();for example in entry["examples"].as_array().unwrap(){let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(example["source"].as_str().unwrap()));let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert_eq!(output.stdout,example["output"].as_str().unwrap().as_bytes());}}}
+#[test]fn transparent_native_snapshots_compare_without_expanding_owners(){native(r#"
+import {compile} from 'std:regex';import {deepStrictEqual} from 'std:testing';
+function main(){const regex=unwrap(compile('(é)'));const snapshots=regex.findAll('é é');deepStrictEqual(snapshots,clone(snapshots));}
+"#);}
+#[test]fn rejects_does_not_satisfy_itself_or_accept_native_panics(){let directory=support::TempDirectory::new();for(body,message)in[("await rejects(async()=>{});","Expected task to reject"),("await rejects(async()=>{fail('native failure');});","native failure")]{let source=format!("import {{rejects,fail}} from 'std:testing';async function main():Task<void>{{{body}}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("run").arg(path),180);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains(message),"{}",String::from_utf8_lossy(&output.stderr));}}
+#[test]fn cancelling_rejects_remains_cancelled(){native(r#"
+import {rejects,strictEqual} from 'std:testing';import {delay} from 'std:futures';
+async function waitForFailure():Task<void>{await rejects(async()=>{await delay(60000);throw 'eventual';});}
+async function main():Task<void>{const job=waitForFailure().start();job.cancel();let cancelled=false;try{await job;}catch(error){strictEqual(error.code,'cancelled');cancelled=true;}strictEqual(cancelled,true);}
+"#);}
+
+#[test]fn borrowed_records_and_stored_structural_assertions_keep_inputs(){native(r#"
+import {deepStrictEqual,notDeepStrictEqual,strictEqual} from 'std:testing';
+type Row={id:int;text:string;values:number[];};
+type Checks={equal:Function<void,[actual:ReadOnly<Row>,expected:ReadOnly<Row>,message:ReadOnly<string>]>;different:Function<void,[actual:ReadOnly<Row>,expected:ReadOnly<Row>,message:ReadOnly<string>]>;};
+function inspect(left:ReadOnly<Row>,right:ReadOnly<Row>,different:ReadOnly<Row>):void{
+ const equalAlias=deepStrictEqual;const differentAlias=notDeepStrictEqual;
+ equalAlias(left,right,'borrowed alias');differentAlias(left,different,'borrowed alias mismatch');
+ const checks:Checks={equal:deepStrictEqual,different:notDeepStrictEqual};
+ checks.equal(left,right,'stored borrowed equality');checks.different(left,different,'stored borrowed mismatch');
+ strictEqual(left.id,9007199254740993);strictEqual(right.text,'é');
+}
+function main(){const left:Row={id:9007199254740993,text:'é',values:[Number.NaN,-0.0]};const right:Row={id:9007199254740993,text:'é',values:[Number.NaN,-0.0]};const other:Row={id:9007199254740992,text:'é',values:[Number.NaN,-0.0]};inspect(left,right,other);inspect(left,right,other);strictEqual(left.id,9007199254740993);strictEqual(right.values.length,2);}
+"#);}
+#[test]fn structural_maps_and_sets_preserve_nan_and_zero_key_semantics(){native(r#"
+import {deepStrictEqual,notDeepStrictEqual,strictEqual} from 'std:testing';
+function main(){
+ const left=new Map<number,number[]>();left.set(Number.NaN,[Number.NaN,-0.0]);left.set(-0.0,[1.0]);
+ const right=new Map<number,number[]>();right.set(0.0,[1.0]);right.set(Number.NaN,[Number.NaN,-0.0]);
+ deepStrictEqual(left,right);strictEqual(left.size,2);strictEqual(left.has(Number.NaN),true);strictEqual(left.has(0.0),true);
+ const changed=new Map<number,number[]>();changed.set(0.0,[1.0]);changed.set(Number.NaN,[Number.NaN,0.0]);notDeepStrictEqual(left,changed);
+ const setA=new Set<number>([Number.NaN,-0.0,0.0]);const setB=new Set<number>([0.0,Number.NaN]);deepStrictEqual(setA,setB);strictEqual(setA.size,2);strictEqual(setA.has(0.0),true);strictEqual(setA.has(-0.0),true);strictEqual(setA.has(Number.NaN),true);
+}
+"#);}
+#[test]fn rejects_aliases_and_stored_calls_accept_checked_job_transport(){
+ let directory=support::TempDirectory::new();let source=r#"
+import {rejects,fail} from 'std:testing';import {delay} from 'std:futures';
+async function crash():Task<void>{fail('worker panic transported as checked data');}
+async function waitForever():Task<void>{await delay(60000);}
+type Reject=Function<Task<void>,[callback:Owned<Once<Function<Task<void>>>>,message:ReadOnly<string>]>;
+async function main():Task<void>{
+ const alias=rejects;await alias(async()=>{throw {code:'user-payload'};},'alias must observe a checked record');
+ const stored:Reject=rejects;await stored(async()=>{throw 'stored checked payload';},'stored rejects must await');
+ await rejects(async()=>{const job=crash().start();await job;});
+ await rejects(async()=>{const job=waitForever().start();job.cancel();await job;});
+ console.log('checked transport observed');
+}
+"#;let path=directory.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert_eq!(output.stdout,b"checked transport observed\n");
+ // The backend may print the worker's panic diagnostic before transporting its
+ // checked AsyncError. Such stderr does not change the successful result.
+ if !output.stderr.is_empty(){assert!(String::from_utf8_lossy(&output.stderr).contains("worker panic transported as checked data"));}
+}
+
+#[test]
+fn deep_mismatch_diagnostics_preserve_exact_original_call_sites(){
+ let directory=support::TempDirectory::new();let path=directory.0.join("deep-range.tsr");
+ for(operation,actual,expected,message)in[("deepStrictEqual","[1,2]","[1,3]","nested mismatch"),("notDeepStrictEqual","[[1]]","[[1]]","unexpected deep equality")]{
+  let source=format!("import {{deepStrictEqual,notDeepStrictEqual}} from 'std:testing';\nfunction main(){{\n  {operation}({actual},{expected},'{message}');\n}}\n");
+  let source=support::format_round_trip(&source);let offset=source.rfind(&format!("{operation}(" )).unwrap();let prefix=&source[..offset];let line=prefix.bytes().filter(|byte|*byte==b'\n').count()+1;let column=prefix.rsplit('\n').next().unwrap().encode_utf16().count()+1;let site=format!("deep-range.tsr:{line}:{column}");
+  std::fs::write(&path,&source).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);assert!(!output.status.success());
+  let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains(message),"{stderr}");assert!(stderr.match_indices(&site).any(|(offset,_)|stderr.as_bytes().get(offset+site.len()).is_none_or(|next|!next.is_ascii_digit())),"Original assertion call site {site} missing: {stderr}");
+ }
+}
+
+#[test]
+fn structural_assertions_keep_native_ordered_maps_opaque(){
+ for body in ["deepStrictEqual(left,right);","deepStrictEqual([left],[right]);"]{let directory=support::TempDirectory::new();let source=support::format_round_trip(&format!("import {{deepStrictEqual}} from 'std:testing';import {{OrderedMap}} from 'std:collections';function main(){{const left=new OrderedMap<int,int[]>();const right=new OrderedMap<int,int[]>();{body}}}"));let path=directory.source(&source);let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("native-capability"),"{}",String::from_utf8_lossy(&output.stderr));}
+}
+
+#[test]
+fn timeout_waits_for_admitted_blocking_work_before_teardown() {
+    use std::{path::PathBuf,process::{Child,Stdio},time::{Duration,Instant}};
+    // Release first on every failure path; a blocked worker must never strand
+    // either the generated process or this integration-test process.
+    struct Running { child:Option<Child>, release:PathBuf }
+    impl Running {
+        fn release(&self) { let _=std::fs::write(&self.release,b"release"); }
+        fn wait(&mut self,seconds:u64)->std::process::Output {
+            let deadline=Instant::now()+Duration::from_secs(seconds);
+            while self.child.as_mut().unwrap().try_wait().unwrap().is_none() {
+                assert!(Instant::now()<deadline,"generated blocking cleanup did not settle");
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            self.child.take().unwrap().wait_with_output().unwrap()
+        }
+        fn marker(&mut self,path:&std::path::Path,seconds:u64) {
+            let deadline=Instant::now()+Duration::from_secs(seconds);
+            while !path.exists() {
+                assert!(self.child.as_mut().unwrap().try_wait().unwrap().is_none(),"generated test exited before {}",path.display());
+                assert!(Instant::now()<deadline,"missing worker marker {}",path.display());
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        }
+    }
+    impl Drop for Running {
+        fn drop(&mut self) {
+            self.release();
+            if let Some(child)=self.child.as_mut() {
+                let deadline=Instant::now()+Duration::from_secs(5);
+                while matches!(child.try_wait(),Ok(None)) && Instant::now()<deadline {std::thread::sleep(Duration::from_millis(5));}
+                if !matches!(child.try_wait(),Ok(Some(_))) {let _=child.kill();}
+                let _=child.wait();
+            }
+        }
+    }
+    let directory=support::TempDirectory::new();
+    // Scalar-only source adapter. Its private helpers observe production worker
+    // cancellation, then leave noninterruptible work behind an explicit gate.
+    std::fs::write(directory.0.join("gate.rs"),r#"
+fn marker(name:&str){std::fs::write(name,b"observed").unwrap();}
+pub fn blocked()->i64{
+    marker("started");
+    let deadline=std::time::Instant::now()+std::time::Duration::from_secs(5);
+    while !crate::tsrust_native_threads::cancellation_requested(){
+        assert!(std::time::Instant::now()<deadline,"worker cancellation deadline");
+        std::thread::yield_now();
+    }
+    marker("cancelled");
+    while !std::path::Path::new("release").exists(){
+        assert!(std::time::Instant::now()<deadline,"worker release deadline");
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    marker("finished");7
+}
+pub fn finished()->bool{std::path::Path::new("finished").exists()}
+pub fn teardown(){marker("afterEach");}
+"#).unwrap();
+    let source=support::format_round_trip(r#"
+import {test,afterEach,afterAll,trackedResource,resourceId,releaseCount,closeResource,strictEqual} from 'std:testing';
+import {ThreadPool} from 'std:threads';
+import {blocked,finished,teardown} from './gate.rs';
+let owner=0;let cleaned=0;
+afterEach(()=>{strictEqual(finished(),true);strictEqual(releaseCount(owner),1);teardown();cleaned++;});
+afterAll(()=>{strictEqual(cleaned,2);console.log('all cleanup settled');});
+test('blocking deadline',async()=>{
+    const pool=new ThreadPool({workers:1,capacity:1});
+    const resource=trackedResource();owner=resourceId(resource);
+    await pool.taskAsync(():int=>{const result=blocked();closeResource(resource);return result;});
+    throw 'deadline failed to interrupt admitted work';
+});
+test('continues after cleanup',()=>{strictEqual(cleaned,1);strictEqual(finished(),true);});
+"#);
+    let path=directory.source(&source);
+    let child=support::cli().arg("test").arg(&path).arg("--timeout=1000").arg("--reporter=json")
+        .current_dir(&directory.0).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+    let mut running=Running{child:Some(child),release:directory.0.join("release")};
+    running.marker(&directory.0.join("started"),180);
+    running.marker(&directory.0.join("cancelled"),5);
+    assert!(!directory.0.join("finished").exists(),"admitted worker passed its unreleased gate");
+    assert!(!directory.0.join("afterEach").exists(),"teardown began before admitted worker settlement");
+    assert!(running.child.as_mut().unwrap().try_wait().unwrap().is_none(),"runner completed before worker release");
+    running.release();
+    let output=running.wait(10);
+    assert!(!output.status.success(),"timed-out test unexpectedly passed");
+    assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
+    let rows=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();
+    let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();
+    assert_eq!(tests.len(),2);
+    assert_eq!(tests[0]["name"],"blocking deadline");assert_eq!(tests[0]["status"],"failed");
+    assert!(tests[0]["messages"].to_string().contains("TestTimeout"));
+    assert_eq!(tests[1]["name"],"continues after cleanup");assert_eq!(tests[1]["status"],"passed");
+    let summary=rows.iter().find(|row|row["event"]=="summary").unwrap();
+    assert_eq!(summary["passed"],1);assert_eq!(summary["failed"],1);assert_eq!(summary["hookFailures"],0);
+    assert!(rows.iter().any(|row|row["event"]=="output"&&row["text"]=="all cleanup settled\n"));
+}

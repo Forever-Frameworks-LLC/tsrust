@@ -1,3 +1,4 @@
+#[path="../stdlib/iterator/emit.rs"] mod iterator;
 mod declaration_scope;
 mod receiver_moves;
 mod self_append;
@@ -13,6 +14,7 @@ use declaration_scope::Declarations;
 mod coalesce_work;
 mod expression_work;
 mod program_testing;
+mod testing_deep;
 mod threads;
 mod ui;
 mod futures;
@@ -2164,7 +2166,7 @@ impl Emitter<'_> {
                 if !matches!(checked.kind, CallbackKind::Program | CallbackKind::ProgramReusable) { continue; }
                 let separator = if forwarded.is_empty() { "" } else { ", " };
                 let call=format!("self.call({forwarded}{separator}program,registry)");
-                let call=if closure.program_async{"tsrust_native_futures::testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
+                let call=if closure.program_async{"tsrust_testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
                 let body = convert(call);
                 let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments},{result}> for Closure{index}{lifetime}{forwarded_where} {{ fn invoke_program(&mut self,args:{arguments},program:&mut TsrTestContext<'_>,registry:&mut TsrTestRegistry)->{result}{{{body}}} }}");
                 continue;
@@ -2526,6 +2528,7 @@ impl Emitter<'_> {
             if self.sql_record(&mut output,index) || self.http_record(&mut output,index) || self.sqlite_record(&mut output,index){continue;}
             if self.future_record(&mut output, index) { continue; }
             if self.cache_record(&mut output,index) {continue;}
+            if self.iterator_record(&mut output,index){continue;}
             if self.thread_record(&mut output, index) { continue; }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::TestRegistry) {
                 let _ = writeln!(output, "type Record{index} = TsrTestRegistry;");
@@ -2991,7 +2994,7 @@ impl Emitter<'_> {
                     debug_assert!(params.is_empty());
                     let _=writeln!(output,"impl{impl_lifetimes} TsrTestAsyncCallback for Closure{index}{lifetime}{forwarded_trait_where} {{type Output={native_result};fn invoke_async<'a,'p:'a>(&'a mut self,program:&'a mut TsrTestContext<'p>,registry:&'a mut TsrTestRegistry)->std::pin::Pin<Box<dyn std::future::Future<Output=Self::Output>+'a>>{{Box::pin({call})}}}}");
                 }
-                let call=if closure.program_async{"tsrust_native_futures::testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
+                let call=if closure.program_async{"tsrust_testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
                 let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments}, {native_result}> for Closure{index}{lifetime}{forwarded_trait_where} {{ fn invoke_program(&mut self, args:{arguments}, program:&mut TsrTestContext<'_>, registry:&mut TsrTestRegistry)->{native_result} {{{call}}} }}");
                 self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
                 continue;
@@ -3337,6 +3340,7 @@ impl Emitter<'_> {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner")
         }) {
             output.push_str(include_str!("../stdlib/testing/runtime/mod.rs"));
+            output.push_str(include_str!("../stdlib/testing/runtime/report.rs"));
             if asynchronous_runtime { output.push_str(include_str!("../stdlib/testing/runtime/async.rs")); }
             else { output.push_str("fn tsrust_testing_run_in_scope<R>(body:impl FnOnce()->R)->R {body()}\n"); }
             if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].name == "registerHook") {
@@ -3440,6 +3444,7 @@ impl Emitter<'_> {
         }
         self.data_spread_declarations(&mut output);
         let record_array_structs=runtime_support_ids::referenced(&output,"struct RecordArray","(",self.program.records.len());
+        self.iterator_runtime(&mut output,owned_support,numeric_support,&record_array_structs);
         if output.contains("TsrSpreadSlot") { output.push_str(spread_emit::SPREAD_SLOTS); }
         if output.contains(".tsr_spread_mut_items()") {
             output.push_str(crate::runtime::SPREAD_MUT_ITEMS_VEC);
@@ -6701,10 +6706,11 @@ impl Emitter<'_> {
         };
         let parameter_count = self.array_callback_supplied_count(callback_type, method, parameter_count, if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 });
         let receiver_type=base.ty.expect("checked for_each receiver");
-        let set_for_each=matches!(receiver_type,Type::Set(_));
+        let set_for_each=matches!(receiver_type,Type::Set(_)) || matches!(receiver_type,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet));
         let map_for_each=matches!(receiver_type,Type::Map(_));
         let (value_type,key_type)=match receiver_type{
             Type::Array(element)=>(element.ty(),Type::Int),
+            Type::Record(id) if set_for_each=>{let key=self.program.records[id].native_element().unwrap();(key,key)},
             Type::Set(id)=>{let key=self.program.records[id].set_definition.as_ref().unwrap().key;(key,key)},
             Type::Map(id)=>{let map=self.program.records[id].map_definition.as_ref().unwrap();(map.value,map.key)},
             _=>unreachable!(),
@@ -6768,6 +6774,8 @@ impl Emitter<'_> {
             "for_each_array.literal_iter()"
         } else if matches!(receiver_type,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
             "for_each_array.source_iter()"
+        } else if matches!(receiver_type,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet)) {
+            "for_each_array.key_iter()"
         } else if method.is_some_and(|method| method.access == Mode::Mutate) {
             "for_each_array.iter_mut()"
         } else {
@@ -9338,6 +9346,7 @@ impl Emitter<'_> {
                     if let Some(call) = self.program_testing_native(fun, expr, id, args) { return call; }
                     if crate::native_bindings::BINDINGS[id].parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {
                         let binding = &crate::native_bindings::BINDINGS[id];
+                        if binding.name == "deepEqual" {return self.testing_deep(fun,args);}
                         if binding.name == "assertionDetails" {
                             let actual=self.expr(fun,&args[0],Mode::Read);
                             let expected=self.expr(fun,&args[1],Mode::Read);
@@ -9354,7 +9363,7 @@ impl Emitter<'_> {
                             };
                             let actual_text=render(args[0].ty.unwrap(),"assert_actual");
                             let expected_text=render(args[1].ty.unwrap(),"assert_expected");
-                            let rendered=format!("{{ let assert_actual={actual}; let assert_expected={expected}; let assert_message={message}; String::Owned(if std::env::var(\"TSRUST_TEST_REPORTER\").as_deref()==Ok(\"pretty\") {{std::format!(\"{{}}\\nExpected: {{}}\\nReceived: {{}}\",assert_message.as_ref(),{expected_text},{actual_text})}} else {{assert_message.as_ref().to_owned()}}) }}");
+                            let rendered=format!("{{ let assert_actual={actual}; let assert_expected={expected}; let assert_message={message}; String::Owned(if matches!(std::env::var(\"TSRUST_TEST_REPORTER\").as_deref(),Ok(\"pretty\"|\"json\")) {{std::format!(\"{{}}\\nExpected: {{}}\\nReceived: {{}}\",assert_message.as_ref(),{expected_text},{actual_text})}} else {{assert_message.as_ref().to_owned()}}) }}");
                             return if mode == Mode::Read {format!("&({rendered})")} else {rendered};
                         }
                         if binding.name == "containsValue" {
@@ -9498,7 +9507,7 @@ impl Emitter<'_> {
                     };
                     format!("{{ let object_keys_value = {value}; {keys} }}")
                 }
-                CallTarget::OrderedSetMethod(method)=>self.ordered_set_method_expression(fun,callee,args,method),
+                CallTarget::OrderedSetMethod(method)=>self.ordered_set_method_expression(fun,expr,callee,args,method),
                 CallTarget::HeapMethod(method) => self.heap_method_expression(fun,expr,callee,args,method),
                 CallTarget::DequeMethod(method) => self.deque_method_expression(fun,expr,callee,args,method),
                 CallTarget::MapMethod(method) => self.map_method_expression(fun,expr,callee,args,method),

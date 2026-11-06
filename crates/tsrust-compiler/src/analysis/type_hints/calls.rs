@@ -119,7 +119,7 @@ fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<
     if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_element().is_some(){*value=analyzer.native_collection_method_hint(id,name,expr.span);return;}
     if let Some(Type::Map(id))=receiver{
         *value=analyzer.map_method_type(id,name,expr.span).ok().and_then(|result|{
-            if name=="get" && Analyzer::stable_at_receiver(base) && !result.is_copy(){result.union().map(Type::BorrowedUnion)}else{Some(result)}
+            if matches!(name.as_str(),"get"|"firstKey"|"lastKey") && Analyzer::stable_at_receiver(base) && !result.is_copy(){result.union().map(Type::BorrowedUnion)}else{Some(result)}
         });return;
     }
     if let Some(Type::Set(id))=receiver{

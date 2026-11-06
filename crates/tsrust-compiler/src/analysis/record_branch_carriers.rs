@@ -133,7 +133,7 @@ impl Analyzer {
                     value.wrap_record_carrier(destination)
                 }
                 // A view callback, or its nullable union, moves into the joined storage.
-                (Type::StoredCallable(_),Type::StoredCallable(_))|(Type::Union(_),Type::Union(_)) if self.native_borrow_types && self.native_shape_contains_view(destination)=>value.wrap_record_carrier(destination),
+                (Type::StoredCallable(_),Type::StoredCallable(_))|(Type::Union(_),Type::Union(_)) if self.native_borrow_types && self.native_shape_contains_view(destination) || self.finite_owned_shape(destination)=>value.wrap_record_carrier(destination),
                 _=>{}
             }
             Ok(())

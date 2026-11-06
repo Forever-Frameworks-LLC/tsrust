@@ -7,7 +7,7 @@ use std::time::Duration;
 use support::session::Session;
 
 const GREETING: &str = "export function greeting(): string { return \"hi\"; }\n";
-const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\ntype AliasValues<T=int> = T[];\nconst schema = s.string();\n\nfunction main() {\n  const values: AliasValues = [1, 2, 3];\n  const units: void[] = [];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const parsed = schema.safeParse(greeting());\n  const loaded: Result<string, int> = Ok(greeting());\n  ";
+const HEAD: &str = "import {Deque,Heap,OrderedSet,OrderedMap} from 'std:collections';\nimport { greeting } from './greeting.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\ntype AliasValues<T=int> = T[];\nconst schema = s.string();\n\nfunction main() {\n  const values: AliasValues = [1, 2, 3];\n  const units: void[] = [];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const deque = new Deque<int[]>();\n  const heap = new Heap<number>();\n  const orderedSet = new OrderedSet<string>();\n  const orderedMap = new OrderedMap<string,int>();\n  const parsed = schema.safeParse(greeting());\n  const loaded: Result<string, int> = Ok(greeting());\n  ";
 const TAIL: &str = "\n}\n";
 
 #[test]
@@ -74,6 +74,11 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+    Receiver {name:"deque",hover:"Deque<int[]>",silent:None},
+    Receiver {name:"heap",hover:"Heap<number>",silent:None},
+    Receiver {name:"orderedSet",hover:"OrderedSet<string>",silent:None},
+    Receiver {name:"orderedMap",hover:"OrderedMap<string, int>",silent:None},
+
     Receiver { name: "values", hover: "int[]", silent: None },
     Receiver { name: "units", hover: "void[]", silent: None },
     Receiver { name: "item", hover: "Item", silent: None },
@@ -234,7 +239,7 @@ fn tracked_resource_module_help_agrees_with_checked_ownership() {
 fn numeric_module_help_preserves_exact_contract(){
  let text="import {toInt,toNumber,toFloat32,checkSigned,checkUnsigned,parseInt as exactInt} from 'std:numeric';function main(){toInt(1);toNumber(1);toFloat32(1);checkSigned(1,8);checkUnsigned(1,8);exactInt('1');}";
  let mut session=Session::start(&[]);session.open("main.tsr",text);session.settle();
- for (call,expected) in [("toInt(1)","64 bits"),("toNumber(1)","exactly"),("toFloat32(1)","binary32"),("checkSigned(1,8)","Width"),("checkUnsigned(1,8)","unsupported"),("exactInt('1')","entire string")]{
+ for (call,expected) in [("toInt(1)","64 bits"),("toNumber(1)","exactly"),("toFloat32(1)","binary32"),("checkSigned(1,8)","Width"),("checkUnsigned(1,8)","unsupported"),("exactInt('1')","entire text")]{
  let offset=text.rfind(call).unwrap();let hover=session.hover("main.tsr",text,offset+1).unwrap_or_default();assert!(hover.contains(expected),"{call}: {hover}");
  let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!signature["signatures"].as_array().unwrap().is_empty(),"{signature}");
  }

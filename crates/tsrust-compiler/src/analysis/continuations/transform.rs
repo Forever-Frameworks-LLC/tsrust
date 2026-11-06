@@ -25,7 +25,7 @@ pub(in crate::analysis) struct CompletionFrame {
 impl Analyzer {
     pub(in crate::analysis) fn prepare_transform(&mut self, context: &Context, base: &Expr, args: &mut [Expr], span: Span, options: Options) -> Result<Start, Diagnostic> {
         let (_, discard, _, _, _, _, from_array) = options;
-        let set_for_each=discard && self.set_receiver_hint(context,base);
+        let set_for_each=discard && (self.set_receiver_hint(context,base)||self.ordered_set_receiver(context,base).is_some());
         let map_for_each=discard && self.map_receiver_hint(context,base);
         let collection_for_each=set_for_each||map_for_each;
         let collection_from=from_array && (self.set_receiver_hint(context,base)||self.map_receiver_hint(context,base));
@@ -80,6 +80,7 @@ impl Analyzer {
             Type::Array(element)=>(element.ty(),Type::Int),
             Type::Set(id) if from_array => (self.program.records[id].set_definition.as_ref().unwrap().key,Type::Int),
             Type::Map(id) if from_array => (Type::Record(self.map_iteration_entry(id,base.span)?),Type::Int),
+            Type::Record(id) if set_for_each=>{let key=self.program.records[id].native_element().unwrap();(key,key)},
             Type::Set(id) if set_for_each=>{let key=self.program.records[id].set_definition.as_ref().unwrap().key;(key,key)},
             Type::Map(id) if map_for_each=>{let map=self.program.records[id].map_definition.as_ref().unwrap();(map.value,map.key)},
             _=>return Err(Diagnostic::new("type","Array callback methods require an array.",base.span)),

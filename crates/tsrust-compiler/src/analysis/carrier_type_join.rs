@@ -42,6 +42,7 @@ impl Analyzer {
         self.join_carrier_work(Task::Map(a,b),span)
     }
     fn join_carrier_callback_field(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic>{
+        if let Some(ty)=self.join_native_view_storage(left,right,span)?{return Ok(Some(ty));}
         if let Some(family)=self.common_borrowed_conditional_family(left,right,span)?{return Ok(Some(Type::BorrowedCallable(family)));}
         Ok(self.record_field_callback_family(left,right,span)?.map(Type::BorrowedCallable))
     }

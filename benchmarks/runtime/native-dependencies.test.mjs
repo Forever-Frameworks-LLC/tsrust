@@ -93,7 +93,7 @@ test('reference dependency routing selects declared compression and existing fam
  const manifest=JSON.parse(fs.readFileSync(new URL('manifest.json',import.meta.url),'utf8'));
  const compression=manifest.workloads.filter(row=>row.family==='compression');assert.equal(compression.length,36);
  const backend=new URL('../../crates/tsrust-compiler/backend-dependencies/Cargo.toml',import.meta.url),parity=new URL('./parity-dependencies/Cargo.toml',import.meta.url);
- const expected=[...compression.map(row=>[row,backend,row.id.includes('_buffer_')?'compression':'compression-streams']),
+ const expected=[[{family:'collection-numeric-date',id:'date_completion_access'},backend,'calendar'],...compression.map(row=>[row,backend,row.id.includes('_buffer_')?'compression':'compression-streams']),
   [{family:'explicit-locale'},backend,'locale'],[{family:'child-processes'},backend,'process'],[{family:'network-transport'},backend,'io'],
   [{family:'async-io'},parity,'async-io'],[{id:'task_all_ready'},parity,'task-join'],[{id:'task_all_yield'},parity,'task-join'],
   [{family:'regex-text'},parity,'regex'],[{family:'path-env-os',id:'os_hostname_read'},parity,'hostname'],

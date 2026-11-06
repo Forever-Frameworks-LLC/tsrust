@@ -1,6 +1,6 @@
 // Checked public declarations for the bundled std:testing module.
 // These declarations are parsed by the compiler; native execution uses Rust backends.
-pub(crate) const SOURCE: &str = r####"import { assertionDetails, checkAssertion, shareCallback, numericValue, lengthValue, hasLength } from "std:testing-runtime";
+pub(crate) const SOURCE: &str = r####"import { assertionDetails, deepEqual, checkAssertion, shareCallback, numericValue, lengthValue, hasLength } from "std:testing-runtime";
 
 import { TrackedResource as NativeTrackedResource, trackedResource as nativeTrackedResource, resourceId as nativeResourceId, closeResource as nativeCloseResource, releaseCount as nativeReleaseCount, releaseOrder as nativeReleaseOrder, liveCount as nativeLiveCount } from "std:testing-runtime";
 /**
@@ -145,6 +145,30 @@ export function strictEqual<T>(actual:T, expected:T, message:string="Expected va
 }
 
 /**
+Compares supported structural data recursively using exact scalar values. Numbers treat NaN as equal and distinguish signed zero; integers retain all64bits. Arrays and tuples compare ordered elements, records compare declared fields, and data unions compare matching active alternatives. Maps compare values using existing key lookup semantics, and sets compare membership regardless of insertion order. Callable and opaque native payloads are compile-time errors, including nested payloads. Returns void without mutating inputs. Failure raises AssertionError with the optional message (default "Expected data to be deeply equal").
+
+```tsrust
+import {deepStrictEqual} from 'std:testing';
+function main(){deepStrictEqual([[1,2]],[[1,2]]);}
+```
+
+Ownership: both values and the optional message are borrowed. No cloning or serialization is used for comparison.
+*/
+export function deepStrictEqual<T>(actual:T,expected:T,message:string="Expected data to be deeply equal"):void{if(!deepEqual(actual,expected)){checkAssertion(false,assertionDetails(actual,expected,message));}}
+
+/**
+Fails when supported structural data compares deeply equal. Uses the same scalar, record, array, union, Map and Set rules as deepStrictEqual. Returns void without changing either input. The optional message defaults to "Expected data to differ deeply". Unsupported callable or opaque payloads are compile-time errors.
+
+```tsrust
+import {notDeepStrictEqual} from 'std:testing';
+function main(){notDeepStrictEqual([1,2],[1,3]);}
+```
+
+Ownership: both values and the message are borrowed.
+*/
+export function notDeepStrictEqual<T>(actual:T,expected:T,message:string="Expected data to differ deeply"):void{if(deepEqual(actual,expected)){checkAssertion(false,assertionDetails(actual,expected,message));}}
+
+/**
 Fails when actual and expected compare equal with Object.is semantics. Accepts two values of one inferred concrete type and an optional string message. Number NaN equals itself; positive zero and negative zero differ. Strings compare exact text; arrays and records compare identity. Homogeneous null and undefined are supported; data unions compare their active alternatives; callable values are unsupported. Returns void on success without changing either value. Failure stops the current test body; outside a running test it stops native execution with AssertionError followed by the message. The default message is "Expected values to differ". Wrong arity, incompatible argument types or a non-string message is a compile-time error. Integers preserve their signed 64-bit values.
 
 @param actual - Observed value.
@@ -199,6 +223,18 @@ export function throws(callback:Once<Function<void>>,message:string="Expected fu
     try {callback();} catch {didThrow=true;}
     checkAssertion(didThrow,message);
 }
+
+/**
+Invokes an owned zero-argument task factory once and awaits it. Succeeds only when the task throws a checked failure; the typed payload is observed and discarded. Normal completion raises AssertionError with the optional message (default "Expected task to reject"). The assertion's own failure is outside the catch. Direct native unwinding in the factory is not caught. Cancelling the outer rejects task cancels its execution rather than satisfying the assertion. Awaiting a started Job reports that job's panic or cancellation as a checked AsyncError; this checked payload does satisfy rejects, just like any other checked throw. Worker panic diagnostics may still be printed. No payload is accepted or rejected by inspecting its code field.
+
+```tsrust
+import {rejects} from 'std:testing';
+async function main():Task<void>{await rejects(async()=>{throw {code:'expected'};});}
+```
+
+Ownership: consumes the single-use factory; task-local resources follow checked failure cleanup. The message is borrowed through settlement.
+*/
+export async function rejects<T>(callback:Once<Function<Task<T>>>,message:string="Expected task to reject"):Task<void>{let didReject=false;try{await callback();}catch{didReject=true;}checkAssertion(didReject,message);}
 
 
 export type Expectation<T> = {
@@ -344,7 +380,7 @@ import {test,expect,runTests} from "std:testing";function main(){test("sample",(
 // PASS sample; 1 passed, 0 failed, 0 skipped; 0; 
 ```
 
-The required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no options or timeout arguments.
+The required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no per-registration options. The test CLI accepts an explicit --timeout millisecond deadline for async test bodies; there is no default.
 
 ```tsrust
 import {test,strictEqual,runTests} from "std:testing";import {delay} from "std:futures";function main(){test("async",async()=>{await delay(0);strictEqual(7,7);});strictEqual(runTests(),0);}
@@ -363,7 +399,7 @@ import {it,expect,runTests} from "std:testing";function main(){it("sample",():vo
 // PASS sample; 1 passed, 0 failed, 0 skipped; 0; 
 ```
 
-The required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no options or timeout arguments.
+The required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no per-registration options. The test CLI accepts an explicit --timeout millisecond deadline for async test bodies; there is no default.
 
 ```tsrust
 import {it,test,strictEqual,runTests} from "std:testing";import {delay} from "std:futures";function main(){it("async",async()=>{await delay(0);strictEqual(7,7);});strictEqual(runTests(),0);}

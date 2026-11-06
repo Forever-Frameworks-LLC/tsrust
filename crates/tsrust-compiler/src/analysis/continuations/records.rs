@@ -101,6 +101,7 @@ impl Analyzer {
     }
     pub(in crate::analysis) fn prepare_record_work(
         &mut self,
+        context: &Context,
         fields: &mut Vec<(Token, Expr)>,
         expected: Option<Type>,
         span: Span,
@@ -132,6 +133,7 @@ impl Analyzer {
         };
         if let Some(id) = self.program.records[index].native_type
             && !crate::native_types::declaration(id).source_constructible()
+            && !(id==crate::native_signatures::NativeTypeId::OwnedIterator && context.function_name.starts_with("@stdlib:iterator#create"))
         {
             return Err(Diagnostic::new(
                 "native-opaque",
@@ -300,9 +302,9 @@ impl Analyzer {
                         actual,
                     )?,
                 };
-                let scoped_native = self.native_borrow_types
-                    && actual != field_type
-                    && self.native_shape_contains_view(actual);
+                let scoped_native = actual != field_type
+                    && (self.native_borrow_types && self.native_shape_contains_view(actual)
+                        || matches!(actual,Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some_and(|layout|layout.lifetimes()==0)));
                 let contract_type = if let Type::BorrowedCallable(family) = field_type {
                     Type::Callback(
                         self.callables

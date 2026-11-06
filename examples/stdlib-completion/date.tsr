@@ -1,0 +1,27 @@
+import { parseDate, formatDate, getDay, startOfYear, endOfYear, parseTime, getHours, getMinutes, getSeconds, getNanoseconds } from 'std:date';
+import { strictEqual } from 'std:testing';
+
+function main() {
+  for (const text of ['0001-01-01', '1900-03-01', '2000-02-29', '2024-02-29', '9999-12-31']) {
+    const value = unwrap(parseDate(text));
+    const prefix = text.substring(0, 4);
+    strictEqual(formatDate(startOfYear(value)), prefix + '-01-01');
+    strictEqual(formatDate(endOfYear(value)), prefix + '-12-31');
+    strictEqual(formatDate(value), text);
+  }
+
+  strictEqual(getDay(unwrap(parseDate('2024-11-03'))), 0);
+  strictEqual(getDay(unwrap(parseDate('2024-11-09'))), 6);
+  strictEqual(getDay(unwrap(parseDate('0001-01-01'))), 1);
+  const start = unwrap(parseTime('00:00:00'));
+  strictEqual(getHours(start), 0);
+  strictEqual(getMinutes(start), 0);
+  strictEqual(getSeconds(start), 0);
+  strictEqual(getNanoseconds(start), 0);
+  const end = unwrap(parseTime('23:59:59.999999999'));
+  strictEqual(getHours(end), 23);
+  strictEqual(getMinutes(end), 59);
+  strictEqual(getSeconds(end), 59);
+  strictEqual(getNanoseconds(end), 999999999);
+  strictEqual(getNanoseconds(unwrap(parseTime('12:34:56.000000001'))), 1);
+}

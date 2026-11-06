@@ -10218,3 +10218,11 @@ fn nested_collection_constructors_publish_checked_collection_types(){
         }
     }
 }
+
+#[test]
+fn owned_iterator_constructor_and_methods_keep_checked_editor_contracts(){
+ let source=tsrust_compiler::format("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]);const mapped=values.map((value:int):int=>value+1);const step=mapped.next();console.log(step.done);}").unwrap();assert!(tsrust_compiler::check(&source).is_ok());
+ let completion=ask(&source,"textDocument/completion","next();",0);let labels=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<Vec<_>>();for name in ["next","map","filter","take","drop","flatMap","reduce","forEach","some","every","find","toArray"]{assert!(labels.contains(&name),"{completion}");}assert!(!labels.contains(&"from"));assert!(!labels.contains(&"_pull"));
+ let hover=ask(&source,"textDocument/hover","next();",0);assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("IteratorResult"),"{hover}");let help=ask(&source,"textDocument/signatureHelp","[1, 2]",0);assert!(!help["signatures"].as_array().unwrap().is_empty());
+ let constructor=ask(&source,"textDocument/completion","from([1",0);assert!(constructor.as_array().unwrap().iter().any(|entry|entry["label"]=="from"),"{constructor}");
+}

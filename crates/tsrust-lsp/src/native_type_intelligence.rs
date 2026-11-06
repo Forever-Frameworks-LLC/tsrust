@@ -177,6 +177,9 @@ impl SourceIndex {
         });
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
+            if identity==tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator{
+                return if arguments.is_empty(){builtins_for("IteratorConstructor")}else{builtins_for(&format!("Iterator{arguments}"))};
+            }
             if identity==tsrust_compiler::native_signatures::NativeTypeId::StringView{return borrowed_string_builtins();}
 
             if matches!(declaration.module,"std:regex"|"std:locale"|"std:compression"|"std:process"|"std:net") {return builtins_for(declaration.name);}
@@ -195,7 +198,7 @@ impl SourceIndex {
                 return entries;
             }
             if declaration.module == "std:futures" {return builtins_for(&format!("{}{arguments}",match declaration.id {tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel=>"AsyncChannel",tsrust_compiler::native_signatures::NativeTypeId::AsyncSender=>"AsyncSender",_=>declaration.name}));}
-            if matches!(declaration.module,"std:threads"|"std:cache") { return builtins_for(&format!("{}{arguments}", declaration.name)); }
+            if matches!(declaration.module,"std:threads"|"std:cache"|"std:iterator") { return builtins_for(&format!("{}{arguments}", declaration.name)); }
         }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
         if ty=="__tsrust_json_string_read" {return borrowed_string_builtins();}
@@ -347,4 +350,24 @@ impl SourceIndex {
         }
     }
 
+}
+
+#[cfg(test)]
+mod owned_iterator_tests{
+    use super::*;
+    #[test]
+    fn owned_iterator_catalog_keeps_constructor_and_instance_contracts_distinct(){
+        let constructors=builtins_for("IteratorConstructor");
+        assert_eq!(constructors.len(),1);assert_eq!(constructors[0]["name"],"from");
+        let methods=builtins_for("Iterator<int>");
+        assert_eq!(methods.len(),12);
+        for name in ["next","map","filter","take","drop","flatMap","reduce","forEach","some","every","find","toArray"]{
+            let entry=methods.iter().find(|entry|entry["name"]==name).unwrap();
+            let docs=entry["documentation"].as_str().unwrap();
+            assert!(docs.contains("Ownership:"));assert!(docs.contains("```tsrust"));
+        }
+        assert!(methods.iter().all(|entry|entry["name"]!="from"));
+        let next=methods.iter().find(|entry|entry["name"]=="next").unwrap();
+        assert_eq!(next["signature"],"next(): IteratorResult<int>");
+    }
 }

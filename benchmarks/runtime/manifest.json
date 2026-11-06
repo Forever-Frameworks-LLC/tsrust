@@ -9,6 +9,190 @@
   "compileSamples": 3,
   "workloads": [
     {
+      "id": "testing_deep_data",
+      "category": "testing",
+      "family": "testing-assertions",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 1024,
+      "operationsPerIteration": 2,
+      "operationUnit": "successful structural assertion calls",
+      "specification": "Borrow independently constructed equal and unequal supported data; preserve exact scalar values and observe a base131 checksum of selected square keys.",
+      "notes": "Whole assertion pipeline including setup and checksum. Typed borrowed traversal has no clone/serialization. Direct Rust uses ordinary typed data and std collections as a control, not a claim of identical collection representation. No whole-framework speed score.",
+      "methodExpressions": {
+        "native": [
+          "deepStrictEqual(left[at],right[at])",
+          "notDeepStrictEqual(left[at],right[(at+1)%8])"
+        ],
+        "typescript": [
+          "deepStrictEqual(left[at],right[at])",
+          "notDeepStrictEqual(left[at],right[(at+1)%8])"
+        ]
+      },
+      "sourceRequired": {
+        "native": [
+          "from 'std:testing'",
+          "const at=(i*13+seed)%8;"
+        ],
+        "typescript": [
+          "from 'node:assert/strict'",
+          "const at=(i*13+seed)%8;"
+        ]
+      },
+      "sourceSha256": "79d7da26b547d48c7d07af5e31d43ae4a42a5ec0f61bc1422997966d7a33e8fc",
+      "counterpartSha256": "dd91dc977e29f494200ee413bc32ed9223a6e2ca23f2019b8ae0ec4baa94cb9b",
+      "rustReference": "parity/testing_deep_data.rs",
+      "source": "workloads/testing_deep_data.tsr",
+      "counterpart": "workloads/testing_deep_data.ts",
+      "measured": false,
+      "measurementStatus": "unmeasured-structural-assertions",
+      "rustReferenceSha256": "271b6f586b1769c892bf73e2af230f97d580fd04ab6c9cb715975fa6bb878acc"
+    },
+    {
+      "id": "testing_deep_collections",
+      "category": "testing",
+      "family": "testing-assertions",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 1024,
+      "operationsPerIteration": 3,
+      "operationUnit": "successful structural assertion calls",
+      "specification": "Borrow independently constructed equal and unequal supported data; preserve exact scalar values and observe a base131 checksum of selected square keys.",
+      "notes": "Whole assertion pipeline including setup and checksum. Typed borrowed traversal has no clone/serialization. Direct Rust uses ordinary typed data and std collections as a control, not a claim of identical collection representation. No whole-framework speed score.",
+      "methodExpressions": {
+        "native": [
+          "deepStrictEqual(first,second)",
+          "deepStrictEqual(setA,setB)",
+          "notDeepStrictEqual(first,different)"
+        ],
+        "typescript": [
+          "deepStrictEqual(first,second)",
+          "deepStrictEqual(setA,setB)",
+          "notDeepStrictEqual(first,different)"
+        ]
+      },
+      "sourceRequired": {
+        "native": [
+          "from 'std:testing'",
+          "const at=(i*13+seed)%8;"
+        ],
+        "typescript": [
+          "from 'node:assert/strict'",
+          "const at=(i*13+seed)%8;"
+        ]
+      },
+      "sourceSha256": "be505245a78a486173af67d233b822ae6e5278d4d8b0f0033a3afa9d1f92334c",
+      "counterpartSha256": "3aa8182393d0c52d7de7c9e5ee9e7045bff5560cf9d60a2f7838cf2dc3c1caae",
+      "rustReference": "parity/testing_deep_collections.rs",
+      "source": "workloads/testing_deep_collections.tsr",
+      "counterpart": "workloads/testing_deep_collections.ts",
+      "measured": false,
+      "measurementStatus": "unmeasured-structural-assertions",
+      "rustReferenceSha256": "628b5c03d924582220a88da2826377c1fbd3bb7ba2bb54e5863a6a2444b03754"
+    },
+    {
+      "id": "iterator_map_filter_reduce",
+      "category": "owned-iterators",
+      "description": "Owned lazy iterator composition, ordered observation and cleanup",
+      "source": "workloads/iterator_map_filter_reduce.tsr",
+      "counterpart": "workloads/iterator_map_filter_reduce.ts",
+      "rustReference": "parity/iterator_map_filter_reduce.rs",
+      "iterations": 2000,
+      "operationsPerIteration": 64,
+      "operationUnit": "One source item in a 64-item owned lazy chain",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "owned-iterators",
+      "measured": false,
+      "measurementStatus": "unmeasured-owned-iterators",
+      "specification": "Ordered input (j*17+seed+i)%997, full query construction and disposal. Independent scalar oracle in owned-iterators-contract.mjs.",
+      "notes": "Original 8 warmups,3 processes,31 samples. Direct Rust standard iterators and TypeScript generators consume identical selected inputs. Rust collect specialization is part of the selected backend; generated facade acceptance remains pending.",
+      "sourceSha256": "61c7a17f4d707d13eb88b8753b3f2572db97e36736f555ede6b2390de57467f1",
+      "counterpartSha256": "daca5ce2ff2ae001292540ceeb6622a8d8c45a65e2bf33c457d113588593cff3",
+      "rustReferenceSha256": "e25e60b0e657ead3277d23dc75e6578e1984d41ea62023e19eba5b2404720aab"
+    },
+    {
+      "id": "iterator_take_array",
+      "category": "owned-iterators",
+      "description": "Owned lazy iterator composition, ordered observation and cleanup",
+      "source": "workloads/iterator_take_array.tsr",
+      "counterpart": "workloads/iterator_take_array.ts",
+      "rustReference": "parity/iterator_take_array.rs",
+      "iterations": 2000,
+      "operationsPerIteration": 64,
+      "operationUnit": "One source item in a 64-item owned lazy chain",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "owned-iterators",
+      "measured": false,
+      "measurementStatus": "unmeasured-owned-iterators",
+      "specification": "Ordered input (j*17+seed+i)%997, full query construction and disposal. Independent scalar oracle in owned-iterators-contract.mjs.",
+      "notes": "Original 8 warmups,3 processes,31 samples. Direct Rust standard iterators and TypeScript generators consume identical selected inputs. Rust collect specialization is part of the selected backend; generated facade acceptance remains pending.",
+      "sourceSha256": "ab46528dc487725ddf1decbd62a122f2bf176c9c5ec33be9895de32097e2d6d3",
+      "counterpartSha256": "23af13346428aca1f2f135f31d92918191fde6f0858b029d83d19ac2f49ae124",
+      "rustReferenceSha256": "8ceced67abd2dad53092d2a5c187d0db5343c2c9b07829518ae666735e10e7d0"
+    },
+    {
+      "id": "iterator_flat_array",
+      "category": "owned-iterators",
+      "description": "Owned lazy iterator composition, ordered observation and cleanup",
+      "source": "workloads/iterator_flat_array.tsr",
+      "counterpart": "workloads/iterator_flat_array.ts",
+      "rustReference": "parity/iterator_flat_array.rs",
+      "iterations": 2000,
+      "operationsPerIteration": 64,
+      "operationUnit": "One source item in a 64-item owned lazy chain",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "owned-iterators",
+      "measured": false,
+      "measurementStatus": "unmeasured-owned-iterators",
+      "specification": "Ordered input (j*17+seed+i)%997, full query construction and disposal. Independent scalar oracle in owned-iterators-contract.mjs.",
+      "notes": "Original 8 warmups,3 processes,31 samples. Direct Rust standard iterators and TypeScript generators consume identical selected inputs. Rust collect specialization is part of the selected backend; generated facade acceptance remains pending.",
+      "sourceSha256": "84242a6889ce7caf864064523294939c490fd7d3f14e09e99abf8310e48c588d",
+      "counterpartSha256": "6ec23764738eb8b47cd860c65b5746118f336e6f69286772bffb5e013dcadcb5",
+      "rustReferenceSha256": "26d2e718ff69effd2deac31c1611e8e1859ac8097a536a4149c861b075233ee9"
+    },
+    {
+      "id": "iterator_flat_iterator",
+      "category": "owned-iterators",
+      "description": "Owned lazy iterator composition, ordered observation and cleanup",
+      "source": "workloads/iterator_flat_iterator.tsr",
+      "counterpart": "workloads/iterator_flat_iterator.ts",
+      "rustReference": "parity/iterator_flat_iterator.rs",
+      "iterations": 2000,
+      "operationsPerIteration": 64,
+      "operationUnit": "One source item in a 64-item owned lazy chain",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "owned-iterators",
+      "measured": false,
+      "measurementStatus": "unmeasured-owned-iterators",
+      "specification": "Ordered input (j*17+seed+i)%997, full query construction and disposal. Independent scalar oracle in owned-iterators-contract.mjs.",
+      "notes": "Original 8 warmups,3 processes,31 samples. Direct Rust standard iterators and TypeScript generators consume identical selected inputs. Rust collect specialization is part of the selected backend; generated facade acceptance remains pending.",
+      "sourceSha256": "d5b6347e8c78f5a98049bc79051f88be21d913511342bf469b86286f5cf2a1d1",
+      "counterpartSha256": "3a52861637836caa9b02da269e6139843f0d88fba118d746ee60f2d8cdb896d2",
+      "rustReferenceSha256": "1a206ab9800e7fe0bb5f010d32a6bc731101cdce2fd22f25882aeb6e751fd911"
+    },
+    {
       "id": "path_parse_parts",
       "category": "path-env-os",
       "description": "parse and observe all five owned path fields",
@@ -27231,6 +27415,174 @@
       "notes": "Shared immutable Node corpus; caller pool1/capacity1, Node worker pool1. Level default6; 8192-byte working chunks, not a total cap. Reader materializes transformed output; writer includes base file creation/write/flush/close/read/remove. Input cloned once/iteration. Explicit finish is included. Encoder timing includes subsequent buffer decode, not encoder-only throughput. Untimed probes record actual encoded sizes and independent cross-engine decoding. Original8warmups,3processes×31samples.",
       "sourceSha256": "55f776f85b2ab5d2f87c38e5a6e7d699246df64a4577f2ac1951f01ed086c463",
       "counterpartSha256": "c9a0ac670a76c55eb3c2760a0145d737e84ac6cd0c8bcee05d62661008931895"
+    },
+    {
+      "id": "collection_endpoints",
+      "category": "collection-numeric-date",
+      "family": "collection-numeric-date",
+      "description": "collection endpoints",
+      "source": "workloads/collection_endpoints.tsr",
+      "counterpart": "workloads/collection_endpoints.ts",
+      "rustReference": "parity/collection_endpoints.rs",
+      "rustReferenceSha256": "c882ff8fbd6819f7e428d6246c242fa5b148f7768927a07afc9864642cefdad1",
+      "iterations": 2048,
+      "operationsPerIteration": 4,
+      "operationUnit": "One complete observed completion scenario",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-collection-numeric-date",
+      "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "sourceSha256": "9fa7fc278dee0eaafbeab187ba95883ff3c721882ea146960f2fe7e96a6c8ad3",
+      "counterpartSha256": "cd7b4efaa67503f3ea02c7d599075e01544309be48e6f71f20900e67318874ad"
+    },
+    {
+      "id": "ordered_set_snapshots",
+      "category": "collection-numeric-date",
+      "family": "collection-numeric-date",
+      "description": "ordered set snapshots",
+      "source": "workloads/ordered_set_snapshots.tsr",
+      "counterpart": "workloads/ordered_set_snapshots.ts",
+      "rustReference": "parity/ordered_set_snapshots.rs",
+      "rustReferenceSha256": "adb5528ee7d706e401658476e2961281be68ba88cdf4ad2e296dd1b341262e91",
+      "iterations": 2048,
+      "operationsPerIteration": 4,
+      "operationUnit": "One complete observed completion scenario",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-collection-numeric-date",
+      "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "sourceSha256": "32451f6092e652bced0807c03575c8fcbe91c32cce495b0d03bc459cd390aa94",
+      "counterpartSha256": "4073841f7cd4081b4d8ea5fde363b764525eb38e637e263bc911ee156aff882e"
+    },
+    {
+      "id": "deque_values_snapshot",
+      "category": "collection-numeric-date",
+      "family": "collection-numeric-date",
+      "description": "deque values snapshot",
+      "source": "workloads/deque_values_snapshot.tsr",
+      "counterpart": "workloads/deque_values_snapshot.ts",
+      "rustReference": "parity/deque_values_snapshot.rs",
+      "rustReferenceSha256": "cc35e10b7629fd42cb1ab3ed468499028d3339da2ea6ec485cf3ae7499ba78d0",
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete observed completion scenario",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-collection-numeric-date",
+      "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "sourceSha256": "0981c49363d2467a5cbf7f46f8a247cc087de043ce462726fb932d0998bfc385",
+      "counterpartSha256": "f26313f8ce9187a0afc685625fb39b40c5ddb7cc18acece1c1e16569e3f9e157"
+    },
+    {
+      "id": "heap_sorted_snapshot",
+      "category": "collection-numeric-date",
+      "family": "collection-numeric-date",
+      "description": "heap sorted snapshot",
+      "source": "workloads/heap_sorted_snapshot.tsr",
+      "counterpart": "workloads/heap_sorted_snapshot.ts",
+      "rustReference": "parity/heap_sorted_snapshot.rs",
+      "rustReferenceSha256": "bf5ba841ce3d47445a0e4527a8c8ffada2ba7b43c40703a96e6524849bd6aadf",
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete observed completion scenario",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-collection-numeric-date",
+      "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "sourceSha256": "7cb0e799e584ac414eed4353ae4e88ab6b1b90c1ebfe16f42ef7916b771eb433",
+      "counterpartSha256": "3f3e854f622a3eeda7121b0d85d305c4eeee48c56676774c51b9787c81697b81"
+    },
+    {
+      "id": "numeric_strict_parse",
+      "category": "collection-numeric-date",
+      "family": "collection-numeric-date",
+      "description": "numeric strict parse",
+      "source": "workloads/numeric_strict_parse.tsr",
+      "counterpart": "workloads/numeric_strict_parse.ts",
+      "rustReference": "parity/numeric_strict_parse.rs",
+      "rustReferenceSha256": "4d158b88322e8ee29e277ee077c01d176a0b6613b0362520080153049e6ce4e4",
+      "iterations": 2048,
+      "operationsPerIteration": 3,
+      "operationUnit": "One complete observed completion scenario",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-collection-numeric-date",
+      "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "sourceSha256": "ab456e7e3acb9671ae22f4f507665909acbaf70f5ef49664770049713163d637",
+      "counterpartSha256": "8f9e49cb61b640dcab4f1bf5e15b9cdb28d9302da591b34a3db77c4d3410bd8b"
+    },
+    {
+      "id": "numeric_checked_arithmetic",
+      "category": "collection-numeric-date",
+      "family": "collection-numeric-date",
+      "description": "numeric checked arithmetic",
+      "source": "workloads/numeric_checked_arithmetic.tsr",
+      "counterpart": "workloads/numeric_checked_arithmetic.ts",
+      "rustReference": "parity/numeric_checked_arithmetic.rs",
+      "rustReferenceSha256": "aa60aeb2405f7c14a43fb2bd2d8a61943806bd9eba267e1335efd2b5a0266cc3",
+      "iterations": 2048,
+      "operationsPerIteration": 5,
+      "operationUnit": "One complete observed completion scenario",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-collection-numeric-date",
+      "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "sourceSha256": "dfb1779d61de3c888042c36b1260bc08acedbe34341622d4e0f0b574ed8f64f3",
+      "counterpartSha256": "fed3f35135078606e067b8f281c1c357794a8f643f771adb700501f3f55e4dde"
+    },
+    {
+      "id": "date_completion_access",
+      "category": "collection-numeric-date",
+      "family": "collection-numeric-date",
+      "description": "date completion access",
+      "source": "workloads/date_completion_access.tsr",
+      "counterpart": "workloads/date_completion_access.ts",
+      "rustReference": "parity/date_completion_access.rs",
+      "rustReferenceSha256": "3a2f9a4a2b1c0faef3c7bd88bb26f27f745bb0ad7b27b6c7b965c3d81774e680",
+      "iterations": 2048,
+      "operationsPerIteration": 7,
+      "operationUnit": "One complete observed completion scenario",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-collection-numeric-date",
+      "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "sourceSha256": "02788936173270fb5dcbcc4a65394402270a25411468ea3439b0a46f8b6eff1f",
+      "counterpartSha256": "3190951a0ecece602247ff3a8246c34236719811a65c78f258daedced8894f4d"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

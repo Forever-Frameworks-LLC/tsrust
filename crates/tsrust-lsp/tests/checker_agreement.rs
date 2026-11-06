@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {Child as ProcessChild,CommandOptions,ExitStatus,Output,ProcessError} from 'std:process';\nimport {IpAddress,SocketAddress,NetError,TcpListener,TcpStream,UdpSocket,Datagram} from 'std:net';\nimport {CompressionOptions,DecompressionOptions,CompressionError,CompressionReader,CompressionWriter,CompressionFormat} from 'std:compression';\nimport {Reader,Writer,LineReader,Stdin,IoError} from 'std:io';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {Locale,Collator,Segmenter,NumberFormat,SegmentRange,LocaleError,CollatorOptions,NumberFormatOptions} from 'std:locale';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Interval,CancellationToken,Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Iterator} from 'std:iterator';\nimport {Deque,Heap,OrderedSet,OrderedMap} from 'std:collections';\nimport {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {Child as ProcessChild,CommandOptions,ExitStatus,Output,ProcessError} from 'std:process';\nimport {IpAddress,SocketAddress,NetError,TcpListener,TcpStream,UdpSocket,Datagram} from 'std:net';\nimport {CompressionOptions,DecompressionOptions,CompressionError,CompressionReader,CompressionWriter,CompressionFormat} from 'std:compression';\nimport {Reader,Writer,LineReader,Stdin,IoError} from 'std:io';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {Locale,Collator,Segmenter,NumberFormat,SegmentRange,LocaleError,CollatorOptions,NumberFormatOptions} from 'std:locale';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Interval,CancellationToken,Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -34,6 +34,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"Iterator<int>",parameter:"x: Iterator<int>"},
 Receiver {ty:"ProcessChild",parameter:"x: ProcessChild"},
 Receiver {ty:"CommandOptions",parameter:"x: ReadOnly<CommandOptions>"},
 Receiver {ty:"ExitStatus",parameter:"x: ReadOnly<ExitStatus>"},
@@ -66,6 +67,11 @@ Receiver {ty:"SegmentRange",parameter:"x: ReadOnly<SegmentRange>"},
 Receiver {ty:"LocaleError",parameter:"x: ReadOnly<LocaleError>"},
 Receiver {ty:"CollatorOptions",parameter:"x: ReadOnly<CollatorOptions>"},
 Receiver {ty:"NumberFormatOptions",parameter:"x: ReadOnly<NumberFormatOptions>"},
+Receiver {ty:"Deque<int[]>",parameter:"x: ReadOnly<Deque<int[]>>"},
+Receiver {ty:"Heap<number>",parameter:"x: ReadOnly<Heap<number>>"},
+Receiver {ty:"OrderedSet<string>",parameter:"x: ReadOnly<OrderedSet<string>>"},
+Receiver {ty:"OrderedMap<string, int>",parameter:"x: ReadOnly<OrderedMap<string, int>>"},
+
 Receiver {ty:"Regex",parameter:"x: ReadOnly<Regex>"},
 Receiver {ty:"RegexMatch",parameter:"x: ReadOnly<RegexMatch>"},
 Receiver {ty:"RegexCaptures",parameter:"x: ReadOnly<RegexCaptures>"},
@@ -224,7 +230,7 @@ fn prelude(parameter: &str) -> String {
     let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
     let annotation=["ReadOnly<","Owned<","Mutable<"].iter().find_map(|prefix|annotation.strip_prefix(prefix)).unwrap_or(annotation);
     let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
-    let ui=PRELUDE.lines().next().unwrap();
+    let ui=PRELUDE.lines().find(|line|line.contains("from 'std:ui'")).unwrap();
     if family=="LazyChildrenProps" {return format!("{ui}\ninterface LazyChildrenProps{{children?:LazyChildren;}}\n");}
     // Keep every probe, but only load the module that declares its receiver.
     for import in PRELUDE.lines().filter(|line|line.starts_with("import ")) {

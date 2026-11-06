@@ -1,0 +1,50 @@
+import { parseInt as exact, parseNumber, checkedAdd, checkedSubtract, checkedMultiply, checkedDivide, checkedRemainder, NumericError } from 'std:numeric';
+import { strictEqual } from 'std:testing';
+
+function code(value: Result<int, NumericError>): string {
+  return match (value) {
+    Ok(_) => 'Ok',
+    Err(error) => error.code,
+  };
+}
+
+function main() {
+  strictEqual(unwrap(exact('ff', 16)), 255);
+  strictEqual(unwrap(exact('-100', 2)), -4);
+  strictEqual(unwrap(exact('Z', 36)), 35);
+  strictEqual(unwrap(exact('+10')), 10);
+  strictEqual(unwrap(exact('10', undefined)), 10);
+  strictEqual(code(exact('1', 1)), 'Radix');
+  strictEqual(code(exact('1', 37)), 'Radix');
+  strictEqual(code(exact(' 1')), 'Syntax');
+  strictEqual(code(exact('0xff', 16)), 'Syntax');
+  strictEqual(code(exact('1_0')), 'Syntax');
+  strictEqual(code(exact('9223372036854775808')), 'Range');
+  const max = unwrap(exact('9223372036854775807'));
+  const min = unwrap(exact('-9223372036854775808'));
+  strictEqual(code(checkedAdd(max, 1)), 'Range');
+  strictEqual(code(checkedSubtract(min, 1)), 'Range');
+  strictEqual(code(checkedMultiply(max, 2)), 'Range');
+  strictEqual(code(checkedDivide(min, -1)), 'Range');
+  strictEqual(code(checkedRemainder(min, -1)), 'Range');
+  strictEqual(code(checkedDivide(1, 0)), 'Zero');
+  strictEqual(code(checkedRemainder(1, 0)), 'Zero');
+  strictEqual(unwrap(checkedAdd(7, 3)), 10);
+  strictEqual(unwrap(checkedSubtract(7, 3)), 4);
+  strictEqual(unwrap(checkedMultiply(7, 3)), 21);
+  strictEqual(unwrap(checkedDivide(-7, 3)), -2);
+  strictEqual(unwrap(checkedRemainder(-7, 3)), -1);
+  strictEqual(unwrap(parseNumber('.5')), 0.5);
+  strictEqual(unwrap(parseNumber('1.')), 1.0);
+  strictEqual(unwrap(parseNumber('1e2')), 100.0);
+  strictEqual(unwrap(parseNumber('1e999')), Infinity);
+  strictEqual(isNaN(unwrap(parseNumber('NaN'))), true);
+  strictEqual(Object.is(unwrap(parseNumber('-1e-999')), -0.0), true);
+  strictEqual(Object.is(unwrap(parseNumber('-0')), -0.0), true);
+  for (const text of ['', ' 1', '1 ', '1x', '0x10', '1_0']) {
+    strictEqual(match (parseNumber(text)) {
+      Ok(_) => 'Ok',
+      Err(error) => error.code,
+    }, 'Syntax');
+  }
+}

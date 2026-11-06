@@ -38,6 +38,11 @@ impl CheckedProgram {
                 Type::Union(id)|Type::BorrowedUnion(id)=>for &ty in &self.unions[id.index()].members{pending.push((ty,path.clone(),seen.clone()));},
                 Type::Array(element)=>{let mut child=path;child.push("*".into());pending.push((element.ty(),child,seen));},
                 Type::Closure(id)=>for capture in &self.closures[id].captures{if capture.storage==Mode::Consume{let mut child=path.clone();child.push(format!("capture{}",capture.inner));pending.push((self.closures[id].function.bindings[capture.inner].ty,child,seen.clone()));}},
+                Type::StoredCallable(family)=>if let Some(layout)=self.stored_contracts.scoped_native_family(family).filter(|layout|layout.lifetimes()==0){
+                    for alternative in &layout.alternatives{
+                        pending.push((Type::Closure(alternative.origin),path.clone(),seen.clone()));
+                    }
+                },
                 _=>{}
             }
         }found

@@ -170,8 +170,10 @@ impl Emitter<'_> {
                 let pair_type=self.native_type(Type::Record(pair));
                 action.push_str(&self.flat_array_result(expression.ty.unwrap(),&format!("map_receiver.{iterator}().map(|(key,value)|{pair_type}{{field0:key.clone(),field1:value.clone()}}).collect::<Vec<_>>()")));
             },
-            MapMethod::Get=>{
+            MapMethod::Get|MapMethod::FirstKey|MapMethod::LastKey=>{
                 let get=if ordered{format!("map_receiver.get_{query_suffix}(map_key)")}else{"map_receiver.get(map_key)".into()};
+                let value_type=if matches!(method,MapMethod::FirstKey|MapMethod::LastKey){map.key}else{value_type};
+                let get=if matches!(method,MapMethod::FirstKey|MapMethod::LastKey){format!("map_receiver.values.{}().map(|(key,_)|&key.0)",if method==MapMethod::FirstKey{"first_key_value"}else{"last_key_value"})}else{get};
                 let selected=if value_type.is_copy(){format!("{get}.copied()")}else if borrowed{get}else if ordered{format!("map_receiver.into_value_{query_suffix}(map_key)")}else{"map_receiver.into_value(map_key)".into()};
                 match expression.ty.unwrap() {
                     Type::Undefined=>{let _=write!(action,"let _={selected};TsrUndefined");},

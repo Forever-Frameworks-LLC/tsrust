@@ -1,0 +1,12 @@
+import { test, deepStrictEqual, notDeepStrictEqual, rejects } from 'std:testing';
+test('nested exact data', () => {
+  deepStrictEqual([[1, 2]], [[1, 2]]);
+  notDeepStrictEqual([1, 2], [1, 3]);
+});
+test('checked asynchronous rejection', async () => {
+  await rejects(async () => {
+    throw {
+      code: 'expected', retry: false
+    };
+  });
+});

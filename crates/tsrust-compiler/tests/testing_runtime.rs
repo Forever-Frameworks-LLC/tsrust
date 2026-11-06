@@ -21,6 +21,8 @@ mod runtime {
     fn tsr_console_test_begin(_: &str) {}
     fn tsr_console_test_end(_: bool) {}
     include!("../src/stdlib/testing/runtime/mod.rs");
+    fn tsr_console_quote(text:&str,_json:bool)->std::string::String{serde_json::to_string(text).unwrap()}
+    include!("../src/stdlib/testing/runtime/report.rs");
     include!("../src/stdlib/testing/runtime/registration.rs");
     include!("../src/stdlib/testing/runtime/hooks.rs");
     include!("../src/stdlib/testing/runtime/async.rs");

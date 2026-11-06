@@ -79,19 +79,19 @@
     },
     "Deque": {
       "route": "/docs/standard-library/collections",
-      "members": 9
+      "members": 10
     },
     "OrderedSet": {
       "route": "/docs/standard-library/collections",
-      "members": 5
+      "members": 11
     },
     "Heap": {
       "route": "/docs/standard-library/collections",
-      "members": 5
+      "members": 6
     },
     "OrderedMap": {
       "route": "/docs/standard-library/collections",
-      "members": 10
+      "members": 12
     },
     "ValidationContext": {
       "route": "/docs/standard-library/schema",
@@ -211,7 +211,7 @@
     },
     "std:testing": {
       "route": "/docs/standard-library/testing",
-      "members": 24
+      "members": 27
     },
     "Expectation": {
       "route": "/docs/standard-library/testing",
@@ -379,7 +379,7 @@
     },
     "std:numeric": {
       "route": "/docs/standard-library/numeric",
-      "members": 7
+      "members": 13
     },
     "std:decimal": {
       "route": "/docs/standard-library/decimal",
@@ -387,7 +387,7 @@
     },
     "std:date": {
       "route": "/docs/standard-library/date",
-      "members": 47
+      "members": 54
     },
     "std:uuid": {
       "route": "/docs/standard-library/uuid",
@@ -500,6 +500,18 @@
     "CompressionWriter": {
       "route": "/docs/standard-library/compression",
       "members": 5
+    },
+    "std:iterator": {
+      "route": "/docs/standard-library/iterator",
+      "members": 2
+    },
+    "IteratorConstructor": {
+      "route": "/docs/standard-library/iterator",
+      "members": 1
+    },
+    "Iterator": {
+      "route": "/docs/standard-library/iterator",
+      "members": 12
     }
   }
 }

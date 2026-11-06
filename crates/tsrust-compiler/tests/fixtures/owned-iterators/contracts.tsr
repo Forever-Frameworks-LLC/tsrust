@@ -1,0 +1,209 @@
+import { Iterator, IteratorResult } from 'std:iterator';
+import { strictEqual, trackedResource, resourceId, releaseCount, liveCount, closeResource, TrackedResource } from 'std:testing';
+
+type Failure = {
+  code: 'selected'
+};
+
+function failFirst(value: Owned<int>): int {
+  if (value === 0) {
+    const error: Failure = {
+      code: 'selected'
+    };
+    throw error;
+  }
+
+  return value;
+}
+
+function throughOwned(values: Owned<Iterator<int>>): Iterator<int> {
+  return values.map(value => value + 1);
+}
+
+function choose(flag: boolean): Iterator<int> {
+  if (flag) {
+    return Iterator.from([1, 2, 3]).map(value => value * 2);
+  }
+
+  return Iterator.from([1, 2, 3]).filter(value => value > 1);
+}
+
+function main() {
+  strictEqual(throughOwned(Iterator.from([1, 2])).toArray().join(','), '2,3');
+  strictEqual(choose(true).toArray().join(','), '2,4,6');
+  strictEqual(choose(false).toArray().join(','), '2,3');
+  strictEqual(Iterator.from([1, 2, 3]).reduce((sum, value) => sum + value, 10), 16);
+  strictEqual(Iterator.from([1, 2, 3]).flatMap(value => [value, value]).toArray().join(','), '1,1,2,2,3,3');
+  strictEqual(Iterator.from([1, 2]).flatMap(value => Iterator.from([value, value + 10])).toArray().join(','), '1,11,2,12');
+  strictEqual(Iterator.from([1, 2, 3]).filter(value => value > 1).drop(1).take(1).toArray().join(','), '3');
+  strictEqual(Iterator.from([1, 2, 3]).find(value => value === 2), 2);
+  strictEqual(Iterator.from([1, 2, 3]).some(value => value === 2), true);
+  strictEqual(Iterator.from([1, 2, 3]).every(value => value > 0), true);
+  const empty: int[] = [];
+  strictEqual(Iterator.from(empty).every(value => value > 0), true);
+  const retry = Iterator.from([0, 1]).map(failFirst);
+  let retryErrors = 0;
+  try {
+    retry.next();
+  } catch (error) {
+    retryErrors += 1;
+    strictEqual(error.code, 'selected');
+  }
+
+  strictEqual(retryErrors, 1);
+
+  const recovered = retry.next();
+  if (recovered.done) {
+    throw 'missing retry item';
+  }
+
+  strictEqual(recovered.value, 1);
+  strictEqual(retry.next().done, true);
+  const dropError = Iterator.from([0, 1]).map(failFirst).drop(1);
+  let dropErrors = 0;
+  try {
+    dropError.next();
+  } catch (error) {
+    dropErrors += 1;
+    strictEqual(error.code, 'selected');
+  }
+
+  strictEqual(dropErrors, 1);
+
+  const afterDrop = dropError.next();
+  if (afterDrop.done) {
+    throw 'drop swallowed next item';
+  }
+
+  strictEqual(afterDrop.value, 1);
+  const takeError = Iterator.from([0, 1]).map(failFirst).take(1);
+  let takeErrors = 0;
+  try {
+    takeError.next();
+  } catch (error) {
+    takeErrors += 1;
+    strictEqual(error.code, 'selected');
+  }
+
+  strictEqual(takeErrors, 1);
+
+  strictEqual(takeError.next().done, true);
+  strictEqual(Iterator.from([0]).map(failFirst).take(0).next().done, true);
+  Iterator.from([1, 2, 3]).forEach(value => {
+    strictEqual(value > 0, true);
+  });
+  const before = liveCount();
+  const first = trackedResource();
+  const firstId = resourceId(first);
+  const second = trackedResource();
+  const secondId = resourceId(second);
+  {
+    const owners = Iterator.from([first, second]);
+    const step = owners.next();
+    if (step.done) {
+      throw 'missing owner';
+    }
+
+    strictEqual(resourceId(step.value), firstId);
+    closeResource(step.value);
+    strictEqual(releaseCount(firstId), 1);
+    strictEqual(releaseCount(secondId), 0);
+  }
+
+  strictEqual(releaseCount(firstId), 1);
+  strictEqual(releaseCount(secondId), 1);
+  strictEqual(liveCount(), before);
+
+  const rejected = trackedResource();
+  const rejectedId = resourceId(rejected);
+  const selected = trackedResource();
+  const selectedId = resourceId(selected);
+  const remaining = trackedResource();
+  const remainingId = resourceId(remaining);
+  const filterCapture = trackedResource();
+  const filterCaptureId = resourceId(filterCapture);
+  const findCapture = trackedResource();
+  const findCaptureId = resourceId(findCapture);
+  let filtered = 0;
+  let found = 0;
+  const match = Iterator.from([rejected, selected, remaining]).filter(value => {
+    strictEqual(resourceId(filterCapture), filterCaptureId);
+    filtered += 1;
+    strictEqual(resourceId(value), filtered === 1 ? rejectedId : selectedId);
+    strictEqual(filtered <= 2, true);
+    return filtered === 2;
+  }).find(value => {
+    strictEqual(resourceId(findCapture), findCaptureId);
+    found += 1;
+    strictEqual(found, 1);
+    strictEqual(resourceId(value), selectedId);
+    return true;
+  });
+  if (match === undefined) {
+    throw 'missing selected owner';
+  }
+
+  strictEqual(resourceId(match), selectedId);
+  strictEqual(releaseCount(rejectedId), 1);
+  strictEqual(releaseCount(selectedId), 0);
+  strictEqual(releaseCount(remainingId), 1);
+  strictEqual(releaseCount(filterCaptureId), 1);
+  strictEqual(releaseCount(findCaptureId), 1);
+  closeResource(match);
+  strictEqual(releaseCount(selectedId), 1);
+
+  for (const useSome of [true, false]) {
+    const item = trackedResource();
+    const itemId = resourceId(item);
+    const tail = trackedResource();
+    const tailId = resourceId(tail);
+    const capture = trackedResource();
+    const captureId = resourceId(capture);
+    let calls = 0;
+    const predicate = (value: Owned<TrackedResource>): boolean => {
+      strictEqual(resourceId(capture), captureId);
+      calls += 1;
+      strictEqual(calls, 1);
+      strictEqual(resourceId(value), itemId);
+      return useSome;
+    };
+    const source = Iterator.from([item, tail]);
+    if (useSome) {
+      strictEqual(source.some(predicate), true);
+    } else {
+      strictEqual(source.every(predicate), false);
+    }
+
+    strictEqual(releaseCount(itemId), 1);
+    strictEqual(releaseCount(tailId), 1);
+    strictEqual(releaseCount(captureId), 1);
+  }
+
+  const failedItem = trackedResource();
+  const failedItemId = resourceId(failedItem);
+  const failedTail = trackedResource();
+  const failedTailId = resourceId(failedTail);
+  const failedCapture = trackedResource();
+  const failedCaptureId = resourceId(failedCapture);
+  let terminalErrors = 0;
+  try {
+    Iterator.from([failedItem, failedTail]).forEach(value => {
+      strictEqual(resourceId(failedCapture), failedCaptureId);
+      strictEqual(resourceId(value), failedItemId);
+      const error: Failure = {
+        code: 'selected'
+      };
+      throw error;
+    });
+  } catch (error) {
+    terminalErrors += 1;
+    strictEqual(error.code, 'selected');
+  }
+
+  strictEqual(terminalErrors, 1);
+  strictEqual(releaseCount(failedItemId), 1);
+  strictEqual(releaseCount(failedTailId), 1);
+  strictEqual(releaseCount(failedCaptureId), 1);
+  strictEqual(liveCount(), before);
+  console.log('owned iterators passed');
+}

@@ -1,0 +1,2 @@
+fn function0(value0: i64, value1: i64) -> i64 {let mut checksum=value1;for i in 0..value0{let mut set=std::collections::BTreeSet::from([value1+3,value1+1,value1+2]);let values:Vec<_>=set.iter().copied().collect();let keys:Vec<_>=set.iter().copied().collect();let entries:Vec<_>=set.iter().map(|v|(*v,*v)).collect();let calls:i64=set.iter().map(|v|v+v+set.len() as i64).sum();set.clear();for j in 0..3{checksum+=(j as i64+1)*(values[j]+keys[j]+entries[j].0+entries[j].1);}checksum+=calls+set.len() as i64;}checksum}
+fn main(){}

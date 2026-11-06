@@ -324,6 +324,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 } else {
                     symbol(module, &name.text)
                 };
+                let linked=if id.0=="std:iterator" && name.text.starts_with('_'){format!("{}{}",crate::stdlib::iterator::PREFIX,name.text.trim_start_matches('_'))}else{linked};
                 (name.text.clone(), linked)
             })
             .collect::<BTreeMap<_, _>>();
@@ -438,6 +439,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             type_parameters: BTreeSet::new(),
         };
         for record in &mut program.records {
+            if id.0=="std:iterator" && record.name.text=="Iterator"{record.native_type=Some(crate::native_signatures::NativeTypeId::OwnedIterator);}
             visitor.type_parameters = record.type_parameters.iter().map(|parameter| parameter.text.clone()).collect();
             for parameter in &mut record.type_parameters { visitor.span(&mut parameter.span); }
             record.name.text = names[&record.name.text].clone();

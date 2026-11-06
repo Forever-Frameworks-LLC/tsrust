@@ -8,6 +8,7 @@ struct Boundary {
 enum CallState<'p> {
     Spread,
     CollectionConstructor,
+    IteratorLeaf,
     BuiltinReceiver(Mode),
     ObjectSpread { snapshots:Vec<Option<String>> },
     Sequence { discards: Vec<bool>, first_temporary: usize },
@@ -236,6 +237,10 @@ impl<'p> Emitter<'p> {
         mode: Mode,
         force_carrier: bool,
     ) -> Option<CallFrame<'a, 'p>> {
+        if matches!(expr.target,Some(CallTarget::IteratorCursor|CallTarget::IteratorNext)){
+            let ExprKind::Call(_,args)=&expr.kind else{unreachable!("iterator leaf call")};
+            return Some(CallFrame{children:vec![(&args[0],if expr.target==Some(CallTarget::IteratorCursor){Mode::Consume}else{Mode::Mutate})],rendered:Vec::new(),invocation:None,state:CallState::IteratorLeaf});
+        }
         if let ExprKind::SpreadCall(plan)=&expr.kind {
             return Some(CallFrame{children:self.spread_expression_children(plan,mode),rendered:Vec::new(),invocation:None,state:CallState::Spread});
         }
@@ -623,6 +628,7 @@ impl<'p> Emitter<'p> {
             if rendered.last().is_some_and(|(address,_,_)|*address==receiver as *const Expr as usize){rendered.pop();}
             return code;
         }
+        if matches!(state,CallState::IteratorLeaf){return self.iterator_leaf(expr,&rendered[0]);}
         if matches!(state,CallState::CollectionConstructor){
             let source=rendered.into_iter().next();
             return if matches!(expr.kind,ExprKind::SetConstructor(_,_)){self.set_constructor_expression(expr,mode,source)}else{self.map_constructor_expression(expr,mode,source)};
@@ -644,7 +650,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Spread|CallState::CollectionConstructor|CallState::BuiltinReceiver(_)|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
+            CallState::IteratorLeaf|CallState::Spread|CallState::CollectionConstructor|CallState::BuiltinReceiver(_)|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
             CallState::Sequence { .. } | CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Assertion { .. } | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
@@ -892,7 +898,7 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
-            CallState::Spread|CallState::CollectionConstructor|CallState::BuiltinReceiver(_)|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
+            CallState::IteratorLeaf|CallState::Spread|CallState::CollectionConstructor|CallState::BuiltinReceiver(_)|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
             CallState::Sequence { discards, .. } => {
                 let mut code = String::from("{");
                 for (value, discard) in rendered.into_iter().zip(discards) {

@@ -660,17 +660,19 @@ impl NumericConstant {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SetMethod { Add, Has, Delete, Clear, Values, Entries(usize), IsSubsetOf, IsSupersetOf, IsDisjointFrom, Union, Intersection, Difference, SymmetricDifference }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MapMethod { Set, Get, Has, Delete, Clear, Keys, Values, Entries(usize) }
+pub enum MapMethod { Set, Get, Has, Delete, Clear, Keys, Values, Entries(usize), FirstKey, LastKey }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OrderedSetMethod { Add, Has, Delete, Clear }
+pub enum OrderedSetMethod { Add, Has, Delete, Clear, Values, Entries(usize), First, Last }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum HeapMethod { Push, Peek, Pop, Clear }
+pub enum HeapMethod { Push, Peek, Pop, Clear, ToSortedArray }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DequeMethod { PushFront, PushBack, PopFront, PopBack, Front, Back, At, Clear }
+pub enum DequeMethod { PushFront, PushBack, PopFront, PopBack, Front, Back, At, Clear, Values }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CallTarget {
+    IteratorCursor,
+    IteratorNext,
     DequeMethod(DequeMethod),
     HeapMethod(HeapMethod),
     OrderedSetMethod(OrderedSetMethod),

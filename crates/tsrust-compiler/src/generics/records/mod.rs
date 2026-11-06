@@ -14,6 +14,8 @@ pub(crate) struct Cache {
 }
 
 impl Cache {
+    pub(crate) fn native_template(&self,name:&str)->Option<crate::native_signatures::NativeTypeId>{self.templates.get(name)?.native_type}
+
     pub(crate) fn declaration(&self, name: &str) -> Option<Span> {
         self.templates.get(name).map(|record| record.name.span)
     }

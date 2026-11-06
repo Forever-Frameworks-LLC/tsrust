@@ -525,6 +525,7 @@ struct TsrConsoleState {
 std::thread_local! {static TSR_CONSOLE_STATE: std::cell::RefCell<TsrConsoleState> = std::cell::RefCell::new(TsrConsoleState::default());}
 pub fn tsr_console_write(error: bool, text: &str) {
     if tsr_console_test_capture(error,text) {return;}
+    if tsr_console_test_json_output(error,"",text){return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
         let indent = state.borrow().indent;
@@ -546,6 +547,7 @@ pub fn tsr_console_write(error: bool, text: &str) {
 }
 pub fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
     if TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
+    if tsr_console_test_json_output(error,"",&format!("{value}\n")){return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
         let indent = state.borrow().indent;
@@ -568,6 +570,7 @@ pub fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
 }
 pub fn tsr_console_text(error: bool, value: &str) {
     if TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
+    if tsr_console_test_json_output(error,"",&format!("{value}\n")){return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
         let indent = state.borrow().indent;
@@ -794,7 +797,7 @@ impl TsrConsoleLocation {
 }
 impl Drop for TsrConsoleLocation {fn drop(&mut self){if let Some(previous)=self.0.take(){TSR_CONSOLE_LOCATION.with(|slot|{slot.replace(previous);});}}}
 pub fn tsr_console_test_begin(name:&str) {
-    if std::env::var("TSRUST_TEST_REPORTER").as_deref()!=Ok("pretty") {return;}
+    if !matches!(std::env::var("TSRUST_TEST_REPORTER").as_deref(),Ok("pretty"|"json")) {return;}
     TSR_CONSOLE_TEST.with(|slot|slot.borrow_mut().name=Some(name.to_owned()));
 }
 fn tsr_console_test_capture(error:bool,text:&str)->bool {
@@ -805,11 +808,13 @@ fn tsr_console_test_capture(error:bool,text:&str)->bool {
         state.entries.push((error,TSR_CONSOLE_LOCATION.with(|slot|slot.borrow().clone()),text));true
     })
 }
+fn tsr_console_test_json_output(error:bool,scope:&str,text:&str)->bool{if std::env::var("TSRUST_TEST_REPORTER").as_deref()!=Ok("json"){return false;}let location=TSR_CONSOLE_LOCATION.with(|slot|slot.borrow().clone());println!("{{\"event\":\"output\",\"name\":{},\"stream\":{},\"location\":{},\"text\":{}}}",tsr_console_quote(scope,true),tsr_console_quote(if error{"stderr"}else{"stdout"},true),tsr_console_quote(&location,true),tsr_console_quote(text,true));true}
 pub fn tsr_console_test_end(show_scope:bool) {
     let state=TSR_CONSOLE_TEST.with(|slot|std::mem::take(&mut *slot.borrow_mut()));
     let Some(name)=state.name else{return;};
     use std::io::Write as _;
     for (error,location,text) in state.entries {
+        if std::env::var("TSRUST_TEST_REPORTER").as_deref()==Ok("json"){println!("{{\"event\":\"output\",\"name\":{},\"stream\":{},\"location\":{},\"text\":{}}}",tsr_console_quote(&name,true),tsr_console_quote(if error{"stderr"}else{"stdout"},true),tsr_console_quote(&location,true),tsr_console_quote(&text,true));continue;}
         let stream=if error {"stderr"} else {"stdout"};
         let mut output=if show_scope {format!("     {stream} | {name}\n")} else {format!("     {stream}\n")};
         if !location.is_empty(){output.push_str(&format!("       at {location}\n"));}

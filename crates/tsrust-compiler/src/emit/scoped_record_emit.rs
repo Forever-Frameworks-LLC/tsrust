@@ -62,6 +62,7 @@ impl Emitter<'_> {
 
     pub(super) fn scoped_record_native_parameter(&self, ty: Type) -> bool {
         self.native_views.contains(ty) || self.callback_record_native_parameter(ty)
+            || super::native_view_record_parameters::contains_finite_owned(self.program,ty)
     }
 
     pub(super) fn callback_record_native_parameter(&self, ty: Type) -> bool {

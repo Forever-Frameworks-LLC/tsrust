@@ -23,6 +23,7 @@ mod ui;
 mod sql;
 mod channels;
 #[path="../stdlib/cache/check.rs"] mod cache;
+#[path="../stdlib/iterator/check.rs"] mod iterator;
 mod results;
 mod json_typed;
 mod record_union_fields;
@@ -139,6 +140,7 @@ mod collection_constructors;
 mod builtin_receivers;
 mod string_observations;
 mod program_testing;
+mod testing_deep;
 pub(crate) use spread_calls::spread_position_range;
 mod spread_builtins;
 
@@ -4530,7 +4532,7 @@ impl Analyzer {
                 work.push((body, mode));
             } else if matches!(
                 expr.target,
-                Some(CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
+                Some(CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::OrderedSetMethod(OrderedSetMethod::First|OrderedSetMethod::Last) | CallTarget::MapMethod(MapMethod::Get|MapMethod::FirstKey|MapMethod::LastKey) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
             ) && matches!(expr.ty, Some(Type::BorrowedUnion(_)))
             {
                 if let ExprKind::Call(callee, _) = &expr.kind
@@ -6511,7 +6513,7 @@ impl Analyzer {
     }
 
     fn record_literal(&mut self, context: &mut Context, fields: &mut Vec<(Token, Expr)>, loans: &Loans, expected: Option<Type>, span: Span) -> Result<Type, Diagnostic> {
-        let mut frame = self.prepare_record_work(fields, expected, span)?;
+        let mut frame = self.prepare_record_work(context, fields, expected, span)?;
         for (key, value) in fields.iter_mut() {
             let (expected, child) = self.prepare_record_child(context, key, value, &mut frame)?;
             let actual = self.expression(context, value, Mode::Consume, loans, expected)?;
@@ -6620,7 +6622,7 @@ impl Analyzer {
     #[inline(never)]
     fn native_collection_method_hint(&self,id:usize,name:&str,span:Span)->Option<Type> {
         match self.program.records[id].native_type {
-            Some(crate::native_signatures::NativeTypeId::OrderedSet)=>self.ordered_set_method_type(name,span).ok(),
+            Some(crate::native_signatures::NativeTypeId::OrderedSet)=>{let result=self.ordered_set_method_type(id,name,span).ok()?;Some(if matches!(name,"first"|"last") && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result})},
             Some(crate::native_signatures::NativeTypeId::Heap)=>{
                 let result=self.heap_method_type(id,name,span).ok()?;
                 Some(if name=="peek" && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result})
@@ -7144,7 +7146,7 @@ impl Analyzer {
                     if matches!(
                         expr.target,
                         Some(
-                            CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast
+                            CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::OrderedSetMethod(OrderedSetMethod::First|OrderedSetMethod::Last) | CallTarget::MapMethod(MapMethod::Get|MapMethod::FirstKey|MapMethod::LastKey) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast
                         )
                     ) =>
                 {
@@ -9005,6 +9007,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 return Ok(CallDispatch::PrepareReceiver);
             }
         }
+        if let Some(ty)=self.iterator_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if Self::map_group_by_callee(context,expr) {return self.prepare_group_by_transform(context,expr,expected).map(CallDispatch::Transform);}
         if Self::array_from_callee(context, expr) {
             self.array_from(context, expr)?;
@@ -9012,7 +9015,9 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom")) {
             return Ok(CallDispatch::Transform(continuations::transform::Request { options:(false,false,Mode::Read,false,false,true,true),target:CallTarget::ArrayMap,kind:continuations::transform::ResultKind::ArrayFrom,expected }));
         }
-        if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected).map(CallDispatch::Ready);}
+        if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){
+            if let Some(request)=self.transform_request(context,expr,expected,true){return Ok(CallDispatch::Transform(request));}
+            return self.ordered_set_method_call(context,expr,loans,expected).map(CallDispatch::Ready);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if let Some(ty) = self.result_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
@@ -9213,6 +9218,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             if binding.parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {
                 if args.len() != binding.parameters.len() { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", binding.name, binding.parameters.len()), span)); }
                 for argument in args.iter_mut() { self.expression(context, argument, Mode::Read, loans, None)?; }
+                if binding.name == "deepEqual" {self.testing_deep_types(args)?;}
                 if binding.name == "containsValue" {
                     let actual = args[0].ty.expect("checked container");
                     let expected = args[1].ty.expect("checked expected");

@@ -95,7 +95,7 @@ impl Analyzer {
             ExprKind::Record(fields)
                 if !fields.iter().any(|(key, _)| key.text == "record#spread") =>
             {
-                let frame = self.prepare_record_work(fields, expected, expr.span)?;
+                let frame = self.prepare_record_work(context, fields, expected, expr.span)?;
                 Ok(Some(LiteralFrame::Record {
                     frame: Box::new(frame),
                     next: 0,

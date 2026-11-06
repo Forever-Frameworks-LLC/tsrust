@@ -29,11 +29,20 @@ pub fn check_unsigned(value:i64,bits:i64)->Result<i64,Error>{
  if !matches!(bits,8|16|32|64){return Err(("Width","Width must be 8, 16, 32 or 64 bits"))}
  if value<0 || i128::from(value)>=(1_i128<<bits){Err(RANGE)}else{Ok(value)}
 }
-pub fn parse_int(text:&str)->Result<i64,Error>{
- let digits=text.strip_prefix('-').or_else(||text.strip_prefix('+')).unwrap_or(text);
- if digits.is_empty() || !digits.bytes().all(|v|v.is_ascii_digit()){return Err(("Syntax","Expected an optional sign followed by decimal digits"))}
- text.parse::<i64>().map_err(|_|RANGE)
+pub fn parse_int(text:&str)->Result<i64,Error>{parse_int_radix(text,None)}
+pub fn parse_int_radix(text:&str,radix:Option<i64>)->Result<i64,Error>{
+ let radix=radix.unwrap_or(10);
+ if !(2..=36).contains(&radix){return Err(("Radix","Radix must be between 2 and 36"))}
+ i64::from_str_radix(text,radix as u32).map_err(|error|match error.kind(){
+ std::num::IntErrorKind::PosOverflow|std::num::IntErrorKind::NegOverflow=>RANGE,
+ _=>("Syntax","Expected an optional sign followed by digits valid for the radix")})
 }
+pub fn parse_number(text:&str)->Result<f64,Error>{text.parse::<f64>().map_err(|_|("Syntax","Expected a complete floating-point number"))}
+pub fn checked_add(left:i64,right:i64)->Result<i64,Error>{left.checked_add(right).ok_or(RANGE)}
+pub fn checked_subtract(left:i64,right:i64)->Result<i64,Error>{left.checked_sub(right).ok_or(RANGE)}
+pub fn checked_multiply(left:i64,right:i64)->Result<i64,Error>{left.checked_mul(right).ok_or(RANGE)}
+pub fn checked_divide(left:i64,right:i64)->Result<i64,Error>{if right==0{return Err(("Zero","Divisor must not be zero"))}left.checked_div(right).ok_or(RANGE)}
+pub fn checked_remainder(left:i64,right:i64)->Result<i64,Error>{if right==0{return Err(("Zero","Divisor must not be zero"))}left.checked_rem(right).ok_or(RANGE)}
 #[cfg(test)] mod tests {
  use super::*;
  #[test] fn exact_boundaries(){
@@ -52,5 +61,18 @@ pub fn parse_int(text:&str)->Result<i64,Error>{
  for bits in [8,16,32,64]{assert_eq!(check_unsigned(-1,bits),Err(RANGE));assert!(check_signed(0,bits).is_ok());}
  assert_eq!(check_signed(128,8),Err(RANGE));assert_eq!(check_unsigned(255,8),Ok(255));assert_eq!(check_unsigned(256,8),Err(RANGE));
  assert_eq!(check_unsigned(i64::MAX,64),Ok(i64::MAX));assert_eq!(check_signed(0,7).unwrap_err().0,"Width");
+ }
+}
+
+#[cfg(test)] mod completion_tests {
+ use super::*;
+ #[test] fn backend_parsing_and_checked_boundaries(){
+  assert_eq!(parse_int_radix("ff",Some(16)),Ok(255));assert_eq!(parse_int_radix("-100",Some(2)),Ok(-4));assert_eq!(parse_int_radix("Z",Some(36)),Ok(35));
+  assert_eq!(parse_int_radix("1",Some(1)).unwrap_err().0,"Radix");assert_eq!(parse_int_radix("0xff",Some(16)).unwrap_err().0,"Syntax");
+  assert_eq!(parse_int_radix("-9223372036854775809",None),Err(RANGE));
+  assert_eq!(parse_number("-0").unwrap().to_bits(),(-0.0_f64).to_bits());assert_eq!(parse_number("-1e-999").unwrap().to_bits(),(-0.0_f64).to_bits());assert!(parse_number("NaN").unwrap().is_nan());assert_eq!(parse_number("1e999"),Ok(f64::INFINITY));
+  for text in [""," 1","1 ","1x","0x10","1_0"]{assert_eq!(parse_number(text).unwrap_err().0,"Syntax");}
+  assert_eq!(checked_add(i64::MAX,1),Err(RANGE));assert_eq!(checked_subtract(i64::MIN,1),Err(RANGE));assert_eq!(checked_multiply(i64::MAX,2),Err(RANGE));
+  assert_eq!(checked_divide(i64::MIN,-1),Err(RANGE));assert_eq!(checked_remainder(i64::MIN,-1),Err(RANGE));assert_eq!(checked_divide(1,0).unwrap_err().0,"Zero");assert_eq!(checked_remainder(1,0).unwrap_err().0,"Zero");assert_eq!(checked_divide(-7,3),Ok(-2));assert_eq!(checked_remainder(-7,3),Ok(-1));
  }
 }

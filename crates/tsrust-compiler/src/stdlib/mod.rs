@@ -9,10 +9,11 @@ pub(crate) mod ui;
 pub(crate) fn source(module: &str) -> Option<&'static str> {
     match module {
         "std:ui" => Some(ui::SOURCE),
-        "std:testing" => Some(testing::SOURCE), _ => None,
+        "std:testing" => Some(testing::SOURCE), "std:iterator"=>Some(iterator::SOURCE), _ => None,
     }
 }
 
+pub(crate) mod iterator;
 pub(crate) mod numeric;
 pub(crate) mod decimal;
 pub(crate) mod env;

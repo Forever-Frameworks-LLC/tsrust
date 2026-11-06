@@ -1326,6 +1326,48 @@ map/filter/take/reduce pipelines, allocated bytes, early-exit work, compiler tim
 and emitted size. Avoid mandatory boxing/allocation per adaptor; preserve safe
 generated Rust. Borrowed stored chains and arbitrary user protocols are deferred.
 
+#### B15 ownership and lowering contract — admission draft
+
+Engineering admission selected concrete inline owned pull environments and finite
+owned joins through existing callable carriers. Generated public implementation
+and acceptance remain pending compiler/native/editor and matched workload gates.
+
+- `Iterator.from<T>(values: T[]): Iterator<T>` consumes the owned array without
+  cloning its elements. `next(): IteratorResult<T>` mutates the iterator and
+  transfers one item. `IteratorResult<T>` is the discriminated owned value
+  `{done: false, value: T} | {done: true}`; exhausted results contain no payload.
+- `map`, `flatMap`, `take` and `drop` consume the receiver and return a new owned
+  iterator. Each callback and its captured owners move into that chain. Callbacks
+  are reusable and receive only the current value; reduce receives accumulator
+  and value. No implicit index or source argument is introduced.
+- `map`, `flatMap`, `forEach`, `some` and `every` callbacks consume each item;
+  `filter` and `find` predicates borrow it readonly. `flatMap` accepts owned
+  arrays and owned iterators, with static lowering for each form. `reduce`
+  consumes accumulator and item and requires an explicit initial accumulator.
+- `toArray`, `reduce`, `forEach`, `some`, `every` and `find` consume the chain.
+  Short circuit and callback failure release all remaining owners and captures.
+  `find` transfers the matched item, or returns undefined. No Clone bound is
+  introduced on owned items or captures.
+- An error from `next` consumes the triggering item and propagates through the
+  existing typed error mechanism. It retains the remaining chain and captures;
+  a later next may continue. No automatic error fusion is added. Both take and
+  drop count consumed input events, including failed events. Drop decrements its
+  remaining count on an error but propagates that error instead of swallowing it;
+  take also spends one count on an error. `take(0)`
+  does not pull upstream. Counts are nonnegative ints checked at adaptor creation,
+  with platform integer conversion checks and no new cardinality cap.
+- Public `Iterator<T>` hides a compiler-owned physical shape identity. Source
+  arrays lower through existing owned-item adapters into Rust IntoIter; adaptors
+  lower to statically composed Rust iterators and owned callback carriers.
+  Shape identity propagates through owned functions, returns, records and captures
+  using existing specialization/callable carrier machinery. Genuine finite joins
+  of different same-item shapes use generated owned enum carriers. They must not
+  silently reject joins or require per-adaptor boxes. No user trait/protocol system
+  or borrowed stored chain is introduced.
+- Existing eager collection snapshots keep their current behavior. Compiler,
+  ownership/error analysis, native emission, formatting, editor agreement,
+  documentation and matched workload support form one coherent implementation.
+
 ### B16 — Crypto and password primitives
 
 Backend: existing sha2/getrandom/subtle; compatible RustCrypto hmac/hkdf/argon2.

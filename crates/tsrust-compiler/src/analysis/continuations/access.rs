@@ -22,6 +22,10 @@ impl Analyzer {
         loans: &Loans,
         span: Span,
     ) -> Result<FieldDispatch, Diagnostic> {
+        if let Some(Type::Record(id))=self.expression_type_hint(context,base) {
+            if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OwnedIterator) && !context.function_name.starts_with(crate::stdlib::iterator::PREFIX){return Err(Diagnostic::new("iterator-member","Iterator state is opaque; call its iterator operations.",span));}
+            if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::IteratorCursor){return Err(Diagnostic::new("iterator-member","Iterator cursor storage is private.",span));}
+        }
         if matches!(name,"env"|"res") && matches!(self.expression_type_hint(context,base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::HttpContext)) && matches!(mode,Mode::Mutate|Mode::Consume){
             return Err(Diagnostic::new("http-state","Context env and res are read-only; borrow state and use context response methods.",span));
         }

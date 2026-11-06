@@ -47,3 +47,7 @@
         }
         Ok(output)
     }
+
+pub fn get_day(value:&Date)->i64{i64::from(value.0.weekday().num_days_from_sunday())}
+pub fn start_of_year(value:&Date)->Date{Date(value.0.with_day(1).unwrap().with_month(1).unwrap())}
+pub fn end_of_year(value:&Date)->Date{Date(value.0.with_day(1).unwrap().with_month(12).unwrap().with_day(31).unwrap())}

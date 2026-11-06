@@ -133,3 +133,46 @@ fn file_package_preserves_safe_close_and_builds_offline_after_relocation() {
   let output=support::run(std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})).current_dir(&relocated),30);support::success(&output);assert!(output.stdout.is_empty());
  }
 }
+
+#[test]
+fn collection_iterator_testing_completion_builds_offline_after_relocation() {
+ let _target=EXPORT_TARGET.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+ let source=r#"
+import {Iterator} from 'std:iterator';
+import {test,runTests,strictEqual,deepStrictEqual,notDeepStrictEqual,rejects} from 'std:testing';
+import {parseDate,formatDate,getDay,startOfYear,endOfYear,parseTime,getHours,getMinutes,getSeconds,getNanoseconds} from 'std:date';
+import {parseInt as exact,parseNumber,checkedAdd,checkedSubtract,checkedMultiply,checkedDivide,checkedRemainder} from 'std:numeric';
+function main(){
+ test('exported',async()=>{
+  deepStrictEqual(Iterator.from([1,2,3]).filter(value=>value>1).map(value=>value*2).toArray(),[4,6]);
+  notDeepStrictEqual([[1]],[[2]]);
+  await rejects(async()=>{throw {code:'exported'};});
+  const date=unwrap(parseDate('2024-02-29'));
+  strictEqual(getDay(date),4);
+  strictEqual(formatDate(startOfYear(date)),'2024-01-01');
+  strictEqual(formatDate(endOfYear(date)),'2024-12-31');
+  const time=unwrap(parseTime('23:59:58.123456789'));
+  strictEqual(getHours(time),23);strictEqual(getMinutes(time),59);
+  strictEqual(getSeconds(time),58);strictEqual(getNanoseconds(time),123456789);
+  strictEqual(unwrap(exact('ff',16)),255);strictEqual(unwrap(parseNumber('1e2')),100.0);
+  strictEqual(unwrap(checkedAdd(7,3)),10);strictEqual(unwrap(checkedSubtract(7,3)),4);
+  strictEqual(unwrap(checkedMultiply(7,3)),21);strictEqual(unwrap(checkedDivide(7,3)),2);
+  strictEqual(unwrap(checkedRemainder(7,3)),1);
+ });
+ strictEqual(runTests(),0);
+}
+"#;
+ let dir=support::TempDirectory::new();let input=dir.source(&support::format_round_trip(source));let package=dir.0.join("package");
+ support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),30));
+ std::fs::remove_file(&input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
+ let home=dir.0.join("empty-cargo-home");std::fs::create_dir(&home).unwrap();
+ let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
+ for release in [false,true]{
+  let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",&home).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
+  if release{command.arg("--release");}
+  support::success(&support::run(&mut command,180));
+  let binary=target.join(if release{"release/program"}else{"debug/program"}).with_extension(std::env::consts::EXE_EXTENSION);
+  let output=support::run(&mut std::process::Command::new(binary),30);support::success(&output);
+  assert_eq!(output.stdout,b"PASS exported\n1 passed, 0 failed, 0 skipped\n");
+ }
+}

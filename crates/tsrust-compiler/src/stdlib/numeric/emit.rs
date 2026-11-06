@@ -20,7 +20,12 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std
  "toNumber"=>("value:i64".into(),"tsrust_numeric::to_number(value)".into()),
  "checkSigned"=>("value:i64,bits:i64".into(),"tsrust_numeric::check_signed(value,bits)".into()),
  "checkUnsigned"=>("value:i64,bits:i64".into(),"tsrust_numeric::check_unsigned(value,bits)".into()),
- "parseInt"=>("text:&String".into(),"tsrust_numeric::parse_int(text.as_ref())".into()),_=>unreachable!()};
+ "parseInt"=>("text:&String,radix:Option<i64>".into(),"tsrust_numeric::parse_int_radix(text.as_ref(),radix)".into()),
+ "parseNumber"=>("text:&String".into(),"tsrust_numeric::parse_number(text.as_ref())".into()),
+ "checkedAdd"|"checkedSubtract"|"checkedMultiply"|"checkedDivide"|"checkedRemainder"=>{
+ let NativeBackend::Bundled{symbol}=binding.backend;
+ ("left:i64,right:i64".into(),format!("tsrust_numeric::{}(left,right)",symbol.strip_prefix("tsrust_numeric_").unwrap()))
+ },_=>unreachable!()};
  let NativeBackend::Bundled{symbol}=binding.backend;
  let (ok_order,err_order,error_order)=(order(ok),order(err),order(error));
  format!("fn {symbol}({parameters})->Union{result}{{match {call}{{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:value{ok_order}}}),Err((code,message))=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(code),field1:String::Borrowed(message){error_order}}}{err_order}}})}}}}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err))

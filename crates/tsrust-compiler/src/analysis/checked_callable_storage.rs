@@ -49,6 +49,15 @@ impl Analyzer {
             origin = self.once_return(origin, context, value.span);
             value.wrap_once(origin);
         }
+        if context.function_name.starts_with("@stdlib:iterator#create")
+            && let Some(ty)=self.callables.storage.intern_finite_owned(
+                &self.callables.shapes,&self.callables.callbacks[declaration],declaration,
+                [origin],&self.closures,value.span,
+            )? {
+            let Type::StoredCallable(scoped)=ty else{unreachable!()};
+            value.wrap_storage(scoped);
+            return Ok(ty);
+        }
         if let Some(ty) = self.callables.storage.intern_scoped_native(
             &self.callables.shapes, &self.callables.callbacks[declaration], declaration,
             [origin], &self.closures, value.span,
