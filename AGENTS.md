@@ -1,5 +1,17 @@
 # Development requirements
 
+## Next application direction — 2026-11-05
+
+Finish the full v0.2.0 standard-library checklist first. The owner's strong
+post-v0.2.0 preference is GPUI + GPUI Kit behind the existing React/Solid-like
+`.tsrx` syntax and signal semantics, with the complete component catalog and
+upstream examples verified on desktop and web, then basic application validation.
+Experimental WASM maturity is acceptable. Also plan generated `.tsr` HTTP clients
+and CLI-managed shared backend/frontend roots with automatic contract codegen.
+Follow `docs/plans/gpui-application-platform.md`. This supersedes the UI freeze
+below for future planning; retain backend dependency isolation and existing
+workflows. Research/planning is authorized now; implementation follows v0.2.0.
+
 ## Active product direction — 2026-10-26
 
 Owner reset, 2026-10-27: the backend-only direction in

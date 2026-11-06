@@ -13,8 +13,300 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-11-05
 
-Source checkpoint: **b1a32713**, branch `codex/stdlib-0.2.0`. Canonical source is
-committed; only this handoff is dirty. The full B00–B20 goal remains active.
+Canonical source checkpoint **c2045518**, branch `codex/stdlib-0.2.0`: validated
+public subprocess +shared Task/context repairs +matched benchmark support. Only
+planning/evidence docs remain dirty; preserve them. Full B00–B20 remains active. No push/merge/publication.
+
+**B07 matched correctness verification4296 terminal PASS**163.719s/675,866KiB.
+All4workloads×5cases×3engines =60checks passed; result
+`benchmarks/runtime/results/2026-11-06T03-06-16-728Z-verify.json` is correctness-only
+(execution/compilation arrays empty, not timing evidence). Compiler/runtime sources
+checkpointed locally as68files,+1304/-58 after whole-project0-change format.
+No heavy job active yet. Next checkpoint the authorized GPUI/planning/evidence
+notes, then measure this accepted4-workload family with original3×31after8 and
+native/rust-hand/node-tsc, quiet timing, watchdog/inc0/jobs1/rootsharedtarget. No
+unchanged B07 timing controls exist yet, so all3engines need a first actual run.
+Ingest actual measurements and inspect SQLite values/integrity. Source/bytecode
+unchanged controls from other families must stay cached, not retimed.
+
+Attempts1–3 failed before a matched group passed: optional exit code unwrapped as
+Result (fixed explicit guard+actual source hash); ABI omitted String error generic
+(now finite String/RecordN only); generated TS config omitted child-processes from
+both Node typeRoots/types lists (registered). All4sources pass release compiler
+check, strictTS peers pass, all10process/IO guards pass. No compiler/runtime change
+was needed for those benchmark-support repairs. Logs verify{,2,3,4} retained in/tmp.
+
+**B07 local focused acceptance now passes all30 distinct scopes**, reusing
+unchanged checks across coherent repairs, not claiming a full regression run.
+Consolidation `/tmp/tsrust-b07-accepted-gates.json` links exact per-scope inputs.
+12compiler process groups,4runtime lifecycle groups,3editor groups,3IO controls,
+2Task groups,1O0/O3 native-forward group,5unit groups. Latest build97047 passed
+507.914s/3,808,243KiB; terminal Cargo success verified. Final3gates31227 passed
+8.854s/417,248KiB: different child cwd + clear/default-inherited environment +
+UTF8/quoted args/unchanged parent; rejected-input retry with exact helper echo;
+all3callback trait impls with independent outer/payload lifetimes. Retain earlier
+cleanup, portable offline forbidden-unsafe export and native-forward passes.
+Whole-project format0changes and diffcheck passed before that build. Root also
+corrected obsolete workflow archive/binary retention prose to owner SQLite policy.
+
+No public process timing accepted yet. Platform/full-family regressions remain
+later required milestones; do not claim completed v0.2.0.
+
+B08: accepted allocation repair checkpoint8cd62213 (parent timing29f8bdfb), saved
+ref `codex/network-admission-allocation-accepted`. All1,860 old timing rows retained;
+7guards/16steady/13ownership records pass; root reviewed exact48/72byte ownership,
+all releases and0settled/paired growth at1/32/256cycles.60000-byte UDP throughput
+still required on supporting host (matched native/Node EMSGSIZE on this Mac).
+B03review owns aligned network tree atb9+admission source delta; all16allocation
+hashes match, older backend closure proof remains historical after base alignment.
+Frozen45-file public address/DNS draft `/tmp/tsrust-b08-address-dns-public.patch`
++`/tmp/tsrust-b08-address-dns-public-inventory.json`; unbuilt/unformatted/unmeasured.
+Worker continuesTCP/UDP/fullTcpStream B05 overload/copy, source-only. Minimal native
+Signature::Tuple extension approved, reuse existing source tuple representation.
+
+B09: private low-level zlib-rs streaming bridge passed16O0/O3 scopes7.272s/
+566,192KiB, including poolsize1, Sync flush, actual CPU settlement and disposal.
+Full backend admission had80,352samples/1,728allocation rows/432crossdecodes.
+Frozen75-file buffer draft `/tmp/tsrust-b09-buffer-lock-repaired.patch`
++`/tmp/tsrust-b09-buffer-lock-repaired-files.json` (224,082bytes). Compiler/backend/
+native offline-locked metadata pass; backend lock repair pruned only unused miniz
+packages, retained versions unchanged. Six lazy explicit-pool buffer ops and12
+matched cases, complete docs/editor/examples; public builds/tests/format pending.
+B14 continues separate optional streaming/B05 overload/copy source delta and24
+matched cases. Native Signature::Undefined overlaps B08 Tuple edits: reconcile
+explicitly during root integration. No worker heavy lease; one writer per tree.
+
+B06 read-only callback R/N/F sanity review closed without a concrete defect;
+readonly Holder/Function/arrow emission controls matched concrete tuples/binders.
+B19 admission guard repairs and other collection/iterator/testing/crypto drafts
+remain preserved in isolated trees; details below. Don't reassign dirty workers.
+
+Owner GPUI/Kit preference, retained `.tsrx` signals, full gallery/apps, `.tsr`
+clients and shared backend/frontend codegen are recorded in
+[the post-v0.2.0 plan](plans/gpui-application-platform.md). Implement AFTER the full
+v0.2.0 checklist. No UI dependencies/code introduced during that planning detour.
+
+## Earlier checkpoint evidence
+
+Entries below retain completed checks and draft locations. Their process/session
+statements are historical and are superseded by the current-state section above.
+Use a live handle or process observation before treating any old job as active.
+
+### Earlier B07 validation and planning evidence
+
+Source checkpoint: **b9a9853f**, branch `codex/stdlib-0.2.0`. The public subprocess
+integration and this handoff are now dirty; preserve them. Full B00–B20 stays active.
+
+**LIVE final-witness build97047** holds the heavy slot: Cargo/process group46854,
+watchdog46803, verified live1m07s. Current outputs
+`/tmp/tsrust-b07-final-witness-{artifacts.jsonl,build.log}`. Same rootsharedtarget/
+inc0/jobs1/1.96.1/offline/locked/watchdog, narrowed to compiler+LSP --lib and
+--test process --no-run. No terminal build-finished yet; never restart from a
+missing handle alone. After terminal success, run
+`/tmp/tsrust-b07-final-witness-gates.py` underwatchdog (3exactgroups,testthreads3).
+Preserve the12callback-gate passes and earlier unchanged cleanup/export/native-
+forward controls. No worker heavy work authorized.
+
+Final repairs are witness-only: applied `/tmp/tsrust-task-callback-unit-concrete-payload.patch`
+SHA2566bde41197c0432814398e2a0b0f0dc96c61933ddedab89d8d1504d0e7d0fa2a9.
+The old abstract/generic Task forwarding relay emitted no carried callback impl;
+new fixture uses concrete readonly Pair/ByteView inputs and genuinely emits all3
+traits with independent payload native_input0_1/native_input1_1 plus p0/p1 storage.
+All binder/subset/token assertions retained. Equivalent public CLI emission
+confirmed4-lifetime headers; actual unit execution pending. Root strengthened cwd
+fixture to a different child subdirectory and both clearEnv/default-inherit cases,
+exact UTF8/quoted-argument output and unchanged parent cwd/env; helper context now
+prints parent sentinel. Retained input is verified by actual retry/helper echo,
+not invalid direct Bytes access on an annotated union. Both fixture source checks
+pass. Whole-project format0changes and diffcheck passed before97047.
+
+**B07 callback-unit build82651 terminal PASS**528.803s/3,790,819KiB;
+build-finished success verified. Followup gates6030 terminal FAIL63.614s/421,120KiB:
+12/15pass. Passed generated pipe guards, distinct-stream binary duplex, all
+catalog/examples, run aliases, all3editor groups, stored IO/task factories,
+SQL/HTTP snapshot control and both O0/O3 independent relay/native negative groups.
+No emitter implementation failures remain in these actual scopes.
+
+Three failures: cwd fixture reused consumed string; validation fixture called
+bytes.length on annotated Bytes|Reader|undefined option; new generatedimpl unit
+expected concrete carried slots from nongeneric Task<int> relay. Root strengthened
+cwd fixture to a distinct child subdirectory and exact child env/UTF8/argument
+output against native join; parent cwd/env stay checked. Validation now retries
+preserved input through helper echo and checks exact kept bytes. Both repaired
+source fixtures pass lightweight compiler check. Native rerun pending. B06
+prioritizes unit fixture/actual ABI diagnosis; do not weaken binder assertions.
+
+Reviewed3-file `/tmp/tsrust-task-callback-abi-scoped.patch` SHA256
+6eb3f7796da9bb5470d2fcdae1142b9d20f45c178526464dcb7ffee1b8fe17fa is integrated.
+It carries typed arguments/result binders/bounds together into Task adapters,
+renames Storage to pN and retains independent carried lifetimes. Non-Task paths
+unchanged. Prior callback72031 failed213.581s/2,605,234KiB solely on the new unit's
+Syn2-vs-pinnedSyn3 trait_ tuple shape; root fixed Some((path,_)). Whole-project
+format passed0changes before82651. Keep both failed and successful build outputs.
+Current accepted build artifacts `/tmp/tsrust-b07-callback-unit-artifacts.jsonl`;
+15-scope runner/results `/tmp/tsrust-b07-callback-gates.{py,json,log}`.
+
+Unit diagnosis and fixture repairs are now in97047 above. Next public benchmark
+correctness/release build/timings and source checkpoint remain pending. Full
+B00–B20 remains active. No worker heavy build/test/measurement authorized.
+B06 read-only record/callback ABI sanity review is closed: no concrete R/N/F
+mismatch established. Lightweight readonly Holder/Function/arrow emission controls
+produced matching concrete parameter types and p0 callback tuples; no code change
+or new speculative repair is warranted.
+
+Owner detour recorded in [GPUI application platform](plans/gpui-application-platform.md):
+GPUI/Kit + retained `.tsrx` signals; complete component/examples desktop/web; basic
+apps; `.tsr` clients and shared backend/frontend roots with watch/release codegen.
+Experimental WASM accepted. Implement AFTER full v0.2.0. Direction pointers updated;
+no UI dependencies/code added. All8 local doc-link checks and0-change whole-project
+format passed during the detour. Those checks do not validate current B07 repairs.
+
+**B07 repair-batch build9387 is terminal PASS**574.503s/3,788,132KiB, with
+build-finished success JSON verified. Focused runner85951 is terminal FAIL89.661s/
+570,448KiB:15/22passed. Binary duplex, deadlines/output caps, pending loans,
+all3editor groups, both new O0/O3 relay witnesses, native-forward O0/O3 and4unit
+controls pass. Seven remaining failures: generated pipe guard, cwd fixture,
+examples/catalog, validation fixture, run aliases, existing stored IO/task factories.
+Keep `/tmp/tsrust-b07-provenance-gates.{py,json,log}` and per-test logs. No full
+regression run. Source remains dirty; no public subprocess measurement accepted.
+
+Root fixed env fixture to currentDir alias, annotated bound CommandOptions under
+existing nominal-record rules, and improved check-helper diagnostic messages.
+Applied `/tmp/tsrust-b07-scoped-task-guard-retention.patch` SHA256
+96e1cf78636419aa1f731bda6c38bd251663b9fc5dba29cac8c1390f4642888c: capture reservation
+preserves only caller facts unchanged by checked synthetic scoped-task body,
+without releasing loans or changing ordinary closures. B06 diagnoses E0261 in
+callable callback impls (undeclared native_input vs p lifetimes), now repaired
+in the live callback batch above.
+
+B07 benchmark repair integrated `/tmp/tsrust-b07-benchmark-guards.patch`: fivefiles,
+distinct deterministic stderr and independent checksum; source captured before
+helper compilation and source/binary hashes verified around whole engine/profile
+process boundaries. All4 focused Node guards pass, including swapped/duplicated
+streams and source/binary mutation negatives. Workload sources unchanged.
+
+B09 bridge prerequisites passed: codec0.65s; IO/pool6.764s/524,720KiB.
+Private bridge first run failed before execution0.520s with contracts.rs fixture
+Release-vs-Receiver E0308/E0599. B14 repaired receiver shadowing only. Attempt2
+PASSED7.272s/566,192KiB all8groups at O0/O3 (16scopes), including Sync flush,
+poolsize1composition, actual CPU settlement/cancellation, backpressure, truncation/
+CRC/suffix/member validation and poolclosed/idle disposal. Result
+`/tmp/tsrust-compression-bridge-attempt2-result.json`; first failure scope retained,
+successful scratch removed. Safe low-level zlib-rs is now feasible; public API,
+editor/export and measurement acceptance remain pending. Root approved B14
+public contract: six explicit-pool/consumed-Bytes lazy Result tasks; typed transform
+owners, finite B05 overload/copy integration; codec/IO/SpawnError/ThreadError stay
+distinct. B14 now implements coherent buffer/compiler/LSP/docs/examples/matched
+bench support in isolated compression tree, source-only. Buffer batch now frozen
+at `/tmp/tsrust-b09-buffer-draft.patch` (224,506bytes), exact75-file inventory/base+
+draft hashes `/tmp/tsrust-b09-buffer-draft-files.json`.27tracked+48new files; excludes
+old admission/private bridge/publication-helper delta. Sixbuffer operations,
+12matched buffer cases; encoder timings explicitly encode/decode round trips,
+decoder shared corpus, independent full-byte/cross-engine probes and encoded-size
+metadata outside timing. Static diff check passed. Root metadata compiler/native
+passed; backend needed lock reconciliation. B14 used existing-lock offline metadata
+and --locked metadata passed afterward: removed only unneeded miniz deps adler2/
+miniz_oxide/simd-adler32, no retained version/checksum changes or packages added.
+New artifacts `/tmp/tsrust-b09-buffer-lock-repaired.patch` and
+`/tmp/tsrust-b09-buffer-lock-repaired-files.json` supersede oldbufferdraft formerge
+(224,082bytes; oldidentity preserved). Formatting/build/tests remain unrun.
+Root briefly reviewed runtime/bindings; full integration review/validation pending.
+B14 continues public streaming/B05 overloads as incremental source delta, buffer-
+only activation isolated from IO/fs. No heavy lease.
+Root callback build owns the heavy slot.
+
+B08 allocation-only resume5 PASSED10.920s/269,456KiB, preserving all1,860 earlier
+timing rows/60groups. Seven guards pass;16fresh steady rows +13ownership records.
+Root reviewed: exact raw/boxed constructor footprints48/72bytes (1/3allocations),
+all owned bytes freed in both drop orders. Both have immediate+96global bytes,
+settled endpoint/reactor delta0; global and boxed-minus-floor growth0 at1/32/256
+cycles, with all traced bytes freed. No broader leak/zero-runtime claim.
+`/tmp/tsrust-network-attempt5-allocation-continuation.json` ties separate new
+allocation identity to unchanged timing checkpoint29f8bdfb.60000-byte UDP remains
+required supporting-host throughput (matched native/Node EMSGSIZE on this Mac).
+Allocation repair source checkpoint **8cd62213**, parent29f8bdfb, in isolated
+network tree:12files,+179/-21; whole-project formatter twice0changes and7,930file
+byte identities unchanged; diff check passed, tree clean. No raw results/logs
+committed. Preserved ref codex/network-admission-allocation-accepted points8cd62213.
+B03review aligned that tree detached toacceptedb9a9853f and reapplied only network
+admission sources; all16allocation hashes still match. Backend Cargo.toml changed
+in the new base (locale provider sync), lock unchanged, so old closure proof stays
+historical. Root approved B08 contract and source-only address/DNS thenTCP/UDP
+implementation, including full TcpStream B05 Mutate I/O and split-owned halves.
+Root callback build holds heavy slot; no worker builds/timings authorized.
+Address/DNS public section frozen at `/tmp/tsrust-b08-address-dns-public.patch`
+(161,851bytes;45files,+545/-12), SHA256
+54961eeb46a47b71700af257325a90799e0b4c7ed152bcc38abc97f3586e677a;
+`/tmp/tsrust-b08-address-dns-public-inventory.json` holds exactbase/draft hashes.
+Excludes19-file historical admission; baseb9a9853f.3types/7functions,8native/
+4runtime/2editor groups,2examples/offline export,4matched address triples and
+untimed DNS oracle. Public section unbuilt/unformatted/unmeasured. B03review
+continuesTCP/UDP/fullstreamB05 as incremental delta. Minimal Signature::Tuple
+metadata extension approved using existing source/native tuple forms; B14's
+Signature::Undefined edits overlap and need explicit root reconciliation.
+
+B19 admission guard repairs frozen in isolated adapter tree. Pinned Node syntax
+and independent negative self-check passed; Rust/rustdoc/profile remain pending.
+All other worker drafts preserved. Root alone writes canonical; no worker heavy
+job runs without a new root lease. Full B00–B20 remains active; no push/merge/publication.
+
+
+Earlier B07 build sequence: Root source is dirty
+onb9a9853f; preserve the integrated subprocess feature and subsequent repairs.
+Build2747 passed226.029s/2,738,850KiB. Updated portable pack setup passed16.615s/
+152,816KiB; pack6a5c9562a93491d4a233b6bf665fd7dd0a44bac77e9eb27644c3f17214ae2073.
+Twenty gates99644 finished89.633s/563,840KiB:12passed,8failed. Passed all4 lifecycle
+(actual OS reap/unpolled drop/Send),3editor groups, relocated offline forbidden-
+unsafe export, unused-import selection, owned-input/start contract and2IO/SQL/HTTP
+controls. Per-scope results `/tmp/tsrust-b07-gates.json`; logs gate-prefix files.
+
+Root repaired fixture helper load_project error propagation, wrong env.cwd import
+(currentDir alias), and owning argv construction from borrowed loop strings
+(clone(mode)). Readonly-observation fixture now reads program.length before await;
+its old clone(program) correctly warned unused-task on a fallible path, so warning
+severity is unchanged. Shared env conversion reuses tsr_owned_items() rather than
+calling nonexistent Array.into_iter or cloning entries.
+
+Applied reviewed `/tmp/tsrust-b07-lazy-input-context.patch` (SHA256
+55b9a084c93c14af9600cb89c776e806754e4d29a9d1a6d81f8723d4a2ec9ce8): hoisted native
+inputs retain expected array/optional-record context; compiler-generated scoped
+Task contexts retain loan-protected input guard facts. Added ordinary-closure
+negative control. Applied13-file `/tmp/tsrust-task-environment-provenance.patch`
+(SHA256 df317e7dc505b3403553f430e034d4f847de0ca677949d27994d1fb9cf5a12fd): typed
+CaptureBorrow paths preserve independent physical reference lifetimes through
+consumed Task forwarding; metadata stays non-retained, with existing ownership
+checks authoritative. Includes2unit and2O0/O3 native witnesses/negative controls.
+Whole-project formatter passed0changes after the coherent repair batch.
+
+Completed build selected compiler+LSP --lib and process/process_runtime/async_tasks/
+async_io/native_forward_borrows no-run; rootsharedtarget/inc0/jobs1/watchdog.
+`/tmp/tsrust-b07-provenance-{artifacts.jsonl,build.log}`. Terminal build-finished is verified above. Resume affected borrowing gates after
+source repairs; preserve completed
+unchanged scopes. Do not rerun the full regression matrix or unchanged portable
+setup without a new reason. Source checkpoint/public timings still pending.
+
+B09 full admission attempt2 PASSED45.880s/401,472KiB: all6groups,80,352samples,
+1,728allocation rows,432 cross-decoded fixtures,24 common-corpus files,2pool
+witnesses; maxquiet2.736328125, allocation retained0. Exact pool prep passed6.222s.
+Results `/tmp/tsrust-compression-profile-attempt2.{json,log}`. Original failed
+preflight scope retained; successful scratch removed. Earlier provisional miniz
+choice for size/peak is superseded by the zlib-rs Sync/Drop bridge evidence above.
+No public compression acceptance or prototype ingestion.
+
+B08 attempt4 retained all1860timing rows/60groups before allocation guard failed
+on signed runtime-global deltas. Six guard tests pass. Exact timing consumer is
+source checkpoint29f8bdfb in isolated network tree (whole1587-source token/
+idempotence proof0changes, no results committed). Raw/boxed split held-owner
+footprints48/72bytes match1Arc/3Arc+boxes, but global after-drop samples include
+positive values in BOTH floor/adapter, so no leak/zero-runtime claim. B06 prepared
+allocation-only repair12files: peak sampled before JSON; exact constructor
+allocation/drop ledger/current-thread settlement and1/32/256growth controls;
+separate fresh allocation identity preserves original timing provenance.
+Patch `/tmp/tsrust-network-allocation-repair.patch`, SHA256
+0c2e1bb0df3ff10507ab57b38e25e0f0eb28d9531f63d11459d1c1ec8ea323f2.
+Runner `/tmp/tsrust-network-allocation-resume5.py` has now passed; see the new
+root growth review above. No arbitrary positive cap was added.
+
 
 Public native line-reader measurement58869 completed successfully363.879s/
 2,280,284KiB, including release build/preparation/quiet wait. Result
@@ -23,8 +315,32 @@ three processes×31samples after8warmups, median3.265750ms; quiet max3.999512<4.
 `npm run store:ingest` added one actual history. SQLite independently verified
 both native histories (16.219000→3.265750ms,93samples each) and integrity_checkok.
 Unchanged Rust/Node controls remain2.813625/18.351167ms from6f8d3342. The original
-history is preserved; fresh selected native timing is a different run. No heavy
-job remains. Next measurement checkpoint, then serialized network admission.
+history is preserved; fresh selected native timing is a different run. Measurement checkpointb9a9853f is committed after whole-project formatting.
+
+B06 is finishing network admission repairs source-only in the isolated
+network tree. No public network API or timing matrix is accepted yet. Four Node
+guard tests passed, then passed again after runtime graph classification changed.
+Normal and allocation release builds and exact retained-artifact proofs passed.
+Native and independent Node correctness completed before timing failed on the
+60,000-byte UDP send with macOS raw error40, “Message too long”. Attempt3 is
+terminal6.738s/258,320KiB; `/tmp/tsrust-network-attempt3-*` preserves its records.
+
+Next, verify host availability independently in both engines. Keep60,000 required
+in the corpus: accept an unsupported-host record only when native raw_os_error
+matches Node's currentOS EMSGSIZE constant and Node reports EMSGSIZE; otherwise
+fail. No kernel settings, smaller replacement or artificial API cap. Supported
+TCP and64/1400-byte UDP measurements retain3processes×31samples after8warmups.
+Preserve complete validated scopes and raw partial outputs, not truncated exception
+inspection. B06 must await a new lease before another network build/profile.
+DNS remains correctness-only. The large-datagram throughput case stays pending on
+a host that supports it, rather than disappearing from the release requirements.
+
+Earlier attempts remain preserved:24763 syntax failure14.502s/458,208KiB;
+attempt2 successful native build3.45s followed by an overbroad host-library opt
+check. Runtime reachability now comes from locked metadata normal edges, stopping
+at proc-macro/build roots. All artifacts remain hash/closure checked; linked runtime
+libraries remain requiredopt3. Logs `/tmp/tsrust-network-attempt2-*` retain the
+classification failure. Root now owns the B07 integration build73766; no concurrent heavy job.
 
 Latest acceptance: optional finite-string unions retain their guarded string
 observations. All 14 focused compiler/native/editor witnesses passed; whole-project
@@ -52,7 +368,7 @@ b1a32713 completed. Now measure only nativeio_lines with the original protocol, 
 unchanged Rust/Node controls. Fresh public timing is now recorded above.
 
 Original cached-library/preparation failures remain in separate/tmp logs. B06
-released the profiling lease; root public timing58869 is terminal; heavy slot is free.
+released the profiling lease; root public timing58869 is terminal; network24763 is terminal; B06 now owns the repair/profile heavy lease.
 
 Parallel source work: B03 owns the isolated `stdlib-process` tree, aligned to
 28d8ec49, implementing the public subprocess API after its 19 correctness records,
@@ -70,15 +386,9 @@ profile under the shared target/inc0/jobs1. Logs/tmp/tsrust-network-*; DNS untim
 Future public network signatures must use the reviewed explicit Result contract,
 not automatically inherit the admission README's older Task<T> sketch.
 
-Next: checkpoint the fresh measurement, execute prepared network admission, and
+Next: finish the prepared network admission, preserve completed scopes, and
 continue subprocess integration and the other release bundles.
 Preserve the original timing history. Local acceptance does not complete v0.2.0.
-
-## Earlier checkpoint evidence
-
-Entries below retain completed checks and draft locations. Their process/session
-statements are historical and are superseded by the current-state section above.
-Use a live handle or process observation before treating any old job as active.
 
 **B20 optional finite-string narrowing locally accepted — 2026-11-05:**
 43023 terminalPASS18.181s/431,856KiB, all14witnesses passed. Nativeguarded

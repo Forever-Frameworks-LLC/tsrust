@@ -1,5 +1,11 @@
 # Development and acceptance workflow
 
+Owner update, 2026-11-05: the full v0.2.0 checklist remains first. Subsequent UI
+and shared application acceptance follows the
+[GPUI application platform plan](plans/gpui-application-platform.md). This updates
+the historical UI freeze below without adding frontend prerequisites to v0.2.0
+or backend-only builds.
+
 ## Active backend pivot scope
 
 The owner's 2026-10-27 backend-only reset supersedes the frontend acceptance below.
@@ -280,15 +286,15 @@ directories or snapshots.
 
 ## Generated-file retention
 
-SQLite is the durable home for benchmark measurements. Historical diagnostic
-evidence remains in the local mixed archive; do not add routine logs or source
-snapshots. For measured records, import original bytes, verify hashes and
-database integrity, then remove loose copies.
-When a path already names different immutable bytes, preserve the new version under
-an explicit content-addressed SQLite record path; never overwrite historical data.
-Do not create filesystem archives, source snapshots or duplicate evidence trees.
-Keep concise logs for the current gate only, and preserve the five current executable
-consumers during cache cleanup.
+Owner direction, 2026-10-30: canonical records and filesystem archives are not
+kept. `benchmarks/measurements.sqlite` stores one row per workload and engine,
+with a JSON history containing minimal run details: date, median time, speed and
+sample count. Ingest actual timings through `npm run store:ingest` in
+`benchmarks/runtime`, verify the stored values and database integrity, then remove
+disposable raw result files. Do not ingest command logs, source snapshots or
+session receipts. Keep only concise current-gate diagnostics needed to resolve
+open failures; source checkpoints belong in Git. Rebuild executable consumers
+from commits when needed rather than preserving a separate canonical binary set.
 
 Reuse the documented single Cargo target with CARGO_INCREMENTAL=0. At handoffs,
 inspect workspace and scratch target growth and remove obsolete test/native executables,

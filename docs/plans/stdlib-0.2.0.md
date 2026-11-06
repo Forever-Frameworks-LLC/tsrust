@@ -24,10 +24,12 @@ remove a release checkbox: repair the prerequisite or obtain an explicit scope
 decision. API names below are proposed concrete spellings; freeze signatures,
 defaults and ownership in B00 before implementing each bundle.
 
-The owner is interested in UI as well. Completing every v0.2.0 checkbox is not a
-prerequisite for discussing or prototyping UI. After the first useful utility
-wave, review that priority with the owner. UI implementation remains a separate
-scope decision; this plan does not revive the frozen renderer/framework work.
+Owner update, 2026-11-05: research and record the
+[GPUI application platform plan](gpui-application-platform.md) now; implement it
+after completing v0.2.0. That next scope includes GPUI/Kit wrappers with retained
+`.tsrx` signals, the full component/example catalog on desktop and experimental
+web, `.tsr` HTTP clients and shared backend/frontend roots with automatic codegen.
+It does not replace any checkbox in this release checklist.
 
 ## Audited starting point
 
@@ -706,16 +708,16 @@ after a named task await remain a separate checker repair; native behavior passe
 
 Backend: Tokio process, not a new process framework. B03/B05/B06.
 
-- [ ] `CommandOptions`, `Child`, `ExitStatus`, `Output`, `ProcessError`.
-- [ ] `spawn(program, args, options?)`, `run(program, args, options?)`.
-- [ ] Per-child cwd/env/clearEnv and finite inherit/null/pipe stdio choices.
-- [ ] Freeze Rust-style spawn inherited stdio versus run captured stdout/stderr
+- [x] `CommandOptions`, `Child`, `ExitStatus`, `Output`, `ProcessError`.
+- [x] `spawn(program, args, options?)`, `run(program, args, options?)`.
+- [x] Per-child cwd/env/clearEnv and finite inherit/null/pipe stdio choices.
+- [x] Freeze Rust-style spawn inherited stdio versus run captured stdout/stderr
   and null stdin. Give run a consumed Bytes/Reader input option; reject an
   inaccessible stdin pipe when no payload/reader is supplied, then close input
   after draining it so a child can observe EOF.
-- [ ] Child `id`, `takeStdin`, `takeStdout`, `takeStderr`, `wait`, `tryWait`,
+- [x] Child `id`, `takeStdin`, `takeStdout`, `takeStderr`, `wait`, `tryWait`,
   `kill`; pipe endpoints transfer once and use B05.
-- [ ] Concurrent stdout/stderr draining and awaited reaping; optional explicit
+- [x] Concurrent stdout/stderr draining and awaited reaping; optional explicit
   deadline/output bound, no arbitrary default 30-second/64-MiB policy.
 
 Contract: no implicit shell interpolation. Nonzero exit is an Output status,
@@ -736,7 +738,18 @@ nonzero/missing executable, explicit bounds/deadline, lazy unpolled input,
 cancellation/reaping and transferred/borrowed child-pipe ownership. The runner
 verified1,395 matched timing rows and10 allocation cases after a quiet start3.69238.
 These are admission prototypes, not acceptance of public Tsrust APIs or target
-platform execution. Public implementation now proceeds in the isolated process tree.
+platform execution. Public implementation is now integrated in the canonical tree.
+
+B07 local implementation checkpoint **c2045518**: all30 focused compiler/runtime/
+editor/borrowing scopes pass with unchanged scopes retained. Covers owned and
+borrowed input, distinct binary stdout/stderr, actual cleanup, child-only cwd/env,
+clear/default-inherit behavior, UTF8/quoted args, optional limits, all catalog
+examples and portable offline forbidden-unsafe export. Four matched workloads
+pass60 native/handwritten-Rust/Node-after-tsc correctness checks (5cases×3engines),
+including independent checksums and source/helper/library guards. All10 process/
+IO benchmark guards pass; whole-project formatting0changes. These surface boxes
+record local implementation/correctness; public timings and remaining platform/
+full-family acceptance are still required, not silently waived.
 
 ### B08 — TCP/UDP, address parsing and system DNS
 
@@ -762,6 +775,23 @@ traffic, UDP boundaries/receive capacity and controlled resolver fixtures.
 Measure fixed-size echo/transfer with equal connection policy; DNS latency is a
 separate environmental observation, not a compiler throughput claim.
 
+B08 admission update (2026-11-05): allocation-only continuation passed10.920s/
+269,456KiB, preserving all1,860 earlier timing rows/60groups. Seven Node guards
+passed. Fresh16steady allocation rows and13ownership records use the repaired
+pre-JSON peak protocol and exact constructor ledger. Owned split allocates48bytes
+in1Arc; boxed split72bytes in3allocations. All constructor-owned bytes release
+after both halves, in both drop orders. Immediate global deltas were+96bytes for
+both floor and adapter; endpoint/reactor settlement reached0. Signed global and
+boxed-minus-floor growth were0 at1/32/256cycles, with all traced bytes freed.
+This supports scoped adapter ownership, not a claim about arbitrary runtime leaks.
+Result `/tmp/tsrust-network-attempt5-allocation-continuation.json`; actual timing
+consumer remains29f8bdfb, with separate dirty-source allocation identity.
+Allocation repair source is checkpoint8cd62213 (parent29f8bdfb), after two
+whole-project0-change formatting passes and unchanged measured source bytes.
+The60000-byte UDP case is still unmeasured throughput on this host: native and
+Node both reject EMSGSIZE. Required supporting-host/platform and public B08
+compiler/editor/SDK/export acceptance remain pending; no cap/kernel change made.
+
 ### B09 — Compression and streaming transforms
 
 Backend: maintained `flate2` with one deliberately selected Rust backend. B02/B05/B06.
@@ -781,6 +811,22 @@ gzip metadata where controllable. CPU-heavy work must not block async I/O worker
 Witnesses: cross-engine decode, corruption, concatenation, explicit expansion
 bounds and finish failures. Performance: compressible/incompressible buffers and
 streaming chunks at matched levels, recording output size, CPU and memory.
+
+B09 admission update (2026-11-05): full backend comparison passed6groups,
+80,352 timing samples,1,728 allocation rows,432 cross-decoded fixtures and2pool
+witnesses. Miniz produced smaller default compressible output/lower peak, while
+zlib-rs was faster in118/144 compression and142/144 decompression comparisons.
+The streaming contract requires non-EOF Sync flush and non-finalizing state Drop;
+the safe low-level gzip APIs admit zlib-rs for this bridge. No handwritten framing
+or checksum implementation is added. Native default gzip metadata remains
+deterministic per platform, including backend OS byte, rather than rewritten.
+The private explicit-pool/B05 bridge passed all8 groups at O0/O3 (16 scopes),
+7.272s/566,192KiB: formats, errors, backpressure, cancellation, queued work, files,
+flush and disposal. Includes size1pool composition and actual CPU settlement.
+Result `/tmp/tsrust-compression-bridge-attempt2-result.json`; failed first fixture
+compilation scope retained. This selects a feasible bridge/backend candidate;
+public compiler/editor/export/application acceptance and matched measurements
+remain unchecked above. Original direct-backend timings are not public API timings.
 
 ### B10 — HTTP client completeness and source-owned middleware
 

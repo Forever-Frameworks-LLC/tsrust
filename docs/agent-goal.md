@@ -45,10 +45,12 @@ input. This ordering supersedes the older scheduling retained below.
    v0.2.0 checklist as items pass. No archives, source snapshots or per-worker
    handoff files. Preserve owner files and the accepted optimization work; check
    live PRs/Dependabot immediately before every push.
-7. After the first useful utility wave, revisit a bounded original-UI milestone
-   with the owner, who prefers hands-on UI work but wants useful library gaps
-   addressed. This is a priority checkpoint, not automatic UI-revival permission
-   or a reason to abandon the remaining v0.2.0 checklist.
+7. Owner update, 2026-11-05: finish v0.2.0 first, then pursue the
+   [GPUI application platform plan](plans/gpui-application-platform.md): GPUI/Kit
+   wrappers using retained `.tsrx` signals, complete component/example coverage
+   on desktop and experimental WASM, `.tsr` API clients and shared backend/frontend
+   roots with automatic codegen. The requested research/planning detour does not
+   replace or reduce the active B00–B20 goal.
 8. Complete the plan's real compiler/editor/native/platform/package/performance
    acceptance before claiming the goal achieved. Implementation is authorized;
    publishing v0.2.0 still needs explicit version/publication approval on a
