@@ -859,6 +859,15 @@ and relocated offline packages. Runtime161scopes, focused editor11cases,
 in all4phases pass. New accumulated unit witnesses pass14selected tests after
 prior23metadata and77affected-unit passes. Exact current handoff links results.
 These are focused checks, not a complete compiler/LSP regression claim.
+Source checkpoint57039b96 contains the coherent networking/compression slice.
+The meaningful-family library pass found2failures among1394executed compiler
+scopes (1392passed,8additional scopes ignored), while all23LSP library scopes
+passed. Both failures now pass: reserved flate2 pins and logical readonly views
+of recursive union owner temporaries. The repair retains complete owner type
+annotations and reuses existing data/callback view conversion. All53affected
+checks pass (20library,29conditional-expression,4codec native scopes),65.334s/
+514,560KiB. Preserve the original full results and repaired-scope evidence;
+full integration/diagnostic/doctest and measurement gates remain open.
 
 All47 selected benchmark wrappers (4address,6transport,36compression and affected
 io_file_copy) are source/ABI ready;11JS guards pass. Source preflight executes no

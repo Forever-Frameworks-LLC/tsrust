@@ -28,6 +28,7 @@ pub fn reserved(name:&str)->bool {
         "accesskit_winit",
         "futures-core",
         "tokio-util",
+        "flate2",
         "nix",
         "base64",
         "tempfile",
@@ -71,7 +72,7 @@ pub const MARKER:&str="// tsrust-binding-package ";
    let section=manifest.split_once("[dependencies]\n").unwrap().1.split_once("\n[features]").unwrap().0;
    for line in section.lines().filter(|line|!line.trim().is_empty()) {let name=line.split_once('=').unwrap().0.trim();assert!(reserved(name),"unprotected runtime dependency {name}");}
   }
-  for schema in [1,2] {assert!(Bindings::parse(&format!(r#"{{"schemaVersion":{schema},"source":"./adapter.rs","dependencies":{{"nix":{{"version":"=0.30.1"}}}}}}"#)).is_err());}
+  for schema in [1,2] {for name in ["nix","flate2"] {assert!(Bindings::parse(&format!(r#"{{"schemaVersion":{schema},"source":"./adapter.rs","dependencies":{{"{name}":{{"version":"=0.30.1"}}}}}}"#)).is_err());}}
  }
 
  #[test]fn binding_graphs_are_path_independent_and_preserve_legacy_locks(){

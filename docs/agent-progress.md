@@ -13,21 +13,45 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-11-06
 
-Canonical source checkpoint **c2045518**, branch `codex/stdlib-0.2.0`: validated
-public subprocess +shared Task/context repairs +matched benchmark support. B08/B09 source integration is now dirty; preserve it. Full B00–B20 remains active. No push/merge/publication.
+Canonical source checkpoint **57039b96**, branch `codex/stdlib-0.2.0`: networking
+and compression compiler/runtime/editor/docs/examples plus matched benchmark
+support, with focused acceptance recorded below. B07 sourcec2045518 and measured
+checkpointf479e241 remain preserved. Full B00–B20 remains active. No push/merge/publication.
 
 **B08/B09 focused source acceptance is complete; full-family acceptance and measurement remain pending.** Public network
 and compression patches (83 and 170 files) are integrated. All 14 merge conflicts
 are resolved. Root is the only canonical writer; all workers are idle, with their
-managed trees and WIP refs preserved below. HEAD remains f479e241, accepted source
-c2045518; preserve the large staged/unstaged feature diff.
+managed trees and WIP refs preserved below. Source is committed as57039b96;
+whole-project format twice reported0changes and both diff checks passed.
 
-**Heavy slot is free.** Attempt9 build passed566.176s/3,843,059KiB; terminal
-Cargo success verified in `/tmp/tsrust-b08-b09-attempt9-artifacts.jsonl` and
-`/tmp/tsrust-b08-b09-attempt9-build.log`. All heavy jobs are terminal. The final
-Regex speculative-hint repair is applied and validated. No rebuild is needed
-merely because session58573 vanished. One shared target, jobs1, incremental off,
-5GB/30minute watchdog, test threads3 remain mandatory.
+**Heavy slot is free.** Attempt10 no-run rebuild passed534.488s/3,842,083KiB;
+terminal Cargo success verified in `/tmp/tsrust-b08-b09-attempt10-artifacts.jsonl`.
+Both configured debug consumers and affected test binaries are current. Its53
+selected checks passed65.334s/514,560KiB under the watchdog:20library controls,
+all29conditional cases and4compression native scopes. Results/logs:
+`/tmp/tsrust-b08-b09-attempt10-gates.json`, same-prefix gates.log/gates-watch.log.
+All builds/tests are terminal; do not rebuild for a vanished session.
+
+Full library regressions initially finished: compiler1392passed,2failed,8ignored,
+78.82s (watch79.294s/1,390,098KiB); LSP23passed0.11s (watch0.518s/2,512KiB).
+`/tmp/tsrust-57039b96-full-libs.json` and same-prefix logs preserve all evidence.
+Both failed scopes now pass in attempt10, with18related library controls:
+- `project/rust_dependencies.rs`: reserves runtime-owned flate2 and rejects
+  binding redeclarations under both schemas.
+- `emit/mod.rs`: conditional owner temporaries reuse existing tsr_data_view
+  policy for data unions (tsr_view remains for callable unions). Full owner
+  annotations remain, preventing B09 E0282; recursive RecordLink storage exposes
+  the logical Record payload without cloning/allocation. Extended native borrow
+  matrix covers both direct and stored inspect(undefined) calls.
+The29conditional native checks cover callback/ownership/disposal branches. Four
+codec scopes cover all B05 endpoint pairs, executable catalog/field examples,
+TCP transforms both directions at O0/O3 and explicit-pool reader/writer flows.
+This is accumulated full-library evidence plus repaired scopes, not a fresh
+full-library replay. Full integration targets/doctests/diagnostics and public
+benchmark correctness/timing remain pending.
+
+Attempt9 build passed566.176s/3,843,059KiB. Final Regex speculative-hint repair
+remains validated; no unrelated rebuild is needed.
 
 Accepted local evidence to preserve:
 - Attempt2 build passed561.327s/3,809,524KiB. Unchanged runtime sources passed
@@ -89,8 +113,16 @@ three optional character reads and the exact address handwritten-Rust ABI.
 and `/tmp/tsrust-b08-address-proposal-results.json` preserve unchanged scopes.
 No workload execution or timing is claimed by this source preflight.
 
-Next: finish local source checkpoint after whole format/diff check. Then perform
-meaningful-family full compiler/LSP regressions, build verified release consumers
+Next: checkpoint the validated attempt10 repairs, then the full compiler/LSP target
+matrix using bounded per-target build/run/deletion to avoid disk exhaustion.
+Prepared `/tmp/tsrust-57039b96-full-integration.py` has544non-library targets
+(443compiler/101LSP). It accepts `--checkpoint <repaired-clean-HEAD>`, handles
+zero-test binaries, captures consumer hashes after each fresh Cargo build and
+continues independent failures while stopping resource/watchdog failures.
+Per-case identities prevent stale reuse. Run `--skip-libs
+--remove-completed-executables`; no prior full-target success
+from an older source is accepted. Keep Cargo and exact native cases serialized.
+Then build verified release consumers
 for the benchmark runner (it uses target/release), execute matched correctness,
 measure affected workloads with original sample counts and ingest actual timings.
 Reuse unchanged controls. Include io_file_copy because the shared kernel changed.
@@ -116,10 +148,30 @@ All11 changed workload hashes were reviewed; Rust normal-path controls unchanged
 Whole format/idempotence and diff checks passed; latest formatter is verified
 `target/debug/tsrust`. Before source commits rerun whole format as required.
 
+Portable cleanup removed10 obsolete reproducible source packs, retaining only
+current4b1614cc11be85b899f9825bb0a1365878277ca246e280cd5c1a8044a566c671.
+Free disk rose to13GiB before attempt10; no sources/dependency caches removed.
+
+B10 read-only preparation: no B10 admission/profile exists yet. Reuse current
+Body/Client.send/B05 stream-channel bridges and benchmarks/http matched protocol.
+ClientOptions only has ca; Client::build overrides redirects/proxy/30s timeout.
+Next coherent client slice is backend-default options/policy migration, owned
+binary/stream/channel uploads and maintained outgoing multipart encoder, with
+all compiler/editor/docs/examples/benchmarks together. Source-installed middleware
+is still required. Compression middleware needs measured admission for streaming
+backpressure and explicit bounded CPU scheduling, reusing B09 where possible;
+no hidden pool/default cap. Existing internal TLS/h2 evidence does not close
+public end-to-end negotiated transport acceptance. Do not start implementation
+before the current foundation correctness/performance milestone review.
+
 Disk cleanup removed210 obsolete duplicate executable variants older than2hours,
 6,466,239,968bytes, retaining latest variants and all active dependencies/sources.
 Free disk was7.6GiB after attempt7. Prune obsolete outputs before handoff; rebuild
-old consumers from Git if needed. No push, merge, tag or publication occurred.
+old consumers from Git if needed. No push, merge, tag or publication occurred. Read-only GitHub check2026-11-06
+found no open PRs (including Dependabot); latest CI41934141484 passed on
+e3fea936 and was ordinary PR scope, not current/full validation. The connector
+was unavailable; gh supplied the verified state. Recheck immediately before
+any necessary push, with exact commit/uncertainty/workflow recorded first.
 
 **B07 performance is measured and ingested.** Sourcec2045518; planning/evidence
 checkpoint4e0439fc; measured DB/evidence checkpoint **f479e241**. Actual run62773 PASS285.317s/677,930KiB, quietmax3.95361328125<4,

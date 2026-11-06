@@ -7897,7 +7897,12 @@ impl Emitter<'_> {
         let Some(id) = temporary else { return code; };
         let borrow = if mode == Mode::Mutate { "&mut " } else { "&" };
         let code = format!("{{ conditional_temporary_{id} = {code}; {borrow}conditional_temporary_{id} }}");
-        if matches!(arm.ty, Some(Type::Union(id)) if !id.copy) && mode == Mode::Read { format!("({code}).tsr_view()") } else { code }
+        if let Some(ty @ Type::Union(id))=arm.ty && !id.copy && mode==Mode::Read {
+            // Owning recursive unions carry RecordLink storage. Match ordinary
+            // readonly conversion: expose its logical payload, not the link.
+            let method=if self.callback_payload(ty).is_some(){"tsr_view"}else{"tsr_data_view"};
+            format!("({code}).{method}()")
+        } else { code }
     }
 
     fn concat_call(
