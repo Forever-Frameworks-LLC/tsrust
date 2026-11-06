@@ -1,5 +1,8 @@
 # Development requirements
 
+Owner requirement, 2026-11-06: every test run has an absolute wall-clock ceiling of one hour, including setup/build and cleanup. This supersedes all older 90/120/330-minute or longer budgets. Platform acceptance uses one 55-minute end-to-end scope budget, leaving cleanup time within the CI 60-minute job ceiling. Preserve completed scope evidence; budget exhaustion is incomplete acceptance, never a pass or permission to skip required tests. Remove redundant work and batch coherent coverage to fit; do not split the same oversized suite into serial hour-long chunks.
+
+
 ## Next application direction — 2026-11-05
 
 Finish the full v0.2.0 standard-library checklist first. The owner's strong

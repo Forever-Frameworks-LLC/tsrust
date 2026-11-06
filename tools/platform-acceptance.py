@@ -132,7 +132,15 @@ def sha(path):
         return hashlib.file_digest(source, "sha256").hexdigest()
 
 
+def remaining_scope_seconds(deadline):
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise TimeoutError("Platform acceptance exhausted its 55-minute end-to-end budget")
+    return min(1800, remaining)
+
+
 def main():
+    deadline = time.monotonic() + 55 * 60
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", required=True, choices=["x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-pc-windows-msvc"])
     args = parser.parse_args()
@@ -169,7 +177,9 @@ def main():
         # Unique attempts preserve failed-scope evidence without overwriting logs.
         prefix = destination / (label + "-" + str(time.time_ns()))
         try:
-            row = bounded(command, cwd, env, prefix)
+            print("START", label, flush=True)
+            row = bounded(command, cwd, env, prefix, limit_seconds=remaining_scope_seconds(deadline))
+            print(json.dumps({"label": label, **{key: row[key] for key in ["code", "stop", "seconds", "peakBytes"]}}), flush=True)
             frozen()
         except BaseException as error:
             results.setdefault("attempts", []).append({"label": label, "stop": type(error).__name__, "message": str(error)})

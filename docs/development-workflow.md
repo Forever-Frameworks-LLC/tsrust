@@ -1,5 +1,8 @@
 # Development and acceptance workflow
 
+Owner requirement, 2026-11-06: every test run has an absolute wall-clock ceiling of one hour, including setup/build and cleanup. This supersedes all older 90/120/330-minute or longer budgets. Platform acceptance uses one 55-minute end-to-end scope budget, leaving cleanup time within the CI 60-minute job ceiling. Preserve completed scope evidence; budget exhaustion is incomplete acceptance, never a pass or permission to skip required tests. Remove redundant work and batch coherent coverage to fit; do not split the same oversized suite into serial hour-long chunks.
+
+
 Owner update, 2026-11-05: the full v0.2.0 checklist remains first. Subsequent UI
 and shared application acceptance follows the
 [GPUI application platform plan](plans/gpui-application-platform.md). This updates

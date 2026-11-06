@@ -1,4 +1,5 @@
 import ast
+from contextlib import redirect_stdout
 import importlib.util
 import io
 import json
@@ -17,6 +18,42 @@ SPEC.loader.exec_module(RUNNER)
 
 
 class PlatformAcceptance(unittest.TestCase):
+    def test_remaining_scope_budget_caps_shortens_and_rejects_exhaustion(self):
+        with patch.object(RUNNER.time, "monotonic", side_effect=[100, 175, 200]):
+            self.assertEqual(RUNNER.remaining_scope_seconds(5000), 1800)
+            self.assertEqual(RUNNER.remaining_scope_seconds(200), 25)
+            with self.assertRaisesRegex(TimeoutError, "55-minute end-to-end budget"):
+                RUNNER.remaining_scope_seconds(200)
+
+    def test_workflow_timeouts_never_exceed_one_hour(self):
+        root = Path(__file__).resolve().parents[2]
+        for path in (root / ".github/workflows").glob("*.yml"):
+            for value in re.findall(r"timeout-minutes: (.+)", path.read_text()):
+                self.assertTrue(value.isdigit() and 0 < int(value) <= 60, (path, value))
+
+    def test_scope_progress_prints_flushed_start_and_compact_completion(self):
+        source = (Path(__file__).resolve().parents[1] / "platform-acceptance.py").read_text()
+        main = next(node for node in ast.parse(source).body if isinstance(node, ast.FunctionDef) and node.name == "main")
+        function = next(node for node in main.body if isinstance(node, ast.FunctionDef) and node.name == "run")
+        output = io.StringIO()
+        row = {"code": 0, "stop": None, "seconds": 12.5, "peakBytes": 4096, "stdout": "scope.out", "stderr": "scope.err"}
+        def bounded(*arguments, **options):
+            self.assertEqual(output.getvalue(), "START fixture-build\n")
+            self.assertEqual(options["limit_seconds"], 1800)
+            return row
+        namespace = {"root": Path("."), "destination": Path("."), "env": {}, "frozen": lambda: None, "save": lambda: None, "results": {}, "time": RUNNER.time, "json": json, "bounded": bounded, "remaining_scope_seconds": lambda deadline: 1800, "deadline": 3300}
+        # Compile only the nested scope wrapper; main and real bounded/subprocess code cannot run.
+        exec(compile(ast.Module(body=[function], type_ignores=[]), "scope-progress", "exec"), namespace)
+        with redirect_stdout(output), patch("builtins.print", wraps=print) as printed:
+            actual = namespace["run"]("fixture-build", ["never-executed"])
+        self.assertIs(actual, row)
+        self.assertEqual(printed.call_count, 2)
+        self.assertTrue(all(call.kwargs.get("flush") is True for call in printed.call_args_list))
+        lines = output.getvalue().splitlines()
+        self.assertEqual(lines[0], "START fixture-build")
+        self.assertEqual(json.loads(lines[1]), {"label": "fixture-build", "code": 0, "stop": None, "seconds": 12.5, "peakBytes": 4096})
+        self.assertEqual(namespace["results"]["attempts"], [{"label": "fixture-build", **row}])
+
     def test_pinned_bun_rejects_corrupt_archive_before_execution(self):
         source = (Path(__file__).resolve().parents[2] / ".github/workflows/supporting-host-timing.yml").read_text()
         body = source.split("          python3 - <<'BUN_PYTHON'\n", 1)[1].split("          BUN_PYTHON", 1)[0]
