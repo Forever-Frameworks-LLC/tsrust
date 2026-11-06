@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import os
 from pathlib import Path
 import re
@@ -44,6 +45,21 @@ class PlatformAcceptance(unittest.TestCase):
         self.assertNotEqual(row["code"], 0)
         self.assertLess(row["seconds"], 5)
 
+    def test_successful_root_with_remaining_child_keeps_failure_and_process_evidence(self):
+        class Finished:
+            pid = 10
+            returncode = 0
+            def poll(self):
+                return 0
+        child = {"pid": 11, "ppid": 10, "born": "2026-11-06T17:00:00.1234567Z", "name": "worker.exe", "bytes": 4096}
+        with tempfile.TemporaryDirectory() as directory, patch.object(RUNNER.subprocess, "Popen", return_value=Finished()), patch.object(RUNNER, "process_rows", return_value=[child]), patch.object(RUNNER, "kill_owned") as cleanup:
+            row = RUNNER.bounded(["finished"], directory, os.environ.copy(), Path(directory) / "remaining")
+        self.assertEqual(row["code"], 0)
+        self.assertEqual(row["stop"], "unsettled child processes")
+        self.assertEqual(row["rootPid"], 10)
+        self.assertEqual(row["remaining"], [child])
+        cleanup.assert_called_once()
+
     def test_counter_failure_still_kills_and_joins_child(self):
         process = None
         original = subprocess.Popen
@@ -82,7 +98,11 @@ class PlatformAcceptance(unittest.TestCase):
             self.assertFalse(enabled("platform", "platform_acceptance", extra=mode))
         platform = jobs["platform"]
         pairs = lambda source: re.findall(r"- os: (\S+)\s+target: (\S+)", source)
-        self.assertEqual(pairs(platform), pairs((root / ".github/workflows/release.yml").read_text()))
+        selections = re.search(r"inputs\.platform_windows_only &&\s*'([^']+)' \|\|\s*'([^']+)'", platform)
+        self.assertIsNotNone(selections)
+        windows, all_hosts = ([(row["os"], row["target"]) for row in json.loads(value)] for value in selections.groups())
+        self.assertEqual(all_hosts, pairs((root / ".github/workflows/release.yml").read_text()))
+        self.assertEqual(windows, [("windows-2022", "x86_64-pc-windows-msvc")])
         self.assertIn("persist-credentials: false", platform)
         self.assertNotIn("release.yml", platform)
         self.assertIn("PLATFORM_RESULT: ${{ needs.platform.result }}", jobs["ci"])

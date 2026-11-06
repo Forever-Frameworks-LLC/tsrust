@@ -40,7 +40,9 @@ def process_rows():
         script = """$ErrorActionPreference='Stop'; $rows=@(Get-CimInstance Win32_Process | ForEach-Object {
           $entry=$_; $p=Get-Process -Id $entry.ProcessId -ErrorAction SilentlyContinue;
           if ($null -ne $p) { [pscustomobject]@{pid=[int]$entry.ProcessId; ppid=[int]$entry.ParentProcessId;
-            born=[string]$entry.CreationDate; bytes=[Math]::Max($p.WorkingSet64,$p.PrivateMemorySize64)} }
+            born=$(if ($null -ne $entry.CreationDate) {$entry.CreationDate.ToUniversalTime().ToString('o')} else {''});
+            name=[string]$entry.Name;
+            bytes=[Math]::Max($p.WorkingSet64,$p.PrivateMemorySize64)} }
         }); ConvertTo-Json -InputObject $rows -Compress"""
         output = subprocess.check_output(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script], text=True, timeout=15)
         return json.loads(output)
@@ -121,6 +123,7 @@ def bounded(command, cwd, env, prefix, limit_seconds=1800, limit_bytes=5_000_000
             kill_owned(process, seen)
             raise
     return {"code": process.returncode, "stop": reason, "seconds": round(time.monotonic() - start, 3),
+            "rootPid": process.pid, "root": seen.get(process.pid), "remaining": remaining,
             "peakBytes": peak, "stdout": str(prefix.with_suffix(".out")), "stderr": str(prefix.with_suffix(".err"))}
 
 

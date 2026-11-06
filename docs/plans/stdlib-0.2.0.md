@@ -935,6 +935,16 @@ for allocation review; no speculative optimization or control retiming. Reader/
 writer24timings, native allocation review and platform acceptance remain pending.
 
 
+Public compression-reader measurements (2026-11-06): all12reader-transform
+workloads are measured across native/Rust/Node and ingested withnpm run store:ingest,
+3348actualsamples using unchanged3processes×31samples after8warmups. Quietguard
+and per-workloadwatchdog remain enabled; exact imported histories and SQLite
+integrity pass. Native/Rust median-duration ratios range0.975–1.045; Node/native
+ratios2.21–4.10 for these workloads. Buffer+reader24 are now measured; writer12
+and native allocation review remain pending. Preserve all existing controls and
+correctness checks; these timings do not establish cross-platform acceptance.
+
+
 ### B10 — HTTP client completeness and source-owned middleware
 
 Backend: existing Reqwest/Axum/Tower stack. B04/B05/B06; compression uses B09.

@@ -11,6 +11,11 @@ The job uses the release host matrix: Linux x86_64, macOS ARM64, macOS x86_64 an
 Windows x86_64. Other focused modes and full regressions are mutually exclusive
 with this mode. The final CI gate requires all four platform jobs to succeed.
 
+For a Windows repair, also set `platform_windows_only=true` to select only that
+host. Its success proves the selected Windows scope; retain the other hosts'
+separate evidence. Do not dispatch it on a ref with a live CI run: the workflow's
+ref concurrency policy would cancel that run.
+
 The runner asserts the native Rust host and pinned Node version. Setup fetches
 locked dependencies explicitly; subsequent compilation and tests run offline and
 locked. One shared Cargo target, one build job and disabled incremental compilation

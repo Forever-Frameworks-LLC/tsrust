@@ -8,6 +8,10 @@ on:
         description: Run bounded native I/O family acceptance on Linux, both Macs and Windows, without publishing.
         type: boolean
         default: false
+      platform_windows_only:
+        description: With platform_acceptance, validate a Windows repair without rerunning the other hosts.
+        type: boolean
+        default: false
       async_acceptance:
         description: Run focused async testing acceptance on Linux, macOS and Windows.
         type: boolean
@@ -223,15 +227,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-          - os: macos-15
-            target: aarch64-apple-darwin
-          - os: macos-15-intel
-            target: x86_64-apple-darwin
-          - os: windows-2022
-            target: x86_64-pc-windows-msvc
+        include: >-
+          ${{ fromJSON(inputs.platform_windows_only &&
+          '[{"os":"windows-2022","target":"x86_64-pc-windows-msvc"}]' ||
+          '[{"os":"ubuntu-24.04","target":"x86_64-unknown-linux-gnu"},
+          {"os":"macos-15","target":"aarch64-apple-darwin"},
+          {"os":"macos-15-intel","target":"x86_64-apple-darwin"},
+          {"os":"windows-2022","target":"x86_64-pc-windows-msvc"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 330
     defaults:
