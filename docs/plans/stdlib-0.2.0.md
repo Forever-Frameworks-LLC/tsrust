@@ -517,7 +517,11 @@ pass. Paired median15.513792→3.265958ms; full-workload allocations unchanged a
 5003/11000reallocations; quiet max3.984375. Fresh libraries differ from the original
 public measurement, so this is candidate evidence only. Canonical integration
 passes all eight runtime witnesses plus the formatted native example. Fresh public
-native timing remains pending, with unchanged Rust/Node controls reused.
+native timing completed atb1a32713:3.265750ms median,93samples, quiet maximum
+3.999512. One actual native history ingested and SQLite integrity verified;
+original16.219000ms history retained. Unchanged Rust/Node controls remain
+2.813625/18.351167ms from the earlier matched run. This confirms about80% lower
+public native time; it does not retime or fabricate the unchanged controls.
 
 B05 direct-Rust admission (2026-11-05): safe owned blocking-reader staging with
 one reusable buffer passed short/interrupted reads, EOF/zero destination, retained

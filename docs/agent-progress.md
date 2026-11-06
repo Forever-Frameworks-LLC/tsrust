@@ -13,8 +13,18 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-11-05
 
-Source checkpoint: **bbbfcfcd**, branch `codex/stdlib-0.2.0`. The line-reader runtime/tests and this handoff
-are dirty in the canonical checkout. The full B00–B20 goal remains active.
+Source checkpoint: **b1a32713**, branch `codex/stdlib-0.2.0`. Canonical source is
+committed; only this handoff is dirty. The full B00–B20 goal remains active.
+
+Public native line-reader measurement58869 completed successfully363.879s/
+2,280,284KiB, including release build/preparation/quiet wait. Result
+benchmarks/runtime/results/2026-11-06T00-21-31-711Z.json: five correctness cases,
+three processes×31samples after8warmups, median3.265750ms; quiet max3.999512<4.
+`npm run store:ingest` added one actual history. SQLite independently verified
+both native histories (16.219000→3.265750ms,93samples each) and integrity_checkok.
+Unchanged Rust/Node controls remain2.813625/18.351167ms from6f8d3342. The original
+history is preserved; fresh selected native timing is a different run. No heavy
+job remains. Next measurement checkpoint, then serialized network admission.
 
 Latest acceptance: optional finite-string unions retain their guarded string
 observations. All 14 focused compiler/native/editor witnesses passed; whole-project
@@ -38,22 +48,30 @@ eight runtime cases and the formatted native line-reader example,4.697s/390,064K
 Logs `/tmp/tsrust-line-chunk-integration-{artifacts.jsonl,build.log,gates.json,gates-run.log}`.
 The standalone runtime harness retains existing unused-item warnings; this is not
 a warning-free milestone claim. Whole-project formatting and source checkpoint
-follow, then measure only nativeio_lines with the original protocol, reusing the
-unchanged Rust/Node controls. No fresh public timing is claimed yet.
+b1a32713 completed. Now measure only nativeio_lines with the original protocol, reusing the
+unchanged Rust/Node controls. Fresh public timing is now recorded above.
 
 Original cached-library/preparation failures remain in separate/tmp logs. B06
-released the profiling lease; no heavy job is running at this entry.
+released the profiling lease; root public timing58869 is terminal; heavy slot is free.
 
 Parallel source work: B03 owns the isolated `stdlib-process` tree, aligned to
 28d8ec49, implementing the public subprocess API after its 19 correctness records,
 1,395 timing rows and10 allocation cases passed. B14 owns compression admission
 guard repairs in the isolated `stdlib-compression` tree. Both are source-only for native work. Compression profile.mjs/node-control.mjs
 syntax checks and its independent negative validator self-check passed on pinned
-Node24.11.1; no codec build/profile ran. B06 now repairs network admission guards
-in the isolated network tree, with no execution or shared-target use.
+Node24.11.1; no codec build/profile ran. B06 completed network admission guard repairs in the isolated network tree;
+no execution/build yet. Eight existing admission files plus guards.mjs and
+guards.test.mjs enforce2139 timing/24 allocation rows, four negative guard tests,
+order-sensitive independent checksums/full payload equality, pending-before-drop
+cancellation witnesses, quiet guards and pre/post source/artifact/library hashes.
+Next lease command: `python3 /tmp/tsrust-watch.py python3 /tmp/tsrust-network-admission-run.py`.
+That prepared script runs guards, retained exact normal/allocation builds and
+profile under the shared target/inc0/jobs1. Logs/tmp/tsrust-network-*; DNS untimed.
+Future public network signatures must use the reviewed explicit Result contract,
+not automatically inherit the admission README's older Task<T> sketch.
 
-Next: checkpoint the accepted reader, obtain and ingest its fresh native public
-measurement, then continue subprocess integration and the other release bundles.
+Next: checkpoint the fresh measurement, execute prepared network admission, and
+continue subprocess integration and the other release bundles.
 Preserve the original timing history. Local acceptance does not complete v0.2.0.
 
 ## Earlier checkpoint evidence
