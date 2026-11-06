@@ -4063,11 +4063,8 @@ impl Emitter<'_> {
             if let StmtKind::While { condition, body } = &stmt.kind {
                 if let Some(code)=self.counted_builder(fun,builder_parent,stmt) { let _=writeln!(output,"{code}"); continue; }
                 pending.push(Work::Scope(self.control_targets.enter(ControlTarget::Loop(stmt.span.start))));
-                let _ = writeln!(
-                    output,
-                    "'loop_{}: while {} {{",
-                    stmt.span.start, self.expr(fun, condition, Mode::Copy)
-                );
+                let condition=if matches!(condition.kind,ExprKind::Boolean(true)){"loop".to_owned()}else{format!("while {}",self.expr(fun,condition,Mode::Copy))};
+                let _ = writeln!(output,"'loop_{}: {condition} {{",stmt.span.start);
                 pending.push(Work::Post(stmt, depth));
                 pending.push(Work::Text(format!("}}\n")));
                 pending.push(Work::Body(body, Rc::new(body.iter().collect()), depth + 1, None));

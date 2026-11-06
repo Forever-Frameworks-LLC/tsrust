@@ -2,8 +2,8 @@
 use super::*;
 use crate::native_signatures::NativeTypeId;
 impl Analyzer {
-    pub(super) fn iterator_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
-        let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None);};
+    pub(super) fn rewrite_iterator_call(&self,context:&Context,expression:&mut Expr)->Result<bool,Diagnostic>{
+        let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(false);};
         let rewrite=if let ExprKind::Field(base,name)=&callee.kind {
             if name=="from" && matches!(&base.kind,ExprKind::Name(owner) if !context.names.contains_key(owner) && self.generic_records.native_template(owner)==Some(NativeTypeId::OwnedIterator)) {
                 Some(("from".to_owned(),None))
@@ -11,7 +11,7 @@ impl Analyzer {
                 // Only project/link assigns PREFIX to immutable std:iterator declarations;
                 // ordinary user names use the disjoint linked-symbol namespace.
                 // The bundled next implementation invokes its mutable pull field.
-                if name=="_pull" && context.function_name.starts_with(crate::stdlib::iterator::PREFIX){return Ok(None);}
+                if name=="_pull" && context.function_name.starts_with(crate::stdlib::iterator::PREFIX){return Ok(false);}
                 if !crate::stdlib::iterator::METHODS.contains(&name.as_str()){return Err(Diagnostic::new("iterator-member","Unknown iterator operation.",callee.span));}
                 Some((name.clone(),Some((**base).clone())))
             }else{None}
@@ -19,8 +19,15 @@ impl Analyzer {
         if let Some((operation,receiver))=rewrite{
             if let Some(receiver)=receiver{args.insert(0,receiver);}
             callee.kind=ExprKind::Name(format!("{}{operation}",crate::stdlib::iterator::PREFIX));
+            return Ok(true);
+        }
+        Ok(false)
+    }
+    pub(super) fn iterator_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+        if self.rewrite_iterator_call(context,expression)?{
             return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
         }
+        let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None);};
         let ExprKind::Name(name)=&callee.kind else{return Ok(None);};
         let Some((_,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:iterator-runtime") else{return Ok(None);};
         if !context.function_name.starts_with(crate::stdlib::iterator::PREFIX){return Err(Diagnostic::new("iterator-private","Iterator cursor operations are private to the iterator module.",expression.span));}

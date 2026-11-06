@@ -1,6 +1,7 @@
 mod tsrust_native_futures {
     use std::{future::Future, sync::{Arc, Mutex, atomic::{AtomicU8, Ordering}}, task::Poll, time::Duration};
     use tokio::{sync::{Notify, oneshot, mpsc}, task::AbortHandle};
+    pub use tokio::time::{Instant, timeout_at};
     tokio::task_local! { static SCOPE: Arc<Scope>; }
     #[derive(Default)]
     pub struct Scope {

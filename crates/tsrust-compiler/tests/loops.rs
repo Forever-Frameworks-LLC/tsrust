@@ -267,3 +267,12 @@ fn branch_exit_matrix_distinguishes_back_edges_breaks_and_returns() {
     accepted.push_str(&format!("function main() {{ {calls} }}"));
     execute(&accepted, &output, None);
 }
+
+#[test]
+fn literal_true_loops_preserve_callable_returns_and_break_fallthrough(){
+    execute(
+        "function value(flag:boolean):int{while(true){if(flag){return 7;}return 9;}}function main(){const pull=():int=>{while(true){while(true){break;}return 3;}};console.log(value(true));console.log(value(false));console.log(pull());}",
+        "7\n9\n3\n",None,
+    );
+    reject("function value():int{while(true){break;}}function main(){}","type");
+}

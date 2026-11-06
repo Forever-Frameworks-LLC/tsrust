@@ -32,6 +32,7 @@ impl Analyzer {
     }
     pub(super) fn start_generic_preparation(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>) -> Result<Prepared, Diagnostic> {
         let expr = call(expr);
+        self.rewrite_iterator_call(context,expr)?;
         if matches!(&expr.kind, ExprKind::Call(_, args) if args.iter().any(|arg| matches!(arg.kind, ExprKind::Unary { op: UnaryOp::Spread, .. }))) {
             return Ok(self.generic_spread_prototype(context, expr)?.map_or(Prepared::Done, Prepared::Spread));
         }

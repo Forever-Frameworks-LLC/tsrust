@@ -653,8 +653,10 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
                     };
                     *body = completed.into_child();
                     let breaks = analyzer.finish_scheduled_loop(context, body, stmt.span, frame, result)?;
-                    if !breaks && let StmtKind::While { condition, .. } = &stmt.kind
-                        && let Some((_, no)) = analyzer.pure_guard_outcomes(context, condition) { context.flow = no; }
+                    if !breaks && let StmtKind::While { condition, .. } = &stmt.kind {
+                        if matches!(condition.kind, ExprKind::Boolean(true)) { task.frame.as_mut().expect("loop scope").exited = true; }
+                        if let Some((_, no)) = analyzer.pure_guard_outcomes(context, condition) { context.flow = no; }
+                    }
                 }
                 (BlockPending::Declaration { index, mut frame, module_scope }, completion) => {
                     let (expression, result) = match completion {
