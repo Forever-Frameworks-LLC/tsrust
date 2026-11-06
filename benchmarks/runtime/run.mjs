@@ -427,6 +427,9 @@ function prepare(w) {
  else if(w.family==='child-processes')assertProcessSource(source,w,'native');
  else if(w.family==='async-io')assertAsyncIoSource(source,w,'native');
  else if(w.family==='task-ergonomics')assertTaskErgonomicsSource(source,w,'native');
+ else if(w.family==='network-addresses')assertNetworkAddressSource(source,w,'native');
+ else if(w.family==='network-transport')assertNetworkTransportSource(source,w,'native');
+ else if(w.family==='compression')assertCompressionSource(source,w,'native');
  else if (!containsCodeSnippet(source, `function workload(n: int, seed: int${w.inputText === undefined ? '' : ', input: string'}${w.scalarCoordinates ? ', coordinates: int' : ''}): ${w.result}`)) throw new Error('Workload ABI changed');
  if(isApproximate(w)){const loaded=loadApproximateReference(w,{tsrSha256:hash(source),tsSha256:hash(ts)});assertApproximateCases(loaded.reference,plan.correctnessCases(w.iterations));approximateReferences.set(w.id,loaded);}
  const emitted = run([compiler], ['emit', path.join(here, w.source ?? `workloads/${w.id}.tsr`)]).stdout;

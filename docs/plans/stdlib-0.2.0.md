@@ -896,6 +896,17 @@ family regressions, timing/allocation review and SQLite ingestion remain pending
 The registered60000-byte UDP case remains required on a supporting host; native
 and Node return EMSGSIZE here. Platform and full-goal checkboxes remain open.
 
+Matched public correctness continuation (2026-11-06):4address,6supported
+transport and12compression-buffer workloads pass all3engines at all5registered
+correctness cases (330engine/case checks), plus36produced-stream cross-decoding
+probes for the buffer workloads. The shared runner now routes these families
+through their existing strict source/ABI guards instead of its scalar-only
+fallback; workload/control bytes and measurement protocols are unchanged. Eleven
+existing source/oracle/provenance guards pass. Reader/writer24 and io_file_copy
+correctness, all public timings, native allocation review and ingestion remain
+pending. No correctness-only run was ingested as a timing measurement.
+
+
 ### B10 — HTTP client completeness and source-owned middleware
 
 Backend: existing Reqwest/Axum/Tower stack. B04/B05/B06; compression uses B09.
