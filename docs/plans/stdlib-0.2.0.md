@@ -956,6 +956,40 @@ network10 and affectednativefilecopy, all47localworkloads have matched histories
 allocation review and supporting-host net_udp_large timing remain pending.
 
 
+Public I/O platform correctness (2026-11-06): hosted run42259225163 at exact
+7d67daf8d5971d934939da02b39d3bd989720abb passed Linux x86_64 and macOS ARM64.
+Each host built all39selected targets with successful terminal CargoJSON.
+Linux passed451exact cases (397compiler/54LSP), including the actual60000-byte
+UDP datagram; macOS passed446 (392/54), excluding that unsupported host case.
+All saved exact-case passes agree with their stdout, with no watchdog stops.
+Both passed portable setup, packaging, distributed CLI execution and LSP
+initialize/capabilities/clean shutdown. Peak owned-tree memory was2.165GiB on
+Linux and2.135GiB on macOS. These are focused family/platform results, not full
+regressions or throughput measurements. macOS Intel and repaired Windows
+acceptance remain open; supporting-host UDP timing is a separate running job.
+
+Public allocation continuation (2026-11-06): address4, supportedtransport6,
+compressionbuffer12 andreader12 have completed the original allocation protocol,
+three fresh samples per workload. Reader12 finished480.365s/573788KiB. Address
+samples retain0bytes; transport samples report signed128bytes and compression
+buffer/reader samples4376bytes at the existing inside-runtime snapshot. That
+snapshot precedes production root-scope drain and runtime destruction; these
+values establish neither a leak nor a cache. Separate settlement diagnosis and
+remaining writer/filecopy profiles are required before closing allocation review.
+Allocation diagnostics are not imported into measurement histories.
+
+Supporting-host large UDP timing (2026-11-06): run42279800898 at794c8397
+completed successfully onLinux x86_64. Actualnet_udp_large timings were imported
+withnpm run store:ingest: native5.822362ms, handwrittenRust5.592775ms,
+Node-after-tsc19.908222ms medians,93samples each using unchanged3processes×31
+samples after8warmups. Quietguard admitted maximum1.57 below the host limit2;
+no allow-busy. Current sources/controls/oracle and exact histories/integrity were
+verified; unrelated histories are unchanged and closed raw output discarded.
+Native is about4.1% above Rust and3.42×faster thanNode in this scoped Linux test.
+Together with47localworkloads this completes48scoped timing histories with13206
+new samples; it does not compare absolute timings across hosts or close remaining
+allocation/platform/final-release gates.
+
 ### B10 — HTTP client completeness and source-owned middleware
 
 Backend: existing Reqwest/Axum/Tower stack. B04/B05/B06; compression uses B09.
