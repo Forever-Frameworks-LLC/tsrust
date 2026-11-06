@@ -64,13 +64,15 @@ impl Analyzer{
         let physical = self
             .place_type(context, &place)
             .unwrap_or(Type::Union(union));
-        // Same-tag transport and whole residual observations borrow the original
-        // enum. A smaller owning tag can only be reconstructed by moving it.
+        // Same-tag transport and general residual observations keep the original
+        // enum. Common string observations can use the existing borrowed subset
+        // retagging without moving a payload or admitting an absent alternative.
         let actual = if expected == Some(physical)
             || context.observer_places.contains(&place)
             || (mode == Mode::Read
                 && matches!(narrowed, Type::Union(id) if !id.copy)
-                && expected.is_none())
+                && expected.is_none()
+                && !self.is_string_observation(narrowed))
         {
             physical
         } else {

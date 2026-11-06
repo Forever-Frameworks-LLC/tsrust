@@ -38,3 +38,47 @@ function inspect(value:ReadOnly<Left|Right>):int{if(value.kind==='left'){return 
 function make<T>(left:boolean):T{if(left){return {kind:'left',count:7};}return {kind:'right',label:'done'};}
 function main(){strictEqual(inspect({kind:'left',count:7}),7);strictEqual(inspect({kind:'right',label:'done'}),4);strictEqual(inspect(make(true)),7);}
 "#);}
+
+
+#[test]
+fn guarded_optional_finite_strings_share_observations_without_moving_owners(){native(r#"
+import {strictEqual} from 'std:testing';
+import {SeekOrigin as Origin} from 'std:fs';
+type Phase='request-start'|'task-end';type Alias=Phase;
+function width(value?:ReadOnly<Alias>):int{
+ if(value===undefined){return 0;}
+ strictEqual(value.includes('-'),true);
+ strictEqual(value[0],value.startsWith('request')?'r':'t');
+ strictEqual(value.toUpperCase().length,value.length);
+ return value.length;
+}
+function forward(value?:ReadOnly<Alias>):int{return width(value);}
+function textOnly(value?:ReadOnly<Alias|int>):int{
+ if(value===undefined){return 0;}if(typeof value==='number'){return -1;}return value.length;
+}
+function originWidth(value?:ReadOnly<Origin>):int{if(value===undefined){return 0;}return value.length;}
+function guardedLoop(value?:ReadOnly<Alias>):int{
+ let total=0;let n=0;while(n<3){if(value===undefined){return 0;}total+=value.length;n++;}return total;
+}
+function main(){
+ strictEqual(width(),0);strictEqual(width(undefined),0);strictEqual(width('request-start'),13);strictEqual(width('task-end'),8);
+ const inspect=width;const phase:Alias='task-end';let n=0;
+ while(n<3){strictEqual(inspect(phase),8);strictEqual(forward(phase),8);strictEqual(textOnly(phase),8);n++;}
+ strictEqual(textOnly(7),-1);strictEqual(textOnly(),0);strictEqual(phase.length,8);
+ strictEqual(originWidth(),0);const origin:Origin='current';strictEqual(originWidth(origin),7);strictEqual(originWidth(origin),7);strictEqual(origin.length,7);
+ strictEqual(guardedLoop(phase),24);strictEqual(guardedLoop(),0);
+}
+"#);}
+
+#[test]
+fn optional_finite_string_observations_keep_absence_mixed_and_loop_guards(){
+ let prefix="type Phase='request-start'|'task-end';";
+ for(body,code)in[
+  ("function inspect(value?:ReadOnly<Phase>):int{return value.length;}function main(){inspect();}","type"),
+  ("function inspect(value?:ReadOnly<Phase|int>):int{if(value===undefined){return 0;}return value.length;}function main(){inspect(7);}","type"),
+  ("function inspect(initial?:Phase):int{let value:Phase|undefined=initial;if(value===undefined){return 0;}value=undefined;return value.length;}function main(){inspect('task-end');}","type"),
+  ("function inspect(initial?:Phase):int{let value:Phase|undefined=initial;if(value===undefined){return 0;}let n=0;while(n<2){console.log(value.length);value=undefined;n++;}return 0;}function main(){inspect('task-end');}","loop-narrowing"),
+ ]{let source=support::format_round_trip(&format!("{prefix}{body}"));let error=tsrust_compiler::check(&source).err().expect("invalid observation must fail");assert_eq!(error.code,code,"{source}: {error:?}");}
+ let source=support::format_round_trip(&format!("{prefix}function inspect(value?:ReadOnly<Phase>):void{{if(value===undefined){{return;}}value.length=1;}}function main(){{inspect('task-end');}}"));
+ assert!(tsrust_compiler::check(&source).is_err(),"readonly length became writable");
+}

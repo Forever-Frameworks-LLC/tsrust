@@ -21,3 +21,23 @@ fn native_literal_alias_hover_and_import_completion_use_checked_literals() {
     let completion = ask(&ProjectIndex::new(&graph), source, " }", "textDocument/completion");
     assert!(completion.as_array().unwrap().iter().any(|item| item["label"] == "SeekOrigin"), "{completion}");
 }
+
+
+#[test]
+fn optional_finite_string_guard_repairs_receiver_help_in_changed_buffers(){
+    let valid="type Phase='request-start'|'task-end';type Alias=Phase;function inspect(value?:ReadOnly<Alias>):int{if(value===undefined){return 0;}return value.length;}function main(){inspect('request-start');}";
+    let source=tsrust_compiler::format(valid).unwrap();let id=source_id(uri()).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());
+    let snapshot=workspace.snapshot();let checked=snapshot.check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    let completion=ask(&index,&source,"length","textDocument/completion");
+    let items=completion.as_array().expect("member completion list");assert!(!items.is_empty());
+    for name in["length","startsWith","includes"]{assert!(items.iter().any(|item|item["label"]==name),"{name}: {completion}");}
+    let hover=ask(&index,&source,"length","textDocument/hover");assert!(hover.to_string().contains("length"),"{hover}");
+    let invalid=tsrust_compiler::format(&valid.replace("if(value===undefined){return 0;}","")).unwrap();
+    assert!(workspace.change(&id,2,invalid));
+    let errors=workspace.snapshot().check_with_diagnostics(&id).err().expect("unguarded optional member must fail");
+    assert!(errors.iter().any(|error|error.code=="type"),"{errors:?}");
+    assert!(workspace.change(&id,3,source.clone()));let snapshot=workspace.snapshot();let repaired=snapshot.check(&id).unwrap();
+    let completion=ask(&ProjectIndex::checked(&repaired),&source,"length","textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="length"),"{completion}");
+}

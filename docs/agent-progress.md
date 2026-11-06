@@ -13,6 +13,75 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+**B20 optional finite-string narrowing locally accepted — 2026-11-05:**
+43023 terminalPASS18.181s/431,856KiB, all14witnesses passed. Nativeguarded
+length/index/startsWith/includes/toUpperCase plusaliases/importedSeekOrigin and
+same-tagforwarding/reuse; negativeunguarded/mixed/invalidated/loop/readonly cases;
+existingnullabletag/loans/partialmove/allocation/disposal controls; LSPcompletion/
+hover changedbufferdiagnostic+repair allpass. Planinventory nowaccepted withscope.
+No extra dependencies/emitter changes. Checkpoint afterwholeformat; fullrelease
+stillincomplete. Rootheavy slot free; linecandidateprofile pending, B07worker
+publicimplementation and B09admissionguards continue source-only separately.
+
+**B20 narrowing buildpassed; gatesLIVE43023 — 2026-11-05:** build66804
+terminalPASS225.173s/2,702,498KiB andbuild-finishedtrue. Prepared14-witness
+`/tmp/tsrust-optional-finite-gates.py` nowexecuting underwatchdog/sharedtarget/
+inc0/jobs1/testthreads3; log `/tmp/tsrust-optional-finite-gates-run.log`, pertest
+JSON `/tmp/tsrust-optional-finite-gates.json`. Scope6literal_union_arguments,
+2compilernativealiases,4nullable_narrowing,2LSPnativealiases (supporthelper excluded).
+Preservepasses, repairactualfailures only. Sourceuncommitted3files; formatpassed.
+B07worker alignedisolatedprocess tree todetached28d8ec49 (admissionuntrackedfiles
+preserved, originale9acceptedhashes notrewritten) andimplements publicTask<Result>
+processAPI. Rootapproved spellings, flaggedreadonlyprogram/args lazyTaskcapture
+policy andstored/conditionalcall coverage. No workerheavylease.
+B14repairs B09admission source-only: exactfixture/samplematrix/checksumguards,
+commonimmutable Node-generated decodecorpus, distinctownencoderroundtrip controls,
+negativevalidators andpreservedfailedscopes. Noexecution yet.
+
+B07prototype medians93samples/case, ms adapter/directTokio/Node:
+launch1.4801/1.5068/1.5972; capture16KiB1.5146/1.5180/1.7545;
+capture1MiB2.8610/2.8595/12.7904; duplex16KiB1.4976/1.5013/1.6702;
+duplex1MiB2.2046/2.2227/7.1075. Within1.8%ofdirectfloor. Allocationlargecapture
+19alloc/34realloc8,389,695requested both; largeduplex22/18/5,244,349both.
+Retaineddeltas -352..352 acrossdirect+adapter areobservations, notleak/zero claims.
+Prototypeonly; notpublicAPImeasurementhistories.
+
+**Current B20 optional-string narrowing section — 2026-11-05:** oncheckpoint
+28d8ec49, applied reviewed/tmp/tsrust-optional-finite-string-observation.patch,
+3files. Sharedread-projection nowpreserves proven all-string residualsubset via
+existingborrowedretag emitter; absence/mixedunions/observertransport/mutation rules
+retained. Newnative/compiler/LSPregressions include aliases,guardedstringmethods,
+readonlyreuse,missingguards,mixedunions andloopinvalidation. Wholeformat0changes.
+LIVE focused no-run build66804, compiler+LSP literal_union_arguments,
+native_literal_aliases,nullable_narrowing; rootsharedtarget/inc0/jobs1/watchdog.
+`/tmp/tsrust-optional-finite-{artifacts.jsonl,build.log}`. Verifyterminalbefore
+nextheavyjob. Noacceptanceclaim yet; sourceuncommitted.
+
+B07prototype admissionPASSED: normalbuild93987 terminal19.700s/453,712KiB;
+allocation33943 terminal6.737s/265,376KiB, bothbuild-finishedtrue. Retainedexact
+binaries/hashes /tmp/tsrust-b07-process-{normal,allocation}[.sha256], actualartifact
+logs /tmp/tsrust-b07-{admission,allocation}-artifacts.jsonl. Profile39821 terminal
+PASS21.709s/221,296KiB, quietstart3.69238, /tmp/tsrust-b07-profile.json andquiet.json:
+19correctness,1395matchedtimingrows,10allocationcases. Strictsource+closure+binary
+identityandindependentchecksum/countguards pass. B03worker ownsisolatedprocess
+source tree forpublicB07implementation; noheavyjobs orcanonicaledits. PublicAPI
+unaccepted, admissionprototypes notpublicmeasurementhistories. B06linecandidate
+/tmp/tsrust-line-chunk-candidate.patch (2files/54lines,SHA256
+6332b437aaade65a70f07a0e3c9343bcb95efab789fce8823fdfe582a57077a7) andplan.txt
+are source-only; profilebeforepublicapply. Preserves exactlimit/allocationfailure
+progress; scan+append bycapacity-chunks, no newdependency. Noexecutionyet.
+
+**Currentcheckpoint28d8ec49; B07 admission buildLIVE93987 — 2026-11-05:**
+B05actualtiming+allocationreview committed afterwholeformat; all3manifestrows
+markedmeasured,9actualhistories stored. Sharedheavy lease nowB07process directRust
+normalrelease build fromisolatedstdlib-process tree, canonicalroot target/inc0/jobs1,
+watchdog. `/tmp/tsrust-b07-admission-{artifacts.jsonl,build.log}`. Waitforterminal
+build-finished before nextjob. Need retainnormal executable/hash fromactualCargo
+artifact, thenallocation-probe build toseparateartifactlog, retain/hashthatbinary,
+thenprofile.mjs exactargs described processadmissionREADME. Assertclosure/source
+identities before accepting. No B07native/profileacceptance yet. B06preparing
+linebulk comparison under/tmp source-only whilebuild runs; no canonicalchanges.
+
 **B05 allocation review complete — 2026-11-05:** session16001 terminalPASS
 94.949s/633,162KiB. Diagnostics2026-11-05T23-54-46-950Z-native-allocations.json;
 readInto1003allocations/7reallocations; lines5003/11000; filecopy5513/9. Three

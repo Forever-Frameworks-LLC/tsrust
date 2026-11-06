@@ -715,6 +715,15 @@ rejection and closed stdin on all
 platforms. Performance: same helper executable for spawn/wait, capture and duplex
 I/O; separate OS launch time from adapter work.
 
+B07 direct-Rust admission (2026-11-05): normal and separately instrumented
+release builds pass exact source/dependency/binary guards. All19 correctness
+records pass, including binary duplex and EOF, flooded outputs, environment/cwd,
+nonzero/missing executable, explicit bounds/deadline, lazy unpolled input,
+cancellation/reaping and transferred/borrowed child-pipe ownership. The runner
+verified1,395 matched timing rows and10 allocation cases after a quiet start3.69238.
+These are admission prototypes, not acceptance of public Tsrust APIs or target
+platform execution. Public implementation now proceeds in the isolated process tree.
+
 ### B08 — TCP/UDP, address parsing and system DNS
 
 Backend: existing Tokio net/system resolver; std address types. B05/B06.
@@ -1287,11 +1296,13 @@ an unresolved avoidable adapter gap is work to investigate, not a marketing win.
 
 ## B20 — Feature-family and v0.2.0 release checklist
 
-Pending compiler inventory finding (2026-11-05): an optional readonly finite-string
-union parameter still reports its original union including undefined after
-`if (value === undefined) { return 0; }`, so `value.length` is rejected. Preserve
-this separately from the readonly literal-argument context repair; do not claim
-optional-union narrowing acceptance from equality-only argument witnesses.
+Accepted compiler inventory repair (2026-11-05): optional readonly finite-string
+unions retain their proven string-only residual after an undefined guard. Native
+length/index/string-method observations, aliases and repeated owner reuse pass;
+missing guards, mixed residuals, mutation and loop invalidation remain rejected.
+Fourteen focused compiler/native/editor witnesses pass, including existing tag,
+borrow-allocation and disposal controls. This is distinct from literal-argument
+context preservation and uses the existing borrowed-subset emitter.
 
 
 - [ ] After the owned-I/O/async/iterator foundations form one accepted family,
