@@ -869,6 +869,26 @@ checks pass (20library,29conditional-expression,4codec native scopes),65.334s/
 514,560KiB. Preserve the original full results and repaired-scope evidence;
 full integration/diagnostic/doctest and measurement gates remain open.
 
+Local I/O-family integration continuation (2026-11-06, source4790f320): the
+complete non-library inventory built all544targets with terminal Cargo success;
+522targets passed initially, with46failed cases across22targets. Focused repair
+runs preserve those successes and close the known failures through compiler,
+native ownership/error transport, editor and export witnesses. Full backend
+catalog checking and602distinct standalone native example programs plus the
+fragment batch pass, including declared stderr. Real signal delivery and all six
+relocated offline exports pass with the updated verified source pack. The final
+13affected controls pass: HTTP2, task/channel6, async HTTP lifecycle1 and queue4.
+They include actual queue execution, generic string assertions in scheduled
+Tasks, local named captures, ordered success/typed-failure results, conditional
+SendError cloning and retained unknown-callback/resource rejection. Async
+program-context lifetimes separately pass all8focused cases, including paired
+globals and cross-file state. Pending-function checking now runs outside the
+result-only discovery phase for the selected task callees, restoring both phase
+flags before propagating errors. No global scheduling or error-contract widening
+is introduced. These are the original full run plus scoped repairs, not a newly
+replayed full matrix or complete cross-platform/release acceptance. Public matched
+benchmark correctness, actual timings, allocation review and ingestion remain next.
+
 All47 selected benchmark wrappers (4address,6transport,36compression and affected
 io_file_copy) are source/ABI ready;11JS guards pass. Source preflight executes no
 workloads and records no timings. Actual matched native/Rust/Node correctness,
@@ -1168,8 +1188,10 @@ Explicit fractionDigits requests fixed displayed
 scale plus half-even rounding, not merely a maximum; absent preserves the normalized
 value. Backend checked range is0..32768 (i16 magnitude0..-32768), not an arbitrary
 28digit formatting cap derived from Decimal input precision. Large padding edges
-and rejection without mutation passed. Public option/type signatures and generated
-compiler/runtime/editor/export implementation remain pending.
+and rejection without mutation passed. At that admission checkpoint, public
+option/type signatures and generated compiler/runtime/editor/export implementation
+were still pending; the subsequent public acceptance and measurements are recorded
+above.
 
 ### B14 — Small collection, numeric and date completion
 

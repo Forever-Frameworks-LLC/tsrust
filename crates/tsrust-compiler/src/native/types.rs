@@ -185,7 +185,7 @@ static TASK_CONTEXT: Declaration = Declaration { id: NativeTypeId::TaskContext, 
 static CHANNEL: Declaration = Declaration { id: NativeTypeId::Channel, name: "Channel", type_parameters: &["T"], thread_transfer: true, ..THREAD };
 static SENDER: Declaration = Declaration { id: NativeTypeId::Sender, name: "Sender", ..CHANNEL };
 static CHANNEL_ERROR: Declaration = Declaration { id: NativeTypeId::ChannelError, name: "ChannelError", fields: &[Field { name: "code", signature: Signature::String, optional: false }], ..SPAWN_ERROR };
-static SEND_ERROR: Declaration = Declaration { id: NativeTypeId::SendError, name: "SendError", type_parameters: &["T"], fields: &[
+static SEND_ERROR: Declaration = Declaration { id: NativeTypeId::SendError, name: "SendError", independent_clone: true, type_parameters: &["T"], fields: &[
     Field { name: "code", signature: Signature::String, optional: false },
     Field { name: "value", signature: Signature::Parameter(0), optional: false },
 ], ..SPAWN_ERROR };

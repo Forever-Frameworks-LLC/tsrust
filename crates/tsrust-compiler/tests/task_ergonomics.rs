@@ -6,6 +6,7 @@ fn documented_task_timer_channel_examples_execute(){
  let mut seen=std::collections::BTreeSet::new();
  for family in ["Interval","CancellationToken"]{for entry in catalog[family].as_array().unwrap(){for example in entry["examples"].as_array().unwrap(){let source=example["source"].as_str().unwrap();if seen.insert(source){execute(source,example["output"].as_str().unwrap());}}}}
  for name in ["all","Interval","CancellationToken","MissedTickBehavior","SendError","ChannelError"]{let entry=catalog["std:futures"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();for example in entry["examples"].as_array().unwrap(){let source=example["source"].as_str().unwrap();if seen.insert(source){execute(source,example["output"].as_str().unwrap());}}}
+ let entry=catalog["std:threads"].as_array().unwrap().iter().find(|entry|entry["name"]=="SendError").unwrap();for example in entry["examples"].as_array().unwrap(){let source=example["source"].as_str().unwrap();if seen.insert(source){execute(source,example["output"].as_str().unwrap());}}
  let entry=catalog["ThreadPool"].as_array().unwrap().iter().find(|entry|entry["name"]=="taskAsync").unwrap();for example in entry["examples"].as_array().unwrap(){execute(example["source"].as_str().unwrap(),example["output"].as_str().unwrap());}
 }
 #[test]
@@ -68,4 +69,35 @@ fn synchronous_try_operations_prepare_channel_error_types(){
 #[test]
 fn all_materializes_scalar_record_and_nested_array_carriers(){
  execute("import {all} from 'std:futures';type Item={value:int};async function text():Task<string>{return 'owned'.repeat(2);}async function record():Task<Item>{return {value:7};}async function array():Task<int[]>{return [3,4];}async function main():Task<void>{const texts=await all([text(),text().start()]);const records=await all([record(),record().start()]);const arrays=await all([array(),array().start()]);console.log(texts[0],texts[1],records[0].value,records[1].value,arrays[0][0],arrays[1][1]);}","ownedowned ownedowned 7 7 3 4\n");
+}
+
+#[test]
+fn send_error_clone_is_structural_through_records_void_results_and_settled_jobs(){
+ execute(r#"import {SendError as AsyncSendError,Channel,allSettled} from 'std:futures';
+import {SendError as SyncSendError} from 'std:threads';
+import {strictEqual} from 'std:testing';
+type ErrorRecord={error:AsyncSendError<int[]>;};
+async function rejected():Task<void>{const queue=new Channel<int>(1);const sender=queue.sender();queue.close();await sender.send(7);}
+async function rejectedValue():Task<void>{const error:AsyncSendError<int>={code:'closed',value:7};throw error;}
+async function main():Task<void>{
+ const plain:SyncSendError<int[]>={code:'closed',value:[1]};const plainCopy=clone(plain);plainCopy.value.push(2);strictEqual(plain.value.length,1);strictEqual(plainCopy.value.length,2);
+ const record:ErrorRecord={error:{code:'closed',value:[3]}};const recordCopy=clone(record);recordCopy.error.value.push(4);strictEqual(record.error.value.length,1);strictEqual(recordCopy.error.value.length,2);
+ const unit:Result<void,AsyncSendError<int>>=Err({code:'closed',value:8});match(clone(unit)){Ok(_)=>{throw 'unexpected success';},Err(error)=>{strictEqual(error.value,8);}}
+ const settled=await allSettled([rejected().start()]);match(clone(settled[0])){Ok(_)=>{throw 'unexpected success';},Err(error)=>{strictEqual(error.code,'worker');strictEqual(error.cause!.code,'closed');}}
+ const payloads=await allSettled([rejectedValue().start()]);match(clone(payloads[0])){Ok(_)=>{throw 'unexpected success';},Err(error)=>{strictEqual(error.code,'worker');strictEqual(error.cause!.code,'closed');strictEqual(error.cause!.value,7);}}
+ console.log('send error clones preserve owned payloads');
+}
+"#,"send error clones preserve owned payloads\n");
+}
+
+#[test]
+fn send_error_clone_rejects_resource_and_callable_payloads_in_every_wrapper(){
+ for payload in ["TrackedResource","CallablePayload"]{
+  for shape in [format!("SendError<{payload}>"),format!("{{error:SendError<{payload}>;}}"),format!("Result<void,SendError<{payload}>>"),format!("AsyncError<SendError<{payload}>>")]{
+   let source=format!("import {{SendError,AsyncError}} from 'std:futures';import {{TrackedResource}} from 'std:testing';type CallablePayload={{call:Function<int>;}};type Wrapped={shape};function inspect(error:ReadOnly<Wrapped>){{const copied=clone(error);}}function main(){{}}");
+   let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
+   let result=support::run(support::cli().arg("check").arg(path),30);assert!(!result.status.success(),"accepted {shape}");
+   assert!(String::from_utf8_lossy(&result.stderr).contains("error[clone-type]"),"{shape}: {}",String::from_utf8_lossy(&result.stderr));
+  }
+ }
 }

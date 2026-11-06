@@ -63,6 +63,74 @@ test('packaging preserves bytes, source versions, notices and executable permiss
   assert.ok(!readme.includes('Web UI additionally needs'));
 }));
 
+const rEfiVersions = {
+  '5.3.0': 'ff92bed461f50338dd703a9ba9aee496a425957873df1d91192776e4bdf5dda7',
+  '6.0.0': 'd027e91dbc9cdbb2f1190068e498bd6b61cff022b6a032b191021ba658d96111',
+};
+function rEfiVendor(directory, version, versioned) {
+  const vendor = path.join(directory, 'vendor');
+  const crate = path.join(vendor, versioned ? `r-efi-${version}` : 'r-efi');
+  fs.mkdirSync(crate, {recursive: true});
+  fs.writeFileSync(path.join(crate, 'Cargo.toml'), `[package]\nname="r-efi"\nversion="${version}"\nlicense="MIT OR Apache-2.0 OR LGPL-2.1-or-later"\n`);
+  fs.writeFileSync(path.join(crate, '.cargo-checksum.json'), '{}');
+  fs.copyFileSync(new URL(`fixtures/r-efi-${version}/AUTHORS`, import.meta.url), path.join(crate, 'AUTHORS'));
+  return {vendor, crate};
+}
+
+test('packaging retains exact r-efi notices in versioned and ordinary Cargo vendor directories', () => {
+  for (const version of Object.keys(rEfiVersions)) for (const versioned of [false, true]) temporary(directory => {
+    const {vendor, crate} = rEfiVendor(directory, version, versioned);
+    const other = path.join(vendor, 'example-1.0.0');
+    fs.mkdirSync(other);
+    fs.writeFileSync(path.join(other, 'Cargo.toml'), '[package]\nname="example"\nversion="1.0.0"\nlicense="MIT"\n[lib]\nname="r-efi"\n');
+    fs.writeFileSync(path.join(other, '.cargo-checksum.json'), '{}');
+    fs.writeFileSync(path.join(other, 'LICENSE'), 'existing license fixture\n');
+    fs.writeFileSync(path.join(other, 'AUTHORS'), 'Names only, not a license\n');
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    assert.equal(result.status, 0, result.stderr);
+    const relative = `attributions/dependencies/${path.basename(crate)}/AUTHORS`;
+    const bytes = fs.readFileSync(path.join(output, relative));
+    assert.deepEqual(bytes, fs.readFileSync(path.join(crate, 'AUTHORS')));
+    assert.equal(digest(bytes), rEfiVersions[version]);
+    assert.match(bytes.toString(), /Permission is hereby granted, free of charge/);
+    const manifest = JSON.parse(fs.readFileSync(path.join(output, 'manifest.json')));
+    assert.deepEqual(manifest.files[relative], {sha256: digest(bytes), bytes: bytes.length});
+    assert.ok(!fs.existsSync(path.join(output, 'attributions/dependencies/example-1.0.0/AUTHORS')));
+  });
+});
+
+test('packaging rejects tampered or missing r-efi notices in both Cargo directory forms', () => {
+  for (const version of Object.keys(rEfiVersions)) for (const versioned of [false, true]) for (const mode of ['tampered', 'missing']) temporary(directory => {
+    const {vendor, crate} = rEfiVendor(directory, version, versioned);
+    const authors = path.join(crate, 'AUTHORS');
+    if (mode === 'missing') fs.rmSync(authors);
+    else fs.writeFileSync(authors, 'Authors only; full MIT notice removed\n');
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    assert.notEqual(result.status, 0, `${version}/${versioned}/${mode}`);
+    assert.match(result.stderr, /reviewed published AUTHORS MIT notice/);
+    assert.ok(!fs.existsSync(output));
+    assert.ok(fs.existsSync(crate), 'caller vendor tree must be preserved');
+    if (mode === 'tampered') assert.equal(fs.readFileSync(authors, 'utf8'), 'Authors only; full MIT notice removed\n');
+  });
+});
+
+test('packaging validates actual r-efi package identity and rejects mismatched notice versions', () => {
+  for (const mode of ['wrong-notice-version','wrong-package','unknown-version','wrong-directory-version']) temporary(directory => {
+    const {vendor, crate} = rEfiVendor(directory, '6.0.0', mode === 'wrong-directory-version');
+    const name = mode === 'wrong-package' ? 'unrelated' : 'r-efi';
+    const version = ['wrong-notice-version','wrong-directory-version'].includes(mode) ? '5.3.0' : mode === 'unknown-version' ? '7.0.0' : '6.0.0';
+    fs.writeFileSync(path.join(crate, 'Cargo.toml'), `[package]\nname="${name}"\nversion="${version}"\n`);
+    if (mode === 'wrong-directory-version') fs.copyFileSync(new URL('fixtures/r-efi-5.3.0/AUTHORS', import.meta.url), path.join(crate, 'AUTHORS'));
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    assert.notEqual(result.status, 0, mode);
+    assert.match(result.stderr, mode === 'wrong-directory-version' ? /directory does not match/ : /r-efi/);
+    assert.ok(!fs.existsSync(output));
+  });
+});
+
 test('packaging never replaces existing destinations and removes incomplete output', () => temporary(directory => {
   const inputs = consumers(directory);
   const output = path.join(directory, 'package');

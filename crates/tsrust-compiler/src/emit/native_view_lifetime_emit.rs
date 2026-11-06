@@ -251,6 +251,18 @@ impl Emitter<'_> {
             record_bounds,
             replacement_bounds:Vec::new(),
         },&[]);
+        if method.is_none() && closure.program_scoped && self.program.task_type(function.result) {
+            let mut sources=closure.program_captures.iter().filter_map(|capture|lifetimes.storage(capture.inner)).collect::<Vec<_>>();
+            sources.sort();sources.dedup();
+            if let Some((&source,others))=sources.split_first() {
+                // One context supplies every program-storage loan in the returned task.
+                signature.program_lifetime=Some(source.to_owned());
+                for other in others {
+                    let separator=if signature.replacement_where.is_empty(){" where "}else{", "};
+                    signature.replacement_where.push_str(&format!("{separator}{source}: {other}"));
+                }
+            }
+        }
         if receiver {
             let invocation=method.map_or(closure.invocation,|method|closure.methods[method].invocation);
             signature.receiver=Some(invocation);
@@ -293,6 +305,7 @@ impl Emitter<'_> {
         generics.extend(self.nullable_callback_bounds(closure.parameters.iter().map(|&root|closure.function.bindings[root].ty).chain(std::iter::once(closure.function.result))));
         Some(native_function_signature_emit::NativeSignature {
             task_callback:None,
+            program_lifetime:None,
             receiver:None,
             storage_lifetimes:BTreeMap::from([(root,lifetime)]),
             params,

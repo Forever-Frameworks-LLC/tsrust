@@ -50,3 +50,22 @@ fn quoted_field_help_survives_incomplete_source() {
     let help=index.request("textDocument/hover",&json!({"position":{"line":0,"character":at}}),"file:///props.tsr").unwrap();
     assert!(help.to_string().contains("length"),"{help}");
 }
+
+#[test]
+fn recovered_member_edits_preserve_quoted_optional_and_identifier_access() {
+    for (access, label) in [(".", "aria-label"), ("?.", "aria-label"), (".ar", "aria-label"), ("?.ar", "aria-label"), (".ti", "title"), ("?.ti", "title")] {
+        let optional=access.starts_with("?.");
+        let ty=if optional{"Props | undefined"}else{"Props"};
+        let source=format!("interface Props {{'aria-label':string; title:string;}} function probe(props:{ty}){{/* 😀 */props{access};}}");
+        let start=source.rfind("props").unwrap()+5;
+        let cursor=start+access.len();
+        let items=SourceIndex::new(&source).request("textDocument/completion",&json!({"position":{"line":0,"character":source[..cursor].encode_utf16().count()}}),"file:///props.tsr").unwrap();
+        let item=items.as_array().unwrap().iter().find(|item|item["label"]==label).unwrap();
+        let start=if label=="title"{cursor-2}else{start};
+        let replacement=if label=="title"{"title"}else if optional{"?.[\"aria-label\"]"}else{"[\"aria-label\"]"};
+        assert_eq!(item["textEdit"]["newText"],replacement,"{access}: {item}");
+        assert_eq!(item["textEdit"]["range"],json!({"start":{"line":0,"character":source[..start].encode_utf16().count()},"end":{"line":0,"character":source[..cursor].encode_utf16().count()}}));
+        let fixed=format!("{}{replacement}{}",&source[..start],&source[cursor..]);
+        assert!(tsrust_compiler::check(&fixed).is_ok(),"{fixed}");
+    }
+}

@@ -10,6 +10,7 @@ pub(super) struct NativeTaskCallbackSignature {
 
 pub(super) struct NativeSignature {
     pub(super) task_callback:Option<NativeTaskCallbackSignature>,
+    pub(super) program_lifetime:Option<String>,
     pub(super) receiver:Option<Mode>,
     pub(super) storage_lifetimes: std::collections::BTreeMap<usize,String>,
     pub(super) params: String,
@@ -264,6 +265,7 @@ impl Emitter<'_> {
         }else{None};
         NativeSignature {
             task_callback,
+            program_lifetime:None,
             receiver:None,
             storage_lifetimes:plan.parameters.iter().filter_map(|&root|native_lifetimes.storage(root).map(|name|(root,name.to_owned()))).collect(),
             result,

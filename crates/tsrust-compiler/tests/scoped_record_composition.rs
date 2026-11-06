@@ -3411,3 +3411,39 @@ function main():void{console.log(handlerCleanupOverrideEntry(3,0),handlerCleanup
         support::success(&output);assert_eq!(String::from_utf8(output.stdout).unwrap(),expected);
     }
 }
+
+
+#[test]
+fn indexed_callback_collection_receivers_evaluate_once_and_release_owners(){
+    project(r#"
+        import {strictEqual} from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};type Box={items:Holder[];};
+        function index(calls:Mutable<int[]>):int{calls[0]+=1;return 0;}
+        function main(){
+            const first=[3];const second=[7];const calls=[0];
+            {
+                const boxes:Box[][]=[[{items:[{run:():int=>first[0]}]}]];
+                boxes[index(calls)][index(calls)].items.push({run:():int=>second[0]});
+                strictEqual(calls[0],2);
+                const removed=boxes[0][0].items.pop();
+                if(removed!==undefined)strictEqual(removed.run(),7);
+                strictEqual(boxes[0][0].items[0].run(),3);
+            }
+            first[0]=11;second[0]=13;strictEqual(first[0]+second[0],24);
+        }
+    "#);
+}
+
+#[test]
+fn indexed_callback_collection_insertion_keeps_actual_native_view_restrictions(){
+    use tsrust_compiler::project::{FileSourceProvider,check_graph,load_project};
+    let prefix="import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';";
+    for body in [
+        "function main(){const bytes=unwrap(fromUtf8('abc'));const boxes:ByteView[][]=[[]];boxes[0].push(unwrap(view(bytes,0,1)));console.log(boxes[0].length);}",
+        "type Holder={run:ReadOnly<Function<int>>;part:ByteView;};type Box={items:Holder[];};function main(){const values=[3];const bytes=unwrap(fromUtf8('abc'));const boxes:Box[]=[{items:[]}];boxes[0].items.push({run:():int=>values[0],part:unwrap(view(bytes,0,1))});console.log(boxes[0].items.length);}",
+        "type Holder={run:ReadOnly<Function<int>>;};type Box={items:Holder[];};function main(){const bytes=unwrap(fromUtf8('abc'));const part=unwrap(view(bytes,0,1));const boxes:Box[]=[{items:[]}];boxes[0].items.push({run:():int=>length(part)});console.log(boxes[0].items.length);}",
+    ]{
+        let directory=support::TempDirectory::new();let source=support::format_round_trip(&format!("{prefix}{body}"));let path=directory.source(&source);
+        let error=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).err().expect("actual payload view keeps strict indexed storage rule");assert_eq!(error.code,"native-view-source","{}",error.message);
+    }
+}

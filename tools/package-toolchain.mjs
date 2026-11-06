@@ -32,14 +32,14 @@ try {
     if (!suffix) fs.chmodSync(path.join(destination, 'bin', name), 0o755);
   }
   copy(path.join(root, 'LICENSE'), 'LICENSE');
-  function notices(directory, relative, insideNotice = false) {
+  function notices(directory, relative, insideNotice = false, authorsNotice = null) {
     for (const entry of fs.readdirSync(directory, {withFileTypes: true})) {
       if (entry.isSymbolicLink()) throw Error('Notices cannot contain symlinks.');
       const source = path.join(directory, entry.name);
       const to = path.posix.join(relative, entry.name);
       const notice = insideNotice || /^(licen[cs]es?|copying|notices?)(?:[._-]|$)/i.test(entry.name);
-      if (entry.isDirectory()) notices(source, to, notice);
-      else if (entry.isFile() && (notice || entry.name === 'Cargo.toml')) copy(source, to);
+      if (entry.isDirectory()) notices(source, to, notice, authorsNotice);
+      else if (entry.isFile() && (notice || entry.name === 'Cargo.toml' || to === authorsNotice)) copy(source, to);
     }
   }
   // Bundled UI component notices belong to the legacy-ui build, not the backend release.
@@ -51,7 +51,27 @@ try {
       const directory = path.join(vendor, crate.name);
       if (!crate.isDirectory() || !fs.existsSync(path.join(directory, 'Cargo.toml')) || !fs.existsSync(path.join(directory, '.cargo-checksum.json')))
         throw Error(`Expected a Cargo-vendored crate: ${crate.name}`);
-      notices(directory, `attributions/dependencies/${crate.name}`);
+      // Cargo vendor normally emits a normalized literal [package] table. Scope
+      // identity to that table; a [lib] or dependency name is not the package.
+      const packageTable = fs.readFileSync(path.join(directory, 'Cargo.toml'), 'utf8').split(/^\[package\][ \t]*\r?$/m)[1]?.split(/^\[/m)[0] ?? '';
+      const packageName = /^name[ \t]*=[ \t]*"([^"]+)"[ \t]*(?:#.*)?\r?$/m.exec(packageTable)?.[1];
+      const packageVersion = /^version[ \t]*=[ \t]*"([^"]+)"[ \t]*(?:#.*)?\r?$/m.exec(packageTable)?.[1];
+      let authorsNotice = null;
+      if (packageName === 'r-efi' || ['r-efi','r-efi-5.3.0','r-efi-6.0.0'].includes(crate.name)) {
+        if (packageName !== 'r-efi') throw Error('Expected Cargo-normalized r-efi package identity.');
+        const expected = packageVersion === '5.3.0' ? 'ff92bed461f50338dd703a9ba9aee496a425957873df1d91192776e4bdf5dda7' :
+          packageVersion === '6.0.0' ? 'd027e91dbc9cdbb2f1190068e498bd6b61cff022b6a032b191021ba658d96111' : null;
+        if (!expected) throw Error('Unreviewed r-efi package version for AUTHORS MIT notice.');
+        if (crate.name !== 'r-efi' && crate.name !== `r-efi-${packageVersion}`) throw Error('r-efi vendor directory does not match its package identity.');
+        // Published AUTHORS contains full MIT permission/warranty text plus
+        // Apache/LGPL licensing notices. Preserve the reviewed MIT alternative.
+        const authors = path.join(directory, 'AUTHORS');
+        if (!fs.existsSync(authors) || !fs.lstatSync(authors).isFile() ||
+            crypto.createHash('sha256').update(fs.readFileSync(authors)).digest('hex') !== expected)
+          throw Error(`r-efi ${packageVersion} requires its reviewed published AUTHORS MIT notice.`);
+        authorsNotice = `attributions/dependencies/${crate.name}/AUTHORS`;
+      }
+      notices(directory, `attributions/dependencies/${crate.name}`, false, authorsNotice);
     }
   }
   if(vendor){

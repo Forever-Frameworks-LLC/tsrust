@@ -23,6 +23,32 @@ fn ask_at(index:&ProjectIndex,source:&str,offset:usize,method:&str)->Value {
 }
 
 #[test]
+fn recovered_imported_member_edits_preserve_original_utf16_ranges() {
+    for (access,label) in [(".","aria-label"),("?.","aria-label"),(".ar","aria-label"),("?.ar","aria-label"),(".ti","title"),("?.ti","title")] {
+        let optional=access.starts_with("?.");
+        let ty=if optional{"Props | undefined"}else{"Props"};
+        let source=format!("import {{Props}} from './dep.tsr';function probe(props:{ty}){{/* 😀 */props{access};}}");
+        let uri=fixture_uri!("/tsrust-intelligence/main.tsr");
+        let id=source_id(uri).unwrap();
+        let mut workspace=Workspace::default();
+        workspace.open(source_id(fixture_uri!("/tsrust-intelligence/dep.tsr")).unwrap(),1,"export interface Props {'aria-label':string;title:string;}".into());
+        workspace.open(id.clone(),1,source.clone());
+        let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&id.0).unwrap();
+        let start=source.rfind("props").unwrap()+5;
+        let cursor=start+access.len();
+        let items=ask_at(&ProjectIndex::new(&graph),&source,cursor,"textDocument/completion");
+        let item=items.as_array().unwrap().iter().find(|item|item["label"]==label).unwrap();
+        let start=if label=="title"{cursor-2}else{start};
+        let replacement=if label=="title"{"title"}else if optional{"?.[\"aria-label\"]"}else{"[\"aria-label\"]"};
+        assert_eq!(item["textEdit"]["newText"],replacement,"{access}: {item}");
+        assert_eq!(item["textEdit"]["range"],json!({"start":{"line":0,"character":source[..start].encode_utf16().count()},"end":{"line":0,"character":source[..cursor].encode_utf16().count()}}));
+        let fixed=format!("{}{replacement}{}",&source[..start],&source[cursor..]);
+        workspace.open(id.clone(),2,fixed);
+        workspace.snapshot().check(&id).unwrap();
+    }
+}
+
+#[test]
 fn file_api_hover_and_signature_help_preserve_consuming_close() {
     let entry = tsrust_compiler::format("import {open,read,close} from 'std:fs';function main(){match(open('input.bin')){Ok(file)=>{read(file,4);close(file);},Err(error)=>{console.log(error.osCode);}}}").unwrap();
     let uri = fixture_uri!("/tsrust-intelligence/main.tsr");

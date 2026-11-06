@@ -1433,7 +1433,7 @@
       "name": "SendError",
       "signature": "type SendError<T>",
       "parameters": [],
-      "documentation": "The same SendError<T> identity exported by std:threads. code is full or closed for trySend, and closed for awaited send. value retains the exact unsent owned message; no implicit clone occurs. Cancellation instead disposes a pending message.\n\n```tsrust\ntry {\n  await sender.send(9);\n} catch (error) {\n  console.log(error.value);\n}\n```\n\nOwnership: error owns the original message.",
+      "documentation": "The same SendError<T> identity exported by std:threads. code is full or closed for trySend, and closed for awaited send. value retains the exact unsent owned message; no implicit clone occurs. Cancellation instead disposes a pending message.\n\n```tsrust\ntry {\n  await sender.send(9);\n} catch (error) {\n  console.log(error.value);\n}\n```\n\nOwnership: explicit clone independently copies the error only when its payload is cloneable; resources and callable environments remain non-cloneable.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const sender=queue.sender();unwrap(sender.trySend(7));console.log(unwrap(queue.tryReceive()));sender.close();sender.close();try{await sender.send(9);}catch(error){console.log(error.code,error.value);}queue.close();}",
@@ -1728,14 +1728,13 @@
     },
     {
       "name": "SendError",
-      "signature": "SendError",
-      "inferredSignature": "function SendError",
+      "signature": "type SendError<T> = { code: string; value: T; }",
       "parameters": [],
-      "documentation": "Failed send with code full, closed or cancelled and the original owned value.\n\n```tsrust\nimport { Channel } from \"std:threads\";\n\nfunction main() {\n  const inbox = new Channel<string>(1);\n  const sender = inbox.sender();\n  unwrap(sender.trySend(\"first\"));\n  match (sender.trySend(\"second\".repeat(1))) {\n    Ok(_) => {},\n    Err(error) => {\n      console.log(error.code, error.value); // the unsent value comes back\n    }\n  }\n}\n// prints: full second\n```\nExpected output: false.",
+      "documentation": "Failed send with code full, closed or cancelled. value retains the original owned message that could not be sent.\n\n```tsrust\nimport { Channel } from 'std:threads';\n\nfunction main() {\n  const inbox = new Channel<string>(1);\n  const sender = inbox.sender();\n  unwrap(sender.trySend('first'));\n  match (sender.trySend('second'.repeat(1))) {\n    Ok(_) => {},\n    Err(error) => {\n      console.log(error.code, error.value);\n    }\n  }\n}\n// prints: full second\n```\n\nOwnership: explicit clone independently copies the error only when its payload is cloneable; resources and callable environments remain non-cloneable. Sending does not implicitly clone the message.",
       "examples": [
         {
-          "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}",
-          "output": "false\n"
+          "source": "import {Channel} from 'std:threads';function main(){const inbox=new Channel<string>(1);const sender=inbox.sender();unwrap(sender.trySend('first'));match(sender.trySend('second'.repeat(1))){Ok(_)=>{},Err(error)=>{console.log(error.code,error.value);}}}",
+          "output": "full second\n"
         }
       ]
     },
@@ -18722,11 +18721,11 @@
       "name": "Reader",
       "signature": "type Reader",
       "parameters": [],
-      "documentation": "Owned readable adapter with cursor progress and cancellation-safe staging.\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
+      "documentation": "Owned readable adapter with cursor progress and cancellation-safe staging.\n\n```tsrust\nimport { reader, readInto, readExact, readAll, lines, readLine, close } from \"std:io\";\nimport { fromUtf8, alloc, toUtf8 } from \"std:bytes\";\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8(\"hello\")));\n  const destination = unwrap(alloc(2));\n  console.log(unwrap(await readInto(input, destination)), unwrap(toUtf8(destination)));\n  unwrap(await readExact(input, destination));\n  console.log(unwrap(toUtf8(destination)), unwrap(toUtf8(unwrap(await readAll(input)))));\n  unwrap(await close(input));\n  const rows = unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n  console.log(unwrap(await readLine(rows)), unwrap(await readLine(rows)), unwrap(await readLine(rows)));\n  console.log(unwrap(await readLine(rows)) === undefined);\n  unwrap(await close(rows));\n}\n// Output:\n// 2 he\n// ll o\n// a  last\n// true\n```\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
       "examples": [
         {
-          "source": "import {Reader} from \"std:io\";function inspect(value:ReadOnly<Reader>):void{}function main(){}",
-          "output": ""
+          "source": "import {reader,readInto,readExact,readAll,lines,readLine,close} from \"std:io\";\nimport {fromUtf8,alloc,toUtf8} from \"std:bytes\";\nasync function main():Task<void>{\n const input=reader(unwrap(fromUtf8(\"hello\")));\n const destination=unwrap(alloc(2));\n console.log(unwrap(await readInto(input,destination)),unwrap(toUtf8(destination)));\n unwrap(await readExact(input,destination));\n console.log(unwrap(toUtf8(destination)),unwrap(toUtf8(unwrap(await readAll(input)))));\n unwrap(await close(input));\n const rows=unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n console.log(unwrap(await readLine(rows)),unwrap(await readLine(rows)),unwrap(await readLine(rows)));\n console.log(unwrap(await readLine(rows))===undefined);\n unwrap(await close(rows));\n}\n",
+          "output": "2 he\nll o\na  last\ntrue\n"
         }
       ]
     },
@@ -18734,11 +18733,11 @@
       "name": "Writer",
       "signature": "type Writer",
       "parameters": [],
-      "documentation": "Owned writable adapter; writeAll completes short writes, flush reports buffered failures, and close consumes the adapter.\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
+      "documentation": "Owned writable adapter; writeAll completes short writes, flush reports buffered failures, and close consumes the adapter.\n\n```tsrust\nimport { reader, writer, write, writeAll, flush, copy, close } from 'std:io';\nimport { createTempDir, create, readFile, removeDirAll } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const directory = unwrap(createTempDir(undefined, 'io-example-'));\n  const path = directory + '/bytes';\n  const output = writer(unwrap(create(path)));\n  unwrap(await writeAll(output, unwrap(fromUtf8('ok'))));\n  unwrap(await flush(output));\n  unwrap(await close(output));\n  console.log(unwrap(toUtf8(unwrap(readFile(path)))));\n  unwrap(removeDirAll(directory));\n}\n// Output:\n// ok\n```\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
       "examples": [
         {
-          "source": "import {Writer} from \"std:io\";function inspect(value:ReadOnly<Writer>):void{}function main(){}",
-          "output": ""
+          "source": "import {reader,writer,write,writeAll,flush,copy,close} from 'std:io';import {createTempDir,create,readFile,removeDirAll} from 'std:fs';import {fromUtf8,toUtf8} from 'std:bytes';async function main():Task<void>{const directory=unwrap(createTempDir(undefined,'io-example-'));const path=directory+'/bytes';const output=writer(unwrap(create(path)));unwrap(await writeAll(output,unwrap(fromUtf8('ok'))));unwrap(await flush(output));unwrap(await close(output));console.log(unwrap(toUtf8(unwrap(readFile(path)))));unwrap(removeDirAll(directory));}",
+          "output": "ok\n"
         }
       ]
     },
@@ -18746,11 +18745,11 @@
       "name": "LineReader",
       "signature": "type LineReader",
       "parameters": [],
-      "documentation": "Owned UTF-8 line adapter retaining read-ahead and partial line state.\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
+      "documentation": "Owned UTF-8 line adapter retaining read-ahead and partial line state.\n\n```tsrust\nimport { reader, readInto, readExact, readAll, lines, readLine, close } from \"std:io\";\nimport { fromUtf8, alloc, toUtf8 } from \"std:bytes\";\nasync function main(): Task<void> {\n  const input = reader(unwrap(fromUtf8(\"hello\")));\n  const destination = unwrap(alloc(2));\n  console.log(unwrap(await readInto(input, destination)), unwrap(toUtf8(destination)));\n  unwrap(await readExact(input, destination));\n  console.log(unwrap(toUtf8(destination)), unwrap(toUtf8(unwrap(await readAll(input)))));\n  unwrap(await close(input));\n  const rows = unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n  console.log(unwrap(await readLine(rows)), unwrap(await readLine(rows)), unwrap(await readLine(rows)));\n  console.log(unwrap(await readLine(rows)) === undefined);\n  unwrap(await close(rows));\n}\n// Output:\n// 2 he\n// ll o\n// a  last\n// true\n```\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
       "examples": [
         {
-          "source": "import {LineReader} from \"std:io\";function inspect(value:ReadOnly<LineReader>):void{}function main(){}",
-          "output": ""
+          "source": "import {reader,readInto,readExact,readAll,lines,readLine,close} from \"std:io\";\nimport {fromUtf8,alloc,toUtf8} from \"std:bytes\";\nasync function main():Task<void>{\n const input=reader(unwrap(fromUtf8(\"hello\")));\n const destination=unwrap(alloc(2));\n console.log(unwrap(await readInto(input,destination)),unwrap(toUtf8(destination)));\n unwrap(await readExact(input,destination));\n console.log(unwrap(toUtf8(destination)),unwrap(toUtf8(unwrap(await readAll(input)))));\n unwrap(await close(input));\n const rows=unwrap(lines(reader(unwrap(fromUtf8(\"a\\r\\n\\nlast\")))));\n console.log(unwrap(await readLine(rows)),unwrap(await readLine(rows)),unwrap(await readLine(rows)));\n console.log(unwrap(await readLine(rows))===undefined);\n unwrap(await close(rows));\n}\n",
+          "output": "2 he\nll o\na  last\ntrue\n"
         }
       ]
     },
@@ -18758,10 +18757,10 @@
       "name": "Stdin",
       "signature": "type Stdin",
       "parameters": [],
-      "documentation": "Owned synchronous standard-input handle; its reads block the calling thread.\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
+      "documentation": "Owned synchronous standard-input handle; its reads block the calling thread.\n\n```tsrust\nimport { stdin, Stdin, IoError, readStdin } from 'std:io';\nimport { Bytes } from 'std:bytes';\n\nfunction read(input: Mutable<Stdin>): Result<Bytes, IoError> {\n  return readStdin(input);\n}\n\nfunction main() {\n  const input = stdin();\n}\n// No output.\n```\n\nOwnership: Handles transfer by value; clone, literals, implicit sharing and inspection are unsupported.",
       "examples": [
         {
-          "source": "import {Stdin} from \"std:io\";function inspect(value:ReadOnly<Stdin>):void{}function main(){}",
+          "source": "import {stdin,Stdin,IoError,readStdin} from 'std:io';import {Bytes} from 'std:bytes';function read(input:Mutable<Stdin>):Result<Bytes,IoError>{return readStdin(input);}function main(){const input=stdin();}",
           "output": ""
         }
       ]
@@ -18770,7 +18769,7 @@
       "name": "IoError",
       "signature": "type IoError",
       "parameters": [],
-      "documentation": "I/O failure data: code and operation identify the failure, message describes it, and optional osCode carries the platform error number. Completed I/O is not rolled back.\n\nOwnership: Error records clone independently.",
+      "documentation": "I/O failure data: code and operation identify the failure, message describes it, and optional osCode carries the platform error number. Completed I/O is not rolled back.\n\n```tsrust\nimport { IoError } from \"std:io\";\n\nfunction main() {\n  const error: IoError = {\n    code: \"range\", operation: \"read\", message: \"invalid length\"\n  };\n  console.log(error.code, error.operation, error.message, error.osCode);\n}\n// Output:\n// range read invalid length undefined\n```\n\nOwnership: Error records clone independently.",
       "examples": [
         {
           "source": "import {IoError} from \"std:io\";function main(){const error:IoError={code:\"range\",operation:\"read\",message:\"invalid length\"};console.log(error.code,error.operation,error.message,error.osCode);}",
@@ -19526,8 +19525,13 @@
       "name": "CompressionOptions",
       "signature": "type CompressionOptions = { level?: int; }",
       "parameters": [],
-      "documentation": "Selects compression strength. level is an integer from 0 through 9; omission uses level 6. Zero emits an uncompressed DEFLATE stream; larger levels may use more CPU to reduce output. Invalid levels return CompressionError with code range when the buffer Task is polled. There is no format, window, metadata or backend selector.\n\nOwnership: consumed into the lazy operation; its fields are copied scalars.",
-      "examples": [],
+      "documentation": "Selects compression strength. level is an integer from 0 through 9; omission uses level 6. Zero emits an uncompressed DEFLATE stream; larger levels may use more CPU to reduce output. Invalid levels return CompressionError with code range when a buffer Task is polled or a stream constructor is called. There is no format, window, metadata or backend selector.\n\n```tsrust\nimport { CompressionOptions } from 'std:compression';\n\nfunction main() {\n  const selected: CompressionOptions = {\n    level: 1\n  };\n  const defaults: CompressionOptions = {};\n  console.log(selected.level === 1, defaults.level === undefined);\n}\n// Output:\n// true true\n```\n\nOwnership: consumed by the operation; its fields are copied scalars.",
+      "examples": [
+        {
+          "source": "import {CompressionOptions} from 'std:compression';function main(){const selected:CompressionOptions={level:1};const defaults:CompressionOptions={};console.log(selected.level===1,defaults.level===undefined);}",
+          "output": "true true\n"
+        }
+      ],
       "fields": {
         "level": {
           "documentation": "Selects compression strength as an optional integer from 0 through 9. Zero requests uncompressed DEFLATE blocks; higher levels can spend more CPU to reduce size. Omission selects level 6 when the operation consumes these options; reading an omitted field returns undefined and does not fill it in. Invalid levels produce CompressionError with code range when a buffer Task is polled or a stream constructor is called. Reading this property does not mutate the options or start compression.\n\n```tsrust\nimport { CompressionOptions } from 'std:compression';\n\nfunction main() {\n  const selected: CompressionOptions = {\n    level: 1\n  };\n  const defaults: CompressionOptions = {};\n  console.log(selected.level === 1, defaults.level === undefined);\n}\n// Output:\n// true true\n```\n\nOwnership: Reading copies the optional scalar. The operation consumes the options record.",
@@ -19544,8 +19548,13 @@
       "name": "DecompressionOptions",
       "signature": "type DecompressionOptions = { maxOutputBytes?: int; }",
       "parameters": [],
-      "documentation": "Optionally limits total decoded bytes. maxOutputBytes is nonnegative and must fit the target. Omission imposes no expansion ceiling. Zero accepts a valid empty decoded stream. The decoder checks the limit incrementally and returns output-limit before returning bytes beyond it; a failure discards the buffer result. Negative or unrepresentable bounds return range.\n\nOwnership: consumed into the lazy operation; no input rollback on failure.",
-      "examples": [],
+      "documentation": "Optionally limits total decoded bytes. maxOutputBytes is nonnegative and must fit the target. Omission imposes no expansion ceiling. Zero accepts a valid empty decoded stream. The decoder checks the limit incrementally and returns output-limit before returning bytes beyond it; a failure discards the buffer result. Negative or unrepresentable bounds return range.\n\n```tsrust\nimport { DecompressionOptions } from 'std:compression';\n\nfunction main() {\n  const selected: DecompressionOptions = {\n    maxOutputBytes: 5\n  };\n  const defaults: DecompressionOptions = {};\n  console.log(selected.maxOutputBytes === 5, defaults.maxOutputBytes === undefined);\n}\n// Output:\n// true true\n```\n\nOwnership: consumed by the operation; no input rollback on failure.",
+      "examples": [
+        {
+          "source": "import {DecompressionOptions} from 'std:compression';function main(){const selected:DecompressionOptions={maxOutputBytes:5};const defaults:DecompressionOptions={};console.log(selected.maxOutputBytes===5,defaults.maxOutputBytes===undefined);}",
+          "output": "true true\n"
+        }
+      ],
       "fields": {
         "maxOutputBytes": {
           "documentation": "Sets an optional cumulative decoded-byte limit as a nonnegative integer representable on the target. Omission leaves output unlimited; reading an omitted field returns undefined. Zero permits only empty decoded output. The decoder checks produced output incrementally, including successive stream reads and gzip members; exceeding the budget produces CompressionError with code output-limit. Negative or unrepresentable values produce code range when the buffer Task is polled or the stream constructor is called. Failed buffer decoding returns no partial Bytes; stream output already delivered is not rolled back. Reading this property does not mutate the options or decode input.\n\n```tsrust\nimport { DecompressionOptions } from 'std:compression';\n\nfunction main() {\n  const selected: DecompressionOptions = {\n    maxOutputBytes: 5\n  };\n  const defaults: DecompressionOptions = {};\n  console.log(selected.maxOutputBytes === 5, defaults.maxOutputBytes === undefined);\n}\n// Output:\n// true true\n```\n\nOwnership: Reading copies the optional scalar. The operation consumes the options record.",
@@ -19562,8 +19571,13 @@
       "name": "CompressionError",
       "signature": "type CompressionError = { code: 'range' | 'format' | 'codec' | 'truncated' | 'trailing-data' | 'output-limit' | 'allocation' | 'closed'; operation: string; message: string; }",
       "parameters": [],
-      "documentation": "Reports codec validation or transformation failure. range rejects invalid levels or bounds; codec includes corrupt framing or checksums; truncated means no complete stream was reached; trailing-data rejects extra bytes after raw or zlib completion; output-limit exceeds the explicit decoded-byte policy. allocation reports a failed output-vector reservation where the API supports it; backend allocation failure is not promised catchable. format and closed cover invalid format selection and unavailable transform state. operation names the failing operation; message provides detail. Pool admission remains SpawnError, worker panic/cancellation remains ThreadError<undefined>, and stream transport errors remain IoError.\n\nOwnership: an owned Result error; no successful partial buffer is returned.",
-      "examples": [],
+      "documentation": "Reports codec validation or transformation failure. range rejects invalid levels or bounds; codec includes corrupt framing or checksums; truncated means no complete stream was reached; trailing-data rejects extra bytes after raw or zlib completion; output-limit exceeds the explicit decoded-byte policy. allocation reports a failed output-vector reservation where the API supports it; backend allocation failure is not promised catchable. format and closed cover invalid format selection and unavailable transform state. operation names the failing operation; message provides detail. Pool admission remains SpawnError, worker panic/cancellation remains ThreadError<undefined>, and stream transport errors remain IoError.\n\n```tsrust\nimport { compressReader } from 'std:compression';\nimport { ThreadPool } from 'std:threads';\nimport { reader } from 'std:io';\nimport { fromUtf8 } from 'std:bytes';\n\nfunction main() {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 1\n  });\n  match (compressReader(pool, reader(unwrap(fromUtf8('hello'))), 'gzip', {\n    level: 10\n  })) {\n    Ok(value) => {\n      throw 'unexpected success';\n    },\n    Err(error) => {\n      console.log(error.code);\n      console.log(error.operation);\n      console.log(error.message);\n    }\n  }\n\n  unwrap(pool.shutdown());\n}\n// Output:\n// range\n// compression\n// level must be an integer from 0 through 9\n```\n\nOwnership: an owned Result error; no successful partial buffer is returned.",
+      "examples": [
+        {
+          "source": "import {compressReader} from 'std:compression';import {ThreadPool} from 'std:threads';import {reader} from 'std:io';import {fromUtf8} from 'std:bytes';function main(){const pool=new ThreadPool({workers:1,capacity:1});match(compressReader(pool,reader(unwrap(fromUtf8('hello'))),'gzip',{level:10})){Ok(value)=>{throw 'unexpected success';},Err(error)=>{console.log(error.code);console.log(error.operation);console.log(error.message);}}unwrap(pool.shutdown());}",
+          "output": "range\ncompression\nlevel must be an integer from 0 through 9\n"
+        }
+      ],
       "fields": {
         "code": {
           "documentation": "Identifies a codec failure: range for invalid options or counts; format for unsupported format selection; codec for backend failure, including checksum corruption; truncated for incomplete input; trailing-data for disallowed suffix bytes; output-limit for an exceeded explicit decoded-byte budget; allocation for reported fallible buffer reservations; closed for a finished or unusable transform. There is no default or success code. Pool admission, worker completion and I/O failures retain their separate SpawnError, ThreadError and IoError types. Reading the code does not mutate the error or retry the operation. Backend or Bytes allocation failure is not universally recoverable as allocation.\n\n```tsrust\nimport { compressReader } from 'std:compression';\nimport { ThreadPool } from 'std:threads';\nimport { reader } from 'std:io';\nimport { fromUtf8 } from 'std:bytes';\n\nfunction main() {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 1\n  });\n  match (compressReader(pool, reader(unwrap(fromUtf8('hello'))), 'gzip', {\n    level: 10\n  })) {\n    Ok(value) => {\n      throw 'unexpected success';\n    },\n    Err(error) => {\n      console.log(error.code);\n      console.log(error.operation);\n      console.log(error.message);\n    }\n  }\n\n  unwrap(pool.shutdown());\n}\n// Output:\n// range\n// compression\n// level must be an integer from 0 through 9\n```\n\nOwnership: The error is owned; reading this finite literal value does not consume its other fields or any transform.",
@@ -19748,22 +19762,37 @@
       "name": "CompressionFormat",
       "signature": "type CompressionFormat = 'gzip' | 'zlib' | 'raw'",
       "parameters": [],
-      "documentation": "Selects exactly one stream framing: gzip, zlib, or raw DEFLATE. No automatic format detection, dictionaries or arbitrary protocol extensions are accepted. Buffer operation names already select their format.\n\nOwnership: a finite literal value, read during construction and stored as a copied format tag.",
-      "examples": []
+      "documentation": "Selects exactly one stream framing: gzip, zlib, or raw DEFLATE. No automatic format detection, dictionaries or arbitrary protocol extensions are accepted. Buffer operation names already select their format.\n\n```tsrust\nimport { CompressionFormat } from 'std:compression';\n\nfunction main() {\n  const format: CompressionFormat = 'gzip';\n  console.log(format);\n}\n// Output:\n// gzip\n```\n\nOwnership: a finite literal value, read during construction and stored as a copied format tag.",
+      "examples": [
+        {
+          "source": "import {CompressionFormat} from 'std:compression';function main(){const format:CompressionFormat='gzip';console.log(format);}",
+          "output": "gzip\n"
+        }
+      ]
     },
     {
       "name": "CompressionReader",
       "signature": "type CompressionReader",
       "parameters": [],
-      "documentation": "Owns one source Reader, codec state and reusable input/output working storage. Read through its methods or the corresponding std:io operations. The transform consumes its source at construction; a failed constructor drops that source. Codec initialization and bounded CPU admission start on the first nonempty read. Initial reader working storage uses three8192-byte byte buffers plus codec/state storage; the size is a working default, not an expansion ceiling. readInto borrows its destination across the Task and never sends that caller slice to a CPU worker. finish drains and validates the stream, discards unread output and returns the source at EOF; close finishes then closes it. Neither Drop nor a dropped unpolled operation performs compression finalization. Pool admission, codec and I/O failures retain their categories.\n\nOwnership: one non-cloneable owner retaining only weak pool admission identity. Keep its explicit pool alive until finish/close completes.",
-      "examples": []
+      "documentation": "Owns one source Reader, codec state and reusable input/output working storage. Read through its methods or the corresponding std:io operations. The transform consumes its source at construction; a failed constructor drops that source. Codec initialization and bounded CPU admission start on the first nonempty read. Initial reader working storage uses three 8192-byte byte buffers plus codec/state storage; the size is a working default, not an expansion ceiling. readInto borrows its destination across the Task and never sends that caller slice to a CPU worker. finish drains and validates the stream, discards unread output and returns the source at EOF; close finishes then closes it. Neither Drop nor a dropped unpolled operation performs compression finalization. Pool admission, codec and I/O failures retain their categories.\n\n```tsrust\nimport { compressReader, decompressReader } from 'std:compression';\nimport { ThreadPool } from 'std:threads';\nimport { reader, close } from 'std:io';\nimport { fromUtf8, toUtf8, alloc, length } from 'std:bytes';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 1\n  });\n  const encoded = unwrap(compressReader(pool, reader(unwrap(fromUtf8('hello'))), 'gzip'));\n  const bytes = unwrap(await encoded.readAll());\n  unwrap(await close(unwrap(await encoded.finish())));\n  const decoded = unwrap(decompressReader(pool, reader(bytes), 'gzip', {\n    maxOutputBytes: 5\n  }));\n  const empty = decoded.read(0);\n  console.log(length(unwrap(await empty)));\n  const destination = unwrap(alloc(5));\n  unwrap(await decoded.readExact(destination));\n  console.log(unwrap(toUtf8(destination)));\n  const trailing = unwrap(alloc(1));\n  console.log(unwrap(await decoded.readInto(trailing)), length(unwrap(await decoded.readAll())));\n  unwrap(await close(unwrap(await decoded.finish())));\n  unwrap(pool.shutdown());\n}\n// Output:\n// 0\n// hello\n// 0 0\n```\n\nOwnership: one non-cloneable owner retaining only weak pool admission identity. Keep its explicit pool alive until finish/close completes.",
+      "examples": [
+        {
+          "source": "import { compressReader, decompressReader } from 'std:compression';\nimport { ThreadPool } from 'std:threads';\nimport { reader, close } from 'std:io';\nimport { fromUtf8, toUtf8, alloc, length } from 'std:bytes';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({ workers: 1, capacity: 1 });\n  const encoded = unwrap(compressReader(pool, reader(unwrap(fromUtf8('hello'))), 'gzip'));\n  const bytes = unwrap(await encoded.readAll());\n  unwrap(await close(unwrap(await encoded.finish())));\n  const decoded = unwrap(decompressReader(pool, reader(bytes), 'gzip', { maxOutputBytes: 5 }));\n  const empty = decoded.read(0);\n  console.log(length(unwrap(await empty)));\n  const destination = unwrap(alloc(5));\n  unwrap(await decoded.readExact(destination));\n  console.log(unwrap(toUtf8(destination)));\n  const trailing = unwrap(alloc(1));\n  console.log(unwrap(await decoded.readInto(trailing)), length(unwrap(await decoded.readAll())));\n  unwrap(await close(unwrap(await decoded.finish())));\n  unwrap(pool.shutdown());\n}\n",
+          "output": "0\nhello\n0 0\n"
+        }
+      ]
     },
     {
       "name": "CompressionWriter",
       "signature": "type CompressionWriter",
       "parameters": [],
-      "documentation": "Owns one destination Writer, codec state and two8192-byte working buffers plus state/backend storage. write may accept a bounded prefix; writeAll loops to accept all input. flush performs native Sync and drains output without ending the stream, then flushes the destination. finish emits/validates the stream end, flushes and returns the destination; close finishes then closes it. No async I/O is performed while occupying a CPU worker. An interrupted sink write with unreported progress poisons the transform rather than replaying bytes; later nonempty operations return closed. Dropping the owner discards unfinished codec state without finalization or hidden work.\n\nOwnership: one non-cloneable owner retaining only weak pool admission identity. Input slices are borrowed only for their operation; bounded owned staging is copied once without per-chunk payload clones.",
-      "examples": []
+      "documentation": "Owns one destination Writer, codec state and two 8192-byte working buffers plus state/backend storage. write may accept a bounded prefix; writeAll loops to accept all input. flush performs native Sync and drains output without ending the stream, then flushes the destination. finish emits/validates the stream end, flushes and returns the destination; close finishes then closes it. No async I/O is performed while occupying a CPU worker. An interrupted sink write with unreported progress poisons the transform rather than replaying bytes; later nonempty operations return closed. Dropping the owner discards unfinished codec state without finalization or hidden work.\n\n```tsrust\nimport { compressWriter, decompressWriter } from 'std:compression';\nimport { ThreadPool } from 'std:threads';\nimport { writer, close } from 'std:io';\nimport { create, readFile, removeFile } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 1\n  });\n  const encoded = unwrap(compressWriter(pool, writer(unwrap(create('message.gz'))), 'gzip'));\n  console.log(unwrap(await encoded.write(unwrap(fromUtf8('he')))));\n  unwrap(await encoded.writeAll(unwrap(fromUtf8('llo'))));\n  unwrap(await encoded.flush());\n  unwrap(await close(unwrap(await encoded.finish())));\n  const decoded = unwrap(decompressWriter(pool, writer(unwrap(create('message.txt'))), 'gzip', {\n    maxOutputBytes: 5\n  }));\n  unwrap(await decoded.writeAll(unwrap(readFile('message.gz'))));\n  unwrap(await decoded.close());\n  console.log(unwrap(toUtf8(unwrap(readFile('message.txt')))));\n  unwrap(removeFile('message.gz'));\n  unwrap(removeFile('message.txt'));\n  unwrap(pool.shutdown());\n}\n// Output:\n// 2\n// hello\n```\n\nOwnership: one non-cloneable owner retaining only weak pool admission identity. Input slices are borrowed only for their operation; bounded owned staging is copied once without per-chunk payload clones.",
+      "examples": [
+        {
+          "source": "import { compressWriter, decompressWriter } from 'std:compression';\nimport { ThreadPool } from 'std:threads';\nimport { writer, close } from 'std:io';\nimport { create, readFile, removeFile } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({ workers: 1, capacity: 1 });\n  const encoded = unwrap(compressWriter(pool, writer(unwrap(create('message.gz'))), 'gzip'));\n  console.log(unwrap(await encoded.write(unwrap(fromUtf8('he')))));\n  unwrap(await encoded.writeAll(unwrap(fromUtf8('llo'))));\n  unwrap(await encoded.flush());\n  unwrap(await close(unwrap(await encoded.finish())));\n  const decoded = unwrap(decompressWriter(pool, writer(unwrap(create('message.txt'))), 'gzip', { maxOutputBytes: 5 }));\n  unwrap(await decoded.writeAll(unwrap(readFile('message.gz'))));\n  unwrap(await decoded.close());\n  console.log(unwrap(toUtf8(unwrap(readFile('message.txt')))));\n  unwrap(removeFile('message.gz'));\n  unwrap(removeFile('message.txt'));\n  unwrap(pool.shutdown());\n}\n",
+          "output": "2\nhello\n"
+        }
+      ]
     },
     {
       "name": "compressReader",

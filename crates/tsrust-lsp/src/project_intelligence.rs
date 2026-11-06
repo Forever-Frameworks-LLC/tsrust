@@ -287,6 +287,7 @@ impl ProjectIndex {
         let source = &self.graph.modules.get(id)?.source.text;
         let prefix = source.get(prefix_start..offset)?;
         let replace = index.source_range(prefix_start, offset);
+        let access = index.member_access_range(separator, offset);
         let receiver = index.receiver_text(separator);
         index.declaration_prefix_repairs(offset).into_iter().chain(index.member_repairs(offset)).find_map(|repair| {
             let mut graph = self.graph.clone();
@@ -294,7 +295,7 @@ impl ProjectIndex {
             module.declaration_source = format!("{}{}", module.declaration_source.get(..repair.start)?, &repair.text[repair.start..]);
             module.source.text = repair.text;
             let analysis = tsrust_compiler::project::check_graph(graph).ok()?;
-            Self::checked(&analysis).indices.get(id)?.members_ending_at(repair.receiver_end, prefix, replace, &receiver, index.optional_separator(separator))
+            Self::checked(&analysis).indices.get(id)?.members_ending_at(repair.receiver_end, prefix, replace, access, &receiver, index.optional_separator(separator))
         })
     }
 }

@@ -94,6 +94,26 @@ fn source_error(span: Span) -> Diagnostic {
     )
 }
 
+
+/// Physical callable-reference slots need holder paths but do not add a byte-view
+/// ownership rule. Actual native payload loans keep the existing strict places.
+fn collection_holder(context:&Context,mut value:&Expr,incoming:&[Loan])->Option<(usize,Vec<Segment>)>{
+    if let Some(place)=crate::flow::place(value,&context.names){
+        return Some((place.root,place.fields.into_iter().map(Segment::Field).collect()));
+    }
+    if incoming.is_empty()||!incoming.iter().all(Loan::environment_borrow){return None;}
+    let mut path=Vec::new();
+    loop{match &value.kind{
+        ExprKind::Index(base,_)=>{path.push(Segment::Element);value=base;}
+        ExprKind::Field(base,name)=>{path.push(Segment::Field(name.clone()));value=base;}
+        ExprKind::Project{value:base,..}=>value=base,
+        ExprKind::TypeAssertion{value:base,..}if value.ty==base.ty=>value=base,
+        ExprKind::Sequence(values)=>value=values.last()?,
+        ExprKind::Name(name)=>{let root=value.binding.or_else(||context.names.get(name).copied())?;path.reverse();return Some((root,path));}
+        _=>return None,
+    }}
+}
+
 impl Analyzer {
     /// A replacement in the block that declares the local redeclares its native
     /// storage, which starts a new lifetime. Any other replacement assigns to the same
@@ -137,7 +157,7 @@ impl Analyzer {
         if incoming.is_empty() {
             return Ok(());
         }
-        let Some(place) = crate::flow::place(array, &context.names) else {
+        let Some((root,path)) = collection_holder(context,array,&incoming) else {
             return Err(Diagnostic::new(
                 "native-view-source",
                 "A byte view can only be stored in a collection held by a named local or its fields.",
@@ -146,14 +166,14 @@ impl Analyzer {
         };
         for loan in &mut incoming {
             native_view_projections::wrap(loan, &Segment::Element);
-            for field in place.fields.iter().rev() {
-                native_view_projections::wrap(loan, &Segment::Field(field.clone()));
+            for segment in path.iter().rev() {
+                native_view_projections::wrap(loan, segment);
             }
         }
-        let mut retained = context.bindings[place.root].native_view_loans.as_deref().cloned().unwrap_or_default();
+        let mut retained = context.bindings[root].native_view_loans.as_deref().cloned().unwrap_or_default();
         retained.extend(incoming);
         native_view_projections::normalize(&mut retained);
-        Self::set_native_view_loans(context, place.root, retained);
+        Self::set_native_view_loans(context, root, retained);
         Ok(())
     }
     pub(super) fn replace_native_view_field(
@@ -189,5 +209,24 @@ impl Analyzer {
         native_view_projections::normalize(&mut retained);
         Self::set_native_view_loans(context, place.root, retained);
         Ok(())
+    }
+}
+
+
+#[cfg(test)]mod collection_holder_tests{
+    use super::*;
+    use super::super::native_view_loans::LifetimeSource;
+    use crate::native_return_borrows::BorrowAccess;
+    fn loan(environment:bool)->Loan{Loan{whole:false,root:1,owner_fields:vec![],source:LifetimeSource::Storage,access:BorrowAccess::ReadOnly,creation:Span::default(),retained:!environment,path:if environment{vec![Segment::CaptureBorrow(2)]}else{vec![]},guards:vec![]}}
+    #[test]fn indexed_environment_collection_holder_keeps_field_and_element_paths(){
+        let context=Context::new("test".into());
+        let mut named=Expr::new(ExprKind::Name("boxes".into()),Span::default());named.binding=Some(0);
+        let index=|base:Expr|Expr::new(ExprKind::Index(Box::new(base),Box::new(Expr::new(ExprKind::Integer("0".into()),Span::default()))),Span::default());
+        let field=Expr::new(ExprKind::Field(Box::new(index(index(named.clone()))),"items".into()),Span::default());
+        let (root,path)=collection_holder(&context,&field,&[loan(true)]).unwrap();assert_eq!(root,0);assert_eq!(path,vec![Segment::Element,Segment::Element,Segment::Field("items".into())]);
+        let mut incoming=loan(true);native_view_projections::wrap(&mut incoming,&Segment::Element);for segment in path.iter().rev(){native_view_projections::wrap(&mut incoming,segment);}
+        assert_eq!(incoming.path,vec![Segment::Element,Segment::Element,Segment::Field("items".into()),Segment::Element,Segment::CaptureBorrow(2)]);assert!(!incoming.retained);
+        assert!(collection_holder(&context,&field,&[loan(false)]).is_none());assert!(collection_holder(&context,&field,&[loan(true),loan(false)]).is_none());
+        assert!(collection_holder(&context,&named,&[loan(false)]).is_some());
     }
 }

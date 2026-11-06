@@ -4,6 +4,10 @@ on:
     branches: [stag]
   workflow_dispatch:
     inputs:
+      platform_acceptance:
+        description: Run bounded native I/O family acceptance on Linux, both Macs and Windows, without publishing.
+        type: boolean
+        default: false
       async_acceptance:
         description: Run focused async testing acceptance on Linux, macOS and Windows.
         type: boolean
@@ -51,7 +55,7 @@ env:
   CARGO_TERM_COLOR: always
 jobs:
   source:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance }}
+    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance }}
     name: Compiler and LSP (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -105,7 +109,7 @@ jobs:
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
   editor:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance }}
+    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance }}
     name: VS Code extension
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -129,7 +133,7 @@ jobs:
           retention-days: 7
   async:
     name: Async testing acceptance (${{ matrix.os }})
-    if: ${{ inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    if: ${{ inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.platform_acceptance }}
     strategy:
       fail-fast: false
       matrix:
@@ -154,7 +158,7 @@ jobs:
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
   toolchain:
     name: Windows toolchain and shared-cache acceptance
-    if: ${{ inputs.toolchain_acceptance && !inputs.async_acceptance }}
+    if: ${{ inputs.toolchain_acceptance && !inputs.async_acceptance && !inputs.platform_acceptance }}
     runs-on: windows-2022
     timeout-minutes: 90
     defaults:
@@ -178,7 +182,7 @@ jobs:
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
   editor_integration:
     name: VS Code integration (${{ matrix.os }})
-    if: ${{ inputs.editor_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    if: ${{ inputs.editor_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.platform_acceptance }}
     strategy:
       fail-fast: false
       matrix:
@@ -213,14 +217,56 @@ jobs:
           TSRUST_VSCODE_SUITE: recovery
         run: |
           if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm --prefix editors/vscode run test:integration; else npm --prefix editors/vscode run test:integration; fi
+  platform:
+    name: Native I/O family (${{ matrix.target }})
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.platform_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.full_regressions }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: macos-15
+            target: aarch64-apple-darwin
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 330
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: native-io-family
+      - name: Prepare locked binding-test dependencies
+        run: cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
+      - name: Run bounded native family and packaged consumer acceptance
+        run: python3 tools/platform-acceptance.py --host '${{ matrix.target }}'
+      - name: Retain per-scope platform results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-io-family-${{ matrix.target }}
+          path: target/platform-acceptance/
+          if-no-files-found: error
+          retention-days: 3
   ci:
-    name: ${{ inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || inputs.editor_acceptance && 'Editor acceptance' || 'CI' }}
+    name: ${{ inputs.platform_acceptance && 'Native I/O family acceptance' || inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || inputs.editor_acceptance && 'Editor acceptance' || 'CI' }}
     if: always()
-    needs: [source, editor, async, toolchain, editor_integration]
+    needs: [source, editor, async, toolchain, editor_integration, platform]
     runs-on: ubuntu-24.04
     steps:
       - name: Require all checks
         env:
+          PLATFORM_ACCEPTANCE: ${{ inputs.platform_acceptance }}
+          PLATFORM_RESULT: ${{ needs.platform.result }}
+          FULL_REGRESSIONS: ${{ inputs.full_regressions }}
           TOOLCHAIN_ACCEPTANCE: ${{ inputs.toolchain_acceptance }}
           TOOLCHAIN_RESULT: ${{ needs.toolchain.result }}
           ASYNC_ACCEPTANCE: ${{ inputs.async_acceptance }}
@@ -230,7 +276,9 @@ jobs:
           EDITOR_ACCEPTANCE: ${{ inputs.editor_acceptance }}
           EDITOR_INTEGRATION_RESULT: ${{ needs.editor_integration.result }}
         run: |
-          if [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
+          if [ "$PLATFORM_ACCEPTANCE" = true ]; then
+            test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_ACCEPTANCE" != true && test "$EDITOR_ACCEPTANCE" != true && test "$FULL_REGRESSIONS" != true && test "$PLATFORM_RESULT" = success
+          elif [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
             test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_RESULT" = success
           elif [ "$ASYNC_ACCEPTANCE" = true ]; then
             test "$ASYNC_RESULT" = success

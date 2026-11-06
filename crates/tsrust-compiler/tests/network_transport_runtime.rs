@@ -9,6 +9,21 @@ include!("../src/stdlib/net/runtime.rs");
 include!("../src/stdlib/net/transport_runtime.rs");
 include!("../src/stdlib/net/io_runtime.rs");
 use tsrust_native_net_transport::{Stream,Listener,Udp};
+#[test]
+#[ignore="Requires an explicitly selected host supporting 60000-byte UDP datagrams; not a throughput measurement."]
+fn udp_large_datagram_delivers_all_60000_bytes(){
+ tsrust_native_futures::block_on(async{
+  tokio::time::timeout(std::time::Duration::from_secs(10),async{
+   let sender=tsrust_native_net_transport::bind_udp(&"127.0.0.1:0".parse().unwrap()).await.unwrap();
+   let receiver=tsrust_native_net_transport::bind_udp(&"127.0.0.1:0".parse().unwrap()).await.unwrap();
+   let data=(0..60_000usize).map(|index|((index*31+(index>>8))%256)as u8).collect::<Vec<_>>();
+   assert_eq!(sender.send_to(&data,&receiver.local_address().unwrap()).await.expect("host does not support the required 60000-byte datagram; this is not a passing capability result"),60_000);
+   let received=receiver.receive_from(60_000).await.unwrap();
+   assert_eq!(received.data,data);assert_eq!(received.remote,sender.local_address().unwrap());
+   receiver.close();sender.close();
+  }).await.expect("60000-byte UDP delivery timed out");
+ });
+}
 async fn pair()->(Stream,Stream){let listener=tsrust_native_net_transport::listen(&"127.0.0.1:0".parse().unwrap()).await.unwrap();let address=listener.local_address().unwrap();let accepted=tokio::spawn(async move{let(stream,_)=listener.accept().await.unwrap();listener.close();stream});let client=tsrust_native_net_transport::connect(&address).await.unwrap();(client,accepted.await.unwrap())}
 #[test]
 fn native_network_owners_and_borrowed_operations_are_send_sync(){fn send_sync<T:Send+Sync>(){}send_sync::<Listener>();send_sync::<Stream>();send_sync::<Udp>();fn send<T:Send>(_:T){}tsrust_native_futures::block_on(async{let(mut client,mut peer)=pair().await;send(client.read_all(None));send(peer.shutdown_write());let socket=tsrust_native_net_transport::bind_udp(&"127.0.0.1:0".parse().unwrap()).await.unwrap();send(socket.receive_from(1));socket.close();client.close();peer.close();});}

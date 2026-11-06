@@ -316,10 +316,9 @@ fn owned_array_analysis_is_backend_independent_and_depth_bounded() {
     let rust = check(&source).unwrap().emit_rust();
     assert_eq!(source_iteration_lines(&rust).count(), 100);
     assert!(source_iteration_lines(&rust).all(|line| !line.contains(".copied()")));
-    reject(
-        "function main() { const a: void[][] = []; }",
-        "array-element",
-    );
+    let units=check(&support::format_round_trip("function take(values:void[][]):void[][]{return values;}function main(){const values:void[][]=[[]];const copied=clone(values);const moved=take(values);console.log(copied.length,moved.length);}")).unwrap();
+    assert!(units.warnings().is_empty());
+    assert!(units.emit_rust().contains("Vec<()>"));
     reject(
         "type U = { n: int; }; type Box = { value: void; }; function main() {}",
         "unsupported",

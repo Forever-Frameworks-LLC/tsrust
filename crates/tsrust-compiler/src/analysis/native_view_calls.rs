@@ -6,7 +6,7 @@ use super::native_view_loans::{LifetimeSource,Loan};
 pub(super) enum Target {Function(usize),Closure(usize),Method(usize,usize),Family(usize)}
 
 #[derive(Clone,Debug,PartialEq,Eq)]
-pub(super) enum Source { Argument(usize), Capture(usize), BorrowedCapture(usize), Receiver(usize), FamilyCapture(usize,usize) }
+pub(super) enum Source { Argument(usize), Capture(usize), BorrowedCapture(usize), ProgramCapture(usize), Receiver(usize), FamilyCapture(usize,usize) }
 
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub(super) struct Returned { pub(super) source:Source, pub(super) loan:Loan }
@@ -33,6 +33,9 @@ pub(super) fn validate_closures(closures:&[CheckedClosure])->Result<(),Diagnosti
             };
             for loan in function.native_returns.as_deref().into_iter().flatten().chain(function.native_mutations.as_deref().into_iter().flatten().map(|(_,loan)|loan)) {
                 if !matches!(loan.source,LifetimeSource::Storage) || parameters.contains(&loan.root) {continue;}
+                // Program owners are explicit checked storage, not ordinary fields
+                // of the callback environment. Only physical capture slots use this path.
+                if loan.environment_borrow() && closure.program_captures.iter().any(|capture|capture.inner==loan.root){continue;}
                 let position=match method {
                     Some(id)=>closure.methods[id].captures.iter().position(|root|*root==loan.root),
                     None=>closure.captures.iter().position(|capture|capture.inner==loan.root),
@@ -106,6 +109,10 @@ impl Analyzer {
         for loan in origins.iter() {
             let source=if let Some(position)=parameters.iter().position(|root|*root==loan.root) {
                 Source::Argument(position)
+            } else if let Some(capture)=closure.program_captures.iter().find(|capture|loan.environment_borrow() && capture.inner==loan.root){
+                // Project linking assigns disjoint module offsets; declaration identity
+                // survives lexical projection even when local binding slots change.
+                Source::ProgramCapture(capture.declaration.start)
             } else {
                 let position=match method {
                     Some(method)=>closure.methods[method].captures.iter().position(|root|*root==loan.root),
@@ -173,6 +180,15 @@ pub(super) fn storage(context:&Context,argument:&Expr,output:&Loan)->Result<Vec<
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn literal_selected_generic_method_keeps_its_returned_view_origin(){
+        for call in ["action<T>(value)","(true?action:action)<T>(value)"]{
+            let source=format!("type Window={{}};function one<T>(value:T):T{{return value;}}function two<T>(value:T,other:T):T{{return other;}}function selected<T>(value:T):T{{let action=two;if(true){{action=one;}}return {call};}}function inspect(value:Window):Window{{return selected<Window>(value);}}function main(){{}}");
+            let mut parsed=crate::syntax::parse(&crate::format(&source).unwrap()).unwrap();parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+            let checked=analyze(parsed).unwrap();let function=checked.functions.iter().find(|function|function.name=="inspect").unwrap();
+            let outputs=function.native_returns.as_ref().expect("selected returned view must retain caller provenance");assert!(!outputs.is_empty());assert!(outputs.iter().all(|loan|loan.root==0));
+        }
+    }
     #[test]
     fn native_view_from_borrowed_capture_keeps_outer_owner_loan() {
         let source="type Window={};function sample(owner:ReadOnly<string>):void{const callback=():int=>owner.length;callback();}function main(){}";
@@ -291,4 +307,27 @@ mod receiver_tests {
         analyzer.closures[origin].invocation=Mode::Consume;
         assert_eq!(analyzer.remember_native_closure_returns(&mut context,origin,None,Span::default()).unwrap_err().code,"native-view-call");
     }
+}
+
+#[cfg(test)]mod program_capture_tests{
+ use super::*;
+ #[test]fn program_capture_signature_slots_resolve_declarations_without_losing_provenance(){
+  let source="type Window={};function sample(owner:ReadOnly<string>):void{const callback=():int=>owner.length;callback();}function main(){}";
+  let mut parsed=crate::syntax::parse(source).unwrap();parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+  let mut analyzer=Analyzer::new(parsed).unwrap();analyzer.function(0).unwrap();
+  let capture=analyzer.closures[0].captures.remove(0);let(inner,outer)=(capture.inner,capture.outer);let declaration=Span{start:123,end:124};
+  analyzer.closures[0].program_captures.push(ProgramCapture{declaration,inner,access:Mode::Read,span:Span::default()});
+  let loan=Loan{whole:false,root:inner,owner_fields:vec![],source:LifetimeSource::Storage,access:crate::native_return_borrows::BorrowAccess::ReadOnly,creation:Span::default(),retained:false,path:vec![native_view_loans::Segment::CaptureBorrow(inner)],guards:vec![]};
+  analyzer.closures[0].function.native_returns=Some(Box::new(vec![loan.clone()]));validate_closures(&analyzer.closures).unwrap();
+  let mapped=analyzer.native_closure_outputs(0,None,&[loan.clone()],Span::default()).unwrap();assert!(matches!(mapped[0].source,Source::ProgramCapture(123)));assert_eq!(mapped[0].loan,loan);
+  let mut context=Context::new("sample".into());context.bindings=analyzer.checked[0].as_ref().unwrap().bindings.clone();context.source_bindings.insert(declaration.start,outer);
+  analyzer.remember_native_closure_returns(&mut context,0,None,Span::default()).unwrap();
+  let callback=context.bindings.iter().position(|binding|binding.name=="callback").unwrap();let mut call=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("callback".into()),Span::default())),vec![]),Span::default());call.target=Some(CallTarget::Closure(callback));call.callable_origin=Some(CallableOrigin::Closure(0));call.ty=Some(Type::Record(0));
+  let transported=Analyzer::native_view_value_loans(&context,&call).unwrap();assert_eq!(transported.len(),1);assert_eq!(transported[0].root,outer);assert_eq!(transported[0].path,loan.path);assert_eq!(transported[0].source,loan.source);assert!(!transported[0].retained);
+  let projected=capture_context::project(&context,&[callback,outer]);let mut projected=projected;analyzer.remember_native_closure_returns(&mut projected,0,None,Span::default()).unwrap();let mut projected_call=call.clone();projected_call.target=Some(CallTarget::Closure(0));let remapped=Analyzer::native_view_value_loans(&projected,&projected_call).unwrap();assert_eq!(remapped[0].root,1);assert_eq!(remapped[0].path,loan.path);
+  context.source_bindings.remove(&declaration.start);context.source_bindings.insert(declaration.start+1,outer);assert_eq!(Analyzer::native_view_value_loans(&context,&call).unwrap_err().code,"native-view-call");
+  let mut actual_view=loan.clone();actual_view.path.clear();actual_view.retained=true;
+  assert_eq!(analyzer.native_closure_outputs(0,None,&[actual_view.clone()],Span::default()).unwrap_err().code,"native-view-call");
+  analyzer.closures[0].function.native_returns=Some(Box::new(vec![loan.clone(),actual_view]));assert_eq!(validate_closures(&analyzer.closures).unwrap_err().code,"native-view-call");
+ }
 }

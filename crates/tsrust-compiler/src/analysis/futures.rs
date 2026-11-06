@@ -29,7 +29,33 @@ impl Analyzer {
             return Ok((output.unwrap(),self.unions.intern(errors,span)?));
         }
         if !self.is_task_type(ty){return Err(Diagnostic::new("future-input","Expected a lazy Task or a started Job.",span));}
+        if self.has_pending_result(ty){return Err(Self::pending_result(span));}
         let (_,output)=self.checked_generic_callable_shape(ty).ok_or_else(||Self::pending_result(span))?;
+        // A known specialization may still be queued when its enclosing task is scheduled.
+        let mut pending=match ty {
+            Type::Closure(id)=>vec![id],
+            Type::StoredCallable(id)=>self.callables.storage.origins(id).map_or_else(Vec::new,|origins|origins.to_vec()),
+            _=>Vec::new(),
+        };
+        // Error contracts require full bodies even during callable-result discovery.
+        let discovering=self.discovering_results;let effects_only=self.effects_only;
+        if discovering {self.discovering_results=false;self.effects_only=false;}
+        let prepared=(|| {
+            let mut seen=HashSet::new();
+            while let Some(id)=pending.pop(){if !seen.insert(id){continue;}
+                let closure=&self.closures[id];
+                let forward=closure.forward;
+                let bodies=std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function))
+                    .map(|function|(function.body.clone(),function.result)).collect::<Vec<_>>();
+                if let Some(ClosureForward::Once(inner))=forward{pending.push(inner);}
+                if let Some(ClosureForward::Function(origin))=forward
+                    && self.checked[origin].is_none() && !self.visiting[origin]{self.function(origin)?;}
+                for (body,result) in bodies{self.check_pending_region_functions(&body,result)?;}
+            }
+            Ok::<(),Diagnostic>(())
+        })();
+        self.discovering_results=discovering;self.effects_only=effects_only;
+        prepared?;
         let effects=self.discovery_error_effects();
         let failures=match ty {
             Type::Closure(id)=>effects.closure_errors[id].clone(),

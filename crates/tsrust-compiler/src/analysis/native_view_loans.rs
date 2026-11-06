@@ -349,6 +349,13 @@ impl Analyzer {
                                     loan.owner_fields.insert(0,format!("capture{capture}"));
                                     result.push(loan);continue;
                                 }
+                                super::native_view_calls::Source::ProgramCapture(declaration)=>{
+                                    let root=*context.source_bindings.get(&declaration).ok_or_else(||Diagnostic::new("native-view-call","Program capture has no checked caller storage provenance.",value.span))?;
+                                    let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Program capture storage is outside the current lexical environment.",value.span))?;
+                                    let mut loan=output.clone();loan.root=root;loan.retained=!loan.environment_borrow();result.push(loan);
+                                    for inherited in binding.native_view_loans.as_deref().into_iter().flatten(){let mut actual=inherited.clone();if super::native_view_calls::transport(&mut actual,output){result.push(actual);}}
+                                    continue;
+                                }
                                 super::native_view_calls::Source::BorrowedCapture(root)=>{
                                     let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured owner is outside the current lexical environment.",value.span))?;
                                     let mut loan=output.clone();loan.root=root;loan.retained=!loan.environment_borrow();

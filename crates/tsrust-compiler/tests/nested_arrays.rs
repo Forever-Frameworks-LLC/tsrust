@@ -300,8 +300,7 @@ fn nested_array_analysis_and_emission_are_backend_independent() {
         "type U = { values: void; }; function main() {}",
         "unsupported",
     );
-    reject(
-        "function main() { const a: void[][] = []; }",
-        "array-element",
-    );
+    let units=check(&support::format_round_trip("function main(){const values:void[][]=[[]];const copied=clone(values);copied.push([]);console.log(values.length,copied.length);}")).unwrap();
+    assert!(units.warnings().is_empty());
+    assert!(units.emit_rust().contains("Vec<()>"));
 }

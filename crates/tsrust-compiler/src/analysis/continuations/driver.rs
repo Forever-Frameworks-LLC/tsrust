@@ -130,7 +130,7 @@ enum ExpressionState {
     GenericCall,
     ContextualGenericCall,
     Adapter,
-    Deferred { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
+    Deferred { conditional: Option<(super::call::CallCompletion, bool)> },
     Transform(Box<transform::State>),
     Reduction(Box<reduction::State>),
     Concat(Box<concat::State>),
@@ -260,7 +260,7 @@ enum Task<'a> { CollectionConstructor(Box<collection_constructor::CollectionCons
 enum Completion<'a> {
     Spread(Box<Expr>, Result<Type, Diagnostic>),
     Generic(Box<Expr>, Result<(), Diagnostic>),
-    Deferred(Box<Expr>, Result<(usize, Type), Diagnostic>),
+    Deferred(Box<Expr>, Result<(crate::polymorphic_invocation_plans::Pair, Type), Diagnostic>),
     Method(Result<(usize, Type), Diagnostic>),
     Parameters(Vec<Stmt>, Result<(), Diagnostic>),
     Function(Result<(), Diagnostic>),
@@ -976,13 +976,15 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             start_invocation(analyzer, context, task, true, false)
         }
 
-        ExpressionState::Deferred { origin, conditional } => {
+        ExpressionState::Deferred { conditional } => {
             let Completion::Deferred(value, result) = completion.expect("deferred invocation") else { unreachable!() };
             *task.expression.value() = *value;
             let context = contexts.get(task.context);
             let expr = task.expression.value();
-            let result = result.and_then(|(method, result)| {
-                if let Some((frame, publish_type)) = conditional {
+            let result = result.and_then(|(selected, result)| {
+                let crate::polymorphic_invocation_plans::Pair{origin,method}=selected;
+                if let Some((mut frame, publish_type)) = conditional {
+                    frame.hint=Type::Closure(origin);
                     complete_conditional_call(analyzer, context, expr, frame, (CallTarget::ClosureMethod(method), result), publish_type)
                 } else {
                     analyzer.remember_native_closure_returns(context, origin, Some(method), expr.span)?;
@@ -1639,9 +1641,8 @@ fn schedule_deferred<'a>(mut task: ExpressionTask<'a>, request: crate::analysis:
     let expr = task.expression.value();
     let span = expr.span;
     let value = Box::new(std::mem::replace(expr, Expr::new(ExprKind::Undefined, span)));
-    let origin = request.origin;
     let child = Task::Deferred(Box::new(deferred::DeferredTask::new(value, request, task.context, task.loans.clone())));
-    task.state = ExpressionState::Deferred { origin, conditional };
+    task.state = ExpressionState::Deferred { conditional };
     Step::Push(Task::Expression(task), child)
 }
 

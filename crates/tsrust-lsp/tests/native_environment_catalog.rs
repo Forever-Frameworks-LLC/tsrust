@@ -13,9 +13,13 @@ fn every_environment_catalog_example_checks_and_executes() {
     let directory = Directory(std::fs::canonicalize(path).unwrap());
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:env"].as_array().unwrap();
-    assert_eq!(entries.len(), 3);
+    let names=entries.iter().map(|entry|entry["name"].as_str().unwrap()).collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(entries.len(),names.len(),"duplicate environment exports");
+    assert_eq!(names,std::collections::BTreeSet::from(["EnvError","get","args","EnvVar","vars","currentDir","currentExe","tempDir","homeDir"]));
     for entry in entries {
-        for example in entry["examples"].as_array().unwrap() {
+        let examples=entry["examples"].as_array().unwrap();
+        assert!(!examples.is_empty(),"{} lacks an executable example",entry["name"]);
+        for example in examples {
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
             assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
             let id = SourceId(directory.0.join("example.tsr").to_str().unwrap().into());

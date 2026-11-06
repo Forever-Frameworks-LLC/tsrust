@@ -11,6 +11,7 @@ const GLOBAL_FACTORY:&str="import {test,runTests,strictEqual} from 'std:testing'
 const ALIASES:&str="import {before,after,it,runTests,strictEqual} from 'std:testing';import {delay} from 'std:futures';let count=0;function main(){before(async()=>{await delay(0);count=1;});after(async()=>{await delay(0);strictEqual(count,2);count=3;});it('aliases',async()=>{await delay(0);strictEqual(count,1);count=2;});strictEqual(runTests(),0);strictEqual(count,3);}";
 const COPIED_SCALAR:&str="import {beforeEach,test,runTests,strictEqual} from 'std:testing';import {delay} from 'std:futures';function main(){let count=0;beforeEach(async()=>{await delay(0);count+=1;if(count===2){console.log('second count');}});test('one',async()=>{});test('two',async()=>{});strictEqual(runTests(),0);}";
 const MIXED_STATE:&str="import {beforeEach,test,runTests,strictEqual} from 'std:testing';import {delay} from 'std:futures';let total=0;function main(){let count=0;beforeEach(async()=>{await delay(0);count+=1;total+=1;strictEqual(count,total);});test('one',async()=>{});test('two',async()=>{});strictEqual(runTests(),0);strictEqual(total,2);}";
+const PAIRED_STATE:&str="import {test,runTests,strictEqual} from 'std:testing';import {delay} from 'std:futures';let left=1;let right=2;function main(){test('pair',async()=>{await delay(0);left+=right;right+=left;});strictEqual(runTests(),0);strictEqual(left,3);strictEqual(right,5);}";
 const SHARED_STATE:&str=r#"
 import {test,runTests,strictEqual,beforeAll,beforeEach,afterEach,afterAll} from 'std:testing';
 import {delay} from 'std:futures';
@@ -104,6 +105,7 @@ fn native_async_registration_preserves_factories_state_and_hook_environments(){
         (ALIASES,"PASS aliases\n1 passed, 0 failed, 0 skipped\n"),
         (COPIED_SCALAR,"PASS one\nsecond count\nPASS two\n2 passed, 0 failed, 0 skipped\n"),
         (MIXED_STATE,"PASS one\nPASS two\n2 passed, 0 failed, 0 skipped\n"),
+        (PAIRED_STATE,"PASS pair\n1 passed, 0 failed, 0 skipped\n"),
     ];
     let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
     for entry in catalog["std:testing"].as_array().unwrap() {

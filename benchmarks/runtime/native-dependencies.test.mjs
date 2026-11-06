@@ -4,7 +4,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {prepareNativeDependencies, dependencyArtifacts, needsJsonDependencies} from './native-dependencies.mjs';
+import childProcess from 'node:child_process';
+import {syncBuiltinESMExports} from 'node:module';
+import {fileURLToPath} from 'node:url';
+import {prepareNativeDependencies, prepareReferenceDependencies, dependencyArtifacts, needsJsonDependencies} from './native-dependencies.mjs';
 
 test('ordinary native workloads need no dependency preparation',()=>{
  assert.deepEqual(prepareNativeDependencies({emitted:'fn main() {}'}),{args:[],evidence:null});
@@ -83,4 +86,29 @@ test('reference dependency selection leaves ordinary/native preparation untouche
  const target='/target';const artifact=JSON.stringify({reason:'compiler-artifact',target:{name:'unicode_normalization',kind:['lib']},filenames:['/target/release/deps/libunicode_normalization-a.rlib']});
  assert.deepEqual(dependencyArtifacts(artifact,target,['unicode_normalization']),{unicode_normalization:'/target/release/deps/libunicode_normalization-a.rlib'});
  assert.throws(()=>dependencyArtifacts(artifact,target,['rand']),/Missing.*rand/);
+});
+
+// Capture actual prepared Cargo commands; no Cargo, compiler or library executes.
+test('reference dependency routing selects declared compression and existing family features',()=>{
+ const manifest=JSON.parse(fs.readFileSync(new URL('manifest.json',import.meta.url),'utf8'));
+ const compression=manifest.workloads.filter(row=>row.family==='compression');assert.equal(compression.length,36);
+ const backend=new URL('../../crates/tsrust-compiler/backend-dependencies/Cargo.toml',import.meta.url),parity=new URL('./parity-dependencies/Cargo.toml',import.meta.url);
+ const expected=[...compression.map(row=>[row,backend,row.id.includes('_buffer_')?'compression':'compression-streams']),
+  [{family:'explicit-locale'},backend,'locale'],[{family:'child-processes'},backend,'process'],[{family:'network-transport'},backend,'io'],
+  [{family:'async-io'},parity,'async-io'],[{id:'task_all_ready'},parity,'task-join'],[{id:'task_all_yield'},parity,'task-join'],
+  [{family:'regex-text'},parity,'regex'],[{family:'path-env-os',id:'os_hostname_read'},parity,'hostname'],
+  ...[{family:'native-url'},{family:'byte-operations',id:'byte_ops_index_ascii'},{family:'byte-codecs',id:'bytes_base64_encode'},{id:'math_random_range'},{id:'string_normalize_forms'}].map(row=>[row,parity,null])];
+ const original=childProcess.spawnSync,sentinel=new Error('captured reference preparation');let observed;
+ childProcess.spawnSync=(command,args,options)=>{observed={command,args,options};throw sentinel;};syncBuiltinESMExports();
+ try{for(const [workload,url,feature]of expected){
+  observed=undefined;assert.throws(()=>prepareReferenceDependencies({workload,rustVersion:'1.96.1',targetDirectory:'/unused-reference-target'}),error=>error===sentinel);
+  assert.equal(observed.command,'rustup');assert.deepEqual(observed.args.slice(0,4),['run','1.96.1','cargo','build']);
+  assert.equal(observed.args[observed.args.indexOf('--manifest-path')+1],fileURLToPath(url));
+  assert.equal(path.resolve(observed.options.cwd),path.dirname(fileURLToPath(url)));
+  const index=observed.args.indexOf('--features');assert.deepEqual(index<0?[]:observed.args.slice(index),feature?['--features',feature]:[]);
+  if(feature){const source=fs.readFileSync(url,'utf8');assert(source.includes('\n'+feature+' = '),'selected manifest does not declare '+feature);}
+  for(const flag of ['--offline','--locked','--release','--message-format=json'])assert(observed.args.includes(flag));
+ }
+ assert.deepEqual(prepareReferenceDependencies({workload:{family:'ordinary'}}),{args:[],evidence:null});
+ }finally{childProcess.spawnSync=original;syncBuiltinESMExports();}
 });

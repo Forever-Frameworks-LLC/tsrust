@@ -28,7 +28,7 @@ impl<'a> DeferredTask<'a> {
         (callee, args)
     }
 }
-enum Action<'a> { Child(Task<'a>), Done((usize, Type)) }
+enum Action<'a> { Child(Task<'a>), Done((crate::polymorphic_invocation_plans::Pair, Type)) }
 fn function_child<'a>(analyzer: &mut Analyzer, index: usize) -> Result<Option<Task<'a>>, Diagnostic> {
     if analyzer.function_request_ready(index)? { Ok(None) }
     else { Ok(Some(Task::Function(Box::new(functions::FunctionTask::new(index))))) }
@@ -216,8 +216,11 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                         let params=&task.arguments.as_ref().expect("checked deferred arguments").params;
                         analyzer.retain_task_argument_loans(context,params,task.expression_args(),task.expression.span);
                     }
-                    let result = analyzer.retain_generic_invocation(context, task.selection.as_ref().unwrap().primary, call.method, call.result, task.expression.span)?;
-                    return Ok(Action::Done(result));
+                    // The reachable declaration can differ from the storage's
+                    // original declaration. A method index belongs to its owner.
+                    let origin=task.selection.as_ref().unwrap().primary;
+                    let(method,result)=analyzer.retain_generic_invocation(context,origin,call.method,call.result,task.expression.span)?;
+                    return Ok(Action::Done((crate::polymorphic_invocation_plans::Pair{origin,method},result)));
                 }
             }
         }

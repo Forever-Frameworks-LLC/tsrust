@@ -118,6 +118,15 @@ fn name(text: &str) -> bool {
         .is_some_and(|c| c.is_ascii_alphabetic() || c == b'_')
         && bytes.all(|c| c.is_ascii_alphanumeric() || c == b'_')
 }
+fn quote_field_edits(items: &mut [Value], access: Range, optional: bool) {
+    for item in items {
+        if item["kind"]==5 && let Some(field)=item["label"].as_str() && !name(field) {
+            let field=serde_json::to_string(field).expect("property spelling");
+            let optional=if optional{"?."}else{""};
+            item["textEdit"]=json!({"range":access,"newText":format!("{optional}[{field}]")});
+        }
+    }
+}
 impl SourceIndex {
     pub fn new(source: &str) -> Self {
         { let mut index = Self::with_entry_help(source, true); index.recover_native_imports(); index.finish_imports(); index }
@@ -3616,13 +3625,7 @@ impl SourceIndex {
             // After a member separator only members are offered, never names
             // of the enclosing scope.
             let mut items=self.member_items(&ty, prefix, replace, &self.receiver_text(dot), dot - 1);
-            for item in &mut items {
-                if item["kind"]==5 && let Some(field)=item["label"].as_str() && !name(field) {
-                    let field=serde_json::to_string(field).expect("property spelling");
-                    let optional=if self.text(dot)=="?."{"?."}else{""};
-                    item["textEdit"]=json!({"range":self.range(Span::new(self.tokens[dot].span.start,offset)),"newText":format!("{optional}[{field}]")});
-                }
-            }
+            quote_field_edits(&mut items, self.member_access_range(dot, offset), self.text(dot)=="?.");
             return json!(items);
         }
         if before.is_some_and(|id| member_separator(self.text(id))) {

@@ -1760,11 +1760,15 @@ fn os_identity_zero_argument_native_contract() {
         let memory=Memory::new(&[("main.tsr",&source)]);
         assert_eq!(tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap().code,"type");
     }
-    assert!(tsrust_compiler::native_bindings::lookup("std:os","hostname").unwrap_err().contains("does not export"));
-    let memory=Memory::new(&[("main.tsr","import {hostname} from 'std:os';function main(){console.log(hostname());}")]);
+    let memory=Memory::new(&[("main.tsr","import {hostname as host,OsError} from 'std:os';function main(){const action=host;const observed:Result<string,OsError>=action();match(observed){Ok(name)=>console.log(name.length>0),Err(error)=>console.log(error.code.length>0)}}")]);
+    let hostname=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    assert!(hostname.warnings().is_empty());
+    assert!(tsrust_compiler::native_runtime::requires_hostname(&hostname.emit_rust()));
+    assert!(tsrust_compiler::native_bindings::lookup("std:os","notAnOsExport").unwrap_err().contains("does not export"));
+    let memory=Memory::new(&[("main.tsr","import {notAnOsExport} from 'std:os';function main(){}")]);
     let error=load_project(&memory,"main.tsr").err().unwrap();
     assert_eq!(error.code,"module-native");
-    assert!(error.message.contains("does not export") && error.message.contains("hostname"));
+    assert!(error.message.contains("does not export") && error.message.contains("notAnOsExport"));
 }
 
 #[test]

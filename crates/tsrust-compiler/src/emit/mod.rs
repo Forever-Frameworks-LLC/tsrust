@@ -925,7 +925,7 @@ impl Emitter<'_> {
         };
         let view_signature=self.native_view_closure_signature(closure,Some(method),&checked.function,&checked.parameters);
         let receiver=view_signature.as_ref().and_then(|signature|signature.receiver).map_or_else(||receiver.to_owned(),|mode|format!("&'native_receiver {}self",if mode==Mode::Mutate {"mut "}else{""}));
-        let parameters=view_signature.as_ref().map_or(parameters,|signature|format!(", {}",signature.params));
+        let parameters=view_signature.as_ref().map_or(parameters,|signature|if signature.params.is_empty(){String::new()}else{format!(", {}",signature.params)});
         let generics=view_signature.as_ref().map_or(generics,|signature|signature.generics.clone());
         let native_result=view_signature.as_ref().map_or(native_result,|signature|error_name.as_ref().map_or_else(||signature.result.clone(),|name|format!("Result<{},{}>",signature.result,name)));
         let view_where=view_signature.as_ref().map_or_else(String::new,|signature|signature.replacement_where.clone());
@@ -1042,7 +1042,11 @@ impl Emitter<'_> {
     }
 
     fn record_inspectable(&self, record: usize) -> bool {
-        let mut pending = vec![Type::Record(record)];
+        self.type_inspectable(Type::Record(record))
+    }
+
+    fn type_inspectable(&self, root: Type) -> bool {
+        let mut pending = vec![root];
         let mut seen = HashSet::new();
         while let Some(ty) = pending.pop() {
             if !seen.insert(ty) { continue; }
@@ -1068,6 +1072,21 @@ impl Emitter<'_> {
             }
         }
         true
+    }
+
+    // Implicit error reports must not expand opaque values that source console
+    // inspection deliberately rejects. Reporting only borrows the owned payload.
+    fn error_payload_text(&self, value: &str, ty: Type) -> String {
+        if !self.type_inspectable(ty) {
+            if let Type::Record(id)=ty && let Some(native)=self.program.records[id].native_type
+                && matches!(native,crate::native_signatures::NativeTypeId::CacheInsertError|crate::native_signatures::NativeTypeId::AsyncError|crate::native_signatures::NativeTypeId::SendError|crate::native_signatures::NativeTypeId::ThreadError) {
+                let name=crate::native_types::declaration(native).name;
+                return format!("std::format!(\"{name}: {{}}\",({value}).field0.as_ref())");
+            }
+            return "std::string::String::from(\"<value not expanded>\")".into();
+        }
+        let observed=self.console_value(value,ty,"0",false);
+        format!("tsr_console_format(&[{observed}])")
     }
 
     fn console_value(&self, value: &str, kind: Type, depth: &str, nested: bool) -> String {
@@ -1311,8 +1330,7 @@ impl Emitter<'_> {
             let mut arms=String::new();
             for (tag,ty) in payloads.into_iter().enumerate() {
                 let text=if Some(ty)==runtime {"std::format!(\"{}: {}\",payload.field0.as_ref(),payload.field2.as_ref())".to_owned()}else{
-                    let value=self.console_value("payload",ty,"0",false);
-                    format!("tsr_console_format(&[{value}])")
+                    self.error_payload_text("payload",ty)
                 };
                 arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
             }
@@ -1342,8 +1360,7 @@ impl Emitter<'_> {
             let mut arms=String::new();
             for (tag,ty) in payloads.into_iter().enumerate() {
                 let text=if Some(ty)==runtime {"std::format!(\"{}: {}\",payload.field0.as_ref(),payload.field2.as_ref())".to_owned()}else{
-                    let value=self.console_value("payload",ty,"0",false);
-                    format!("tsr_console_format(&[{value}])")
+                    self.error_payload_text("payload",ty)
                 };
                 arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
             }
@@ -2426,8 +2443,8 @@ impl Emitter<'_> {
                 // Rejected inputs may contain opaque resources; report the stable code without inspecting them.
                 "tsr_console_write(true,&std::format!(\"Uncaught CacheInsertError: {}\\n\",payload.field0.as_ref()));".to_owned()
             } else {
-                let value=self.console_value("payload",ty,"0",false);
-                format!("let text=tsr_console_format(&[{value}]);tsr_console_write(true,&std::format!(\"Uncaught {{text}}\\n\"));")
+                let text=self.error_payload_text("payload",ty);
+                format!("let text={text};tsr_console_write(true,&std::format!(\"Uncaught {{text}}\\n\"));")
             };
             arms.push_str(&format!("{}::V{tag}(payload)=>{{{report}}},",exception_emit::constructor_path(error_name)));
         }
@@ -2743,11 +2760,12 @@ impl Emitter<'_> {
             let receiver = closure_signature.as_ref().and_then(|signature|signature.receiver_lifetime)
                 .map_or_else(||receiver.to_owned(),|lifetime|format!("&{lifetime} mut self"));
             let receiver=signature.and_then(|signature|signature.receiver).map_or(receiver,|mode|format!("&'native_receiver {}self",if mode==Mode::Mutate {"mut "}else{""}));
-            let mut parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
+            let mut parameters = signature.map_or(parameters, |signature| if signature.params.is_empty(){String::new()}else{format!(", {}",signature.params)});
             let program_factory=closure.program_scoped && self.program.task_type(closure.function.result);
             if closure.program_scoped {
-                parameters.push_str(if program_factory{", test_program: TsrTestContext<'_>, test_registry: &mut TsrTestRegistry"}
-                    else{", test_program: &mut TsrTestContext<'_>, test_registry: &mut TsrTestRegistry"});
+                let lifetime=signature.and_then(|signature|signature.program_lifetime.as_deref()).unwrap_or("'_");
+                let borrow=if program_factory{""}else{"&mut "};
+                parameters.push_str(&format!(", test_program: {borrow}TsrTestContext<{lifetime}>, test_registry: &mut TsrTestRegistry"));
             }
             let call_generics = signature.map_or(call_generics, |signature| signature.generics.clone());
             let replacement_where = signature.map_or_else(String::new, |signature| signature.replacement_where.clone());

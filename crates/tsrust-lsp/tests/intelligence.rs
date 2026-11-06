@@ -1,3 +1,4 @@
+mod support;
 use lsp_types::Position;
 use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
@@ -852,7 +853,7 @@ fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
             }
             // Matcher and native collection families provide complete-program
             // examples with their required imports and receiver construction.
-            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "LruCache" | "SharedLruCache" | "CacheEntry" | "CacheInsertError" | "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender") {
+            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "LruCache" | "SharedLruCache" | "CacheEntry" | "CacheInsertError" | "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender" | "Url" | "SearchParams" | "Regex" | "Interval" | "CancellationToken" | "Collator" | "Segmenter" | "NumberFormat" | "Child" | "TcpListener" | "TcpStream" | "UdpSocket" | "CompressionReader" | "CompressionWriter") {
                 let examples = entry["examples"].as_array().unwrap();
                 assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
                 for example in examples {
@@ -943,6 +944,12 @@ fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
                 continue;
             }
 
+            if family == "string" && matches!(method,"match"|"matchAll"|"search"|"localeCompare") {
+                let examples=entry["examples"].as_array().unwrap();
+                assert!(!examples.is_empty(),"{family}.{method} needs a witness example");
+                for example in examples { checked_std_example(example["source"].as_str().unwrap()); }
+                continue;
+            }
             if family == "StringConstructor" && method == "raw" {
                 // The template record type must be declared outside main.
                 let source = "type Template = { raw: string[]; };function main() { const template: Template = { raw: [\"a\"] }; const result: string = String.raw(template); }";
@@ -1157,12 +1164,8 @@ fn callback_parameter_signatures_and_folding_survive_incomplete_bodies() {
     let source = "/** Calls an operation. */\nfunction apply(callback: (n: int) => int, value: int): int {\n return callback(value);\n}\nfunction main() {\n const increment = (n: int): int => { return n + 1; };\n apply(increment, 2);\n}";
     assert!(tsrust_compiler::check(source).is_ok());
     let hover = ask(source, "textDocument/hover", "callback(value)", 0);
-    assert!(
-        hover["contents"]["value"]
-            .as_str()
-            .unwrap()
-            .contains("callback: Function<int, [n: int]>")
-    );
+    let signature=hover["contents"]["value"].as_str().unwrap().split("```tsrust\n").nth(1).unwrap().split("```").next().unwrap();
+    assert!(support::contains_formatted_snippet(&format!("let {signature};"),"let callback: (n: int) => int;"),"{hover}");
     let help = ask(source, "textDocument/signatureHelp", "value);", 0);
     assert_eq!(help["signatures"][0]["parameters"][0]["label"], "n: int");
     let help = ask(source, "textDocument/signatureHelp", "2);", 0);
@@ -1782,7 +1785,7 @@ fn documented_builtin_examples_match_native_output(retained_ui: bool) {
                     // Earlier standalone programs passed before an interrupted run;
                     // fragments still accumulate below because their batch runs last.
                     if resume.as_ref().is_some_and(|start|family<start) {continue;}
-                    if !executed.insert((snippet,example["output"].as_str().unwrap())) {continue;}
+                    if !executed.insert((snippet,example["output"].as_str().unwrap(),example["stderr"].as_str().unwrap_or(""))) {continue;}
                     let analysis = checked_std_example(snippet);
                     let dir = &directory.0;
                     let prefix = if family.starts_with("std:") { "std".to_owned() } else { family.to_lowercase() };
@@ -1819,7 +1822,7 @@ fn documented_builtin_examples_match_native_output(retained_ui: bool) {
                         String::from_utf8(output.stdout).unwrap(),
                         example["output"].as_str().unwrap()
                     );
-                    assert!(output.stderr.is_empty());
+                    assert_eq!(String::from_utf8(output.stderr).unwrap(),example["stderr"].as_str().unwrap_or(""),"{family}.{} stderr",entry["name"]);
                     continue;
                 }
                 let witness = source.push(snippet);
@@ -5170,6 +5173,7 @@ fn array_flattening_docs_and_checked_result_types_are_consistent() {
         );
     }
     for (callback, result) in [
+        ("(value:int):void=>{}", "void[]"),
         ("(value:int):number=>{return Number(value);}", "number[]"),
         ("(value:int):int[]=>{return [value,value];}", "int[]"),
         ("(value:int):int[][]=>{return [[value]];}", "int[][]"),
@@ -5292,7 +5296,6 @@ fn array_flattening_docs_and_checked_result_types_are_consistent() {
     for arguments in [
         "",
         "undefined",
-        "(value:int):void=>{}",
         "(value:int,index:int,source:int[],extra:int):int=>{return value;}",
         "():int=>{return 1;},():int=>{return 2;}",
     ] {
@@ -5306,6 +5309,8 @@ fn array_flattening_docs_and_checked_result_types_are_consistent() {
     }
     let source = "function main(){const values:int[]=[1,2];const depth:int=1;const copied=values.flat(depth);console.log(copied.join(),String(values.at(0)),values.toSorted().length);}";
     tsrust_compiler::check(source).unwrap();
+    examples.push("function main(){let calls=0;const units:void[]=[1,2].flatMap((value:int):void=>{calls+=value;});console.log(units.length,calls);}");
+    expected.push_str("2 3\n");
     let source = examples.finish();
     let analysis = tsrust_compiler::check(&source).unwrap();
     let directory = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -6811,7 +6816,8 @@ fn explicit_mutate_callback_annotations_preserve_help_and_chained_results() {
     let source = "function apply(action:Mutable<Function<string, [text:ReadOnly<string>]>>):string{return action('Pat');}function main(){const action=(text:string):string=>{return text.trim();};console.log(apply(action).toLowerCase());}";
     assert!(tsrust_compiler::check(source).is_ok());
     let hover = ask(source, "textDocument/hover", "action('Pat')", 0);
-    assert!(hover["contents"]["value"].as_str().unwrap().contains("Mutable<Function<string, [text: ReadOnly<string>]>>"), "{hover}");
+    let signature=hover["contents"]["value"].as_str().unwrap().split("```tsrust\n").nth(1).unwrap().split("```").next().unwrap();
+    assert!(support::contains_formatted_snippet(&format!("let {signature};"),"let action: Mutable<Function<string, [text: ReadOnly<string>]>>;"),"{hover}");
     let help = ask(source, "textDocument/signatureHelp", "'Pat')", 0);
     assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("text"), "{help}");
     assert!(!ask(source, "textDocument/hover", "toLowerCase()", 0).is_null());
@@ -6822,7 +6828,8 @@ fn explicit_read_callable_help_keeps_borrowing_and_argument_names() {
     let source = "function apply(action:ReadOnly<Function<int, [text:ReadOnly<string>]>>):int{return action('Pat');}function main(){const action=(text:string):int=>{return text.length;};console.log(apply(action));}";
     assert!(tsrust_compiler::check(source).is_ok());
     let hover = ask(source, "textDocument/hover", "action('Pat')", 0);
-    assert!(hover["contents"]["value"].as_str().unwrap().contains("ReadOnly<Function<int, [text: ReadOnly<string>]>>"), "{hover}");
+    let signature=hover["contents"]["value"].as_str().unwrap().split("```tsrust\n").nth(1).unwrap().split("```").next().unwrap();
+    assert!(support::contains_formatted_snippet(&format!("let {signature};"),"let action: ReadOnly<Function<int, [text: ReadOnly<string>]>>;"),"{hover}");
     let help = ask(source, "textDocument/signatureHelp", "'Pat')", 0);
     assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("text"), "{help}");
 }

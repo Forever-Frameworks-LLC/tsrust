@@ -14,10 +14,13 @@ Start with an existing project at `./app` and
 sources; use `--offline` when the needed sources are already cached.
 
 ```sh
-tsrust add regex@1.12.2 --project ./app
+tsrust add regex@1.13.1 --project ./app
 tsrust packages --project ./app
 tsrust features regex --project ./app
 ```
+
+Regex bindings must reuse the bundled `=1.13.1` pin with default features and no
+extra features. Older pins or different feature settings are rejected.
 
 The first add creates `native.bindings.json` and `native.rs` when needed. Regex supplies
 a readable starter adapter exporting Search, SearchResult variants and search. Other
