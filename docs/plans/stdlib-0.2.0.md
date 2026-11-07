@@ -1434,6 +1434,18 @@ and acceptance remain pending compiler/native/editor and matched workload gates.
   ownership/error analysis, native emission, formatting, editor agreement,
   documentation and matched workload support form one coherent implementation.
 
+Runtime test consolidation, 2026-11-07 (acceptance remains open): ordinary
+iterator carrier regressions now register through `std:testing`, sharing one
+public runner with the existing iterator contract, logging and realtime suites.
+Seventeen former native launches retain their helper/type scopes in stable
+fixture modules; their observations use typed assertions. Compiler rejection and
+emission controls remain host tests. Catalog examples are being batched with
+verbatim source and output comparison rather than separate executables. Initial
+cheap checking exposed callable-factory readiness through ordinary imported
+functions. Discovery/cached-specialization repairs and their controls are in
+source; runtime validation and matched measurements remain required. No runtime
+acceptance or measurement checkbox is closed by this migration.
+
 ### B16 — Crypto and password primitives
 
 Backend: existing sha2/getrandom/subtle; compatible RustCrypto hmac/hkdf/argon2.

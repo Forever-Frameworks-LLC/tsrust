@@ -1,0 +1,15 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+import { all, Job } from 'std:futures';
+async function value(): Task<int> {
+  return 3;
+}
+
+export async function run(): Task<void> {
+  const jobs = [value().start(), value().start()];
+  const values = await all(Iterator.from(jobs).map((work: Job<int, undefined>): Job<int, undefined> => work).toArray());
+  {
+    const observed1_0 = values.join(',');
+    strictEqual(observed1_0, "3,3");
+  }
+}

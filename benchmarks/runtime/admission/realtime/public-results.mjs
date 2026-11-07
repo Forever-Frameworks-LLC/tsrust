@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import {hash} from './guards.mjs';
+import {hash,CONTROL_SOURCE_FILES} from './guards.mjs';
 import {checkMatrix,checkSse,checkLifetime,checkWs} from './oracle.mjs';
 import {DEFAULT_LIMIT} from '../../quiet-machine.mjs';
 const controls=['rust-backend','node-backend'];
@@ -27,7 +27,7 @@ export function referenceControls(file,{root,prepared,nodeProof,protocol,selecte
  assert.equal(scope.status,'terminal-success');const stage=scope.stages.filter(row=>row.label==='profile');assert.equal(stage.length,1);assert.equal(stage[0].code,0);assert.equal(stage[0].stop,null);assert.deepEqual(stage[0].remaining,[]);
  assert.equal(proof.timestamp,new Date(scope.started*1000).toISOString(),'Original scope timestamp required');
  assert.equal(report.status,'terminal-success-with-unresolved-sse-semantics');assert.equal(report.publicBackendAccepted,false);assert.deepEqual(report.protocol,protocol);assert.equal(report.node,process.version);assert.equal(report.ws,'8.18.3');assert.equal(hash(fs.readFileSync(nodeProof)),proof.nodeProofSha256);assert.equal(hash(fs.readFileSync(prepared.binary)),proof.binarySha256);assert.deepEqual(report.closure,prepared.graph);
- for(const name of['src/main.rs','src/websocket.rs','node-control.mjs','oracle.mjs','fixtures.json','Cargo.toml','Cargo.lock','package.json','../../../http/cpu-contract.mjs','../../../http/cpu-oracle.json','../../../http/requests-contract.mjs','../../../http/telemetry.mjs','../../quiet-machine.mjs'])assert.equal(report.sourceSeal.sources[name],hash(fs.readFileSync(path.join(root,name))),'Changed control source '+name);
+ for(const name of CONTROL_SOURCE_FILES)assert.equal(report.sourceSeal.sources[name],hash(fs.readFileSync(path.join(root,name))),'Changed control source '+name);
  const fixture=JSON.parse(fs.readFileSync(path.join(root,'fixtures.json')));assert.equal(report.groups.length,5);
  for(const name of ['sse-format','sse-lifetime','ws-controls']){const rows=report.groups.filter(row=>row.group===name);assert.equal(rows.length,1);if(name==='sse-format')checkSse(rows[0].rows,fixture);else if(name==='sse-lifetime')checkLifetime(rows[0].rows);else checkWs(rows[0].rows);}
  for(const engine of controls){const rows=report.groups.filter(row=>row.group==='active-pending-send-shutdown'&&row.engine===engine);assert.equal(rows.length,1);assert.equal(rows[0].pending_send,true);assert.equal(rows[0].active,0);}

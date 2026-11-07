@@ -187,14 +187,15 @@ export function runOwnedIteratorContracts(): void {
   const failedCaptureId = resourceId(failedCapture);
   let terminalErrors = 0;
   try {
-    Iterator.from([failedItem, failedTail]).forEach(value => {
+    const reject: Owned<Function<void, [value: Owned<TrackedResource>]>> = (value: Owned<TrackedResource>): void => {
       strictEqual(resourceId(failedCapture), failedCaptureId);
       strictEqual(resourceId(value), failedItemId);
       const error: Failure = {
         code: 'selected'
       };
       throw error;
-    });
+    };
+    Iterator.from([failedItem, failedTail]).forEach(reject);
   } catch (error) {
     terminalErrors += 1;
     strictEqual(error.code, 'selected');

@@ -1,0 +1,71 @@
+import { describe, test } from 'std:testing';
+import { run as run0 } from './regressions/physical-carriers.tsr';
+import { run as run1 } from './regressions/conditional-closure-results.tsr';
+import { run as run2 } from './regressions/borrowed-records-first.tsr';
+import { run as run3 } from './regressions/owned-records-first.tsr';
+import { run as run4 } from './regressions/temporary-discriminators.tsr';
+import { run as run5 } from './regressions/callback-and-task-payloads.tsr';
+import { run as run6 } from './regressions/flatmap-mixed-alternatives.tsr';
+import { run as run7 } from './regressions/nested-receivers.tsr';
+import { run as run8 } from './regressions/borrowed-nullable-capture.tsr';
+import { run as run9 } from './regressions/nullable-flatmap-state.tsr';
+import { run as run10 } from './regressions/nullable-counter-reinitialization.tsr';
+import { run as run11 } from './regressions/mixed-union-returns.tsr';
+import { run as run12 } from './regressions/readonly-union-observations.tsr';
+import { run as run13 } from './regressions/generic-legacy-callback-records.tsr';
+import { run as run14 } from './regressions/concrete-nullable-record.tsr';
+import { run as run15 } from './regressions/named-nullable-consumers.tsr';
+import { run as run16 } from './regressions/started-job-transport.tsr';
+describe('iterator carrier regressions', () => {
+  test('physical carriers', () => {
+    run0();
+  });
+  test('conditional closure results', () => {
+    run1();
+  });
+  test('borrowed records first', () => {
+    run2();
+  });
+  test('owned records first', () => {
+    run3();
+  });
+  test('temporary discriminators', () => {
+    run4();
+  });
+  test('callback and task payloads', async () => {
+    await run5();
+  });
+  test('flatmap mixed alternatives', () => {
+    run6();
+  });
+  test('nested receivers', () => {
+    run7();
+  });
+  test('borrowed nullable capture', () => {
+    run8();
+  });
+  test('nullable flatmap state', () => {
+    run9();
+  });
+  test('nullable counter reinitialization', () => {
+    run10();
+  });
+  test('mixed union returns', () => {
+    run11();
+  });
+  test('readonly union observations', () => {
+    run12();
+  });
+  test('generic legacy callback records', () => {
+    run13();
+  });
+  test('concrete nullable record', () => {
+    run14();
+  });
+  test('named nullable consumers', () => {
+    run15();
+  });
+  test('started job transport', async () => {
+    await run16();
+  });
+});

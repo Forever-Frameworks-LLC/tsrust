@@ -1,0 +1,19 @@
+import { strictEqual } from 'std:testing';
+
+type Holder = {
+  pull: Owned<Function<int>>;
+};
+
+export function run() {
+  let current: Holder | undefined = undefined;
+  const inner: Holder = {
+    pull: (): int => 7
+  };
+  current = inner;
+  if (current !== undefined) {
+    {
+      const observed1_0 = current.pull();
+      strictEqual(observed1_0, 7);
+    }
+  }
+}

@@ -1,0 +1,38 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+
+function observe(value: ReadOnly<int[] | Iterator<int>>): boolean {
+  return Array.isArray(value);
+}
+
+export function run() {
+  const value: int[] | Iterator<int> = Iterator.from([2, 4]);
+  if (!Array.isArray(value)) {
+    {
+      const observed1_0 = observe(value);
+      const observed1_1 = observe(value);
+      strictEqual(observed1_0, false);
+      strictEqual(observed1_1, false);
+    }
+
+    {
+      const observed2_0 = value.toArray().join(',');
+      strictEqual(observed2_0, "2,4");
+    }
+  }
+
+  const array: int[] | Iterator<int> = [5, 6];
+  if (Array.isArray(array)) {
+    {
+      const observed3_0 = observe(array);
+      const observed3_1 = observe(array);
+      strictEqual(observed3_0, true);
+      strictEqual(observed3_1, true);
+    }
+
+    {
+      const observed4_0 = array.join(',');
+      strictEqual(observed4_0, "5,6");
+    }
+  }
+}

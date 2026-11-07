@@ -3608,7 +3608,9 @@ impl Analyzer {
         }
         let key = (index, types);
         if let Some(&id) = self.specializations.get(&key) {
-            return Ok((id, false));
+            // A cached body may have been created during result discovery.
+            // Readiness depends on this call's phase, not the cache's creation.
+            return Ok((id, (!self.discovering_results && self.callable_result_type(self.signatures[id].result)) || self.physical_record_result_needed(self.signatures[id].result)));
         }
         // A callback wrapped in a new closure on every recursive call never
         // reaches a fixed point; rustc rejects it at its recursion limit.
@@ -3970,7 +3972,7 @@ impl Analyzer {
         if self.checked[id].is_some() || self.visiting[id] {return Ok(());}
         // Full checking would restart global result discovery before marking the
         // callee visiting. Let that discovery's dependency queue find its origin.
-        if defer_pending_origins && self.assumed_modes.is_some()
+        if (defer_pending_origins || self.discovering_function.is_some()) && self.assumed_modes.is_some()
             && self.callable_result_type(self.signatures[id].result)
             && !self.known_results.contains_key(&id)
         {
@@ -3988,7 +3990,7 @@ impl Analyzer {
     fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type,defer_pending_origins:bool)->Result<(),Diagnostic> {
         let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
         enum Selected {Function(usize,Span),Closure(usize),Storage(usize)}
-        fn calls(function:&CheckedFunction,pending:&mut Vec<Selected>){
+        fn calls(analyzer:&Analyzer,function:&CheckedFunction,pending:&mut Vec<Selected>)->Result<(),Diagnostic>{
             for value in crate::error_effects::checked_expressions(function){
                 let ExprKind::Call(callee,_)=&value.kind else{continue;};
                 match value.target {
@@ -3997,18 +3999,24 @@ impl Analyzer {
                     Some(CallTarget::ConditionalClosure(origin))=>pending.push(Selected::Closure(origin)),
                     Some(CallTarget::StoredCallableField(family))=>pending.push(Selected::Storage(family)),
                     Some(CallTarget::StoredCallable(_))=>if let Some(family)=value.storage_family(){pending.push(Selected::Storage(family));},
-                    Some(CallTarget::ClosureMethod(_))=>if let Some(Type::Closure(origin))=callee.ty{pending.push(Selected::Closure(origin));},
+                    Some(CallTarget::ClosureMethod(_))=>{
+                        if let Some(id)=callee.generic_invocation{
+                            let plan=analyzer.polymorphic_invocations.checked(id,&analyzer.closures,callee.span)?;
+                            pending.extend(plan.cases.iter().map(|case|Selected::Closure(case.pair.origin)));
+                        }else if let Some(Type::Closure(origin))=callee.ty{pending.push(Selected::Closure(origin));}
+                    },
                     _=>{},
                 }
             }
+            Ok(())
         }
-        let mut pending=Vec::new();calls(&caller,&mut pending);
+        let mut pending=Vec::new();calls(self,&caller,&mut pending)?;
         let mut functions=HashSet::new();let mut closures=HashSet::new();let mut storage=HashSet::new();
         while let Some(selected)=pending.pop(){match selected{
             Selected::Function(id,span)=>{
                 if !functions.insert(id){continue;}
                 self.prepare_selected_task_function(id,span,defer_pending_origins)?;
-                if let Some(function)=self.checked[id].as_ref(){calls(function,&mut pending);}
+                if let Some(function)=self.checked[id].as_ref(){calls(self,function,&mut pending)?;}
                 // Checking a selected body may add constructors to an already
                 // selected finite family. Revisit only those selected families.
                 pending.extend(storage.iter().copied().map(Selected::Storage));
@@ -4016,8 +4024,8 @@ impl Analyzer {
             Selected::Closure(origin)=>{
                 if !closures.insert(origin){continue;}
                 let Some(closure)=self.closures.get(origin)else{continue;};
-                calls(&closure.function,&mut pending);
-                for method in &closure.methods{calls(&method.function,&mut pending);}
+                calls(self,&closure.function,&mut pending)?;
+                for method in &closure.methods{calls(self,&method.function,&mut pending)?;}
                 match closure.forward{
                     Some(ClosureForward::Function(id))=>pending.push(Selected::Function(id,closure.span)),
                     Some(ClosureForward::Once(id))=>pending.push(Selected::Closure(id)),

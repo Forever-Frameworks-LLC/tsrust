@@ -1,0 +1,6 @@
+import { Iterator } from "std:iterator";
+
+export function main() {
+  const values = Iterator.from([2, 4]);
+  console.log(values.toArray().join(",")); // 2,4
+}

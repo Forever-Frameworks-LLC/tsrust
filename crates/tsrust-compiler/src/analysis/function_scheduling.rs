@@ -291,6 +291,10 @@ impl Analyzer {
             && self.assumed_modes.is_some()
             && !self.known_results.contains_key(&index)
         {
+            if self.discovering_function.is_some(){
+                self.note_result_wait(index,name.span);
+                return Err(Self::pending_result(name.span));
+            }
             self.discover_results()?;
         }
         self.visiting[index] = true;
@@ -551,4 +555,53 @@ fn readonly_mixed_record_arguments_keep_physical_union_layouts(){
  for(index,binding)in main.bindings.iter().enumerate(){if let Type::Union(union)=binding.ty{
   let marker=format!("value{index}: Union{}",union.index());let position=rust.find(&marker).expect("owning mixed union annotation");assert!(rust[position+marker.len()..].starts_with('<'),"Every physical payload slot needs its concrete type: {}",&rust[position..rust[position..].find('\n').map_or(rust.len(),|end|position+end)]);unions+=1;
  }}assert_eq!(unions,2);
+}
+
+#[cfg(test)]
+#[test]
+fn pending_region_checks_method_plan_origins_without_a_concrete_callee_type(){
+    let source="function selected():int{return 7;}function unrelated():int{return 9;}function generic<T>(value:T):int{return selected();}function main(){const read=generic;read<int>(1);}";
+    let mut analyzer=Analyzer::new(crate::syntax::parse(source).unwrap()).unwrap();
+    let selected=analyzer.function_names["selected"];let unrelated=analyzer.function_names["unrelated"];
+    let selected_body=analyzer.program.functions[selected].body.clone();let unrelated_body=analyzer.program.functions[unrelated].body.clone();
+    let main=analyzer.function_names["main"];analyzer.function(main).unwrap();
+    let checked=analyzer.checked[main].as_ref().unwrap();let mut body=checked.body.clone();let result=checked.result;
+    let mut found=false;
+    crate::source_walk::body(&mut body,&mut |_|Ok(()),&mut |value|{
+        if let Some(CallTarget::ClosureMethod(method))=value.target{
+            let ExprKind::Call(callee,_)=&mut value.kind else{panic!("method invocation")};
+            let Some(Type::Closure(origin))=callee.ty else{panic!("concrete control environment")};
+            let plan=analyzer.polymorphic_invocations.publish([crate::polymorphic_invocation_plans::Pair{origin,method}],&analyzer.closures,callee.span)?;
+            callee.generic_invocation=Some(plan);callee.ty=None;found=true;
+        }
+        Ok(())
+    }).unwrap();assert!(found);
+    analyzer.checked[selected]=None;analyzer.program.functions[selected].body=selected_body;
+    analyzer.checked[unrelated]=None;analyzer.program.functions[unrelated].body=unrelated_body;
+    analyzer.check_pending_region_functions(&body,result,false).unwrap();
+    assert!(analyzer.checked[selected].is_some(),"the checked plan identifies the real method's callee");
+    assert!(analyzer.checked[unrelated].is_none(),"preparation must not eagerly check unrelated functions");
+}
+
+#[cfg(test)]
+mod cached_result_readiness_tests {
+ use super::*;
+ #[test]
+ fn cached_callable_specialization_requeries_current_discovery_phase(){
+  let source="function factory(callback:Owned<Function<int>>):Once<Function<int>>{return()=>callback();}function data(callback:Owned<Function<int>>):int{return callback();}function main(){factory(()=>7);}";
+  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let mut analyzer=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+  let main=analyzer.function_names["main"];let mut body=analyzer.program.functions[main].body.clone();let mut context=analyzer.function_context(main,&mut body).unwrap();
+  let StmtKind::Expr(expression)=&mut body[0].kind else{panic!("factory call")};
+  let ExprKind::Call(_,arguments)=&mut expression.kind else{panic!("factory arguments")};
+  for argument in arguments.iter_mut(){analyzer.expression(&mut context,argument,Mode::Consume,&Loans::new(),None).unwrap();}
+  let span=expression.span;
+  for(name,needs_origin)in[("factory",true),("data",false)]{
+   let index=analyzer.function_names[name];analyzer.discovering_results=true;
+   let(first,immediate)=analyzer.prepare_specialization(index,arguments,span).unwrap();assert!(!immediate,"{name}: discovery remains deferred");assert_ne!(first,index,"{name}: actual specialization required");
+   let count=analyzer.specializations.len();analyzer.discovering_results=false;
+   let(second,immediate)=analyzer.prepare_specialization(index,arguments,span).unwrap();assert_eq!(second,first);assert_eq!(analyzer.specializations.len(),count);assert_eq!(immediate,needs_origin,"{name}: cached readiness must match a fresh entry");
+   analyzer.discovering_results=true;let(third,immediate)=analyzer.prepare_specialization(index,arguments,span).unwrap();assert_eq!(third,first);assert!(!immediate,"{name}: returning to discovery restores deferral");
+  }
+ }
 }

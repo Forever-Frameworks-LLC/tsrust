@@ -93,6 +93,26 @@ is also an output event. Native third-party writes that bypass console are not
 rewritten by this reporter. Failure messages and console locations retain source
 information; durations are observations, not stable snapshot values.
 
+Pass related files together to compile one native runner:
+
+```sh
+tsrust test app/tests/api.test.tsr app/tests/storage.test.tsr --reporter json --profile
+```
+
+`--profile` separates setup/build cost from test execution. After a successful
+build, the JSON reporter starts with a `build` event containing `durationMs`,
+`checkMs`, `emitMs`, `backendMs`, `cacheMs`, `nativeBuildMs`, `cache` (`hit` or
+`miss`) and `testFiles`. Total setup time includes discovery, so individual stages
+need not sum to it. A cache hit reports zero native build time. Test, hook and
+summary durations continue to measure execution separately. Pretty/plain
+reporters print the build profile on stderr. Without `--profile`, the existing
+report event format is unchanged.
+
+Keep paths, working directory and build environment stable to reuse the native
+cache. Source, backend or environment changes can invalidate it. These durations
+help locate expensive stages; comparable performance measurements still need
+warmup, repeated samples and matched work in each engine.
+
 `--timeout <milliseconds>` sets an explicit nonnegative integer deadline for
 async test bodies. There is no default deadline and no policy maximum below the
 backend duration/Instant range. A timeout drops the callback future, cancels and

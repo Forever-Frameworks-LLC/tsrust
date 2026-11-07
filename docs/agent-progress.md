@@ -6,9 +6,125 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Active realtime/logging family — 2026-11-07
 
-Canonical HEAD a510b9fc is a source checkpoint, not B17 runtime acceptance.
-Uncommitted B11 SSE/WebSocket compiler/runtime/LSP/docs/example and matched
-benchmark support are preserved. Full B00–B20 goal remains active.
+Canonical HEAD b72d0fbf (`feat(http): integrate SSE and WebSocket source
+contracts`) is a formatted source checkpoint, not runtime acceptance. Previous
+logging source checkpoint a510b9fc is preserved. Full B00–B20 goal remains active.
+Normal CLI/LSP binaries now match uncommitted7eb44source described below;
+rebuild only after further compiler source changes.
+No process remains; original family scope closed incomplete without reset.
+
+Focused repair verification is now TERMINAL, no live process. Original900s
+budget began in /tmp/tsrust-focused-repair-b72d.json; no reset. First consumers
+build280.327s/peak2927480384B. Logging check passed; SSE type mismatch resolved;
+realtime advanced to nested await-task198; iterator advanced beyond typedcatch48
+to a terminal callback-access fixture mismatch. Corrected that fixture using
+explicit Owned<Function<void,[value:Owned<TrackedResource>]>> environment, matching
+its earlier predicate witness; cleanup assertions unchanged. Iterator check passed.
+
+Within SAME900s scope, source7eb44ebbc97a8183e1db45e175a02381adfdbd28c8c912e4ca359bdcf50251f2
+(/tmp/tsrust-focused-repair-source.json) adds explicit generated connect
+Task<WebSocket> contract, actual generic method-plan origin scheduling and control,
+and consolidates3public runtime hosts into ONE24case/3file tsrust test launch.
+Helpers retain exact5logging/18realtime/1iterator names,10JSON context records,
+output marker, onebuildrow and aggregate summary. Export remains enabled;
+no CI skips or target registration changes. All test harnesses check PASSED70.17s,
+peak2218675464B. Fresh normal CLI/LSP build PASSED224.591s, peak2803846696B,
+terminal build-finishedtrue. Normal consumers NOW match this uncommitted source.
+Final cheap checks: logging PASS1.063s; iterator PASS1.074s; realtime FAIL0.531s
+with discover_body nesting128 at tlsRejected188 (was await-task198). Native
+runner was NOT compiled because prechecks failed. Limits and assertions retained;
+trace the discovery cycle before another build. Exact outputs/results:
+/tmp/tsrust-focused-repair-current.*. Full family acceptance still incomplete.
+
+Quiet-point cleanup after both passes removed21 obsolete compiler rlib/rmeta
+files older than changed always-compiled frontend source, preserving fresh
+check/build outputs:3736112605logicalbytes,3736612864Bactual free-space recovery.
+Also removed357linkedobjects529872064logicalbytes/580853760Bactual recovery.
+Total THIS continuation cleanup4317466624Bactual (prior606359552B is separate).
+No Rust/Node control binaries/data, current consumers or source were deleted.
+
+Worker source-only task: migrate remaining17non-catalog iterator runtime native
+invocations into registered modules/cases; preserve all remaining compile/emit
+negative controls. Fifteen catalog-example invocations remain separate pending
+batching. Do not claim these32native invocations already migrated.
+
+Further source-only work after that closed pass (NOT covered by its check):
+- Production guard in prepare_selected_task_function now preserves deferral while
+  discovering_function remains Some, even during temporary full-effect checking.
+  Independent B03/B14 reviews traced unresolved selected callee → global discovery
+  before visiting flag → reentry into tlsRejected →128limit. Existing wait/dependent
+  queue is reused. New unit checks unresolved deferral and known-result full check.
+  No limit change, error suppression or ownership weakening. UNBUILT.
+-17remaining non-catalog iterator native invocations migrated into stable
+  regression.test.tsr +17source modules (original helper/type scopes preserved).
+  Combined host now41cases/4files/one runner. Negatives and emit guards retained.
+  Catalog15remains the only per-case run site in owned_iterators.rs. All18new
+  Tsrust files formatted with token preservation/idempotence.
+- Cheap pre-guard currentCLI check of new registered regression suite FAILED0.561s:
+  callable-result-pending at physical-carriers.tsr483..511, exactly original
+  capture(owned(choose(true))) initializer. Helpers/initializer preserved verbatim;
+  ordinary imported run replaces special entry main. Not caused by later assertion
+  temporaries. /tmp/tsrust-iterator-registered-migration-check.*. Investigate real
+  returned Once callable readiness, retain required case/ownership assertions.
+- Current consumers match earlier7eb44source, so rebuild before validating guard.
+  Latest guard/migration and test changes are uncommitted; whole-project formatter
+  passed after migration, guard unit compilation/runtime still pending.
+
+Registered B15/core milestone TERMINAL INCOMPLETE (deadline not reset):
+/tmp/tsrust-registered-milestone-scope.json started1794063297.498503,1200s.
+Source5967ca31767031ea2ff5263b788ca475d34b460a4e4facc3384375b492ddccef,
+HEADb72d0fbf,progress excluded. Full new harness preflight PASSED71.244s,
+peak2154417392B; after catalog migration, final host check PASSED2.099s,
+peak337281024B. Whole-project token-preserving/idempotent format passed.
+One shared no-run build terminal554.831s/peak4119524KiB/build-finishedtrue.
+Build+gates612.384s/peak4201322736B,stopnull,remaining[]. No process is live.
+/tmp/tsrust-registered-milestone-5967ca317670.json and per-target logs; outer
+/tmp/tsrust-registered-milestone-budget.*. Retain actual passes, never full-restart.
+
+ACTUAL PASSES:17core controls (all selected scheduling/result-discovery tests,
+opaque/cycle preservation and all3logging backend tests, INCLUDING cancellation
+ContextFuture destructor context),0.08s execution; all12remaining iterator checker/
+source/negative controls; all12realtime editor/checker receiver agreements48.85s;
+realtime resource rejection control. Source guards prove15catalog references match
+14verbatim fixtures, each differing only by exported main. No per-case native
+invocations remain in iterator host. Combined public test selects55cases/5files/
+ONE native runner; all original context/output/error assertions retained.
+
+REMAINING FAILURES (before native program compilation):
+- Realtime source/emit witness: message!==undefined && message.kind==='text'
+  still sees physical undefined-containing union at kind field read.
+- Combined public runtime host: realtime.test.tsr64 empty.sender().trySend(...) 
+  fails unsupported method. No55case runtime pass/profile/measure/export claimed.
+Current consumers/core-library binary match5967 frontend. Source-only followups
+are separate/unvalidated: B03 /tmp/tsrust-nested-channel-sender-hint.patch
+(0b02d08d3294e974ba775f6b1e48908815b8baae4a8da485b36f5f5e72ad9957)
+prepares exact Sender<T> application during existing generic receiver phase and
+reads it through type hints; includes Channel-only import +partial SseEvent/
+wrong-data-type witnesses. B14 is preparing scoped readonly field expected
+contract for flow-narrowed record unions; general residual-read guard retained.
+Do not split chains/guards in fixtures or weaken ownership to make tests pass.
+
+Benchmark support repair APPLIED AFTER those gates: historical control root is
+derived from actual Cargo manifest/source paths; both old/current roots must
+match15sealed control/protocol hashes. Private default guard unchanged. Existing
+selfcheck wrong-root/changed-source negatives PASS0.153s, no workload execution.
+/tmp/tsrust-b11-public-native-measure.py is prepared but UNRUN; requires actual
+55case host success+JSON output and currentCLI SHA before any public build/timing.
+Original Rust/Node controls and original timestamps remain retained. No ingestion.
+Public canonical testing reference now documents --profile/batching too.
+
+Cleanup THIS continuation:3736612864Bobsolete compiler libs +580853760Blinked
+objects +1008381952Bpost-milestone objects +386138112Bnewly stale compiler variant
+=5711986688Bactual free space (5.71GB). Current binaries/caches/control evidence
+retained; no source or Rust/Node reference deleted. Exact quiet-point cleanup
+reports under /tmp/tsrust-{obsolete-compiler-libraries,focused-repair-objects,
+registered-milestone-objects,registered-milestone-compiler}-cleanup.json.
+
+Full-goal next scopes remain B20 registered integrated apps using existing B10/
+B19 examples, affected runtime/exports, actual measurements and final platform/
+full-regression/release gates. Source audit established no additional missing
+public export; B00 ledger/default/minimal dependency reconciliation stays open.
+Do not redefine full B00–B20 completion around these55cases.
 
 Owner-authorized profiling is implemented in public `tsrust test --profile`:
 build/check/emit/backend/cache/native-build time is separate from case execution.

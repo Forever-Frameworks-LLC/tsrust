@@ -15,7 +15,7 @@ fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Function,Diagnos
  let arguments=(0..binding.parameters.len()).map(|index|format!("value{index}")).collect::<Vec<_>>().join(",");
  let mut function=if binding.name=="sseWithProducer"{
   crate::syntax::parse("function adapter<E>(value0:Owned<P0>,value1:Owned<Producer<void,E>>,value2?:ReadOnly<P2>){return backend(value0,value1,value2);}")?.functions.remove(0)
- }else{crate::syntax::parse(&format!("function adapter({parameters}){{return backend({arguments});}}"))?.functions.remove(0)};
+ }else{let result=if binding.name=="connectWebSocket"{":Task<Output>"}else{""};crate::syntax::parse(&format!("function adapter({parameters}){result}{{return backend({arguments});}}"))?.functions.remove(0)};
  if binding.name=="sseWithProducer"{
   let annotation=crate::native_type_resolution::project(&mut program.records,&crate::native_signatures::Signature::Applied(crate::native_signatures::NativeTypeId::Job,&[crate::native_signatures::Signature::Void,crate::native_signatures::Signature::Void]),function.name.span)?;
   let crate::type_syntax::ValueAnnotationKind::Applied{name:linked,..}=&annotation.kind else{unreachable!()};
@@ -27,7 +27,7 @@ fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Function,Diagnos
  // Callable contexts need the unwrapped result before async body discovery.
  let crate::native_signatures::Signature::Result(success,_)=binding.result.signature() else{unreachable!("HTTP request factory result")};
  if binding.name!="connectWebSocket"{function.result=Some(ResultAnnotation::Named(Box::new(crate::native_type_resolution::project(&mut program.records,success,function.name.span)?)));}
- let mut replacements=std::collections::HashMap::new();for(index,parameter)in binding.parameters.iter().enumerate(){if binding.name=="sseWithProducer"&&index==1{continue;}replacements.insert(format!("P{index}"),crate::native_type_resolution::project(&mut program.records,&parameter.ty.signature(),function.name.span)?);}
+ let mut replacements=std::collections::HashMap::new();if binding.name=="connectWebSocket"{replacements.insert("Output".into(),crate::native_type_resolution::project(&mut program.records,success,function.name.span)?);}for(index,parameter)in binding.parameters.iter().enumerate(){if binding.name=="sseWithProducer"&&index==1{continue;}replacements.insert(format!("P{index}"),crate::native_type_resolution::project(&mut program.records,&parameter.ty.signature(),function.name.span)?);}
  crate::source_walk::substitute_function_annotations(&mut function,&replacements)?;for(parameter,_,_)in &mut function.params{shift(&mut parameter.span);}
  crate::source_walk::substitute_function_body(&mut function,&replacements,&mut |expression|{shift(&mut expression.span);Ok(())})?;
  crate::source_walk::function_body(&mut function,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Call(callee,args)=&mut expression.kind && matches!(&callee.kind,ExprKind::Name(value)if value=="backend"){

@@ -1,0 +1,47 @@
+import { strictEqual } from 'std:testing';
+
+type Holder<T> = {
+  value: T;
+};
+
+function relay<T>(value: Owned<Holder<T>>): Holder<T> {
+  return value;
+}
+
+type Reactive<T> = {
+  evaluate: Owned<Function<T>>;
+};
+
+type Value<T> = Reactive<T> | T;
+
+function snapshot(value: Mutable<Value<string | undefined> | undefined>): string {
+  if (value === undefined) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    return clone(value);
+  }
+
+  return value.evaluate() ?? '';
+}
+
+function invoke(value: Value<string | undefined> | undefined = ''): string {
+  return snapshot(value);
+}
+
+export function run() {
+  const holder: Holder<Function<int>> = {
+    value: (): int => 7
+  };
+  const again = relay(holder);
+  {
+    const observed1_0 = again.value();
+    strictEqual(observed1_0, 7);
+  }
+
+  {
+    const observed2_0 = invoke();
+    strictEqual(observed2_0, "");
+  }
+}

@@ -1,0 +1,10 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+
+export function run() {
+  const values = Iterator.from([1, 2]).flatMap((value: int): int[] | Iterator<int> => value === 1 ? [value, value] : Iterator.from([value]));
+  {
+    const observed1_0 = values.toArray().join(',');
+    strictEqual(observed1_0, "1,1,2");
+  }
+}

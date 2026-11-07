@@ -8,12 +8,12 @@
     "admission.json": "b4e04217f402fa7c119ef252128fe3d1d8b0d7851488c3464f51457d2658abf5",
     "closure.py": "2c08984e81d058c17e5e26c746c430b85d7b197d47d48d4d7caba619a168c3f7",
     "fixtures.json": "4f146420199f36d39d13c31675dee3ab3ddc0f31faca99c156a5929da027a9dc",
-    "guards.mjs": "3179885beceaddd6effbf12142b886e7b96a5272b54e46920985801a662019c5",
+    "guards.mjs": "c294b0208b7a470fa0fa6d5182b6c4d9217049fd2649f91fd6944f5be6c324c6",
     "node-control.mjs": "2b2e761407343a5971f16dcb1c3d99d210532c5f281139a8e382b0944e95c3fd",
     "node-package.py": "b13adf15af4408c08dc6f9cce2543bfc5ae916595be4bb16914a477aa5ce0287",
     "oracle.mjs": "193ca64bfc5e69f0bc8875e5ca5972fc5f3d8a342f7bf48d4c51f3479d47d308",
     "package.json": "26fe6d2b1835043a7e4951dd74ddd2143f7386ccb327c7fd6da2b027b1c6063f",
-    "profile.mjs": "bc6ced9a47088c9a319e2328360fac32b0d0a1031698ab91872d5b3fbe3cb54a",
+    "profile.mjs": "93f8387acdcb2b1191be8659810a1542c70176a126b3ac7d9c3c6273f3f77190",
     "src/main.rs": "9de666c2bb1b82066be7fb81bbeb54f93f810565528b76a2b9a7e6804f3b2802",
     "src/websocket.rs": "f1924350e93abe328ca25b7ac61b49128d202008ba15f8ea5dc75cf221937ebb",
     "../../../http/cpu-contract.mjs": "744fb99db653261ef5c205e3d501d9fe86e280a744b9517f55055fe743fa59b7",
@@ -24,6 +24,6 @@
     "build.rs": "c662a4e5d69dc4896989c406bdeffdd0dac64176481045c93287a0e9c60c8db1",
     "identity.mjs": "9ecd95c476d700347e00142e5eb0bba27a73d6f9d07ef0416f2f8de1992f60d9",
     "Cargo.lock": "336bc6dd6addd0f77522857275e6c64f9cbd1e81d88afb17f2a0bfb3071925b7",
-    "public-results.mjs": "e15251efc6f7a19505fc284bb511e20bc366f6e6917ee51cbd4e203578323f2a"
+    "public-results.mjs": "e8b9e6b27adf083934688b05522d7cd8b1939f2c4234300f684a5e7f82ee9f80"
   }
 }

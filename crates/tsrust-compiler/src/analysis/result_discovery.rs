@@ -136,3 +136,46 @@ mod defaulted_alias_dependency_tests {
   }
  }
 }
+
+#[cfg(test)]
+#[test]
+fn selected_callable_defers_while_outer_discovery_temporarily_checks_full_effects(){
+    fn probe()->Analyzer{
+        let mut analyzer=Analyzer::new(crate::syntax::parse("function make():Function<int>{return ():int=>7;}function main(){}").unwrap()).unwrap();
+        analyzer.assumed_modes=Some(analyzer.signatures.iter().map(|signature|signature.params.iter().map(|ty|if ty.is_copy(){Mode::Copy}else{Mode::Read}).collect()).collect());
+        analyzer
+    }
+    let mut pending=probe();let target=pending.function_names["make"];let caller=pending.function_names["main"];let span=Span::new(7,11);
+    pending.discovering_function=Some(caller);pending.discovering_results=false;pending.effects_only=false;
+    let error=pending.prepare_selected_task_function(target,span,false).expect_err("temporary full mode must not restart the active global discovery queue");
+    assert_eq!(error.code,"callable-result-pending");assert_eq!(error.span,span);
+    assert_eq!(pending.result_waits.get(&target),Some(&span));assert!(pending.result_dependents[&target].contains(&caller));
+    assert!(pending.checked[target].is_none());assert!(!pending.visiting[target]);assert_eq!(pending.discovering_function,Some(caller));assert!(!pending.discovering_results);assert!(!pending.effects_only);
+    let mut known=probe();known.discover_results().unwrap();let target=known.function_names["make"];let caller=known.function_names["main"];
+    assert!(known.known_results.contains_key(&target));assert!(known.checked[target].is_none());
+    known.discovering_function=Some(caller);known.discovering_results=false;known.effects_only=false;
+    known.prepare_selected_task_function(target,span,false).unwrap();
+    assert!(known.checked[target].is_some(),"a known callable origin still requires its selected error body");
+    assert_eq!(known.discovering_function,Some(caller));assert!(!known.discovering_results);assert!(!known.effects_only);
+}
+
+#[cfg(test)]
+#[test]
+fn direct_function_request_preserves_active_discovery_and_checks_known_callable_body(){
+    fn probe()->Analyzer{
+        let mut analyzer=Analyzer::new(crate::syntax::parse("function make():Function<int>{return ():int=>7;}function main(){}").unwrap()).unwrap();
+        analyzer.assumed_modes=Some(analyzer.signatures.iter().map(|signature|signature.params.iter().map(|ty|if ty.is_copy(){Mode::Copy}else{Mode::Read}).collect()).collect());
+        analyzer
+    }
+    let mut pending=probe();let target=pending.function_names["make"];let caller=pending.function_names["main"];let span=pending.program.functions[target].name.span;
+    pending.discovering_function=Some(caller);pending.discovering_results=false;pending.effects_only=false;
+    let error=pending.function(target).expect_err("direct scheduling must not restart an active discovery queue");
+    assert_eq!(error.code,"callable-result-pending");assert_eq!(error.span,span);
+    assert_eq!(pending.result_waits.get(&target),Some(&span));assert!(pending.result_dependents[&target].contains(&caller));
+    assert!(pending.checked[target].is_none());assert!(!pending.visiting[target]);assert_eq!(pending.discovering_function,Some(caller));assert!(!pending.discovering_results);assert!(!pending.effects_only);
+    let mut known=probe();known.discover_results().unwrap();let target=known.function_names["make"];let caller=known.function_names["main"];
+    assert!(known.known_results.contains_key(&target));assert!(known.checked[target].is_none());
+    known.discovering_function=Some(caller);known.discovering_results=false;known.effects_only=false;
+    known.function(target).unwrap();
+    assert!(known.checked[target].is_some());assert_eq!(known.discovering_function,Some(caller));assert!(!known.discovering_results);assert!(!known.effects_only);
+}
