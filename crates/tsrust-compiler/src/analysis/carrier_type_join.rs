@@ -25,6 +25,7 @@ enum Task {
 }
 
 impl Analyzer {
+    fn required_absent_callback_record(&self,record:usize)->bool{self.program.records[record].fields.iter().any(|field|!field.optional && matches!(field.ty,Some(Type::Callback(id)) if self.absent_callback_payloads.values().any(|&empty|empty==id)))}
     pub(super) fn join_nullable_record_unions(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic>{
         self.join_carrier_work(Task::Nullable(left,right),span)
     }
@@ -61,6 +62,8 @@ impl Analyzer {
                     let empty=self.empty_scoped_record_environment(declaration)?;
                     work.push(Task::NullablePayload(left));
                     if a==b{result=Some(Type::Record(a));}
+                    else if self.required_absent_callback_record(b){result=Some(Type::Record(a));}
+                    else if self.required_absent_callback_record(a){result=Some(Type::Record(b));}
                     else if empty==Type::Record(a){result=Some(Type::Record(b));}
                     else if empty==Type::Record(b){result=Some(Type::Record(a));}
                     else if b==declaration{result=Some(Type::Record(a));}
@@ -227,4 +230,27 @@ fn nullable_empty_environment_does_not_replace_ordinary_owned_callable_storage()
  let absent=analyzer.unions.intern([empty,Type::Undefined],Span::default()).unwrap();
  let stored=analyzer.unions.intern([Type::Record(0),Type::Undefined],Span::default()).unwrap();
  for(left,right)in [(absent,stored),(stored,absent)]{let joined=analyzer.join_nullable_record_unions(left,right,Span::default()).unwrap().unwrap();assert_eq!(analyzer.unions.payload(joined),Some(Type::Record(0)));}
+}
+
+#[cfg(test)]
+mod required_absence_tests {
+ use super::*;
+ #[test]
+ fn noncanonical_required_absence_widens_without_following_live_sibling(){
+  let mut analyzer=Analyzer::new(crate::syntax::parse("type First={read:Once<Function<int>>;next?:Second;};type Second={read:Once<Function<int>>;next?:First;};function main(){}").unwrap()).unwrap();
+  let Type::StoredCallable(family)=analyzer.program.records[1].fields[0].ty.unwrap()else{panic!("owned declaration")};
+  let declaration=analyzer.callables.storage.declaration(family).unwrap();let absent=analyzer.absent_callback(declaration);
+  let next=analyzer.program.records[1].fields[1].ty.unwrap();
+  let ghost=analyzer.scoped_records.materialize(1,vec![absent,next],&mut analyzer.program.records);
+  while analyzer.fields.len()<analyzer.program.records.len(){let id=analyzer.fields.len();analyzer.fields.push(analyzer.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
+  assert!(analyzer.required_absent_callback_record(ghost));
+  let span=Span::default();let a=analyzer.unions.intern([Type::Record(ghost),Type::Undefined],span).unwrap();let b=analyzer.unions.intern([Type::Record(1),Type::Undefined],span).unwrap();
+  let joined=analyzer.join_nullable_record_unions(a,b,span).unwrap().unwrap();assert_eq!(analyzer.unions.payload(joined),Some(Type::Record(1)));
+  let other=analyzer.scoped_records.materialize(1,vec![absent,Type::Undefined],&mut analyzer.program.records);
+  while analyzer.fields.len()<analyzer.program.records.len(){let id=analyzer.fields.len();analyzer.fields.push(analyzer.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
+  let other_union=analyzer.unions.intern([Type::Record(other),Type::Undefined],span).unwrap();
+  let both=analyzer.join_nullable_record_unions(a,other_union,span).unwrap().unwrap();assert_eq!(analyzer.unions.payload(both),Some(Type::Record(ghost)),"two absent layouts preserve the existing left carrier");
+  analyzer.program.records[ghost].fields[0].optional=true;assert!(!analyzer.required_absent_callback_record(ghost),"optional field is not whole-record absence");
+  analyzer.program.records[ghost].fields[0].optional=false;analyzer.program.records[ghost].fields[0].ty=Some(analyzer.unions.intern([absent,Type::Undefined],span).unwrap());assert!(!analyzer.required_absent_callback_record(ghost),"optional payload remains inhabited");
+ }
 }

@@ -6,9 +6,23 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
+Latest state: checkpoint `7c171bb8`, no build or test process live after terminal
+failure of `/tmp/tsrust-live-recursive-results.json`. Preflight passed68.347s;
+normal CLI/host build passed220.311s with terminal Cargo success. Byte68 still
+fails during emission, before generated native compilation or execution:
+`StoredCallable(149) -> Callback(72)`. Bounded emit-only trace10.184s at
+`/tmp/tsrust-current-mutual-carrier.err` identifies assignment conversion
+Second223->226->222;222 retains an absent callback field. Root-cause investigation
+now follows nullable-record assignment carrier planning, not parameter candidate
+selection. Private units remain unrun. Earlier accepted scopes are retained.
+The v0.2.0 plan now marks actually accepted B11/B15/B16/B17 API items and corrects
+stale native/export pending paragraphs; measurements/platform/full acceptance
+remain open. Existing public `tsrust test --profile` exposes build stages/cache
+and execution separately; no new benchmark timing or SQLite ingestion claimed.
+
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
-- Current canonical checkpoint4a5cbea2; uncommitted targeted compiler repairs
+- Current canonical checkpoint7c171bb8; uncommitted targeted compiler repairs
   are under bounded affected validation detailed below. Accepted runtime fixes are retained
   atc7e8eced. Only root writes canonical; app worktree edits stay protected.
 - ACTUAL PASS: /tmp/tsrust-upgrade-handoff-4366908885f1.json. Selected fresh normal
@@ -318,7 +332,7 @@ Latest accepted section — public55case native runtime; full v0.2.0 remains act
   properties/unionsstayeligible. Regressionchecks first148ghostSecond72 retained,
   constructor/resultfallbackremainsnominalSecond1,thenliveSecond149isselected.
   Bothagentsconfirmedconsumerpath; no opacity/conversionworkaroundor66eguard.
-- NEXT source-changed fixed30minuteacceptance aftercheckpoint: compiler/LSP
+- CURRENT /tmp/tsrust-live-recursive-run.py at7c171bb8, fixed30minuteacceptance: compiler/LSP
   testpreflight,remainingbyte68bothprofilesfirst,thenfailedrestoration/deepnative
   plusaffectedregistry/emptycontrols andfreshLSPbyteagreement. Preserve earlier
  1514lib/6focused/25byte/27LSP/2escape-negative/crypto24/collections42/public55/export

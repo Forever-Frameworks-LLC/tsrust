@@ -463,13 +463,13 @@ Node URL/URLSearchParams and direct Rust url are matched references.
 
 Backend: existing Tokio with needed fs/io-util/io-std features. B01/B02/B06.
 
-- [ ] Owned `Reader`, `Writer`, `LineReader`, `IoError` and explicit adapters for
+- [x] Owned `Reader`, `Writer`, `LineReader`, `IoError` and explicit adapters for
   files/buffer handles, HTTP Body and standard output/error.
-- [ ] Separate explicitly synchronous `Stdin`, `stdin`, `readStdin`,
+- [x] Separate explicitly synchronous `Stdin`, `stdin`, `readStdin`,
   `readLineStdin` using Rust std blocking semantics. Do not expose an async stdin
   Task until portable interruptible/settlement behavior is proven.
-- [ ] `read`, `readExact`, `readAll`, `write`, `writeAll`, `flush`, `copy`.
-- [ ] Freeze and implement writable-destination Reader reads, concretely
+- [x] `read`, `readExact`, `readAll`, `write`, `writeAll`, `flush`, `copy`.
+- [x] Freeze and implement writable-destination Reader reads, concretely
   `readInto(reader: Mutable<Reader>, destination: Mutable<Bytes | ByteViewMut>):
   Task<Result<int, IoError>>` or the equivalent documented read overload. Return
   bytes written, observe only that range, and specify EOF versus a zero-length
@@ -477,11 +477,11 @@ Backend: existing Tokio with needed fs/io-util/io-std features. B01/B02/B06.
   the reader and destination exclusively borrowed through actual I/O settlement;
   cancellation/deadline completion must not release a pending loan early,
   including blocking-backed file reads. Reject readonly or aliased destinations.
-- [ ] `lines`, `readLine`; UTF-8 split across chunks, LF/CRLF and unterminated
+- [x] `lines`, `readLine`; UTF-8 split across chunks, LF/CRLF and unterminated
   final-line behavior specified. EOF is distinct from an empty line.
-- [ ] Consuming `close`/writer shutdown; report fallible flush/finish errors.
-- [ ] Adapter points for B07 child pipes and B08 TCP halves.
-- [ ] Optional explicit total-byte/line-byte bounds; ordinary defaults follow
+- [x] Consuming `close`/writer shutdown; report fallible flush/finish errors.
+- [x] Adapter points for B07 child pipes and B08 TCP halves.
+- [x] Optional explicit total-byte/line-byte bounds; ordinary defaults follow
   Rust/Tokio rather than new 64 MiB/1 MiB ceilings. Copy uses bounded working
   buffers and backpressure instead of whole-stream accumulation.
 
@@ -580,19 +580,19 @@ under B09 below. Final family/platform acceptance remains open.
 Backend: existing Tokio; `tokio-util::sync::CancellationToken` where appropriate.
 Depends on B00; retain existing Job/Task cancellation and child-drain behavior.
 
-- [ ] `all` for homogeneous Task/Job collections: ordered results, empty input,
+- [x] `all` for homogeneous Task/Job collections: ordered results, empty input,
   first failure, sibling cancellation and awaited cleanup.
-- [ ] `Interval`, `tick`, explicit missed-tick policy; document Tokio's actual
+- [x] `Interval`, `tick`, explicit missed-tick policy; document Tokio's actual
   first-tick/default behavior rather than silently emulating JS setInterval.
-- [ ] Cooperative `CancellationToken`: `share`, `child`, `cancel`,
+- [x] Cooperative `CancellationToken`: `share`, `child`, `cancel`,
   `isCancelled`, `cancelled`. Child cancellation does not cancel its parent.
-- [ ] Async `Sender.close`, `trySend`, `Channel.tryReceive`; full/closed send
+- [x] Async `Sender.close`, `trySend`, `Channel.tryReceive`; full/closed send
   errors retain the unsent owner, matching the synchronous channel contract.
-- [ ] `ThreadPool.taskAsync` returning a Task with asynchronous completion rather
+- [x] `ThreadPool.taskAsync` returning a Task with asynchronous completion rather
   than calling today's blocking Thread.join on an executor worker. Use an
   explicit bounded pool; freeze lazy submission/queue admission, owned captures,
   failure results and completion transport. Reject full/closed admission cleanly.
-- [ ] Prove cancellation-before-start drops/reclaims owned inputs; after start,
+- [x] Prove cancellation-before-start drops/reclaims owned inputs; after start,
   signal cooperative cancellation and await noninterruptible CPU work before
   claiming cleanup. B09/B16 use this adapter, with no hidden unbounded global pool.
 
@@ -613,8 +613,7 @@ lazy private submission capability can retain the existing Arc, submit only on
 first poll, and observe closed admission if the public owner shuts down first.
 Prototype both borrowed and retained transports, .start and awaited CPU cleanup
 before fixing implementation. Locked tokio-util0.7.20 exports CancellationToken
-without rt/default features; do not enable unrelated features. The preflight and direct-Rust prototype passed. Public B06 APIs are now integrated in source checkpointcb7d5a08, with no
-public API acceptance claimed. The
+without rt/default features; do not enable unrelated features. The preflight and direct-Rust prototype passed. Public B06 APIs are now integrated in source checkpointcb7d5a08, with subsequent public acceptance recorded below. The
 unit-array prerequisite has since passed the focused acceptance below.
 
 B06 prerequisite worker candidate f6f14954 is accepted in focused scope:
@@ -800,14 +799,14 @@ remain required acceptance; this is current-host implementation/performance.
 
 Backend: existing Tokio net/system resolver; std address types. B05/B06.
 
-- [ ] `IpAddress`, `SocketAddress`, `NetError`; `parseIp`, `formatIp`,
+- [x] `IpAddress`, `SocketAddress`, `NetError`; `parseIp`, `formatIp`,
   `parseAddress`, `formatAddress`, `isIPv4`, `isIPv6`.
-- [ ] `TcpListener`, `TcpStream`, read/write halves; `listenTcp`, `connectTcp`,
+- [x] `TcpListener`, `TcpStream`, read/write halves; `listenTcp`, `connectTcp`,
   `accept`, `localAddress`, `peerAddress`, `split`, `setNoDelay`,
   `shutdownWrite`, `close`.
-- [ ] `UdpSocket`, `Datagram`; `bindUdp`, `sendTo`, `receiveFrom`,
+- [x] `UdpSocket`, `Datagram`; `bindUdp`, `sendTo`, `receiveFrom`,
   `localAddress`, `close`.
-- [ ] `std:dns.lookup(host, family?)` for any/ipv4/ipv6 via the system resolver.
+- [x] `std:dns.lookup(host, family?)` for any/ipv4/ipv6 via the system resolver.
 
 Contract: parsing performs no DNS; bind port zero returns the actual endpoint.
 Preserve half-close, datagram boundaries, empty datagrams and underlying receive
@@ -841,10 +840,10 @@ compiler/editor/SDK/export acceptance remain pending; no cap/kernel change made.
 
 Backend: maintained `flate2` with one deliberately selected Rust backend. B02/B05/B06.
 
-- [ ] `CompressionOptions`, `DecompressionOptions`, `CompressionError`.
-- [ ] `gzip/gunzip`, `deflate/inflate`, `deflateRaw/inflateRaw`.
-- [ ] Reader/writer transform adapters and explicit `finish`/close.
-- [ ] Optional explicit decompressed-byte policy and clearly bounded entry
+- [x] `CompressionOptions`, `DecompressionOptions`, `CompressionError`.
+- [x] `gzip/gunzip`, `deflate/inflate`, `deflateRaw/inflateRaw`.
+- [x] Reader/writer transform adapters and explicit `finish`/close.
+- [x] Optional explicit decompressed-byte policy and clearly bounded entry
   points for untrusted input; no hidden default expansion ceiling on ordinary
   Rust-equivalent operations. Apply explicit bounds incrementally.
 
@@ -1052,14 +1051,14 @@ measurements are still pending; the unchecked items above are not accepted yet.
 
 Backend: Axum SSE/ws and compatible Tokio Tungstenite client. B05/B06/B10.
 
-- [ ] `SseEvent {data, event?, id?, retryMs?}` and `sse` over a typed producer
+- [x] `SseEvent {data, event?, id?, retryMs?}` and `sse` over a typed producer
   channel, with optional keepalive and correct event framing.
-- [ ] Router WebSocket upgrade registration with application auth/origin hook.
-- [ ] Owned `WebSocket`, typed text/binary/close messages, `receive`, `send`,
+- [x] Router WebSocket upgrade registration with application auth/origin hook.
+- [x] Owned `WebSocket`, typed text/binary/close messages, `receive`, `send`,
   `close`, and backend ping/pong/close processing.
-- [ ] Consuming `split` into owned read/write halves, so send can proceed while
+- [x] Consuming `split` into owned read/write halves, so send can proceed while
   receive is pending without violating exclusive async receiver loans.
-- [ ] `connectWebSocket(url, options?)` using the same socket contract and TLS
+- [x] `connectWebSocket(url, options?)` using the same socket contract and TLS
   verification, with explicit frame/message/queue policies.
 
 Contract: SSE transport already exists manually; this adds safe framing. Auth
@@ -1073,7 +1072,7 @@ receive plus send, half-drop/cancellation, close races and exact
 cleanup. Measure events/bytes, p99 and retained memory against direct backend Rust
 and Node WebSocket/SSE implementations with versions recorded.
 
-Source integration, 2026-11-07 (acceptance remains open): public SSE framing,
+Source integration, 2026-11-07: public SSE framing,
 owned producer settlement, WebSocket server/client and split halves now have
 compiler/runtime, editor, reference documentation and an18-case registered
 `examples/realtime/realtime.test.tsr` suite. Optional socket dependencies remain
@@ -1083,31 +1082,32 @@ The matched public benchmark/control adapter passes its schema self-check and
 preserves unchanged controls' original identities/timestamps; no public timings
 are claimed. Initial family gates passed completion/help/reference/rejection
 checks but found signature preparation, record context and transfer metadata
-failures. Narrow source repairs are present; public runtime, portable export and
-measurement acceptance remain required. See docs/agent-progress.md for current
-source identity and exact scope evidence. None of these checkboxes are closed by
-source integration alone.
+failures. Those failures are repaired and the native acceptance below is complete.
+See docs/agent-progress.md for source identities and exact scope evidence.
+Source presence alone is not acceptance.
 
 Native acceptance, 2026-11-07: the shared five-file public runner passes all55
 cases, including all18 realtime cases and the exact output oracles. WebSocket
 HTTP upgrade handoff, full/split echo, close acknowledgment, authentication,
 frame/message limits, binary sizes and private-CA hostname/date checks execute
-successfully. Portable relocation and actual matched public measurements remain
-pending; this does not close cross-platform or complete bundle acceptance.
+successfully. Realtime and logging exports also pass relocated, offline, locked
+builds with an empty Cargo home at debug and release profiles, with unsafe code
+forbidden (/tmp/tsrust-upgrade-handoff-d970ae7bc9e7.json). Actual matched public
+measurements and cross-platform acceptance remain pending.
 
 ### B12 — Reusable regular expressions and text entry points
 
 Backend: Rust `regex`; the current user-binding example is not a bundled module.
 Depends on B00, independently of generic lazy iterators.
 
-- [ ] `Regex`, `RegexError`, match/capture records; `compile`, `escape`.
-- [ ] `isMatch`, `find`, `findAll`, `captures`, `capturesAll`, `replace`,
+- [x] `Regex`, `RegexError`, match/capture records; `compile`, `escape`.
+- [x] `isMatch`, `find`, `findAll`, `captures`, `capturesAll`, `replace`,
   `replaceAll`, `split` on a reusable compiled owner.
-- [ ] `String.match`, `matchAll`, `search` entry points over compiled Regex,
+- [x] `String.match`, `matchAll`, `search` entry points over compiled Regex,
   with the same explicit result/offset/ownership contracts.
-- [ ] UTF-8 byte ranges and optional capture ranges; avoid copying every matched
+- [x] UTF-8 byte ranges and optional capture ranges; avoid copying every matched
   substring or capture name into every result. Distinguish absent/empty capture.
-- [ ] Ordinary builder limits follow regex defaults; optional explicit compile/
+- [x] Ordinary builder limits follow regex defaults; optional explicit compile/
   result limits are documented. Replacement literal/template behavior must be
   named explicitly; never accidentally interpret replacement tokens.
 
@@ -1385,10 +1385,10 @@ does not accept the unfinished B15 iterator implementation or full milestone che
 Backend: typed Rust iterators; dedicated compiler owner. B00/B14 and an explicit
 ownership/type-lowering contract before other agents depend on this bundle.
 
-- [ ] `Iterator<T>`, `IteratorResult<T>`, `Iterator.from` consuming an owned array.
-- [ ] `next`, `map`, `filter`, `take`, `drop`, `flatMap`.
-- [ ] `reduce`, `forEach`, `some`, `every`, `find`, `toArray`.
-- [ ] Adaptors consume their input iterator and own captures; next transfers
+- [x] `Iterator<T>`, `IteratorResult<T>`, `Iterator.from` consuming an owned array.
+- [x] `next`, `map`, `filter`, `take`, `drop`, `flatMap`.
+- [x] `reduce`, `forEach`, `some`, `every`, `find`, `toArray`.
+- [x] Adaptors consume their input iterator and own captures; next transfers
   yielded values; terminal operations consume/short-circuit and clean up.
 - [ ] Preserve eager Array/Map/Set keys/values/entries behavior. Do not quietly
   replace snapshot APIs or claim a public general trait/generator system.
@@ -1402,8 +1402,9 @@ generated Rust. Borrowed stored chains and arbitrary user protocols are deferred
 #### B15 ownership and lowering contract — admission draft
 
 Engineering admission selected concrete inline owned pull environments and finite
-owned joins through existing callable carriers. Generated public implementation
-and acceptance remain pending compiler/native/editor and matched workload gates.
+owned joins through existing callable carriers. The public implementation passes
+32 registered runtime cases and retained compiler/editor controls. Matched
+workload measurements and broad eager-API regression acceptance remain pending.
 
 - `Iterator.from<T>(values: T[]): Iterator<T>` consumes the owned array without
   cloning its elements. `next(): IteratorResult<T>` mutates the iterator and
@@ -1441,7 +1442,7 @@ and acceptance remain pending compiler/native/editor and matched workload gates.
   ownership/error analysis, native emission, formatting, editor agreement,
   documentation and matched workload support form one coherent implementation.
 
-Runtime test consolidation, 2026-11-07 (acceptance remains open): ordinary
+Runtime test consolidation, 2026-11-07: ordinary
 iterator carrier regressions now register through `std:testing`, sharing one
 public runner with the existing iterator contract, logging and realtime suites.
 Seventeen former native launches retain their helper/type scopes in stable
@@ -1450,26 +1451,27 @@ emission controls remain host tests. Catalog examples are being batched with
 verbatim source and output comparison rather than separate executables. Initial
 cheap checking exposed callable-factory readiness through ordinary imported
 functions. Discovery/cached-specialization repairs and their controls are in
-source; runtime validation and matched measurements remain required. No runtime
-acceptance or measurement checkbox is closed by this migration.
+source. All 32 registered iterator cases now pass in the shared 55-case public
+runner, with catalog output comparison and retained ownership/editor controls.
+Matched measurements and broad eager-API regression acceptance remain open.
 
 ### B16 — Crypto and password primitives
 
 Backend: existing sha2/getrandom/subtle; compatible RustCrypto hmac/hkdf/argon2.
 B02/B06. Do not implement algorithms or application authentication frameworks.
 
-- [ ] `sha384`, `sha512`, `createHasher` for sha256/sha384/sha512, `Hasher.update`
+- [x] `sha384`, `sha512`, `createHasher` for sha256/sha384/sha512, `Hasher.update`
   and consuming `finalize`; no post-finalization reuse or hidden state clone.
-- [ ] `hmacSha256`, constant-time `verifyHmacSha256`, `hkdfSha256`.
-- [ ] Unbiased `randomInt(min, max)` with half-open integer bounds.
-- [ ] `PasswordHashOptions`, `hashPassword`, `verifyPassword`, PHC encoding and
+- [x] `hmacSha256`, constant-time `verifyHmacSha256`, `hkdfSha256`.
+- [x] Unbiased `randomInt(min, max)` with half-open integer bounds.
+- [x] `PasswordHashOptions`, `hashPassword`, `verifyPassword`, PHC encoding and
   Argon2id. Use backend default parameters/recommended salt generation, recorded
   explicitly after version selection; do not invent a new default cost profile.
-- [ ] Explicit bounded PHC verification policy for untrusted encoded parameters;
+- [x] Explicit bounded PHC verification policy for untrusted encoded parameters;
   `PasswordVerifyOptions` and `verifyPasswordBounded` require caller-selected
   memory/iteration/parallelism limits checked before allocation/expensive work.
   Ordinary and bounded operations are clearly distinguished under B00.
-- [ ] Memory-heavy password Tasks use existing bounded CPU work facilities;
+- [x] Memory-heavy password Tasks use existing bounded CPU work facilities;
   cancellation does not falsely promise immediate interruption of crate code.
 
 Contract: readable byte views accepted, constant-time verification delegated to
@@ -1485,9 +1487,14 @@ does not follow from benchmark speed or passing a statistical randomness test.
 The digest/Hasher, HMAC/HKDF, random integer and password APIs now have compiler,
 runtime, IntelliSense, executable examples and 29 matched benchmark workloads in
 source. Examples live in `examples/crypto`; private backend known-answer checks
-and focused editor agreement pass. Public native password/alias validation and
-matched measurements remain pending, so the implementation does not yet close
-this checklist.
+and focused editor agreement pass. All 24 registered public cases, including
+password/alias validation and bounded PHC policy controls, pass at debug and release
+profiles (/tmp/tsrust-native-effects-75f59227bec7.json). Password operations
+delegate to the existing `task_async` pool. Retained task-runtime tests prove
+queued cancellation drops owners without invocation and running cancellation
+waits for actual work; current library pool cancellation controls also pass.
+This is shared-backend lifecycle evidence, not a password-specific cancellation
+probe. Matched measurements remain pending.
 
 B00 crypto range migration accepted in focused scope (2026-11-06, source
 7bd0e3fb): `randomBytes(0)` returns empty bytes and counts above the former 1 MiB
@@ -1502,11 +1509,11 @@ API's range migration, not the new B16 primitive checklist or its measurements.
 
 Backend: tracing plus selected tracing-subscriber JSON formatting. B06/B10.
 
-- [ ] `Logger`, levels, scalar structured fields, `debug/info/warn/error`,
+- [x] `Logger`, levels, scalar structured fields, `debug/info/warn/error`,
   contextual child logger and explicit sink/setup.
-- [ ] Opt-in access-log middleware: request ID, method, route template, status,
+- [x] Opt-in access-log middleware: request ID, method, route template, status,
   elapsed time; no automatic body/credentials/query logging.
-- [ ] Context follows async work without holding entered span guards over awaits;
+- [x] Context follows async work without holding entered span guards over awaits;
   concurrent requests cannot inherit each other's fields.
 - [ ] Disabled logging avoids message formatting/allocation. Preserve console.
 
@@ -1524,8 +1531,10 @@ the independent host oracle verifies ten JSON log rows, exact per-request order
 and separate concurrent contexts. Cancellation cleanup is explicitly logged after
 awaited Job settlement; abort drops owned resources and does not execute source
 finally statements. Existing backend per-drop context controls remain retained.
-Relocated export and matched measurements remain pending; the bundle checkboxes
-are deliberately unchanged. See agent-progress.md for exact source identities.
+Relocated logging exports pass at debug and release profiles with an empty Cargo
+home and offline locked builds (/tmp/tsrust-upgrade-handoff-d970ae7bc9e7.json).
+Matched measurements and disabled-event allocation proof remain pending. See
+agent-progress.md for exact source identities.
 
 ### B18 — Everyday testing facilities
 

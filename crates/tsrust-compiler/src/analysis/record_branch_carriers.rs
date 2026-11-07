@@ -75,7 +75,7 @@ impl Analyzer {
                 }else{
                     let Some(previous)=self.record_field_type(ty,&write.path)else{continue;};
                     if previous==incoming{None}
-                    else if sticky && let Some(joined)=self.join_nullable_record_unions(previous,incoming,write.span)?{
+                    else if (sticky || self.native_borrow_types && (self.native_shape_contains_view(previous)||self.native_shape_contains_view(incoming))) && let Some(joined)=self.join_nullable_record_unions(previous,incoming,write.span)?{
                         self.record_type_with_field(record,&write.path,joined).map(Type::Record)
                     }
                     else if let Some(family)=self.common_borrowed_conditional_family(previous,incoming,write.span)?{
@@ -121,7 +121,9 @@ impl Analyzer {
             let Some(destination)=destinations.remove(&(value.span.start,value.span.end))else{return Ok(());};
             let source=self.record_value_carrier_type(context,value,&plans)?;
             if source==destination{return Ok(());}
-            if sticky_destinations.contains(&(value.span.start,value.span.end)) {
+            if sticky_destinations.contains(&(value.span.start,value.span.end))
+                || self.native_borrow_types && matches!(self.unions.payload(destination),Some(Type::Record(_)))
+                    && (self.native_shape_contains_view(source)||self.native_shape_contains_view(destination)) {
                 return self.retarget_nullable_store(value,destination);
             }
             match(source,destination){
@@ -230,15 +232,18 @@ impl Analyzer {
     fn carrier_convertible(&self,source:Type,target:Type)->bool{
         enum Task {
             Check(Type,Type),
+            FinishPair(Type,Type),
             Pairs(std::vec::IntoIter<(Type,Type)>,bool),
             AfterPair(std::vec::IntoIter<(Type,Type)>,bool),
             Members(std::vec::IntoIter<Type>,std::rc::Rc<Vec<Type>>),
             AfterMember(std::vec::IntoIter<Type>,std::rc::Rc<Vec<Type>>),
         }
         let mut work=vec![Task::Check(source,target)];
+        let mut active=HashSet::new();
         let mut result=true;
         while let Some(task)=work.pop() {
             match task {
+                Task::FinishPair(source,target)=>{active.remove(&(source,target));},
                 Task::Pairs(mut pairs,all)=>{
                     if let Some((source,target))=pairs.next(){
                         work.push(Task::AfterPair(pairs,all));
@@ -261,6 +266,10 @@ impl Analyzer {
                 }
                 Task::Check(source,target)=>{
                     if target.accepts_scalar_value(source){result=true;continue;}
+                    // Coinduction is scoped to the active branch. A failed union
+                    // alternative must not publish a successful pair globally.
+                    if !active.insert((source,target)){result=true;continue;}
+                    work.push(Task::FinishPair(source,target));
                     result=match(source,target){
                         (Type::StoredCallable(source),Type::Callback(target))=>
                             self.callables.storage.origins(source).is_some_and(|origins|origins.is_empty())
@@ -515,4 +524,17 @@ fn literal_scalar_union_carriers_widen_without_narrowing_or_callback_conversion(
  assert!(analyzer.carrier_convertible(from,target));assert!(analyzer.carrier_convertible(left,Type::String));assert!(!analyzer.carrier_convertible(Type::String,left));assert!(!analyzer.carrier_convertible(left,right));
  let missing=analyzer.unions.intern(vec![left,Type::Undefined],Span::default()).unwrap();assert!(!analyzer.carrier_convertible(from,missing));
  let wrong=analyzer.unions.intern(vec![Type::Record(computed),Type::Int,Type::Undefined],Span::default()).unwrap();assert!(!analyzer.carrier_convertible(from,wrong));
+}
+
+#[cfg(test)]
+mod recursive_conversion_tests {
+ use super::*;
+ #[test]
+ fn cyclic_conversion_checks_late_mismatch_and_keeps_union_alternatives_independent(){
+  let analyzer=Analyzer::new(crate::syntax::parse("type A={next?:A;value:int;};type B={next?:B;value:boolean;};type C={next?:C;value:int;};function main(){}").unwrap()).unwrap();
+  assert!(analyzer.carrier_convertible(Type::Record(0),Type::Record(2)));
+  assert!(!analyzer.carrier_convertible(Type::Record(0),Type::Record(1)),"backedge does not suppress later mismatched field");
+  let span=Span::default();let source=analyzer.unions.intern([Type::Record(0),Type::Undefined],span).unwrap();let target=analyzer.unions.intern([Type::Record(1),Type::Record(2),Type::Undefined],span).unwrap();
+  assert!(analyzer.carrier_convertible(source,target),"failed first record candidate must not poison the compatible alternative");
+ }
 }
