@@ -284,7 +284,8 @@ mod symbolic_template_tests {
   let mut function=program.functions.pop().expect("main function");
   function.template=template;
   let span=crate::Span::default();
-  let value=Expr {ty:Some(Type::Closure(program.closures.len()+7)),..Expr::new(ExprKind::Closure{id:0,params:Vec::new(),result:ResultAnnotation::Inferred(span),body:Vec::new()},span)};
+  let mut value=Expr::new(ExprKind::Closure{id:0,params:Vec::new(),result:ResultAnnotation::Inferred(span),body:Vec::new()},span);
+  value.ty=Some(Type::Closure(program.closures.len()+7));
   function.body=vec![Stmt{labels:Vec::new(),control_target:None,span,kind:StmtKind::Expr(value)}];
   program.functions.push(function);program
  }
