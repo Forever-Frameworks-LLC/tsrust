@@ -87,6 +87,30 @@ Curious how fast it is? The [performance page](https://forever-frameworks-llc.gi
 compares 930 workloads with the same programs on Node.js. Native wins most of
 them, but not all, and the page shows both.
 
+## v0.2.0 development
+
+The development branch expands the standard library. These examples require a
+compiler built from this branch:
+
+- [Filesystem utilities](examples/filesystem-utilities) and
+  [path, environment and OS APIs](examples/path-env-os).
+- [Subprocesses](examples/process), [network addresses and DNS](examples/network-addresses),
+  [compression](examples/compression), and [URL/query handling](examples/url).
+- [Streaming HTTP uploads](examples/http-client-uploads),
+  [forms and multipart](examples/http-client-forms), and
+  [CORS, security headers and response compression](examples/http-middleware).
+- [Reusable hashing, HMAC and HKDF](examples/crypto/primitives.tsr), plus
+  [Argon2 password hashing on an explicit worker pool](examples/crypto/passwords.tsr).
+- [Selected Rust-crate adapter generation](examples/rust-owned-words), including
+  owned strings, arrays and tagged optional values, with generated editor help.
+- [Task ergonomics](examples/task-ergonomics), [reusable regular expressions](examples/regex-text),
+  and [explicit-locale formatting and segmentation](examples/explicit-locale).
+
+SSE/WebSocket and structured logging remain in progress. The
+[full v0.2.0 checklist](docs/plans/stdlib-0.2.0.md) tracks the required compiler,
+editor, native, benchmark and platform acceptance. Source availability does not
+mean the release is complete; v0.2.0 has not been published.
+
 ## Try it
 
 Download the archive for your platform from
