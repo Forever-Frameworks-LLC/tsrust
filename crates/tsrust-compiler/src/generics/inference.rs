@@ -230,7 +230,12 @@ impl Types<'_> {
                             && self.callable_annotations.is_some_and(|annotations| annotations.contains_key(prior) && annotations.contains_key(&actual))
                             && self.annotation(*prior, pattern.span).ok().zip(self.annotation(actual, pattern.span).ok())
                                 .is_some_and(|(left, right)| crate::generic_functions::same_annotation_contract(&left, &right));
-                        if *prior != actual && !self.unions.accepts(*prior, actual) && !same_callable {
+                        // A syntax-only argument hint reports a scalar base
+                        // before the real checker applies an established singleton
+                        // context. Keep T exact; ordinary argument checking still
+                        // rejects a different literal or an unrefined scalar value.
+                        let contextual_literal_hint=matches!(*prior,Type::Literal(_, _)) && prior.scalar_base()==actual;
+                        if *prior != actual && !self.unions.accepts(*prior, actual) && !same_callable && !contextual_literal_hint {
                             return Err(mismatch());
                         }
                     } else {
@@ -1159,4 +1164,16 @@ fn distinct_generic_union_payload_shapes_infer_without_first_match_bias(){
         "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function main(){consume<int>(['wrong']);}",
         "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function pick(flag:boolean):int[]|Holder<string>{return flag?[1]:{value:'wrong'};}function main(){consume(pick(true));}",
     ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(crate::check(&source).is_err(),"{source}");}
+}
+
+#[cfg(test)]
+#[test]
+fn singleton_argument_hints_defer_to_exact_context_without_widening_the_type(){
+ let prefix="function pair<T>(actual:T,expected:T):T{return actual;}";
+ for body in ["const selected:'selected'='selected';const result:'selected'=pair(selected,'selected');console.log(result);","const selected:7=7;const result:7=pair(selected,7);console.log(result);"] {
+  let source=format!("{prefix}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);drop(crate::check(&source).unwrap().emit_rust());
+ }
+ for body in ["const selected:'selected'='selected';pair(selected,'other');","const selected:'selected'='selected';const broad:string='selected';pair(selected,broad);","const selected:7=7;pair(selected,8);","const selected:7=7;const broad:int=7;pair(selected,broad);"] {
+  let source=format!("{prefix}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(crate::check(&source).is_err(),"Singleton context must remain exact: {body}");
+ }
 }

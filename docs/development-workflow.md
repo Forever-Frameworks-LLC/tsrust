@@ -70,6 +70,11 @@ groups on a clean machine, prepare their separate locked source closure:
 cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
 ```
 
+Run relocated vendor builds last, after compiler/editor builds and direct checks.
+These builds update artifacts in the shared Cargo target and can make later
+compiler builds repeat dependency work. Preserve completed export evidence after
+repairs; do not rerun unchanged exports before another planned compiler build.
+
 Tests continue to execute offline. Do not replace the version-update witness with
 whatever version happens to be cached. Keep `TSRUST_SOURCE_PACK_DIR` fixed across
 portable setup and tests that deliberately replace `CARGO_HOME`; CI uses

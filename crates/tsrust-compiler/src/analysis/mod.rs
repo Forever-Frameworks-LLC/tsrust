@@ -2218,7 +2218,8 @@ impl Analyzer {
                 .iter()
                 .zip(&self.signatures[index].params)
                 .zip(modes)
-                .map(|(((name, _, _), &ty), &mode)| Binding { rest: false,
+                .enumerate()
+                .map(|(position,(((name, _, _), &ty), &mode))| Binding { rest: self.program.functions[index].rest_parameter && position+1==self.signatures[index].params.len(),
                     name: name.text.clone(),
                     ty,
                     parameter: true,
@@ -2240,7 +2241,7 @@ impl Analyzer {
                     transferred: None,
                     moved_fields: BTreeMap::new(),
                     used: None,
-                 omission: crate::ParameterOmission::Required, })
+                 omission: self.program.functions[index].parameter_initializers[position].omission(), })
                 .collect()
         };
         let id = if let Some(&id) = self.function_values.get(&index) {

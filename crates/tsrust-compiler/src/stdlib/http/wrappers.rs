@@ -63,10 +63,12 @@ mod tests{
 #[test]
 fn cors_forwarders_preserve_optional_arity_for_direct_alias_and_stored_calls(){
  use crate::project::{SourceProvider,SourceId,load_project,check_graph};
- struct Source;
+ struct Source(String);
  impl SourceProvider for Source{
   fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
-  fn read(&self,id:&SourceId)->Result<String,String>{if id.0!="main.tsr"{return Err(format!("Missing source: {}",id.0));}Ok("import {App,Middleware,CorsOptions,cors} from 'std:http';type Factory=Function<Middleware,[options?:ReadOnly<CorsOptions>]>;function main(){const app=new App();app.use(cors());const alias=cors;app.use(alias());const stored:Factory=cors;app.use(stored());app.use(stored(undefined));app.use(stored({origins:['https://allowed.example']}));}".into())}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0!="main.tsr"{return Err(format!("Missing source: {}",id.0));}Ok(self.0.clone())}
  }
- let checked=check_graph(load_project(&Source,"main.tsr").unwrap());assert!(checked.is_ok(),"Optional native factory forwarding must retain omission: {:?}",checked.err());
+ let direct="import {App,Middleware,CorsOptions,cors} from 'std:http';type Factory=Function<Middleware,[options?:ReadOnly<CorsOptions>]>;function main(){const app=new App();app.use(cors());const alias=cors;app.use(alias());const stored:Factory=cors;app.use(stored());app.use(stored(undefined));app.use(stored({origins:['https://allowed.example']}));}";
+ let typed_first="import {strictEqual} from 'std:testing';import {App,Middleware,CorsOptions,cors} from 'std:http';type Factory=Function<Middleware,[options?:ReadOnly<CorsOptions>]>;async function main():Task<void>{const stored:Factory=cors;const app=new App();app.use(stored());app.use(stored(undefined));app.use(stored({origins:['https://allowed.example']}));strictEqual(1,1);}";
+ for source in [direct,typed_first]{let checked=check_graph(load_project(&Source(source.into()),"main.tsr").unwrap());assert!(checked.is_ok(),"Optional native factory forwarding must retain omission: {:?}",checked.err());}
 }
