@@ -257,8 +257,9 @@ impl Analyzer {
                 }
                 Task::Members(mut members,targets)=>{
                     if let Some(member)=members.next(){
-                        // Preserve exact members or widen literals to their existing scalar representation. Record conversion stays checked separately.
-                        let pairs=targets.iter().copied().filter(|&candidate|candidate.accepts_scalar_value(member) || matches!((member,candidate),(Type::Record(_),Type::Record(_)))).map(|candidate|(member,candidate)).collect::<Vec<_>>();
+                        // Candidate selection must reach the same checked callable conversions as direct storage.
+                        let callable=|ty|matches!(ty,Type::Callback(_)|Type::Closure(_)|Type::StoredCallable(_)|Type::BorrowedCallable(_));
+                        let pairs=targets.iter().copied().filter(|&candidate|candidate.accepts_scalar_value(member) || matches!((member,candidate),(Type::Record(_),Type::Record(_))|(Type::Array(_),Type::Array(_))) || callable(member)&&callable(candidate)).map(|candidate|(member,candidate)).collect::<Vec<_>>();
                         work.push(Task::AfterMember(members,targets));
                         work.push(Task::Pairs(pairs.into_iter(),false));
                     }else{result=true;}
@@ -461,6 +462,12 @@ fn empty_stored_carriers_require_the_same_protocol_and_nonempty_target(){
  let wrong=analyzer.callables.storage.intern(&analyzer.callables.shapes,&analyzer.callables.callbacks[declaration],declaration).unwrap();
  assert!(!analyzer.carrier_convertible(wrong,target),"Empty storage does not bypass protocol identity");
  assert!(!analyzer.carrier_convertible(empty,Type::Callback(declaration)),"Absent storage still preserves the callback result protocol");
+ for(from,to,allowed)in [(empty,target,true),(target,empty,false),(other,target,false),(wrong,target,false)]{
+  for(from,to)in [(from,to),(Type::Array(ArrayElement::from_value_type(from).unwrap()),Type::Array(ArrayElement::from_value_type(to).unwrap()))]{
+   let from=analyzer.unions.intern([from,Type::Undefined],Span::default()).unwrap();let to=analyzer.unions.intern([to,Type::Undefined],Span::default()).unwrap();
+   assert_eq!(analyzer.carrier_convertible(from,to),allowed,"nullable storage preserves the direct callable conversion proof");
+  }
+ }
 }
 
 #[cfg(test)]

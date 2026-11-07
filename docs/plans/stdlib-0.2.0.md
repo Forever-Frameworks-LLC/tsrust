@@ -114,11 +114,11 @@ they are not completed implementation gates:
   shared exported native types in either import order without selecting an
   unrelated runtime. Homogeneous literal-string operations retain their exact
   type identity in compiler checks; editor phase identity repair remains open.
-- [ ] Extend readable/writable byte alternatives by argument position for paired
+- [x] Extend readable/writable byte alternatives by argument position for paired
   inputs; preserve input-only borrowed-shape checks and abstract callable
   contracts. Update the current single-byte-generic emission bridge where two
   independent input storage types are needed. Do not clone views to adapt them.
-- [ ] Reuse existing StringView returned-loan machinery for borrowed URL getters;
+- [x] Reuse existing StringView returned-loan machinery for borrowed URL getters;
   add computed property lowering rather than treating native getter properties
   as physical record fields. Prove separate read/write types, receiver/RHS once
   evaluation, optional loans and mutation blocking through aliases/captures.
@@ -131,12 +131,17 @@ they are not completed implementation gates:
   real failures; do not hide scaling problems with an arbitrary input cap or
   claim blanket WHATWG conformance from package selection.
 
-Package preparation found url2.5.8 already locked/cached, with a compatible
-declared MSRV, but its full closure/advisory/behavior admission remains open.
-Base640.23.1 is a candidate with default SIMD features; choose its actual engine
-and feature set deliberately, validate scalar fallback/all targets and measure
-on a suitable quiet host. Trusted dependency internals may use unsafe; generated
-Tsrust Rust must remain safe. Neither candidate is declared admitted here.
+URL2.5.8 now uses the compiler-owned patch described in its `TSRUST-PATCH.md`;
+empty-host protection, authority-scan repair and patch-integrity/relocation controls
+pass. The full bounded upstream scaling/relative-reference investigation remains
+open above. Base640.23.1 uses the selected SIMD engines and scalar fallback.
+Current-host vectors are not proof of all-target or scalar-path execution;
+remaining package/platform admission stays open. Trusted dependency internals may
+use unsafe; generated Tsrust Rust remains safe.
+
+Paired byte positions and borrowed computed URL getters have retained native,
+ownership, editor and pointer-identity evidence in the965de83f integration and
+current library controls. No new timing or platform result is inferred here.
 
 ## Concrete API checklist
 
@@ -1144,7 +1149,7 @@ portable export exposed missing default feature activation. Both are repaired in
 export now pass at O0/O3. Native ownership exposed a temporary-borrow staging
 error for computed optional options; its same-statement conversion fix passed
 formatted native ownership/options/stored-call execution at O0/O3 on72ad2f9f
-(32.088s). No checklist item is accepted yet;
+(32.088s). These local API requirements are accepted;
 Generated benchmark correctness and actual timings now pass as recorded below;
 remaining platform and feature-family checks stay pending. Prototype evidence
 is distinct from generated API performance.

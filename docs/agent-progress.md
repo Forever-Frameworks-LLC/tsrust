@@ -6,32 +6,33 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Latest state: bounded30ca66f7 byte68 run reached generated native compilation;
-EMIT PASS, native Rust FAILED14errors (4E0107,10E0308), zero cases executed.
-`/tmp/tsrust-nullable-assignment-results.json`: front238.702s,peak3020821232B,
-stopnull,remaining[]. CLI/host build terminalPASS222.824s; suite14.40s. Automatic
-object cleanup398266368B actual recovery. Private/editor stage not started.
-Generated source emitted separately once10.453s (no native compilation) at
-`/tmp/tsrust-byte-current-native.rs` for the three responsible source paths.
-Pending source repair batch: preserve recursive whole-body initializer carrier
-and prevent later point epochs narrowing it; normalize Inject tags/wrappers even
-when checked types match; give acyclic prefixes of concrete recursive nominal
-records their own declarations; empty authored `{}` factories retain their own
-ownerless context. New focused controls added; original68runtimecases preserved.
-B06/B14 supplied/reviewed fixes,rootsolecanonicalwriter. Whole-project formatting
-changed0files/snippets/fingerprints; source acceptance remains pending.
-Prepared next bounded driver `/tmp/tsrust-native-record-layout-run.py`; NOT started
-at this record. One30min scope,5GB/jobs1/incremental0, bytefrontthenaffectedunits/
-editor, no duplicate preflight. Prior successful runtime/export/library/editor
-scopes retained; full goal active. No public timings or SQLite ingestion here.
-Checklist now reconciles actual retained B01/B04/B05/B06/B08/B09/B11/B12/B15/B16/
-B17 local API evidence. B01/B04 verified against `/tmp/tsrust-965de83f-full-integration.json`;
-relevant runtime/tests unchanged. Windows/platform/final shared-core requirements
-stay open. CPU-lifecycle uses actual shared-pool cancellation proof plus password
-routing; no password-specific cancellation probe claimed. Latest stale consumer
-cleanup removed11obsolete binaries,320344064B actual recovery; shared dependencies
-and unchanged Rust/Node controls retained. `tsrust test --profile` reports setup/
-build stages/cache separately from execution; ordinary cases share stable suites.
+Latest state: checkpoint7d84bb53 bounded run ended224.671s,peak2946405104B,
+stopnull,remaining[] (`/tmp/tsrust-native-record-layout-results.json`). Normal
+CLI/host terminal buildPASS220.605s. Byte68 stopped in CHECK2.09s at fixture
+nullable-recursive-callbacks-join-factories-10, child.next=empty(): required
+Record135->134 conversion was rejected. No native compilation/execution in that
+attempt; the14previous native errors have not yet been revalidated. Cleanup
+398438400B actual recovery. Private/editor phase remains unrun.
+Actual bounded emit-only trace1.652s `/tmp/tsrust-native-layout-rejection.err`
+proves source readUnion28(Stored0,undefined), empty origins/protocol0, targets
+Union95(Stored54,undefined), same protocol0. Nullable candidate filtering allowed
+only exact scalars/records, bypassing the EXISTING validated callable conversion.
+Pending narrow shared fix admits callable and array candidate categories, then
+runs unchanged exact protocol/origin/element checks. Existing unit now tests
+nullable callables/arrays, live->absent refusal, unadmitted origins and wrong
+protocols. B06 reviewed; no blanket acceptance/ownership weakening.
+Prepared `/tmp/tsrust-nullable-storage-proof-run.py` NOT started at this record;
+frontbyte68bothprofiles then affectedprivate/editor, one30min/5GB/jobs1/
+incremental0 scope, no duplicated preflight. Original cases and accepted scopes
+retained. No benchmark timing or SQLite ingestion here; fullgoalactive.
+7d84 source retains prior reviewed recursive whole-body epoch, stale Inject tag,
+acyclic-prefix declaration and empty-factory ABI repairs. Whole-project format
+changed0files/snippets/fingerprints. Allsource acceptance remains pending.
+Checklist reconciles actual retained local APIs; B00 paired byte positions and
+borrowed URL getters now also checked against retained/current unit evidence.
+Upstream URL full scaling/relative-reference investigation, all-host/scalar-path
+package admission and B20 final validation remain open. Shared-pool lifecycle
+proof is compositional, not a password-specific cancellation probe.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
