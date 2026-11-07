@@ -4,181 +4,110 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full goal remains active;
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
-## Active realtime/logging family — 2026-11-07
+## Current continuation — 2026-11-07
 
-Canonical HEAD b72d0fbf (`feat(http): integrate SSE and WebSocket source
-contracts`) is a formatted source checkpoint, not runtime acceptance. Previous
-logging source checkpoint a510b9fc is preserved. Full B00–B20 goal remains active.
-Normal CLI/LSP binaries now match uncommitted7eb44source described below;
-rebuild only after further compiler source changes.
-No process remains; original family scope closed incomplete without reset.
+Full B00–B20 implementation/acceptance goal remains active. Canonical branch
+codex/stdlib-0.2.0 at0d090688; prior b72d0fbf/a510b9fc preserved. App worktree
+stdlib-platform-acceptance has protected unrelated edits: DO NOT write there.
+Root writes canonical only. Three Sol workers are idle/source-only; no heavy lease.
 
-Focused repair verification is now TERMINAL, no live process. Original900s
-budget began in /tmp/tsrust-focused-repair-b72d.json; no reset. First consumers
-build280.327s/peak2927480384B. Logging check passed; SSE type mismatch resolved;
-realtime advanced to nested await-task198; iterator advanced beyond typedcatch48
-to a terminal callback-access fixture mismatch. Corrected that fixture using
-explicit Owned<Function<void,[value:Owned<TrackedResource>]>> environment, matching
-its earlier predicate witness; cleanup assertions unchanged. Iterator check passed.
+Previous goal turn was progress:55registered cases replaced32iterator per-case
+native runs;17internal/12iterator/all12realtime editor controls passed;5.71GB freed.
+This continuation made further source/control progress, not runtime acceptance.
+No Cargo/rustc/native test process remains. Do not restart historical PID77647 or
+old sessions. Latest normal CLI/LSP and selected integration binaries match
+8d3f7ba5fdf284c7df333e9c2d2a37914431d34c43610b0e1a972b7bf132636f, BEFORE latest
+unwrap-traversal fix below. Rebuild before using consumers for that fix.
 
-Within SAME900s scope, source7eb44ebbc97a8183e1db45e175a02381adfdbd28c8c912e4ca359bdcf50251f2
-(/tmp/tsrust-focused-repair-source.json) adds explicit generated connect
-Task<WebSocket> contract, actual generic method-plan origin scheduling and control,
-and consolidates3public runtime hosts into ONE24case/3file tsrust test launch.
-Helpers retain exact5logging/18realtime/1iterator names,10JSON context records,
-output marker, onebuildrow and aggregate summary. Export remains enabled;
-no CI skips or target registration changes. All test harnesses check PASSED70.17s,
-peak2218675464B. Fresh normal CLI/LSP build PASSED224.591s, peak2803846696B,
-terminal build-finishedtrue. Normal consumers NOW match this uncommitted source.
-Final cheap checks: logging PASS1.063s; iterator PASS1.074s; realtime FAIL0.531s
-with discover_body nesting128 at tlsRejected188 (was await-task198). Native
-runner was NOT compiled because prechecks failed. Limits and assertions retained;
-trace the discovery cycle before another build. Exact outputs/results:
-/tmp/tsrust-focused-repair-current.*. Full family acceptance still incomplete.
+Latest absolute20minute scope CLOSED INCOMPLETE, never reset:
+/tmp/tsrust-observer-repair-scope.json started1794065021.370985,budget1200s.
+Preflight all compiler/LSP test harnesses PASSED70.373s/peak2144881928B.
+Source355e89fee0e3 build+affected gates terminal234.11s/peak2905297528B,
+stopnull,remaining[]. PASSED realtime resource rejections, runtime feature-selection
+and guarded kind observation, and nested Channel.sender().trySend checker/emit
+control with primitive/partial SseEvent payloads and no Sender import. Preserve
+these passes; do not rerun the unchanged core17/library or editor12 matrix.
+Results /tmp/tsrust-observer-repair-355e89fee0e3.json.
 
-Quiet-point cleanup after both passes removed21 obsolete compiler rlib/rmeta
-files older than changed always-compiled frontend source, preserving fresh
-check/build outputs:3736112605logicalbytes,3736612864Bactual free-space recovery.
-Also removed357linkedobjects529872064logicalbytes/580853760Bactual recovery.
-Total THIS continuation cleanup4317466624Bactual (prior606359552B is separate).
-No Rust/Node control binaries/data, current consumers or source were deleted.
+55case public runtime host advanced to actual message literal check failure:
+realtime.test.tsr154 halves.write.send({kind:'text',data:'é🦀'}), expected message
+union, found anonymous object. Native runner was NOT compiled. Existing static
+helper contextualize_lazy_inputs handled only direct native Result calls; normal
+lazy lowering wraps them in @native:std:result#unwrap.
+- First repair exposed/reused that helper after dynamic HTTP method lowering.
+  All harnesses checked72.51s/peak2156842248B. Source8d3f7ba5fdf2 affected build+
+  gates terminal232.628s/peak2881262224B,stopnull,remaining[] but BOTH literal-message
+  source control and public host still failed same type mismatch. Helper was a
+  no-op at unwrap; this was not acceptance. Results
+  /tmp/tsrust-observer-repair-8d3f7ba5fdf2.json; outer
+  /tmp/tsrust-observer-message-context-budget.*.
+- LATEST UNVALIDATED source now looks through exactly the known one-argument
+  native unwrap before extracting the real native binding/context. Existing
+  signature/alternate-input/borrow behavior retained. New private structural
+  control lazy_native_record_context_reaches_wrapped_and_explicit_result_calls
+  covers both builder paths; current runtime/emit witnesses remain unchanged.
+  This final fix/control has NOT been Rust-checked or executed. Whole-project
+  formatter passed0changes afterward. No tests launched after scope deadline.
 
-Worker source-only task: migrate remaining17non-catalog iterator runtime native
-invocations into registered modules/cases; preserve all remaining compile/emit
-negative controls. Fifteen catalog-example invocations remain separate pending
-batching. Do not claim these32native invocations already migrated.
+Dirty canonical source includes two previously checked fixes (exact Sender<T>
+metadata during generic receiver preparation, scoped common-field observation of
+proven narrowed record subsets), HTTP late contextualizer reuse, unwrap fix and
+new controls. No fixture chain/guard split, ownership weakening or unsafe code.
+Next: source preflight, one fresh normal/affected-target build (exclude library
+harness already passed), affected literal-message control and SAME55case public
+runner. Diagnose actual failures; preserve all earlier passes. No new standalone
+program probes. All runs including setup/cleanup must stay below one hour;
+reserve cleanup before scoped deadline and serialize heavy work/jobs1/inc0.
 
-Further source-only work after that closed pass (NOT covered by its check):
-- Production guard in prepare_selected_task_function now preserves deferral while
-  discovering_function remains Some, even during temporary full-effect checking.
-  Independent B03/B14 reviews traced unresolved selected callee → global discovery
-  before visiting flag → reentry into tlsRejected →128limit. Existing wait/dependent
-  queue is reused. New unit checks unresolved deferral and known-result full check.
-  No limit change, error suppression or ownership weakening. UNBUILT.
--17remaining non-catalog iterator native invocations migrated into stable
-  regression.test.tsr +17source modules (original helper/type scopes preserved).
-  Combined host now41cases/4files/one runner. Negatives and emit guards retained.
-  Catalog15remains the only per-case run site in owned_iterators.rs. All18new
-  Tsrust files formatted with token preservation/idempotence.
-- Cheap pre-guard currentCLI check of new registered regression suite FAILED0.561s:
-  callable-result-pending at physical-carriers.tsr483..511, exactly original
-  capture(owned(choose(true))) initializer. Helpers/initializer preserved verbatim;
-  ordinary imported run replaces special entry main. Not caused by later assertion
-  temporaries. /tmp/tsrust-iterator-registered-migration-check.*. Investigate real
-  returned Once callable readiness, retain required case/ownership assertions.
-- Current consumers match earlier7eb44source, so rebuild before validating guard.
-  Latest guard/migration and test changes are uncommitted; whole-project formatter
-  passed after migration, guard unit compilation/runtime still pending.
+B15/core prior milestone evidence retained: source5967ca317670 build554.831s,
+full selected build/gates612.384s/peak4201322736B,stopnull,remaining[].17core
+controls including opaque/cycles, cache phase changes, known/pending discovery,
+selected/unrelated method origins and all3logging backend tests PASS; ContextFuture
+cancellation destructor/request context verified.12iterator checker/source guards
+and all12realtime editor agreement PASS. No public55case execution/export/timing.
+/tmp/tsrust-registered-milestone-5967ca317670.json.55cases/5files now have one native
+runner; exact names, source/output comparisons and10logging records retained.
 
-Registered B15/core milestone TERMINAL INCOMPLETE (deadline not reset):
-/tmp/tsrust-registered-milestone-scope.json started1794063297.498503,1200s.
-Source5967ca31767031ea2ff5263b788ca475d34b460a4e4facc3384375b492ddccef,
-HEADb72d0fbf,progress excluded. Full new harness preflight PASSED71.244s,
-peak2154417392B; after catalog migration, final host check PASSED2.099s,
-peak337281024B. Whole-project token-preserving/idempotent format passed.
-One shared no-run build terminal554.831s/peak4119524KiB/build-finishedtrue.
-Build+gates612.384s/peak4201322736B,stopnull,remaining[]. No process is live.
-/tmp/tsrust-registered-milestone-5967ca317670.json and per-target logs; outer
-/tmp/tsrust-registered-milestone-budget.*. Retain actual passes, never full-restart.
+Source-only future test migrations are PREPARED, NOT APPLIED/ACCEPTED:
+- B16: /tmp/tsrust-crypto-runtime-suite-migration.patch
+  SHA538e29224c353b64560a90fdd060751f6ab21fa092e39a607b624cd6f18240ef;
+  25old launches→24unique registered cases, debug/release batches,29catalogrefs/
+  20verbatim examples.27paths; exact hashes/case map in matching -inputs/-cases.
+- B14 collections: /tmp/tsrust-collections-stable-suite.patch
+  SHAc925e83fcbc518dd38bdc755ac268099809b812711c88e899f256419e05796cc;
+  37run sites→42programs→42registered cases; original bodies/comments,25checker
+  sites/all8Rustc controls retained.44paths, matching -inputs case map.
+- B02: /tmp/tsrust-bytes-registered-runtime.patch
+  SHAc90267eb33bf5757710f5a806592177baca427199de300db489d4f74a8bd9eb3;
+  67positive programs (24default-only,43bothprofiles)→one67case suite in both
+  profiles. Original builders/negative checks retained; source bodies change only
+  exported entry and final newline. Matching -inputs includes exact mapping.
+All actual canonical apply-checks passed when prepared against0d090688; recheck
+before applying. None touches current55cohort/core compiler. Format/source-check/
+execution still required; never count prepared patches as accepted implementation.
 
-ACTUAL PASSES:17core controls (all selected scheduling/result-discovery tests,
-opaque/cycle preservation and all3logging backend tests, INCLUDING cancellation
-ContextFuture destructor context),0.08s execution; all12remaining iterator checker/
-source/negative controls; all12realtime editor/checker receiver agreements48.85s;
-realtime resource rejection control. Source guards prove15catalog references match
-14verbatim fixtures, each differing only by exported main. No per-case native
-invocations remain in iterator host. Combined public test selects55cases/5files/
-ONE native runner; all original context/output/error assertions retained.
+B11 benchmark historical-root guard selfcheck PASS after0d checkpoint: both old
+and current roots must match15sealed control/protocol files and actual Cargo
+manifest/source paths. Private default unchanged. No controls retimed/relabelled.
+/tmp/tsrust-b11-public-native-measure.py UNRUN, requires actual successful55case
+host log/gate JSON and current CLI SHA before public release-server build,
+protocol/native-only timings, cached-control reuse and npm run store:ingest.
+Ensure portable source preparation prerequisite before emit package. Old actual
+Rust/Node controls remain intact; no public native timings/ingestion claimed.
 
-REMAINING FAILURES (before native program compilation):
-- Realtime source/emit witness: message!==undefined && message.kind==='text'
-  still sees physical undefined-containing union at kind field read.
-- Combined public runtime host: realtime.test.tsr64 empty.sender().trySend(...) 
-  fails unsupported method. No55case runtime pass/profile/measure/export claimed.
-Current consumers/core-library binary match5967 frontend. Source-only followups
-are separate/unvalidated: B03 /tmp/tsrust-nested-channel-sender-hint.patch
-(0b02d08d3294e974ba775f6b1e48908815b8baae4a8da485b36f5f5e72ad9957)
-prepares exact Sender<T> application during existing generic receiver phase and
-reads it through type hints; includes Channel-only import +partial SseEvent/
-wrong-data-type witnesses. B14 is preparing scoped readonly field expected
-contract for flow-narrowed record unions; general residual-read guard retained.
-Do not split chains/guards in fixtures or weaken ownership to make tests pass.
+Cleanup prior turn5711986688Bactual. THIS continuation removed81linkedobjects,
+439375376logicalbytes/491126784Bactual free-space recovery under quiet locks;
+/tmp/tsrust-observer-repair-objects-cleanup.json. Current binaries/control data,
+source and shared dependency caches retained. Raw logs/results remain disposable.
 
-Benchmark support repair APPLIED AFTER those gates: historical control root is
-derived from actual Cargo manifest/source paths; both old/current roots must
-match15sealed control/protocol hashes. Private default guard unchanged. Existing
-selfcheck wrong-root/changed-source negatives PASS0.153s, no workload execution.
-/tmp/tsrust-b11-public-native-measure.py is prepared but UNRUN; requires actual
-55case host success+JSON output and currentCLI SHA before any public build/timing.
-Original Rust/Node controls and original timestamps remain retained. No ingestion.
-Public canonical testing reference now documents --profile/batching too.
+Full-goal next scopes beyond these repairs: B20 registered integrated apps using
+existing B10/B19 examples, remaining runtime/editor/relocated exports, actual
+matched measurements/allocation review, B00 export/default/minimal feature ledger,
+full compiler/LSP regressions and four-host native package/install/update gates.
+No push/merge/publication. Future GPUI/Kit, .tsr clients/shared backend/frontend
+roots remain in docs/plans/gpui-application-platform.md AFTER v0.2.0.
 
-Cleanup THIS continuation:3736612864Bobsolete compiler libs +580853760Blinked
-objects +1008381952Bpost-milestone objects +386138112Bnewly stale compiler variant
-=5711986688Bactual free space (5.71GB). Current binaries/caches/control evidence
-retained; no source or Rust/Node reference deleted. Exact quiet-point cleanup
-reports under /tmp/tsrust-{obsolete-compiler-libraries,focused-repair-objects,
-registered-milestone-objects,registered-milestone-compiler}-cleanup.json.
-
-Full-goal next scopes remain B20 registered integrated apps using existing B10/
-B19 examples, affected runtime/exports, actual measurements and final platform/
-full-regression/release gates. Source audit established no additional missing
-public export; B00 ledger/default/minimal dependency reconciliation stays open.
-Do not redefine full B00–B20 completion around these55cases.
-
-Owner-authorized profiling is implemented in public `tsrust test --profile`:
-build/check/emit/backend/cache/native-build time is separate from case execution.
-Ordinary acceptance uses stable registered `.test.tsr` suites, one runner per
-coherent suite. No new standalone native probe programs are being built.
-
-One family budget remains anchored at1794057994.1607041 with3300s ceiling:
-/tmp/tsrust-realtime-family-scope-start.json. Do not reset this scope.
-Preflight cargo check --tests passed67.755s/peak2.22GB. First selected build/gates
-terminal379.863s/peak2.92GB, source7b453e80420d, build-finishedtrue.
-PASS13 realtime completion rows ×4 phases, HTTP editor reachability, lazy
-Task<WebSocket> help, documentation receiver reference map, resource rejections.
-FAIL actual WS signature preparation/literal materialization, authored docs native
-emission, and logging runner native compilation (8 Rust errors). Logging fixes:
-LogError now matches documented code/message; typed payload locals resolve
-throw-only callback success type. WS preparation uses only selected socket ABI
-and existing annotation materialization. Default emission now proves required
-absent callback records empty using the existing coalescing helper.
-
-Affected-only rerun TERMINAL364.041s/peak2928824904B, stopnull, remaining[].
-Selected build233.021s, build-finishedtrue, source39ac74bd04ba. No build/test
-process remains. All five acceptance checks still fail, with concrete progress:
-- Agreement no longer panics;26 catalog properties were incorrectly methods.
-  Catalog parameters[]→null fix applied, rerun pending.
-- Authored docs no longer panics; reached export, now missing prepared portable
-  sources for changed dependency closure. No export acceptance claimed.
-- Realtime suite checker reaches SseEvent contextual record mismatch at44;
-  inferred-router witness reaches socket task-transfer metadata mismatch. Both
-  fixes now applied: preserve endpoint payload context across lazy send lowering;
-  declare actual owned Send socket/read/write transfer metadata. Added positive
-  partial-record send and negative data:int source witnesses; unexecuted.
-- Logging original3 schema errors resolved;5 OnceCallback success-type inference
-  errors remain despite typed local. Shared registered_callback_call now selects
-  the existing physical Result ABI at invocation before map_err; unexecuted.
-Preserve prior passed scopes. The original family budget must not be reset.
-Final cargo check --tests with all selected runtime features PASSED70.884s,
-peak2222443784B,stopnull,remaining[] within original budget:
-/tmp/tsrust-realtime-family-final-typecheck.*. This checks every compiler/LSP
-test harness including unit bodies, not runtime execution. All processes terminal.
-Whole-project formatting before the rerun passed0changes. No public suite runtime,
-relocated export, benchmark timings or SQLite ingestion claimed.
-Quiet-point cleanup removed349 disposable linked objects587688688logicalbytes;
-actual free-space recovery606359552B. Cached libraries/metadata retained.
-
-B15 direct checker trace from fresh normal CLI still fails typed catch48:
-/tmp/tsrust-realtime-family-7b453e80420d-iterator-effects.*. Nominal stored-field
-candidate is insufficient. Actual selected chain family18→closure38→Function35
-was not prepared before catch inference. Finite selected-origin scheduling patch
-applied in analysis/mod.rs and all test harnesses type-check; behavior unverified. No error suppression or ownership
-weakening accepted.
-Benchmark common-result/control adapter self-check passed; unchanged private
-Rust/Node controls retain original identities and timestamps. No profiling rerun.
-Target debug15G/release3.7G/sourcepacks704M measured before repair completion.
-Prune only obsolete linked objects after all build/test processes are terminal.
+## Earlier evidence (retained; current state above supersedes continuation advice)
 
 ## Current source checkpoint preparation — 2026-11-07
 

@@ -102,7 +102,7 @@ pub(crate) fn lazy_native_result(expression:&crate::syntax::Expr)->Option<&crate
 // native call's contextual type at that evaluation point, particularly for empty
 // arrays and optional owned option literals. Stable borrowed inputs stay in the
 // task and keep their existing loans; typed alternative dispatch stays unchanged.
-fn contextualize_lazy_inputs(records:&mut Vec<crate::syntax::Record>,expression:&mut crate::syntax::Expr)->Result<(),crate::Diagnostic>{
+pub(crate) fn contextualize_lazy_inputs(records:&mut Vec<crate::syntax::Record>,expression:&mut crate::syntax::Expr)->Result<(),crate::Diagnostic>{
     use crate::syntax::{ExprKind,StmtKind,UnaryOp};
     let ExprKind::Match{id,body}=&mut expression.kind else{return Ok(())};
     if *id<usize::MAX/2{return Ok(());}
@@ -114,6 +114,9 @@ fn contextualize_lazy_inputs(records:&mut Vec<crate::syntax::Record>,expression:
     let ExprKind::Closure{body:task_body,..}=&value.kind else{return Ok(())};
     let [statement]=task_body.as_slice()else{return Ok(())};
     let StmtKind::Return(Some(call))=&statement.kind else{return Ok(())};
+    let call=if let ExprKind::Call(callee,arguments)=&call.kind
+        && matches!(&callee.kind,ExprKind::Name(symbol)if symbol=="@native:std:result#unwrap")
+        && let [native]=arguments.as_slice(){native}else{call};
     let ExprKind::Call(callee,arguments)=&call.kind else{return Ok(())};
     let ExprKind::Name(symbol)=&callee.kind else{return Ok(())};
     let Some((_,binding))=crate::native_bindings::by_symbol(symbol)else{return Ok(())};
@@ -208,4 +211,21 @@ fn borrows_native_input(module:&str,name:&str,index:usize)->bool{
 
 fn stable_receiver(mut value:&crate::syntax::Expr)->bool{
     loop {match &value.kind {crate::syntax::ExprKind::Name(_)=>return true,crate::syntax::ExprKind::Field(base,_)=>value=base,_=>return false}}
+}
+
+#[cfg(test)]
+#[test]
+fn lazy_native_record_context_reaches_wrapped_and_explicit_result_calls(){
+ use crate::syntax::{Expr,ExprKind,StmtKind};
+ for preserve in [false,true]{
+  let mut program=crate::syntax::parse("function main(){socket.send({kind:'text',data:'ok'});}").unwrap();
+  let StmtKind::Expr(expression)=&mut program.functions[0].body[0].kind else{panic!("message call")};
+  let ExprKind::Call(_,arguments)=&mut expression.kind else{panic!("message payload")};
+  let payload=arguments.remove(0);let socket=Expr::new(ExprKind::Name("socket".into()),expression.span);
+  if preserve{lazy_result(expression,"std:http","__webSocketWriteSend",vec![socket,payload]);}else{lazy_module(expression,"std:http","__webSocketWriteSend",vec![socket,payload]);}
+  contextualize_lazy_inputs(&mut program.records,expression).unwrap();
+  let ExprKind::Match{body,..}=&expression.kind else{panic!("lazy input scope")};
+  let annotation=body.iter().find_map(|statement|match &statement.kind{StmtKind::Let{annotation,value,..}if matches!(value.kind,ExprKind::Record(_))=>Some(annotation),_=>None}).expect("record payload temporary");
+  assert!(annotation.is_some(),"both native Result forms must preserve the payload context");
+ }
 }

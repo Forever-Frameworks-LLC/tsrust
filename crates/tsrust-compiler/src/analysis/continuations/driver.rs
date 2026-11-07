@@ -1573,9 +1573,18 @@ fn schedule_field<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: 
         }
         Err(error) => finish_expression(analyzer, context, task, Err(error)),
         Ok(super::access::FieldDispatch::Receiver { mode: base_mode, frame }) => {
+            // A common field observes the proven present record alternatives.
+            // Give that readonly subset an explicit contract; an unconstrained
+            // read intentionally retains the original nullable enum instead.
+            let expected=if base_mode==Mode::Read {
+                analyzer.flow_view(context,base).and_then(|(_,_,narrowed)|match narrowed{
+                    Type::Union(union) if analyzer.record_union_field(union,name).is_some()=>Some(narrowed),
+                    _=>None,
+                })
+            }else{None};
             let span = base.span;
             let base = std::mem::replace(base, Box::new(Expr::new(ExprKind::Undefined, span)));
-            let child = Task::Expression(ExpressionTask::new(Expression::Child(base), task.context, base_mode, task.loans.clone(), None));
+            let child = Task::Expression(ExpressionTask::new(Expression::Child(base), task.context, base_mode, task.loans.clone(), expected));
             task.state = ExpressionState::Field { frame, mode, rewrite };
             Step::Push(Task::Expression(task), child)
         }

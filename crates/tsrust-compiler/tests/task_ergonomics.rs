@@ -101,3 +101,19 @@ fn send_error_clone_rejects_resource_and_callable_payloads_in_every_wrapper(){
   }
  }
 }
+
+#[test]
+fn nested_async_sender_calls_keep_payload_context_without_a_sender_type_import(){
+ use tsrust_compiler::project::{FileSourceProvider,load_project,check_graph};
+ for source in [
+  "import {Channel} from 'std:futures';async function main():Task<void>{const channel=new Channel<int>(1);unwrap(channel.sender().trySend(1));channel.close();}",
+  "import {Channel} from 'std:futures';import {SseEvent} from 'std:http';async function main():Task<void>{const channel=new Channel<SseEvent>(1);unwrap(channel.sender().trySend({data:''}));channel.close();}",
+ ]{
+  let directory=support::TempDirectory::new();let source=support::format_round_trip(source);let path=directory.source(&source);
+  let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap();
+  let checked=check_graph(graph).unwrap_or_else(|error|panic!("nested sender: {error:?}"));drop(checked.emit_rust());
+ }
+ let source="import {Channel} from 'std:futures';import {SseEvent} from 'std:http';async function main():Task<void>{const channel=new Channel<SseEvent>(1);unwrap(channel.sender().trySend({data:1}));channel.close();}";
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap();
+ let error=check_graph(graph).err().expect("nested sender must retain the endpoint payload's field type");assert_eq!(error.code,"type");
+}

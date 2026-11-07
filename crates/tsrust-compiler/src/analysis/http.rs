@@ -54,6 +54,8 @@ impl Analyzer {
    args.insert(0,receiver);let args=std::mem::take(args);let span=expression.span;
    if crate::stdlib::http::asynchronous(name){
     crate::stdlib::futures::lazy_module(expression,"std:http",name,args);
+    // Method lowering happens after the initial native-input context pass.
+    crate::stdlib::futures::contextualize_lazy_inputs(&mut self.program.records,expression)?;
     if request_json{crate::stdlib::http::parse_request_json(expression);}
     // Preserve the options context when lazy lowering evaluates arguments into locals.
     if matches!(name,"__listen"|"__routerListen") && let ExprKind::Match{body,..}=&mut expression.kind && let Some(crate::syntax::Stmt{kind:crate::syntax::StmtKind::Let{annotation,..},..})=body.get_mut(2){

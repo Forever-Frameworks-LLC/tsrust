@@ -3,6 +3,7 @@ mod support;
 #[test]
 fn realtime_resource_contracts_reject_clone_readonly_and_reuse() {
     for source in [
+        "import {WebSocketMessage} from 'std:http';function bad(message:ReadOnly<WebSocketMessage|undefined>){console.log(message.kind);}function main(){}",
         "import {SseEvent} from 'std:http';import {Sender} from 'std:futures';async function bad(sender:Sender<SseEvent>):Task<void>{await sender.send({data:1});}function main(){}",
         "import {WebSocket} from 'std:http';function bad(socket:ReadOnly<WebSocket>){socket.split();}function main(){}",
         "import {WebSocket} from 'std:http';function bad(socket:WebSocket){const duplicate=clone(socket);}function main(){}",
@@ -36,4 +37,15 @@ fn sse_and_websocket_select_only_the_required_runtime_family() {
         assert_eq!(rust.contains("// tsrust-http-websocket-selected"),websocket);
         assert!(!rust.contains("unsafe {"));
     }
+}
+
+#[test]
+fn websocket_literal_messages_keep_native_context_in_lazy_tasks(){
+ use tsrust_compiler::project::{FileSourceProvider,load_project,check_graph};
+ let prefix="import {WebSocketWrite} from 'std:http';import {fromArray} from 'std:bytes';";
+ let valid=format!("{prefix}async function send(socket:Owned<WebSocketWrite>):Task<void>{{await socket.send({{kind:'text',data:'ok'}});await socket.send({{kind:'binary',data:unwrap(fromArray([0,255]))}});await socket.close();}}function main(){{}}");
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&valid));let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap();let checked=check_graph(graph).unwrap_or_else(|error|panic!("lazy message context: {error:?}"));assert!(!checked.emit_rust().contains("unsafe {"));
+ for message in ["{kind:'text',data:1}","{kind:'unknown',data:'bad'}"]{
+  let source=format!("{prefix}async function bad(socket:Owned<WebSocketWrite>):Task<void>{{await socket.send({message});await socket.close();}}function main(){{}}");let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap();let error=check_graph(graph).err().expect("invalid message must retain its native union contract");assert_eq!(error.code,"type");
+ }
 }

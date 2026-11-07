@@ -116,6 +116,18 @@ impl Analyzer {
         self.require(ty,expected,expression.span)?;
         expression.target=Some(CallTarget::NativeBinding(crate::native_bindings::by_symbol("@native:std:futures#__channel").unwrap().0));Ok(Some(ty))
     }
+    /// Publish only the concrete type needed by a nested endpoint receiver.
+    /// Generic preparation does not evaluate or lower the sender operation.
+    pub(super) fn prepare_future_sender_hint(&mut self,context:&Context,expression:&Expr)->Result<(),Diagnostic>{
+        let ExprKind::Call(callee,args)=&expression.kind else{return Ok(());};
+        let ExprKind::Field(base,member)=&callee.kind else{return Ok(());};
+        if member!="sender" || !args.is_empty(){return Ok(());}
+        let Some(Type::Record(channel))=self.expression_type_hint(context,base)else{return Ok(());};
+        if self.program.records[channel].native_type!=Some(NativeTypeId::AsyncChannel){return Ok(());}
+        let payload=self.program.records[channel].application.as_ref().expect("checked channel application").resolved_arguments[0];
+        self.thread_application(NativeTypeId::AsyncSender,&[payload],expression.span)?;
+        Ok(())
+    }
     pub(super) fn future_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
         let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None);};
         if let ExprKind::Field(base,member)=&callee.kind {

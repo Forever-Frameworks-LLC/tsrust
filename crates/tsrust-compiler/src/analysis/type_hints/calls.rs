@@ -99,6 +99,15 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
 }
 fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<Type>,work:&mut Vec<Work<'a>>,value:&mut Option<Type>){
     let ExprKind::Call(callee,_)=&expr.kind else{unreachable!()};
+    if let (Some(Type::Record(channel)),ExprKind::Field(_,member))=(receiver,&callee.kind)
+        && member=="sender" && matches!(&expr.kind,ExprKind::Call(_,args)if args.is_empty())
+        && analyzer.program.records[channel].native_type==Some(crate::native_signatures::NativeTypeId::AsyncChannel){
+        let arguments=analyzer.program.records[channel].application.as_ref().map(|application|&application.resolved_arguments);
+        *value=analyzer.program.records.iter().enumerate().find_map(|(id,record)|
+            (record.native_type==Some(crate::native_signatures::NativeTypeId::AsyncSender)
+                && arguments.is_some() && record.application.as_ref().map(|application|&application.resolved_arguments)==arguments).then_some(Type::Record(id)));
+        return;
+    }
     if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Logger) && let ExprKind::Field(_,member)=&callee.kind{
         *value=match member.as_str(){"child"=>Some(Type::Record(id)),"debug"|"info"|"warn"|"error"=>Some(Type::Void),"flush"|"close"=>crate::native_binding_types::resolve(&analyzer.program.records,&crate::stdlib::logging::FLUSH.result.signature()),_=>None};return;
     }
