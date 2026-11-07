@@ -98,6 +98,29 @@ impl Tracker<'_> {
             Work::Failure(value)=>if value.own_may_fail{self.failures.push(state.clone());},
         }}
     }
+    fn absence_branches(condition:&Expr,state:State)->(State,State){
+        let mut yes=state.clone();let mut no=state;
+        if let ExprKind::Binary{op:BinaryOp::Equal|BinaryOp::NotEqual,left,right,..}=&condition.kind {
+            // Only literal sentinels and exact stable storage are selected.
+            // A dynamic array index must never erase other entries' owners.
+            let exact=|value:&Expr|{
+                let mut observed=value;
+                loop{match &observed.kind{
+                    ExprKind::Name(_)=>break,
+                    ExprKind::Field(base,_)|ExprKind::Index(base,_)=>observed=base,
+                    ExprKind::Project{value,..}|ExprKind::TypeAssertion{value,..}|ExprKind::Unary{op:UnaryOp::NonNull,value,..}=>observed=value,
+                    _=>return None,
+                }}
+                place(value)
+            };
+            let selected=if matches!(right.kind,ExprKind::Null|ExprKind::Undefined){exact(left)}else if matches!(left.kind,ExprKind::Null|ExprKind::Undefined){exact(right)}else{None};
+            if let Some(selected)=selected.filter(|(_,path)|!path.iter().any(|part|part=="*")){
+                let absent=if matches!(condition.kind,ExprKind::Binary{op:BinaryOp::Equal,..}){&mut yes}else{&mut no};
+                let _=Self::take(absent,&selected);
+            }
+        }
+        (yes,no)
+    }
     fn store(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,destination:Place) {
         if let Some(source)=place(value){self.evaluate_place(function,value,state);Self::transfer(state,&source,&destination);return;}
         match &value.kind {
@@ -259,7 +282,8 @@ impl Tracker<'_> {
             StmtKind::If{condition,then_body,else_body}=>{
                 let _=self.value(function,condition,&mut state,false);
                 if let ExprKind::Boolean(value)=condition.kind {return self.body(function,if value {then_body}else{else_body},state);}
-                let mut paths=self.body(function,then_body,state.clone());paths.extend(self.body(function,else_body,state));return coalesce(paths);
+                let (yes,no)=Self::absence_branches(condition,state);
+                let mut paths=self.body(function,then_body,yes);paths.extend(self.body(function,else_body,no));return coalesce(paths);
             }
             StmtKind::While{condition,body}=>{
                 let _=self.value(function,condition,&mut state,false);
@@ -287,3 +311,27 @@ impl Tracker<'_> {
 }
 fn merge(target:&mut State,other:State){for(place,tokens)in other{target.entry(place).or_default().extend(tokens);}}
 fn coalesce(paths:Vec<Path>)->Vec<Path>{let mut result:Vec<Path>=Vec::new();for path in paths{if let Some(existing)=result.iter_mut().find(|existing|existing.exit==path.exit){merge(&mut existing.state,path.state);}else{result.push(path);}}result}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn indexed(index:Expr)->Expr{let mut owner=Expr::new(ExprKind::Name("owners".into()),Span::default());owner.binding=Some(0);Expr::new(ExprKind::Index(Box::new(owner),Box::new(index)),Span::default())}
+    fn condition(value:Expr,op:BinaryOp,reversed:bool)->Expr{let absent=Expr::new(ExprKind::Undefined,Span::default());let(left,right)=if reversed{(absent,value)}else{(value,absent)};Expr::new(ExprKind::Binary{op,operator:Span::default(),left:Box::new(left),right:Box::new(right)},Span::default())}
+    #[test]
+    fn absent_constant_index_removes_only_that_branch_entry(){
+        let state=State::from([((0,vec!["0".into()]),Tokens::from([(1,2,true)])),((0,vec!["1".into()]),Tokens::from([(3,4,true)]))]);
+        for op in [BinaryOp::Equal,BinaryOp::NotEqual]{for reversed in [false,true]{
+            let guard=condition(indexed(Expr::new(ExprKind::Integer("0".into()),Span::default())),op,reversed);let(yes,no)=Tracker::absence_branches(&guard,state.clone());let(absent,present)=if op==BinaryOp::Equal{(yes,no)}else{(no,yes)};
+            assert!(!absent.contains_key(&(0,vec!["0".into()])));assert_eq!(absent.get(&(0,vec!["1".into()])),state.get(&(0,vec!["1".into()])));assert_eq!(present,state);
+        }}
+    }
+    #[test]
+    fn absent_dynamic_index_and_nonliteral_sentinel_preserve_all_entries(){
+        let state=State::from([((0,vec!["0".into()]),Tokens::from([(1,2,true)])),((0,vec!["1".into()]),Tokens::from([(3,4,true)]))]);
+        let dynamic=condition(indexed(Expr::new(ExprKind::Name("index".into()),Span::default())),BinaryOp::Equal,false);
+        let mut nonliteral=condition(indexed(Expr::new(ExprKind::Integer("0".into()),Span::default())),BinaryOp::Equal,false);if let ExprKind::Binary{right,..}=&mut nonliteral.kind{**right=Expr::new(ExprKind::Sequence(vec![Expr::new(ExprKind::Undefined,Span::default())]),Span::default());}
+        let observed=condition(Expr::new(ExprKind::Unary{op:UnaryOp::Void,operator:Span::default(),value:Box::new(indexed(Expr::new(ExprKind::Integer("0".into()),Span::default())))},Span::default()),BinaryOp::Equal,false);
+        for guard in [dynamic,nonliteral,observed]{assert_eq!(Tracker::absence_branches(&guard,state.clone()),(state.clone(),state.clone()));}
+    }
+}

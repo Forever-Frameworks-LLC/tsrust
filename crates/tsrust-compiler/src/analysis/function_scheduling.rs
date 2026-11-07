@@ -22,6 +22,12 @@ impl Analyzer {
         !self.callable_result_type(result) && self.aggregate_callable_facts(result).retains
     }
 
+    /// Owned records retain concrete environment fields, not one erased callable signature.
+    pub(super) fn owned_record_parameter(&self,ty:Type)->bool {
+        matches!(ty,Type::Record(_)|Type::Array(ArrayElement::Record(..))|Type::Union(_)|Type::Map(_))
+            && self.physical_record_result_needed(ty) && !self.aggregate_callable_facts(ty).scoped
+    }
+
     pub(super) fn function_request_ready(&mut self, index: usize) -> Result<bool, Diagnostic> {
         if self.checked[index].is_some() { return Ok(true); }
         if self.discovering_results {
@@ -29,7 +35,7 @@ impl Analyzer {
             // can revisit an async body before a later data factory is checked.
             // Its omitted result is unknown, not void. Context-independent
             // factories can be checked normally, without caller environments.
-            let physical=self.physical_record_result_needed(self.signatures[index].result)
+            let physical=(self.physical_record_result_needed(self.signatures[index].result) || self.effects_only && self.assumed_modes.is_none())
                 && !self.templates.contains_key(&index)
                 && (!self.named_captures.needs_context(index) || self.named_captures.ready(index));
             if ((self.signatures[index].result == Type::Void && self.inferred_result_context_is_closed(index)) || physical)
@@ -293,9 +299,10 @@ impl Analyzer {
         // Result discovery can now finish a closed inferred factory and its
         // helpers before run() captures retry sources. Preserve bodies eligible
         // for callback/error-contract rechecking before consuming them.
+        let retain_body=self.signatures[index].params.iter().copied().any(|ty|matches!(ty,Type::Record(_)) || self.owned_record_parameter(ty))
+            || return_type_inference::has_exception_region(&self.program.functions[index].body);
         if let Some(sources) = &mut self.discovery_body_sources
-            && (self.signatures[index].params.iter().any(|ty| matches!(ty, Type::Record(_)))
-                || return_type_inference::has_exception_region(&self.program.functions[index].body))
+            && retain_body
         {
             sources.entry(index).or_insert_with(|| self.program.functions[index].body.clone());
         }
@@ -481,4 +488,36 @@ fn specialized_record_factories_publish_physical_results_before_callers() {
     let Some(CallTarget::Function(target))=value.target else{panic!("factory call: {:?}",value.target)};
     assert_eq!(value.ty,Some(program.functions[target].result),"call expression must retain its already checked callee shape");
     assert_eq!(outer.result,program.functions[target].result,"owned return must preserve the physical carrier");
+}
+
+#[cfg(test)]
+#[test]
+fn owned_record_parameters_preserve_each_callers_physical_fields(){
+    let source="type Holder={pull:Owned<Function<int>>;};function useHolder(value:Owned<Holder>):int{return value.pull();}function make(pull:Owned<Function<int>>):Holder{return {pull:pull};}function main(){console.log(useHolder(make(():int=>7)),useHolder(make(():int=>9)));}";
+    let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+    let checked=crate::check(&source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",&source)));
+    let program=&checked.program;let mut count=0;
+    for function in &program.functions {if function.template{continue;}crate::fixed_storage::visit_function_expressions(function,&mut |value|{
+        if let (Some(CallTarget::Function(target)),ExprKind::Call(_,arguments))=(value.target,&value.kind){let callee=&program.functions[target];if callee.name=="useHolder"{count+=1;assert_eq!(arguments[0].ty,Some(callee.bindings[0].ty));}}
+    });}assert_eq!(count,2);
+}
+
+#[cfg(test)]
+#[test]
+fn native_view_and_owned_record_callers_keep_both_source_orders(){
+    use crate::project::{FileSourceProvider,check_graph,load_project};
+    for borrowed_first in [true,false]{
+        let calls=if borrowed_first{"useHolder(borrowed);useHolder(copied);useHolder(owned);"}else{"useHolder(owned);useHolder(copied);useHolder(borrowed);"};
+        let source=format!("import {{alloc,view,length}} from 'std:bytes';import {{trackedResource,closeResource}} from 'std:testing';type Holder={{pull:Once<Function<int>>;}};function useHolder(value:Owned<Holder>):int{{return value.pull();}}function main(){{const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const borrowed:Holder={{pull:():int=>length(slice)}};const number=7;const copied:Holder={{pull:():int=>number}};const resource=trackedResource();const owned:Holder={{pull:():int=>{{closeResource(resource);return 9;}}}};{calls}}}");
+        let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let directory=crate::TempDirectory::new().unwrap();let path=directory.0.join("main.tsr");std::fs::write(&path,&source).unwrap();
+        let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
+        let program=&checked.analysis.program;let mut original=0;let mut specialized=0;
+        for function in &program.functions{if function.template{continue;}crate::fixed_storage::visit_function_expressions(function,&mut |value|{
+            if let Some(CallTarget::Function(target))=value.target{let callee=&program.functions[target];if callee.name.ends_with("useHolder"){if callee.specialization{specialized+=1;}else{original+=1;}}}
+        });}
+        assert!(original>=1,"Borrowed native-view caller must retain the original path");
+        assert!(specialized>=2,"Copied and non-Clone owned captures need concrete physical paths");
+        drop(checked.emit_rust());
+    }
 }

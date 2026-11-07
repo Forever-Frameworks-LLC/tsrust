@@ -67,3 +67,12 @@ fn generic_array_shape_probes_preserve_scalar_nonclone_and_task_contracts(){
  assert!(checked("function bad(value:Owned<int>):int{return value;}function main(){bad(1);}").is_err());
  assert!(checked("function need<T,U>(action:Owned<Function<U,[value:Owned<T>]>>):void{}function main(){need(value=>value);}").is_err());
 }
+
+#[test]
+fn borrowed_and_owned_record_parameters_execute_in_both_orders(){
+ for borrowed_first in [true,false]{
+  let calls=if borrowed_first{"console.log(useHolder(borrowed));console.log(useHolder(copied));console.log(useHolder(owned));"}else{"console.log(useHolder(owned));console.log(useHolder(copied));console.log(useHolder(borrowed));"};
+  let source=format!("import {{alloc,view,length}} from 'std:bytes';import {{trackedResource,resourceId,releaseCount,closeResource}} from 'std:testing';type Holder={{pull:Once<Function<int>>;}};function useHolder(value:Owned<Holder>):int{{return value.pull();}}function main(){{const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const borrowed:Holder={{pull:():int=>length(slice)}};const number=7;const copied:Holder={{pull:():int=>number}};const resource=trackedResource();const id=resourceId(resource);const owned:Holder={{pull:():int=>{{closeResource(resource);return 9;}}}};{calls}console.log(releaseCount(id));}}");
+  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(&source))),120);support::success(&output);assert_eq!(output.stdout,if borrowed_first{b"2\n7\n9\n1\n"}else{b"9\n7\n2\n1\n"});
+ }
+}

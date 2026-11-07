@@ -77,6 +77,8 @@ def target_statuses(text, names, require_summary):
     status_output = text.split("\nfailures:\n", 1)[0]
     for name, status in re.findall(r"^test (.+?) \.\.\. (ok|FAILED|ignored(?:,.*)?)$", status_output, re.M):
         status = status.split(",", 1)[0]
+        if name not in names and name.endswith(" - should panic") and name.removesuffix(" - should panic") in names:
+            name = name.removesuffix(" - should panic")
         if name not in names:
             problems.append("Unexpected test: " + name)
         elif name in statuses:

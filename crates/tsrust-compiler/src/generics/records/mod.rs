@@ -417,6 +417,11 @@ impl Context<'_> {
                         }));
                     }
                 }
+                Type::Callback(id)=>output.push_str(&format!("callback{id}")),
+                Type::Callable(id)=>output.push_str(&format!("callable-result{id}")),
+                Type::Closure(id)=>output.push_str(&format!("closure{id}")),
+                Type::StoredCallable(id)=>output.push_str(&format!("callable{id}")),
+                Type::BorrowedCallable(id)=>output.push_str(&format!("borrowed-callable{id}")),
                 Type::Void => output.push_str("void"),
                 _ => unreachable!("validated value type argument"),
             }

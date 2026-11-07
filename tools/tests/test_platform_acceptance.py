@@ -36,6 +36,14 @@ class PlatformAcceptance(unittest.TestCase):
         self.assertIn('"scopeCode": row.get("code")', source)
         self.assertIn('if scope_error:\n                    raise scope_error', source)
 
+    def test_expected_panic_labels_preserve_exact_case_names_and_summary(self):
+        text = "running 2 tests\ntest ordinary ... ok\ntest invariant - should panic ... ok\ntest result: ok. 2 passed; 0 failed; 0 ignored;\n"
+        self.assertEqual(RUNNER.target_statuses(text, ["ordinary", "invariant"], True), ({"ordinary": "ok", "invariant": "ok"}, []))
+        for changed in [text.replace("invariant - should panic", "unknown - should panic"), text.replace("invariant - should panic", "invariant - should panic - should panic"), text.replace("test invariant - should panic", "test ordinary ... ok\ntest invariant - should panic")]:
+            self.assertTrue(RUNNER.target_statuses(changed, ["ordinary", "invariant"], True)[1])
+        failed = text.replace("invariant - should panic ... ok", "invariant - should panic ... FAILED").replace("ok. 2 passed; 0 failed;", "FAILED. 1 passed; 1 failed;")
+        self.assertEqual(RUNNER.target_statuses(failed, ["ordinary", "invariant"], True), ({"ordinary": "ok", "invariant": "FAILED"}, ["invariant: FAILED"]))
+
     def test_selected_build_keeps_exact_package_target_source_artifacts(self):
         root = Path(__file__).resolve().parents[2]
         messages = []

@@ -133,6 +133,9 @@ impl Emitter<'_> {
 
 impl Emitter<'_> {
     fn assertion_declaration_name(&self,name:&str)->bool {
+        // Module state lifts even standard functions into the lexical program
+        // owner. Follow its retained declaration identity, never a name suffix.
+        let name=self.program.local_declarations.iter().find(|declaration|declaration.emitted_name==name).map_or(name,|declaration|declaration.source_name.text.as_str());
         let Some(graph)=self.source_graph else{return false;};
         let Some(module)=graph.order.iter().position(|id|id.0=="std:testing")else{return false;};
         ["ok","fail","throws","strictEqual","notStrictEqual","deepStrictEqual","notDeepStrictEqual"].iter()

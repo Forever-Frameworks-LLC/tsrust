@@ -246,3 +246,11 @@ fn consumed_task_relays_preserve_independent_input_lifetimes_at_o0_and_o3(){
 fn owned_async_scalar_mutation_keeps_the_callers_private_copy(){
     support::execute("async function main():Task<void>{let value=1;const factory=async()=>{value=7;return value;};console.log(value);console.log(await factory());console.log(value);}","1\n7\n1\n",None);
 }
+
+#[test]
+fn stored_generic_task_factories_infer_nested_unit_and_nonunit_callback_results(){
+ let source="async function apply<T>(action:Once<Function<Task<T>>>):Task<T>{return await action();}async function main():Task<void>{const integer:Function<Task<int>,[action:Once<Function<Task<int>>>]>=apply;const unit:Function<Task<void>,[action:Once<Function<Task<void>>>]>=apply;console.log(await integer(async()=>{return 7;}));await unit(async()=>{console.log('unit');});}";
+ support::execute(source,"7\nunit\n",None);
+ let wrong=source.replace("return 7;","return 'wrong';");
+ assert!(check(&wrong).is_err(),"stored nested callbacks retain their concrete result contract");
+}

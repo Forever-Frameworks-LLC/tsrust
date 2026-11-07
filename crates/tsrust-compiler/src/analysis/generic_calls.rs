@@ -36,14 +36,12 @@ impl Analyzer {
         context: &Context,
         args: &[Expr],
     ) -> crate::generic_inference::CallableShapes {
-        args.iter()
-            .filter_map(|argument| {
-                let ty = self.expression_type_hint(context, argument)?;
-                let payload = self.unions.payload(ty).unwrap_or(ty);
-                self.checked_generic_callable_shape(payload)
-                    .map(|shape| (payload, shape))
-            })
-            .collect()
+        // A named callback can itself return a Task or another callable.
+        // Those nested constraints need the same checked shapes as inline hints.
+        self.checked_inference_callable_shapes(args.iter().filter_map(|argument| {
+            let ty = self.expression_type_hint(context, argument)?;
+            Some(self.unions.payload(ty).unwrap_or(ty))
+        }))
     }
 
     pub(super) fn inline_generic_callable_shape(&self, argument: &Expr) -> Option<(Vec<Type>, Type)> {

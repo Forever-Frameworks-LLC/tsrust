@@ -83,3 +83,33 @@ fn named_task_awaits_do_not_alias_later_group_closure_captures(){
  }
  let source=format!("{header}async function main():Task<void>{{const pending=value(1);await pending;const job=value(2).start();all([job]);}}");assert_eq!(checked(&source).unwrap_err(),"unsettled-job");
 }
+
+
+#[test]
+fn nullable_task_and_job_absence_branches_do_not_invent_responsibilities(){
+ let prefix="import {Job} from 'std:futures';type Pending=Task<int>|undefined;type Row={pending:Pending;};async function value(n:int):Task<int>{return n;}";
+ for body in [
+  "const pending:Pending=value(3);if(pending!==undefined){await pending;}",
+  "const pending:Pending=value(3);if(undefined!==pending){await pending;}",
+  "const pending:Pending=value(3);if(pending===undefined){}else{await pending;}",
+  "const pending:Pending=value(3);if(undefined===pending){}else{await pending;}",
+  "const pending:Task<int>|null=value(3);if(pending!==null){await pending;}",
+  "const owner:Row={pending:value(3)};if(undefined!==owner.pending){await owner.pending;}",
+  "const pending:Job<int,undefined>|undefined=value(3).start();if(pending!==undefined){await pending;}",
+ ]{let source=support::format_round_trip(&format!("{prefix}async function main():Task<void>{{{body}}}"));assert!(checked(&source).unwrap_or_else(|error|panic!("{body}: {error}")).is_empty(),"{body}");}
+}
+
+#[test]
+fn absent_guards_do_not_hide_present_tasks_unsettled_jobs_or_other_entries(){
+ let prefix="import {Job} from 'std:futures';type Pending=Task<int>|undefined;type PendingJob=Job<int,undefined>|undefined;async function value(n:int):Task<int>{return n;}";
+ for body in [
+  "const pending:Pending=value(3);if(pending===undefined){}",
+  "const pending:Pending=value(3);if(flag){if(pending!==undefined){await pending;}}",
+ ]{let source=support::format_round_trip(&format!("{prefix}async function probe(flag:boolean):Task<void>{{{body}}}function main(){{}}"));assert!(checked(&source).unwrap().iter().any(|code|code=="unused-task"),"{body}");}
+ for body in [
+  "const pending:PendingJob=value(3).start();if(pending!==undefined){pending.cancel();}",
+  "const jobs:PendingJob[]=[value(3).start(),value(4).start()];if(jobs[index]===undefined){}",
+  // Even a constant index can fail before settlement; retain that snapshot.
+  "const jobs:PendingJob[]=[value(3).start()];if(jobs[0]!==undefined){await jobs[0];}",
+ ]{let source=support::format_round_trip(&format!("{prefix}async function probe(flag:boolean,index:int):Task<void>{{{body}}}function main(){{}}"));assert_eq!(checked(&source).unwrap_err(),"unsettled-job","{body}");}
+}

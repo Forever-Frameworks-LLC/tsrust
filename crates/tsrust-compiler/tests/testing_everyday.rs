@@ -307,6 +307,8 @@ async function main():Task<void>{
  // never hold TLS. The trusted assertion still exercises the guarded path.
  assert!(rust.contains("OnceCallback::invoke_once(value0, ())"),"Concrete synchronous factory still returns its Task without an internal await");
  assert!(rust.matches(".await").count()>=4,"Task invocation paths remain present");
+ assert!(rust.contains("self.call().await.map_err("),"Task family Result bridge awaits before mapping its checked failure");
+ assert!(!rust.contains("self.call().map_err("),"A Task family bridge must not map a Future as a Result");
  let marker="let _assertion_site=TsrAssertionGuard::new(";let mut guards=0;
  for(site,_)in rust.match_indices(marker){let start=rust[..site].rfind("{ ").expect("provenance block");let mut depth=0;let mut end=None;for(index,byte)in rust.as_bytes()[start..].iter().enumerate(){if *byte==b'{'{depth+=1;}else if *byte==b'}'{depth-=1;if depth==0{end=Some(start+index+1);break;}}}let block=&rust[start..end.expect("balanced provenance block")];assert!(!block.contains(".await"),"Assertion provenance crossed suspension: {block}");guards+=1;}
  assert_eq!(guards,1,"Only the trusted assertion receives a guard for these concrete origins");

@@ -2711,12 +2711,18 @@ impl Analyzer {
         let mut postponed = Vec::new();
         // Checking consumes a body; keep the source of every function that may
         // need the second attempt, including one reached through a call.
-        let mut discovery_sources = self.discovery_body_sources.take().unwrap_or_default();
-        let sources = self.signatures.iter().zip(&self.program.functions).enumerate()
-            .map(|(index, (signature, function))| discovery_sources.remove(&index).or_else(||
-                (signature.params.iter().any(|ty| matches!(ty, Type::Record(_)))
-                || return_type_inference::has_exception_region(&function.body)).then(|| function.body.clone())))
-            .collect::<Vec<_>>();
+        // Retain the same raw bodies for eligible physical-record specializations
+        // requested after an earlier ordinary (possibly borrowed) call was checked.
+        let mut sources=vec![false;self.program.functions.len()];
+        for(index,(signature,function))in self.signatures.iter().zip(&self.program.functions).enumerate(){
+            if self.discovery_body_sources.as_ref().is_some_and(|sources|sources.contains_key(&index)) {
+                sources[index]=true;
+            }else if signature.params.iter().copied().any(|ty|matches!(ty,Type::Record(_)) || self.owned_record_parameter(ty))
+                || return_type_inference::has_exception_region(&function.body) {
+                self.discovery_body_sources.get_or_insert_with(HashMap::new).insert(index,function.body.clone());
+                sources[index]=true;
+            }
+        }
         // The number of known record callbacks when each function was checked.
         let mut field_origins = vec![usize::MAX; sources.len()];
         while priority.is_some() || sequence < self.program.functions.len() {
@@ -2730,12 +2736,12 @@ impl Analyzer {
                 *known = 0;
             }
             if let Err(error) = self.function(index) {
-                if !Self::unresolved_catch_contract(&error) || self.checked[index].is_some() || sources.get(index).is_none_or(Option::is_none) {
+                if !Self::unresolved_catch_contract(&error) || self.checked[index].is_some() || sources.get(index).copied()!=Some(true) {
                     return Err(error);
                 }
-                for (unchecked, source) in sources.iter().enumerate() {
-                    if let Some(source) = source && self.checked[unchecked].is_none() {
-                        self.program.functions[unchecked].body = source.clone();
+                for (unchecked, retained) in sources.iter().copied().enumerate() {
+                    if retained && self.checked[unchecked].is_none() {
+                        self.program.functions[unchecked].body = self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&unchecked)).expect("retained retry source").clone();
                     }
                 }
                 self.visiting.iter_mut().for_each(|visiting| *visiting = false);
@@ -2764,14 +2770,14 @@ impl Analyzer {
                     .map(|closure|(closure.span.start,closure.span.end)).collect::<HashSet<_>>();
                 let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len()+schema_origins.len();
                 let stale = (0..sources.len())
-                    .filter(|&index| sources[index].is_some() && field_origins[index] < known && self.checked[index].as_ref().is_some_and(|function| !function.template))
+                    .filter(|&index| sources[index] && field_origins[index] < known && self.checked[index].as_ref().is_some_and(|function| !function.template))
                     .collect::<Vec<_>>();
                 if known == 0 || stale.is_empty() {
                     break;
                 }
                 for &index in &stale {
                     self.checked[index] = None;
-                    self.program.functions[index].body = sources[index].clone().expect("retained source");
+                    self.program.functions[index].body = self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).expect("retained source").clone();
                 }
                 for index in stale {
                     self.function(index)?;
@@ -3549,12 +3555,20 @@ impl Analyzer {
     }
 
     fn prepare_specialization(&mut self, index: usize, args: &[Expr], span: Span) -> Result<(usize, bool), Diagnostic> {
-        if !self.templates.contains_key(&index) {
+        let owned_record=self.signatures[index].params.iter().copied().zip(args).any(|(formal,arg)|self.owned_record_parameter(formal)
+            && arg.ty.is_some_and(|actual|self.finite_owned_shape(actual) && !self.native_shape_contains_view(actual)));
+        if !self.templates.contains_key(&index) && !owned_record {
             return Ok((index, false));
         }
         let mut signature = self.signatures[index].clone();
         let mut types = Vec::new();
         for (ty, arg) in signature.params.iter_mut().zip(args) {
+            if self.owned_record_parameter(*ty) && arg.ty.is_some_and(|actual|self.finite_owned_shape(actual) && !self.native_shape_contains_view(actual)) {
+                let actual=arg.ty.expect("checked physical record argument");
+                if self.discovering_results && self.has_pending_result(actual){return Ok((index,false));}
+                self.require(actual,Some(*ty),arg.span)?;
+                *ty=actual;types.push(actual);
+            }
             if let Some(id)=ty.union() && self.unions.payload(*ty).is_some_and(|payload|matches!(payload,Type::Callback(callback) if self.callback_needs_context(callback))) {
                 let origin=match &arg.kind {ExprKind::Inject{value,..}=>value.ty.unwrap_or(arg.ty.unwrap()),_=>arg.ty.unwrap()};
                 let payload=if matches!(origin,Type::Undefined|Type::Null) {
@@ -3605,6 +3619,16 @@ impl Analyzer {
                 span,
             ));
         }
+        let source=if let Some(template)=self.templates.get(&index){template.clone()}else{
+            let mut source=self.program.functions[index].clone();
+            if let Some(body)=self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)) {
+                source.body=body.clone();
+            }else if self.checked[index].is_some() || self.visiting[index] {
+                return Err(Diagnostic::new("unsupported","Physical record specialization requires its retained source body.",span));
+            }
+            // Otherwise checking has not consumed the live source body yet.
+            source
+        };
         let id = self.program.functions.len();
         self.specialization_depths.insert(id, depth);
         // Discovery can call a specialization before its body is checked.
@@ -3617,7 +3641,7 @@ impl Analyzer {
                 .map(|ty| if ty.is_copy() { Mode::Copy } else { Mode::Read })
                 .collect());
         }
-        self.program.functions.push(self.templates[&index].clone());
+        self.program.functions.push(source);
         self.signatures.push(signature);
         self.checked.push(None);
         self.visiting.push(false);
