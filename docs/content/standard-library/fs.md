@@ -14,6 +14,10 @@ preserve BOM/newline bytes. Paths, overwrite behavior and I/O errors follow the
 host; non-Unicode output fails explicitly. Temporary directories are exclusively
 created and transfer cleanup responsibility to the caller.
 
+In v0.2, ordinary file reads and writes no longer impose v0.1's implicit
+64 MiB ceiling. Explicit bounds, exact integer ranges and host I/O failures
+still apply.
+
 The generated public filesystem reference supplies all signatures, argument help,
 ownership rules, platform behavior and executable examples from the shared API
 catalog.

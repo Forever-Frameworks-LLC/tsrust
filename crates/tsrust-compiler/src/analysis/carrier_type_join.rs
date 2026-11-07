@@ -60,8 +60,11 @@ impl Analyzer {
                     if declaration!=self.scoped_records.declaration(b){continue;}
                     let empty=self.empty_scoped_record_environment(declaration)?;
                     work.push(Task::NullablePayload(left));
-                    if a==b || empty==Type::Record(b) || b==declaration{result=Some(Type::Record(a));}
-                    else if empty==Type::Record(a) || a==declaration{result=Some(Type::Record(b));}
+                    if a==b{result=Some(Type::Record(a));}
+                    else if empty==Type::Record(a){result=Some(Type::Record(b));}
+                    else if empty==Type::Record(b){result=Some(Type::Record(a));}
+                    else if b==declaration{result=Some(Type::Record(a));}
+                    else if a==declaration{result=Some(Type::Record(b));}
                     else{work.push(self.sticky_join_task(a,b));}
                 }
                 Task::NullablePayload(left)=>{
@@ -214,4 +217,14 @@ mod nullable_tests {
         assert_eq!(analyzer.join_nullable_record_unions(left,left,Span::default()).unwrap(),None);
         assert_eq!(analyzer.join_sticky_record_types(0,0,Span::default()).unwrap(),None);
     }
+}
+
+#[cfg(test)]
+#[test]
+fn nullable_empty_environment_does_not_replace_ordinary_owned_callable_storage(){
+ let mut analyzer=Analyzer::new(crate::syntax::parse("type Holder={run:Owned<Function<int>>;};function main(){}").unwrap()).unwrap();
+ let empty=analyzer.empty_scoped_record_environment(0).unwrap();assert_ne!(empty,Type::Record(0));
+ let absent=analyzer.unions.intern([empty,Type::Undefined],Span::default()).unwrap();
+ let stored=analyzer.unions.intern([Type::Record(0),Type::Undefined],Span::default()).unwrap();
+ for(left,right)in [(absent,stored),(stored,absent)]{let joined=analyzer.join_nullable_record_unions(left,right,Span::default()).unwrap().unwrap();assert_eq!(analyzer.unions.payload(joined),Some(Type::Record(0)));}
 }

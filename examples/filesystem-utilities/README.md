@@ -21,3 +21,6 @@ he
 `createTempDir` transfers cleanup responsibility to the caller. Production code
 should arrange cleanup on its failure paths too. Directory ordering and filesystem
 errors depend on the host; this example observes only the entry count.
+
+In v0.2, ordinary file reads and writes no longer impose the former implicit
+64 MiB ceiling. Use explicit read bounds when the application needs them.

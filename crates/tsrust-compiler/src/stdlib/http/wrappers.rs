@@ -16,10 +16,31 @@ fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Function,Diagnos
  let mut function=crate::syntax::parse(&format!("function adapter({parameters}){{return backend({arguments});}}"))?.functions.remove(0);
  let offset=program.functions.iter().map(|function|function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0)+1;
  let shift=|span:&mut Span|{span.start+=offset;span.end+=offset;};function.name.text=name(binding.name);function.name.kind=TokenKind::Symbol;shift(&mut function.name.span);shift(&mut function.scope_span);
+ // Callable contexts need the unwrapped result before async body discovery.
+ let crate::native_signatures::Signature::Result(success,_)=binding.result.signature() else{unreachable!("HTTP request factory result")};
+ function.result=Some(ResultAnnotation::Named(Box::new(crate::native_type_resolution::project(&mut program.records,success,function.name.span)?)));
  let mut replacements=std::collections::HashMap::new();for(index,parameter)in binding.parameters.iter().enumerate(){replacements.insert(format!("P{index}"),crate::native_type_resolution::project(&mut program.records,&parameter.ty.signature(),function.name.span)?);}
  crate::source_walk::substitute_function_annotations(&mut function,&replacements)?;for(parameter,_,_)in &mut function.params{shift(&mut parameter.span);}
  crate::source_walk::substitute_function_body(&mut function,&replacements,&mut |expression|{shift(&mut expression.span);Ok(())})?;
  crate::source_walk::function_body(&mut function,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Call(callee,args)=&mut expression.kind && matches!(&callee.kind,ExprKind::Name(value)if value=="backend"){
   let args=std::mem::take(args);*expression=crate::stdlib::futures::unwrap(super::call(&format!("__{}",binding.name),args,expression.span));
  }Ok(())})?;Ok(function)
+}
+
+#[cfg(test)]
+mod tests{
+ #[test]
+ fn request_factory_forwarders_keep_success_results_in_async_callable_contexts(){
+  use crate::{project::{check_graph,load_project,FileSourceProvider},syntax::Type,native_signatures::NativeTypeId};
+  let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/http-client-uploads/main.tsr");
+  let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));
+  let program=&checked.analysis.program;
+  for operation in ["request","requestBytes","requestStream","requestChannel"]{
+   let suffix=format!("@http-adapter:{operation}");let mut found=false;
+   for function in &program.functions{if !function.template&&function.name.ends_with(&suffix){
+    found=true;let Type::Record(record)=function.result else{panic!("{operation} must return its Request owner, got {:?}",function.result)};
+    assert_eq!(program.records[record].native_type,Some(NativeTypeId::HttpRequest));
+   }}assert!(found,"Missing checked {operation} forwarder");
+  }
+ }
 }

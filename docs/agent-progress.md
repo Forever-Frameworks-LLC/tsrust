@@ -10,7 +10,75 @@ CURRENT OWNER POLICY/SOURCE — 2026-11-06
 
 LATEST VERIFIED STATE — supersedes the active-attempt notes below.
 
-NEXT COHERENT SOURCE CHECKPOINT — HTTP client policy/upload B10 slice integrated
+REPAIR14 TERMINAL — source a2e5ba9371e25eb43d0b853dcc09c0771a1286a3,
+fingerprint 4ac17ab487e08beedb3b7bdfce4baaeaddeb2a5ddbb07f1bc563cbca9d7374f2.
+/tmp/tsrust-utilities-http-repair14-budget.json: total694.086s, peak4,057,405,512B,
+stop null, remaining[]. Selected build terminal success:true,518.737s. Actual
+source-stem.json has37 passing Rust cases and11 failed, plus1 passing Node oracle.
+All15 private compiler/runtime controls PASS (new transport ranges/security/
+framing/drop, old backend defaults, nullable AST/readonly units). PublicHTTP6/6,
+HTTPcontext3/3, LSPHTTP5/5, B18 owner control and constructor witness PASS.
+Public upload negative/type/owner case PASS; positive stored BinaryFactory fails
+Expected Request found void. b03 traces wrapper result inference; no weakening.
+Iterator native4/12PASS,8FAIL: named Holder reaches emitter panic ordinary
+StoredCallable0 to absent Callback1; flatMap reaches checked-carrier rejection;
+legacy Mutable guard and Task-warning witness remain. B14 identifies nullable join
+precedence (incoming nominal declaration wrongly keeps empty physical old record),
+and prepares actual join/emission proof instead of more early predicate loosening.
+LSP catalog shares flatMap failure. Authored docs failed early on new route typo;
+root applied one-line /docs/framework/client→/framework/client fix (f5c72faf),
+not rerun yet. New CLI minimal retained UI+Router repro STILL fails at std:ui128
+label; this remains unresolved and must not be masked by the route fix.
+HTTP matrix Rust case PASS, actual report has exact selected row with8members in
+Settled/Immediate/Paced/ErrorElsewhere, allok. Driver erroneously still expected
+old2iterator/8phase rows; original failed receipt retained, four actual TSV phase
+observations verified manually; no redundant matrix replay needed.
+Post-run locked cleanup removed441 .rcgu.o files,1,155,872,960 logicalbytes and
+1,200,852,992 actualfreebytes recovered. Libraries/executables/source preserved.
+Root APPLIED 8219e01a HTTP wrapper Result-success return annotations and32d7222d
+nullable empty-storage join precedence plus mixed-union parameter-contract reuse.
+The private Holder regression now emits Rust; symmetric empty/stored join guard
+added. Existing public upload example additionally verifies stored-factory method
+errors retain typed code and throws. WHOLE FORMAT PASSED: 1 source changed,
+0 snippets/fingerprints; second pass0/0/0; witness tokens preserved/idempotent.
+These source repairs remain uncompiled; local source checkpoint now prepared.
+B06 granted this formatting/checkpoint slot while no timing was live. Root must
+release the slot to worker for changed-guard selftests/profile-only from existing
+successful Rust artifacts; do not start repair15 until that lease ends.
+B06 source-prepares next form/multipart direct Rust admission/profile in isolated
+HTTP tree; public implementation waits actual profile. Exclusive heavy lease GRANTED to b06 for ready private direct probe, max55min
+including setup/build/cleanup, no public facade until actual profile. Private lock
+must select only versions in canonical native lock before offline locked builds.
+Worker attempt1 launcher-only stopped before any Cargo/profile (fresh-prefix
+check saw its own logs), corrected with original evidence retained. Attempt2
+Attempt2 TERMINAL91.617s/510448KiB: dependency builds completed but probe's
+include_str OUT_DIR path missed '/', corrected privately. Attempt3 TERMINAL15.029s/
+414320KiB: normal/allocation/minimal optimized builds allPASS; profile stopped
+before samples because guard incorrectly equated Cargo metadata's overapproximated
+feature sets with actual target/build artifacts. No public backend failure or
+measured timing yet. Metadata includes inactive optional/platform features; not
+only Tokio windows-sys. Root authorized correct proof: actual features must be a
+subset of metadata upper bounds; all actual packageIDs/versions remain admitted,
+Reqwest's actual features remain exact, minimal actual closure excludes HTTP, and
+all producer/profile/manifest identities plus unknown-feature/version/http3/
+minimal-HTTP negative guards remain. No per-package ignore list or new framework.
+Worker resumes KAT/profile only from unchanged three successful Cargo artifact
+streams; NO Rust rebuild. Original aggregate lease deadline remains in force.
+Root holds all heavy work/formatter until worker confirms terminal lease end.
+Root also reconciled B01–B05 SOURCE AVAILABILITY (all listed public exports in
+compiler/catalog/docs/examples/benchmark support, not accepted platform/runtime
+claims), added explicit filesystem v0.1→v0.2 removed64MiB migration notes, and
+clarified B05's stale admission-only paragraph. No checkboxes were upgraded.
+The website-refresh finding from the audit was stale: canonical dist overview is
+Nov6 22:08 and prior127link/4HTTP checks passed; do not replay that earlier patch.
+After lease closes, formatter+checkpoint current root repairs, then existing
+prepared /tmp/tsrust-run-utilities-http-repair15.py and scopes.json. This new
+batch preserves14 runtime/editor passes, selects repaired compiler guards,
+public upload positive/negative, all18 owned-iterator family cases, docs map/
+authored content and targeted HTTP/assertion/catalog controls. It does not
+replay unchanged Node upload oracle. No15 build launched yet.
+
+HTTP client policy/upload B10 slice integrated
 from isolated worker; all old canonical changes preserved. Adds timeoutMs,
 connectTimeoutMs, followRedirects, maxRedirects, proxy/noProxy and requestBytes,
 requestStream, requestChannel with ordinary checked aliases/stored calls. Runtime,

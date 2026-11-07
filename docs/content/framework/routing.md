@@ -42,4 +42,4 @@ async function main():Task<void>{
 }
 ```
 
-Owned binary, body and channel client upload factories are described in the [client reference](/docs/framework/client).
+Owned binary, body and channel client upload factories are described in the [client reference](/framework/client).

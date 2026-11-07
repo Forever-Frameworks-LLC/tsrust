@@ -59,6 +59,15 @@ async function main(): Task<void> {
     const textFactory: TextFactory = request;
     strictEqual(await(await client.send(textFactory('POST', url, 'hello é'))).text(), 'hello é');
     const binaryFactory: BinaryFactory = requestBytes;
+    let rejectedMethod = false;
+    try {
+      binaryFactory('bad method', url, unwrap(fromArray([1])));
+    } catch (error) {
+      strictEqual(error.code, 'method');
+      rejectedMethod = true;
+    }
+
+    strictEqual(rejectedMethod, true);
     const order: int[] = [];
     const checked = binaryFactory(method(order), target(order, url), payload(order));
     strictEqual(order.join(','), '1,2,3');

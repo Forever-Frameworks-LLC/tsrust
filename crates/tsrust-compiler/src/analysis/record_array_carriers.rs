@@ -55,10 +55,14 @@ impl Analyzer {
         let compatible=self.unions.members(actual_id).into_iter().all(|member|{
             if self.unions.accepts(expected.owning(),member){return true;}
             let Type::Record(record)=member else{return false;};
-            if !(self.finite_owned_shape(member) || self.concrete_owned_record_carrier(record)) || self.native_shape_contains_view(member){return false;}
+            if self.native_shape_contains_view(member){return false;}
             let declaration=self.scoped_records.declaration(record);
             let mut matches=expected_members.iter().filter(|ty|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration && !self.native_shape_contains_view(**ty)));
-            let unique=matches.next().is_some() && matches.next().is_none();
+            let first=matches.next();
+            let parameter=first.is_some_and(|ty|matches!(ty,Type::Record(id) if self.scoped_records.parameter_contract(*id)))
+                && self.owned_record_parameter(member) && !self.aggregate_callable_facts(member).unknown;
+            if !(self.finite_owned_shape(member) || self.concrete_owned_record_carrier(record) || parameter){return false;}
+            let unique=first.is_some() && matches.next().is_none();
             substituted |= unique;
             unique
         });

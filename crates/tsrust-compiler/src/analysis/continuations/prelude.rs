@@ -394,6 +394,6 @@ mod injection_context_tests {
  fn named_nullable_record_replacements_keep_their_actual_tagged_carrier(){
   let source=crate::format("type Holder={pull:Owned<Function<int>>;};function main(){let current:Holder|undefined=undefined;const inner:Holder={pull:():int=>7};current=inner;if(current!==undefined){console.log(current.pull());}}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
   let checked=crate::check(&source).unwrap();let mut stores=0;
-  for function in &checked.program.functions{crate::fixed_storage::visit_function_expressions(function,&mut |value|{if matches!(&value.kind,ExprKind::Inject{value,..} if matches!(&value.kind,ExprKind::Name(name) if name=="inner")){assert!(matches!(value.ty,Some(Type::Union(_))));stores+=1;}});}assert_eq!(stores,1);
+  for function in &checked.program.functions{crate::fixed_storage::visit_function_expressions(function,&mut |value|{if matches!(&value.kind,ExprKind::Inject{value,..} if matches!(&value.kind,ExprKind::Name(name) if name=="inner")){assert!(matches!(value.ty,Some(Type::Union(_))));stores+=1;}});}assert_eq!(stores,1);drop(checked.emit_rust());
  }
 }

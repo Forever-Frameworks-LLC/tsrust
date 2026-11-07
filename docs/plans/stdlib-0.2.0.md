@@ -140,6 +140,13 @@ Tsrust Rust must remain safe. Neither candidate is declared admitted here.
 
 ## Concrete API checklist
 
+Implementation inventory, 2026-11-06: all public exports listed in B01–B05 are
+present in compiler/native bindings and the editor catalog, with documentation,
+examples and benchmark registrations. This is source availability, not proof of
+complete runtime or release acceptance. Unchecked requirements retain their full
+native, ownership, editor, package and platform acceptance scope; notably Windows
+console delivery and final platform regressions remain unverified.
+
 ### B01 — Portable files, directories and file utilities
 
 Backend: Rust `std::fs`/`std::io` first; retain the existing error/resource model.
@@ -564,7 +571,9 @@ recorded1032allocations/1reallocation and151retained bytes; other retained delta
 were0. Keep this observation visible; no source attribution or zero-retention claim
 is inferred. Prepared-source/profiling guards and actual output validate unchanged
 inputs. These are admission prototypes, not generated facade or Node measurements;
-no rows were ingested into generated workload storage. Full public B05 work remains.
+no rows were ingested into generated workload storage. This is the admission
+prototype; generated B05 adapters and later matched I/O measurements are recorded
+under B09 below. Final family/platform acceptance remains open.
 
 ### B06 — Task, timer and channel ergonomics
 
