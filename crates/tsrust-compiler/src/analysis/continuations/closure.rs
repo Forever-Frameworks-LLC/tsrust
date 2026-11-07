@@ -88,6 +88,7 @@ impl Analyzer {
         let result = if let Some(result) = contextual_result { result }
             else if inferred_result { Type::Void } else { self.resolve_result(result)? };
         let escapes = self.escaping.contains(&origin) || self.program_callback_sites.get(&span.start) == Some(&CallbackKind::Program);
+        let program_scoped = self.program_callback_sites.contains_key(&span.start) || matches!(contextual, Some(Type::Callback(id)) if matches!(self.callables.callbacks[id].kind, CallbackKind::Program | CallbackKind::ProgramReusable));
         let mut visible = outer.names.values().copied().collect::<Vec<_>>();
         // A nested function called in the body can need a variable that has no
         // visible name here: a shadowed one, or one that only a called function uses.
@@ -156,7 +157,6 @@ impl Analyzer {
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();
         }
-        let program_scoped = self.program_callback_sites.contains_key(&span.start) || matches!(contextual, Some(Type::Callback(id)) if matches!(self.callables.callbacks[id].kind, CallbackKind::Program | CallbackKind::ProgramReusable));
         let contextual = contextual.and_then(|ty| match self.unions.payload(ty).unwrap_or(ty) {
             Type::Callback(id) => Some(self.callables.callbacks[id].params.clone()),
             Type::Callable(id) => Some(self.callables.results[id].params.clone()),
