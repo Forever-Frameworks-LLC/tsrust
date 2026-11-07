@@ -118,8 +118,8 @@ impl Analyzer {
                     let mut failed=false;
                     while let Some((left,right))=frame.pairs.next(){
                         let joined=if left==right{Some(left)}
-                        else if self.absent_callable_type(left) && matches!(right,Type::Closure(_)|Type::BorrowedCallable(_)){Some(right)}
-                        else if self.absent_callable_type(right) && matches!(left,Type::Closure(_)|Type::BorrowedCallable(_)){Some(left)}
+                        else if self.absent_callable_type(left) && matches!(right,Type::Closure(_)|Type::BorrowedCallable(_)|Type::StoredCallable(_)){Some(right)}
+                        else if self.absent_callable_type(right) && matches!(left,Type::Closure(_)|Type::BorrowedCallable(_)|Type::StoredCallable(_)){Some(left)}
                         else if let Some(joined)=self.common_native_view_storage(left,right,span)?{Some(joined)}
                         else{
                             let child=match(left,right){

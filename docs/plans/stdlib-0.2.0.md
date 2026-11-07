@@ -1310,6 +1310,14 @@ NaN/infinity/negative zero, malformed/radix text, leap-century/year/time bounds.
 Performance: endpoint/heap/deque kernels, strict parse/arithmetic and date access;
 Node exact integers use BigInt. This is not JS Date mutability/coercion support.
 
+B14 measurements at `5c45370d`: seven workloads (collection endpoints,
+ordered-set/deque/heap snapshots, strict numeric parse, checked arithmetic and date
+completion) passed five correctness cases for each selected engine, then completed
+93 samples per native/Rust/Node group. All21 groups were ingested into the shared
+measurement database together with six B18 groups. Original protocols and controls
+were retained. Native allocation profiles completed separately. This timing evidence
+does not accept the unfinished B15 iterator implementation or full milestone checks.
+
 ### B15 — Owned lazy iterator pipelines
 
 Backend: typed Rust iterators; dedicated compiler owner. B00/B14 and an explicit
@@ -1429,16 +1437,30 @@ actual output separately; identical direct tracing configuration for Rust.
 
 Backend: current std:testing and native test runner. B06/B12 for task/regex support.
 
-- [ ] `deepStrictEqual`, `notDeepStrictEqual` for supported structural data,
+- [x] `deepStrictEqual`, `notDeepStrictEqual` for supported structural data,
   following existing scalar equality semantics and ownership.
-- [ ] Async `rejects` with checked failure payloads.
-- [ ] CLI test-name filtering and machine-readable JSON reporter.
-- [ ] Explicit async-test timeout with child drainage and teardown completion;
+- [x] Async `rejects` with checked failure payloads.
+- [x] CLI test-name filtering and machine-readable JSON reporter.
+- [x] Explicit async-test timeout with child drainage and teardown completion;
   blocking callbacks still require the process watchdog.
 
 Witnesses: nested exact values, NaN/signed zero, mismatches/source ranges, rejected
 tasks, hooks after timeout, filter and reporter oracles. Measure assertion-heavy
 overhead only where meaningful; do not invent a whole-framework speed score.
+
+Focused acceptance at `5c45370d`: all23 compiler/native `testing_everyday`
+cases and all4 LSP `testing_everyday` cases passed in the selected attempt9
+(584.265seconds including one shared build). This covers stored/aliased rejects,
+checked worker panic/cancellation transport, timeout cleanup, source provenance,
+filtering and JSON output; it does not claim full milestone regressions.
+The two structural-assertion workloads were measured with native, handwritten Rust
+and Node after tsc: 93 samples per engine/workload, original1024 iterations,
+27 total engine/workload groups across these and seven B14 workloads ingested into
+`benchmarks/measurements.sqlite`. Deep-data native median0.045500ms versus
+Rust0.007208ms and Node0.351208ms exposes a6.31x Rust gap under investigation;
+deep-collections medians0.070750/0.113917/1.551625ms. Native allocation profiles
+completed; reference collection representations differ, so these are not allocator
+parity claims. Full regressions and the performance review remain open.
 
 ### B19 — Practical Rust package adapters
 

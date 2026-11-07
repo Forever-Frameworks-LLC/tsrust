@@ -253,6 +253,13 @@ impl Analyzer {
 impl Analyzer {
     /// Keep physical callback fields selected by concrete function or closure returns.
     pub(super) fn physical_record_result(&mut self, body:&mut [Stmt], mut result:Type)->Result<Type,Diagnostic> {
+        if let Type::Union(original)=result && self.unions.payload(result).is_none(){
+            let mut values=Vec::new();returned_values(body,&mut values);
+            for value in &values{
+                if let Some(actual)=value.ty && let Some(next)=self.finite_record_union_carrier(actual,result.union().unwrap(),value.span)?{result=next;}
+            }
+            if result!=Type::Union(original){for value in values{self.retarget_nullable_store(value,result)?;}}
+        }
         // A record annotation names its declaration; the checked result must
         // retain the concrete callback environment selected by its returns.
         if let Type::Array(ArrayElement::Record(base, depth)) = result
@@ -304,6 +311,13 @@ impl Analyzer {
     /// Conditional branches that hold callback records of one declaration, or
     /// a callback record and absence, take one joined environment.
     pub(super) fn conditional_record_join(&mut self,consequent:&mut Expr,alternate:&mut Expr,left:Type,right:Type)->Result<Option<Type>,Diagnostic> {
+        if let (Type::Union(a),Type::Union(b))=(left,right){
+            let other=|id|self.unions.members(id).into_iter().filter(|ty|!matches!(ty,Type::Record(_))).collect::<Vec<_>>();
+            if other(a)==other(b){
+                let joined=if let Some(joined)=self.finite_record_union_carrier(right,a,alternate.span)?{Some(joined)}else{self.finite_record_union_carrier(left,b,consequent.span)?};
+                if let Some(joined)=joined{self.retarget_nullable_store(consequent,joined)?;self.retarget_nullable_store(alternate,joined)?;return Ok(Some(joined));}
+            }
+        }
         fn absent(value:&Expr)->bool {matches!(&value.kind,ExprKind::Inject{value,..} if matches!(value.kind,ExprKind::Null|ExprKind::Undefined))}
         let joined=match(left,right){
             (Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)

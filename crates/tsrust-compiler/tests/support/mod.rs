@@ -156,7 +156,7 @@ pub fn format_round_trip(source: &str) -> String {
     formatted
 }
 
-pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>) -> String {
+fn checked_fixture_rust(source: &str, contracts: Option<&[(&str, Mode)]>, directory: &TempDirectory) -> String {
     let formatted = format_round_trip(source);
     let source = formatted.as_str();
     let analysis =
@@ -168,7 +168,6 @@ pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>)
             .collect();
         assert_eq!(analysis.contracts(), expected);
     }
-    let directory = TempDirectory::new();
     let path = directory.source(source);
     let checked = run(cli().arg("check").arg(&path).arg("--json"), 10);
     success(&checked);
@@ -191,6 +190,12 @@ pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>)
     assert!(emitted.stderr.is_empty());
     let rust = String::from_utf8(emitted.stdout).unwrap();
     assert_eq!(rust, analysis.emit_rust());
+    rust
+}
+
+pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>) -> String {
+    let directory = TempDirectory::new();
+    let rust = checked_fixture_rust(source, contracts, &directory);
     let rust_path = directory.0.join("program.rs");
     std::fs::write(&rust_path, &rust).unwrap();
     let binary = directory
@@ -214,6 +219,34 @@ pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>)
     assert_eq!(result.stdout, expected.as_bytes());
     assert!(result.stderr.is_empty());
     rust
+}
+
+/// Independent programs with no argument/current-executable observations may
+/// share a Rust compilation. Every frontend oracle is identical to `execute`;
+/// each generated main still runs in a fresh process with its own output oracle.
+pub fn execute_batch(cases: &[(&str, &str)], contracts: Option<&[(&str, Mode)]>) {
+    assert!(!cases.is_empty());
+    let directory = TempDirectory::new();
+    let mut rust = String::new();
+    let mut dispatch = String::new();
+    let sources = cases.iter().map(|_| TempDirectory::new()).collect::<Vec<_>>();
+    for (index, (source, _)) in cases.iter().enumerate() {
+        let emitted = checked_fixture_rust(source, contracts, &sources[index]);
+        rust.push_str(&format!("mod native_{index}{{{emitted}\npub fn verify(){{main();}}\n}}\n"));
+        dispatch.push_str(&format!("Some(\"{index}\")=>native_{index}::verify(),"));
+    }
+    rust.push_str(&format!("fn main(){{match std::env::args().nth(1).as_deref(){{{dispatch}_=>panic!(\"unknown native fixture\"),}}}}"));
+    let input = directory.0.join("batch.rs");
+    let binary = directory.0.join(format!("batch{}", std::env::consts::EXE_SUFFIX));
+    std::fs::write(&input, &rust).unwrap();
+    let compiled = run(rustc().arg("--edition=2024").arg(&input).arg("-o").arg(&binary), 60);
+    assert!(compiled.status.success(), "batch cases 0..{}: {}\n{rust}", cases.len(), String::from_utf8_lossy(&compiled.stderr));
+    for (index, (_, expected)) in cases.iter().enumerate() {
+        let result = run(Command::new(&binary).arg(index.to_string()), 10);
+        assert!(result.status.success(), "case {index}: stdout:\n{}\nstderr:\n{}", String::from_utf8_lossy(&result.stdout), String::from_utf8_lossy(&result.stderr));
+        assert_eq!(result.stdout, expected.as_bytes(), "case {index}");
+        assert!(result.stderr.is_empty(), "case {index}: {}", String::from_utf8_lossy(&result.stderr));
+    }
 }
 
 /// Check and emit deeply nested source on a thread with the compiler's stack,

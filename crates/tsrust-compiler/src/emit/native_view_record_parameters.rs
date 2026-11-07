@@ -39,6 +39,7 @@ pub(super) fn contains_finite_owned(program:&CheckedProgram,root:Type)->bool{
         if !seen.insert(ty){continue;}
         match ty{
             Type::StoredCallable(family) if program.stored_contracts.scoped_native_family(family).is_some_and(|layout|layout.lifetimes()==0)=>return true,
+            Type::Callback(id) if program.callback_contracts[id].kind.is_owned() && program.absent_callback_payloads.contains(&id)=>return true,
             Type::Record(id)=>pending.extend(program.records[id].fields.iter().filter_map(|field|field.ty)),
             Type::Array(element)=>pending.push(element.ty()),
             Type::Union(id)=>pending.extend(&program.unions[id.index()].members),

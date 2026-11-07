@@ -3549,6 +3549,15 @@ impl SourceIndex {
         let mut items=self.receiver_builtins_at(ty, receiver_token).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
         let ty = self.native_owner(ty);
         let ty = ty.as_str();
+        let view=["ReadOnly<","Mutable<","Owned<"].into_iter().find_map(|wrapper|ty.strip_prefix(wrapper).and_then(|inner|inner.strip_suffix('>'))).unwrap_or(ty);
+        let base=view.split_once('<').map_or(view,|(base,_)|base).trim();
+        let identity=self.native_type_aliases.get(base).copied().or_else(||{
+            let(module,name)=base.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
+            tsrust_compiler::native_types::lookup(module,name).map(|declaration|declaration.id)
+        });
+        // Iterator's source record stores its private pull closure; only its
+        // native operations are visible outside the trusted implementation.
+        if identity==Some(tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator){return items;}
         items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":crate::documentation::render(&s.docs)},"textEdit":{"range":replace,"newText":s.name}})));
         if !self.symbols.iter().any(|symbol|symbol.owner.as_deref()==Some(ty)) {
             for (name, field_type) in self.common_record_fields(ty, false) {

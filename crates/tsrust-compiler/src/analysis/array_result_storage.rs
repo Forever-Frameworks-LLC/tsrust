@@ -38,8 +38,8 @@ fn strip_carrier(value: &mut Expr) {
 impl Analyzer {
     /// Preserve a new nominal record environment inside an optional contract.
     /// This changes its carrier, not nominal compatibility or ownership.
-    pub(super) fn scoped_record_injection(&self, actual: Type, expected: UnionId, span: Span) -> Result<Option<Type>, Diagnostic> {
-        let Some(Type::Record(target)) = self.unions.payload(Type::Union(expected)) else { return Ok(None); };
+    pub(super) fn scoped_record_injection(&mut self, actual: Type, expected: UnionId, span: Span) -> Result<Option<Type>, Diagnostic> {
+        let Some(Type::Record(target)) = self.unions.payload(Type::Union(expected)) else { return self.finite_record_union_carrier(actual,expected,span); };
         // A named nullable value already carries its concrete environment. Keep
         // that environment when injecting into the same nominal contract.
         if let Type::Union(source) = actual {
@@ -60,6 +60,39 @@ impl Analyzer {
         self.unions.intern(self.unions.members(expected).into_iter().map(|member| {
             if member == Type::Record(target) { actual } else { member }
         }), span).map(Some)
+    }
+
+    /// Preserve owned record environments in a mixed union. A variant not
+    /// populated by this value uses the existing explicit absent environment.
+    pub(super) fn finite_record_union_carrier(&mut self,actual:Type,expected:UnionId,span:Span)->Result<Option<Type>,Diagnostic>{
+        if self.unions.payload(Type::Union(expected)).is_some() || matches!(actual,Type::BorrowedUnion(_)){return Ok(None);}
+        let members=self.unions.members(expected);let mut target=members.clone();
+        let actual_members=if let Type::Union(id)=actual{self.unions.members(id)}else{vec![actual]};
+        let mut owned=false;
+        for(index,&member)in members.iter().enumerate(){
+            let Type::Record(record)=member else{continue;};
+            let declaration=self.scoped_records.declaration(record);let facts=self.aggregate_callable_facts(Type::Record(declaration));
+            if !facts.retains || facts.scoped{continue;}
+            owned=true;
+            let populated=actual_members.iter().any(|ty|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration));
+            if record==declaration && !populated{target[index]=self.empty_scoped_record_environment(declaration)?;}
+        }
+        if !owned{return Ok(None);}
+        for member in actual_members{
+            if let Type::Record(record)=member{
+                let declaration=self.scoped_records.declaration(record);
+                let candidates=members.iter().enumerate().filter_map(|(index,ty)|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration).then_some(index)).collect::<Vec<_>>();
+                let [index]=candidates.as_slice() else{return Ok(None);};
+                self.require(member,Some(Type::Record(declaration)),span)?;
+                let Type::Record(previous)=target[*index] else{unreachable!()};
+                if previous==record{continue;}
+                target[*index]=if previous==declaration{member}else{
+                    self.join_sticky_record_types(previous,record,span)?.ok_or_else(||Diagnostic::new("type","Owned record alternatives cannot share a finite environment.",span))?
+                };
+            }else{self.require(member,Some(Type::Union(expected)),span)?;}
+        }
+        let concrete=self.unions.intern(target,span)?;
+        Ok((concrete!=Type::Union(expected) || actual!=concrete).then_some(concrete))
     }
 
     pub(super) fn array_result_replacement_type(&mut self, value: &mut Expr, selected: Option<Type>, previous: Type, results: &HashMap<usize, Type>) -> Result<Option<Type>, Diagnostic> {

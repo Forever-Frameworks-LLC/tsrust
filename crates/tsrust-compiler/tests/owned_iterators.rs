@@ -133,3 +133,17 @@ fn owned_nullable_capture_slots_preserve_state_and_borrowed_guards(){
   "import {alloc,view,length} from 'std:bytes';function main(){const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const read:Owned<Function<int>>=():int=>length(slice);console.log(read());}",
  ]{let source=support::format_round_trip(source);assert!(checked(&source).is_err(),"{source}");}
 }
+
+#[test]
+fn owned_iterator_mixed_union_returns_keep_their_physical_alternative(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function values(flag:boolean):int[]|Iterator<int>{if(flag){return [1,2];}return Iterator.from([3,4]).map(value=>value+1);}function main(){const source=Iterator.from([false,true]).flatMap((flag:boolean):int[]|Iterator<int>=>values(flag));console.log(source.toArray().join(','));}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"4,5,1,2\n");
+ for source in ["import {Iterator} from 'std:iterator';function wrong(flag:boolean):int[]|Iterator<string>{return Iterator.from([1]);}function main(){}","import {Iterator} from 'std:iterator';function wrong():int[]|Iterator<int>{return 'wrong';}function main(){}"]{let source=support::format_round_trip(source);assert!(checked(&source).is_err());}
+}
+
+#[test]
+fn readonly_mixed_union_observations_preserve_the_selected_iterator_owner(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function observe(value:ReadOnly<int[]|Iterator<int>>):boolean{return Array.isArray(value);}function main(){const value:int[]|Iterator<int>=Iterator.from([2,4]);if(!Array.isArray(value)){console.log(observe(value),observe(value));console.log(value.toArray().join(','));}const array:int[]|Iterator<int>=[5,6];if(Array.isArray(array)){console.log(observe(array),observe(array));console.log(array.join(','));}}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"false false\n2,4\ntrue true\n5,6\n");
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function observe(value:ReadOnly<int[]|Iterator<int>>):boolean{return Array.isArray(value);}function main(){const value:int[]|Iterator<int>=Iterator.from([2,4]);if(!Array.isArray(value)){const moved=value;console.log(observe(value));}}");assert!(checked(&source).is_err());
+}

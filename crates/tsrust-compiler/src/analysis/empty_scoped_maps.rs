@@ -49,6 +49,9 @@ impl Analyzer {
                 result=ty;
                 match ty{
                     Type::Callback(id)=>result=self.absent_callback(id),
+                    Type::StoredCallable(family)=>{
+                        if let Some(id)=self.callables.storage.declaration(family) && self.callables.callbacks[id].kind.is_owned(){result=self.absent_callback(id);}else{result=ty;}
+                    }
                     Type::Record(id)=>work.push(EmptyTask::Record(id,false)),
                     Type::Union(id)=>work.push(EmptyTask::Union{span,members:self.unions.members(id),types:Vec::new(),index:0}),
                     Type::Map(_)=>work.push(EmptyTask::MapLayout(ty)),
@@ -62,6 +65,9 @@ impl Analyzer {
                     // Union members deliberately preserve map and other payloads.
                     match member{
                         Type::Callback(id)=>result=self.absent_callback(id),
+                        Type::StoredCallable(family)=>{
+                            if let Some(id)=self.callables.storage.declaration(family) && self.callables.callbacks[id].kind.is_owned(){result=self.absent_callback(id);}else{result=member;}
+                        }
                         Type::Record(id)=>work.push(EmptyTask::Record(id,false)),
                         other=>result=other,
                     }
@@ -260,4 +266,16 @@ mod absent_result_tests {
         }
         assert_eq!(depth,4096);assert_eq!(current,Type::Int);
     }
+}
+
+#[cfg(test)]
+#[test]
+fn empty_owned_record_fields_use_explicit_absent_callback_identity(){
+ let source=crate::format("type Holder={run:Owned<Function<int>>;};function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+ let mut analyzer=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();let record=analyzer.record_names["Holder"];
+ let source=*analyzer.fields[record].get("run").unwrap();assert!(matches!(source,Type::StoredCallable(_)));
+ let empty=analyzer.empty_scoped_record_environment(record).unwrap();assert_eq!(analyzer.empty_scoped_record_environment(record).unwrap(),empty);
+ let Type::Record(id)=empty else{panic!("empty record carrier")};let field=*analyzer.fields[id].get("run").unwrap();
+ assert_ne!(field,source);assert!(analyzer.absent_callable_type(field));assert!(analyzer.finite_owned_shape(empty));
+ assert_eq!(analyzer.scoped_records.declaration(id),record);
 }

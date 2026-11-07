@@ -47,8 +47,8 @@
       "rustReference": "parity/testing_deep_data.rs",
       "source": "workloads/testing_deep_data.tsr",
       "counterpart": "workloads/testing_deep_data.ts",
-      "measured": false,
-      "measurementStatus": "unmeasured-structural-assertions",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "rustReferenceSha256": "271b6f586b1769c892bf73e2af230f97d580fd04ab6c9cb715975fa6bb878acc"
     },
     {
@@ -92,8 +92,8 @@
       "rustReference": "parity/testing_deep_collections.rs",
       "source": "workloads/testing_deep_collections.tsr",
       "counterpart": "workloads/testing_deep_collections.ts",
-      "measured": false,
-      "measurementStatus": "unmeasured-structural-assertions",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "rustReferenceSha256": "628b5c03d924582220a88da2826377c1fbd3bb7ba2bb54e5863a6a2444b03754"
     },
     {
@@ -27433,10 +27433,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-collection-numeric-date",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
-      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
       "sourceSha256": "9fa7fc278dee0eaafbeab187ba95883ff3c721882ea146960f2fe7e96a6c8ad3",
       "counterpartSha256": "cd7b4efaa67503f3ea02c7d599075e01544309be48e6f71f20900e67318874ad"
     },
@@ -27457,10 +27457,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-collection-numeric-date",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
-      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
       "sourceSha256": "32451f6092e652bced0807c03575c8fcbe91c32cce495b0d03bc459cd390aa94",
       "counterpartSha256": "4073841f7cd4081b4d8ea5fde363b764525eb38e637e263bc911ee156aff882e"
     },
@@ -27481,10 +27481,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-collection-numeric-date",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
-      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
       "sourceSha256": "0981c49363d2467a5cbf7f46f8a247cc087de043ce462726fb932d0998bfc385",
       "counterpartSha256": "f26313f8ce9187a0afc685625fb39b40c5ddb7cc18acece1c1e16569e3f9e157"
     },
@@ -27505,10 +27505,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-collection-numeric-date",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
-      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
       "sourceSha256": "7cb0e799e584ac414eed4353ae4e88ab6b1b90c1ebfe16f42ef7916b771eb433",
       "counterpartSha256": "3f3e854f622a3eeda7121b0d85d305c4eeee48c56676774c51b9787c81697b81"
     },
@@ -27529,10 +27529,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-collection-numeric-date",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
-      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
       "sourceSha256": "ab456e7e3acb9671ae22f4f507665909acbaf70f5ef49664770049713163d637",
       "counterpartSha256": "8f9e49cb61b640dcab4f1bf5e15b9cdb28d9302da591b34a3db77c4d3410bd8b"
     },
@@ -27553,10 +27553,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-collection-numeric-date",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
-      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
       "sourceSha256": "dfb1779d61de3c888042c36b1260bc08acedbe34341622d4e0f0b574ed8f64f3",
       "counterpartSha256": "fed3f35135078606e067b8f281c1c357794a8f643f771adb700501f3f55e4dde"
     },
@@ -27577,10 +27577,10 @@
         "int",
         "int"
       ],
-      "measured": false,
-      "measurementStatus": "unmeasured-collection-numeric-date",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
-      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; unmeasured.",
+      "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
       "sourceSha256": "02788936173270fb5dcbcc4a65394402270a25411468ea3439b0a46f8b6eff1f",
       "counterpartSha256": "3190951a0ecece602247ff3a8246c34236719811a65c78f258daedced8894f4d"
     }

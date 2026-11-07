@@ -60,6 +60,11 @@ impl Analyzer {
                 if let(Some(Type::Record(_)),Some(payload))=(inner.ty,self.unions.payload(destination)){
                     return Ok(Some((State::Inject,take(inner),payload)));
                 }
+                if let Some(Type::Record(record))=inner.ty{
+                    let declaration=self.scoped_records.declaration(record);
+                    let targets=self.unions.members(destination.union().unwrap()).into_iter().filter(|ty|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration)).collect::<Vec<_>>();
+                    if let [target]=targets.as_slice(){return Ok(Some((State::Inject,take(inner),*target)));}
+                }
                 *tag=destination.union().unwrap();value.ty=Some(destination);
             }
             ExprKind::Array(elements) if matches!(destination,Type::Array(_))=>{

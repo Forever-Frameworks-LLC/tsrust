@@ -9,6 +9,7 @@ impl Analyzer {
             if !seen.insert(ty){continue;}
             match ty{
                 Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some_and(|layout|layout.lifetimes()==0)=>return true,
+                Type::Callback(id) if self.callables.callbacks[id].kind.is_owned() && self.absent_callback_payloads.values().any(|&empty|empty==id)=>return true,
                 Type::Record(id)=>work.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
                 Type::Array(element)=>work.push(element.ty()),
                 Type::Union(id)=>work.extend(self.unions.members(id)),

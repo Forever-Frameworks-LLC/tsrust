@@ -22,7 +22,7 @@ pub(in crate::analysis) struct Projection{
     actual:Type,expected:Option<Type>,mode:Mode,
 }
 pub(in crate::analysis) struct Injection{
-    union:UnionId,member_hint:Option<Type>,borrowing_record:bool,borrowing_callback:bool,
+    union:UnionId,member_hint:Option<Type>,borrowing_record:bool,borrowing_callback:bool,mode:Mode,
 }
 impl Analyzer{
     pub(super) fn finish_prelude_work(&mut self,context:&mut Context,expr:&mut Expr,frame:Frame,result:Result<Type,Diagnostic>)->Result<Type,Diagnostic>{
@@ -138,11 +138,7 @@ impl Analyzer{
             && actual != Type::Union(target)
         {
             if let Some(concrete) = self.scoped_record_injection(actual, target, expr.span)? {
-                let target = concrete.union().expect("projected nullable record");
-                expr.inject(target);
-                let result = if mode == Mode::Read { Type::BorrowedUnion(target) } else { concrete };
-                expr.ty = Some(result);
-                return Ok(result);
+                return self.finish_record_carrier_injection(expr,actual,concrete,mode);
             }
             self.require(actual, expected, expr.span)?;
             expr.inject(target);
@@ -221,9 +217,10 @@ impl Analyzer{
             ));
         }
         let borrowing_record = mode == Mode::Read
-            && self.nullable_scoped_record_declaration(expected).is_some();
+            && (self.nullable_scoped_record_declaration(expected).is_some()
+                || self.unions.members(union).iter().any(|ty|matches!(ty,Type::Record(id) if self.aggregate_callable_facts(Type::Record(*id)).retains)));
         let borrowing_callback=mode==Mode::Read && self.unions.payload(expected).is_some_and(|ty|matches!(ty,Type::Callback(id) if self.callables.callbacks[id].kind==CallbackKind::Read || hint.is_some_and(|ty|ty.union().is_some())));
-        let frame=Injection{union,member_hint,borrowing_record,borrowing_callback};
+        let frame=Injection{union,member_hint,borrowing_record,borrowing_callback,mode};
         if let Some(Type::StoredCallable(family))=member_hint {
             let stored=self.prepare_stored_value(context,expr,family)?;
             return Ok(Prelude::Child{mode:Mode::Consume,expected:stored.expected,frame:Frame::StoredInjection{stored,injection:frame}});
@@ -234,7 +231,7 @@ impl Analyzer{
         })
     }
     fn finish_injection_work(&mut self,context:&mut Context,expr:&mut Expr,frame:Injection,mut actual:Type)->Result<Type,Diagnostic>{
-        let Injection{union,member_hint,borrowing_record,borrowing_callback}=frame;
+        let Injection{union,member_hint,borrowing_record,borrowing_callback,mode}=frame;
         let expected=Type::Union(union);
         if borrowing_record && matches!(actual, Type::Null | Type::Undefined)
             && let Some(concrete) = self.absent_nullable_record_annotation(context, Some(expected), expr)?
@@ -249,13 +246,7 @@ impl Analyzer{
             return Ok(concrete);
         }
         if let Some(concrete) = self.scoped_record_injection(actual, union, expr.span)? {
-            let concrete_union = concrete.union().expect("nullable scoped record");
-            expr.inject(concrete_union);
-            if borrowing_record {
-                expr.ty = Some(Type::BorrowedUnion(concrete_union));
-                return Ok(Type::BorrowedUnion(concrete_union));
-            }
-            return Ok(concrete);
+            return self.finish_record_carrier_injection(expr,actual,concrete,mode);
         }
         if let Some(Type::Callback(callback)) = member_hint {
             self.require(actual, Some(Type::Callback(callback)), expr.span)?;
@@ -336,14 +327,44 @@ impl Analyzer{
         }
         Ok(expected)
     }
+    /// Borrowing preserves each selected physical record. Only an owning
+    /// injection may move it into a wider finite environment carrier.
+    fn finish_record_carrier_injection(&mut self,expr:&mut Expr,actual:Type,concrete:Type,mode:Mode)->Result<Type,Diagnostic>{
+        let union=concrete.union().expect("record carrier injection");
+        if matches!(mode,Mode::Read|Mode::Mutate){
+            let source=actual.union().map(|id|self.unions.members(id)).unwrap_or_else(||vec![actual]);
+            let mut members=Vec::new();
+            for member in self.unions.members(union){
+                if let Type::Record(record)=member{
+                    let declaration=self.scoped_records.declaration(record);
+                    let selected=source.iter().copied().filter(|ty|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration)).collect::<Vec<_>>();
+                    if !selected.is_empty(){members.extend(selected);continue;}
+                }
+                members.push(member);
+            }
+            let view=self.unions.intern(members,expr.span)?;
+            if mode==Mode::Mutate && view!=concrete{return Err(Diagnostic::new("type","A nullable mutable parameter requires existing tagged storage.",expr.span));}
+            let target=view.union().expect("record view injection");
+            expr.inject(target);
+            let result=if mode==Mode::Read{Type::BorrowedUnion(target)}else{view};expr.ty=Some(result);
+            return Ok(result);
+        }
+        if actual.union().is_some(){self.retarget_nullable_store(expr,concrete)?;}
+        else{
+            if let Type::Record(record)=actual{
+                let targets=self.unions.members(union).into_iter().filter(|ty|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==self.scoped_records.declaration(record))).collect::<Vec<_>>();
+                let [target]=targets.as_slice() else{return Err(Diagnostic::new("type","Record injection requires one matching nominal alternative.",expr.span));};
+                if *target!=actual{self.retarget_nullable_store(expr,*target)?;}
+            }
+            expr.inject(union);
+        }
+        Ok(concrete)
+    }
     fn finish_borrowed_injection_work(&mut self,expr:&mut Expr,source:UnionId,union:UnionId,actual:Type)->Result<Type,Diagnostic>{
         let expected=Type::Union(union);
 
             if let Some(concrete) = self.scoped_record_injection(actual, union, expr.span)? {
-                let concrete = concrete.union().expect("nullable record view");
-                expr.inject(concrete);
-                expr.ty = Some(Type::BorrowedUnion(concrete));
-                return Ok(Type::BorrowedUnion(concrete));
+                return self.finish_record_carrier_injection(expr,actual,concrete,Mode::Read);
             }
             self.require(actual, Some(expected), expr.span)?;
             if source != union {

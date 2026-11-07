@@ -8,15 +8,15 @@ impl Emitter<'_>{
    Type::Array(element)=>work.push(element.ty()),Type::Union(id)|Type::BorrowedUnion(id)=>work.extend(self.program.unions[id.index()].members.iter().copied()),
    Type::Map(id)=>{let map=self.program.records[id].map_definition.as_ref().unwrap();work.extend([map.key,map.value]);},Type::Set(id)=>work.push(self.program.records[id].set_definition.as_ref().unwrap().key),_=>{},
   }}records.sort_unstable();
-  let setup=if records.is_empty(){String::new()}else{let variants=records.iter().map(|id|format!("R{id}(&'a {},&'a {})",self.native_type(Type::Record(*id)),self.native_type(Type::Record(*id)))).collect::<Vec<_>>().join(",");format!("enum DeepWork<'a>{{{variants}}}let mut deep_work=Vec::<DeepWork<'_>>::new();")};
+  let setup=if records.is_empty(){String::new()}else{let variants=records.iter().map(|id|format!("R{id}(&'a {},&'a {})",self.native_type(Type::Record(*id)),self.native_type(Type::Record(*id)))).collect::<Vec<_>>().join(",");format!("enum DeepWork<'a>{{{variants}}}let mut deep_work=Vec::<DeepWork<'_>>::new();let mut deep_pending=None::<DeepWork<'_>>;")};
   let start=self.testing_deep_step(root,"deep_left","deep_right",false);
-  let drain=if records.is_empty(){String::new()}else{let arms=records.iter().map(|id|{let fields=self.program.records[*id].fields.iter().enumerate().map(|(field,metadata)|self.testing_deep_step(metadata.ty.unwrap(),&format!("&left.field{field}"),&format!("&right.field{field}"),true)).collect::<String>();format!("DeepWork::R{id}(left,right)=>{{{fields}}}")}).collect::<String>();format!("while let Some(item)=deep_work.pop(){{match item{{{arms}}}}}")};
+  let drain=if records.is_empty(){String::new()}else{let arms=records.iter().map(|id|{let fields=self.program.records[*id].fields.iter().enumerate().map(|(field,metadata)|self.testing_deep_step(metadata.ty.unwrap(),&format!("&left.field{field}"),&format!("&right.field{field}"),true)).collect::<String>();format!("DeepWork::R{id}(left,right)=>{{{fields}}}")}).collect::<String>();format!("while let Some(item)=deep_pending.take().or_else(||deep_work.pop()){{match item{{{arms}}}}}")};
   format!("{{let deep_left={};let deep_right={};(||{{{setup}{start}{drain}true}})()}}",self.expr(fun,&args[0],Mode::Read),self.expr(fun,&args[1],Mode::Read))
  }
  fn testing_deep_step(&self,ty:Type,left:&str,right:&str,nested:bool)->String{
   match ty{
    Type::Literal(_,kind)=>self.testing_deep_step(kind.base(),left,right,nested),
-   Type::Record(id)=>format!("deep_work.push(DeepWork::R{id}({left},{right}));"),
+   Type::Record(id)=>format!("if let Some(previous)=deep_pending.replace(DeepWork::R{id}({left},{right})){{deep_work.push(previous);}}"),
    Type::Array(element)=>{let child=self.testing_deep_step(element.ty(),"left_item","right_item",true);format!("{{let left={left};let right={right};if left.len()!=right.len(){{return false;}}for(left_item,right_item)in left.iter().zip(right.iter()){{{child}}}}}")},
    Type::Map(id)=>{let map=self.program.records[id].map_definition.as_ref().unwrap();let child=self.testing_deep_step(map.value,"left_item","right_item",true);format!("{{let left={left};let right={right};if left.len()!=right.len(){{return false;}}for(key,left_item)in left.iter(){{let Some(right_item)=right.get(key)else{{return false;}};{child}}}}}")},
    Type::Set(_)=>format!("{{let left={left};let right={right};if left.len()!=right.len()||!left.iter().all(|item|right.has(item)){{return false;}}}}"),

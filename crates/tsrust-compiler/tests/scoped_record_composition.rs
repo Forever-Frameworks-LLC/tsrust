@@ -128,7 +128,8 @@ fn nullable_record_fields_compose_with_scoped_array_storage() {
 #[test]
 fn nullable_callback_records_join_environments_through_control_flow() {
     let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
-    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    let mut cases=Vec::new();
+    let mut run=|body:&str,expected:&str|{cases.push((support::format_round_trip(&format!("{holder}{body}")),expected.to_owned()));};
     // Locals: one branch, both branches, loop, exception region and clearing in a branch.
     run("function f(flag:boolean):void{const a=[3];let s:Holder|undefined=undefined;if(flag)s={run:():int=>a[0]};if(s!==undefined)console.log(s.run());else console.log(\"none\");}function main():void{f(true);f(false);}","3\nnone\n");
     run("function f(flag:boolean):void{const a=[3];const b=[4];let s:Holder|undefined=undefined;if(flag){s={run:():int=>a[0]};}else{s={run:():int=>b[0]};}if(s!==undefined)console.log(s.run());s=undefined;console.log(s===undefined);}function main():void{f(true);f(false);}","3\ntrue\n4\ntrue\n");
@@ -146,6 +147,9 @@ fn nullable_callback_records_join_environments_through_control_flow() {
     run("function main():void{const a=[3];let box:Box={saved:undefined};let i=0;while(i<2){box={saved:{run:():int=>a[0]}};i+=1;}console.log(box.saved!==undefined?box.saved.run():0);}","3\n");
     // A scope end releases the joined environments.
     run("function main():void{const a=[3];{let s:Holder|undefined=undefined;if(a[0]>1)s={run:():int=>a[0]};if(s!==undefined)console.log(s.run());}a[0]=9;console.log(a[0]);}","3\n9\n");
+    assert_eq!(cases.len(),13);
+    let cases=cases.iter().map(|(source,expected)|(source.as_str(),expected.as_str())).collect::<Vec<_>>();
+    support::execute_batch(&cases,None);
     let disposal=support::format_round_trip(&format!("{holder}function f(flag:boolean):void{{const a=[3];const b=[4];let s:Holder|undefined=undefined;if(flag){{s={{run:():int=>a[0]}};}}else{{s={{run:():int=>b[0]}};}}if(s!==undefined)console.log(s.run());s=undefined;console.log(\"cleared\");}}function main():void{{f(true);f(false);}}"));
     verify_disposal(&disposal,2,"3\ndrop 0\ncleared\n4\ndrop 1\ncleared\n");
 }

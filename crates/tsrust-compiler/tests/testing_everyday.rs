@@ -11,7 +11,8 @@ function main(){
  const a:int|string=7;const b:int|string='7';notDeepStrictEqual(a,b);deepStrictEqual(a,a);
  const first=new Map<string,int[]>();first.set('a',[1,2]);first.set('b',[3]);const second=new Map<string,int[]>();second.set('b',[3]);second.set('a',[1,2]);deepStrictEqual(first,second);strictEqual(first.size,2);
  const setA=new Set<int>([1,2,3]);const setB=new Set<int>([3,2,1]);deepStrictEqual(setA,setB);notDeepStrictEqual(setA,new Set<int>([1,2]));
- let tree:Node={value:0,children:[]};let i=0;while(i<10000){tree={value:i,children:[tree]};i++;}const copied=clone(tree);deepStrictEqual(tree,copied);strictEqual(tree.value,9999);
+const branch:Node={value:0,children:[{value:1,children:[]},{value:2,children:[]},{value:3,children:[]}]};deepStrictEqual(branch,clone(branch));const different:Node={value:0,children:[{value:1,children:[]},{value:2,children:[]},{value:4,children:[]}]};notDeepStrictEqual(branch,different);const firstDifferent:Node={value:0,children:[{value:4,children:[]},{value:2,children:[]},{value:3,children:[]}]};notDeepStrictEqual(branch,firstDifferent);
+  let tree:Node={value:0,children:[]};let i=0;while(i<10000){tree={value:i,children:[tree]};i++;}const copied=clone(tree);deepStrictEqual(tree,copied);strictEqual(tree.value,9999);
 }
 "#);}
 #[test]fn rejects_checked_payloads_and_resource_cleanup_execute(){
