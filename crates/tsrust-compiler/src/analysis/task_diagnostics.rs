@@ -88,7 +88,7 @@ impl CheckedProgram {
                 // Responsibilities belong to its actual checked invocation bodies.
                 for method in &closure.methods {
                     if method.function.template{continue;}
-                    let captures=closure.captures.iter().zip(&method.captures).map(|(capture,&slot)|{let mut capture=capture.clone();capture.inner=slot;capture}).collect::<Vec<_>>();
+                    let captures=closure.captures.iter().zip(&method.captures).map(|(capture,&inner)|Capture{restored:capture.restored,outer:capture.outer,inner,storage:capture.storage,access:capture.access,span:capture.span}).collect::<Vec<_>>();
                     tracker.function(&method.function,&captures,Some(&method.parameters),method.invocation);
                 }
             }
