@@ -3901,6 +3901,20 @@ impl Analyzer {
                 context.inferred_body_result = self.signatures[index].inferred_result;
                 let _ = self.check_source_callable_body(&mut context, Self::uninitialized_body(&mut body), result);
             }
+            // Physical-result dependencies may have entered definitive checking.
+            // A failed dependency consumed its body before this speculative walk
+            // ignored its error. Replay that source so definitive checking reports
+            // the original error, rather than an empty-body/missing-return cascade.
+            if let Some(sources)=&self.discovery_body_sources {
+                // The function continuation has already drained its active stack
+                // on failure. Retained sources, not that stack, identify bodies
+                // consumed by a failed speculative dependency.
+                for (&dependency,source) in sources {
+                    if self.checked[dependency].is_none() && self.program.functions[dependency].body.is_empty() {
+                        self.program.functions[dependency].body=source.clone();
+                    }
+                }
+            }
             self.visiting.iter_mut().for_each(|visiting| *visiting = false);
             self.function_stack.clear();
             self.depth = 0;

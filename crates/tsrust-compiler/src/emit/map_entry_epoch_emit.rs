@@ -20,7 +20,7 @@ impl Emitter<'_> {
             let index=self.program.records[record].fields.iter().position(|field|field.name.text==*name).expect("checked Map field");
             indices.push(index);ty=self.program.records[record].fields[index].ty.unwrap();
         }
-        if indices.is_empty(){format!("value{}",epoch.place.binding)}else{self.owned_record_leaf_place(fun,epoch.place.binding,&indices).expect("owning Map leaf")}
+        if indices.is_empty(){format!("value{}",epoch.place.binding)}else{self.owned_record_leaf_place(fun,epoch.place.binding,&indices).unwrap_or_else(||panic!("owning Map leaf: function={} binding={} fields={:?} input={:?} output={:?}",fun.name,epoch.place.binding,epoch.place.fields,epoch.input,epoch.output))}
     }
     pub(super) fn map_entry_epoch_code(&self,fun:&CheckedFunction,epoch:&crate::analysis::MapEntryEpoch)->String {
         let mut source=epoch.input;
@@ -33,7 +33,7 @@ impl Emitter<'_> {
             source=self.program.records[input].fields[index].ty.unwrap();
             target=self.program.records[output].fields[index].ty.unwrap();
         }
-        let place=if indices.is_empty(){format!("value{}",epoch.place.binding)}else{self.owned_record_leaf_place(fun,epoch.place.binding,&indices).expect("owning Map leaf")};
+        let place=if indices.is_empty(){format!("value{}",epoch.place.binding)}else{self.owned_record_leaf_place(fun,epoch.place.binding,&indices).unwrap_or_else(||panic!("owning Map leaf: function={} binding={} fields={:?} input={:?} output={:?}",fun.name,epoch.place.binding,epoch.place.fields,epoch.input,epoch.output))};
         let (Type::Map(input),Type::Map(output))=(source,target) else {unreachable!("checked Map epoch")};
         let source=self.program.records[input].map_definition.as_ref().unwrap().value;
         let target=self.program.records[output].map_definition.as_ref().unwrap().value;

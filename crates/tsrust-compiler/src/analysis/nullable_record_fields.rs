@@ -337,7 +337,7 @@ impl Analyzer {
         fn absent(value:&Expr)->bool {matches!(&value.kind,ExprKind::Inject{value,..} if matches!(value.kind,ExprKind::Null|ExprKind::Undefined))}
         let joined=match(left,right){
             (Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)
-                && (self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(a))).scoped || self.finite_owned_shape(left) || self.finite_owned_shape(right))=>self.join_sticky_record_types(a,b,consequent.span)?,
+                && (self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(a))).scoped || self.finite_owned_shape(left) || self.finite_owned_shape(right) || self.scoped_native_record_contract(a,b) || self.scoped_native_record_contract(b,a))=>self.join_sticky_record_types(a,b,consequent.span)?,
             _ if self.nullable_scoped_record_declaration(left).is_some() && self.nullable_scoped_record_declaration(left)==self.nullable_scoped_record_declaration(right)=>{
                 if absent(alternate){Some(left)}else if absent(consequent){Some(right)}else{self.join_nullable_record_unions(left,right,consequent.span)?}
             }

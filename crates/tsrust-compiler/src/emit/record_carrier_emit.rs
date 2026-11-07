@@ -88,6 +88,17 @@ impl Emitter<'_> {
         if target.accepts_scalar_value(source) {
             return value.into();
         }
+        // Empty callback environments make the whole required-field record
+        // uninhabited. Do not structurally expand its recursive sibling fields.
+        // Evaluate the source once, retaining ordinary ownership and effects.
+        if let Some(field)=self.absent_record_field(source) {
+            return format!("{{let absent_carrier={value};match absent_carrier.field{field}{{}}}}");
+        }
+        if std::env::var_os("TSRUST_TRACE_CARRIERS").is_some()
+            && let (Type::Record(source),Type::Record(target))=(source,target)
+            && (self.native_views.cyclic(source)||self.native_views.cyclic(target)) {
+            eprintln!("[record-carrier-cycle] source={source} target={target} source_declaration={} target_declaration={}",self.program.scoped_records.declaration(source),self.program.scoped_records.declaration(target));
+        }
         match (source, target) {
             (Type::Union(source), target) if matches!(target,Type::String|Type::Int|Type::Number|Type::Boolean)
                 && self.program.unions[source.index()].members.iter().all(|&member|target.accepts_scalar_value(member))=>{

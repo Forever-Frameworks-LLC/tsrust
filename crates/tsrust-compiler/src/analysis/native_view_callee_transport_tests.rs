@@ -120,3 +120,17 @@ fn discovery_defers_callback_owner_summaries_until_named_factories_are_checked()
     call.target=Some(CallTarget::StoredCallableField(family));call.ty=Some(result);
     assert_eq!(Analyzer::native_view_value_loans(&context,&call).unwrap_err().code,"native-view-call","definitive checking still requires the actual capture owner");
 }
+
+#[test]
+fn failed_callback_discovery_dependency_keeps_its_original_return_body(){
+    let source="type Window={};type Holder={read:Once<Function<Window>>;next?:Holder;};function leak(value:Window):Holder{const invalid=1;return invalid;}function caller(value:Window){const holder=leak(value);}function accept(holder:Holder){}function main(){}";
+    let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+    let mut parsed=crate::syntax::parse(&formatted).unwrap();parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+    let mut analyzer=Analyzer::new(parsed).unwrap();let leak=analyzer.function_names["leak"];
+    let statements=analyzer.program.functions[leak].body.len();assert!(statements>0);
+    analyzer.discover_record_callbacks();
+    assert!(analyzer.checked[leak].is_none());assert_eq!(analyzer.program.functions[leak].body.len(),statements);
+    let error=analyzer.function(leak).unwrap_err();assert_eq!(error.code,"type");
+    assert!(!error.message.contains("must return"),"preserve the original invalid return: {error:?}");
+    assert!(error.message.contains("Expected Holder"),"{error:?}");
+}

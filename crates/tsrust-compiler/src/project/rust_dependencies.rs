@@ -27,6 +27,7 @@ pub fn reserved(name:&str)->bool {
         "accesskit",
         "accesskit_winit",
         "futures-core",
+        "futures-util","tokio-tungstenite","webpki-roots","pin-project-lite","tracing","tracing-subscriber",
         "tokio-util",
         "flate2",
         "nix",
@@ -70,7 +71,13 @@ pub const MARKER:&str="// tsrust-binding-package ";
  #[test]fn every_bundled_dependency_pin_is_reserved(){
   for manifest in [include_str!("../../native-dependencies/Cargo.toml"),include_str!("../../backend-dependencies/Cargo.toml")] {
    let section=manifest.split_once("[dependencies]\n").unwrap().1.split_once("\n[features]").unwrap().0;
-   for line in section.lines().filter(|line|!line.trim().is_empty()) {let name=line.split_once('=').unwrap().0.trim();assert!(reserved(name),"unprotected runtime dependency {name}");}
+   for line in section.lines().filter(|line|!line.trim().is_empty()) {let name=line.split_once('=').unwrap().0.trim();assert!(reserved(name),"unprotected runtime dependency {name}");
+    // Both schemas share the same runtime-owned names, even when a backend
+    // feature is optional. Regex alone has its separately tested admitted reuse.
+    if name!="regex" {for schema in [1,2] {
+     let text=format!(r#"{{"schemaVersion":{schema},"source":"./adapter.rs","dependencies":{{"{name}":{{"version":"=0.0.0"}}}}}}"#);
+     let error=Bindings::parse(&text).unwrap_err();assert!(error.contains("Invalid or reserved dependency name"),"{schema}: {name}: {error}");
+    }}}
   }
   for schema in [1,2] {for name in ["nix","flate2"] {assert!(Bindings::parse(&format!(r#"{{"schemaVersion":{schema},"source":"./adapter.rs","dependencies":{{"{name}":{{"version":"=0.30.1"}}}}}}"#)).is_err());}}
  }

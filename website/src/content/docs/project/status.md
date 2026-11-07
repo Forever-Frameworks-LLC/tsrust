@@ -20,13 +20,20 @@ passed acceptance: consult its published assets and release notes.
 
 ## Standard-library development
 
-The v0.2.0 standard-library checklist is still in progress. Source builds include
-expanded collection, numeric and date operations, path/environment/OS helpers,
-async coordination and everyday testing facilities. Find them in the
-[standard-library overview](/tsrust/library/overview/) and
-[testing guide](/tsrust/tools/testing/). These development APIs are not a claim
-that an older installed release includes them or that all platform and milestone
-regressions are complete. Owned iterator pipelines remain under validation.
+The v0.2.0 standard-library checklist is still in progress. Source builds include:
+
+- Owned byte buffers, binary codecs, file/directory operations, streams and compression.
+- Path, environment and OS helpers, signals, child processes, TCP/UDP and DNS.
+- Binary and streaming HTTP requests, multipart forms, middleware, SSE and WebSockets.
+- Reusable regular expressions and explicit-locale text and number operations.
+- Owned iterator pipelines and expanded collection, numeric and date operations.
+- Incremental hashes, HMAC/HKDF and password hashing/verification on explicit CPU pools.
+- Structured logging, async coordination and testing hooks, assertions and profiling.
+
+Find the APIs in the [standard-library overview](/tsrust/library/overview/) and
+[test runner and profiling guide](/tsrust/tools/testing/). Source availability does
+not mean an older installed release includes these APIs. Platform, package,
+performance and final milestone acceptance remain incomplete.
 
 ## Compatibility
 

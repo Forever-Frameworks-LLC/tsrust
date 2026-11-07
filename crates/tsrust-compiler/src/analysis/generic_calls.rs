@@ -282,7 +282,7 @@ fn inline_generic_hints_preserve_explicit_task_result_contracts(){
  let mut analyzer=Analyzer::new(parsed).unwrap();let main=analyzer.function_names["main"];
  let expressions=analyzer.program.functions[main].body.iter().filter_map(|statement|if let StmtKind::Let{value,..}=&statement.kind{Some(value.clone())}else{None}).collect::<Vec<_>>();
  let(parameters,result)=analyzer.inline_generic_callable_shape(&expressions[0]).expect("stated Task result is a known callback shape");assert_eq!(parameters,vec![Type::Int]);
- let Type::Callback(id)=result else{panic!("Task result contract: {result:?}")};assert_eq!(analyzer.callables.callbacks[id].kind,CallbackKind::Task);assert_eq!(analyzer.callables.callbacks[id].result,Type::Int);
+ let Type::Callable(id)=result else{panic!("Task result contract: {result:?}")};let contract=&analyzer.callables.results[id];assert_eq!(analyzer.callables.shapes.get(contract.structural).kind,Some(CallbackKind::Task));assert!(contract.params.is_empty());assert_eq!(contract.result,Type::Int);assert!(analyzer.is_task_type(result));
  assert!(analyzer.inline_generic_callable_shape(&expressions[1]).is_none(),"An inferred body still uses the existing checked discovery path");
  assert!(analyzer.checked[main].is_none(),"Hints do not execute/check the missing() body");
 }

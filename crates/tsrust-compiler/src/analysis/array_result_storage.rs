@@ -54,19 +54,43 @@ impl Analyzer {
             let Some(Type::Record(record)) = self.unions.payload(actual) else { return Ok(None); };
             let declaration = self.scoped_records.declaration(record);
             if declaration == self.scoped_records.declaration(target)
-                && (self.aggregate_callable_facts(Type::Record(declaration)).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record) || target_owned)
+                && (self.aggregate_callable_facts(Type::Record(declaration)).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record) || self.scoped_native_record_contract(record,target) || target_owned)
                 && self.unions.members(source).into_iter().filter(|member| !matches!(member, Type::Record(_)))
                     .eq(self.unions.members(expected).into_iter().filter(|member| !matches!(member, Type::Record(_))))
             { return Ok(Some(actual)); }
             return Ok(None);
         }
         let Type::Record(record) = actual else { return Ok(None); };
-        if actual == Type::Record(target) || !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record) || target_owned)
+        if actual == Type::Record(target) || !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record) || self.scoped_native_record_contract(record,target) || target_owned)
             || self.scoped_records.declaration(record) != self.scoped_records.declaration(target)
         { return Ok(None); }
         self.unions.intern(self.unions.members(expected).into_iter().map(|member| {
             if member == Type::Record(target) { actual } else { member }
         }), span).map(Some)
+    }
+
+    /// Owned callback fields may retain native-view lifetimes without becoming
+    /// borrowing callbacks. Preserve that checked physical record in optional storage.
+    pub(super) fn scoped_native_record_carrier(&self,record:usize)->bool {
+        if !self.native_borrow_types || record==self.scoped_records.declaration(record) || self.aggregate_callable_facts(Type::Record(record)).unknown{return false;}
+        let mut pending=vec![Type::Record(record)];let mut seen=HashSet::new();
+        while let Some(ty)=pending.pop(){
+            if !seen.insert(ty){continue;}
+            match ty{
+                Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some_and(|layout|layout.lifetimes()>0)=>return true,
+                Type::Record(id)=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+                Type::Array(element)=>pending.push(element.ty()),
+                Type::Union(id)=>pending.extend(self.unions.members(id)),
+                Type::Map(id)=>pending.push(self.program.records[id].map_definition.as_ref().unwrap().value),
+                _=>{},
+            }
+        }false
+    }
+    pub(super) fn scoped_native_record_contract(&self,record:usize,target:usize)->bool {
+        self.scoped_native_record_carrier(record)
+            && self.scoped_records.declaration(record)==self.scoped_records.declaration(target)
+            && self.program.records[record].application.as_ref().map(|application|&application.resolved_arguments)
+                ==self.program.records[target].application.as_ref().map(|application|&application.resolved_arguments)
     }
 
     // A checked nonborrowed closure field has a concrete origin even when it
@@ -222,4 +246,24 @@ fn mixed_union_absent_environment_does_not_overwrite_an_inhabited_nominal_altern
  let expected=analyzer.unions.intern([inhabited,Type::String,Type::Undefined],Span::default()).unwrap().union().unwrap();
  let concrete=analyzer.finite_record_union_carrier(absent,expected,Span::default()).unwrap().unwrap();
  assert!(analyzer.unions.members(concrete.union().unwrap()).contains(&empty));
+}
+
+#[cfg(test)]
+#[test]
+fn optional_owned_callback_record_preserves_checked_native_lifetime_carrier(){
+ let source="type Window={};type Holder={read:Once<Function<Window>>;};type Other={read:Once<Function<Window>>;};function make(value:Window):Holder{return {read:()=>value};}function main(){}";
+ let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+ let mut parsed=crate::syntax::parse(&formatted).unwrap();parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+ let mut analyzer=Analyzer::new(parsed).unwrap();let make=analyzer.function_names["make"];analyzer.function(make).unwrap();
+ let actual=analyzer.checked[make].as_ref().unwrap().result;let Type::Record(record)=actual else{panic!("physical factory record")};
+ assert!(analyzer.scoped_native_record_carrier(record));assert!(!analyzer.finite_owned_shape(actual));
+ let holder=analyzer.record_names["Holder"];let other=analyzer.record_names["Other"];
+ let optional=analyzer.unions.intern([Type::Record(holder),Type::Undefined],Span::default()).unwrap();
+ let injected=analyzer.scoped_record_injection(actual,optional.union().unwrap(),Span::default()).unwrap().expect("checked native callback record injects");
+ assert_eq!(analyzer.unions.payload(injected),Some(actual));assert!(analyzer.scoped_record_nullable_contract(injected,optional));
+ let wrong=analyzer.unions.intern([Type::Record(other),Type::Undefined],Span::default()).unwrap();
+ assert!(analyzer.scoped_record_injection(actual,wrong.union().unwrap(),Span::default()).unwrap().is_none());
+ assert!(!analyzer.scoped_record_nullable_contract(injected,wrong));
+ let null=analyzer.unions.intern([actual,Type::Null],Span::default()).unwrap();
+ assert!(analyzer.scoped_record_injection(null,optional.union().unwrap(),Span::default()).unwrap().is_none());
 }

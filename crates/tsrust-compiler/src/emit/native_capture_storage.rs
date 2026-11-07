@@ -92,6 +92,7 @@ impl Storage {
                         alternatives,
                         |origin| counts[origin],
                         storage.ty(&closure.function, capture.inner),
+                        |_,_,_| true,
                     ) else {
                         resolved = false;
                         break;
@@ -125,6 +126,7 @@ impl Storage {
         alternatives: &borrowed_payload_emit::Alternatives,
         counts: impl Fn(usize) -> Option<usize>,
         root: Type,
+        field_is_parameter: impl Fn(usize,usize,Type)->bool,
     ) -> Option<usize> {
         let members = |id: crate::syntax::UnionId| program.unions[id.index()].members.clone();
         let recursive = crate::environment_lifetimes::contains_native_view(root, &program.records, &members, &program.stored_contracts)
@@ -175,7 +177,8 @@ impl Storage {
                     program.records[record]
                         .fields
                         .iter()
-                        .filter_map(|field| field.ty)
+                        .enumerate()
+                        .filter_map(|(position,field)|field.ty.filter(|&ty|field_is_parameter(record,position,ty)))
                         .map(|ty| (ty, false)),
                 ),
                 Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(
@@ -196,12 +199,14 @@ impl Storage {
         program: &CheckedProgram,
         alternatives: &borrowed_payload_emit::Alternatives,
         ty: Type,
+        field_is_parameter: impl Fn(usize,usize,Type)->bool,
     ) -> usize {
         Self::count(
             program,
             alternatives,
             |origin| Some(self.lifetimes[origin]),
             ty,
+            field_is_parameter,
         )
         .expect("resolved native environment")
     }
@@ -221,10 +226,20 @@ mod tests {
         let program = crate::analysis::analyze(parsed).unwrap();
         let alternatives = borrowed_payload_emit::Alternatives::default();
         for (id, expected) in [(1, 1), (2, 2)] {
-            assert_eq!(Storage::count(&program, &alternatives, |_| Some(0), Type::Record(id)), Some(expected));
+            assert_eq!(Storage::count(&program, &alternatives, |_| Some(0), Type::Record(id), |_,_,_| true), Some(expected));
             assert_eq!(crate::environment_lifetimes::count(Type::Record(id), &program.records,
                 |id| program.unions[id.index()].members.clone(), |_| 0), expected);
         }
+    }
+
+    #[test]
+    fn physical_record_environment_follows_selected_fields_not_recursive_symbolic_storage() {
+        let parsed=crate::syntax::parse("type Symbolic={next:Symbolic|undefined;};function main(){}").unwrap();
+        let program=crate::analysis::analyze(parsed).unwrap();
+        let alternatives=borrowed_payload_emit::Alternatives::default();
+        assert_eq!(Storage::count(&program,&alternatives,|_|Some(0),Type::Record(0),|_,_,_|true),None);
+        // scoped_record_native_field excludes every field of a cyclic symbolic base.
+        assert_eq!(Storage::count(&program,&alternatives,|_|Some(0),Type::Record(0),|_,_,_|false),Some(0));
     }
 
     #[test]

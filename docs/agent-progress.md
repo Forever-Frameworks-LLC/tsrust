@@ -8,7 +8,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
-- Current canonical checkpoint c057307c; uncommitted targeted compiler repairs
+- Current canonical checkpoint2459529f; uncommitted targeted compiler repairs
   are under bounded affected validation detailed below. Accepted runtime fixes are retained
   atc7e8eced. Only root writes canonical; app worktree edits stay protected.
 - ACTUAL PASS: /tmp/tsrust-upgrade-handoff-4366908885f1.json. Selected fresh normal
@@ -155,6 +155,97 @@ Latest accepted section — public55case native runtime; full v0.2.0 remains act
   cleanup123rcgu objects recovered433356800B; heavy slot free. Agent B14 reviewing
   new actual failure. Collections42,55/cache,10recursive/3callee units and portable
   exports retained; no new SQLite timings or full-goal completion claimed.
+- Applied new checked-native-record eligibility patch b5fa0513 after source
+  checkpoint2459529f. Exact nominal/generic arguments and nullish domains retained;
+  recognizes physical scoped-native callable families with actual view lifetimes,
+  rather than broadening aggregate ownership facts. Optional injection,nullable
+  record compatibility and conditional join share this narrow condition. New parsed
+  factory unit covers physical retention,wrong nominal and mismatched nullish domain.
+- Native-carrier affected driver TERMINAL: /tmp/tsrust-native-carrier-abf5dc0317df.json.
+  Preflight compiler+LSP tests PASS73.383s; selected CLI/LSP/lib/hosts build
+  PASS547.739s/peak4109172KiB. Four focused compiler units PASS;27LSP library
+  tests PASS; byte callable/editor agreement PASS; std_bytes25/28 PASS.
+- Remaining bytes: all68 now pass frontend,then native_capture_storage.rs206
+  panics at resolved native environment during EMIT. B06 investigates emitter.
+  Two existing negative hosts(nullable recursive factory joins/mutable recursive
+  stores) still reject,but incorrectly report missing Holder return +missing
+  capture lifetime instead of required native-view-escape; B14 investigates phase
+  consistency. Neither error assertion weakened; original cases/oracles retained.
+- Affected gates568.461s,peak4225407168B,stopnull,remaining[]. Automatic quiet
+  cleanup135rcgu objects recovered1007636480B. No further build live.
+- Full compiler library milestone TERMINAL,NO Cargo build: reused exact source
+  abf5dc0317df/binaryed18f6bb... under original30minute carrier scope. Actual
+ 1514PASS,4FAIL,8known opt-in probes/external-SQL ignores,zero filtered.111.546s,
+  peak1256932096B,stopnull,remaining[]. Same exact eight ignores as prior baseline;
+  /tmp/tsrust-native-carrier-abf5dc0317df-full-library.json and .out/.err. Preserve
+ 1514passes; do NOT replay full library after routine repairs.
+- Four full-library failures diagnosed and repairs APPLIED:
+  native_capture_storage panic shared with byte suite: physical lifetime queries
+  traversed symbolic recursive fields omitted by native generic renderer. Reuse
+  exact scoped_record_native_field predicate at all four query callers; source
+  capture analysis remains full. No count fallback,cap or unsafe. ac982d44 patch.
+  Dependency guard omitted6runtime names: futures-util,tokio-tungstenite,
+  webpki-roots,pin-project-lite,tracing,tracing-subscriber. ce8a3ecc reserves all
+  runtime names and tests bothschemas for all65native/54backend manifest entries.
+  Two stale test expectations corrected by3f0bb5dd: actual Task result is canonical
+  Callable contract; unreachable return after always-returning loop is now an
+  explicit negative,while storage assertions stay intact. Root used err().unwrap()
+  for CheckedProgram (does not implement Debug),avoiding a private-test compile bug.
+- Existing byte negative errors traced to swallowed discovery failures consuming
+  source bodies. c880cd6d restores ONLY active unchecked consumed functions from
+  existing discovery_body_sources before resetting speculative stack. Definitive
+  ownership rejection unchanged. New test proves original return/error survives.
+- Runtime-family-repair driver TERMINAL: preflight72.963s PASS; selected build
+ 554.258s PASS/peak4126676KiB. Six of eight targeted compiler controls PASS:
+  canonical Task contract,returning cleanup loop,all runtime pin reservations,
+  native-capture three controls. New restore-body unit and existing recursive
+  native-family Rust witness still FAIL; byte three hosts still FAIL; editor PASS.
+  /tmp/tsrust-runtime-family-repair-faecbb5eb2da.json; gates574.75s,
+  peak4259010848B,stopnull,remaining[];cleanup1005764608B recovered.
+- Concrete remaining causes: function continuation drains function_stack BEFORE
+  discovery receives the ignored error,so prior active-stack restoration could
+  never repair failed bodies. Corrected44c4e4c restores unchecked consumed bodies
+  from existing retained map; failing regression unchanged. Applied.
+- Native count panic resolved; recursive native witness now reaches Rust E0425
+  missing Record2: native declaration chose nominal ID for lifetime-free cycles,
+  while Drop/Link/Array used concrete ID. Applied9904689e uses cyclic(record),
+  matching the existing all-cyclic concrete-field invariant. Same patch omits
+  ONLY unchanged nested array identity passthroughs for cyclic concrete storage
+  from block tuple shadowing. The owning Map leaf panic was an ARRAY epoch caller,
+  not a Map operation. Added failure-only function/binding/path/types metadata
+  if that unobserved cyclic classification proves insufficient.
+- CLI-first corrected-source driver TERMINAL: normal CLI/host build223.187s
+  PASS/peak2764738KiB. BOTH byte ownership-negative hosts now PASS with their
+  original native-view-escape diagnostics. Byte68 progresses past earlier emitter
+  panics,then compiler STACK OVERFLOW before native compilation. No unit binary
+  rebuild was attempted. /tmp/tsrust-runtime-family-frontend-f86a8673b358.json;
+  total236.654s/peak2877837992B,stopnull,remaining[];cleanup400375808B.
+- Actual profiling: /tmp/tsrust-byte-cyclic-stack-paused.sample.txt. Emit-only
+  CLI paused at256590592B,one-second stack sample then killed(total11.309s).
+ 756samples show record_carrier_conversion repeatedly alternating Record/Union;
+  no native program compilation or raised limits. Earlier two-second sample
+  captured analysis only and was inconclusive; do not use it as root-cause proof.
+- Applied480cb5a0: reuse existing absent_record_field guard to evaluate impossible
+  record source once and match its empty required callback enum BEFORE expanding
+  recursive sibling fields. Root retained INFERRED local type so boxed/RecordLink
+  union payloads retain their actual physical representation; no forced RecordN
+  annotation. Remaining cyclic conversions expose type IDs only under existing
+  TSRUST_TRACE_CARRIERS. No new registry/cap/unsafe or relaxed ownership.
+- Original runtime-family30minute scope is closed INCOMPLETE; both real byte
+  negative failures are repaired,while byte68 native and two private units remain
+  required. All its build/test/diagnostic processes are terminal. No pass claimed
+  for stackoverflow and no reset of that scope. Next source-changed acceptance
+  covers the remaining one byte host,then two private failures only after byte
+  frontend/emission succeeds; preserve all earlier passes.
+- Public status now lists actual source-build v0.2 feature families and links
+  test/profiling guide; platform/package/performance/final acceptance explicitly
+  remains incomplete. No publication/push/merge approved or performed.
+- Quiet cleanup /tmp/tsrust-stale-worker-target-cleanup.json removed ONLY ignored
+  generated targets from stdlib-bytes(native cache) and stdlib-path(rustc info)
+  managed worktrees; source/WIP branches untouched. Recovered167149568B actual.
+- Deterministic/customization-safe adapter generation actual PASS retained at
+  /tmp/tsrust-utilities-http-repair19b-66af5f02808e.json. Only middleware positive
+  and real-generated-shlex offline export hosts remain unproved in that pair.
 - Additional cleanup /tmp/tsrust-obsolete-http-cache-cleanup.json pruned9cache
   entries containing replaced serve_connection(io,service) template under quiet
   build/cache locks; ACTUAL recovered2102931456B. No shared dependencies removed.

@@ -370,7 +370,7 @@ impl Emitter<'_> {
                     if variant {guards.pop();}
                 }
             }
-            _=>*next+=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,ty),
+            _=>*next+=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,ty,|record,position,field|self.scoped_record_native_field(record,position,field)),
         }
     }
 

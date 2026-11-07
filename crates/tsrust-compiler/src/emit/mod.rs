@@ -848,7 +848,7 @@ impl Emitter<'_> {
             if scoped_data && data_payloads.iter().any(|&member|self.boxed_union_member(id,member)) {
                 let mut lifetimes=Vec::new();
                 let logical=data_payloads.iter().enumerate().map(|(position,&payload)| {
-                    let count=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,payload);
+                    let count=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,payload,|record,position,field|self.scoped_record_native_field(record,position,field));
                     let names=(0..count).map(|slot|format!("'link{position}_{slot}")).collect::<Vec<_>>();
                     let native=self.named_record_environment_type(payload,&names);lifetimes.extend(names);native
                 }).collect::<Vec<_>>();
@@ -1028,7 +1028,7 @@ impl Emitter<'_> {
             self.program, closure, |ty| self.native_type(ty),
             |ty, lifetimes| Some(self.named_record_environment_type(ty, lifetimes)),
             |binding| self.native_captures.ty(&closure.function, binding),
-            |ty| self.native_captures.type_lifetimes(self.program, &self.borrowed_lifetime_alternatives, ty),
+            |ty| self.native_captures.type_lifetimes(self.program, &self.borrowed_lifetime_alternatives, ty, |record,position,field|self.scoped_record_native_field(record,position,field)),
         );
         for (capture,field) in closure.captures.iter().zip(&mut fields){
             if !matches!(closure.forward, Some(ClosureForward::RestAdapter { .. } | ClosureForward::Abstract(_)))
