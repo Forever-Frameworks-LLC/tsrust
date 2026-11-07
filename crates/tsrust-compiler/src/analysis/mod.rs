@@ -5921,9 +5921,8 @@ impl Analyzer {
         Ok(Type::Boolean)
     }
 
-    /// A record literal in a union context takes the record alternative whose
-    /// field names match it. A lone record alternative is used otherwise, so
-    /// its field diagnostics apply.
+    /// Known literal fields select compatible record alternatives before shape
+    /// matching. A lone alternative retains its ordinary field diagnostics.
     #[inline(never)]
     fn record_alternative(
         &self,
@@ -5936,14 +5935,24 @@ impl Analyzer {
             .members(union)
             .into_iter()
             .filter(|member| matches!(member, Type::Record(record) if !self.program.records[*record].is_tuple()))
+            .filter(|member| {
+                let Type::Record(record)=member else{return false;};
+                fields.iter().all(|(key,value)|{
+                    let Some(Type::Literal(id,kind))=self.fields[*record].get(&key.text)else{return true;};
+                    match crate::literal_types::LiteralValue::expression(value,*kind){
+                        Some(Ok(actual))=>self.program.records[*id].literal_definition.as_ref()==Some(&actual),
+                        _=>true,
+                    }
+                })
+            })
             .collect::<Vec<_>>();
         let matching = records
             .iter()
             .copied()
             .filter(|member| {
                 let Type::Record(record) = member else { return false };
-                self.fields[*record].len() == fields.len()
-                    && fields.iter().all(|(key, _)| self.fields[*record].contains_key(&key.text))
+                fields.iter().all(|(key, _)| self.fields[*record].contains_key(&key.text))
+                    && self.program.records[*record].fields.iter().all(|field|field.optional || fields.iter().any(|(key,_)|key.text==field.name.text))
             })
             .collect::<Vec<_>>();
         match (matching.as_slice(), records.as_slice()) {

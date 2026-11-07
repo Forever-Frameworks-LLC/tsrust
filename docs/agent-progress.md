@@ -6,67 +6,69 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Full B00–B20 implementation/acceptance goal remains active. Canonical branch
-codex/stdlib-0.2.0 at0d090688; prior b72d0fbf/a510b9fc preserved. App worktree
-stdlib-platform-acceptance has protected unrelated edits: DO NOT write there.
-Root writes canonical only. Three Sol workers are idle/source-only; no heavy lease.
+Latest continuation evidence — source repairs, NOT v0.2.0 acceptance:
 
-Previous goal turn was progress:55registered cases replaced32iterator per-case
-native runs;17internal/12iterator/all12realtime editor controls passed;5.71GB freed.
-This continuation made further source/control progress, not runtime acceptance.
-No Cargo/rustc/native test process remains. Do not restart historical PID77647 or
-old sessions. Latest normal CLI/LSP and selected integration binaries match
-8d3f7ba5fdf284c7df333e9c2d2a37914431d34c43610b0e1a972b7bf132636f, BEFORE latest
-unwrap-traversal fix below. Rebuild before using consumers for that fix.
+- Current HEAD91428ba4 plus uncommitted tagged-record, fixture/doc and emitter
+  repairs. No live Cargo/rustc/tsrust process. Current CLI/LSP binaries contain
+  tagged-record selection, BEFORE the final two emitter repairs; rebuild required.
+- Original scope /tmp/tsrust-unwrap-context-scope.json began1794066888.647028.
+  The20min attempt and5min recovery both remain incomplete. Aggregate ceiling
+  /tmp/tsrust-current-continuation-ceiling.json uses THAT original start+3300s,
+  not a reset. All actual tests/builds and automatic cleanup stopped within it.
+  No further tests in this continuation; preserve passes and resume changed inputs.
+-91428 unwrap source preflight PASSED69.209s/peak2224213280B. Actual source29825
+  failed message construction with an AMBIGUOUS record union, proving contextual
+  typing now reaches the payload. record_alternative now filters known matching
+  literal tags, accepts omitted optional fields and retains ambiguous non-tagged
+  rejection. General positive/negative/source-emission control added data_unions.
+  All harnesses type-check PASSED69.737s/peak2218118408B.
+- First tagged build hit the20minute deadline after209.923s with NO terminal
+  build-finished, so never count it passed. Completed compiler library/most
+  consumers were reused. Recovery build completed20.766s; all changed generic
+  tagged-literal and native WebSocket literal checker/emit controls PASS.
+  /tmp/tsrust-tagged-recovery-eb2d67fca3d9.json. Earlier17core/12iterator/editor12
+  passes remain recorded; none rerun here.
+- Actual public55case frontend then exposed invalid fixture usage, now corrected
+  without changing test names/assertion goals: native optional absence is tested
+  with ===undefined booleans; split halves are destructured into independent
+  owners and both read/send are polled concurrently via all; direct try/catch
+  preserves body/socket owners across expected failures; two consuming handshake
+  factories get explicit URL copies.16hover examples and the actual websocket
+  example now demonstrate independent half bindings. Close-frame observation
+  allows the documented close message before EOF (no byte-buffer equality).
+- ALL55case SOURCES now check successfully. Actual native runtime dependencies
+  and one generated shared application compiled far enough for Rust errors:
+  /tmp/tsrust-tagged-recovery-7d5641e06ae4-tsrust-compiler-structured_logging-c8fcdd0bf640-batch-c5134b6343bec817-attempt1.log.
+  This is NOT a runtime pass. Auth batch terminal61.438s/peak917326416B,
+  stopnull,remaining[]. Compiler rejected E0716 temporary option borrows in
+  returned connect Tasks, plus E0282 OnceCallback success-type ambiguity.
+- FINAL two emitter repairs APPLIED: expression_work.rs reuses existing outer
+  owner staging for borrowed computed call operands (Forward policy unchanged),
+  retaining options across the conditional_environment/Task await; emit/mod.rs
+  registered_closure_call now qualifies its consuming/read/mut trait Result ABI,
+  complementing the earlier registered_callback_call repair. No unsafe/clones or
+  lifetime bypass. Source patches68c0c7c3... and39378e05... are integrated.
+  All compiler/LSP test harnesses type-check PASS70.844s/peak2144193776B
+  (/tmp/tsrust-emitter-repair-preflight.*). These emitter repairs have NOT been
+  exercised through fresh consumers/native application. No time remained for
+  the known4minute build; do not launch a guaranteed timeout.
+- Next: format/check current source, one selected no-run build WITHOUT library
+  harness (unchanged accepted17 controls), then only shared55case runtime host.
+  Existing static tagged/message controls already passed. New source failures or
+  Rust failures must retain exact diagnostics; preserve all passed scopes. After
+  actual native success, same-suite relocated export LAST and actual timings/
+  cached unchanged Rust/Node controls with npm run store:ingest remain mandatory.
+- All execution wrappers now reserve30s and invoke quiet-lock linked-object
+  cleanup automatically at terminal state, including errors/timeouts. No live
+  build was deleted/restarted. Cleanup totals for this continuation are computed
+  below; previous5.71GB and prior491MB are separate, never double count.
 
-Latest absolute20minute scope CLOSED INCOMPLETE, never reset:
-/tmp/tsrust-observer-repair-scope.json started1794065021.370985,budget1200s.
-Preflight all compiler/LSP test harnesses PASSED70.373s/peak2144881928B.
-Source355e89fee0e3 build+affected gates terminal234.11s/peak2905297528B,
-stopnull,remaining[]. PASSED realtime resource rejections, runtime feature-selection
-and guarded kind observation, and nested Channel.sender().trySend checker/emit
-control with primitive/partial SseEvent payloads and no Sender import. Preserve
-these passes; do not rerun the unchanged core17/library or editor12 matrix.
-Results /tmp/tsrust-observer-repair-355e89fee0e3.json.
+Cleanup THIS continuation: 1018564608B actual net free-space recovery from obsolete linked objects; unwrap-context:452202496, tagged-message:421515264, tagged-recovery:33878016, tagged-fixture:-8192, fixture-aggregate:4952064, duplex-aggregate:4993024, reuse-aggregate:4943872, auth-aggregate:96088064.
 
-55case public runtime host advanced to actual message literal check failure:
-realtime.test.tsr154 halves.write.send({kind:'text',data:'é🦀'}), expected message
-union, found anonymous object. Native runner was NOT compiled. Existing static
-helper contextualize_lazy_inputs handled only direct native Result calls; normal
-lazy lowering wraps them in @native:std:result#unwrap.
-- First repair exposed/reused that helper after dynamic HTTP method lowering.
-  All harnesses checked72.51s/peak2156842248B. Source8d3f7ba5fdf2 affected build+
-  gates terminal232.628s/peak2881262224B,stopnull,remaining[] but BOTH literal-message
-  source control and public host still failed same type mismatch. Helper was a
-  no-op at unwrap; this was not acceptance. Results
-  /tmp/tsrust-observer-repair-8d3f7ba5fdf2.json; outer
-  /tmp/tsrust-observer-message-context-budget.*.
-- LATEST UNVALIDATED source now looks through exactly the known one-argument
-  native unwrap before extracting the real native binding/context. Existing
-  signature/alternate-input/borrow behavior retained. New private structural
-  control lazy_native_record_context_reaches_wrapped_and_explicit_result_calls
-  covers both builder paths; current runtime/emit witnesses remain unchanged.
-  This final fix/control has NOT been Rust-checked or executed. Whole-project
-  formatter passed0changes afterward. No tests launched after scope deadline.
-
-Dirty canonical source includes two previously checked fixes (exact Sender<T>
-metadata during generic receiver preparation, scoped common-field observation of
-proven narrowed record subsets), HTTP late contextualizer reuse, unwrap fix and
-new controls. No fixture chain/guard split, ownership weakening or unsafe code.
-Next: source preflight, one fresh normal/affected-target build (exclude library
-harness already passed), affected literal-message control and SAME55case public
-runner. Diagnose actual failures; preserve all earlier passes. No new standalone
-program probes. All runs including setup/cleanup must stay below one hour;
-reserve cleanup before scoped deadline and serialize heavy work/jobs1/inc0.
-
-B15/core prior milestone evidence retained: source5967ca317670 build554.831s,
-full selected build/gates612.384s/peak4201322736B,stopnull,remaining[].17core
-controls including opaque/cycles, cache phase changes, known/pending discovery,
-selected/unrelated method origins and all3logging backend tests PASS; ContextFuture
-cancellation destructor/request context verified.12iterator checker/source guards
-and all12realtime editor agreement PASS. No public55case execution/export/timing.
-/tmp/tsrust-registered-milestone-5967ca317670.json.55cases/5files now have one native
-runner; exact names, source/output comparisons and10logging records retained.
+Full B00–B20 goal remains active. Canonical branch codex/stdlib-0.2.0 at91428ba4
+plus the source changes described above; older b72d0fbf/a510b9fc/0d090688 preserved.
+App worktree stdlib-platform-acceptance has protected unrelated edits: do not write
+there. Root writes canonical only. Three Sol workers are idle/source-only.
 
 Source-only future test migrations are PREPARED, NOT APPLIED/ACCEPTED:
 - B16: /tmp/tsrust-crypto-runtime-suite-migration.patch
@@ -95,17 +97,12 @@ protocol/native-only timings, cached-control reuse and npm run store:ingest.
 Ensure portable source preparation prerequisite before emit package. Old actual
 Rust/Node controls remain intact; no public native timings/ingestion claimed.
 
-Cleanup prior turn5711986688Bactual. THIS continuation removed81linkedobjects,
-439375376logicalbytes/491126784Bactual free-space recovery under quiet locks;
-/tmp/tsrust-observer-repair-objects-cleanup.json. Current binaries/control data,
-source and shared dependency caches retained. Raw logs/results remain disposable.
-
-Full-goal next scopes beyond these repairs: B20 registered integrated apps using
-existing B10/B19 examples, remaining runtime/editor/relocated exports, actual
-matched measurements/allocation review, B00 export/default/minimal feature ledger,
-full compiler/LSP regressions and four-host native package/install/update gates.
-No push/merge/publication. Future GPUI/Kit, .tsr clients/shared backend/frontend
-roots remain in docs/plans/gpui-application-platform.md AFTER v0.2.0.
+Prior cleanup5711986688B and491126784B remain separate from this continuation.
+Full-goal next scopes remain B20 integrated applications using existing B10/B19
+examples, affected acceptance/exports, actual matched measurements, B00 ledger/
+default/minimal features, full regressions and four-host native packaging gates.
+Future GPUI/Kit, .tsr client codegen/shared frontend/backend roots follow v0.2.0.
+No push/merge/publication. Never redefine the goal around the current cohort.
 
 ## Earlier evidence (retained; current state above supersedes continuation advice)
 

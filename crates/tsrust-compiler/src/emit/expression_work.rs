@@ -168,11 +168,11 @@ impl<'p> Emitter<'p> {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
                     let mut child_frame = Frame::new(child, mode);
-                    // Assertion provenance evaluates arguments before its guard.
-                    // Keep computed owners alive across the argument let-bindings;
+                    // Callable staging can retain borrowed arguments in a returned Task.
+                    // Keep computed owners alive across receiver/argument let-bindings;
                     // forwarded arguments already apply this same temporary policy.
                     let forward_argument=matches!(call.state,CallState::Forward{..}) && !call.rendered.is_empty();
-                    if !forward_argument && matches!(frame.expr.kind,ExprKind::Call(..)) && self.assertion_call_site(fun,frame.expr).is_some(){
+                    if !forward_argument && matches!(frame.expr.kind,ExprKind::Call(..)){
                         let(access,temporary)=self.prepare_conditional_arm_work(fun,child,mode);
                         child_frame.mode=access;
                         frame.assertion_argument_temporary=temporary;

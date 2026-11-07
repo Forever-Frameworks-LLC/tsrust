@@ -17,9 +17,9 @@ async function main(): Task<void> {
   const url = 'ws://' + server.address() + '/echo';
   try {
     const socket = await connectWebSocket(url);
-    const halves = socket.split();
-    const receiving = halves.read.receive();
-    await halves.write.send({
+    const { read, write } = socket.split();
+    const receiving = read.receive();
+    await write.send({
       kind: 'text', data: 'hello'
     });
     const message = await receiving;
@@ -28,8 +28,8 @@ async function main(): Task<void> {
     }
 
     console.log(message.data);
-    await halves.write.close();
-    const closing = await halves.read.receive();
+    await write.close();
+    const closing = await read.receive();
     if (closing !== undefined) {
       console.log(closing.kind);
     }

@@ -73,7 +73,8 @@ the close exchange. Close reasons are limited to 123 UTF-8 bytes by the protocol
 and invalid/reserved wire close codes fail before sending.
 
 `split()` consumes the socket and returns independently owned `read` and `write`
-halves. The read half offers `receive`; the write half offers `send` and `close`.
+halves. Destructure the result into separate bindings before keeping an operation
+pending: `const { read, write } = socket.split()`. The read half offers `receive`; the write half offers `send` and `close`.
 Pending operations retain their receiver loans until settlement. Socket owners
 and halves cannot be cloned.
 

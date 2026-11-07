@@ -1,6 +1,6 @@
 import { describe, test, strictEqual, rejects } from 'std:testing';
-import { Router, WebSocket, SseEvent, Request, sse, sseWithProducer, requestStream, connectWebSocket } from 'std:http';
-import { Channel, Sender, delay } from 'std:futures';
+import { Router, WebSocket, WebSocketRead, WebSocketWrite, SseEvent, Request, sse, sseWithProducer, requestStream, connectWebSocket } from 'std:http';
+import { Channel, Sender, delay, all } from 'std:futures';
 import { fromArray, toHex, toUtf8 } from 'std:bytes';
 import { readFile } from 'std:fs';
 import { get as envGet } from 'std:env';
@@ -56,6 +56,26 @@ async function echo(socket: Owned<WebSocket>): Task<void> {
   }
 
   await socket.close();
+}
+
+async function receiveSplitText(read: Owned<WebSocketRead>): Task<void> {
+  const text = await read.receive();
+  if (text === undefined || text.kind !== 'text') {
+    throw 'missing text';
+  }
+
+  strictEqual(text.data, 'é🦀');
+  const closing = await read.receive();
+  if (closing !== undefined) {
+    strictEqual(closing.kind, 'close');
+  }
+}
+
+async function sendSplitText(write: Owned<WebSocketWrite>): Task<void> {
+  await write.send({
+    kind: 'text', data: 'é🦀'
+  });
+  await write.close();
 }
 
 describe('SSE backend bytes and ownership', () => {
@@ -149,19 +169,8 @@ describe('WebSocket owned transport', () => {
     const server = await app.listen('127.0.0.1:0');
     const url = 'ws://' + server.address() + '/echo';
     try {
-      const halves = (await connectWebSocket(url)).split();
-      const receiving = halves.read.receive();
-      await halves.write.send({
-        kind: 'text', data: 'é🦀'
-      });
-      const text = await receiving;
-      if (text === undefined || text.kind !== 'text') {
-        throw 'missing text';
-      }
-
-      strictEqual(text.data, 'é🦀');
-      await halves.write.close();
-      await halves.read.receive();
+      const { read, write } = (await connectWebSocket(url)).split();
+      await all([receiveSplitText(read), sendSplitText(write)]);
       const socket = await connectWebSocket(url);
       await socket.send({
         kind: 'binary', data: unwrap(fromArray([0, 255, 1, 128]))
@@ -216,11 +225,17 @@ describe('explicit realtime policies', () => {
     const idle = new Channel<SseEvent>(1);
     const hold = idle.sender();
     const body = sse(idle).body();
-    await rejects(async () => {
+    let timedOut = false;
+    try {
       await body.next().timeout(5);
-    });
+    } catch (error) {
+      strictEqual(error.code, 'timeout');
+      timedOut = true;
+    }
+
+    strictEqual(timedOut, true);
     hold.close();
-    strictEqual(await body.next(), undefined);
+    strictEqual((await body.next()) === undefined, true);
     const active = new Channel<SseEvent>(1);
     const sender = active.sender();
     const comments = sse(active, {
@@ -251,12 +266,14 @@ describe('explicit realtime policies', () => {
     const server = await app.listen('127.0.0.1:0');
     const url = 'ws://' + server.address() + '/echo';
     try {
+      const unauthorizedUrl = clone(url);
       await rejects(async () => {
-        const socket = await connectWebSocket(url);
+        const socket = await connectWebSocket(unauthorizedUrl);
         await socket.close();
       });
+      const missingOriginUrl = clone(url);
       await rejects(async () => {
-        const socket = await connectWebSocket(url, {
+        const socket = await connectWebSocket(missingOriginUrl, {
           headers: [{
             name: 'authorization', value: 'Bearer selected'
           }]
@@ -322,11 +339,16 @@ describe('explicit realtime policies', () => {
     const server = await app.listen('127.0.0.1:0');
     try {
       const socket = await connectWebSocket('ws://' + server.address() + '/echo');
-      await rejects(async () => {
+      let invalidCloseRejected = false;
+      try {
         await socket.send({
           kind: 'close', code: 1005
         });
-      });
+      } catch {
+        invalidCloseRejected = true;
+      }
+
+      strictEqual(invalidCloseRejected, true);
       await socket.send({
         kind: 'text', data: 'still open'
       });
@@ -351,7 +373,7 @@ describe('explicit realtime policies', () => {
     const socket = await connectWebSocket('ws://' + server.address() + '/echo');
     await server.shutdown();
     try {
-      strictEqual(await socket.receive().timeout(200), undefined);
+      strictEqual((await socket.receive().timeout(200)) === undefined, true);
     } catch (error) {
       strictEqual(error.code === 'timeout', false);
     }

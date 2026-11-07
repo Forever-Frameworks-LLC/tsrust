@@ -2274,6 +2274,15 @@ impl Emitter<'_> {
         let call=if self.program.task_origins.contains(&origin){format!("({call}).await")}else{call};
         let result_layout=self.result_closures.borrow().get(&origin).cloned();
         if let Some(source_name)=result_layout {
+            // Concrete closure bindings can be invoked through a consuming trait
+            // adapter too. Fix its physical Result before map_err resolves R.
+            let call=if !self.program.task_origins.contains(&origin) {
+                let result=format!("Result<{},{}>",self.native_type(self.program.closures[origin].function.result),source_name);
+                if let Some(method)=call.strip_prefix("OnceCallback::"){format!("OnceCallback::<_,{result}>::{method}")}
+                else if let Some(method)=call.strip_prefix("ReadCallback::"){format!("ReadCallback::<_,{result}>::{method}")}
+                else if let Some(method)=call.strip_prefix("Callback::"){format!("Callback::<_,{result}>::{method}")}
+                else{call}
+            }else{call};
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             self.exception_regions.closure_result_call(&call,origin,&source_name,&self.program.error_effects,&unions,span).expect("checked registered closure Result call")
         } else {
