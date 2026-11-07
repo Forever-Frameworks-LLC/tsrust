@@ -3,6 +3,18 @@
 Owner requirement, 2026-11-06: every test run has an absolute wall-clock ceiling of one hour, including setup/build and cleanup. This supersedes all older 90/120/330-minute or longer budgets. Platform acceptance uses one 55-minute end-to-end scope budget, leaving cleanup time within the CI 60-minute job ceiling. Preserve completed scope evidence; budget exhaustion is incomplete acceptance, never a pass or permission to skip required tests. Remove redundant work and batch coherent coverage to fit; do not split the same oversized suite into serial hour-long chunks.
 
 
+## Owner test workflow — 2026-11-07
+
+Use `std:testing` and `tsrust test` for ordinary runtime acceptance. Keep related
+cases in stable `.test.tsr` suites and compile the selected suite together once;
+do not build an independent native program or temporary source tree per case.
+Host tests may orchestrate the public runner, test compiler internals/rejections,
+or cover real cross-language/process boundaries. Reuse unchanged Rust/Node
+controls and compare assertions and observable outputs. Extend the testing library
+when an assertion or profiling capability is missing. Per-test durations are
+execution observations; report setup/build separately and retain the established
+sampling/quiet-machine protocol for comparable benchmark claims and SQLite runs.
+
 ## Next application direction — 2026-11-05
 
 Finish the full v0.2.0 standard-library checklist first. The owner's strong

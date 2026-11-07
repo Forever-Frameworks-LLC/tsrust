@@ -117,6 +117,26 @@ Console output is captured as `output` records with its original stream and sour
 location. Parse each line as JSON; do not assume the `summary` has a `name` field.
 Build/check diagnostics and native dependency failures can still appear on stderr.
 
+## Separate build and execution timings
+
+```sh
+tsrust test app/tests --reporter json --profile
+```
+
+The selected files share one compiled native runner. `--profile` adds an initial
+`build` JSON event with `durationMs` for command setup/build, `checkMs`, `emitMs`,
+`backendMs`, `cacheMs`, `nativeBuildMs`, `cache` (`hit` or `miss`) and `testFiles`.
+The total includes discovery and setup; individual stages need not sum to it.
+A cache hit reports zero native build time. Test/hook and summary `durationMs`
+continue to measure execution separately. Without `--profile`, JSON events are
+unchanged. Pretty/plain reporters put the build profile on stderr.
+
+Keep suite paths, the working directory and the build environment stable to reuse
+the native cache. Source, backend or environment changes can invalidate it.
+Per-test durations help locate slow cases, but a single correctness run is not a
+controlled performance benchmark. Compare repeated, matched workloads when making
+performance claims.
+
 ## Control terminal output
 
 Use `tsrust test --color never` to disable ANSI color, or select `auto` or `always`.

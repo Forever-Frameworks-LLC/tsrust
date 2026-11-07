@@ -367,3 +367,29 @@ function main(){
  let offset=source.rfind("stored(").unwrap();let prefix=&source[..offset];let line=prefix.bytes().filter(|byte|*byte==b'\n').count()+1;let column=prefix.rsplit('\n').next().unwrap().encode_utf16().count()+1;let site=format!("optional-assertion.tsr:{line}:{column}");
  std::fs::write(&path,&source).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);assert!(!output.status.success());assert_eq!(output.stdout,b"5\n");let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("computed optional mismatch"),"{stderr}");assert!(stderr.match_indices(&site).any(|(offset,_)|stderr.as_bytes().get(offset+site.len()).is_none_or(|next|!next.is_ascii_digit())),"Missing invocation {site}: {stderr}");
 }
+
+#[test]
+fn profile_separates_suite_build_from_execution_and_reuses_the_same_runner(){
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+ for arguments in [vec!["test","examples/testing","--profile","--profile"],vec!["run","examples/testing/program-state.tsr","--profile"]]{
+  let output=support::run(support::cli().current_dir(&root).args(arguments),30);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("Unknown or repeated option: --profile"));
+ }
+ for profile in [false,true]{
+  let mut command=support::cli();command.current_dir(&root).args(["test","examples/testing","--reporter=json"]);
+  if profile{command.arg("--profile");}
+  let output=support::run(&mut command,180);support::success(&output);
+  assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
+  if profile{print!("{}",String::from_utf8_lossy(&output.stdout));}
+  let rows=String::from_utf8(output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();
+  assert_eq!(rows.iter().filter(|row|row["event"]=="build").count(),usize::from(profile));
+  if profile{
+   let build=&rows[0];assert_eq!(build["event"],"build");assert_eq!(build["testFiles"],3);
+   assert_eq!(build["cache"],"hit","profiling must reuse the preceding plain run");
+   for field in ["durationMs","checkMs","emitMs","backendMs","cacheMs","nativeBuildMs"]{assert!(build[field].as_f64().unwrap()>=0.0);}
+   if build["cache"]=="hit"{assert_eq!(build["nativeBuildMs"],0.0);}
+  }
+  let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),6);
+  for test in tests{assert_eq!(test["status"],"passed");assert!(test["durationMs"].as_f64().unwrap()>=0.0);}
+  let summary=rows.last().unwrap();assert_eq!(summary["event"],"summary");assert_eq!(summary["passed"],6);assert_eq!(summary["failed"],0);
+ }
+}

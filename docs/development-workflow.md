@@ -136,6 +136,19 @@ execution parity. Do not rewrite unrelated owner fixtures as a verification side
 
 ## Native assertion-based fixtures
 
+Owner requirement, 2026-11-07: ordinary runtime acceptance uses stable registered
+`.test.tsr` suites through `tsrust test`. Batch related cases/files into one native
+runner and reuse its persistent cache; do not compile a separate program or copy
+source into a fresh temporary directory for each case. Temporary runtime data is
+fine. Host tests remain appropriate for compiler internals, rejected source and
+real process/language boundaries, and may orchestrate the public suite. Reuse the
+same suite for relocated package validation. Compare assertions and observed
+outputs against unchanged Rust/Node controls where applicable.
+
+Use runner `durationMs` observations and `--profile` setup/build stages to locate
+costs. These single-run observations do not replace established benchmark sample
+counts, quiet-machine controls or actual timing ingestion into SQLite.
+
 Use the built-in std:testing library for new executable behavior checks wherever possible. Assert observed values directly instead of printing them solely for an external stdout comparison. Run through the compiler's project/module path so assertion imports and generated native execution are exercised. Keep stdout checks when output formatting itself is the behavior under test, and retain independent Node reference evidence for parity.
 
 When a required assertion or matcher is missing, implement it with focused failing tests, ownership and failure checks, IntelliSense documentation and the normal acceptance workflow. Do not replace the missing operation with logging or weaken the test to avoid adding it. Prefer borrowing assertions for existing owned or borrowed values; do not introduce implicit clones to make a matcher fit.
