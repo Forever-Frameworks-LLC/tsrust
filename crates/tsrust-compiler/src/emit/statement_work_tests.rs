@@ -175,3 +175,21 @@ fn nested_map_finally_bodies_share_storage_scheduler() {
     assert!(emitter.control_targets.snapshot().is_empty());
     assert!(emitter.inline_map_return.borrow().is_none());
 }
+
+#[test]
+fn nested_expression_statements_keep_owned_declarations_outside_initializer_temporaries() {
+    let checked=crate::check("function combine(left:ReadOnly<string>,right:ReadOnly<string>):string{return left+right;}function main(){const build=combine;const selected=build('left','right'+'suffix');console.log(selected);}").unwrap();
+    let function=checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+    let binding=function.bindings.iter().position(|binding|binding.name=="selected").unwrap();
+    let emitter=emitter_for(&checked.program,"");
+    // Match/exception expression bodies enter statement emission beneath an
+    // existing expression boundary, unlike an ordinary function body.
+    emitter.expression_depth.set(1);
+    let mut output=String::new();
+    emitter.block(&mut output,function,&function.body,0);
+    let declaration=output.lines().find(|line|line.starts_with(&format!("let value{binding}: "))).unwrap_or_else(||panic!("owned binding hidden in temporary scope: {output}"));
+    assert!(declaration.contains(" = { ")&&declaration.contains("conditional_temporary_"),"{declaration}");
+    assert!(output.contains(&format!("&value{binding}")),"subsequent statement must still use the declared owner: {output}");
+    assert!(emitter.conditional_temporaries.borrow().is_empty());
+    assert_eq!(emitter.expression_depth.get(),1);
+}

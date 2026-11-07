@@ -1,0 +1,47 @@
+import { Bytes, alloc, set, at, length, view } from 'std:bytes';
+import { sha384 as digest384, sha512 as digest512, createHasher, hmacSha256, verifyHmacSha256, hkdfSha256 } from 'std:crypto';
+
+export function workload(n: int, seed: int): int {
+  const size = 262144;
+  const input = inputBytes(size, seed);
+  const key = unwrap(alloc(32, 7));
+  const tag = hmacSha256(key, input);
+  const bad = clone(tag);
+  const changedByte = unwrap(at(bad, 0)) ^ 1;
+  unwrap(set(bad, 0, changedByte));
+  let sum = 0;
+  let i = 0;
+  while (i < n) {
+    const valid = verifyHmacSha256(key, input, tag);
+    const changed = verifyHmacSha256(key, input, bad);
+    sum = (sum * 131 + (valid ? 1 : 0)) % 1000000007;
+    sum = (sum * 131 + (changed ? 1 : 0)) % 1000000007;
+    i++;
+  }
+
+  return sum;
+}
+
+function inputBytes(size: int, seed: int): Bytes {
+  const bytes = unwrap(alloc(size));
+  let i = 0;
+  while (i < size) {
+    unwrap(set(bytes, i, (i + seed) % 251));
+    i++;
+  }
+
+  return bytes;
+}
+
+function fold(previous: int, bytes: ReadOnly<Bytes>): int {
+  let i = 0;
+  let sum = previous;
+  while (i < length(bytes)) {
+    sum = (sum * 131 + unwrap(at(bytes, i))) % 1000000007;
+    i++;
+  }
+
+  return sum;
+}
+
+function main() {}

@@ -188,6 +188,7 @@ impl SourceIndex {
                 return if arguments.is_empty(){builtins_for("IteratorConstructor")}else{builtins_for(&format!("Iterator{arguments}"))};
             }
             if identity==tsrust_compiler::native_signatures::NativeTypeId::StringView{return borrowed_string_builtins();}
+            if identity==tsrust_compiler::native_signatures::NativeTypeId::CryptoHasher{return builtins_for("Hasher");}
 
             if matches!(declaration.module,"std:regex"|"std:locale"|"std:compression"|"std:process"|"std:net") {return builtins_for(declaration.name);}
             if declaration.module=="std:url" {return if declaration.id==tsrust_compiler::native_signatures::NativeTypeId::Url{Vec::new()}else{builtins_for(declaration.name)};}

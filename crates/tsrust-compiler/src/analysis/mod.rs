@@ -1,4 +1,5 @@
 mod compression;
+mod crypto;
 mod escape_work;
 mod task_diagnostics;
 mod continuations;
@@ -1557,6 +1558,7 @@ impl Analyzer {
         crate::stdlib::ui::prepare(&mut program)?;
         crate::stdlib::cache::prepare(&mut program)?;
         crate::stdlib::compression::prepare(&mut program)?;
+        crate::stdlib::crypto::prepare(&mut program)?;
         crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::http::prepare(&mut program)?;
         crate::stdlib::url::prepare(&mut program)?;
@@ -9079,6 +9081,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty) = self.url_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.cache_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty)=self.crypto_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty)=self.compression_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty) = self.thread_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }

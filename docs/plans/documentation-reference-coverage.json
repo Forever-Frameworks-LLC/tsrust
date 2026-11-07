@@ -395,7 +395,7 @@
     },
     "std:crypto": {
       "route": "/docs/standard-library/crypto",
-      "members": 4
+      "members": 17
     },
     "std:signals": {
       "route": "/docs/standard-library/signals",
@@ -516,6 +516,10 @@
     "HttpClientOptions": {
       "route": "/docs/framework/client",
       "members": 8
+    },
+    "Hasher": {
+      "route": "/docs/standard-library/crypto",
+      "members": 2
     }
   }
 }

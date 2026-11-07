@@ -9,6 +9,920 @@
   "compileSamples": 3,
   "workloads": [
     {
+      "id": "crypto_sha384_64",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha384",
+      "cryptoSize": 64,
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "digest384(input)"
+        ],
+        "typescript": [
+          "createHash('sha384')"
+        ]
+      },
+      "source": "workloads/crypto_sha384_64.tsr",
+      "counterpart": "workloads/crypto_sha384_64.ts",
+      "rustReference": "parity/crypto_sha384_64.rs",
+      "sourceSha256": "6239fcfca8019fa41ac2c6e5497b098e97796fda67d967addfd42c410613a699",
+      "counterpartSha256": "7083590607f397d0a20868138299a03b9750a21d8c9e9dffad354cbe4ee7914f",
+      "rustReferenceSha256": "cdbe79afccd7fb6bbb1f9c246dd49cd832621244092ab85e8ed2d5e925d8f07b"
+    },
+    {
+      "id": "crypto_sha384_4096",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha384",
+      "cryptoSize": 4096,
+      "iterations": 64,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "digest384(input)"
+        ],
+        "typescript": [
+          "createHash('sha384')"
+        ]
+      },
+      "source": "workloads/crypto_sha384_4096.tsr",
+      "counterpart": "workloads/crypto_sha384_4096.ts",
+      "rustReference": "parity/crypto_sha384_4096.rs",
+      "sourceSha256": "91f1a28483f1e06eb8ab746bfb16355b1e40c3b7a8d8d6e9eae1ba60fe60a545",
+      "counterpartSha256": "9f22729ba7fa2c30ec78ee7a5215b8a2f76ce7031e00a76e005cd446792b4d63",
+      "rustReferenceSha256": "c9e2aafa803b8d27d4f80b00afa6bdcbe60cf8e2cb2201de94a418925258d065"
+    },
+    {
+      "id": "crypto_sha384_262144",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha384",
+      "cryptoSize": 262144,
+      "iterations": 1,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "digest384(input)"
+        ],
+        "typescript": [
+          "createHash('sha384')"
+        ]
+      },
+      "source": "workloads/crypto_sha384_262144.tsr",
+      "counterpart": "workloads/crypto_sha384_262144.ts",
+      "rustReference": "parity/crypto_sha384_262144.rs",
+      "sourceSha256": "3b3419b443bf4104ecd4bb2333e608451ca2c6631ca27b1425ad12aa60402915",
+      "counterpartSha256": "a9bf82bcca0763cbf5dbda4977b7e5736409eff2b5ba8e2837eafa62a0f83802",
+      "rustReferenceSha256": "9ca20caf028c4d68c628c5d6f9802d64b5274e4323913e36977f323b9146ed82"
+    },
+    {
+      "id": "crypto_sha512_64",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha512",
+      "cryptoSize": 64,
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "digest512(input)"
+        ],
+        "typescript": [
+          "createHash('sha512')"
+        ]
+      },
+      "source": "workloads/crypto_sha512_64.tsr",
+      "counterpart": "workloads/crypto_sha512_64.ts",
+      "rustReference": "parity/crypto_sha512_64.rs",
+      "sourceSha256": "5a697d0b744ec66de2611bd52fecb9591d062b15c0260a982ca46fe07da889d7",
+      "counterpartSha256": "9530b2986a07b4acf1292995fbbd62cee706812a53a0a1a98681823879388dd2",
+      "rustReferenceSha256": "9d8ad3dd5aa024c1444fad781765c95f306ae5002954deb9ea3cf50fb70286ff"
+    },
+    {
+      "id": "crypto_sha512_4096",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha512",
+      "cryptoSize": 4096,
+      "iterations": 64,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "digest512(input)"
+        ],
+        "typescript": [
+          "createHash('sha512')"
+        ]
+      },
+      "source": "workloads/crypto_sha512_4096.tsr",
+      "counterpart": "workloads/crypto_sha512_4096.ts",
+      "rustReference": "parity/crypto_sha512_4096.rs",
+      "sourceSha256": "d1160e26f4af4580ea50dc9bd9fe46a63ff50e5ee492592f591866c5cc3fbb12",
+      "counterpartSha256": "fe7c17de0568043e6aad23e7778ab4c1bc6b48d090041c5765ecbe895ec0cf48",
+      "rustReferenceSha256": "6e058c180b3297f9c6e2e73f981a1aa0e467660c00212b5cc3ade76d811bf5f3"
+    },
+    {
+      "id": "crypto_sha512_262144",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha512",
+      "cryptoSize": 262144,
+      "iterations": 1,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "digest512(input)"
+        ],
+        "typescript": [
+          "createHash('sha512')"
+        ]
+      },
+      "source": "workloads/crypto_sha512_262144.tsr",
+      "counterpart": "workloads/crypto_sha512_262144.ts",
+      "rustReference": "parity/crypto_sha512_262144.rs",
+      "sourceSha256": "92399b4d323aef8e851c10ec2474fc4d4628e9232ee6c04cf057c8b2b829fc66",
+      "counterpartSha256": "227f1bdfec4e082f6f20b1b2134c5e6b21418906f7c9edd956245f5a4f99b29f",
+      "rustReferenceSha256": "75c32685081a341223d0255ac2f427947b99dccca50ed4d956d56b17acea7790"
+    },
+    {
+      "id": "crypto_sha256_stream_64",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha256_stream",
+      "cryptoSize": 64,
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha256_stream_64.tsr",
+      "counterpart": "workloads/crypto_sha256_stream_64.ts",
+      "rustReference": "parity/crypto_sha256_stream_64.rs",
+      "sourceSha256": "e9f409cf969d1c2aa76f252f3a230e836f0c0bbb1b564d758122baba4f227c58",
+      "counterpartSha256": "2977ff8086ec5bfe41b2e94d90d461996c83b7dafe3e7fd6b5752315b7b2a020",
+      "rustReferenceSha256": "d422f4545b5446e79aec502746825af5fea7b5e46682864acb3affbed3cb40bf"
+    },
+    {
+      "id": "crypto_sha256_stream_4096",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha256_stream",
+      "cryptoSize": 4096,
+      "iterations": 64,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha256_stream_4096.tsr",
+      "counterpart": "workloads/crypto_sha256_stream_4096.ts",
+      "rustReference": "parity/crypto_sha256_stream_4096.rs",
+      "sourceSha256": "3667641670fbcb3c9019288caf322df18e17168894c87fb93f7a0d8af4490af4",
+      "counterpartSha256": "b64fa68e7ace1ca373aa9299935b80dadd667fac344d39737138b2ab676b641c",
+      "rustReferenceSha256": "bd91d78ed290a6b09e3718ec6255de7f30f4d0102e70a2dcffb6509a047de9fe"
+    },
+    {
+      "id": "crypto_sha256_stream_262144",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha256_stream",
+      "cryptoSize": 262144,
+      "iterations": 1,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha256_stream_262144.tsr",
+      "counterpart": "workloads/crypto_sha256_stream_262144.ts",
+      "rustReference": "parity/crypto_sha256_stream_262144.rs",
+      "sourceSha256": "bb08694804aa84d947d3635d71803ba35a38eecf8c3f4d10b342a622d9f09ef8",
+      "counterpartSha256": "5dd442efe1ff47cdef9ceda72e66084cfb2bc71d39f29dedafd456cda5637fc2",
+      "rustReferenceSha256": "58fd39054fc93c975f052ac240f0377739de37881bae4e23d2b3a327170db490"
+    },
+    {
+      "id": "crypto_sha384_stream_64",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha384_stream",
+      "cryptoSize": 64,
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha384_stream_64.tsr",
+      "counterpart": "workloads/crypto_sha384_stream_64.ts",
+      "rustReference": "parity/crypto_sha384_stream_64.rs",
+      "sourceSha256": "5ad88c417a243295403f5979c32ed4ae3ce72c8df96e29ba90c79e40ca41ae4c",
+      "counterpartSha256": "85b1828e557254960c98621ff3787b563dd0b72121651865985d2bb11503609c",
+      "rustReferenceSha256": "363c0213ae9e3417cea1e8b219e883cff905fc9a05de31c0de70cc1957247ec9"
+    },
+    {
+      "id": "crypto_sha384_stream_4096",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha384_stream",
+      "cryptoSize": 4096,
+      "iterations": 64,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha384_stream_4096.tsr",
+      "counterpart": "workloads/crypto_sha384_stream_4096.ts",
+      "rustReference": "parity/crypto_sha384_stream_4096.rs",
+      "sourceSha256": "5773eb261e9da0c38a85d195e278ab94b08cd436b51e3d50434101a3960d23d3",
+      "counterpartSha256": "1684fc9fe9b3a265a99f43d5607682e4f4addc77d7d3a26613ac0be54d7a3b57",
+      "rustReferenceSha256": "f37452be09da212994bb1b4daa6c3e57f08b5cfdb1a317d5373149c6ffe29606"
+    },
+    {
+      "id": "crypto_sha384_stream_262144",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha384_stream",
+      "cryptoSize": 262144,
+      "iterations": 1,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha384_stream_262144.tsr",
+      "counterpart": "workloads/crypto_sha384_stream_262144.ts",
+      "rustReference": "parity/crypto_sha384_stream_262144.rs",
+      "sourceSha256": "8e570fcbb4b7f69f4e1e05f85ff45c9e49d9dd6fc88b7bce68b0807891d039c2",
+      "counterpartSha256": "6d434e24e89dd11683f2c34a06b89bd0e457572f2bc0b3dfc16f797e6b896486",
+      "rustReferenceSha256": "4f6f9cf03ed78cef64b2a39b82c0d3917e7aa3fa192a50cc24aabdf7a21b91da"
+    },
+    {
+      "id": "crypto_sha512_stream_64",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha512_stream",
+      "cryptoSize": 64,
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha512_stream_64.tsr",
+      "counterpart": "workloads/crypto_sha512_stream_64.ts",
+      "rustReference": "parity/crypto_sha512_stream_64.rs",
+      "sourceSha256": "5b509c577cd85165569fa46b62c866316816870c49286ed2405366fdc39054a8",
+      "counterpartSha256": "ae12b89d1c7e73ac2f39c25d52a88b74e75cf8211864b16ce3def9ec3e9b92ed",
+      "rustReferenceSha256": "ff5ca332c6791c31a0eec3c91b6a03be306baf013f2c26d5426c1d6183eade7d"
+    },
+    {
+      "id": "crypto_sha512_stream_4096",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha512_stream",
+      "cryptoSize": 4096,
+      "iterations": 64,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha512_stream_4096.tsr",
+      "counterpart": "workloads/crypto_sha512_stream_4096.ts",
+      "rustReference": "parity/crypto_sha512_stream_4096.rs",
+      "sourceSha256": "129561f8df7b786e91c2b41acc5abe3c01b78f158ca5ce1d5a3235a76ee82fd4",
+      "counterpartSha256": "8d5c369d9272384593ce666a2af068a903175145e070c9da0dd18efe95c9b968",
+      "rustReferenceSha256": "ef4667aa8f2af5d03bce5a60a02c31a4593c1c0543d951a908df9eff0f571c51"
+    },
+    {
+      "id": "crypto_sha512_stream_262144",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "sha512_stream",
+      "cryptoSize": 262144,
+      "iterations": 1,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hasher.finalize()"
+        ],
+        "typescript": [
+          "h.digest()"
+        ]
+      },
+      "source": "workloads/crypto_sha512_stream_262144.tsr",
+      "counterpart": "workloads/crypto_sha512_stream_262144.ts",
+      "rustReference": "parity/crypto_sha512_stream_262144.rs",
+      "sourceSha256": "1f85f506949919a73d2e29afa517b9f776a8dce6a07379bd13bd461b00f11f89",
+      "counterpartSha256": "9dbd183b6bd7603c816aa2825f39a8858ff8cf35892a91d9adf951e12e1546d7",
+      "rustReferenceSha256": "30aa2aa1293a67b9dc4444770987ffb3837735826777ef9c23c4a349a30460d0"
+    },
+    {
+      "id": "crypto_hmac_64",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "hmac",
+      "cryptoSize": 64,
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hmacSha256(key,input)"
+        ],
+        "typescript": [
+          "createHmac('sha256',key)"
+        ]
+      },
+      "source": "workloads/crypto_hmac_64.tsr",
+      "counterpart": "workloads/crypto_hmac_64.ts",
+      "rustReference": "parity/crypto_hmac_64.rs",
+      "sourceSha256": "2d1f4e48c3519b29481664779692dfca403069b6f0bb6ace05d67e33b6abf1ca",
+      "counterpartSha256": "ce929c4370be8513233f83ab254b552623e620aaf86299fb2a2c413cbcb7bf25",
+      "rustReferenceSha256": "f945fa0e38f2e8fba7f892326a4cbabf854d6b00feec17ff4084b3f872f81713"
+    },
+    {
+      "id": "crypto_hmac_4096",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "hmac",
+      "cryptoSize": 4096,
+      "iterations": 64,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hmacSha256(key,input)"
+        ],
+        "typescript": [
+          "createHmac('sha256',key)"
+        ]
+      },
+      "source": "workloads/crypto_hmac_4096.tsr",
+      "counterpart": "workloads/crypto_hmac_4096.ts",
+      "rustReference": "parity/crypto_hmac_4096.rs",
+      "sourceSha256": "64f8663e06d1571a0e72d68154a2def047ca63559f69abae4466301635c47d7c",
+      "counterpartSha256": "4e13a1f5048d7bada70c3fecddb3eefc9810ad0a0f2a5c377e7faa4d7b2f8fc2",
+      "rustReferenceSha256": "0a00b20603e5d26b6c43ec01901db1e0487dfe56a48254d7fc55da31a7914c3c"
+    },
+    {
+      "id": "crypto_hmac_262144",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "hmac",
+      "cryptoSize": 262144,
+      "iterations": 1,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hmacSha256(key,input)"
+        ],
+        "typescript": [
+          "createHmac('sha256',key)"
+        ]
+      },
+      "source": "workloads/crypto_hmac_262144.tsr",
+      "counterpart": "workloads/crypto_hmac_262144.ts",
+      "rustReference": "parity/crypto_hmac_262144.rs",
+      "sourceSha256": "0511c1ce86a75f1f6c95bbf3d88bf86276e77ce9b253252f2e42be79b8ada104",
+      "counterpartSha256": "3b36eebde886897eeaaa59c2ad6d8c6414d4b55445751022900c1282f289eafd",
+      "rustReferenceSha256": "a0e80c678cc93fe353ab116a0cc2554edaf8a9278bd1c8d026037b36acb4954f"
+    },
+    {
+      "id": "crypto_verify_hmac_64",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "verify_hmac",
+      "cryptoSize": 64,
+      "iterations": 4096,
+      "operationsPerIteration": 2,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "verifyHmacSha256(key,input,tag)",
+          "verifyHmacSha256(key,input,bad)"
+        ],
+        "typescript": [
+          "timingSafeEqual(expected,tag)"
+        ]
+      },
+      "source": "workloads/crypto_verify_hmac_64.tsr",
+      "counterpart": "workloads/crypto_verify_hmac_64.ts",
+      "rustReference": "parity/crypto_verify_hmac_64.rs",
+      "sourceSha256": "4ac3164cf9dc85c5daa238c33fa0b0b475e318904f54b6fd7c8bd5b36c6f7d06",
+      "counterpartSha256": "bc0143527e01d370714521923b8cb0bd4c8d4b11229848bb66488f244554d1d4",
+      "rustReferenceSha256": "4d34ec52aeaa1803d6c1682e65db1540125476181fefc3af8be35ecd0bc3ec45"
+    },
+    {
+      "id": "crypto_verify_hmac_4096",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "verify_hmac",
+      "cryptoSize": 4096,
+      "iterations": 64,
+      "operationsPerIteration": 2,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "verifyHmacSha256(key,input,tag)",
+          "verifyHmacSha256(key,input,bad)"
+        ],
+        "typescript": [
+          "timingSafeEqual(expected,tag)"
+        ]
+      },
+      "source": "workloads/crypto_verify_hmac_4096.tsr",
+      "counterpart": "workloads/crypto_verify_hmac_4096.ts",
+      "rustReference": "parity/crypto_verify_hmac_4096.rs",
+      "sourceSha256": "e960f8c7495ff56c040f50fc26b747df11dd0e4b179e749bfd089c87d4fb98cc",
+      "counterpartSha256": "52fcb450af18f33ccb1923d8f95ba2b76e88ebb2ff363c1744cbaf42d830add2",
+      "rustReferenceSha256": "3403409da79bbcd96937141bb31d0f592875babc1dcccf0838f34831c5186e9a"
+    },
+    {
+      "id": "crypto_verify_hmac_262144",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "verify_hmac",
+      "cryptoSize": 262144,
+      "iterations": 1,
+      "operationsPerIteration": 2,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "verifyHmacSha256(key,input,tag)",
+          "verifyHmacSha256(key,input,bad)"
+        ],
+        "typescript": [
+          "timingSafeEqual(expected,tag)"
+        ]
+      },
+      "source": "workloads/crypto_verify_hmac_262144.tsr",
+      "counterpart": "workloads/crypto_verify_hmac_262144.ts",
+      "rustReference": "parity/crypto_verify_hmac_262144.rs",
+      "sourceSha256": "1a146389f205cd51e206d1d0cd9d4ac1dd2dba2da1189631b1352999a958c836",
+      "counterpartSha256": "2f2d72ffda23c3c23242e1d752d6e6bfef01ea7134b25938474c0b8aab4962fa",
+      "rustReferenceSha256": "0e0505068bd651c977e211082ce2e01b6c88d3f229d96377f0b191d06ca746d8"
+    },
+    {
+      "id": "crypto_hkdf_64",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "hkdf",
+      "cryptoSize": 64,
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hkdfSha256(input,salt,info,32)"
+        ],
+        "typescript": [
+          "hkdfSync('sha256'"
+        ]
+      },
+      "source": "workloads/crypto_hkdf_64.tsr",
+      "counterpart": "workloads/crypto_hkdf_64.ts",
+      "rustReference": "parity/crypto_hkdf_64.rs",
+      "sourceSha256": "3a781d0d6d4edcc495751def374fa9810a226ada91635bc90c3c057fae6790d8",
+      "counterpartSha256": "454d4a0c3509fcf1c84caff7b687c59e6eaa568a08a436e65b224fc904a7966a",
+      "rustReferenceSha256": "618b5edab9d694adb02cf4b16cc793c22c936335c07c3f809a4d6f96e1214475"
+    },
+    {
+      "id": "crypto_hkdf_4096",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "hkdf",
+      "cryptoSize": 4096,
+      "iterations": 64,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hkdfSha256(input,salt,info,32)"
+        ],
+        "typescript": [
+          "hkdfSync('sha256'"
+        ]
+      },
+      "source": "workloads/crypto_hkdf_4096.tsr",
+      "counterpart": "workloads/crypto_hkdf_4096.ts",
+      "rustReference": "parity/crypto_hkdf_4096.rs",
+      "sourceSha256": "779b42c970384b782d275ad57da47d498aa05cbe90528f4b5b0a6bd8da080e62",
+      "counterpartSha256": "7ab0ecdc2925796d874b3a91fd2f31e2546ef14a33c744e16534dcff16171633",
+      "rustReferenceSha256": "d6635e15ef617fbc1c05d923f4cb4b8443812c2ee566a0829e9ffe4889e081d4"
+    },
+    {
+      "id": "crypto_hkdf_262144",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "hkdf",
+      "cryptoSize": 262144,
+      "iterations": 1,
+      "operationsPerIteration": 1,
+      "operationUnit": "complete cryptographic operations",
+      "specification": "Exact seeded input bytes; ordered base131 digest-byte checksum, or complete true/changed-false MAC verification pair.",
+      "notes": "Whole workload includes input/setup, owned output allocation and checksum. Fast digest is not password hashing.",
+      "methodExpressions": {
+        "native": [
+          "hkdfSha256(input,salt,info,32)"
+        ],
+        "typescript": [
+          "hkdfSync('sha256'"
+        ]
+      },
+      "source": "workloads/crypto_hkdf_262144.tsr",
+      "counterpart": "workloads/crypto_hkdf_262144.ts",
+      "rustReference": "parity/crypto_hkdf_262144.rs",
+      "sourceSha256": "069e8392e1cd5d7d040e9e8a179660a1e097aba380ec9e127ba11ecc0e11e0d2",
+      "counterpartSha256": "c240e078be30539190ddcc5f62c984244e86b94e3b03359f830069484648527a",
+      "rustReferenceSha256": "265c167c368a266f637f37a40f8c9b61a7b0737178410f9fd20dc6b40281dad7"
+    },
+    {
+      "id": "crypto_random_int",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "random_int",
+      "cryptoSize": 0,
+      "iterations": 1024,
+      "operationsPerIteration": 1,
+      "operationUnit": "fresh OS-seeded bounded random integer",
+      "specification": "Observe every result lies in the exact half-open seeded interval; fold one success byte per call. No statistical security claim.",
+      "notes": "Each Rust/native call uses fresh fallible OS-seeded StdRng; measured private admission was about4x Node. No custom cache.",
+      "methodExpressions": {
+        "native": [
+          "randomInt(-1000000+seed,1000000+seed)"
+        ],
+        "typescript": [
+          "randomInt(-1000000+seed,1000000+seed)"
+        ]
+      },
+      "source": "workloads/crypto_random_int.tsr",
+      "counterpart": "workloads/crypto_random_int.ts",
+      "rustReference": "parity/crypto_random_int.rs",
+      "sourceSha256": "b7597412dbe5266ab121fd03bf4fdfbf28b1f89e20fe73c486e7b7ed1ca3ca3d",
+      "counterpartSha256": "fc1359cd11b7e24775d23211cd35794568810aae40ac84c71597775e2e745679",
+      "rustReferenceSha256": "d8fa4cf1551209a56bd53d1aa4791e17474226d70f684839f68a5a6de902c1ce"
+    },
+    {
+      "id": "crypto_password_roundtrip_16",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "password_roundtrip",
+      "cryptoSize": 16,
+      "cryptoAsync": true,
+      "iterations": 4,
+      "operationsPerIteration": 2,
+      "operationUnit": "default PHC hash and verification operations",
+      "specification": "Generate fresh16byte OS salt and Argon2id default PHC, validate public parameters, verify the actual produced hash; fold one true observation per roundtrip.",
+      "notes": "Explicit one-worker pool reused for all jobs in each workload batch; includes pool setup/shutdown, documented worker password copies, PHC encoding/parsing and actual crypto. Node uses its existing async crypto worker pool. No encoder-only claim or caller normalization.",
+      "methodExpressions": {
+        "native": [
+          "hashPassword(pool,input)",
+          "verifyPassword(pool,input,encoded)"
+        ],
+        "typescript": [
+          "derive('argon2id'",
+          "timingSafeEqual(tag,verified)"
+        ]
+      },
+      "source": "workloads/crypto_password_roundtrip_16.tsr",
+      "counterpart": "workloads/crypto_password_roundtrip_16.ts",
+      "rustReference": "parity/crypto_password_roundtrip_16.rs",
+      "sourceSha256": "619851a48c0bccb3fbaaafb9872f23e7873794ba2c59a1ee5917916b36d96f1c",
+      "counterpartSha256": "aa79ccaf7f6ca8a7d86991e4e5ea32949a943a3f6ea715444eaf021b830cef96",
+      "rustReferenceSha256": "746bc6e9b84c69e35014f7a873e6a61f785ec33d5ad87ffd369206b3e3b29567"
+    },
+    {
+      "id": "crypto_password_roundtrip_128",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "password_roundtrip",
+      "cryptoSize": 128,
+      "cryptoAsync": true,
+      "iterations": 4,
+      "operationsPerIteration": 2,
+      "operationUnit": "default PHC hash and verification operations",
+      "specification": "Generate fresh16byte OS salt and Argon2id default PHC, validate public parameters, verify the actual produced hash; fold one true observation per roundtrip.",
+      "notes": "Explicit one-worker pool reused for all jobs in each workload batch; includes pool setup/shutdown, documented worker password copies, PHC encoding/parsing and actual crypto. Node uses its existing async crypto worker pool. No encoder-only claim or caller normalization.",
+      "methodExpressions": {
+        "native": [
+          "hashPassword(pool,input)",
+          "verifyPassword(pool,input,encoded)"
+        ],
+        "typescript": [
+          "derive('argon2id'",
+          "timingSafeEqual(tag,verified)"
+        ]
+      },
+      "source": "workloads/crypto_password_roundtrip_128.tsr",
+      "counterpart": "workloads/crypto_password_roundtrip_128.ts",
+      "rustReference": "parity/crypto_password_roundtrip_128.rs",
+      "sourceSha256": "d2a5a0ad940d6f318add59c0dcb3fa99ed1ba9c3091ce44bcc7fbfe539186908",
+      "counterpartSha256": "7f3ec67653b36cf2811e4a6f98799cb26c1937f3093229a9e1595412b79b856c",
+      "rustReferenceSha256": "aa2f093a753a5731094def687dff71649a88b5e191c20fd7bbb167c2d4174520"
+    },
+    {
+      "id": "crypto_password_bounded_roundtrip_16",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "password_bounded_roundtrip",
+      "cryptoSize": 16,
+      "cryptoAsync": true,
+      "iterations": 4,
+      "operationsPerIteration": 2,
+      "operationUnit": "default PHC hash and verification operations",
+      "specification": "Generate fresh16byte OS salt and Argon2id default PHC, validate public parameters, verify the actual produced hash; fold one true observation per roundtrip.",
+      "notes": "Explicit one-worker pool reused for all jobs in each workload batch; includes pool setup/shutdown, documented worker password copies, PHC encoding/parsing and actual crypto. Node uses its existing async crypto worker pool. No encoder-only claim or caller normalization.",
+      "methodExpressions": {
+        "native": [
+          "hashPassword(pool,input)",
+          "verifyPasswordBounded(pool,input,encoded"
+        ],
+        "typescript": [
+          "derive('argon2id'",
+          "timingSafeEqual(tag,verified)"
+        ]
+      },
+      "source": "workloads/crypto_password_bounded_roundtrip_16.tsr",
+      "counterpart": "workloads/crypto_password_bounded_roundtrip_16.ts",
+      "rustReference": "parity/crypto_password_bounded_roundtrip_16.rs",
+      "sourceSha256": "808ba73a0785b2e7a56f3df2f39bef1caa60beaaae03646b4a106e51c12eda06",
+      "counterpartSha256": "391464171ae97aca358e38d22b2098707ee33982cbb0e1eeb49d1e3ef6f23318",
+      "rustReferenceSha256": "d9133b31238b2a399da09e451e7eed156bd5bc8c1ec97c95a105b29d8017ea1c"
+    },
+    {
+      "id": "crypto_password_bounded_roundtrip_128",
+      "category": "crypto",
+      "family": "crypto-primitives",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "cryptoOperation": "password_bounded_roundtrip",
+      "cryptoSize": 128,
+      "cryptoAsync": true,
+      "iterations": 4,
+      "operationsPerIteration": 2,
+      "operationUnit": "default PHC hash and verification operations",
+      "specification": "Generate fresh16byte OS salt and Argon2id default PHC, validate public parameters, verify the actual produced hash; fold one true observation per roundtrip.",
+      "notes": "Explicit one-worker pool reused for all jobs in each workload batch; includes pool setup/shutdown, documented worker password copies, PHC encoding/parsing and actual crypto. Node uses its existing async crypto worker pool. No encoder-only claim or caller normalization.",
+      "methodExpressions": {
+        "native": [
+          "hashPassword(pool,input)",
+          "verifyPasswordBounded(pool,input,encoded"
+        ],
+        "typescript": [
+          "derive('argon2id'",
+          "timingSafeEqual(tag,verified)"
+        ]
+      },
+      "source": "workloads/crypto_password_bounded_roundtrip_128.tsr",
+      "counterpart": "workloads/crypto_password_bounded_roundtrip_128.ts",
+      "rustReference": "parity/crypto_password_bounded_roundtrip_128.rs",
+      "sourceSha256": "f3cda49b12b7cb417241fda4b94591bb0c6e20ab3713af9f672416ad3cdfb4cd",
+      "counterpartSha256": "5883230c431106bd4476a68e8efee4aa5f808e3e6f7b50973c70a09ea7546db8",
+      "rustReferenceSha256": "50a3ccf10aece032778a13dac57dbc850c264adc9701cfe574e01094de8b7348"
+    },
+    {
       "id": "testing_deep_data",
       "category": "testing",
       "family": "testing-assertions",

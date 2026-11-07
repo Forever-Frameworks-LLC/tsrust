@@ -263,6 +263,10 @@ impl Analyzer {
                         (Type::StoredCallable(source),Type::StoredCallable(target))=>{
                             match (self.callables.storage.scoped_native_family(source),self.callables.storage.scoped_native_family(target)) {
                                 (Some(source),Some(target))=>source.signature==target.signature && source.alternatives.iter().all(|alternative|target.alternatives.contains(alternative)),
+                                // The written family has no possible environment. Match the
+                                // emitter's empty match, without admitting a different protocol.
+                                (None,Some(target)) if self.callables.storage.origins(source).is_some_and(|origins|origins.is_empty())=>
+                                    self.callables.storage.declaration(source).is_some_and(|declaration|self.callables.callbacks[declaration].structural==target.signature),
                                 _=>false,
                             }
                         }
@@ -307,9 +311,10 @@ impl Analyzer {
                 eprintln!("CARRIER_REJECT span={:?} source={:?} target={destination:?}",value.span,value.ty);
                 let mut pending=vec![value.ty.unwrap(),destination];let mut seen=HashSet::new();
                 while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
-                    Type::Record(record)=>{let fields=self.program.records[record].fields.iter().map(|field|(field.name.text.as_str(),field.ty.unwrap())).collect::<Vec<_>>();eprintln!("CARRIER_RECORD id={record} declaration={} fields={fields:?}",self.scoped_records.declaration(record));pending.extend(fields.into_iter().map(|(_,ty)|ty));}
-                    Type::Union(union)=>{let members=self.unions.members(union);eprintln!("CARRIER_UNION id={union:?} members={members:?}");pending.extend(members);}
-                    Type::StoredCallable(family)|Type::BorrowedCallable(family)=>{eprintln!("CARRIER_FAMILY id={family} origins={:?} scoped_native={}",self.callables.storage.origins(family),self.callables.storage.scoped_native_family(family).is_some());}
+                    Type::Record(id)=>{let record=&self.program.records[id];let fields=record.fields.iter().map(|field|(field.name.text.as_str(),field.ty.unwrap())).collect::<Vec<_>>();eprintln!("CARRIER_RECORD id={id} declaration={} fields={fields:?}",self.scoped_records.declaration(id));pending.extend(fields.into_iter().map(|(_,ty)|ty));}
+                    Type::Union(id)|Type::BorrowedUnion(id)=>{let members=self.unions.members(id);eprintln!("CARRIER_UNION id={id:?} members={members:?}");pending.extend(members);}
+                    Type::StoredCallable(id)|Type::BorrowedCallable(id)=>{eprintln!("CARRIER_FAMILY id={id} origins={:?} protocol={:?} scoped_protocol={:?}",self.callables.storage.origins(id),self.callables.storage.declaration(id).map(|declaration|self.callables.callbacks[declaration].structural),self.callables.storage.scoped_native_family(id).map(|family|family.signature));}
+                    Type::Callback(id)=>eprintln!("CARRIER_CALLBACK id={id} protocol={:?}",self.callables.callbacks[id].structural),
                     _=>{}
                 }}
             }
@@ -411,5 +416,41 @@ fn flat_map_mixed_inner_result_checks_selected_nullable_carrier(){
   fn read(&self,id:&SourceId)->Result<String,String>{if id.0!="main.tsr"{return Err(format!("Missing source: {}",id.0));}Ok("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]).flatMap((value:int):int[]|Iterator<int>=>value===1?[value,value]:Iterator.from([value]));console.log(values.toArray().join(','));}".into())}
  }
  let checked=check_graph(load_project(&Input,"main.tsr").unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));
+ drop(checked.emit_rust());
+}
+
+#[cfg(test)]
+#[test]
+fn empty_stored_carriers_require_the_same_protocol_and_nonempty_target(){
+ let source="function first():Owned<Function<int>>{const values=[1];return ():int=>values.length;}function second():Owned<Function<int>>{const values=[2];return ():int=>values.length;}function main(){}";
+ let checked=analyze(crate::syntax::parse(source).unwrap()).unwrap();
+ let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();analyzer.closures=checked.closures;assert_eq!(analyzer.closures.len(),2);
+ let signature=analyzer.callables.shapes.intern([],Type::Int,Some(CallbackKind::Owned));
+ let declaration=analyzer.callables.callbacks.len();analyzer.callables.callbacks.push(CallbackContract{structural:signature,parameter_names:vec![],params:vec![],result:Type::Int,kind:CallbackKind::Owned});
+ let callback=&analyzer.callables.callbacks[declaration];
+ let empty=analyzer.callables.storage.intern(&analyzer.callables.shapes,callback,declaration).unwrap();
+ let target=analyzer.callables.storage.intern_finite_owned(&analyzer.callables.shapes,callback,declaration,[0],&analyzer.closures,Span::default()).unwrap().unwrap();
+ let other=analyzer.callables.storage.intern_finite_owned(&analyzer.callables.shapes,callback,declaration,[1],&analyzer.closures,Span::default()).unwrap().unwrap();
+ assert!(analyzer.carrier_convertible(empty,target),"Empty owning storage has no payload to move into the same protocol");
+ assert!(!analyzer.carrier_convertible(other,target),"A real unadmitted environment cannot be discarded");
+ assert!(!analyzer.carrier_convertible(target,empty),"A populated family cannot become absent storage");
+ let signature=analyzer.callables.shapes.intern([],Type::Boolean,Some(CallbackKind::Owned));
+ let declaration=analyzer.callables.callbacks.len();analyzer.callables.callbacks.push(CallbackContract{structural:signature,parameter_names:vec![],params:vec![],result:Type::Boolean,kind:CallbackKind::Owned});
+ let wrong=analyzer.callables.storage.intern(&analyzer.callables.shapes,&analyzer.callables.callbacks[declaration],declaration).unwrap();
+ assert!(!analyzer.carrier_convertible(wrong,target),"Empty storage does not bypass protocol identity");
+}
+
+#[cfg(test)]
+#[test]
+fn retained_keyboard_ui_imports_and_router_preserve_checked_carriers(){
+ use crate::project::{SourceId,SourceProvider,FileSourceProvider,check_graph,load_project};
+ struct Entry(String);
+ impl SourceProvider for Entry{
+  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{if importer.is_none()&&path=="main.tsr"{Ok(SourceId(path.into()))}else{FileSourceProvider.resolve(importer,path)}}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{FileSourceProvider.read(id)}}
+ }
+ let example=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/src/examples/keyboard-shortcuts.tsrx");
+ let source=format!("import {{KeyboardShortcuts as First,KeyboardCustomization as Second,KeyboardIconsAndTheme as Third}} from {};import {{Router}} from 'std:http';function main(){{const router=new Router();}}",serde_json::to_string(example.to_str().unwrap()).unwrap());
+ let checked=check_graph(load_project(&Entry(source),"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
  drop(checked.emit_rust());
 }

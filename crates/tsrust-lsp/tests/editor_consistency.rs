@@ -616,7 +616,7 @@ fn io_exports_error_fields_and_parameter_help_agree(){
 #[test]
 fn process_network_compression_help_agrees_across_all_server_phases() {
     let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
-    for module in ["std:process","std:net","std:dns","std:compression"] {
+    for module in ["std:process","std:net","std:dns","std:compression","std:crypto"] {
         let before="import { ";let source=format!("{before} }} from '{module}';function main(){{}}");
         let mut session=Session::start(&[]);session.open("main.tsr",&source);session.settle();
         let names=session.completion("main.tsr",&source,before.len()).unwrap();
@@ -634,6 +634,14 @@ fn process_network_compression_help_agrees_across_all_server_phases() {
         ("std:compression","compressReader","pool,source,'gzip'","CompressionReader")
     ] {cases.push((format!("import {{{name}}} from '{module}';import {{ThreadPool}} from 'std:threads';import {{Bytes}} from 'std:bytes';import {{Reader}} from 'std:io';import {{SocketAddress}} from 'std:net';function inspect(pool:ThreadPool,input:Bytes,source:Reader,address:ReadOnly<SocketAddress>){{"),name,format!("({arguments});}}function main(){{}}"),result,true));}
     for (module,ty,name,result) in [
+
+        ("std:crypto","PasswordHashOptions","memoryKiB","int | undefined"),
+        ("std:crypto","PasswordHashOptions","iterations","int | undefined"),
+        ("std:crypto","PasswordHashOptions","parallelism","int | undefined"),
+        ("std:crypto","PasswordHashOptions","outputBytes","int | undefined"),
+        ("std:crypto","PasswordVerifyOptions","maxMemoryKiB","int"),
+        ("std:crypto","PasswordVerifyOptions","maxIterations","int"),
+        ("std:crypto","PasswordVerifyOptions","maxParallelism","int"),
         ("std:process","CommandOptions","deadlineMs","undefined"),
         ("std:process","ExitStatus","success","boolean"),
         ("std:process","Output","stdout","Bytes"),
@@ -644,6 +652,9 @@ fn process_network_compression_help_agrees_across_all_server_phases() {
         ("std:compression","DecompressionOptions","maxOutputBytes","undefined"),
         ("std:compression","CompressionError","operation","string")
     ] {cases.push((format!("import {{{ty}}} from '{module}';function inspect(value:ReadOnly<{ty}>){{console.log(value."),name,");}function main(){}".into(),result,false));}
+    for (name,arguments,result) in [("update","input","void"),("finalize","","Bytes")] {
+        cases.push(("import {Hasher} from 'std:crypto';import {Bytes} from 'std:bytes';function inspect(state:Owned<Hasher>,input:ReadOnly<Bytes>){state.".into(),name,format!("({arguments});}}function main(){{}}"),result,true));
+    }
     for (before,typed,after,expected,callable) in cases {
         let mut baseline=None;let mut signature_baseline:Option<Value>=None;
         for (mode,delay,broken) in [("settled",None,false),("typed-fast",Some(Duration::ZERO),false),("80ms",Some(Duration::from_millis(80)),false),("syntax-error",None,true)] {

@@ -1,0 +1,61 @@
+import { Bytes, alloc, set, at, length, view } from 'std:bytes';
+import { sha384 as digest384, sha512 as digest512, createHasher, hmacSha256, verifyHmacSha256, hkdfSha256 } from 'std:crypto';
+
+export function workload(n: int, seed: int): int {
+  const size = 262144;
+  const input = inputBytes(size, seed);
+  const salt = unwrap(alloc(16, 7));
+  const info = unwrap(alloc(19));
+  unwrap(set(info, 0, 112));
+  unwrap(set(info, 1, 114));
+  unwrap(set(info, 2, 111));
+  unwrap(set(info, 3, 102));
+  unwrap(set(info, 4, 105));
+  unwrap(set(info, 5, 108));
+  unwrap(set(info, 6, 101));
+  unwrap(set(info, 7, 32));
+  unwrap(set(info, 8, 112));
+  unwrap(set(info, 9, 117));
+  unwrap(set(info, 10, 98));
+  unwrap(set(info, 11, 108));
+  unwrap(set(info, 12, 105));
+  unwrap(set(info, 13, 99));
+  unwrap(set(info, 14, 32));
+  unwrap(set(info, 15, 105));
+  unwrap(set(info, 16, 110));
+  unwrap(set(info, 17, 102));
+  unwrap(set(info, 18, 111));
+  let sum = 0;
+  let i = 0;
+  while (i < n) {
+    const output = unwrap(hkdfSha256(input, salt, info, 32));
+    sum = fold(sum, output);
+    i++;
+  }
+
+  return sum;
+}
+
+function inputBytes(size: int, seed: int): Bytes {
+  const bytes = unwrap(alloc(size));
+  let i = 0;
+  while (i < size) {
+    unwrap(set(bytes, i, (i + seed) % 251));
+    i++;
+  }
+
+  return bytes;
+}
+
+function fold(previous: int, bytes: ReadOnly<Bytes>): int {
+  let i = 0;
+  let sum = previous;
+  while (i < length(bytes)) {
+    sum = (sum * 131 + unwrap(at(bytes, i))) % 1000000007;
+    i++;
+  }
+
+  return sum;
+}
+
+function main() {}

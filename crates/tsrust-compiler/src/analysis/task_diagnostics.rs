@@ -3,7 +3,34 @@ use super::*;
 use std::collections::BTreeSet;
 type Tokens = BTreeSet<(usize, usize, bool)>;
 type Place = (usize, Vec<String>);
-type State = BTreeMap<Place, Tokens>;
+#[derive(Clone,Debug,PartialEq,Eq)]
+struct Poll { cursors:Vec<Place>, selected:Vec<Place> }
+#[derive(Clone,Debug,Default,PartialEq,Eq)]
+struct State { owners:BTreeMap<Place,Tokens>, polls:BTreeMap<Place,Poll> }
+impl State { fn new()->Self{Self::default()} }
+impl<const N:usize> From<[(Place,Tokens);N]> for State{fn from(values:[(Place,Tokens);N])->Self{Self{owners:BTreeMap::from(values),polls:BTreeMap::new()}}}
+impl std::ops::Deref for State{type Target=BTreeMap<Place,Tokens>;fn deref(&self)->&Self::Target{&self.owners}}
+impl std::ops::DerefMut for State{fn deref_mut(&mut self)->&mut Self::Target{&mut self.owners}}
+impl IntoIterator for State{type Item=(Place,Tokens);type IntoIter=std::collections::btree_map::IntoIter<Place,Tokens>;fn into_iter(self)->Self::IntoIter{self.owners.into_iter()}}
+fn within(place:&Place,parent:&Place)->bool{place.0==parent.0&&place.1.starts_with(&parent.1)}
+fn overlaps(left:&Place,right:&Place)->bool{left.0==right.0&&left.1.iter().zip(&right.1).all(|(left,right)|left==right||left=="*"||right=="*")}
+fn rebased(place:&Place,source:&Place,destination:&Place)->Place{let mut path=destination.1.clone();path.extend_from_slice(&place.1[source.1.len()..]);(destination.0,path)}
+fn invalidate(state:&mut State,owner:&Place){state.polls.retain(|result,poll|!overlaps(result,owner)&&!poll.cursors.iter().any(|cursor|overlaps(cursor,owner)));}
+fn widen(state:&mut State,function:&CheckedFunction,program:&CheckedProgram){
+ let owners=std::mem::take(&mut state.owners);
+ for((root,mut path),tokens)in owners{
+  if tokens.is_empty(){continue;}
+  let patterns=function.bindings.get(root).map(|binding|program.task_paths(binding.ty));
+  let original=path.clone();
+  for(index,part)in path.iter_mut().enumerate(){
+   if part.parse::<usize>().is_ok()&&patterns.as_ref().is_none_or(|patterns|patterns.iter().any(|(pattern,_)|pattern.get(index).is_some_and(|part|part=="*")&&pattern.iter().take(index).zip(&original).all(|(pattern,actual)|pattern==actual||pattern=="*"))){*part="*".into();}
+  }
+  state.entry((root,path)).or_default().extend(tokens);
+ }
+ // A backedge can repeat writes/polls. Only a freshly evaluated observation
+ // may refine the next iteration's source; owner tokens remain conservative.
+ state.polls.clear();
+}
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Exit { Next, Return, Throw, Break, Continue }
 struct Path { state: State, exit: Exit }
@@ -50,8 +77,8 @@ impl CheckedProgram {
     pub(crate) fn task_warnings(&self)->Vec<Diagnostic> {
         if self.task_origins.is_empty() && !self.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) && !self.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Job)) {return Vec::new();}
         let mut tracker=Tracker{program:self,warnings:BTreeMap::new(),failures:Vec::new(),projections:0};
-        for function in &self.functions { if !function.template {tracker.function(function, &[],None);} }
-        for closure in &self.closures {if !closure.function.template && closure.forward.is_none() {tracker.function(&closure.function,&closure.captures,Some(&closure.parameters));} }
+        for function in &self.functions { if !function.template {tracker.function(function, &[],None,Mode::Consume);} }
+        for closure in &self.closures {if !closure.function.template && closure.forward.is_none() {tracker.function(&closure.function,&closure.captures,Some(&closure.parameters),closure.invocation);} }
         tracker.warnings.into_values().collect()
     }
 }
@@ -67,6 +94,60 @@ fn place(value:&Expr)->Option<Place> {
         _=>None,
     }
 }
+// Resolve only checked single-return forwarding. An arbitrary iterator whose
+// callback can return done before polling its owner is deliberately not a leaf.
+impl CheckedProgram{
+ fn cursor_poll_sources(&self,function:&CheckedFunction,expression:&Expr)->Option<Vec<Place>>{
+  type Mapping=BTreeMap<usize,Place>;
+  fn mapped(value:&Expr,mapping:&Mapping)->Option<Place>{let source=place(value)?;let root=mapping.get(&source.0)?;if source.1.iter().any(|part|part=="*"){return None;}let mut path=root.1.clone();path.extend(source.1);Some((root.0,path))}
+  fn returned(function:&CheckedFunction)->Option<&Expr>{let [statement]=function.body.as_slice()else{return None;};let StmtKind::Return(Some(value))=&statement.kind else{return None;};Some(value)}
+  let identity=(0..function.bindings.len()).map(|id|(id,(id,Vec::new()))).collect::<Mapping>();
+  let mut pending=vec![(expression,identity,HashSet::<(bool,usize)>::new())];let mut cursors=Vec::new();
+  while let Some((mut value,mapping,mut seen))=pending.pop(){
+   loop{match &value.kind{ExprKind::Project{value:inner,..}|ExprKind::TypeAssertion{value:inner,..}|ExprKind::Inject{value:inner,..}=>value=inner,ExprKind::Unary{op:UnaryOp::RecordCarrier|UnaryOp::CallableStore|UnaryOp::NonNull,value:inner,..}=>value=inner,_=>break}}
+   let ExprKind::Call(callee,args)=&value.kind else{return None;};
+   if value.target==Some(CallTarget::IteratorNext){
+    let [argument]=args.as_slice()else{return None;};
+    if !matches!(argument.ty,Some(Type::Record(id))if self.records[id].native_type==Some(crate::native_signatures::NativeTypeId::IteratorCursor)){return None;}
+    let mut source=mapped(argument,&mapping)?;source.1.push("_items".into());cursors.push(source);continue;
+   }
+   if let Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=value.target{
+    if !seen.insert((false,id)){return None;}let callee=&self.functions[id];let body=returned(callee)?;
+    let mut inputs=Mapping::new();for(index,arg)in args.iter().enumerate(){if let Some(actual)=mapped(arg,&mapping){inputs.insert(index,actual);}}
+    pending.push((body,inputs,seen));continue;
+   }
+   let origins=match callee.ty?{Type::Closure(id)=>vec![id],Type::StoredCallable(family)|Type::BorrowedCallable(family)=>self.stored_contracts.populated().find(|(id,_,_)|*id==family)?.2.to_vec(),_=>return None};
+   if origins.is_empty(){return None;}let owner=mapped(callee,&mapping)?;
+   for origin in origins{
+    let mut seen=seen.clone();if !seen.insert((true,origin)){return None;}let closure=&self.closures[origin];
+    if let Some(ClosureForward::Function(id))=closure.forward{
+     if !seen.insert((false,id)){return None;}let body=returned(&self.functions[id])?;let mut inputs=Mapping::new();for(index,arg)in args.iter().enumerate(){if let Some(actual)=mapped(arg,&mapping){inputs.insert(index,actual);}}pending.push((body,inputs,seen));continue;
+    }
+    if closure.forward.is_some(){return None;}
+    if closure.methods.is_empty(){
+     let mut inputs=Mapping::new();for capture in &closure.captures{if capture.storage==Mode::Consume{let mut path=owner.1.clone();path.push(format!("capture{}",capture.inner));inputs.insert(capture.inner,(owner.0,path));}}
+     for(index,&slot)in closure.parameters.iter().enumerate(){if let Some(arg)=args.get(index).and_then(|arg|mapped(arg,&mapping)){inputs.insert(slot,arg);}}
+     pending.push((returned(&closure.function)?,inputs,seen));
+    }else{
+     let mut found=false;for method in &closure.methods{if method.parameters.len()!=args.len(){continue;}found=true;
+      let mut inputs=Mapping::new();for(capture,&slot)in closure.captures.iter().zip(&method.captures){if capture.storage==Mode::Consume{let mut path=owner.1.clone();path.push(format!("capture{}",capture.inner));inputs.insert(slot,(owner.0,path));}}
+      for(index,&slot)in method.parameters.iter().enumerate(){if let Some(arg)=args.get(index).and_then(|arg|mapped(arg,&mapping)){inputs.insert(slot,arg);}}
+      pending.push((returned(&method.function)?,inputs,seen.clone()));
+     }if !found{return None;}
+    }
+   }
+  }
+  cursors.sort();cursors.dedup();(!cursors.is_empty()).then_some(cursors)
+ }
+}
+fn boolean_field_guard(value:&Expr)->Option<(&Expr,&str,bool)>{match &value.kind{
+ ExprKind::Field(base,name)=>Some((base,name,true)),
+ ExprKind::Unary{op:UnaryOp::Not,value,..}=>boolean_field_guard(value).map(|(base,name,yes)|(base,name,!yes)),
+ ExprKind::Binary{op:BinaryOp::Equal|BinaryOp::NotEqual,left,right,..}=>{
+  let(observed,literal)=if let ExprKind::Boolean(value)=right.kind{(left.as_ref(),value)}else if let ExprKind::Boolean(value)=left.kind{(right.as_ref(),value)}else{return None;};
+  let(base,name,yes)=boolean_field_guard(observed)?;Some((base,name,if matches!(value.kind,ExprKind::Binary{op:BinaryOp::Equal,..})==literal{yes}else{!yes}))
+ },_=>None,
+}}
 impl Tracker<'_> {
     fn warn(&mut self,tokens:Tokens,at:Span) {
         for(start,end,started)in tokens {
@@ -74,10 +155,19 @@ impl Tracker<'_> {
         }
     }
     fn take(state:&mut State,selected:&Place)->Tokens {
+        invalidate(state,selected);
         let keys=state.keys().filter(|(root,path)|*root==selected.0 && path.starts_with(&selected.1)).cloned().collect::<Vec<_>>();
         let mut tokens=Tokens::new();for key in keys {tokens.extend(state.remove(&key).unwrap());}tokens
     }
     fn transfer(state:&mut State,source:&Place,destination:&Place) {
+        let polls=std::mem::take(&mut state.polls);
+        for(result,mut poll)in polls{
+            if overlaps(&result,destination)||poll.cursors.iter().any(|cursor|overlaps(cursor,destination)){continue;}
+            let result=if within(&result,source){rebased(&result,source,destination)}else{result};
+            for cursor in &mut poll.cursors{if within(cursor,source){*cursor=rebased(cursor,source,destination);}}
+            for item in &mut poll.selected{if within(item,source){*item=rebased(item,source,destination);}}
+            state.polls.insert(result,poll);
+        }
         let selected=state.keys().filter(|(root,path)|*root==source.0 && path.starts_with(&source.1)).cloned().collect::<Vec<_>>();
         for place in selected {let tokens=state.remove(&place).unwrap();let mut path=destination.1.clone();path.extend_from_slice(&place.1[source.1.len()..]);state.entry((destination.0,path)).or_default().extend(tokens);}
     }
@@ -121,7 +211,67 @@ impl Tracker<'_> {
         }
         (yes,no)
     }
+    fn branches(condition:&Expr,state:State)->(State,State){
+        let relation=boolean_field_guard(condition).filter(|(_,name,_)|*name=="done").and_then(|(base,_,done)|place(base).and_then(|result|state.polls.get(&result).cloned().map(|poll|(result,done,poll))));
+        let(mut yes,mut no)=Self::absence_branches(condition,state);
+        if let Some((result,done,poll))=relation{
+            let(absent,present)=if done{(&mut yes,&mut no)}else{(&mut no,&mut yes)};
+            let mut payload=result.clone();payload.1.push("value".into());let _=Self::take(absent,&payload);
+            for cursor in &poll.cursors{let _=Self::take(absent,cursor);}
+            for selected in &poll.selected{let _=Self::take(present,selected);}
+            absent.polls.remove(&result);present.polls.remove(&result);
+        }
+        (yes,no)
+    }
+    fn checked_branches(&self,condition:&Expr,state:State)->(State,State){
+        // Absence of a payload follows the actual closed union's discriminant,
+        // independently of whether its producer exhausts an upstream owner.
+        let refinement=boolean_field_guard(condition).and_then(|(base,field,yes)|{
+            let owner=place(base)?;if owner.1.iter().any(|part|part=="*"){return None;}
+            let members=match base.ty?{Type::Union(id)|Type::BorrowedUnion(id)=>self.program.unions[id.index()].members.clone(),Type::Record(id)=>vec![Type::Record(id)],_=>return None};
+            let mut alternatives=Vec::new();for member in members{
+                let Type::Record(record)=member else{return None;};let tag=self.program.records[record].fields.iter().find(|item|item.name.text==field)?.ty?;
+                let Type::Literal(literal,crate::literal_types::LiteralKind::Boolean)=tag else{return None;};
+                let crate::literal_types::LiteralValue::Boolean(tag)=self.program.records[literal].literal_definition.as_ref()? else{return None;};
+                alternatives.push((*tag,self.program.task_paths(member)));
+            }
+            Some((owner,yes,alternatives))
+        });
+        let(mut yes,mut no)=Self::branches(condition,state);
+        if let Some((owner,truth,alternatives))=refinement{for(branch,wanted)in [(&mut yes,truth),(&mut no,!truth)]{
+            let selected=alternatives.iter().filter(|(tag,_)|*tag==wanted).collect::<Vec<_>>();if selected.is_empty(){continue;}
+            let absent=branch.keys().filter(|place|within(place,&owner)).filter(|place|{
+                let relative=&place.1[owner.1.len()..];!selected.iter().any(|(_,paths)|paths.iter().any(|(path,_)|path.iter().zip(relative).all(|(expected,actual)|expected==actual||expected=="*"||actual=="*")))
+            }).cloned().collect::<Vec<_>>();
+            for place in absent{let _=Self::take(branch,&place);}
+        }}
+        (yes,no)
+    }
+    fn poll(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,cursors:Vec<Place>)->(BTreeMap<Vec<String>,Tokens>,Poll){
+        let ExprKind::Call(callee,args)=&value.kind else{unreachable!("checked cursor poll")};
+        self.evaluate_place(function,callee,state);
+        for(index,arg)in args.iter().enumerate(){
+            let access=match value.target{Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>self.program.functions[id].bindings.get(index).map(|binding|binding.mode),Some(CallTarget::IteratorNext)=>Some(Mode::Mutate),_=>None};
+            let tokens=self.value(function,arg,state,access.is_none_or(|mode|mode==Mode::Consume));self.warn(tokens,arg.span);
+        }
+        let mut payload=BTreeMap::<Vec<String>,Tokens>::new();let mut selected=Vec::new();
+        for cursor in &cursors{
+            invalidate(state,cursor);
+            let first=state.keys().filter(|place|within(place,cursor)).filter_map(|place|place.1.get(cursor.1.len())?.parse::<usize>().ok().map(|index|(index,place))).min_by_key(|(index,_)|*index).map(|(_,place)|place.1[cursor.1.len()].clone());
+            if let Some(first)=first{let mut item=cursor.clone();item.1.push(first);for(place,owned)in &state.owners{if within(place,&item){payload.entry(place.1[item.1.len()..].to_vec()).or_default().extend(owned.iter().copied());}}selected.push(item);}
+            // A wildcard denotes remaining elements of unknown cardinality. Each
+            // Some yields one obligation; only this leaf's None proves no residual.
+            for(place,owned)in &state.owners{if within(place,cursor)&&place.1.get(cursor.1.len()).is_some_and(|part|part=="*"){payload.entry(place.1[cursor.1.len()+1..].to_vec()).or_default().extend(owned.iter().copied());}}
+        }
+        (payload,Poll{cursors,selected})
+    }
     fn store(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,destination:Place) {
+        if value.target==Some(CallTarget::IteratorCursor){
+            let ExprKind::Call(_,args)=&value.kind else{unreachable!("checked cursor creation")};let mut items=destination;items.1.push("_items".into());self.store(function,&args[0],state,items);if value.own_may_fail{self.failures.push(state.clone());}return;
+        }
+        if let Some(cursors)=self.program.cursor_poll_sources(function,value){
+            let(payload,poll)=self.poll(function,value,state,cursors);for(path,tokens)in payload{let mut item=destination.clone();item.1.push("value".into());item.1.extend(path);if !tokens.is_empty(){state.entry(item).or_default().extend(tokens);}}state.polls.insert(destination,poll);if value.own_may_fail{self.failures.push(state.clone());}return;
+        }
         if let Some(source)=place(value){self.evaluate_place(function,value,state);Self::transfer(state,&source,&destination);return;}
         match &value.kind {
             ExprKind::Record(fields)=>for(field,value)in fields{let mut child=destination.clone();child.1.push(field.text.clone());self.store(function,value,state,child);},
@@ -139,7 +289,7 @@ impl Tracker<'_> {
         let temporary=(usize::MAX,Vec::new());self.store(function,value,state,temporary.clone());
         let old=Self::take(state,&destination);self.warn(old,target.span);Self::transfer(state,&temporary,&destination);
     }
-    fn function(&mut self,function:&CheckedFunction,captures:&[Capture],parameters:Option<&[usize]>) {
+    fn function(&mut self,function:&CheckedFunction,captures:&[Capture],parameters:Option<&[usize]>,invocation:Mode) {
         if function.bindings.iter().all(|binding|self.program.task_paths(binding.ty).is_empty()) && crate::error_effects::checked_expressions(function).iter().all(|value|value.ty.is_none_or(|ty|self.program.task_paths(ty).is_empty())) {return;}
         let mut state=State::new();
         for(id,binding)in function.bindings.iter().enumerate() {
@@ -150,7 +300,12 @@ impl Tracker<'_> {
                 for (path,started) in self.program.task_paths(binding.ty){state.insert((id,path),Tokens::from([(at.start,at.end,started)]));}
             }
         }
-        for path in self.body(function,&function.body,state) {for(_,tokens)in path.state {self.warn(tokens,function.body.last().map_or(Span::default(),|stmt|stmt.span));}}
+        for mut path in self.body(function,&function.body,state) {
+            // A borrowed invocation returns its environment to its caller. Its
+            // remaining captured owners are retained, never implicitly settled.
+            if invocation!=Mode::Consume{for capture in captures{let _=Self::take(&mut path.state,&(capture.inner,Vec::new()));}}
+            for(_,tokens)in path.state {self.warn(tokens,function.body.last().map_or(Span::default(),|stmt|stmt.span));}
+        }
     }
     fn projection(&mut self,function:&CheckedFunction,value:&Expr,base:&Expr,index:Option<&Expr>,member:String,state:&mut State,consume:bool)->Tokens {
         // A projection of an owned rvalue still evaluates its base (including
@@ -192,6 +347,7 @@ impl Tracker<'_> {
                 tokens
             }
             ExprKind::Call(callee,args)=>{
+                if let Some(cursors)=self.program.cursor_poll_sources(function,value){let(payload,_)=self.poll(function,value,state,cursors);return payload.into_values().flatten().collect();}
                 if let ExprKind::Field(base,method)=&callee.kind && let Some(owner)=place(base) {
                     if matches!(method.as_str(),"pop"|"shift"|"push"|"unshift"){self.evaluate_place(function,base,state);}
                     if matches!(method.as_str(),"pop"|"shift") {
@@ -218,13 +374,17 @@ impl Tracker<'_> {
                 }
                 let awaited=matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..});
                 let consumes=awaited || callee.ty.is_some_and(|ty|match ty {Type::Closure(id)=>self.program.closures[id].invocation==Mode::Consume,Type::Callback(id)=>self.program.callback_contracts[id].kind.is_once(),_=>false});
+                if let Some(owner)=place(callee){invalidate(state,&owner);}
                 let mut tokens=self.value(function,callee,state,consumes);
                 for(index,arg)in args.iter().enumerate() {
                     let access=match value.target {
-                        Some(CallTarget::Function(id))=>self.program.functions[id].bindings.get(index).map(|binding|binding.mode),
+                        Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>self.program.functions[id].bindings.get(index).map(|binding|binding.mode),
+                        Some(CallTarget::IteratorCursor)=>Some(Mode::Consume),
+                        Some(CallTarget::IteratorNext)=>Some(Mode::Mutate),
                         Some(CallTarget::NativeBinding(id))=>crate::native_bindings::BINDINGS[id].parameters.get(index).map(|parameter|parameter.access),
                         _=>None,
                     };
+                    if access!=Some(Mode::Read){if let Some(owner)=place(arg){invalidate(state,&owner);}}
                     let first_failure=self.failures.len();
                     let argument=self.value(function,arg,state,access.is_none_or(|mode|mode==Mode::Consume));
                     // Earlier moved arguments are still temporaries if a later argument throws.
@@ -248,7 +408,7 @@ impl Tracker<'_> {
             }
             ExprKind::Unary{value,..}|ExprKind::Inject{value,..}|ExprKind::Project{value,..}|ExprKind::TypeAssertion{value,..}=>self.value(function,value,state,consume),
             ExprKind::Binary{left,right,..}=>{let _=self.value(function,left,state,false);let _=self.value(function,right,state,false);Tokens::new()},
-            ExprKind::Match{body,..}=>{let mut result=State::new();for path in self.body(function,body,state.clone()){merge(&mut result,path.state);}*state=result;if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()){Tokens::from([(value.span.start,value.span.end,value.ty.is_some_and(|ty|self.program.contains_started_job(ty)))])}else{Tokens::new()}},
+            ExprKind::Match{body,..}=>{let mut paths=self.body(function,body,state.clone()).into_iter();let mut result=paths.next().map_or_else(State::new,|path|path.state);for path in paths{merge(&mut result,path.state);}*state=result;if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()){Tokens::from([(value.span.start,value.span.end,value.ty.is_some_and(|ty|self.program.contains_started_job(ty)))])}else{Tokens::new()}},
             _=>Tokens::new(),
         }
     }
@@ -269,6 +429,23 @@ impl Tracker<'_> {
         paths.extend(std::mem::replace(&mut self.failures,outer).into_iter().map(|state|Path{state,exit:Exit::Throw}));
         coalesce(paths)
     }
+    fn while_paths(&mut self,function:&CheckedFunction,condition:&Expr,body:&[Stmt],entry:State)->Vec<Path>{
+        let mut head=entry;let mut exits=Vec::new();
+        loop{
+            let mut observed=head.clone();let _=self.value(function,condition,&mut observed,false);
+            let(yes,no)=self.checked_branches(condition,observed);
+            if !matches!(condition.kind,ExprKind::Boolean(true)){exits.push(Path{state:no,exit:Exit::Next});}
+            if matches!(condition.kind,ExprKind::Boolean(false)){break;}
+            let mut back=None;
+            for mut path in self.body(function,body,yes){match path.exit{
+                Exit::Break=>{path.exit=Exit::Next;exits.push(path);},
+                Exit::Next|Exit::Continue=>{widen(&mut path.state,function,self.program);if let Some(state)=&mut back{merge(state,path.state);}else{back=Some(path.state);}},
+                Exit::Return|Exit::Throw=>exits.push(path),
+            }}
+            let Some(back)=back else{break;};let mut next=head.clone();merge(&mut next,back);widen(&mut next,function,self.program);if next==head{break;}head=next;
+        }
+        coalesce(exits)
+    }
     fn statement_inner(&mut self,function:&CheckedFunction,stmt:&Stmt,mut state:State)->Vec<Path> {
         let exit=match &stmt.kind {
             StmtKind::Let{binding:Some(id),value,..}=>{self.store(function,value,&mut state,(*id,Vec::new()));Exit::Next}
@@ -282,13 +459,10 @@ impl Tracker<'_> {
             StmtKind::If{condition,then_body,else_body}=>{
                 let _=self.value(function,condition,&mut state,false);
                 if let ExprKind::Boolean(value)=condition.kind {return self.body(function,if value {then_body}else{else_body},state);}
-                let (yes,no)=Self::absence_branches(condition,state);
+                let (yes,no)=self.checked_branches(condition,state);
                 let mut paths=self.body(function,then_body,yes);paths.extend(self.body(function,else_body,no));return coalesce(paths);
             }
-            StmtKind::While{condition,body}=>{
-                let _=self.value(function,condition,&mut state,false);
-                let mut paths=self.body(function,body,state.clone());for path in &mut paths {if matches!(path.exit,Exit::Break|Exit::Continue){path.exit=Exit::Next;}}paths.push(Path{state,exit:Exit::Next});return coalesce(paths);
-            }
+            StmtKind::While{condition,body}=>return self.while_paths(function,condition,body,state),
             StmtKind::Loop{body,..}|StmtKind::ForOf{body,..}=>{
                 let mut paths=self.body(function,body,state.clone());for path in &mut paths {if matches!(path.exit,Exit::Break|Exit::Continue){path.exit=Exit::Next;}}
                 paths.push(Path{state,exit:Exit::Next});return coalesce(paths);
@@ -296,8 +470,8 @@ impl Tracker<'_> {
             StmtKind::Try(region)=>{
                 let mut paths=self.body(function,&region.body,state);
                 if let Some(handler)=&region.catch {
-                    let mut caught=State::new();let mut any=false;paths.retain(|path|{if path.exit==Exit::Throw{merge(&mut caught,path.state.clone());any=true;false}else{true}});
-                    if any {paths.extend(self.body(function,&handler.body,caught));}
+                    let mut caught=None;paths.retain(|path|{if path.exit==Exit::Throw{if let Some(caught)=&mut caught{merge(caught,path.state.clone());}else{caught=Some(path.state.clone());}false}else{true}});
+                    if let Some(caught)=caught {paths.extend(self.body(function,&handler.body,caught));}
                 }
                 if let Some(cleanup)=&region.finally {
                     let mut completed=Vec::new();for path in paths {for mut after in self.body(function,cleanup,path.state){if after.exit==Exit::Next {after.exit=path.exit;}completed.push(after);}}paths=completed;
@@ -309,7 +483,7 @@ impl Tracker<'_> {
         vec![Path{state,exit}]
     }
 }
-fn merge(target:&mut State,other:State){for(place,tokens)in other{target.entry(place).or_default().extend(tokens);}}
+fn merge(target:&mut State,other:State){target.polls.retain(|result,poll|other.polls.get(result)==Some(poll));for(place,tokens)in other{target.entry(place).or_default().extend(tokens);}}
 fn coalesce(paths:Vec<Path>)->Vec<Path>{let mut result:Vec<Path>=Vec::new();for path in paths{if let Some(existing)=result.iter_mut().find(|existing|existing.exit==path.exit){merge(&mut existing.state,path.state);}else{result.push(path);}}result}
 
 
@@ -334,4 +508,98 @@ mod tests {
         let observed=condition(Expr::new(ExprKind::Unary{op:UnaryOp::Void,operator:Span::default(),value:Box::new(indexed(Expr::new(ExprKind::Integer("0".into()),Span::default())))},Span::default()),BinaryOp::Equal,false);
         for guard in [dynamic,nonliteral,observed]{assert_eq!(Tracker::absence_branches(&guard,state.clone()),(state.clone(),state.clone()));}
     }
+}
+
+#[cfg(test)]
+mod cursor_tests{
+ use super::*;
+ fn done(binding:usize)->Expr{let mut owner=Expr::new(ExprKind::Name("step".into()),Span::default());owner.binding=Some(binding);Expr::new(ExprKind::Field(Box::new(owner),"done".into()),Span::default())}
+ fn observed()->State{
+  let mut state=State::from([((0,vec!["_items".into(),"*".into()]),Tokens::from([(1,2,true)])),((1,vec!["value".into()]),Tokens::from([(1,2,true)])),((9,vec!["_items".into(),"*".into()]),Tokens::from([(3,4,true)]))]);
+  state.polls.insert((1,vec![]),Poll{cursors:vec![(0,vec!["_items".into()])],selected:vec![]});state
+ }
+ #[test]
+ fn cursor_done_refines_only_its_observed_residual_and_payload(){
+  let state=observed();let(yes,no)=Tracker::branches(&done(1),state.clone());
+  assert!(!yes.contains_key(&(0,vec!["_items".into(),"*".into()])));assert!(!yes.contains_key(&(1,vec!["value".into()])));
+  assert_eq!(yes.get(&(9,vec!["_items".into(),"*".into()])),state.get(&(9,vec!["_items".into(),"*".into()])));
+  assert_eq!(no.owners,state.owners,"Some retains unknown remaining elements and yields its payload");
+  let(unrelated,_)=Tracker::branches(&done(2),state.clone());assert_eq!(unrelated,state,"An unrelated done flag cannot settle a cursor");
+ }
+ #[test]
+ fn cursor_poll_relations_follow_moves_and_are_invalidated_by_mutation_and_joins(){
+  for owner in [(0,vec![]),(1,vec![])]{let mut state=observed();invalidate(&mut state,&owner);let(yes,_)=Tracker::branches(&done(1),state.clone());assert_eq!(yes.owners,state.owners);assert!(state.polls.is_empty());}
+  let mut joined=observed();let mut unobserved=joined.clone();unobserved.polls.clear();merge(&mut joined,unobserved);assert!(joined.polls.is_empty(),"Only common branch provenance may refine a later read");
+  let mut moved=observed();Tracker::transfer(&mut moved,&(1,vec![]),&(2,vec![]));Tracker::transfer(&mut moved,&(0,vec![]),&(3,vec![]));let(yes,_)=Tracker::branches(&done(2),moved);assert!(!yes.contains_key(&(3,vec!["_items".into(),"*".into()])));assert!(yes.contains_key(&(9,vec!["_items".into(),"*".into()])));
+  let mut dynamic=observed();dynamic.polls.get_mut(&(1,vec![])).unwrap().cursors=vec![(0,vec!["3".into(),"_items".into()])];invalidate(&mut dynamic,&(0,vec!["*".into()]));assert!(dynamic.polls.is_empty(),"An unknown index can replace the observed cursor");
+ }
+ fn native_loop(body:&str,argument_fails:bool)->(CheckedProgram,Stmt){
+  let mut program=analyze(crate::syntax::parse("type Cursor={_items:int[];};function drain(cursor:Owned<Cursor>){}function main(){}").unwrap()).unwrap();
+  let cursor=program.records.iter().position(|record|record.name.text=="Cursor").unwrap();program.records[cursor].native_type=Some(crate::native_signatures::NativeTypeId::IteratorCursor);
+  let mut parsed=crate::syntax::parse(&format!("function raw(){{while(true){{{body}}}}}")).unwrap();let mut statements=std::mem::take(&mut parsed.functions[0].body);
+  crate::source_walk::body(&mut statements,&mut |_|Ok(()),&mut |value|{
+   if let ExprKind::Name(name)=&value.kind{if name=="cursor"{value.binding=Some(0);value.ty=Some(Type::Record(cursor));value.own_may_fail=argument_fails;}else if name=="step"{value.binding=Some(1);}}
+   if let ExprKind::Call(callee,args)=&mut value.kind{if matches!(&callee.kind,ExprKind::Name(name)if name=="poll"){value.target=Some(CallTarget::IteratorNext);args[0].binding=Some(0);args[0].ty=Some(Type::Record(cursor));args[0].own_may_fail=argument_fails;}else if matches!(&callee.kind,ExprKind::Name(name)if name=="settle"){let inner=args.remove(0);value.kind=ExprKind::Unary{op:UnaryOp::Await,operator:value.span,value:Box::new(inner)};}}
+   Ok(())
+  }).unwrap();
+  if let StmtKind::While{body,..}=&mut statements[0].kind{for statement in body{if let StmtKind::Let{binding,..}=&mut statement.kind{*binding=Some(1);}}}
+  (program,statements.remove(0))
+ }
+ #[test]
+ fn native_cursor_drain_converges_and_keeps_early_and_failure_owners(){
+  for argument_fails in [false,true]{
+   let(program,statement)=native_loop("const step=poll(cursor);if(step.done){return;}settle(step.value);",argument_fails);let function=&program.functions[0];
+   let state=State::from([((0,vec!["_items".into(),"*".into()]),Tokens::from([(1,2,true)]))]);
+   let mut tracker=Tracker{program:&program,warnings:BTreeMap::new(),failures:Vec::new(),projections:0};let paths=tracker.statement(function,&statement,state);
+   assert!(paths.iter().any(|path|path.exit==Exit::Return&&path.state.owners.is_empty()),"Actual None edge has no residual cursor owners");
+   assert!(tracker.warnings.is_empty(),"Every Some is settled before the next poll");
+   assert_eq!(paths.iter().any(|path|path.exit==Exit::Throw&&!path.state.owners.is_empty()),argument_fails,"Failures retain the pre-poll owner snapshot");
+  }
+  for body in ["const step=poll(cursor);return;","const step=poll(cursor);throw 'early';"]{
+   let(program,statement)=native_loop(body,false);let mut tracker=Tracker{program:&program,warnings:BTreeMap::new(),failures:Vec::new(),projections:0};let paths=tracker.statement(&program.functions[0],&statement,State::from([((0,vec!["_items".into(),"*".into()]),Tokens::from([(1,2,true)]))]));
+   assert!(paths.iter().any(|path|!path.state.owners.is_empty()),"A successful next alone does not exhaust its owner");assert!(!tracker.warnings.is_empty(),"An abandoned yielded owner is still diagnosed");
+  }
+ }
+ #[test]
+ fn checked_discriminants_refine_result_absence_without_claiming_source_exhaustion(){
+  use crate::project::{SourceId,SourceProvider,check_graph,load_project};struct Input;
+  impl SourceProvider for Input{fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}fn read(&self,id:&SourceId)->Result<String,String>{if id.0!="main.tsr"{return Err(format!("Missing source: {}",id.0));}Ok("type End={done:true;};type Value={done:false;value:Task<int>;};type Both={done:true;value:Task<int>;};type Loose={done:boolean;value:Task<int>;};function observe(step:ReadOnly<End|Value>){if(step.done){return;}}function present(step:ReadOnly<Both|Value>){if(step.done){return;}}function arbitrary(step:ReadOnly<Loose>){if(step.done){return;}}function main(){}".into())}}
+  let checked=check_graph(load_project(&Input,"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));let program=&checked.analysis.program;
+  for(name,absent)in [("observe",true),("present",false),("arbitrary",false)]{
+   let function=program.functions.iter().find(|function|function.name.ends_with(name)).unwrap();let StmtKind::If{condition,..}=&function.body[0].kind else{panic!("checked discriminant")};
+   let state=State::from([((0,vec!["value".into()]),Tokens::from([(1,2,false)])),((9,vec!["_items".into(),"*".into()]),Tokens::from([(3,4,true)]))]);
+   let tracker=Tracker{program,warnings:BTreeMap::new(),failures:Vec::new(),projections:0};let(yes,no)=tracker.checked_branches(condition,state.clone());
+   assert_eq!(yes.contains_key(&(0,vec!["value".into()])),!absent,"{name}");assert!(no.contains_key(&(0,vec!["value".into()])));assert_eq!(yes.get(&(9,vec!["_items".into(),"*".into()])),state.get(&(9,vec!["_items".into(),"*".into()])),"Result absence does not exhaust an upstream owner");
+  }
+ }
+ fn public_warnings(body:&str)->Result<Vec<String>,String>{
+  use crate::project::{SourceId,SourceProvider,check_graph,load_project};struct Input(String);
+  impl SourceProvider for Input{fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}}
+  let source=format!("import {{Iterator}} from 'std:iterator';import {{all}} from 'std:futures';async function value():Task<int>{{return 3;}}async function main():Task<void>{{{body}}}");
+  check_graph(load_project(&Input(source),"main.tsr").unwrap()).map(|checked|checked.warnings().into_iter().map(|warning|warning.code.to_string()).collect()).map_err(|error|error.code.to_string())
+ }
+ #[test]
+ fn loop_local_started_jobs_are_diagnosed_without_a_function_exit(){
+  assert_eq!(public_warnings("while(true){const job=value().start();}").unwrap_err(),"unsettled-job","Each iteration abandons its local Job even though the function never exits");
+ }
+ #[test]
+ fn public_array_iterator_drains_transfer_lazy_and_started_owners_to_all(){
+  for body in ["await all(Iterator.from([value(),value()]).toArray());","await all(Iterator.from([value().start(),value().start()]).toArray());","await all(Iterator.from([1,2]).map((_item:int):Task<int>=>value()).toArray());","await all(Iterator.from([1,2]).map((_item:int)=>value().start()).toArray());"]{assert_eq!(public_warnings(body).unwrap(),Vec::<String>::new(),"{body}");}
+ }
+ #[test]
+ fn public_iterator_early_end_discards_and_abandonment_do_not_settle_owners(){
+  for body in [
+   "const pending=Iterator.from([value()]);",
+   "const pending=Iterator.from([value()]);const step=pending.next();",
+   "await all(Iterator.from([value()]).take(0).toArray());",
+   "await all(Iterator.from([value()]).drop(1).toArray());",
+   "await all(Iterator.from([value()]).filter((_value)=>false).toArray());",
+  ]{assert!(public_warnings(body).unwrap().iter().any(|warning|warning=="unused-task"),"{body}");}
+  for body in [
+   "const pending=Iterator.from([value().start()]);",
+   "await all(Iterator.from([value().start()]).take(0).toArray());",
+   "const pending=Iterator.from([value().start()]);const step=pending.next();if(!step.done){step.value.cancel();}",
+   "const pending=Iterator.from([value().start()]);const step=pending.next();throw 'early';",
+  ]{assert_eq!(public_warnings(body).unwrap_err(),"unsettled-job","{body}");}
+ }
 }

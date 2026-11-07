@@ -16456,11 +16456,11 @@
     },
     {
       "name": "sha256",
-      "signature": "sha256(bytes: ReadOnly<Bytes>): Bytes",
+      "signature": "sha256(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Bytes",
       "parameters": [
         {
-          "label": "bytes: ReadOnly<Bytes>",
-          "documentation": "Exact bytes to hash, including empty input."
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact bytes to hash, including empty input. Readonly and mutable byte views are accepted without input copying."
         }
       ],
       "documentation": "Hashes exact input bytes with SHA-256 and returns a new 32-byte digest. Empty inputs are valid. No encoding conversion or receiver mutation. Suitable for hashing high-entropy session tokens; this is not a password-hashing function.\n\n```tsrust\nconst digest = sha256(unwrap(fromUtf8(\"abc\"))); // ba7816bf...f20015ad\n```\n\nOwnership: borrows input and returns independent bytes.",
@@ -16474,14 +16474,14 @@
     },
     {
       "name": "timingSafeEqual",
-      "signature": "timingSafeEqual(left: ReadOnly<Bytes>, right: ReadOnly<Bytes>): boolean",
+      "signature": "timingSafeEqual(left: ReadOnly<Bytes | ByteView | ByteViewMut>, right: ReadOnly<Bytes | ByteView | ByteViewMut>): boolean",
       "parameters": [
         {
-          "label": "left: ReadOnly<Bytes>",
+          "label": "left: ReadOnly<Bytes | ByteView | ByteViewMut>",
           "documentation": "First byte sequence; length is public."
         },
         {
-          "label": "right: ReadOnly<Bytes>",
+          "label": "right: ReadOnly<Bytes | ByteView | ByteViewMut>",
           "documentation": "Second byte sequence; length is public."
         }
       ],
@@ -16498,14 +16498,363 @@
       "name": "CryptoError",
       "signature": "type CryptoError = { code: string; message: string; }",
       "parameters": [],
-      "documentation": "Checked randomness failure. Range means a negative or target-unrepresentable count; Random means operating system randomness was unavailable. Ordinary allocation failure is not converted into CryptoError.\n\nZero succeeds with empty Bytes. A negative count returns Range.\n\n```tsrust\nimport { randomBytes, CryptoError } from 'std:crypto';\n\nfunction show(error: ReadOnly<CryptoError>): void {\n  console.log(error.code);\n}\n\nfunction main() {\n  match (randomBytes(-1)) {\n    Ok(_) => {},\n    Err(error) => {\n      show(error);\n    }\n  }\n}\n```",
+      "documentation": "Checked crypto input/backend failure. Range covers invalid counts/HKDF/randomInt intervals; Random reports fallible OS entropy failure; Options rejects password costs/output or invalid explicit maxima; Password rejects malformed/unsupported PHC or backend verification failures; Policy rejects explicit encoded-cost limits. Password mismatch and wrong HMAC tags return false. Messages never include secret input. Ordinary allocation failure is not converted to CryptoError.\n\n```tsrust\nimport { randomInt } from 'std:crypto';\n\nfunction main() {\n  console.log(unwrap(randomInt(7, 8)));\n}\n```\nExpected output: 7.\n\nOwnership: owned diagnostic data; no secret-bearing payload.",
       "examples": [
         {
-          "source": "import { randomBytes, CryptoError } from 'std:crypto';\n\nfunction show(error: ReadOnly<CryptoError>): void {\n  console.log(error.code);\n}\n\nfunction main() {\n  match (randomBytes(-1)) {\n    Ok(_) => {},\n    Err(error) => {\n      show(error);\n    }\n  }\n}\n",
-          "output": "Range\n"
+          "source": "import {randomInt} from 'std:crypto';function main(){console.log(unwrap(randomInt(7,8)));}",
+          "output": "7\n"
         }
       ],
-      "inferredSignature": "function type CryptoError = { code: string; message: string; }"
+      "inferredSignature": "function type CryptoError = { code: string; message: string; }",
+      "fields": {
+        "code": {
+          "documentation": "Failure category: Range, Random, Options, Password or Policy; no default. Returned on explicit Result error, never mutated by inspection.\n\n```tsrust\nimport { randomInt } from 'std:crypto';\n\nfunction main() {\n  try {\n    unwrap(randomInt(1, 1));\n  } catch (error) {\n    console.log(error.code);\n  }\n}\n```\nExpected Output: Range.\n\nOwnership: owned diagnostic text; no input mutation or secret value.",
+          "examples": [
+            {
+              "source": "import {randomInt} from 'std:crypto';function main(){try{unwrap(randomInt(1,1));}catch(error){console.log(error.code);}}",
+              "output": "Range\n"
+            }
+          ]
+        },
+        "message": {
+          "documentation": "Human-readable redacted explanation. No default or secret values; not intended for machine parsing. Returned diagnostic text does not mutate inputs.\n\n```tsrust\nimport { randomInt } from 'std:crypto';\n\nfunction main() {\n  try {\n    unwrap(randomInt(1, 1));\n  } catch (error) {\n    console.log(error.message);\n  }\n}\n```\nExpected Output: randomInt requires min strictly below max.\n\nOwnership: owned diagnostic text; no input mutation or secret value.",
+          "examples": [
+            {
+              "source": "import {randomInt} from 'std:crypto';function main(){try{unwrap(randomInt(1,1));}catch(error){console.log(error.message);}}",
+              "output": "randomInt requires min strictly below max\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "sha384",
+      "signature": "sha384(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Bytes",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact bytes, including empty input; readable views are borrowed without copying the input."
+        }
+      ],
+      "documentation": "Hashes exact bytes and returns a new 48-byte digest. No encoding conversion, receiver mutation or secret normalization. This is a fast digest, not password hashing.\n\n```tsrust\nimport { sha384 } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  console.log(length(sha384(unwrap(fromUtf8('abc')))));\n}\n```\nExpected output: 48.\n\nOwnership: borrows input only during this synchronous call; returns independent owned Bytes.",
+      "examples": [
+        {
+          "source": "import {sha384} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){console.log(length(sha384(unwrap(fromUtf8('abc')))));}",
+          "output": "48\n"
+        }
+      ]
+    },
+    {
+      "name": "sha512",
+      "signature": "sha512(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Bytes",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact bytes, including empty input; readable views are borrowed without copying the input."
+        }
+      ],
+      "documentation": "Hashes exact bytes and returns a new 64-byte digest. No encoding conversion, receiver mutation or secret normalization. This is a fast digest, not password hashing.\n\n```tsrust\nimport { sha512 } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  console.log(length(sha512(unwrap(fromUtf8('abc')))));\n}\n```\nExpected output: 64.\n\nOwnership: borrows input only during this synchronous call; returns independent owned Bytes.",
+      "examples": [
+        {
+          "source": "import {sha512} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){console.log(length(sha512(unwrap(fromUtf8('abc')))));}",
+          "output": "64\n"
+        }
+      ]
+    },
+    {
+      "name": "createHasher",
+      "signature": "createHasher(algorithm: 'sha256' | 'sha384' | 'sha512'): Hasher",
+      "parameters": [
+        {
+          "label": "algorithm: 'sha256' | 'sha384' | 'sha512'",
+          "documentation": "Exact algorithm spelling. No implicit algorithm or fallback; other strings fail checking."
+        }
+      ],
+      "documentation": "Creates one incremental hash state. update accepts empty or multiple byte chunks in order; finalize consumes the state and returns 32, 48 or 64 digest bytes. Splitting input does not change its digest.\n\n```tsrust\nimport { createHasher } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  const state = createHasher('sha256');\n  state.update(unwrap(fromUtf8('abc')));\n  console.log(length(state.finalize()));\n}\n```\nExpected output: 32.\n\nOwnership: returns one opaque owned state; no clone, reuse after finalize or implicit copying.",
+      "examples": [
+        {
+          "source": "import {createHasher} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const state=createHasher('sha256');state.update(unwrap(fromUtf8('abc')));console.log(length(state.finalize()));}",
+          "output": "32\n"
+        }
+      ]
+    },
+    {
+      "name": "Hasher",
+      "signature": "type Hasher",
+      "parameters": [],
+      "documentation": "Opaque incremental SHA state. update mutates only this state and borrows readable input synchronously. finalize consumes it; dropping without finalize discards the state. Hashing does not normalize input or promise caller-buffer erasure.\n\n```tsrust\nimport { createHasher } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  const state = createHasher('sha256');\n  state.update(unwrap(fromUtf8('abc')));\n  console.log(length(state.finalize()));\n}\n```\nExpected output: 32.\n\nOwnership: one owner; finalize transfers and destroys state; no public fields or independent clone.",
+      "examples": [
+        {
+          "source": "import {createHasher} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const state=createHasher('sha256');state.update(unwrap(fromUtf8('abc')));console.log(length(state.finalize()));}",
+          "output": "32\n"
+        }
+      ]
+    },
+    {
+      "name": "hmacSha256",
+      "signature": "hmacSha256(key: ReadOnly<Bytes | ByteView | ByteViewMut>, input: ReadOnly<Bytes | ByteView | ByteViewMut>): Bytes",
+      "parameters": [
+        {
+          "label": "key: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact secret key bytes; any length including empty is supported."
+        },
+        {
+          "label": "input: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact message bytes; any length including empty is supported."
+        }
+      ],
+      "documentation": "Returns a new complete 32-byte HMAC-SHA256 tag. No text conversion, input normalization or receiver mutation. Both readable inputs are passed directly to the MAC implementation.\n\n```tsrust\nimport { hmacSha256, verifyHmacSha256 } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  const key = unwrap(fromUtf8('key'));\n  const input = unwrap(fromUtf8('abc'));\n  const tag = hmacSha256(key, input);\n  console.log(length(tag), verifyHmacSha256(key, input, tag));\n}\n```\nExpected output: 32 true.\n\nOwnership: borrows key/message for this synchronous call; returns owned tag; caller buffers are not wiped.",
+      "examples": [
+        {
+          "source": "import {hmacSha256,verifyHmacSha256} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const key=unwrap(fromUtf8('key'));const input=unwrap(fromUtf8('abc'));const tag=hmacSha256(key,input);console.log(length(tag),verifyHmacSha256(key,input,tag));}",
+          "output": "32 true\n"
+        }
+      ]
+    },
+    {
+      "name": "verifyHmacSha256",
+      "signature": "verifyHmacSha256(key: ReadOnly<Bytes | ByteView | ByteViewMut>, input: ReadOnly<Bytes | ByteView | ByteViewMut>, tag: ReadOnly<Bytes | ByteView | ByteViewMut>): boolean",
+      "parameters": [
+        {
+          "label": "key: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact key bytes; any length."
+        },
+        {
+          "label": "input: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact message bytes."
+        },
+        {
+          "label": "tag: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Expected complete 32-byte tag. Wrong lengths, truncation and mismatches return false."
+        }
+      ],
+      "documentation": "Verifies a complete HMAC-SHA256 tag using constant-time equal-length verification. Returns true only for the matching full tag. Tag length is public; false is an ordinary result and no inputs are mutated.\n\n```tsrust\nimport { hmacSha256, verifyHmacSha256 } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  const key = unwrap(fromUtf8('key'));\n  const input = unwrap(fromUtf8('abc'));\n  const tag = hmacSha256(key, input);\n  console.log(length(tag), verifyHmacSha256(key, input, tag));\n}\n```\nExpected output: 32 true.\n\nOwnership: borrows all three inputs synchronously without payload clones or retained loans.",
+      "examples": [
+        {
+          "source": "import {hmacSha256,verifyHmacSha256} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const key=unwrap(fromUtf8('key'));const input=unwrap(fromUtf8('abc'));const tag=hmacSha256(key,input);console.log(length(tag),verifyHmacSha256(key,input,tag));}",
+          "output": "32 true\n"
+        }
+      ]
+    },
+    {
+      "name": "hkdfSha256",
+      "signature": "hkdfSha256(input: ReadOnly<Bytes | ByteView | ByteViewMut>, salt: ReadOnly<Bytes | ByteView | ByteViewMut>, info: ReadOnly<Bytes | ByteView | ByteViewMut>, length: int): Result<Bytes, CryptoError>",
+      "parameters": [
+        {
+          "label": "input: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Input key material, including empty."
+        },
+        {
+          "label": "salt: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Explicit salt bytes, including empty; no random salt is generated."
+        },
+        {
+          "label": "info: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Explicit context/application information, including empty."
+        },
+        {
+          "label": "length: int",
+          "documentation": "Requested output length from 0 through 8160 bytes. Invalid values return Range before allocation."
+        }
+      ],
+      "documentation": "Extracts and expands SHA256 key material into exactly length owned bytes. Zero returns empty Bytes. The 8160-byte maximum is the HKDF algorithm bound, not an application policy. Returns CryptoError Range for invalid lengths; ordinary allocation failure is not a catchable crypto error.\n\n```tsrust\nimport { hkdfSha256 } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  const input = unwrap(fromUtf8('input'));\n  const salt = unwrap(fromUtf8('salt'));\n  const info = unwrap(fromUtf8('context'));\n  console.log(length(unwrap(hkdfSha256(input, salt, info, 32))));\n}\n```\nExpected output: 32.\n\nOwnership: borrows all byte inputs synchronously; allocates only the returned output; no caller-buffer wiping.",
+      "examples": [
+        {
+          "source": "import {hkdfSha256} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const input=unwrap(fromUtf8('input'));const salt=unwrap(fromUtf8('salt'));const info=unwrap(fromUtf8('context'));console.log(length(unwrap(hkdfSha256(input,salt,info,32))));}",
+          "output": "32\n"
+        }
+      ]
+    },
+    {
+      "name": "randomInt",
+      "signature": "randomInt(min: int, max: int): Result<int, CryptoError>",
+      "parameters": [
+        {
+          "label": "min: int",
+          "documentation": "Inclusive signed integer lower bound."
+        },
+        {
+          "label": "max: int",
+          "documentation": "Exclusive signed integer upper bound; must exceed min. Full signed endpoints are supported without subtraction overflow."
+        }
+      ],
+      "documentation": "Samples an unbiased integer in [min,max). Invalid equal/reversed bounds return Range before any entropy request. Valid calls seed the maintained generator from fallible operating-system randomness; Random reports entropy failure with no fallback. Even a singleton interval follows the valid-call entropy path.\n\n```tsrust\nimport { randomInt } from 'std:crypto';\n\nfunction main() {\n  console.log(unwrap(randomInt(7, 8)));\n}\n```\nExpected output: 7.\n\nOwnership: copies scalar bounds/result; each call owns a fresh generator with no hidden cached pool.",
+      "examples": [
+        {
+          "source": "import {randomInt} from 'std:crypto';function main(){console.log(unwrap(randomInt(7,8)));}",
+          "output": "7\n"
+        }
+      ]
+    },
+    {
+      "name": "hashPassword",
+      "signature": "hashPassword(pool: ReadOnly<ThreadPool>, password: ReadOnly<Bytes | ByteView | ByteViewMut>, options?: ReadOnly<PasswordHashOptions>): Task<Result<string, CryptoError | SpawnError | ThreadError<undefined>>>",
+      "parameters": [
+        {
+          "label": "pool: ReadOnly<ThreadPool>",
+          "documentation": "Caller-owned bounded CPU pool; only a weak submission capability survives construction."
+        },
+        {
+          "label": "password: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact password bytes; no normalization. Caller loan is retained through Task settlement."
+        },
+        {
+          "label": "options?: ReadOnly<PasswordHashOptions>",
+          "documentation": "Optional explicit backend cost/output overrides; omitted fields preserve defaults."
+        }
+      ],
+      "documentation": "Hashes exact password bytes with Argon2id v19 and returns PHC text including parameters, fresh OS salt and output. Defaults: 19456 KiB, two iterations, one lane, 32 output bytes; generated salt is 16 bytes. Invalid parameters return Options; OS salt failure returns Random. Lazy: an unpolled Task does not copy passwords, request entropy or submit work. Validation runs on first poll before password copying and bounded admission. One explicit zeroizing owned password copy enters the CPU worker; verification also copies the encoded public PHC string. Submission/full/closed errors remain SpawnError; panic/cancellation remain ThreadError. Awaited cancellation cleanup waits for actual noninterruptible CPU settlement. No hidden pool or async-worker CPU blocking. Allocation failure follows ordinary Rust allocation behavior.\n\n```tsrust\nimport { hashPassword, verifyPassword, verifyPasswordBounded } from 'std:crypto';\nimport { fromUtf8 } from 'std:bytes';\nimport { ThreadPool } from 'std:threads';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 2\n  });\n  try {\n    const password = unwrap(fromUtf8('public synthetic password'));\n    const encoded = unwrap(await hashPassword(pool, password));\n    console.log(unwrap(await verifyPassword(pool, password, encoded)), unwrap(await verifyPasswordBounded(pool, password, encoded, {\n      maxMemoryKiB: 19456, maxIterations: 2, maxParallelism: 1\n    })));\n  } finally {\n    pool.shutdown();\n  }\n}\n```\nExpected output: true true.\n\nOwnership: pool owner is not captured; password/options are borrowed until settlement; worker copy is zeroized on drop, without promising caller storage or full Argon2 workspace wiping.",
+      "examples": [
+        {
+          "source": "import {hashPassword,verifyPassword,verifyPasswordBounded} from 'std:crypto';import {fromUtf8} from 'std:bytes';import {ThreadPool} from 'std:threads';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:2});try{const password=unwrap(fromUtf8('public synthetic password'));const encoded=unwrap(await hashPassword(pool,password));console.log(unwrap(await verifyPassword(pool,password,encoded)),unwrap(await verifyPasswordBounded(pool,password,encoded,{maxMemoryKiB:19456,maxIterations:2,maxParallelism:1})));}finally{pool.shutdown();}}",
+          "output": "true true\n"
+        }
+      ]
+    },
+    {
+      "name": "verifyPassword",
+      "signature": "verifyPassword(pool: ReadOnly<ThreadPool>, password: ReadOnly<Bytes | ByteView | ByteViewMut>, encoded: ReadOnly<string>): Task<Result<boolean, CryptoError | SpawnError | ThreadError<undefined>>>",
+      "parameters": [
+        {
+          "label": "pool: ReadOnly<ThreadPool>",
+          "documentation": "Explicit bounded CPU pool."
+        },
+        {
+          "label": "password: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact candidate bytes, without normalization."
+        },
+        {
+          "label": "encoded: ReadOnly<string>",
+          "documentation": "Complete Argon2 PHC string; encoded algorithm/version/costs are backend-validated before expensive work."
+        }
+      ],
+      "documentation": "Verifies the PHC encoded parameters with the backend. A valid password returns true; a password mismatch returns false; malformed/unsupported hashes return Password. Ordinary verification imposes no hidden cost policy; use verifyPasswordBounded for untrusted encoded costs. Lazy: an unpolled Task does not copy passwords, request entropy or submit work. Validation runs on first poll before password copying and bounded admission. One explicit zeroizing owned password copy enters the CPU worker; verification also copies the encoded public PHC string. Submission/full/closed errors remain SpawnError; panic/cancellation remain ThreadError. Awaited cancellation cleanup waits for actual noninterruptible CPU settlement. No hidden pool or async-worker CPU blocking. Allocation failure follows ordinary Rust allocation behavior.\n\n```tsrust\nimport { hashPassword, verifyPassword, verifyPasswordBounded } from 'std:crypto';\nimport { fromUtf8 } from 'std:bytes';\nimport { ThreadPool } from 'std:threads';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 2\n  });\n  try {\n    const password = unwrap(fromUtf8('public synthetic password'));\n    const encoded = unwrap(await hashPassword(pool, password));\n    console.log(unwrap(await verifyPassword(pool, password, encoded)), unwrap(await verifyPasswordBounded(pool, password, encoded, {\n      maxMemoryKiB: 19456, maxIterations: 2, maxParallelism: 1\n    })));\n  } finally {\n    pool.shutdown();\n  }\n}\n```\nExpected output: true true.\n\nOwnership: borrows inputs through settlement; makes the documented worker password/PHC copies only on first poll; no implicit input mutation.",
+      "examples": [
+        {
+          "source": "import {hashPassword,verifyPassword,verifyPasswordBounded} from 'std:crypto';import {fromUtf8} from 'std:bytes';import {ThreadPool} from 'std:threads';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:2});try{const password=unwrap(fromUtf8('public synthetic password'));const encoded=unwrap(await hashPassword(pool,password));console.log(unwrap(await verifyPassword(pool,password,encoded)),unwrap(await verifyPasswordBounded(pool,password,encoded,{maxMemoryKiB:19456,maxIterations:2,maxParallelism:1})));}finally{pool.shutdown();}}",
+          "output": "true true\n"
+        }
+      ]
+    },
+    {
+      "name": "verifyPasswordBounded",
+      "signature": "verifyPasswordBounded(pool: ReadOnly<ThreadPool>, password: ReadOnly<Bytes | ByteView | ByteViewMut>, encoded: ReadOnly<string>, options: ReadOnly<PasswordVerifyOptions>): Task<Result<boolean, CryptoError | SpawnError | ThreadError<undefined>>>",
+      "parameters": [
+        {
+          "label": "pool: ReadOnly<ThreadPool>",
+          "documentation": "Explicit bounded CPU pool."
+        },
+        {
+          "label": "password: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Exact candidate bytes."
+        },
+        {
+          "label": "encoded: ReadOnly<string>",
+          "documentation": "Complete backend Argon2 PHC string."
+        },
+        {
+          "label": "options: ReadOnly<PasswordVerifyOptions>",
+          "documentation": "Required positive backend-representable maximum memoryKiB, iterations and parallelism. No default limits."
+        }
+      ],
+      "documentation": "Checks all three caller-selected maxima against the parsed PHC costs before password copies, admission or Argon2 workspace allocation. Excess encoded costs return Policy; invalid maxima return Options; malformed PHC returns Password. Accepted work follows verifyPassword and returns false for mismatch. Lazy: an unpolled Task does not copy passwords, request entropy or submit work. Validation runs on first poll before password copying and bounded admission. One explicit zeroizing owned password copy enters the CPU worker; verification also copies the encoded public PHC string. Submission/full/closed errors remain SpawnError; panic/cancellation remain ThreadError. Awaited cancellation cleanup waits for actual noninterruptible CPU settlement. No hidden pool or async-worker CPU blocking. Allocation failure follows ordinary Rust allocation behavior.\n\n```tsrust\nimport { hashPassword, verifyPassword, verifyPasswordBounded } from 'std:crypto';\nimport { fromUtf8 } from 'std:bytes';\nimport { ThreadPool } from 'std:threads';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 2\n  });\n  try {\n    const password = unwrap(fromUtf8('public synthetic password'));\n    const encoded = unwrap(await hashPassword(pool, password));\n    console.log(unwrap(await verifyPassword(pool, password, encoded)), unwrap(await verifyPasswordBounded(pool, password, encoded, {\n      maxMemoryKiB: 19456, maxIterations: 2, maxParallelism: 1\n    })));\n  } finally {\n    pool.shutdown();\n  }\n}\n```\nExpected output: true true.\n\nOwnership: preserves borrowed inputs until settlement and the same explicit worker-copy/cleanup contract.",
+      "examples": [
+        {
+          "source": "import {hashPassword,verifyPassword,verifyPasswordBounded} from 'std:crypto';import {fromUtf8} from 'std:bytes';import {ThreadPool} from 'std:threads';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:2});try{const password=unwrap(fromUtf8('public synthetic password'));const encoded=unwrap(await hashPassword(pool,password));console.log(unwrap(await verifyPassword(pool,password,encoded)),unwrap(await verifyPasswordBounded(pool,password,encoded,{maxMemoryKiB:19456,maxIterations:2,maxParallelism:1})));}finally{pool.shutdown();}}",
+          "output": "true true\n"
+        }
+      ]
+    },
+    {
+      "name": "PasswordHashOptions",
+      "signature": "type PasswordHashOptions = { memoryKiB?: int; iterations?: int; parallelism?: int; outputBytes?: int; }",
+      "parameters": [],
+      "documentation": "Explicit password hash overrides. memoryKiB is a positive u32 cost, at least8 times parallelism, default19456; iterations is a positive u32, default2; parallelism is1..16777215 lanes, default1; outputBytes is the PHC backend range10..64, default32. Omission preserves these defaults. Invalid costs/output return Options before worker password copying.\n\n```tsrust\nimport { hashPassword, verifyPassword, verifyPasswordBounded } from 'std:crypto';\nimport { fromUtf8 } from 'std:bytes';\nimport { ThreadPool } from 'std:threads';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 2\n  });\n  try {\n    const password = unwrap(fromUtf8('public synthetic password'));\n    const encoded = unwrap(await hashPassword(pool, password));\n    console.log(unwrap(await verifyPassword(pool, password, encoded)), unwrap(await verifyPasswordBounded(pool, password, encoded, {\n      maxMemoryKiB: 19456, maxIterations: 2, maxParallelism: 1\n    })));\n  } finally {\n    pool.shutdown();\n  }\n}\n```\nExpected output: true true.\n\nOwnership: record fields are copied scalar configuration; the record is borrowed through the lazy Task, never mutated.",
+      "examples": [
+        {
+          "source": "import {hashPassword,verifyPassword,verifyPasswordBounded} from 'std:crypto';import {fromUtf8} from 'std:bytes';import {ThreadPool} from 'std:threads';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:2});try{const password=unwrap(fromUtf8('public synthetic password'));const encoded=unwrap(await hashPassword(pool,password));console.log(unwrap(await verifyPassword(pool,password,encoded)),unwrap(await verifyPasswordBounded(pool,password,encoded,{maxMemoryKiB:19456,maxIterations:2,maxParallelism:1})));}finally{pool.shutdown();}}",
+          "output": "true true\n"
+        }
+      ],
+      "fields": {
+        "memoryKiB": {
+          "documentation": "Optional Argon2 memory cost in KiB; default19456. Positive backend u32; must be at least eight times parallelism. Invalid overrides return Options. No result or receiver mutation.\n\n```tsrust\nimport { PasswordHashOptions } from 'std:crypto';\n\nfunction main() {\n  const options: PasswordHashOptions = {\n    memoryKiB: 32\n  };\n  console.log(options.memoryKiB);\n}\n```\nExpected Output: 32.\n\nOwnership: copied scalar configuration; no automatic mutation.",
+          "examples": [
+            {
+              "source": "import {PasswordHashOptions} from 'std:crypto';function main(){const options:PasswordHashOptions={memoryKiB:32};console.log(options.memoryKiB);}",
+              "output": "32\n"
+            }
+          ]
+        },
+        "iterations": {
+          "documentation": "Optional passes; default2. Positive backend u32. Invalid overrides return Options. No result or receiver mutation.\n\n```tsrust\nimport { PasswordHashOptions } from 'std:crypto';\n\nfunction main() {\n  const options: PasswordHashOptions = {\n    iterations: 1\n  };\n  console.log(options.iterations);\n}\n```\nExpected Output: 1.\n\nOwnership: copied scalar configuration; no automatic mutation.",
+          "examples": [
+            {
+              "source": "import {PasswordHashOptions} from 'std:crypto';function main(){const options:PasswordHashOptions={iterations:1};console.log(options.iterations);}",
+              "output": "1\n"
+            }
+          ]
+        },
+        "parallelism": {
+          "documentation": "Optional lanes; default1. Backend range1..16777215; memory must support all lanes. Invalid overrides return Options. No result or receiver mutation.\n\n```tsrust\nimport { PasswordHashOptions } from 'std:crypto';\n\nfunction main() {\n  const options: PasswordHashOptions = {\n    parallelism: 1\n  };\n  console.log(options.parallelism);\n}\n```\nExpected Output: 1.\n\nOwnership: copied scalar configuration; no automatic mutation.",
+          "examples": [
+            {
+              "source": "import {PasswordHashOptions} from 'std:crypto';function main(){const options:PasswordHashOptions={parallelism:1};console.log(options.parallelism);}",
+              "output": "1\n"
+            }
+          ]
+        },
+        "outputBytes": {
+          "documentation": "Optional PHC output bytes; default32. Backend PHC range10..64; raw Argon2 output bounds do not replace this encoded-output bound. Invalid overrides return Options. No result or receiver mutation.\n\n```tsrust\nimport { PasswordHashOptions } from 'std:crypto';\n\nfunction main() {\n  const options: PasswordHashOptions = {\n    outputBytes: 32\n  };\n  console.log(options.outputBytes);\n}\n```\nExpected Output: 32.\n\nOwnership: copied scalar configuration; no automatic mutation.",
+          "examples": [
+            {
+              "source": "import {PasswordHashOptions} from 'std:crypto';function main(){const options:PasswordHashOptions={outputBytes:32};console.log(options.outputBytes);}",
+              "output": "32\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "PasswordVerifyOptions",
+      "signature": "type PasswordVerifyOptions = { maxMemoryKiB: int; maxIterations: int; maxParallelism: int; }",
+      "parameters": [],
+      "documentation": "Explicit password verification policy. maxMemoryKiB, maxIterations and maxParallelism are positive u32 maxima, with no defaults; all three are required and checked before expensive work. Exceeded encoded costs return Policy; invalid limits return Options.\n\n```tsrust\nimport { hashPassword, verifyPassword, verifyPasswordBounded } from 'std:crypto';\nimport { fromUtf8 } from 'std:bytes';\nimport { ThreadPool } from 'std:threads';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({\n    workers: 1, capacity: 2\n  });\n  try {\n    const password = unwrap(fromUtf8('public synthetic password'));\n    const encoded = unwrap(await hashPassword(pool, password));\n    console.log(unwrap(await verifyPassword(pool, password, encoded)), unwrap(await verifyPasswordBounded(pool, password, encoded, {\n      maxMemoryKiB: 19456, maxIterations: 2, maxParallelism: 1\n    })));\n  } finally {\n    pool.shutdown();\n  }\n}\n```\nExpected output: true true.\n\nOwnership: record fields are copied scalar configuration; the record is borrowed through the lazy Task, never mutated.",
+      "examples": [
+        {
+          "source": "import {hashPassword,verifyPassword,verifyPasswordBounded} from 'std:crypto';import {fromUtf8} from 'std:bytes';import {ThreadPool} from 'std:threads';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:2});try{const password=unwrap(fromUtf8('public synthetic password'));const encoded=unwrap(await hashPassword(pool,password));console.log(unwrap(await verifyPassword(pool,password,encoded)),unwrap(await verifyPasswordBounded(pool,password,encoded,{maxMemoryKiB:19456,maxIterations:2,maxParallelism:1})));}finally{pool.shutdown();}}",
+          "output": "true true\n"
+        }
+      ],
+      "fields": {
+        "maxMemoryKiB": {
+          "documentation": "Required positive backend u32 maximum encoded memory cost in KiB. No default. Excess costs return Policy before copies/admission/workspace. No result or receiver mutation.\n\n```tsrust\nimport { PasswordVerifyOptions } from 'std:crypto';\n\nfunction main() {\n  const options: PasswordVerifyOptions = {\n    maxMemoryKiB: 32, maxIterations: 1, maxParallelism: 1\n  };\n  console.log(options.maxMemoryKiB);\n}\n```\nExpected Output: 32.\n\nOwnership: copied scalar configuration; no automatic mutation.",
+          "examples": [
+            {
+              "source": "import {PasswordVerifyOptions} from 'std:crypto';function main(){const options:PasswordVerifyOptions={maxMemoryKiB:32,maxIterations:1,maxParallelism:1};console.log(options.maxMemoryKiB);}",
+              "output": "32\n"
+            }
+          ]
+        },
+        "maxIterations": {
+          "documentation": "Required positive backend u32 maximum encoded iteration count. No default. Excess costs return Policy before copies/admission/workspace. No result or receiver mutation.\n\n```tsrust\nimport { PasswordVerifyOptions } from 'std:crypto';\n\nfunction main() {\n  const options: PasswordVerifyOptions = {\n    maxMemoryKiB: 32, maxIterations: 1, maxParallelism: 1\n  };\n  console.log(options.maxIterations);\n}\n```\nExpected Output: 1.\n\nOwnership: copied scalar configuration; no automatic mutation.",
+          "examples": [
+            {
+              "source": "import {PasswordVerifyOptions} from 'std:crypto';function main(){const options:PasswordVerifyOptions={maxMemoryKiB:32,maxIterations:1,maxParallelism:1};console.log(options.maxIterations);}",
+              "output": "1\n"
+            }
+          ]
+        },
+        "maxParallelism": {
+          "documentation": "Required positive backend u32 maximum encoded lane count. No default; backend validation also applies. Excess costs return Policy before copies/admission/workspace. No result or receiver mutation.\n\n```tsrust\nimport { PasswordVerifyOptions } from 'std:crypto';\n\nfunction main() {\n  const options: PasswordVerifyOptions = {\n    maxMemoryKiB: 32, maxIterations: 1, maxParallelism: 1\n  };\n  console.log(options.maxParallelism);\n}\n```\nExpected Output: 1.\n\nOwnership: copied scalar configuration; no automatic mutation.",
+          "examples": [
+            {
+              "source": "import {PasswordVerifyOptions} from 'std:crypto';function main(){const options:PasswordVerifyOptions={maxMemoryKiB:32,maxIterations:1,maxParallelism:1};console.log(options.maxParallelism);}",
+              "output": "1\n"
+            }
+          ]
+        }
+      }
     }
   ],
   "std:signals": [
@@ -21014,6 +21363,37 @@
         {
           "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={noProxy:true};console.log(options.noProxy);}",
           "output": "true\n"
+        }
+      ]
+    }
+  ],
+  "Hasher": [
+    {
+      "name": "update",
+      "signature": "update(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): void",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Next exact bytes in source order. Empty input is a valid no-op; input is not copied into a retained buffer."
+        }
+      ],
+      "documentation": "Adds a chunk to the current digest. Returns void and changes only the hasher state. Input encoding is entirely caller-selected.\n\n```tsrust\nimport { createHasher } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  const state = createHasher('sha256');\n  state.update(unwrap(fromUtf8('abc')));\n  console.log(length(state.finalize()));\n}\n```\nExpected output: 32.\n\nOwnership: mutably borrows the state and synchronously borrows the chunk; no chunk loan survives the call.",
+      "examples": [
+        {
+          "source": "import {createHasher} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const state=createHasher('sha256');state.update(unwrap(fromUtf8('abc')));console.log(length(state.finalize()));}",
+          "output": "32\n"
+        }
+      ]
+    },
+    {
+      "name": "finalize",
+      "signature": "finalize(): Bytes",
+      "parameters": [],
+      "documentation": "Consumes the hasher and returns the digest of all prior updates in order. A state with no updates produces the empty-message digest. Subsequent update/finalize or clone is rejected.\n\n```tsrust\nimport { createHasher } from 'std:crypto';\nimport { fromUtf8, length } from 'std:bytes';\n\nfunction main() {\n  const state = createHasher('sha256');\n  state.update(unwrap(fromUtf8('abc')));\n  console.log(length(state.finalize()));\n}\n```\nExpected output: 32.\n\nOwnership: consumes the opaque state and returns independent owned Bytes.",
+      "examples": [
+        {
+          "source": "import {createHasher} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const state=createHasher('sha256');state.update(unwrap(fromUtf8('abc')));console.log(length(state.finalize()));}",
+          "output": "32\n"
         }
       ]
     }

@@ -71,6 +71,7 @@ impl NativeBinding {
     /// A byte observer reads any readable byte storage; a byte mutator writes any
     /// writable one. A stored function value keeps the declared parameter type.
     pub fn argument_alternatives(&self, position: usize) -> &'static [crate::native_signatures::NativeTypeId] {
+        if self.module=="std:crypto" && self.parameters.get(position).is_some_and(|parameter|parameter.ty==NativeType::Structured(&crate::native_signatures::Signature::Named(crate::native_signatures::NativeTypeId::Bytes)) && parameter.access==Mode::Read){return &[crate::native_signatures::NativeTypeId::ByteView,crate::native_signatures::NativeTypeId::ByteViewMut];}
         if self.module=="std:net" && self.name=="__sendTo" && position==1{return &[crate::native_signatures::NativeTypeId::ByteView,crate::native_signatures::NativeTypeId::ByteViewMut];}
         if self.module=="std:io" {
             use crate::native_signatures::NativeTypeId::*;
@@ -554,6 +555,22 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::signals::POLL,
     crate::stdlib::crypto::RANDOM_BYTES,
     crate::stdlib::crypto::SHA256,
+    crate::stdlib::crypto::SHA384,
+    crate::stdlib::crypto::SHA512,
+    crate::stdlib::crypto::CREATE_HASHER,
+    crate::stdlib::crypto::UPDATE,
+    crate::stdlib::crypto::FINALIZE,
+    crate::stdlib::crypto::HMAC,
+    crate::stdlib::crypto::VERIFY_HMAC,
+    crate::stdlib::crypto::HKDF,
+    crate::stdlib::crypto::RANDOM_INT,
+    crate::stdlib::crypto::HASH_PASSWORD,
+    crate::stdlib::crypto::POLL_HASH_PASSWORD,
+    crate::stdlib::crypto::VERIFY_PASSWORD,
+    crate::stdlib::crypto::POLL_VERIFY_PASSWORD,
+    crate::stdlib::crypto::VERIFY_BOUNDED,
+    crate::stdlib::crypto::POLL_VERIFY_BOUNDED,
+
     crate::stdlib::crypto::TIMING_SAFE_EQUAL,
     crate::stdlib::uuid::PARSE_UUID,
     crate::stdlib::uuid::FORMAT_UUID,

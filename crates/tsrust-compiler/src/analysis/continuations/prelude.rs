@@ -113,6 +113,15 @@ impl Analyzer{
             mode
         };
         if mode == Mode::Mutate && actual != physical && matches!(actual, Type::Union(id) if id != union) {
+            #[cfg(test)]
+            {
+                eprintln!("MUTABLE_TAG_REJECT physical={physical:?} actual={actual:?} expected={expected:?}");
+                for ty in [Some(physical),Some(actual),expected].into_iter().flatten(){
+                    let members=ty.union().map(|id|self.unions.members(id)).unwrap_or_else(||vec![ty]);
+                    eprintln!("MUTABLE_TAG_MEMBERS type={ty:?} members={members:?}");
+                    for member in members{if let Type::Record(record)=member{eprintln!("MUTABLE_TAG_RECORD id={record} declaration={} parameter={} owned_parameter={} fields={:?}",self.scoped_records.declaration(record),self.scoped_records.parameter_contract(record),self.owned_record_parameter(member),self.program.records[record].fields);}}
+                }
+            }
             return Err(Diagnostic::new(
                 "unsupported",
                 "Replacing a narrowed tag requires assignment to its declared nullable storage.",
@@ -396,4 +405,11 @@ mod injection_context_tests {
   let checked=crate::check(&source).unwrap();let mut stores=0;
   for function in &checked.program.functions{crate::fixed_storage::visit_function_expressions(function,&mut |value|{if matches!(&value.kind,ExprKind::Inject{value,..} if matches!(&value.kind,ExprKind::Name(name) if name=="inner")){assert!(matches!(value.ty,Some(Type::Union(_))));stores+=1;}});}assert_eq!(stores,1);let emitted=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||checked.emit_rust()));assert!(emitted.is_ok(),"records={:#?}\nunions={:#?}\nfunctions={:#?}",checked.program.records,checked.program.unions,checked.program.functions);
  }
+}
+
+#[cfg(test)]
+#[test]
+fn mutable_mixed_union_default_keeps_declared_tagged_storage(){
+ let source="type Reactive<T>={evaluate:Owned<Function<T>>;};type Value<T>=Reactive<T>|T;function snapshot(value:Mutable<Value<string|undefined>|undefined>):string{if(value===undefined){return ''; }if(typeof value==='string'){return clone(value);}return value.evaluate()??'';}function invoke(value:Value<string|undefined>|undefined=''):string{return snapshot(value);}function main(){console.log(invoke());}";
+ let checked=analyze(crate::syntax::parse(source).unwrap()).unwrap();drop(checked.emit_rust());
 }

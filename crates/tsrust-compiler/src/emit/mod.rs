@@ -28,6 +28,7 @@ mod sql;
 mod io;
 mod process;
 mod compression;
+mod crypto_password;
 mod compression_streams;
 mod channels;
 #[path="../stdlib/cache/emit.rs"] mod cache;
@@ -292,6 +293,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
         .chain(emitter.uses_url_runtime().then_some("url"))
         .chain(emitter.uses_regex_runtime().then_some("regex"))
         .chain(emitter.uses_locale_runtime().then_some("locale"))
+        .chain(rust.contains("mod tsrust_native_crypto {").then_some("crypto"))
         .chain(rust.contains("mod tsrust_native_compression_streams {").then_some("compression-streams"))
         .chain(rust.contains("mod tsrust_native_cancellation {").then_some("cancellation"))
         .collect::<std::collections::BTreeSet<_>>()
@@ -2596,6 +2598,7 @@ impl Emitter<'_> {
                 continue;
             }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::ProcessChild){let _=writeln!(output,"type Record{index}=tsrust_native_process::Child;");continue;}
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::CryptoHasher){let _=writeln!(output,"type Record{index}=tsrust_native_crypto::Hasher;");continue;}
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::CompressionReader)=>Some("TransformReader"),Some(crate::native_signatures::NativeTypeId::CompressionWriter)=>Some("TransformWriter"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_compression_streams::{name};");continue;}
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IoReader)=>Some("Reader"),Some(crate::native_signatures::NativeTypeId::IoWriter)=>Some("Writer"),Some(crate::native_signatures::NativeTypeId::IoLineReader)=>Some("LineReader"),Some(crate::native_signatures::NativeTypeId::IoStdin)=>Some("Stdin"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_io::{name};");continue;}
             if let Some(id @ (crate::native_signatures::NativeTypeId::BufferedReader | crate::native_signatures::NativeTypeId::BufferedWriter)) = record.native_type {
@@ -3358,7 +3361,8 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Uuid)){output.push_str(crate::stdlib::uuid::RUNTIME);}
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Decimal)){output.push_str(crate::stdlib::decimal::RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:numeric"){output.push_str(&format!("mod tsrust_numeric {{ {} }}",crate::stdlib::numeric::emit::RUNTIME));}
-        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:crypto"){output.push_str(crate::stdlib::crypto::RUNTIME);}
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CryptoHasher)) || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:crypto"){output.push_str(crate::stdlib::crypto::RUNTIME);}
+        if self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:crypto" && crate::stdlib::crypto::password_operation(binding.name)}){output.push_str(crate::stdlib::crypto::PASSWORD_RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:env"){output.push_str(&format!("mod tsrust_native_env {{ {} }}",include_str!("../stdlib/env/runtime.rs")));}
         if self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::UiNode|crate::native_signatures::NativeTypeId::UiComputed|crate::native_signatures::NativeTypeId::UiSignal|crate::native_signatures::NativeTypeId::UiTextBinding))){output.push_str(&crate::stdlib::ui::runtime(self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime" && crate::native_bindings::BINDINGS[id].name=="run")));}
         for &id in self.native_bindings.borrow().iter() {
@@ -4158,9 +4162,12 @@ impl Emitter<'_> {
                     // Keep selected fresh owners in the alias binding's scope,
                     // rather than draining them into the initializer block.
                     let expression_depth = self.expression_depth.get();
-                    if scoped_alias {
-                        self.expression_depth.set(expression_depth + 1);
-                    }
+                    // An owned declaration remains visible after its initializer,
+                    // including inside a Match expression's statement body. Drain
+                    // its argument temporaries into the initializer, not a block
+                    // around the declaration. Borrowing aliases retain their owners
+                    // in the containing binding scope as before.
+                    self.expression_depth.set(if scoped_alias { expression_depth + 1 } else { 0 });
                     let initializer = self.binding_shape(index).as_ref().map_or_else(
                         || {
                             self.expr(
@@ -9339,6 +9346,7 @@ impl Emitter<'_> {
                     if let Some(call)=self.regex_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.url_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.process_native(fun,expr,id,args){return call;}
+                    if let Some(call)=self.crypto_password_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.compression_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.io_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}

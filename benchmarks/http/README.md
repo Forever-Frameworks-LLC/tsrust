@@ -193,8 +193,9 @@ timing remains pending. Registration/correctness is not performance measurement.
 ## Client-owned upload comparison (source prepared; unvalidated)
 
 `requests-run.mjs --uploads` uses the existing HTTP runner with native,
-handwritten same-stack Rust and Node-after-tsc controls. Six workload rows cover
-owned bytes, true body streams and bounded channel producers at concurrency1/16.
+handwritten same-stack Rust and Node-after-tsc controls. Ten workload rows cover
+owned bytes, true body streams, bounded channel producers, URL-encoded forms and
+multipart files at concurrency1/16.
 Every128-request batch cycles64/4096/65537-byte public payloads. The destination
 checks every byte in order; the common client independently checks the complete
 length/checksum response using BigInt arithmetic. Rust and native channels have

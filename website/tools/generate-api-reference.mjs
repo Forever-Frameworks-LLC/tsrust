@@ -75,7 +75,7 @@ const modules = [
   { module: 'std:numeric', summary: 'Checked conversions between int and number widths.' },
   { module: 'std:decimal', summary: 'Exact decimal arithmetic and formatting.' },
   { module: 'std:uuid', summary: 'Parse, format, compare and generate UUIDs.' },
-  { module: 'std:crypto', summary: 'Secure random bytes, SHA-256 and constant-time comparison.' },
+  { module: 'std:crypto', summary: 'Owned digests, incremental SHA, HMAC, HKDF, randomness and explicit bounded password work.', members: { Hasher: 'Hasher' } },
   { module: 'std:os', summary: 'Inspect the host platform, architecture and byte order.' },
   { module: 'std:signals', summary: 'Receive process termination signals for graceful shutdown.' },
   // unwrap is global; this module only keeps an older import spelling working.

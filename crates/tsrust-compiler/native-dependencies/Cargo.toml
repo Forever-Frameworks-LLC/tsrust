@@ -22,7 +22,7 @@ tempfile = { version = "=3.27.0", optional = true }
 percent-encoding = { version = "=2.3.2", optional = true }
 base64 = { version = "=0.23.1", optional = true }
 nix = { version = "=0.31.2", default-features = false, optional = true }
-sha2 = { version = "=0.11.1", optional = true }
+sha2 = { version = "=0.11.1", default-features = false, features = ["zeroize"], optional = true }
 subtle = { version = "=2.6.1", optional = true }
 uuid = { version = "=1.28.0", default-features = false, features = ["std"], optional = true }
 getrandom = { version = "=0.4.3", optional = true }
@@ -63,6 +63,12 @@ flate2 = { version = "=1.1.10", default-features = false, features = ["zlib-rs",
 
 form_urlencoded = { version = "=1.2.2", optional = true }
 
+hmac = { version = "=0.13.0", default-features = false, features = ["zeroize"], optional = true }
+hkdf = { version = "=0.13.0", default-features = false, optional = true }
+rand = { version = "=0.10.3", default-features = false, features = ["std", "std_rng", "sys_rng", "unbiased"], optional = true }
+argon2 = { version = "=0.6.0", default-features = false, features = ["alloc", "password-hash", "zeroize"], optional = true }
+zeroize = { version = "=1.9.1", default-features = false, features = ["alloc"], optional = true }
+
 [features]
 compression-streams = ["compression", "io"]
 compression = ["dep:flate2", "threads", "async"]
@@ -94,7 +100,8 @@ calendar = ["dep:chrono", "dep:chrono-tz"]
 
 uuid = ["dep:uuid", "dep:getrandom"]
 
-crypto = ["dep:sha2", "dep:subtle", "dep:getrandom"]
+crypto = ["dep:sha2", "dep:subtle", "dep:getrandom", "dep:hmac", "dep:hkdf", "dep:rand"]
+crypto-password = ["crypto", "dep:argon2", "dep:zeroize", "threads", "async"]
 
 signals = ["async"]
 

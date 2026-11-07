@@ -117,7 +117,7 @@ fn contextualize_lazy_inputs(records:&mut Vec<crate::syntax::Record>,expression:
     let ExprKind::Call(callee,arguments)=&call.kind else{return Ok(())};
     let ExprKind::Name(symbol)=&callee.kind else{return Ok(())};
     let Some((_,binding))=crate::native_bindings::by_symbol(symbol)else{return Ok(())};
-    if !matches!(binding.module,"std:io"|"std:process"|"std:net"|"std:dns"|"std:compression"){return Ok(());}
+    if !matches!(binding.module,"std:io"|"std:process"|"std:net"|"std:dns"|"std:compression"|"std:crypto"){return Ok(());}
     let mut annotations=Vec::new();
     for (position,(argument,parameter)) in arguments.iter().zip(binding.parameters).enumerate(){
         let ExprKind::Name(name)=&argument.kind else{continue};
