@@ -205,7 +205,7 @@ fn every_async_lifecycle_member_is_reachable(){
 #[test]
 fn every_http_member_is_reachable(){
  let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
- for(family,ty,member)in[("HttpRouter","Router","get"),("HttpApp","App","get"),("HttpClient","Client","send"),("HttpRequest","Request","method"),("HttpResponse","Response","status"),("HttpBody","Body","next"),("HttpNext","Next","run"),("HttpServer","Server","address")]{
+ for(family,ty,member)in[("HttpRouter","Router","get"),("HttpApp","App","get"),("HttpClient","Client","send"),("HttpRequest","Request","method"),("HttpResponse","Response","status"),("HttpBody","Body","next"),("HttpNext","Next","run"),("HttpServer","Server","address"),("HttpWebSocket","WebSocket","receive"),("HttpWebSocketRead","WebSocketRead","receive"),("HttpWebSocketWrite","WebSocketWrite","send")]{
   let before=format!("import {{{ty}}} from 'std:http';function inspect(x:{ty}):void{{x.");let text=format!("{before}{member};}}function main(){{}}");let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
   let offered=session.completion("main.tsr",&text,before.len()).unwrap();
   for entry in catalog[family].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(offered.iter().any(|label|label==name),"{family}.{name}: {offered:?}");}
@@ -675,4 +675,15 @@ fn process_network_compression_help_agrees_across_all_server_phases() {
             let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{typed} [{mode}]: {counters}");}
         }
     }
+}
+
+#[test]
+fn websocket_connect_help_exposes_the_lazy_task_result(){
+ let source="import {connectWebSocket} from 'std:http';async function main():Task<void>{const socket=await connectWebSocket('ws://127.0.0.1:1/');await socket.close();}";
+ let index=tsrust_lsp::intelligence::SourceIndex::new(source);
+ let call=source.rfind("connectWebSocket(").unwrap();
+ for(method,offset)in[("textDocument/hover",call+3),("textDocument/signatureHelp",call+"connectWebSocket(".len())]{
+  let answer=index.request(method,&serde_json::json!({"position":{"line":0,"character":offset}}),"file:///realtime.tsr").unwrap();
+  assert!(answer.to_string().contains("Task<WebSocket>"),"{method}: {answer}");
+ }
 }

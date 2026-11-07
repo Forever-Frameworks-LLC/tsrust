@@ -1,0 +1,51 @@
+import { Router, WebSocket, connectWebSocket } from 'std:http';
+import { fromArray, toHex } from 'std:bytes';
+
+async function echo(socket: Owned<WebSocket>): Task<void> {
+  const message = await socket.receive();
+  if (message !== undefined) {
+    await socket.send(message);
+  }
+
+  await socket.close();
+}
+
+async function main(): Task<void> {
+  const app = new Router();
+  app.webSocket('/echo', echo);
+  const server = await app.listen('127.0.0.1:0');
+  const url = 'ws://' + server.address() + '/echo';
+  try {
+    const socket = await connectWebSocket(url);
+    const halves = socket.split();
+    const receiving = halves.read.receive();
+    await halves.write.send({
+      kind: 'text', data: 'hello'
+    });
+    const message = await receiving;
+    if (message === undefined || message.kind !== 'text') {
+      throw 'missing text';
+    }
+
+    console.log(message.data);
+    await halves.write.close();
+    const closing = await halves.read.receive();
+    if (closing !== undefined) {
+      console.log(closing.kind);
+    }
+
+    const binary = await connectWebSocket(url);
+    await binary.send({
+      kind: 'binary', data: unwrap(fromArray([0, 255]))
+    });
+    const received = await binary.receive();
+    if (received === undefined || received.kind !== 'binary') {
+      throw 'missing binary';
+    }
+
+    console.log(unwrap(toHex(received.data)));
+    await binary.close();
+  } finally {
+    await server.shutdown();
+  }
+}

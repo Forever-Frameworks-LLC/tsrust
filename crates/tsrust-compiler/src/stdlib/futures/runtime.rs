@@ -80,7 +80,13 @@ mod tsrust_native_futures {
     pub struct Job<T,E> { result: Option<oneshot::Receiver<Result<T,Failure<E>>>>, control: Arc<Control>, settled: bool }
     impl<T,E> Job<T,E> {
         pub fn cancel(&self)->bool {self.control.cancel()}
-        pub async fn join(mut self)->Result<T,Failure<E>> {let result=self.result.take().unwrap().await.unwrap_or(Err(Failure::Panic));self.settled=true;result}
+        pub(crate) fn poll_join(&mut self,cx:&mut std::task::Context<'_>)->Poll<Result<T,Failure<E>>>{
+            match std::pin::Pin::new(self.result.as_mut().expect("unsettled job result")).poll(cx){
+                Poll::Pending=>Poll::Pending,
+                Poll::Ready(result)=>{self.result.take();self.settled=true;Poll::Ready(result.unwrap_or(Err(Failure::Panic)))}
+            }
+        }
+        pub async fn join(mut self)->Result<T,Failure<E>> {std::future::poll_fn(|cx|self.poll_join(cx)).await}
     }
     impl<T,E> Drop for Job<T,E> { fn drop(&mut self) {self.control.handle_alive.store(false,Ordering::Release);if !self.settled{self.control.cancel();let _=SCOPE.try_with(|scope|self.control.register(scope));}} }
     pub fn start<F,T,E>(future:F)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {

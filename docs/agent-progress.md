@@ -4,6 +4,66 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full goal remains active;
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Active realtime/logging family — 2026-11-07
+
+Canonical HEAD a510b9fc is a source checkpoint, not B17 runtime acceptance.
+Uncommitted B11 SSE/WebSocket compiler/runtime/LSP/docs/example and matched
+benchmark support are preserved. Full B00–B20 goal remains active.
+
+Owner-authorized profiling is implemented in public `tsrust test --profile`:
+build/check/emit/backend/cache/native-build time is separate from case execution.
+Ordinary acceptance uses stable registered `.test.tsr` suites, one runner per
+coherent suite. No new standalone native probe programs are being built.
+
+One family budget remains anchored at1794057994.1607041 with3300s ceiling:
+/tmp/tsrust-realtime-family-scope-start.json. Do not reset this scope.
+Preflight cargo check --tests passed67.755s/peak2.22GB. First selected build/gates
+terminal379.863s/peak2.92GB, source7b453e80420d, build-finishedtrue.
+PASS13 realtime completion rows ×4 phases, HTTP editor reachability, lazy
+Task<WebSocket> help, documentation receiver reference map, resource rejections.
+FAIL actual WS signature preparation/literal materialization, authored docs native
+emission, and logging runner native compilation (8 Rust errors). Logging fixes:
+LogError now matches documented code/message; typed payload locals resolve
+throw-only callback success type. WS preparation uses only selected socket ABI
+and existing annotation materialization. Default emission now proves required
+absent callback records empty using the existing coalescing helper.
+
+Affected-only rerun TERMINAL364.041s/peak2928824904B, stopnull, remaining[].
+Selected build233.021s, build-finishedtrue, source39ac74bd04ba. No build/test
+process remains. All five acceptance checks still fail, with concrete progress:
+- Agreement no longer panics;26 catalog properties were incorrectly methods.
+  Catalog parameters[]→null fix applied, rerun pending.
+- Authored docs no longer panics; reached export, now missing prepared portable
+  sources for changed dependency closure. No export acceptance claimed.
+- Realtime suite checker reaches SseEvent contextual record mismatch at44;
+  inferred-router witness reaches socket task-transfer metadata mismatch. Both
+  fixes now applied: preserve endpoint payload context across lazy send lowering;
+  declare actual owned Send socket/read/write transfer metadata. Added positive
+  partial-record send and negative data:int source witnesses; unexecuted.
+- Logging original3 schema errors resolved;5 OnceCallback success-type inference
+  errors remain despite typed local. Shared registered_callback_call now selects
+  the existing physical Result ABI at invocation before map_err; unexecuted.
+Preserve prior passed scopes. The original family budget must not be reset.
+Final cargo check --tests with all selected runtime features PASSED70.884s,
+peak2222443784B,stopnull,remaining[] within original budget:
+/tmp/tsrust-realtime-family-final-typecheck.*. This checks every compiler/LSP
+test harness including unit bodies, not runtime execution. All processes terminal.
+Whole-project formatting before the rerun passed0changes. No public suite runtime,
+relocated export, benchmark timings or SQLite ingestion claimed.
+Quiet-point cleanup removed349 disposable linked objects587688688logicalbytes;
+actual free-space recovery606359552B. Cached libraries/metadata retained.
+
+B15 direct checker trace from fresh normal CLI still fails typed catch48:
+/tmp/tsrust-realtime-family-7b453e80420d-iterator-effects.*. Nominal stored-field
+candidate is insufficient. Actual selected chain family18→closure38→Function35
+was not prepared before catch inference. Finite selected-origin scheduling patch
+applied in analysis/mod.rs and all test harnesses type-check; behavior unverified. No error suppression or ownership
+weakening accepted.
+Benchmark common-result/control adapter self-check passed; unchanged private
+Rust/Node controls retain original identities and timestamps. No profiling rerun.
+Target debug15G/release3.7G/sourcepacks704M measured before repair completion.
+Prune only obsolete linked objects after all build/test processes are terminal.
+
 ## Current source checkpoint preparation — 2026-11-07
 
 Canonical codex/stdlib-0.2.0 after a96b1d79. Previous turn made source and acceptance

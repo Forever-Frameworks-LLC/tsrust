@@ -1,0 +1,62 @@
+import { Router, WebSocket, SseEvent, sseWithProducer } from 'std:http';
+import { Channel, Sender } from 'std:futures';
+import { listen, receive } from 'std:signals';
+
+async function events(sender: Sender<SseEvent>): Task<void> {
+  for (let index = 0; index < 6; index += 1) {
+    await sender.send({
+      data: 'chunk ' + String(index)
+    });
+  }
+}
+
+async function echo(socket: Owned<WebSocket>): Task<void> {
+  while (true) {
+    const message = await socket.receive();
+    if (message === undefined || message.kind === 'close') {
+      break;
+    }
+
+    await socket.send(message);
+  }
+
+  await socket.close();
+}
+
+async function main(): Task<void> {
+  const signals = unwrap(listen());
+  const app = new Router();
+  app.configure({
+    bodyLimit: 65536, maxConnections: 64, maxRequests: 64, requestTimeoutMs: 30000, shutdownTimeoutMs: 250, handshakeTimeoutMs: 5000, requestsPerSecond: 0
+  });
+  app.use('/ws', async (context, next) => {
+    if (context.req.header('authorization') !== 'Bearer admission') {
+      return context.text('Unauthorized', 401);
+    }
+
+    if (context.req.header('origin') !== 'https://allowed.invalid') {
+      return context.text('Forbidden', 403);
+    }
+
+    await next();
+  });
+  app.get('/sse', context => {
+    const channel = new Channel<SseEvent>(1);
+    const producer = events(channel.sender()).start();
+    return sseWithProducer(channel, producer);
+  });
+  app.webSocket('/ws', echo);
+  const server = await app.listen('127.0.0.1:0');
+  console.log(JSON.stringify({
+    ready: 'ws://' + server.address() + '/ws'
+  }));
+  try {
+    await receive(signals);
+  } finally {
+    await server.shutdown();
+  }
+
+  console.log(JSON.stringify({
+    settled: true, active: 0
+  }));
+}

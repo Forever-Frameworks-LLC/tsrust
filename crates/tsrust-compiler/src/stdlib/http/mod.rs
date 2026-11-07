@@ -1,11 +1,13 @@
 mod wrappers;
+pub(crate) mod realtime;
 use crate::{Mode,native_bindings::{NativeBinding,NativeBackend,NativeParameter,NativeType},native_signatures::{Signature,NativeTypeId}};
 const TEST_RUNTIME:&str=include_str!("runtime.rs");
 pub(crate) fn runtime()->String{
  // Compiler runtime witnesses compile the raw test module. Exported programs
  // enable helpers only through their selected Cargo feature, even under test.
- TEST_RUNTIME.replace("#[cfg(any(test, feature = \"http-middleware\"))]","#[cfg(feature = \"http-middleware\")]")
+ TEST_RUNTIME.replace("#[cfg(any(test, feature = \"http-middleware\"))]","#[cfg(feature = \"http-middleware\")]").replace("    include!(\"runtime_realtime.rs\");",include_str!("runtime_realtime.rs")).replace("    include!(\"runtime_websocket.rs\");",include_str!("runtime_websocket.rs"))
 }
+pub(crate) const WEBSOCKET_MARKER:&str="// tsrust-http-websocket-selected\n";
 pub(crate) const MIDDLEWARE_MARKER:&str="// tsrust-http-middleware-selected\n";
 pub(crate) const CORS:NativeBinding=NativeBinding{module:"std:http",name:"__cors",parameters:&[NativeParameter{name:"options",ty:NativeType::Structured(&Signature::Optional(&Signature::Named(NativeTypeId::HttpCorsOptions))),access:Mode::Read,optional:true,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::HttpMiddleware),&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http-middleware"]};
 pub(crate) const PUBLIC_CORS:NativeBinding=NativeBinding{name:"cors",..CORS};
@@ -91,7 +93,7 @@ pub(crate) const SETCOOKIE:NativeBinding=NativeBinding{name:"__setCookie",parame
 pub(crate) const DELETECOOKIE:NativeBinding=NativeBinding{name:"__deleteCookie",parameters:&[SETCOOKIE.parameters[0],SETCOOKIE.parameters[1],SETCOOKIE.parameters[3]],..SETCOOKIE};
 pub(crate) const PUBLIC_SETCOOKIE:NativeBinding=NativeBinding{name:"setCookie",..SETCOOKIE};
 pub(crate) const PUBLIC_DELETECOOKIE:NativeBinding=NativeBinding{name:"deleteCookie",..DELETECOOKIE};
-pub(crate) const OPERATIONS:&[NativeBinding]=&[GETCOOKIE,SETCOOKIE,DELETECOOKIE,CONTEXTGET,CONTEXTSET,CONTEXTREQUESTBODY,CONTEXTREQUESTTEXT,CONTEXTREQUESTFORM,CONTEXTREQUESTMULTIPART,ROUTER,ROUTERCONFIGURE,ROUTERSTATIC,ROUTERROUTE,ROUTERUSE,ROUTERUSEPATH,ROUTERLISTEN,CONTEXTTEXT,CONTEXTNEXT,CONTEXTHTML,CONTEXTJSON,CONTEXTHEADER,CONTEXTSTATUS,FORM,MULTIPART,APP,CONFIGURE,CLIENT,REQUEST,REQUEST_FORM,REQUEST_MULTIPART,REQUEST_BYTES,REQUEST_STREAM,REQUEST_CHANNEL,TEXT,HTML,JSON,STREAM,STREAMCHANNEL,ROUTE,USE,FALLBACK,LISTEN,SHUTDOWN,WAIT,ADDRESS,NEXT,SEND,BODYNEXT,BODYTEXT,REQUESTHEADER,REQUESTSETHEADER,REQUESTBODY,REQUESTTEXT,RESPONSEHEADER,RESPONSESETHEADER,RESPONSEBODY,RESPONSETEXT,METHOD,URL,PARAM,QUERY,QUERIES,STATUS];
+pub(crate) const OPERATIONS:&[NativeBinding]=&[realtime::SSE,realtime::SSE_PRODUCER,GETCOOKIE,SETCOOKIE,DELETECOOKIE,CONTEXTGET,CONTEXTSET,CONTEXTREQUESTBODY,CONTEXTREQUESTTEXT,CONTEXTREQUESTFORM,CONTEXTREQUESTMULTIPART,ROUTER,ROUTERCONFIGURE,ROUTERSTATIC,ROUTERROUTE,ROUTERUSE,ROUTERUSEPATH,ROUTERLISTEN,CONTEXTTEXT,CONTEXTNEXT,CONTEXTHTML,CONTEXTJSON,CONTEXTHEADER,CONTEXTSTATUS,FORM,MULTIPART,APP,CONFIGURE,CLIENT,REQUEST,REQUEST_FORM,REQUEST_MULTIPART,REQUEST_BYTES,REQUEST_STREAM,REQUEST_CHANNEL,TEXT,HTML,JSON,STREAM,STREAMCHANNEL,ROUTE,USE,FALLBACK,LISTEN,SHUTDOWN,WAIT,ADDRESS,NEXT,SEND,BODYNEXT,BODYTEXT,REQUESTHEADER,REQUESTSETHEADER,REQUESTBODY,REQUESTTEXT,RESPONSEHEADER,RESPONSESETHEADER,RESPONSEBODY,RESPONSETEXT,METHOD,URL,PARAM,QUERY,QUERIES,STATUS];
 pub(crate) fn call(name:&str,args:Vec<crate::syntax::Expr>,span:crate::Span)->crate::syntax::Expr{
  use crate::syntax::{Expr,ExprKind};Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:std:http#{name}")),span)),args),span)
 }
@@ -100,10 +102,12 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
  defaults(program)?;
  wrappers::prepare(program)?;
  let mut access_log_used=false;
+ let mut websocket_used=program.records.iter().any(|record|record.native_type.is_some_and(realtime::socket_type));
  let mut middleware_used=program.records.iter().any(|r|r.native_type==Some(NativeTypeId::HttpMiddleware));
  let mut used=program.records.iter().any(|r|r.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http"));
  for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{
   let span=expression.span;
+  if let ExprKind::Name(symbol)=&expression.kind&&crate::native_bindings::by_symbol(symbol).is_some_and(|(_,binding)|binding.module=="std:http"&&binding.features.contains(&"http-websocket")){websocket_used=true;}
   if matches!(&expression.kind,ExprKind::Name(symbol)if symbol=="@native:std:http#accessLog"){access_log_used=true;middleware_used=true;used=true;}
   if let ExprKind::Name(symbol)=&expression.kind&&symbol.strip_prefix("@native:std:http#").is_some_and(|name|matches!(name,"__cors"|"cors"|"secureHeaders"|"compress")){middleware_used=true;used=true;}
 
@@ -114,12 +118,13 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
    if matches!(name,"setCookie"|"deleteCookie") {let operation=format!("__{name}");let inputs=std::mem::take(args);*expression=crate::stdlib::futures::unwrap(call(&operation,inputs,span));return Ok(());}
    if public_unwrapped(name){
     let name=name.to_owned();let mut args=std::mem::take(args);
-    if !matches!(name.as_str(),"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart"|"cors") && args.len()==1{args.push(Expr::new(ExprKind::Integer("200".into()),span));}
+    if !matches!(name.as_str(),"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart"|"cors"|"sse"|"sseWithProducer") && args.len()==1{args.push(Expr::new(ExprKind::Integer("200".into()),span));}
     if name=="json" && !args.is_empty(){let value=args.remove(0);args.insert(0,Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@http:jsonEncode".into()),span)),vec![value]),span));}
     *expression=crate::stdlib::futures::unwrap(call(&format!("__{name}"),args,span));
    }
   }Ok(())
  })?;}
+ if websocket_used{for binding in realtime::OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}}
  if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","parse").unwrap(),crate::Span::default())?;crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}if access_log_used{crate::native_binding_types::prepare(&mut program.records,&ACCESS_LOG,crate::Span::default())?;}if middleware_used{for binding in [CORS,SECURE_HEADERS,COMPRESS]{crate::native_binding_types::prepare(&mut program.records,&binding,crate::Span::default())?;}}}
  Ok(())
 }
@@ -133,6 +138,10 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
 }
 
 pub(crate) fn method(identity:Option<NativeTypeId>,member:&str)->Option<&'static str>{Some(match(identity,member){
+    (Some(NativeTypeId::HttpRouter),"webSocket")=>"__routerWebSocket",
+    (Some(NativeTypeId::HttpWebSocket),"receive")=>"__webSocketReceive",(Some(NativeTypeId::HttpWebSocketRead),"receive")=>"__webSocketReadReceive",
+    (Some(NativeTypeId::HttpWebSocket),"send")=>"__webSocketSend",(Some(NativeTypeId::HttpWebSocketWrite),"send")=>"__webSocketWriteSend",
+    (Some(NativeTypeId::HttpWebSocket),"split")=>"__webSocketSplit",(Some(NativeTypeId::HttpWebSocket),"close")=>"__webSocketClose",(Some(NativeTypeId::HttpWebSocketWrite),"close")=>"__webSocketWriteClose",
     (Some(NativeTypeId::HttpRouter),"get"|"post"|"put"|"patch"|"delete"|"head"|"options"|"route")=>"__routerRoute",
     (Some(NativeTypeId::HttpRouter),"configure")=>"__routerConfigure",(Some(NativeTypeId::HttpRouter),"serveStatic")=>"__routerStatic",(Some(NativeTypeId::HttpRouter),"use")=>"__routerUse",(Some(NativeTypeId::HttpRouter),"listen")=>"__routerListen",
     (Some(NativeTypeId::HttpContext),"get")=>"__contextGet",(Some(NativeTypeId::HttpContext),"set")=>"__contextSet",
@@ -149,9 +158,9 @@ pub(crate) fn method(identity:Option<NativeTypeId>,member:&str)->Option<&'static
     (Some(NativeTypeId::HttpRequest),"header")=>"__requestHeader",(Some(NativeTypeId::HttpRequest),"setHeader")=>"__requestSetHeader",(Some(NativeTypeId::HttpRequest),"body")=>"__requestBody",(Some(NativeTypeId::HttpRequest),"text")=>"__requestText",
     (Some(NativeTypeId::HttpResponse),"header")=>"__responseHeader",(Some(NativeTypeId::HttpResponse),"setHeader")=>"__responseSetHeader",(Some(NativeTypeId::HttpResponse),"body")=>"__responseBody",(Some(NativeTypeId::HttpResponse),"text")=>"__responseText",_=>return None,
    })}
-pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__requestJson"|"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__routerListen"|"__contextNext"|"__form"|"__multipart"|"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}
+pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__connectWebSocket"|"__webSocketReceive"|"__webSocketReadReceive"|"__webSocketSend"|"__webSocketWriteSend"|"__webSocketClose"|"__webSocketWriteClose"|"__requestJson"|"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__routerListen"|"__contextNext"|"__form"|"__multipart"|"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}
 
-pub(crate) fn public_unwrapped(name:&str)->bool{matches!(name,"cors"|"text"|"html"|"json"|"stream"|"streamChannel"|"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
+pub(crate) fn public_unwrapped(name:&str)->bool{matches!(name,"sse"|"sseWithProducer"|"cors"|"text"|"html"|"json"|"stream"|"streamChannel"|"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
 
 fn defaults(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
  use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};

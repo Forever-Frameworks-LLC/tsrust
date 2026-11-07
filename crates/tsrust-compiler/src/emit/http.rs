@@ -19,8 +19,21 @@ impl Emitter<'_>{
    }).collect::<Vec<_>>().join(",");format!("match &options.field{field}{{{arms}}}")
   }).collect::<Vec<_>>().join(",");format!("tsrust_native_http::Client::with_transport_options({fields})")
  }
- fn http_owned_optional_text(&self,ty:Type,value:&str)->String{
+ pub(super) fn http_owned_optional_text(&self,ty:Type,value:&str)->String{
   let Type::Union(id)=ty else{unreachable!("checked optional multipart metadata")};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",id.index(),if *ty==Type::Undefined{"None"}else{"Some(value.into_owned())"})).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
+ }
+ fn http_sse_event(&self,ty:Type)->String{
+  let Type::Record(record)=ty else{unreachable!("checked SSE event")};let fields=&self.program.records[record].fields;
+  // Axum encodes fields immediately; borrow the owned event instead of copying static strings first.
+  let text=|index:usize|{let Type::Union(id)=fields[index].ty.unwrap()else{unreachable!("optional SSE text")};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",id.index(),if *ty==Type::Undefined{"None"}else{"Some(value.as_ref())"})).collect::<Vec<_>>().join(",");format!("match &event.field{index}{{{arms}}}")};
+  let event=text(1);let id=text(2);
+  let Type::Union(retry)=fields[3].ty.unwrap()else{unreachable!()};let arms=self.program.unions[retry.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",retry.index(),if *ty==Type::Undefined{"None"}else{"Some(value)"})).collect::<Vec<_>>().join(",");
+  format!("|event|tsrust_native_http::sse_event(event.field0.as_ref(),{event},{id},match event.field3{{{arms}}})")
+ }
+ fn http_sse_options(&self,ty:Type)->String{
+  let record=match ty{Type::Record(record)=>record,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).expect("checked optional SSE options")};
+  let names=["keep_alive_ms","keep_alive_text"];
+  let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{let Type::Union(id)=item.ty.unwrap()else{unreachable!()};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",id.index(),if *ty==Type::Undefined{"None"}else if *ty==Type::String{"Some(value.as_ref().to_owned())"}else{"Some(*value)"})).collect::<Vec<_>>().join(",");format!("{}:match &options.field{field}{{{arms}}}",names[field])}).collect::<Vec<_>>().join(",");format!("tsrust_native_http::SseOptions{{{fields}}}")
  }
  fn http_owned_multipart_parts(&self,ty:Type,value:&str)->String{
   let Type::Array(ArrayElement::Record(record,0))=ty else{unreachable!("checked multipart part array")};let fields=&self.program.records[record].fields;let file=self.http_owned_optional_text(fields[1].ty.unwrap(),"part.field1");let mime=self.http_owned_optional_text(fields[2].ty.unwrap(),"part.field2");format!("({value}).tsr_owned_items().map(|part|tsrust_native_http::MultipartPart{{name:part.field0.into_owned(),file_name:{file},content_type:{mime},data:part.field3.bytes}})")
@@ -39,7 +52,7 @@ impl Emitter<'_>{
    }).collect::<Vec<_>>().join(",");format!("{}:match &options.field{field}{{{arms}}}",names[field])
   }).collect::<Vec<_>>().join(",");format!("tsrust_native_http::CookieOptions{{{fields}}}")
  }
- fn http_value(&self,ty:Type,value:&str)->String{
+ pub(super) fn http_value(&self,ty:Type,value:&str)->String{
   if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::Bytes){return format!("Record{}{{bytes:{value}}}",self.native_record_declaration(id));}
   if let Type::Array(ArrayElement::Record(id,0))=ty && matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpFormField|NativeTypeId::HttpMultipartPart)) {
    let item=self.http_value(Type::Record(id),"item");let values=format!("({value}).into_iter().map(|item|{item}).collect::<Vec<_>>()");
@@ -51,7 +64,9 @@ impl Emitter<'_>{
   }
   if ty==Type::Array(ArrayElement::String(0)){return format!("Array::Heap(({value}).into_iter().map(String::Owned).collect())");}
   if ty==Type::String{return format!("String::Owned({value})");}
+  if let Some(value)=self.websocket_received_value(ty,value){return value;}
   if let Type::Union(id)=ty {let members=&self.program.unions[id.index()].members;let absent=members.iter().position(|ty|*ty==Type::Undefined).unwrap();let present=1-absent;let payload=self.http_value(members[present],"value");return format!("match {value}{{Some(value)=>Union{}::V{present}({payload}),None=>Union{}::V{absent}(TsrUndefined)}}",id.index(),id.index());}
+  if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::HttpWebSocketHalves){return format!("{{let halves={value};Record{}{{field0:halves.read,field1:halves.write,{}}}}}",self.native_record_declaration(id),self.schema_record_order(id).trim_start_matches(','));}
   value.into()
  }
  pub(super) fn http_result(&self,ty:Type,call:&str)->String{
@@ -89,6 +104,30 @@ impl Emitter<'_>{
    "__requestChannel"=>format!("tsrust_native_http::Request::from_channel({}, {}, {}, |chunk|chunk.bytes)",values[0],values[1],values[2]),
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
+   "__connectWebSocket"=>self.websocket_connect(&values[0],args.get(1).filter(|argument|argument.ty!=Some(Type::Undefined)).map(|argument|(argument.ty.unwrap(),optional(1)))),
+   "__webSocketReceive"|"__webSocketReadReceive"=>format!("({receiver}).receive().await"),
+   "__webSocketSend"|"__webSocketWriteSend"=>format!("({receiver}).send({}).await",self.websocket_send_message(args[1].ty.unwrap(),&values[1])),
+   "__webSocketSplit"=>format!("({receiver}).split()"),
+   "__webSocketClose"|"__webSocketWriteClose"=>{
+    let frame=if args.get(1).is_none_or(|argument|argument.ty==Some(Type::Undefined)){"tsrust_native_http::WebSocketMessage::Close{code:None,reason:None}".into()}else{
+     let record=match args[1].ty.unwrap(){Type::Record(record)=>record,_=>args[1].ty.unwrap().union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).unwrap()};
+     format!("match {}{{Some(frame)=>{},None=>tsrust_native_http::WebSocketMessage::Close{{code:None,reason:None}}}}",optional(1),self.websocket_send_message(Type::Record(record),"frame"))
+    };
+    format!("{{let frame={frame};let tsrust_native_http::WebSocketMessage::Close{{code,reason}}=frame else{{unreachable!(\"checked close frame\")}};({receiver}).close(code,reason).await}}")
+   },
+   "__routerWebSocket"=>{
+    let Type::Closure(origin)=args[2].ty.unwrap()else{unreachable!("checked WebSocket handler")};let closure=&self.program.closures[origin];let result=closure.function.result;
+    let error=self.future_error_type(result,expr.span);let poll=self.future_poll(result,"task",error,expr.span);
+    let unwrap=if self.result_closures.borrow().contains_key(&origin){"let task=match task{Ok(task)=>task,Err(_)=>return};"}else{""};
+    let options=if args.get(3).is_none_or(|argument|argument.ty==Some(Type::Undefined)){"tsrust_native_http::WebSocketOptions::default()".into()}else{format!("match {}{{Some(options)=>{},None=>tsrust_native_http::WebSocketOptions::default()}}",optional(3),self.websocket_options(args[3].ty.unwrap(),"options"))};
+    format!("{{let app={receiver};let path={};let options={options};let callback=std::sync::Arc::new({});app.websocket(path,options,move|socket|{{let callback=callback.clone();async move{{let task=callback.call(socket);{unwrap}drop({poll});}}}})}}",values[1],values[2])
+   },
+   "__sse"|"__sseWithProducer"=>{
+    let Type::Record(channel)=args[0].ty.unwrap()else{unreachable!("checked SSE channel")};let event=self.program.records[channel].application.as_ref().unwrap().resolved_arguments[0];let encode=self.http_sse_event(event);
+    let index=if binding.name=="__sse"{1}else{2};
+    let options=if args.get(index).is_none_or(|argument|argument.ty==Some(Type::Undefined)){"tsrust_native_http::SseOptions::default()".into()}else{format!("match {}{{Some(options)=>{},None=>tsrust_native_http::SseOptions::default()}}",optional(index),self.http_sse_options(args[index].ty.unwrap()))};
+    if binding.name=="__sse"{format!("tsrust_native_http::Response::sse({}, {options}, {encode})",values[0])}else{format!("tsrust_native_http::Response::sse_with_producer({}, {}, {options}, {encode})",values[0],values[1])}
+   },
    "__streamChannel"=>format!("tsrust_native_http::Response::stream_channel({}, {}, |chunk|chunk.bytes)",values[0],values[1]),
    "__stream"=>format!("tsrust_native_http::Response::stream({})",values.join(",")),
    "__routerRoute"|"__routerUse"|"__routerUsePath"=>{
@@ -170,7 +209,7 @@ impl Emitter<'_>{
   let result=expr.ty.unwrap();Some(if matches!(binding.result,crate::native_bindings::NativeType::Structured(crate::native_signatures::Signature::Result(..))){self.http_result(result,&call)}else{self.http_value(result,&call)})
  }
  pub(super) fn http_record(&self,output:&mut String,id:usize)->bool{
-  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpRouter)=>"Router",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpMiddleware)=>"NativeMiddleware",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
+  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpWebSocket)=>"WebSocket",Some(NativeTypeId::HttpWebSocketRead)=>"WebSocketRead",Some(NativeTypeId::HttpWebSocketWrite)=>"WebSocketWrite",Some(NativeTypeId::HttpRouter)=>"Router",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpMiddleware)=>"NativeMiddleware",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
   let arguments=if matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpRouter|NativeTypeId::HttpContext)){format!("<{}>",self.native_type(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]))}else{String::new()};
   writeln!(output,"type Record{id}=tsrust_native_http::{name}{arguments};").unwrap();true
  }

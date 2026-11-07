@@ -121,6 +121,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_regex {"){command.args(["--features","regex"]);}
   if runtime.contains("pub mod tsrust_native_url {"){command.args(["--features","url"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
+  if runtime.contains("// tsrust-http-websocket-selected\n"){command.args(["--features","http-websocket"]);}
   if runtime.contains("// tsrust-http-middleware-selected\n"){command.args(["--features","http-middleware"]);}
   if runtime.contains("pub mod tsrust_native_ui {"){command.args(["--features","ui"]);}
   if runtime.contains("pub mod tsrust_native_ui {") && runtime.contains("use vello::"){command.args(["--features", "ui-native"]);

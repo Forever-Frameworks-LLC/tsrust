@@ -2839,6 +2839,9 @@ impl SourceIndex {
         let result = if (binding.module=="std:crypto" && matches!(binding.name,"hashPassword"|"verifyPassword"|"verifyPasswordBounded")) || (binding.module=="std:compression" && tsrust_compiler::native_bindings::compression_asynchronous(binding.name)) || (binding.module=="std:dns" && binding.name=="lookup") || (binding.module=="std:net" && tsrust_compiler::native_bindings::network_asynchronous(binding.name)) || (binding.module=="std:io" && tsrust_compiler::native_bindings::io_asynchronous(binding.name)) || (binding.module=="std:process" && tsrust_compiler::native_bindings::process_asynchronous(binding.name)){format!("Task<{}>",signature_name(binding.result.signature()))}else if (binding.module=="std:sql" && tsrust_compiler::native_bindings::sql_asynchronous(binding.name)) || (binding.module=="std:signals" && binding.name=="receive") {
             let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("SQL task result")};
             format!("Task<{}>",signature_name(*output))
+        }else if binding.module=="std:http" && binding.name=="connectWebSocket"{
+            let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("WebSocket task result")};
+            format!("Task<{}>",signature_name(*output))
         }else if binding.module=="std:http" && tsrust_compiler::native_bindings::http_unwrapped(binding.name){
             let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("HTTP factory result")};
             signature_name(*output)

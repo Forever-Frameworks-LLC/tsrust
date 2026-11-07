@@ -3987,8 +3987,48 @@ impl Analyzer {
 
     fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type,defer_pending_origins:bool)->Result<(),Diagnostic> {
         let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
-        let targets=crate::error_effects::checked_expressions(&caller).into_iter().filter_map(|expression|match expression.target {Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>Some((id,expression.span)),_=>None}).collect::<HashMap<_,_>>();
-        for (id,span) in targets {self.prepare_selected_task_function(id,span,defer_pending_origins)?;}
+        enum Selected {Function(usize,Span),Closure(usize),Storage(usize)}
+        fn calls(function:&CheckedFunction,pending:&mut Vec<Selected>){
+            for value in crate::error_effects::checked_expressions(function){
+                let ExprKind::Call(callee,_)=&value.kind else{continue;};
+                match value.target {
+                    Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>pending.push(Selected::Function(id,value.span)),
+                    Some(CallTarget::Closure(_))=>if let Some(origin)=value.closure_origin(){pending.push(Selected::Closure(origin));},
+                    Some(CallTarget::ConditionalClosure(origin))=>pending.push(Selected::Closure(origin)),
+                    Some(CallTarget::StoredCallableField(family))=>pending.push(Selected::Storage(family)),
+                    Some(CallTarget::StoredCallable(_))=>if let Some(family)=value.storage_family(){pending.push(Selected::Storage(family));},
+                    Some(CallTarget::ClosureMethod(_))=>if let Some(Type::Closure(origin))=callee.ty{pending.push(Selected::Closure(origin));},
+                    _=>{},
+                }
+            }
+        }
+        let mut pending=Vec::new();calls(&caller,&mut pending);
+        let mut functions=HashSet::new();let mut closures=HashSet::new();let mut storage=HashSet::new();
+        while let Some(selected)=pending.pop(){match selected{
+            Selected::Function(id,span)=>{
+                if !functions.insert(id){continue;}
+                self.prepare_selected_task_function(id,span,defer_pending_origins)?;
+                if let Some(function)=self.checked[id].as_ref(){calls(function,&mut pending);}
+                // Checking a selected body may add constructors to an already
+                // selected finite family. Revisit only those selected families.
+                pending.extend(storage.iter().copied().map(Selected::Storage));
+            }
+            Selected::Closure(origin)=>{
+                if !closures.insert(origin){continue;}
+                let Some(closure)=self.closures.get(origin)else{continue;};
+                calls(&closure.function,&mut pending);
+                for method in &closure.methods{calls(&method.function,&mut pending);}
+                match closure.forward{
+                    Some(ClosureForward::Function(id))=>pending.push(Selected::Function(id,closure.span)),
+                    Some(ClosureForward::Once(id))=>pending.push(Selected::Closure(id)),
+                    _=>{},
+                }
+            }
+            Selected::Storage(family)=>{
+                storage.insert(family);
+                if let Some(origins)=self.callables.storage.origins(family){pending.extend(origins.iter().copied().filter(|origin|!closures.contains(origin)).map(Selected::Closure));}
+            }
+        }}
         Ok(())
     }
 

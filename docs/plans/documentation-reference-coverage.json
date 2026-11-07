@@ -223,11 +223,11 @@
     },
     "std:http": {
       "route": "/docs/framework/routing",
-      "members": 37
+      "members": 53
     },
     "HttpRouter": {
       "route": "/docs/framework/routing",
-      "members": 12
+      "members": 13
     },
     "HttpApp": {
       "route": "/docs/framework/routing",
@@ -539,6 +539,54 @@
     },
     "LogError": {
       "route": "/docs/standard-library/logging",
+      "members": 2
+    },
+    "HttpSseEvent": {
+      "route": "/docs/framework/realtime",
+      "members": 4
+    },
+    "HttpSseOptions": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocketOptions": {
+      "route": "/docs/framework/realtime",
+      "members": 6
+    },
+    "HttpWebSocketClientOptions": {
+      "route": "/docs/framework/realtime",
+      "members": 3
+    },
+    "HttpWebSocketHeader": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocketText": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocketBinary": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocketClose": {
+      "route": "/docs/framework/realtime",
+      "members": 3
+    },
+    "HttpWebSocketHalves": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocket": {
+      "route": "/docs/framework/realtime",
+      "members": 4
+    },
+    "HttpWebSocketRead": {
+      "route": "/docs/framework/realtime",
+      "members": 1
+    },
+    "HttpWebSocketWrite": {
+      "route": "/docs/framework/realtime",
       "members": 2
     }
   }

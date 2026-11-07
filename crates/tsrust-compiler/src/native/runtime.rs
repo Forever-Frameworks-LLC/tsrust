@@ -61,6 +61,7 @@ pub fn requires_dependencies(source:&str)->bool {
 /// in the application crate. Extract only selected self-contained support modules.
 pub fn separate(source:&str)->Units {
     let mut application=source.to_owned();let mut runtime=if source.contains(crate::stdlib::http::MIDDLEWARE_MARKER){crate::stdlib::http::MIDDLEWARE_MARKER.to_owned()}else{String::new()};
+    if source.contains(crate::stdlib::http::WEBSOCKET_MARKER){runtime.push_str(crate::stdlib::http::WEBSOCKET_MARKER);}
     let mut binding_crates=std::collections::BTreeSet::new();
     for line in source.lines().filter(|line|line.starts_with(crate::project::rust::dependencies::MARKER)) {
         if let Ok(package)=serde_json::from_str::<crate::project::rust::dependencies::Package>(line.trim_start_matches(crate::project::rust::dependencies::MARKER)) {

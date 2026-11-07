@@ -15,6 +15,7 @@ name = "tsrust"
 path = "src/cli/main.rs"
 
 [features]
+http-websocket = ["axum/ws", "dep:tokio-tungstenite", "dep:webpki-roots"]
 logging = []
 # Compiler runtime witnesses; generated packages select their own optional feature.
 http-middleware = []
@@ -23,6 +24,8 @@ http-middleware = []
 legacy-ui = []
 
 [dependencies]
+tokio-tungstenite = { version = "=0.29.0", optional = true, default-features = false, features = ["connect", "handshake", "rustls-tls-webpki-roots"] }
+webpki-roots = { version = "=0.26.11", optional = true }
 # Retain legacy authoring checks without linking the frozen renderer runtime.
 tsrust-ui = { path = "../tsrust-ui", default-features = false }
 sha2 = { version = "=0.11.1" }
@@ -49,6 +52,7 @@ libc = "=0.2.183"
 
 
 [dev-dependencies]
+futures-util = { version = "=0.3.34", default-features = false, features = ["std", "sink"] }
 pin-project-lite = "=0.2.17"
 tracing = { version = "=0.1.44", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "=0.3.23", default-features = false, features = ["fmt", "json"] }

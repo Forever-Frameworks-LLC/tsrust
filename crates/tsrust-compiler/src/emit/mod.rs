@@ -20,6 +20,7 @@ mod ui;
 mod futures;
 mod http;
 mod logging;
+mod http_realtime;
 #[path="../stdlib/url/emit.rs"] mod url;
 #[path="../stdlib/regex/emit.rs"] mod regex;
 #[path="../stdlib/net/emit.rs"] mod net;
@@ -1934,7 +1935,8 @@ impl Emitter<'_> {
                     format!("{{ default_owner{id}={fallback}; {view} }}")
                 } else {fallback};
             let arms = self.program.unions[input.index()].members.iter().enumerate().map(|(variant,member)| {
-                let result = if *member == Type::Undefined {default.clone()}
+                let result = if let Some(field)=self.absent_record_field(*member) {format!("match payload.field{field} {{}}")}
+                    else if *member == Type::Undefined {default.clone()}
                     else if callback {"TsrDefault::Supplied(payload)".into()}
                     else if let Type::StoredCallable(family)=binding.ty {
                         if let Type::Closure(origin)=member {
@@ -1942,7 +1944,7 @@ impl Emitter<'_> {
                         } else if *member==binding.ty {"payload".into()} else {"match payload {}".into()}
                     }
                     else if let Some(body) = binding.ty.union() {
-                        let to = self.program.unions[body.index()].members.iter().position(|ty|ty==member || matches!(ty,Type::StoredCallable(_)|Type::Callback(_))&&!matches!(member,Type::Null|Type::Undefined)).expect("accepted supplied member");
+                        let to = self.program.unions[body.index()].members.iter().position(|ty|ty==member || matches!(ty,Type::StoredCallable(_)|Type::Callback(_))&&!matches!(member,Type::Null|Type::Undefined)).unwrap_or_else(||panic!("accepted supplied member {member:?} missing from {:?}",self.program.unions[body.index()].members));
                         let payload=if let Type::StoredCallable(family)=self.program.unions[body.index()].members[to] {
                             if let Type::Closure(origin)=member {
                                 self.stored_callable_constructor(family, *origin, "payload")
@@ -1990,8 +1992,17 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn registered_callback_call(&self,call:String,id:usize,span:crate::Span)->String {
-        let call=if self.program.callback_contracts[id].kind==CallbackKind::Task {format!("({}).await",call.replace("OnceCallback::","TaskCallback::"))}else{call};
         let registered=self.result_callbacks.borrow().get(&id).cloned();
+        // Fix the physical callback Result before method resolution of map_err.
+        // A throw-only callable may implement the trait for every success type.
+        let call=if registered.is_some() && self.program.callback_contracts[id].kind!=CallbackKind::Task {
+            let result=self.callback_result_type(id,self.program.callback_contracts[id].result);
+            if let Some(method)=call.strip_prefix("ReadCallback::"){format!("ReadCallback::<_,{result}>::{method}")}
+            else if let Some(method)=call.strip_prefix("Callback::"){format!("Callback::<_,{result}>::{method}")}
+            else if let Some(method)=call.strip_prefix("OnceCallback::"){format!("OnceCallback::<_,{result}>::{method}")}
+            else{call}
+        }else{call};
+        let call=if self.program.callback_contracts[id].kind==CallbackKind::Task {format!("({}).await",call.replace("OnceCallback::","TaskCallback::"))}else{call};
         if let Some((name,contract))=registered {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             self.exception_regions.result_call(&call,&name,&contract,&unions,span).expect("checked registered callback Result call")
@@ -2536,7 +2547,7 @@ impl Emitter<'_> {
         if io_runtime{output.push_str(&crate::stdlib::io::runtime());if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpBody)){output.push_str(crate::stdlib::io::HTTP_RUNTIME);}}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sql")){output.push_str(crate::stdlib::sql::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sqlite")){output.push_str(crate::stdlib::sqlite::RUNTIME);}
-        if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(&crate::stdlib::http::runtime());if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpMiddleware)){output.push_str(crate::stdlib::http::MIDDLEWARE_MARKER);}}
+        if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(&crate::stdlib::http::runtime());if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::HttpWebSocket|crate::native_signatures::NativeTypeId::HttpWebSocketRead|crate::native_signatures::NativeTypeId::HttpWebSocketWrite))){output.push_str(crate::stdlib::http::WEBSOCKET_MARKER);}if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpMiddleware)){output.push_str(crate::stdlib::http::MIDDLEWARE_MARKER);}}
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Logger)){output.push_str("use tracing as tsr_tracing;\n");output.push_str(crate::stdlib::logging::RUNTIME);}
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {

@@ -16,7 +16,7 @@ pub(super) struct Plan {
 impl Emitter<'_> {
     /// A required field of the compiler's empty callback enum makes the whole
     /// ordinary record uninhabited. Optional/array/opaque fields do not prove it.
-    fn coalesce_absent_record_field(&self,ty:Type)->Option<usize>{
+    pub(super) fn absent_record_field(&self,ty:Type)->Option<usize>{
         let Type::Record(record)=ty else{return None;};let record=&self.program.records[record];
         if record.native_type.is_some(){return None;}
         record.fields.iter().position(|field|!field.optional && matches!(field.ty,Some(Type::Callback(id))if self.program.absent_callback_payloads.contains(&id)))
@@ -80,7 +80,7 @@ impl Emitter<'_> {
         let fallback = if let Some(target) = result.union() {
             let actual = right.ty.expect("coalescing fallback");
             let prefix = if target_view { "ViewUnion" } else { "Union" };
-            if let Some(field)=self.coalesce_absent_record_field(actual){
+            if let Some(field)=self.absent_record_field(actual){
                 format!("match ({fallback}).field{field} {{}}")
             }else if let Some(from) = actual.union() {
                 if from == target {
@@ -93,7 +93,7 @@ impl Emitter<'_> {
                         .iter()
                         .enumerate()
                         .map(|(index, member)| {
-                            if let Some(field)=self.coalesce_absent_record_field(*member){
+                            if let Some(field)=self.absent_record_field(*member){
                                 return format!("{}{}::V{index}(payload)=>match payload.field{field} {{}}",if source_view{"ViewUnion"}else{"Union"},from.index());
                             }
                             let to = self.program.unions[target.index()]
@@ -152,7 +152,7 @@ impl Emitter<'_> {
                     .contains(member)
                 {
                     "unreachable!(\"checked nullable guard\")".to_owned()
-                } else if let Some(field)=self.coalesce_absent_record_field(*member){
+                } else if let Some(field)=self.absent_record_field(*member){
                     format!("match payload.field{field} {{}}")
                 } else if *member==Type::Undefined || (!undefined_only && *member==Type::Null) {
                     fallback.clone()

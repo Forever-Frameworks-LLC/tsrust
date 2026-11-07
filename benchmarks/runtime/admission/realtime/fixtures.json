@@ -1,0 +1,84 @@
+{
+  "sse": [
+    {
+      "id": "plain",
+      "data": "alpha",
+      "event": null,
+      "event_id": null,
+      "retry_ms": null,
+      "axum_wire": "data: alpha\n\n"
+    },
+    {
+      "id": "unicode",
+      "data": "é🦀",
+      "event": null,
+      "event_id": null,
+      "retry_ms": null,
+      "axum_wire": "data: é🦀\n\n"
+    },
+    {
+      "id": "multiline",
+      "data": "a\nb\n",
+      "event": null,
+      "event_id": null,
+      "retry_ms": null,
+      "axum_wire": "data: a\ndata: b\ndata: \n\n"
+    },
+    {
+      "id": "empty",
+      "data": "",
+      "event": null,
+      "event_id": null,
+      "retry_ms": null,
+      "axum_wire": "\n"
+    },
+    {
+      "id": "crlf",
+      "data": "a\r\nb",
+      "event": null,
+      "event_id": null,
+      "retry_ms": null,
+      "axum_wire": "data: a\rdata: \ndata: b\n\n"
+    },
+    {
+      "id": "fields",
+      "data": "payload",
+      "event": "update",
+      "event_id": "é-1",
+      "retry_ms": 1234,
+      "axum_wire": "data: payload\nevent: update\nid: é-1\nretry: 1234\n\n"
+    },
+    {
+      "id": "retry-zero",
+      "data": "zero",
+      "event": null,
+      "event_id": null,
+      "retry_ms": 0,
+      "axum_wire": "data: zero\nretry: 0\n\n"
+    },
+    {
+      "id": "invalid-event",
+      "data": "x",
+      "event": "bad\nevent",
+      "event_id": null,
+      "retry_ms": null,
+      "error": "field"
+    },
+    {
+      "id": "invalid-id",
+      "data": "x",
+      "event": null,
+      "event_id": "nul\u0000id",
+      "retry_ms": null,
+      "error": "field"
+    },
+    {
+      "id": "invalid-retry",
+      "data": "x",
+      "event": null,
+      "event_id": null,
+      "retry_ms": -1,
+      "error": "retry"
+    }
+  ]
+}

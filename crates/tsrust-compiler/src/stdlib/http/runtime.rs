@@ -809,4 +809,6 @@ mod tsrust_native_http {
         impl Drop for AccessLogGuard{fn drop(&mut self){if !self.finished&&self.logger.enabled("info"){self.logger.emit(||tracing::info!(message=if std::thread::panicking(){"request_failed"}else{"request_cancelled"},request_id=self.id,method=self.method.as_str(),route=self.route.as_ref().map(|route|route.0.as_ref()).unwrap_or(""),elapsed_ms=self.started.elapsed().as_secs_f64()*1000.0));}}}
         impl App {pub fn use_native(&mut self,middleware:NativeMiddleware){let middleware=Arc::new(middleware);self.use_middleware(move|request,next|{let middleware=middleware.clone();async move{middleware.app(request,next).await}});}}
     }
+    include!("runtime_realtime.rs");
+    include!("runtime_websocket.rs");
 }

@@ -17,6 +17,7 @@ pub struct Alias {
     pub signature: crate::native_signatures::Signature,
 }
 static MISSED_TICK_BEHAVIOR: Alias = Alias {module:"std:futures",name:"MissedTickBehavior",signature:crate::native_signatures::Signature::Union(&[crate::native_signatures::Signature::StringLiteral("burst"),crate::native_signatures::Signature::StringLiteral("delay"),crate::native_signatures::Signature::StringLiteral("skip")])};
+static WEBSOCKET_MESSAGE:Alias=Alias{module:"std:http",name:"WebSocketMessage",signature:crate::stdlib::http::realtime::MESSAGE};
 static COMPRESSION_FORMAT:Alias=Alias{module:"std:compression",name:"CompressionFormat",signature:crate::stdlib::compression::bindings::FORMAT};
 static SEEK_ORIGIN: Alias = Alias { module: "std:fs", name: "SeekOrigin", signature: crate::stdlib::fs::bindings::SEEK_ORIGIN_SIGNATURE };
 
@@ -43,6 +44,7 @@ impl Export {
 /// Resolve a native export without pretending a type declaration is callable.
 /// Source-name aliases belong to the importing module, never to this registry.
 pub fn lookup(module: &str, name: &str) -> Result<Export, String> {
+    if module==WEBSOCKET_MESSAGE.module && name==WEBSOCKET_MESSAGE.name{return Ok(Export::Alias(&WEBSOCKET_MESSAGE));}
     if module==COMPRESSION_FORMAT.module && name==COMPRESSION_FORMAT.name{return Ok(Export::Alias(&COMPRESSION_FORMAT));}
     if module==MISSED_TICK_BEHAVIOR.module && name==MISSED_TICK_BEHAVIOR.name{return Ok(Export::Alias(&MISSED_TICK_BEHAVIOR));}
     if module == SEEK_ORIGIN.module && name == SEEK_ORIGIN.name { return Ok(Export::Alias(&SEEK_ORIGIN)); }

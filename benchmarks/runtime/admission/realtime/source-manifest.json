@@ -1,0 +1,29 @@
+{
+  "kind": "authored-source-seal",
+  "base": "965de83f",
+  "status": "Private backend profile passed under its historical seal; current public prepared-native hook and public facade remain UNVALIDATED.",
+  "sources": {
+    "Cargo.toml": "ece16c1a63040d8fefd91c175d8eeee68dde2bdb9fae25273903ab4ff228c48a",
+    "README.md": "93d046759996b2881eca383b974e18366f620f569ac77bd4863ecfbb7f943ec6",
+    "admission.json": "b4e04217f402fa7c119ef252128fe3d1d8b0d7851488c3464f51457d2658abf5",
+    "closure.py": "2c08984e81d058c17e5e26c746c430b85d7b197d47d48d4d7caba619a168c3f7",
+    "fixtures.json": "4f146420199f36d39d13c31675dee3ab3ddc0f31faca99c156a5929da027a9dc",
+    "guards.mjs": "3179885beceaddd6effbf12142b886e7b96a5272b54e46920985801a662019c5",
+    "node-control.mjs": "2b2e761407343a5971f16dcb1c3d99d210532c5f281139a8e382b0944e95c3fd",
+    "node-package.py": "b13adf15af4408c08dc6f9cce2543bfc5ae916595be4bb16914a477aa5ce0287",
+    "oracle.mjs": "193ca64bfc5e69f0bc8875e5ca5972fc5f3d8a342f7bf48d4c51f3479d47d308",
+    "package.json": "26fe6d2b1835043a7e4951dd74ddd2143f7386ccb327c7fd6da2b027b1c6063f",
+    "profile.mjs": "bc6ced9a47088c9a319e2328360fac32b0d0a1031698ab91872d5b3fbe3cb54a",
+    "src/main.rs": "9de666c2bb1b82066be7fb81bbeb54f93f810565528b76a2b9a7e6804f3b2802",
+    "src/websocket.rs": "f1924350e93abe328ca25b7ac61b49128d202008ba15f8ea5dc75cf221937ebb",
+    "../../../http/cpu-contract.mjs": "744fb99db653261ef5c205e3d501d9fe86e280a744b9517f55055fe743fa59b7",
+    "../../../http/cpu-oracle.json": "1b82d577509d220ae33149b07971a6c37de7d2f03a9282287b5988dc60b4edf7",
+    "../../../http/requests-contract.mjs": "6fb410610abba0cc8d8213517f387056a30ffd71c0f647c737cebf55ebb9e381",
+    "../../../http/telemetry.mjs": "f0ea55b17372b0a1232f183c0084c947a08a499650de1bd937c5e92147db1758",
+    "../../quiet-machine.mjs": "1c03f9790b3a6bd82c89f5745202050fbdf10a4cfa7f5d4ee5d77ea5781f3adf",
+    "build.rs": "c662a4e5d69dc4896989c406bdeffdd0dac64176481045c93287a0e9c60c8db1",
+    "identity.mjs": "9ecd95c476d700347e00142e5eb0bba27a73d6f9d07ef0416f2f8de1992f60d9",
+    "Cargo.lock": "336bc6dd6addd0f77522857275e6c64f9cbd1e81d88afb17f2a0bfb3071925b7",
+    "public-results.mjs": "e15251efc6f7a19505fc284bb511e20bc366f6e6917ee51cbd4e203578323f2a"
+  }
+}

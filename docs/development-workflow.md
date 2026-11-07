@@ -342,3 +342,10 @@ For an unresolved compiler carrier rejection, `TSRUST_TRACE_CARRIERS=1` exposes
 its existing failure-only source/destination type, field and callback-family trace
 in the normal CLI on stderr. Use it with the failing project check or documentation
 command; no separate native reproducer is needed. Default diagnostics are unchanged.
+
+For unresolved callable error contracts, `TSRUST_TRACE_EFFECTS=1` exposes the existing
+failure-only iterator diagnostic in the ordinary CLI: stored-field provenance,
+actual constructors, capture types and checked call targets. Run the failing
+stable project check; no separate native reproducer or unit-test build is needed.
+When adding Rust runtime/test code, include harnesses in the preflight with
+`cargo check --tests`; `cargo check --lib` alone does not check cfg(test) bodies.

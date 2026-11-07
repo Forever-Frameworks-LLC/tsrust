@@ -117,7 +117,7 @@ fn contextualize_lazy_inputs(records:&mut Vec<crate::syntax::Record>,expression:
     let ExprKind::Call(callee,arguments)=&call.kind else{return Ok(())};
     let ExprKind::Name(symbol)=&callee.kind else{return Ok(())};
     let Some((_,binding))=crate::native_bindings::by_symbol(symbol)else{return Ok(())};
-    if !matches!(binding.module,"std:io"|"std:process"|"std:net"|"std:dns"|"std:compression"|"std:crypto"){return Ok(());}
+    if !matches!(binding.module,"std:io"|"std:process"|"std:net"|"std:dns"|"std:compression"|"std:crypto") && !(binding.module=="std:http" && crate::stdlib::http::realtime::asynchronous(binding.name)){return Ok(());}
     let mut annotations=Vec::new();
     for (position,(argument,parameter)) in arguments.iter().zip(binding.parameters).enumerate(){
         let ExprKind::Name(name)=&argument.kind else{continue};
@@ -196,7 +196,7 @@ pub(crate) fn borrows_inputs(value:&crate::syntax::Expr)->bool {
 // Existing lazy APIs keep their established receiver loans and owned snapshots.
 // I/O, subprocess, networking and DNS operations borrow every stable Read/Mutate input through settlement.
 fn borrows_native_input(module:&str,name:&str,index:usize)->bool{
-    if matches!(module,"std:io"|"std:process"|"std:net"|"std:dns"|"std:compression") || module=="std:crypto" && crate::stdlib::crypto::password_operation(name){return crate::native_bindings::lookup(module,name).ok().and_then(|binding|binding.parameters.get(index)).is_some_and(|parameter|matches!(parameter.access,Mode::Read|Mode::Mutate));}
+    if module=="std:http" && crate::stdlib::http::realtime::asynchronous(name) || matches!(module,"std:io"|"std:process"|"std:net"|"std:dns"|"std:compression") || module=="std:crypto" && crate::stdlib::crypto::password_operation(name){return crate::native_bindings::lookup(module,name).ok().and_then(|binding|binding.parameters.get(index)).is_some_and(|parameter|matches!(parameter.access,Mode::Read|Mode::Mutate));}
     index==0 && match module{
         "std:signals"=>name=="__receive",
         "std:futures"=>matches!(name,"__send"|"__receive"|"__tick"|"__tokenCancelled"),

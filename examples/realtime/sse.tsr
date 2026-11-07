@@ -1,0 +1,29 @@
+import { sse, sseWithProducer, SseEvent } from 'std:http';
+import { Channel, Sender } from 'std:futures';
+
+async function produce(sender: Sender<SseEvent>): Task<void> {
+  await sender.send({
+    data: 'first', id: '1'
+  });
+  await sender.send({
+    data: 'second\nline', event: 'update', retryMs: 0
+  });
+}
+
+async function main(): Task<void> {
+  const events = new Channel<SseEvent>(1);
+  const producer = produce(events.sender()).start();
+  const response = sseWithProducer(events, producer);
+  console.log(response.header('content-type'));
+  console.log((await response.text()).replaceAll('\n', '|'));
+
+  // Channel-only mode keeps the producer's explicit owner outside the body.
+  const external = new Channel<SseEvent>(1);
+  const externalProducer = produce(external.sender()).start();
+  try {
+    const response = sse(external);
+    console.log((await response.text()).replaceAll('\n', '|'));
+  } finally {
+    await externalProducer;
+  }
+}

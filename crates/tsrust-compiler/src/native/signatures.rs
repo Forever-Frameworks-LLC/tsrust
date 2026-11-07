@@ -27,6 +27,8 @@ pub enum NativeTypeId {
     HttpClient,
     HttpTlsOptions,
     HttpClientOptions,
+    HttpSseEvent,HttpSseOptions,
+    HttpWebSocket,HttpWebSocketRead,HttpWebSocketWrite,HttpWebSocketHalves,HttpWebSocketOptions,HttpWebSocketClientOptions,HttpWebSocketHeader,HttpWebSocketText,HttpWebSocketBinary,HttpWebSocketClose,
     HttpServerOptions,
     HttpFormField,
     HttpMultipartPart, HttpCookieOptions, HttpMiddleware, HttpCorsOptions,

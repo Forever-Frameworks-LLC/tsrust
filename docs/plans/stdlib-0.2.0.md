@@ -1073,6 +1073,21 @@ receive plus send, half-drop/cancellation, close races and exact
 cleanup. Measure events/bytes, p99 and retained memory against direct backend Rust
 and Node WebSocket/SSE implementations with versions recorded.
 
+Source integration, 2026-11-07 (acceptance remains open): public SSE framing,
+owned producer settlement, WebSocket server/client and split halves now have
+compiler/runtime, editor, reference documentation and an18-case registered
+`examples/realtime/realtime.test.tsr` suite. Optional socket dependencies remain
+isolated from ordinary HTTP/SSE. Runtime defaults follow Axum/Tungstenite; custom
+CA verification retains hostname/date checks. No reconnect or hidden queue.
+The matched public benchmark/control adapter passes its schema self-check and
+preserves unchanged controls' original identities/timestamps; no public timings
+are claimed. Initial family gates passed completion/help/reference/rejection
+checks but found signature preparation, record context and transfer metadata
+failures. Narrow source repairs are present; public runtime, portable export and
+measurement acceptance remain required. See docs/agent-progress.md for current
+source identity and exact scope evidence. None of these checkboxes are closed by
+source integration alone.
+
 ### B12 — Reusable regular expressions and text entry points
 
 Backend: Rust `regex`; the current user-binding example is not a bundled module.

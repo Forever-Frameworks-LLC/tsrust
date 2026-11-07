@@ -139,7 +139,24 @@ impl Analyzer {
             };
             if let Some(name)=operation {
                 args.insert(0,(**base).clone());
-                if matches!(name,"__timeout"|"__send"|"__receive"|"__tick"|"__tokenCancelled") {let args=std::mem::take(args);surface::lazy(expression,name,args);return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);}
+                if matches!(name,"__timeout"|"__send"|"__receive"|"__tick"|"__tokenCancelled") {
+                    // A send's payload context comes from its checked endpoint,
+                    // not the intrinsic's ObservedValue signature. Preserve it
+                    // where lazy lowering evaluates an owned record temporary.
+                    let payload_context=if name=="__send"&&args.get(1).is_some_and(|arg|matches!(arg.kind,ExprKind::Record(_))){
+                        let Some(Type::Record(endpoint))=hint else{unreachable!("checked channel endpoint")};
+                        let payload=self.program.records[endpoint].application.as_ref().expect("checked channel application").resolved_arguments[0];
+                        Some(self.checked_value_annotation(payload,args[1].span)?)
+                    }else{None};
+                    let args=std::mem::take(args);surface::lazy(expression,name,args);
+                    if let Some(payload_context)=payload_context{
+                        let ExprKind::Match{id,body}=&mut expression.kind else{unreachable!("lowered lazy send")};
+                        let payload=format!("future#{id}#1");
+                        let annotation=body.iter_mut().find_map(|statement|if let StmtKind::Let{name,annotation,..}=&mut statement.kind{(name.text==payload).then_some(annotation)}else{None}).expect("lowered record payload temporary");
+                        *annotation=Some(payload_context);
+                    }
+                    return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
+                }
                 callee.kind=ExprKind::Name(format!("@native:std:futures#{name}"));
             }
         }

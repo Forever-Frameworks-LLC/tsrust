@@ -13932,6 +13932,482 @@
           "output": "access log installed\n"
         }
       ]
+    },
+    {
+      "name": "SseEvent",
+      "signature": "type SseEvent",
+      "parameters": [],
+      "documentation": "Owned event data for a typed SSE producer channel. Required data and optional event/id/retry fields are encoded when the body polls that event. Invalid metadata fails the body after any prefix; headers cannot be rewritten. CR and LF are separate line separators; empty data alone dispatches no browser event. Ownership: the channel and encoder consume events.",
+      "examples": [
+        {
+          "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello'};console.log(value.data);}",
+          "output": "hello\n"
+        }
+      ],
+      "fields": {
+        "data": {
+          "documentation": "Required UTF8 event data. Each CR and LF is preserved as a separate backend line separator, so CRLF becomes two data-line breaks. Empty data writes no data field and alone dispatches no browser event. No Tsrust event-size cap is added. The record and its text are consumed when the channel event is encoded.",
+          "examples": [
+            {
+              "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello'};console.log(value.data);}",
+              "output": "hello\n"
+            }
+          ]
+        },
+        "event": {
+          "documentation": "Optional event name. Omitted writes no event field; a browser treats an absent or empty name as message. CR or LF causes a body error when this queued event is encoded, after any preceding bytes. The record is consumed; the receiver is not mutated.",
+          "examples": [
+            {
+              "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello',event:'update'};console.log(value.event);}",
+              "output": "update\n"
+            }
+          ]
+        },
+        "id": {
+          "documentation": "Optional browser last-event identifier. Omitted writes no id field; empty resets the browser identifier. CR, LF and NUL fail when the body reaches this event. Prior headers cannot be changed. The string moves with its event.",
+          "examples": [
+            {
+              "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello',id:'42'};console.log(value.id);}",
+              "output": "42\n"
+            }
+          ]
+        },
+        "retryMs": {
+          "documentation": "Optional nonnegative retry hint in milliseconds; zero is valid and omission writes no retry field. Negative values fail when this event is encoded. This is a client retry hint; the server does not reconnect. The scalar is consumed with its event.",
+          "examples": [
+            {
+              "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello',retryMs:0};console.log(value.retryMs);}",
+              "output": "0\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "SseOptions",
+      "signature": "type SseOptions",
+      "parameters": [],
+      "documentation": "Optional SSE keepalive settings. With both fields absent, no keepalive is installed; text alone selects a15-second interval. Invalid text or timer ranges throw HttpError before response creation. Ownership: settings are borrowed at construction and retained independently.",
+      "examples": [
+        {
+          "source": "import {SseOptions} from \"std:http\";function main(){const value:SseOptions={keepAliveMs:15000};console.log(value.keepAliveMs);}",
+          "output": "15000\n"
+        }
+      ],
+      "fields": {
+        "keepAliveMs": {
+          "documentation": "Optional nonnegative maximum idle interval in milliseconds. Omitted with no text disables keepalive; text alone selects the15-second interval. Zero requests the backend zero interval. An interval outside the timer range throws HttpError code sse during response construction. Options are read and stored independently; no producer is started.",
+          "examples": [
+            {
+              "source": "import {SseOptions} from \"std:http\";function main(){const value:SseOptions={keepAliveMs:15000};console.log(value.keepAliveMs);}",
+              "output": "15000\n"
+            }
+          ]
+        },
+        "keepAliveText": {
+          "documentation": "Optional keepalive comment text. Supplying text alone enables a15-second interval; an empty string requests an empty comment. Omitted with an interval selects the empty comment. CR or LF throws HttpError code sse before the response is built. The options string is borrowed and copied into the independent transport setting.",
+          "examples": [
+            {
+              "source": "import {SseOptions} from \"std:http\";function main(){const value:SseOptions={keepAliveText:'alive'};console.log(value.keepAliveText);}",
+              "output": "alive\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WebSocketOptions",
+      "signature": "type WebSocketOptions",
+      "parameters": [],
+      "documentation": "Typed WebSocket data or options. Fields retain their documented backend defaults and errors. Socket operations are lazy tasks; application auth/origin policy runs before upgrade. Ownership follows the individual fields; no resource or payload is implicitly cloned.",
+      "examples": [
+        {
+          "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={readBufferSize:4096};console.log(value.readBufferSize);}",
+          "output": "4096\n"
+        }
+      ],
+      "fields": {
+        "readBufferSize": {
+          "documentation": "Optional nonnegative target-representable read-buffer capacity in bytes. Omitted preserves131072 bytes. Zero is accepted by the backend. Invalid values throw HttpError code options before connection or route registration. Configuration is borrowed; each socket owns its buffer.",
+          "examples": [
+            {
+              "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={readBufferSize:4096};console.log(value.readBufferSize);}",
+              "output": "4096\n"
+            }
+          ]
+        },
+        "writeBufferSize": {
+          "documentation": "Optional nonnegative target-representable write-buffer threshold in bytes. Omitted preserves131072 bytes. send flushes its message before its task succeeds. maxWriteBufferSize must exceed this value. Configuration is borrowed; socket buffers remain exclusive owners.",
+          "examples": [
+            {
+              "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={writeBufferSize:0};console.log(value.writeBufferSize);}",
+              "output": "0\n"
+            }
+          ]
+        },
+        "maxWriteBufferSize": {
+          "documentation": "Optional write-buffer maximum in bytes. Omitted preserves the target usize maximum; null explicitly requests that same unbounded backend maximum. A supplied integer must be nonnegative, target-representable and greater than writeBufferSize. Violations throw code options. This bounds the backend buffer, not a new facade queue; configuration is borrowed.",
+          "examples": [
+            {
+              "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={maxWriteBufferSize:null};console.log(value.maxWriteBufferSize);}",
+              "output": "null\n"
+            }
+          ]
+        },
+        "maxMessageSize": {
+          "documentation": "Optional maximum complete incoming message bytes. Omitted preserves67108864 bytes; null disables this backend bound. Integers must be nonnegative and target-representable; zero permits empty messages only. Oversized input fails receive with code capacity. Configuration is borrowed; no message clone is introduced.",
+          "examples": [
+            {
+              "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={maxMessageSize:65536};console.log(value.maxMessageSize);}",
+              "output": "65536\n"
+            }
+          ]
+        },
+        "maxFrameSize": {
+          "documentation": "Optional maximum incoming frame bytes. Omitted preserves16777216 bytes; null disables this backend bound. Integers must be nonnegative and target-representable. Exceeding the selected bound fails receive with code capacity. Configuration is borrowed and does not install an application queue.",
+          "examples": [
+            {
+              "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={maxFrameSize:65536};console.log(value.maxFrameSize);}",
+              "output": "65536\n"
+            }
+          ]
+        },
+        "acceptUnmaskedFrames": {
+          "documentation": "Optional server policy for unmasked client frames. Omitted or false preserves rejection; true explicitly permits them. This does not change client masking and is not an origin or authentication check. Configuration is borrowed; install authorization before upgrade.",
+          "examples": [
+            {
+              "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={acceptUnmaskedFrames:false};console.log(value.acceptUnmaskedFrames);}",
+              "output": "false\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WebSocketClientOptions",
+      "signature": "type WebSocketClientOptions",
+      "parameters": [],
+      "documentation": "Typed WebSocket data or options. Fields retain their documented backend defaults and errors. Socket operations are lazy tasks; application auth/origin policy runs before upgrade. Ownership follows the individual fields; no resource or payload is implicitly cloned.",
+      "examples": [
+        {
+          "source": "import {WebSocketClientOptions} from \"std:http\";function main(){const value:WebSocketClientOptions={};console.log(value.ca);}",
+          "output": "undefined\n"
+        }
+      ],
+      "fields": {
+        "ca": {
+          "documentation": "Optional nonempty PEM CA bundle. Omitted preserves verified public roots. Supplied certificates replace roots for this connection without disabling hostname, chain or validity checks. Invalid PEM throws HttpError code tls. Options remain borrowed until the connect task settles; no key or certificate data is logged.",
+          "examples": [
+            {
+              "source": "import {WebSocketClientOptions} from \"std:http\";function main(){const value:WebSocketClientOptions={};console.log(value.ca);}",
+              "output": "undefined\n"
+            }
+          ]
+        },
+        "headers": {
+          "documentation": "Optional ordered request-header entries, including application authorization or origin. Omitted adds none. Invalid header grammar throws code options; handshake rejection throws a transport error with credentials redacted. These are metadata copies, not payload clones. The options array is borrowed through connect settlement.",
+          "examples": [
+            {
+              "source": "import {WebSocketClientOptions} from \"std:http\";function main(){const value:WebSocketClientOptions={headers:[{name:'origin',value:'https://app.example'}]};console.log(value.headers!==undefined);}",
+              "output": "true\n"
+            }
+          ]
+        },
+        "socket": {
+          "documentation": "Optional socket buffer/frame/message policy. Omitted preserves every backend default. Invalid ranges throw code options before connecting; null message/frame bounds are explicit unlimited policies. The settings are borrowed until connect settles and the resulting socket owns its configuration.",
+          "examples": [
+            {
+              "source": "import {WebSocketClientOptions} from \"std:http\";function main(){const value:WebSocketClientOptions={socket:{readBufferSize:4096}};console.log(value.socket!==undefined);}",
+              "output": "true\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WebSocketHeader",
+      "signature": "type WebSocketHeader",
+      "parameters": [],
+      "documentation": "Typed WebSocket data or options. Fields retain their documented backend defaults and errors. Socket operations are lazy tasks; application auth/origin policy runs before upgrade. Ownership follows the individual fields; no resource or payload is implicitly cloned.",
+      "examples": [
+        {
+          "source": "import {WebSocketHeader} from \"std:http\";function main(){const value:WebSocketHeader={name:'origin',value:'https://app.example'};console.log(value.name);}",
+          "output": "origin\n"
+        }
+      ],
+      "fields": {
+        "name": {
+          "documentation": "Required HTTP request-header name. Header grammar is checked during connect; invalid names throw HttpError code options. No application header is added by default. The options record is borrowed and the backend request owns parsed metadata.",
+          "examples": [
+            {
+              "source": "import {WebSocketHeader} from \"std:http\";function main(){const value:WebSocketHeader={name:'origin',value:'https://app.example'};console.log(value.name);}",
+              "output": "origin\n"
+            }
+          ]
+        },
+        "value": {
+          "documentation": "Required HTTP header value, which may be empty. Invalid control characters throw HttpError code options during connect. Credentials are not included in transport error messages. The header is borrowed and copied as request metadata; no socket payload is cloned.",
+          "examples": [
+            {
+              "source": "import {WebSocketHeader} from \"std:http\";function main(){const value:WebSocketHeader={name:'origin',value:'https://app.example'};console.log(value.value);}",
+              "output": "https://app.example\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WebSocketText",
+      "signature": "type WebSocketText",
+      "parameters": [],
+      "documentation": "Typed WebSocket data or options. Fields retain their documented backend defaults and errors. Socket operations are lazy tasks; application auth/origin policy runs before upgrade. Ownership follows the individual fields; no resource or payload is implicitly cloned.",
+      "examples": [
+        {
+          "source": "import {WebSocketText} from \"std:http\";function main(){const value:WebSocketText={kind:'text',data:'hello'};console.log(value.kind);}",
+          "output": "text\n"
+        }
+      ],
+      "fields": {
+        "kind": {
+          "documentation": "Required text-message tag. It selects UTF8 data and cannot be reassigned to a different message kind. receive retains this tag and send consumes the whole message; the socket is mutated only by the awaited operation.",
+          "examples": [
+            {
+              "source": "import {WebSocketText} from \"std:http\";function main(){const value:WebSocketText={kind:'text',data:'hello'};console.log(value.kind);}",
+              "output": "text\n"
+            }
+          ]
+        },
+        "data": {
+          "documentation": "Required valid UTF8 text, including empty strings and newlines. send consumes the message and flushes; receive returns an independent owned string. No facade size cap is added beyond configured backend limits. The backend byte-to-owned-string conversion may copy a shared receive buffer.",
+          "examples": [
+            {
+              "source": "import {WebSocketText} from \"std:http\";function main(){const value:WebSocketText={kind:'text',data:'hello'};console.log(value.data);}",
+              "output": "hello\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WebSocketBinary",
+      "signature": "type WebSocketBinary",
+      "parameters": [],
+      "documentation": "Typed WebSocket data or options. Fields retain their documented backend defaults and errors. Socket operations are lazy tasks; application auth/origin policy runs before upgrade. Ownership follows the individual fields; no resource or payload is implicitly cloned.",
+      "examples": [
+        {
+          "source": "import {WebSocketBinary} from \"std:http\";import {fromArray,length} from \"std:bytes\";function main(){const value:WebSocketBinary={kind:'binary',data:unwrap(fromArray([0,255]))};console.log(value.kind);}",
+          "output": "binary\n"
+        }
+      ],
+      "fields": {
+        "kind": {
+          "documentation": "Required binary-message tag. It preserves binary identity even when the bytes also form valid text. send consumes the record and byte owner; receive creates an independent byte owner. Replacing this tag with text is a type error.",
+          "examples": [
+            {
+              "source": "import {WebSocketBinary} from \"std:http\";import {fromArray,length} from \"std:bytes\";function main(){const value:WebSocketBinary={kind:'binary',data:unwrap(fromArray([0,255]))};console.log(value.kind);}",
+              "output": "binary\n"
+            }
+          ]
+        },
+        "data": {
+          "documentation": "Required owned bytes, including empty payloads. Outgoing storage moves into the backend. Incoming conversion uses the maintained consuming conversion: unique backing storage can transfer, while shared backing storage requires a copy. No borrowed view is silently cloned; pass an owned Bytes value. Configured backend limits still apply.",
+          "examples": [
+            {
+              "source": "import {WebSocketBinary} from \"std:http\";import {fromArray,length} from \"std:bytes\";function main(){const value:WebSocketBinary={kind:'binary',data:unwrap(fromArray([0,255]))};console.log(length(value.data));}",
+              "output": "2\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WebSocketClose",
+      "signature": "type WebSocketClose",
+      "parameters": [],
+      "documentation": "Typed WebSocket data or options. Fields retain their documented backend defaults and errors. Socket operations are lazy tasks; application auth/origin policy runs before upgrade. Ownership follows the individual fields; no resource or payload is implicitly cloned.",
+      "examples": [
+        {
+          "source": "import {WebSocketClose} from \"std:http\";function main(){const value:WebSocketClose={kind:'close',code:1000,reason:'done'};console.log(value.kind);}",
+          "output": "close\n"
+        }
+      ],
+      "fields": {
+        "kind": {
+          "documentation": "Required close-message tag. It identifies a received close frame or an explicit outgoing close. It is not ordinary application data; subsequent operations follow the backend closing state. The message is owned and consumed by send or close.",
+          "examples": [
+            {
+              "source": "import {WebSocketClose} from \"std:http\";function main(){const value:WebSocketClose={kind:'close',code:1000,reason:'done'};console.log(value.kind);}",
+              "output": "close\n"
+            }
+          ]
+        },
+        "code": {
+          "documentation": "Optional close status. With no code or reason the backend sends a close without a status; a supplied reason alone selects1000. Explicit codes must be allowed16-bit backend close codes. Reserved or invalid codes fail with HttpError code options. Received codes preserve backend protocol-close normalization. The scalar moves with the frame.",
+          "examples": [
+            {
+              "source": "import {WebSocketClose} from \"std:http\";function main(){const value:WebSocketClose={kind:'close',code:1000,reason:'done'};console.log(value.code);}",
+              "output": "1000\n"
+            }
+          ]
+        },
+        "reason": {
+          "documentation": "Optional UTF8 close reason. Omission selects no reason; with no code it selects1000. The encoded reason must fit the backend123-byte control-frame range; oversized values fail with code options. receive preserves the actual reason. Text is consumed with the frame; no reconnection is started.",
+          "examples": [
+            {
+              "source": "import {WebSocketClose} from \"std:http\";function main(){const value:WebSocketClose={kind:'close',code:1000,reason:'done'};console.log(value.reason);}",
+              "output": "done\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WebSocketHalves",
+      "signature": "type WebSocketHalves",
+      "parameters": [],
+      "documentation": "Typed WebSocket data or options. Fields retain their documented backend defaults and errors. Socket operations are lazy tasks; application auth/origin policy runs before upgrade. Ownership follows the individual fields; no resource or payload is implicitly cloned.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ],
+      "fields": {
+        "read": {
+          "documentation": "Owned receive half returned by split. It can hold a pending receive while the write half sends. Moving the field transfers that half; it cannot be cloned. Dropping one half leaves the transport retained by the other; both must finish or drop to release it.",
+          "examples": [
+            {
+              "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+              "output": "hello\nclose\n00ff\n"
+            }
+          ]
+        },
+        "write": {
+          "documentation": "Owned sending half returned by split. send waits for backend backpressure and flush. Closing this half sends a close and releases the writer; the reader remains independently owned. The half is moved, never cloned.",
+          "examples": [
+            {
+              "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+              "output": "hello\nclose\n00ff\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "WebSocket",
+      "signature": "type WebSocket",
+      "parameters": [],
+      "documentation": "Exclusive full-duplex socket. receive/send borrow it until their lazy task settles; split consumes it into owned halves. close consumes it and drives backend closing to settlement, with no hidden timeout or reconnect. Ownership: move socket halves and message payloads; do not clone borrowed views.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "WebSocketRead",
+      "signature": "type WebSocketRead",
+      "parameters": [],
+      "documentation": "Owned read half. receive borrows it exclusively through task settlement and processes backend ping/pong/close traffic. The write half remains independent. Drop releases this half; the other half may retain the transport. Ownership: move socket halves and message payloads; do not clone borrowed views.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "WebSocketWrite",
+      "signature": "type WebSocketWrite",
+      "parameters": [],
+      "documentation": "Owned write half. send borrows it exclusively and waits for backpressure/flush. close consumes this half after sending close; the reader remains owned independently. No facade message queue or reconnect is installed. Ownership: move socket halves and message payloads; do not clone borrowed views.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "WebSocketMessage",
+      "signature": "type WebSocketMessage",
+      "parameters": [],
+      "documentation": "Finite owned union of WebSocketText, WebSocketBinary and WebSocketClose. kind narrowing preserves each payload type. receive returns undefined at end of stream, which is distinct from a close message. Binary payloads are independent Bytes owners. Ownership: move socket halves and message payloads; do not clone borrowed views.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "sse",
+      "signature": "sse(events: Owned<Channel<SseEvent>>, options?: ReadOnly<SseOptions>): Response",
+      "parameters": [
+        {
+          "label": "events: Owned<Channel<SseEvent>>",
+          "documentation": "Owned typed channel; its item capacity is chosen by the application."
+        },
+        {
+          "label": "options?: ReadOnly<SseOptions>",
+          "documentation": "Optional keepalive settings; omitted installs none."
+        }
+      ],
+      "documentation": "Creates a text/event-stream response from an explicitly bounded typed event channel. The backend frames events, preserving individual CR and LF separators; empty data alone dispatches no browser event. No keepalive is installed unless requested. Invalid options throw HttpError code sse; invalid queued event fields become post-header body errors. Dropping the body closes the receiver and pending sends fail. This form does not own or start the producer: keep its Job alive and await it explicitly. Ownership: consumes the channel; borrows options and owns encoded events.",
+      "examples": [
+        {
+          "source": "import { sse, sseWithProducer, SseEvent } from 'std:http';\nimport { Channel, Sender } from 'std:futures';\n\nasync function produce(sender: Sender<SseEvent>): Task<void> {\n  await sender.send({ data: 'first', id: '1' });\n  await sender.send({ data: 'second\\nline', event: 'update', retryMs: 0 });\n}\n\nasync function main(): Task<void> {\n  const events = new Channel<SseEvent>(1);\n  const producer = produce(events.sender()).start();\n  const response = sseWithProducer(events, producer);\n  console.log(response.header('content-type'));\n  console.log((await response.text()).replaceAll('\\n', '|'));\n\n  // Channel-only mode keeps the producer's explicit owner outside the body.\n  const external = new Channel<SseEvent>(1);\n  const externalProducer = produce(external.sender()).start();\n  try {\n    const response = sse(external);\n    console.log((await response.text()).replaceAll('\\n', '|'));\n  } finally {\n    await externalProducer;\n  }\n}\n",
+          "output": "text/event-stream\ndata: first|id: 1||data: second|data: line|event: update|retry: 0||\ndata: first|id: 1||data: second|data: line|event: update|retry: 0||\n"
+        }
+      ]
+    },
+    {
+      "name": "sseWithProducer",
+      "signature": "sseWithProducer<E>(events: Owned<Channel<SseEvent>>, producer: Owned<Job<void,E>>, options?: ReadOnly<SseOptions>): Response",
+      "parameters": [
+        {
+          "label": "events: Owned<Channel<SseEvent>>",
+          "documentation": "Owned typed event channel with application-selected capacity."
+        },
+        {
+          "label": "producer: Owned<Job<void,E>>",
+          "documentation": "Started void producer whose ownership transfers into the body; arbitrary checked E stays owned through settlement."
+        },
+        {
+          "label": "options?: ReadOnly<SseOptions>",
+          "documentation": "Optional keepalive policy; omitted preserves no keepalive."
+        }
+      ],
+      "documentation": "Creates an SSE response that also owns an already-started producer Job. No executor, hidden queue, capacity or producer is created. Completion closes the receiver and drains buffered events; failure produces a post-header HTTP body error, never a clean EOF. The exact typed cause remains owned until producer settlement, then is dropped once; it is not serialized or returned by Response.text. Catch detailed errors inside the producer before transfer when needed. Body drop cancels the producer and existing task-scope cleanup joins actual settlement. Invalid options throw HttpError and cancel/dispose transferred owners. Ownership: consumes channel and Job; borrows options.",
+      "examples": [
+        {
+          "source": "import { sse, sseWithProducer, SseEvent } from 'std:http';\nimport { Channel, Sender } from 'std:futures';\n\nasync function produce(sender: Sender<SseEvent>): Task<void> {\n  await sender.send({ data: 'first', id: '1' });\n  await sender.send({ data: 'second\\nline', event: 'update', retryMs: 0 });\n}\n\nasync function main(): Task<void> {\n  const events = new Channel<SseEvent>(1);\n  const producer = produce(events.sender()).start();\n  const response = sseWithProducer(events, producer);\n  console.log(response.header('content-type'));\n  console.log((await response.text()).replaceAll('\\n', '|'));\n\n  // Channel-only mode keeps the producer's explicit owner outside the body.\n  const external = new Channel<SseEvent>(1);\n  const externalProducer = produce(external.sender()).start();\n  try {\n    const response = sse(external);\n    console.log((await response.text()).replaceAll('\\n', '|'));\n  } finally {\n    await externalProducer;\n  }\n}\n",
+          "output": "text/event-stream\ndata: first|id: 1||data: second|data: line|event: update|retry: 0||\ndata: first|id: 1||data: second|data: line|event: update|retry: 0||\n"
+        }
+      ],
+      "inferredSignature": "function sseWithProducer<E>(events: Owned<Channel<SseEvent>>, producer: Owned<Job<void,E>>, options?: ReadOnly<SseOptions>): Response"
+    },
+    {
+      "name": "connectWebSocket",
+      "signature": "connectWebSocket(url: ReadOnly<string>, options?: ReadOnly<WebSocketClientOptions>): Task<WebSocket>",
+      "parameters": [
+        {
+          "label": "url: ReadOnly<string>",
+          "documentation": "Absolute ws or wss URL without credentials."
+        },
+        {
+          "label": "options?: ReadOnly<WebSocketClientOptions>",
+          "documentation": "Optional CA, request headers and backend socket policy; omitted preserves defaults."
+        }
+      ],
+      "documentation": "Returns a lazy task that performs a maintained WebSocket handshake and returns an owned socket. ws and wss are supported. URL userinfo does not set Authorization; supply authentication through headers. TLS verifies roots, chain, validity and hostname; a supplied CA bundle replaces roots. Application authorization/origin headers are explicit. No automatic reconnect or transport timeout is added. Invalid options fail with HttpError; transport errors redact credentials. Ownership: stable URL/options are borrowed until settlement; the resulting socket is owned.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
     }
   ],
   "HttpApp": [
@@ -17413,6 +17889,31 @@
         {
           "source": "import {Router} from 'std:http';function configure(app:Mutable<Router>,root:string){app.serveStatic('/web',root,'index.html');app.serveStatic('/public',root);}function main(){console.log('ok');}",
           "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "webSocket",
+      "signature": "webSocket(path: ReadOnly<string>, handler: (socket: Owned<WebSocket>) => Task<void>, options?: ReadOnly<WebSocketOptions>): void",
+      "parameters": [
+        {
+          "label": "path: ReadOnly<string>",
+          "documentation": "Existing Router path grammar, including named segments."
+        },
+        {
+          "label": "handler",
+          "documentation": "Reusable handler returning Task<void>; each invocation owns its WebSocket and cannot borrow caller state."
+        },
+        {
+          "label": "options?: ReadOnly<WebSocketOptions>",
+          "documentation": "Optional backend buffers and limits; omitted preserves defaults."
+        }
+      ],
+      "documentation": "Registers a GET upgrade route under existing source middleware and path matching. Install authorization/origin middleware before this route; no policy is installed automatically. The maintained backend validates the upgrade. A scoped handler owner is reserved before returning the upgrade response, including failed upgrades. Listener shutdown cancels and joins actual socket-handler settlement. Invalid route/options throw HttpError before registration. Ownership: owns a reusable handler with independent shared captures; each invocation owns its socket.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
         }
       ]
     }
@@ -21931,6 +22432,446 @@
         {
           "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
           "output": "logging ready\n"
+        }
+      ]
+    }
+  ],
+  "HttpSseEvent": [
+    {
+      "name": "data",
+      "signature": "data: string",
+      "parameters": null,
+      "documentation": "Required UTF8 event data. Each CR and LF is preserved as a separate backend line separator, so CRLF becomes two data-line breaks. Empty data writes no data field and alone dispatches no browser event. No Tsrust event-size cap is added. The record and its text are consumed when the channel event is encoded.",
+      "examples": [
+        {
+          "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello'};console.log(value.data);}",
+          "output": "hello\n"
+        }
+      ]
+    },
+    {
+      "name": "event",
+      "signature": "event: string | undefined",
+      "parameters": null,
+      "documentation": "Optional event name. Omitted writes no event field; a browser treats an absent or empty name as message. CR or LF causes a body error when this queued event is encoded, after any preceding bytes. The record is consumed; the receiver is not mutated.",
+      "examples": [
+        {
+          "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello',event:'update'};console.log(value.event);}",
+          "output": "update\n"
+        }
+      ]
+    },
+    {
+      "name": "id",
+      "signature": "id: string | undefined",
+      "parameters": null,
+      "documentation": "Optional browser last-event identifier. Omitted writes no id field; empty resets the browser identifier. CR, LF and NUL fail when the body reaches this event. Prior headers cannot be changed. The string moves with its event.",
+      "examples": [
+        {
+          "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello',id:'42'};console.log(value.id);}",
+          "output": "42\n"
+        }
+      ]
+    },
+    {
+      "name": "retryMs",
+      "signature": "retryMs: int | undefined",
+      "parameters": null,
+      "documentation": "Optional nonnegative retry hint in milliseconds; zero is valid and omission writes no retry field. Negative values fail when this event is encoded. This is a client retry hint; the server does not reconnect. The scalar is consumed with its event.",
+      "examples": [
+        {
+          "source": "import {SseEvent} from \"std:http\";function main(){const value:SseEvent={data:'hello',retryMs:0};console.log(value.retryMs);}",
+          "output": "0\n"
+        }
+      ]
+    }
+  ],
+  "HttpSseOptions": [
+    {
+      "name": "keepAliveMs",
+      "signature": "keepAliveMs: int | undefined",
+      "parameters": null,
+      "documentation": "Optional nonnegative maximum idle interval in milliseconds. Omitted with no text disables keepalive; text alone selects the15-second interval. Zero requests the backend zero interval. An interval outside the timer range throws HttpError code sse during response construction. Options are read and stored independently; no producer is started.",
+      "examples": [
+        {
+          "source": "import {SseOptions} from \"std:http\";function main(){const value:SseOptions={keepAliveMs:15000};console.log(value.keepAliveMs);}",
+          "output": "15000\n"
+        }
+      ]
+    },
+    {
+      "name": "keepAliveText",
+      "signature": "keepAliveText: string | undefined",
+      "parameters": null,
+      "documentation": "Optional keepalive comment text. Supplying text alone enables a15-second interval; an empty string requests an empty comment. Omitted with an interval selects the empty comment. CR or LF throws HttpError code sse before the response is built. The options string is borrowed and copied into the independent transport setting.",
+      "examples": [
+        {
+          "source": "import {SseOptions} from \"std:http\";function main(){const value:SseOptions={keepAliveText:'alive'};console.log(value.keepAliveText);}",
+          "output": "alive\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketOptions": [
+    {
+      "name": "readBufferSize",
+      "signature": "readBufferSize: int | undefined",
+      "parameters": null,
+      "documentation": "Optional nonnegative target-representable read-buffer capacity in bytes. Omitted preserves131072 bytes. Zero is accepted by the backend. Invalid values throw HttpError code options before connection or route registration. Configuration is borrowed; each socket owns its buffer.",
+      "examples": [
+        {
+          "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={readBufferSize:4096};console.log(value.readBufferSize);}",
+          "output": "4096\n"
+        }
+      ]
+    },
+    {
+      "name": "writeBufferSize",
+      "signature": "writeBufferSize: int | undefined",
+      "parameters": null,
+      "documentation": "Optional nonnegative target-representable write-buffer threshold in bytes. Omitted preserves131072 bytes. send flushes its message before its task succeeds. maxWriteBufferSize must exceed this value. Configuration is borrowed; socket buffers remain exclusive owners.",
+      "examples": [
+        {
+          "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={writeBufferSize:0};console.log(value.writeBufferSize);}",
+          "output": "0\n"
+        }
+      ]
+    },
+    {
+      "name": "maxWriteBufferSize",
+      "signature": "maxWriteBufferSize: int | null | undefined",
+      "parameters": null,
+      "documentation": "Optional write-buffer maximum in bytes. Omitted preserves the target usize maximum; null explicitly requests that same unbounded backend maximum. A supplied integer must be nonnegative, target-representable and greater than writeBufferSize. Violations throw code options. This bounds the backend buffer, not a new facade queue; configuration is borrowed.",
+      "examples": [
+        {
+          "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={maxWriteBufferSize:null};console.log(value.maxWriteBufferSize);}",
+          "output": "null\n"
+        }
+      ]
+    },
+    {
+      "name": "maxMessageSize",
+      "signature": "maxMessageSize: int | null | undefined",
+      "parameters": null,
+      "documentation": "Optional maximum complete incoming message bytes. Omitted preserves67108864 bytes; null disables this backend bound. Integers must be nonnegative and target-representable; zero permits empty messages only. Oversized input fails receive with code capacity. Configuration is borrowed; no message clone is introduced.",
+      "examples": [
+        {
+          "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={maxMessageSize:65536};console.log(value.maxMessageSize);}",
+          "output": "65536\n"
+        }
+      ]
+    },
+    {
+      "name": "maxFrameSize",
+      "signature": "maxFrameSize: int | null | undefined",
+      "parameters": null,
+      "documentation": "Optional maximum incoming frame bytes. Omitted preserves16777216 bytes; null disables this backend bound. Integers must be nonnegative and target-representable. Exceeding the selected bound fails receive with code capacity. Configuration is borrowed and does not install an application queue.",
+      "examples": [
+        {
+          "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={maxFrameSize:65536};console.log(value.maxFrameSize);}",
+          "output": "65536\n"
+        }
+      ]
+    },
+    {
+      "name": "acceptUnmaskedFrames",
+      "signature": "acceptUnmaskedFrames: boolean | undefined",
+      "parameters": null,
+      "documentation": "Optional server policy for unmasked client frames. Omitted or false preserves rejection; true explicitly permits them. This does not change client masking and is not an origin or authentication check. Configuration is borrowed; install authorization before upgrade.",
+      "examples": [
+        {
+          "source": "import {WebSocketOptions} from \"std:http\";function main(){const value:WebSocketOptions={acceptUnmaskedFrames:false};console.log(value.acceptUnmaskedFrames);}",
+          "output": "false\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketClientOptions": [
+    {
+      "name": "ca",
+      "signature": "ca: string | undefined",
+      "parameters": null,
+      "documentation": "Optional nonempty PEM CA bundle. Omitted preserves verified public roots. Supplied certificates replace roots for this connection without disabling hostname, chain or validity checks. Invalid PEM throws HttpError code tls. Options remain borrowed until the connect task settles; no key or certificate data is logged.",
+      "examples": [
+        {
+          "source": "import {WebSocketClientOptions} from \"std:http\";function main(){const value:WebSocketClientOptions={};console.log(value.ca);}",
+          "output": "undefined\n"
+        }
+      ]
+    },
+    {
+      "name": "headers",
+      "signature": "headers: WebSocketHeader[] | undefined",
+      "parameters": null,
+      "documentation": "Optional ordered request-header entries, including application authorization or origin. Omitted adds none. Invalid header grammar throws code options; handshake rejection throws a transport error with credentials redacted. These are metadata copies, not payload clones. The options array is borrowed through connect settlement.",
+      "examples": [
+        {
+          "source": "import {WebSocketClientOptions} from \"std:http\";function main(){const value:WebSocketClientOptions={headers:[{name:'origin',value:'https://app.example'}]};console.log(value.headers!==undefined);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "socket",
+      "signature": "socket: WebSocketOptions | undefined",
+      "parameters": null,
+      "documentation": "Optional socket buffer/frame/message policy. Omitted preserves every backend default. Invalid ranges throw code options before connecting; null message/frame bounds are explicit unlimited policies. The settings are borrowed until connect settles and the resulting socket owns its configuration.",
+      "examples": [
+        {
+          "source": "import {WebSocketClientOptions} from \"std:http\";function main(){const value:WebSocketClientOptions={socket:{readBufferSize:4096}};console.log(value.socket!==undefined);}",
+          "output": "true\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketHeader": [
+    {
+      "name": "name",
+      "signature": "name: string",
+      "parameters": null,
+      "documentation": "Required HTTP request-header name. Header grammar is checked during connect; invalid names throw HttpError code options. No application header is added by default. The options record is borrowed and the backend request owns parsed metadata.",
+      "examples": [
+        {
+          "source": "import {WebSocketHeader} from \"std:http\";function main(){const value:WebSocketHeader={name:'origin',value:'https://app.example'};console.log(value.name);}",
+          "output": "origin\n"
+        }
+      ]
+    },
+    {
+      "name": "value",
+      "signature": "value: string",
+      "parameters": null,
+      "documentation": "Required HTTP header value, which may be empty. Invalid control characters throw HttpError code options during connect. Credentials are not included in transport error messages. The header is borrowed and copied as request metadata; no socket payload is cloned.",
+      "examples": [
+        {
+          "source": "import {WebSocketHeader} from \"std:http\";function main(){const value:WebSocketHeader={name:'origin',value:'https://app.example'};console.log(value.value);}",
+          "output": "https://app.example\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketText": [
+    {
+      "name": "kind",
+      "signature": "kind: 'text'",
+      "parameters": null,
+      "documentation": "Required text-message tag. It selects UTF8 data and cannot be reassigned to a different message kind. receive retains this tag and send consumes the whole message; the socket is mutated only by the awaited operation.",
+      "examples": [
+        {
+          "source": "import {WebSocketText} from \"std:http\";function main(){const value:WebSocketText={kind:'text',data:'hello'};console.log(value.kind);}",
+          "output": "text\n"
+        }
+      ]
+    },
+    {
+      "name": "data",
+      "signature": "data: string",
+      "parameters": null,
+      "documentation": "Required valid UTF8 text, including empty strings and newlines. send consumes the message and flushes; receive returns an independent owned string. No facade size cap is added beyond configured backend limits. The backend byte-to-owned-string conversion may copy a shared receive buffer.",
+      "examples": [
+        {
+          "source": "import {WebSocketText} from \"std:http\";function main(){const value:WebSocketText={kind:'text',data:'hello'};console.log(value.data);}",
+          "output": "hello\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketBinary": [
+    {
+      "name": "kind",
+      "signature": "kind: 'binary'",
+      "parameters": null,
+      "documentation": "Required binary-message tag. It preserves binary identity even when the bytes also form valid text. send consumes the record and byte owner; receive creates an independent byte owner. Replacing this tag with text is a type error.",
+      "examples": [
+        {
+          "source": "import {WebSocketBinary} from \"std:http\";import {fromArray,length} from \"std:bytes\";function main(){const value:WebSocketBinary={kind:'binary',data:unwrap(fromArray([0,255]))};console.log(value.kind);}",
+          "output": "binary\n"
+        }
+      ]
+    },
+    {
+      "name": "data",
+      "signature": "data: Bytes",
+      "parameters": null,
+      "documentation": "Required owned bytes, including empty payloads. Outgoing storage moves into the backend. Incoming conversion uses the maintained consuming conversion: unique backing storage can transfer, while shared backing storage requires a copy. No borrowed view is silently cloned; pass an owned Bytes value. Configured backend limits still apply.",
+      "examples": [
+        {
+          "source": "import {WebSocketBinary} from \"std:http\";import {fromArray,length} from \"std:bytes\";function main(){const value:WebSocketBinary={kind:'binary',data:unwrap(fromArray([0,255]))};console.log(length(value.data));}",
+          "output": "2\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketClose": [
+    {
+      "name": "kind",
+      "signature": "kind: 'close'",
+      "parameters": null,
+      "documentation": "Required close-message tag. It identifies a received close frame or an explicit outgoing close. It is not ordinary application data; subsequent operations follow the backend closing state. The message is owned and consumed by send or close.",
+      "examples": [
+        {
+          "source": "import {WebSocketClose} from \"std:http\";function main(){const value:WebSocketClose={kind:'close',code:1000,reason:'done'};console.log(value.kind);}",
+          "output": "close\n"
+        }
+      ]
+    },
+    {
+      "name": "code",
+      "signature": "code: int | undefined",
+      "parameters": null,
+      "documentation": "Optional close status. With no code or reason the backend sends a close without a status; a supplied reason alone selects1000. Explicit codes must be allowed16-bit backend close codes. Reserved or invalid codes fail with HttpError code options. Received codes preserve backend protocol-close normalization. The scalar moves with the frame.",
+      "examples": [
+        {
+          "source": "import {WebSocketClose} from \"std:http\";function main(){const value:WebSocketClose={kind:'close',code:1000,reason:'done'};console.log(value.code);}",
+          "output": "1000\n"
+        }
+      ]
+    },
+    {
+      "name": "reason",
+      "signature": "reason: string | undefined",
+      "parameters": null,
+      "documentation": "Optional UTF8 close reason. Omission selects no reason; with no code it selects1000. The encoded reason must fit the backend123-byte control-frame range; oversized values fail with code options. receive preserves the actual reason. Text is consumed with the frame; no reconnection is started.",
+      "examples": [
+        {
+          "source": "import {WebSocketClose} from \"std:http\";function main(){const value:WebSocketClose={kind:'close',code:1000,reason:'done'};console.log(value.reason);}",
+          "output": "done\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketHalves": [
+    {
+      "name": "read",
+      "signature": "read: WebSocketRead",
+      "parameters": null,
+      "documentation": "Owned receive half returned by split. It can hold a pending receive while the write half sends. Moving the field transfers that half; it cannot be cloned. Dropping one half leaves the transport retained by the other; both must finish or drop to release it.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "write",
+      "signature": "write: WebSocketWrite",
+      "parameters": null,
+      "documentation": "Owned sending half returned by split. send waits for backend backpressure and flush. Closing this half sends a close and releases the writer; the reader remains independently owned. The half is moved, never cloned.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocket": [
+    {
+      "name": "receive",
+      "signature": "receive(): Task<WebSocketMessage | undefined>",
+      "parameters": [],
+      "documentation": "Waits lazily for the next owned text, binary or close message, or undefined at transport end. Backend ping/pong traffic is processed internally while reading. Protocol/UTF8/size/transport failures throw HttpError; configured message and frame bounds remain active. Ownership: exclusively borrows this endpoint until the task settles; split first to send concurrently.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "send",
+      "signature": "send(message: Owned<WebSocketMessage>): Task<void>",
+      "parameters": [
+        {
+          "label": "message: Owned<WebSocketMessage>",
+          "documentation": "Typed owned text, binary or close payload."
+        }
+      ],
+      "documentation": "Lazily sends and flushes one typed message, waiting for backend backpressure. Text/binary kind is preserved, including empty payloads. Backend buffer/protocol failures throw HttpError. There is no facade queue or payload clone; shared inbound byte storage may have required a copy when received. Ownership: consumes the message and exclusively borrows this endpoint until settlement.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "split",
+      "signature": "split(): WebSocketHalves",
+      "parameters": [],
+      "documentation": "Consumes the socket into standard owned read/write halves. A pending receive on the read half can coexist with send on the write half. No clone, task or message queue is created. Dropping one half retains the transport through the other. Ownership: the original socket is transferred and cannot be reused.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "signature": "close(frame?: Owned<WebSocketClose>): Task<void>",
+      "parameters": [
+        {
+          "label": "frame?: Owned<WebSocketClose>",
+          "documentation": "Optional close-tagged status/reason; omitted sends no status/reason."
+        }
+      ],
+      "documentation": "Lazily sends an optional validated close frame. Full sockets then drive backend closing to transport end; write halves release only their half after flush, leaving the reader independently owned. No hidden deadline or reconnect is added. Invalid status/reason throws code options; transport failures throw HttpError. Ownership: consumes this endpoint; cancellation/drop releases its retained state.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketRead": [
+    {
+      "name": "receive",
+      "signature": "receive(): Task<WebSocketMessage | undefined>",
+      "parameters": [],
+      "documentation": "Waits lazily for the next owned text, binary or close message, or undefined at transport end. Backend ping/pong traffic is processed internally while reading. Protocol/UTF8/size/transport failures throw HttpError; configured message and frame bounds remain active. Ownership: exclusively borrows this endpoint until the task settles; split first to send concurrently.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    }
+  ],
+  "HttpWebSocketWrite": [
+    {
+      "name": "send",
+      "signature": "send(message: Owned<WebSocketMessage>): Task<void>",
+      "parameters": [
+        {
+          "label": "message: Owned<WebSocketMessage>",
+          "documentation": "Typed owned text, binary or close payload."
+        }
+      ],
+      "documentation": "Lazily sends and flushes one typed message, waiting for backend backpressure. Text/binary kind is preserved, including empty payloads. Backend buffer/protocol failures throw HttpError. There is no facade queue or payload clone; shared inbound byte storage may have required a copy when received. Ownership: consumes the message and exclusively borrows this endpoint until settlement.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "signature": "close(frame?: Owned<WebSocketClose>): Task<void>",
+      "parameters": [
+        {
+          "label": "frame?: Owned<WebSocketClose>",
+          "documentation": "Optional close-tagged status/reason; omitted sends no status/reason."
+        }
+      ],
+      "documentation": "Lazily sends an optional validated close frame. Full sockets then drive backend closing to transport end; write halves release only their half after flush, leaving the reader independently owned. No hidden deadline or reconnect is added. Invalid status/reason throws code options; transport failures throw HttpError. Ownership: consumes this endpoint; cancellation/drop releases its retained state.",
+      "examples": [
+        {
+          "source": "import { Router, WebSocket, connectWebSocket } from 'std:http';\nimport { fromArray, toHex } from 'std:bytes';\n\nasync function echo(socket: Owned<WebSocket>): Task<void> {\n  const message = await socket.receive();\n  if (message !== undefined) {\n    await socket.send(message);\n  }\n  await socket.close();\n}\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.webSocket('/echo', echo);\n  const server = await app.listen('127.0.0.1:0');\n  const url = 'ws://' + server.address() + '/echo';\n  try {\n    const socket = await connectWebSocket(url);\n    const halves = socket.split();\n    const receiving = halves.read.receive();\n    await halves.write.send({ kind: 'text', data: 'hello' });\n    const message = await receiving;\n    if (message === undefined || message.kind !== 'text') {\n      throw 'missing text';\n    }\n    console.log(message.data);\n    await halves.write.close();\n    const closing = await halves.read.receive();\n    if (closing !== undefined) {\n      console.log(closing.kind);\n    }\n\n    const binary = await connectWebSocket(url);\n    await binary.send({ kind: 'binary', data: unwrap(fromArray([0, 255])) });\n    const received = await binary.receive();\n    if (received === undefined || received.kind !== 'binary') {\n      throw 'missing binary';\n    }\n    console.log(unwrap(toHex(received.data)));\n    await binary.close();\n  } finally {\n    await server.shutdown();\n  }\n}\n",
+          "output": "hello\nclose\n00ff\n"
         }
       ]
     }
