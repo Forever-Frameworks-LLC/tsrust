@@ -41,3 +41,6 @@ fn client_transport_options_and_upload_help_keep_owned_contracts(){
  for name in ["requestBytes","requestStream","requestChannel"]{let hover=request(source,name,"textDocument/hover").to_string();assert!(hover.contains("Ownership")&&hover.contains("consumes")&&hover.contains("Request"),"{hover}");}
  let constructor=request(source,"new Client(","textDocument/signatureHelp").to_string();for text in ["timeoutMs","connectTimeoutMs","maxRedirects","noProxy","TLS"]{assert!(constructor.contains(text),"{constructor}");}
 }
+
+#[test]
+fn form_factories_document_borrowed_fields_owned_parts_and_backend_limitations(){let source="import {requestForm,requestMultipart} from 'std:http';function main(){}";let form=request(source,"requestForm","textDocument/hover").to_string();assert!(form.contains("ReadOnly")&&form.contains("duplicate")&&form.contains("Ownership"),"{form}");let multipart=request(source,"requestMultipart","textDocument/hover").to_string();assert!(multipart.contains("Owned")&&multipart.contains("ASCII")&&multipart.contains("Content-Length")&&multipart.contains("multipart"),"{multipart}");}

@@ -36,7 +36,7 @@ matchit = { version = "=0.8.4", optional = true }
 axum = { version = "=0.8.9", optional = true, default-features = false, features = ["http1", "http2", "tokio", "multipart"] }
 tower-http = { version = "=0.6.11", optional = true, default-features = false, features = ["fs"] }
 tokio-rustls = { version = "=0.26.6", optional = true, default-features = false, features = ["aws_lc_rs", "tls12"] }
-reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["rustls", "stream", "http2"] }
+reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["rustls", "stream", "http2", "multipart"] }
 http-body = { version = "=1.1.0", optional = true }
 http-body-util = { version = "=0.1.5", optional = true }
 hyper-util = { version = "=0.1.21", optional = true, features = ["server-auto", "tokio", "service"] }
@@ -61,6 +61,8 @@ arboard = { version = "=3.7.0", default-features = false, features = ["wayland-d
 
 flate2 = { version = "=1.1.10", default-features = false, features = ["zlib-rs", "runtime_detection"], optional = true }
 
+form_urlencoded = { version = "=1.2.2", optional = true }
+
 [features]
 compression-streams = ["compression", "io"]
 compression = ["dep:flate2", "threads", "async"]
@@ -79,7 +81,7 @@ temporary-files = ["files", "dep:tempfile"]
 async = ["dep:tokio"]
 io = ["async", "files", "tokio/io-util"]
 process = ["io", "tokio/process", "tokio/macros"]
-http = ["async", "dep:axum", "dep:tower-http", "dep:matchit", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
+http = ["dep:form_urlencoded", "async", "dep:axum", "dep:tower-http", "dep:matchit", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
 threads = ["dep:rayon"]
 
 sqlite = ["dep:rusqlite"]

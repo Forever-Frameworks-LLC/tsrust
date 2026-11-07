@@ -43,6 +43,11 @@ pub(crate) const PUBLIC_TEXT:NativeBinding=NativeBinding{name:"text",..TEXT};
 pub(crate) const PUBLIC_HTML:NativeBinding=NativeBinding{name:"html",..HTML};
 pub(crate) const PUBLIC_JSON:NativeBinding=NativeBinding{name:"json",..JSON};
 pub(crate) const PUBLIC_REQUEST:NativeBinding=NativeBinding{name:"request",..REQUEST};
+pub(crate) const REQUEST_FORM:NativeBinding=NativeBinding{name:"__requestForm",parameters:&[REQUEST.parameters[0],REQUEST.parameters[1],NativeParameter{name:"fields",ty:NativeType::Structured(&Signature::Array(&Signature::Named(NativeTypeId::HttpFormField))),access:Mode::Read,optional:false,rest:false}],..REQUEST};
+pub(crate) const PUBLIC_REQUEST_FORM:NativeBinding=NativeBinding{name:"requestForm",..REQUEST_FORM};
+pub(crate) const REQUEST_MULTIPART:NativeBinding=NativeBinding{name:"__requestMultipart",parameters:&[REQUEST.parameters[0],REQUEST.parameters[1],NativeParameter{name:"parts",ty:NativeType::Structured(&Signature::Array(&Signature::Named(NativeTypeId::HttpMultipartPart))),access:Mode::Consume,optional:false,rest:false}],..REQUEST};
+pub(crate) const PUBLIC_REQUEST_MULTIPART:NativeBinding=NativeBinding{name:"requestMultipart",..REQUEST_MULTIPART};
+
 pub(crate) const REQUEST_BYTES:NativeBinding=NativeBinding{name:"__requestBytes",parameters:&[REQUEST.parameters[0],REQUEST.parameters[1],NativeParameter{name:"body",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)),access:Mode::Consume,optional:false,rest:false}],..REQUEST};
 pub(crate) const PUBLIC_REQUEST_BYTES:NativeBinding=NativeBinding{name:"requestBytes",..REQUEST_BYTES};
 pub(crate) const REQUEST_STREAM:NativeBinding=NativeBinding{name:"__requestStream",parameters:&[REQUEST.parameters[0],REQUEST.parameters[1],NativeParameter{name:"body",ty:NativeType::Structured(&Signature::Named(NativeTypeId::HttpBody)),access:Mode::Consume,optional:false,rest:false}],..REQUEST};
@@ -75,7 +80,7 @@ pub(crate) const SETCOOKIE:NativeBinding=NativeBinding{name:"__setCookie",parame
 pub(crate) const DELETECOOKIE:NativeBinding=NativeBinding{name:"__deleteCookie",parameters:&[SETCOOKIE.parameters[0],SETCOOKIE.parameters[1],SETCOOKIE.parameters[3]],..SETCOOKIE};
 pub(crate) const PUBLIC_SETCOOKIE:NativeBinding=NativeBinding{name:"setCookie",..SETCOOKIE};
 pub(crate) const PUBLIC_DELETECOOKIE:NativeBinding=NativeBinding{name:"deleteCookie",..DELETECOOKIE};
-pub(crate) const OPERATIONS:&[NativeBinding]=&[GETCOOKIE,SETCOOKIE,DELETECOOKIE,CONTEXTGET,CONTEXTSET,CONTEXTREQUESTBODY,CONTEXTREQUESTTEXT,CONTEXTREQUESTFORM,CONTEXTREQUESTMULTIPART,ROUTER,ROUTERCONFIGURE,ROUTERSTATIC,ROUTERROUTE,ROUTERUSE,ROUTERUSEPATH,ROUTERLISTEN,CONTEXTTEXT,CONTEXTNEXT,CONTEXTHTML,CONTEXTJSON,CONTEXTHEADER,CONTEXTSTATUS,FORM,MULTIPART,APP,CONFIGURE,CLIENT,REQUEST,REQUEST_BYTES,REQUEST_STREAM,REQUEST_CHANNEL,TEXT,HTML,JSON,STREAM,STREAMCHANNEL,ROUTE,USE,FALLBACK,LISTEN,SHUTDOWN,WAIT,ADDRESS,NEXT,SEND,BODYNEXT,BODYTEXT,REQUESTHEADER,REQUESTSETHEADER,REQUESTBODY,REQUESTTEXT,RESPONSEHEADER,RESPONSESETHEADER,RESPONSEBODY,RESPONSETEXT,METHOD,URL,PARAM,QUERY,QUERIES,STATUS];
+pub(crate) const OPERATIONS:&[NativeBinding]=&[GETCOOKIE,SETCOOKIE,DELETECOOKIE,CONTEXTGET,CONTEXTSET,CONTEXTREQUESTBODY,CONTEXTREQUESTTEXT,CONTEXTREQUESTFORM,CONTEXTREQUESTMULTIPART,ROUTER,ROUTERCONFIGURE,ROUTERSTATIC,ROUTERROUTE,ROUTERUSE,ROUTERUSEPATH,ROUTERLISTEN,CONTEXTTEXT,CONTEXTNEXT,CONTEXTHTML,CONTEXTJSON,CONTEXTHEADER,CONTEXTSTATUS,FORM,MULTIPART,APP,CONFIGURE,CLIENT,REQUEST,REQUEST_FORM,REQUEST_MULTIPART,REQUEST_BYTES,REQUEST_STREAM,REQUEST_CHANNEL,TEXT,HTML,JSON,STREAM,STREAMCHANNEL,ROUTE,USE,FALLBACK,LISTEN,SHUTDOWN,WAIT,ADDRESS,NEXT,SEND,BODYNEXT,BODYTEXT,REQUESTHEADER,REQUESTSETHEADER,REQUESTBODY,REQUESTTEXT,RESPONSEHEADER,RESPONSESETHEADER,RESPONSEBODY,RESPONSETEXT,METHOD,URL,PARAM,QUERY,QUERIES,STATUS];
 pub(crate) fn call(name:&str,args:Vec<crate::syntax::Expr>,span:crate::Span)->crate::syntax::Expr{
  use crate::syntax::{Expr,ExprKind};Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:std:http#{name}")),span)),args),span)
 }
@@ -93,7 +98,7 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
    if matches!(name,"setCookie"|"deleteCookie") {let operation=format!("__{name}");let inputs=std::mem::take(args);*expression=crate::stdlib::futures::unwrap(call(&operation,inputs,span));return Ok(());}
    if public_unwrapped(name){
     let name=name.to_owned();let mut args=std::mem::take(args);
-    if !matches!(name.as_str(),"request"|"requestBytes"|"requestStream"|"requestChannel") && args.len()==1{args.push(Expr::new(ExprKind::Integer("200".into()),span));}
+    if !matches!(name.as_str(),"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart") && args.len()==1{args.push(Expr::new(ExprKind::Integer("200".into()),span));}
     if name=="json" && !args.is_empty(){let value=args.remove(0);args.insert(0,Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@http:jsonEncode".into()),span)),vec![value]),span));}
     *expression=crate::stdlib::futures::unwrap(call(&format!("__{name}"),args,span));
    }
@@ -128,7 +133,7 @@ pub(crate) fn method(identity:Option<NativeTypeId>,member:&str)->Option<&'static
    })}
 pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__requestJson"|"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__routerListen"|"__contextNext"|"__form"|"__multipart"|"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}
 
-pub(crate) fn public_unwrapped(name:&str)->bool{matches!(name,"text"|"html"|"json"|"stream"|"streamChannel"|"request"|"requestBytes"|"requestStream"|"requestChannel")}
+pub(crate) fn public_unwrapped(name:&str)->bool{matches!(name,"text"|"html"|"json"|"stream"|"streamChannel"|"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
 
 fn defaults(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
  use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};

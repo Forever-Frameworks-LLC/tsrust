@@ -33,7 +33,7 @@ if(!prepared){
  const stdout=run('rustup',['run','1.96.1','cargo','build','--manifest-path',path.join(pkg,'Cargo.toml'),'--offline','--locked','--release','--message-format=json']);
  const artifacts=stdout.trim().split('\n').filter(Boolean).map(line=>JSON.parse(line));
  const binary=artifacts.find(row=>row.reason==='compiler-artifact'&&row.executable&&row.target.kind.includes('bin'))?.executable;if(!binary)throw Error('Missing Tsrust executable');fs.copyFileSync(binary,commands.native[0]);
- const names=cpuMode?['axum','tokio','serde','serde_json']:uploadMode?['axum','tokio','reqwest','http_body_util','futures_util']:['axum','tokio','sqlx','serde','serde_json'],libraries=new Map();
+ const names=cpuMode?['axum','tokio','serde','serde_json']:uploadMode?['axum','tokio','reqwest','http_body_util','futures_util','form_urlencoded','base64']:['axum','tokio','sqlx','serde','serde_json'],libraries=new Map();
  for(const row of artifacts)if(row.reason==='compiler-artifact'&&names.includes(row.target.name))for(const file of row.filenames.filter(file=>file.endsWith('.rlib'))){if(libraries.has(row.target.name)&&libraries.get(row.target.name)!==file)throw Error('Ambiguous library');libraries.set(row.target.name,file);}
  const args=['run','1.96.1','rustc','--edition=2024','-C','opt-level=3','-C','overflow-checks=on','-A','warnings',path.join(here,sourceFiles['rust-hand']),'-o',commands['rust-hand'][0]];
  for(const name of names){const file=libraries.get(name);if(!file)throw Error(`Missing ${name} library`);args.push('--extern',`${name}=${file}`);}

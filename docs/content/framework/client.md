@@ -78,3 +78,11 @@ ownership and await it, including cancellation/error cleanup. Dropping the recei
 wakes pending senders with their unsent value. No Content-Type is inferred.
 
 The source checkout includes the executable `examples/http-client-uploads/main.tsr` example.
+
+## Form and multipart uploads
+
+`requestForm(method, url, fields)` borrows ordered `FormField[]`, preserves duplicate names, and creates a buffered UTF-8 form body. It sets `application/x-www-form-urlencoded`; spaces encode as `+`. Fields remain available after construction.
+
+`requestMultipart(method, url, parts)` consumes `MultipartPart[]` and their `Bytes` buffers. Optional `fileName` and `contentType` supply part metadata; malformed MIME text throws `HttpError` with code `multipart`. The backend generates the boundary and Content-Length when the existing client sends the request. Parts are streamed without collecting the encoded body and cannot be replayed on redirects. Explicit headers override factory headers. Calling `body()` first turns the multipart form into an ordinary stream with unknown length.
+
+Use ASCII multipart field names for interoperable parsing. The client backend encodes non-ASCII names with `name*`, which the current server parser does not recognize as a field name. Unicode values and filenames are supported. No new field-count or body-size ceiling is imposed by either factory; explicit receiver limits still apply.

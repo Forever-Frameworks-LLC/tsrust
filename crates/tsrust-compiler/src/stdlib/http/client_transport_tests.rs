@@ -45,3 +45,11 @@ fn explicit_proxy_auth_and_request_failure_redact_url_credentials(){tasks::block
  let address=format!("http://user:pass@{}",proxy.address());let client=options(None,None,None,None,Some(&address),None).unwrap();let response=client.send(Request::new("GET","http://not-resolved.invalid/probe",String::new()).unwrap()).await.unwrap();assert_eq!(response.text_body().await.unwrap(),"proxy used");
  let error=client.send(Request::new("GET","http://user:pass@not-resolved.invalid/probe?synthetic-secret",String::new()).unwrap()).await.err().unwrap();assert_eq!(error.code,"url");assert!(!error.message.contains("user")&&!error.message.contains("pass")&&!error.message.contains("secret"));proxy.shutdown().await;
 });}
+
+#[test]
+fn form_and_multipart_factories_preserve_fields_buffers_and_backend_framing(){tasks::block_on(async{
+ let fields=vec![("q","é +"),("q","")];let input=Request::from_form("POST","http://localhost/",fields.iter().copied()).unwrap();assert_eq!(fields.len(),2);assert_eq!(input.text().await.unwrap(),"q=%C3%A9+%2B&q=");
+ let mut app=App::new();app.route("POST","/parts",|request|async move{assert!(request.header("content-length").unwrap().is_some());assert!(request.header("transfer-encoding").unwrap().is_none());let parts=request.multipart(None).await.unwrap();assert_eq!(parts.len(),1);assert_eq!(parts[0].name,"data");assert_eq!(parts[0].file_name.as_deref(),Some("é.bin"));assert_eq!(parts[0].data,vec![0,255,128]);Response::text("multipart exact".into(),200).unwrap()}).unwrap();let server=app.listen("127.0.0.1:0").await.unwrap();let client=options(None,None,None,None,None,Some(true)).unwrap();
+ let input=Request::from_multipart("POST",&format!("http://{}/parts",server.address()),[MultipartPart{name:"data".into(),file_name:Some("é.bin".into()),content_type:Some("application/octet-stream".into()),data:vec![0,255,128]}]).unwrap();let response=tokio::time::timeout(Duration::from_secs(5),client.send(input)).await.unwrap().unwrap();assert_eq!(response.text_body().await.unwrap(),"multipart exact");server.shutdown().await;
+ let failure=Request::from_multipart("POST","http://localhost/",[MultipartPart{name:"secret".into(),file_name:None,content_type:Some("bad\r\nsecret".into()),data:vec![]}]).err().unwrap();assert_eq!(failure.code,"multipart");assert!(!failure.message.contains("secret"));
+});}

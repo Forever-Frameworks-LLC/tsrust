@@ -3970,7 +3970,12 @@ impl Analyzer {
             self.note_result_wait(id,span);
             return Err(Self::pending_result(span));
         }
-        self.function(id)
+        // A known result must not skip the body needed to resolve selected error contracts.
+        let discovering=self.discovering_results;let effects=self.effects_only;
+        if discovering {self.discovering_results=false;self.effects_only=false;}
+        let checked=self.function(id);
+        self.discovering_results=discovering;self.effects_only=effects;
+        checked
     }
 
     fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type,defer_pending_origins:bool)->Result<(),Diagnostic> {

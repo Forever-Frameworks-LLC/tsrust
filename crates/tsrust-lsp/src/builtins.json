@@ -13798,6 +13798,58 @@
           "output": "POST\n"
         }
       ]
+    },
+    {
+      "name": "requestForm",
+      "signature": "requestForm(method: string, url: string, fields: ReadOnly<FormField[]>): Request",
+      "inferredSignature": "function requestForm(method: string, url: string, fields: ReadOnly<FormField[]>): Request",
+      "parameters": [
+        {
+          "label": "method: string",
+          "documentation": "Valid HTTP method token; borrowed during construction."
+        },
+        {
+          "label": "url: string",
+          "documentation": "URI accepted at construction; sending requires absolute HTTP/HTTPS with no embedded credentials. Borrowed during construction."
+        },
+        {
+          "label": "fields: ReadOnly<FormField[]>",
+          "documentation": "Ordered fields borrowed only during construction."
+        }
+      ],
+      "documentation": "Encodes ordered form fields with application/x-www-form-urlencoded using UTF-8, preserving duplicate names and empty values. Spaces become +; reserved bytes are percent encoded. There is no implicit field-count ceiling. The resulting buffered body has a known length and supports backend redirect replay. Invalid method or URI throws HttpError code method or url. Construction performs no network I/O. Explicit setHeader calls override factory headers.\n\nOwnership: borrows fields during construction; the request owns the encoded body.",
+      "examples": [
+        {
+          "source": "import {requestForm,FormField} from 'std:http';import {fromArray} from 'std:bytes';function main(){const fields:FormField[]=[{name:\"q\",value:\"é +\"}];const input=requestForm(\"POST\",\"http://localhost/\",fields);console.log(input.method(),fields.length);}",
+          "output": "POST 1\n"
+        }
+      ]
+    },
+    {
+      "name": "requestMultipart",
+      "signature": "requestMultipart(method: string, url: string, parts: Owned<MultipartPart[]>): Request",
+      "inferredSignature": "function requestMultipart(method: string, url: string, parts: Owned<MultipartPart[]>): Request",
+      "parameters": [
+        {
+          "label": "method: string",
+          "documentation": "Valid HTTP method token; borrowed during construction."
+        },
+        {
+          "label": "url: string",
+          "documentation": "URI accepted at construction; sending requires absolute HTTP/HTTPS with no embedded credentials. Borrowed during construction."
+        },
+        {
+          "label": "parts: Owned<MultipartPart[]>",
+          "documentation": "Owned parts and binary buffers transferred exactly once."
+        }
+      ],
+      "documentation": "Moves binary part buffers into a multipart request with backend-generated boundary and framing. Optional fileName and contentType provide part metadata; invalid MIME text throws HttpError code multipart. No whole encoded body is collected. Sending uses the existing client and a computed Content-Length; the multipart stream is not replayable on redirects. Calling body() explicitly materializes a stream with unknown length. Use ASCII field names for interoperable parsing: backend encoding of non-ASCII names is not recognized by the current server multipart parser. Unicode values and filenames remain supported. Invalid method or URI throws HttpError code method or url. Construction performs no network I/O. Explicit setHeader calls override factory headers.\n\nOwnership: consumes parts and their buffers; metadata strings move into backend parts.",
+      "examples": [
+        {
+          "source": "import {requestMultipart,MultipartPart} from 'std:http';import {fromArray} from 'std:bytes';function main(){const parts:MultipartPart[]=[{name:\"data\",data:unwrap(fromArray([0,255]))}];const input=requestMultipart(\"POST\",\"http://localhost/\",parts);console.log(input.method());}",
+          "output": "POST\n"
+        }
+      ]
     }
   ],
   "HttpApp": [

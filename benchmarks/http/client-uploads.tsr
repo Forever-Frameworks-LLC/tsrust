@@ -1,5 +1,5 @@
-import { App, Client, Request, Response, requestBytes, requestStream, requestChannel, text } from 'std:http';
-import { Bytes, alloc, set, length, at } from 'std:bytes';
+import { App, Client, Request, Response, requestBytes, requestStream, requestChannel, requestForm, requestMultipart, FormField, MultipartPart, text } from 'std:http';
+import { Bytes, alloc, set, length, at, toBase64, fromBase64 } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
 import { listen, receive } from 'std:signals';
 
@@ -40,9 +40,44 @@ async function main(): Task<void> {
   sink.post('/sink/:mode/:id', async (input: Request): Task<Response> => {
     const id = JSON.parse<int>(unwrap(input.param('id')));
     const count = size(id);
-    const body = input.body();
+    const mode = unwrap(input.param('mode'));
     let offset = 0;
     let checksum = 0;
+    if (mode === 'form' || mode === 'multipart') {
+      let bytes: Bytes = unwrap(alloc(0));
+      if (mode === 'form') {
+        const fields = await input.form();
+        if (fields.length !== 1 || fields[0].name !== 'payload') {
+          throw 'form fields mismatch';
+        }
+
+        bytes = unwrap(fromBase64(fields[0].value));
+      } else {
+        const parts = await input.multipart();
+        if (parts.length !== 1 || parts[0].name !== 'payload') {
+          throw 'multipart fields mismatch';
+        }
+
+        bytes = parts.pop()!.data;
+      }
+
+      for (let i = 0; i < length(bytes); i++) {
+        const byte = unwrap(at(bytes, i));
+        if (byte !== (i * 17 + id) % 251) {
+          throw 'upload bytes/order mismatch';
+        }
+
+        checksum = (checksum * 131 + byte) % 1000000007;
+      }
+
+      if (length(bytes) !== count) {
+        throw 'upload length mismatch';
+      }
+
+      return text(`${count},${checksum}`);
+    }
+
+    const body = input.body();
     while (true) {
       const chunk = await body.next();
       if (chunk === undefined) {
@@ -89,6 +124,20 @@ async function main(): Task<void> {
     }
 
     const bytes = payload(count, 0, id);
+    if (mode === 'form') {
+      const fields: FormField[] = [{
+        name: 'payload', value: unwrap(toBase64(bytes))
+      }];
+      return text(await(await client.send(requestForm('POST', url, fields))).text());
+    }
+
+    if (mode === 'multipart') {
+      const parts: MultipartPart[] = [{
+        name: 'payload', fileName: 'payload.bin', contentType: 'application/octet-stream', data: bytes
+      }];
+      return text(await(await client.send(requestMultipart('POST', url, parts))).text());
+    }
+
     const request = requestBytes('POST', url, bytes);
     if (mode === 'stream') {
       const response = await client.send(requestStream('POST', url, request.body()));

@@ -302,6 +302,17 @@ impl Analyzer {
     }
     pub(super) fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
         if value.ty.is_some_and(|source|!self.carrier_convertible(source,destination)) {
+            #[cfg(test)]
+            {
+                eprintln!("CARRIER_REJECT span={:?} source={:?} target={destination:?}",value.span,value.ty);
+                let mut pending=vec![value.ty.unwrap(),destination];let mut seen=HashSet::new();
+                while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
+                    Type::Record(record)=>{let fields=self.program.records[record].fields.iter().map(|field|(field.name.text.as_str(),field.ty.unwrap())).collect::<Vec<_>>();eprintln!("CARRIER_RECORD id={record} declaration={} fields={fields:?}",self.scoped_records.declaration(record));pending.extend(fields.into_iter().map(|(_,ty)|ty));}
+                    Type::Union(union)=>{let members=self.unions.members(union);eprintln!("CARRIER_UNION id={union:?} members={members:?}");pending.extend(members);}
+                    Type::StoredCallable(family)|Type::BorrowedCallable(family)=>{eprintln!("CARRIER_FAMILY id={family} origins={:?} scoped_native={}",self.callables.storage.origins(family),self.callables.storage.scoped_native_family(family).is_some());}
+                    _=>{}
+                }}
+            }
             return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
         }
         value.wrap_record_carrier(destination);
@@ -388,4 +399,17 @@ mod traversal_tests {
         assert!(context.control_stored.is_empty());
         drop(body);
     }
+}
+
+#[cfg(test)]
+#[test]
+fn flat_map_mixed_inner_result_checks_selected_nullable_carrier(){
+ use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+ struct Input;
+ impl SourceProvider for Input{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0!="main.tsr"{return Err(format!("Missing source: {}",id.0));}Ok("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]).flatMap((value:int):int[]|Iterator<int>=>value===1?[value,value]:Iterator.from([value]));console.log(values.toArray().join(','));}".into())}
+ }
+ let checked=check_graph(load_project(&Input,"main.tsr").unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));
+ drop(checked.emit_rust());
 }

@@ -219,3 +219,5 @@ TSRUST=/absolute/shared-target/release/tsrust CARGO_TARGET_DIR=/absolute/shared-
 Use pinnedNode24.11.1 andRust1.96.1. CPU/RSS sampling requires macOS; untimed
 correctness can run on other supported targets. No prototype/admission results
 are ingested as accepted public measurements.
+
+Form and multipart upload modes use the same original 3×31-after-8 protocol and semantic binary corpus. Form peers base64-encode one ordered `payload` field using maintained codecs and URL encoders. Multipart peers send one binary file part with backend boundary/framing. Payload generation, base64/encoding, and server-side decoding/validation are included; only outer fixtures are excluded. Node uses URLSearchParams and FormData/Blob (Blob snapshots its input); the Rust/native multipart paths move byte owners. These additional four workload rows remain unmeasured.

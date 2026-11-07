@@ -14,16 +14,17 @@ mod tsrust_native_http {
     fn error(code:&'static str,message:impl Into<String>)->Error {Error{code,message:message.into()}}
     // Metadata can be borrowed across suspension. Body access still requires ownership;
     // Mutex supplies Sync without exposing a lock or shared access to the stream.
-    enum BodySource {Buffered(axum::body::Bytes),Streaming(Body)}
+    enum BodySource {Buffered(axum::body::Bytes),Streaming(Body),Multipart(reqwest::multipart::Form)}
     struct ExclusiveBody(std::sync::Mutex<BodySource>);
     impl ExclusiveBody {
         fn new(body:Body)->Self{Self(std::sync::Mutex::new(BodySource::Streaming(body)))}
         fn buffered(body:String)->Self{Self(std::sync::Mutex::new(BodySource::Buffered(body.into())))}
         fn into_source(self)->BodySource{self.0.into_inner().unwrap_or_else(|poisoned|poisoned.into_inner())}
-        fn into_body(self)->Body{match self.into_source(){BodySource::Buffered(bytes)=>Body::from(bytes),BodySource::Streaming(body)=>body}}
+        fn into_body(self)->Body{match self.into_source(){BodySource::Buffered(bytes)=>Body::from(bytes),BodySource::Streaming(body)=>body,BodySource::Multipart(form)=>Body::from_stream(form.into_stream())}}
         fn into_request_body(self)->reqwest::Body{match self.into_source(){
             BodySource::Buffered(bytes)=>reqwest::Body::from(bytes),
             BodySource::Streaming(body)=>reqwest::Body::wrap_stream(body.into_data_stream()),
+            BodySource::Multipart(form)=>reqwest::Body::wrap_stream(form.into_stream()),
         }}
     }
     pub struct Request {inner:http::Request<ExclusiveBody>,params:BTreeMap<String,String>,limit:Option<usize>}
@@ -438,6 +439,13 @@ mod tsrust_native_http {
 
         fn from_body(method:&str,url:&str,body:ExclusiveBody)->Result<Self,Error>{let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;let inner=http::Request::builder().method(method).uri(url).body(body).map_err(|_|error("url","Invalid request URL"))?;Ok(Self{inner,params:BTreeMap::new(),limit:None})}
         pub fn new(method:&str,url:&str,body:String)->Result<Self,Error>{Self::from_body(method,url,ExclusiveBody::buffered(body))}
+        pub fn from_form<'a>(method:&str,url:&str,fields:impl IntoIterator<Item=(&'a str,&'a str)>)->Result<Self,Error>{
+            let mut request=Self::new(method,url,String::new())?;let mut encoded=form_urlencoded::Serializer::new(String::new());for(name,value)in fields{encoded.append_pair(name,value);}*request.inner.body_mut()=ExclusiveBody::buffered(encoded.finish());request.inner.headers_mut().insert(http::header::CONTENT_TYPE,HeaderValue::from_static("application/x-www-form-urlencoded"));Ok(request)
+        }
+        pub fn from_multipart(method:&str,url:&str,parts:impl IntoIterator<Item=MultipartPart>)->Result<Self,Error>{
+            let mut request=Self::new(method,url,String::new())?;let mut form=reqwest::multipart::Form::new();for field in parts{let mut part=reqwest::multipart::Part::bytes(field.data);if let Some(file_name)=field.file_name{part=part.file_name(file_name);}if let Some(content_type)=field.content_type{part=part.mime_str(&content_type).map_err(|_|error("multipart","Invalid multipart part content type"))?;}form=form.part(field.name,part);}
+            let content_type=HeaderValue::from_str(&format!("multipart/form-data; boundary={}",form.boundary())).map_err(|_|error("multipart","Invalid multipart boundary"))?;request.inner.headers_mut().insert(http::header::CONTENT_TYPE,content_type);*request.inner.body_mut()=ExclusiveBody(std::sync::Mutex::new(BodySource::Multipart(form)));Ok(request)
+        }
         pub fn from_bytes(method:&str,url:&str,body:Vec<u8>)->Result<Self,Error>{Self::from_body(method,url,ExclusiveBody(std::sync::Mutex::new(BodySource::Buffered(body.into()))))}
         pub fn from_stream(method:&str,url:&str,body:Stream)->Result<Self,Error>{Self::from_body(method,url,ExclusiveBody::new(Body::new(body)))}
         pub fn from_channel<T:Send+'static,F:Fn(T)->Vec<u8>+Send+Unpin+'static>(method:&str,url:&str,channel:tasks::Channel<T>,bytes:F)->Result<Self,Error>{Self::from_body(method,url,ExclusiveBody::new(Body::new(ChannelBody{receiver:channel.into_receiver(),bytes})))}
@@ -530,7 +538,10 @@ mod tsrust_native_http {
         pub async fn send(&self,request:Request)->Result<Response,Error>{
             let (parts,body)=request.inner.into_parts();let url=reqwest::Url::parse(&parts.uri.to_string()).map_err(|_|error("url","Use an absolute HTTP or HTTPS URL"))?;
             if !matches!(url.scheme(),"http"|"https")||!url.username().is_empty()||url.password().is_some(){return Err(error("url","HTTP URLs cannot contain credentials"));}
-            let result=self.inner.request(parts.method,url).headers(parts.headers).body(body.into_request_body()).send().await.map_err(|e|error(if e.is_timeout(){"timeout"}else{"request"},"HTTP request failed"))?;
+            let builder=self.inner.request(parts.method,url);let builder=match body.into_source(){BodySource::Multipart(form)=>builder.multipart(form),BodySource::Buffered(bytes)=>builder.body(reqwest::Body::from(bytes)),BodySource::Streaming(body)=>builder.body(reqwest::Body::wrap_stream(body.into_data_stream()))};
+            // Merge authored headers after the backend computes multipart framing;
+            // this keeps explicit overrides and avoids duplicate Content-Type values.
+            let result=builder.headers(parts.headers).send().await.map_err(|e|error(if e.is_timeout(){"timeout"}else{"request"},"HTTP request failed"))?;
             let mut response=http::Response::builder().status(result.status());*response.headers_mut().unwrap()=result.headers().clone();Ok(Response{inner:response.body(ExclusiveBody::new(Body::from_stream(result.bytes_stream()))).unwrap(),limit:self.body_limit})
         }
     }
@@ -577,6 +588,47 @@ mod tsrust_native_http {
     #[cfg(test)]
     mod client_default_tests {
         use super::*;
+        #[test]
+        fn default_public_tls_client_and_server_negotiate_http2(){
+            tasks::block_on(async{
+                let ca=include_str!("../../../tests/fixtures/tls/ca.pem");
+                let cert=include_str!("../../../tests/fixtures/tls/server.pem");
+                let key=include_str!("../../../tests/fixtures/tls/server.key");
+                let mut app=App::new();
+                app.route("GET","/version",|request|async move{
+                    // Observe the protocol decoded by Axum, independently of
+                    // the public Response wrapper, which exposes no version.
+                    Response::text(format!("{:?}",request.inner.version()),200).unwrap()
+                }).unwrap();
+                let server=app.listen_tls("127.0.0.1:0",cert,key).await.unwrap();
+                let address=server.address();let url=format!("https://{address}/version");
+                let observed=tokio::time::timeout(Duration::from_secs(5),async{
+                    let mut roots=rustls::RootCertStore::empty();
+                    roots.add(CertificateDer::from_pem_slice(ca.as_bytes())?)?;
+                    let mut config=rustls::ClientConfig::builder_with_provider(Arc::new(rustls::crypto::aws_lc_rs::default_provider()))
+                        .with_safe_default_protocol_versions()?.with_root_certificates(roots).with_no_client_auth();
+                    config.alpn_protocols=vec![b"h2".to_vec(),b"http/1.1".to_vec()];
+                    let socket=tokio::net::TcpStream::connect(&address).await?;
+                    let stream=tokio_rustls::TlsConnector::from(Arc::new(config)).connect(rustls::pki_types::ServerName::try_from("127.0.0.1")?,socket).await?;
+                    let alpn=stream.get_ref().1.alpn_protocol().map(<[u8]>::to_vec);drop(stream);
+                    // Only trust roots and loopback proxy isolation are explicit;
+                    // neither client forces HTTP/1 nor HTTP/2 prior knowledge.
+                    let client=Client::with_transport_options(Some(ca),None,None,None,None,None,None,Some(true))?;
+                    let response=client.send(Request::new("GET",&url,String::new())?).await?;
+                    let public_status=response.status();let public_version=response.text_body().await?;drop(client);
+                    let direct=reqwest::Client::builder().no_proxy().tls_certs_only([reqwest::Certificate::from_pem(ca.as_bytes())?]).build()?;
+                    let response=direct.get(&url).send().await?;let version=response.version();let status=response.status();let body=response.text().await?;drop(direct);
+                    Ok::<_,Box<dyn std::error::Error>>((alpn,public_status,public_version,version,status,body))
+                }).await;
+                // Settle the public server before reporting any protocol or
+                // request failure; a failed assertion must not strand it.
+                server.shutdown().await;
+                let(alpn,public_status,public_version,version,status,body)=observed.expect("TLS negotiation/request witness timed out").unwrap();
+                assert_eq!(alpn.as_deref(),Some(b"h2".as_slice()));
+                assert_eq!(public_status,200);assert_eq!(public_version,"HTTP/2.0");
+                assert_eq!(version,reqwest::Version::HTTP_2);assert_eq!(status,reqwest::StatusCode::OK);assert_eq!(body,"HTTP/2.0");
+            });
+        }
         #[test]
         fn explicit_client_policy_matches_direct_backend_settings(){
             let actual=Client::with_transport_options(None,None,Some(1234),Some(456),Some(false),None,None,Some(true)).unwrap();

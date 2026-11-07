@@ -45,6 +45,7 @@ windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Secu
 libc = "=0.2.183"
 
 [dev-dependencies]
+form_urlencoded = "=1.2.2"
 # Compile the exact selected compression backend only for runtime witnesses.
 flate2 = { version = "=1.1.10", default-features = false, features = ["zlib-rs", "runtime_detection"] }
 tokio-util = { version = "=0.7.20", default-features = false }
@@ -73,7 +74,7 @@ matchit = { version = "=0.8.4" }
 axum = { version = "=0.8.9", default-features = false, features = ["http1", "http2", "tokio", "multipart"] }
 tower-http = { version = "=0.6.11", default-features = false, features = ["fs"] }
 tokio-rustls = { version = "=0.26.6", default-features = false, features = ["aws_lc_rs", "tls12"] }
-reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "stream", "http2"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "stream", "http2", "multipart"] }
 http-body = "=1.1.0"
 http-body-util = "=0.1.5"
 hyper-util = { version = "=0.1.21", features = ["server-auto", "tokio", "service"] }

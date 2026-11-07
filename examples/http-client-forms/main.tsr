@@ -1,0 +1,55 @@
+import { App, Client, Request, Response, FormField, MultipartPart, requestForm, requestMultipart, text } from 'std:http';
+import { fromArray, at, length } from 'std:bytes';
+import { strictEqual } from 'std:testing';
+
+type FormFactory = Function<Request, [method: ReadOnly<string>, url: ReadOnly<string>, fields: ReadOnly<FormField[]>]>;
+
+type MultipartFactory = Function<Request, [method: ReadOnly<string>, url: ReadOnly<string>, parts: Owned<MultipartPart[]>]>;
+async function main(): Task<void> {
+  const app = new App();
+  app.post('/form', async (input: Request): Task<Response> => {
+    const fields = await input.form();
+    strictEqual(fields.length, 2);
+    strictEqual(fields[0].name, 'q');
+    strictEqual(fields[0].value, 'é +');
+    strictEqual(fields[1].name, 'q');
+    strictEqual(fields[1].value, '');
+    return text('form exact');
+  });
+  app.post('/multipart', async (input: Request): Task<Response> => {
+    const parts = await input.multipart();
+    strictEqual(parts.length, 1);
+    strictEqual(parts[0].name, 'data');
+    strictEqual(parts[0].fileName, 'é.bin');
+    strictEqual(length(parts[0].data), 3);
+    strictEqual(unwrap(at(parts[0].data, 1)), 255);
+    return text('multipart exact');
+  });
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const client = new Client({
+      noProxy: true
+    });
+    const base = 'http://' + server.address();
+    const fields: FormField[] = [{
+      name: 'q', value: 'é +'
+    }, {
+      name: 'q', value: ''
+    }];
+    const makeForm: FormFactory = requestForm;
+    strictEqual(await(await client.send(makeForm('POST', base + '/form', fields))).text(), 'form exact');
+    strictEqual(fields.length, 2);
+    const alias = requestForm;
+    strictEqual(await(await client.send(alias('POST', base + '/form', fields))).text(), 'form exact');
+    const makeMultipart: MultipartFactory = requestMultipart;
+    const parts: MultipartPart[] = [{
+      name: 'data', fileName: 'é.bin', contentType: 'application/octet-stream', data: unwrap(fromArray([0, 255, 128]))
+    }];
+    strictEqual(await(await client.send(makeMultipart('POST', base + '/multipart', parts))).text(), 'multipart exact');
+    const multipart = requestMultipart;
+    strictEqual(multipart('POST', base, []).method(), 'POST');
+    console.log('form and multipart exact');
+  } finally {
+    await server.shutdown();
+  }
+}

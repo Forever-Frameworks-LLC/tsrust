@@ -177,10 +177,15 @@ impl Analyzer {
             }
     }
     }
-    /// A local whose nullable callback records are stored through control flow.
+    /// A nullable local whose callback environments share one storage carrier.
     pub(super) fn sticky_nullable(&self,context:&Context,binding:usize)->bool {
         let info=&context.bindings[binding];
-        context.control_stored.contains(&binding)
+        // Owned nullable locals share a carrier; scoped/view locals retain point-sensitive epochs.
+        let owned_local=info.rebindable && info.ty.union().is_some()
+            && self.nullable_scoped_record_declaration(info.ty).is_some()
+            && {let facts=self.aggregate_callable_facts(info.ty);facts.retains && !facts.scoped && !facts.unknown}
+            && !self.native_shape_contains_view(info.ty);
+        (context.control_stored.contains(&binding) || owned_local)
             && (!info.parameter || context.owned_record_captures.contains(&binding))
             && (!info.capture_reference || context.owned_record_captures.contains(&binding))
             && (self.nullable_scoped_record_declaration(info.ty).is_some() || !self.nullable_record_field_paths(info.ty).is_empty())

@@ -1,7 +1,7 @@
 //! HTTP request factories use ordinary checked forwarding for aliases and stored calls.
 use crate::{Diagnostic,Span,native_bindings::NativeBinding,syntax::*};
 fn name(operation:&str)->String{format!("@http-adapter:{operation}")}
-fn factory(operation:&str)->bool{matches!(operation,"request"|"requestBytes"|"requestStream"|"requestChannel")}
+fn factory(operation:&str)->bool{matches!(operation,"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
 pub(super) fn prepare(program:&mut Program)->Result<(),Diagnostic>{
  let mut used=std::collections::BTreeSet::new();
  let mut rewrite=|value:&mut Expr|{if let ExprKind::Name(symbol)=&value.kind && let Some(operation)=symbol.strip_prefix("@native:std:http#") && factory(operation){used.insert(operation.to_owned());value.kind=ExprKind::Name(name(operation));}Ok(())};
@@ -29,6 +29,20 @@ fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Function,Diagnos
 
 #[cfg(test)]
 mod tests{
+ #[test]
+ fn stored_binary_factory_typed_catch_survives_async_testing_import(){
+  use crate::project::{SourceProvider,SourceId,load_project,check_graph};
+  struct Source;
+  impl SourceProvider for Source{
+   fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+   fn read(&self,id:&SourceId)->Result<String,String>{
+    if id.0!="main.tsr"{return Err(format!("Missing source: {}",id.0));}
+    Ok("import {strictEqual} from 'std:testing';import {Request,requestBytes} from 'std:http';import {Bytes,fromArray} from 'std:bytes';type Factory=Function<Request,[method:ReadOnly<string>,url:ReadOnly<string>,body:Owned<Bytes>]>;async function main():Task<void>{const make:Factory=requestBytes;try{make('bad method','http://localhost/',unwrap(fromArray([1])));}catch(error){console.log(error.code);}}".into())
+   }
+  }
+  let checked=check_graph(load_project(&Source,"main.tsr").unwrap());
+  assert!(checked.is_ok(),"Stored Request factory must preserve HttpError through async catch: {:?}",checked.err());
+ }
  #[test]
  fn request_factory_forwarders_keep_success_results_in_async_callable_contexts(){
   use crate::{project::{check_graph,load_project,FileSourceProvider},syntax::Type,native_signatures::NativeTypeId};

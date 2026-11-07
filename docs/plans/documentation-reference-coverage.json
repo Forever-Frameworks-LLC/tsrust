@@ -223,7 +223,7 @@
     },
     "std:http": {
       "route": "/docs/framework/routing",
-      "members": 29
+      "members": 31
     },
     "HttpRouter": {
       "route": "/docs/framework/routing",

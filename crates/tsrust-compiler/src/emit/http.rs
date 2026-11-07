@@ -19,6 +19,12 @@ impl Emitter<'_>{
    }).collect::<Vec<_>>().join(",");format!("match &options.field{field}{{{arms}}}")
   }).collect::<Vec<_>>().join(",");format!("tsrust_native_http::Client::with_transport_options({fields})")
  }
+ fn http_owned_optional_text(&self,ty:Type,value:&str)->String{
+  let Type::Union(id)=ty else{unreachable!("checked optional multipart metadata")};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",id.index(),if *ty==Type::Undefined{"None"}else{"Some(value.into_owned())"})).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
+ }
+ fn http_owned_multipart_parts(&self,ty:Type,value:&str)->String{
+  let Type::Array(ArrayElement::Record(record,0))=ty else{unreachable!("checked multipart part array")};let fields=&self.program.records[record].fields;let file=self.http_owned_optional_text(fields[1].ty.unwrap(),"part.field1");let mime=self.http_owned_optional_text(fields[2].ty.unwrap(),"part.field2");format!("({value}).tsr_owned_items().map(|part|tsrust_native_http::MultipartPart{{name:part.field0.into_owned(),file_name:{file},content_type:{mime},data:part.field3.bytes}})")
+ }
  fn http_cookie_options(&self,ty:Type)->String{
   let record=match ty{Type::Record(record)=>record,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).expect("checked optional cookie options")};let names=["path","domain","max_age","secure","http_only","same_site","partitioned"];
   let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{
@@ -68,6 +74,8 @@ impl Emitter<'_>{
    "__configure"|"__routerConfigure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
    "__routerStatic"=>{let fallback=args.get(3).map(|arg|self.native_optional_argument(&binding.parameters[3],"fallback_value".into(),arg.ty.unwrap())).unwrap_or("None".into());format!("{{let app={receiver};let prefix={};let directory={};let fallback_value={};let fallback:Option<&str>={fallback};app.serve_static(prefix.as_ref(),directory.as_ref(),fallback.unwrap_or(\"\"))}}",raw(1),raw(2),args.get(3).map(|_|raw(3)).unwrap_or("()".into()))},
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
+   "__requestForm"=>format!("tsrust_native_http::Request::from_form({}, {}, ({}).iter().map(|field|(field.field0.as_ref(),field.field1.as_ref())))",values[0],values[1],values[2]),
+   "__requestMultipart"=>format!("tsrust_native_http::Request::from_multipart({}, {}, {})",values[0],values[1],self.http_owned_multipart_parts(args[2].ty.unwrap(),&values[2])),
    "__requestBytes"=>format!("tsrust_native_http::Request::from_bytes({}, {}, ({}).bytes)",values[0],values[1],values[2]),
    "__requestStream"=>format!("tsrust_native_http::Request::from_stream({}, {}, {})",values[0],values[1],values[2]),
    "__requestChannel"=>format!("tsrust_native_http::Request::from_channel({}, {}, {}, |chunk|chunk.bytes)",values[0],values[1],values[2]),

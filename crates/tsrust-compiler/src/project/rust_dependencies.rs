@@ -34,7 +34,7 @@ pub fn reserved(name:&str)->bool {
         "tempfile",
         "memchr",
         "hostname",
-        "sha2","subtle","uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","tower-http","matchit","tokio-rustls","reqwest","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime",
+        "sha2","subtle","uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","tower-http","matchit","tokio-rustls","reqwest","form_urlencoded","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime",
     ].contains(&name)
 }
 #[derive(Clone,Debug,Deserialize,Serialize)]

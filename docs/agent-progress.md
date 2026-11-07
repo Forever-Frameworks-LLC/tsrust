@@ -10,6 +10,37 @@ CURRENT OWNER POLICY/SOURCE — 2026-11-06
 
 LATEST VERIFIED STATE — supersedes the active-attempt notes below.
 
+
+CURRENT CONTINUATION — 2026-11-07. All older active-process/lease notes below
+are historical. Live process inspection found no Cargo/rustc/watchdog. B14 works
+source-only on public B16 in its isolated crypto tree; root reserves next normal
+configured build. No public B16 acceptance yet. Private crypto probe completed
+46.751s, 3720 paired samples, retained allocation zero; fresh audit at RustSec
+309392b18f6b17022f82c701f300433126901068 passed. Middleware admission sources
+frozen; its KAT/build/profile still pending, no public implementation.
+
+Canonical integrates form/multipart factories, all compiler/runtime/editor/docs/
+example/matched benchmark support, both dependency mirrors/locks and default H2
+negotiation witness. Offline locked metadata passed for all three manifests.
+Expanded ten-workload Node oracle PASS, 0.534s, /tmp/tsrust-http-form-expanded-
+oracle.json. Whole-project format PASS, zero changes on latest pass. Form native
+fixture now combines O0/O3 execution with relocated vendored offline export,
+empty Cargo home and forbid(unsafe_code), avoiding duplicate native builds.
+
+Actual nullable owned-local carrier repair passed exact Holder check/emit.
+Selected error-body scheduling repair passed minimal async stored-factory typed
+catch with unused std:testing import. Full fixture O0 diagnostic hit standard-stack
+overflow; normal configured O1 acceptance is required, no stack limit increase.
+Diagnostic-only flatMap layout witness added to next shared library build to
+identify the remaining rejected carrier; production conversion rules unchanged.
+
+Next: checkpoint source and one affected normal configured build/direct-test batch
+under 55m outer/30m 5GB inner limits, one target/jobs1/inc0/threads3. Includes new
+forms/offline export, uploads, private backend framing/H2, affected HTTP/editor/
+metadata matrix, repaired nullable guards and remaining failed iterator/UI scopes.
+Preserve prior passes. No timings ingested for new public HTTP factories; full
+B00–B20 acceptance and publication approval remain outstanding.
+
 REPAIR14 TERMINAL — source a2e5ba9371e25eb43d0b853dcc09c0771a1286a3,
 fingerprint 4ac17ab487e08beedb3b7bdfce4baaeaddeb2a5ddbb07f1bc563cbca9d7374f2.
 /tmp/tsrust-utilities-http-repair14-budget.json: total694.086s, peak4,057,405,512B,
@@ -71,12 +102,73 @@ claims), added explicit filesystem v0.1→v0.2 removed64MiB migration notes, and
 clarified B05's stale admission-only paragraph. No checkboxes were upgraded.
 The website-refresh finding from the audit was stale: canonical dist overview is
 Nov6 22:08 and prior127link/4HTTP checks passed; do not replay that earlier patch.
-After lease closes, formatter+checkpoint current root repairs, then existing
-prepared /tmp/tsrust-run-utilities-http-repair15.py and scopes.json. This new
-batch preserves14 runtime/editor passes, selects repaired compiler guards,
-public upload positive/negative, all18 owned-iterator family cases, docs map/
-authored content and targeted HTTP/assertion/catalog controls. It does not
-replay unchanged Node upload oracle. No15 build launched yet.
+FORM/MULTIPART PROTOTYPE COMPLETE — worker lease released; attempt5/session60006
+terminal0,4.147s/291600KiB, all children exited. Actual /tmp/tsrust-http-form-
+attempt5-profile.json: 9cases×3process×31samples after8 (837 timings), quietmax2.118,
+all direct KAT/oracle/ownership/feature/hash guardsPASS, signedretained0 for27
+allocation observations. Medianms (64/4096/65537B): form.003125/.019917/.272625;
+ownedmultipart.011125/.034333/.379750; streamcandidate.010958/.033917/.379291.
+Allocation counts include input+encoder+decoder+JSON observation objects, not just
+kernel encoding. HTTP baseline4,958,448B vs multipart5,169,920B (+211,472B);
+actual runtime packages94vs96. This is in-memory backend wall profiling, not
+public API/network/process-CPU measurement, and was NOT ingested as accepted API.
+Baseline is HTTP WITHOUT multipart, not a noHTTP/module-absence proof. All actual
+features checked against metadata upper bounds; exact backend/direct feature and
+version guards retained. Unicode fieldname default name*= parsedNameNone confirmed
+and must be documented; no silent encoding override. Choice approved: existing
+form_urlencoded Serializer+ReqwestForm/Part::bytes; stream part remains probe-only.
+Worker now implements two minimal source factories with existing record types in
+isolated tree, no heavy lease. Preserve root's explicit wrapper result annotation
+when later integrating its incremental changes; no perrequest newClient or manual
+multipart encoder/wholebodycollection. Root checkpoint3ac5594f contains formatted
+compiler repairs/docs and preserved error witness; all new source validation still
+pending. Start prepared repair15 single affected batch now.
+REPAIR15 TERMINAL — source3ac5594feac74d90853f39ec487ab4121669fa13,
+fingerprint22244926a57223b1ab3c4cc8b665c4c89bdb62cb02d4dfbceb0685cab57fa1fe.
+/tmp/tsrust-utilities-http-repair15-budget.json:546.515s,peak4,054,439,912B,
+stopnull,remaining[]. Producer terminal build-finished success:true. Seven selected
+targets:19PASS13FAIL. Docsreference mapPASS; targetedHTTP2PASS; B18controlPASS;
+ownediterator10/18PASS withsame8 remainingfailurecauses. Privateempty/stored join
+unitPASS, actualHolderemitguardSTILLpanicsStoredCallable0→Callback1. New factory
+resultannotations fixedRequest/void, butstoredfactory typedcatch nowfails unknown
+error-effect contract; b03 traces actual callableerror provenance, no catch removal.
+AuthoredUI stillfails; IteratorflatMap/carrier, Mutablelegacy and Taskexhaustion
+warning/Joberror remainunresolved. No release/family/fullregression acceptance.
+
+ACTUAL STORAGE DIAGNOSTIC — debuggerattempt timedout60.077s beforebreakpoint,
+allliveownedchildren exited; no retry. EnhancedexistingHolderregression nowprints
+checkedlayouts onemitterpanic (onlyprivateunittest, no publicIR API). OneoffCargo
+profile.test.package.tsrust-compiler.opt-level=0, sole exacttest, completed65.181s/
+3,447,886,768B; /tmp/tsrust-holder-checked-layout-diagnostic.out/.json. Default
+profileconfig/normalCLI unchanged. ACTUALIR: Record0.pull=StoredCallable0,
+Record1.pull=absentCallback1;Union0=Record0|undefined,Union1=Record1|undefined.
+main.currentfinalbindingUnion1; assignment hasouterRecordCarrier→Union1 wrapping
+InjectUnion0(Nameinner:Record0). record_sequence_carriers skipsnonstickyUnion
+joining thenwrapsactualintooldemptydestination. This explainswhythejoin-unitfix
+wasnotreached. B14 inspectingallsticky_nullablecallers forminimumownednullable
+planrepair preservingborrowed/scopedepoch rules, notemitterpatch/predicateguess.
+Privateunitdiagnosticenhancement iscurrentlyuncommitted sourcechange to preserve.
+Taskwarningdiagnosis: from→toArray→all callertransportispresent; _toArray's internal
+loop lacksprovenexhaustion/step.done relationship. Do NOTclearallobligationson done:
+take(0) canfinishwhileupstreamstillownsTasks/Jobs. No suppression accepted.
+
+Post15+diagnosticlockedcleanupremoved210objects,1,484,053,208logicalbytes,
+1,518,956,544actualfreebytes recovered; libraries/currentexecutables/source kept.
+HTTPform publicpatch5d684dc8 (23files), centralfeaturepatchunderreview (mustmirror
+native ANDbackenddependencyclosures), andH2test-onlypatch157c8b26 ready/tmp butNOT
+appliedwhiledependencyprofileinputsfreeze. H2sourceALPN+autoHTTP2alreadyconfigured;
+newtestobservesrealALPN/requestversion/defaultReqwestresponseversion, nonewoption.
+B06publicform/privateprofilefiles andoldsourceedits preservedinitsHTTPtree.
+
+NEXT EXCLUSIVE HEAVY LEASE GRANTED tob14 forreadyB16crypto/passworddirectprobe in
+managed stdlib-crypto-admission tree (clean01b63 baseline,12source-onlypatchfiles).
+Newreadinesspatch2ea900ec; manifests/lockunchangedfrompriorpackageadmission.
+Original20cases×3process×31after8, separatealloc/minimalbuilds;5GB/30minchildren,
+55mintotalinclsetupcleanup/jobs1/inc0/onesharedcanonicaltarget. NO PUBLICB16yet.
+Worker mustreportlivePIDs/logs/actualterminal; canonicalinputsFROZENexcepthandoff,
+rootnobuild/test/formatter/profileuntilleaseends. NoCrypto processconfirmedatthis
+record; permissiontostartgranted, no duplicate/restart. Publicform/H2integration
+andactualB15layoutrepair followthisprobe; preserveallpassed15/14sourcescopes.
 
 HTTP client policy/upload B10 slice integrated
 from isolated worker; all old canonical changes preserved. Adds timeoutMs,
