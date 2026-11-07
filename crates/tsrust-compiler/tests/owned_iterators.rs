@@ -175,3 +175,13 @@ fn mapped_started_jobs_transfer_through_iterator_collection(){
  let source=support::format_round_trip("import {Iterator} from 'std:iterator';import {all,Job} from 'std:futures';async function value():Task<int>{return 3;}async function main():Task<void>{const jobs=[value().start(),value().start()];const values=await all(Iterator.from(jobs).map((work:Job<int,undefined>):Job<int,undefined>=>work).toArray());console.log(values.join(','));}");
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"3,3\n");
 }
+
+#[test]
+fn late_iterator_factories_finish_after_an_unnamed_catch(){
+ let original=include_str!("fixtures/owned-iterators/contracts.tsr");
+ let (before,after)=original.rsplit_once("catch (error)").unwrap();
+ let source=support::format_round_trip(&format!("{before}catch{}",after.replace("strictEqual(error.code, 'selected');","strictEqual(terminalErrors, 1);")));
+ let directory=support::TempDirectory::new();let rust=directory.0.join("program.rs");
+ support::success(&support::run(support::cli().arg("emit").arg(directory.source(&source)).arg("-o").arg(&rust),30));
+ assert!(rust.is_file());
+}

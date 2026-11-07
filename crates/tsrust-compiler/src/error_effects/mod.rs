@@ -873,13 +873,19 @@ mod tests {
     #[test]
     fn iterator_terminal_error_contract_after_prior_catch_diagnostic(){
         use crate::project::{SourceId,SourceProvider,check_graph,load_project};
-        struct Input;
+        struct Input(String);
         impl SourceProvider for Input{
             fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
-            fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(include_str!("../../tests/fixtures/owned-iterators/contracts.tsr").into())}else{Err(format!("Missing source: {}",id.0))}}
+            fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}
         }
-        let graph=load_project(&Input,"main.tsr").unwrap();
-        if let Err(error)=check_graph(graph){panic!("terminal iterator contract: {error:?}");}
+        let original=include_str!("../../tests/fixtures/owned-iterators/contracts.tsr");
+        let (before,after)=original.rsplit_once("catch (error)").unwrap();
+        let unnamed=format!("{before}catch{}",after.replace("strictEqual(error.code, 'selected');","strictEqual(terminalErrors, 1);"));
+        for source in [original.to_owned(),unnamed]{
+            let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+            let graph=load_project(&Input(source),"main.tsr").unwrap();
+            let checked=check_graph(graph).unwrap_or_else(|error|panic!("terminal iterator contract: {error:?}"));drop(checked.emit_rust());
+        }
     }
     #[test]
     fn deferred_error_definitions_preserve_live_callees() {

@@ -2715,7 +2715,7 @@ impl Analyzer {
         // A function that catches the failure of a callback field of a record
         // parameter needs the records that later functions construct. Check
         // the rest first, then that function again.
-        let mut postponed = Vec::new();
+        let mut postponed = std::collections::VecDeque::new();
         // Checking consumes a body; keep the source of every function that may
         // need the second attempt, including one reached through a call.
         // Retain the same raw bodies for eligible physical-record specializations
@@ -2732,10 +2732,11 @@ impl Analyzer {
         }
         // The number of known record callbacks when each function was checked.
         let mut field_origins = vec![usize::MAX; sources.len()];
-        while priority.is_some() || sequence < self.program.functions.len() {
-            let index = if let Some(index)=priority.take() {index} else {
-                let index=sequence;sequence+=1;index
-            };
+        while priority.is_some() || sequence < self.program.functions.len() || !postponed.is_empty() {
+            let (index,retrying) = if let Some(index)=priority.take() {(index,false)} else if sequence < self.program.functions.len() {
+                let index=sequence;sequence+=1;(index,false)
+            }else{(postponed.pop_front().expect("pending catch retry"),true)};
+            if retrying && self.checked[index].is_some(){continue;}
             if self.checked[index].is_none() && self.capturing_function_is_unused(index)? {
                 continue;
             }
@@ -2743,7 +2744,11 @@ impl Analyzer {
                 *known = 0;
             }
             if let Err(error) = self.function(index) {
-                if !Self::unresolved_catch_contract(&error) || self.checked[index].is_some() || sources.get(index).copied()!=Some(true) {
+                if !Self::unresolved_catch_contract(&error) || self.checked[index].is_some() || sources.get(index).copied()!=Some(true)
+                    // A retry may discover new concrete factories. Drain them before retrying
+                    // its catch again; without new work, preserve the unresolved diagnostic.
+                    || retrying && sequence == self.program.functions.len()
+                {
                     return Err(error);
                 }
                 for (unchecked, retained) in sources.iter().copied().enumerate() {
@@ -2754,12 +2759,7 @@ impl Analyzer {
                 self.visiting.iter_mut().for_each(|visiting| *visiting = false);
                 self.function_stack.clear();
                 self.depth = 0;
-                postponed.push(index);
-            }
-        }
-        for index in postponed {
-            if self.checked[index].is_none() {
-                self.function(index)?;
+                postponed.push_back(index);
             }
         }
         // A handler is typed from the callbacks that constructed records held
