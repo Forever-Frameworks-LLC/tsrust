@@ -6,33 +6,51 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Latest state: checkpoint7d84bb53 bounded run ended224.671s,peak2946405104B,
-stopnull,remaining[] (`/tmp/tsrust-native-record-layout-results.json`). Normal
-CLI/host terminal buildPASS220.605s. Byte68 stopped in CHECK2.09s at fixture
-nullable-recursive-callbacks-join-factories-10, child.next=empty(): required
-Record135->134 conversion was rejected. No native compilation/execution in that
-attempt; the14previous native errors have not yet been revalidated. Cleanup
-398438400B actual recovery. Private/editor phase remains unrun.
-Actual bounded emit-only trace1.652s `/tmp/tsrust-native-layout-rejection.err`
-proves source readUnion28(Stored0,undefined), empty origins/protocol0, targets
-Union95(Stored54,undefined), same protocol0. Nullable candidate filtering allowed
-only exact scalars/records, bypassing the EXISTING validated callable conversion.
-Pending narrow shared fix admits callable and array candidate categories, then
-runs unchanged exact protocol/origin/element checks. Existing unit now tests
-nullable callables/arrays, live->absent refusal, unadmitted origins and wrong
-protocols. B06 reviewed; no blanket acceptance/ownership weakening.
-Prepared `/tmp/tsrust-nullable-storage-proof-run.py` NOT started at this record;
-frontbyte68bothprofiles then affectedprivate/editor, one30min/5GB/jobs1/
-incremental0 scope, no duplicated preflight. Original cases and accepted scopes
-retained. No benchmark timing or SQLite ingestion here; fullgoalactive.
-7d84 source retains prior reviewed recursive whole-body epoch, stale Inject tag,
-acyclic-prefix declaration and empty-factory ABI repairs. Whole-project format
-changed0files/snippets/fingerprints. Allsource acceptance remains pending.
-Checklist reconciles actual retained local APIs; B00 paired byte positions and
-borrowed URL getters now also checked against retained/current unit evidence.
-Upstream URL full scaling/relative-reference investigation, all-host/scalar-path
-package admission and B20 final validation remain open. Shared-pool lifecycle
-proof is compositional, not a password-specific cancellation probe.
+Latest ACTUAL PASS at checkpointd534db74: byte68cases EACH at debug and release,
+zero failures/skips/hooks, exact68names/catalog-preservation and property-order
+oracle verified. `/tmp/tsrust-nullable-storage-proof-front-30bc05cbad9c.json`.
+Source fingerprint30bc05cbad9c...; normalCLI/host terminalbuildPASS221.652s,
+peak2897778KiB. Host33.75s; debug setup14316.916583ms/check9779.833709/
+emit634.213083/native3491.072458, execution1.407875ms. Release setup18485.309333ms/
+check9777.676625/emit643.520916/native7681.397709, execution0.462916ms.
+These are correctness observations, not comparable benchmark/SQLite timings.
+Front scope257.346s,peak2987004656B,stopnull,remaining[]. Both prior frontend
+rejection and all14nativecompile errors repaired without removing a case.
+TERMINAL complete same `/tmp/tsrust-nullable-storage-proof-run.py`: units phase
+428.216s,peak4268480704B,stopnull,remaining[]. Fresh compiler/LSP build terminal
+PASS326.720s/peak4118164KiB. Compiler selected46:45PASS/1FAIL,93.83s; fresh
+byte callable editor agreement1PASS4.15s. Results
+`/tmp/tsrust-nullable-storage-proof-units-30bc05cbad9c.json`.
+Sole failure is NEW deep-conversion witness assertion source==target3, before its
+nullable conversion exercise/native compilation. Original preceding native chain
+variants ran; no runtime failure diagnosed. Production canonicalization now makes
+adopt<T>'s parameter/result identical, so the test no longer selects an actual
+conversion. Preserve45passes,byte68bothprofiles,editor1. B06/B14 reviewed/applied test-only replacement (patch7919848):
+select real cyclic empty Holder and actual live Holder,
+invoke the same emitter conversion in native probe, retain nonidentity/10002nodes/
+64KiB/O0/O3/pointer/drop/all escape checks. No production edits are indicated.
+No build/test live now; toolsession32822 closed. Automatic object cleanup recovered
+1008283648B actual free space; shared dependencies and current consumers retained.
+Prepared `/tmp/tsrust-abi-witness-repair-run.py`, NOT started at this record.
+Rerun ONLY repaired failed ABI witness using compiler --lib build (avoid a fresh
+normal CLI/LSP build for cfg(test)-only changes); then meaningful family library
+milestone as required, followed by remaining B10/B19 offline exports LAST.
+No new measurement ingestion. Full B00–B20 goal remains active; no push/publication.
+Passed existing55public,42collections,crypto24bothprofiles and relocated logging/
+realtime evidence retained; compiler-library1514passes and repairedpriorfailed
+controls retained. Final milestone/platform/package/remaining measurements open.
+Current repairs: finite scoped records/captures; bounded recursive move worklist;
+whole-body cyclic carrier retained through point epochs; actual union tags and
+inner wrappers normalized; acyclic prefixes retain own declarations; empty `{}`
+factories do not adopt unrelated live callback environments; nullable candidate
+selection invokes unchanged protocol/origin/element validation. New positive and
+negative private controls pending current unit phase. B06/B14/root reviewed.
+Whole-project format0changes; onlyprogressuncommitted. APIchecklist now reflects
+verified retained native/editor/export evidence acrossB01–B18, with remaining
+Windows, disabled-log allocation, adapter, package/full-family gates explicit.
+B00 URL investigation stays open: correctness/patch proof exists, complete bounded
+scaling/relative-reference receipt not located. Do not inferall-host/scalar-path
+package admission from currenthost vectors. Preserve unchangedRust/Nodecontrols.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 

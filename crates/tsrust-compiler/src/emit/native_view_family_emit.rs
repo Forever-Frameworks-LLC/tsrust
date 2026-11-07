@@ -264,9 +264,6 @@ mod tests {
         let source = "type Window={};type Holder={data:Window;read:Once<Function<Window>>;next?:Holder;};function build(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function other(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function take(holder:Holder){return holder.read;}function main(){}";
         let source = if callback_only { source.replace("data:Window;", "data:Once<Function<Window>>;").replace("data:first,", "data:()=>first,") } else { source.to_owned() };
         let source = if nullable { source.replace("read:Once<Function<Window>>;", "read?:Once<Function<Window>>;") } else { source };
-        let source = if nullable && !callback_only {
-            format!("{source}function empty(first:Window):Holder{{return {{data:first}};}}function adopt<T>(child:T,first:Window,second:Window):Holder{{const parent=build(first,second);parent.next=child;return parent;}}function request_adopt(first:Window,second:Window,third:Window):Holder{{return adopt(empty(first),second,third);}}")
-        } else {source};
         let source = crate::formatting::format(&source).unwrap();
         assert_eq!(crate::formatting::format(&source).unwrap(), source);
         let mut parsed = crate::syntax::parse(&source).unwrap();
@@ -295,28 +292,43 @@ mod tests {
         let make = format!("function{factory}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
         let alternate = format!("function{other}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
         let first_pointer = if callback_only { "" } else { "assert_eq!(root.field0.bytes.as_ptr(),first.as_ptr());" };
+        let mut conversion_definition=String::new();
         let conversion_probe=if nullable && !callback_only {
-            let adopt=checked.functions.iter().position(|function|function.name.starts_with("adopt<")&&!function.template).expect("concrete empty-to-live recursive carrier");
-            let Type::Record(source)=checked.functions[adopt].bindings[0].ty else{panic!("owned source record")};
-            let Type::Record(target)=checked.functions[adopt].result else{panic!("owned target record")};
+            let emitter=emitter_for(&checked,"");let target=record;
+            let source=(0..checked.records.len()).find(|&candidate|{
+                if candidate==target || checked.scoped_records.declaration(candidate)!=checked.scoped_records.declaration(target) || !emitter.native_views.cyclic(candidate){return false;}
+                let fields=&checked.records[candidate].fields;if fields.len()!=3 || fields[0].ty!=Some(Type::Record(0)){return false;}
+                let(Some(Type::Union(read)),Some(Type::Union(next)))=(fields[1].ty,fields[2].ty)else{return false;};
+                checked.unions[read.index()].members.contains(&Type::Undefined)
+                    && checked.unions[read.index()].members.iter().all(|ty|match *ty{
+                        Type::Undefined=>true,
+                        Type::Callback(id)=>checked.absent_callback_payloads.contains(&id),
+                        Type::StoredCallable(id)=>checked.stored_contracts.origins(id).is_some_and(|origins|origins.is_empty()),
+                        _=>false,
+                    })
+                    && checked.unions[next.index()].members.contains(&Type::Record(candidate))
+            }).expect("real cyclic absence-only Holder from omitted next");
             assert_ne!(source,target,"witness requires a real carrier conversion");
+            let converted=emitter.record_carrier_conversion(Type::Record(source),Type::Record(target),"input");
+            assert!(converted.contains("enum CarrierTask"),"witness exercises the production bounded converter");
+            let input_type=emitter.recursive_view_native_type(Type::Record(source),"'carrier");
+            let output_type=emitter.recursive_view_native_type(Type::Record(target),"'carrier");
+            conversion_definition=format!("fn convert_absent_carrier<'carrier>(input:{input_type})->{output_type}{{{converted}}}");
+            let empty_field=|position:usize|{let union=checked.records[source].fields[position].ty.unwrap().union().unwrap();let tag=checked.unions[union.index()].members.iter().position(|ty|*ty==Type::Undefined).unwrap();format!("Union{}::V{tag}(TsrUndefined)",union.index())};
             let edge=checked.records[source].fields[2].ty.unwrap().union().unwrap();
-            let child=checked.unions[edge.index()].members.iter().find_map(|ty|if let Type::Record(id)=ty{Some(*id)}else{None}).unwrap();
-            let empty_field=|record:usize,position:usize|{let ty=checked.records[record].fields[position].ty.unwrap();let union=ty.union().unwrap();let tag=checked.unions[union.index()].members.iter().position(|ty|*ty==Type::Undefined).unwrap();format!("Union{}::V{tag}(TsrUndefined)",union.index())};
-            let source_edge=|record:usize,value:&str|{let union=checked.records[record].fields[2].ty.unwrap().union().unwrap();let tag=checked.unions[union.index()].members.iter().position(|ty|*ty==Type::Record(child)).unwrap();format!("Union{}::V{tag}(RecordLink{child}::new({value}))",union.index())};
-            let leaf=format!("Record{child}{{field0:Record0{{bytes:&first}},field1:{},field2:{}}}",empty_field(child,1),empty_field(child,2));
-            let parent=format!("Record{child}{{field0:Record0{{bytes:&first}},field1:{},field2:{}}}",empty_field(child,1),source_edge(child,"chain"));
-            let input=format!("Record{source}{{field0:Record0{{bytes:&first}},field1:{},field2:{}}}",empty_field(source,1),source_edge(source,"chain"));
+            let tag=checked.unions[edge.index()].members.iter().position(|ty|*ty==Type::Record(source)).unwrap();
+            let stored=emitter.union_store_payload(edge,Type::Record(source),"chain");
+            let leaf=format!("Record{source}{{field0:Record0{{bytes:&first}},field1:{},field2:{}}}",empty_field(1),empty_field(2));
+            let parent=format!("Record{source}{{field0:Record0{{bytes:&first}},field1:{},field2:Union{}::V{tag}({stored})}}",empty_field(1),edge.index());
             let target_edge=checked.records[target].fields[2].ty.unwrap().union().unwrap();
-            let target_child=checked.unions[target_edge.index()].members.iter().find_map(|ty|if let Type::Record(id)=ty{Some(*id)}else{None}).unwrap();
-            let tag=checked.unions[target_edge.index()].members.iter().position(|ty|*ty==Type::Record(target_child)).unwrap();
-            let tail_edge=checked.records[target_child].fields[2].ty.unwrap().union().unwrap();
-            assert_eq!(tail_edge,target_edge,"converted recursive edge uses its concrete component");
-            format!("let mut chain={leaf};for _ in 0..10000{{chain={parent};}}let converted=function{adopt}({input},Record0{{bytes:&first}},Record0{{bytes:&second}});assert_eq!(converted.field0.bytes.as_ptr(),first.as_ptr());let mut remaining=converted.field2;let mut count=0;while let Union{}::V{tag}(link)=remaining{{let node=link.into_inner();assert_eq!(node.field0.bytes.as_ptr(),first.as_ptr());remaining=node.field2;count+=1;}}assert_eq!(count,10002);",target_edge.index())
+            let target_tag=checked.unions[target_edge.index()].members.iter().position(|ty|*ty==Type::Record(target)).unwrap();
+            let moved=emitter.union_move_payload(target_edge,Type::Record(target),"link");
+            format!("let make_input=||{{let mut chain={leaf};for _ in 0..10000{{chain={parent};}}{parent}}};let converted=convert_absent_carrier(make_input());assert_eq!(converted.field0.bytes.as_ptr(),first.as_ptr());let mut remaining=converted.field2;let mut count=1;while let Union{}::V{target_tag}(link)=remaining{{let node={moved};assert_eq!(node.field0.bytes.as_ptr(),first.as_ptr());remaining=node.field2;count+=1;}}assert_eq!(count,10002);drop(convert_absent_carrier(make_input()));",target_edge.index())
         }else{String::new()};
         let probe = format!("fn family_probe(){{std::thread::Builder::new().stack_size(64*1024).spawn(||{{let first=vec![3u8];let second=vec![7u8];{conversion_probe}let mut root={make};for index in 0..10000{{let mut parent=if index%2==0{{{make}}}else{{{alternate}}};parent.field2=Union{union}::V{tag}(RecordLink{record}::new(root));root=parent;}}{first_pointer}let result={invoke_root};assert_eq!(result.bytes.as_ptr(),second.as_ptr());assert_eq!(result.bytes[0],7);}}).unwrap().join().unwrap();}}");
         let negative = format!("fn invalid_escape(){{let retained;let first=vec![3u8];{{let second=vec![7u8];let holder={make};retained={invoke_holder};}}assert_eq!(retained.bytes[0],7);}}");
         let mut generated = crate::emit::emit(&checked);
+        generated.push_str(&conversion_definition);
         if nullable && !callback_only {assert!(generated.contains("enum CarrierTask"),"deep witness must exercise bounded conversion");}
         let main = generated.find("fn main()").unwrap();
         let opening = main + generated[main..].find('{').unwrap() + 1;
