@@ -89,9 +89,21 @@ impl Analyzer {
         let mut inline_shapes = HashMap::new();
         let patterns=self.generic_functions.template(name).expect("generic template").params.iter().map(|(_,pattern,_)|(pattern.span.start,pattern.span.end)).collect::<Vec<_>>();
         for (key,argument) in patterns.into_iter().zip(args.iter()) {
-            if let Some(shape) = self.inline_generic_callable_shape(argument) {
-                inline_shapes.insert(key, shape);
-            }
+            let shape=self.inline_generic_callable_shape(argument).or_else(||{
+                // A named non-generic declaration has the same stated callable
+                // constraint as an annotated arrow. Real argument checking still
+                // checks the body, captures and typed failure effects exactly once.
+                let ExprKind::Name(name)=&argument.kind else{return None;};
+                if context.names.contains_key(name){return None;}
+                let &index=self.function_names.get(name)?;
+                if !self.program.functions[index].type_parameters.is_empty(){return None;}
+                let signature=&self.signatures[index];
+                let result=self.checked[index].as_ref().map(|function|function.result)
+                    .or_else(||self.known_results.get(&index).copied())
+                    .or_else(||(!signature.inferred_result).then_some(signature.result))?;
+                Some((signature.params.clone(),result))
+            });
+            if let Some(shape)=shape{inline_shapes.insert(key,shape);}
         }
         Ok(Prepared::Arguments(Arguments { inline_shapes, prepared: vec![false; args.len()], value_hints:HashMap::new(), parameter_hints:vec![None;args.len()] }))
     }
@@ -188,4 +200,14 @@ impl Analyzer {
         )?;
         self.publish_generic_preparation(context, name, concrete)
     }
+}
+
+#[cfg(test)]
+#[test]
+fn named_callback_results_constrain_generic_outputs_without_losing_shadowing_or_errors(){
+ let header="function apply<T,U>(value:Owned<T>,action:Owned<Function<U,[value:Owned<T>]>>):U{return action(value);}function failFirst(value:int):int{if(value===0){throw 'selected';}return value;}";
+ for body in ["const result:int=apply(1,failFirst);console.log(result);","const failFirst=(value:int):string=>String(value);const result:string=apply(1,failFirst);console.log(result);"] {
+  let source=format!("{header}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=crate::check(&source).unwrap();drop(checked.emit_rust());
+ }
+ let source=format!("{header}function wrong(value:string):string{{return value;}}function main(){{apply(1,wrong);}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(crate::check(&source).is_err(),"Named callback input constraints remain exact");
 }

@@ -53,7 +53,7 @@ pub fn json_module_with_writer(writer:bool)->String {
 pub fn requires_dependencies(source:&str)->bool {
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
     source.contains(crate::stdlib::process::RUNTIME) || source.contains(crate::stdlib::compression::RUNTIME) || source.contains(crate::stdlib::net::TRANSPORT_RUNTIME) || source.contains(crate::stdlib::net::DNS_RUNTIME) || source.contains(&crate::stdlib::io::runtime()) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
-        || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains(crate::stdlib::threads::ASYNC_RUNTIME) || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("mod tsr_rust")
+        || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::crypto::PASSWORD_RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains(crate::stdlib::threads::ASYNC_RUNTIME) || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("mod tsr_rust")
 }
 
 /// Keep application record/union types, borrow adapters and generic ownership code
@@ -89,6 +89,7 @@ pub fn separate(source:&str)->Units {
     );
     extract("tsrust_native_crypto",crate::stdlib::crypto::RUNTIME.to_owned(),
     );
+    extract("tsrust_native_crypto_password",crate::stdlib::crypto::PASSWORD_RUNTIME.to_owned());
     extract("tsrust_native_uuid",crate::stdlib::uuid::RUNTIME.to_owned(),
     );
     extract("tsrust_native_decimal",crate::stdlib::decimal::RUNTIME.to_owned(),
@@ -181,6 +182,13 @@ mod tests {
  fn optional_http_policies_preserve_extraction_marker_without_test_feature_activation(){
   let ordinary=format!("{}{}",crate::stdlib::futures::RUNTIME,crate::stdlib::http::runtime());assert!(ordinary.contains("#[cfg(feature = \"http-middleware\")]"));assert!(!ordinary.contains("#[cfg(any(test, feature = \"http-middleware\"))]"));
   let units=separate(&ordinary);assert!(units.dependencies);assert!(!units.runtime.unwrap().contains(crate::stdlib::http::MIDDLEWARE_MARKER));
-  let selected=format!("{ordinary}{}",crate::stdlib::http::MIDDLEWARE_MARKER);let units=separate(&selected);assert!(units.runtime.unwrap().starts_with(crate::stdlib::http::MIDDLEWARE_MARKER));assert!(!units.application.contains("mod tsrust_native_http {"));
+  let selected=format!("{ordinary}{}",crate::stdlib::http::MIDDLEWARE_MARKER);let units=separate(&selected);assert!(units.runtime.unwrap().strip_prefix("#![allow(dead_code, unused_variables, unused_mut)]\n").expect("runtime lint prelude").starts_with(crate::stdlib::http::MIDDLEWARE_MARKER));assert!(!units.application.contains("mod tsrust_native_http {"));
  }
+}
+
+#[cfg(test)]
+#[test]
+fn password_runtime_extracts_with_the_async_pool_backend(){
+ let source=format!("{}{}{}{}",crate::stdlib::futures::RUNTIME,crate::stdlib::threads::ASYNC_RUNTIME,crate::stdlib::crypto::RUNTIME,crate::stdlib::crypto::PASSWORD_RUNTIME);
+ let units=separate(&source);assert!(units.dependencies);let runtime=units.runtime.unwrap();assert!(runtime.contains("pub mod tsrust_native_crypto_password {"));assert!(runtime.contains(crate::stdlib::threads::ASYNC_RUNTIME));assert!(!units.application.contains(crate::stdlib::crypto::PASSWORD_RUNTIME));assert!(units.application.contains("use tsrust_runtime::tsrust_native_crypto_password;"));
 }

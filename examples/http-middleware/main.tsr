@@ -23,7 +23,10 @@ async function main(): Task<void> {
   const secure: PolicyFactory = secureHeaders;
   const encoding: PolicyFactory = compress;
   router.use('/api/*', pass(makeCors(options)), secure(), encoding());
-  router.post('/api/echo', async (c: Mutable<Context>): Task<Response> => c.text(await c.req.text()));
+  router.post('/api/echo', async (c: Mutable<Context>): Task<Response> => {
+    const body = await c.req.text();
+    return c.text(body);
+  });
   router.get('/outside', c => c.text('outside'));
   router.get('/api/failure', (): Response => {
     throw 'checked route failure';

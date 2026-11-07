@@ -3,6 +3,7 @@ mod support;
 fn source_policies_preserve_aliases_path_order_request_bodies_and_error_headers(){
  let source=support::format_round_trip(include_str!("../../../examples/http-middleware/main.tsr"));
  let directory=support::TempDirectory::new();let path=directory.source(&source);
+ support::success(&support::run(support::cli().arg("check").arg(&path),30));
  support::success(&support::run(support::cli().current_dir(&directory.0).args(["setup","--portable","--offline"]),180));
  let package=directory.0.join("package");
  support::success(&support::run(support::cli().arg("emit").arg(&path).args(["--package","-o"]).arg(&package),60));

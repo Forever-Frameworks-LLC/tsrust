@@ -1,5 +1,5 @@
-// Explicit bounded CPU jobs; backend owns Argon2/PHC and secret primitives.
 mod tsrust_native_crypto_password {
+ // Explicit bounded CPU jobs; backend owns Argon2/PHC and secret primitives.
  use super::tsrust_native_crypto::Error;
  use crate::tsrust_native_threads as pool;
  use argon2::{Algorithm,Argon2,Params,Version,password_hash::{PasswordHasher,PasswordVerifier,phc::PasswordHash}};

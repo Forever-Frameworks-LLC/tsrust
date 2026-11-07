@@ -127,6 +127,7 @@ impl Prepared {
         if runtime.contains("pub mod tsrust_native_date {") {
             command.args(["--features", "calendar"]);}
   if runtime.contains("pub mod tsrust_native_crypto {"){command.args(["--features","crypto"]);}
+  if runtime.contains("pub mod tsrust_native_crypto_password {"){command.args(["--features","crypto-password"]);}
   if runtime.contains("pub mod tsrust_native_signals {"){command.args(["--features","signals"]);}
   if runtime.contains("pub mod tsrust_native_uuid {"){command.args(["--features","uuid"]);}
   if runtime.contains("pub mod tsrust_native_decimal {"){command.args(["--features","decimal"]);}

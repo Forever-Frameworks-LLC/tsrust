@@ -183,6 +183,12 @@ impl Analyzer {
             let ty = self.scoped_records.recursive_parameter(ty);
             self.arrow_parameter_contract(param, ty)?;
             let binding = Self::bind(&mut context,&param.name,ty,true)?;
+            // An inferred Task value uses the solved callback's input access.
+            // Explicit Task annotations retain intrinsic consuming ownership.
+            if matches!(param.ty,ParameterAnnotation::Inferred(_)) && self.is_task_type(ty)
+                && contextual.as_ref().and_then(|parameters|parameters.get(position)).is_some_and(|parameter|parameter.mode==Mode::Read) {
+                context.readonly_parameters.insert(binding);
+            }
             parameters.push(binding);
             declared.push(ty);
         }
@@ -249,7 +255,7 @@ impl Analyzer {
             context.bindings[binding].callback_kind=Some(kind);
             context.bindings[binding].callback_reference=matches!(kind,CallbackKind::Reusable|CallbackKind::Read);
             context.bindings[binding].callback_invocation=Some(kind.invocation());
-            if (kind.is_owned()||kind.is_once())&&!(kind==CallbackKind::Task&&param.access.as_ref().is_some_and(|access|access.text=="read")) {context.bindings[binding].mode=Mode::Consume;}
+            if (kind.is_owned()||kind.is_once())&&!(kind==CallbackKind::Task&&(param.access.as_ref().is_some_and(|access|access.text=="read")||context.readonly_parameters.contains(&binding))) {context.bindings[binding].mode=Mode::Consume;}
         }
         if param.access.as_ref().is_some_and(|access|access.text=="read") && !body_ty.is_copy() {
             context.readonly_parameters.insert(binding);

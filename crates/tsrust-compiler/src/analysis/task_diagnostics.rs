@@ -79,7 +79,20 @@ impl CheckedProgram {
         if self.task_origins.is_empty() && !self.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) && !self.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Job)) {return Vec::new();}
         let mut tracker=Tracker{program:self,warnings:BTreeMap::new(),failures:Vec::new(),projections:0};
         for function in &self.functions { if !function.template {tracker.function(function, &[],None,Mode::Consume);} }
-        for closure in &self.closures {if !closure.function.template && closure.forward.is_none() {tracker.function(&closure.function,&closure.captures,Some(&closure.parameters),closure.invocation);} }
+        for closure in &self.closures {
+            if closure.forward.is_some(){continue;}
+            if !closure.polymorphic {
+                if !closure.function.template{tracker.function(&closure.function,&closure.captures,Some(&closure.parameters),closure.invocation);}
+            }else{
+                // A polymorphic declaration retains an empty symbolic body.
+                // Responsibilities belong to its actual checked invocation bodies.
+                for method in &closure.methods {
+                    if method.function.template{continue;}
+                    let captures=closure.captures.iter().zip(&method.captures).map(|(capture,&slot)|{let mut capture=capture.clone();capture.inner=slot;capture}).collect::<Vec<_>>();
+                    tracker.function(&method.function,&captures,Some(&method.parameters),method.invocation);
+                }
+            }
+        }
         tracker.warnings.into_values().collect()
     }
 }
@@ -645,6 +658,7 @@ mod cursor_tests{
    "await all(Iterator.from([value()]).take(0).toArray());",
    "await all(Iterator.from([value()]).drop(1).toArray());",
    "await all(Iterator.from([value()]).filter((_value)=>false).toArray());",
+   "const tasks=[value()];console.log(Iterator.from(tasks).map((_work:Task<int>):int=>1).toArray().length);",
   ]{assert!(public_warnings(body).unwrap_or_else(|error|panic!("{body}: {error:?}")).iter().any(|warning|warning=="unused-task"),"{body}");}
   for body in [
    "const pending=Iterator.from([value().start()]);",

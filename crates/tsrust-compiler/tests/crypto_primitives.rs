@@ -29,3 +29,10 @@ fn opaque_hasher_signatures_emit_their_runtime_without_a_constructor_call(){let 
 fn module_password_aliases_and_stored_functions_preserve_lazy_pool_forwarding(){
  let source=support::format_round_trip("import {hashPassword,verifyPassword,verifyPasswordBounded} from 'std:crypto';import {ThreadPool} from 'std:threads';import {fromUtf8,view} from 'std:bytes';const hash=hashPassword;const verify=verifyPassword;const bounded=verifyPasswordBounded;const stored={hash,verify,bounded};async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:1});try{const bytes=unwrap(fromUtf8('module alias'));const password=unwrap(view(bytes,0,12));const encoded=unwrap(await stored.hash(pool,password));console.log(unwrap(await stored.verify(pool,password,encoded)));console.log(unwrap(await stored.bounded(pool,password,encoded,{maxMemoryKiB:19456,maxIterations:2,maxParallelism:1})));}finally{pool.shutdown();}}");let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),180);support::success(&output);assert_eq!(output.stdout,b"true\ntrue\n");
 }
+
+#[test]
+fn password_exports_select_the_backend_feature_and_async_pool(){
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(include_str!("../../../examples/crypto/passwords.tsr")));let exported=directory.0.join("package");support::success(&support::run(support::cli().arg("emit").arg(path).args(["--package","-o"]).arg(&exported),60));
+ let manifest=std::fs::read_to_string(exported.join("Cargo.toml")).unwrap();let manifest=manifest.parse::<toml_edit::DocumentMut>().unwrap();assert!(manifest["features"]["default"].as_array().unwrap().iter().any(|feature|feature.as_str()==Some("crypto-password")));
+ let application=std::fs::read_to_string(exported.join("src/main.rs")).unwrap();assert!(application.contains("mod tsrust_native_crypto_password {"));assert!(application.contains("pub struct PoolSubmission"));
+}

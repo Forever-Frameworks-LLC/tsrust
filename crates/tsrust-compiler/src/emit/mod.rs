@@ -3313,13 +3313,14 @@ impl Emitter<'_> {
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:dns"){output.push_str(crate::stdlib::net::DNS_RUNTIME);}
         if self.uses_regex_runtime() { output.push_str(crate::stdlib::regex::RUNTIME); }
         if self.uses_locale_runtime(){output.push_str(crate::stdlib::locale::RUNTIME);}
+        let crypto_password_runtime=self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:crypto" && crate::stdlib::crypto::password_operation(binding.name)});
         let compression_streams_runtime=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::CompressionReader|crate::native_signatures::NativeTypeId::CompressionWriter)));
         let compression_runtime=compression_streams_runtime || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:compression");
         if compression_runtime{output.push_str(crate::stdlib::compression::RUNTIME);}
         if compression_streams_runtime{output.push_str(crate::stdlib::compression::STREAM_RUNTIME);}
-        if compression_runtime || self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
+        if compression_runtime || crypto_password_runtime || self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
             || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
-            let asynchronous=compression_runtime || self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:threads"&&binding.name=="__taskAsync"});
+            let asynchronous=compression_runtime || crypto_password_runtime || self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:threads"&&binding.name=="__taskAsync"});
             output.push_str(if asynchronous{crate::stdlib::threads::ASYNC_RUNTIME}else{crate::stdlib::threads::RUNTIME});
         }
         if self.native_bindings.borrow().iter().any(|&id| {
@@ -3372,7 +3373,7 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Decimal)){output.push_str(crate::stdlib::decimal::RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:numeric"){output.push_str(&format!("mod tsrust_numeric {{ {} }}",crate::stdlib::numeric::emit::RUNTIME));}
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CryptoHasher)) || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:crypto"){output.push_str(crate::stdlib::crypto::RUNTIME);}
-        if self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:crypto" && crate::stdlib::crypto::password_operation(binding.name)}){output.push_str(crate::stdlib::crypto::PASSWORD_RUNTIME);}
+        if crypto_password_runtime{output.push_str(crate::stdlib::crypto::PASSWORD_RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:env"){output.push_str(&format!("mod tsrust_native_env {{ {} }}",include_str!("../stdlib/env/runtime.rs")));}
         if self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::UiNode|crate::native_signatures::NativeTypeId::UiComputed|crate::native_signatures::NativeTypeId::UiSignal|crate::native_signatures::NativeTypeId::UiTextBinding))){output.push_str(&crate::stdlib::ui::runtime(self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime" && crate::native_bindings::BINDINGS[id].name=="run")));}
         for &id in self.native_bindings.borrow().iter() {
@@ -8227,7 +8228,12 @@ impl Emitter<'_> {
                 } else if let Some(from)=value.ty.unwrap().union() {
                     let source=self.expr(fun,value,Mode::Mutate);
                     let arms=self.program.unions[from.index()].members.iter().enumerate().map(|(i,member)|{
-                        let to=target.iter().position(|ty|ty==member).expect("mutable input subset");
+                        let to=target.iter().position(|ty|ty==member).unwrap_or_else(||{
+                            let Type::Record(actual)=*member else{unreachable!("checked mutable input subset")};
+                            let mut matching=target.iter().enumerate().filter_map(|(tag,ty)|matches!(*ty,Type::Record(expected) if self.native_record_declaration(actual)==self.native_record_declaration(expected)).then_some(tag));
+                            let tag=matching.next().expect("checked mutable record alternative");
+                            assert!(matching.next().is_none(),"checked unique mutable record alternative");tag
+                        });
                         let payload=if member.is_copy(){"*payload"}else{"payload"};
                         format!("Union{}::V{i}(payload)=>Union{}::V{to}({payload})",from.index(),union.index())
                     }).collect::<Vec<_>>().join(",");
