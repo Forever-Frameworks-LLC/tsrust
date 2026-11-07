@@ -411,5 +411,5 @@ mod injection_context_tests {
 #[test]
 fn mutable_mixed_union_default_keeps_declared_tagged_storage(){
  let source="type Reactive<T>={evaluate:Owned<Function<T>>;};type Value<T>=Reactive<T>|T;function snapshot(value:Mutable<Value<string|undefined>|undefined>):string{if(value===undefined){return ''; }if(typeof value==='string'){return clone(value);}return value.evaluate()??'';}function invoke(value:Value<string|undefined>|undefined=''):string{return snapshot(value);}function main(){console.log(invoke());}";
- let checked=analyze(crate::syntax::parse(source).unwrap()).unwrap();drop(checked.emit_rust());
+ let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=crate::check(&source).unwrap();drop(checked.emit_rust());
 }

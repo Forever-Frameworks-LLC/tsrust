@@ -6,6 +6,11 @@ publication/merge of v0.2.0 is not approved. v0.1.2 is released.
 
 ## Current state — 2026-11-07
 
+REPAIR17b also terminal17.796s before tests: diagnostic-only Mutable unit used
+analysis::CheckedProgram instead of public checked/emitter entry; corrected to
+crate::check with formatting/idempotence. Existing compiled artifacts preserved.
+Next uses remaining original17aggregate deadline; no fresh budget.
+
 REPAIR17 BUILD TERMINAL before tests:280.505s,peak2,929,545,896B,
 stopnull/remaining[], build-finished false. ONLY Rust error is newLSPcrypto test
 wrong Session import; corrected toexisting support::session::Session. Normal
