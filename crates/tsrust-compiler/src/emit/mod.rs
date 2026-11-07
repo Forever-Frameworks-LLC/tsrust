@@ -89,6 +89,7 @@ mod record_join_emit;
 mod scoped_record_copy_emit;
 mod scoped_record_owned_places;
 mod record_carrier_emit;
+mod record_carrier_worklist;
 mod scoped_record_capture_views;
 mod scoped_record_console_emit;
 mod scoped_record_support_emit;

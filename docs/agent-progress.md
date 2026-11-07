@@ -8,7 +8,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
-- Current canonical checkpoint2459529f; uncommitted targeted compiler repairs
+- Current canonical checkpointe339008f; uncommitted targeted compiler repairs
   are under bounded affected validation detailed below. Accepted runtime fixes are retained
   atc7e8eced. Only root writes canonical; app worktree edits stay protected.
 - ACTUAL PASS: /tmp/tsrust-upgrade-handoff-4366908885f1.json. Selected fresh normal
@@ -240,6 +240,52 @@ Latest accepted section — public55case native runtime; full v0.2.0 remains act
 - Public status now lists actual source-build v0.2 feature families and links
   test/profiling guide; platform/package/performance/final acceptance explicitly
   remains incomplete. No publication/push/merge approved or performed.
+- Byte-family closeout first stage TERMINAL: source e339008f/7864fd53ca4b.
+  NormalCLI/host build PASS221.954s/peak2851442KiB;byte68 still STACK OVERFLOW,
+  so private-unit build correctly NOT started. /tmp/tsrust-byte-family-closeout-
+  front-7864fd53ca4b.json;total235.349s/peak2973078208B,remaining[],cleanup400326656B.
+  Existing absent-record guard is sound but did not cover actual repeating pair.
+- Exact trace /tmp/tsrust-byte-closeout-cycle-trace.err: source139→target140 once,
+  source138→target140 repeated453432times; both nominal declaration70. Inhabited
+  physical layouts need inspection; do not invent a general recursive converter
+  or weaken scope without actual field/family evidence.
+- LLDB diagnostic stalled before target launch (inferior688KB/suspended). Stopped
+  after~50s; verified and killed owned debugger31843/debugserver31933/target31932.
+  No debugger layout proof; no further debugger attempts. Public Analysis hides
+  raw physical records,so an external probe would not provide private metadata.
+- Carrier-layout diagnostic build TERMINAL: /tmp/tsrust-byte-carrier-layout-
+  build.json PASS220.162s/peak2962182944B; actual Cargo build218.881s,cleanup
+ 400519168B. Native/user tests NOT run. --timings report shows compiler library
+ 197.23s(frontend13.91/codegen183.32),CLI18.42s,host2.33s; cached dependencies0s.
+- Captured ONLY3layout rows then killed emit-only compiler after10.297s:
+  /tmp/tsrust-byte-cyclic-layout-metadata.txt. Module52Holder is ORIGINAL byte
+  case50 nullable-recursive-callbacks-join-factories-9 (reversed declarations).
+  Source138readUnion86,next104;target140readUnion106,next107. Read is OPTIONAL,
+  so source is inhabited. No safe nominal alias or absence shortcut exists.
+- Applied reviewed bounded owned carrier worklist patch091ede6a (4files,new
+  record_carrier_worklist.rs). Finite expression-local type-pair Enter/Finish
+  tasks move records/unions/nested arrays with heap worklists,not runtime recursive
+  calls. Existing union_move_payload/union_store_payload handle Link ownership;
+  identical payloads transfer directly. Field order/key_order and partial-owner
+  Drop retained; no cloning,unsafe,caps or globalregistry. Task generics use only
+  source types,Node onlytarget,function either,avoiding zero→one unused lifetime.
+- Existing recursive nativefamily witness extended with10002convertednodes on
+  its EXISTING64KiB thread and O0/O3 loop; asserts actual distinctsource/target,
+  CarrierTask generation,and every original first-owner pointer; retains second
+  callback-owner pointer and escape negative. B14 reviewed exact091ede candidate,
+  no blocker. Root frontend-only check caught test helper reusing moved first;
+  fixed helper to THREE distinct Window inputs(empty(first),second,third). Same
+  adopt specialization/probe intact. Equivalent source check nowPASS0.018s with
+  currentCLI; Rust/private native validation still pending.
+- Quiet old blocking-timeout fixture cleanup retained main.tsr/gate.rs/witness
+  files,removed ONLY generated target after no-open-consumer/liveness/locks proof.
+  /tmp/tsrust-blocking-fixture-target-cleanup.json recovered63438848B actual.
+- NEXT fixed30minute changed-source acceptance: preflight includes compiler/LSP
+  tests,then CLI+one byte-host build and remaining68cases bothprofiles; private
+  library build and remaining restore-source/deep recursive controls only after
+  actual byte native execution passes. Preserve earlier2escape-negative/1514lib/
+ 6focused/25byte/27LSP/crypto24/collections42/public55/export passes. No fresh
+  full replay or public timings. Source checkpoint follows whole-project format.
 - Quiet cleanup /tmp/tsrust-stale-worker-target-cleanup.json removed ONLY ignored
   generated targets from stdlib-bytes(native cache) and stdlib-path(rustc info)
   managed worktrees; source/WIP branches untouched. Recovered167149568B actual.

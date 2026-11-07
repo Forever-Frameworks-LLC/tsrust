@@ -97,7 +97,11 @@ impl Emitter<'_> {
         if std::env::var_os("TSRUST_TRACE_CARRIERS").is_some()
             && let (Type::Record(source),Type::Record(target))=(source,target)
             && (self.native_views.cyclic(source)||self.native_views.cyclic(target)) {
-            eprintln!("[record-carrier-cycle] source={source} target={target} source_declaration={} target_declaration={}",self.program.scoped_records.declaration(source),self.program.scoped_records.declaration(target));
+            eprintln!("[record-carrier-cycle] source={source} target={target} source_declaration={} target_declaration={} source_name={} target_name={} source_fields={:?} target_fields={:?}",self.program.scoped_records.declaration(source),self.program.scoped_records.declaration(target),self.program.records[source].name.text,self.program.records[target].name.text,self.program.records[source].fields.iter().map(|field|(&field.name.text,field.ty)).collect::<Vec<_>>(),self.program.records[target].fields.iter().map(|field|(&field.name.text,field.ty)).collect::<Vec<_>>());
+        }
+        if let (Type::Record(from),Type::Record(to))=(source,target)
+            && self.native_views.cyclic(from)&&self.native_views.cyclic(to) {
+            return self.bounded_record_carrier_conversion(source,target,value);
         }
         match (source, target) {
             (Type::Union(source), target) if matches!(target,Type::String|Type::Int|Type::Number|Type::Boolean)
@@ -204,7 +208,11 @@ impl Emitter<'_> {
                             target.index(),
                             if targets[to].accepts_scalar_value(member) {
                                 self.union_transfer_payload(source, target, member, "payload")
-                            } else { self.record_carrier_conversion(member, targets[to], "payload") }
+                            } else {
+                                let owned=self.union_move_payload(source,member,"payload");
+                                let converted=self.record_carrier_conversion(member,targets[to],&owned);
+                                self.union_store_payload(target,targets[to],&converted)
+                            }
                         )
                     })
                     .collect::<Vec<_>>()
