@@ -5,7 +5,10 @@ impl Analyzer {
     pub(super) fn nullable_scoped_record_declaration(&self, ty: Type) -> Option<usize> {
         let Type::Record(record) = self.unions.payload(ty)? else { return None; };
         let declaration = self.scoped_records.declaration(record);
-        self.aggregate_callable_facts(Type::Record(declaration)).scoped.then_some(declaration)
+        let facts=self.aggregate_callable_facts(Type::Record(declaration));
+        // Scoped callable facts always retain a callback; preserve that old
+        // path explicitly while including owned record environment contracts.
+        (facts.scoped || facts.retains).then_some(declaration)
     }
 
     /// Absence carries no callback instance, but the tagged type still needs a

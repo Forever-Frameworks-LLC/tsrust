@@ -479,6 +479,8 @@ struct Context {
     /// a whole record. Their nullable callback records keep one carrier type
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
+    /// Escaping owned environments may plan their private nullable record slots.
+    owned_record_captures: HashSet<usize>,
     native_view_calls: bool,
     cache_last_uses: Option<std::rc::Rc<HashMap<String,usize>>>,
     cache_read_owners: HashSet<(usize,Vec<String>)>,
@@ -555,6 +557,7 @@ impl Context {
             match_values: Vec::new(),
             match_loans: Vec::new(),
             control_stored: HashSet::new(),
+            owned_record_captures: HashSet::new(),
             native_recursive_shapes: None,
             native_view_calls: false,
             cache_last_uses: None,

@@ -57,7 +57,7 @@ impl Analyzer {
             let mut changed=false;
             for write in &writes {
                 let binding=&context.bindings[write.binding];
-                if binding.parameter || binding.capture_reference{continue;}
+                if (binding.parameter || binding.capture_reference) && !context.owned_record_captures.contains(&write.binding){continue;}
                 let ty=*plans.entry(write.binding).or_insert(binding.ty);
                 let sticky=self.sticky_nullable(context,write.binding);
                 if sticky && write.path.is_empty() && ty.union().is_some() {

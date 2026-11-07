@@ -47,14 +47,14 @@ impl Analyzer {
             let Some(Type::Record(record)) = self.unions.payload(actual) else { return Ok(None); };
             let declaration = self.scoped_records.declaration(record);
             if declaration == self.scoped_records.declaration(target)
-                && self.aggregate_callable_facts(Type::Record(declaration)).scoped
+                && (self.aggregate_callable_facts(Type::Record(declaration)).scoped || self.finite_owned_shape(actual))
                 && self.unions.members(source).into_iter().filter(|member| !matches!(member, Type::Record(_)))
                     .eq(self.unions.members(expected).into_iter().filter(|member| !matches!(member, Type::Record(_))))
             { return Ok(Some(actual)); }
             return Ok(None);
         }
         let Type::Record(record) = actual else { return Ok(None); };
-        if actual == Type::Record(target) || !self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped
+        if actual == Type::Record(target) || !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped || self.finite_owned_shape(actual))
             || self.scoped_records.declaration(record) != self.scoped_records.declaration(target)
         { return Ok(None); }
         self.unions.intern(self.unions.members(expected).into_iter().map(|member| {

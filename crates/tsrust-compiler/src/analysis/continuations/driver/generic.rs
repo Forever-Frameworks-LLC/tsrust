@@ -3,7 +3,7 @@ use super::*;
 use crate::analysis::generic_call_work::{Arguments, Prepared, call};
 use std::rc::Rc;
 struct Pass { frame: Arguments, contexts: Vec<Option<Type>>, next: usize, progress: bool, deferred: Option<Diagnostic> }
-enum Phase { Start, Spread, Pass(Pass), Argument { pass: Pass, index: usize }, Function { restore_name: Option<String> }, ClosureHint { pass: Pass, index: usize, key: Option<(usize, usize)>, context: ContextId, discovering: bool, effects: bool }, Done }
+enum Phase { Start, Receiver, Spread, Pass(Pass), Argument { pass: Pass, index: usize }, Function { restore_name: Option<String> }, ClosureHint { pass: Pass, index: usize, key: Option<(usize, usize)>, context: ContextId, discovering: bool, effects: bool }, Done }
 pub(super) struct GenericTask { expression: Box<Expr>, context: Rc<Context>, expected: Option<Type>, phase: Phase }
 impl GenericTask {
     pub(super) fn new(expression: Box<Expr>, context: Rc<Context>, expected: Option<Type>) -> Self {
@@ -55,8 +55,24 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
         loop {
             match std::mem::replace(&mut task.phase, Phase::Start) {
                 Phase::Start => {
+                    // Prepare inner source factories before recognizing an outer
+                    // iterator method. This pass publishes types, not operand effects.
+                    if matches!(&call(&mut task.expression).kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,name) if crate::stdlib::iterator::METHODS.contains(&name.as_str()) && matches!(base.kind,ExprKind::Call(..)))) {
+                        let receiver=Analyzer::call_preparation_receiver(call(&mut task.expression));
+                        let span=receiver.span;
+                        let value=Box::new(std::mem::replace(receiver,Expr::new(ExprKind::Undefined,span)));
+                        task.phase=Phase::Receiver;
+                        return Ok(Some(Task::Generic(Box::new(GenericTask::new(value,task.context.clone(),None)))));
+                    }
                     let value = analyzer.start_generic_preparation(&task.context, &mut task.expression, task.expected)?;
                     if let Some(child) = prepared(analyzer, &mut task, value)? { return Ok(Some(child)); }
+                }
+                Phase::Receiver => {
+                    let Completion::Generic(value,result)=completion.take().expect("iterator receiver preparation") else{unreachable!()};
+                    *Analyzer::call_preparation_receiver(call(&mut task.expression))=*value;
+                    result?;
+                    let value=analyzer.start_generic_preparation(&task.context,&mut task.expression,task.expected)?;
+                    if let Some(child)=prepared(analyzer,&mut task,value)?{return Ok(Some(child));}
                 }
                 Phase::Spread => {
                     let Completion::Generic(prototype, result) = completion.take().expect("spread generic prototype") else { unreachable!() };
@@ -307,4 +323,35 @@ mod closure_hint_tests {
         assert_ne!(error.code,"generic-inference");
         assert_eq!(&source[error.span.start..error.span.end],"values");
     }
+}
+
+#[cfg(test)]
+mod receiver_failure_tests {
+ use super::*;
+ #[test]
+ fn failed_nested_receiver_preparation_restores_source_before_outer_arity_checks(){
+  for arguments in ["(value:int):int=>value", ""] {
+   let source=crate::format(&format!("function broken<T>(value:T){{return missing;}}function main(){{broken(7).map({arguments});}}")).unwrap();
+   assert_eq!(crate::format(&source).unwrap(),source);
+   let mut program=crate::syntax::parse(&source).unwrap();
+   let StmtKind::Expr(mut expression)=program.functions[1].body.remove(0).into_kind() else{panic!("receiver call")};
+   let original=expression.clone();
+   let mut analyzer=Analyzer::new(program).unwrap();
+   let context=Context::new("main".into());
+   let error=analyzer.prepare_generic_call(&context,&mut expression,None).expect_err("inner factory fails before outer method arity");
+   assert_eq!(&source[error.span.start..error.span.end],"missing");
+   assert_eq!(expression.span,original.span);
+   assert!(expression.target.is_none(),"preparation never publishes an executed call");
+   let ExprKind::Call(callee,args)=&expression.kind else{panic!("outer call restored")};
+   let ExprKind::Field(base,name)=&callee.kind else{panic!("member restored")};
+   assert_eq!(name,"map");
+   let ExprKind::Call(callee,inner_args)=&base.kind else{panic!("inner call restored")};
+   assert!(matches!(&callee.kind,ExprKind::Name(name) if name=="broken"));
+   assert!(matches!(&inner_args[0].kind,ExprKind::Integer(value) if value=="7"));
+   assert!(inner_args[0].ty.is_none());
+   let ExprKind::Call(_,original_args)=&original.kind else{unreachable!()};
+   assert_eq!(format!("{args:?}"),format!("{original_args:?}"),"outer callback syntax and metadata remain untouched");
+   assert!(context.bindings.is_empty());assert!(context.names.is_empty());
+  }
+ }
 }

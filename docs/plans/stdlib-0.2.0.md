@@ -1400,6 +1400,15 @@ PHC corruption/cost bounds and awaited cleanup. Performance: matched sizes and
 exact password parameters, kernel versus scheduling costs separately. Security
 does not follow from benchmark speed or passing a statistical randomness test.
 
+B00 crypto range migration accepted in focused scope (2026-11-06, source
+7bd0e3fb): `randomBytes(0)` returns empty bytes and counts above the former 1 MiB
+ceiling use the selected getrandom backend without an added size cap. Negative
+and target-unrepresentable lengths retain `Range`; allocation follows ordinary
+Rust behavior. The runtime known-answer/range test, formatted native zero/large/
+negative witness, editor range documentation and existing service-help control
+all pass in the bounded 550.888-second affected run. This closes that existing
+API's range migration, not the new B16 primitive checklist or its measurements.
+
 ### B17 — Structured logging and request context
 
 Backend: tracing plus selected tracing-subscriber JSON formatting. B06/B10.

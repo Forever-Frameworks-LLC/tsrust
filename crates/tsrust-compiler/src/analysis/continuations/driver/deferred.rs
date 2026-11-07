@@ -284,6 +284,7 @@ mod selected_readiness_restoration_tests {
  #[test]
  fn selected_body_error_restores_discovery_flags_without_publishing_checked_body(){
   let source=crate::format("function broken():int{return true;}function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let expected=crate::check(&source).err().expect("ordinary entry must reject the same return");
   for effects in [false,true] {
    let mut analyzer=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
    let function=analyzer.function_names["broken"];
@@ -292,7 +293,7 @@ mod selected_readiness_restoration_tests {
    analyzer.effects_only=effects;
    let error=match function_child(&mut analyzer,function,span){Err(error)=>error,Ok(_)=>panic!("invalid selected body must fail")};
    assert_eq!(error.code,"type");
-   assert!(source[error.span.start..error.span.end].contains("true"));
+   assert_eq!(error.span,expected.span,"Selected preparation must retain the ordinary return diagnostic's exact source provenance");
    assert!(analyzer.discovering_results);
    assert_eq!(analyzer.effects_only,effects);
    assert!(analyzer.checked[function].is_none(),"failed bodies cannot become checked prototypes");

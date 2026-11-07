@@ -115,7 +115,9 @@ function _flatMap<T, U>(source: Owned<Iterator<T>>, callback: Owned<Function<U[]
   return _create<U>((): IteratorResult<U> => {
     while (true) {
       if (current !== undefined) {
-        const step = current.next();
+        // This private slot's finite carrier is planned across all stores.
+        // Invoke the same mutable pull leaf used by _next directly.
+        const step = current._pull();
         if (!step.done) {
           return step;
         }

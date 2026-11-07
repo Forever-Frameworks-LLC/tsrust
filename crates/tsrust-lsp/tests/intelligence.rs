@@ -10229,10 +10229,14 @@ fn nested_collection_constructors_publish_checked_collection_types(){
 
 #[test]
 fn owned_iterator_constructor_and_methods_keep_checked_editor_contracts(){
- let source=tsrust_compiler::format("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]);const mapped=values.map((value:int):int=>value+1);const step=mapped.next();console.log(step.done);}").unwrap();assert!(tsrust_compiler::check(&source).is_ok());
- let completion=ask(&source,"textDocument/completion","next();",0);let labels=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<Vec<_>>();for name in ["next","map","filter","take","drop","flatMap","reduce","forEach","some","every","find","toArray"]{assert!(labels.contains(&name),"{completion}");}assert!(!labels.contains(&"from"));assert!(!labels.contains(&"_pull"));
- let hover=ask(&source,"textDocument/hover","next();",0);assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("IteratorResult"),"{hover}");let help=ask(&source,"textDocument/signatureHelp","[1, 2]",0);assert!(!help["signatures"].as_array().unwrap().is_empty());
- let constructor=ask(&source,"textDocument/completion","from([1",0);assert!(constructor.as_array().unwrap().iter().any(|entry|entry["label"]=="from"),"{constructor}");
+ use tsrust_compiler::project::SourceId;
+ use tsrust_lsp::{workspace::Workspace,project_diagnostics::file_uri,project_intelligence::ProjectIndex};
+ let source=tsrust_compiler::format("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]);const mapped=values.map((value:int):int=>value+1);const step=mapped.next();console.log(step.done);}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+ let id=SourceId(std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("iterator-editor-{}",std::process::id())).join("main.tsr").to_string_lossy().into_owned());let uri=file_uri(&id).unwrap().to_string();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check_with_diagnostics(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ let query=|method:&str,needle:&str,n:usize|index.request(method,&json!({"position":at(&source,needle,n),"context":{"includeDeclaration":true}}),&uri).unwrap().unwrap();
+ let completion=query("textDocument/completion","next();",0);let labels=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<Vec<_>>();for name in ["next","map","filter","take","drop","flatMap","reduce","forEach","some","every","find","toArray"]{assert!(labels.contains(&name),"{completion}");}assert!(!labels.contains(&"from"));assert!(!labels.contains(&"_pull"));
+ let hover=query("textDocument/hover","next();",0);assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("IteratorResult"),"{hover}");let help=query("textDocument/signatureHelp","[1, 2]",0);assert!(!help["signatures"].as_array().unwrap().is_empty());
+ let constructor=query("textDocument/completion","from([1",0);assert!(constructor.as_array().unwrap().iter().any(|entry|entry["label"]=="from"),"{constructor}");
 }
 
 #[test]
@@ -10248,6 +10252,9 @@ fn array_is_array_static_union_guards_keep_checked_project_help(){
  }
  let hover=index.request("textDocument/hover",&json!({"position":at(&source,"toArray",0)}),&uri).unwrap().unwrap();assert!(hover["contents"]["value"].as_str().unwrap().contains("toArray"));
  let mut position=at(&source,"isArray(",0);position.character+="isArray(".len() as u32;let help=index.request("textDocument/signatureHelp",&json!({"position":position}),&uri).unwrap().unwrap();assert!(help.to_string().contains("isArray"));
- let source=tsrust_compiler::format("function main(){const value=JSON.parse('[1]');if(Array.isArray(value)){console.log(value);}else{console.log(value);}}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);assert!(tsrust_compiler::check(&source).is_ok());let index=SourceIndex::new(&source);
- for occurrence in [0,1]{let hover=index.request("textDocument/hover",&json!({"position":at(&source,"value);",occurrence)}),"file:///test.tsr").unwrap();assert!(hover["contents"]["value"].as_str().unwrap().contains("JsonValue"));}
+ let source=tsrust_compiler::format("function main(){const value=JSON.parse('[1]');if(Array.isArray(value)){console.log(value);}else{console.log(value);}}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+ // A fresh project resolves JSON's standard wrapper instead of inheriting
+ // declarations from the imported Iterator project above.
+ let id=SourceId(std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("json-array-guard-editor-{}",std::process::id())).join("main.tsr").to_string_lossy().into_owned());let uri=file_uri(&id).unwrap().to_string();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check_with_diagnostics(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ for occurrence in [0,1]{let hover=index.request("textDocument/hover",&json!({"position":at(&source,"value);",occurrence)}),&uri).unwrap().unwrap();assert!(hover["contents"]["value"].as_str().unwrap().contains("JsonValue"));}
 }

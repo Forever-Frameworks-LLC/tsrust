@@ -81,9 +81,11 @@ fn borrowed_and_owned_record_parameters_execute_in_both_orders(){
 fn temporary_iterator_result_discriminators_evaluate_once_and_keep_ownership_guards(){
  let source=support::format_round_trip("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([4]);console.log(values.next().done);console.log(values.next().done);}");
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"false\ntrue\n");
- for body in ["make().done=true;","const value=make().value;"]{
-  let source=format!("type Left={{done:false;value:string;}};type Right={{done:true;value:string;}};function make():Left|Right{{return {{done:false,value:'kept'}};}}function main(){{{body}}}");
-  assert_eq!(checked(&support::format_round_trip(&source)).unwrap_err(),"union-field-ownership");
+ let prefix="type Left={done:false;value:string;};type Right={done:true;value:string;};function make():Left|Right{const value:Left={done:false,value:'kept'};return value;}";
+ assert!(checked(&support::format_round_trip(&format!("{prefix}function main(){{}}"))).unwrap().is_empty(),"Factory must check independently of ownership negatives");
+ for(body,code)in [("make().done=true;","unsupported"),("const value=make().value;","union-field-ownership"),("const value=make();value.done=true;","union-field-ownership")]{
+  let source=format!("{prefix}function main(){{{body}}}");
+  assert_eq!(checked(&support::format_round_trip(&source)).unwrap_err(),code,"{body}");
  }
 }
 
@@ -109,4 +111,25 @@ fn flat_map_array_and_iterator_alternatives_keep_order(){
   "type Holder={value:int;};type Row={value:int[]|Holder;};function change(row:Row){row.value={value:2};}function wrong(row:Row):int{if(Array.isArray(row.value)){change(row);return row.value.length;}return 0;}function main(){}",
   "function main(){const value=JSON.parse('[1]');if(Array.isArray(value)){console.log(value.length);}}",
  ]{assert!(checked(&support::format_round_trip(source)).is_err(),"{source}");}
+}
+
+#[test]
+fn nested_iterator_receiver_preparation_keeps_chains_and_callback_items(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function main(){console.log(Iterator.from([1,2,3]).take(2).toArray().join(','));const number=7;const callbacks=Iterator.from([():int=>number]).toArray();console.log(callbacks[0]());}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"1,2\n7\n");
+}
+
+#[test]
+fn owned_nullable_capture_slots_preserve_state_and_borrowed_guards(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]).flatMap((value:int):Iterator<int>=>Iterator.from([value,value]));for(let index=0;index<4;index++){const step=values.next();if(step.done){throw 'early end';}console.log(step.value);}console.log(values.next().done);}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"1\n1\n2\n2\ntrue\n");
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function counter():Owned<Function<int>>{let current:Iterator<int>|undefined=undefined;return ():int=>{if(current===undefined){current=Iterator.from([3,5]);}const step=current.next();if(step.done){current=undefined;return 0;}return step.value;};}function main(){const next=counter();console.log(next(),next(),next(),next());}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"3 5 0 3\n");
+ for source in [
+  "type Holder={pull:ReadOnly<Function<int>>;};function bad(value:ReadOnly<Holder>|undefined):Owned<Function<int>>{return ():int=>value===undefined?0:value.pull();}function main(){}",
+  "import {Iterator} from 'std:iterator';function bad(value:ReadOnly<Iterator<int>>):Owned<Function<int>>{return ():int=>value.toArray().length;}function main(){}",
+  "import {Iterator} from 'std:iterator';function bad(value:ReadOnly<Iterator<int>|undefined>):Owned<Function<void>>{return ():void=>{value=Iterator.from([1]);};}function main(){}",
+  "import {alloc,view,length,set} from 'std:bytes';function main(){const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const read:ReadOnly<Function<int>>=():int=>length(slice);unwrap(set(bytes,0,1));console.log(read());}",
+  "import {alloc,view,length} from 'std:bytes';function main(){const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const read:Owned<Function<int>>=():int=>length(slice);console.log(read());}",
+ ]{let source=support::format_round_trip(source);assert!(checked(&source).is_err(),"{source}");}
 }

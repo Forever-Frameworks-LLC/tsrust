@@ -289,8 +289,11 @@ impl Types<'_> {
                     {
                         return Err(mismatch());
                     }
-                    for (pattern, argument) in constraint_children(pattern).into_iter().zip(&application.arguments).rev() {
-                        work.push(ConstraintWork::Resolve(pattern, argument, None));
+                    // Applications already retain their checked argument identities,
+                    // including callable storage. Re-resolving their source syntax
+                    // as data loses those contracts (and rejects callable payloads).
+                    for (pattern, &argument) in constraint_children(pattern).into_iter().zip(&application.resolved_arguments).rev() {
+                        work.push(ConstraintWork::Unify(pattern, argument));
                     }
                     Ok(())
                 }

@@ -180,7 +180,9 @@ impl Analyzer {
     /// A local whose nullable callback records are stored through control flow.
     pub(super) fn sticky_nullable(&self,context:&Context,binding:usize)->bool {
         let info=&context.bindings[binding];
-        context.control_stored.contains(&binding) && !info.parameter && !info.capture_reference
+        context.control_stored.contains(&binding)
+            && (!info.parameter || context.owned_record_captures.contains(&binding))
+            && (!info.capture_reference || context.owned_record_captures.contains(&binding))
             && (self.nullable_scoped_record_declaration(info.ty).is_some() || !self.nullable_record_field_paths(info.ty).is_empty())
     }
 }
@@ -508,7 +510,7 @@ impl Analyzer {
         let ExprKind::Call(callee,_)=&mut value.kind else{return;};
         if !matches!(value.target,Some(CallTarget::ConditionalCallback(_)|CallTarget::ConditionalClosure(_)|CallTarget::StoredCallableField(_))){return;}
         match planned {
-            Some(ty @ Type::BorrowedCallable(family))=>{callee.ty=Some(ty);value.target=Some(CallTarget::StoredCallableField(family));}
+            Some(ty @ (Type::BorrowedCallable(family)|Type::StoredCallable(family)))=>{callee.ty=Some(ty);value.target=Some(CallTarget::StoredCallableField(family));}
             Some(Type::Closure(origin))=>{callee.ty=Some(Type::Closure(origin));value.target=Some(CallTarget::ConditionalClosure(origin));}
             _=>{}
         }

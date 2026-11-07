@@ -100,7 +100,7 @@ function main(){
 import {rejects,fail} from 'std:testing';import {delay} from 'std:futures';
 async function crash():Task<void>{fail('worker panic transported as checked data');}
 async function waitForever():Task<void>{await delay(60000);}
-type Reject=Function<Task<void>,[callback:Once<Function<Task<void>>>,message?:ReadOnly<string>]>;
+type Reject=Function<Task<void>,[callback:Once<Function<Task<void>>>,message?:Owned<string>]>;
 async function main():Task<void>{
  const alias=rejects;await alias(async()=>{throw {code:'user-payload'};},'alias must observe a checked record');
  const stored:Reject=rejects;await stored(async()=>{throw 'stored checked payload';},'stored rejects must await');
@@ -331,4 +331,15 @@ async function main():Task<void>{
  let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);
  assert_eq!(output.stdout,b"checked transport observed\n");
  if !output.stderr.is_empty(){assert!(String::from_utf8_lossy(&output.stderr).contains("worker panic transported as checked data"));}
+}
+
+#[test]
+fn stored_rejects_cannot_advertise_borrowed_message_access(){
+ let source=support::format_round_trip("import {rejects} from 'std:testing';type Reject=Function<Task<void>,[callback:Once<Function<Task<void>>>,message?:ReadOnly<string>]>;function main(){const stored:Reject=rejects;}");
+ let directory=support::TempDirectory::new();let path=directory.source(&source);
+ let output=support::run(support::cli().arg("check").arg(path),30);
+ assert!(!output.status.success());
+ let stderr=String::from_utf8_lossy(&output.stderr);
+ assert!(stderr.contains("error[callback-access]"),"{stderr}");
+ assert!(stderr.contains("Expected read argument access, found consume"),"{stderr}");
 }

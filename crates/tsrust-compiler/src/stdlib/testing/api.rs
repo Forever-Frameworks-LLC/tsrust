@@ -232,7 +232,7 @@ import {rejects} from 'std:testing';
 async function main():Task<void>{await rejects(async()=>{throw {code:'expected'};});}
 ```
 
-Ownership: consumes the single-use factory; task-local resources follow checked failure cleanup. The message is borrowed through settlement.
+Ownership: consumes the single-use factory; task-local resources follow checked failure cleanup. The message is consumed when the lazy task is created and retained through settlement.
 */
 export async function rejects<T>(callback:Once<Function<Task<T>>>,message:string="Expected task to reject"):Task<void>{let didReject=false;try{await callback();}catch{didReject=true;}checkAssertion(didReject,message);}
 

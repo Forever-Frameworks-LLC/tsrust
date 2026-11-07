@@ -9166,7 +9166,13 @@ impl Emitter<'_> {
                             if capture.restored {format!("Some({})",self.binding(fun,capture.outer,capture.storage))} else if capture.storage==Mode::Read && matches!(fun.bindings[capture.outer].ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy) {
                                 let code=self.binding(fun,capture.outer,Mode::Read);
                                 if matches!(fun.bindings[capture.outer].ty,Type::BorrowedUnion(_)) || (fun.bindings[capture.outer].parameter && fun.bindings[capture.outer].mode==Mode::Read && !fun.bindings[capture.outer].capture_reference) {code} else {let method=if self.callback_payload(fun.bindings[capture.outer].ty).is_some(){"tsr_view"}else{"tsr_data_view"};format!("({code}).{method}()")}
-                            } else if self.record_capture_is_view(capture,&self.program.closures[id]){self.record_capture_value(fun,capture.outer,capture.storage)} else {self.binding(fun, capture.outer, capture.storage)}
+                            } else if self.record_capture_is_view(capture,&self.program.closures[id]){self.record_capture_value(fun,capture.outer,capture.storage)}
+                            else if capture.storage==Mode::Consume && let Some(converted)=self.owned_nullable_record_capture(
+                                fun.bindings[capture.outer].ty,self.program.closures[id].function.bindings[capture.inner].ty,"owned_capture",
+                            ) {
+                                let value=self.binding(fun,capture.outer,Mode::Consume);
+                                format!("{{let owned_capture={value};{converted}}}")
+                            } else {self.binding(fun, capture.outer, capture.storage)}
                         )
                     })
                     .collect::<Vec<_>>()

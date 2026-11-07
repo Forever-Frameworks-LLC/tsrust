@@ -111,6 +111,7 @@ impl Analyzer {
     pub(super) fn finish_closure_method(&mut self, frame: MethodBody, checked: Result<bool, Diagnostic>) -> Result<(usize, Type), Diagnostic> {
         let MethodBody { origin, method, mut context, mut body, result: source_result, span } = frame;
         self.depth -= 1;
+        let completed = (|| {
         let returned = checked.map_err(|error| self.filter_ownership_fixes(&context, error))?;
         if source_result != Type::Void && !returned {
             return Err(Diagnostic::new(
@@ -172,6 +173,16 @@ impl Analyzer {
             body,
         };
         Ok((method, result))
+        })();
+        if completed.is_err() && matches!(source_result,Type::Callable(_)) {
+            // Callable-result cache hits cannot publish invocation references:
+            // prepare_closure_method returns pending while this result is symbolic.
+            // Retire only that proven case after its body has actually finished.
+            self.closure_specializations.retain(|(candidate,_,_,_),cached|*candidate!=origin || *cached!=method);
+            // Keep indices stable, but never emit an abandoned provisional body.
+            self.closures[origin].methods[method].function.template=true;
+        }
+        completed
     }
 
 }
@@ -185,4 +196,52 @@ pub(super) struct MethodBody {
     pub(super) body: Vec<Stmt>,
     pub(super) result: Type,
     pub(super) span: Span,
+}
+
+#[cfg(test)]
+mod failed_method_retry_tests {
+ use super::*;
+ fn setup()->(Analyzer,usize,Type,Span){
+  let source="function main(){const visitor=(f:Function<int,[x:int]>):Function<int,[x:int]>=>f;const callback=(x:int):int=>x+7;}";
+  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let mut analyzer=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+  let main=analyzer.function_names["main"];
+  let mut values=analyzer.program.functions[main].body.iter().filter_map(|statement|match &statement.kind{StmtKind::Let{value,..}=>Some(value.clone()),_=>None}).collect::<Vec<_>>();
+  let mut context=Context::new("main".into());
+  let visitor=analyzer.expression(&mut context,&mut values[0],Mode::Consume,&Loans::new(),None).unwrap();
+  let callback=analyzer.expression(&mut context,&mut values[1],Mode::Consume,&Loans::new(),None).unwrap();
+  let Type::Closure(origin)=visitor else{panic!("visitor environment")};
+  (analyzer,origin,callback,values[0].span)
+ }
+ #[test]
+ fn pending_method_body_is_rechecked_when_its_callback_origin_becomes_ready(){
+  let (mut analyzer,origin,callback,span)=setup();
+  let Type::Closure(callee)=callback else{panic!("callback origin")};
+  analyzer.pending_shapes.insert(callee);
+  let PreparedMethod::Body(frame)=analyzer.prepare_closure_method(origin,vec![callback],span).unwrap()else{panic!("first body")};
+  let abandoned=frame.method;
+  assert!(analyzer.closure_specializations.values().any(|method|*method==abandoned),"active recursion entry remains installed");
+  assert!(matches!(analyzer.prepare_closure_method(origin,vec![callback],span),Err(error) if error.code=="callable-result-pending"),"active symbolic results cannot publish a ready invocation");
+  let error=analyzer.finish_closure_method(frame,Err(Analyzer::pending_result(span))).unwrap_err();
+  assert_eq!(error.code,"callable-result-pending");
+  assert!(analyzer.closures[origin].methods[abandoned].function.template);
+  assert!(analyzer.closures[origin].methods[abandoned].function.body.is_empty());
+  analyzer.pending_shapes.remove(&callee);
+  let PreparedMethod::Body(mut frame)=analyzer.prepare_closure_method(origin,vec![callback],span).unwrap()else{panic!("ready dependency must recheck the body")};
+  assert!(frame.method>abandoned,"method indices remain stable");
+  let result=frame.result;
+  let checked=analyzer.check_source_callable_body(&mut frame.context,Analyzer::uninitialized_body(&mut frame.body),result);
+  let (method,result)=analyzer.finish_closure_method(frame,checked).unwrap();
+  assert_eq!(result,callback);
+  assert!(!analyzer.closures[origin].methods[method].function.template);
+ }
+ #[test]
+ fn failed_method_cleanup_preserves_the_original_error_location(){
+  let (mut analyzer,origin,callback,span)=setup();
+  let PreparedMethod::Body(frame)=analyzer.prepare_closure_method(origin,vec![callback],span).unwrap()else{panic!("body")};
+  let original=Diagnostic::new("type","original callback mismatch",span);
+  let error=analyzer.finish_closure_method(frame,Err(original)).unwrap_err();
+  assert_eq!(error.code,"type");assert_eq!(error.message,"original callback mismatch");assert_eq!(error.span,span);
+  assert!(matches!(analyzer.prepare_closure_method(origin,vec![callback],span).unwrap(),PreparedMethod::Body(_)));
+ }
 }

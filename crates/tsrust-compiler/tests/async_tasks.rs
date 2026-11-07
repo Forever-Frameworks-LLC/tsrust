@@ -254,3 +254,8 @@ fn stored_generic_task_factories_infer_nested_unit_and_nonunit_callback_results(
  let wrong=source.replace("return 7;","return 'wrong';");
  assert!(check(&wrong).is_err(),"stored nested callbacks retain their concrete result contract");
 }
+
+#[test]
+fn stored_generic_async_defaults_recheck_after_return_origin_discovery(){
+ support::execute("async function echo<T>(value:T,message:string='fallback'):Task<T>{console.log(message);return value;}async function main():Task<void>{const stored:Function<Task<int>,[value:int,message?:Owned<string>]>=echo;const message='provided'.repeat(2);console.log(await stored(7,message));console.log(await stored(8));}","providedprovided\n7\nfallback\n8\n",None);
+}

@@ -98,6 +98,30 @@ impl Analyzer {
         visible.sort_unstable();
         visible.dedup();
         let mut context = capture_context::project(outer, &visible);
+        // These slots become private fields of an escaping owned environment,
+        // not borrowed parameters. Keep normal capture/loan checking; only the
+        // physical carrier planner receives this finite ownership capability.
+        let owned=contextual.is_some_and(|ty|match ty{
+            Type::Callback(id)=>self.callables.callbacks[id].kind.is_owned(),
+            Type::Callable(id)=>self.callables.shapes.get(self.callables.results[id].structural).kind.unwrap_or(CallbackKind::Owned).is_owned(),
+            Type::StoredCallable(id)=>self.callables.storage.declaration(id).is_some_and(|id|self.callables.callbacks[id].kind.is_owned()),
+            _=>false,
+        });
+        if escapes && owned && !program_scoped && !outer.program_retained_state{
+            for(inner,&root)in visible.iter().enumerate(){
+                let binding=&outer.bindings[root];
+                if !binding.rebindable || binding.capture_reference || binding.mutable_place
+                    || outer.readonly_parameters.contains(&root) || outer.mutable_parameters.contains(&root)
+                    || binding.parameter && binding.mode!=Mode::Consume
+                    || self.program.module_owner_bindings.iter().any(|declaration|outer.source_bindings.get(&declaration.start)==Some(&root))
+                    || self.native_shape_contains_view(binding.ty) || self.aggregate_callable_facts(binding.ty).scoped
+                {continue;}
+                if self.nullable_scoped_record_declaration(binding.ty).is_some(){
+                    context.owned_record_captures.insert(inner);
+                    context.control_stored.insert(inner);
+                }
+            }
+        }
         if origin>=usize::MAX/2 && self.task_sources.contains(&origin) && !escapes {
             // Compiler-created scoped tasks retain stable native input loans.
             // Those loans protect the caller's proven alternative until task
@@ -369,6 +393,9 @@ impl Analyzer {
                         .expect("program binding identity");
                     program_captures.push(ProgramCapture { declaration, inner, access: storage, span: usage });
                     continue;
+                }
+                if context.owned_record_captures.contains(&inner) && storage!=Mode::Consume{
+                    return Err(Diagnostic::new("callback-escape","A private owned record carrier requires ownership of its captured slot.",span));
                 }
                 let keep_start=outer.keep_flow.len();
                 if origin>=usize::MAX/2 && self.task_sources.contains(&origin) && !escapes && storage==Mode::Mutate {
