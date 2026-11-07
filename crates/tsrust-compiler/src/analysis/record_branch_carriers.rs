@@ -260,6 +260,9 @@ impl Analyzer {
                 Task::Check(source,target)=>{
                     if source==target{result=true;continue;}
                     result=match(source,target){
+                        (Type::StoredCallable(source),Type::Callback(target))=>
+                            self.callables.storage.origins(source).is_some_and(|origins|origins.is_empty())
+                                && self.callables.storage.declaration(source).is_some_and(|declaration|self.callables.callbacks[declaration].structural==self.callables.callbacks[target].structural),
                         (Type::StoredCallable(source),Type::StoredCallable(target))=>{
                             match (self.callables.storage.scoped_native_family(source),self.callables.storage.scoped_native_family(target)) {
                                 (Some(source),Some(target))=>source.signature==target.signature && source.alternatives.iter().all(|alternative|target.alternatives.contains(alternative)),
@@ -432,12 +435,15 @@ fn empty_stored_carriers_require_the_same_protocol_and_nonempty_target(){
  let target=analyzer.callables.storage.intern_finite_owned(&analyzer.callables.shapes,callback,declaration,[0],&analyzer.closures,Span::default()).unwrap().unwrap();
  let other=analyzer.callables.storage.intern_finite_owned(&analyzer.callables.shapes,callback,declaration,[1],&analyzer.closures,Span::default()).unwrap().unwrap();
  assert!(analyzer.carrier_convertible(empty,target),"Empty owning storage has no payload to move into the same protocol");
+ assert!(analyzer.carrier_convertible(empty,Type::Callback(declaration)),"Absent storage converts only into the same callback protocol");
+ assert!(!analyzer.carrier_convertible(target,Type::Callback(declaration)),"A real environment cannot become a generic callback payload without an adapter");
  assert!(!analyzer.carrier_convertible(other,target),"A real unadmitted environment cannot be discarded");
  assert!(!analyzer.carrier_convertible(target,empty),"A populated family cannot become absent storage");
  let signature=analyzer.callables.shapes.intern([],Type::Boolean,Some(CallbackKind::Owned));
  let declaration=analyzer.callables.callbacks.len();analyzer.callables.callbacks.push(CallbackContract{structural:signature,parameter_names:vec![],params:vec![],result:Type::Boolean,kind:CallbackKind::Owned});
  let wrong=analyzer.callables.storage.intern(&analyzer.callables.shapes,&analyzer.callables.callbacks[declaration],declaration).unwrap();
  assert!(!analyzer.carrier_convertible(wrong,target),"Empty storage does not bypass protocol identity");
+ assert!(!analyzer.carrier_convertible(empty,Type::Callback(declaration)),"Absent storage still preserves the callback result protocol");
 }
 
 #[cfg(test)]
@@ -457,4 +463,17 @@ fn retained_keyboard_ui_imports_and_router_preserve_checked_carriers(){
  let source="import {KeyboardShortcuts as First,KeyboardCustomization as Second,KeyboardIconsAndTheme as Third} from './keyboard-shortcuts.tsrx';import {Router} from 'std:http';function main(){const router=new Router();}".to_owned();
  let checked=check_graph(load_project(&Entry{source,example:SourceId(example.to_str().unwrap().into())},"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
  drop(checked.emit_rust());
+}
+
+#[cfg(test)]
+#[test]
+fn flat_map_single_iterator_result_keeps_its_finite_record_contract(){
+ use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+ struct Input(String);impl SourceProvider for Input{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ for callback in ["(value:int):Iterator<int>=>Iterator.from([value,value])","value=>Iterator.from([value,value])"] {
+  let source=format!("import {{Iterator}} from 'std:iterator';function main(){{const values=Iterator.from([1,2]).flatMap({callback});console.log(values.toArray().join(','));}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=check_graph(load_project(&Input(source),"main.tsr").unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));drop(checked.emit_rust());
+ }
 }

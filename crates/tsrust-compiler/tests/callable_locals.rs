@@ -141,7 +141,7 @@ fn inferred_record_fields_move_callable_bindings_and_retain_program_function_val
  for source in [
   "function main(){const original:Once<Function<int>>=():int=>{return 4;};const stored={original};original();}",
   "function main(){const original:Once<Function<int>>=():int=>{return 4;};const stored={original};stored.original();stored.original();}",
- ] {support::reject(source,"transferred");}
+ ] {support::reject(source,"closure-consumed");}
  support::reject("type State={value:int;};function main(){const state:State={value:3};const original=():int=>{return state.value;};const stored={original};state.value=8;console.log(stored.original());}","capture-conflict");
  support::reject("function inspect(action:ReadOnly<Function<int>>):void{const stored={action};}function main(){}","callback-escape");
  support::reject("function work(value:int):int{return value+1;}let alias=work;const stored={alias};function main(){console.log(stored.alias(1));}","module-state-consume");

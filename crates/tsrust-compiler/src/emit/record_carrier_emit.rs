@@ -93,6 +93,9 @@ impl Emitter<'_> {
                 && self.program.unions[source.index()].members.iter().all(|&member|target.accepts_scalar_value(member))=>{
                 let arms=(0..self.program.unions[source.index()].members.len()).map(|tag|format!("Union{}::V{tag}(payload)=>payload",source.index())).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
             }
+            (Type::StoredCallable(source),Type::Callback(target))
+                if self.program.stored_contracts.origins(source).is_some_and(|origins|origins.is_empty())
+                    && self.program.stored_contracts.declaration(source).is_some_and(|declaration|self.program.callback_contracts[declaration].structural==self.program.callback_contracts[target].structural)=>format!("match {value}{{}}"),
             (Type::StoredCallable(source),Type::StoredCallable(target))
                 if self.program.stored_contracts.scoped_native_family(source).is_some()
                     && self.program.stored_contracts.scoped_native_family(target).is_some()=> {

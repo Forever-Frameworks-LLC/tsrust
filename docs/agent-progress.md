@@ -7,7 +7,46 @@ publication/merge of v0.2.0 is not approved. v0.1.2 is released.
 ## Current state — 2026-11-07
 
 Canonical: /Users/seancotter/Desktop/dev/learning/tsrust, codex/stdlib-0.2.0.
-No heavy process remains from repair17c. All old PID/session claims are superseded.
+Repair18b is TERMINAL: sourcec7cdaf14, fingerprintf304ca82101c,
+881.223s, peak4,138,145,816B, stopnull/remaining[]. Selected build-finished true;
+48PASS19FAIL. Original18 build-only301.95s and all repair gaps count toward the
+SAME absolute55m deadline. No heavy process remains. Source repairs now ready for
+ONE failure/affected-only repair18c (9targets), not a restarted full pass.
+
+Preserve18b passes: forms relocated vendored offline O0/O3 (216.97s), uploads
+O0/O3, all9Taskarray cases/fivepool/error transports, allcrypto hover/signatures,
+4receiverchecker agreement, newCORS4phase matrix, full affected4phase editor help.
+Publicmiddleware negativecontracts PASS; sixruntimepolicy/drop/error controls PASS.
+Mixedunion privatepositive+negative PASS, reallegacyMutable nativeenum stillfailed.
+Catalogfailed only currentpasswordinputconsumption; docscontentfailed retainedUI.
+
+Integrated exact reviewed repairs, unvalidated until18c:
+- Existing lazy native borrowing now includes crypto password operations, keeping
+  stable password/encoded/options Read loans through Task settlement. Internal
+  pool submission remains consuming. Streaming KAT view now uses endindex3.
+- Empty stored callback family converts to a generic callback ONLY with exact
+  protocol identity and no origins; generated conversion is exhaustive empty
+  match. Populated/wrongprotocol negatives retained, UI/native docs stillrequired.
+- Equal scoped-record fields preserve nominal record/union IDs; changed concrete
+  callable families retain distinct physical layouts. Actual readonly Taskcapture
+  access is validated before storage lowering can hide consumption; allnegative
+  bodies unchanged, legal asyncreadonlystring positive added.
+- HTTP factory wrappers preserve optional parameter markers, fixing actualcors()
+  direct/alias/stored omission. Example uses exportedok. Runtime fixture uses an
+  ordinary known-size body instead of prohibited framingheader injection; extraction
+  witness includes actualfuturesruntime. Publicframingvalidation unchanged.
+- Existing finiteowned mixedunion contract admits singletonphysicalIterator
+  callback results with same no-view/known/unique-nominal guards. Mutabledefault
+  emitter matches actualinitializer enum; exactType target first, then unique
+  nominal fallback. Actuallegacy nativefixture remains required, no ABIguess/casts.
+- CallableOnce negatives assert actualclosure-consumed diagnostic; allfour native
+  positives alreadyexecuted in18b before olddiagnosticname assertionfailed.
+
+B19 shortpinnedrustdoc preparation PASS2.120s/166,166,528B, stopnull/remaining[];
+lease RELEASED. Actual1.96.1 JSONformat57, sourcecompatibility fixture nowbased on
+realshlexrootmodule/functionschema. /tmp/tsrust-b19-rustdoc-lease.json. B03 continues
+source-only fullB19 in isolatedmanagedtree; no otherworkerheavy lease granted.
+
 Root alone writes canonical. One target, jobs1, incremental0, direct tests threads3,
 5GB/30m inner watchdog and one55m aggregate including build/setup/cleanup.
 

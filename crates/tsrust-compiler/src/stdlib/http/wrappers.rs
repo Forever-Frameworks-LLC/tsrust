@@ -11,7 +11,7 @@ pub(super) fn prepare(program:&mut Program)->Result<(),Diagnostic>{
  Ok(())
 }
 fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Function,Diagnostic>{
- let parameters=binding.parameters.iter().enumerate().map(|(index,parameter)|format!("value{index}:{}",crate::type_syntax::access_type_text(parameter.access,&format!("P{index}")))).collect::<Vec<_>>().join(",");
+ let parameters=binding.parameters.iter().enumerate().map(|(index,parameter)|format!("value{index}{}:{}",if parameter.optional{"?"}else{""},crate::type_syntax::access_type_text(parameter.access,&format!("P{index}")))).collect::<Vec<_>>().join(",");
  let arguments=(0..binding.parameters.len()).map(|index|format!("value{index}")).collect::<Vec<_>>().join(",");
  let mut function=crate::syntax::parse(&format!("function adapter({parameters}){{return backend({arguments});}}"))?.functions.remove(0);
  let offset=program.functions.iter().map(|function|function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0)+1;
@@ -57,4 +57,16 @@ mod tests{
    }}assert!(found,"Missing checked {operation} forwarder");
   }
  }
+}
+
+#[cfg(test)]
+#[test]
+fn cors_forwarders_preserve_optional_arity_for_direct_alias_and_stored_calls(){
+ use crate::project::{SourceProvider,SourceId,load_project,check_graph};
+ struct Source;
+ impl SourceProvider for Source{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0!="main.tsr"{return Err(format!("Missing source: {}",id.0));}Ok("import {App,Middleware,CorsOptions,cors} from 'std:http';type Factory=Function<Middleware,[options?:ReadOnly<CorsOptions>]>;function main(){const app=new App();app.use(cors());const alias=cors;app.use(alias());const stored:Factory=cors;app.use(stored());app.use(stored(undefined));app.use(stored({origins:['https://allowed.example']}));}".into())}
+ }
+ let checked=check_graph(load_project(&Source,"main.tsr").unwrap());assert!(checked.is_ok(),"Optional native factory forwarding must retain omission: {:?}",checked.err());
 }

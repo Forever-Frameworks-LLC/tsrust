@@ -623,13 +623,14 @@ mod cursor_tests{
  }
  #[test]
  fn readonly_task_predicates_observe_without_awaiting_or_consuming_the_value(){
+  assert_eq!(public_warnings("async function observe(text:ReadOnly<string>):Task<int>{return text.length;}const text='borrowed async data';console.log(await observe(text));console.log(text);").unwrap_or_else(|error|panic!("Readonly data reads remain legal: {error:?}")),Vec::<String>::new());
   assert_eq!(public_warnings("const pending=value();const observe:Owned<Function<boolean,[work:ReadOnly<Task<int>>]>>=(work:ReadOnly<Task<int>>):boolean=>typeof work==='function';observe(pending);await pending;").unwrap_or_else(|error|panic!("{error:?}")),Vec::<String>::new());
   assert_eq!(public_warnings("function observe(work:ReadOnly<Task<int>>):boolean{return typeof work==='function';}const pending=value();observe(pending);await pending;").unwrap_or_else(|error|panic!("{error:?}")),Vec::<String>::new());
   assert!(public_warnings("const pending=value();const observe:Owned<Function<boolean,[work:ReadOnly<Task<int>>]>>=(work:ReadOnly<Task<int>>):boolean=>typeof work==='function';observe(pending);").unwrap_or_else(|error|panic!("{error:?}")).iter().any(|warning|warning=="unused-task"),"Readonly invocation leaves its caller's obligation intact");
   assert!(public_warnings("function lose(work:Task<int>){}lose(value());").unwrap_or_else(|error|panic!("{error:?}")).iter().any(|warning|warning=="unused-task"),"An implicit Task parameter is still an owned input");
   let dropped=public_warnings("function lose(work:Owned<Job<int,undefined>>){}lose(value().start());").unwrap_err();assert_eq!(dropped.code,"unsettled-job","{dropped:?}");
   for body in ["const observe:Owned<Function<Task<int>,[work:ReadOnly<Task<int>>]>>=(work:ReadOnly<Task<int>>):Task<int>=>work;","const observe:Owned<Function<Task<void>,[work:ReadOnly<Task<int>>]>>=async(work:ReadOnly<Task<int>>):Task<void>=>{await work;};","const observe:Owned<Function<Task<void>,[work:ReadOnly<Task<int>>]>>=async(work:ReadOnly<Task<int>>):Task<void>=>{const job=work.start();await job;};"]{
-   let error=public_warnings(body).expect_err("A borrowed Task cannot transfer, await or start its owner");assert_ne!(error.code,"callback-access","The stated readonly Task contract is valid; reject the consuming operation instead: {error:?}");
+   let error=public_warnings(body).expect_err(&format!("A borrowed Task cannot transfer, await or start its owner: {body}"));assert_ne!(error.code,"callback-access","The stated readonly Task contract is valid; reject the consuming operation instead: {error:?}");
   }
  }
  #[test]

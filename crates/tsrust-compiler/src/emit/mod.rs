@@ -1915,7 +1915,17 @@ impl Emitter<'_> {
                     let reference = if binding.mode == Mode::Mutate { "&mut " } else { "&" };
                     let view = if let Some(body)=binding.ty.union() {
                         if binding.mode==Mode::Mutate {
-                            let arms=self.program.unions[body.index()].members.iter().enumerate().map(|(variant,member)|format!("Union{}::V{variant}(payload)=>Union{}::V{variant}({})",body.index(),body.index(),if member.is_copy(){"*payload"}else{"payload"})).collect::<Vec<_>>().join(",");
+                            // The owned default retains its checked physical enum,
+                            // which can differ from the parameter's logical enum.
+                            let from=value.ty.unwrap().union().expect("checked union default owner");
+                            let arms=self.program.unions[from.index()].members.iter().enumerate().map(|(variant,member)|{
+                                let targets=&self.program.unions[body.index()].members;
+                                let to=if let Some(exact)=targets.iter().position(|target|target==member){exact}else{
+                                    let matches=targets.iter().enumerate().filter_map(|(tag,target)|matches!((*member,*target),(Type::Record(a),Type::Record(b)) if self.native_record_declaration(a)==self.native_record_declaration(b)).then_some(tag)).collect::<Vec<_>>();
+                                    let [target]=matches.as_slice()else{unreachable!("checked unique mutable default alternative")};*target
+                                };
+                                format!("Union{}::V{variant}(payload)=>Union{}::V{to}({})",from.index(),body.index(),if member.is_copy(){"*payload"}else{"payload"})
+                            }).collect::<Vec<_>>().join(",");
                             format!("match &mut default_owner{id} {{{arms}}}")
                         }else{format!("default_owner{id}.tsr_view()")}
                     } else {format!("{reference}default_owner{id}")};
@@ -11032,4 +11042,13 @@ mod ordered_set_emit;
         let output=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024"]).arg(input).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
         let output=std::process::Command::new(binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert_eq!(output.stdout,b"text\n7\n");
     }
+}
+
+#[cfg(test)]
+#[test]
+fn mutable_record_union_defaults_match_the_checked_owner_enum(){
+ let source="type Reactive<T>={evaluate:Owned<Function<T>>;};type Value<T>=Reactive<T>|T;function snapshot(value:Mutable<Value<string|undefined>|undefined>):string{if(value===undefined){return '';}if(typeof value==='string'){return clone(value);}return value.evaluate()??'';}function invoke(value:Value<string|undefined>|undefined=''):string{return snapshot(value);}function main(){console.log(invoke());}";
+ let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=crate::check(&source).unwrap();
+ let function=checked.program.functions.iter().find(|function|function.name=="invoke").unwrap();let binding=&function.bindings[0];assert_eq!(binding.mode,Mode::Mutate);let from=binding.initializer.as_ref().unwrap().ty.unwrap().union().unwrap();
+ let emitted=checked.emit_rust();assert!(emitted.contains(&format!("match &mut default_owner0 {{Union{}::V0(payload)",from.index())),"Default owner must match its own physical enum");
 }

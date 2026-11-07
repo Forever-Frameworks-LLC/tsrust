@@ -40,8 +40,9 @@ impl Analyzer {
         Some(replacement)
     }
     pub(super) fn scoped_record_nullable_contract(&self, actual: Type, expected: Type) -> bool {
-        let (Some(actual_id), Some(expected_id)) = (actual.union(), expected.union()) else { return false; };
-        if let (Some(Type::Record(actual_record)),Some(Type::Record(expected_record)))=(self.unions.payload(actual.owning()),self.unions.payload(expected.owning())){
+        let Some(expected_id)=expected.union() else{return false;};
+        if let Some(actual_id)=actual.union()
+            && let (Some(Type::Record(actual_record)),Some(Type::Record(expected_record)))=(self.unions.payload(actual.owning()),self.unions.payload(expected.owning())){
             if !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(actual_record))).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(actual_record)
                 || self.finite_owned_shape(Type::Record(expected_record)) && self.owned_record_parameter(Type::Record(actual_record)) && !self.aggregate_callable_facts(Type::Record(actual_record)).unknown && !self.native_shape_contains_view(Type::Record(actual_record)))
                 || self.scoped_records.declaration(actual_record)!=self.scoped_records.declaration(expected_record){return false;}
@@ -52,7 +53,8 @@ impl Analyzer {
         // record contract. This does not erase or convert the physical value.
         let expected_members=self.unions.members(expected_id);
         let mut substituted=false;
-        let compatible=self.unions.members(actual_id).into_iter().all(|member|{
+        let actual_members=actual.union().map(|id|self.unions.members(id)).unwrap_or_else(||vec![actual]);
+        let compatible=actual_members.into_iter().all(|member|{
             if self.unions.accepts(expected.owning(),member){return true;}
             let Type::Record(record)=member else{return false;};
             if self.native_shape_contains_view(member){return false;}

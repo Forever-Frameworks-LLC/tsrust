@@ -1,5 +1,5 @@
 import { App, Router, Context, ContextNext, Request, Response, Client, CorsOptions, Middleware, cors, secureHeaders, compress, request, text } from 'std:http';
-import { strictEqual, assert } from 'std:testing';
+import { strictEqual, ok } from 'std:testing';
 
 type PolicyFactory = Function<Middleware>;
 
@@ -44,8 +44,8 @@ async function main(): Task<void> {
     strictEqual(reply.header('x-after')!, 'two');
     strictEqual(await reply.text(), 'exclusive body é');
     const outside = await client.send(request('GET', base + '/outside', ''));
-    assert(outside.header('x-frame-options') === undefined);
-    assert(outside.header('access-control-allow-origin') === undefined);
+    ok(outside.header('x-frame-options') === undefined);
+    ok(outside.header('access-control-allow-origin') === undefined);
     strictEqual(await outside.text(), 'outside');
     const preflight = request('OPTIONS', base + '/api/echo', '');
     preflight.setHeader('origin', 'https://allowed.example');
@@ -70,7 +70,7 @@ async function main(): Task<void> {
       rejected = error.code === 'options';
     }
 
-    assert(rejected);
+    ok(rejected);
     console.log('source middleware exact');
   } finally {
     await server.shutdown();

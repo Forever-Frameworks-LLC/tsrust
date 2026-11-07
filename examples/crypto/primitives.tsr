@@ -10,7 +10,7 @@ function main() {
   for (let split = 0; split <= 3; split++) {
     const state = createHasher('sha256');
     state.update(unwrap(view(input, 0, split)));
-    state.update(unwrap(view(input, split, 3 - split)));
+    state.update(unwrap(view(input, split, 3)));
     strictEqual(unwrap(toHex(state.finalize())), unwrap(toHex(sha256(input))));
   }
 

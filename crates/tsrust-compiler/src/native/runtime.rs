@@ -179,7 +179,7 @@ mod tests {
  use super::*;
  #[test]
  fn optional_http_policies_preserve_extraction_marker_without_test_feature_activation(){
-  let ordinary=crate::stdlib::http::runtime();assert!(ordinary.contains("#[cfg(feature = \"http-middleware\")]"));assert!(!ordinary.contains("#[cfg(any(test, feature = \"http-middleware\"))]"));
+  let ordinary=format!("{}{}",crate::stdlib::futures::RUNTIME,crate::stdlib::http::runtime());assert!(ordinary.contains("#[cfg(feature = \"http-middleware\")]"));assert!(!ordinary.contains("#[cfg(any(test, feature = \"http-middleware\"))]"));
   let units=separate(&ordinary);assert!(units.dependencies);assert!(!units.runtime.unwrap().contains(crate::stdlib::http::MIDDLEWARE_MARKER));
   let selected=format!("{ordinary}{}",crate::stdlib::http::MIDDLEWARE_MARKER);let units=separate(&selected);assert!(units.runtime.unwrap().starts_with(crate::stdlib::http::MIDDLEWARE_MARKER));assert!(!units.application.contains("mod tsrust_native_http {"));
  }

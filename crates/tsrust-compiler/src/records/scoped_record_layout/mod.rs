@@ -62,6 +62,12 @@ impl Registry {
         records: &mut Vec<Record>,
     ) -> usize {
         let base = self.declaration(base);
+        // No substitution means no new physical layout or tagged result type.
+        // In particular, a concrete StoredCallable field keeps its exact family.
+        if records[base].fields.len()==types.len()
+            && records[base].fields.iter().zip(&types).all(|(field,ty)|field.ty==Some(*ty)) {
+            return base;
+        }
         let key = (base, types);
         if let Some(&id) = self.instances.get(&key) {
             return id;
@@ -148,4 +154,17 @@ mod origin_remap_tests {
   assert_eq!(records[instance].fields[0].ty,Some(Type::Closure(3)));
   assert_eq!(registry.materialize(0,vec![Type::Closure(3)],&mut records),instance);
  }
+}
+
+#[cfg(test)]
+#[test]
+fn unchanged_callable_fields_preserve_nominal_record_and_union_identity(){
+ let mut records=vec![crate::cloneability::tests::record(&[Type::Boolean,Type::StoredCallable(0)])];
+ let mut registry=Registry::default();let unions=crate::unions::UnionArena::default();
+ let original=unions.intern([Type::Record(0),Type::Undefined],crate::Span::default()).unwrap();
+ let same=registry.materialize(0,vec![Type::Boolean,Type::StoredCallable(0)],&mut records);
+ assert_eq!(same,0);assert_eq!(records.len(),1);assert_eq!(unions.intern([Type::Record(same),Type::Undefined],crate::Span::default()).unwrap(),original);
+ let changed=registry.materialize(0,vec![Type::Boolean,Type::StoredCallable(1)],&mut records);assert_ne!(changed,0);assert_eq!(registry.declaration(changed),0);assert_eq!(records[changed].fields[1].ty,Some(Type::StoredCallable(1)));
+ assert_eq!(registry.materialize(changed,vec![Type::Boolean,Type::StoredCallable(0)],&mut records),0);
+ assert_eq!(registry.materialize(changed,vec![Type::Boolean,Type::StoredCallable(1)],&mut records),changed);
 }

@@ -195,7 +195,7 @@ pub(crate) fn borrows_inputs(value:&crate::syntax::Expr)->bool {
 // Existing lazy APIs keep their established receiver loans and owned snapshots.
 // I/O, subprocess, networking and DNS operations borrow every stable Read/Mutate input through settlement.
 fn borrows_native_input(module:&str,name:&str,index:usize)->bool{
-    if matches!(module,"std:io"|"std:process"|"std:net"|"std:dns"|"std:compression"){return crate::native_bindings::lookup(module,name).ok().and_then(|binding|binding.parameters.get(index)).is_some_and(|parameter|matches!(parameter.access,Mode::Read|Mode::Mutate));}
+    if matches!(module,"std:io"|"std:process"|"std:net"|"std:dns"|"std:compression") || module=="std:crypto" && crate::stdlib::crypto::password_operation(name){return crate::native_bindings::lookup(module,name).ok().and_then(|binding|binding.parameters.get(index)).is_some_and(|parameter|matches!(parameter.access,Mode::Read|Mode::Mutate));}
     index==0 && match module{
         "std:signals"=>name=="__receive",
         "std:futures"=>matches!(name,"__send"|"__receive"|"__tick"|"__tokenCancelled"),

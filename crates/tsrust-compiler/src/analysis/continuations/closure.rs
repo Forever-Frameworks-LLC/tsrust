@@ -327,6 +327,13 @@ impl Analyzer {
         let mut program_captures = Vec::new();
         let mut invocation = Mode::Read;
         for (inner, &outer_id) in visible.iter().enumerate() {
+            // A borrowed task input may be retained for ordinary reads, but its
+            // capture representation cannot erase consuming/mutating body use.
+            if self.task_sources.contains(&origin) && outer.readonly_parameters.contains(&outer_id)
+                && context.bindings[inner].used.is_some() {
+                let name=context.bindings[inner].name.clone();
+                Self::stated_parameter_access(&name,&mut context.bindings[inner],Mode::Read,span)?;
+            }
             let binding = &context.bindings[inner];
             if let Some(usage) = binding.used {
                 if self.discovering_results && self.has_pending_result(binding.ty) {

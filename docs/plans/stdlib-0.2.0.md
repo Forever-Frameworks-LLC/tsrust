@@ -1040,6 +1040,14 @@ binary/stream uploads, pooled requests, middleware and CPU-per-request cases.
 Compare direct same-stack Rust and Node; include p50/p99, throughput, CPU/request
 and RSS for service scenarios, with the same load generator and concurrency.
 
+Source implementation is present for the client policies, owned upload/form
+factories and source-installed middleware. The executable middleware example is
+`examples/http-middleware/main.tsr`; matched upload and middleware workloads are
+in `benchmarks/http`. The latest affected run preserves successful native
+form/upload debug and release execution and crypto/CORS editor agreement.
+Middleware export execution, remaining ownership repairs and actual matched
+measurements are still pending; the unchecked items above are not accepted yet.
+
 ### B11 — SSE and WebSocket APIs
 
 Backend: Axum SSE/ws and compatible Tokio Tungstenite client. B05/B06/B10.
@@ -1439,6 +1447,13 @@ Witnesses: SHA/HMAC/HKDF vectors, mismatch/truncation, random-bound failures,
 PHC corruption/cost bounds and awaited cleanup. Performance: matched sizes and
 exact password parameters, kernel versus scheduling costs separately. Security
 does not follow from benchmark speed or passing a statistical randomness test.
+
+The digest/Hasher, HMAC/HKDF, random integer and password APIs now have compiler,
+runtime, IntelliSense, executable examples and 29 matched benchmark workloads in
+source. Examples live in `examples/crypto`; private backend known-answer checks
+and focused editor agreement pass. Public native password/alias validation and
+matched measurements remain pending, so the implementation does not yet close
+this checklist.
 
 B00 crypto range migration accepted in focused scope (2026-11-06, source
 7bd0e3fb): `randomBytes(0)` returns empty bytes and counts above the former 1 MiB
