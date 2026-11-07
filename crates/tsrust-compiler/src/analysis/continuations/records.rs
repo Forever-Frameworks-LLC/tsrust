@@ -439,11 +439,13 @@ impl Analyzer {
                         })
                         .recursive(self.scoped_records.declaration(index));
                     let instance = if recursive {
+                        let absent=&self.absent_callback_payloads;
                         self.scoped_records.materialize_recursive(
                             index,
                             concrete,
                             &mut self.program.records,
                             &self.unions,
+                            &|id|absent.values().any(|&empty|empty==id),
                         )?
                     } else {
                         self.scoped_records

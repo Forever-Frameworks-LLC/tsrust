@@ -8,7 +8,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
-- Current canonical checkpointe339008f; uncommitted targeted compiler repairs
+- Current canonical checkpoint e0340859; uncommitted targeted compiler repairs
   are under bounded affected validation detailed below. Accepted runtime fixes are retained
   atc7e8eced. Only root writes canonical; app worktree edits stay protected.
 - ACTUAL PASS: /tmp/tsrust-upgrade-handoff-4366908885f1.json. Selected fresh normal
@@ -280,12 +280,33 @@ Latest accepted section — public55case native runtime; full v0.2.0 remains act
 - Quiet old blocking-timeout fixture cleanup retained main.tsr/gate.rs/witness
   files,removed ONLY generated target after no-open-consumer/liveness/locks proof.
   /tmp/tsrust-blocking-fixture-target-cleanup.json recovered63438848B actual.
-- NEXT fixed30minute changed-source acceptance: preflight includes compiler/LSP
-  tests,then CLI+one byte-host build and remaining68cases bothprofiles; private
-  library build and remaining restore-source/deep recursive controls only after
-  actual byte native execution passes. Preserve earlier2escape-negative/1514lib/
- 6focused/25byte/27LSP/crypto24/collections42/public55/export passes. No fresh
-  full replay or public timings. Source checkpoint follows whole-project format.
+- Bounded-carrier first stage TERMINAL: preflightPASS68.714s; CLI/host build
+  PASS223.337s/peak2887618KiB. Byte68nowpassesfinitegenerationbutstopsEMIT at
+  StoredCallable149→StoredCallable0; privatebuildcorrectlyNOTstarted. No native
+  pass. /tmp/tsrust-bounded-carrier-front-2b402dcab4c3.json;total235.843s,
+  peak3019100936B,remaining[],cleanup400580608B.
+- Actual parenttrace /tmp/tsrust-bounded-callable-boundary.err proves failure is
+  NEWmutual module1Second224(read149,next205)→Second222(read0,next203). Earlier
+  original module52/49 optionalrecursive conversions nowprogress. Source149is
+  actualsecond(value) captured environment; no opaque boxing/empty-family shortcut
+  justified. Candidate66e37187 remainsUNAPPLIED/unconfirmed.
+- Proven registry cause: materialize_recursive normalizedSecond224toitsnominal
+  beforeplanning,thenclonedSeconddeclaration(read0) whileonlypreservingFirstroot
+  overrides. Appliedreviewed replacementd8383f7f: multi-member path retainsall
+  suppliedphysicalnodeplans, exact-leaf/app coinductive candidate reuse, existing
+  fullcomponentreservation/cache, ordinaryparameterregistration. Selfpathunchanged.
+- Ghostretarget ONLYdirectnonoptionalCallbackIDconfirmedbyexistingAnalyzer
+  absent_callback_payloads; two productioncallers passdisjointfieldpredicate(&dyn
+  Fn,no newregistry). Optionalunions/unknowncallbacks doNOTalias. Peerreviewcaught
+  optionalinhabited FirstGhost.nextSecond149 beingerasedbyRootSecond150; newunit
+  assertsboth149+150,root148andinhabitedoptionalghost remainreachable. Otherunit
+  covers148/149,backedge,repeatcache,concrete-inputfixedpoint/noarenagrowth,150distinct.
+  B06peerreviewd838clear; no executionyet.
+- NEXT /tmp/tsrust-mutual-carrier-run.py: Rust compiler/LSP testpreflight,
+  byte68bothprofiles FIRST,thenremainingdeep/restoration+affectedregistry/empty
+  controls and freshLSPbyteagreement. Onefixed30minute setup/build/test/cleanup
+  scope. Sourcecheckpoint followswhole-projectformat. Preserve prior passes;
+  no full replay,newSQLite timings,push,merge or publication.
 - Quiet cleanup /tmp/tsrust-stale-worker-target-cleanup.json removed ONLY ignored
   generated targets from stdlib-bytes(native cache) and stdlib-path(rustc info)
   managed worktrees; source/WIP branches untouched. Recovered167149568B actual.

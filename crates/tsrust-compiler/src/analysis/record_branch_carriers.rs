@@ -210,7 +210,8 @@ impl Analyzer {
             fields[index]=ty;
             let recursive=self.native_borrow_types && fields.iter().any(|ty| self.native_shape_contains_view(*ty))
                 && crate::recursive_view_shapes::Index::new(&self.program.records,&|id|self.unions.members(id)).recursive(self.scoped_records.declaration(record));
-            let id=if recursive {self.scoped_records.materialize_recursive(record,fields,&mut self.program.records,&self.unions).ok()?}
+            let absent=&self.absent_callback_payloads;
+            let id=if recursive {self.scoped_records.materialize_recursive(record,fields,&mut self.program.records,&self.unions,&|id|absent.values().any(|&empty|empty==id)).ok()?}
                 else {self.scoped_records.materialize(record,fields,&mut self.program.records)};
             while self.fields.len()<self.program.records.len(){let id=self.fields.len();self.fields.push(self.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
             ty=Type::Record(id);

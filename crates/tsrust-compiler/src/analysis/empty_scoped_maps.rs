@@ -372,12 +372,12 @@ mod recursive_empty_environment_tests{
  fn full_component_cache_cannot_alias_an_ordinary_root_only_plan(){
   let mut analyzer=analyzed("type A={first:Once<Function<int>>;next?:B;};type B={second:Once<Function<string>>;next?:A;};function main(){}");let a=analyzer.record_names["A"];let b=analyzer.record_names["B"];
   let Type::StoredCallable(family)=field(&analyzer,a,"first")else{panic!("owned field")};let callback=analyzer.callables.storage.declaration(family).unwrap();let absent=analyzer.absent_callback(callback);let next=field(&analyzer,a,"next");
-  let start=analyzer.program.records.len();let root_only=analyzer.scoped_records.materialize_recursive(a,vec![absent,next],&mut analyzer.program.records,&analyzer.unions).unwrap();
+  let start=analyzer.program.records.len();let root_only=analyzer.scoped_records.materialize_recursive(a,vec![absent,next],&mut analyzer.program.records,&analyzer.unions,&|_|false).unwrap();
   for id in start..analyzer.program.records.len(){analyzer.fields.push(analyzer.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
   let Type::Record(empty)=analyzer.empty_scoped_record_environment(a).unwrap()else{panic!("complete empty A")};assert_ne!(empty,root_only);
   let Some(Type::Record(child))=analyzer.unions.payload(field(&analyzer,empty,"next"))else{panic!("complete empty B")};assert!(analyzer.absent_callable_type(field(&analyzer,child,"second")));
   let count=analyzer.program.records.len();assert_eq!(analyzer.empty_scoped_record_environment(b).unwrap(),Type::Record(child));assert_eq!(analyzer.program.records.len(),count);
-  assert_eq!(analyzer.scoped_records.materialize_recursive(a,vec![absent,next],&mut analyzer.program.records,&analyzer.unions).unwrap(),root_only);
+  assert_eq!(analyzer.scoped_records.materialize_recursive(a,vec![absent,next],&mut analyzer.program.records,&analyzer.unions,&|_|false).unwrap(),root_only);
  }
 
 }

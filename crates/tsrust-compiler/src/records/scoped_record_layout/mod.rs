@@ -101,7 +101,7 @@ mod recursive_tests {
         let mut records = vec![record(&[Type::StoredCallable(0), next])];
         let mut registry = Registry::default();
         let fields = vec![Type::StoredCallable(1), next];
-        let specialized = registry.materialize_recursive(0, fields.clone(), &mut records, &unions).unwrap();
+        let specialized = registry.materialize_recursive(0, fields.clone(), &mut records, &unions, &|_|false).unwrap();
         assert_ne!(specialized, 0);
         assert_eq!(registry.declaration(specialized), 0);
         assert_eq!(records[0].fields[0].ty, Some(Type::StoredCallable(0)));
@@ -110,9 +110,9 @@ mod recursive_tests {
         assert!(unions.members(next).contains(&Type::Record(specialized)));
         let links = crate::recursive_links::Index::new(&records, |id| unions.members(id));
         assert!(links.boxed(next, specialized));
-        assert_eq!(registry.materialize_recursive(0, fields, &mut records, &unions).unwrap(), specialized);
+        assert_eq!(registry.materialize_recursive(0, fields, &mut records, &unions, &|_|false).unwrap(), specialized);
         let concrete_fields = records[specialized].fields.iter().map(|field| field.ty.unwrap()).collect();
-        assert_eq!(registry.materialize_recursive(specialized, concrete_fields, &mut records, &unions).unwrap(), specialized);
+        assert_eq!(registry.materialize_recursive(specialized, concrete_fields, &mut records, &unions, &|_|false).unwrap(), specialized);
         assert_eq!(registry.recursive_parameter(Type::Record(0)), Type::Record(specialized));
         assert_eq!(records.len(), 2);
     }
@@ -129,7 +129,7 @@ mod recursive_tests {
         let mut registry = Registry::default();
         let specialized = registry.materialize_recursive(0,
             vec![Type::StoredCallable(1), Type::Array(ArrayElement::Record(1, 2)), Type::Record(2)],
-            &mut records, &unions).unwrap();
+            &mut records, &unions, &|_|false).unwrap();
         let Type::Array(ArrayElement::Record(child, 2)) = records[specialized].fields[1].ty.unwrap() else { panic!("preserved array rank") };
         assert_eq!(registry.declaration(child), 1);
         assert_eq!(registry.recursive_parameter(Type::Record(1)), Type::Record(child));
