@@ -76,7 +76,13 @@ impl Registry {
         let candidates=self.recursive_parameters.get(&base).into_iter().flatten().copied().collect::<Vec<_>>();
         for candidate in candidates{if self.recursive_member_plans_match(base,candidate,&fields,records,unions){return Ok(candidate);}}
         let remap=self.materialize_empty_component(fields,records,unions)?;
-        for(&original,&instance)in &remap{let declaration=self.declaration(original);self.recursive_parameters.entry(declaration).or_default().insert(instance);}
+        for(&original,&instance)in &remap{
+            // Required absent callbacks make this member uninhabited. Keep its
+            // layout for links, but never select it for a constructor or result.
+            // An optional absent callback does not make its record uninhabited.
+            if records[instance].fields.iter().any(|field|!field.optional && matches!(field.ty,Some(Type::Callback(id)) if absent(id))){continue;}
+            let declaration=self.declaration(original);self.recursive_parameters.entry(declaration).or_default().insert(instance);
+        }
         Ok(remap[&base])
     }
 
@@ -194,7 +200,9 @@ impl Registry {
         for (&original, &instance) in &remap {
             let declaration = self.declaration(original);
             self.bases.insert(instance, declaration);
-            self.recursive_parameters.entry(declaration).or_default().insert(instance);
+            if !records[instance].fields.iter().any(|field|!field.optional && matches!(field.ty,Some(Type::Callback(id)) if absent(id))) {
+                self.recursive_parameters.entry(declaration).or_default().insert(instance);
+            }
         }
         let instance = remap[&base];
         self.recursive_instances.insert(key, instance);
@@ -266,5 +274,23 @@ mod member_plan_tests {
             _=>{},
         }}
         assert!(families.contains(&148));assert!(families.contains(&149));assert!(families.contains(&150));assert!(retained_optional_ghost,"optional ghost is an inhabited container, not an absent required record");
+    }
+    #[test]
+    fn required_absent_sibling_is_not_a_live_constructor_or_result_candidate(){
+        let unions=UnionArena::default();let span=Span::default();
+        let first_link=unions.intern([Type::Record(0),Type::Undefined],span).unwrap();
+        let second_link=unions.intern([Type::Record(1),Type::Undefined],span).unwrap();
+        let mut records=vec![crate::cloneability::tests::record(&[Type::StoredCallable(0),second_link]),crate::cloneability::tests::record(&[Type::StoredCallable(0),first_link])];
+        let mut registry=Registry::default();
+        let ghost=registry.materialize(1,vec![Type::Callback(72),first_link],&mut records);
+        let ghost_link=unions.intern([Type::Record(ghost),Type::Undefined],span).unwrap();
+        let first=registry.materialize_recursive(0,vec![Type::StoredCallable(148),ghost_link],&mut records,&unions,&|id|id==72).unwrap();
+        let Type::Record(second)=unions.payload(records[first].fields[1].ty.unwrap()).unwrap()else{panic!("empty sibling layout retained")};
+        assert_eq!(records[second].fields[0].ty,Some(Type::Callback(72)));
+        assert_eq!(registry.recursive_parameter(Type::Record(0)),Type::Record(first));
+        assert_eq!(registry.recursive_parameter(Type::Record(1)),Type::Record(1),"later Second constructors/results must not select Callback72");
+        let live=registry.materialize_recursive(1,vec![Type::StoredCallable(149),first_link],&mut records,&unions,&|id|id==72).unwrap();
+        assert_eq!(records[live].fields[0].ty,Some(Type::StoredCallable(149)));
+        assert_eq!(registry.recursive_parameter(Type::Record(1)),Type::Record(live));
     }
 }

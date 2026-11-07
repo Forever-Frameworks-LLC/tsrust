@@ -8,7 +8,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
-- Current canonical checkpoint e0340859; uncommitted targeted compiler repairs
+- Current canonical checkpoint4a5cbea2; uncommitted targeted compiler repairs
   are under bounded affected validation detailed below. Accepted runtime fixes are retained
   atc7e8eced. Only root writes canonical; app worktree edits stay protected.
 - ACTUAL PASS: /tmp/tsrust-upgrade-handoff-4366908885f1.json. Selected fresh normal
@@ -302,11 +302,27 @@ Latest accepted section — public55case native runtime; full v0.2.0 remains act
   assertsboth149+150,root148andinhabitedoptionalghost remainreachable. Otherunit
   covers148/149,backedge,repeatcache,concrete-inputfixedpoint/noarenagrowth,150distinct.
   B06peerreviewd838clear; no executionyet.
-- NEXT /tmp/tsrust-mutual-carrier-run.py: Rust compiler/LSP testpreflight,
-  byte68bothprofiles FIRST,thenremainingdeep/restoration+affectedregistry/empty
-  controls and freshLSPbyteagreement. Onefixed30minute setup/build/test/cleanup
-  scope. Sourcecheckpoint followswhole-projectformat. Preserve prior passes;
-  no full replay,newSQLite timings,push,merge or publication.
+- Mutual-carrier first stage TERMINAL: preflight70.921sPASS; CLI/host build
+ 218.399sPASS/peak2895554KiB. Byte68advancestoEMITStored149→Callback72(verified
+  emptyghosttarget),no nativepass/privatebuild. /tmp/tsrust-mutual-carrier-front-
+  b70ec615d43b.json,total231.194s/peak2966901560B,remaining[],cleanup400171008B.
+- Exactconsumerproof: start_record_work records.rs130 chooses recursive_parameter
+  BEFOREliteralfields/defaults; resolved_prepared_call analysis/mod.rs8666 does
+  samefornominalfactoryresults. Newmulti plannerregisteredALLmembers,sofirst148
+  constructorregisteredrequiredemptySecond72 as soleSecondcandidate. LaterSecond
+  selectsghost72. Wrapperdirectionisconsistentwithwrongselectedtarget; doNOT
+  loosenNative149→absent72 conversion.
+- Appliedbdc8ac2d filtersBOTHordinaryregistration sites usingexisting confirmed
+  DIRECTabsentCbIDs. Layout/cache/linksretained; requireduninhabitedmembersnot
+  recursiveparametercandidates. Rootexplicitlychecks!field.optional too; optional
+  properties/unionsstayeligible. Regressionchecks first148ghostSecond72 retained,
+  constructor/resultfallbackremainsnominalSecond1,thenliveSecond149isselected.
+  Bothagentsconfirmedconsumerpath; no opacity/conversionworkaroundor66eguard.
+- NEXT source-changed fixed30minuteacceptance aftercheckpoint: compiler/LSP
+  testpreflight,remainingbyte68bothprofilesfirst,thenfailedrestoration/deepnative
+  plusaffectedregistry/emptycontrols andfreshLSPbyteagreement. Preserve earlier
+ 1514lib/6focused/25byte/27LSP/2escape-negative/crypto24/collections42/public55/export
+  passes. Source remainsnotaccepted until actualnative. No push/merge/publication.
 - Quiet cleanup /tmp/tsrust-stale-worker-target-cleanup.json removed ONLY ignored
   generated targets from stdlib-bytes(native cache) and stdlib-path(rustc info)
   managed worktrees; source/WIP branches untouched. Recovered167149568B actual.
