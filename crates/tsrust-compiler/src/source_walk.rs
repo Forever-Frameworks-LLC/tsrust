@@ -25,7 +25,7 @@ fn annotations(
                 ParameterAnnotation::Named(value) => {
                     let adjust=substitutions.is_some_and(|bindings|crate::type_substitution::substitutes_parameter(value,bindings));
                     visit(value)?;
-                    if adjust && crate::type_substitution::copy_annotation(value) {parameter.access=None;}
+                    if adjust && (crate::type_substitution::copy_annotation(value) || crate::type_substitution::task_annotation(value)&&parameter.access.as_ref().is_some_and(|access|access.text=="consume")) {parameter.access=None;}
                 },
                 ParameterAnnotation::Callback(callback) => pending.push(AnnotationWork::Callback(callback)),
                 ParameterAnnotation::Inferred(_) => {}
@@ -63,7 +63,8 @@ fn function_annotations_with_substitution(function:&mut Function,visit:&mut impl
     for (position,(_,annotation,callback))in function.params.iter_mut().enumerate() {
         let adjust=substitutions.is_some_and(|bindings|crate::type_substitution::substitutes_parameter(annotation,bindings));
         visit(annotation)?;
-        if adjust && crate::type_substitution::copy_annotation(annotation) && let Some(access)=function.parameter_access.get_mut(position) {*access=None;}
+        if adjust && let Some(access)=function.parameter_access.get_mut(position)
+            && (crate::type_substitution::copy_annotation(annotation)||crate::type_substitution::task_annotation(annotation)&&access.is_some_and(|(mode,_)|mode==crate::Mode::Consume)){*access=None;}
         if let Some(callback)=callback {annotations(AnnotationWork::Callback(callback),visit,substitutions)?;}
     }
     if let Some(result)=&mut function.result {annotations(AnnotationWork::Result(result),visit,substitutions)?;}
@@ -476,4 +477,16 @@ mod substitution_access_tests {
         let source="function apply<T>(value:Owned<T>,action:Owned<Function<T,[value:Owned<T>]>>):T{return action(value);}function main(){console.log(apply(7,(value:int):int=>value+1));}";
         crate::check(source).unwrap();
     }
+}
+
+#[cfg(test)]
+#[test]
+fn generic_task_value_substitution_preserves_read_but_uses_intrinsic_consumption(){
+ let mut function=crate::syntax::parse("function apply<T>(action:Owned<Function<int,[owned:Owned<T>,observed:ReadOnly<T>]>>,owned:Owned<T>,observed:ReadOnly<T>){}").unwrap().functions.remove(0);
+ let bindings=Substitutions::from([("T".into(),crate::type_syntax::parse("Task<int>").unwrap())]);
+ substitute_function_annotations(&mut function,&bindings).unwrap();
+ let callback=function.params[0].2.as_ref().unwrap();assert!(callback.params[0].access.is_none());assert_eq!(callback.params[1].access.as_ref().unwrap().text,"read");
+ let ParameterAnnotation::Named(value)=&callback.params[0].ty else{panic!("substituted task value")};assert!(crate::type_substitution::task_annotation(value));
+ assert!(function.parameter_access[1].is_none());assert_eq!(function.parameter_access[2].unwrap().0,crate::Mode::Read);
+ let mut explicit=crate::syntax::parse("function original<T>(action:Owned<Function<int,[work:Owned<Fixed>]>>){}").unwrap().functions.remove(0);substitute_function_annotations(&mut explicit,&bindings).unwrap();assert_eq!(explicit.params[0].2.as_ref().unwrap().params[0].access.as_ref().unwrap().text,"consume","An unrelated source contract is never normalized");
 }

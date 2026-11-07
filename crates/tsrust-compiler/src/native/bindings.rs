@@ -311,6 +311,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::http::PUBLIC_HTML,
     crate::stdlib::http::PUBLIC_JSON,
     crate::stdlib::http::PUBLIC_REQUEST,
+    crate::stdlib::http::CORS,crate::stdlib::http::PUBLIC_CORS,crate::stdlib::http::SECURE_HEADERS,crate::stdlib::http::COMPRESS,
     crate::stdlib::http::PUBLIC_REQUEST_FORM,
     crate::stdlib::http::PUBLIC_REQUEST_MULTIPART,
     crate::stdlib::http::PUBLIC_REQUEST_BYTES,

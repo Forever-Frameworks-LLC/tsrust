@@ -2525,7 +2525,7 @@ impl Emitter<'_> {
         if io_runtime{output.push_str(&crate::stdlib::io::runtime());if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpBody)){output.push_str(crate::stdlib::io::HTTP_RUNTIME);}}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sql")){output.push_str(crate::stdlib::sql::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sqlite")){output.push_str(crate::stdlib::sqlite::RUNTIME);}
-        if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(crate::stdlib::http::RUNTIME);}
+        if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(&crate::stdlib::http::runtime());if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpMiddleware)){output.push_str(crate::stdlib::http::MIDDLEWARE_MARKER);}}
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
             if self.sql_record(&mut output,index) || self.http_record(&mut output,index) || self.sqlite_record(&mut output,index){continue;}

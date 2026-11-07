@@ -68,6 +68,10 @@ impl Analyzer{
         // enum. Common string observations can use the existing borrowed subset
         // retagging without moving a payload or admitting an absent alternative.
         let actual = if expected == Some(physical)
+            // An argument probe without a contract borrows the declared enum;
+            // selecting a narrower enum would require replacing its tag.
+            || (mode == Mode::Mutate && expected.is_none()
+                && matches!(physical,Type::Union(_)) && matches!(narrowed,Type::Union(_)))
             || (mode == Mode::Mutate && expected.is_some_and(|expected| self.scoped_record_nullable_contract(physical,expected)))
             || context.observer_places.contains(&place)
             || (mode == Mode::Read
@@ -412,4 +416,13 @@ mod injection_context_tests {
 fn mutable_mixed_union_default_keeps_declared_tagged_storage(){
  let source="type Reactive<T>={evaluate:Owned<Function<T>>;};type Value<T>=Reactive<T>|T;function snapshot(value:Mutable<Value<string|undefined>|undefined>):string{if(value===undefined){return ''; }if(typeof value==='string'){return clone(value);}return value.evaluate()??'';}function invoke(value:Value<string|undefined>|undefined=''):string{return snapshot(value);}function main(){console.log(invoke());}";
  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=crate::check(&source).unwrap();drop(checked.emit_rust());
+}
+
+#[cfg(test)]
+#[test]
+fn mutable_mixed_union_probes_preserve_readonly_and_declared_tag_limits(){
+ for source in [
+  "type Row={text:string;};function replace(value:Mutable<Row|string>):void{value='changed';}function inspect(value:Mutable<Row|string|undefined>):void{if(value!==undefined){replace(value);}}function main(){}",
+  "type Row={text:string;};function replace(value:Mutable<Row|string|undefined>):void{value=undefined;}function inspect(value:ReadOnly<Row|string|undefined>):void{if(value!==undefined){replace(value);}}function main(){}",
+ ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(crate::check(&source).is_err(),"Mutable argument probes cannot retag or acquire readonly storage: {source}");}
 }

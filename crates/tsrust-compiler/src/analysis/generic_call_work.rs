@@ -87,16 +87,10 @@ impl Analyzer {
             if polymorphic {self.prepare_polymorphic_argument_hint(context,argument)?;}
         }
         let mut inline_shapes = HashMap::new();
-        for ((_, pattern, _), argument) in self
-            .generic_functions
-            .template(name)
-            .expect("generic template")
-            .params
-            .iter()
-            .zip(args.iter())
-        {
+        let patterns=self.generic_functions.template(name).expect("generic template").params.iter().map(|(_,pattern,_)|(pattern.span.start,pattern.span.end)).collect::<Vec<_>>();
+        for (key,argument) in patterns.into_iter().zip(args.iter()) {
             if let Some(shape) = self.inline_generic_callable_shape(argument) {
-                inline_shapes.insert((pattern.span.start, pattern.span.end), shape);
+                inline_shapes.insert(key, shape);
             }
         }
         Ok(Prepared::Arguments(Arguments { inline_shapes, prepared: vec![false; args.len()], value_hints:HashMap::new(), parameter_hints:vec![None;args.len()] }))

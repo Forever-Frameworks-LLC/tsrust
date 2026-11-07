@@ -920,7 +920,11 @@ impl<'a> AnnotationParser<'a> {
         while let ValueAnnotationKind::Group(next) = &leaf.kind {
             leaf = next;
         }
-        if let ValueAnnotationKind::Callable { ownership, .. } = &leaf.kind {
+        if matches!(leaf.kind,ValueAnnotationKind::Callable{ownership:CallableOwnership::Task,..}){
+            if name.text!="ReadOnly"{return Err(Diagnostic::new("callback-access", "A Function accepts one ownership wrapper: ReadOnly, Mutable, Once or Owned.", name.span));}
+            // Keep Task ownership/invocation; this is a parameter's read-only
+            // data access, not a replacement Function ownership wrapper.
+        }else if let ValueAnnotationKind::Callable { ownership, .. } = &leaf.kind {
             if *ownership != CallableOwnership::Default {
                 return Err(Diagnostic::new("callback-access", "A Function accepts one ownership wrapper: ReadOnly, Mutable, Once or Owned.", name.span));
             }
@@ -1053,4 +1057,12 @@ mod formatting_probe_tests {
             }
         }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn readonly_task_parameters_keep_their_task_contract(){
+ let value=parse("Function<void,[work:ReadOnly<Task<int>>]>").unwrap();let ValueAnnotationKind::Callable{parameters,..}=&value.kind else{panic!("outer function")};assert_eq!(parameters[0].access.as_ref().unwrap().mode,Mode::Read);assert!(matches!(parameters[0].annotation.kind,ValueAnnotationKind::Callable{ownership:CallableOwnership::Task,..}));
+ for source in ["Function<void,[work:Owned<Task<int>>]>","Function<void,[work:Mutable<Task<int>>]>"]{assert_eq!(parse(source).unwrap_err().code,"callback-access");}
+ let function=crate::syntax::parse("function observe(work:ReadOnly<Task<int>>){}").unwrap().functions.remove(0);assert_eq!(function.parameter_access[0].unwrap().0,Mode::Read);assert_eq!(function.params[0].2.as_ref().unwrap().kind,crate::syntax::CallbackKind::Task);
 }

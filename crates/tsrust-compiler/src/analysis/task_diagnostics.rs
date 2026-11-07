@@ -5,6 +5,7 @@ type Tokens = BTreeSet<(usize, usize, bool)>;
 type Place = (usize, Vec<String>);
 #[derive(Clone,Debug,PartialEq,Eq)]
 struct Poll { cursors:Vec<Place>, selected:Vec<Place> }
+struct CursorPollSources{cursors:Vec<Place>,mapped:bool}
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 struct State { owners:BTreeMap<Place,Tokens>, polls:BTreeMap<Place,Poll> }
 impl State { fn new()->Self{Self::default()} }
@@ -97,12 +98,47 @@ fn place(value:&Expr)->Option<Place> {
 // Resolve only checked single-return forwarding. An arbitrary iterator whose
 // callback can return done before polling its owner is deliberately not a leaf.
 impl CheckedProgram{
- fn cursor_poll_sources(&self,function:&CheckedFunction,expression:&Expr)->Option<Vec<Place>>{
+ fn call_argument_mode(&self,value:&Expr,index:usize)->Option<Mode>{
+  if let Some(plan)=value.generic_invocation{return self.polymorphic_invocations.checked(plan,&self.closures,value.span).ok()?.argument_modes.get(index).copied();}
+  match value.target{
+   Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>return self.functions[id].bindings.get(index).map(|binding|binding.mode),
+   Some(CallTarget::NativeBinding(id))=>return crate::native_bindings::BINDINGS[id].parameters.get(index).map(|parameter|parameter.access),
+   Some(CallTarget::IteratorCursor)=>return Some(Mode::Consume),Some(CallTarget::IteratorNext)=>return Some(Mode::Mutate),_=>{}
+  }
+  let ExprKind::Call(callee,args)=&value.kind else{return None;};match callee.ty?{
+   Type::Callback(id)=>self.callback_contracts[id].params.get(index).map(|parameter|parameter.mode),
+   Type::StoredCallable(id)|Type::BorrowedCallable(id)=>self.stored_contracts.declaration(id).and_then(|id|self.callback_contracts[id].params.get(index)).map(|parameter|parameter.mode),
+   Type::Closure(id)=>{let closure=&self.closures[id];match closure.forward{
+    Some(ClosureForward::Function(id))=>self.functions[id].bindings.get(index).map(|binding|binding.mode),
+    Some(ClosureForward::Native(id))=>crate::native_bindings::BINDINGS[id].parameters.get(index).map(|parameter|parameter.access),
+    _=>if closure.methods.is_empty(){closure.parameters.get(index).map(|&slot|closure.function.bindings[slot].mode)}else{
+     let mut modes=closure.methods.iter().filter(|method|method.parameters.len()==args.len()).filter_map(|method|method.parameters.get(index).map(|&slot|method.function.bindings[slot].mode));let first=modes.next()?;modes.all(|mode|mode==first).then_some(first)
+    }
+   }},_=>None,
+  }
+ }
+ fn cursor_poll_body<'a>(&self,function:&'a CheckedFunction)->Option<(&'a Expr,bool)>{
+  fn transparent(mut value:&Expr)->&Expr{loop{match &value.kind{ExprKind::Inject{value:inner,..}|ExprKind::Project{value:inner,..}|ExprKind::TypeAssertion{value:inner,..}=>value=inner,ExprKind::Unary{op:UnaryOp::RecordCarrier|UnaryOp::CallableStore,value:inner,..}=>value=inner,_=>return value}}}
+  fn record(value:&Expr,done:bool)->Option<&[(Token,Expr)]>{let ExprKind::Record(fields)=&transparent(value).kind else{return None;};fields.iter().any(|(name,value)|name.text=="done"&&matches!(transparent(value).kind,ExprKind::Boolean(actual)if actual==done)).then_some(fields.as_slice())}
+  if let [statement]=function.body.as_slice(){let StmtKind::Return(Some(value))=&statement.kind else{return None;};return Some((value,false));}
+  // A mapped producer can transform the yielded value, but can end ONLY on
+  // the actual upstream poll's end branch. No other return path is admitted.
+  let [first,guard,last]=function.body.as_slice()else{return None;};
+  let StmtKind::Let{binding:Some(step),value:poll,..}=&first.kind else{return None;};
+  let StmtKind::If{condition,then_body,else_body}=&guard.kind else{return None;};if !else_body.is_empty(){return None;}
+  let(base,field,truth)=boolean_field_guard(condition)?;if field!="done"||!truth||place(base)!=Some((*step,vec![])){return None;}
+  let [end]=then_body.as_slice()else{return None;};let StmtKind::Return(Some(end))=&end.kind else{return None;};if record(end,true)?.len()!=1{return None;}
+  let StmtKind::Return(Some(some))=&last.kind else{return None;};let fields=record(some,false)?;if fields.len()!=2{return None;}
+  let value=transparent(&fields.iter().find(|(name,_)|name.text=="value")?.1);let ExprKind::Call(_,args)=&value.kind else{return None;};
+  if args.len()!=1||place(&args[0])!=Some((*step,vec!["value".into()])){return None;}
+  let consumes=self.call_argument_mode(value,0).is_some_and(|mode|matches!(mode,Mode::Copy|Mode::Consume));
+  consumes.then_some((poll,true))
+ }
+ fn cursor_poll_sources(&self,function:&CheckedFunction,expression:&Expr)->Option<CursorPollSources>{
   type Mapping=BTreeMap<usize,Place>;
   fn mapped(value:&Expr,mapping:&Mapping)->Option<Place>{let source=place(value)?;let root=mapping.get(&source.0)?;if source.1.iter().any(|part|part=="*"){return None;}let mut path=root.1.clone();path.extend(source.1);Some((root.0,path))}
-  fn returned(function:&CheckedFunction)->Option<&Expr>{let [statement]=function.body.as_slice()else{return None;};let StmtKind::Return(Some(value))=&statement.kind else{return None;};Some(value)}
   let identity=(0..function.bindings.len()).map(|id|(id,(id,Vec::new()))).collect::<Mapping>();
-  let mut pending=vec![(expression,identity,HashSet::<(bool,usize)>::new())];let mut cursors=Vec::new();
+  let mut pending=vec![(expression,identity,HashSet::<(bool,usize)>::new())];let mut cursors=Vec::new();let mut transformed_any=false;
   while let Some((mut value,mapping,mut seen))=pending.pop(){
    loop{match &value.kind{ExprKind::Project{value:inner,..}|ExprKind::TypeAssertion{value:inner,..}|ExprKind::Inject{value:inner,..}=>value=inner,ExprKind::Unary{op:UnaryOp::RecordCarrier|UnaryOp::CallableStore|UnaryOp::NonNull,value:inner,..}=>value=inner,_=>break}}
    let ExprKind::Call(callee,args)=&value.kind else{return None;};
@@ -112,7 +148,7 @@ impl CheckedProgram{
     let mut source=mapped(argument,&mapping)?;source.1.push("_items".into());cursors.push(source);continue;
    }
    if let Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=value.target{
-    if !seen.insert((false,id)){return None;}let callee=&self.functions[id];let body=returned(callee)?;
+    if !seen.insert((false,id)){return None;}let callee=&self.functions[id];let(body,transformed)=self.cursor_poll_body(callee)?;transformed_any|=transformed;
     let mut inputs=Mapping::new();for(index,arg)in args.iter().enumerate(){if let Some(actual)=mapped(arg,&mapping){inputs.insert(index,actual);}}
     pending.push((body,inputs,seen));continue;
    }
@@ -121,23 +157,23 @@ impl CheckedProgram{
    for origin in origins{
     let mut seen=seen.clone();if !seen.insert((true,origin)){return None;}let closure=&self.closures[origin];
     if let Some(ClosureForward::Function(id))=closure.forward{
-     if !seen.insert((false,id)){return None;}let body=returned(&self.functions[id])?;let mut inputs=Mapping::new();for(index,arg)in args.iter().enumerate(){if let Some(actual)=mapped(arg,&mapping){inputs.insert(index,actual);}}pending.push((body,inputs,seen));continue;
+     if !seen.insert((false,id)){return None;}let(body,transformed)=self.cursor_poll_body(&self.functions[id])?;transformed_any|=transformed;let mut inputs=Mapping::new();for(index,arg)in args.iter().enumerate(){if let Some(actual)=mapped(arg,&mapping){inputs.insert(index,actual);}}pending.push((body,inputs,seen));continue;
     }
     if closure.forward.is_some(){return None;}
     if closure.methods.is_empty(){
      let mut inputs=Mapping::new();for capture in &closure.captures{if capture.storage==Mode::Consume{let mut path=owner.1.clone();path.push(format!("capture{}",capture.inner));inputs.insert(capture.inner,(owner.0,path));}}
      for(index,&slot)in closure.parameters.iter().enumerate(){if let Some(arg)=args.get(index).and_then(|arg|mapped(arg,&mapping)){inputs.insert(slot,arg);}}
-     pending.push((returned(&closure.function)?,inputs,seen));
+     let(body,transformed)=self.cursor_poll_body(&closure.function)?;transformed_any|=transformed;pending.push((body,inputs,seen));
     }else{
      let mut found=false;for method in &closure.methods{if method.parameters.len()!=args.len(){continue;}found=true;
       let mut inputs=Mapping::new();for(capture,&slot)in closure.captures.iter().zip(&method.captures){if capture.storage==Mode::Consume{let mut path=owner.1.clone();path.push(format!("capture{}",capture.inner));inputs.insert(slot,(owner.0,path));}}
       for(index,&slot)in method.parameters.iter().enumerate(){if let Some(arg)=args.get(index).and_then(|arg|mapped(arg,&mapping)){inputs.insert(slot,arg);}}
-      pending.push((returned(&method.function)?,inputs,seen.clone()));
+      let(body,transformed)=self.cursor_poll_body(&method.function)?;transformed_any|=transformed;pending.push((body,inputs,seen.clone()));
      }if !found{return None;}
     }
    }
   }
-  cursors.sort();cursors.dedup();(!cursors.is_empty()).then_some(cursors)
+  cursors.sort();cursors.dedup();(!cursors.is_empty()).then_some(CursorPollSources{cursors,mapped:transformed_any})
  }
 }
 fn boolean_field_guard(value:&Expr)->Option<(&Expr,&str,bool)>{match &value.kind{
@@ -247,11 +283,12 @@ impl Tracker<'_> {
         }}
         (yes,no)
     }
-    fn poll(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,cursors:Vec<Place>)->(BTreeMap<Vec<String>,Tokens>,Poll){
+    fn poll(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,plan:CursorPollSources)->(BTreeMap<Vec<String>,Tokens>,Poll){
+        let CursorPollSources{cursors,mapped}=plan;
         let ExprKind::Call(callee,args)=&value.kind else{unreachable!("checked cursor poll")};
         self.evaluate_place(function,callee,state);
         for(index,arg)in args.iter().enumerate(){
-            let access=match value.target{Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>self.program.functions[id].bindings.get(index).map(|binding|binding.mode),Some(CallTarget::IteratorNext)=>Some(Mode::Mutate),_=>None};
+            let access=self.program.call_argument_mode(value,index);
             let tokens=self.value(function,arg,state,access.is_none_or(|mode|mode==Mode::Consume));self.warn(tokens,arg.span);
         }
         let mut payload=BTreeMap::<Vec<String>,Tokens>::new();let mut selected=Vec::new();
@@ -263,6 +300,10 @@ impl Tracker<'_> {
             // Some yields one obligation; only this leaf's None proves no residual.
             for(place,owned)in &state.owners{if within(place,cursor)&&place.1.get(cursor.1.len()).is_some_and(|part|part=="*"){payload.entry(place.1[cursor.1.len()+1..].to_vec()).or_default().extend(owned.iter().copied());}}
         }
+        if mapped && let Some(result)=value.ty{
+            payload.clear();
+            for(path,started)in self.program.task_paths(result){if path.first().is_some_and(|field|field=="value"){payload.entry(path[1..].to_vec()).or_default().insert((value.span.start,value.span.end,started));}}
+        }
         (payload,Poll{cursors,selected})
     }
     fn store(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,destination:Place) {
@@ -270,7 +311,7 @@ impl Tracker<'_> {
             let ExprKind::Call(_,args)=&value.kind else{unreachable!("checked cursor creation")};let mut items=destination;items.1.push("_items".into());self.store(function,&args[0],state,items);if value.own_may_fail{self.failures.push(state.clone());}return;
         }
         if let Some(cursors)=self.program.cursor_poll_sources(function,value){
-            let(payload,poll)=self.poll(function,value,state,cursors);for(path,tokens)in payload{let mut item=destination.clone();item.1.push("value".into());item.1.extend(path);if !tokens.is_empty(){state.entry(item).or_default().extend(tokens);}}state.polls.insert(destination,poll);if value.own_may_fail{self.failures.push(state.clone());}return;
+            let(payload,poll)=self.poll(function,value,state,cursors);if value.own_may_fail{self.failures.push(state.clone());}for(path,tokens)in payload{let mut item=destination.clone();item.1.push("value".into());item.1.extend(path);if !tokens.is_empty(){state.entry(item).or_default().extend(tokens);}}state.polls.insert(destination,poll);return;
         }
         if let Some(source)=place(value){self.evaluate_place(function,value,state);Self::transfer(state,&source,&destination);return;}
         match &value.kind {
@@ -295,7 +336,11 @@ impl Tracker<'_> {
         for(id,binding)in function.bindings.iter().enumerate() {
             // Closure binding vectors also contain unused lexical projections, not parameters.
             let parameter=parameters.map_or(id<function.parameter_count,|slots|slots.contains(&id));
-            if (parameter && (binding.mode==Mode::Consume || self.program.task_type(binding.ty))) || captures.iter().any(|capture|capture.inner==id && capture.storage==Mode::Consume) {
+            // Ordinary Task parameters remain owned even when a physical
+            // inferred signature has no callback marker. Only a stated readonly
+            // Task value is borrowed; its caller keeps the responsibility.
+            let borrowed_task=binding.mode==Mode::Read&&binding.callback_kind==Some(CallbackKind::Task);
+            if (parameter && (binding.mode==Mode::Consume || self.program.task_type(binding.ty)&&!borrowed_task)) || captures.iter().any(|capture|capture.inner==id && capture.storage==Mode::Consume) {
                 let at=binding.declaration_span.or(binding.used).unwrap_or_default();
                 for (path,started) in self.program.task_paths(binding.ty){state.insert((id,path),Tokens::from([(at.start,at.end,started)]));}
             }
@@ -377,13 +422,7 @@ impl Tracker<'_> {
                 if let Some(owner)=place(callee){invalidate(state,&owner);}
                 let mut tokens=self.value(function,callee,state,consumes);
                 for(index,arg)in args.iter().enumerate() {
-                    let access=match value.target {
-                        Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>self.program.functions[id].bindings.get(index).map(|binding|binding.mode),
-                        Some(CallTarget::IteratorCursor)=>Some(Mode::Consume),
-                        Some(CallTarget::IteratorNext)=>Some(Mode::Mutate),
-                        Some(CallTarget::NativeBinding(id))=>crate::native_bindings::BINDINGS[id].parameters.get(index).map(|parameter|parameter.access),
-                        _=>None,
-                    };
+                    let access=self.program.call_argument_mode(value,index);
                     if access!=Some(Mode::Read){if let Some(owner)=place(arg){invalidate(state,&owner);}}
                     let first_failure=self.failures.len();
                     let argument=self.value(function,arg,state,access.is_none_or(|mode|mode==Mode::Consume));
@@ -572,19 +611,30 @@ mod cursor_tests{
    assert_eq!(yes.contains_key(&(0,vec!["value".into()])),!absent,"{name}");assert!(no.contains_key(&(0,vec!["value".into()])));assert_eq!(yes.get(&(9,vec!["_items".into(),"*".into()])),state.get(&(9,vec!["_items".into(),"*".into()])),"Result absence does not exhaust an upstream owner");
   }
  }
- fn public_warnings(body:&str)->Result<Vec<String>,String>{
+ fn public_warnings(body:&str)->Result<Vec<String>,crate::project::ProjectDiagnostic>{
   use crate::project::{SourceId,SourceProvider,check_graph,load_project};struct Input(String);
   impl SourceProvider for Input{fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}}
-  let source=format!("import {{Iterator}} from 'std:iterator';import {{all}} from 'std:futures';async function value():Task<int>{{return 3;}}async function main():Task<void>{{{body}}}");
-  check_graph(load_project(&Input(source),"main.tsr").unwrap()).map(|checked|checked.warnings().into_iter().map(|warning|warning.code.to_string()).collect()).map_err(|error|error.code.to_string())
+  let source=format!("import {{Iterator}} from 'std:iterator';import {{all,Job}} from 'std:futures';async function value():Task<int>{{return 3;}}async function main():Task<void>{{{body}}}");
+  check_graph(load_project(&Input(source),"main.tsr").unwrap_or_else(|error|panic!("{body}: {error:?}"))).map(|checked|checked.warnings().into_iter().map(|warning|warning.code.to_string()).collect())
  }
  #[test]
  fn loop_local_started_jobs_are_diagnosed_without_a_function_exit(){
-  assert_eq!(public_warnings("while(true){const job=value().start();}").unwrap_err(),"unsettled-job","Each iteration abandons its local Job even though the function never exits");
+  let error=public_warnings("while(true){const job=value().start();}").unwrap_err();assert_eq!(error.code,"unsettled-job","Each iteration abandons its local Job even though the function never exits: {error:?}");
+ }
+ #[test]
+ fn readonly_task_predicates_observe_without_awaiting_or_consuming_the_value(){
+  assert_eq!(public_warnings("const pending=value();const observe:Owned<Function<boolean,[work:ReadOnly<Task<int>>]>>=(work:ReadOnly<Task<int>>):boolean=>typeof work==='function';observe(pending);await pending;").unwrap_or_else(|error|panic!("{error:?}")),Vec::<String>::new());
+  assert_eq!(public_warnings("function observe(work:ReadOnly<Task<int>>):boolean{return typeof work==='function';}const pending=value();observe(pending);await pending;").unwrap_or_else(|error|panic!("{error:?}")),Vec::<String>::new());
+  assert!(public_warnings("const pending=value();const observe:Owned<Function<boolean,[work:ReadOnly<Task<int>>]>>=(work:ReadOnly<Task<int>>):boolean=>typeof work==='function';observe(pending);").unwrap_or_else(|error|panic!("{error:?}")).iter().any(|warning|warning=="unused-task"),"Readonly invocation leaves its caller's obligation intact");
+  assert!(public_warnings("function lose(work:Task<int>){}lose(value());").unwrap_or_else(|error|panic!("{error:?}")).iter().any(|warning|warning=="unused-task"),"An implicit Task parameter is still an owned input");
+  let dropped=public_warnings("function lose(work:Owned<Job<int,undefined>>){}lose(value().start());").unwrap_err();assert_eq!(dropped.code,"unsettled-job","{dropped:?}");
+  for body in ["const observe:Owned<Function<Task<int>,[work:ReadOnly<Task<int>>]>>=(work:ReadOnly<Task<int>>):Task<int>=>work;","const observe:Owned<Function<Task<void>,[work:ReadOnly<Task<int>>]>>=async(work:ReadOnly<Task<int>>):Task<void>=>{await work;};","const observe:Owned<Function<Task<void>,[work:ReadOnly<Task<int>>]>>=async(work:ReadOnly<Task<int>>):Task<void>=>{const job=work.start();await job;};"]{
+   let error=public_warnings(body).expect_err("A borrowed Task cannot transfer, await or start its owner");assert_ne!(error.code,"callback-access","The stated readonly Task contract is valid; reject the consuming operation instead: {error:?}");
+  }
  }
  #[test]
  fn public_array_iterator_drains_transfer_lazy_and_started_owners_to_all(){
-  for body in ["await all(Iterator.from([value(),value()]).toArray());","await all(Iterator.from([value().start(),value().start()]).toArray());","await all(Iterator.from([1,2]).map((_item:int):Task<int>=>value()).toArray());","await all(Iterator.from([1,2]).map((_item:int)=>value().start()).toArray());"]{assert_eq!(public_warnings(body).unwrap(),Vec::<String>::new(),"{body}");}
+  for body in ["const tasks=[value(),value()];await all(Iterator.from(tasks).map((work:Task<int>):Task<int>=>work).toArray());","await all(Iterator.from([value(),value()]).toArray());","await all(Iterator.from([value().start(),value().start()]).toArray());","await all(Iterator.from([1,2]).map((_item:int):Task<int>=>value()).toArray());","const jobs=[value().start(),value().start()];await all(Iterator.from(jobs).map((work:Job<int,undefined>):Job<int,undefined>=>work).toArray());"]{assert_eq!(public_warnings(body).unwrap_or_else(|error|panic!("{body}: {error:?}")),Vec::<String>::new(),"{body}");}
  }
  #[test]
  fn public_iterator_early_end_discards_and_abandonment_do_not_settle_owners(){
@@ -594,12 +644,12 @@ mod cursor_tests{
    "await all(Iterator.from([value()]).take(0).toArray());",
    "await all(Iterator.from([value()]).drop(1).toArray());",
    "await all(Iterator.from([value()]).filter((_value)=>false).toArray());",
-  ]{assert!(public_warnings(body).unwrap().iter().any(|warning|warning=="unused-task"),"{body}");}
+  ]{assert!(public_warnings(body).unwrap_or_else(|error|panic!("{body}: {error:?}")).iter().any(|warning|warning=="unused-task"),"{body}");}
   for body in [
    "const pending=Iterator.from([value().start()]);",
    "await all(Iterator.from([value().start()]).take(0).toArray());",
    "const pending=Iterator.from([value().start()]);const step=pending.next();if(!step.done){step.value.cancel();}",
    "const pending=Iterator.from([value().start()]);const step=pending.next();throw 'early';",
-  ]{assert_eq!(public_warnings(body).unwrap_err(),"unsettled-job","{body}");}
+  ]{let error=public_warnings(body).unwrap_err();assert_eq!(error.code,"unsettled-job","{body}: {error:?}");}
  }
 }

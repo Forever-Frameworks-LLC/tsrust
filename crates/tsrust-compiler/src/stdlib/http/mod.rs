@@ -1,6 +1,16 @@
 mod wrappers;
 use crate::{Mode,native_bindings::{NativeBinding,NativeBackend,NativeParameter,NativeType},native_signatures::{Signature,NativeTypeId}};
-pub(crate) const RUNTIME:&str=include_str!("runtime.rs");
+const TEST_RUNTIME:&str=include_str!("runtime.rs");
+pub(crate) fn runtime()->String{
+ // Compiler runtime witnesses compile the raw test module. Exported programs
+ // enable helpers only through their selected Cargo feature, even under test.
+ TEST_RUNTIME.replace("#[cfg(any(test, feature = \"http-middleware\"))]","#[cfg(feature = \"http-middleware\")]")
+}
+pub(crate) const MIDDLEWARE_MARKER:&str="// tsrust-http-middleware-selected\n";
+pub(crate) const CORS:NativeBinding=NativeBinding{module:"std:http",name:"__cors",parameters:&[NativeParameter{name:"options",ty:NativeType::Structured(&Signature::Optional(&Signature::Named(NativeTypeId::HttpCorsOptions))),access:Mode::Read,optional:true,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::HttpMiddleware),&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http-middleware"]};
+pub(crate) const PUBLIC_CORS:NativeBinding=NativeBinding{name:"cors",..CORS};
+pub(crate) const SECURE_HEADERS:NativeBinding=NativeBinding{module:"std:http",name:"secureHeaders",parameters:&[],result:NativeType::Structured(&Signature::Named(NativeTypeId::HttpMiddleware)),..CORS};
+pub(crate) const COMPRESS:NativeBinding=NativeBinding{name:"compress",..SECURE_HEADERS};
 pub(crate) const APP:NativeBinding=NativeBinding{module:"std:http",name:"__app",parameters:&[],result:NativeType::Structured(&Signature::Named(NativeTypeId::HttpApp)),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
 pub(crate) const CONFIGURE:NativeBinding=NativeBinding{module:"std:http",name:"__configure",parameters:&[NativeParameter{name:"app",ty:NativeType::Structured(&Signature::Named(NativeTypeId::HttpApp)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"options",ty:NativeType::Structured(&Signature::Named(NativeTypeId::HttpServerOptions)),access:Mode::Read,optional:false,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Void,&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
 pub(crate) const CLIENT:NativeBinding=NativeBinding{module:"std:http",name:"__client",parameters:&[NativeParameter{name:"options",ty:NativeType::Structured(&Signature::Named(NativeTypeId::HttpClientOptions)),access:Mode::Read,optional:true,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::HttpClient),&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
@@ -88,9 +98,12 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
  use crate::syntax::{Expr,ExprKind};
  defaults(program)?;
  wrappers::prepare(program)?;
+ let mut middleware_used=program.records.iter().any(|r|r.native_type==Some(NativeTypeId::HttpMiddleware));
  let mut used=program.records.iter().any(|r|r.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http"));
  for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{
   let span=expression.span;
+  if let ExprKind::Name(symbol)=&expression.kind&&symbol.strip_prefix("@native:std:http#").is_some_and(|name|matches!(name,"__cors"|"cors"|"secureHeaders"|"compress")){middleware_used=true;used=true;}
+
   let constructor=if let ExprKind::NativeConstructor(_,Some(annotation))=&expression.kind{if let crate::type_syntax::ValueAnnotationKind::Named(name)=&annotation.kind{[NativeTypeId::HttpApp,NativeTypeId::HttpClient].into_iter().find(|id|crate::native_type_resolution::linked_name(*id)==name.text)}else{None}}else{None};
   if let Some(id)=constructor {let ExprKind::NativeConstructor(args,_)=&mut expression.kind else{unreachable!()};let args=std::mem::take(args);*expression=call(if id==NativeTypeId::HttpApp{"__app"}else if id==NativeTypeId::HttpRouter{"__router"}else{"__client"},args,span);if id==NativeTypeId::HttpClient{*expression=crate::stdlib::futures::unwrap(expression.clone());}used=true;}
   if let ExprKind::Call(callee,args)=&mut expression.kind && let ExprKind::Name(name)=&callee.kind && let Some(name)=name.strip_prefix("@native:std:http#"){
@@ -98,13 +111,13 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
    if matches!(name,"setCookie"|"deleteCookie") {let operation=format!("__{name}");let inputs=std::mem::take(args);*expression=crate::stdlib::futures::unwrap(call(&operation,inputs,span));return Ok(());}
    if public_unwrapped(name){
     let name=name.to_owned();let mut args=std::mem::take(args);
-    if !matches!(name.as_str(),"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart") && args.len()==1{args.push(Expr::new(ExprKind::Integer("200".into()),span));}
+    if !matches!(name.as_str(),"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart"|"cors") && args.len()==1{args.push(Expr::new(ExprKind::Integer("200".into()),span));}
     if name=="json" && !args.is_empty(){let value=args.remove(0);args.insert(0,Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@http:jsonEncode".into()),span)),vec![value]),span));}
     *expression=crate::stdlib::futures::unwrap(call(&format!("__{name}"),args,span));
    }
   }Ok(())
  })?;}
- if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","parse").unwrap(),crate::Span::default())?;crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}}
+ if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","parse").unwrap(),crate::Span::default())?;crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}if middleware_used{for binding in [CORS,SECURE_HEADERS,COMPRESS]{crate::native_binding_types::prepare(&mut program.records,&binding,crate::Span::default())?;}}}
  Ok(())
 }
 #[cfg(test)]mod tests {
@@ -112,6 +125,7 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
  include!("runtime.rs");
  include!("runtime_tests.rs");
  mod client_transport_tests {include!("client_transport_tests.rs");}
+ mod middleware_tests {include!("middleware_tests.rs");}
 }
 
 pub(crate) fn method(identity:Option<NativeTypeId>,member:&str)->Option<&'static str>{Some(match(identity,member){
@@ -133,7 +147,7 @@ pub(crate) fn method(identity:Option<NativeTypeId>,member:&str)->Option<&'static
    })}
 pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__requestJson"|"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__routerListen"|"__contextNext"|"__form"|"__multipart"|"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}
 
-pub(crate) fn public_unwrapped(name:&str)->bool{matches!(name,"text"|"html"|"json"|"stream"|"streamChannel"|"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
+pub(crate) fn public_unwrapped(name:&str)->bool{matches!(name,"cors"|"text"|"html"|"json"|"stream"|"streamChannel"|"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
 
 fn defaults(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
  use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};

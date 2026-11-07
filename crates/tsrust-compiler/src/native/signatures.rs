@@ -28,7 +28,7 @@ pub enum NativeTypeId {
     HttpClientOptions,
     HttpServerOptions,
     HttpFormField,
-    HttpMultipartPart, HttpCookieOptions,
+    HttpMultipartPart, HttpCookieOptions, HttpMiddleware, HttpCorsOptions,
     CryptoError, CryptoHasher, PasswordHashOptions, PasswordVerifyOptions,
     SignalListener,
     SignalError,

@@ -694,4 +694,91 @@ mod tsrust_native_http {
             });
         }
     }
+    // Explicit source-installed policies; ordinary HTTP does not select this feature.
+    #[cfg(any(test, feature = "http-middleware"))]
+    pub use builtin_middleware::NativeMiddleware;
+    #[cfg(any(test, feature = "http-middleware"))]
+    mod builtin_middleware {
+        use super::*;
+        use std::convert::Infallible;
+        use tower::{Layer,Service,ServiceBuilder,ServiceExt};
+        pub enum NativeMiddleware {Cors(tower_http::cors::CorsLayer),Secure,Compress(tower_http::compression::CompressionLayer)}
+        impl NativeMiddleware {
+            pub fn cors_default()->Self{Self::Cors(tower_http::cors::CorsLayer::new())}
+            pub fn cors<'a,O,M,A,E>(origins:Option<O>,methods:Option<M>,allowed:Option<A>,exposed:Option<E>,credentials:Option<bool>,max_age:Option<i64>)->Result<Self,Error>
+            where O:IntoIterator<Item=&'a str>,M:IntoIterator<Item=&'a str>,A:IntoIterator<Item=&'a str>,E:IntoIterator<Item=&'a str>{
+                fn list<'a,I,T>(values:Option<I>,mut parse:impl FnMut(&str)->Result<T,Error>)->Result<(bool,Vec<T>),Error> where I:IntoIterator<Item=&'a str>{let mut wildcard=false;let mut count=0;let mut result=Vec::new();for value in values.into_iter().flatten(){count+=1;if value=="*"{wildcard=true;}else{result.push(parse(value)?);}}if wildcard&&count!=1{return Err(error("options","CORS wildcard must be the only list entry"));}Ok((wildcard,result))}
+                let origins=list(origins,|v|HeaderValue::from_str(v).map_err(|_|error("options","Invalid CORS origin header value")))?;
+                let methods=list(methods,|v|Method::from_bytes(v.as_bytes()).map_err(|_|error("options","Invalid CORS HTTP method")))?;
+                let allowed=list(allowed,|v|HeaderName::from_bytes(v.as_bytes()).map_err(|_|error("options","Invalid CORS allowed header name")))?;
+                let exposed=list(exposed,|v|HeaderName::from_bytes(v.as_bytes()).map_err(|_|error("options","Invalid CORS exposed header name")))?;
+                let credentials=credentials.unwrap_or(false);if credentials&&(origins.0||methods.0||allowed.0||exposed.0){return Err(error("options","Credentialed CORS cannot use wildcard origins, methods or headers"));}
+                let mut layer=tower_http::cors::CorsLayer::new().allow_credentials(credentials);
+                layer=if origins.0{layer.allow_origin(tower_http::cors::Any)}else{layer.allow_origin(origins.1)};
+                layer=if methods.0{layer.allow_methods(tower_http::cors::Any)}else{layer.allow_methods(methods.1)};
+                layer=if allowed.0{layer.allow_headers(tower_http::cors::Any)}else{layer.allow_headers(allowed.1)};
+                layer=if exposed.0{layer.expose_headers(tower_http::cors::Any)}else{layer.expose_headers(exposed.1)};
+                if let Some(value)=max_age{let value=u64::try_from(value).map_err(|_|error("options","CORS maxAgeSeconds must be nonnegative"))?;layer=layer.max_age(Duration::from_secs(value));}Ok(Self::Cors(layer))
+            }
+            pub fn secure_headers()->Self{Self::Secure}
+            pub fn compress()->Self{Self::Compress(tower_http::compression::CompressionLayer::new())}
+            async fn apply<S>(&self,request:http::Request<Body>,service:S)->WireResponse where S:Service<http::Request<Body>,Response=WireResponse,Error=Infallible>+Send,S::Future:Send{
+                match self {
+                    Self::Cors(layer)=>layer.layer(service).oneshot(request).await.unwrap(),
+                    Self::Secure=>ServiceBuilder::new()
+                        .layer(tower_http::set_header::SetResponseHeaderLayer::if_not_present(http::header::X_CONTENT_TYPE_OPTIONS,HeaderValue::from_static("nosniff")))
+                        .layer(tower_http::set_header::SetResponseHeaderLayer::if_not_present(http::header::X_FRAME_OPTIONS,HeaderValue::from_static("SAMEORIGIN")))
+                        .layer(tower_http::set_header::SetResponseHeaderLayer::if_not_present(http::header::REFERRER_POLICY,HeaderValue::from_static("no-referrer")))
+                        .service(service).oneshot(request).await.unwrap(),
+                    Self::Compress(layer)=>layer.layer(service).oneshot(request).await.unwrap().map(Body::new),
+                }
+            }
+            async fn app(&self,request:Request,next:Next)->Response{
+                let Request{inner,params,limit}=request;let mut response_limit=None;let mut owned=Some((next,params,&mut response_limit));
+                let service=tower::service_fn(move|incoming:http::Request<Body>|{let(next,params,response_limit)=owned.take().expect("owned HTTP next is invoked once");async move{let response=next.run(Request{inner:incoming.map(ExclusiveBody::new),params,limit}).await;*response_limit=response.limit;Ok::<_,Infallible>(response.into_wire())}});
+                let response=self.apply(inner.map(ExclusiveBody::into_body),service).await;Response{inner:response.map(ExclusiveBody::new),limit:response_limit}
+            }
+            async fn context<S:Send+Sync+'static>(&self,context:&mut Context<S>,next:ContextNext){
+                // These selected Tower layers inspect request metadata, never its body.
+                // Keep the sole real body in Context, including preflight short circuits.
+                let mut request=http::Request::new(Body::empty());*request.method_mut()=context.field0.inner.method().clone();*request.uri_mut()=context.field0.inner.uri().clone();*request.version_mut()=context.field0.inner.version();*request.headers_mut()=context.field0.inner.headers().clone();
+                let mut response_limit=None;let mut invoked=false;let mut owned=Some((&mut *context,next,&mut response_limit,&mut invoked));
+                let service=tower::service_fn(move|_:http::Request<Body>|{let(context,next,response_limit,invoked)=owned.take().expect("owned context next is invoked once");async move{*invoked=true;next.run(context).await;let response=std::mem::replace(&mut context.field2,fixed(500,"Internal Server Error"));*response_limit=response.limit;Ok::<_,Infallible>(response.into_wire())}});
+                let response=self.apply(request,service).await;
+                let mut response=Response{inner:response.map(ExclusiveBody::new),limit:response_limit};
+                if !invoked{context.apply_headers(&mut response);}
+                context.field2=response;context.finalized=true;
+            }
+            pub fn into_context<S:Send+Sync+'static>(self)->ContextMiddleware<S>{let middleware=Arc::new(self);Arc::new(move|context,next|{let middleware=middleware.clone();Box::pin(async move{middleware.context(context,next).await;None})})}
+        }
+        #[cfg(test)]
+        mod stream_owner_tests {
+            use super::*;
+            use std::{sync::atomic::{AtomicUsize,Ordering},task::{Context as TaskContext,Waker},future::Future};
+            struct PendingBody {polled:Arc<AtomicUsize>,dropped:Arc<AtomicUsize>}
+            impl Drop for PendingBody{fn drop(&mut self){self.dropped.fetch_add(1,Ordering::SeqCst);}}
+            impl http_body::Body for PendingBody{type Data=axum::body::Bytes;type Error=std::io::Error;fn poll_frame(self:Pin<&mut Self>,_:&mut TaskContext<'_>)->Poll<Option<Result<http_body::Frame<Self::Data>,Self::Error>>>{self.polled.fetch_add(1,Ordering::SeqCst);Poll::Pending}}
+            #[test]
+            fn compression_drop_releases_polled_production_source_exactly_once(){tasks::block_on(async{
+                let polled=Arc::new(AtomicUsize::new(0));let dropped=Arc::new(AtomicUsize::new(0));let mut source=Some(Body::new(PendingBody{polled:polled.clone(),dropped:dropped.clone()}));
+                let endpoint=tower::service_fn(move|_:http::Request<Body>|{let body=source.take().unwrap();async move{let mut response=WireResponse::new(body);response.headers_mut().insert("content-type",HeaderValue::from_static("text/plain"));Ok::<_,Infallible>(response)}});
+                let policy=NativeMiddleware::compress();let response=policy.apply(http::Request::builder().header("accept-encoding","gzip").body(Body::empty()).unwrap(),endpoint).await;assert_eq!(polled.load(Ordering::SeqCst),0);
+                {let mut body=response.into_body();let mut frame=std::pin::pin!(body.frame());assert!(matches!(frame.as_mut().poll(&mut TaskContext::from_waker(Waker::noop())),Poll::Pending));}
+                assert!(polled.load(Ordering::SeqCst)>0);assert_eq!(dropped.load(Ordering::SeqCst),1);
+            });}
+            #[test]
+            fn preflight_short_circuit_retains_the_context_body_owner_until_scope_exit(){tasks::block_on(async{
+                let polled=Arc::new(AtomicUsize::new(0));let dropped=Arc::new(AtomicUsize::new(0));let request=Request{inner:http::Request::builder().method("OPTIONS").uri("/private").header("origin","https://allowed.example").header("access-control-request-method","GET").body(ExclusiveBody::new(Body::new(PendingBody{polled:polled.clone(),dropped:dropped.clone()}))).unwrap(),params:BTreeMap::new(),limit:None};
+                let mut context=super::super::Context::new(request,Arc::new(()));context.header("x-before","kept").unwrap();context.header("set-cookie","session=kept; HttpOnly").unwrap();let layers:Arc<Vec<ContextLayer<()>>>=Arc::new(Vec::new());let next=ContextNext{layers,index:0};NativeMiddleware::cors_default().context(&mut context,next).await;
+                assert!(context.finalized);assert_eq!(context.field2.status(),200);assert_eq!(context.field2.inner.headers()["x-before"],"kept");assert_eq!(context.field2.inner.headers()["set-cookie"],"session=kept; HttpOnly");assert_eq!(polled.load(Ordering::SeqCst),0);assert_eq!(dropped.load(Ordering::SeqCst),0);drop(context);assert_eq!(dropped.load(Ordering::SeqCst),1);
+            });}
+            #[test]
+            fn compressed_production_stream_preserves_source_errors(){tasks::block_on(async{
+                struct FailingBody(u8);impl http_body::Body for FailingBody{type Data=axum::body::Bytes;type Error=std::io::Error;fn poll_frame(mut self:Pin<&mut Self>,_:&mut TaskContext<'_>)->Poll<Option<Result<http_body::Frame<Self::Data>,Self::Error>>>{let stage=self.0;self.0+=1;Poll::Ready(match stage{0=>Some(Ok(http_body::Frame::data(axum::body::Bytes::from_static(b"source prefix")))),1=>Some(Err(std::io::Error::other("source failure"))),_=>None})}}
+                let endpoint=tower::service_fn(|_:http::Request<Body>|async{Ok::<_,Infallible>(WireResponse::new(Body::new(FailingBody(0))))});
+                let policy=NativeMiddleware::compress();let response=policy.apply(http::Request::builder().header("accept-encoding","gzip").body(Body::empty()).unwrap(),endpoint).await;let mut body=Stream{body:response.into_body(),remaining:None};loop{match body.next().await{Ok(Some(_))=>{},Err(error)=>{assert_eq!(error.code,"body");break;},Ok(None)=>panic!("compression erased the source error")}}
+            });}
+        }
+        impl App {pub fn use_native(&mut self,middleware:NativeMiddleware){let middleware=Arc::new(middleware);self.use_middleware(move|request,next|{let middleware=middleware.clone();async move{middleware.app(request,next).await}});}}
+    }
 }

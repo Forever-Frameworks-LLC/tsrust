@@ -6,29 +6,68 @@ publication/merge of v0.2.0 is not approved. v0.1.2 is released.
 
 ## Current state — 2026-11-07
 
-REPAIR17b also terminal17.796s before tests: diagnostic-only Mutable unit used
-analysis::CheckedProgram instead of public checked/emitter entry; corrected to
-crate::check with formatting/idempotence. Existing compiled artifacts preserved.
-Next uses remaining original17aggregate deadline; no fresh budget.
-
-REPAIR17 BUILD TERMINAL before tests:280.505s,peak2,929,545,896B,
-stopnull/remaining[], build-finished false. ONLY Rust error is newLSPcrypto test
-wrong Session import; corrected toexisting support::session::Session. Normal
-compiler library andthree LSP executables alreadybuilt; retainallartifacts.
-Next continuation uses remaining ORIGINAL55m budget inclelapsed/gaps, Cargo reuses
-unchanged libraries; do not cleanup/rebuild accepted artifacts or restartbudget.
-All older live11728/11812/11825/11826notes below are superseded.
-
 Canonical: /Users/seancotter/Desktop/dev/learning/tsrust, codex/stdlib-0.2.0.
-Current source checkpoint2e79471d9a39357f094ca9740e40759e57011e40.
-ONLY heavy run LIVE: session51411, wrapper11728, driver11812, watchdog11825,
-Cargo11826, sourcefingerprint1fe83f4554ac. Artifacts /tmp/tsrust-utilities-http-
-repair17-1fe83f4554ac-selected-build-artifacts.jsonl; outer /tmp/tsrust-utilities-
-http-repair17-budget.{out,err,json}. Fourteen affected targets, normal configured
-O1, no profile override. Source frozen except this handoff. Poll same handle and
-require terminal build-finished before proceeding; no duplicate/restart. All
-older PID/lease notes are superseded; inspect processes before starting anything. One target, jobs1, incremental0, direct tests threads3, 5GB/30m
-inner watchdog and one55m aggregate scope including setup/cleanup. Preserve passes.
+No heavy process remains from repair17c. All old PID/session claims are superseded.
+Root alone writes canonical. One target, jobs1, incremental0, direct tests threads3,
+5GB/30m inner watchdog and one55m aggregate including build/setup/cleanup.
+
+### Latest source and terminal override
+
+Repair17c is TERMINAL: sourceefc8d638, fingerprint18520b6b25b8,
+1060.747s, peak4,090,468,400B, stopnull/remaining[]. Build succeeded (18artifacts,
+14targets). Results /tmp/tsrust-utilities-http-repair17c-18520b6b25b8.json:
+40PASS16FAIL. Forms relocated vendored offline O0/O3 PASS with unsafe forbidden;
+uploads O0/O3 PASS, Task-array9/9 andfivepool/error transports PASS. Remaining
+owned-iterator failures3. Crypto2/7PASS; source repairs below are not yet accepted.
+Original matrix driver expected24 phases but selected only8HTTP observations;
+proof corrected without replay in /tmp/tsrust-repair17-matrix-proof-correction.json.
+Missing crypto16phases ran from exact existing binaries in12.351s PASS:
+/tmp/tsrust-repair17-crypto-matrix.json. Actual sixrows24phases now observed.
+
+Source integrated after17c, pending ONE affected repair18 gate:
+- Crypto native signature preparation, correct Result-toHex KATs, Task-result
+  hover/help and real Hasher catalog witnesses.
+- Task ReadOnly value predicates and responsibility forwarding through generic
+  callback/map contracts; take/drop layout diagnostics retained, no guessed ABI fix.
+- Mutable mixed-union whole-tag probe correction with readonly/subset negatives.
+- Inferred record callable moves and narrowly proven stateless program-function
+  reconstruction. Actual loan set reaches both record-literal callers; stateful,
+  captured and Once functions are never reconstructed.
+- Source middleware cors/secureHeaders/compress across compiler/runtime/editor,
+  docs/example and10matched benchmark rows. Context pending headers/cookies survive
+  CORS preflight short-circuit without restoring compression Content-Length.
+  One real relocated vendored offline middleware witness executes O0/O3 with an
+  empty Cargo home and forbid(unsafe_code). Public execution remains UNRUN.
+- Three Cargo locks actual offline/locked metadata PASS; normalization changed no
+  package identities/versions/checksums. /tmp/tsrust-middleware-lock-normalization.json.
+- Client-upload benchmark uses one borrowed pooled Client/base through a named
+  async function. Rust control stores shared state with Arc (no perrequest String
+  clone). CLI checkPASS atoldverifiedCLI; actual benchmarkbuild/timings pending.
+- Whole-project format2files/1snippet then0/0/0; independent upload/middleware
+  benchmark oracles2/2PASS. Exact source hashes refreshed after formatting.
+
+Next driver /tmp/tsrust-run-utilities-http-repair18.py and explicit scopes
+/tmp/tsrust-utilities-http-repair18-scopes.json: one normal selected build then
+serial direct test binaries, original55m end-to-end ceiling. Matrix selects ONLY
+newCORS row4phases, checker agreement explicitly4crypto/CORS receivers. Preflight
+all requested case prefixes before execution; preserve previous accepted scopes.
+Do not duplicate a live driver or infer success before terminal build-finished.
+
+B19 private prototype profile completed47.454s underboundedlease;114groups,
+3534timings and114allocationrows, retained0. /tmp/tsrust-b19-profile.json.
+Cached audit309392PASS. Public generation/ABI/editor/offline/tworealcrate witnesses
+still pending; this is not public acceptance or a SQLite measurement.
+B17 logging audit current/PASS, actual private build/profile still UNRUN.
+Workers have no heavy lease. B03 may inspect/implement source-only B19 in managed
+Rust-adapter tree; B06 offline middleware witness delivered; B14 static review done.
+
+Cleanup since repair16:585obsolete .rcgu.o plus255obsolete native cache entries,
+4,118,614,016actual bytes reclaimed. Reports /tmp/tsrust-repair16-objects-cleanup.json
+and /tmp/tsrust-repair17-obsolete-native-cleanup.json. Current executables/libraries,
+controls/source/chats/toolchains preserved. No cargo clean/refill. Recompute cache
+identities only after current-source consumers are accepted and no heavy job lives.
+
+Earlier source and repair16 evidence below are historical; this override governs.
 
 ### Latest terminal validation
 

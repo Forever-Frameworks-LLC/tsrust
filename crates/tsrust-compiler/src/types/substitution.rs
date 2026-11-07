@@ -94,9 +94,9 @@ fn apply_with_limit(value: &mut ValueAnnotation, bindings: &HashMap<String, Valu
             current = containment_element(&arguments[0]);
         }
         let Some(mut frame) = frames.pop() else { break Ok(()); };
-        if frame.adjust_access && copy_annotation(&current) {
+        if frame.adjust_access {
             let (Kind::Callable { parameters, .. }, Child::Parameter(index)) = (&mut frame.parent.kind, frame.child) else { unreachable!() };
-            parameters[index].access = None;
+            if copy_annotation(&current) || task_annotation(&current) && parameters[index].access.as_ref().is_some_and(|access|access.mode==crate::Mode::Consume){parameters[index].access=None;}
         }
         *child(&mut frame.parent, frame.child) = current;
         if let Some(path) = next_child(&frame.parent, Some(frame.child)) {
@@ -146,6 +146,11 @@ fn containment_element(root: &ValueAnnotation) -> ValueAnnotation {
         }
     }
     results.pop().expect("projected containment element")
+}
+
+pub(crate) fn task_annotation(mut value:&ValueAnnotation)->bool{
+    while let Kind::Group(inner)=&value.kind{value=inner;}
+    matches!(value.kind,Kind::Callable{ownership:crate::type_syntax::CallableOwnership::Task,..})
 }
 
 pub(crate) fn copy_annotation(value: &ValueAnnotation) -> bool {

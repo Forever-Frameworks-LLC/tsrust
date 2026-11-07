@@ -1583,7 +1583,7 @@ fn schedule_field<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: 
 }
 
 fn schedule_literal<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, mut frame: Box<super::literals::LiteralFrame>) -> Step<'a> {
-    match analyzer.advance_literal_work(context, task.expression.value(), &mut frame) {
+    match analyzer.advance_literal_work(context, task.expression.value(), &mut frame, &task.loans) {
         Ok(super::literals::Advance::Done(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
         Err(error) => finish_expression(analyzer, context, task, Err(error)),
         Ok(super::literals::Advance::Child(child)) => {

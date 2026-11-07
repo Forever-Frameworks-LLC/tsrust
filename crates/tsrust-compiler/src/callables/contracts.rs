@@ -43,6 +43,9 @@ pub(crate) fn parameter_mode(
     }
     if let Some(kind) = callback {
         if let Some(access) = access {
+            // A Task is an owned deferred VALUE as well as an invocation
+            // contract. Observing it never changes Task/once invocation.
+            if kind==CallbackKind::Task && access.mode==Mode::Read{return Ok(Mode::Read);}
             return Err(Diagnostic::new(
                 "callback-access",
                 "A Function argument states its ownership with ReadOnly<Function<...>>, Mutable<Function<...>> or Once<Function<...>>, not a data access wrapper.",
@@ -334,4 +337,14 @@ mod tests {
             contracts.intern(parameters, Type::String, Some(CallbackKind::Owned))
         );
     }
+}
+
+#[cfg(test)]
+#[test]
+fn readonly_task_value_access_does_not_change_invocation_or_other_callable_rules(){
+ let span=Span::default();let read=ParameterAccess{mode:Mode::Read,span};
+ assert_eq!(parameter_mode(Type::Callback(0),Some(CallbackKind::Task),true,Some(&read),span).unwrap(),Mode::Read);
+ assert_eq!(parameter_mode(Type::Callback(0),Some(CallbackKind::Task),true,None,span).unwrap(),Mode::Consume);
+ for mode in [Mode::Mutate,Mode::Consume]{let access=ParameterAccess{mode,span};assert_eq!(parameter_mode(Type::Callback(0),Some(CallbackKind::Task),true,Some(&access),span).unwrap_err().code,"callback-access");}
+ for kind in [CallbackKind::Owned,CallbackKind::OwnedOnce,CallbackKind::Read,CallbackKind::Reusable]{assert_eq!(parameter_mode(Type::Callback(0),Some(kind),true,Some(&read),span).unwrap_err().code,"callback-access");}
 }

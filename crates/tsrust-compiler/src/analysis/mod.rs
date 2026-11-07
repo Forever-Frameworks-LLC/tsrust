@@ -1917,7 +1917,8 @@ impl Analyzer {
             return Err(Diagnostic::new("unsupported", "Closure arguments cannot have type void.", param.ty.span()));
         }
         if let Some(access) = param.access.as_ref().filter(|_| !param.rest) {
-            if matches!(self.unions.payload(ty).unwrap_or(ty), Type::Callback(_)) {
+            if let Type::Callback(id)=self.unions.payload(ty).unwrap_or(ty)
+                && !(self.callables.callbacks[id].kind==CallbackKind::Task && access.text=="read") {
                 return Err(Diagnostic::new("callback-access", "A Function argument states its ownership with ReadOnly<Function<...>>, Mutable<Function<...>> or Once<Function<...>>, not a data access wrapper.", access.span));
             }
             if ty.is_copy() {
@@ -5221,14 +5222,17 @@ impl Analyzer {
                     ));
                 };
                 if !self.discovering_results && !self.effects_only {
-                    self.callables.storage.register_origin(
+                    let registered=self.callables.storage.register_origin(
                         family,
                         origin,
                         &self.callables.callbacks,
                         &self.callables.shapes,
                         &self.closures,
                         expr.span,
-                    )?;
+                    );
+                    #[cfg(test)]
+                    if let Err(error)=&registered{self.trace_stored_result_error(family,origin,&context.function_name,error);}
+                    registered?;
                 } else if self.speculative_access_run && !self.discovering_results {
                     self.callables.storage.note_speculative_origin(family, origin);
                 }
@@ -6564,7 +6568,7 @@ impl Analyzer {
     fn record_literal(&mut self, context: &mut Context, fields: &mut Vec<(Token, Expr)>, loans: &Loans, expected: Option<Type>, span: Span) -> Result<Type, Diagnostic> {
         let mut frame = self.prepare_record_work(context, fields, expected, span)?;
         for (key, value) in fields.iter_mut() {
-            let (expected, child) = self.prepare_record_child(context, key, value, &mut frame)?;
+            let (expected, child) = self.prepare_record_child(context, key, value, &mut frame, loans)?;
             let actual = self.expression(context, value, Mode::Consume, loans, expected)?;
             self.finish_record_child(context, key, value, &mut frame, child, actual)?;
         }

@@ -31,6 +31,7 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
   if rust.contains("mod tsrust_native_regex {"){manifest=manifest.replace("default = [", "default = [\"regex\", ");}
   if rust.contains("mod tsrust_native_url {"){manifest=manifest.replace("default = [", "default = [\"url\", ");}
   if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = [", "default = [\"http\", ");}
+  if rust.contains("// tsrust-http-middleware-selected\n"){manifest=manifest.replace("default = [", "default = [\"http-middleware\", ");}
   if rust.contains("mod tsrust_native_process {"){manifest=manifest.replace("default = [", "default = [\"process\", ");}
   if rust.contains("mod tsrust_native_io {"){manifest=manifest.replace("default = [", "default = [\"io\", ");}
   if rust.contains("mod tsrust_native_futures {"){manifest=manifest.replace("default = [", "default = [\"async\", ");}

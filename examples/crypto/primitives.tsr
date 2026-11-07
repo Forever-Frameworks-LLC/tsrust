@@ -5,19 +5,19 @@ import { strictEqual } from 'std:testing';
 function main() {
   const input = unwrap(fromUtf8('abc'));
   const borrowed = unwrap(view(input, 0, 3));
-  strictEqual(toHex(sha384(borrowed)), 'cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7');
-  strictEqual(toHex(sha512(input)), 'ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f');
+  strictEqual(unwrap(toHex(sha384(borrowed))), 'cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7');
+  strictEqual(unwrap(toHex(sha512(input))), 'ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f');
   for (let split = 0; split <= 3; split++) {
     const state = createHasher('sha256');
     state.update(unwrap(view(input, 0, split)));
     state.update(unwrap(view(input, split, 3 - split)));
-    strictEqual(toHex(state.finalize()), toHex(sha256(input)));
+    strictEqual(unwrap(toHex(state.finalize())), unwrap(toHex(sha256(input))));
   }
 
   const key = unwrap(alloc(20, 11));
   const message = unwrap(fromUtf8('Hi There'));
   const tag = hmacSha256(unwrap(view(key, 0, 20)), unwrap(view(message, 0, 8)));
-  strictEqual(toHex(tag), 'b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7');
+  strictEqual(unwrap(toHex(tag)), 'b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7');
   strictEqual(verifyHmacSha256(key, message, unwrap(view(tag, 0, 32))), true);
   strictEqual(verifyHmacSha256(key, message, unwrap(view(tag, 0, 16))), false);
   const changed = clone(tag);
@@ -26,7 +26,7 @@ function main() {
   const ikm = unwrap(alloc(22, 11));
   const salt = unwrap(fromHex('000102030405060708090a0b0c'));
   const info = unwrap(fromHex('f0f1f2f3f4f5f6f7f8f9'));
-  strictEqual(toHex(unwrap(hkdfSha256(unwrap(view(ikm, 0, 22)), unwrap(view(salt, 0, 13)), unwrap(view(info, 0, 10)), 42))), '3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865');
+  strictEqual(unwrap(toHex(unwrap(hkdfSha256(unwrap(view(ikm, 0, 22)), unwrap(view(salt, 0, 13)), unwrap(view(info, 0, 10)), 42)))), '3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865');
   strictEqual(length(unwrap(hkdfSha256(input, salt, info, 0))), 0);
   strictEqual(length(unwrap(hkdfSha256(input, salt, info, 8160))), 8160);
   const mutable = unwrap(alloc(3, 65));

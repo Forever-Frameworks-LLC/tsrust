@@ -1,7 +1,7 @@
 //! HTTP request factories use ordinary checked forwarding for aliases and stored calls.
 use crate::{Diagnostic,Span,native_bindings::NativeBinding,syntax::*};
 fn name(operation:&str)->String{format!("@http-adapter:{operation}")}
-fn factory(operation:&str)->bool{matches!(operation,"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
+fn factory(operation:&str)->bool{matches!(operation,"cors"|"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
 pub(super) fn prepare(program:&mut Program)->Result<(),Diagnostic>{
  let mut used=std::collections::BTreeSet::new();
  let mut rewrite=|value:&mut Expr|{if let ExprKind::Name(symbol)=&value.kind && let Some(operation)=symbol.strip_prefix("@native:std:http#") && factory(operation){used.insert(operation.to_owned());value.kind=ExprKind::Name(name(operation));}Ok(())};

@@ -444,13 +444,17 @@ fn empty_stored_carriers_require_the_same_protocol_and_nonempty_target(){
 #[test]
 fn retained_keyboard_ui_imports_and_router_preserve_checked_carriers(){
  use crate::project::{SourceId,SourceProvider,FileSourceProvider,check_graph,load_project};
- struct Entry(String);
+ struct Entry{source:String,example:SourceId}
  impl SourceProvider for Entry{
-  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{if importer.is_none()&&path=="main.tsr"{Ok(SourceId(path.into()))}else{FileSourceProvider.resolve(importer,path)}}
-  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{FileSourceProvider.read(id)}}
+  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{
+   if importer.is_none()&&path=="main.tsr"{Ok(SourceId(path.into()))}
+   else if importer.is_some_and(|id|id.0=="main.tsr")&&path=="./keyboard-shortcuts.tsrx"{Ok(self.example.clone())}
+   else{FileSourceProvider.resolve(importer,path)}
+  }
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.source.clone())}else{FileSourceProvider.read(id)}}
  }
- let example=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/src/examples/keyboard-shortcuts.tsrx");
- let source=format!("import {{KeyboardShortcuts as First,KeyboardCustomization as Second,KeyboardIconsAndTheme as Third}} from {};import {{Router}} from 'std:http';function main(){{const router=new Router();}}",serde_json::to_string(example.to_str().unwrap()).unwrap());
- let checked=check_graph(load_project(&Entry(source),"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
+ let example=std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/src/examples/keyboard-shortcuts.tsrx")).unwrap();
+ let source="import {KeyboardShortcuts as First,KeyboardCustomization as Second,KeyboardIconsAndTheme as Third} from './keyboard-shortcuts.tsrx';import {Router} from 'std:http';function main(){const router=new Router();}".to_owned();
+ let checked=check_graph(load_project(&Entry{source,example:SourceId(example.to_str().unwrap().into())},"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
  drop(checked.emit_rust());
 }

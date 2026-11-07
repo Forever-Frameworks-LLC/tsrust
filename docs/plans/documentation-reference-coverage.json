@@ -223,7 +223,7 @@
     },
     "std:http": {
       "route": "/docs/framework/routing",
-      "members": 31
+      "members": 36
     },
     "HttpRouter": {
       "route": "/docs/framework/routing",
@@ -520,6 +520,10 @@
     "Hasher": {
       "route": "/docs/standard-library/crypto",
       "members": 2
+    },
+    "HttpCorsOptions": {
+      "route": "/docs/framework/routing",
+      "members": 6
     }
   }
 }

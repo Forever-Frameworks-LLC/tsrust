@@ -25,6 +25,10 @@ impl Emitter<'_>{
  fn http_owned_multipart_parts(&self,ty:Type,value:&str)->String{
   let Type::Array(ArrayElement::Record(record,0))=ty else{unreachable!("checked multipart part array")};let fields=&self.program.records[record].fields;let file=self.http_owned_optional_text(fields[1].ty.unwrap(),"part.field1");let mime=self.http_owned_optional_text(fields[2].ty.unwrap(),"part.field2");format!("({value}).tsr_owned_items().map(|part|tsrust_native_http::MultipartPart{{name:part.field0.into_owned(),file_name:{file},content_type:{mime},data:part.field3.bytes}})")
  }
+ fn http_cors_options(&self,ty:Type)->String{
+  let record=match ty{Type::Record(id)=>id,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(id)=ty{Some(*id)}else{None})).expect("checked optional CORS options")};
+  let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{let Type::Union(id)=item.ty.unwrap()else{unreachable!()};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|{let value=if *ty==Type::Undefined{"None"}else if field<4{"Some(value.iter().map(|item|item.as_ref()))"}else{"Some(*value)"};format!("Union{}::V{tag}(value)=>{value}",id.index())}).collect::<Vec<_>>().join(",");format!("match &options.field{field}{{{arms}}}")}).collect::<Vec<_>>().join(",");format!("tsrust_native_http::NativeMiddleware::cors({fields})")
+ }
  fn http_cookie_options(&self,ty:Type)->String{
   let record=match ty{Type::Record(record)=>record,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).expect("checked optional cookie options")};let names=["path","domain","max_age","secure","http_only","same_site","partitioned"];
   let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{
@@ -74,6 +78,9 @@ impl Emitter<'_>{
    "__configure"|"__routerConfigure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
    "__routerStatic"=>{let fallback=args.get(3).map(|arg|self.native_optional_argument(&binding.parameters[3],"fallback_value".into(),arg.ty.unwrap())).unwrap_or("None".into());format!("{{let app={receiver};let prefix={};let directory={};let fallback_value={};let fallback:Option<&str>={fallback};app.serve_static(prefix.as_ref(),directory.as_ref(),fallback.unwrap_or(\"\"))}}",raw(1),raw(2),args.get(3).map(|_|raw(3)).unwrap_or("()".into()))},
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
+   "__cors"=>if args.is_empty()||args[0].ty==Some(Type::Undefined){format!("{{let _={};Ok::<_,tsrust_native_http::Error>(tsrust_native_http::NativeMiddleware::cors_default())}}",values.first().map(String::as_str).unwrap_or("()"))}else{format!("match {}{{Some(options)=>{},None=>Ok(tsrust_native_http::NativeMiddleware::cors_default())}}",optional(0),self.http_cors_options(args[0].ty.unwrap()))},
+   "secureHeaders"=>"tsrust_native_http::NativeMiddleware::secure_headers()".into(),
+   "compress"=>"tsrust_native_http::NativeMiddleware::compress()".into(),
    "__requestForm"=>format!("tsrust_native_http::Request::from_form({}, {}, ({}).iter().map(|field|(field.field0.as_ref(),field.field1.as_ref())))",values[0],values[1],values[2]),
    "__requestMultipart"=>format!("tsrust_native_http::Request::from_multipart({}, {}, {})",values[0],values[1],self.http_owned_multipart_parts(args[2].ty.unwrap(),&values[2])),
    "__requestBytes"=>format!("tsrust_native_http::Request::from_bytes({}, {}, ({}).bytes)",values[0],values[1],values[2]),
@@ -88,7 +95,7 @@ impl Emitter<'_>{
     let start=match binding.name{"__routerRoute"=>3,"__routerUsePath"=>2,_=>1};
     let route_args=match binding.name{"__routerRoute"=>format!("let method={};let path={};",values[1],values[2]),"__routerUsePath"=>format!("let path={};",values[1]),_=>"let path=\"*\";".into()};
     let mut callbacks=String::new();let mut names=Vec::new();
-    for index in start..args.len(){let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
+    for index in start..args.len(){if matches!(args[index].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpMiddleware)){callbacks.push_str(&format!("let handler{index}:tsrust_native_http::ContextMiddleware<{state}>=({}).into_context();",values[index]));names.push(format!("handler{index}"));continue;}let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
     let inputs=match closure.parameters.len(){0=>"",1=>"context",_=>"context,next"};
     let is_task=matches!(result,Type::Closure(id) if self.program.task_origins.contains(&id));
     let body=if is_task{
@@ -109,6 +116,7 @@ impl Emitter<'_>{
     let registration=if binding.name=="__routerRoute"{format!("app.route_many(method,path,vec![{handlers}])")}else if binding.name=="__routerUsePath"{format!("app.use_many(path,vec![{handlers}])")}else{format!("app.use_many(path,vec![{handlers}]).expect(\"the global pattern is valid\")")};
     format!("{{let app={receiver};{route_args}{callbacks}{registration}}}")
    },
+   "__use" if matches!(args[1].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpMiddleware))=>format!("({receiver}).use_native({})",values[1]),
    "__route"|"__use"|"__fallback"=>{
     let index=args.len()-1;let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
     let error=self.future_error_type(result,expr.span);let poll=self.future_poll(result,"task",error,expr.span);
@@ -161,7 +169,7 @@ impl Emitter<'_>{
   let result=expr.ty.unwrap();Some(if matches!(binding.result,crate::native_bindings::NativeType::Structured(crate::native_signatures::Signature::Result(..))){self.http_result(result,&call)}else{self.http_value(result,&call)})
  }
  pub(super) fn http_record(&self,output:&mut String,id:usize)->bool{
-  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpRouter)=>"Router",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
+  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpRouter)=>"Router",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpMiddleware)=>"NativeMiddleware",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
   let arguments=if matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpRouter|NativeTypeId::HttpContext)){format!("<{}>",self.native_type(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]))}else{String::new()};
   writeln!(output,"type Record{id}=tsrust_native_http::{name}{arguments};").unwrap();true
  }

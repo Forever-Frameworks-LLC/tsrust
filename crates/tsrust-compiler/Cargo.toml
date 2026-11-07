@@ -15,6 +15,8 @@ name = "tsrust"
 path = "src/cli/main.rs"
 
 [features]
+# Compiler runtime witnesses; generated packages select their own optional feature.
+http-middleware = []
 # Frozen original UI commands (`tsrust ui`, `new --ui`, `dev --target web`) and
 # their bundled component catalog. Release builds leave this disabled.
 legacy-ui = []
@@ -46,6 +48,10 @@ libc = "=0.2.183"
 
 
 [dev-dependencies]
+tower = { version = "=0.5.3", default-features = false, features = ["util"] }
+async-compression = { version = "=0.4.51", default-features = false, features = ["tokio", "gzip", "zlib"] }
+compression-codecs = { version = "=0.4.47", default-features = false, features = ["gzip", "zlib"] }
+compression-core = "=0.4.34"
 hmac = { version = "=0.13.0", default-features = false, features = ["zeroize"] }
 hkdf = { version = "=0.13.0", default-features = false }
 rand = { version = "=0.10.3", default-features = false, features = ["std", "std_rng", "sys_rng", "unbiased"] }
@@ -79,7 +85,7 @@ sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-toki
 rusqlite = { version = "=0.39.0", features = ["bundled", "hooks", "extra_check"] }
 matchit = { version = "=0.8.4" }
 axum = { version = "=0.8.9", default-features = false, features = ["http1", "http2", "tokio", "multipart"] }
-tower-http = { version = "=0.6.11", default-features = false, features = ["fs"] }
+tower-http = { version = "=0.6.11", default-features = false, features = ["fs", "cors", "set-header", "compression-gzip", "compression-deflate"] }
 tokio-rustls = { version = "=0.26.6", default-features = false, features = ["aws_lc_rs", "tls12"] }
 reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "stream", "http2", "multipart"] }
 http-body = "=1.1.0"

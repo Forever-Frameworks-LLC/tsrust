@@ -59,7 +59,7 @@ pub fn requires_dependencies(source:&str)->bool {
 /// Keep application record/union types, borrow adapters and generic ownership code
 /// in the application crate. Extract only selected self-contained support modules.
 pub fn separate(source:&str)->Units {
-    let mut application=source.to_owned();let mut runtime=String::new();
+    let mut application=source.to_owned();let mut runtime=if source.contains(crate::stdlib::http::MIDDLEWARE_MARKER){crate::stdlib::http::MIDDLEWARE_MARKER.to_owned()}else{String::new()};
     let mut binding_crates=std::collections::BTreeSet::new();
     for line in source.lines().filter(|line|line.starts_with(crate::project::rust::dependencies::MARKER)) {
         if let Ok(package)=serde_json::from_str::<crate::project::rust::dependencies::Package>(line.trim_start_matches(crate::project::rust::dependencies::MARKER)) {
@@ -108,7 +108,7 @@ pub fn separate(source:&str)->Units {
     extract("tsrust_native_http_io",crate::stdlib::io::HTTP_RUNTIME.to_owned());
     extract("tsrust_native_sql",crate::stdlib::sql::RUNTIME.to_owned());
     extract("tsrust_native_sqlite",crate::stdlib::sqlite::RUNTIME.to_owned());
-    extract("tsrust_native_http",crate::stdlib::http::RUNTIME.to_owned());
+    extract("tsrust_native_http",crate::stdlib::http::runtime());
     extract("tsrust_native_futures", crate::stdlib::futures::RUNTIME.to_owned());
     extract("tsrust_native_threads", crate::stdlib::threads::RUNTIME.to_owned());
     extract("tsrust_native_threads", crate::stdlib::threads::ASYNC_RUNTIME.to_owned());
@@ -172,5 +172,15 @@ mod tests {
 #[cfg(test)]mod io_tests{
  #[test]fn io_runtime_extraction_keeps_test_only_includes_out_of_exported_sources(){
   let runtime=crate::stdlib::io::runtime();assert!(!runtime.contains("runtime_tests.rs"));let source=format!("{runtime}fn main(){{}}");let units=super::separate(&source);assert!(units.dependencies);assert!(units.application.contains("use tsrust_runtime::tsrust_native_io"));let runtime=units.runtime.unwrap();assert!(runtime.contains("pub mod tsrust_native_io"));assert!(!runtime.contains("include!"));
+ }
+}
+
+#[cfg(test)]mod http_middleware_tests{
+ use super::*;
+ #[test]
+ fn optional_http_policies_preserve_extraction_marker_without_test_feature_activation(){
+  let ordinary=crate::stdlib::http::runtime();assert!(ordinary.contains("#[cfg(feature = \"http-middleware\")]"));assert!(!ordinary.contains("#[cfg(any(test, feature = \"http-middleware\"))]"));
+  let units=separate(&ordinary);assert!(units.dependencies);assert!(!units.runtime.unwrap().contains(crate::stdlib::http::MIDDLEWARE_MARKER));
+  let selected=format!("{ordinary}{}",crate::stdlib::http::MIDDLEWARE_MARKER);let units=separate(&selected);assert!(units.runtime.unwrap().starts_with(crate::stdlib::http::MIDDLEWARE_MARKER));assert!(!units.application.contains("mod tsrust_native_http {"));
  }
 }

@@ -44,3 +44,6 @@ fn client_transport_options_and_upload_help_keep_owned_contracts(){
 
 #[test]
 fn form_factories_document_borrowed_fields_owned_parts_and_backend_limitations(){let source="import {requestForm,requestMultipart} from 'std:http';function main(){}";let form=request(source,"requestForm","textDocument/hover").to_string();assert!(form.contains("ReadOnly")&&form.contains("duplicate")&&form.contains("Ownership"),"{form}");let multipart=request(source,"requestMultipart","textDocument/hover").to_string();assert!(multipart.contains("Owned")&&multipart.contains("ASCII")&&multipart.contains("Content-Length")&&multipart.contains("multipart"),"{multipart}");}
+
+#[test]
+fn source_policy_help_explains_closed_defaults_source_order_and_backend_limits(){let source="import {cors,secureHeaders,compress,Middleware,CorsOptions} from 'std:http';function main(){}";for(name,terms)in[("cors",vec!["closed","credentials","maxAgeSeconds","Ownership"]),("secureHeaders",vec!["absent","SAMEORIGIN","HSTS"]),("compress",vec!["gzip","deflate","identity","Content-Length"])]{let hover=request(source,name,"textDocument/hover").to_string();for term in terms{assert!(hover.contains(term),"{name} missing {term}: {hover}");}}}

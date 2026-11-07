@@ -136,6 +136,7 @@ impl Analyzer {
         context: &mut Context,
         expr: &mut Expr,
         frame: &mut LiteralFrame,
+        loans: &Loans,
     ) -> Result<Advance, Diagnostic> {
         match frame {
             LiteralFrame::Record { frame, next } => {
@@ -147,7 +148,7 @@ impl Analyzer {
                         .finish_record_work(context, fields, frame, expr.span)
                         .map(Advance::Done);
                 };
-                let (expected, field) = self.prepare_record_child(context, key, value, frame)?;
+                let (expected, field) = self.prepare_record_child(context, key, value, frame, loans)?;
                 Ok(Advance::Child(Child {
                     index: *next,
                     mode: Mode::Consume,

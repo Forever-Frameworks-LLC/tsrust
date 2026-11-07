@@ -13850,6 +13850,71 @@
           "output": "POST\n"
         }
       ]
+    },
+    {
+      "name": "Middleware",
+      "signature": "type Middleware",
+      "parameters": [],
+      "documentation": "An owned HTTP policy installed explicitly with App.use or Router.use. A value alone changes no server. Helpers compose with authored callbacks in source order; Router path installation uses the existing route pattern rules.\n\nOwnership: installation consumes the value. It is not implicitly cloned or globally installed.",
+      "examples": [
+        {
+          "source": "import {App,Middleware,secureHeaders} from 'std:http';function main(){const app=new App();const policy:Middleware=secureHeaders();app.use(policy);console.log('installed');}",
+          "output": "installed\n"
+        }
+      ]
+    },
+    {
+      "name": "CorsOptions",
+      "signature": "type CorsOptions",
+      "parameters": [],
+      "documentation": "Optional CORS lists and flags. Omitted origins, methods and header lists allow nothing; credentials defaults false and maxAgeSeconds is absent. A sole * explicitly requests a wildcard, forbidden with credentials in every list. Invalid header text, method tokens, mixed wildcards or a negative maxAgeSeconds throw HttpError code options before installation. No implicit size/cardinality/time budget is added. CORS is browser access control, not authorization.\n\nOwnership: cors borrows options during construction and retains independently validated settings.",
+      "examples": [
+        {
+          "source": "import {CorsOptions} from 'std:http';function main(){const options:CorsOptions={};console.log(options.origins===undefined);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "cors",
+      "signature": "cors(options?: ReadOnly<CorsOptions>): Middleware",
+      "parameters": [
+        {
+          "label": "options?: ReadOnly<CorsOptions>",
+          "documentation": "Explicit browser access policy. Omitted lists remain closed; no implicit wildcard or credentials."
+        }
+      ],
+      "documentation": "Constructs a CORS policy without installing it. Missing or empty lists remain closed: no allow-origin/method/header permission is invented. Explicit origins compare header values; methods are valid HTTP method tokens. allowedHeaders/exposeHeaders are header names. A sole * is an explicit wildcard; credentials=true rejects a wildcard in any list. maxAgeSeconds is optional, nonnegative seconds (0 is valid); omitted leaves backend caching behavior unchanged. Invalid options throw HttpError code options before use changes a server. The backend owns normal/preflight handling and Vary.\n\n```tsrust\napp.use(cors({\n  origins: ['https://app.example'], methods: ['GET']\n}));\n```\n\nOwnership: borrows options only during construction; use consumes the resulting Middleware.",
+      "examples": [
+        {
+          "source": "import {App,cors} from 'std:http';function main(){const app=new App();const make=cors;app.use(make());console.log('closed');}",
+          "output": "closed\n"
+        }
+      ]
+    },
+    {
+      "name": "secureHeaders",
+      "signature": "secureHeaders(): Middleware",
+      "parameters": [],
+      "documentation": "Constructs an explicit policy setting absent X-Content-Type-Options:nosniff, X-Frame-Options:SAMEORIGIN and Referrer-Policy:no-referrer. Deliberate application values are preserved. It also applies to error and streamed responses. It adds no deployment-dependent HSTS, CSP, COOP or COEP policy. Install with existing use in the desired source order.\n\nOwnership: use consumes the Middleware; construction retains no caller loans.",
+      "examples": [
+        {
+          "source": "import {App,secureHeaders} from 'std:http';function main(){const app=new App();app.use(secureHeaders());console.log('headers');}",
+          "output": "headers\n"
+        }
+      ]
+    },
+    {
+      "name": "compress",
+      "signature": "compress(): Middleware",
+      "parameters": [],
+      "documentation": "Constructs explicit streaming response compression for gzip/x-gzip and HTTP deflate. The backend owns negotiation, default compression level, Vary and framing. It skips known bodies below 32 bytes, images, gRPC and server-sent events; existing Content-Encoding is preserved. Missing/unsupported encodings or q=0 use identity. A bare Accept-Encoding:* also uses identity in the selected backend; br/zstd are not enabled. Compression removes an obsolete Content-Length and preserves body errors and drop behavior. No whole response is buffered. Install with existing use; choose source order with other handlers.\n\nOwnership: use consumes Middleware. Response body ownership stays exclusive and cancellation/drop releases the active source.",
+      "examples": [
+        {
+          "source": "import {App,compress} from 'std:http';function main(){const app=new App();app.use(compress());console.log('compression');}",
+          "output": "compression\n"
+        }
+      ]
     }
   ],
   "HttpApp": [
@@ -14035,14 +14100,14 @@
     },
     {
       "name": "use",
-      "signature": "use(middleware: (request: Request, next: Next) => Task<Response>): void",
+      "signature": "use(middleware: Middleware | ((request: Request, next: Next) => Task<Response>)): void",
       "parameters": [
         {
-          "label": "middleware: (request: Request, next: Next) => Task<Response>",
-          "documentation": "Named async function or owned callback with read-only retained state."
+          "label": "middleware: Middleware | ((request: Request, next: Next) => Task<Response>)",
+          "documentation": "An owned Middleware token, named async function or owned callback. Installation consumes the token/callback; callback captures must own their retained state."
         }
       ],
-      "documentation": "Registers global middleware in entry order and reverse response order, including 404 and 405 responses. Registration order relative to routes does not omit routes. Middleware may return early; Next.run consumes its downstream capability at most once.\n\n```tsrust\napp.use(checkRequest);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; request and Next transfer into each invocation.",
+      "documentation": "Registers global middleware in entry order and reverse response order, including 404 and 405 responses. Registration order relative to routes does not omit routes. Middleware may return early; Next.run consumes its downstream capability at most once.\n\n```tsrust\napp.use(checkRequest);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; request and Next transfer into each invocation.\n\nAlso accepts owned Middleware values from cors, secureHeaders and compress. Tokens and authored callbacks execute in source order; a Router path scopes each supplied value to that existing path pattern. A helper never installs globally by itself. Ownership: each token is consumed exactly once.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.use((input:Request,next:Next):Task<Response>=>next.run(input));console.log('ok');}",
@@ -17248,7 +17313,7 @@
     },
     {
       "name": "use",
-      "signature": "use(path?: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
+      "signature": "use(path?: string, ...handlers: Middleware | ((c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>)): void",
       "parameters": [
         {
           "label": "path?: string",
@@ -17256,10 +17321,10 @@
         },
         {
           "label": "...handlers",
-          "documentation": "One or more callbacks taking zero, one or two parameters. Each receives the request context and optionally next. Async arrows are supported."
+          "documentation": "One or more owned Middleware tokens or callbacks taking zero, one or two parameters, installed in source order. Each callback receives the request context and optionally next; async arrows are supported."
         }
       ],
-      "documentation": "Registers middleware for every method. With a path, it runs only for matching requests; without one, it runs for all requests. Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\nimport { Router, Client, request } from \"std:http\";\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.use(\"/api/*\", async (c, next) => {\n    console.log(\"before\"); // 1st\n    await next();\n    c.header(\"x-api\", \"1\");\n    console.log(\"after\"); // 3rd\n  });\n  app.get(\"/api/items\", (c) => {\n    console.log(\"handler\"); // 2nd\n    return c.text(\"items\");\n  });\n  app.get(\"/other\", (c) => c.text(\"other\"));\n  const server = await app.listen(\"127.0.0.1:0\");\n  const base = `http://${server.address()}`;\n  const client = new Client();\n  const api = await client.send(request(\"GET\", `${base}/api/items`, \"\"));\n  console.log(api.header(\"x-api\"), await api.text()); // 1 items\n  const other = await client.send(request(\"GET\", `${base}/other`, \"\"));\n  console.log(other.header(\"x-api\") ?? \"none\", await other.text()); // none other\n  await server.shutdown();\n}\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
+      "documentation": "Registers middleware for every method. With a path, it runs only for matching requests; without one, it runs for all requests. Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\nimport { Router, Client, request } from \"std:http\";\n\nasync function main(): Task<void> {\n  const app = new Router();\n  app.use(\"/api/*\", async (c, next) => {\n    console.log(\"before\"); // 1st\n    await next();\n    c.header(\"x-api\", \"1\");\n    console.log(\"after\"); // 3rd\n  });\n  app.get(\"/api/items\", (c) => {\n    console.log(\"handler\"); // 2nd\n    return c.text(\"items\");\n  });\n  app.get(\"/other\", (c) => c.text(\"other\"));\n  const server = await app.listen(\"127.0.0.1:0\");\n  const base = `http://${server.address()}`;\n  const client = new Client();\n  const api = await client.send(request(\"GET\", `${base}/api/items`, \"\"));\n  console.log(api.header(\"x-api\"), await api.text()); // 1 items\n  const other = await client.send(request(\"GET\", `${base}/other`, \"\"));\n  console.log(other.header(\"x-api\") ?? \"none\", await other.text()); // none other\n  await server.shutdown();\n}\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.\n\nAlso accepts owned Middleware values from cors, secureHeaders and compress. Tokens and authored callbacks execute in source order; a Router path scopes each supplied value to that existing path pattern. A helper never installs globally by itself. Ownership: each token is consumed exactly once.",
       "examples": [
         {
           "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
@@ -21394,6 +21459,80 @@
         {
           "source": "import {createHasher} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const state=createHasher('sha256');state.update(unwrap(fromUtf8('abc')));console.log(length(state.finalize()));}",
           "output": "32\n"
+        }
+      ]
+    }
+  ],
+  "HttpCorsOptions": [
+    {
+      "name": "origins",
+      "signature": "origins: string[] | undefined",
+      "parameters": null,
+      "documentation": "Explicit allowed origin header values. Omitted/empty is closed. A sole * is allowed only without credentials.\n\nOwnership: borrowed during cors construction; settings are retained independently.",
+      "examples": [
+        {
+          "source": "import {CorsOptions} from 'std:http';function main(){const options:CorsOptions={};console.log(options.credentials===undefined);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "methods",
+      "signature": "methods: string[] | undefined",
+      "parameters": null,
+      "documentation": "HTTP method tokens advertised for preflight. Omitted/empty adds no Access-Control-Allow-Methods permission; this does not disable routes or change browser rules for simple requests. A sole * conflicts with credentials.\n\nOwnership: borrowed during cors construction; settings are retained independently.",
+      "examples": [
+        {
+          "source": "import {CorsOptions} from 'std:http';function main(){const options:CorsOptions={};console.log(options.credentials===undefined);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "allowedHeaders",
+      "signature": "allowedHeaders: string[] | undefined",
+      "parameters": null,
+      "documentation": "Allowed request header names. Invalid header names throw options. Omitted/empty adds no Access-Control-Allow-Headers permission; browser safelisted headers retain ordinary protocol behavior. A sole * conflicts with credentials.\n\nOwnership: borrowed during cors construction; settings are retained independently.",
+      "examples": [
+        {
+          "source": "import {CorsOptions} from 'std:http';function main(){const options:CorsOptions={};console.log(options.credentials===undefined);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "exposeHeaders",
+      "signature": "exposeHeaders: string[] | undefined",
+      "parameters": null,
+      "documentation": "Response header names exposed to browsers. Omitted/empty adds none; a sole * conflicts with credentials.\n\nOwnership: borrowed during cors construction; settings are retained independently.",
+      "examples": [
+        {
+          "source": "import {CorsOptions} from 'std:http';function main(){const options:CorsOptions={};console.log(options.credentials===undefined);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "credentials",
+      "signature": "credentials: boolean | undefined",
+      "parameters": null,
+      "documentation": "Whether to send Access-Control-Allow-Credentials:true. Defaults false. Requires explicit lists instead of wildcards.\n\nOwnership: borrowed during cors construction; settings are retained independently.",
+      "examples": [
+        {
+          "source": "import {CorsOptions} from 'std:http';function main(){const options:CorsOptions={};console.log(options.credentials===undefined);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "maxAgeSeconds",
+      "signature": "maxAgeSeconds: int | undefined",
+      "parameters": null,
+      "documentation": "Optional nonnegative preflight cache seconds. Zero is valid, negative values throw options; no arbitrary upper ceiling is added.\n\nOwnership: borrowed during cors construction; settings are retained independently.",
+      "examples": [
+        {
+          "source": "import {CorsOptions} from 'std:http';function main(){const options:CorsOptions={};console.log(options.credentials===undefined);}",
+          "output": "true\n"
         }
       ]
     }

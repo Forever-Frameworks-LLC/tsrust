@@ -249,10 +249,11 @@ impl Analyzer {
             context.bindings[binding].callback_kind=Some(kind);
             context.bindings[binding].callback_reference=matches!(kind,CallbackKind::Reusable|CallbackKind::Read);
             context.bindings[binding].callback_invocation=Some(kind.invocation());
-            if kind.is_owned()||kind.is_once() {context.bindings[binding].mode=Mode::Consume;}
+            if (kind.is_owned()||kind.is_once())&&!(kind==CallbackKind::Task&&param.access.as_ref().is_some_and(|access|access.text=="read")) {context.bindings[binding].mode=Mode::Consume;}
         }
         if param.access.as_ref().is_some_and(|access|access.text=="read") && !body_ty.is_copy() {
             context.readonly_parameters.insert(binding);
+            if self.is_task_type(body_ty){context.bindings[binding].callback_kind=Some(CallbackKind::Task);context.bindings[binding].callback_invocation=Some(Mode::Consume);}
         }
         if param.access.as_ref().is_some_and(|access|access.text=="mutate") && !body_ty.is_copy() {
             context.mutable_parameters.insert(binding);

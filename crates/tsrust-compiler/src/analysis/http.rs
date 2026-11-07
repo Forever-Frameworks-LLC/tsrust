@@ -87,8 +87,20 @@ impl Analyzer {
     let expected=self.thread_application(NativeTypeId::HttpContextNext,&router_types.as_ref().unwrap()[..1],span)?;
     let actual=self.expression(context,arg,Mode::Consume,&active,Some(expected))?;self.require(actual,Some(expected),arg.span)?;
    }else if param.ty==crate::native_bindings::NativeType::ObservedValue{
+    let mut checked_policy=None;
+    if matches!(binding.name,"__use"|"__routerUse"|"__routerUsePath")&&self.expression_type_hint(context,arg).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpMiddleware))){
+     let ty=self.expression(context,arg,Mode::Consume,&active,None)?;let expected=Type::Record(self.schema_native_dependency(NativeTypeId::HttpMiddleware,arg.span)?);self.require(ty,Some(expected),arg.span)?;continue;
+    }
+
+    // A factory/generic/await expression may not have a speculative hint.
+    // Check it once, retaining its real ownership/effects for the callback path.
+    if matches!(binding.name,"__use"|"__routerUse"|"__routerUsePath")&&!matches!(arg.kind,ExprKind::Name(_)|ExprKind::Closure{..}){
+     let actual=self.expression(context,arg,Mode::Consume,&active,None)?;
+     if matches!(actual,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpMiddleware)){continue;}
+     checked_policy=Some(actual);
+    }
     let hono=binding.name.starts_with("__router");
-    let count=if hono{match &arg.kind{ExprKind::Closure{params,..}=>params.len(),ExprKind::Name(name)=>self.function_names.get(name).map(|&id|self.signatures[id].params.len()).unwrap_or(1),_=>1}}else if binding.name=="__use"{2}else{1};
+    let count=if hono&&let Some(Type::Closure(origin))=checked_policy{self.closures[origin].parameters.len()}else if hono{match &arg.kind{ExprKind::Closure{params,..}=>params.len(),ExprKind::Name(name)=>self.function_names.get(name).map(|&id|self.signatures[id].params.len()).unwrap_or(1),_=>1}}else if binding.name=="__use"{2}else{1};
     if count>2{return Err(Diagnostic::new("http-handler","Router callbacks take Context and an optional next callback.",span));}
     let middleware=count==2 || matches!(binding.name,"__routerUse"|"__routerUsePath");
     let request=if hono{self.thread_application(NativeTypeId::HttpContext,router_types.as_ref().expect("router receiver"),span)?}else{Type::Record(self.schema_native_dependency(NativeTypeId::HttpRequest,span)?)};let next=if hono{self.thread_application(NativeTypeId::HttpContextNext,&router_types.as_ref().unwrap()[..1],span)?}else{Type::Record(self.schema_native_dependency(NativeTypeId::HttpNext,span)?)};
@@ -101,14 +113,14 @@ impl Analyzer {
      }
      arg.kind=ExprKind::Closure{id:usize::MAX/4+arg.span.start,params,result:crate::syntax::ResultAnnotation::Inferred(span),body:vec![crate::syntax::Stmt{kind:crate::syntax::StmtKind::Return(Some(Expr::new(ExprKind::Call(Box::new(callee),inputs),span))),span,labels:Vec::new(),control_target:None}]};
     }
-    if let ExprKind::Closure{id,params,..}=&mut arg.kind{
+    if checked_policy.is_none()&&let ExprKind::Closure{id,params,..}=&mut arg.kind{
      self.escaping.insert(*id);
      self.http_handler_origins.insert(*id);
      if hono && let Some(param)=params.first_mut(){param.access=Some(crate::syntax::Token{kind:crate::syntax::TokenKind::Name,text:"mutate".into(),span});}
      for (param,ty) in params.iter_mut().zip(&parameters){if matches!(param.ty,crate::syntax::ParameterAnnotation::Inferred(_)){param.ty=crate::syntax::ParameterAnnotation::Named(Box::new(self.checked_value_annotation(*ty,span)?));}}
     }
-    if hono && middleware {self.http_middleware_result(arg);}
-    let actual=self.expression(context,arg,Mode::Consume,&active,None)?;
+    if checked_policy.is_none()&&hono&&middleware {self.http_middleware_result(arg);}
+    let actual=if let Some(actual)=checked_policy{actual}else{self.expression(context,arg,Mode::Consume,&active,None)?};
     let Type::Closure(origin)=actual else{return Err(Diagnostic::new("http-handler","HTTP handlers require a concrete callback returning Task<Response>.",span));};
     let closure=&self.closures[origin];
     if closure.program_scoped||!closure.program_captures.is_empty()||closure.parameters.len()!=parameters.len()||closure.parameters.iter().zip(&parameters).any(|(id,ty)|closure.function.bindings[*id].ty!=*ty){return Err(Diagnostic::new("http-handler","HTTP callbacks take Request (and Next for middleware) and cannot borrow program state.",span));}

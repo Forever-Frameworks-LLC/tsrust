@@ -97,9 +97,9 @@
     }
   ],
   "sources": {
-    "native": "53673426aa53801d119a3c7b7188fea9833d9d1fc2d7c1df407626d321cff184",
-    "node-tsc": "ebd120890a8c63a0555fc0c249ca188c8adfe52bce86b098050b51020a54595f",
-    "rust-hand": "17322d9250bee28e5292e1cb52633e8f08c21776079f4c067c12b302f59576e9"
+    "native": "0c18280d5a4c232a6040a61b57c25b8a200a4560f504a525da523c1f4edd7ff2",
+    "rust-hand": "19be5ded8db0f6fecd572af0848bc3663acb870a1cba4ad6d248780d0c132507",
+    "node-tsc": "ebd120890a8c63a0555fc0c249ca188c8adfe52bce86b098050b51020a54595f"
   },
   "notes": "Each batch varies64/4096/65537 bytes by request ID; backend checks every byte and returns ordered checksum. Channel capacity1. Node uses demand-driven Readable, not a claim of identical queue representation. Original3x31after8, separate latency and CPU/RSS, no build/startup timing."
 }
