@@ -3559,14 +3559,14 @@ impl Analyzer {
 
     fn prepare_specialization(&mut self, index: usize, args: &[Expr], span: Span) -> Result<(usize, bool), Diagnostic> {
         let owned_record=self.signatures[index].params.iter().copied().zip(args).any(|(formal,arg)|self.owned_record_parameter(formal)
-            && arg.ty.is_some_and(|actual|self.finite_owned_shape(actual) && !self.native_shape_contains_view(actual)));
+            && arg.ty.is_some_and(|actual|self.owned_record_argument_shape(actual)));
         if !self.templates.contains_key(&index) && !owned_record {
             return Ok((index, false));
         }
         let mut signature = self.signatures[index].clone();
         let mut types = Vec::new();
         for (ty, arg) in signature.params.iter_mut().zip(args) {
-            if self.owned_record_parameter(*ty) && arg.ty.is_some_and(|actual|self.finite_owned_shape(actual) && !self.native_shape_contains_view(actual)) {
+            if self.owned_record_parameter(*ty) && arg.ty.is_some_and(|actual|self.owned_record_argument_shape(actual)) {
                 let actual=arg.ty.expect("checked physical record argument");
                 if self.discovering_results && self.has_pending_result(actual){return Ok((index,false));}
                 self.require(actual,Some(*ty),arg.span)?;

@@ -10,6 +10,56 @@ CURRENT OWNER POLICY/SOURCE — 2026-11-06
 
 LATEST VERIFIED STATE — supersedes the active-attempt notes below.
 
+REPAIR12 TERMINAL — source0670e521/c518865a7b5a,615.495s,peak4,016,347,016B,
+build-finishedtrue,52/71 affectedcasesPASS,19FAIL,stopnull,remaining[]. Actual:
+/tmp/tsrust-utilities-http-repair12-budget.json and source-stem.json. Preserve
+all earlier98 and these52 observations at their exact sources. HTTPprivate7/7
+(including307POST/exactframing/pointer/noncollection/multipart override)PASS;
+B18all24PASS includingcomputedoptionalowner/order/source-site; async2PASS;
+logicalcallbacknominalidentityunitPASS; iteratorcallbackpayload controls nowPASS,
+ownediterator8/16PASS; Iterator<int>checkerPASS; HTTPhoverPASS; arrayguardeditorPASS.
+
+Coherent new fixes APPLIED, unvalidated:dd35ed72 requiresactualfiniteowned record
+SUBSTITUTION for mixedcontract predicate (ordinaryscalarunions no longer trigger
+phonyRecord materialization). This singlecause explains Client/Cookie/CommandOptions
+errors and missingRecord78/79; no emitterworkaround/assertionrevert. Exactordinary
+Options AST+recordcountguard added. PhysicalnonborrowedknownClosure records now
+eligiblefornullableinjection withsame-declaration/non-native-view guards; Mutable
+projectionkeepswholedeclaredphysicaltag whenexistingrecordcontractaccepts it.
+f9c8b65d aligns owned/read-union genericarguments withenumany-scoped-payload policy,
+andnormalizesonlyspecializationeligibility actual.owning() whileactualsignature/
+key/Readmode remainBorrowedUnion. AST4call/2ownedlocal-layoutguard added.
+54302335 addsrawphysicalClosureeligibility atsame2specializationboundaries; root
+centralizesexactpredicate asowned_record_argument_shape (native-view rejection
+unchanged). NativeReadtwice/OwnedconsumeHolderwitness added. de2641ea fixesLSP
+trustedbundledsource record-importnativeidentity usingcompilerlookup, retaining
+sourcefields/navigation; sourcealias/shadow/user-recordguards added. Source-only
+review+oldCLI check/emit repros done; newnativeacceptance stillpending.
+
+B03source/timingproof7ea1de3c reconciled7manifestflags+notes,21rows22histories,
+93samples each; all21current sourcehashes matchactualrecords includingcorrected
+Rustformatcontrol. No controlsretimed. Windowsconsole/nativeplatform remainsopen.
+Wholeprojectformat2x0source/catalog/fingerprintchanges, diffcheckPASS. Quietpost12
+cleanup508rcguobjects recovered1,140,649,984bytes; no cache/tool/source deletion.
+Nextoneaffectedrepair13scope:30prefixes+rawHolderaddition,10targets includingnew
+LSPsourceidentitylibraryunit; preserve24B18passes/runonlycomputed-ownercontrol.
+FullB00–B20 remainsactive andunfinished. No push/publication orfullregressionclaim.
+
+
+ACTIVE REPAIR12 — source0670e521cf9c7fc6a82413767b0296f1b6d71dcd,
+fingerprintc518865a7b5ab6f91f9b41bd1d1d81ed1cb4bd68ef7ceb00010f20e8027ae453.
+Session46924; supervisor22710/driver22712/innerwatch22725/CargoPID-PGID22726
+verified LIVE. Do not restart for missinghandle. Prefix:
+/tmp/tsrust-utilities-http-repair12-c518865a7b5a-selected-build-artifacts.jsonl;
+/tmp/tsrust-utilities-http-repair12-budget.out/.err; eventual-budget.json;
+supervisor /tmp/tsrust-utilities-http-repair12-supervisor.log.11 affectedtargets,
+failedcases/newregressions +coupledownershipcontrols; previous98observations retained.
+Iterator checker receiver requiresactual Iterator<int>; matrixrequires8observations
+(twoiteratornames×fourphases). No all-target/fullregression/timingclaim. One55min
+end-to-end/inner30min5GB/jobs1/incrementaloff/threads3. Source frozen exceptnote.
+Allworkerscompleted/source-only, no otherheavyjob. Websitepreviewalreadyfresh.
+
+
 COMBINED11 TERMINAL — source2004bf65/fingerprint3365634b02d7. Build-finishedtrue;
 119 selected cases:98PASS21FAIL,790.684s total,4,000,405,408B peak,stopnull,
 remaining[]. /tmp/tsrust-utilities-http-resume11-budget.json and source-stem.json

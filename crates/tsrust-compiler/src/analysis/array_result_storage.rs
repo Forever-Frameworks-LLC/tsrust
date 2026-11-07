@@ -47,19 +47,37 @@ impl Analyzer {
             let Some(Type::Record(record)) = self.unions.payload(actual) else { return Ok(None); };
             let declaration = self.scoped_records.declaration(record);
             if declaration == self.scoped_records.declaration(target)
-                && (self.aggregate_callable_facts(Type::Record(declaration)).scoped || self.finite_owned_shape(actual))
+                && (self.aggregate_callable_facts(Type::Record(declaration)).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record))
                 && self.unions.members(source).into_iter().filter(|member| !matches!(member, Type::Record(_)))
                     .eq(self.unions.members(expected).into_iter().filter(|member| !matches!(member, Type::Record(_))))
             { return Ok(Some(actual)); }
             return Ok(None);
         }
         let Type::Record(record) = actual else { return Ok(None); };
-        if actual == Type::Record(target) || !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped || self.finite_owned_shape(actual))
+        if actual == Type::Record(target) || !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record))
             || self.scoped_records.declaration(record) != self.scoped_records.declaration(target)
         { return Ok(None); }
         self.unions.intern(self.unions.members(expected).into_iter().map(|member| {
             if member == Type::Record(target) { actual } else { member }
         }), span).map(Some)
+    }
+
+    // A checked nonborrowed closure field has a concrete origin even when it
+    // does not need a scoped StoredCallable family. Do not admit declarations.
+    pub(super) fn concrete_owned_record_carrier(&self,record:usize)->bool {
+        let ty=Type::Record(record);
+        let facts=self.aggregate_callable_facts(ty);
+        record!=self.scoped_records.declaration(record) && facts.retains && !facts.scoped && !facts.unknown && !self.native_shape_contains_view(ty)
+    }
+
+    pub(super) fn owned_record_argument_shape(&self,actual:Type)->bool {
+        if self.native_shape_contains_view(actual){return false;}
+        let owned=actual.owning();
+        self.finite_owned_shape(owned) || match owned {
+            Type::Record(record)=>self.concrete_owned_record_carrier(record),
+            Type::Union(id)=>self.unions.members(id).into_iter().any(|ty|matches!(ty,Type::Record(record) if self.concrete_owned_record_carrier(record))),
+            _=>false,
+        }
     }
 
     /// Preserve owned record environments in a mixed union. A variant not

@@ -507,7 +507,7 @@ impl Emitter<'_> {
         }
         if let Some(id) = value.union() {
             let payloads = self.program.unions[id.index()].members.iter().copied().filter(|ty| !ty.is_copy()).collect::<Vec<_>>();
-            if payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty)) && (payloads.len() == 1 || self.native_views.contains(value)) {
+            if payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty)) {
                 let payload = payloads.iter().map(|&ty| {let native=self.native_type(ty);if matches!(value,Type::Union(_)){self.union_stored_type(id,ty,native)}else{native}}).collect::<Vec<_>>().join(", ");
                 return if matches!(value, Type::BorrowedUnion(_)) { format!("ViewUnion{}<'_, {payload}>", id.index()) } else { format!("Union{}<{payload}>", id.index()) };
             }
@@ -571,7 +571,8 @@ impl Emitter<'_> {
             && !id.copy
             && contract.mode == Mode::Read
         {
-            let parameters = if self.native_views.contains(contract.ty) {
+            let parameters = if self.native_views.contains(contract.ty)
+                || self.program.unions[id.index()].members.iter().any(|&ty|self.scoped_record_native_parameter(ty)) {
                 self.program.unions[id.index()].members.iter().filter(|ty| !ty.is_copy())
                     .map(|&ty| format!(", {}", self.native_type(ty))).collect::<String>()
             } else {

@@ -154,3 +154,15 @@ fn generic_callback_records_and_legacy_owned_mixed_unions_keep_their_contracts()
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"7\n\n");
  for source in ["type Holder<T>={value:T;};function take(value:Owned<Holder<Function<string>>>):void{}function main(){const h:Holder<Function<int>>={value:():int=>7};take(h);}","import {Iterator} from 'std:iterator';function wrong():string[]|Iterator<string>{return Iterator.from([1]);}function main(){}"]{let source=support::format_round_trip(source);assert!(checked(&source).is_err());}
 }
+
+#[test]
+fn concrete_owned_closure_records_inject_into_nullable_storage() {
+ let source=support::format_round_trip("type Holder={pull:Owned<Function<int>>;};function main(){let current:Holder|undefined=undefined;const inner:Holder={pull:():int=>7};current=inner;if(current!==undefined){console.log(current.pull());}}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"7\n");
+}
+
+#[test]
+fn named_nullable_consumers_keep_raw_owned_closure_record_shapes() {
+ let source=support::format_round_trip("type Holder={pull:Owned<Function<int>>;};function use(value:Owned<Holder|undefined>):int{if(value===undefined){return 0;}return value.pull();}function read(value:ReadOnly<Holder|undefined>):boolean{return value!==undefined;}function main(){const item:Holder|undefined={pull:():int=>7};console.log(read(item),read(item),use(item));}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"true true 7\n");
+}

@@ -363,6 +363,26 @@ impl SourceIndex {
 mod owned_iterator_tests{
     use super::*;
     #[test]
+    fn bundled_source_record_imports_keep_native_identity_for_constructor_and_shadowed_instance(){
+        let module=tsrust_compiler::project::SourceId("std:iterator".into());
+        let dependency=SourceIndex::with_entry_help(tsrust_compiler::project::bundled_source(&module).unwrap(),false);
+        assert!(!dependency.native_type_aliases.contains_key("Iterator"),"the authored interface is not a direct native import");
+        let source="import {Iterator as Cursor} from 'std:iterator';function main(){Cursor.from([1]);}function inspect(Cursor:Cursor<int>){Cursor.next();}";
+        let mut index=SourceIndex::with_entry_help(source,false);
+        let import=index.tokens.iter().find(|token|token.text=="Cursor").unwrap().span;
+        assert!(index.import_declaration(&dependency,"Iterator","Cursor",import,"tsrust-stdlib:///std:iterator",&std::collections::BTreeMap::from([("Iterator".into(),"Cursor".into())])));
+        assert_eq!(index.native_type_aliases.get("Cursor"),Some(&tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator));
+        let constructor=index.tokens.iter().enumerate().find_map(|(id,token)|(token.text=="Cursor"&&index.text(id+1)=="."&&index.text(id+2)=="from").then_some(id)).unwrap();
+        let items=index.member_items("Cursor<int>","",Range::default(),"Cursor",constructor);
+        assert_eq!(items.len(),1,"{items:?}");assert_eq!(items[0]["label"],"from");
+        let instance=index.tokens.iter().enumerate().find_map(|(id,token)|(token.text=="Cursor"&&index.text(id+1)=="."&&index.text(id+2)=="next").then_some(id)).unwrap();
+        let items=index.member_items("Cursor<int>","",Range::default(),"Cursor",instance);
+        assert_eq!(items.len(),12,"{items:?}");assert!(items.iter().all(|item|item["label"]!="from"&&item["label"]!="_pull"));
+        let mut user=SourceIndex::with_entry_help(source,false);
+        assert!(user.import_declaration(&dependency,"Iterator","Cursor",import,"file:///user/iterator.tsr",&std::collections::BTreeMap::from([("Iterator".into(),"Cursor".into())])));
+        assert!(!user.native_type_aliases.contains_key("Cursor"),"an ordinary imported record cannot acquire native identity from its spelling");
+    }
+    #[test]
     fn owned_iterator_catalog_keeps_constructor_and_instance_contracts_distinct(){
         let constructors=builtins_for("IteratorConstructor");
         assert_eq!(constructors.len(),1);assert_eq!(constructors[0]["name"],"from");

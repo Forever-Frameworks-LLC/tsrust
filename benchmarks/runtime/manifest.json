@@ -209,10 +209,10 @@
         "string"
       ],
       "family": "path-env-os",
-      "measured": false,
-      "measurementStatus": "unmeasured-path-env-os",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Fixed lexical or sanitized environment observations; OS rows expose only numeric observations. See path-env-os-contract.mjs.",
-      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Unmeasured.",
+      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Native/Rust/Node execution timings are recorded; platform acceptance remains separate.",
       "inputText": "reports/file.tar.gz",
       "sourceSha256": "0efd9b42ae0ea38e610eb25fb4f3e2e89aac2de404f0c01016f774fbdc56fab3",
       "counterpartSha256": "1f7ec7076e10257c5ead4b9a9aa7a82d0062cb08ec5755b123479dd352c980fc"
@@ -234,10 +234,10 @@
         "string"
       ],
       "family": "path-env-os",
-      "measured": false,
-      "measurementStatus": "unmeasured-path-env-os",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Fixed lexical or sanitized environment observations; OS rows expose only numeric observations. See path-env-os-contract.mjs.",
-      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Unmeasured.",
+      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Native/Rust/Node execution timings are recorded; platform acceptance remains separate.",
       "inputText": "reports",
       "sourceSha256": "0a7bcf075564b64773007c5115e0706fb6bfa75b39c61d09bb55477d2512dc3b",
       "counterpartSha256": "2385009559dcd9ed804dd3b44603e068b9ff6a54cdab61fe73b1523d724c90bd"
@@ -259,10 +259,10 @@
         "string"
       ],
       "family": "path-env-os",
-      "measured": false,
-      "measurementStatus": "unmeasured-path-env-os",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Fixed lexical or sanitized environment observations; OS rows expose only numeric observations. See path-env-os-contract.mjs.",
-      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Unmeasured.",
+      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Native/Rust/Node execution timings are recorded; platform acceptance remains separate.",
       "inputText": "../next/file.txt",
       "sourceSha256": "830ea427dbe2d28b3c4b100e9f7dc3dfa5bb4b5efd8d0c5db6514a46e86b28b2",
       "counterpartSha256": "7805ff25c6e7ee95b45a7a3f92b5feee3dac077af4ae530340a2d8e2a112d70c"
@@ -283,10 +283,10 @@
         "int"
       ],
       "family": "path-env-os",
-      "measured": false,
-      "measurementStatus": "unmeasured-path-env-os",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Fixed lexical or sanitized environment observations; OS rows expose only numeric observations. See path-env-os-contract.mjs.",
-      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Unmeasured.",
+      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Native/Rust/Node execution timings are recorded; platform acceptance remains separate.",
       "sourceSha256": "4c20be3e9f73261f21da8852377a6128af694f66084053e85664ddc7bc6f639a",
       "counterpartSha256": "96e52932911aad7b021d1682a5b987979a033d94ce9ab58dbdc7edc4d1751de7"
     },
@@ -306,10 +306,10 @@
         "int"
       ],
       "family": "path-env-os",
-      "measured": false,
-      "measurementStatus": "unmeasured-path-env-os",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Fixed lexical or sanitized environment observations; OS rows expose only numeric observations. See path-env-os-contract.mjs.",
-      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Unmeasured.",
+      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Native/Rust/Node execution timings are recorded; platform acceptance remains separate.",
       "sourceSha256": "dae80db33eae11b405e9a27177f322beabf514821630730d04d70dab62aca913",
       "counterpartSha256": "b97d9a9098d6f2e2776ad242ec48ef0b9f3fd3e48ec41f985376551cff19dd7a"
     },
@@ -329,10 +329,10 @@
         "int"
       ],
       "family": "path-env-os",
-      "measured": false,
-      "measurementStatus": "unmeasured-path-env-os",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Fixed lexical or sanitized environment observations; OS rows expose only numeric observations. See path-env-os-contract.mjs.",
-      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Unmeasured.",
+      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Native/Rust/Node execution timings are recorded; platform acceptance remains separate.",
       "sourceSha256": "93e7b2819200fbb067a38e1e5eb0d9009f92c64829f34a995bbe83b4e43c7f09",
       "counterpartSha256": "03df807b34eac074cd1e6e1af5bc59b59fa44f1f7ceb5bb94f2978259d4b500f"
     },
@@ -352,10 +352,10 @@
         "int"
       ],
       "family": "path-env-os",
-      "measured": false,
-      "measurementStatus": "unmeasured-path-env-os",
+      "measured": true,
+      "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Fixed lexical or sanitized environment observations; OS rows expose only numeric observations. See path-env-os-contract.mjs.",
-      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Unmeasured.",
+      "notes": "Keep 8 warmups and 3 processes of 31 samples. End-to-end work includes owned result construction, observation and disposal; setup occurs once per invocation. Environment snapshot size is host-dependent but raw entries are never reported. Hostname compares the current OS observation; Windows physical DNS naming may differ from Node and requires platform acceptance. No constant identity speedup claim. Native/Rust/Node execution timings are recorded; platform acceptance remains separate.",
       "sourceSha256": "694aff35ee23823bed504d218a8113aaaa1aa1ffa268f1739691e5b7d3a1ffa4",
       "counterpartSha256": "ca67d1fa29180c18cf4e42cee3eb4e63396949b36c934c9d75c7d5de24d94871"
     },

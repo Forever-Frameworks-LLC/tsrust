@@ -42,7 +42,7 @@ impl Analyzer {
     pub(super) fn scoped_record_nullable_contract(&self, actual: Type, expected: Type) -> bool {
         let (Some(actual_id), Some(expected_id)) = (actual.union(), expected.union()) else { return false; };
         if let (Some(Type::Record(actual_record)),Some(Type::Record(expected_record)))=(self.unions.payload(actual.owning()),self.unions.payload(expected.owning())){
-            if !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(actual_record))).scoped || self.finite_owned_shape(actual))
+            if !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(actual_record))).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(actual_record))
                 || self.scoped_records.declaration(actual_record)!=self.scoped_records.declaration(expected_record){return false;}
             let expected_members=self.unions.members(expected_id);
             return self.unions.members(actual_id).iter().all(|member|matches!(member,Type::Record(_)) || expected_members.contains(member));
@@ -50,14 +50,18 @@ impl Analyzer {
         // A preserved mixed-union carrier still satisfies its exact nominal
         // record contract. This does not erase or convert the physical value.
         let expected_members=self.unions.members(expected_id);
-        self.unions.members(actual_id).into_iter().all(|member|{
+        let mut substituted=false;
+        let compatible=self.unions.members(actual_id).into_iter().all(|member|{
             if self.unions.accepts(expected.owning(),member){return true;}
             let Type::Record(record)=member else{return false;};
-            if !self.finite_owned_shape(member) || self.native_shape_contains_view(member){return false;}
+            if !(self.finite_owned_shape(member) || self.concrete_owned_record_carrier(record)) || self.native_shape_contains_view(member){return false;}
             let declaration=self.scoped_records.declaration(record);
             let mut matches=expected_members.iter().filter(|ty|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration && !self.native_shape_contains_view(**ty)));
-            matches.next().is_some() && matches.next().is_none()
-        })
+            let unique=matches.next().is_some() && matches.next().is_none();
+            substituted |= unique;
+            unique
+        });
+        compatible && substituted
     }
     pub(super) fn scoped_array_element_contract(&self, base: &Expr, element: ArrayElement) -> Type {
         if (Self::indexed_array_root(base).is_some() || Self::direct_fields(base).is_some())
@@ -248,5 +252,16 @@ impl Analyzer {
             ExprKind::Project { value, narrowed, .. } if matches!(narrowed, Type::Record(_)) => self.unions.payload(self.planned_record_array_type(value, plans)?),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod nullable_contract_tests {
+    #[test]
+    fn ordinary_optional_fields_do_not_materialize_record_carriers() {
+        let source=crate::format("type Options={name?:string;};function use(value:Options|undefined=undefined):void{}function main(){use({name:'x'});}").unwrap();
+        assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=crate::check(&source).unwrap();
+        assert_eq!(checked.program.records.iter().filter(|record|record.name.text=="Options").count(),1,"Ordinary optional data fields must retain their nominal record identity");
     }
 }

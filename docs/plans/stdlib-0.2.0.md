@@ -416,6 +416,17 @@ the existing ABI, and explicit reference closures replace generated bindings.
 Nine focused adapter/oracle/emission/reference guards pass. Preserve first-run
 failures as preparation evidence; none produced timing samples or ingested rows.
 
+B03 bookkeeping reconciliation: all seven workload entries are marked measured
+for native, handwritten Rust and Node-after-tsc. SQLite holds21 workload/engine
+rows and22 histories, including the corrected Rust-only format observation;
+each history retains93 samples. Current native/TypeScript/Rust source SHA256s
+match the corresponding timing artifacts, using the second artifact for the
+corrected format reference. No control was retimed. The51 macOS focused passes
+are46 initial individual passes plus5 repaired rechecks; five offline integration
+checks also passed. Existing API checkboxes stay checked; the Windows console
+checkbox stays open because metadata and injected lexical cases do not prove
+actual Windows signal delivery or execution.
+
 ### B04 — General URL and query parameters
 
 Backend: `url` plus its form-query support; `percent-encoding` if directly needed.

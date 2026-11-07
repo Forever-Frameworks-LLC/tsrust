@@ -68,6 +68,7 @@ impl Analyzer{
         // enum. Common string observations can use the existing borrowed subset
         // retagging without moving a payload or admitting an absent alternative.
         let actual = if expected == Some(physical)
+            || (mode == Mode::Mutate && expected.is_some_and(|expected| self.scoped_record_nullable_contract(physical,expected)))
             || context.observer_places.contains(&place)
             || (mode == Mode::Read
                 && matches!(narrowed, Type::Union(id) if !id.copy)

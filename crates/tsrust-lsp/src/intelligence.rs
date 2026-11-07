@@ -2940,9 +2940,14 @@ impl SourceIndex {
             id,
             json!({"uri":uri,"range":dependency.range(declaration.span)}),
         );
-        if let Some(identity) = dependency.native_type_aliases.get(exported) {
-            self.native_type_aliases.insert(local.into(), *identity);
-        }
+        let native_identity=dependency.native_type_aliases.get(exported).copied().or_else(||{
+            // Bundled source records keep their authored fields/navigation, while
+            // compiler-owned native metadata supplies their operation identity.
+            if !matches!(declaration.kind,10|23){return None;}
+            let module=uri.strip_prefix("tsrust-stdlib:///")?;
+            tsrust_compiler::native_types::lookup(module,exported).map(|declaration|declaration.id)
+        });
+        if let Some(identity)=native_identity{self.native_type_aliases.insert(local.into(),identity);}
         self.symbols.push(symbol);
         if matches!(declaration.kind, 10 | 23) {
             self.import_record_fields(dependency, exported, local, span, uri, types);

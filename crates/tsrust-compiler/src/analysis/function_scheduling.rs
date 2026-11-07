@@ -529,3 +529,26 @@ fn native_view_and_owned_record_callers_keep_both_source_orders(){
         drop(checked.emit_rust());
     }
 }
+
+#[cfg(test)]
+#[test]
+fn readonly_mixed_record_arguments_keep_physical_union_layouts(){
+ use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+ struct Input<'a>(&'a str);
+ impl SourceProvider for Input<'_>{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.into())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ let source=crate::format("import {Iterator} from 'std:iterator';function observe(value:ReadOnly<int[]|Iterator<int>>):boolean{return Array.isArray(value);}function main(){const value:int[]|Iterator<int>=Iterator.from([2,4]);if(!Array.isArray(value)){observe(value);observe(value);console.log(value.toArray().join(','));}const array:int[]|Iterator<int>=[5,6];if(Array.isArray(array)){observe(array);observe(array);console.log(array.join(','));}}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+ let checked=check_graph(load_project(&Input(&source),"main.tsr").unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));let program=&checked.analysis.program;
+ let mut observations=0;
+ for function in &program.functions{if function.template{continue;}crate::fixed_storage::visit_function_expressions(function,&mut |value|{
+  if let (Some(CallTarget::Function(target)),ExprKind::Call(_,arguments))=(value.target,&value.kind){let callee=&program.functions[target];if callee.name.ends_with("observe"){
+   observations+=1;assert_eq!(callee.bindings[0].mode,crate::Mode::Read);assert_eq!(arguments[0].ty,Some(callee.bindings[0].ty),"Readonly calls retain their selected physical union instead of an unrelated nominal tag");assert!(matches!(arguments[0].ty,Some(Type::BorrowedUnion(_))));
+  }}
+ });}assert_eq!(observations,4);
+ let rust=checked.emit_rust();let main=program.functions.iter().find(|function|function.name=="main").unwrap();let mut unions=0;
+ for(index,binding)in main.bindings.iter().enumerate(){if let Type::Union(union)=binding.ty{
+  let marker=format!("value{index}: Union{}",union.index());let position=rust.find(&marker).expect("owning mixed union annotation");assert!(rust[position+marker.len()..].starts_with('<'),"Every physical payload slot needs its concrete type: {}",&rust[position..rust[position..].find('\n').map_or(rust.len(),|end|position+end)]);unions+=1;
+ }}assert_eq!(unions,2);
+}
