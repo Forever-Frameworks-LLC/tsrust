@@ -18,6 +18,16 @@ The release pipeline targets Linux x64/glibc, Windows x64/MSVC, macOS Apple Sili
 and macOS Intel. A configured target is not proof that a particular release has
 passed acceptance: consult its published assets and release notes.
 
+## Standard-library development
+
+The v0.2.0 standard-library checklist is still in progress. Source builds include
+expanded collection, numeric and date operations, path/environment/OS helpers,
+async coordination and everyday testing facilities. Find them in the
+[standard-library overview](/tsrust/library/overview/) and
+[testing guide](/tsrust/tools/testing/). These development APIs are not a claim
+that an older installed release includes them or that all platform and milestone
+regressions are complete. Owned iterator pipelines remain under validation.
+
 ## Compatibility
 
 Source files use `.tsr`; retained UI source uses `.tsrx`. Familiar syntax does not

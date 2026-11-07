@@ -57,6 +57,13 @@ impl SourceIndex {
         tsrust_compiler::type_syntax::parse(element).is_ok_and(|value|matches!(value.kind,Kind::Union(_))&&all_strings(&value))
     }
     pub(super) fn receiver_builtins_at(&self, ty: &str, token: usize) -> Vec<Value> {
+        // Imported constructor values retain their declaration identity even when
+        // checked call inference supplies an instance result at the same token.
+        let ty=self.resolve_token(token).and_then(|id|{
+            let symbol=&self.symbols[id];
+            (symbol.kind==23 && symbol.scope==0 && symbol.owner.is_none()
+                && self.native_type_aliases.get(&symbol.name)==Some(&tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator)).then_some(symbol.ty.as_str())
+        }).unwrap_or(ty);
         let mut entries = self.receiver_builtins(ty);
         let Some(token) = self.tokens.get(token) else { return entries; };
         let capability = self.checked_array_capabilities.iter().filter(|(span, _)| span.start <= token.span.start && span.end == token.span.end).min_by_key(|(span, _)| span.end - span.start).map(|(_, capability)| *capability);

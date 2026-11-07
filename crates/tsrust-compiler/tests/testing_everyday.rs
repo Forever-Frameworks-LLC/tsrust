@@ -344,3 +344,26 @@ fn stored_rejects_cannot_advertise_borrowed_message_access(){
  assert!(stderr.contains("error[callback-access]"),"{stderr}");
  assert!(stderr.contains("Expected read argument access, found consume"),"{stderr}");
 }
+
+#[test]
+fn assertion_staging_keeps_computed_optional_owners_and_original_sites(){
+ let directory=support::TempDirectory::new();let path=directory.0.join("optional-assertion.tsr");
+ let source=support::format_round_trip(r#"
+import {strictEqual} from 'std:testing';
+type Check=Function<void,[actual:ReadOnly<string|undefined>,expected:ReadOnly<string|undefined>,message?:ReadOnly<string>]>;
+function item(sequence:Mutable<int[]>):string|undefined{sequence.push(sequence.length+1);return sequence.length.toString();}
+function expected(sequence:Mutable<int[]>):string|undefined{sequence.push(sequence.length+1);return (sequence.length-1).toString();}
+function main(){
+ const sequence:int[]=[];
+ strictEqual(item(sequence),'1');
+ const alias=strictEqual;alias(item(sequence),'2');
+ const stored:Check=strictEqual;stored(item(sequence),'3');
+ strictEqual(item(sequence),expected(sequence));
+ strictEqual(sequence.join(','),'1,2,3,4,5');
+ console.log(sequence.length);
+ stored(item(sequence),'different','computed optional mismatch');
+}
+"#);
+ let offset=source.rfind("stored(").unwrap();let prefix=&source[..offset];let line=prefix.bytes().filter(|byte|*byte==b'\n').count()+1;let column=prefix.rsplit('\n').next().unwrap().encode_utf16().count()+1;let site=format!("optional-assertion.tsr:{line}:{column}");
+ std::fs::write(&path,&source).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);assert!(!output.status.success());assert_eq!(output.stdout,b"5\n");let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("computed optional mismatch"),"{stderr}");assert!(stderr.match_indices(&site).any(|(offset,_)|stderr.as_bytes().get(offset+site.len()).is_none_or(|next|!next.is_ascii_digit())),"Missing invocation {site}: {stderr}");
+}

@@ -14,10 +14,17 @@ mod tsrust_native_http {
     fn error(code:&'static str,message:impl Into<String>)->Error {Error{code,message:message.into()}}
     // Metadata can be borrowed across suspension. Body access still requires ownership;
     // Mutex supplies Sync without exposing a lock or shared access to the stream.
-    struct ExclusiveBody(std::sync::Mutex<Body>);
+    enum BodySource {Buffered(axum::body::Bytes),Streaming(Body)}
+    struct ExclusiveBody(std::sync::Mutex<BodySource>);
     impl ExclusiveBody {
-        fn new(body:Body)->Self{Self(std::sync::Mutex::new(body))}
-        fn into_body(self)->Body{self.0.into_inner().unwrap_or_else(|poisoned|poisoned.into_inner())}
+        fn new(body:Body)->Self{Self(std::sync::Mutex::new(BodySource::Streaming(body)))}
+        fn buffered(body:String)->Self{Self(std::sync::Mutex::new(BodySource::Buffered(body.into())))}
+        fn into_source(self)->BodySource{self.0.into_inner().unwrap_or_else(|poisoned|poisoned.into_inner())}
+        fn into_body(self)->Body{match self.into_source(){BodySource::Buffered(bytes)=>Body::from(bytes),BodySource::Streaming(body)=>body}}
+        fn into_request_body(self)->reqwest::Body{match self.into_source(){
+            BodySource::Buffered(bytes)=>reqwest::Body::from(bytes),
+            BodySource::Streaming(body)=>reqwest::Body::wrap_stream(body.into_data_stream()),
+        }}
     }
     pub struct Request {inner:http::Request<ExclusiveBody>,params:BTreeMap<String,String>,limit:Option<usize>}
     pub struct Response {inner:http::Response<ExclusiveBody>,limit:Option<usize>}
@@ -417,7 +424,7 @@ mod tsrust_native_http {
             use axum::extract::FromRequest;
             let limit=self.limit;let (parts,body)=self.inner.into_parts();
             let mut request=http::Request::from_parts(parts,Body::new(Stream{body:body.into_body(),remaining:limit}));
-            if let Some(limit)=limit{request.extensions_mut().insert(axum::extract::DefaultBodyLimit::max(limit));}
+            if let Some(limit)=limit{axum::extract::DefaultBodyLimit::max(limit).apply(&mut request);}
             let mut multipart=axum::extract::Multipart::from_request(request,&()).await.map_err(|_|error("multipart","Invalid multipart content type or boundary"))?;
             let mut output=Vec::new();
             while let Some(field)=multipart.next_field().await.map_err(|_|error("multipart","Malformed or oversized multipart body"))?{
@@ -429,7 +436,7 @@ mod tsrust_native_http {
             }Ok(output)
         }
 
-        pub fn new(method:&str,url:&str,body:String)->Result<Self,Error>{let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;let inner=http::Request::builder().method(method).uri(url).body(ExclusiveBody::new(Body::from(body))).map_err(|_|error("url","Invalid request URL"))?;Ok(Self{inner,params:BTreeMap::new(),limit:None})}
+        pub fn new(method:&str,url:&str,body:String)->Result<Self,Error>{let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;let inner=http::Request::builder().method(method).uri(url).body(ExclusiveBody::buffered(body)).map_err(|_|error("url","Invalid request URL"))?;Ok(Self{inner,params:BTreeMap::new(),limit:None})}
         pub fn method(&self)->String{self.inner.method().to_string()}
         pub fn url(&self)->String{self.inner.uri().to_string()}
         pub fn param(&self,name:&str)->Option<String>{self.params.get(name).cloned()}
@@ -502,7 +509,7 @@ mod tsrust_native_http {
         pub async fn send(&self,request:Request)->Result<Response,Error>{
             let (parts,body)=request.inner.into_parts();let url=reqwest::Url::parse(&parts.uri.to_string()).map_err(|_|error("url","Use an absolute HTTP or HTTPS URL"))?;
             if !matches!(url.scheme(),"http"|"https")||!url.username().is_empty()||url.password().is_some(){return Err(error("url","HTTP URLs cannot contain credentials"));}
-            let result=self.inner.request(parts.method,url).headers(parts.headers).body(reqwest::Body::wrap_stream(body.into_body().into_data_stream())).send().await.map_err(|e|error(if e.is_timeout(){"timeout"}else{"request"},"HTTP request failed"))?;
+            let result=self.inner.request(parts.method,url).headers(parts.headers).body(body.into_request_body()).send().await.map_err(|e|error(if e.is_timeout(){"timeout"}else{"request"},"HTTP request failed"))?;
             let mut response=http::Response::builder().status(result.status());*response.headers_mut().unwrap()=result.headers().clone();Ok(Response{inner:response.body(ExclusiveBody::new(Body::from_stream(result.bytes_stream()))).unwrap(),limit:self.body_limit})
         }
     }
@@ -549,6 +556,14 @@ mod tsrust_native_http {
     #[cfg(test)]
     mod client_default_tests {
         use super::*;
+        #[test]
+        fn client_buffered_bodies_keep_the_owned_allocation_and_streams_remain_streaming() {
+            let text=String::from("owned UTF-8 é payload");let pointer=text.as_ptr();let length=text.len();
+            let body=ExclusiveBody::buffered(text).into_request_body();let bytes=body.as_bytes().expect("buffered request must be replayable");
+            assert_eq!(bytes.as_ptr(),pointer);assert_eq!(bytes.len(),length);assert_eq!(bytes,b"owned UTF-8 \xc3\xa9 payload");
+            let stream=ExclusiveBody::new(Body::from("stream payload")).into_request_body();
+            assert!(stream.as_bytes().is_none(),"stream provenance must not be collected or reclassified");
+        }
         #[test]
         fn server_policies_are_opt_in_and_backend_ranges_are_checked_atomically() {
             let mut app=App::new();assert!(app.limits.is_none());

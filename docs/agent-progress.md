@@ -10,6 +10,60 @@ CURRENT OWNER POLICY/SOURCE — 2026-11-06
 
 LATEST VERIFIED STATE — supersedes the active-attempt notes below.
 
+COMBINED11 TERMINAL — source2004bf65/fingerprint3365634b02d7. Build-finishedtrue;
+119 selected cases:98PASS21FAIL,790.684s total,4,000,405,408B peak,stopnull,
+remaining[]. /tmp/tsrust-utilities-http-resume11-budget.json and source-stem.json
+hold actual case logs. B18all23PASS; oldnullable/batch4PASS; async2PASS;
+HTTPclient-options checker4receivers and matrix24phase rows PASS. Preserve all.
+Failures: HTTPbuffered requests incorrectlybecame nonreplayable streams (302),
+DefaultBodyLimit wrong extension insertion, temporaryoptional assertion owner
+E0716 (HTTPcatalog/3contexts), invalidnewindexed-fieldmove fixture, B15logical
+callback generic nominal IDs/mixed-union require boundary (9cases), related
+retainedUI authored-content mismatch, iterator constructorcheckedview ambiguity,
+missingIterator catalog witnessfamily and over-specificHTTPhover wording.
+
+CURRENT SOURCE fixes are applied but UNVALIDATED:710e32aa preservesowned String
+asBytes withoutpayloadclone and true streams remainstreaming; usespublicAxum
+DefaultBodyLimit.apply;307POST/bodypointer/framing witnesses added. f669012d reuses
+existingconditionaltemporary storage for assertion operands before staging,
+with computedoptional direct/alias/stored/order/source-site witness.71deff83
+canonicalizes ONLYlogicalCallback generic record cache keys through existing
+storage.declaration and preserves sourceannotations/Closure/Stored environments;
+extends mixedunion contract onlyfiniteowned same-declaration/no-native-view
+alternatives, preserving scalar domains. Rootadds explicitVec<Type> annotation.
+RootrepairsnewHTTPfixture bypop-then-ownfield, explicitnonnegative hoverprose,
+constructorvalue lookup fromimportednative declaration identity, andIterator
+families inexistingcatalogwitnesspath. No broad registry/type-erasure/unsafe.
+
+PUBLIC DOCS VISIBLE locally: reviewedwebsitepatchd2c6ddba plusHttpClientOptions
+mapping. Website build2PASS5.248s/1,426,282,208B;127pages links/anchors/assetsPASS.
+ActualexistingpreviewHTTP200 andnewcontent confirmed at /tsrust/library/overview/,
+/tools/testing/,/reference/library/http/,/reference/library/iterator/. No restart
+needed and no publication. B14fiveAPIcheckboxes reconciled withactual preserved
+7dad/59a/433365/36b3evidence; fullregressions/platform remainB20pending.
+Whole-projectformat2x0changes/diffcheckPASS. Quietpost-runcleanup964newrcguobjects
+recovered1,379,962,880bytes; currenttoolbinariesunchanged. B16source-onlyKAT/oracle/
+workload/catalog preparation25ff378f ready separately; no runtime/profileclaim.
+Next: one affected repair12 scope, preserving98case observations; no fullmatrix.
+
+
+LIVE COMBINED RUN — source2004bf6589ae4bd84fb6ac97ae4bd97a8c4a2701,
+fingerprint3365634b02d7baae1ce6a683d7624892f0707d9c5e1319c7b7a05600bd704fa1.
+Session34227; supervisor9436/driver9438/watch9451/CargoPID-PGID9452 verified live.
+Do not restart for missing handles. /tmp/tsrust-utilities-http-resume11-budget.out,
+/tmp/tsrust-utilities-http-resume11-supervisor.log; producer stem
+/tmp/tsrust-utilities-http-resume11-3365634b02d7-selected-build-artifacts.jsonl.
+One55min total/inner30min5GB/jobs1/incrementaloff/threads3.13 execution targets
+combine pending iterator/deep-assertion/batching acceptance and44HTTPdefault gates.
+Checker requires four receivers includingClientOptions; matrix requires24 actual
+rows across six names/four phases. Source frozen except this note. b06 prepares
+B16 KAT/benchmark/catalog sources without execution; b03 checks actual website/doc
+visibility source-only. Both preserve isolated-tree edits. No additional heavy job.
+Whole-projectformat2x0changes and diffcheck passed before2004bf65. Publication
+still unauthorized. Actual debugger-object+closedprototype recovery15,547,047,936
+bytes; sourceandmeasurements preserved. Root will not refill caches just to clean.
+
+
 OWNER RESUMED FULL GOAL — supersedes the pause immediately below. Owner clarified
 that "wrap it up" meant finish v0.2.0 and clean accumulated generated output;
 goal is ACTIVE. No new publication authorization. Root removed27490 idle rcgu

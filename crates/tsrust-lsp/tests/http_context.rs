@@ -13,7 +13,7 @@ fn explicit_http_bound_help_keeps_request_and_context_signatures_equal(){
  for(needle,parameter)in[("input.form(","maxFields?: int"),("c.req.multipart(","maxParts?: int")]{
   let offset=source.find(needle).unwrap()+needle.len();let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset}}));
   assert_eq!(help["signatures"][0]["parameters"][0]["label"],parameter,"{help}");
-  let hover=session.hover("main.tsr",source,offset-2).unwrap();assert!(hover.contains("nonnegative")&&hover.contains("omitted"),"{hover}");
+  let hover=session.hover("main.tsr",source,offset-2).unwrap();assert!(hover.contains("nonnegative")&&hover.contains("no cardinality cap"),"{hover}");
  }
  let hover=session.hover("main.tsr",source,source.rfind("settings.bodyLimit").unwrap()+10).unwrap();assert!(hover.contains("bodyLimit")&&hover.contains("byte"),"{hover}");
 }

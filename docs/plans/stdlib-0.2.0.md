@@ -1294,21 +1294,33 @@ above.
 
 Backend: existing Rust containers/numeric/date implementations. B00.
 
-- [ ] OrderedSet `values`, `keys`, `entries`, `forEach`, `first`, `last`;
+- [x] OrderedSet `values`, `keys`, `entries`, `forEach`, `first`, `last`;
   OrderedMap `firstKey`, `lastKey`; Deque `values`; Heap `toSortedArray`.
-- [ ] Keep snapshots independently owned and endpoint borrows scoped; specify
+- [x] Keep snapshots independently owned and endpoint borrows scoped; specify
   heap output order and preserve existing total ordering/NaN/zero rules.
-- [ ] `std:numeric.parseNumber` with whole-input Rust floating parsing semantics;
+- [x] `std:numeric.parseNumber` with whole-input Rust floating parsing semantics;
   optional radix2..36 on existing strict `parseInt`, default10.
-- [ ] Result-returning `checkedAdd`, `checkedSubtract`, `checkedMultiply`,
+- [x] Result-returning `checkedAdd`, `checkedSubtract`, `checkedMultiply`,
   `checkedDivide`, `checkedRemainder` for int, without changing existing operators.
-- [ ] Date `getDay`, `startOfYear`, `endOfYear`; Time `getHours`, `getMinutes`,
+- [x] Date `getDay`, `startOfYear`, `endOfYear`; Time `getHours`, `getMinutes`,
   `getSeconds`, `getNanoseconds`, following current date-fns-style conventions.
 
 Witnesses: empty endpoints, owned values, order, exact int bounds, MIN/-1/zero,
 NaN/infinity/negative zero, malformed/radix text, leap-century/year/time bounds.
 Performance: endpoint/heap/deque kernels, strict parse/arithmetic and date access;
 Node exact integers use BigInt. This is not JS Date mutability/coercion support.
+
+Focused local acceptance is preserved: `7dad5628` passed endpoint-borrow and
+snapshot-cloneability rejection witnesses, numeric backend/boundary checks and all
+13 numeric catalog examples, plus 36 temporal examples and a locked offline export.
+`59a0673d` then passed the formatted collections/numeric/date fixtures and all 50
+examples from 43 collection catalog entries. `433365dc` passed 18 calendar examples
+(including the three new Date operations) and its locked offline export;
+`36b3c965` passed five selected B14 editor rows across four typing phases. The B14
+stdlib implementation folders, authored fixtures and 23 new API catalog entries
+plus updated parseInt entry remain unchanged through `2004bf65`. These are focused
+implementation/compiler/native/editor gates; complete regression and all-platform
+milestone acceptance remain pending under B20.
 
 B14 measurements at `5c45370d`: seven workloads (collection endpoints,
 ordered-set/deque/heap snapshots, strict numeric parse, checked arithmetic and date

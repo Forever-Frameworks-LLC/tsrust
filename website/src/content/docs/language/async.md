@@ -139,8 +139,9 @@ thread, `ThreadPool` or Rust/Rayon worker handles.
 - `task.timeout(milliseconds)` consumes the task and returns a lazy deadline
   wrapper. The clock starts when the wrapper is awaited.
 
-Durations are integers from `0` through `31536000000` milliseconds, inclusive.
-An out-of-range duration throws `AsyncError` with code `range` when awaited.
+Durations are nonnegative integer milliseconds within the target-representable
+timer deadline. An out-of-range duration throws `AsyncError` with code `range`
+when awaited; there is no extra fixed duration ceiling.
 A deadline that expires throws code `timeout`. Cleanup can extend the time before
 that error is returned, so a timeout is not a strict upper bound on elapsed time.
 A started job continues running even if its deadline wrapper has not been awaited.
@@ -150,6 +151,11 @@ useful in otherwise uninterrupted loops. It does not make blocking work safe on
 runtime workers; use dedicated threads or the existing blocking-work APIs.
 
 ### Wait for a group
+
+`all` consumes tasks or jobs and polls them together, returning successful results
+in input order. The first observed failure cancels siblings and awaits their
+cleanup before throwing; ready ties prefer input order. All inputs have the same
+result type. Unit results form `void[]`, and `all([])` returns an empty `void[]`.
 
 `allSettled` consumes its inputs and waits for every outcome. It returns an array
 of `Result` values in input order, including failures without stopping at the first
@@ -178,10 +184,32 @@ successful result or throws its error; this example deliberately propagates erro
 failure. It cancels and drains remaining work before returning. Ready ties prefer
 input order. An empty race throws code `empty`.
 
-Both operations start lazy inputs when the group is awaited. All inputs must
+All three operations start lazy inputs when the group is awaited. All inputs must
 produce the same result type. Mixed Task/Job inputs use an array literal at the
 group call; a stored array contains one input type. A group holding started work
 must itself settle. Wrapping a job in an unawaited group does not discharge it.
+
+### Repeating timers and cooperative cancellation
+
+`new Interval(periodMs, policy)` creates a unique periodic timer inside an active
+async runtime. The period must be positive and fit the backend deadline range.
+The first `await timer.tick()` is immediately ready. The optional missed-tick
+policy is `'burst'` by default; `'delay'` shifts the schedule after lateness, and
+`'skip'` skips missed ticks while retaining the original schedule. Each pending
+`tick()` exclusively borrows the timer until completion or disposal.
+
+`new CancellationToken()` creates an uncancelled signal. `share()` returns another
+handle to that signal; `child()` returns a descendant. `cancel()` wakes
+`cancelled()` waiters and propagates to descendants. Cancelling a child does not
+cancel its parent, and dropping a token does not cancel it. Work must cooperate;
+tokens do not forcibly stop synchronous code.
+
+For CPU work, `ThreadPool.taskAsync(callback)` owns callback captures immediately
+but submits only when its lazy task is polled. It waits without blocking an async
+worker. A full or closed pool rejects admission rather than waiting for capacity.
+Cancellation after submission requests cooperation and waits for cleanup. Consult
+[thread-pool contracts](/tsrust/reference/library/threads/) for the result and error
+types; these tasks do not keep the public pool owner open.
 
 ### Cancel and settle a job
 
@@ -218,7 +246,8 @@ separately; transfer the whole array to a group instead.
 
 ### Exchange messages through a channel
 
-`new Channel<T>(capacity)` creates a queue with capacity from `1` through `1000000`.
+`new Channel<T>(capacity)` creates a queue with positive capacity within the
+target backend limit. Invalid capacity throws `RangeError`.
 Full sends and empty receives suspend instead of blocking a runtime worker.
 `sender()` returns an independently owned endpoint suitable for transfer to a task.
 

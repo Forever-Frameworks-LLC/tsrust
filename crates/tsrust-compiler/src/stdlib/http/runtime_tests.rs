@@ -74,7 +74,16 @@ fn client_default_redirect_policy_follows_relative_locations_and_stops_loops(){
   app.route("GET","/start",|_|async{let mut response=Response::text(String::new(),302).unwrap();response.set_header("location","/final").unwrap();response}).unwrap();
   app.route("GET","/final",|_|async{Response::text("followed".into(),200).unwrap()}).unwrap();
   app.route("GET","/loop",|_|async{let mut response=Response::text(String::new(),302).unwrap();response.set_header("location","/loop").unwrap();response}).unwrap();
+  let observed=std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+  for path in ["/post-start","/post-final"]{let observed=observed.clone();app.route("POST",path,move |request|{let observed=observed.clone();async move{
+   assert_eq!(request.method(),"POST");assert_eq!(request.header("content-length").unwrap().as_deref(),Some("17"));
+   assert_eq!(request.header("transfer-encoding").unwrap(),None);
+   let start=request.url().ends_with("/post-start");assert_eq!(request.text().await.unwrap(),"replayed é bytes");
+   observed.fetch_add(1,std::sync::atomic::Ordering::SeqCst);
+   if start{let mut response=Response::text(String::new(),307).unwrap();response.set_header("location","/post-final").unwrap();response}else{Response::text("replayed".into(),200).unwrap()}
+  }}).unwrap();}
   let server=app.listen("127.0.0.1:0").await.unwrap();let base=format!("http://{}",server.address());let client=Client::new().unwrap();
+  let response=client.send(Request::new("POST",&format!("{base}/post-start"),"replayed é bytes".into()).unwrap()).await.unwrap();assert_eq!(response.status(),200);assert_eq!(response.text_body().await.unwrap(),"replayed");assert_eq!(observed.load(std::sync::atomic::Ordering::SeqCst),2);
   let response=client.send(Request::new("GET",&format!("{base}/start"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),200);assert_eq!(response.text_body().await.unwrap(),"followed");
   let error=client.send(Request::new("GET",&format!("{base}/loop"),String::new()).unwrap()).await.err().expect("default backend redirect limit");assert_eq!(error.code,"request");
   server.shutdown().await;

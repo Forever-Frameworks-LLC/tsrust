@@ -65,6 +65,7 @@ struct Frame<'a, 'p> {
     boundary: Option<Boundary>,
     entered: bool,
     carrier_spine: bool,
+    assertion_argument_temporary: Option<usize>,
     call: Option<CallFrame<'a, 'p>>,
 }
 
@@ -76,6 +77,7 @@ impl<'a, 'p> Frame<'a, 'p> {
             boundary: None,
             entered: false,
             carrier_spine: false,
+            assertion_argument_temporary: None,
             call: None,
         }
     }
@@ -96,6 +98,10 @@ impl<'p> Emitter<'p> {
             let frame = work.last_mut().expect("active expression");
             if let Some(mut code) = completed.take() {
                 let call = frame.call.as_mut().expect("suspended expression");
+                if let Some(temporary)=frame.assertion_argument_temporary.take(){
+                    let(child,mode)=call.children[call.rendered.len()];
+                    code=self.finish_conditional_arm_work(child,mode,Some(temporary),code);
+                }
                 if let CallState::Template { first_temporary } = &call.state {
                     let declarations = self
                         .conditional_temporaries
@@ -162,6 +168,15 @@ impl<'p> Emitter<'p> {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
                     let mut child_frame = Frame::new(child, mode);
+                    // Assertion provenance evaluates arguments before its guard.
+                    // Keep computed owners alive across the argument let-bindings;
+                    // forwarded arguments already apply this same temporary policy.
+                    let forward_argument=matches!(call.state,CallState::Forward{..}) && !call.rendered.is_empty();
+                    if !forward_argument && matches!(frame.expr.kind,ExprKind::Call(..)) && self.assertion_call_site(fun,frame.expr).is_some(){
+                        let(access,temporary)=self.prepare_conditional_arm_work(fun,child,mode);
+                        child_frame.mode=access;
+                        frame.assertion_argument_temporary=temporary;
+                    }
                     if let CallState::Forward { temporary, .. } = &mut call.state {
                         *temporary=None;
                         if !call.rendered.is_empty() {

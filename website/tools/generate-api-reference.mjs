@@ -42,7 +42,7 @@ const modules = [
   { module: 'std:compression', summary: 'Encode and decode owned bytes on an explicit bounded CPU pool.', members: { CompressionReader: 'CompressionReader', CompressionWriter: 'CompressionWriter' } },
   { module: 'std:http', summary: 'Serve HTTP applications and send HTTP requests.', members: {
     Router: 'HttpRouter', Context: 'HttpContext', App: 'HttpApp', Request: 'HttpRequest', Response: 'HttpResponse',
-    Body: 'HttpBody', Server: 'HttpServer', Client: 'HttpClient', Next: 'HttpNext', ServerOptions: 'HttpServerOptions',
+    Body: 'HttpBody', Server: 'HttpServer', Client: 'HttpClient', ClientOptions: 'HttpClientOptions', Next: 'HttpNext', ServerOptions: 'HttpServerOptions',
     FormField: 'HttpFormField', MultipartPart: 'HttpMultipartPart',
   } },
   { module: 'std:sql', summary: 'Pooled PostgreSQL, MySQL and SQLite access with bound parameters.', members: {
@@ -63,6 +63,7 @@ const modules = [
   { module: 'std:testing', summary: 'Register tests, hooks and assertions for `tsrust test`.', members: {
     Expectation: 'Expectation', 'Negated expectation': 'NegatedExpectation',
   } },
+  { module: 'std:iterator', summary: 'Experimental owned lazy iterator pipelines; validation is still in progress.', members: { Iterator: 'Iterator', 'Iterator constructor': 'IteratorConstructor' } },
   { module: 'std:collections', summary: 'Ordered maps and sets, double-ended queues and heaps.', members: {
     OrderedMap: 'OrderedMap', OrderedSet: 'OrderedSet', Deque: 'Deque', Heap: 'Heap',
   } },

@@ -147,3 +147,10 @@ fn readonly_mixed_union_observations_preserve_the_selected_iterator_owner(){
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"false false\n2,4\ntrue true\n5,6\n");
  let source=support::format_round_trip("import {Iterator} from 'std:iterator';function observe(value:ReadOnly<int[]|Iterator<int>>):boolean{return Array.isArray(value);}function main(){const value:int[]|Iterator<int>=Iterator.from([2,4]);if(!Array.isArray(value)){const moved=value;console.log(observe(value));}}");assert!(checked(&source).is_err());
 }
+
+#[test]
+fn generic_callback_records_and_legacy_owned_mixed_unions_keep_their_contracts(){
+ let source=support::format_round_trip("type Holder<T>={value:T;};function relay<T>(value:Owned<Holder<T>>):Holder<T>{return value;}type Reactive<T>={evaluate:Owned<Function<T>>;};type Value<T>=Reactive<T>|T;function snapshot(value:Mutable<Value<string|undefined>|undefined>):string{if(value===undefined){return '';}if(typeof value==='string'){return clone(value);}return value.evaluate()??'';}function invoke(value:Value<string|undefined>|undefined=''):string{return snapshot(value);}function main(){const holder:Holder<Function<int>>={value:():int=>7};const again=relay(holder);console.log(again.value());console.log(invoke());}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"7\n\n");
+ for source in ["type Holder<T>={value:T;};function take(value:Owned<Holder<Function<string>>>):void{}function main(){const h:Holder<Function<int>>={value:():int=>7};take(h);}","import {Iterator} from 'std:iterator';function wrong():string[]|Iterator<string>{return Iterator.from([1]);}function main(){}"]{let source=support::format_round_trip(source);assert!(checked(&source).is_err());}
+}
