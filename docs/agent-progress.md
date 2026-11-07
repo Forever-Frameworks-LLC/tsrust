@@ -6,11 +6,23 @@ publication/merge of v0.2.0 is not approved. v0.1.2 is released.
 
 ## Current state — 2026-11-07
 
+REPAIR17 BUILD TERMINAL before tests:280.505s,peak2,929,545,896B,
+stopnull/remaining[], build-finished false. ONLY Rust error is newLSPcrypto test
+wrong Session import; corrected toexisting support::session::Session. Normal
+compiler library andthree LSP executables alreadybuilt; retainallartifacts.
+Next continuation uses remaining ORIGINAL55m budget inclelapsed/gaps, Cargo reuses
+unchanged libraries; do not cleanup/rebuild accepted artifacts or restartbudget.
+All older live11728/11812/11825/11826notes below are superseded.
+
 Canonical: /Users/seancotter/Desktop/dev/learning/tsrust, codex/stdlib-0.2.0.
-Last committed source84bda1aa67b741ef659a2cddad6001fe085ae7c1; current coherent
-source below is prepared for the next local checkpoint. No heavy process live
-at this entry. ALL older PID/lease notes are superseded; inspect processes before
-starting anything. One target, jobs1, incremental0, direct tests threads3, 5GB/30m
+Current source checkpoint2e79471d9a39357f094ca9740e40759e57011e40.
+ONLY heavy run LIVE: session51411, wrapper11728, driver11812, watchdog11825,
+Cargo11826, sourcefingerprint1fe83f4554ac. Artifacts /tmp/tsrust-utilities-http-
+repair17-1fe83f4554ac-selected-build-artifacts.jsonl; outer /tmp/tsrust-utilities-
+http-repair17-budget.{out,err,json}. Fourteen affected targets, normal configured
+O1, no profile override. Source frozen except this handoff. Poll same handle and
+require terminal build-finished before proceeding; no duplicate/restart. All
+older PID/lease notes are superseded; inspect processes before starting anything. One target, jobs1, incremental0, direct tests threads3, 5GB/30m
 inner watchdog and one55m aggregate scope including setup/cleanup. Preserve passes.
 
 ### Latest terminal validation
@@ -101,7 +113,8 @@ No worker may build/profile while root's next combined gate owns heavy lease.
 
 ### Next executable work
 
-Checkpoint current formatted source, then ONE normal configured selected build
+Current checkpoint committed and ONE normal configured selected build is live;
+continue that run
 and serialized direct binaries under55m. New crypto/private/checker/editor gates,
 forms/uploads actual repaired positives, remaining iteratorcases, complete affected
 Task-array responsibility guards, relevant pool/error transports, exact6row matrix

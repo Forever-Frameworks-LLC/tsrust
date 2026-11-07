@@ -1,5 +1,5 @@
 mod support;
-use support::Session;
+use support::session::Session;
 #[test]
 fn hasher_alias_help_and_password_signatures_keep_exact_contracts(){
  let source="import {createHasher,Hasher as State,hashPassword,verifyPasswordBounded} from 'std:crypto';function inspect(state:Mutable<State>):void{state.}function main(){}";let mut session=Session::start(&[]);session.open("main.tsr",source);session.settle();let names=session.completion("main.tsr",source,source.find("state.}").unwrap()+6).unwrap();for name in ["update","finalize"]{assert!(names.iter().any(|value|value==name),"{names:?}");}
