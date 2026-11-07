@@ -203,10 +203,10 @@ impl Analyzer {
                 }
                 let field = match ty {
                     Type::Record(record) => self.fields[record].get(name).copied(),
-                    Type::Union(union) => self.record_union_field(union, name),
+                    Type::Union(union) | Type::BorrowedUnion(union) => self.record_union_field(union, name),
                     _ => None,
                 };
-                if matches!(ty, Type::Union(_))
+                if matches!(ty, Type::Union(_) | Type::BorrowedUnion(_))
                     && (mode == Mode::Mutate || mode == Mode::Consume && field.is_some_and(|ty| !ty.is_copy()))
                 {
                     return Err(Diagnostic::new("union-field-ownership", "Narrow the record alternative before mutating or moving an owned field.", span));
@@ -247,7 +247,7 @@ impl Analyzer {
                 }
                 let field_type = match base_type {
                     Type::Record(index) => self.fields[index].get(name).copied(),
-                    Type::Union(union) => self.record_union_field(union, name),
+                    Type::Union(union) | Type::BorrowedUnion(union) => self.record_union_field(union, name),
                     _ => None,
                 }
                 .ok_or_else(|| {
@@ -260,7 +260,7 @@ impl Analyzer {
                         span,
                     )
                 })?;
-                if matches!(base_type, Type::Union(_))
+                if matches!(base_type, Type::Union(_) | Type::BorrowedUnion(_))
                     && (mode == Mode::Mutate || mode == Mode::Consume && !field_type.is_copy())
                 {
                     return Err(Diagnostic::new(
@@ -277,7 +277,7 @@ impl Analyzer {
                                 parent = values.last().expect("nonempty sequence")
                             }
                             ExprKind::Field(value, _)
-                                if matches!(value.ty, Some(Type::Union(_))) =>
+                                if matches!(value.ty, Some(Type::Union(_) | Type::BorrowedUnion(_))) =>
                             {
                                 return Err(Diagnostic::new(
                                     "union-field-ownership",

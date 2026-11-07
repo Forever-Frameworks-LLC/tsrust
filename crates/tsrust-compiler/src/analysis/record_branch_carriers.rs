@@ -506,9 +506,8 @@ fn retained_alert_props_spread_preserves_checked_callback_carriers(){
 #[cfg(test)]
 #[test]
 fn literal_scalar_union_carriers_widen_without_narrowing_or_callback_conversion(){
- let mut analyzer=Analyzer::new(crate::syntax::parse("type Left='left';type Right='right';type Computed={evaluate:Function<string,[]>;};function main(){}").unwrap()).unwrap();
- let literal=|text:&str|analyzer.program.records.iter().enumerate().find_map(|(id,record)|matches!(record.literal_definition.as_ref(),Some(crate::literal_types::LiteralValue::String(value))if value==text).then_some(Type::Literal(id,crate::literal_types::LiteralKind::String))).unwrap();
- let left=literal("left");let right=literal("right");let computed=analyzer.program.records.iter().position(|record|record.name.text=="Computed").unwrap();
+ let mut analyzer=Analyzer::new(crate::syntax::parse("type Item={value:int;};function main(){}").unwrap()).unwrap();
+ let computed=0;let mut literals=Vec::new();for value in ["left","right"]{let mut record=analyzer.program.records[computed].clone();record.literal_definition=Some(crate::literal_types::LiteralValue::String(value.into()));let id=analyzer.program.records.len();analyzer.program.records.push(record);literals.push(Type::Literal(id,crate::literal_types::LiteralKind::String));}let left=literals[0];let right=literals[1];
  let from=analyzer.unions.intern(vec![left,right],Span::default()).unwrap();let target=analyzer.unions.intern(vec![Type::Record(computed),Type::String,Type::Undefined],Span::default()).unwrap();
  assert!(analyzer.carrier_convertible(from,target));assert!(analyzer.carrier_convertible(left,Type::String));assert!(!analyzer.carrier_convertible(Type::String,left));assert!(!analyzer.carrier_convertible(left,right));
  let missing=analyzer.unions.intern(vec![left,Type::Undefined],Span::default()).unwrap();assert!(!analyzer.carrier_convertible(from,missing));

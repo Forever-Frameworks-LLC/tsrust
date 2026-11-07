@@ -185,3 +185,14 @@ function main(){
 "#;
  let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path),120);support::success(&output);assert_eq!(output.stdout,b"owned nested values\n");
 }
+
+#[test]
+fn borrowed_nested_result_payloads_keep_common_discriminators_readonly(){
+ let prefix="type Absent={kind:'none'};type Present={kind:'some',value:string[]};type Choice=Absent|Present;";
+ let source=format!("{prefix}function inspect(values:ReadOnly<Result<Choice,string>[]>):void{{for(const item of values){{match(item){{Ok(value)=>{{if(value.kind==='some'){{console.log(value.value.length);}}}},Err(message)=>{{console.log(message);}}}}}}}}function main(){{}}");
+ let source=tsrust_compiler::format(&source).unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);let checked=tsrust_compiler::check(&source).unwrap_or_else(|error|panic!("Borrowed common discriminators remain readable: {error:?}"));drop(checked.emit_rust());
+ for action in ["value.value.push('x');","const moved:string[]=value.value;"]{
+  let source=format!("{prefix}function inspect(values:ReadOnly<Result<Choice,string>[]>):void{{for(const item of values){{match(item){{Ok(value)=>{{if(value.kind==='some'){{{action}}}}},Err(_)=>{{}}}}}}}}function main(){{}}");
+  let source=tsrust_compiler::format(&source).unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);assert!(tsrust_compiler::check(&source).is_err(),"Borrowed payload ownership must remain enforced: {action}");
+ }
+}

@@ -118,7 +118,13 @@ impl CheckedProgram{
    Some(CallTarget::NativeBinding(id))=>return crate::native_bindings::BINDINGS[id].parameters.get(index).map(|parameter|parameter.access),
    Some(CallTarget::IteratorCursor)=>return Some(Mode::Consume),Some(CallTarget::IteratorNext)=>return Some(Mode::Mutate),_=>{}
   }
-  let ExprKind::Call(callee,args)=&value.kind else{return None;};match callee.ty?{
+  let ExprKind::Call(callee,args)=&value.kind else{return None;};
+  let callable=callee.ty.or_else(||match value.target{
+   Some(CallTarget::Closure(_))=>value.closure_origin().map(Type::Closure),
+   Some(CallTarget::ConditionalClosure(origin))=>Some(Type::Closure(origin)),
+   _=>None,
+  })?;
+  match callable{
    Type::Callback(id)=>self.callback_contracts[id].params.get(index).map(|parameter|parameter.mode),
    Type::StoredCallable(id)|Type::BorrowedCallable(id)=>self.stored_contracts.declaration(id).and_then(|id|self.callback_contracts[id].params.get(index)).map(|parameter|parameter.mode),
    Type::Closure(id)=>{let closure=&self.closures[id];match closure.forward{
@@ -651,6 +657,16 @@ mod cursor_tests{
   for body in ["const observe:Owned<Function<Task<int>,[work:ReadOnly<Task<int>>]>>=(work:ReadOnly<Task<int>>):Task<int>=>work;","const observe:Owned<Function<Task<void>,[work:ReadOnly<Task<int>>]>>=async(work:ReadOnly<Task<int>>):Task<void>=>{await work;};","const observe:Owned<Function<Task<void>,[work:ReadOnly<Task<int>>]>>=async(work:ReadOnly<Task<int>>):Task<void>=>{const job=work.start();await job;};"]{
    let error=public_warnings(body).expect_err(&format!("A borrowed Task cannot transfer, await or start its owner: {body}"));assert_ne!(error.code,"callback-access","The stated readonly Task contract is valid; reject the consuming operation instead: {error:?}");
   }
+ }
+ #[test]
+ fn direct_callable_argument_modes_retain_checked_origin_without_callee_type(){
+  let source="type Item={value:string;};function main(){const identity=(value:Owned<Item>):Item=>value;const item=identity({value:'kept'});console.log(item.value);}";
+  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let checked=crate::check(&source).unwrap();
+  let main=checked.program.functions.iter().find(|function|function.name=="main").unwrap();
+  let call=crate::error_effects::checked_expressions(main).into_iter().find(|value|matches!(value.target,Some(CallTarget::Closure(_)))).unwrap();
+  let ExprKind::Call(callee,_)=&call.kind else{unreachable!()};assert!(callee.ty.is_none());assert!(call.closure_origin().is_some());
+  assert_eq!(checked.program.call_argument_mode(call,0),Some(Mode::Consume));
  }
  #[test]
  fn public_array_iterator_drains_transfer_lazy_and_started_owners_to_all(){

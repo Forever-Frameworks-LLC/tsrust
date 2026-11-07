@@ -14,6 +14,17 @@ pub(super) struct Plan {
 }
 
 impl Emitter<'_> {
+    fn coalesce_physical_record_tag(&self,target:UnionId,actual:Type)->Option<usize>{
+        let Type::Record(source)=actual else{return None;};
+        let mut matches=self.program.unions[target.index()].members.iter().enumerate().filter_map(|(tag,ty)|{
+            let Type::Record(destination)=*ty else{return None;};
+            (self.native_record_declaration(source)==self.native_record_declaration(destination)
+                && self.native_type(actual)==self.native_type(*ty)
+                && self.union_stored_type(target,actual,self.native_type(actual))==self.union_stored_type(target,*ty,self.native_type(*ty))).then_some(tag)
+        });
+        let tag=matches.next()?;if matches.next().is_some(){return None;}Some(tag)
+    }
+
     pub(super) fn prepare_coalesce_emission<'a>(&self, expr: &Expr, left: &'a Expr, mode: Mode) -> (Plan, &'a Expr) {
         let undefined_only=matches!(expr.kind,ExprKind::Binary{op:BinaryOp::PatternDefault,..});
         let absent_only = left.ty.is_some_and(|ty| {
@@ -83,9 +94,12 @@ impl Emitter<'_> {
                                                 Type::Closure(_) | Type::Callback(_)
                                             )
                                 })
+                                .or_else(||self.coalesce_physical_record_tag(target,*member))
                                 .unwrap_or_else(||{
                                     #[cfg(test)]
                                     eprintln!("COALESCE_FALLBACK_REJECT span={:?} source={actual:?} target={result:?} member={member:?} source_members={:?} target_members={:?}",right.span,self.program.unions[from.index()].members,self.program.unions[target.index()].members);
+                                    #[cfg(test)]
+                                    for ty in std::iter::once(member).chain(self.program.unions[target.index()].members.iter()){if let Type::Record(id)=*ty{eprintln!("COALESCE_RECORD id={id} native={} declaration={} fields={:?}",self.native_type(*ty),self.native_record_declaration(id),self.program.records[id].fields.iter().map(|field|(field.name.text.as_str(),field.ty)).collect::<Vec<_>>());}}
                                     panic!("fallback subset")
                                 });
                             format!(
@@ -103,6 +117,7 @@ impl Emitter<'_> {
                     .members
                     .iter()
                     .position(|ty| ty.accepts_scalar_value(actual))
+                    .or_else(||self.coalesce_physical_record_tag(target,actual))
                     .expect("fallback member");
                 let code = if target_view && actual.is_copy() {
                     format!("&({fallback})")
@@ -135,6 +150,7 @@ impl Emitter<'_> {
                                 || matches!(ty, Type::Callback(_))
                                     && matches!(member, Type::Closure(_) | Type::Callback(_))
                         })
+                        .or_else(||self.coalesce_physical_record_tag(target,*member))
                         .expect("retained payload variant");
                     let payload = if target_view { self.data_view_payload(*member,"payload",borrowed) } else if borrowed && target.copy { "*payload".to_owned() } else { self.union_transfer_payload(union,target,*member,"payload") };
                     format!("{}{}::V{to}({payload})",if target_view { "ViewUnion" } else { "Union" },target.index())

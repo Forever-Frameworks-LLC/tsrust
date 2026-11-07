@@ -4331,7 +4331,7 @@ impl Emitter<'_> {
     fn temporary_storage(mut expr: &Expr) -> bool {
         loop {
             match &expr.kind {
-                ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_)))=>return true,
+                ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_)))=>return true,
                 ExprKind::Sequence(values)=>expr=values.last().expect("nonempty sequence"),
                 ExprKind::Index(base, _) | ExprKind::Field(base, _) => expr = base,
                 ExprKind::Project { value, .. }
@@ -4349,7 +4349,7 @@ impl Emitter<'_> {
     fn borrowed_place_expression(fun: &CheckedFunction, expr: &Expr) -> bool {
         if matches!(expr.ty,Some(Type::BorrowedUnion(_))) {return true;}
         match &expr.kind {
-            ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_)))=>true,
+            ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_)))=>true,
             ExprKind::Project{value,..}|ExprKind::Unary{op:UnaryOp::NonNull,value,..}=>Self::borrowed_place_expression(fun,value),
             ExprKind::Sequence(values)=>values.last().is_some_and(|last|Self::borrowed_place_expression(fun,last)),
             ExprKind::TypeAssertion { value, .. } => Self::borrowed_place_expression(fun, value),
@@ -7656,7 +7656,7 @@ impl Emitter<'_> {
         let code = if let Some(Type::Union(id)) = expr.ty
             && !id.copy
             && mode == Mode::Read
-            && !matches!(&expr.kind,ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_))))
+            && !matches!(&expr.kind,ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_))))
             && !matches!(
                 expr.kind,
                 ExprKind::Optional { .. }
@@ -8395,8 +8395,8 @@ impl Emitter<'_> {
                 let array = self.conditional_arm(fun, base, Mode::Read);
                 format!("i64::try_from(({array}).len()).expect(\"array length exceeds int range\")")
             }
-            ExprKind::Field(base,name) if matches!(base.ty,Some(Type::Union(_))) => {
-                let Type::Union(union)=base.ty.unwrap() else{unreachable!()};
+            ExprKind::Field(base,name) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_))) => {
+                let union=base.ty.unwrap().union().expect("checked common record union");
                 let receiver=self.expr(fun,base,Mode::Read);
                 let copied=expr.ty.unwrap().is_copy();
                 let reference=if mode==Mode::Read&&!copied{"&"}else{""};

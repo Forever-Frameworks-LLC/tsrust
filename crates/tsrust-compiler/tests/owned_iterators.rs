@@ -169,3 +169,9 @@ fn named_nullable_consumers_keep_raw_owned_closure_record_shapes() {
  let source=support::format_round_trip("type Holder={pull:Owned<Function<int>>;};function use(value:Owned<Holder|undefined>):int{if(value===undefined){return 0;}return value.pull();}function read(value:ReadOnly<Holder|undefined>):boolean{return value!==undefined;}function main(){const item:Holder|undefined={pull:():int=>7};console.log(read(item),read(item),use(item));}");
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"true true 7\n");
 }
+
+#[test]
+fn mapped_started_jobs_transfer_through_iterator_collection(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';import {all,Job} from 'std:futures';async function value():Task<int>{return 3;}async function main():Task<void>{const jobs=[value().start(),value().start()];const values=await all(Iterator.from(jobs).map((work:Job<int,undefined>):Job<int,undefined>=>work).toArray());console.log(values.join(','));}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"3,3\n");
+}

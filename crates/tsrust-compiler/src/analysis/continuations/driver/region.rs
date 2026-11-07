@@ -230,6 +230,10 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 #[cfg(test)]
                 if incoming.opaque && std::thread::current().name().is_some_and(|name|name.ends_with("iterator_terminal_error_contract_after_prior_catch_diagnostic")) {
                     eprintln!("ITERATOR_OPAQUE incoming={:?} fields={:?} retained={:?} callbacks={:?} storage={:?}",incoming,crate::error_effects::record_field_origins(&analyzer.unions,&analyzer.program.records,&analyzer.scoped_records),context.caller_error_origins,effects.callback_errors,effects.storage_errors);
+                    eprintln!("ITERATOR_FAMILIES {:?}",analyzer.callables.storage.families().map(|(family,declaration,origins)|(family,declaration,origins.to_vec())).collect::<Vec<_>>());
+                    for function in analyzer.checked.iter().filter_map(Option::as_ref).filter(|function|function.name.contains("iterator#next")||function.name.contains("iterator#forEach")) {
+                        eprintln!("ITERATOR_PARAMETERS {} {:?}",function.name,function.bindings.iter().take(function.parameter_count).map(|binding|(&binding.name,binding.ty)).collect::<Vec<_>>());
+                    }
                     for function in analyzer.checked.iter().filter_map(Option::as_ref) {
                         for value in crate::error_effects::checked_expressions(function) {
                             if !value.own_may_fail{continue;}

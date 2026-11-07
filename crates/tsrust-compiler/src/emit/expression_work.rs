@@ -832,7 +832,7 @@ impl<'p> Emitter<'p> {
             ExprKind::Field(base, name) => {
                 // These property forms precede storage selection in dispatch.
                 if matches!(&base.kind, ExprKind::Name(namespace) if NumericConstant::lookup(namespace, name).is_some())
-                    || matches!(base.ty, Some(Type::Union(_)))
+                    || matches!(base.ty, Some(Type::Union(_) | Type::BorrowedUnion(_)))
                     || (name == "size" && (matches!(base.ty, Some(Type::Set(_) | Type::Map(_)))
                         || matches!(base.ty, Some(Type::Record(id)) if self.program.records[id].native_element().is_some())))
                     || (name == "length" && (base.ty.is_some_and(|ty|self.is_string_observation(ty))

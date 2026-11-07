@@ -20,14 +20,18 @@ function narrow(value: int): Choice | undefined {
   return 'right';
 }
 
+function observe(value: ReadOnly<string | undefined>): void {
+  console.log(value);
+}
+
 function main() {
   const left = wide(0);
   const right = narrow(1);
-  console.log(left ?? right);
-  console.log(right ?? 'none');
+  observe(clone(left) ?? clone(right));
+  observe(clone(right) ?? 'none');
   const saved = clone(left) ?? clone(right);
-  console.log(saved ?? 'none');
+  observe(saved ?? 'none');
   const present = wide(1);
-  console.log(present ?? right);
-  console.log(present ?? 'none');
+  observe(clone(present) ?? clone(right));
+  observe(clone(present) ?? 'none');
 }
