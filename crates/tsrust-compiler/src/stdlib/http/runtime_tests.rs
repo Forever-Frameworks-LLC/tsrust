@@ -25,9 +25,20 @@ fn ordinary_server_body_reads_and_explicit_legacy_budgets_are_distinct(){
    let mut app=App::new();if let Some(limit)=limit{app.configure([limit,8,8,5000,5000,5000,0]).unwrap();}
    app.route("POST","/echo",|request|async move{Response::stream(request.body(),200).unwrap()}).unwrap();
    let server=app.listen("127.0.0.1:0").await.unwrap();
-   // A known-length backend body exercises the server's Content-Length policy.
-   let response=reqwest::Client::new().post(format!("http://{}/echo",server.address())).body("x".repeat(1048577)).send().await.unwrap();
-   if limit==Some(1048576){assert_eq!(response.status().as_u16(),413);}else{assert_eq!(response.status().as_u16(),200);let text=response.text().await.unwrap();assert_eq!(text.len(),1048577);assert!(text.bytes().all(|byte|byte==b'x'));}
+   if limit==Some(1048576){
+    // This policy rejects from Content-Length before consuming the body. Send
+    // only headers so an in-flight upload cannot race the early 413 response.
+    use tokio::io::{AsyncBufReadExt,AsyncWriteExt};
+    let status=tokio::time::timeout(std::time::Duration::from_secs(5),async{
+     let mut socket=tokio::net::TcpStream::connect(server.address()).await.unwrap();
+     socket.write_all(b"POST /echo HTTP/1.1\r\nHost: localhost\r\nContent-Length: 1048577\r\nConnection: close\r\n\r\n").await.unwrap();
+     let mut response=tokio::io::BufReader::new(socket);let mut status=String::new();response.read_line(&mut status).await.unwrap();status
+    }).await.expect("header-only over-limit request did not receive its early response");
+    assert!(status.starts_with("HTTP/1.1 413 "),"{status:?}");
+   }else{
+    let response=reqwest::Client::new().post(format!("http://{}/echo",server.address())).body("x".repeat(1048577)).send().await.unwrap();
+    assert_eq!(response.status().as_u16(),200);let text=response.text().await.unwrap();assert_eq!(text.len(),1048577);assert!(text.bytes().all(|byte|byte==b'x'));
+   }
    server.shutdown().await;
   }
  });

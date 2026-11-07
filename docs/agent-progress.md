@@ -31,10 +31,32 @@ invoke the same emitter conversion in native probe, retain nonidentity/10002node
 64KiB/O0/O3/pointer/drop/all escape checks. No production edits are indicated.
 No build/test live now; toolsession32822 closed. Automatic object cleanup recovered
 1008283648B actual free space; shared dependencies and current consumers retained.
-Prepared `/tmp/tsrust-abi-witness-repair-run.py`, NOT started at this record.
+TERMINAL PASS `/tmp/tsrust-abi-witness-repair-run.py`, toolsession24984 closed, checkpointa5f69a5a,
+startedUnix1794094074.6080792/1800s total; source frozen. NormalCLI/LSP
+hashes sealed, production source identical to d534 outside cfg(test).
 Rerun ONLY repaired failed ABI witness using compiler --lib build (avoid a fresh
 normal CLI/LSP build for cfg(test)-only changes); then meaningful family library
-milestone as required, followed by remaining B10/B19 offline exports LAST.
+milestone via `/tmp/tsrust-closed-runtime-library-milestone.py` (prepared,NOT run),
+reusing this original30min deadline and existing binaries,8known opt-in ignores
+explicitly matched, followed by remaining B10/B19 offline exports LAST.
+ABI repair ACTUALPASS: `/tmp/tsrust-abi-witness-repair-c5252aa3173b.json`,
+1test3.16s, both native optimization levels/all4variants; real10002node conversion,
+all pointers/deep drop64KiB and2escape negatives retained. Test-only build
+312.141s/4113764KiB; scope318.001s/4260567328B,stopnull,remaining[]. Cleanup
+517332992B. NormalCLI/LSP hashes unchanged.
+Meaningful library milestone ACTUAL: `/tmp/tsrust-closed-runtime-library-milestone.json`;
+compiler1528PASS/1FAIL/8unchanged opt-in cases,107.08s; fullLSP27PASS0.17s.
+Do not rerun1528passes. Only failure: ordinary_server_body_reads_and_explicit_legacy_budgets_are_distinct,
+Reqwest upload BodyWrite reset while known oversized length receives early413.
+Pinned Hyper closes unread bodies after a cheap drain attempt; full concurrent
+upload completion was an invalid fixture assumption. Test-only reviewed patch
+290f543 now sends headers only for rejected length and asserts actual413 under5s;
+ordinary/exact-limit complete1,048,577byte uploads/200/allbyte checks unchanged.
+No runtime changes,reset acceptance or unbounded drain. Prepared
+`/tmp/tsrust-http-body-limit-proof-run.py` NOT started at this record: compileonly
+compiler --lib, rerun affected HTTP test plus existing concurrency interaction,
+KEEP original `/tmp/tsrust-abi-witness-repair-scope.json`1800s deadline. Source
+production identical tod534; no repeated publicbyte/editor/full-library scopes.
 No new measurement ingestion. Full B00–B20 goal remains active; no push/publication.
 Passed existing55public,42collections,crypto24bothprofiles and relocated logging/
 realtime evidence retained; compiler-library1514passes and repairedpriorfailed
