@@ -1407,7 +1407,7 @@ ownership/type-lowering contract before other agents depend on this bundle.
 - [x] `reduce`, `forEach`, `some`, `every`, `find`, `toArray`.
 - [x] Adaptors consume their input iterator and own captures; next transfers
   yielded values; terminal operations consume/short-circuit and clean up.
-- [ ] Preserve eager Array/Map/Set keys/values/entries behavior. Do not quietly
+- [x] Preserve eager Array/Map/Set keys/values/entries behavior. Do not quietly
   replace snapshot APIs or claim a public general trait/generator system.
 
 Witnesses: non-Clone owners, partial consumption/early drop, callback order/errors,
@@ -1416,12 +1416,20 @@ map/filter/take/reduce pipelines, allocated bytes, early-exit work, compiler tim
 and emitted size. Avoid mandatory boxing/allocation per adaptor; preserve safe
 generated Rust. Borrowed stored chains and arbitrary user protocols are deferred.
 
+Eager snapshot compatibility retains the actual965de83f `array_keys_values`,
+`array_entries`, `map_snapshots` and `sets` native passes: array return shapes,
+independent nested values, receiver evaluation and snapshots surviving source
+mutation/clear are verified. Reviewed fixtures remain unchanged; collections42,
+iterator32 and the current compiler-library milestone supplement these passes.
+The shared runner now schedules debug and release together; its added release
+execution is pending the current portable acceptance scope.
+
 #### B15 ownership and lowering contract — admission draft
 
 Engineering admission selected concrete inline owned pull environments and finite
 owned joins through existing callable carriers. The public implementation passes
 32 registered runtime cases and retained compiler/editor controls. Matched
-workload measurements and broad eager-API regression acceptance remain pending.
+workload measurements and remaining platform/final-family acceptance remain pending.
 
 - `Iterator.from<T>(values: T[]): Iterator<T>` consumes the owned array without
   cloning its elements. `next(): IteratorResult<T>` mutates the iterator and
@@ -1470,7 +1478,7 @@ cheap checking exposed callable-factory readiness through ordinary imported
 functions. Discovery/cached-specialization repairs and their controls are in
 source. All 32 registered iterator cases now pass in the shared 55-case public
 runner, with catalog output comparison and retained ownership/editor controls.
-Matched measurements and broad eager-API regression acceptance remain open.
+Matched measurements and remaining platform/final-family acceptance remain open.
 
 ### B16 — Crypto and password primitives
 
