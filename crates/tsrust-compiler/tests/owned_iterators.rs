@@ -121,6 +121,8 @@ fn nested_iterator_receiver_preparation_keeps_chains_and_callback_items(){
 
 #[test]
 fn owned_nullable_capture_slots_preserve_state_and_borrowed_guards(){
+ let source=support::format_round_trip("import {alloc,view,length} from 'std:bytes';function main(){const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const read:Owned<Function<int>>=():int=>length(slice);console.log(read());}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"2\n");
  let source=support::format_round_trip("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]).flatMap((value:int):Iterator<int>=>Iterator.from([value,value]));for(let index=0;index<4;index++){const step=values.next();if(step.done){throw 'early end';}console.log(step.value);}console.log(values.next().done);}");
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"1\n1\n2\n2\ntrue\n");
  let source=support::format_round_trip("import {Iterator} from 'std:iterator';function counter():Owned<Function<int>>{let current:Iterator<int>|undefined=undefined;return ():int=>{if(current===undefined){current=Iterator.from([3,5]);}const step=current.next();if(step.done){current=undefined;return 0;}return step.value;};}function main(){const next=counter();console.log(next(),next(),next(),next());}");
@@ -130,7 +132,8 @@ fn owned_nullable_capture_slots_preserve_state_and_borrowed_guards(){
   "import {Iterator} from 'std:iterator';function bad(value:ReadOnly<Iterator<int>>):Owned<Function<int>>{return ():int=>value.toArray().length;}function main(){}",
   "import {Iterator} from 'std:iterator';function bad(value:ReadOnly<Iterator<int>|undefined>):Owned<Function<void>>{return ():void=>{value=Iterator.from([1]);};}function main(){}",
   "import {alloc,view,length,set} from 'std:bytes';function main(){const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const read:ReadOnly<Function<int>>=():int=>length(slice);unwrap(set(bytes,0,1));console.log(read());}",
-  "import {alloc,view,length} from 'std:bytes';function main(){const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const read:Owned<Function<int>>=():int=>length(slice);console.log(read());}",
+  "import {alloc,view,length} from 'std:bytes';function bad():Owned<Function<int>>{const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));return ():int=>length(slice);}function main(){const read=bad();console.log(read());}",
+  "import {alloc,view,length,set} from 'std:bytes';function main(){const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const read:Owned<Function<int>>=():int=>length(slice);unwrap(set(bytes,0,1));console.log(read());}",
  ]{let source=support::format_round_trip(source);assert!(checked(&source).is_err(),"{source}");}
 }
 

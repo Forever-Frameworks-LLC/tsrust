@@ -371,3 +371,8 @@ fn literal_fallback_preserves_existing_optional_union_members(){
   let source=format!("type Direction='horizontal'|'vertical';function direction(value:Direction|undefined):Direction{{const selected=value??{fallback};return selected;}}function main(){{}}");assert!(check(&source).is_err(),"{fallback}");
  }
 }
+
+#[test]
+fn literal_union_fallbacks_keep_owned_values_after_borrowed_observation(){
+ native(include_str!("fixtures/coalesce-literal-subsets/main.tsr"),"left\nleft\nleft\nwide\nwide\n","","");
+}

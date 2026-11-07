@@ -52,7 +52,7 @@ impl Emitter<'_> {
             RustType::Array(inner)=>{
                 let Type::Array(element)=checked else{unreachable!("checked owned array")};let item=element.ty();let converted=self.rust_output(inner,item,"native_item",module,rust);
                 let values=format!("({value}).into_iter().map(|native_item|{converted})");
-                if let Type::Record(id)=item{format!("RecordArray{id}({values}.collect::<Vec<_>>())")}else{format!("{values}.collect::<{}>()",self.native_type(checked))}
+                format!("{values}.collect::<{}>()",self.native_type(checked))
             },
             RustType::Option(inner,_)=>self.rust_option_output(inner,checked,value,module,rust),
             RustType::Named(name)=>self.rust_data_output(name,checked,value,module,rust),

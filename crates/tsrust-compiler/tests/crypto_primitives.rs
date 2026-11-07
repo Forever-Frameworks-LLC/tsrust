@@ -12,8 +12,8 @@ fn crypto_catalog_and_every_declared_field_examples_execute(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let mut seen=std::collections::HashMap::new();let mut count=0;let mut scalar_examples=Vec::new();
  for entry in catalog["std:crypto"].as_array().unwrap().iter().chain(catalog["Hasher"].as_array().unwrap()){
   let fields=entry["fields"].as_object().into_iter().flat_map(|fields|fields.values()).flat_map(|field|field["examples"].as_array().into_iter().flatten());
-  for example in entry["examples"].as_array().into_iter().flatten().chain(fields){let raw=example["source"].as_str().unwrap();let expected=example["output"].as_str().unwrap();count+=1;if let Some(previous)=seen.insert(raw,expected){assert_eq!(previous,expected,"Duplicate examples must agree");continue;}if matches!(entry["name"].as_str(),Some("PasswordHashOptions"|"PasswordVerifyOptions")){scalar_examples.push((raw,expected));continue;}let source=support::format_round_trip(raw);let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,expected.as_bytes(),"{}",entry["name"]);}
- }assert_eq!(scalar_examples.len(),7);support::execute_batch(&scalar_examples,None);assert!(count>=26);assert!(seen.len()>=16);
+  for example in entry["examples"].as_array().into_iter().flatten().chain(fields){let raw=example["source"].as_str().unwrap();let expected=example["output"].as_str().unwrap();count+=1;if let Some(previous)=seen.insert(raw,expected){assert_eq!(previous,expected,"Duplicate examples must agree");continue;}if matches!(entry["name"].as_str(),Some("PasswordHashOptions"|"PasswordVerifyOptions")){scalar_examples.push((raw,expected));}let source=support::format_round_trip(raw);let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,expected.as_bytes(),"{}",entry["name"]);}
+ }assert_eq!(scalar_examples.len(),7);assert!(count>=26);assert!(seen.len()>=16);
 }
 
 #[test]

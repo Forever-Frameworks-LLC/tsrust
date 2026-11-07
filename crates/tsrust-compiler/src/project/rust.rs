@@ -19,7 +19,7 @@ impl Type {
             Self::Result(ok,err)=>format!("Result<{}, {}>",ok.source(),err.source()),
         }
     }
-    fn seed(&self)->String {match self {Self::Int|Self::Number=>"0".into(),Self::Boolean=>"false".into(),Self::String=>"''".into(),Self::Array(_)=>"[]".into(),Self::Option(..)=>"{kind:'none'}".into(),Self::Named(name)=>format!("rustSeed{name}()"),Self::Void=>"undefined".into(),Self::Result(ok,err)=>format!("Ok<{},{}>({})",ok.source(),err.source(),if matches!(ok.as_ref(),Self::Void){String::new()}else{ok.seed()}),_=>unreachable!()}}
+    fn seed(&self)->String {match self {Self::Int|Self::Number=>"0".into(),Self::Boolean=>"false".into(),Self::String=>"''".into(),Self::Array(_)=>"[]".into(),Self::Option(_,prefix)=>format!("({{kind:'none'}} as {prefix}None)"),Self::Named(name)=>format!("rustSeed{name}()"),Self::Void=>"undefined".into(),Self::Result(ok,err)=>format!("Ok<{},{}>({})",ok.source(),err.source(),if matches!(ok.as_ref(),Self::Void){String::new()}else{ok.seed()}),_=>unreachable!()}}
     fn owned(&self)->bool {matches!(self,Self::String|Self::Array(_)|Self::Named(_)|Self::Option(..))}
 }
 #[derive(Clone, Debug)]

@@ -250,8 +250,8 @@ impl Analyzer {
                 }
                 Task::Members(mut members,targets)=>{
                     if let Some(member)=members.next(){
-                        // Union alternatives only admit identity or record conversion.
-                        let pairs=targets.iter().copied().filter(|&candidate|candidate==member || matches!((member,candidate),(Type::Record(_),Type::Record(_)))).map(|candidate|(member,candidate)).collect::<Vec<_>>();
+                        // Preserve exact members or widen literals to their existing scalar representation. Record conversion stays checked separately.
+                        let pairs=targets.iter().copied().filter(|&candidate|candidate.accepts_scalar_value(member) || matches!((member,candidate),(Type::Record(_),Type::Record(_)))).map(|candidate|(member,candidate)).collect::<Vec<_>>();
                         work.push(Task::AfterMember(members,targets));
                         work.push(Task::Pairs(pairs.into_iter(),false));
                     }else{result=true;}
@@ -260,7 +260,7 @@ impl Analyzer {
                     if result{work.push(Task::Members(members,targets));}
                 }
                 Task::Check(source,target)=>{
-                    if source==target{result=true;continue;}
+                    if target.accepts_scalar_value(source){result=true;continue;}
                     result=match(source,target){
                         (Type::StoredCallable(source),Type::Callback(target))=>
                             self.callables.storage.origins(source).is_some_and(|origins|origins.is_empty())
@@ -501,4 +501,16 @@ fn retained_alert_props_spread_preserves_checked_callback_carriers(){
   let source=format!("import {{Alert,AlertTitle,AlertDescription,AlertAction}} from './alert.tsrx';{http}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
   let checked=check_graph(load_project(&Entry{source,alert:SourceId(alert.to_str().unwrap().into())},"main.tsr").unwrap()).unwrap_or_else(|error|panic!("retained Alert {http}: {error:?}"));drop(checked.emit_rust());
  }
+}
+
+#[cfg(test)]
+#[test]
+fn literal_scalar_union_carriers_widen_without_narrowing_or_callback_conversion(){
+ let mut analyzer=Analyzer::new(crate::syntax::parse("type Left='left';type Right='right';type Computed={evaluate:Function<string,[]>;};function main(){}").unwrap()).unwrap();
+ let literal=|text:&str|analyzer.program.records.iter().enumerate().find_map(|(id,record)|matches!(record.literal_definition.as_ref(),Some(crate::literal_types::LiteralValue::String(value))if value==text).then_some(Type::Literal(id,crate::literal_types::LiteralKind::String))).unwrap();
+ let left=literal("left");let right=literal("right");let computed=analyzer.program.records.iter().position(|record|record.name.text=="Computed").unwrap();
+ let from=analyzer.unions.intern(vec![left,right],Span::default()).unwrap();let target=analyzer.unions.intern(vec![Type::Record(computed),Type::String,Type::Undefined],Span::default()).unwrap();
+ assert!(analyzer.carrier_convertible(from,target));assert!(analyzer.carrier_convertible(left,Type::String));assert!(!analyzer.carrier_convertible(Type::String,left));assert!(!analyzer.carrier_convertible(left,right));
+ let missing=analyzer.unions.intern(vec![left,Type::Undefined],Span::default()).unwrap();assert!(!analyzer.carrier_convertible(from,missing));
+ let wrong=analyzer.unions.intern(vec![Type::Record(computed),Type::Int,Type::Undefined],Span::default()).unwrap();assert!(!analyzer.carrier_convertible(from,wrong));
 }

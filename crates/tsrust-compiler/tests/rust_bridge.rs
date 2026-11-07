@@ -161,15 +161,15 @@ pub fn layered(mode:i64)->Result<Result<Option<Vec<String>>,String>,Result<i64,S
 pub fn drops()->i64{DROPS.load(Ordering::SeqCst) as i64}
 "#).unwrap();
  let source=r#"
-import {rows,move_rows,nested,move_nested,unit,results,layered,drops,RustAdapterOption,RustAdapterUnitOption} from './owned.rs';
+import {rows,move_rows,nested,move_nested,unit,results,layered,drops,RustAdapterOption,RustAdapterNone,RustAdapterSomeUnit} from './owned.rs';
 import {strictEqual} from 'std:testing';
 function main(){
  const result=move_rows(rows());strictEqual(result.length,1);strictEqual(result[0].words[0],'retained');
  const absent=move_nested(nested(0));strictEqual(absent.kind,'none');
  const innerAbsent=move_nested(nested(1));if(innerAbsent.kind==='some'){strictEqual(innerAbsent.value.kind,'none');}else{throw 'lost outer Some';}
  const present=move_nested(nested(2));if(present.kind==='some'){const inner=present.value;if(inner.kind==='some'){strictEqual(inner.value.length,2);strictEqual(inner.value[1],'世界');}else{throw 'lost inner Some';}}else{throw 'lost outer Some';}
- const none:RustAdapterUnitOption={kind:'none'};strictEqual(unit(none).kind,'none');
- const some:RustAdapterUnitOption={kind:'some'};strictEqual(unit(some).kind,'some');
+ const none:RustAdapterNone={kind:'none'};strictEqual(unit(none).kind,'none');
+ const some:RustAdapterSomeUnit={kind:'some'};strictEqual(unit(some).kind,'some');
  const expected=[0,1,3,4,5,11];
  for(let mode=0;mode<6;mode=mode+1){
    const outer=results(mode);let observed=0;

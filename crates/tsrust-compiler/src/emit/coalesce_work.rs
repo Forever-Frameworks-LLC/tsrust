@@ -76,18 +76,22 @@ impl Emitter<'_> {
                                 .members
                                 .iter()
                                 .position(|ty| {
-                                    ty == member
+                                    ty.accepts_scalar_value(*member)
                                         || matches!(ty, Type::Callback(_))
                                             && matches!(
                                                 member,
                                                 Type::Closure(_) | Type::Callback(_)
                                             )
                                 })
-                                .expect("fallback subset");
+                                .unwrap_or_else(||{
+                                    #[cfg(test)]
+                                    eprintln!("COALESCE_FALLBACK_REJECT span={:?} source={actual:?} target={result:?} member={member:?} source_members={:?} target_members={:?}",right.span,self.program.unions[from.index()].members,self.program.unions[target.index()].members);
+                                    panic!("fallback subset")
+                                });
                             format!(
                                 "{}{}::V{index}(payload)=>{prefix}{}::V{to}({})",
                                 if source_view { "ViewUnion" } else { "Union" },
-                                from.index(),target.index(),if !target_view&&!source_view{self.union_transfer_payload(from,target,*member,"payload")}else{"payload".into()}
+                                from.index(),target.index(),if target_view{self.data_view_payload(*member,"payload",source_view)}else if !source_view{self.union_transfer_payload(from,target,*member,"payload")}else{"payload".into()}
                             )
                         })
                         .collect::<Vec<_>>()
@@ -98,7 +102,7 @@ impl Emitter<'_> {
                 let index = self.program.unions[target.index()]
                     .members
                     .iter()
-                    .position(|ty| *ty == actual)
+                    .position(|ty| ty.accepts_scalar_value(actual))
                     .expect("fallback member");
                 let code = if target_view && actual.is_copy() {
                     format!("&({fallback})")
@@ -127,7 +131,7 @@ impl Emitter<'_> {
                         .members
                         .iter()
                         .position(|ty| {
-                            ty == member
+                            ty.accepts_scalar_value(*member)
                                 || matches!(ty, Type::Callback(_))
                                     && matches!(member, Type::Closure(_) | Type::Callback(_))
                         })
@@ -167,4 +171,10 @@ impl Emitter<'_> {
         } else { format!("&pattern_default_owner_{slot}") };
         format!("{{pattern_default_owner_{slot}={owner};{view}}}")
     }
+}
+
+#[cfg(test)]
+#[test]
+fn coalescing_literal_subset_preserves_borrowed_and_owned_scalar_payloads(){
+ let source=include_str!("../../tests/fixtures/coalesce-literal-subsets/main.tsr");let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);let checked=crate::check(&formatted).unwrap_or_else(|error|panic!("{}",error.render("coalesce-literal-subsets.tsr",&formatted)));drop(checked.emit_rust());
 }
