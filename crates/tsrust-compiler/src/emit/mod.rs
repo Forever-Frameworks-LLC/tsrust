@@ -8397,7 +8397,7 @@ impl Emitter<'_> {
             }
             ExprKind::Field(base,name) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_))) => {
                 let union=base.ty.unwrap().union().expect("checked common record union");
-                let receiver=self.expr(fun,base,Mode::Read);
+                let receiver=self.conditional_arm(fun,base,Mode::Read);
                 let copied=expr.ty.unwrap().is_copy();
                 let reference=if mode==Mode::Read&&!copied{"&"}else{""};
                 let representation=if union.copy{"Union"}else{"ViewUnion"};
