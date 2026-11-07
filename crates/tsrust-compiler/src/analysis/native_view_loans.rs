@@ -225,6 +225,7 @@ impl Analyzer {
                 }
                 Task::FinishCapture(start,alternative,capture,output,span) => {
                     if result.len()==start {
+                        if std::env::var_os("TSRUST_TRACE_CARRIERS").is_some(){for(id,binding)in context.bindings.iter().enumerate(){eprintln!("[native-view-capture] effects_only={} binding={id} name={} type={:?} loans={:?}",context.effects_only,binding.name,binding.ty,binding.native_view_loans);}}
                         return Err(Diagnostic::new("native-view-call","The selected callback has no tracked byte-view source lifetime.",span));
                     }
                     if let Some(alternative)=alternative {

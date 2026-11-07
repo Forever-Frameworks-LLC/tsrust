@@ -8,9 +8,9 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
-- Canonical source checkpoint c7e8eced contains the accepted emitter/HTTP/example/doc
-  repairs. Only root writes canonical; app worktree
-  unrelated edits remain protected. No live build/test process. Workers idle.
+- Current canonical checkpoint c057307c; uncommitted targeted compiler repairs
+  are under bounded affected validation detailed below. Accepted runtime fixes are retained
+  atc7e8eced. Only root writes canonical; app worktree edits stay protected.
 - ACTUAL PASS: /tmp/tsrust-upgrade-handoff-4366908885f1.json. Selected fresh normal
   compiler CLI build terminal success,226.058s/peak2791138KiB. Shared public host
   public_registered_suites_share_one_native_build PASS; all55cases/5files,
@@ -90,18 +90,81 @@ Latest accepted section — public55case native runtime; full v0.2.0 remains act
   recursive Holder.next?:Holder without active/memo state,unbounded postorder
   frames; absent_callback identities themselves are cached. B14 reviewer owns
   finite recursive empty-environment repair; keep all67cases intact.
-- Source-only fixes ready,NOT yet applied: collection spread/join patch
-  /tmp/tsrust-collection-spread-join-layout.patch SHA373602cb3db76ca1432ad639912b8c7d8ba84d65eee7e65d0d898cf80fb41ce1;
-  crypto authored-export sourceguard /tmp/tsrust-crypto-exported-source-guard.patch
-  SHA336270ff44860b188b3204ba0df5f1ed46705e87c701ab4c8c57ef169ade44a9.
-  Both apply-check PASS; root applies after source checkpoint,then batch with
-  reviewed bytes memory fix before ONE compiler/affected-family build.
+- Current source checkpoint c057307c preserves all147migration/export/cache files;
+  it is NOT family acceptance. Uncommitted compiler repairs now APPLIED: collection
+  spread/join373602cb...,crypto sourceguard336270ff... (public lexer-backed
+  documentation highlight API used because syntax module is private),recursive
+  empty environments3ec1e44c.... Root strengthened new mutual-view fixture with
+  exact3/7/3 bytes in addition to lengths; bytes suite now68,all original67 intact.
+- Recursive repair uses operation-local SCC traversal with record/map modes,
+  finite reserve/remap for all component members,one full signature cache key,
+  unchanged-layout reuse and already-absent callback reuse. No new global registry,
+  depth caps or weakened ownership. Four focused private controls cover self,
+  mutual both-callback,map/optional-map/maps-only,cache aliasing and idempotence;
+  prior16k unchanged-chain/deep callback controls retained.
+- Recursive-family gate TERMINAL: /tmp/tsrust-recursive-family-400197d26d77.json.
+  Fresh lib/CLI/hosts build531.961s,peak4109828KiB; selected10empty/SCC/recursive
+  unit controls PASS0.629s;55/cache PASS27.443s;collection42 PASS3.203s. Crypto
+  source-count guard expected7 but actual8(seven field examples+shared header);
+  fixed with independent8hash/9reference proof755c08c4.... Bytes now checks1.31s/
+ 113936KiB,then fails existing case14 native-view-call at child.read,not memory.
+  End-to-end gates569.347s/peak4243298616B,remaining[];cleanup933388288B.
+- Real failure-only metadata trace added under EXISTING TSRUST_TRACE_CARRIERS.
+  CLI-only diagnostic build267.624s,then same68suite check2.121s/113311744B,
+  original30min scope unchanged and actual work stopped before it expired.
+  /tmp/tsrust-view-guard-diagnostic-results.json. All discarded narrow pairs were
+  legitimate Result Err(95<-94 and101<-100);NO flow drops. Final holder106/child106
+  bindings have NO loans. Therefore speculative guard-remapping patch5f827da...
+  is explicitly NOT APPLIED; do not revive it as the current repair.
+- Proven producer bug: named function native summaries defer discovering_results,
+  but closure/family registration did not. Early callback summaries enable loan
+  checking before named read/build factories publish owner data. Applied ONLY
+  two matching discovery guards +one focused definitive-missing-owner control:
+  /tmp/tsrust-native-discovery-summary.patch SHA04afd8c6b90a8d63903adfff9fe2400004288483f91e9907d301f6b44c9be621.
+  No lifetime/narrow check relaxed. Crypto actualcount8guard fixed too.
+- Native-summary scope TERMINAL: preflight60.369s; selected lib/CLI/hosts build
+  PASS532.596s/peak4141412KiB; three native-view-callee controls PASS and55/cache
+  PASS. Crypto now reaches real await-task error at imported catalog async main;
+  bytes still rejects existing case14 child.read lifetime. Full gate567.01s,
+  peak4288731352B,remaining[]; cleanup932052992B. Evidence:
+  /tmp/tsrust-native-summary-42b94eaef168.json. Do not repeat passed scopes.
+- Post-discovery frontend-only trace1.475s confirms final holder/child loansNone,
+  no physical guard loss. /tmp/tsrust-native-summary-post-discovery.err.
+- Imported async main root proven: parser synthesizes a synchronous executable
+  main wrapper even for imported modules. Applied link-boundary normalization
+  restoring imported Task factory, preserving actual entry wrappers. Named/default
+  import and wrong-result-type checks added; not yet built/accepted. Patch
+  /tmp/tsrust-imported-async-main-factory.patch SHA26a4df4883ffd07efbaa64279304f614aa4504a7d1f04242580cb55b876e6e87.
+- Applied effects-only phase repair82a969c6: return-summary recording already
+  skips access inference; named/closure/family registration now matches it. This
+  prevents real callback summaries consuming intentionally absent inferred loans.
+  Definitive missing-owner rejection retained; unit extension compile-preflighted
+  but not independently replayed. Failure trace now identifies effects_only.
+- Native-effects scope TERMINAL /tmp/tsrust-native-effects-75f59227bec7.json:
+  preflight63.612s PASS; one CLI/three-host build227.184s PASS,peak2837810KiB.
+  Crypto24cases PASS BOTH debug/release,all source guards retained; host36.294s.
+  Actual debug setup10070.018ms/native9630.549ms/runtime2474.350ms; release
+  setup22471.437ms/native22088.604ms/runtime138.365ms. Test observations only,
+  not controlled benchmark measurements. Named/default async-import+wrong-type
+  regression PASS0.573s. No library or previously passed suites replayed.
+- Bytes advances past original case14 lifetime failure. New mutual-recursion
+  witness fails frontend at root.next = second(read(right)): Expected Second |
+  undefined,found Second. Preserve all68 and3/7/3 oracle; next repair is concrete
+  physical-layout assignment compatibility,not the already-fixed missing loans.
+  Total gates270.352s,peak2967212712B,stopnull,remaining[]. Quiet automatic
+  cleanup123rcgu objects recovered433356800B; heavy slot free. Agent B14 reviewing
+  new actual failure. Collections42,55/cache,10recursive/3callee units and portable
+  exports retained; no new SQLite timings or full-goal completion claimed.
+- Additional cleanup /tmp/tsrust-obsolete-http-cache-cleanup.json pruned9cache
+  entries containing replaced serve_connection(io,service) template under quiet
+  build/cache locks; ACTUAL recovered2102931456B. No shared dependencies removed.
 - Additional cleanup pruned6native cache entries with obsolete dependency identity,
   recovered155926528B; /tmp/tsrust-accepted-runtime-obsolete-cache-cleanup.json.
-- NEXT: finish exports; move normal public suite's runtime TLS fixture reads to
-  temp fixtures as well to avoid new native executables reading Desktop files;
-  integrate prepared stable family migrations below. Resume comparable public
-  timings only when quiet,retaining unchanged controls and actual source proof.
+- NEXT: finish bytes mutual-layout assignment,then coherent compiler/LSP
+  milestone and still-unproved B10 middleware/B19 shlex offline export boundaries
+  LAST after compiler work. Middleware already has a genuine relocated example
+  host; no new harness is needed. Public runtime TLS staging/migrations are done.
+  Resume comparable timings only when quiet,retaining unchanged controls/proofs.
   Remaining full B00–B20 milestone/platform acceptance stays active. No push,
   merge or v0.2.0 publication approved by this local checkpoint.
 

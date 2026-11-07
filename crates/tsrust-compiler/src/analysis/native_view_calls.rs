@@ -63,7 +63,7 @@ impl Analyzer {
     pub(super) fn remember_native_function_returns(&self,context:&mut Context,id:usize,span:Span)->Result<(),Diagnostic> {
         // Discovery resolves field types without following calls. Only the
         // definitive pass can require and transport checked owner summaries.
-        if self.discovering_results {return Ok(());}
+        if self.discovering_results || context.effects_only {return Ok(());}
         let Some(function)=self.checked[id].as_ref() else {
             if self.native_shape_contains_view(self.signatures[id].result) {
                 return Err(Diagnostic::new("native-view-call","Recursive returned views require a stabilized source lifetime summary.",span));
@@ -83,6 +83,8 @@ impl Analyzer {
         Ok(())
     }
     pub(super) fn remember_native_closure_returns(&self,context:&mut Context,origin:usize,method:Option<usize>,span:Span)->Result<(),Diagnostic> {
+        // As with named factories, discovery has no definitive caller owner summaries.
+        if self.discovering_results || context.effects_only {return Ok(());}
         let key_origin=origin;
         let mut origin=origin;
         while method.is_none() && let Some(ClosureForward::Once(inner))=self.closures[origin].forward {origin=inner;}

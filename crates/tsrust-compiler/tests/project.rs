@@ -1979,3 +1979,20 @@ fn result_materialization_exceeds_the_former_depth_boundary() {
     let checked = tsrust_compiler::check(&source).unwrap();
     assert_eq!(native_stdout(&checked.emit_rust(), "0"), "7\n");
 }
+
+#[test]
+fn imported_async_main_remains_a_task_factory_for_named_and_default_exports(){
+    for (dependency,import) in [
+        ("export async function main():Task<int>{return 7;}","import {main as run} from './dep.tsr';"),
+        ("export default async function main():Task<int>{return 7;}","import run from './dep.tsr';"),
+    ] {
+        let source=format!("{import}async function main():Task<void>{{const value:int=await run();console.log(value);}}");
+        let memory=Memory::new(&[("main.tsr",&source),("dep.tsr",dependency)]);
+        let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+        let _=checked.emit_rust();
+        let source=format!("{import}async function main():Task<void>{{const wrong:string=await run();}}");
+        let memory=Memory::new(&[("main.tsr",&source),("dep.tsr",dependency)]);
+        let error=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap();
+        assert_eq!(error.code,"type","{error:?}");
+    }
+}

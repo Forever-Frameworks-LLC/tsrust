@@ -6,7 +6,7 @@ impl Emitter<'_> {
         let record=&self.program.records[id];
         if record.literal_definition.is_some(){return None;}
         let view_lifetime = native_view_emit::access(self.program, id).is_some() || self.native_views.recursive(id);
-        let parameters = if view_lifetime { vec!["'view".to_owned()] } else { record.fields.iter().enumerate().filter_map(|(index,field)|self.scoped_record_native_field(id,index,field.ty.expect("checked field")).then(||format!("P{index}"))).collect::<Vec<_>>() };
+        let parameters = if view_lifetime { vec!["'view".to_owned()] } else if record.native_type==Some(crate::native_signatures::NativeTypeId::Deque) && record.native_element().is_some_and(|element|self.native_collection_payload_parameter(element)) { vec!["P".to_owned()] } else { record.fields.iter().enumerate().filter_map(|(index,field)|self.scoped_record_native_field(id,index,field.ty.expect("checked field")).then(||format!("P{index}"))).collect::<Vec<_>>() };
         let arguments=lifetime_parameters(&parameters);
         let bounds=if record.is_tuple() && !view_lifetime {lifetime_parameters(&parameters.iter().map(|parameter|format!("{parameter}:TsrJoinText")).collect::<Vec<_>>())}else{arguments.clone()};
         let mut output=format!("impl{bounds} TsrJoinText for Record{id}{arguments}{{");

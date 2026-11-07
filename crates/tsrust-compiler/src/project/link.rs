@@ -268,6 +268,15 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 fixes: Box::new([]),
             }
         })?;
+        // Parsing synthesizes an executable wrapper for async main. Imported
+        // modules export the original Task factory, not that void entry wrapper.
+        if id != &graph.entry && let Some(index)=program.functions.iter().position(|function|function.name.text=="async#entry") {
+            let span=program.functions[index].name.span;
+            let wrapper=program.functions.iter().position(|function|function.name.text=="main"&&function.name.span==span).expect("parser-generated async main wrapper");
+            assert!(wrapper>index,"async factory precedes its synthetic entry wrapper");
+            program.functions.remove(wrapper);
+            program.functions[index].name.text="main".into();
+        }
         if id.0 == "std:testing" { crate::stdlib::testing::program::facade(&mut program); }
         if let Some(base) = program.unresolved_bases.first() {
             return Err(ProjectDiagnostic {

@@ -5,6 +5,8 @@ use super::native_view_loans::LifetimeSource;
 
 impl Analyzer {
     pub(super) fn remember_native_family_returns(&self,context:&mut Context,family:usize,span:Span)->Result<(),Diagnostic> {
+        // As with named factories, discovery has no definitive caller owner summaries.
+        if self.discovering_results || context.effects_only {return Ok(());}
         let Some(layout)=self.callables.storage.scoped_native_family(family) else {
             // A lifetime-free family holds no view. Its result can only be a view
             // that one of its callbacks received as an argument.

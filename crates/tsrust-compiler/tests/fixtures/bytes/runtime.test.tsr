@@ -1,3 +1,4 @@
+import { run as mutualEmpty } from './runtime-cases/mutually-recursive-view-callbacks.tsr';
 import { describe, test } from 'std:testing';
 import { run as case0 } from './runtime-cases/native-byte-type-imports-and-result-payloads-execute.tsr';
 import { run as case1 } from './runtime-cases/native-byte-callable-and-generic-aggregate-storage-execute.tsr';
@@ -68,6 +69,7 @@ import { run as case65 } from './runtime-cases/mutable-recursive-parameters-repl
 import { run as case66 } from './runtime-cases/native-byte-error-preserves-declared-property-order.tsr';
 
 describe('bytes runtime', () => {
+  test('mutually-recursive-view-callbacks', mutualEmpty);
   test('native-byte-type-imports-and-result-payloads-execute', case0);
   test('native-byte-callable-and-generic-aggregate-storage-execute', case1);
   test('exported-result-aliases-keep-builtin-identity-and-native-payloads', case2);

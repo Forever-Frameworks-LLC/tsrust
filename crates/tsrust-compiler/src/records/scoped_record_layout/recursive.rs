@@ -12,6 +12,34 @@ impl Registry {
         if instances.all(|other| other == instance) { Type::Record(instance) } else { ty }
     }
 
+    /// Empty recursive storage has no runtime instance. Intern its complete
+    /// component field plan separately from ordinary root-only specialization.
+    pub(crate) fn materialize_empty_component(&mut self,mut plans:Vec<(usize,Vec<Type>)>,records:&mut Vec<Record>,unions:&UnionArena)->Result<HashMap<usize,usize>,Diagnostic>{
+        plans.sort_by_key(|(id,_)|*id);
+        assert!(plans.windows(2).all(|pair|pair[0].0!=pair[1].0),"one empty mode per recursive component member");
+        let signature=plans.iter().flat_map(|(id,types)|std::iter::once(Type::Record(*id)).chain(types.iter().copied())).collect::<Vec<_>>();
+        for(id,_)in &plans{assert!(signature.len()>records[*id].fields.len(),"component signatures cannot alias ordinary field keys");}
+        let key=(plans[0].0,signature);
+        // The sorted component is reserved contiguously in the append-only
+        // record arena. One signature key suffices for every entry member.
+        if let Some(&first)=self.recursive_instances.get(&key){return Ok(plans.iter().enumerate().map(|(offset,(id,_))|(*id,first+offset)).collect());}
+        let first=records.len();let remap=plans.iter().enumerate().map(|(offset,(id,_))|(*id,first+offset)).collect::<HashMap<_,_>>();
+        let mut instances=Vec::new();
+        for(id,types)in &plans{
+            let mut record=records[*id].clone();
+            if let Some(map)=&mut record.map_definition{assert_eq!(types.len(),2);map.key=remap_type(types[0],&remap,unions)?;map.value=remap_type(types[1],&remap,unions)?;map.entry=None;}
+            else{assert_eq!(types.len(),record.fields.len());for(field,ty)in record.fields.iter_mut().zip(types){field.ty=Some(remap_type(*ty,&remap,unions)?);}}
+            if let Some(application)=&mut record.application{if let Some(map)=&record.map_definition{application.resolved_arguments=vec![map.key,map.value];}else{for ty in &mut application.resolved_arguments{*ty=remap_type(*ty,&remap,unions)?;}}}
+            instances.push(record);
+        }
+        records.extend(instances);
+        for(id,_)in plans{let instance=remap[&id];self.bases.insert(instance,self.declaration(id));}
+        self.recursive_instances.insert(key,first);
+        // Absence-only layouts are not live parameter candidates. Root-only
+        // matching must not confuse them with a differently planned component.
+        Ok(remap)
+    }
+
     pub(crate) fn materialize_recursive(
         &mut self,
         base: usize,
@@ -102,6 +130,7 @@ impl Registry {
 fn remap_type(ty: Type, records: &HashMap<usize, usize>, unions: &UnionArena) -> Result<Type, Diagnostic> {
     Ok(match ty {
         Type::Record(id) => Type::Record(records.get(&id).copied().unwrap_or(id)),
+        Type::Map(id) => Type::Map(records.get(&id).copied().unwrap_or(id)),
         Type::Array(element) => {
             let leaf = remap_type(element.with_depth(0).ty(), records, unions)?;
             Type::Array(ArrayElement::from_value_type(leaf).expect("preserved array leaf").with_depth(element.depth()))

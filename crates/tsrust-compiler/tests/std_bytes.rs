@@ -406,6 +406,7 @@ fn native_byte_error_preserves_declared_property_order() {
 }
 
 const REGISTERED_BYTES:&[(&str,&str,&str)]=&[
+    ("recursive_empty_component","mutually-recursive-view-callbacks",include_str!("fixtures/bytes/runtime-cases/mutually-recursive-view-callbacks.tsr")),
     ("native_byte_type_imports_and_result_payloads_execute","native-byte-type-imports-and-result-payloads-execute",include_str!("fixtures/bytes/runtime-cases/native-byte-type-imports-and-result-payloads-execute.tsr")),
     ("native_byte_callable_and_generic_aggregate_storage_execute","native-byte-callable-and-generic-aggregate-storage-execute",include_str!("fixtures/bytes/runtime-cases/native-byte-callable-and-generic-aggregate-storage-execute.tsr")),
     ("exported_result_aliases_keep_builtin_identity_and_native_payloads","exported-result-aliases-keep-builtin-identity-and-native-payloads",include_str!("fixtures/bytes/runtime-cases/exported-result-aliases-keep-builtin-identity-and-native-payloads.tsr")),
@@ -486,13 +487,13 @@ fn assert_registered_source(family:&str,source:&str){
 #[test]
 fn registered_byte_runtime_family_executes_at_both_required_profiles(){
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");let suite=root.join("crates/tsrust-compiler/tests/fixtures/bytes/runtime.test.tsr");
- let expected=REGISTERED_BYTES.iter().map(|(_,name,_)|format!("bytes runtime > {name}")).collect::<std::collections::BTreeSet<_>>();assert_eq!(expected.len(),67);
+ let expected=REGISTERED_BYTES.iter().map(|(_,name,_)|format!("bytes runtime > {name}")).collect::<std::collections::BTreeSet<_>>();assert_eq!(expected.len(),68);
  for optimized in [false,true]{
   let mut command=support::cli();command.current_dir(&root).arg("test").arg(&suite).args(["--reporter=json","--profile","--timeout=5000"]);if optimized{command.arg("--release");}
   let output=support::run(&mut command,900);support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));let text=String::from_utf8(output.stdout).unwrap();print!("{text}");
-  let rows=text.lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let cases=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(cases.len(),67);assert_eq!(cases.iter().map(|row|row["name"].as_str().unwrap().to_owned()).collect::<std::collections::BTreeSet<_>>(),expected);
+  let rows=text.lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let cases=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(cases.len(),68);assert_eq!(cases.iter().map(|row|row["name"].as_str().unwrap().to_owned()).collect::<std::collections::BTreeSet<_>>(),expected);
   for row in cases{assert_eq!(row["status"],"passed","{row}");}
-  let summary=rows.iter().filter(|row|row["event"]=="summary").collect::<Vec<_>>();assert_eq!(summary.len(),1);for(field,value)in[("passed",67),("failed",0),("hookFailures",0),("skipped",0),("filesPassed",1),("filesFailed",0)]{assert_eq!(summary[0][field],value);}
+  let summary=rows.iter().filter(|row|row["event"]=="summary").collect::<Vec<_>>();assert_eq!(summary.len(),1);for(field,value)in[("passed",68),("failed",0),("hookFailures",0),("skipped",0),("filesPassed",1),("filesFailed",0)]{assert_eq!(summary[0][field],value);}
   let order="bytes runtime > native-byte-error-preserves-declared-property-order";let output=rows.iter().filter(|row|row["event"]=="output"&&row["name"]==order).map(|row|{assert_eq!(row["stream"],"stdout");row["text"].as_str().unwrap()}).collect::<String>();assert_eq!(output,"code,message,offset\n");
   let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);for field in ["durationMs","checkMs","emitMs","backendMs","cacheMs","nativeBuildMs"]{let ms=builds[0][field].as_f64().unwrap();assert!(ms.is_finite()&&ms>=0.0);}
  }

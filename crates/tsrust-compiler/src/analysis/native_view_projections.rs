@@ -66,6 +66,7 @@ pub(super) fn narrow(loan: &mut Loan, narrowed: Type) -> bool {
         .iter()
         .any(|guard| guard.path.is_empty() && narrowed != Type::Record(guard.success))
     {
+        if std::env::var_os("TSRUST_TRACE_CARRIERS").is_some(){eprintln!("[native-view-guard] narrow={narrowed:?} loan={loan:?}");}
         return false;
     }
     loan.guards.retain(|guard| !guard.path.is_empty());
@@ -73,7 +74,7 @@ pub(super) fn narrow(loan: &mut Loan, narrowed: Type) -> bool {
 }
 
 pub(super) fn possible(context: &Context, holder: usize, loan: &Loan) -> bool {
-    loan.guards.iter().all(|guard| {
+    let possible=loan.guards.iter().all(|guard| {
         context
             .flow
             .iter()
@@ -85,7 +86,9 @@ pub(super) fn possible(context: &Context, holder: usize, loan: &Loan) -> bool {
                     )
             })
             .is_none_or(|(_, fact)| fact.members.contains(&Type::Record(guard.success)))
-    })
+    });
+    if !possible&&std::env::var_os("TSRUST_TRACE_CARRIERS").is_some(){eprintln!("[native-view-guard] holder={holder} loan={loan:?}");for(place,fact)in context.flow.iter().filter(|(place,_)|place.root==holder){eprintln!("[native-view-guard] path={:?} members={:?}",place.fields,fact.members);}}
+    possible
 }
 
 pub(super) fn guard(loan: &mut Loan, success: usize) {

@@ -81,3 +81,42 @@ fn assert_conditional_native_execution(checked:&CheckedProgram) {
     assert!(!rejected.status.success());
     assert!(String::from_utf8_lossy(&rejected.stderr).contains("does not live long enough"));
 }
+
+#[test]
+fn discovery_defers_callback_owner_summaries_until_named_factories_are_checked() {
+    let source="type Window={};type Holder={read:Once<Function<Window>>;};function save(view:Window){return ()=>view;}function main(){}";
+    let formatted=crate::formatting::format(source).unwrap();
+    assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+    let mut parsed=crate::syntax::parse(&formatted).unwrap();
+    parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+    let mut analyzer=Analyzer::new(parsed).unwrap();analyzer.function(0).unwrap();
+    let result=analyzer.closures[0].function.result;
+    let structural=analyzer.callables.shapes.intern([],result,Some(CallbackKind::OwnedOnce));
+    let callback=CallbackContract{structural,parameter_names:vec![],params:vec![],result,kind:CallbackKind::OwnedOnce};
+    let Type::StoredCallable(family)=analyzer.callables.storage.intern_scoped_native(&analyzer.callables.shapes,&callback,0,[0],&analyzer.closures,Span::default()).unwrap().unwrap()else{panic!("scoped callback family")};
+    let mut context=Context::new("discovery".into());
+    analyzer.discovering_results=true;
+    analyzer.remember_native_function_returns(&mut context,0,Span::default()).unwrap();
+    analyzer.remember_native_closure_returns(&mut context,0,None,Span::default()).unwrap();
+    analyzer.remember_native_family_returns(&mut context,family,Span::default()).unwrap();
+    assert!(context.native_view_function_returns.is_none());assert!(!context.native_view_calls);
+    analyzer.discovering_results=false;
+    // Access inference checks ordinary bodies after discovery, but deliberately
+    // does not record named factories' owner-return summaries in that phase.
+    context.effects_only=true;
+    analyzer.remember_native_function_returns(&mut context,0,Span::default()).unwrap();
+    analyzer.remember_native_closure_returns(&mut context,0,None,Span::default()).unwrap();
+    analyzer.remember_native_family_returns(&mut context,family,Span::default()).unwrap();
+    assert!(context.native_view_function_returns.is_none());assert!(!context.native_view_calls);
+    context.effects_only=false;
+    analyzer.remember_native_closure_returns(&mut context,0,None,Span::default()).unwrap();
+    analyzer.remember_native_family_returns(&mut context,family,Span::default()).unwrap();
+    assert!(context.native_view_calls);
+    let summaries=context.native_view_function_returns.as_ref().unwrap();
+    assert!(!summaries[&super::native_view_calls::Target::Closure(0)].is_empty());
+    assert!(!summaries[&super::native_view_calls::Target::Family(family)].is_empty());
+    let mut callee=Expr::new(ExprKind::Name("missingOwner".into()),Span::default());callee.ty=Some(Type::StoredCallable(family));
+    let mut call=Expr::new(ExprKind::Call(Box::new(callee),vec![]),Span::default());
+    call.target=Some(CallTarget::StoredCallableField(family));call.ty=Some(result);
+    assert_eq!(Analyzer::native_view_value_loans(&context,&call).unwrap_err().code,"native-view-call","definitive checking still requires the actual capture owner");
+}

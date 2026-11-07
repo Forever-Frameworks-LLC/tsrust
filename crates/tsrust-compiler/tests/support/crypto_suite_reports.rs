@@ -42,6 +42,19 @@ fn example<'a>(catalog:&'a Value,family:&str,name:&str,field:&str,index:usize)->
  let entry=catalog[family].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();
  if field.is_empty(){&entry["examples"][index]}else{&entry["fields"][field]["examples"][index]}
 }
+// Compare the same exported module form: export affects formatter separators.
+// Insert only at lexer-proven declaration tokens, never inside comments/strings.
+fn exported_main(source:&str)->String{
+ let tokens=tsrust_compiler::documentation::highlight(source,"tsrust").expect("valid authored crypto example").into_iter().filter(|token|!matches!(token.class.as_str(),"plain"|"comment")).collect::<Vec<_>>();
+ let declarations=tokens.windows(3).enumerate().filter(|(_,tokens)|tokens[0].class=="keyword"&&tokens[0].text=="function"&&tokens[1].class=="name"&&tokens[1].text=="main"&&tokens[2].text=="(").map(|(index,_)|index).collect::<Vec<_>>();
+ assert_eq!(declarations.len(),1,"one authored main declaration");let mut index=declarations[0];
+ if index>0&&tokens[index-1].class=="keyword"&&tokens[index-1].text=="async"{index-=1;}
+ assert!(index==0||tokens[index-1].text!="export","authored example is not already exported");
+ let mut module=source.to_owned();module.insert_str(tokens[index].source.start,"export ");module
+}
+fn assert_exported_source(authored:&str,fixture:&str,case:&str){
+ assert_eq!(super::support::format_round_trip(&exported_main(authored)),super::support::format_round_trip(fixture),"source differs beyond added export/formatting: {case}");
+}
 pub fn assert_sources(){
  let catalog=catalog();let mut actual=BTreeSet::new();let mut unique=BTreeSet::new();let mut scalar=BTreeSet::new();
  for family in ["std:crypto","Hasher"]{for entry in catalog[family].as_array().unwrap(){let name=entry["name"].as_str().unwrap();
@@ -49,12 +62,13 @@ pub fn assert_sources(){
  if let Some(fields)=entry["fields"].as_object(){for(field,value)in fields{for(index,_)in value["examples"].as_array().into_iter().flatten().enumerate(){actual.insert((family,name,field.as_str(),index));}}}
  }}
  let mapped=REFERENCES.iter().map(|&(family,name,field,index,_,_)|(family,name,field,index)).collect::<BTreeSet<_>>();assert_eq!(actual,mapped);assert_eq!(actual.len(),29);
- for &(family,name,field,index,case,source)in REFERENCES{let example=example(&catalog,family,name,field,index);let raw=example["source"].as_str().unwrap();let restored=source.replacen("export ","",1);assert_eq!(super::support::format_round_trip(&restored),super::support::format_round_trip(raw),"catalog source differs beyond added export/formatting: {case}");super::support::format_round_trip(source);unique.insert(raw);
+ for &(family,name,field,index,case,source)in REFERENCES{let example=example(&catalog,family,name,field,index);let raw=example["source"].as_str().unwrap();assert_exported_source(raw,source,case);unique.insert(raw);
  if matches!(name,"PasswordHashOptions"|"PasswordVerifyOptions"){scalar.insert(raw);}}
- assert_eq!(unique.len(),20);assert_eq!(scalar.len(),7);
- for &(case,_,source)in REGRESSIONS{let raw=source.replacen("export ","",1);match case{
- "crypto runtime > primitives"=>assert_eq!(super::support::format_round_trip(&raw),super::support::format_round_trip(include_str!("../../../../examples/crypto/primitives.tsr"))),
- "crypto runtime > passwords"=>assert_eq!(super::support::format_round_trip(&raw),super::support::format_round_trip(include_str!("../../../../examples/crypto/passwords.tsr"))),_=>{}}
+ assert_eq!(unique.len(),20);// Seven distinct field examples plus the shared options-record header example.
+ assert_eq!(scalar.len(),8);
+ for &(case,_,source)in REGRESSIONS{match case{
+ "crypto runtime > primitives"=>assert_exported_source(include_str!("../../../../examples/crypto/primitives.tsr"),source,case),
+ "crypto runtime > passwords"=>assert_exported_source(include_str!("../../../../examples/crypto/passwords.tsr"),source,case),_=>{}}
  super::support::format_round_trip(source);}
 }
 pub fn assert_report(output:std::process::Output){
