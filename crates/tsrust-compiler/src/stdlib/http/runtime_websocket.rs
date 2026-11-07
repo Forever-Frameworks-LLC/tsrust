@@ -75,7 +75,7 @@ mod websocket {
         pub async fn close(mut self,code:Option<i64>,reason:Option<String>)->Result<(),Error>{
             if code.is_some()||reason.is_some(){self.send(Message::Close{code,reason}).await?;}
             match &mut self{Self::Server(socket)=>SinkExt::close(socket).await.map_err(server_error)?,Self::Client(socket)=>SinkExt::close(socket).await.map_err(backend_error)?}
-            while self.receive().await?.is_some(){}Ok(())
+            while let Some(message)=self.receive().await?{if matches!(message,Message::Close{..}){break;}}Ok(())
         }
     }
     impl ReadHalf{

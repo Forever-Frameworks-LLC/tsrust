@@ -1503,7 +1503,7 @@ impl Emitter<'_> {
     ) -> String {
         if matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
             let actual = value.ty.expect("view injection");
-            let source = if infer_callable_carrier && !actual.is_copy() {
+            let source = if !actual.is_copy() {
                 self.conditional_arm(fun, value, Mode::Read)
             } else {
                 self.expr(fun, value, Mode::Read)

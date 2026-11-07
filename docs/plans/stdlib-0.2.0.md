@@ -1088,6 +1088,13 @@ measurement acceptance remain required. See docs/agent-progress.md for current
 source identity and exact scope evidence. None of these checkboxes are closed by
 source integration alone.
 
+Native acceptance, 2026-11-07: the shared five-file public runner passes all55
+cases, including all18 realtime cases and the exact output oracles. WebSocket
+HTTP upgrade handoff, full/split echo, close acknowledgment, authentication,
+frame/message limits, binary sizes and private-CA hostname/date checks execute
+successfully. Portable relocation and actual matched public measurements remain
+pending; this does not close cross-platform or complete bundle acceptance.
+
 ### B12 — Reusable regular expressions and text entry points
 
 Backend: Rust `regex`; the current user-binding example is not a bundled module.
@@ -1511,12 +1518,14 @@ actual output separately; identical direct tracing configuration for Rust.
 contextual children, access middleware, per-poll/drop context, editor documentation,
 examples, one five-case registered suite and three matched workloads are present.
 Focused editor agreement/completion/catalog/hover and unused-import selection pass;
-all compiler/LSP test harnesses type-check with logging enabled. Public runtime,
-relocated export, matched measurements and final context-drop execution remain
-pending; the checkboxes above are deliberately unchanged. The logging example's
-readiness/cancellation cleanup was corrected after the runner caught an unsettled
-Job. Keep normal suite acceptance before offline exports. See agent-progress.md
-for exact source identities and passed/failed scopes.
+all compiler/LSP test harnesses type-check with logging enabled. Public native
+execution now passes all five registered cases within the shared55case runner;
+the independent host oracle verifies ten JSON log rows, exact per-request order
+and separate concurrent contexts. Cancellation cleanup is explicitly logged after
+awaited Job settlement; abort drops owned resources and does not execute source
+finally statements. Existing backend per-drop context controls remain retained.
+Relocated export and matched measurements remain pending; the bundle checkboxes
+are deliberately unchanged. See agent-progress.md for exact source identities.
 
 ### B18 — Everyday testing facilities
 

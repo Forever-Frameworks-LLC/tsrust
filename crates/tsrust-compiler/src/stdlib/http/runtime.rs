@@ -386,7 +386,7 @@ mod tsrust_native_http {
     }
     async fn serve_connection<I>(stream:I,router:axum::Router,mut shutdown:tokio::sync::watch::Receiver<bool>) where I:tokio::io::AsyncRead+tokio::io::AsyncWrite+Unpin+Send+'static {
         let service=hyper_util::service::TowerToHyperService::new(router);
-        let io=hyper_util::rt::TokioIo::new(stream);let builder=hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new());let connection=builder.serve_connection(io,service);tokio::pin!(connection);
+        let io=hyper_util::rt::TokioIo::new(stream);let builder=hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new());let connection=builder.serve_connection_with_upgrades(io,service);tokio::pin!(connection);
         let changed=shutdown.changed();tokio::pin!(changed);let mut draining=false;
         let _=std::future::poll_fn(|cx|{if !draining && changed.as_mut().poll(cx).is_ready(){connection.as_mut().graceful_shutdown();draining=true;}connection.as_mut().poll(cx)}).await;
     }

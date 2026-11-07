@@ -10,14 +10,9 @@ async function worker(logger: Logger): Task<void> {
 }
 
 async function cancellable(logger: Logger, ready: Sender<int>): Task<void> {
-  try {
-    await ready.send(1);
-    await delay(60000);
-  } finally {
-    logger.info(() => ({
-      message: 'cleanup', count: 4, ok: true
-    }));
-  }
+  await ready.send(1);
+  await delay(60000);
+  unwrap(logger.flush());
 }
 
 async function respond(logger: ReadOnly<Logger>, context: Mutable<Context>): Task<Response> {
@@ -43,6 +38,11 @@ async function respond(logger: ReadOnly<Logger>, context: Mutable<Context>): Tas
     } catch {
       cancelled = true;
     }
+
+    // Aborting a Rust future drops its owners; cleanup code runs after settlement.
+    logger.info(() => ({
+      message: 'cleanup', count: 4, ok: true
+    }));
   }
 
   strictEqual(requested, true);

@@ -168,11 +168,10 @@ impl<'p> Emitter<'p> {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
                     let mut child_frame = Frame::new(child, mode);
-                    // Callable staging can retain borrowed arguments in a returned Task.
-                    // Keep computed owners alive across receiver/argument let-bindings;
-                    // forwarded arguments already apply this same temporary policy.
+                    // Assertion guards and returned Tasks retain readonly arguments
+                    // across let-bindings; forwarded arguments already stage owners.
                     let forward_argument=matches!(call.state,CallState::Forward{..}) && !call.rendered.is_empty();
-                    if !forward_argument && matches!(frame.expr.kind,ExprKind::Call(..)){
+                    if !forward_argument && matches!(frame.expr.kind,ExprKind::Call(..)) && (self.assertion_call_site(fun,frame.expr).is_some() || (mode==Mode::Read && frame.expr.ty.is_some_and(|ty|self.program.task_type(ty)))){
                         let(access,temporary)=self.prepare_conditional_arm_work(fun,child,mode);
                         child_frame.mode=access;
                         frame.assertion_argument_temporary=temporary;
@@ -335,7 +334,9 @@ impl<'p> Emitter<'p> {
                 rendered: Vec::new(), invocation: None, state: CallState::Conditional { infer, temporary: None } });
         }
         if let ExprKind::Inject { value, union } = &expr.kind && matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
-            let (access, temporary) = if force_carrier && !value.ty.unwrap().is_copy() {
+            // The borrowed descriptor can outlive this injection statement (e.g. in a Task).
+            // Retain its computed payload owner independently of carrier inference.
+            let (access, temporary) = if !value.ty.unwrap().is_copy() {
                 self.prepare_conditional_arm_work(fun, value, Mode::Read)
             } else { (Mode::Read, None) };
             return Some(CallFrame { children: vec![(value, access)], rendered: Vec::new(), invocation: None,

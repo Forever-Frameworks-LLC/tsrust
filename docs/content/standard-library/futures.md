@@ -5,6 +5,8 @@
 
 Tasks and async channels preserve ownership, cancellation and cleanup. Use the documented send/receive and join contracts; do not assume resources can cross task boundaries.
 
+Cancelling a started Job drops its suspended future and owned resources. Source `finally` statements run when control reaches them; dropping a future does not execute them. Put explicit cancellation cleanup in the owner that cancels and awaits the Job. Use `CancellationToken` when the task should handle cancellation cooperatively.
+
 Use `all` when every result is needed. Results keep input order; the first observed
 failure cancels siblings and waits for cleanup. `all([])` returns `void[]`;
 `Task<void>` inputs also produce `void[]`. `allSettled` retains every outcome.
