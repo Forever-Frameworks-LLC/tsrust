@@ -34,6 +34,6 @@ mod tsrust_native_crypto_password {
  pub async fn verify(capability:pool::PoolSubmission,password:&[u8],encoded:&str,policy:Option<VerifyOptions>)->Result<bool,Failure>{
   preflight(encoded,policy).map_err(Failure::Crypto)?;
   let password=Zeroizing::new(password.to_vec());let encoded=encoded.to_owned();
-  finish(pool::task_async(capability,move||Ok::<_,Infallible>(match Argon2::default().verify_password(&password,&encoded){Ok(())=>Ok(true),Err(argon2::password_hash::Error::PasswordInvalid)=>Ok(false),Err(_)=>Err(("Password","Password verification failed"))})).await)
+  finish(pool::task_async(capability,move||Ok::<_,Infallible>(match Argon2::default().verify_password(&password,encoded.as_str()){Ok(())=>Ok(true),Err(argon2::password_hash::Error::PasswordInvalid)=>Ok(false),Err(_)=>Err(("Password","Password verification failed"))})).await)
  }
 }
