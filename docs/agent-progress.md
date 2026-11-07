@@ -8,8 +8,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
-- Canonical source checkpoint ca00da44 plus accepted emitter/HTTP/example/doc
-  changes awaiting this local checkpoint. Only root writes canonical; app worktree
+- Canonical source checkpoint c7e8eced contains the accepted emitter/HTTP/example/doc
+  repairs. Only root writes canonical; app worktree
   unrelated edits remain protected. No live build/test process. Workers idle.
 - ACTUAL PASS: /tmp/tsrust-upgrade-handoff-4366908885f1.json. Selected fresh normal
   compiler CLI build terminal success,226.058s/peak2791138KiB. Shared public host
@@ -44,14 +44,68 @@ Latest accepted section — public55case native runtime; full v0.2.0 remains act
   /tmp/tsrust-*-objects-cleanup.json and
   /tmp/tsrust-task-input-obsolete-executables-cleanup.json. Earlier1.02GB/5.71GB/
  491MB recoveries are separate; do not double count.
-- NEXT: local source checkpoint; portable source preparation and actual relocated
-  offline exports LAST; matched B11 native-only measurement using cached unchanged
-  Rust/Node controls with npm run store:ingest; prepared stable family migrations
-  below; remaining full B00–B20 milestones. Public runtime success does not close
-  export,measurement,complete-regression or native four-host acceptance. No push,
+- Portable source setup PASSED offline15.1s. Corrected benchmark SSE callback to
+  async before starting its producer Job; original runtime protocols unchanged.
+  Public SSE/WebSocket server exports and release-builds offline PASS134.948s,
+  peak553583384B. Existing Rust/Node controls remain unchanged/cached; exact Node
+  ws8.18.3 archive materialized offline and package proof passes.
+- Comparable measurement deliberately INTERRUPTED with zero network/resource
+  groups: quiet guard saw sustained load12–14>=4 (Spotlight indexing and Codex
+  renderer). No timings/SQLite ingestion claimed; no --allow-busy bypass. Driver
+  /tmp/tsrust-b11-public-native-resume-measure.py ended -2,remaining[],404.275s;
+  wrapper /tmp/tsrust-b11-accepted-public-resume-results.json. Optimized public
+  package retained at target/http-realtime-public-package. Its normal program
+  alias will need fresh validation/proof after exports overwrite that alias.
+- Relocated offline exports PASS: /tmp/tsrust-upgrade-handoff-d970ae7bc9e7.json;
+  realtime18cases at debug+release,empty Cargo home,local TLS fixtures,forbid unsafe;
+  logging5cases/10exact rows at both profiles. Hosts247.074s/221.528s; total
+ 474.781s,peak884623928B,stopnull,remaining[],inside30min scope. Cleanup339607552B.
+- Temporary TLS runtime paths validated: all55pass156.562333ms, but changing
+  TSRUST_REALTIME_TLS_DIR every host invocation caused cache misses. Actual field
+  comparison proved generated Rust(1988485B SHA0f836a623062...) and graph(103933B
+  SHAdafb1961435e...) identical; only backend_sources application environment
+  identity differed. Cache identity deliberately includes all build-script env.
+- FIXED IN HARNESS,not weakened cache key: stable private temporary fixture path
+  hashes workspace+six fixture contents; standard file lock protects staging.
+  Runtime never reads Desktop certs. Reusing SAME compiler command with a filter
+  proves cache hit/nativeBuildMs0,keeping initial55JSON rows intact for benchmarks.
+  /tmp/tsrust-stable-family-6135303b69f6.json structured_logging PASS28.056s;
+  all55nativecases147.86ms,then one filtered cached case. No arbitrary env excluded.
+- All three prepared migrations below are now APPLIED+whole-project formatted:
+ 42collection cases(default),24crypto(debug/release),67bytes(debug/release).
+  Original rejections/ABI controls/profile requirements retained. Formatter112files
+  then0/idempotent; blank-only Rust trailing whitespace corrected. Acceptance
+  remains pending; do not claim177former native launches are already replaced
+  with accepted passes until actual new suites finish.
+- Latest 30min family scope /tmp/tsrust-stable-family-run.py stopped MEMORY after
+ 45.355s at5233890872B. Structured logging/cache passed; collections failed native
+  generic spread/join emission; crypto failed a source guard (export formatting
+  inserts a blank separator); bytes check grew beyond5GB before native build.
+  No higher limits/restarts. Cleanup quiet process check passed,recovered26673152B.
+- Focused diagnostic ONLY: /tmp/tsrust-bytes-memory-profile.py paused checker at
+ 800408728B,sampled1s then killed it;2.483s total,no native compile/acceptance.
+  Stack /tmp/tsrust-bytes-memory-profile.sample.txt43–67 proves CHECK phase:
+  discover_record_callbacks -> prepare_record_child -> absent_nullable_record_annotation
+  -> empty_environment_work -> absent_callback. empty_environment_work follows
+  recursive Holder.next?:Holder without active/memo state,unbounded postorder
+  frames; absent_callback identities themselves are cached. B14 reviewer owns
+  finite recursive empty-environment repair; keep all67cases intact.
+- Source-only fixes ready,NOT yet applied: collection spread/join patch
+  /tmp/tsrust-collection-spread-join-layout.patch SHA373602cb3db76ca1432ad639912b8c7d8ba84d65eee7e65d0d898cf80fb41ce1;
+  crypto authored-export sourceguard /tmp/tsrust-crypto-exported-source-guard.patch
+  SHA336270ff44860b188b3204ba0df5f1ed46705e87c701ab4c8c57ef169ade44a9.
+  Both apply-check PASS; root applies after source checkpoint,then batch with
+  reviewed bytes memory fix before ONE compiler/affected-family build.
+- Additional cleanup pruned6native cache entries with obsolete dependency identity,
+  recovered155926528B; /tmp/tsrust-accepted-runtime-obsolete-cache-cleanup.json.
+- NEXT: finish exports; move normal public suite's runtime TLS fixture reads to
+  temp fixtures as well to avoid new native executables reading Desktop files;
+  integrate prepared stable family migrations below. Resume comparable public
+  timings only when quiet,retaining unchanged controls and actual source proof.
+  Remaining full B00–B20 milestone/platform acceptance stays active. No push,
   merge or v0.2.0 publication approved by this local checkpoint.
 
-Source-only future test migrations are PREPARED, NOT APPLIED/ACCEPTED:
+Source migrations now APPLIED/formatted; acceptance pending for all three:
 - B16: /tmp/tsrust-crypto-runtime-suite-migration.patch
   SHA538e29224c353b64560a90fdd060751f6ab21fa092e39a607b624cd6f18240ef;
   25old launches→24unique registered cases, debug/release batches,29catalogrefs/

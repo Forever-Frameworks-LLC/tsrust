@@ -1,0 +1,8 @@
+import { createHasher } from 'std:crypto';
+import { fromUtf8, length } from 'std:bytes';
+
+export function main() {
+  const state = createHasher('sha256');
+  state.update(unwrap(fromUtf8('abc')));
+  console.log(length(state.finalize()));
+}

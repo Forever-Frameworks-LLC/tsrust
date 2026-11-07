@@ -1,0 +1,12 @@
+import { Deque as Queue } from 'std:collections';
+
+function create<T>(): Queue<T> {
+  return new Queue<T>();
+}
+
+function accept(value: Queue<int>) {}
+
+export function main() {
+  const values = create<int>();
+  accept(values);
+}

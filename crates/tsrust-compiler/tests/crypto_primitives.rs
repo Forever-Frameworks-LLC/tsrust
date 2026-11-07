@@ -1,34 +1,23 @@
 mod support;
+#[path="support/crypto_suite_reports.rs"] mod crypto_suite_reports;
 #[test]
-fn fixed_hashes_streams_mac_hkdf_and_all_readable_byte_positions_execute(){let source=support::format_round_trip(include_str!("../../../examples/crypto/primitives.tsr"));let directory=support::TempDirectory::new();let path=directory.source(&source);for release in [false,true]{let mut command=support::cli();command.arg("run").arg(&path);if release{command.arg("--release");}let output=support::run(&mut command,120);support::success(&output);assert_eq!(output.stdout,b"fixed digests, streaming, MAC and HKDF\n");}}
+fn crypto_registered_suite_preserves_primitive_password_and_catalog_contracts(){
+ crypto_suite_reports::assert_sources();
+ support::format_round_trip(include_str!("fixtures/crypto/runtime.test.tsr"));
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+ // Both required profiles compile the same coherent suite once, never each example separately.
+ for release in [false,true]{let mut command=support::cli();command.current_dir(&root).args(["test","crates/tsrust-compiler/tests/fixtures/crypto/runtime.test.tsr","--timeout=30000","--reporter=json","--profile"]);if release{command.arg("--release");}
+ crypto_suite_reports::assert_report(support::run(&mut command,900));}
+}
 #[test]
-fn password_jobs_use_explicit_pool_defaults_views_and_stored_forwarding(){let source=support::format_round_trip(include_str!("../../../examples/crypto/passwords.tsr"));let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),180);support::success(&output);assert_eq!(output.stdout,b"explicit bounded password work\n");}
+fn crypto_catalog_references_preserve_verbatim_registered_sources(){crypto_suite_reports::assert_sources();}
+
 #[test]
 fn hasher_lifecycle_and_exact_crypto_argument_types_are_checked(){
  for source in ["import {createHasher} from 'std:crypto';function main(){createHasher('sha1');}","import {createHasher} from 'std:crypto';function main(){const h=createHasher('sha256');const out=h.finalize();h.finalize();}","import {createHasher} from 'std:crypto';function main(){const h=createHasher('sha256');console.log(clone(h));}","import {hashPassword} from 'std:crypto';import {ThreadPool} from 'std:threads';import {alloc,set} from 'std:bytes';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:1});const bytes=unwrap(alloc(1));const task=hashPassword(pool,bytes);unwrap(set(bytes,0,1));console.log(await task);pool.shutdown();}","import {Hasher} from 'std:crypto';function bad(state:ReadOnly<Hasher>):void{state.finalize();}function main(){}","import {Hasher} from 'std:crypto';import {alloc} from 'std:bytes';function bad(state:ReadOnly<Hasher>):void{state.update(unwrap(alloc(0)));}function main(){}","import {hmacSha256} from 'std:crypto';function main(){hmacSha256('key','message');}","import {hkdfSha256} from 'std:crypto';import {alloc} from 'std:bytes';function main(){const input=unwrap(alloc(0));hkdfSha256(input,input,input,1.5);}"]{let source=support::format_round_trip(source);let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("check").arg(directory.source(&source)),30);assert!(!output.status.success(),"accepted {source}");}
 }
 #[test]
-fn crypto_catalog_and_every_declared_field_examples_execute(){
- let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let mut seen=std::collections::HashMap::new();let mut count=0;let mut scalar_examples=Vec::new();
- for entry in catalog["std:crypto"].as_array().unwrap().iter().chain(catalog["Hasher"].as_array().unwrap()){
-  let fields=entry["fields"].as_object().into_iter().flat_map(|fields|fields.values()).flat_map(|field|field["examples"].as_array().into_iter().flatten());
-  for example in entry["examples"].as_array().into_iter().flatten().chain(fields){let raw=example["source"].as_str().unwrap();let expected=example["output"].as_str().unwrap();count+=1;if let Some(previous)=seen.insert(raw,expected){assert_eq!(previous,expected,"Duplicate examples must agree");continue;}if matches!(entry["name"].as_str(),Some("PasswordHashOptions"|"PasswordVerifyOptions")){scalar_examples.push((raw,expected));}let source=support::format_round_trip(raw);let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,expected.as_bytes(),"{}",entry["name"]);}
- }assert_eq!(scalar_examples.len(),7);assert!(count>=26);assert!(seen.len()>=16);
-}
-
-#[test]
-fn crypto_ranges_password_preflight_and_closed_pool_preserve_typed_categories(){
- let source=support::format_round_trip("import {hashPassword,verifyPassword,verifyPasswordBounded,hkdfSha256,randomInt} from 'std:crypto';import {ThreadPool} from 'std:threads';import {alloc} from 'std:bytes';async function main():Task<void>{const input=unwrap(alloc(0));let count=0;try{unwrap(randomInt(1,1));}catch(error){if(error.code!=='Range'){throw 'random range';}count++;}try{unwrap(hkdfSha256(input,input,input,8161));}catch(error){if(error.code!=='Range'){throw 'HKDF range';}count++;}const pool=new ThreadPool({workers:1,capacity:1});try{try{unwrap(await hashPassword(pool,input,{memoryKiB:1}));}catch(error){if(error.code!=='Options'){throw 'options';}count++;}try{unwrap(await verifyPassword(pool,input,'$argon2id$broken'));}catch(error){if(error.code!=='Password'){throw 'PHC';}count++;}const encoded=unwrap(await hashPassword(pool,input));try{unwrap(await verifyPasswordBounded(pool,input,encoded,{maxMemoryKiB:32,maxIterations:2,maxParallelism:1}));}catch(error){if(error.code!=='Policy'){throw 'policy';}count++;}}finally{pool.shutdown();}try{unwrap(await hashPassword(pool,input));}catch(error){if(error.code!=='closed'){throw 'pool admission';}count++;}console.log(count);}");
- let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),180);support::success(&output);assert_eq!(output.stdout,b"6\n");
-}
-
-#[test]
 fn opaque_hasher_signatures_emit_their_runtime_without_a_constructor_call(){let source=support::format_round_trip("import {Hasher} from 'std:crypto';function consume(state:Owned<Hasher>):void{}function main(){}");let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("emit").arg(directory.source(&source)),30);support::success(&output);let emitted=String::from_utf8(output.stdout).unwrap();assert!(emitted.contains("mod tsrust_native_crypto {"));assert!(emitted.contains("tsrust_native_crypto::Hasher"));}
-
-#[test]
-fn module_password_aliases_and_stored_functions_preserve_lazy_pool_forwarding(){
- let source=support::format_round_trip("import {hashPassword,verifyPassword,verifyPasswordBounded} from 'std:crypto';import {ThreadPool} from 'std:threads';import {fromUtf8,view} from 'std:bytes';const hash=hashPassword;const verify=verifyPassword;const bounded=verifyPasswordBounded;const stored={hash,verify,bounded};async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:1});try{const bytes=unwrap(fromUtf8('module alias'));const password=unwrap(view(bytes,0,12));const encoded=unwrap(await stored.hash(pool,password));console.log(unwrap(await stored.verify(pool,password,encoded)));console.log(unwrap(await stored.bounded(pool,password,encoded,{maxMemoryKiB:19456,maxIterations:2,maxParallelism:1})));}finally{pool.shutdown();}}");let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),180);support::success(&output);assert_eq!(output.stdout,b"true\ntrue\n");
-}
 
 #[test]
 fn password_exports_select_the_backend_feature_and_async_pool(){

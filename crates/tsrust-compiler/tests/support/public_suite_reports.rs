@@ -33,3 +33,17 @@ pub fn combined(rows:&[Value]){
  let mut expected=LOGGING_NAMES.iter().chain(REALTIME_NAMES).chain(ITERATOR_NAMES).chain(ITERATOR_REGRESSION_NAMES).copied().collect::<Vec<_>>();expected.extend(iterator_catalog_examples::case_names());assert_eq!(expected.len(),55);assert_eq!(rows.iter().filter(|row|row["event"]=="test").count(),55);cases(rows,&expected);logging(rows);realtime(rows);iterator(rows);iterator_catalog(rows);summary(rows,55,5);
  let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);assert_eq!(builds[0]["testFiles"],5);for field in ["durationMs","checkMs","emitMs","backendMs","cacheMs","nativeBuildMs"]{let duration=builds[0][field].as_f64().unwrap();assert!(duration.is_finite()&&duration>=0.0,"{field}");}
 }
+
+const REALTIME_TLS_FIXTURES:&[(&str,&str)]=&[("ca.pem",include_str!("../fixtures/tls/ca.pem")),("server.pem",include_str!("../fixtures/tls/server.pem")),("server.key",include_str!("../fixtures/tls/server.key")),("wrong-host.pem",include_str!("../fixtures/tls/wrong-host.pem")),("expired.pem",include_str!("../fixtures/tls/expired.pem")),("future.pem",include_str!("../fixtures/tls/future.pem"))];
+/// Keep runtime certificate reads outside protected project folders and exported source paths.
+pub fn realtime_tls_fixtures(directory:&std::path::Path)->std::path::PathBuf{
+ let fixtures=directory.join("tls");std::fs::create_dir_all(&fixtures).unwrap();
+ let lock=std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(fixtures.join(".lock")).unwrap();lock.lock().unwrap();
+ for &(name,source)in REALTIME_TLS_FIXTURES{let path=fixtures.join(name);if std::fs::read(&path).ok().as_deref()!=Some(source.as_bytes()){std::fs::write(path,source).unwrap();}}
+ fixtures
+}
+pub fn realtime_tls_fixture_cache()->std::path::PathBuf{
+ use std::hash::{Hash,Hasher};let mut identity=std::collections::hash_map::DefaultHasher::new();env!("CARGO_MANIFEST_DIR").hash(&mut identity);REALTIME_TLS_FIXTURES.hash(&mut identity);
+ // Runtime fixture paths enter the compiler's build-environment identity too.
+ realtime_tls_fixtures(&std::env::temp_dir().join(format!("tsrust-realtime-fixtures-{:016x}",identity.finish())))
+}

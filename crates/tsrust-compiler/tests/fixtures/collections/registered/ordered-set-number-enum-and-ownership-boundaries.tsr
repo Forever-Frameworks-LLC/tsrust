@@ -1,0 +1,67 @@
+import { OrderedSet } from 'std:collections';
+import { strictEqual } from 'std:testing';
+enum Code {
+  Low = 1, High = 4
+}
+
+enum Label {
+  Last = 'z', First = 'a'
+}
+
+function take(...words: string[]): int {
+  let size = 0;
+  for (const word of words) {
+    size += word.length;
+  }
+
+  return size;
+}
+
+export function main() {
+  const numbers = new OrderedSet<number>();
+  numbers.add(-0.0);
+  numbers.add(0.0);
+  numbers.add(NaN);
+  numbers.add(NaN);
+  numbers.add(Infinity);
+  numbers.add(-Infinity);
+  strictEqual(numbers.size, 4);
+  strictEqual(numbers.has(NaN), true);
+  strictEqual(numbers.has(-0.0), true);
+  const sorted = [...numbers];
+  strictEqual(sorted[0], -Infinity);
+  strictEqual(1.0 / sorted[1], Infinity);
+  strictEqual(sorted[2], Infinity);
+  strictEqual(Number.isNaN(sorted[3]), true);
+  strictEqual(numbers.delete(NaN), true);
+  strictEqual(numbers.has(NaN), false);
+  const codes = new OrderedSet<Code>();
+  codes.add(Code.High);
+  codes.add(Code.Low);
+  strictEqual(codes.has(Code.Low), true);
+  strictEqual(codes.delete(Code.High), true);
+  for (const code of codes) {
+    strictEqual(code, Code.Low);
+  }
+
+  const flags = new OrderedSet<boolean>();
+  flags.add(true);
+  flags.add(false);
+  const ordered = [...flags];
+  strictEqual(ordered[0], false);
+  const labels = new OrderedSet<Label>();
+  labels.add(Label.Last);
+  labels.add(Label.First);
+  strictEqual(labels.has(Label.First), true);
+  strictEqual(labels.delete(Label.Last), true);
+  const unicode = new OrderedSet<string>();
+  unicode.add('😀');
+  unicode.add('\uE000');
+  const sequence = [...unicode];
+  strictEqual(sequence[0], '\uE000');
+  strictEqual(sequence[1], '😀');
+  const words = new OrderedSet<string>();
+  words.add('a');
+  words.add('bb');
+  strictEqual(take(...words), 3);
+}

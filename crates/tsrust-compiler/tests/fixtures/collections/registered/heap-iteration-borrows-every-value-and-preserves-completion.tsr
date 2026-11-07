@@ -1,0 +1,46 @@
+import { Heap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function first(values: ReadOnly<Heap<int>>): int {
+  for (const value of values) {
+    try {
+      return value;
+    } finally {
+      strictEqual(values.size, 3);
+    }
+  }
+
+  return -1;
+}
+
+export function main() {
+  const values = new Heap<int>();
+  values.push(2);
+  values.push(9);
+  values.push(4);
+  let count = 0;
+  let sum = 0;
+  for (const value of values) {
+    sum += value;
+    count++;
+  }
+
+  strictEqual(count, 3);
+  strictEqual(sum, 15);
+  strictEqual(values.size, 3);
+  strictEqual(first(values) > 0, true);
+  const words = new Heap<string>();
+  words.push('abc');
+  words.push('xy');
+  let length = 0;
+  for (const word of words) {
+    length += word.length;
+  }
+
+  strictEqual(length, 5);
+  strictEqual(words.size, 2);
+  words.clear();
+  for (const word of words) {
+    throw 'empty heap visited';
+  }
+}

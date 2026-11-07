@@ -1,0 +1,170 @@
+import { test } from 'std:testing';
+import { main as case0 } from './deque-clone-is-deep-and-requires-cloneable-payloads.tsr';
+import { main as case1 } from './deque-callback-records-preserve-borrowed-captures.tsr';
+import { main as case2 } from './deque-callback-records-join-distinct-environments.tsr';
+import { main as case3 } from './deque-callback-records-retain-native-view-captures.tsr';
+import { main as case4 } from './returned-deque-callback-records-keep-parameter-owners.tsr';
+import { main as case5 } from './deque-iteration-borrows-in-front-to-back-order.tsr';
+import { main as case6 } from './deque-iteration-retains-views-and-handles-early-completion.tsr';
+import { main as case7 } from './deque-end-operations-move-values-and-borrow-reads.tsr';
+import { main as case8 } from './deque-view-transport-keeps-owners-and-rejects-mutation-conflicts.tsr';
+import { main as case9 } from './deque-construction-uses-import-identity-and-owned-native-storage-1.tsr';
+import { main as case10 } from './deque-construction-uses-import-identity-and-owned-native-storage-2.tsr';
+import { main as case11 } from './empty-deque-of-views-returns-without-inventing-an-owner.tsr';
+import { main as case12 } from './maps-hold-borrowed-native-views-without-copying-and-clones-are-independent.tsr';
+import { main as case13 } from './returned-map-views-keep-selected-owner-through-parameters-and-capture.tsr';
+import { main as case14 } from './projected-and-recursive-map-views-execute-with-real-owner-lifetimes-1.tsr';
+import { main as case15 } from './projected-and-recursive-map-views-execute-with-real-owner-lifetimes-2.tsr';
+import { main as case16 } from './heap-orders-scalars-and-transfers-owned-values.tsr';
+import { main as case17 } from './heap-number-enum-order-and-invalid-access-are-checked.tsr';
+import { main as case18 } from './heap-iteration-borrows-every-value-and-preserves-completion.tsr';
+import { main as case19 } from './native-collection-spread-preserves-copy-borrow-and-move.tsr';
+import { main as case20 } from './native-collection-spread-retains-view-owners-1.tsr';
+import { main as case21 } from './native-collection-spread-retains-view-owners-2.tsr';
+import { main as case22 } from './native-collection-spread-retains-view-owners-3.tsr';
+import { main as case23 } from './deque-borrowed-array-reads-support-non-null-projection.tsr';
+import { main as case24 } from './deque-borrowed-nested-indexing-reads-without-transfers.tsr';
+import { main as case25 } from './ordered-set-public-surface-preserves-order-and-borrowed-queries.tsr';
+import { main as case26 } from './ordered-set-number-enum-and-ownership-boundaries.tsr';
+import { main as case27 } from './ordered-map-public-constructor-preserves-sorted-owned-storage.tsr';
+import { main as case28 } from './map-set-copied-key-can-feed-the-value-expression.tsr';
+import { main as case29 } from './ordered-map-converts-to-independent-ordinary-map.tsr';
+import { main as case30 } from './ordered-map-array-from-borrows-sorted-entries.tsr';
+import { main as case31 } from './ordered-map-array-from-preserves-view-payloads-and-copy-boundaries.tsr';
+import { main as case32 } from './ordered-map-owned-spread-transfers-sorted-entries.tsr';
+import { main as case33 } from './ordered-map-owned-spread-retains-noncloneable-payloads.tsr';
+import { main as case34 } from './ordered-map-readonly-spread-borrows-mixed-entry-sources.tsr';
+import { main as case35 } from './ordered-map-readonly-spread-keeps-view-owners.tsr';
+import { main as case36 } from './ordered-map-spread-combines-readonly-and-owning-parameters.tsr';
+import { main as case37 } from './ordered-map-spread-handles-optional-readonly-entries.tsr';
+import { main as case38 } from './ordered-map-spread-returns-original-view-projection-1.tsr';
+import { main as case39 } from './ordered-map-spread-returns-original-view-projection-2.tsr';
+import { main as case40 } from './ordered-map-spread-mixes-nullable-entry-sources.tsr';
+import { main as case41 } from './ordered-map-parameters-and-branches-preserve-family-and-order.tsr';
+
+test('deque-clone-is-deep-and-requires-cloneable-payloads', (): void => {
+  case0();
+});
+test('deque-callback-records-preserve-borrowed-captures', (): void => {
+  case1();
+});
+test('deque-callback-records-join-distinct-environments', (): void => {
+  case2();
+});
+test('deque-callback-records-retain-native-view-captures', (): void => {
+  case3();
+});
+test('returned-deque-callback-records-keep-parameter-owners', (): void => {
+  case4();
+});
+test('deque-iteration-borrows-in-front-to-back-order', (): void => {
+  case5();
+});
+test('deque-iteration-retains-views-and-handles-early-completion', (): void => {
+  case6();
+});
+test('deque-end-operations-move-values-and-borrow-reads', (): void => {
+  case7();
+});
+test('deque-view-transport-keeps-owners-and-rejects-mutation-conflicts', (): void => {
+  case8();
+});
+test('deque-construction-uses-import-identity-and-owned-native-storage-1', (): void => {
+  case9();
+});
+test('deque-construction-uses-import-identity-and-owned-native-storage-2', (): void => {
+  case10();
+});
+test('empty-deque-of-views-returns-without-inventing-an-owner', (): void => {
+  case11();
+});
+test('maps-hold-borrowed-native-views-without-copying-and-clones-are-independent', (): void => {
+  case12();
+});
+test('returned-map-views-keep-selected-owner-through-parameters-and-capture', (): void => {
+  case13();
+});
+test('projected-and-recursive-map-views-execute-with-real-owner-lifetimes-1', (): void => {
+  case14();
+});
+test('projected-and-recursive-map-views-execute-with-real-owner-lifetimes-2', (): void => {
+  case15();
+});
+test('heap-orders-scalars-and-transfers-owned-values', (): void => {
+  case16();
+});
+test('heap-number-enum-order-and-invalid-access-are-checked', (): void => {
+  case17();
+});
+test('heap-iteration-borrows-every-value-and-preserves-completion', (): void => {
+  case18();
+});
+test('native-collection-spread-preserves-copy-borrow-and-move', (): void => {
+  case19();
+});
+test('native-collection-spread-retains-view-owners-1', (): void => {
+  case20();
+});
+test('native-collection-spread-retains-view-owners-2', (): void => {
+  case21();
+});
+test('native-collection-spread-retains-view-owners-3', (): void => {
+  case22();
+});
+test('deque-borrowed-array-reads-support-non-null-projection', (): void => {
+  case23();
+});
+test('deque-borrowed-nested-indexing-reads-without-transfers', (): void => {
+  case24();
+});
+test('ordered-set-public-surface-preserves-order-and-borrowed-queries', (): void => {
+  case25();
+});
+test('ordered-set-number-enum-and-ownership-boundaries', (): void => {
+  case26();
+});
+test('ordered-map-public-constructor-preserves-sorted-owned-storage', (): void => {
+  case27();
+});
+test('map-set-copied-key-can-feed-the-value-expression', (): void => {
+  case28();
+});
+test('ordered-map-converts-to-independent-ordinary-map', (): void => {
+  case29();
+});
+test('ordered-map-array-from-borrows-sorted-entries', (): void => {
+  case30();
+});
+test('ordered-map-array-from-preserves-view-payloads-and-copy-boundaries', (): void => {
+  case31();
+});
+test('ordered-map-owned-spread-transfers-sorted-entries', (): void => {
+  case32();
+});
+test('ordered-map-owned-spread-retains-noncloneable-payloads', (): void => {
+  case33();
+});
+test('ordered-map-readonly-spread-borrows-mixed-entry-sources', (): void => {
+  case34();
+});
+test('ordered-map-readonly-spread-keeps-view-owners', (): void => {
+  case35();
+});
+test('ordered-map-spread-combines-readonly-and-owning-parameters', (): void => {
+  case36();
+});
+test('ordered-map-spread-handles-optional-readonly-entries', (): void => {
+  case37();
+});
+test('ordered-map-spread-returns-original-view-projection-1', (): void => {
+  case38();
+});
+test('ordered-map-spread-returns-original-view-projection-2', (): void => {
+  case39();
+});
+test('ordered-map-spread-mixes-nullable-entry-sources', (): void => {
+  case40();
+});
+test('ordered-map-parameters-and-branches-preserve-family-and-order', (): void => {
+  case41();
+});

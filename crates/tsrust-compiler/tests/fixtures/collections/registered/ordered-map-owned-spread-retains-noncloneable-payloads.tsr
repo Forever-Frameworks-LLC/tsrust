@@ -1,0 +1,47 @@
+import { OrderedMap } from 'std:collections';
+import { Bytes, ByteView, fromUtf8, view, length } from 'std:bytes';
+import { strictEqual } from 'std:testing';
+
+function bytes(): Bytes {
+  match (fromUtf8('ab')) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function window(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function total(...entries: [int, ByteView][]): int {
+  let sum = 0;
+  for (const entry of entries) {
+    sum += entry[0] + length(entry[1]);
+  }
+
+  return sum;
+}
+
+export function main() {
+  const owner = bytes();
+  const values = new OrderedMap<int, ByteView>();
+  values.set(2, window(owner));
+  values.set(1, window(owner));
+  const entries = [...values];
+  strictEqual(entries[0][0], 1);
+  strictEqual(length(entries[1][1]), 2);
+  const more = new OrderedMap<int, ByteView>();
+  more.set(3, window(owner));
+  strictEqual(total(...more), 5);
+}

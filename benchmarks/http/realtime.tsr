@@ -40,7 +40,7 @@ async function main(): Task<void> {
 
     await next();
   });
-  app.get('/sse', context => {
+  app.get('/sse', async context => {
     const channel = new Channel<SseEvent>(1);
     const producer = events(channel.sender()).start();
     return sseWithProducer(channel, producer);

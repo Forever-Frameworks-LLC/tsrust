@@ -1,0 +1,20 @@
+import { OrderedMap as Tree } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+export function main() {
+  const values = new Tree<string, int>();
+  values.set('z', 3);
+  values.set('a', 1);
+  values.set('m', 2);
+  let seen = '';
+  for (const entry of values) {
+    seen += entry[0];
+  }
+
+  strictEqual(seen, 'amz');
+  strictEqual(values.get('m'), 2);
+  const copy = clone(values);
+  strictEqual(copy.delete('a'), true);
+  strictEqual(values.size, 3);
+  strictEqual(copy.size, 2);
+}

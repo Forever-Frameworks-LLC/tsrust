@@ -1,0 +1,25 @@
+import { Heap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+enum Priority {
+  Low = 1, High = 9
+}
+
+export function main() {
+  const values = new Heap<number>();
+  values.push(-0.0);
+  values.push(Infinity);
+  values.push(NaN);
+  values.push(-Infinity);
+  strictEqual(Number.isNaN(values.pop()!), true);
+  strictEqual(values.pop(), Infinity);
+  strictEqual(Object.is(values.pop()!, 0.0), true);
+  strictEqual(values.pop(), -Infinity);
+  const priorities = new Heap<Priority>();
+  priorities.push(Priority.Low);
+  priorities.push(Priority.High);
+  strictEqual(priorities.pop(), Priority.High);
+  const flags = new Heap<boolean>();
+  flags.push(false);
+  flags.push(true);
+  strictEqual(flags.pop(), true);
+}

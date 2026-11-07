@@ -1,0 +1,8 @@
+import { PasswordHashOptions } from 'std:crypto';
+
+export function main() {
+  const options: PasswordHashOptions = {
+    iterations: 1
+  };
+  console.log(options.iterations);
+}

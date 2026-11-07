@@ -1,0 +1,12 @@
+import { fromArray } from 'std:bytes';
+
+export function run() {
+  match (fromArray([256])) {
+    Ok(bytes) => {
+      throw 'unexpected success';
+    },
+    Err(error) => {
+      console.log(Object.keys(error).join(','));
+    }
+  }
+}

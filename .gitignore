@@ -1,5 +1,6 @@
 /target/
 /benchmarks/runtime/node_modules/
+/benchmarks/runtime/admission/realtime/node_modules/
 
 /editors/vscode/node_modules/
 /editors/vscode/out/

@@ -1,0 +1,26 @@
+import { OrderedMap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function text(entry: ReadOnly<[string, string] | null>): string {
+  if (entry === null) {
+    return '-';
+  }
+
+  return entry[0] + entry[1];
+}
+
+function read(first: ReadOnly<[string, string] | null>, second: ReadOnly<[string, string] | null>): string {
+  return text(first) + text(second);
+}
+
+export function main() {
+  const values = new OrderedMap<string, string>();
+  values.set('a', '1');
+  const absent: ([string, string] | null)[] = [null];
+  strictEqual(read(...values, ...absent), 'a1-');
+  strictEqual(read(...absent, ...values), '-a1');
+  strictEqual(values.size, 1);
+  const present: ([string, string] | null)[] = [['b', '2']];
+  strictEqual(read(...values, ...present), 'a1b2');
+  strictEqual(read(...present, ...values), 'b2a1');
+}
