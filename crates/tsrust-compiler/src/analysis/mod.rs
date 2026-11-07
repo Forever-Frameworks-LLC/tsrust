@@ -3632,7 +3632,7 @@ impl Analyzer {
         // concrete bodies iteratively in run(), rather than unfolding native
         // type contexts on the compiler stack. Callable results still need
         // immediate checking to resolve their concrete returned environment.
-        Ok((id, !self.discovering_results && self.callable_result_type(self.signatures[id].result)))
+        Ok((id, (!self.discovering_results && self.callable_result_type(self.signatures[id].result)) || self.physical_record_result_needed(self.signatures[id].result)))
     }
 
     fn specialize(&mut self, index: usize, args: &[Expr], span: Span) -> Result<usize, Diagnostic> {
@@ -5213,10 +5213,12 @@ impl Analyzer {
                 let Type::Closure(origin) = actual else { unreachable!("task environment") };
                 // A task owns its environment even when its body only reads it.
                 self.closures[origin].invocation=Mode::Consume;
-                let owned=self.closures[origin].captures.iter().filter(|capture|capture.storage==Mode::Consume).map(|capture|(capture.inner,capture.access)).collect::<Vec<_>>();
-                for (id,access) in owned {
+                let owned=self.closures[origin].captures.iter().filter(|capture|matches!(capture.storage,Mode::Consume|Mode::Copy)).map(|capture|(capture.inner,capture.access,capture.storage)).collect::<Vec<_>>();
+                for (id,access,storage) in owned {
                     let binding=&mut self.closures[origin].function.bindings[id];
-                    binding.mode=Mode::Consume;
+                    // Consuming a task moves owned fields and private scalar
+                    // copies; neither representation is a receiver reborrow.
+                    binding.mode=storage;
                     binding.capture_reference=false;
                     binding.mutable|=access==Mode::Mutate;
                 }

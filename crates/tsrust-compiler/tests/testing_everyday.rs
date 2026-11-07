@@ -14,10 +14,18 @@ function main(){
  let tree:Node={value:0,children:[]};let i=0;while(i<10000){tree={value:i,children:[tree]};i++;}const copied=clone(tree);deepStrictEqual(tree,copied);strictEqual(tree.value,9999);
 }
 "#);}
-#[test]fn rejects_checked_payloads_and_resource_cleanup_execute(){native(r#"
-import {rejects,trackedResource,resourceId,releaseCount,strictEqual} from 'std:testing';import {delay} from 'std:futures';import {compile} from 'std:regex';
-async function main():Task<void>{await rejects(async()=>{unwrap(compile('('));});let id=0;await rejects(async()=>{const resource=trackedResource();id=resourceId(resource);await delay(0);throw {code:'expected',retry:false};});strictEqual(releaseCount(id),1);await rejects(async()=>{const failure:int|string='typed';throw failure;});}
-"#);}
+#[test]fn rejects_checked_payloads_and_resource_cleanup_execute(){
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(r#"
+import {rejects,trackedResource,resourceId,releaseCount} from 'std:testing';import {delay} from 'std:futures';import {compile} from 'std:regex';
+async function main():Task<void>{
+ await rejects(async()=>{unwrap(compile('('));});
+ await rejects(async()=>{let id=0;try{const resource=trackedResource();id=resourceId(resource);await delay(0);throw {code:'expected',retry:false};}finally{console.log(releaseCount(id));}});
+ await rejects(async()=>{const failure:int|string='typed';throw failure;});
+}
+"#);let path=directory.source(&source);let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);
+ // The host checks cleanup independently: rejects must not hide a failed cleanup assertion.
+ assert_eq!(output.stdout,b"1\n");assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
+}
 #[test]fn structural_assertions_reject_unsupported_nested_values_and_report_mismatch(){
  let directory=support::TempDirectory::new();for(body,code)in[("const callback=():int=>7;deepStrictEqual({callback},{callback});","unsupported"),("const value=trackedResource();deepStrictEqual([value],[trackedResource()]);","native-capability")]{let source=format!("import {{deepStrictEqual,trackedResource}} from 'std:testing';function main(){{{body}}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains(code),"{}",String::from_utf8_lossy(&output.stderr));}
  let path=directory.source("import {deepStrictEqual} from 'std:testing';function main(){deepStrictEqual([1,2],[1,3],'nested mismatch');}");let output=support::run(support::cli().arg("run").arg(path),180);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("nested mismatch"));
@@ -52,7 +60,12 @@ test('next body',async()=>{strictEqual(sender===undefined,true);});
 import {compile} from 'std:regex';import {deepStrictEqual} from 'std:testing';
 function main(){const regex=unwrap(compile('(é)'));const snapshots=regex.findAll('é é');deepStrictEqual(snapshots,clone(snapshots));}
 "#);}
-#[test]fn rejects_does_not_satisfy_itself_or_accept_native_panics(){let directory=support::TempDirectory::new();for(body,message)in[("await rejects(async()=>{});","Expected task to reject"),("await rejects(async()=>{fail('native failure');});","native failure")]{let source=format!("import {{rejects,fail}} from 'std:testing';async function main():Task<void>{{{body}}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("run").arg(path),180);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains(message),"{}",String::from_utf8_lossy(&output.stderr));}}
+#[test]fn rejects_does_not_satisfy_itself_or_accept_native_panics(){
+ let directory=support::TempDirectory::new();std::fs::write(directory.0.join("panic.rs"),"pub fn native_panic()->i64{panic!(\"native panic sentinel\")}").unwrap();
+ for(body,message)in[("await rejects(async()=>{});","Expected task to reject"),("await rejects(async()=>{native_panic();});","native panic sentinel")]{let source=format!("import {{rejects}} from 'std:testing';import {{native_panic}} from './panic.rs';async function main():Task<void>{{{body}}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("run").arg(path),180);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains(message),"{}",String::from_utf8_lossy(&output.stderr));}
+ native("import {rejects,fail} from 'std:testing';async function main():Task<void>{await rejects(async()=>{fail('checked assertion payload');});}");
+}
+
 #[test]fn cancelling_rejects_remains_cancelled(){native(r#"
 import {rejects,strictEqual} from 'std:testing';import {delay} from 'std:futures';
 async function waitForFailure():Task<void>{await rejects(async()=>{await delay(60000);throw 'eventual';});}
@@ -252,8 +265,13 @@ function main(){
  try{userFailure();}catch(error){console.log(error.source);console.log(error.start);console.log(error.end);}
 }
 "#);
- let start=source.find("strictEqual(item(").unwrap();let end=start+source[start..].find("'caught payload')").unwrap()+"'caught payload')".len();let division=source.find("/zero()").unwrap();
- std::fs::write(&path,&source).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
+ std::fs::write(&path,&source).unwrap();
+ // The checked generic-call fact retains the actual parsed invocation extent,
+ // including formatter-inserted whitespace and argument line wrapping.
+ let graph=tsrust_compiler::project::load_project(&tsrust_compiler::project::FileSourceProvider,path.to_str().unwrap()).unwrap();let checked=tsrust_compiler::project::check_graph(graph).unwrap();
+ let call=checked.generic_calls().into_iter().find(|call|call.location.source.0.ends_with("/caught-assertion.tsr")&&source[call.location.span.start..call.location.span.end].contains("caught payload")).expect("checked assertion invocation");let start=call.location.span.start;let end=call.location.span.end;
+ let divisions=source.match_indices('/').map(|(offset,_)|offset).collect::<Vec<_>>();assert_eq!(divisions.len(),1);let division=divisions[0];
+ let output=support::run(support::cli().arg("run").arg(&path),180);support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
  let stdout=String::from_utf8(output.stdout).unwrap();let lines=stdout.lines().collect::<Vec<_>>();assert_eq!(lines.len(),9,"{stdout}");assert_eq!(lines[0],"AssertionError");assert_eq!(lines[1],"assertion");assert_eq!(lines[2],"true");assert!(lines[3].ends_with("/caught-assertion.tsr"),"{stdout}");assert_eq!(lines[4],start.to_string());assert_eq!(lines[5],end.to_string());assert_eq!(lines[6],lines[3]);assert_eq!(lines[7],division.to_string());assert_eq!(lines[8],(division+1).to_string());
 }
 
@@ -284,10 +302,31 @@ async function main():Task<void>{
  await factory(():Task<void>=>delay(0));strictEqual(7,7);
 }
 "#);let path=directory.source(&source);let output=support::run(support::cli().arg("emit").arg(&path),30);support::success(&output);let rust=String::from_utf8(output.stdout).unwrap();
- // The erased synchronous factory and the assertion both keep their sites.
- // Actual Task invocation emits await internally and must never hold TLS.
+ // This factory specializes to a known non-asserting concrete closure, so
+ // it needs no site. Actual Task invocation emits await internally and must
+ // never hold TLS. The trusted assertion still exercises the guarded path.
+ assert!(rust.contains("OnceCallback::invoke_once(value0, ())"),"Concrete synchronous factory still returns its Task without an internal await");
+ assert!(rust.matches(".await").count()>=4,"Task invocation paths remain present");
  let marker="let _assertion_site=TsrAssertionGuard::new(";let mut guards=0;
  for(site,_)in rust.match_indices(marker){let start=rust[..site].rfind("{ ").expect("provenance block");let mut depth=0;let mut end=None;for(index,byte)in rust.as_bytes()[start..].iter().enumerate(){if *byte==b'{'{depth+=1;}else if *byte==b'}'{depth-=1;if depth==0{end=Some(start+index+1);break;}}}let block=&rust[start..end.expect("balanced provenance block")];assert!(!block.contains(".await"),"Assertion provenance crossed suspension: {block}");guards+=1;}
- assert_eq!(guards,2,"Only the synchronous factory and assertion receive guards");
+ assert_eq!(guards,1,"Only the trusted assertion receives a guard for these concrete origins");
  let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn rejects_started_and_cancelled_jobs_do_not_depend_on_prior_generic_aliases(){
+ let source=support::format_round_trip(r#"
+import {rejects,fail} from 'std:testing';import {delay} from 'std:futures';
+async function crash():Task<void>{fail('worker panic transported as checked data');}
+async function waitForever():Task<void>{await delay(60000);}
+async function main():Task<void>{
+ await rejects(async()=>{const job=crash().start();await job;});
+ await rejects(async()=>{const job=waitForever().start();job.cancel();await job;});
+ console.log('checked transport observed');
+}
+"#);
+ let directory=support::TempDirectory::new();let path=directory.source(&source);
+ let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);
+ assert_eq!(output.stdout,b"checked transport observed\n");
+ if !output.stderr.is_empty(){assert!(String::from_utf8_lossy(&output.stderr).contains("worker panic transported as checked data"));}
 }

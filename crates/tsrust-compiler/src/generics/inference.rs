@@ -340,6 +340,16 @@ impl Types<'_> {
                                 absent.extend(known);
                             } else { unresolved.push(value); }
                         }
+                        if unresolved.len()>1 && !matches!(actual,Type::Union(_)) {
+                            // Distinct outer shapes can identify one payload (for example T[] versus Holder<T>).
+                            // Never choose the first compatible alternative or merge conflicting bindings.
+                            let mut candidates=Vec::new();
+                            for value in &unresolved {
+                                let mut candidate=bindings.clone();
+                                if self.unify(value,actual,variables,&mut candidate).is_ok() && !candidates.contains(&candidate){candidates.push(candidate);}
+                            }
+                            if candidates.len()==1 {*bindings=candidates.pop().unwrap();continue;}
+                        }
                         if unresolved.len() != 1 {
                             return Err(Diagnostic::new("generic-inference", "Union inference requires one unresolved payload pattern; provide explicit type arguments for ambiguous patterns.", pattern.span));
                         }
@@ -1122,4 +1132,17 @@ mod nullable_tests {
             vec![nullable]
         );
     }
+}
+
+#[cfg(test)]
+#[test]
+fn distinct_generic_union_payload_shapes_infer_without_first_match_bias(){
+    for source in [
+        "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function main(){consume([1]);const holder:Holder<int>={value:2};consume(holder);}",
+        "type Holder<T>={value:T;};function consume<T>(value:Holder<T>|T[]):void{}function main(){consume([1]);}",
+    ]{crate::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source)));}
+    for source in [
+        "function ambiguous<T>(value:T[]|T):void{}function main(){ambiguous([1]);}",
+        "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function main(){consume<int>(['wrong']);}",
+    ]{assert!(crate::check(source).is_err(),"{source}");}
 }

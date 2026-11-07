@@ -42,7 +42,8 @@ impl Analyzer {
         // result types do not. Keep those checked methods distinct as well.
         if let Some(application) = self.program.functions[function].application.clone() {
             for argument in &application.arguments {
-                types.push(self.callable_resolver().resolve_value_annotation(argument, false)?);
+                // Type arguments may be unit; executable value positions remain checked separately.
+                types.push(self.callable_resolver().resolve_value_annotation(argument, true)?);
             }
         }
         let key = (origin, types, self.effects_only, self.discovering_results);
@@ -80,4 +81,17 @@ impl Analyzer {
         self.closure_specializations.insert(key, method);
         Ok(method)
     }
+}
+
+#[cfg(test)]
+mod unit_task_alias_tests {
+ #[test]
+ fn generic_task_aliases_keep_unit_and_nonunit_result_arguments(){
+  for body in ["throw 'failure';","return 7;"] {
+   let source=format!("async function observe<T>(action:Once<Function<Task<T>>>):Task<void>{{try{{await action();}}catch{{}}}}async function main():Task<void>{{const alias=observe;await alias(async()=>{{{body}}});}}");
+   drop(crate::check(&source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",&source))).emit_rust());
+  }
+  let invalid="function consume<T>(value:T):void{}function main(){const alias=consume;alias<void>(undefined);}";
+  assert!(crate::check(invalid).is_err(),"unit type arguments do not permit scalar void values");
+ }
 }

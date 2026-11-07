@@ -27,6 +27,9 @@ impl Storage {
                         .iter()
                         .flat_map(|closure| closure.methods.iter().map(|method| &method.function)),
                 )
+                // Symbolic template bodies retain source origins across DCE;
+                // only executable bodies use the compacted native arena.
+                .filter(|function| !function.template)
             {
                 crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
                     if !matches!(expr.kind, ExprKind::Closure { .. }) {
@@ -271,4 +274,30 @@ mod tests {
         assert_eq!(closure.function.bindings[capture.inner].ty, point_type);
         assert_eq!(closure.lifetime_count, source_lifetimes);
     }
+}
+
+#[cfg(test)]
+mod symbolic_template_tests {
+ use super::*;
+ fn source_with_symbolic_origin(template:bool)->CheckedProgram {
+  let mut program=crate::check("function main(){const action=():int=>1;console.log(action());}").unwrap().program;
+  let mut function=program.functions.pop().expect("main function");
+  function.template=template;
+  let span=crate::Span::default();
+  let value=Expr {ty:Some(Type::Closure(program.closures.len()+7)),..Expr::new(ExprKind::Closure{id:0,params:Vec::new(),result:ResultAnnotation::Inferred(span),body:Vec::new()},span)};
+  function.body=vec![Stmt{labels:Vec::new(),control_target:None,span,kind:StmtKind::Expr(value)}];
+  program.functions.push(function);program
+ }
+ #[test]
+ fn native_capture_storage_ignores_symbolic_template_source_origins(){
+  let program=source_with_symbolic_origin(true);
+  let storage=Storage::new(&program,&Default::default());
+  assert_eq!(storage.lifetimes.len(),program.closures.len());
+ }
+ #[test]
+ #[should_panic(expected="index out of bounds")]
+ fn executable_capture_origins_still_require_the_actual_compacted_arena(){
+  let program=source_with_symbolic_origin(false);
+  let _=Storage::new(&program,&Default::default());
+ }
 }

@@ -146,10 +146,20 @@ impl Emitter<'_> {
             let Some(&origin)=self.program.function_specializations.get(&function)else{break;};function=origin;
         }false
     }
+    // Source-generated callable adapters reuse the function-value span for
+    // their entire forwarding call. Real parsed calls extend past the callee.
+    fn assertion_adapter(&self,function:&CheckedFunction)->Option<usize>{
+        let [statement]=function.body.as_slice() else{return None;};
+        let StmtKind::Return(Some(call))=&statement.kind else{return None;};
+        let ExprKind::Call(callee,_)=&call.kind else{return None;};
+        if call.span!=callee.span{return None;}
+        match call.target?{CallTarget::Function(index)|CallTarget::ForwardFunction(index) if self.assertion_function(index)=>Some(index),_=>None}
+    }
     fn assertion_origin(&self,origin:usize)->bool {
         let mut seen=HashSet::new();let mut pending=vec![origin];
         while let Some(origin)=pending.pop(){
             if !seen.insert(origin){continue;}
+            if self.assertion_adapter(&self.program.closures[origin].function).is_some(){return true;}
             if self.program.deferred_generic_sources.get(&origin).is_some_and(|source|self.assertion_declaration_name(&source.text)){return true;}
             if self.program.polymorphic_storage.contains(origin){
                 pending.extend(self.program.polymorphic_storage.checked(origin,&self.program.closures,self.program.closures[origin].span).expect("checked assertion candidate storage").origins);
@@ -169,6 +179,7 @@ impl Emitter<'_> {
         let graph=self.source_graph?;
         if !graph.modules.keys().any(|source|source.0=="std:testing"){return None;}
         let ExprKind::Call(callee,_)=&expression.kind else{return None;};
+        if self.assertion_adapter(function).is_some()&&expression.span==callee.span{return None;}
         // Task invocation adapters await internally. Only synchronous calls may
         // hold thread-local provenance; a synchronous factory returning a Task
         // still qualifies because its callable kind is not Task.
@@ -191,16 +202,16 @@ impl Emitter<'_> {
             _=>false,
         };
         if !candidate{return None;}
-        let (source,base,_)=self.source_segments.iter().find(|(_,base,len)|callee.span.start>=*base&&expression.span.end<=base+len)?;
+        let (source,base,_)=self.source_segments.iter().find(|(_,base,len)|expression.span.start>=*base&&expression.span.end<=base+len)?;
         // Internal facade calls inherit the invocation, never its definition or
         // the earlier construction of a stored function value.
         if source.0.starts_with("std:"){return None;}
-        let prefix=graph.modules[source].source.text.get(..callee.span.start-base)?;
+        let prefix=graph.modules[source].source.text.get(..expression.span.start-base)?;
         let line=prefix.bytes().filter(|byte|*byte==b'\n').count()+1;
         let column=prefix.rsplit('\n').next().unwrap_or("").encode_utf16().count()+1;
         let binding=crate::native_bindings::BINDINGS.iter().position(|binding|binding.module=="std:testing-runtime"&&binding.name=="checkAssertion").expect("assertion primitive");
         self.native_bindings.borrow_mut().insert(binding);
-        Some(format!("&TsrAssertionSite{{source:{:?},start:{},end:{},line:{line},column:{column}}}",source.0,callee.span.start-base,expression.span.end-base))
+        Some(format!("&TsrAssertionSite{{source:{:?},start:{},end:{},line:{line},column:{column}}}",source.0,expression.span.start-base,expression.span.end-base))
     }
     pub(super) fn stage_assertion_call(&self,site:Option<&str>,values:Vec<String>)->(String,Vec<String>){
         let Some(site)=site else{return (String::new(),values);};

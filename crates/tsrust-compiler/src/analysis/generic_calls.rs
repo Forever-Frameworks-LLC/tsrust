@@ -234,7 +234,7 @@ impl Analyzer {
                     if let Some(callback) = callback {
                         self.resolve_callback(callback)
                     } else {
-                        self.resolve_value_annotation(annotation, false)
+                        self.callable_resolver().resolve_value_annotation(annotation, false)
                     }
                 })
                 .collect::<Result<Vec<_>, _>>()?;

@@ -63,12 +63,8 @@ impl Context<'_> {
                 let types = arguments
                     .iter().enumerate()
                     .map(|(position, argument)| {
-                        crate::analysis::resolve_value_type(
-                            argument,
-                            position == 0 && self.templates.get(&name.text).is_some_and(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::Job))),
-                            &self.names,
-                            self.unions,
-                        )
+                        let allow_void=position == 0 && self.templates.get(&name.text).is_some_and(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::Job)));
+                        self.callables.resolver(&self.names,self.unions).resolve_value_annotation(argument,allow_void)
                     })
                     .collect::<Result<Vec<_>, _>>()?;
                 let (index, fields) = self.begin_instance(&name.text, arguments, types, value.span)?;

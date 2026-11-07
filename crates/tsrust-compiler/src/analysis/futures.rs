@@ -263,3 +263,29 @@ mod tests {
 
 
 }
+
+#[cfg(test)]
+mod copied_task_capture_tests {
+ use super::*;
+ #[test]
+ fn consuming_task_scalar_writes_use_owned_copy_metadata(){
+  let source="async function main():Task<void>{let value=1;const factory=async()=>{value=7;return value;};console.log(value);console.log(await factory());console.log(value);}";
+  let checked=crate::check(source).unwrap();
+  let mut writes=0;
+  for &origin in &checked.program.task_origins {
+   let closure=&checked.program.closures[origin];
+   for capture in &closure.captures {
+    if capture.storage==Mode::Copy && capture.access==Mode::Mutate {
+     writes+=1;
+     let binding=&closure.function.bindings[capture.inner];
+     assert_eq!(closure.invocation,Mode::Consume);
+     assert_eq!(binding.mode,Mode::Copy);
+     assert!(!binding.capture_reference,"private copied task fields are not references");
+     assert!(binding.mutable);
+    }
+   }
+  }
+  assert!(writes>0,"the witness exercises a mutated scalar capture");
+  drop(checked.emit_rust());
+ }
+}

@@ -17,6 +17,11 @@ impl Analyzer {
         continuations::driver::check_function(self, index)
     }
 
+    /// Logical record signatures do not identify their stored callback environments.
+    pub(super) fn physical_record_result_needed(&self, result:Type)->bool {
+        !self.callable_result_type(result) && self.aggregate_callable_facts(result).retains
+    }
+
     pub(super) fn function_request_ready(&mut self, index: usize) -> Result<bool, Diagnostic> {
         if self.checked[index].is_some() { return Ok(true); }
         if self.discovering_results {
@@ -24,8 +29,10 @@ impl Analyzer {
             // can revisit an async body before a later data factory is checked.
             // Its omitted result is unknown, not void. Context-independent
             // factories can be checked normally, without caller environments.
-            if self.signatures[index].result == Type::Void
-                && self.inferred_result_context_is_closed(index)
+            let physical=self.physical_record_result_needed(self.signatures[index].result)
+                && !self.templates.contains_key(&index)
+                && (!self.named_captures.needs_context(index) || self.named_captures.ready(index));
+            if ((self.signatures[index].result == Type::Void && self.inferred_result_context_is_closed(index)) || physical)
                 && !self.visiting[index]
                 && !self.active_recursive_functions.contains(&index)
             {
@@ -358,7 +365,7 @@ impl Analyzer {
         self.finalize_nullable_returns(&mut body, result_type)?;
         self.declared_parameter_access(index, &mut context)?;
         self.validate_native_returns(&context)?;
-        if self.assumed_modes.is_some() && self.callable_result_type(self.signatures[index].result)
+        if self.assumed_modes.is_some() && (self.callable_result_type(self.signatures[index].result) || self.physical_record_result_needed(self.signatures[index].result))
         {
             self.known_results.insert(index, result_type);
         }
@@ -461,4 +468,17 @@ impl Schedule {
         for id in self.inserted { analyzer.scheduled_functions.remove(&id); }
         for id in self.recursive_inserted { analyzer.active_recursive_functions.remove(&id); }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn specialized_record_factories_publish_physical_results_before_callers() {
+    let source="type Holder={pull:Owned<Function<int>>;};function make(pull:Owned<Function<int>>):Holder{return {pull:pull};}function outer():Holder{return make(():int=>7);}function main(){const holder=outer();console.log(holder.pull());}";
+    let checked=crate::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source)));
+    let program=&checked.program;
+    let outer=program.functions.iter().find(|function|function.name=="outer").unwrap();
+    let value=outer.body.iter().find_map(|statement|if let StmtKind::Return(Some(value))=&statement.kind{Some(value)}else{None}).unwrap();
+    let Some(CallTarget::Function(target))=value.target else{panic!("factory call: {:?}",value.target)};
+    assert_eq!(value.ty,Some(program.functions[target].result),"call expression must retain its already checked callee shape");
+    assert_eq!(outer.result,program.functions[target].result,"owned return must preserve the physical carrier");
 }

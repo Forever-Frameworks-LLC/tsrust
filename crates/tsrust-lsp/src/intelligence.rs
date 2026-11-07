@@ -1201,7 +1201,8 @@ impl SourceIndex {
                         .unwrap_or(self.tokens[id].scope);
                     // The name of a function expression is visible only inside
                     // that function; a declaration belongs to its block.
-                    let expression = id > 0 && !matches!(self.text(id - 1), ";" | "{" | "}" | "export");
+                    let predecessor = if id > 0 && self.text(id - 1) == "async" { id - 1 } else { id };
+                    let expression = predecessor > 0 && !matches!(self.text(predecessor - 1), ";" | "{" | "}" | "export");
                     let declaration = self.add(
                         name_id,
                         12,
@@ -4799,4 +4800,19 @@ fn public_ui_record_aliases_hide_implementation_names(){
   let parameter=index.symbols.iter().enumerate().find(|(id,symbol)|index.parameter_symbols.contains(id)&&symbol.name=="value").unwrap().1;
   assert_eq!(parameter.ty,"int");assert_eq!(parameter.signature,"value: int");
  }
+}
+
+#[cfg(test)]
+mod async_declaration_scope_tests {
+    use super::*;
+    #[test]
+    fn exported_async_declarations_remain_public_and_named_async_expressions_stay_local() {
+        let source="export async function exposed():Task<void>{}const action=async function hidden():Task<void>{};function ordinary(){}function main(){}";
+        let index=SourceIndex::new(source);
+        let exposed=index.symbols.iter().find(|symbol|symbol.name=="exposed").expect("async declaration");
+        assert_eq!(exposed.scope,0);
+        let hidden=index.symbols.iter().find(|symbol|symbol.name=="hidden").expect("named async expression");
+        assert_ne!(hidden.scope,0);
+        assert!(index.symbols.iter().any(|symbol|symbol.name=="ordinary" && symbol.scope==0));
+    }
 }
