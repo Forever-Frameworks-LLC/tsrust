@@ -21,6 +21,8 @@ impl Analyzer {
         let baseline=value.ty?;
         let paths=self.nullable_record_field_paths(baseline);
         if paths.is_empty(){return None;}
+        // Concrete recursive storage keeps its whole-body carrier across points.
+        if matches!(baseline,Type::Record(record) if self.native_recursive_shapes().recursive.recursive(record)){return Some(baseline);}
         while matches!(value.kind,ExprKind::Unary{op:UnaryOp::RecordCarrier,..}) {
             let span=value.span;
             let old=std::mem::replace(value,Expr::new(ExprKind::Null,span));
@@ -45,6 +47,7 @@ impl Analyzer {
         let Some(binding)=Self::root_binding(target) else{return Ok(());};
         if self.sticky_nullable(context,binding){return Ok(());}
         let Some(Type::Record(record))=results.get(&binding).copied() else{return Ok(());};
+        if self.native_recursive_shapes().recursive.recursive(record){return Ok(());}
         let Some(previous)=self.record_field_type(Type::Record(record),&path) else{return Ok(());};
         if self.nullable_scoped_record_declaration(previous).is_none(){return Ok(());}
         if let Some(next)=self.array_result_replacement_type(value,None,previous,results)? {
@@ -670,4 +673,19 @@ fn owned_nullable_assignment_flow_keeps_only_proven_present_payloads(){
   "import {Iterator} from 'std:iterator';function main(){let current:Iterator<int>|undefined=undefined;if(current===undefined){current=Iterator.from(['wrong']);}current.next();}",
   "import {Iterator} from 'std:iterator';function consume(current:Owned<Iterator<int>|undefined>):void{}function main(){let current:Iterator<int>|undefined=undefined;if(current===undefined){current=Iterator.from([1]);}consume(current);current.next();}",
  ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(check_graph(load_project(&Input(source.clone()),"main.tsr").unwrap()).is_err(),"No nullable/borrowed/moved payload may be invented: {source}");}
+}
+
+#[cfg(test)]
+mod recursive_initializer_tests {
+ use super::*;
+ #[test]
+ fn recursive_initializer_keeps_the_planned_carrier_and_conversion(){
+  let mut analyzer=Analyzer::new(crate::syntax::parse("type Node={read:Once<Function<int>>;next?:Node;};function main(){}").unwrap()).unwrap();
+  let read=analyzer.program.records[0].fields[0].ty.unwrap();
+  let initial=analyzer.scoped_records.materialize(0,vec![read,Type::Undefined],&mut analyzer.program.records);
+  let mut value=Expr::new(ExprKind::Name("initial".into()),Span::default());value.ty=Some(Type::Record(initial));value.wrap_record_carrier(Type::Record(0));
+  assert_eq!(analyzer.nullable_record_initializer(&mut value),Some(Type::Record(0)));
+  let ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&value.kind else{panic!("planned conversion was removed")};
+  assert_eq!(inner.ty,Some(Type::Record(initial)));assert!(matches!(inner.kind,ExprKind::Name(_)));
+ }
 }

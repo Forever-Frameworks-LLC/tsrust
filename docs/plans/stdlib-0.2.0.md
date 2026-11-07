@@ -154,18 +154,18 @@ Depends on B00. One owner covers file handles, directory operations and cursors.
 
 - [ ] Port all existing `std:fs` exports and deterministic close/drop behavior to
   Windows; preserve `FsError {code, operation, message, osCode?}` and unique owners.
-- [ ] `OpenOptions`; `openFile(path, options)` with read/write/append/create/
+- [x] `OpenOptions`; `openFile(path, options)` with read/write/append/create/
   createNew/truncate. Validate contradictory options before filesystem mutation.
-- [ ] `FileTime {unixSeconds, nanoseconds}`, `Metadata`, `DirEntry`; `stat`,
+- [x] `FileTime {unixSeconds, nanoseconds}`, `Metadata`, `DirEntry`; `stat`,
   `lstat`, `fileStat`, `readDir`. Normalize pre-epoch times exactly; do not pull
   calendar dependencies or impose Instant's year range on basic filesystem times.
-- [ ] `mkdir`, `mkdirAll`, `rename`, `copyFile`, `removeFile`, `removeDir`,
+- [x] `mkdir`, `mkdirAll`, `rename`, `copyFile`, `removeFile`, `removeDir`,
   `removeDirAll`, `canonicalize`, `readLink`, `hardLink`.
-- [ ] `SeekOrigin`; `seek`, `position`, `truncate`, `syncAll`, `syncData`.
-- [ ] `appendFile`, `readTextFile`, `writeTextFile`, `createTempDir`.
+- [x] `SeekOrigin`; `seek`, `position`, `truncate`, `syncAll`, `syncData`.
+- [x] `appendFile`, `readTextFile`, `writeTextFile`, `createTempDir`.
   Use admitted `tempfile::Builder` for exclusive temporary creation; validate a
   filename-only prefix and path conversion before transferring cleanup ownership.
-- [ ] Remove arbitrary ordinary file-size ceilings through the B00 migration;
+- [x] Remove arbitrary ordinary file-size ceilings through the B00 migration;
   retain explicit optional `maxBytes`/`maxEntries` controls and exact-bound tests.
 
 Contract: no implicit recursive deletion; stat follows links and lstat does not;
@@ -197,6 +197,12 @@ platform permissions/umask; do not promise0700. Validate UTF8 before keep().
 Sources: [crate manifest](https://docs.rs/crate/tempfile/3.27.0/source/Cargo.toml),
 [Builder](https://docs.rs/tempfile/3.27.0/tempfile/struct.Builder.html),
 [RustSec snapshot](https://github.com/RustSec/advisory-db/tree/965bf9ad083b58e6340d65829d85217b18be9290/crates).
+
+Current-host API acceptance is retained from the complete965de83f integration:
+14 filesystem/backend cases and two file-catalog editor cases passed, including
+both optimization levels, cursor ownership, symlink safety and explicit limits.
+Relevant runtime and test sources are unchanged. Windows delivery and B20 shared
+compiler/platform regression requirements remain open.
 
 ### B02 — Byte codecs and binary records
 
@@ -440,14 +446,14 @@ Backend: `url` plus its form-query support; `percent-encoding` if directly neede
 The existing url pin is UI-only and needs backend wiring. Depends on B00 and
 existing byte/path capabilities; it does not wait for B02/B03's new public APIs.
 
-- [ ] `Url`, `UrlError`, `parseUrl(text, base?)`, `formatUrl`, `resolveUrl`.
-- [ ] Read/write href/protocol/username/password/hostname/port/pathname/search/hash
+- [x] `Url`, `UrlError`, `parseUrl(text, base?)`, `formatUrl`, `resolveUrl`.
+- [x] Read/write href/protocol/username/password/hostname/port/pathname/search/hash
   and readonly origin, using checked backend component setters.
-- [ ] `SearchParams`, `parseQuery`, `formatQuery`; `get`, `getAll`, `has`,
+- [x] `SearchParams`, `parseQuery`, `formatQuery`; `get`, `getAll`, `has`,
   `append`, `set`, `delete`, `entries`, stable `sort`.
-- [ ] Independent `searchParams(url)` snapshot and explicit
+- [x] Independent `searchParams(url)` snapshot and explicit
   `setSearchParams(url, params)` replacement; no invisible parent alias.
-- [ ] `pathToFileUrl`, `fileUrlToPath`, `encodeURIComponent`,
+- [x] `pathToFileUrl`, `fileUrlToPath`, `encodeURIComponent`,
   `decodeURIComponent` with a documented UTF-8 component encoding set.
 
 Contract: WHATWG/url normalization, IDNA/IPv6/default ports/opaque schemes;
@@ -458,6 +464,12 @@ explicit decoder promises them. Do not expose URL credentials in errors.
 Witnesses/performance: base-relative URL corpus, mutation and snapshot loans,
 duplicate-key parse/mutate/serialize, IDNA/IPv6/file URLs and invalid input.
 Node URL/URLSearchParams and direct Rust url are matched references.
+
+Current-host API acceptance is retained from965de83f: `url_values`6,
+`url_features`2, `url_export`1 and language-server URL6 cases passed, including
+catalog execution, owners/setters and relocated offline export. Relevant runtime
+and reviewed test sources are unchanged. B20 shared compiler/platform and
+remaining measurement requirements remain open.
 
 ### B05 — Async byte I/O across resources
 

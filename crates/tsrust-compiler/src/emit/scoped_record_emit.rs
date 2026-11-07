@@ -9,7 +9,10 @@ impl Emitter<'_> {
     }
     pub(super) fn native_record_declaration(&self, id: usize) -> usize {
         let base = self.program.scoped_records.declaration(id);
-        if self.native_views.cyclic(id) { id } else { base }
+        // A recursive nominal declaration is concrete, not a generic template.
+        // Its acyclic prefixes therefore need their own declarations too; their
+        // independent field/lifetime parameters cannot be applied to the base.
+        if self.native_views.cyclic(id) || self.native_views.cyclic(base) { id } else { base }
     }
 
     /// A recursive component uses one lifetime for every contained native view.
@@ -218,5 +221,31 @@ impl Emitter<'_> {
             }
             _ => self.native_type(ty),
         }
+    }
+}
+
+#[cfg(test)]
+mod recursive_prefix_tests {
+    use super::*;
+    #[test]
+    fn empty_recursive_factory_keeps_ownerless_prefix_and_matching_relay_abi(){
+        let source="type Window={};type Holder={read?:Once<Function<Window>>;next?:Holder;};function make(value:Window):Holder{return {read:()=>value};}function empty(value:Window):Holder{return {};}function relay(value:Window):Holder{return empty(value);}function main(){}";
+        let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+        let checked=crate::analysis::analyze(parsed).unwrap();
+        let empty=checked.functions.iter().position(|function|function.name=="empty").unwrap();
+        let relay=checked.functions.iter().position(|function|function.name=="relay").unwrap();
+        let Type::Record(prefix)=checked.functions[empty].result else{panic!("empty physical prefix")};
+        let base=checked.scoped_records.declaration(prefix);assert_ne!(prefix,base);
+        assert_eq!(checked.functions[relay].result,checked.functions[empty].result,"direct callers retain the producer's stable physical result");
+        assert!(checked.functions[empty].native_returns.is_none(),"omitted callback fields retain no owner");
+        let emitter=super::super::emitter_for(&checked,"");
+        assert!(emitter.native_views.cyclic(base));assert!(!emitter.native_views.cyclic(prefix));
+        assert!(!emitter.native_views.contains(Type::Record(prefix)),"unrelated live family must not introduce output loans");
+        assert_eq!(emitter.native_record_declaration(prefix),prefix);
+        let native=emitter.native_type(Type::Record(prefix));assert!(native.starts_with(&format!("Record{prefix}<")),"independent prefix parameters: {native}");
+        let signature=emitter.native_function_signature(relay,&[]);assert_eq!(signature.result,native);
+        let generated=crate::emit::emit(&checked);assert!(generated.contains(&format!("struct Record{prefix}<")));assert!(generated.contains(&format!("struct Record{base} {{")),"concrete nominal declaration takes no field parameters");
+        syn::parse_file(&generated).unwrap();
     }
 }

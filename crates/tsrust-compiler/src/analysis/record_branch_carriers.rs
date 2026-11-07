@@ -120,12 +120,14 @@ impl Analyzer {
             }
             let Some(destination)=destinations.remove(&(value.span.start,value.span.end))else{return Ok(());};
             let source=self.record_value_carrier_type(context,value,&plans)?;
-            if source==destination{return Ok(());}
+            // An equal carrier query does not prove that an existing Inject or
+            // wrapper already names the final native union. Normalize first.
             if sticky_destinations.contains(&(value.span.start,value.span.end))
                 || self.native_borrow_types && matches!(self.unions.payload(destination),Some(Type::Record(_)))
                     && (self.native_shape_contains_view(source)||self.native_shape_contains_view(destination)) {
                 return self.retarget_nullable_store(value,destination);
             }
+            if source==destination{return Ok(());}
             match(source,destination){
                 (Type::Closure(_),Type::BorrowedCallable(family))=>Self::retarget_record_callback(value,family),
                 (Type::Record(_),Type::Record(_))|(Type::BorrowedCallable(_),Type::BorrowedCallable(_))=>{

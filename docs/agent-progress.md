@@ -6,19 +6,32 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Latest state: checkpoint `7c171bb8`, no build or test process live after terminal
-failure of `/tmp/tsrust-live-recursive-results.json`. Preflight passed68.347s;
-normal CLI/host build passed220.311s with terminal Cargo success. Byte68 still
-fails during emission, before generated native compilation or execution:
-`StoredCallable(149) -> Callback(72)`. Bounded emit-only trace10.184s at
-`/tmp/tsrust-current-mutual-carrier.err` identifies assignment conversion
-Second223->226->222;222 retains an absent callback field. Root-cause investigation
-now follows nullable-record assignment carrier planning, not parameter candidate
-selection. Private units remain unrun. Earlier accepted scopes are retained.
-The v0.2.0 plan now marks actually accepted B11/B15/B16/B17 API items and corrects
-stale native/export pending paragraphs; measurements/platform/full acceptance
-remain open. Existing public `tsrust test --profile` exposes build stages/cache
-and execution separately; no new benchmark timing or SQLite ingestion claimed.
+Latest state: bounded30ca66f7 byte68 run reached generated native compilation;
+EMIT PASS, native Rust FAILED14errors (4E0107,10E0308), zero cases executed.
+`/tmp/tsrust-nullable-assignment-results.json`: front238.702s,peak3020821232B,
+stopnull,remaining[]. CLI/host build terminalPASS222.824s; suite14.40s. Automatic
+object cleanup398266368B actual recovery. Private/editor stage not started.
+Generated source emitted separately once10.453s (no native compilation) at
+`/tmp/tsrust-byte-current-native.rs` for the three responsible source paths.
+Pending source repair batch: preserve recursive whole-body initializer carrier
+and prevent later point epochs narrowing it; normalize Inject tags/wrappers even
+when checked types match; give acyclic prefixes of concrete recursive nominal
+records their own declarations; empty authored `{}` factories retain their own
+ownerless context. New focused controls added; original68runtimecases preserved.
+B06/B14 supplied/reviewed fixes,rootsolecanonicalwriter. Whole-project formatting
+changed0files/snippets/fingerprints; source acceptance remains pending.
+Prepared next bounded driver `/tmp/tsrust-native-record-layout-run.py`; NOT started
+at this record. One30min scope,5GB/jobs1/incremental0, bytefrontthenaffectedunits/
+editor, no duplicate preflight. Prior successful runtime/export/library/editor
+scopes retained; full goal active. No public timings or SQLite ingestion here.
+Checklist now reconciles actual retained B01/B04/B05/B06/B08/B09/B11/B12/B15/B16/
+B17 local API evidence. B01/B04 verified against `/tmp/tsrust-965de83f-full-integration.json`;
+relevant runtime/tests unchanged. Windows/platform/final shared-core requirements
+stay open. CPU-lifecycle uses actual shared-pool cancellation proof plus password
+routing; no password-specific cancellation probe claimed. Latest stale consumer
+cleanup removed11obsolete binaries,320344064B actual recovery; shared dependencies
+and unchanged Rust/Node controls retained. `tsrust test --profile` reports setup/
+build stages/cache separately from execution; ordinary cases share stable suites.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 

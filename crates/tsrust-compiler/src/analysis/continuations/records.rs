@@ -127,9 +127,12 @@ impl Analyzer {
                 ));
             }
         };
-        let Type::Record(index) = self.scoped_records.recursive_parameter(Type::Record(index))
-        else {
-            unreachable!()
+        // A wholly omitted optional environment supplies no callback instance.
+        // Do not adopt an unrelated live component merely because it is the sole
+        // current recursive candidate; that would change an empty factory's ABI
+        // when a later constructor is checked or a source body is replayed.
+        let index=if fields.is_empty(){index}else{
+            let Type::Record(selected)=self.scoped_records.recursive_parameter(Type::Record(index))else{unreachable!()};selected
         };
         if let Some(id) = self.program.records[index].native_type
             && !crate::native_types::declaration(id).source_constructible()
