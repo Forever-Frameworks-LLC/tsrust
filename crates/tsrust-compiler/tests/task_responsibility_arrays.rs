@@ -109,7 +109,14 @@ fn absent_guards_do_not_hide_present_tasks_unsettled_jobs_or_other_entries(){
  for body in [
   "const pending:PendingJob=value(3).start();if(pending!==undefined){pending.cancel();}",
   "const jobs:PendingJob[]=[value(3).start(),value(4).start()];if(jobs[index]===undefined){}",
-  // Even a constant index can fail before settlement; retain that snapshot.
-  "const jobs:PendingJob[]=[value(3).start()];if(jobs[0]!==undefined){await jobs[0];}",
+  // Both successful branches settle the named owner; a preceding constant
+  // index can still fail with that Job live, so retain the failure snapshot.
+  "const pending=value(3).start();const slots:(int|undefined)[]=[7];if(slots[0]!==undefined){await pending;}else{await pending;}",
  ]{let source=support::format_round_trip(&format!("{prefix}async function probe(flag:boolean,index:int):Task<void>{{{body}}}function main(){{}}"));assert_eq!(checked(&source).unwrap_err(),"unsettled-job","{body}");}
+ let settled=format!("{prefix}async function probe(flag:boolean):Task<void>{{const pending=value(3).start();const slots:(int|undefined)[]=[7];if(flag){{await pending;}}else{{await pending;}}}}function main(){{}}");
+ assert!(checked(&support::format_round_trip(&settled)).unwrap().is_empty());
+ // Consuming an indexed borrowed Job is independently rejected before
+ // responsibility analysis; retain that exact ownership negative as well.
+ let borrowed=format!("{prefix}async function probe():Task<void>{{const jobs:PendingJob[]=[value(3).start()];if(jobs[0]!==undefined){{await jobs[0];}}}}function main(){{}}");
+ assert_eq!(checked(&support::format_round_trip(&borrowed)).unwrap_err(),"borrowed-element");
 }

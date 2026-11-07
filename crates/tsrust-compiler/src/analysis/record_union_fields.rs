@@ -1,6 +1,22 @@
 //! Shared scalar fields and literal discriminator facts for record alternatives.
 use super::*;
 impl Analyzer {
+    pub(super) fn array_guard_outcomes(&self,context:&Context,source:&Expr,span:Span)->Option<crate::flow::Outcomes>{
+        let place=crate::flow::place(source,&context.names)?;
+        let union=self.place_type(context,&place)?.union()?;
+        let members=context.flow.get(&place).map(|fact|fact.members.clone()).unwrap_or_else(||self.unions.members(union));
+        let mut yes=context.flow.clone();let mut no=context.flow.clone();
+        let mut arrays=Vec::new();let mut others=Vec::new();
+        for member in members{
+            let dynamic=matches!(member,Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::JsonValue|crate::native_signatures::NativeTypeId::JsonView)));
+            let array=matches!(member,Type::Array(_)) || matches!(member,Type::Record(id) if self.program.records[id].is_tuple());
+            if array || dynamic{arrays.push(member);}if !array || dynamic{others.push(member);}
+        }
+        let origin=Some((span.start,span.end));
+        if !arrays.is_empty(){yes.insert(place.clone(),crate::flow::Fact{members:arrays,origin});}
+        if !others.is_empty(){no.insert(place,crate::flow::Fact{members:others,origin});}
+        Some((yes,no))
+    }
     pub(super) fn record_union_field(&self,union:UnionId,name:&str)->Option<Type>{
         let fields=self.unions.members(union).into_iter().map(|member|{
             let Type::Record(record)=member else{return None;};

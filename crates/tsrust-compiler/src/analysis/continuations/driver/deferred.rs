@@ -29,7 +29,21 @@ impl<'a> DeferredTask<'a> {
     }
 }
 enum Action<'a> { Child(Task<'a>), Done((crate::polymorphic_invocation_plans::Pair, Type)) }
-fn function_child<'a>(analyzer: &mut Analyzer, index: usize) -> Result<Option<Task<'a>>, Diagnostic> {
+fn function_child<'a>(analyzer: &mut Analyzer, index: usize, span: Span) -> Result<Option<Task<'a>>, Diagnostic> {
+    if analyzer.discovering_results {
+        // Deferred invocation needs the selected body's real input/capture
+        // contracts and its method. Reuse task-effect readiness: wait for its
+        // return origin first, then check the admitted selected declaration.
+        let discovering=analyzer.discovering_results;
+        let effects=analyzer.effects_only;
+        analyzer.discovering_results=false;
+        analyzer.effects_only=false;
+        let prepared=analyzer.prepare_selected_task_function(index,span,discovering);
+        analyzer.discovering_results=discovering;
+        analyzer.effects_only=effects;
+        prepared?;
+        return Ok(None);
+    }
     if analyzer.function_request_ready(index)? { Ok(None) }
     else { Ok(Some(Task::Function(Box::new(functions::FunctionTask::new(index))))) }
 }
@@ -58,7 +72,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                     let Completion::Generic(call, result) = completion.take().expect("deferred generic preparation") else { unreachable!() };
                     result?;
                     let body = analyzer.finish_deferred_generic_request(&preparation, *call)?;
-                    let child = function_child(analyzer, body.function)?;
+                    let child = function_child(analyzer, body.function, body.span)?;
                     task.phase = Phase::Pending { body, purpose };
                     if let Some(child) = child { return Ok(Action::Child(child)); }
                 }
@@ -159,7 +173,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                     let (function, immediate) = analyzer.prepare_specialization(function, args, span)?;
                     // Preserve pre-body dependency discovery, but never cache its symbolic result.
                     if !immediate { let _ = analyzer.resolved_prepared_call(context, function, args, span)?; }
-                    let child = function_child(analyzer, function)?;
+                    let child = function_child(analyzer, function, span)?;
                     task.phase = Phase::Resolved { target, function };
                     if let Some(child) = child { return Ok(Action::Child(child)); }
                 }
@@ -262,4 +276,26 @@ mod tests {
         assert_eq!(error.code, "type");
         assert_eq!(&source[error.span.start..error.span.end], "true");
     }
+}
+
+#[cfg(test)]
+mod selected_readiness_restoration_tests {
+ use super::*;
+ #[test]
+ fn selected_body_error_restores_discovery_flags_without_publishing_checked_body(){
+  let source=crate::format("function broken():int{return true;}function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  for effects in [false,true] {
+   let mut analyzer=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+   let function=analyzer.function_names["broken"];
+   let span=analyzer.program.functions[function].name.span;
+   analyzer.discovering_results=true;
+   analyzer.effects_only=effects;
+   let error=match function_child(&mut analyzer,function,span){Err(error)=>error,Ok(_)=>panic!("invalid selected body must fail")};
+   assert_eq!(error.code,"type");
+   assert!(source[error.span.start..error.span.end].contains("true"));
+   assert!(analyzer.discovering_results);
+   assert_eq!(analyzer.effects_only,effects);
+   assert!(analyzer.checked[function].is_none(),"failed bodies cannot become checked prototypes");
+  }
+ }
 }

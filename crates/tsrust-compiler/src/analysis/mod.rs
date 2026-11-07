@@ -5536,6 +5536,7 @@ impl Analyzer {
                 self.remember_guard(&mut probe, expr.span, *op, left, right);
                 Some(Self::condition_outcomes(&probe, expr))
             }
+            ExprKind::Call(_,args) if expr.target==Some(CallTarget::ArrayIsArray) && args.len()==1 => self.array_guard_outcomes(context,&args[0],expr.span),
             _ => None,
         }
     }
@@ -9787,6 +9788,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 self.value_builtin_arguments(context, args, loans, false)?;
                 expr.target = Some(CallTarget::ArrayIsArray);
+                if let [source]=args.as_slice() && let Some(outcomes)=self.array_guard_outcomes(context,source,span){context.condition_flows.insert((span.start,span.end),outcomes);}
                 Type::Boolean
             }
             ExprKind::Name(name) if name == "Number" => {

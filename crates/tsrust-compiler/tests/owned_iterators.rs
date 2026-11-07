@@ -71,8 +71,42 @@ fn generic_array_shape_probes_preserve_scalar_nonclone_and_task_contracts(){
 #[test]
 fn borrowed_and_owned_record_parameters_execute_in_both_orders(){
  for borrowed_first in [true,false]{
-  let calls=if borrowed_first{"console.log(useHolder(borrowed));console.log(useHolder(copied));console.log(useHolder(owned));"}else{"console.log(useHolder(owned));console.log(useHolder(copied));console.log(useHolder(borrowed));"};
-  let source=format!("import {{alloc,view,length}} from 'std:bytes';import {{trackedResource,resourceId,releaseCount,closeResource}} from 'std:testing';type Holder={{pull:Once<Function<int>>;}};function useHolder(value:Owned<Holder>):int{{return value.pull();}}function main(){{const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const borrowed:Holder={{pull:():int=>length(slice)}};const number=7;const copied:Holder={{pull:():int=>number}};const resource=trackedResource();const id=resourceId(resource);const owned:Holder={{pull:():int=>{{closeResource(resource);return 9;}}}};{calls}console.log(releaseCount(id));}}");
+  let calls=if borrowed_first{"console.log(useHolder(borrowed));console.log(useHolder(copied));console.log(useOwned(owned));"}else{"console.log(useOwned(owned));console.log(useHolder(copied));console.log(useHolder(borrowed));"};
+  let source=format!("import {{alloc,view,length}} from 'std:bytes';import {{trackedResource,resourceId,releaseCount,closeResource}} from 'std:testing';type Holder={{pull:ReadOnly<Function<int>>;}};type OwnedHolder={{pull:Once<Function<int>>;}};function useHolder(value:ReadOnly<Holder>):int{{return value.pull();}}function useOwned(value:Owned<OwnedHolder>):int{{return value.pull();}}function main(){{const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const borrowed:Holder={{pull:():int=>length(slice)}};const number=7;const copied:Holder={{pull:():int=>number}};const resource=trackedResource();const id=resourceId(resource);const owned:OwnedHolder={{pull:():int=>{{closeResource(resource);return 9;}}}};{calls}console.log(releaseCount(id));}}");
   let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(&source))),120);support::success(&output);assert_eq!(output.stdout,if borrowed_first{b"2\n7\n9\n1\n"}else{b"9\n7\n2\n1\n"});
  }
+}
+
+#[test]
+fn temporary_iterator_result_discriminators_evaluate_once_and_keep_ownership_guards(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([4]);console.log(values.next().done);console.log(values.next().done);}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"false\ntrue\n");
+ for body in ["make().done=true;","const value=make().value;"]{
+  let source=format!("type Left={{done:false;value:string;}};type Right={{done:true;value:string;}};function make():Left|Right{{return {{done:false,value:'kept'}};}}function main(){{{body}}}");
+  assert_eq!(checked(&support::format_round_trip(&source)).unwrap_err(),"union-field-ownership");
+ }
+}
+
+#[test]
+fn cursor_payloads_use_owning_callback_storage_without_clone(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';import {all} from 'std:futures';async function task():Task<int>{return 3;}async function main():Task<void>{const number=7;const callbacks=Iterator.from([():int=>number]).toArray();console.log(callbacks[0]());const values=await all(Iterator.from([task()]).toArray());console.log(values.join(','));}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"7\n3\n");
+ for source in ["import {Iterator} from 'std:iterator';function main(){const wrong:Iterator<string>=Iterator.from([1]);}","import {Iterator} from 'std:iterator';function main(){const wrong:Iterator<Function<string>>=Iterator.from([():int=>1]);}"]{let source=support::format_round_trip(source);assert!(checked(&source).is_err());}
+}
+
+#[test]
+fn flat_map_array_and_iterator_alternatives_keep_order(){
+ let source=support::format_round_trip("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]).flatMap((value:int):int[]|Iterator<int>=>value===1?[value,value]:Iterator.from([value]));console.log(values.toArray().join(','));}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),120);support::success(&output);assert_eq!(output.stdout,b"1,1,2\n");
+ assert!(checked(&support::format_round_trip("type Holder={value:int;};function count(value:int[]|Holder):int{if(Array.isArray(value)){return value.length;}return value.value;}function main(){console.log(count([1]),count({value:3}));}")).is_ok());
+ assert!(checked(&support::format_round_trip("type Holder={value:int;};function wrong(value:int[]|Holder):int{if(Array.isArray(value)){return value.value;}return 0;}function main(){}")).is_err());
+ for source in [
+  "type Holder={value:int;};function count(value:int[]|Holder):int{if(!Array.isArray(value)){return value.value;}return value.length;}function main(){}",
+  "type Holder={value:int;};function main(){let value:int[]|Holder=[1];while(Array.isArray(value)){value={value:2};}console.log(value.value);}",
+ ]{assert!(checked(&support::format_round_trip(source)).is_ok(),"{source}");}
+ for source in [
+  "type Holder={value:int;};type Row={value:int[]|Holder;};function wrong(row:Row):int{if(Array.isArray(row.value)){row.value={value:2};return row.value.length;}return 0;}function main(){}",
+  "type Holder={value:int;};type Row={value:int[]|Holder;};function change(row:Row){row.value={value:2};}function wrong(row:Row):int{if(Array.isArray(row.value)){change(row);return row.value.length;}return 0;}function main(){}",
+  "function main(){const value=JSON.parse('[1]');if(Array.isArray(value)){console.log(value.length);}}",
+ ]{assert!(checked(&support::format_round_trip(source)).is_err(),"{source}");}
 }

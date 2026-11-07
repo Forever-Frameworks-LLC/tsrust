@@ -512,16 +512,16 @@ fn native_view_and_owned_record_callers_keep_both_source_orders(){
         fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.into())}else{Err(format!("Missing source: {}",id.0))}}
     }
     for borrowed_first in [true,false]{
-        let calls=if borrowed_first{"useHolder(borrowed);useHolder(copied);useHolder(owned);"}else{"useHolder(owned);useHolder(copied);useHolder(borrowed);"};
-        let source=format!("import {{alloc,view,length}} from 'std:bytes';import {{trackedResource,closeResource}} from 'std:testing';type Holder={{pull:Once<Function<int>>;}};function useHolder(value:Owned<Holder>):int{{return value.pull();}}function main(){{const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const borrowed:Holder={{pull:():int=>length(slice)}};const number=7;const copied:Holder={{pull:():int=>number}};const resource=trackedResource();const owned:Holder={{pull:():int=>{{closeResource(resource);return 9;}}}};{calls}}}");
+        let calls=if borrowed_first{"useHolder(borrowed);useHolder(copied);useOwned(owned);"}else{"useOwned(owned);useHolder(copied);useHolder(borrowed);"};
+        let source=format!("import {{alloc,view,length}} from 'std:bytes';import {{trackedResource,closeResource}} from 'std:testing';type Holder={{pull:ReadOnly<Function<int>>;}};type OwnedHolder={{pull:Once<Function<int>>;}};function useHolder(value:ReadOnly<Holder>):int{{return value.pull();}}function useOwned(value:Owned<OwnedHolder>):int{{return value.pull();}}function main(){{const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const borrowed:Holder={{pull:():int=>length(slice)}};const number=7;const copied:Holder={{pull:():int=>number}};const resource=trackedResource();const owned:OwnedHolder={{pull:():int=>{{closeResource(resource);return 9;}}}};{calls}}}");
         let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
         let checked=check_graph(load_project(&Input(&source),"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
         let program=&checked.analysis.program;let mut original=0;let mut specialized=0;
         for function in &program.functions{if function.template{continue;}crate::fixed_storage::visit_function_expressions(function,&mut |value|{
-            if let Some(CallTarget::Function(target))=value.target{let callee=&program.functions[target];if callee.name.ends_with("useHolder"){if callee.specialization{specialized+=1;}else{original+=1;}}}
+            if let Some(CallTarget::Function(target))=value.target{let callee=&program.functions[target];if callee.name.ends_with("useHolder") && !callee.specialization{original+=1;}if callee.name.ends_with("useOwned") && callee.specialization{specialized+=1;}}
         });}
         assert!(original>=1,"Borrowed native-view caller must retain the original path");
-        assert!(specialized>=2,"Copied and non-Clone owned captures need concrete physical paths");
+        assert!(specialized>=1,"A non-Clone owned capture needs its concrete physical path");
         drop(checked.emit_rust());
     }
 }

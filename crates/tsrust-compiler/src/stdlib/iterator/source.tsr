@@ -130,7 +130,7 @@ function _flatMap<T, U>(source: Owned<Iterator<T>>, callback: Owned<Function<U[]
         };
       }
 
-      const inner = callback(outer.value);
+      const inner: U[] | Iterator<U> = callback(outer.value);
       if (Array.isArray(inner)) {
         current = _from(inner);
       } else {

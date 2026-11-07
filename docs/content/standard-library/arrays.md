@@ -4,3 +4,5 @@
 # Arrays and tuples
 
 Arrays and tuples have checked element types and ownership. The references describe mutation, copying and ranges for each supported operation.
+
+`Array.isArray(value)` also narrows a static union when its single argument is a stable named binding or record field. The true branch selects arrays and fixed tuples; the false branch selects the other alternatives. Replacing, consuming or mutating the place ends the proof. Dynamic `JsonValue` and `JsonView` retain their checked wrapper types on both branches; this test does not unlock unchecked JSON indexing.

@@ -33,9 +33,17 @@ impl Analyzer {
         if !context.function_name.starts_with(crate::stdlib::iterator::PREFIX){return Err(Diagnostic::new("iterator-private","Iterator cursor operations are private to the iterator module.",expression.span));}
         Self::arity(args.len(),1,expression.span)?;
         let result=if binding.name=="arrayCursor" {
-            let source=self.expression(context,&mut args[0],Mode::Consume,loans,None)?;
+            // The opaque cursor owns its reserved array field. Its logical generic
+            // argument may be a source-span-specific callback contract; the field
+            // already records the canonical owning callable storage family.
+            let declared=expected.filter(|ty|matches!(ty,Type::Record(id) if self.program.records[*id].native_type==Some(NativeTypeId::IteratorCursor)));
+            let storage=declared.and_then(|ty|{let Type::Record(id)=ty else{unreachable!()};self.fields[id].get("_items").copied()});
+            let source=self.expression(context,&mut args[0],Mode::Consume,loans,storage)?;
             let Type::Array(element)=source else{return Err(Diagnostic::new("iterator-source","Iterator.from requires an owned array.",args[0].span));};
-            let ty=self.thread_application(NativeTypeId::IteratorCursor,&[element.ty()],expression.span)?;
+            let ty=if let Some(declared)=declared{declared}else{self.thread_application(NativeTypeId::IteratorCursor,&[element.ty()],expression.span)?};
+            let Type::Record(cursor)=ty else{unreachable!("applied cursor")};
+            let storage=*self.fields[cursor].get("_items").expect("reserved owning cursor storage");
+            self.require(source,Some(storage),args[0].span)?;
             expression.target=Some(CallTarget::IteratorCursor);ty
         }else{
             let source=self.expression(context,&mut args[0],Mode::Mutate,loans,None)?;

@@ -340,13 +340,21 @@ impl Types<'_> {
                                 absent.extend(known);
                             } else { unresolved.push(value); }
                         }
-                        if unresolved.len()>1 && !matches!(actual,Type::Union(_)) {
-                            // Distinct outer shapes can identify one payload (for example T[] versus Holder<T>).
-                            // Never choose the first compatible alternative or merge conflicting bindings.
-                            let mut candidates=Vec::new();
-                            for value in &unresolved {
-                                let mut candidate=bindings.clone();
-                                if self.unify(value,actual,variables,&mut candidate).is_ok() && !candidates.contains(&candidate){candidates.push(candidate);}
+                        if unresolved.len()>1 {
+                            // Every concrete alternative must admit one consistent binding.
+                            // Keep candidate bindings separate; never choose by declaration order.
+                            let members=actual.union().map(|id|self.unions.members(id)).unwrap_or_else(||vec![actual]);
+                            let mut candidates=vec![bindings.clone()];
+                            for member in members.into_iter().filter(|member|!absent.contains(member)){
+                                let mut next=Vec::new();
+                                for candidate in candidates{
+                                    for value in &unresolved{
+                                        let mut checked=candidate.clone();
+                                        if self.unify(value,member,variables,&mut checked).is_ok() && !next.contains(&checked){next.push(checked);}
+                                    }
+                                }
+                                candidates=next;
+                                if candidates.is_empty(){return Err(mismatch());}
                             }
                             if candidates.len()==1 {*bindings=candidates.pop().unwrap();continue;}
                         }
@@ -1140,9 +1148,12 @@ fn distinct_generic_union_payload_shapes_infer_without_first_match_bias(){
     for source in [
         "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function main(){consume([1]);const holder:Holder<int>={value:2};consume(holder);}",
         "type Holder<T>={value:T;};function consume<T>(value:Holder<T>|T[]):void{}function main(){consume([1]);}",
-    ]{crate::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source)));}
+        "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function pick(flag:boolean):int[]|Holder<int>{return flag?[1]:{value:2};}function main(){consume(pick(true));}",
+        "type Holder<T>={value:T;};function consume<T>(value:Holder<T>|T[]):void{}function pick(flag:boolean):int[]|Holder<int>{return flag?[1]:{value:2};}function main(){consume(pick(false));}",
+    ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);crate::check(&source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",&source)));}
     for source in [
         "function ambiguous<T>(value:T[]|T):void{}function main(){ambiguous([1]);}",
         "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function main(){consume<int>(['wrong']);}",
-    ]{assert!(crate::check(source).is_err(),"{source}");}
+        "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function pick(flag:boolean):int[]|Holder<string>{return flag?[1]:{value:'wrong'};}function main(){consume(pick(true));}",
+    ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(crate::check(&source).is_err(),"{source}");}
 }

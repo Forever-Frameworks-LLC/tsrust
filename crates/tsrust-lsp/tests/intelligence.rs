@@ -3365,6 +3365,12 @@ fn top_level_main_explains_automatic_entry_without_overwriting_user_docs() {
 fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
     let positives = [
         (
+            "function main(){const value:int[]|null=[1];if(Array.isArray(value)){const text=value.join();console.log(text);}}",
+            "join",
+            "join(separator?: string): string",
+            "int[]",
+        ),
+        (
             "function main(){const value:string|null=clone(\" x \" );if(value!==null){const text=value.trim();console.log(text);}}",
             "trim",
             "trim(): string",
@@ -3402,6 +3408,9 @@ fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
         ),
     ];
     for (source, method, signature, ty) in positives {
+        let formatted = tsrust_compiler::format(source).unwrap();
+        assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+        let source = formatted.as_str();
         tsrust_compiler::check(source).unwrap();
         let index = SourceIndex::new(source);
         if source.contains("const value:") {
@@ -3483,7 +3492,7 @@ fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
                 .any(|item| item["label"] == method),
             "{source}: {completion}"
         );
-        if source.contains("const text=") {
+        if source.contains("const text=") || source.contains("const text =") {
             let text = request("textDocument/hover", "text);");
             assert!(
                 text["contents"]["value"]
@@ -3543,7 +3552,6 @@ fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
     }
     for source in [
         "type Holder={value:int[]|null;};function clear(holder:Holder):boolean{holder.value=null;return true;}function main(){const holder:Holder={value:[1]};if(holder.value!==null){clear(holder);holder.value.jo",
-        "function main(){const value:int[]|null=[1];if(Array.isArray(value)){value.jo",
         "function main(){const value:int[]|null|undefined=[1];if(value!==null){value.jo",
         "function main(){let value:int[]|null=[1];if(value!==null){value=null;value.jo",
         "function main(){const value:int[]|null=[1];if(value!==null){const moved=value;value.jo",
@@ -3618,7 +3626,7 @@ fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
         array_is_array["documentation"]
             .as_str()
             .unwrap()
-            .contains("by itself does not narrow")
+            .contains("narrows a static union")
     );
     let source = r#"type Box={text:string|null;values:int[]|undefined;};
 function label(value:string|null|undefined):string{if(value===null||value===undefined){return "missing";}return value.trim();}
@@ -10225,4 +10233,21 @@ fn owned_iterator_constructor_and_methods_keep_checked_editor_contracts(){
  let completion=ask(&source,"textDocument/completion","next();",0);let labels=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<Vec<_>>();for name in ["next","map","filter","take","drop","flatMap","reduce","forEach","some","every","find","toArray"]{assert!(labels.contains(&name),"{completion}");}assert!(!labels.contains(&"from"));assert!(!labels.contains(&"_pull"));
  let hover=ask(&source,"textDocument/hover","next();",0);assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("IteratorResult"),"{hover}");let help=ask(&source,"textDocument/signatureHelp","[1, 2]",0);assert!(!help["signatures"].as_array().unwrap().is_empty());
  let constructor=ask(&source,"textDocument/completion","from([1",0);assert!(constructor.as_array().unwrap().iter().any(|entry|entry["label"]=="from"),"{constructor}");
+}
+
+#[test]
+fn array_is_array_static_union_guards_keep_checked_project_help(){
+ use tsrust_compiler::project::SourceId;
+ use tsrust_lsp::{workspace::Workspace,project_diagnostics::file_uri,project_intelligence::ProjectIndex};
+ let source=tsrust_compiler::format("import {Iterator} from 'std:iterator';function consume(value:Owned<int[]|Iterator<int>>):int{if(Array.isArray(value)){return value.length;}else{return value.toArray().length;}}function main(){console.log(consume([1]));}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+ let id=SourceId(std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("array-iterator-guard-editor-{}",std::process::id())).join("main.tsr").to_string_lossy().into_owned());let uri=file_uri(&id).unwrap().to_string();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check_with_diagnostics(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ for (needle,member,absent) in [("value.length","join","toArray"),("value.toArray","toArray","join")]{
+  let mut position=at(&source,needle,0);position.character+="value.".len() as u32;
+  let items=index.request("textDocument/completion",&json!({"position":position}),&uri).unwrap().unwrap();let items=items.as_array().unwrap();
+  assert!(items.iter().any(|item|item["label"]==member),"{needle}: {items:?}");assert!(!items.iter().any(|item|item["label"]==absent),"{needle}: {items:?}");
+ }
+ let hover=index.request("textDocument/hover",&json!({"position":at(&source,"toArray",0)}),&uri).unwrap().unwrap();assert!(hover["contents"]["value"].as_str().unwrap().contains("toArray"));
+ let mut position=at(&source,"isArray(",0);position.character+="isArray(".len() as u32;let help=index.request("textDocument/signatureHelp",&json!({"position":position}),&uri).unwrap().unwrap();assert!(help.to_string().contains("isArray"));
+ let source=tsrust_compiler::format("function main(){const value=JSON.parse('[1]');if(Array.isArray(value)){console.log(value);}else{console.log(value);}}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);assert!(tsrust_compiler::check(&source).is_ok());let index=SourceIndex::new(&source);
+ for occurrence in [0,1]{let hover=index.request("textDocument/hover",&json!({"position":at(&source,"value);",occurrence)}),"file:///test.tsr").unwrap();assert!(hover["contents"]["value"].as_str().unwrap().contains("JsonValue"));}
 }

@@ -98,29 +98,41 @@ impl Analyzer {
 #[cfg(test)]
 mod defaulted_alias_dependency_tests {
  use super::*;
- fn analyzer(source:&str)->Analyzer {
+ fn recursive_probe(source:&str)->Analyzer {
   let mut analyzer=Analyzer::new(crate::syntax::parse(source).unwrap()).unwrap();
   analyzer.assumed_modes=Some(analyzer.signatures.iter().map(|signature|signature.params.iter().map(|ty|if ty.is_copy(){Mode::Copy}else{Mode::Read}).collect()).collect());
-  analyzer.effects_only=true;
-  analyzer
+  analyzer.effects_only=true;analyzer.speculative_access_run=true;analyzer
+ }
+ fn states(analyzer:&Analyzer)->String {
+  let states=analyzer.program.functions.iter().enumerate().map(|(id,function)|(id,function.name.text.clone(),analyzer.known_results.contains_key(&id),analyzer.checked[id].is_some(),analyzer.visiting[id],analyzer.templates.contains_key(&id))).collect::<Vec<_>>();
+  format!("states(id,name,known,checked,visiting,template)={states:?}; waits={:?}; dependents={:?}",analyzer.result_waits,analyzer.result_dependents)
  }
  #[test]
  fn defaulted_generic_async_alias_discovery_preserves_selected_callee_readiness(){
-  for (default,arguments) in [("", "7,'explicit'"),("='message'", "7,'explicit'"),("='message'", "7")] {
-   let source=format!("async function echo<T>(value:T,message:string{default}):Task<T>{{return value;}}async function main():Task<void>{{const alias=echo;console.log(await alias({arguments}));}}");
+  for (parameter,arguments) in [("message:string", "7,'explicit'"),("message:int=0", "7,2"),("message?:string", "7,'explicit'"),("message:string='message'", "7,'explicit'"),("message:string='message'", "7")] {
+   let source=format!("async function echo<T>(value:T,{parameter}):Task<T>{{return value;}}async function main():Task<void>{{const alias=echo;console.log(await alias({arguments}));}}");
    let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
-   let mut probe=analyzer(&source);
-   let main=probe.function_names["async#entry"];
-   probe.discovering_results=true;probe.discovering_function=Some(main);
-   let mut body=probe.program.functions[main].body.clone();
-   let mut context=probe.function_context(main,&mut body).unwrap();
-   let result=probe.signatures[main].result;
-   let seed=probe.discover_body(&mut context,Analyzer::uninitialized_body(&mut body),result);
-   let states=probe.program.functions.iter().enumerate().map(|(id,function)|(id,function.name.text.clone(),probe.known_results.contains_key(&id),probe.checked[id].is_some(),probe.visiting[id],probe.templates.contains_key(&id))).collect::<Vec<_>>();
-   let snapshot=format!("default={default:?}; arguments={arguments:?}; first seed={seed:?}; states(id,name,known,checked,visiting,template)={states:?}; waits={:?}; dependents={:?}",probe.result_waits,probe.result_dependents);
-   let mut fresh=analyzer(&source);
-   fresh.discover_results().unwrap_or_else(|error|panic!("{snapshot}; error={error:?}"));
-   assert!(fresh.known_results.contains_key(&fresh.function_names["async#entry"]),"{snapshot}");
+   let mut ordinary=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+   let main=ordinary.function_names["main"];
+   let first=ordinary.function(main);
+   let mut snapshot=format!("parameter={parameter:?}; arguments={arguments:?}; ordinary first pass={first:?}; {}",states(&ordinary));
+   // Enter the recursive pass only when the ordinary pass actually requests it,
+   // matching analyze/analyze_recursive rather than forcing every control there.
+   if first.as_ref().is_err_and(|error|error.code=="recursion-inference") {
+    let mut probe=recursive_probe(&source);
+    let entry=probe.function_names["async#entry"];
+    probe.discovering_results=true;probe.discovering_function=Some(entry);
+    let mut body=probe.program.functions[entry].body.clone();
+    let mut context=probe.function_context(entry,&mut body).unwrap();
+    let result=probe.signatures[entry].result;
+    let seed=probe.discover_body(&mut context,Analyzer::uninitialized_body(&mut body),result);
+    snapshot.push_str(&format!("; first actual fallback seed={seed:?}; {}",states(&probe)));
+    let mut complete=recursive_probe(&source);
+    let discovery=complete.discover_results();
+    snapshot.push_str(&format!("; full fallback discovery={discovery:?}; {}",states(&complete)));
+   }
+   let checked=crate::check(&source).unwrap_or_else(|error|panic!("{snapshot}; pipeline error={error:?}"));
+   drop(checked.emit_rust());
   }
  }
 }

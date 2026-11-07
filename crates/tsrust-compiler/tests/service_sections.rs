@@ -104,3 +104,9 @@ mod delivered_signals {
         running.finish();
     }
 }
+
+#[test]
+fn random_bytes_empty_large_and_negative_execute(){
+ let source=support::format_round_trip("import {randomBytes} from 'std:crypto';import {length} from 'std:bytes';function main(){const empty=unwrap(randomBytes(0));const large=unwrap(randomBytes(1048577));console.log(length(empty));console.log(length(large));match(randomBytes(-1)){Ok(_)=>{},Err(error)=>{console.log(error.code);}}console.log(length(large));}");
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&source)),300);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout),"0\n1048577\nRange\n1048577\n");
+}

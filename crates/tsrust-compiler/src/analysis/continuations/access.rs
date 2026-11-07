@@ -203,8 +203,14 @@ impl Analyzer {
                 }
                 let field = match ty {
                     Type::Record(record) => self.fields[record].get(name).copied(),
+                    Type::Union(union) => self.record_union_field(union, name),
                     _ => None,
                 };
+                if matches!(ty, Type::Union(_))
+                    && (mode == Mode::Mutate || mode == Mode::Consume && field.is_some_and(|ty| !ty.is_copy()))
+                {
+                    return Err(Diagnostic::new("union-field-ownership", "Narrow the record alternative before mutating or moving an owned field.", span));
+                }
                 if borrowed && mode == Mode::Consume && field.is_some_and(|ty| !ty.is_copy()) {
                     return Err(Diagnostic::new(
                         "borrowed-place",

@@ -4,7 +4,9 @@ impl Emitter<'_>{
     pub(super) fn iterator_record(&self,output:&mut String,id:usize)->bool{
         let record=&self.program.records[id];
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::IteratorCursor){return false;}
-        let item=record.application.as_ref().expect("applied cursor").resolved_arguments[0];
+        let storage=record.fields.iter().find(|field|field.name.text=="_items").and_then(|field|field.ty).expect("reserved owning cursor storage");
+        let Type::Array(element)=storage else{unreachable!("cursor storage is an array")};
+        let item=element.ty();
         let _=writeln!(output,"type Record{id}=TsrIteratorCursor<{}>;",self.native_type(item));true
     }
     pub(super) fn iterator_leaf(&self,expr:&Expr,source:&str)->String{

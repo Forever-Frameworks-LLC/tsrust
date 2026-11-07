@@ -6039,7 +6039,7 @@
       "parameters": [
         "value?: unknown"
       ],
-      "documentation": "Tests whether a supported value is an array. JsonValue is inspected by its contained data: JSON arrays return true; all other JSON kinds return false. Returns true for any native homogeneous array, including empty/nested arrays and fixed typed tuple values; false for scalars, null, undefined, records, callables and void call results. For a data union, inspects its active alternative: an array or fixed tuple is true and any other alternative is false. Omission returns false. The operand is evaluated once; additional arguments evaluate left to right and are ignored. Inputs are unchanged.\n\n@param value - Optional value to classify; defaults to undefined.\n\n```tsrust\nconsole.log(Array.isArray([]), Array.isArray({\n  a: 1\n}), Array.isArray(undefined)); // true false false\n```\n\nDoes not implement proxies, boxed values, dynamic heterogeneous arrays or the Array constructor. This observation by itself does not narrow a union or permit member/index projection. Strict null/undefined guards can prove a payload at a stable named place; replacing or consuming it invalidates that proof. The boolean result does not allocate; owned operands are borrowed for the call.\n\n```tsrust\nfunction main() {\n  const value = JSON.parse(\"[null]\");\n  console.log(Array.isArray(value), value === null, JSON.parse(\"null\") === null);\n}\n```\n\nExpected output: true false true. JSON arrays may contain mixed JSON kinds; inspection does not grant unchecked element access.",
+      "documentation": "Tests whether a supported value is an array. JsonValue is inspected by its contained data: JSON arrays return true; all other JSON kinds return false. Returns true for any native homogeneous array, including empty/nested arrays and fixed typed tuple values; false for scalars, null, undefined, records, callables and void call results. For a data union, inspects its active alternative: an array or fixed tuple is true and any other alternative is false. Omission returns false. The operand is evaluated once; additional arguments evaluate left to right and are ignored. Inputs are unchanged.\n\n@param value - Optional value to classify; defaults to undefined.\n\n```tsrust\nconsole.log(Array.isArray([]), Array.isArray({\n  a: 1\n}), Array.isArray(undefined)); // true false false\n```\n\nDoes not implement proxies, boxed values, dynamic heterogeneous arrays or the Array constructor. With exactly one argument at a stable named or field place, a condition narrows a static union to its array/fixed-tuple alternatives on the true branch and its other alternatives on the false branch. Replacing or consuming that place invalidates the proof. JsonValue and JsonView keep their checked wrapper type on both branches: inspecting dynamic JSON never grants unchecked element access. Omitted, extra-argument and temporary-value calls remain observations without a stored-place narrowing proof. The boolean result does not allocate; owned operands are borrowed for the call.\n\n```tsrust\nfunction main() {\n  const value = JSON.parse(\"[null]\");\n  console.log(Array.isArray(value), value === null, JSON.parse(\"null\") === null);\n}\n```\n\nExpected output: true false true. JSON arrays may contain mixed JSON kinds; inspection does not grant unchecked element access.",
       "examples": [
         {
           "source": "console.log(Array.isArray([]),Array.isArray({a:1}),Array.isArray(undefined));",
@@ -16254,15 +16254,19 @@
       "parameters": [
         {
           "label": "length: int",
-          "documentation": "Number of OS-random bytes: 1..1048576."
+          "documentation": "Number of operating system random bytes: nonnegative int representable as a target allocation length. Zero returns empty Bytes; no library size cap."
         }
       ],
-      "documentation": "Gets fresh bytes from the operating system random source. length must be 1..1048576. Returns owned Bytes or CryptoError code Range/Random; never falls back to a predictable generator. Useful for opaque session tokens.\n\n```tsrust\nconst token = unwrap(randomBytes(32)); // 256 random bits\n```\n\nOwnership: returned bytes are ordinary owned memory, not automatically zeroized.",
+      "documentation": "Gets fresh bytes from the operating system random source. length is a nonnegative int representable as a target allocation length, with no library size cap. Zero returns empty Bytes. Returns owned Bytes or CryptoError: Range for negative or target-unrepresentable counts, Random if operating system randomness is unavailable. Allocation follows ordinary Rust allocation behavior; allocation failure is not a catchable CryptoError. No predictable fallback is used.\n\n```tsrust\nimport { randomBytes } from \"std:crypto\";\nimport { length } from \"std:bytes\";\n\nfunction main() {\n  console.log(length(unwrap(randomBytes(0))));\n}\n```\nExpected output: 0.\n\nOwnership: returns independent owned bytes; no input mutation or automatic zeroization.",
       "inferredSignature": "function randomBytes(length: int): Result<Bytes, CryptoError>",
       "examples": [
         {
           "source": "import {randomBytes} from 'std:crypto';import {length} from 'std:bytes';function main(){console.log(length(unwrap(randomBytes(32))));}",
           "output": "32\n"
+        },
+        {
+          "source": "import {randomBytes} from \"std:crypto\";import {length} from \"std:bytes\";function main(){console.log(length(unwrap(randomBytes(0))));}",
+          "output": "0\n"
         }
       ]
     },
@@ -16310,10 +16314,10 @@
       "name": "CryptoError",
       "signature": "type CryptoError = { code: string; message: string; }",
       "parameters": [],
-      "documentation": "Checked randomness failure. Range means invalid count; Random means OS randomness was unavailable.\n\nRequesting zero random bytes returns Range without accessing OS randomness.\n\n```tsrust\nimport { randomBytes, CryptoError } from 'std:crypto';\n\nfunction show(error: ReadOnly<CryptoError>): void {\n  console.log(error.code);\n}\n\nfunction main() {\n  match (randomBytes(0)) {\n    Ok(_) => {},\n    Err(error) => {\n      show(error);\n    }\n  }\n}\n```",
+      "documentation": "Checked randomness failure. Range means a negative or target-unrepresentable count; Random means operating system randomness was unavailable. Ordinary allocation failure is not converted into CryptoError.\n\nZero succeeds with empty Bytes. A negative count returns Range.\n\n```tsrust\nimport { randomBytes, CryptoError } from 'std:crypto';\n\nfunction show(error: ReadOnly<CryptoError>): void {\n  console.log(error.code);\n}\n\nfunction main() {\n  match (randomBytes(-1)) {\n    Ok(_) => {},\n    Err(error) => {\n      show(error);\n    }\n  }\n}\n```",
       "examples": [
         {
-          "source": "import { randomBytes, CryptoError } from 'std:crypto';\n\nfunction show(error: ReadOnly<CryptoError>): void {\n  console.log(error.code);\n}\n\nfunction main() {\n  match (randomBytes(0)) {\n    Ok(_) => {},\n    Err(error) => {\n      show(error);\n    }\n  }\n}\n",
+          "source": "import { randomBytes, CryptoError } from 'std:crypto';\n\nfunction show(error: ReadOnly<CryptoError>): void {\n  console.log(error.code);\n}\n\nfunction main() {\n  match (randomBytes(-1)) {\n    Ok(_) => {},\n    Err(error) => {\n      show(error);\n    }\n  }\n}\n",
           "output": "Range\n"
         }
       ],
