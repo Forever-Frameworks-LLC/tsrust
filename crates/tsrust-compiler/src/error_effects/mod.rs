@@ -871,6 +871,17 @@ fn own_expression_effect(value:&Expr,effects:&ErrorEffects)->FailureSet {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn iterator_terminal_error_contract_after_prior_catch_diagnostic(){
+        use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+        struct Input;
+        impl SourceProvider for Input{
+            fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+            fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(include_str!("../../tests/fixtures/owned-iterators/contracts.tsr").into())}else{Err(format!("Missing source: {}",id.0))}}
+        }
+        let graph=load_project(&Input,"main.tsr").unwrap();
+        if let Err(error)=check_graph(graph){panic!("terminal iterator contract: {error:?}");}
+    }
+    #[test]
     fn deferred_error_definitions_preserve_live_callees() {
         let mut checked=crate::check("function used():void{}function unused():void{}function relay():void{used();}function main(){used();}").unwrap();
         let used=checked.program.functions.iter().position(|function|function.name=="used").unwrap();

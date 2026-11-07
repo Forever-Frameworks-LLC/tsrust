@@ -227,6 +227,17 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                     effects = if partial { analyzer.region_caller_error_effects(context, &region.body, result_type) } else { analyzer.region_error_effects(context)? };
                 }
                 let incoming = crate::error_effects::annotate_region_body(&mut region.body, &effects);
+                #[cfg(test)]
+                if incoming.opaque && std::thread::current().name().is_some_and(|name|name.ends_with("iterator_terminal_error_contract_after_prior_catch_diagnostic")) {
+                    eprintln!("ITERATOR_OPAQUE incoming={:?} fields={:?} retained={:?} callbacks={:?} storage={:?}",incoming,crate::error_effects::record_field_origins(&analyzer.unions,&analyzer.program.records,&analyzer.scoped_records),context.caller_error_origins,effects.callback_errors,effects.storage_errors);
+                    for function in analyzer.checked.iter().filter_map(Option::as_ref) {
+                        for value in crate::error_effects::checked_expressions(function) {
+                            if !value.own_may_fail{continue;}
+                            if let ExprKind::Call(callee,args)=&value.kind{eprintln!("ITERATOR_EFFECT function={} template={} span={:?} target={:?} callee={:?} invocation={:?} args={:?}",function.name,function.template,value.span,value.target,callee.ty,callee.generic_invocation,args.iter().map(|arg|arg.ty).collect::<Vec<_>>());}
+                        }
+                    }
+                    for(id,closure)in analyzer.closures.iter().enumerate(){eprintln!("ITERATOR_CLOSURE id={} forward={:?} polymorphic={} template={} effect={:?} methods={:?}",id,closure.forward.is_some(),closure.polymorphic,closure.function.template,effects.closure_errors.get(id),closure.methods.iter().enumerate().map(|(method,body)|(method,body.function.template,effects.method_errors.get(&(id,method)))).collect::<Vec<_>>());}
+                }
                 let points = crate::error_effects::OperationEffects::for_body(&region.body);
                 let (normal, frame, mut errors) = exits;
                 errors.refine(&mut |span| points.get(span));

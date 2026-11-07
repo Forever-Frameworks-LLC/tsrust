@@ -320,6 +320,12 @@ impl Tracker<'_> {
         (payload,Poll{cursors,selected})
     }
     fn store(&mut self,function:&CheckedFunction,value:&Expr,state:&mut State,destination:Place) {
+        #[cfg(test)]
+        if std::thread::current().name().is_some_and(|name|name.ends_with("public_array_iterator_drains_transfer_lazy_and_started_owners_to_all")) && function.name.contains("toArray") {
+            let callee=if let ExprKind::Call(callee,_)=&value.kind{Some((callee.ty,callee.generic_invocation))}else{None};
+            let sources=self.program.cursor_poll_sources(function,value).map(|plan|(plan.cursors,plan.mapped));
+            eprintln!("ITERATOR_DRAIN function={} span={:?} target={:?} ty={:?} callee={:?} own_fail={} sources={:?} owners={:?}",function.name,value.span,value.target,value.ty,callee,value.own_may_fail,sources,state.owners);
+        }
         if value.target==Some(CallTarget::IteratorCursor){
             let ExprKind::Call(_,args)=&value.kind else{unreachable!("checked cursor creation")};let mut items=destination;items.1.push("_items".into());self.store(function,&args[0],state,items);if value.own_may_fail{self.failures.push(state.clone());}return;
         }
