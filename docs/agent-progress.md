@@ -10,6 +10,65 @@ CURRENT OWNER POLICY/SOURCE — 2026-11-06
 
 LATEST VERIFIED STATE — supersedes the active-attempt notes below.
 
+OWNER RESUMED FULL GOAL — supersedes the pause immediately below. Owner clarified
+that "wrap it up" meant finish v0.2.0 and clean accumulated generated output;
+goal is ACTIVE. No new publication authorization. Root removed27490 idle rcgu
+object/debug files under Cargo/runtime locks:14,090,768,384 actual bytes recovered.
+Six closed generated prototype/export directories removed:1,456,279,552 additional
+bytes recovered. Shared dependencies, executable Rust/Node controls, source packs,
+measurements and owner/chat files retained. Target fell from~32GiB to~18GiB;
+filesystem available~39GiB after object cleanup. Existing debug binaries lose
+some external debugger detail; their run behavior is unchanged. Do not rebuild
+merely to repopulate deleted debug objects.
+
+HTTP-defaults/API source1355b309 now integrated on top of2e1f1e34: optional client
+response bodyLimit, optional form/maxFields and multipart/maxParts, absent options
+retain backend defaults; explicit server policies and existing TLS trust remain.
+Compiler/runtime/catalog/native/editor/docs examples complete in this source slice;
+UNVALIDATED. Combine its44 focused gates with the interrupted iterator/deep/batching
+scope in ONE55minute run, preserving previous passes. Attempt10 was explicitly
+stopped; resuming is authorized, not a lost-session restart. No active build yet.
+
+
+PAUSED AT OWNER REQUEST — 2026-11-06. This supersedes ALL live/active claims below.
+Owner explicitly stopped continuation because compilation/testing consumed usage
+without sufficiently visible feature delivery. Goal status is PAUSED. Do not resume
+implementation, builds, tests, profiling or agents without a new owner instruction.
+Attempt10 was manually terminated during compilation: verified supervisor99147 and
+its descendants99149/99162/99163/775 were stopped. This is INTERRUPTED/UNVERIFIED,
+not a pass or an inferred compiler failure. No attempt10 native/editor results are
+accepted. All three workers are completed; no worker execution remains active.
+
+Saved source: local checkpoint2e1f1e345248c7f897cb83298fc313f037226f7a on
+codex/stdlib-0.2.0. It includes iterator mixed-union/callback support and ownership
+repairs, private-member editor correction, structural-assertion allocation
+optimization and13-program native-test batching. These newest changes remain
+UNVALIDATED. No push, merge or publication occurred. Preserve this handoff update.
+
+Last completed acceptance is source5c45370d: B18 everyday-testing compiler/native
+23/23 and LSP4/4 passed; seven iterator and two editor cases failed. Nine B14/B18
+benchmark workloads have27 actual native/Rust/Node histories stored and verified
+in benchmarks/measurements.sqlite. Public checklist/status details are in
+ docs/plans/stdlib-0.2.0.md, sections B14/B15/B18. Full B00–B20 remains unfinished;
+new iterator support must not be described as accepted. HTTP-default migration
+1355b309 remains prepared in /tmp and unapplied. No further work is scheduled.
+
+
+ACTIVE ATTEMPT10 — checkpoint2e1f1e345248c7f897cb83298fc313f037226f7a,
+fingerprintb788b24238f216c3b237c5db3dcbbf65ab5eac7e233f3985d058114639708ce7.
+Session8568; supervisor99147, driver99149, innerwatch99162, CargoPID/PGID99163
+verified LIVE. Do not restart for vanished tool handles. Producer:
+/tmp/tsrust-iterator-assertion-editor-b788b24238f2-selected-build-artifacts.jsonl;
+log same stem-selected-build.log. Supervisor:
+/tmp/tsrust-iterator-assertion-editor-supervisor-attempt10.log. Overall budget:
+/tmp/tsrust-iterator-assertion-editor-budget-attempt10.json (not terminal yet).
+Scope /tmp/tsrust-iterator-assertion-editor-final-carrier-scopes.json; wrapper
+/tmp/tsrust-run-iterator-assertion-editor-attempt10.py. One55minute overall limit,
+inner30min/~5GB/jobs1/incrementaloff/threads3. Canonical source is frozen; only
+this handoff may change until terminal. All workers currently source-only/idle.
+Previous attempt9 and measurement evidence below remain valid at their sources.
+
+
 CURRENT UNCOMMITTED WORK after that verified baseline:
 Latest integration update: all listed source patches are now applied, including
 mixed-union replacement51c9f03f after independent b03 review. Three injection paths

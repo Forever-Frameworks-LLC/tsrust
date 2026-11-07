@@ -13242,7 +13242,7 @@
       "name": "App",
       "signature": "new App(): App",
       "parameters": [],
-      "documentation": "Creates an empty Axum-backed router. No arguments. Register routes and middleware before listen consumes the app. Default missing-route and wrong-method responses are 404 and 405. No listener starts at construction.\n\n```tsrust\nconst app = new App();\n```\n\nOwnership: unique, nonclonable router.",
+      "documentation": "Creates an empty Axum-backed router. No arguments. Register routes and middleware before listen consumes the app. Default missing-route and wrong-method responses are 404 and 405. No listener starts at construction.\n\n```tsrust\nconst app = new App();\n```\n\nOwnership: unique, nonclonable router.\n\nCall configure to opt into application byte, connection, concurrency, rate and deadline policies. Construction does not install them implicitly.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();console.log('ok');}",
@@ -13257,10 +13257,10 @@
       "parameters": [
         {
           "label": "options?: ClientOptions",
-          "documentation": "Omit for default public CA roots. Supply { ca: pem } to trust only that nonempty PEM certificate bundle. Hostname, chain and validity checks remain enabled. Omit or pass undefined to use the default."
+          "documentation": "Omit for backend defaults and public CA roots. ca optionally replaces roots with a nonempty PEM bundle; bodyLimit optionally bounds cumulative response bytes. Zero permits empty bodies only. Invalid bounds throw HttpError code options."
         }
       ],
-      "documentation": "Creates a reusable HTTP/HTTPS client with connection pooling and a 30-second request/body deadline. With omitted or undefined options, trusts default public CA roots. Optional { ca: string } supplies a nonempty PEM CA bundle that replaces those roots for this client only. Certificate chain, validity and URL hostname checks remain enabled. Invalid PEM throws HttpError code tls; construction failure throws code client. Redirects, proxies, automatic decompression and cookies are disabled.\n\n```tsrust\nconst client = new Client(); // public HTTPS\nconst privateClient = new Client({\n  ca: caPem\n}); // private CA only\n```\n\nOwnership: borrows options during construction; retains independent trust settings. send borrows the client until its task completes or is disposed.",
+      "documentation": "Creates a reusable HTTP/HTTPS client with connection pooling. Omitted options preserve the selected HTTP backend defaults: no total request/body timeout, bounded automatic redirect following, and the backend's proxy discovery for the enabled features. With omitted or undefined options, trusts default public CA roots. Optional ca supplies a nonempty PEM CA bundle that replaces those roots for this client only. Certificate chain, validity and URL hostname checks remain enabled. Invalid PEM throws HttpError code tls; construction failure throws code client. Automatic decompression and cookies remain disabled by the selected backend features. Optional bodyLimit bounds each response cumulatively; omitting it adds no response-byte cap. Invalid negative or nonrepresentable bounds throw code options. Redirect loops or exhausted redirect limits fail with HttpError code request. Proxy failures use the same request error channel; URLs with embedded credentials remain rejected.\n\n```tsrust\nconst client = new Client(); // public HTTPS\nconst privateClient = new Client({\n  ca: caPem\n}); // private CA only\n```\n\nOwnership: borrows options during construction; retains independent trust settings. send borrows the client until its task completes or is disposed.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const client=new Client();console.log('ok');}",
@@ -13423,7 +13423,7 @@
       "name": "Server",
       "signature": "type Server",
       "parameters": [],
-      "documentation": "An owned running HTTP listener. address() returns its IP and port. Await shutdown() to stop accepting and drain requests, with five seconds before cancelling remaining I/O. Dropping the handle requests cleanup; its async owner drains completion.\n\nOwnership: unique, nonclonable capability; consuming operations transfer ownership.\n\n```tsrust\nimport { Server } from 'std:http';\n\nfunction inspect(value: Server): void {}\n\nfunction main() {\n  console.log('ok');\n}\n```\nExpected output: ok.",
+      "documentation": "An owned running HTTP listener. address() returns its IP and port. Await shutdown() to stop accepting and drain requests, using an application drain deadline only when shutdownTimeoutMs was explicitly configured; otherwise graceful shutdown can remain pending for stalled I/O. Dropping the handle requests cleanup; its async owner drains completion.\n\nOwnership: unique, nonclonable capability; consuming operations transfer ownership.\n\n```tsrust\nimport { Server } from 'std:http';\n\nfunction inspect(value: Server): void {}\n\nfunction main() {\n  console.log('ok');\n}\n```\nExpected output: ok.",
       "examples": [
         {
           "source": "import {Server} from 'std:http';function inspect(value:Server):void{}function main(){console.log('ok');}",
@@ -13476,17 +13476,20 @@
     },
     {
       "name": "ClientOptions",
-      "signature": "type ClientOptions = { ca: string }",
-      "documentation": "Private trust settings for new Client(options). ca is a required, nonempty PEM CA bundle. It replaces default public roots for this client only; chain, hostname and validity checks remain enabled. Omit constructor options to use default public roots. Invalid PEM throws HttpError code tls.\n\nOwnership: reusable owned record; construction borrows its strings.\n\n```tsrust\nimport { ClientOptions } from 'std:http';\n\nfunction main() {\n  const options: ClientOptions = {\n    ca: \"PEM\"\n  };\n  console.log(options.ca);\n}\n```\nExpected output: PEM.",
+      "signature": "type ClientOptions = { ca?: string; bodyLimit?: int }",
+      "documentation": "Options for a reusable Client. Omitted ca keeps public CA roots; a supplied nonempty PEM bundle replaces only that client's trust roots while certificate and hostname verification remain enabled. bodyLimit is an optional nonnegative, target-representable byte count for each response body. Zero accepts only empty bodies. The cumulative budget covers all chunks and text reads; exceeding it throws HttpError code limit without returning truncated text. Invalid bounds throw code options at construction. Omitted or undefined bodyLimit adds no response-byte cap.\n\nOwnership: construction borrows options; the client retains independent settings.\n\n```tsrust\nimport { Client } from \"std:http\";\n\nfunction main() {\n  const client = new Client({\n    bodyLimit: 4096\n  });\n  console.log(\"bounded client\");\n}\n```",
       "examples": [
         {
-          "source": "import {ClientOptions} from 'std:http';function main(){const options:ClientOptions={ca:\"PEM\"};console.log(options.ca);}",
-          "output": "PEM\n"
+          "source": "import {Client} from \"std:http\";function main(){const client=new Client({bodyLimit:4096});console.log(\"bounded client\");}",
+          "output": "bounded client\n"
         }
       ],
       "fields": {
         "ca": {
-          "documentation": "Nonempty PEM CA bundle used instead of default public roots. Invalid PEM throws HttpError code tls. Example: new Client({ ca: caPem }) trusts only caPem. Ownership: borrowed during construction; reading does not mutate it."
+          "documentation": "Optional nonempty PEM CA bundle. Omitted or undefined preserves public roots. A supplied bundle replaces roots for this client without disabling chain, hostname or validity checks. Invalid PEM throws HttpError code tls. Construction borrows the string and retains independent settings."
+        },
+        "bodyLimit": {
+          "documentation": "Optional cumulative response-byte budget per request, including every streamed chunk and text collection. Nonnegative and target-representable; zero accepts empty bodies only. Invalid bounds throw HttpError code options at Client construction. Exceeding the budget throws code limit. Omitted or undefined adds no response-byte cap. The option is borrowed at construction and stored independently."
         }
       }
     },
@@ -13494,7 +13497,7 @@
       "name": "ServerOptions",
       "signature": "type ServerOptions = { bodyLimit: int; maxConnections: int; maxRequests: int; requestTimeoutMs: int; shutdownTimeoutMs: int; handshakeTimeoutMs: int; requestsPerSecond: int; }",
       "parameters": [],
-      "documentation": "Listener limits passed to app.configure before listen. All seven integer fields are required. bodyLimit is 1..67108864 bytes (default 1048576); maxConnections and maxRequests are 1..65536 (default 128 each). requestTimeoutMs is 1..3600000 (default 30000); shutdownTimeoutMs and handshakeTimeoutMs have the same range (default 5000). requestsPerSecond is 0..1000000 (default 0, disabled). Invalid values throw HttpError code options without changing the app. See configure for overload, timeout and rate-window behavior.\n\nThe example prints '65536'.\n\n```tsrust\nimport { App, ServerOptions } from 'std:http';\n\nfunction main() {\n  const options: ServerOptions = {\n    bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100\n  };\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit); // 65536\n}\n```\n\nOwnership: configuration borrows the options; the record remains usable.",
+      "documentation": "Explicit listener policies passed to app.configure before listen. All seven integer fields are required when configure is called. bodyLimit and maxConnections must be positive and fit the target unsigned pointer size. maxRequests must also fit Tokio Semaphore::MAX_PERMITS. The three positive millisecond deadlines must fit the backend monotonic Instant range. requestsPerSecond is nonnegative; zero disables rate limiting. Invalid values throw HttpError code options without changing the previous configuration. An app without configure has no added body, connection, concurrency, rate or deadline policy; transport defaults still apply.\n\nThe example prints '65536'.\n\n```tsrust\nimport { App, ServerOptions } from 'std:http';\n\nfunction main() {\n  const options: ServerOptions = {\n    bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100\n  };\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit); // 65536\n}\n```\n\nOwnership: configuration borrows the options; the record remains usable.",
       "inferredSignature": "function type ServerOptions = { bodyLimit: int; maxConnections: int; maxRequests: int; requestTimeoutMs: int; shutdownTimeoutMs: int; handshakeTimeoutMs: int; requestsPerSecond: int; }",
       "examples": [
         {
@@ -13505,7 +13508,30 @@
           "source": "import { App, ServerOptions } from 'std:http';\n\nfunction main() {\n  const options: ServerOptions = {\n    bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100\n  };\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit); // 65536\n}\n",
           "output": "65536\n"
         }
-      ]
+      ],
+      "fields": {
+        "bodyLimit": {
+          "documentation": "Explicit cumulative request-byte budget, including multipart framing. Must be positive and target-representable. Content-Length above the budget returns 413; streamed reads fail when the cumulative budget is exceeded. No application byte budget is installed until configure is called.\n\n```tsrust\noptions.bodyLimit; // 65536 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+        },
+        "maxConnections": {
+          "documentation": "Explicit positive, target-representable maximum accepted connections. Additional connections remain in the OS backlog. Construction installs no application connection cap.\n\n```tsrust\noptions.maxConnections; // 64 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+        },
+        "maxRequests": {
+          "documentation": "Explicit positive maximum concurrent handlers, no greater than the backend Semaphore::MAX_PERMITS. Excess arrivals return 503. No application concurrency cap is installed by construction.\n\n```tsrust\noptions.maxRequests; // 32 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+        },
+        "requestTimeoutMs": {
+          "documentation": "Explicit positive handler deadline in milliseconds, representable by the backend monotonic Instant. Expiry requests cancellation and returns 504. It does not bound response streaming after headers. No application handler deadline is installed by construction.\n\n```tsrust\noptions.requestTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+        },
+        "shutdownTimeoutMs": {
+          "documentation": "Explicit positive graceful-connection-drain deadline in milliseconds, representable by the backend monotonic Instant. Expiry cancels remaining connections and drains cleanup. Without configure, graceful shutdown has no application deadline. Native non-yielding work remains cooperative.\n\n```tsrust\noptions.shutdownTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+        },
+        "handshakeTimeoutMs": {
+          "documentation": "Explicit positive TLS handshake deadline in milliseconds, representable by the backend monotonic Instant. Expiry drops the connection. No application handshake deadline is installed by construction; server shutdown still interrupts handshakes.\n\n```tsrust\noptions.handshakeTimeoutMs; // 3000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+        },
+        "requestsPerSecond": {
+          "documentation": "Explicit nonnegative global arrival budget per fixed one-second window; zero disables it. Excess returns 429. Window boundaries can admit twice this count. No application rate limit is installed by construction.\n\n```tsrust\noptions.requestsPerSecond; // 100 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+        }
+      }
     },
     {
       "name": "FormField",
@@ -13908,7 +13934,7 @@
           "documentation": "Omit for cleartext HTTP. Supply { cert, key } PEM strings for HTTPS: certificate chain leaf first, matching unencrypted private key. Invalid configuration throws HttpError code tls before binding. Omit or pass undefined to use the default."
         }
       ],
-      "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Omit tls or pass undefined for cleartext HTTP; supply { cert, key } for HTTPS with HTTP/1.1 and HTTP/2 negotiation. cert is a nonempty PEM certificate chain, leaf first. key is its matching unencrypted PKCS#1, PKCS#8 or SEC1 PEM private key. Invalid configuration throws HttpError code tls before binding; invalid address or bind failure throws code address or listen. Clients verify trust, hostname and certificate validity. At most 128 active connections, including handshakes; a TLS handshake has a five-second deadline and shutdown interrupts it. Body readers have a cumulative 1048576-byte limit.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\", {\n  cert: certificatePem, key: privateKeyPem\n});\n```\n\nOwnership: consumes app and TLS options immediately. The running server retains independent TLS settings. Dropping Server requests cleanup, which its async owner drains.",
+      "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Omit tls or pass undefined for cleartext HTTP; supply { cert, key } for HTTPS with HTTP/1.1 and HTTP/2 negotiation. cert is a nonempty PEM certificate chain, leaf first. key is its matching unencrypted PKCS#1, PKCS#8 or SEC1 PEM private key. Invalid configuration throws HttpError code tls before binding; invalid address or bind failure throws code address or listen. Clients verify trust, hostname and certificate validity. Application body, connection, concurrency and deadline limits apply only when configure is called. TLS shutdown still interrupts pending handshakes. Backend transport and multipart extractor defaults remain in force.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\", {\n  cert: certificatePem, key: privateKeyPem\n});\n```\n\nOwnership: consumes app and TLS options immediately. The running server retains independent TLS settings. Dropping Server requests cleanup, which its async owner drains.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");await server.shutdown();console.log('ok');}",
@@ -13926,7 +13952,7 @@
           "documentation": "Complete body, connection, handler, time and global request-rate limits; all fields required."
         }
       ],
-      "documentation": "Sets listener limits before listen consumes this app. All seven integer fields are required. bodyLimit is 1..67108864 bytes (default 1048576); maxConnections and maxRequests are 1..65536 (default 128 each). requestTimeoutMs is 1..3600000 (default 30000); shutdownTimeoutMs and handshakeTimeoutMs use the same range (default 5000). requestsPerSecond is 0..1000000 (default 0, disabled). Invalid fields throw HttpError code options without changing configuration.\n\nConnections beyond capacity remain in the OS backlog. Concurrent handler overload returns 503. A global fixed one-second window counts arrivals and returns 429 with Retry-After: 1 when exhausted; it is not a per-user or distributed limiter. At most twice the configured rate can cross a window boundary. Handler deadlines return 504 and request cooperative cancellation; response streaming after handler completion is outside this deadline. TLS handshakes and shutdown draining have independent limits. Content-Length exceeding bodyLimit returns 413; streaming reads reject once their cumulative byte budget is exhausted.\n\n```tsrust\napp.configure({\n  bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100\n});\n```\n\nOwnership: mutates app configuration and only borrows options.",
+      "documentation": "Sets explicit listener policies before listen consumes this app. All seven integer fields are required when configure is called. bodyLimit and maxConnections must be positive and fit the target unsigned pointer size. maxRequests must also fit Tokio Semaphore::MAX_PERMITS. The three positive millisecond deadlines must fit the backend monotonic Instant range. requestsPerSecond is nonnegative; zero disables rate limiting. Invalid values throw HttpError code options without changing the previous configuration. An app without configure has no added body, connection, concurrency, rate or deadline policy; transport defaults still apply.\n\nConnections beyond capacity remain in the OS backlog. Concurrent handler overload returns 503. A global fixed one-second window counts arrivals and returns 429 with Retry-After: 1 when exhausted; it is not a per-user or distributed limiter. At most twice the configured rate can cross a window boundary. Handler deadlines return 504 and request cooperative cancellation; response streaming after handler completion is outside this deadline. TLS handshakes and shutdown draining have independent limits. Content-Length exceeding bodyLimit returns 413; streaming reads reject once their cumulative byte budget is exhausted.\n\n```tsrust\napp.configure({\n  bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100\n});\n```\n\nOwnership: mutates app configuration and only borrows options.",
       "inferredSignature": "function configure(options: ReadOnly<ServerOptions>): void",
       "examples": [
         {
@@ -13981,7 +14007,7 @@
       "name": "body",
       "signature": "body(): Body",
       "parameters": [],
-      "documentation": "Transfers the unread request body into a streaming reader without performing I/O. No arguments. Reads enforce the configured request byte limit (1048576 bytes by default); exceeding it throws HttpError code limit instead of returning truncated data. For c.req.body(), metadata and Context response helpers remain usable. A second or mixed contextual body read throws HttpError code body, even after a failed read.\n\n```tsrust\nconst body = c.req.body();\nconst value = await body.text(); // \"hello\" for a hello request body\nreturn c.text(value);\n```\n\nOwnership: consumes an owned Request. On c.req, mutably borrows the Context only while transferring its body; the returned Body owns the stream.",
+      "documentation": "Transfers the unread request body into a streaming reader without performing I/O. No arguments. Reads enforce an explicitly configured request-byte budget; synthetic requests and unconfigured listeners add no byte cap. Excess configured data throws HttpError code limit. For c.req.body(), metadata and Context response helpers remain usable. A second or mixed contextual body read throws code body, even after failure.\n\n```tsrust\nconst body = c.req.body();\nconst value = await body.text(); // \"hello\" for a hello request body\nreturn c.text(value);\n```\n\nOwnership: consumes an owned Request. On c.req, mutably borrows the Context only while transferring its body; the returned Body owns the stream.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const body=input.body();console.log('ok');}",
@@ -13994,7 +14020,7 @@
       "name": "json",
       "signature": "json(): Task<JsonValue>",
       "parameters": [],
-      "documentation": "Reads a request body as strict UTF-8 and parses checked, owned JSON. No arguments or type arguments. Returns a lazy Task<JsonValue>; use schema.parse(await input.json()) for a validated typed record. Content-Type does not change parsing. Empty, malformed or trailing input throws JsonError with its code, message and byte offset. Body/UTF-8 failures throw HttpError. Reads enforce the configured request byte limit (1048576 bytes by default); JSON also limits input to 16777216 bytes, depth to 64 and entries/nodes to 1000000.\n\n```tsrust\nconst schema = s.object({\n  name: s.string()\n});\nconst value = schema.parse(await c.req.json());\nreturn c.text(value.name); // hello for {\"name\":\"hello\"}\n```\n\nA contextual read consumes the body once when polled, including parse failures. Later body readers throw HttpError code body; metadata and response helpers remain usable.\n\nOwnership: an owned Request transfers into the task at construction. For c.req, the task borrows the Context until settled or disposed. The decoded JsonValue owns its data and does not borrow body storage.",
+      "documentation": "Reads a request body as strict UTF-8 and parses checked, owned JSON. No arguments or type arguments. Returns a lazy Task<JsonValue>; use schema.parse(await input.json()) for a validated typed record. Content-Type does not change parsing. Empty, malformed or trailing input throws JsonError with its code, message and byte offset. Body/UTF-8 failures throw HttpError. Reads enforce a request byte budget only when explicitly configured; JSON also limits input to 16777216 bytes, depth to 64 and entries/nodes to 1000000.\n\n```tsrust\nconst schema = s.object({\n  name: s.string()\n});\nconst value = schema.parse(await c.req.json());\nreturn c.text(value.name); // hello for {\"name\":\"hello\"}\n```\n\nA contextual read consumes the body once when polled, including parse failures. Later body readers throw HttpError code body; metadata and response helpers remain usable.\n\nOwnership: an owned Request transfers into the task at construction. For c.req, the task borrows the Context until settled or disposed. The decoded JsonValue owns its data and does not borrow body storage.",
       "examples": [
         {
           "source": "import {request} from 'std:http';import {kind} from 'std:json';async function main():Task<void>{const input=request('POST','http://localhost/','{\"name\":\"hello\"}');const value=await input.json();console.log(kind(value));}",
@@ -14007,7 +14033,7 @@
       "name": "text",
       "signature": "text(): Task<string>",
       "parameters": [],
-      "documentation": "Creates a lazy task that collects the body and returns strict UTF-8 text. No arguments. Body, encoding or cumulative configured request byte limit failures throw HttpError codes body, encoding or limit. The request limit defaults to 1048576 bytes and can be changed before listening. Suspension does not block a worker.\n\n```tsrust\nconst value = await input.text(); // \"hello\"\n```\n\nOwnership: consumes the request immediately; disposing its task releases the body.",
+      "documentation": "Creates a lazy task that collects the body as strict UTF-8 text. No arguments. Body, encoding or configured cumulative byte-budget failures throw HttpError codes body, encoding or limit. Synthetic requests and unconfigured listeners add no byte cap. Suspension does not block a worker.\n\n```tsrust\nconst value = await input.text(); // \"hello\"\n```\n\nOwnership: consumes the request immediately; disposing its task releases the body.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const value=await input.text();console.log('ok');}",
@@ -14062,9 +14088,14 @@
     },
     {
       "name": "form",
-      "signature": "form(): Task<FormField[]>",
-      "parameters": [],
-      "documentation": "Collects the request body when awaited. No arguments. Requires application/x-www-form-urlencoded. Decodes + as space and percent escapes as strict UTF-8; malformed escapes or invalid UTF-8 throw. Preserves duplicate field names and input order, including empty values. Empty segments are ignored. At most 128 fields and the configured request byte limit. Returns an owned FormField[]; malformed content, encoding and size failures throw HttpError.\n\n```tsrust\nconst fields = await input.form();\n```\n\nOwnership: consumes the request; returned fields own their data. The body cannot be read again.",
+      "signature": "form(maxFields?: int): Task<FormField[]>",
+      "parameters": [
+        {
+          "label": "maxFields?: int",
+          "documentation": "Optional nonnegative, target-representable maximum number of fields. Zero permits an empty collection only. Omitted or undefined adds no cardinality cap."
+        }
+      ],
+      "documentation": "Collects the request body when awaited. maxFields optionally bounds the number of fields; zero accepts only an empty collection. Negative or target-nonrepresentable bounds throw HttpError code options before reading. Requires application/x-www-form-urlencoded. Decodes + as space and percent escapes as strict UTF-8; malformed escapes or invalid UTF-8 throw. Preserves duplicate field names and input order, including empty values. Empty segments are ignored. An explicit maxFields bounds fields; omission adds no cardinality cap. Reads also enforce the explicitly configured request byte limit. Returns an owned FormField[]; malformed content, encoding and size failures throw HttpError.\n\n```tsrust\nconst fields = await input.form();\n```\n\nOwnership: consumes the request; returned fields own their data. The body cannot be read again.\n\nFor c.req, invalid bounds are rejected before consuming its body, so a valid retry can still read it. The bound does not replace the configured byte limit.",
       "inferredSignature": "function form(): Task<FormField[]>",
       "examples": [
         {
@@ -14075,9 +14106,14 @@
     },
     {
       "name": "multipart",
-      "signature": "multipart(): Task<MultipartPart[]>",
-      "parameters": [],
-      "documentation": "Collects the request body when awaited. No arguments. Requires multipart/form-data with a valid boundary. Uses the maintained multipart parser, retaining binary bytes, field order and duplicate names. Each part requires a name; fileName and contentType may be undefined. At most 128 parts and the configured total request byte limit, including multipart framing. File names are untrusted metadata, never filesystem paths. Nested multipart and streaming upload-to-disk are unsupported by this collecting helper. Returns an owned MultipartPart[]; malformed content, encoding and size failures throw HttpError.\n\n```tsrust\nconst fields = await input.multipart();\n```\n\nOwnership: consumes the request; returned fields own their data. The body cannot be read again.",
+      "signature": "multipart(maxParts?: int): Task<MultipartPart[]>",
+      "parameters": [
+        {
+          "label": "maxParts?: int",
+          "documentation": "Optional nonnegative, target-representable maximum number of parts. Zero permits an empty collection only. Omitted or undefined adds no cardinality cap."
+        }
+      ],
+      "documentation": "Collects the request body when awaited. maxParts optionally bounds the number of parts; zero accepts only an empty collection. Negative or target-nonrepresentable bounds throw HttpError code options before reading. Requires multipart/form-data with a valid boundary. Uses the maintained multipart parser, retaining binary bytes, field order and duplicate names. Each part requires a name; fileName and contentType may be undefined. An explicit maxParts bounds parts; omission adds no cardinality cap. Reads also enforce the explicitly configured total request byte limit, including multipart framing. File names are untrusted metadata, never filesystem paths. Nested multipart and streaming upload-to-disk are unsupported by this collecting helper. Returns an owned MultipartPart[]; malformed content, encoding and size failures throw HttpError.\n\n```tsrust\nconst fields = await input.multipart();\n```\n\nOwnership: consumes the request; returned fields own their data. The body cannot be read again.\n\nFor c.req, invalid bounds are rejected before consuming its body, so a valid retry can still read it. The bound does not replace the configured byte limit.\n\nWithout an application byte policy, the selected multipart extractor retains its own 2097152-byte default, including framing. An explicitly configured request-byte policy replaces that extractor budget; maxParts does not disable it.",
       "inferredSignature": "function multipart(): Task<MultipartPart[]>",
       "examples": [
         {
@@ -14168,7 +14204,7 @@
       "name": "body",
       "signature": "body(): Body",
       "parameters": [],
-      "documentation": "Transfers the unread body into a streaming reader. No arguments. Reading is lazy; this call performs no I/O. The cumulative read limit is 1048576 bytes.\n\n```tsrust\nconst body = response.body();\n```\n\nOwnership: consumes the response; body cannot be read twice.",
+      "documentation": "Transfers the unread body into a streaming reader. No arguments. Reading is lazy; this call performs no I/O. Reads enforce ClientOptions.bodyLimit when supplied. Omission adds no response-byte cap.\n\n```tsrust\nconst body = response.body();\n```\n\nOwnership: consumes the response; body cannot be read twice.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");const body=response.body();console.log('ok');}",
@@ -14181,7 +14217,7 @@
       "name": "text",
       "signature": "text(): Task<string>",
       "parameters": [],
-      "documentation": "Creates a lazy task that collects the body and returns strict UTF-8 text. No arguments. Body, encoding or cumulative 1048576-byte limit failures throw HttpError codes body, encoding or limit. Suspension does not block a worker.\n\n```tsrust\nconst value = await response.text(); // \"hello\"\n```\n\nOwnership: consumes the response immediately; disposing its task releases the body.",
+      "documentation": "Creates a lazy task that collects the body and returns strict UTF-8 text. No arguments. Body, encoding or explicit cumulative byte-budget failures throw HttpError codes body, encoding or limit. Suspension does not block a worker.\n\n```tsrust\nconst value = await response.text(); // \"hello\"\n```\n\nOwnership: consumes the response immediately; disposing its task releases the body.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");const value=await response.text();console.log('ok');}",
@@ -14222,7 +14258,7 @@
       "name": "shutdown",
       "signature": "shutdown(): Task<void>",
       "parameters": [],
-      "documentation": "Creates a lazy shutdown task. Awaiting stops acceptance, permits up to five seconds for active connections to finish, then cancels stalled connections and drains nested request tasks. No arguments. Cleanup may take longer if synchronous application work does not suspend.\n\n```tsrust\nawait server.shutdown();\n```\n\nOwnership: consumes the server; its listener and requests cannot detach.",
+      "documentation": "Creates a lazy shutdown task. Awaiting stops acceptance and gracefully drains active connections. If configure supplied shutdownTimeoutMs, expiry cancels stalled connections before draining nested request tasks. Without configure there is no application drain deadline, so stalled clients or handlers can keep shutdown pending. No arguments. Cleanup may take longer when synchronous application work does not suspend.\n\n```tsrust\nawait server.shutdown();\n```\n\nOwnership: consumes the server; its listener and requests cannot detach.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");await server.shutdown();console.log('ok');}",
@@ -14255,7 +14291,7 @@
           "documentation": "Owned request with an absolute HTTP/HTTPS URL and no embedded credentials."
         }
       ],
-      "documentation": "Creates a lazy HTTP request task. Awaiting returns response headers and an unread streaming body. HTTP 4xx/5xx are responses, not exceptions. URL, transport and 30-second deadline failures throw HttpError codes url, request or timeout. No redirects, implicit proxies, cookies or decompression. Use response.text() or body() to read once.\n\n```tsrust\nconst response = await client.send(request(\"GET\", url, \"\"));\n```\n\nOwnership: consumes the request and borrows the reusable client until completion/disposal.",
+      "documentation": "Creates a lazy HTTP request task. Awaiting returns response headers and an unread streaming body. HTTP 4xx/5xx are responses, not exceptions. URL and transport failures throw HttpError codes url, request or timeout as reported by the backend. With the existing constructor options, no total request/body timeout is installed; redirect and proxy behavior inherit the selected backend defaults. Cookies and automatic decompression are not enabled. Use response.text() or body() to read once.\n\n```tsrust\nconst response = await client.send(request(\"GET\", url, \"\"));\n```\n\nOwnership: consumes the request and borrows the reusable client until completion/disposal.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");const client=new Client();const response=await client.send(request(\"GET\",\"http://\"+server.address()+\"/\",\"\"));await server.shutdown();console.log('ok');}",
@@ -14270,7 +14306,7 @@
       "name": "next",
       "signature": "next(): Task<Bytes | undefined>",
       "parameters": [],
-      "documentation": "Creates a lazy read of the next data frame. Returns owned bytes, or undefined at end. No arguments. Frame boundaries are transport-dependent; trailers are skipped. Cumulative reads above 1048576 bytes throw HttpError code limit; transport failures throw body. No background read-ahead is added.\n\n```tsrust\nconst chunk = await body.next();\n```\n\nOwnership: mutably borrows the body until completion/disposal; concurrent reads are rejected.",
+      "documentation": "Creates a lazy read of the next data frame. Returns owned bytes, or undefined at end. No arguments. Frame boundaries are transport-dependent; trailers are skipped. Exceeding an explicit cumulative byte budget throws HttpError code limit; transport failures throw body. No background read-ahead is added.\n\n```tsrust\nconst chunk = await body.next();\n```\n\nOwnership: mutably borrows the body until completion/disposal; concurrent reads are rejected.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");const body=response.body();const chunk=await body.next();console.log('ok');}",
@@ -16457,7 +16493,7 @@
     {
       "name": "bodyLimit",
       "signature": "bodyLimit: int",
-      "documentation": "Cumulative request body bytes: 1..67108864; default 1048576. Multipart framing counts toward the limit.\n\n```tsrust\noptions.bodyLimit; // 65536 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "documentation": "Explicit cumulative request-byte budget, including multipart framing. Must be positive and target-representable. Content-Length above the budget returns 413; streamed reads fail when the cumulative budget is exceeded. No application byte budget is installed until configure is called.\n\n```tsrust\noptions.bodyLimit; // 65536 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
       "examples": [
         {
           "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
@@ -16468,7 +16504,7 @@
     {
       "name": "maxConnections",
       "signature": "maxConnections: int",
-      "documentation": "Maximum accepted connections: 1..65536; default 128. Additional connections remain in the OS backlog.\n\n```tsrust\noptions.maxConnections; // 64 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "documentation": "Explicit positive, target-representable maximum accepted connections. Additional connections remain in the OS backlog. Construction installs no application connection cap.\n\n```tsrust\noptions.maxConnections; // 64 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
       "examples": [
         {
           "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
@@ -16479,7 +16515,7 @@
     {
       "name": "maxRequests",
       "signature": "maxRequests: int",
-      "documentation": "Maximum concurrent handlers: 1..65536; default 128. Excess handler arrivals return 503.\n\n```tsrust\noptions.maxRequests; // 32 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "documentation": "Explicit positive maximum concurrent handlers, no greater than the backend Semaphore::MAX_PERMITS. Excess arrivals return 503. No application concurrency cap is installed by construction.\n\n```tsrust\noptions.maxRequests; // 32 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
       "examples": [
         {
           "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
@@ -16490,7 +16526,7 @@
     {
       "name": "requestTimeoutMs",
       "signature": "requestTimeoutMs: int",
-      "documentation": "Handler deadline in milliseconds: 1..3600000; default 30000. Expiry requests cancellation and returns 504. Does not bound response streaming after headers.\n\n```tsrust\noptions.requestTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "documentation": "Explicit positive handler deadline in milliseconds, representable by the backend monotonic Instant. Expiry requests cancellation and returns 504. It does not bound response streaming after headers. No application handler deadline is installed by construction.\n\n```tsrust\noptions.requestTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
       "examples": [
         {
           "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
@@ -16501,7 +16537,7 @@
     {
       "name": "shutdownTimeoutMs",
       "signature": "shutdownTimeoutMs: int",
-      "documentation": "Connection drain grace in milliseconds: 1..3600000; default 5000. Expiry cancels remaining connections; native non-yielding work remains cooperative.\n\n```tsrust\noptions.shutdownTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "documentation": "Explicit positive graceful-connection-drain deadline in milliseconds, representable by the backend monotonic Instant. Expiry cancels remaining connections and drains cleanup. Without configure, graceful shutdown has no application deadline. Native non-yielding work remains cooperative.\n\n```tsrust\noptions.shutdownTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
       "examples": [
         {
           "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
@@ -16512,7 +16548,7 @@
     {
       "name": "handshakeTimeoutMs",
       "signature": "handshakeTimeoutMs: int",
-      "documentation": "TLS handshake deadline in milliseconds: 1..3600000; default 5000. Expiry drops the connection.\n\n```tsrust\noptions.handshakeTimeoutMs; // 3000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "documentation": "Explicit positive TLS handshake deadline in milliseconds, representable by the backend monotonic Instant. Expiry drops the connection. No application handshake deadline is installed by construction; server shutdown still interrupts handshakes.\n\n```tsrust\noptions.handshakeTimeoutMs; // 3000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
       "examples": [
         {
           "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
@@ -16523,7 +16559,7 @@
     {
       "name": "requestsPerSecond",
       "signature": "requestsPerSecond: int",
-      "documentation": "Global arrival limit per fixed one-second window: 0 disables; otherwise 1..1000000. Default 0. Excess returns 429, and window boundaries can admit twice this count.\n\n```tsrust\noptions.requestsPerSecond; // 100 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "documentation": "Explicit nonnegative global arrival budget per fixed one-second window; zero disables it. Excess returns 429. Window boundaries can admit twice this count. No application rate limit is installed by construction.\n\n```tsrust\noptions.requestsPerSecond; // 100 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
       "examples": [
         {
           "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
@@ -16748,7 +16784,7 @@
           "documentation": "Omit for cleartext HTTP. Supply { cert, key } PEM strings for HTTPS: certificate chain leaf first, matching unencrypted private key. Invalid configuration throws HttpError code tls before binding. Omit or pass undefined to use the default."
         }
       ],
-      "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Omit tls or pass undefined for cleartext HTTP; supply { cert, key } for HTTPS with HTTP/1.1 and HTTP/2 negotiation. cert is a nonempty PEM certificate chain, leaf first. key is its matching unencrypted PKCS#1, PKCS#8 or SEC1 PEM private key. Invalid configuration throws HttpError code tls before binding; invalid address or bind failure throws code address or listen. Clients verify trust, hostname and certificate validity. At most 128 active connections, including handshakes; a TLS handshake has a five-second deadline and shutdown interrupts it. Body readers have a cumulative 1048576-byte limit.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\", {\n  cert: certificatePem, key: privateKeyPem\n});\n```\n\nOwnership: consumes app and TLS options immediately. The running server retains independent TLS settings. Dropping Server requests cleanup, which its async owner drains.",
+      "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Omit tls or pass undefined for cleartext HTTP; supply { cert, key } for HTTPS with HTTP/1.1 and HTTP/2 negotiation. cert is a nonempty PEM certificate chain, leaf first. key is its matching unencrypted PKCS#1, PKCS#8 or SEC1 PEM private key. Invalid configuration throws HttpError code tls before binding; invalid address or bind failure throws code address or listen. Clients verify trust, hostname and certificate validity. Application body, connection, concurrency and deadline limits apply only when configure is called. TLS shutdown still interrupts pending handshakes. Backend transport and multipart extractor defaults remain in force.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\", {\n  cert: certificatePem, key: privateKeyPem\n});\n```\n\nOwnership: consumes app and TLS options immediately. The running server retains independent TLS settings. Dropping Server requests cleanup, which its async owner drains.",
       "examples": [
         {
           "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
@@ -16766,7 +16802,7 @@
           "documentation": "Complete body, connection, handler, time and global request-rate limits; all fields required."
         }
       ],
-      "documentation": "Sets listener limits before listen consumes this app. All seven integer fields are required. bodyLimit is 1..67108864 bytes (default 1048576); maxConnections and maxRequests are 1..65536 (default 128 each). requestTimeoutMs is 1..3600000 (default 30000); shutdownTimeoutMs and handshakeTimeoutMs use the same range (default 5000). requestsPerSecond is 0..1000000 (default 0, disabled). Invalid fields throw HttpError code options without changing configuration.\n\nConnections beyond capacity remain in the OS backlog. Concurrent handler overload returns 503. A global fixed one-second window counts arrivals and returns 429 with Retry-After: 1 when exhausted; it is not a per-user or distributed limiter. At most twice the configured rate can cross a window boundary. Handler deadlines return 504 and request cooperative cancellation; response streaming after handler completion is outside this deadline. TLS handshakes and shutdown draining have independent limits. Content-Length exceeding bodyLimit returns 413; streaming reads reject once their cumulative byte budget is exhausted.\n\n```tsrust\napp.configure({\n  bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100\n});\n```\n\nOwnership: mutates app configuration and only borrows options.",
+      "documentation": "Sets explicit listener policies before listen consumes this app. All seven integer fields are required when configure is called. bodyLimit and maxConnections must be positive and fit the target unsigned pointer size. maxRequests must also fit Tokio Semaphore::MAX_PERMITS. The three positive millisecond deadlines must fit the backend monotonic Instant range. requestsPerSecond is nonnegative; zero disables rate limiting. Invalid values throw HttpError code options without changing the previous configuration. An app without configure has no added body, connection, concurrency, rate or deadline policy; transport defaults still apply.\n\nConnections beyond capacity remain in the OS backlog. Concurrent handler overload returns 503. A global fixed one-second window counts arrivals and returns 429 with Retry-After: 1 when exhausted; it is not a per-user or distributed limiter. At most twice the configured rate can cross a window boundary. Handler deadlines return 504 and request cooperative cancellation; response streaming after handler completion is outside this deadline. TLS handshakes and shutdown draining have independent limits. Content-Length exceeding bodyLimit returns 413; streaming reads reject once their cumulative byte budget is exhausted.\n\n```tsrust\napp.configure({\n  bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100\n});\n```\n\nOwnership: mutates app configuration and only borrows options.",
       "inferredSignature": "function configure(options: ReadOnly<ServerOptions>): void",
       "examples": [
         {
@@ -16860,7 +16896,7 @@
           "documentation": "Optional HTTP status, 200 through 599; defaults to the context status. Omit or pass undefined to use the default."
         }
       ],
-      "documentation": "Constructs a JSON response using pending context headers. Optional status is 200 through 599; omitting it or passing undefined uses c.status(), initially 200. Another status throws HttpError code status. Does not consume or finalize the context; return this response from the handler. JSON serialization rejects unsupported or nonfinite values. \n\n```tsrust\nreturn c.json({\n  message: 'ok'\n});\n```\n\nReturns status 200 unless previously changed. Ownership: borrows the context; owns the response body.",
+      "documentation": "Constructs a JSON response using pending context headers. Optional status is 200 through 599; omitting it or passing undefined uses c.status(), initially 200. Another status throws HttpError code status. Does not consume or finalize the context; return this response from the handler. JSON serialization rejects unsupported or nonfinite values. \n\n```tsrust\nreturn c.json({\n  message: 'ok'\n});\n```\n\nReturns status 200 unless previously changed. Ownership: borrows the context; owns the response body.\n\nThe checked serializer adds no implicit one-MiB output ceiling. For a bounded serialization operation, use JSON.tryStringify(value,maxBytes) or JSON.stringify(value,maxBytes); explicit limits and data/number errors remain enforced.",
       "examples": [
         {
           "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
@@ -20732,6 +20768,32 @@
         {
           "source": "import { compressWriter, decompressWriter } from 'std:compression';\nimport { ThreadPool } from 'std:threads';\nimport { writer, close } from 'std:io';\nimport { create, readFile, removeFile } from 'std:fs';\nimport { fromUtf8, toUtf8 } from 'std:bytes';\nasync function main(): Task<void> {\n  const pool = new ThreadPool({ workers: 1, capacity: 1 });\n  const encoded = unwrap(compressWriter(pool, writer(unwrap(create('message.gz'))), 'gzip'));\n  console.log(unwrap(await encoded.write(unwrap(fromUtf8('he')))));\n  unwrap(await encoded.writeAll(unwrap(fromUtf8('llo'))));\n  unwrap(await encoded.flush());\n  unwrap(await close(unwrap(await encoded.finish())));\n  const decoded = unwrap(decompressWriter(pool, writer(unwrap(create('message.txt'))), 'gzip', { maxOutputBytes: 5 }));\n  unwrap(await decoded.writeAll(unwrap(readFile('message.gz'))));\n  unwrap(await decoded.close());\n  console.log(unwrap(toUtf8(unwrap(readFile('message.txt')))));\n  unwrap(removeFile('message.gz'));\n  unwrap(removeFile('message.txt'));\n  unwrap(pool.shutdown());\n}\n",
           "output": "2\nhello\n"
+        }
+      ]
+    }
+  ],
+  "HttpClientOptions": [
+    {
+      "name": "ca",
+      "signature": "ca: string | undefined",
+      "parameters": null,
+      "documentation": "Optional nonempty PEM CA bundle. Omitted or undefined preserves public roots. A supplied bundle replaces roots for this client without disabling chain, hostname or validity checks. Invalid PEM throws HttpError code tls. Construction borrows the string and retains independent settings.",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={bodyLimit:4};console.log(options.ca===undefined);}",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "bodyLimit",
+      "signature": "bodyLimit: int | undefined",
+      "parameters": null,
+      "documentation": "Optional cumulative response-byte budget per request, including every streamed chunk and text collection. Nonnegative and target-representable; zero accepts empty bodies only. Invalid bounds throw HttpError code options at Client construction. Exceeding the budget throws code limit. Omitted or undefined adds no response-byte cap. The option is borrowed at construction and stored independently.",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={bodyLimit:4};console.log(options.bodyLimit);}",
+          "output": "4\n"
         }
       ]
     }

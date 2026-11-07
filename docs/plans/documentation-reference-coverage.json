@@ -512,6 +512,10 @@
     "Iterator": {
       "route": "/docs/standard-library/iterator",
       "members": 12
+    },
+    "HttpClientOptions": {
+      "route": "/docs/framework/client",
+      "members": 2
     }
   }
 }

@@ -1,5 +1,86 @@
 use tsrust_native_http::*;
 #[test]
+fn ordinary_server_admits_more_than_legacy_concurrency_and_explicit_limit_rejects(){
+ use std::{sync::{Arc,atomic::{AtomicUsize,Ordering}},time::Duration};
+ struct Release(Arc<tokio::sync::Semaphore>);impl Drop for Release{fn drop(&mut self){self.0.add_permits(256);}}
+ tsrust_native_futures::block_on(async{
+  for configured in [false,true]{
+   let entered=Arc::new(AtomicUsize::new(0));let changed=Arc::new(tokio::sync::Notify::new());let gate=Arc::new(tokio::sync::Semaphore::new(0));
+   let mut app=App::new();if configured{app.configure([64,256,128,30000,5000,5000,0]).unwrap();}
+   let observed=entered.clone();let signal=changed.clone();let blocked=gate.clone();
+   app.route("GET","/",move |_|{let observed=observed.clone();let signal=signal.clone();let blocked=blocked.clone();async move{observed.fetch_add(1,Ordering::SeqCst);signal.notify_waiters();let permit=blocked.acquire().await.unwrap();permit.forget();Response::text("ok".into(),200).unwrap()}}).unwrap();
+   let server=app.listen("127.0.0.1:0").await.unwrap();let release=Release(gate);let url=format!("http://{}/",server.address());let client=reqwest::Client::new();let mut requests=tokio::task::JoinSet::new();
+   for _ in 0..128{let client=client.clone();let url=url.clone();requests.spawn(async move{let response=client.get(url).send().await.unwrap();assert_eq!(response.status().as_u16(),200);assert_eq!(response.text().await.unwrap(),"ok");});}
+   tokio::time::timeout(Duration::from_secs(5),async{loop{let ready=changed.notified();if entered.load(Ordering::SeqCst)>=128{break;}ready.await;}}).await.expect("initial handlers did not enter");
+   if configured{let response=tokio::time::timeout(Duration::from_secs(5),client.get(&url).send()).await.expect("explicit overload did not settle").unwrap();assert_eq!(response.status().as_u16(),503);assert_eq!(entered.load(Ordering::SeqCst),128);}
+   else{let client=client.clone();let url=url.clone();requests.spawn(async move{let response=client.get(url).send().await.unwrap();assert_eq!(response.status().as_u16(),200);assert_eq!(response.text().await.unwrap(),"ok");});tokio::time::timeout(Duration::from_secs(5),async{loop{let ready=changed.notified();if entered.load(Ordering::SeqCst)>=129{break;}ready.await;}}).await.expect("ordinary backend still had the legacy128 cap");}
+   drop(release);tokio::time::timeout(Duration::from_secs(5),async{while let Some(result)=requests.join_next().await{result.unwrap();}}).await.expect("released handlers did not settle");tokio::time::timeout(Duration::from_secs(5),server.shutdown()).await.expect("idle server did not drain");
+  }
+ });
+}
+#[test]
+fn ordinary_server_body_reads_and_explicit_legacy_budgets_are_distinct(){
+ tsrust_native_futures::block_on(async{
+  for limit in [None,Some(1048576),Some(1048577)]{
+   let mut app=App::new();if let Some(limit)=limit{app.configure([limit,8,8,5000,5000,5000,0]).unwrap();}
+   app.route("POST","/echo",|request|async move{Response::stream(request.body(),200).unwrap()}).unwrap();
+   let server=app.listen("127.0.0.1:0").await.unwrap();
+   // A known-length backend body exercises the server's Content-Length policy.
+   let response=reqwest::Client::new().post(format!("http://{}/echo",server.address())).body("x".repeat(1048577)).send().await.unwrap();
+   if limit==Some(1048576){assert_eq!(response.status().as_u16(),413);}else{assert_eq!(response.status().as_u16(),200);let text=response.text().await.unwrap();assert_eq!(text.len(),1048577);assert!(text.bytes().all(|byte|byte==b'x'));}
+   server.shutdown().await;
+  }
+ });
+}
+#[test]
+fn explicit_http_bounds_validate_before_read_and_preserve_configured_limits(){
+ tsrust_native_futures::block_on(async{
+  for limit in [-1,i64::MIN]{assert_eq!(Client::with_options(None,Some(limit)).err().unwrap().code,"options");}
+  #[cfg(target_pointer_width="32")]
+  assert_eq!(Client::with_options(None,Some(i64::from(u32::MAX)+1)).err().unwrap().code,"options");
+  let make_form=|body:String|{let mut input=Request::new("POST","http://localhost/",body).unwrap();input.set_header("content-type","application/x-www-form-urlencoded").unwrap();input};
+  assert_eq!(make_form("a=b".into()).form(Some(-1)).await.err().unwrap().code,"options");
+  assert!(make_form(String::new()).form(Some(0)).await.unwrap().is_empty());
+  assert_eq!(make_form("a=b".into()).form(Some(0)).await.err().unwrap().code,"limit");
+  let fields=(0..129).map(|i|format!("n={i}")).collect::<Vec<_>>().join("&");
+  assert_eq!(make_form(fields.clone()).form(None).await.unwrap().len(),129);
+  assert_eq!(make_form(fields.clone()).form(Some(128)).await.err().unwrap().code,"limit");
+  let fields=make_form(fields).form(Some(129)).await.unwrap();assert_eq!(fields.len(),129);assert_eq!(fields[128].value,"128");
+  let make_parts=||{let mut body=String::new();for i in 0..129{body.push_str(&format!("--x\r\nContent-Disposition: form-data; name=\"n\"\r\n\r\n{i}\r\n"));}body.push_str("--x--\r\n");let mut input=Request::new("POST","http://localhost/",body).unwrap();input.set_header("content-type","multipart/form-data; boundary=x").unwrap();input};
+  assert_eq!(make_parts().multipart(None).await.unwrap().len(),129);
+  assert_eq!(make_parts().multipart(Some(128)).await.err().unwrap().code,"limit");
+  let parts=make_parts().multipart(Some(129)).await.unwrap();assert_eq!(parts.len(),129);assert_eq!(parts[128].data,b"128");
+  let mut app=App::new();app.route("GET","/bytes",|_|async{Response::text("abcd".into(),200).unwrap()}).unwrap();app.route("GET","/empty",|_|async{Response::text(String::new(),200).unwrap()}).unwrap();
+  app.route("GET","/above-old-limit",|_|async{Response::text("x".repeat(1048577),200).unwrap()}).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();let base=format!("http://{}",server.address());
+  for(limit,path,ok)in[(0,"empty",true),(0,"bytes",false),(3,"bytes",false),(4,"bytes",true)]{
+   let client=Client::with_options(None,Some(limit)).unwrap();let response=client.send(Request::new("GET",&format!("{base}/{path}"),String::new()).unwrap()).await.unwrap();let result=response.text_body().await;
+   if ok{assert_eq!(result.unwrap(),if path=="empty"{""}else{"abcd"});}else{assert_eq!(result.err().unwrap().code,"limit");}
+  }
+  for limit in [1048576,1048577]{
+   let client=Client::with_options(None,Some(limit)).unwrap();let response=client.send(Request::new("GET",&format!("{base}/above-old-limit"),String::new()).unwrap()).await.unwrap();
+   let result=response.text_body().await;
+   if limit==1048577{let text=result.unwrap();assert_eq!(text.len(),1048577);assert!(text.bytes().all(|byte|byte==b'x'));}else{assert_eq!(result.err().unwrap().code,"limit");}
+  }
+  let response=Client::new().unwrap().send(Request::new("GET",&format!("{base}/above-old-limit"),String::new()).unwrap()).await.unwrap();
+  assert_eq!(response.text_body().await.unwrap().len(),1048577);
+  server.shutdown().await;
+ });
+}
+#[test]
+fn client_default_redirect_policy_follows_relative_locations_and_stops_loops(){
+ tsrust_native_futures::block_on(async{
+  let mut app=App::new();
+  app.route("GET","/start",|_|async{let mut response=Response::text(String::new(),302).unwrap();response.set_header("location","/final").unwrap();response}).unwrap();
+  app.route("GET","/final",|_|async{Response::text("followed".into(),200).unwrap()}).unwrap();
+  app.route("GET","/loop",|_|async{let mut response=Response::text(String::new(),302).unwrap();response.set_header("location","/loop").unwrap();response}).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();let base=format!("http://{}",server.address());let client=Client::new().unwrap();
+  let response=client.send(Request::new("GET",&format!("{base}/start"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),200);assert_eq!(response.text_body().await.unwrap(),"followed");
+  let error=client.send(Request::new("GET",&format!("{base}/loop"),String::new()).unwrap()).await.err().expect("default backend redirect limit");assert_eq!(error.code,"request");
+  server.shutdown().await;
+ });
+}
+#[test]
 fn loopback_routes_middleware_bodies_and_shutdown(){
  tsrust_native_futures::block_on(async{
   let mut app=App::new();
@@ -22,8 +103,8 @@ fn validation_and_streaming_limits_do_not_silently_truncate(){
   assert!(Response::text("bad".into(),199).is_err());let mut request=Request::new("POST","http://localhost/","body".into()).unwrap();assert!(request.set_header("x-test","bad\r\nInjected: true").is_err());assert!(request.set_header("content-length","100").is_err());
   assert_eq!(request.method(),"POST");assert_eq!(request.url(),"http://localhost/");assert_eq!(request.text().await.unwrap(),"body");
   let mut body=Request::new("POST","http://localhost/","abc".into()).unwrap().body();assert_eq!(body.next().await.unwrap(),Some(b"abc".to_vec()));assert_eq!(body.next().await.unwrap(),None);
-  let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();assert_eq!(request.text().await.unwrap_err().code,"limit");
-  let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();let response=Response::stream(request.body(),200).unwrap();assert!(response.text_body().await.is_err());
+  let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();assert_eq!(request.text().await.unwrap().len(),1048577);
+  let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();let response=Response::stream(request.body(),200).unwrap();assert_eq!(response.text_body().await.unwrap().len(),1048577);
  });
 }
 #[test]
@@ -46,7 +127,10 @@ fn disconnect_and_shutdown_release_inflight_request_children(){
   let drops=Arc::new(AtomicUsize::new(0));let observed=drops.clone();
   tsrust_native_futures::block_on(async move{
    let started=Arc::new(tokio::sync::Notify::new());let signal=started.clone();
-   let observed_handler=observed.clone();let mut app=App::new();app.route("GET","/pending",move |_|{let guard=Guard(observed_handler.clone());let signal=signal.clone();async move{
+   let observed_handler=observed.clone();let mut app=App::new();
+   // This witness requires a bounded graceful shutdown; it is application policy.
+   app.configure([1048576,128,128,30000,50,5000,0]).unwrap();
+   app.route("GET","/pending",move |_|{let guard=Guard(observed_handler.clone());let signal=signal.clone();async move{
     let _child=tsrust_native_futures::start(async move{let _guard=guard;signal.notify_one();std::future::pending::<()>().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
     std::future::pending::<Response>().await
    }}).unwrap();
@@ -185,10 +269,10 @@ fn service_limits_forms_multipart_and_deadline_disposal(){
  struct Guard(Arc<AtomicUsize>);impl Drop for Guard{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
  tsrust_native_futures::block_on(async{
   let mut form=Request::new("POST","http://localhost/","a=one+two&a=%C3%A9&empty=".into()).unwrap();form.set_header("content-type","application/x-www-form-urlencoded").unwrap();
-  let fields=form.form().await.unwrap();assert_eq!(fields.len(),3);assert_eq!(fields[0].value,"one two");assert_eq!(fields[1].name,"a");assert_eq!(fields[1].value,"é");assert_eq!(fields[2].value,"");
-  for input in ["a=%","a=%GG","a=%FF"]{let mut request=Request::new("POST","http://localhost/",input.into()).unwrap();request.set_header("content-type","application/x-www-form-urlencoded").unwrap();assert!(request.form().await.is_err());}
+  let fields=form.form(None).await.unwrap();assert_eq!(fields.len(),3);assert_eq!(fields[0].value,"one two");assert_eq!(fields[1].name,"a");assert_eq!(fields[1].value,"é");assert_eq!(fields[2].value,"");
+  for input in ["a=%","a=%GG","a=%FF"]{let mut request=Request::new("POST","http://localhost/",input.into()).unwrap();request.set_header("content-type","application/x-www-form-urlencoded").unwrap();assert!(request.form(None).await.is_err());}
   let mut upload=Request::new("POST","http://localhost/","--x\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\r\nContent-Type: application/octet-stream\r\n\r\nabc\r\n--x--\r\n".into()).unwrap();upload.set_header("content-type","multipart/form-data; boundary=x").unwrap();
-  let parts=upload.multipart().await.unwrap();assert_eq!(parts[0].name,"attachment");assert_eq!(parts[0].content_type.as_deref(),Some("application/octet-stream"));assert_eq!(parts[0].data,b"abc");assert_eq!(parts[0].file_name.as_deref(),Some("../untrusted"));
+  let parts=upload.multipart(None).await.unwrap();assert_eq!(parts[0].name,"attachment");assert_eq!(parts[0].content_type.as_deref(),Some("application/octet-stream"));assert_eq!(parts[0].data,b"abc");assert_eq!(parts[0].file_name.as_deref(),Some("../untrusted"));
   let drops=Arc::new(AtomicUsize::new(0));let seen=drops.clone();let entered=Arc::new(tokio::sync::Notify::new());let ready=entered.clone();
   let mut app=App::new();assert!(app.configure([0,1,1,10,10,10,0]).is_err());app.configure([8,8,1,100,100,100,0]).unwrap();
   app.route("GET","/slow",move |_|{let guard=Guard(seen.clone());let ready=ready.clone();async move{let _guard=guard;ready.notify_one();std::future::pending::<Response>().await}}).unwrap();
@@ -401,7 +485,8 @@ fn context_body_readers_consume_once_and_preserve_response_status(){
    assert_eq!(context.request_text().await.unwrap_err().code,"body");Some(context.text(value,None).unwrap())
   })).unwrap();
   app.route("POST","/form",|context|Box::pin(async move{
-   let fields=context.request_form().await.unwrap();assert_eq!(fields[0].name,"name");
+   assert_eq!(context.request_form(Some(-1)).await.err().unwrap().code,"options");
+   let fields=context.request_form(None).await.unwrap();assert_eq!(fields[0].name,"name");
    Some(context.text(fields[0].value.clone(),None).unwrap())
   })).unwrap();
   app.route("POST","/stream",|context|Box::pin(async move{
@@ -414,7 +499,8 @@ fn context_body_readers_consume_once_and_preserve_response_status(){
    Some(context.text(value,None).unwrap())
   })).unwrap();
   app.route("POST","/multipart",|context|Box::pin(async move{
-   let parts=context.request_multipart().await.unwrap();assert_eq!(parts[0].name,"name");
+   assert_eq!(context.request_multipart(Some(-1)).await.err().unwrap().code,"options");
+   let parts=context.request_multipart(None).await.unwrap();assert_eq!(parts[0].name,"name");
    Some(context.text(String::from_utf8(parts[0].data.clone()).unwrap(),None).unwrap())
   })).unwrap();
   let server=app.listen("127.0.0.1:0").await.unwrap();let client=Client::new().unwrap();

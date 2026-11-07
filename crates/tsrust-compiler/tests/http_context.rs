@@ -1,5 +1,50 @@
 mod support;
 #[test]
+fn contextual_json_has_no_implicit_output_ceiling_and_keeps_explicit_encoder_bounds(){
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(r#"
+import {Router,Client,request} from 'std:http';import {strictEqual} from 'std:testing';
+type Payload={payload:string;};
+async function main():Task<void>{
+ const app=new Router();app.get('/large',c=>c.json({payload:'x'.repeat(1048577)}));
+ const server=await app.listen('127.0.0.1:0');const client=new Client();
+ const response=await client.send(request('GET','http://'+server.address()+'/large',''));strictEqual(response.status(),200);
+ const text=await response.text();strictEqual(text.length,1048591);const value=JSON.parse<Payload>(text);strictEqual(value.payload,'x'.repeat(1048577));
+ match(JSON.tryStringify(value,1048576)){Ok(_)=>{throw 'explicit encoder bound ignored';},Err(error)=>{strictEqual(error.code,'output-limit');}}
+ await server.shutdown();console.log('unbounded contextual JSON; explicit encoder bound retained');
+}
+"#);let mut command=support::cli();command.arg("run").arg(directory.source(&source));for name in ["HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"]{command.env_remove(name);}
+ let output=support::run(&mut command,300);support::success(&output);assert_eq!(output.stdout,b"unbounded contextual JSON; explicit encoder bound retained\n");
+}
+#[test]
+fn explicit_client_and_form_bounds_keep_optional_alias_contracts(){
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(r#"
+import {Client,ClientOptions,Request,FormField,Router,request} from 'std:http';
+import {strictEqual} from 'std:testing';
+function input(body:string):Request{const value=request('POST','http://localhost/',body);value.setHeader('content-type','application/x-www-form-urlencoded');return value;}
+async function parse(value:Request,maxFields:int|undefined):Task<FormField[]>{return await value.form(maxFields);}
+type Parse=Function<Task<FormField[]>,[value:Owned<Request>,maxFields:int|undefined]>;
+async function main():Task<void>{
+ const options:ClientOptions={bodyLimit:4};const client=new Client(options);strictEqual(options.ca,undefined);
+ const alias=parse;const stored:Parse=parse;strictEqual((await alias(input(''),0)).length,0);strictEqual((await stored(input('n=x&'.repeat(128)+'n=x'),129)).length,129);
+ let invalid=false;try{new Client({bodyLimit:-1});}catch(error){strictEqual(error.code,'options');invalid=true;}strictEqual(invalid,true);
+ const app=new Router();app.post('/form',async c=>{try{await c.req.form(-1);}catch(error){strictEqual(error.code,'options');}const fields=await c.req.form(1);return c.text(fields[0].value);});
+ const server=await app.listen('127.0.0.1:0');
+ const wire=request('POST','http://'+server.address()+'/form','n=ok');wire.setHeader('content-type','application/x-www-form-urlencoded');strictEqual(await (await client.send(wire)).text(),'ok');await server.shutdown();
+ console.log('explicit HTTP bounds');
+}
+"#);let path=directory.source(&source);let mut command=support::cli();command.arg("run").arg(path);
+ // Keep proxy observations local to this child; no process-wide environment mutation.
+ for name in ["HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"]{command.env_remove(name);}
+ let output=support::run(&mut command,300);support::success(&output);assert_eq!(output.stdout,b"explicit HTTP bounds\n");
+}
+#[test]
+fn explicit_http_bounds_reject_wrong_types_arity_and_pending_context_reuse(){
+ for body in ["await input.form('1');","await input.multipart(1,2);","const pending=c.req.form(1);c.status(201);await pending;","new Client({bodyLimit:'4'});"]{
+  let source=format!("import {{Request,Context,Client}} from 'std:http';async function inspect(input:Request,c:Mutable<Context>):Task<void>{{{body}}}function main(){{}}");
+  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("check").arg(directory.source(&support::format_round_trip(&source))),30);assert!(!output.status.success(),"accepted {body}");
+ }
+}
+#[test]
 fn request_json_decoding_and_context_ownership_execute(){
  let directory=support::TempDirectory::new();
  let source=support::format_round_trip(include_str!("../../../examples/http-context/json.test.tsr"));

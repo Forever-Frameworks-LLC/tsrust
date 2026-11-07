@@ -50,7 +50,7 @@ impl Analyzer {
    if name=="__routerUse" && args.first().is_some_and(|arg|matches!(arg.kind,ExprKind::String(_)) || self.expression_type_hint(context,arg)==Some(Type::String)){name="__routerUsePath";}
    if matches!(name,"__requestBody"|"__requestText"|"__form"|"__multipart") && let ExprKind::Field(context_base,field)=&base.kind && field=="req" && matches!(self.expression_type_hint(context,context_base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext)) {name=match name{"__requestBody"=>"__contextRequestBody","__form"=>"__contextRequestForm","__multipart"=>"__contextRequestMultipart",_=>"__contextRequestText"};receiver=(**context_base).clone();}
    if matches!(name,"__route"|"__routerRoute")&&member!="route" {args.insert(0,Expr::new(ExprKind::String(member.to_uppercase()),callee.span));}
-   if name=="__contextJson" && !args.is_empty(){let value=args.remove(0);let span=expression.span;let encode=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@json:encode".into()),span)),vec![value,Expr::new(ExprKind::Integer("1048576".into()),span)]),span);args.insert(0,crate::stdlib::futures::unwrap(encode));}
+   if name=="__contextJson" && !args.is_empty(){let value=args.remove(0);let span=expression.span;let encode=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@json:encode".into()),span)),vec![value,Expr::new(ExprKind::Undefined,span)]),span);args.insert(0,crate::stdlib::futures::unwrap(encode));}
    args.insert(0,receiver);let args=std::mem::take(args);let span=expression.span;
    if crate::stdlib::http::asynchronous(name){
     crate::stdlib::futures::lazy_module(expression,"std:http",name,args);

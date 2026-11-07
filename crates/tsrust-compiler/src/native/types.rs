@@ -162,7 +162,8 @@ static HTTPSERVEROPTIONS: Declaration = Declaration {id:NativeTypeId::HttpServer
  Field{name:"requestsPerSecond",signature:Signature::Int,optional:false},
 ],..SPAWN_ERROR};
 static HTTPCLIENTOPTIONS: Declaration = Declaration {id:NativeTypeId::HttpClientOptions,module:"std:http",name:"ClientOptions",fields:&[
- Field{name:"ca",signature:Signature::String,optional:false},
+ Field{name:"ca",signature:Signature::String,optional:true},
+ Field{name:"bodyLimit",signature:Signature::Int,optional:true},
 ],..SPAWN_ERROR};
 
 static JOB: Declaration = Declaration {id:NativeTypeId::Job,module:"std:futures",name:"Job",..THREAD};

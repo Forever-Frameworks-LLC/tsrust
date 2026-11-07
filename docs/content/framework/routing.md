@@ -4,3 +4,40 @@
 # Router and middleware
 
 Compose routes and middleware with Router over Axum. Middleware order and next() unwinding are application-visible behavior. Keep credentials, authorization and session policy in application code.
+
+## Explicit application resource policies
+
+`App` and `Router` construction does not install application body, connection,
+concurrent-request, rate or deadline limits. The selected transport's own defaults
+remain in force. Call `configure` before listening to supply all seven existing
+`ServerOptions` fields. Byte and connection counts must be positive and fit the
+target; concurrent requests must also fit Tokio's semaphore. Deadlines must be
+positive and fit the monotonic clock. Rate is nonnegative, with zero disabling it.
+The former 64-MiB, 65536, one-hour and million-per-second ceilings are removed.
+
+Configured overload responses, cumulative byte checks and deadline cleanup remain
+unchanged. Invalid configuration leaves the preceding settings intact. Without an
+explicit shutdown deadline, graceful shutdown can wait for stalled requests; set
+`shutdownTimeoutMs` when the application requires bounded draining. This changes
+the v0.1 implicit one-MiB/128-request/30-second policy.
+
+`c.json(value)` uses the checked serializer without an implicit one-MiB output
+ceiling. Existing `JSON.stringify(value,maxBytes)` and
+`JSON.tryStringify(value,maxBytes)` retain explicit byte bounds and typed errors.
+
+```tsrust
+import {Router,Client,request} from 'std:http';
+async function main():Task<void>{
+  const app=new Router();
+  app.get('/large',c=>c.json({payload:'x'.repeat(1048577)}));
+  const server=await app.listen('127.0.0.1:0');
+  const client=new Client();
+  const response=await client.send(request('GET','http://'+server.address()+'/large',''));
+  console.log((await response.text()).length); // 1048591, including JSON syntax
+  match(JSON.tryStringify({payload:'x'.repeat(1048577)},1048576)){
+    Ok(_)=>{throw 'bound ignored';},
+    Err(error)=>{console.log(error.code);} // output-limit
+  }
+  await server.shutdown();
+}
+```
