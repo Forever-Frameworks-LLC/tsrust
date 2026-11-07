@@ -1,0 +1,112 @@
+import { App, Client, Request, Response, requestBytes, requestStream, requestChannel, text } from 'std:http';
+import { Bytes, alloc, set, length, at } from 'std:bytes';
+import { Channel, Sender } from 'std:futures';
+import { listen, receive } from 'std:signals';
+
+type Ready = {
+  address: string;
+};
+
+function size(id: int): int {
+  if (id % 3 === 1) {
+    return 64;
+  }
+
+  if (id % 3 === 2) {
+    return 4096;
+  }
+
+  return 65537;
+}
+
+function payload(count: int, offset: int, id: int): Bytes {
+  const bytes = unwrap(alloc(count));
+  for (let i = 0; i < count; i++) {
+    unwrap(set(bytes, i, ((offset + i) * 17 + id) % 251));
+  }
+
+  return bytes;
+}
+
+async function produce(sender: Sender<Bytes>, count: int, id: int): Task<void> {
+  const first = count / 2;
+  await sender.send(payload(first, 0, id));
+  await sender.send(payload(count - first, first, id));
+}
+
+async function main(): Task<void> {
+  const signals = listen();
+  const sink = new App();
+  sink.post('/sink/:mode/:id', async (input: Request): Task<Response> => {
+    const id = JSON.parse<int>(unwrap(input.param('id')));
+    const count = size(id);
+    const body = input.body();
+    let offset = 0;
+    let checksum = 0;
+    while (true) {
+      const chunk = await body.next();
+      if (chunk === undefined) {
+        break;
+      }
+
+      for (let i = 0; i < length(chunk); i++) {
+        const byte = unwrap(at(chunk, i));
+        if (byte !== (offset * 17 + id) % 251) {
+          throw 'upload bytes/order mismatch';
+        }
+
+        offset++;
+        checksum = (checksum * 131 + byte) % 1000000007;
+      }
+    }
+
+    if (offset !== count) {
+      throw 'upload length mismatch';
+    }
+
+    return text(`${offset},${checksum}`);
+  });
+  const backend = await sink.listen('127.0.0.1:0');
+  const client = new Client({
+    noProxy: true
+  });
+  const base = 'http://' + backend.address();
+  const app = new App();
+  app.post('/:mode/:id', async (input: Request): Task<Response> => {
+    const mode = unwrap(input.param('mode'));
+    const id = JSON.parse<int>(unwrap(input.param('id')));
+    const count = size(id);
+    const url = base + '/sink/' + mode + '/' + String(id);
+    if (mode === 'channel') {
+      const chunks = new Channel<Bytes>(1);
+      const producer = produce(chunks.sender(), count, id).start();
+      try {
+        const response = await client.send(requestChannel('POST', url, chunks));
+        return text(await response.text());
+      } finally {
+        await producer;
+      }
+    }
+
+    const bytes = payload(count, 0, id);
+    const request = requestBytes('POST', url, bytes);
+    if (mode === 'stream') {
+      const response = await client.send(requestStream('POST', url, request.body()));
+      return text(await response.text());
+    }
+
+    const response = await client.send(request);
+    return text(await response.text());
+  });
+  const server = await app.listen('127.0.0.1:0');
+  const ready: Ready = {
+    address: server.address()
+  };
+  console.log(JSON.stringify(ready));
+  try {
+    await receive(signals);
+  } finally {
+    await server.shutdown();
+    await backend.shutdown();
+  }
+}

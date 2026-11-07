@@ -10,6 +10,52 @@ CURRENT OWNER POLICY/SOURCE — 2026-11-06
 
 LATEST VERIFIED STATE — supersedes the active-attempt notes below.
 
+NEXT COHERENT SOURCE CHECKPOINT — HTTP client policy/upload B10 slice integrated
+from isolated worker; all old canonical changes preserved. Adds timeoutMs,
+connectTimeoutMs, followRedirects, maxRedirects, proxy/noProxy and requestBytes,
+requestStream, requestChannel with ordinary checked aliases/stored calls. Runtime,
+compiler, catalog, editor/matrix, docs/examples and matched three-engine uploads
+support are present. Upload workload timings include payload generation and
+validation. No timings or public API acceptance claimed yet. Whole-project format
+changed 2 new sources and 15 snippets; second pass changed 0/0; upload source token
+preservation verified and fresh manifest hashes recorded. B14 static review found
+no production blocker; benchmark label repaired. Worker b06 stopped for integration.
+Next single affected batch is /tmp/tsrust-run-utilities-http-repair14.py with
+scope-json /tmp/tsrust-utilities-http-repair14-scopes.json; 55-minute end-to-end
+budget, one target/jobs1/incremental off, inner 30-minute/5GB, direct binaries
+serialized with threads3. Includes upload oracle self-test, new HTTP runtime/API/
+editor controls, HTTP compatibility, remaining iterator failures and shared UI
+witness. Retained minimal UI+Router repro /tmp/tsrust-retained-ui-router.tsr;
+no separate speculative UI patch. Earlier passes remain recorded at their sources.
+
+
+REPAIR13 TERMINAL — source cd6c334f313a38c66736e621183320623f18046a,
+fingerprint a6a4710d74024db85370684f0ee5f4de27379a3cb5a7c5ee63c57ab3296f2f8f.
+Budget completed in 677.809s, peak 4,049,983,416B, stop null, remaining[].
+Producer selected-build-artifacts.jsonl has build-finished success:true; all ten
+target batches completed. Actual result /tmp/tsrust-utilities-http-repair13-
+a6a4710d7402.json: 20 passed, 12 failed (no ignored). HTTP6/6, LSP import2/2,
+Iterator constructor, checker agreement and two matrix rows in four phases PASS.
+B18 computed-owner control PASS. Remaining: nullable physical iterator assignment
+(8 native/ownership cases plus catalog witness), retained UI callback join, private
+readonly unit comparing borrowed/owning wrappers of identical physical union,
+and HTTP fixture mistakenly unwraps an optional pop. Root corrected that fixture
+to pop()!; execution pending. B14 investigates iterator and private unit; b03
+investigates retained UI shared regression, both source-only /tmp patches.
+Root applied /tmp/tsrust-nullable-named-injection-context.patch (0e056868),
+not yet compiled: nominal child context for same-record optional injection,
+finite destination compatibility, whole-storage Mutable projection guard, and
+readonly physical-ID unit assertion. Added checked-AST injection witness.
+Post-run locked cleanup removed 423 regenerated .rcgu.o files (1,140,517,776
+logical bytes; 1,141,661,696 actual free bytes recovered). Current debug/deps has
+28 executables (~0.53GiB), libraries ~5.93GiB, metadata ~1.94GiB; no source or
+chat history removed. No new build started after repair13.
+B06 actively implements B10 policies/uploads in managed stdlib-http-admission
+worktree, branch codex/stdlib-http-client-uploads at cd6c334f baseline. No heavy
+lease; root sole canonical writer. Earlier 98/52 observations preserved at their
+original sources. Full B00–B20 goal remains active; publication not authorized.
+
+
 REPAIR12 TERMINAL — source0670e521/c518865a7b5a,615.495s,peak4,016,347,016B,
 build-finishedtrue,52/71 affectedcasesPASS,19FAIL,stopnull,remaining[]. Actual:
 /tmp/tsrust-utilities-http-repair12-budget.json and source-stem.json. Preserve

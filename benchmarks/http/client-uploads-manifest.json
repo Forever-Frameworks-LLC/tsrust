@@ -1,0 +1,73 @@
+{
+  "semanticEpoch": "http-client-uploads-v1",
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "requestsPerBatch": 128,
+    "concurrency": [
+      1,
+      16
+    ],
+    "keepAlive": true,
+    "serverWorkers": 1,
+    "resourceBatches": 31,
+    "rssSampleMs": 50
+  },
+  "workloads": [
+    {
+      "scenario": "client_upload_bytes",
+      "name": "Owned bytes client upload",
+      "method": "POST",
+      "path": "/bytes",
+      "id": "http_client_upload_bytes_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "client_upload_bytes",
+      "name": "Owned bytes client upload",
+      "method": "POST",
+      "path": "/bytes",
+      "id": "http_client_upload_bytes_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "client_upload_stream",
+      "name": "Owned stream client upload",
+      "method": "POST",
+      "path": "/stream",
+      "id": "http_client_upload_stream_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "client_upload_stream",
+      "name": "Owned stream client upload",
+      "method": "POST",
+      "path": "/stream",
+      "id": "http_client_upload_stream_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "client_upload_channel",
+      "name": "Owned channel client upload",
+      "method": "POST",
+      "path": "/channel",
+      "id": "http_client_upload_channel_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "client_upload_channel",
+      "name": "Owned channel client upload",
+      "method": "POST",
+      "path": "/channel",
+      "id": "http_client_upload_channel_c16",
+      "concurrency": 16
+    }
+  ],
+  "sources": {
+    "native": "82b327e00f12b2e645d651ee43a0387bc83fd16bf408304631bb6256e1f84011",
+    "node-tsc": "d9d3b0b97d68a2da78424620c94541e0d05a9cd7274bc7965d7fb6ca147923c5",
+    "rust-hand": "c27b8309d1ce44ea4c8e933c2922dfae418b3616c0e9fe3a487791996ebe7787"
+  },
+  "notes": "Each batch varies64/4096/65537 bytes by request ID; backend checks every byte and returns ordered checksum. Channel capacity1. Node uses demand-driven Readable, not a claim of identical queue representation. Original3x31after8, separate latency and CPU/RSS, no build/startup timing."
+}

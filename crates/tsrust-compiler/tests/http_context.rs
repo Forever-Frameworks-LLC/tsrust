@@ -27,7 +27,7 @@ async function main():Task<void>{
  const options:ClientOptions={bodyLimit:4};const client=new Client(options);strictEqual(options.ca,undefined);
  const alias=parse;const stored:Parse=parse;strictEqual((await alias(input(''),0)).length,0);strictEqual((await stored(input('n=x&'.repeat(128)+'n=x'),129)).length,129);
  let invalid=false;try{new Client({bodyLimit:-1});}catch(error){strictEqual(error.code,'options');invalid=true;}strictEqual(invalid,true);
- const app=new Router();app.post('/form',async c=>{try{await c.req.form(-1);}catch(error){strictEqual(error.code,'options');}const fields=await c.req.form(1);const field=unwrap(fields.pop());return c.text(field.value);});
+ const app=new Router();app.post('/form',async c=>{try{await c.req.form(-1);}catch(error){strictEqual(error.code,'options');}const fields=await c.req.form(1);const field=fields.pop()!;return c.text(field.value);});
  const server=await app.listen('127.0.0.1:0');
  const wire=request('POST','http://'+server.address()+'/form','n=ok');wire.setHeader('content-type','application/x-www-form-urlencoded');strictEqual(await (await client.send(wire)).text(),'ok');await server.shutdown();
  console.log('explicit HTTP bounds');

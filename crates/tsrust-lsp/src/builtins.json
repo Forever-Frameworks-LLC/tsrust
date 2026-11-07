@@ -13257,10 +13257,10 @@
       "parameters": [
         {
           "label": "options?: ClientOptions",
-          "documentation": "Omit for backend defaults and public CA roots. ca optionally replaces roots with a nonempty PEM bundle; bodyLimit optionally bounds cumulative response bytes. Zero permits empty bodies only. Invalid bounds throw HttpError code options."
+          "documentation": "Omit for backend defaults and public CA roots. ca optionally replaces roots with a nonempty PEM bundle; bodyLimit optionally bounds cumulative response bytes. Zero permits empty bodies only. Invalid bounds throw HttpError code options. timeoutMs/connectTimeoutMs optionally set deadlines; followRedirects/maxRedirects control following; proxy/noProxy select proxy behavior. Conflicts and invalid ranges throw options; TLS verification remains enabled."
         }
       ],
-      "documentation": "Creates a reusable HTTP/HTTPS client with connection pooling. Omitted options preserve the selected HTTP backend defaults: no total request/body timeout, bounded automatic redirect following, and the backend's proxy discovery for the enabled features. With omitted or undefined options, trusts default public CA roots. Optional ca supplies a nonempty PEM CA bundle that replaces those roots for this client only. Certificate chain, validity and URL hostname checks remain enabled. Invalid PEM throws HttpError code tls; construction failure throws code client. Automatic decompression and cookies remain disabled by the selected backend features. Optional bodyLimit bounds each response cumulatively; omitting it adds no response-byte cap. Invalid negative or nonrepresentable bounds throw code options. Redirect loops or exhausted redirect limits fail with HttpError code request. Proxy failures use the same request error channel; URLs with embedded credentials remain rejected.\n\n```tsrust\nconst client = new Client(); // public HTTPS\nconst privateClient = new Client({\n  ca: caPem\n}); // private CA only\n```\n\nOwnership: borrows options during construction; retains independent trust settings. send borrows the client until its task completes or is disposed.",
+      "documentation": "Creates a reusable HTTP/HTTPS client with connection pooling. Omitted options preserve the selected HTTP backend defaults: no total request/body timeout, bounded automatic redirect following, and the backend's proxy discovery for the enabled features. With omitted or undefined options, trusts default public CA roots. Optional ca supplies a nonempty PEM CA bundle that replaces those roots for this client only. Certificate chain, validity and URL hostname checks remain enabled. Invalid PEM throws HttpError code tls; construction failure throws code client. Automatic decompression and cookies remain disabled by the selected backend features. Optional bodyLimit bounds each response cumulatively; omitting it adds no response-byte cap. Invalid negative or nonrepresentable bounds throw code options. Redirect loops or exhausted redirect limits fail with HttpError code request. Proxy failures use the same request error channel; URLs with embedded credentials remain rejected.\n\nOptional timeoutMs/connectTimeoutMs set nonnegative millisecond deadlines within backend Instant range; zero is immediate. Omitted values install no timeout. followRedirects:false returns redirects; otherwise backend following defaults to10 unless maxRedirects is set. maxRedirects must be nonnegative and target-representable; zero rejects the first redirect. It conflicts with followRedirects:false. proxy sets an explicit backend proxy URL, including proxy authentication; noProxy:true disables all proxies. They conflict. noProxy:false leaves discovery unchanged. Invalid ranges/conflicts/proxy configuration throw HttpError code options with redacted messages. Buffered bodies replay on supported redirects; true streams remain nonreplayable. \n\n```tsrust\nconst client = new Client(); // public HTTPS\nconst privateClient = new Client({\n  ca: caPem\n}); // private CA only\n```\n\nOwnership: borrows options during construction; retains independent trust settings. send borrows the client until its task completes or is disposed.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const client=new Client();console.log('ok');}",
@@ -13476,8 +13476,8 @@
     },
     {
       "name": "ClientOptions",
-      "signature": "type ClientOptions = { ca?: string; bodyLimit?: int }",
-      "documentation": "Options for a reusable Client. Omitted ca keeps public CA roots; a supplied nonempty PEM bundle replaces only that client's trust roots while certificate and hostname verification remain enabled. bodyLimit is an optional nonnegative, target-representable byte count for each response body. Zero accepts only empty bodies. The cumulative budget covers all chunks and text reads; exceeding it throws HttpError code limit without returning truncated text. Invalid bounds throw code options at construction. Omitted or undefined bodyLimit adds no response-byte cap.\n\nOwnership: construction borrows options; the client retains independent settings.\n\n```tsrust\nimport { Client } from \"std:http\";\n\nfunction main() {\n  const client = new Client({\n    bodyLimit: 4096\n  });\n  console.log(\"bounded client\");\n}\n```",
+      "signature": "type ClientOptions = { ca?: string; bodyLimit?: int; timeoutMs?: int; connectTimeoutMs?: int; followRedirects?: boolean; maxRedirects?: int; proxy?: string; noProxy?: boolean }",
+      "documentation": "Options for a reusable Client. Omitted ca keeps public CA roots; a supplied nonempty PEM bundle replaces only that client's trust roots while certificate and hostname verification remain enabled. bodyLimit is an optional nonnegative, target-representable byte count for each response body. Zero accepts only empty bodies. The cumulative budget covers all chunks and text reads; exceeding it throws HttpError code limit without returning truncated text. Invalid bounds throw code options at construction. Omitted or undefined bodyLimit adds no response-byte cap.\n\nOptional timeoutMs/connectTimeoutMs set nonnegative millisecond deadlines within backend Instant range; zero is immediate. Omitted values install no timeout. followRedirects:false returns redirects; otherwise backend following defaults to10 unless maxRedirects is set. maxRedirects must be nonnegative and target-representable; zero rejects the first redirect. It conflicts with followRedirects:false. proxy sets an explicit backend proxy URL, including proxy authentication; noProxy:true disables all proxies. They conflict. noProxy:false leaves discovery unchanged. Invalid ranges/conflicts/proxy configuration throw HttpError code options with redacted messages. Buffered bodies replay on supported redirects; true streams remain nonreplayable. \n\nOwnership: construction borrows options; the client retains independent settings.\n\n```tsrust\nimport { Client } from \"std:http\";\n\nfunction main() {\n  const client = new Client({\n    bodyLimit: 4096\n  });\n  console.log(\"bounded client\");\n}\n```",
       "examples": [
         {
           "source": "import {Client} from \"std:http\";function main(){const client=new Client({bodyLimit:4096});console.log(\"bounded client\");}",
@@ -13490,6 +13490,24 @@
         },
         "bodyLimit": {
           "documentation": "Optional cumulative response-byte budget per request, including every streamed chunk and text collection. Nonnegative and target-representable; zero accepts empty bodies only. Invalid bounds throw HttpError code options at Client construction. Exceeding the budget throws code limit. Omitted or undefined adds no response-byte cap. The option is borrowed at construction and stored independently."
+        },
+        "timeoutMs": {
+          "documentation": "Optional nonnegative total request deadline in milliseconds, covering connect through complete response body. Zero installs an immediate deadline. Omitted or undefined installs no total request/body timeout. Must fit the backend Instant range; invalid values throw HttpError code options. Expiry before headers throws timeout; expiry while reading the returned body throws body. Settings are copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    timeoutMs: 1000\n  };\n  console.log(options.timeoutMs);\n}\n```"
+        },
+        "connectTimeoutMs": {
+          "documentation": "Optional nonnegative connection-phase timeout in milliseconds. Zero installs an immediate connect deadline. Omitted or undefined preserves the backend default of no separate connect timeout. Must fit the backend Instant range; invalid values throw HttpError code options. A total timeout can expire first. Settings are copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    connectTimeoutMs: 250\n  };\n  console.log(options.connectTimeoutMs);\n}\n```"
+        },
+        "followRedirects": {
+          "documentation": "Optional redirect policy. False returns redirect responses without following them; true or omission uses backend following, with a default maximum of10 redirects unless maxRedirects is supplied. False conflicts with any supplied maxRedirects and throws HttpError code options. Cross-origin redirects strip sensitive authorization/cookie headers. Buffered request bodies can replay; streaming bodies are not collected to make redirects replayable. Copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    followRedirects: false\n  };\n  console.log(options.followRedirects);\n}\n```"
+        },
+        "maxRedirects": {
+          "documentation": "Optional nonnegative, target-representable redirect count. Supplying it enables backend following up to that limit. Zero rejects the first redirect with HttpError code request; it differs from followRedirects:false, which returns the redirect response. Conflicts with followRedirects:false. Invalid values throw code options. Copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    maxRedirects: 4\n  };\n  console.log(options.maxRedirects);\n}\n```"
+        },
+        "proxy": {
+          "documentation": "Optional explicit proxy URL passed to the selected HTTP backend, including supported URL credentials for proxy authentication. This overrides automatic proxy discovery for this client. Conflicts with noProxy:true. Malformed proxy configuration throws HttpError code options without returning the proxy URL or credentials; transport failures throw request. No new proxy transport features are enabled. Construction borrows the string and retains independent settings.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    proxy: \"http://127.0.0.1:8080\"\n  };\n  console.log(options.proxy);\n}\n```"
+        },
+        "noProxy": {
+          "documentation": "Optional proxy-discovery override. True disables every proxy for this client; false, undefined or omission leaves backend discovery unchanged unless an explicit proxy is supplied. True conflicts with proxy and throws HttpError code options. This does not mutate process environment. Copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    noProxy: true\n  };\n  console.log(options.noProxy);\n}\n```"
         }
       }
     },
@@ -13694,7 +13712,7 @@
           "documentation": "HTTP status 200..599; defaults to 200. Invalid status throws code status."
         }
       ],
-      "documentation": "Creates a response from application-produced byte chunks without collecting the body. Sends suspend when the channel's item capacity is full; transport polls chunks on demand. Channel capacity bounds queued chunks, not their total byte size. Keep individual chunks bounded in application code.\n\nDropping all external senders ends the body after queued chunks drain. Dropping the response, including transport disconnect, closes the receiver and pending sends fail with code closed. Invalid status throws code status and disposes the channel. The bridge does not start or detach a producer task: its owner must keep it alive until consumption finishes. A task started inside a request is still canceled when that request scope ends. Producer failure is not encoded as a stream error; the application must choose its own error protocol. No Content-Type is added. Reading the returned body with text()/next() retains the ordinary 1 MiB read limit.\n\n```tsrust\nconst producer = produce(chunks.sender()).start();\ntry {\n  const response = streamChannel(chunks);\n  await response.text();\n} finally {\n  await producer;\n}\n```\n\nOwnership: consumes the channel exactly once; each byte chunk transfers to the body. Existing sender handles remain usable until the receiver closes.",
+      "documentation": "Creates a response from application-produced byte chunks without collecting the body. Sends suspend when the channel's item capacity is full; transport polls chunks on demand. Channel capacity bounds queued chunks, not their total byte size. Keep individual chunks bounded in application code.\n\nDropping all external senders ends the body after queued chunks drain. Dropping the response, including transport disconnect, closes the receiver and pending sends fail with code closed. Invalid status throws code status and disposes the channel. The bridge does not start or detach a producer task: its owner must keep it alive until consumption finishes. A task started inside a request is still canceled when that request scope ends. Producer failure is not encoded as a stream error; the application must choose its own error protocol. No Content-Type is added. Reading the returned body with text()/next() adds no implicit byte limit; an explicit client response budget remains active when applicable.\n\n```tsrust\nconst producer = produce(chunks.sender()).start();\ntry {\n  const response = streamChannel(chunks);\n  await response.text();\n} finally {\n  await producer;\n}\n```\n\nOwnership: consumes the channel exactly once; each byte chunk transfers to the body. Existing sender handles remain usable until the receiver closes.",
       "examples": [
         {
           "source": "import { streamChannel } from 'std:http';\nimport { Channel, Sender } from 'std:futures';\nimport { Bytes, fromUtf8 } from 'std:bytes';\nimport { strictEqual } from 'std:testing';\n\nasync function produce(sender: Sender<Bytes>): Task<void> {\n  await sender.send(unwrap(fromUtf8('hello ')));\n  await sender.send(unwrap(fromUtf8('world')));\n}\n\nasync function main(): Task<void> {\n  const chunks = new Channel<Bytes>(1);\n  const producer = produce(chunks.sender()).start();\n  try {\n    const response = streamChannel(chunks);\n    strictEqual(await response.text(), 'hello world');\n  } finally {\n    await producer;\n  }\n}\n",
@@ -13702,6 +13720,84 @@
         }
       ],
       "inferredSignature": "function streamChannel(channel: Channel<Bytes>, status: int = 200): Response"
+    },
+    {
+      "name": "requestBytes",
+      "signature": "requestBytes(method: string, url: string, body: Bytes): Request",
+      "inferredSignature": "function requestBytes(method: string, url: string, body: Bytes): Request",
+      "parameters": [
+        {
+          "label": "method: string",
+          "documentation": "Valid HTTP method token; borrowed during construction."
+        },
+        {
+          "label": "url: string",
+          "documentation": "URI accepted at construction; sending requires absolute HTTP/HTTPS with no embedded credentials. Borrowed during construction."
+        },
+        {
+          "label": "body: Bytes",
+          "documentation": "Owned body transferred into the request; never implicitly cloned."
+        }
+      ],
+      "documentation": "Moves an owned binary buffer into an unsent request without copying its payload. The backend knows its byte length and can replay it for supported redirects. No UTF-8 conversion is performed. Invalid HTTP methods or URIs throw HttpError codes method or url and dispose the transferred body. Construction performs no network I/O and adds no Content-Type. Client.send validates absolute HTTP/HTTPS URL credentials and sends the request.\n\n```tsrust\nconst input = requestBytes('POST', url, unwrap(fromUtf8('é'))); // 2 body bytes\n```\n\nOwnership: consumes the body exactly once; borrows method and URL only during construction. A send task consumes the resulting request and borrows its client until settlement.",
+      "examples": [
+        {
+          "source": "import {requestBytes} from 'std:http';import {fromArray} from 'std:bytes';function main(){const input=requestBytes('POST','http://localhost/',unwrap(fromArray([0,255])));console.log(input.method());}",
+          "output": "POST\n"
+        }
+      ]
+    },
+    {
+      "name": "requestStream",
+      "signature": "requestStream(method: string, url: string, body: Body): Request",
+      "inferredSignature": "function requestStream(method: string, url: string, body: Body): Request",
+      "parameters": [
+        {
+          "label": "method: string",
+          "documentation": "Valid HTTP method token; borrowed during construction."
+        },
+        {
+          "label": "url: string",
+          "documentation": "URI accepted at construction; sending requires absolute HTTP/HTTPS with no embedded credentials. Borrowed during construction."
+        },
+        {
+          "label": "body: Body",
+          "documentation": "Owned body transferred into the request; never implicitly cloned."
+        }
+      ],
+      "documentation": "Moves an existing HTTP body into an unsent request. The transport polls it on demand without collecting it; existing body budgets/errors remain effective. True streams remain nonreplayable and backend redirect following may return the redirect response when replay is required. Invalid HTTP methods or URIs throw HttpError codes method or url and dispose the transferred body. Construction performs no network I/O and adds no Content-Type. Client.send validates absolute HTTP/HTTPS URL credentials and sends the request.\n\n```tsrust\nconst input = requestStream('POST', url, incoming.body()); // streams once\n```\n\nOwnership: consumes the body exactly once; borrows method and URL only during construction. A send task consumes the resulting request and borrows its client until settlement.",
+      "examples": [
+        {
+          "source": "import {request,requestStream} from 'std:http';function main(){const input=requestStream('POST','http://localhost/',request('POST','http://localhost/','data').body());console.log(input.method());}",
+          "output": "POST\n"
+        }
+      ]
+    },
+    {
+      "name": "requestChannel",
+      "signature": "requestChannel(method: string, url: string, body: Channel<Bytes>): Request",
+      "inferredSignature": "function requestChannel(method: string, url: string, body: Channel<Bytes>): Request",
+      "parameters": [
+        {
+          "label": "method: string",
+          "documentation": "Valid HTTP method token; borrowed during construction."
+        },
+        {
+          "label": "url: string",
+          "documentation": "URI accepted at construction; sending requires absolute HTTP/HTTPS with no embedded credentials. Borrowed during construction."
+        },
+        {
+          "label": "body: Channel<Bytes>",
+          "documentation": "Owned body transferred into the request; never implicitly cloned."
+        }
+      ],
+      "documentation": "Moves a bounded std:futures channel receiver into an unsent request without collecting its chunks. Full-channel sends suspend; capacity bounds queued items, not total bytes. Closing all sender handles ends the body after queued chunks. Dropping the request, canceled send or transport disposal closes the receiver so pending sends fail closed and retain their unsent value. The bridge does not start, detach or join a producer; the caller owns and awaits its producer task. Producer failure is not encoded as a stream error. Invalid HTTP methods or URIs throw HttpError codes method or url and dispose the transferred body. Construction performs no network I/O and adds no Content-Type. Client.send validates absolute HTTP/HTTPS URL credentials and sends the request.\n\n```tsrust\nconst producer = produce(chunks.sender()).start();\ntry {\n  await client.send(requestChannel('POST', url, chunks));\n} finally {\n  await producer;\n}\n```\n\nOwnership: consumes the body exactly once; borrows method and URL only during construction. A send task consumes the resulting request and borrows its client until settlement.",
+      "examples": [
+        {
+          "source": "import {requestChannel} from 'std:http';import {Channel} from 'std:futures';import {Bytes} from 'std:bytes';function main(){const input=requestChannel('POST','http://localhost/',new Channel<Bytes>(1));console.log(input.method());}",
+          "output": "POST\n"
+        }
+      ]
     }
   ],
   "HttpApp": [
@@ -14291,7 +14387,7 @@
           "documentation": "Owned request with an absolute HTTP/HTTPS URL and no embedded credentials."
         }
       ],
-      "documentation": "Creates a lazy HTTP request task. Awaiting returns response headers and an unread streaming body. HTTP 4xx/5xx are responses, not exceptions. URL and transport failures throw HttpError codes url, request or timeout as reported by the backend. With the existing constructor options, no total request/body timeout is installed; redirect and proxy behavior inherit the selected backend defaults. Cookies and automatic decompression are not enabled. Use response.text() or body() to read once.\n\n```tsrust\nconst response = await client.send(request(\"GET\", url, \"\"));\n```\n\nOwnership: consumes the request and borrows the reusable client until completion/disposal.",
+      "documentation": "Creates a lazy HTTP request task. Awaiting returns response headers and an unread streaming body. HTTP 4xx/5xx are responses, not exceptions. URL and transport failures throw HttpError codes url, request or timeout as reported by the backend. Omitted timeout/redirect/proxy options inherit the selected backend defaults. Explicit ClientOptions override only the selected policies. A total timeout also covers the returned body; expiry during reading throws body. Buffered bodies support backend replay; streaming bodies are not collected or duplicated for replay. Cookies and automatic decompression are not enabled. Use response.text() or body() to read once.\n\n```tsrust\nconst response = await client.send(request(\"GET\", url, \"\"));\n```\n\nOwnership: consumes the request and borrows the reusable client until completion/disposal.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");const client=new Client();const response=await client.send(request(\"GET\",\"http://\"+server.address()+\"/\",\"\"));await server.shutdown();console.log('ok');}",
@@ -20794,6 +20890,78 @@
         {
           "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={bodyLimit:4};console.log(options.bodyLimit);}",
           "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "timeoutMs",
+      "signature": "timeoutMs: int | undefined",
+      "parameters": null,
+      "documentation": "Optional nonnegative total request deadline in milliseconds, covering connect through complete response body. Zero installs an immediate deadline. Omitted or undefined installs no total request/body timeout. Must fit the backend Instant range; invalid values throw HttpError code options. Expiry before headers throws timeout; expiry while reading the returned body throws body. Settings are copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    timeoutMs: 1000\n  };\n  console.log(options.timeoutMs);\n}\n```",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={timeoutMs:1000};console.log(options.timeoutMs);}",
+          "output": "1000\n"
+        }
+      ]
+    },
+    {
+      "name": "connectTimeoutMs",
+      "signature": "connectTimeoutMs: int | undefined",
+      "parameters": null,
+      "documentation": "Optional nonnegative connection-phase timeout in milliseconds. Zero installs an immediate connect deadline. Omitted or undefined preserves the backend default of no separate connect timeout. Must fit the backend Instant range; invalid values throw HttpError code options. A total timeout can expire first. Settings are copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    connectTimeoutMs: 250\n  };\n  console.log(options.connectTimeoutMs);\n}\n```",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={connectTimeoutMs:250};console.log(options.connectTimeoutMs);}",
+          "output": "250\n"
+        }
+      ]
+    },
+    {
+      "name": "followRedirects",
+      "signature": "followRedirects: boolean | undefined",
+      "parameters": null,
+      "documentation": "Optional redirect policy. False returns redirect responses without following them; true or omission uses backend following, with a default maximum of10 redirects unless maxRedirects is supplied. False conflicts with any supplied maxRedirects and throws HttpError code options. Cross-origin redirects strip sensitive authorization/cookie headers. Buffered request bodies can replay; streaming bodies are not collected to make redirects replayable. Copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    followRedirects: false\n  };\n  console.log(options.followRedirects);\n}\n```",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={followRedirects:false};console.log(options.followRedirects);}",
+          "output": "false\n"
+        }
+      ]
+    },
+    {
+      "name": "maxRedirects",
+      "signature": "maxRedirects: int | undefined",
+      "parameters": null,
+      "documentation": "Optional nonnegative, target-representable redirect count. Supplying it enables backend following up to that limit. Zero rejects the first redirect with HttpError code request; it differs from followRedirects:false, which returns the redirect response. Conflicts with followRedirects:false. Invalid values throw code options. Copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    maxRedirects: 4\n  };\n  console.log(options.maxRedirects);\n}\n```",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={maxRedirects:4};console.log(options.maxRedirects);}",
+          "output": "4\n"
+        }
+      ]
+    },
+    {
+      "name": "proxy",
+      "signature": "proxy: string | undefined",
+      "parameters": null,
+      "documentation": "Optional explicit proxy URL passed to the selected HTTP backend, including supported URL credentials for proxy authentication. This overrides automatic proxy discovery for this client. Conflicts with noProxy:true. Malformed proxy configuration throws HttpError code options without returning the proxy URL or credentials; transport failures throw request. No new proxy transport features are enabled. Construction borrows the string and retains independent settings.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    proxy: \"http://127.0.0.1:8080\"\n  };\n  console.log(options.proxy);\n}\n```",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={proxy:\"http://127.0.0.1:8080\"};console.log(options.proxy);}",
+          "output": "http://127.0.0.1:8080\n"
+        }
+      ]
+    },
+    {
+      "name": "noProxy",
+      "signature": "noProxy: boolean | undefined",
+      "parameters": null,
+      "documentation": "Optional proxy-discovery override. True disables every proxy for this client; false, undefined or omission leaves backend discovery unchanged unless an explicit proxy is supplied. True conflicts with proxy and throws HttpError code options. This does not mutate process environment. Copied during construction.\n\nOwnership: borrowed at construction; settings are retained independently.\n\n```tsrust\nimport { ClientOptions } from \"std:http\";\n\nfunction main() {\n  const options: ClientOptions = {\n    noProxy: true\n  };\n  console.log(options.noProxy);\n}\n```",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from \"std:http\";function main(){const options:ClientOptions={noProxy:true};console.log(options.noProxy);}",
+          "output": "true\n"
         }
       ]
     }

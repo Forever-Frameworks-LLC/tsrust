@@ -223,7 +223,7 @@
     },
     "std:http": {
       "route": "/docs/framework/routing",
-      "members": 26
+      "members": 29
     },
     "HttpRouter": {
       "route": "/docs/framework/routing",
@@ -515,7 +515,7 @@
     },
     "HttpClientOptions": {
       "route": "/docs/framework/client",
-      "members": 2
+      "members": 8
     }
   }
 }

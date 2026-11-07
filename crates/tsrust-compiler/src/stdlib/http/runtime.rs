@@ -436,7 +436,11 @@ mod tsrust_native_http {
             }Ok(output)
         }
 
-        pub fn new(method:&str,url:&str,body:String)->Result<Self,Error>{let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;let inner=http::Request::builder().method(method).uri(url).body(ExclusiveBody::buffered(body)).map_err(|_|error("url","Invalid request URL"))?;Ok(Self{inner,params:BTreeMap::new(),limit:None})}
+        fn from_body(method:&str,url:&str,body:ExclusiveBody)->Result<Self,Error>{let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;let inner=http::Request::builder().method(method).uri(url).body(body).map_err(|_|error("url","Invalid request URL"))?;Ok(Self{inner,params:BTreeMap::new(),limit:None})}
+        pub fn new(method:&str,url:&str,body:String)->Result<Self,Error>{Self::from_body(method,url,ExclusiveBody::buffered(body))}
+        pub fn from_bytes(method:&str,url:&str,body:Vec<u8>)->Result<Self,Error>{Self::from_body(method,url,ExclusiveBody(std::sync::Mutex::new(BodySource::Buffered(body.into()))))}
+        pub fn from_stream(method:&str,url:&str,body:Stream)->Result<Self,Error>{Self::from_body(method,url,ExclusiveBody::new(Body::new(body)))}
+        pub fn from_channel<T:Send+'static,F:Fn(T)->Vec<u8>+Send+Unpin+'static>(method:&str,url:&str,channel:tasks::Channel<T>,bytes:F)->Result<Self,Error>{Self::from_body(method,url,ExclusiveBody::new(Body::new(ChannelBody{receiver:channel.into_receiver(),bytes})))}
         pub fn method(&self)->String{self.inner.method().to_string()}
         pub fn url(&self)->String{self.inner.uri().to_string()}
         pub fn param(&self,name:&str)->Option<String>{self.params.get(name).cloned()}
@@ -495,15 +499,32 @@ mod tsrust_native_http {
             match ca{Some(ca)=>Self::with_ca_limit(ca,body_limit),None=>Self::build(None,body_limit)}
         }
         pub fn with_ca(ca:&str)->Result<Self,Error>{Self::with_ca_limit(ca,None)}
-        fn with_ca_limit(ca:&str,body_limit:Option<usize>)->Result<Self,Error>{
-            let mut validated=rustls::RootCertStore::empty();
-            let roots=certificates(ca)?.into_iter().map(|cert|{validated.add(cert.clone()).map_err(|_|error("tls","Invalid CA certificate"))?;reqwest::Certificate::from_der(cert.as_ref()).map_err(|_|error("tls","Invalid CA certificate"))}).collect::<Result<Vec<_>,_>>()?;
-            Self::build(Some(roots),body_limit)
+        fn roots(ca:Option<&str>)->Result<Option<Vec<reqwest::Certificate>>,Error>{
+            let Some(ca)=ca else{return Ok(None);};let mut validated=rustls::RootCertStore::empty();
+            certificates(ca)?.into_iter().map(|cert|{validated.add(cert.clone()).map_err(|_|error("tls","Invalid CA certificate"))?;reqwest::Certificate::from_der(cert.as_ref()).map_err(|_|error("tls","Invalid CA certificate"))}).collect::<Result<Vec<_>,_>>().map(Some)
         }
-        fn build(roots:Option<Vec<reqwest::Certificate>>,body_limit:Option<usize>)->Result<Self,Error>{
-            // Preserve the selected Reqwest defaults; only explicit CA settings override them.
+        fn with_ca_limit(ca:&str,body_limit:Option<usize>)->Result<Self,Error>{Self::build(Self::roots(Some(ca))?,body_limit)}
+        fn build(roots:Option<Vec<reqwest::Certificate>>,body_limit:Option<usize>)->Result<Self,Error>{Self::build_transport(roots,body_limit,None,None,None,None,None,None)}
+        pub fn with_transport_options(ca:Option<&str>,body_limit:Option<i64>,timeout_ms:Option<i64>,connect_timeout_ms:Option<i64>,follow_redirects:Option<bool>,max_redirects:Option<i64>,proxy:Option<&str>,no_proxy:Option<bool>)->Result<Self,Error>{
+            let duration=|value:Option<i64>|->Result<Option<Duration>,Error>{value.map(|value|{
+                let milliseconds=u64::try_from(value).map_err(|_|error("options","HTTP timeouts must be nonnegative milliseconds"))?;let duration=Duration::from_millis(milliseconds);
+                std::time::Instant::now().checked_add(duration).ok_or_else(||error("options","HTTP timeout exceeds backend timer range"))?;Ok(duration)
+            }).transpose()};
+            let body_limit=bound(body_limit)?;let timeout=duration(timeout_ms)?;let connect_timeout=duration(connect_timeout_ms)?;let max_redirects=bound(max_redirects)?;
+            if follow_redirects==Some(false)&&max_redirects.is_some(){return Err(error("options","maxRedirects conflicts with followRedirects false"));}
+            if no_proxy==Some(true)&&proxy.is_some(){return Err(error("options","proxy conflicts with noProxy true"));}
+            Self::build_transport(Self::roots(ca)?,body_limit,timeout,connect_timeout,follow_redirects,max_redirects,proxy,no_proxy)
+        }
+        fn build_transport(roots:Option<Vec<reqwest::Certificate>>,body_limit:Option<usize>,timeout:Option<Duration>,connect_timeout:Option<Duration>,follow_redirects:Option<bool>,max_redirects:Option<usize>,proxy:Option<&str>,no_proxy:Option<bool>)->Result<Self,Error>{
+            // Absent options preserve the selected backend's ordinary behavior.
             let mut builder=reqwest::Client::builder();
             if let Some(roots)=roots{builder=builder.tls_certs_only(roots);}
+            if let Some(timeout)=timeout{builder=builder.timeout(timeout);}
+            if let Some(timeout)=connect_timeout{builder=builder.connect_timeout(timeout);}
+            if follow_redirects==Some(false){builder=builder.redirect(reqwest::redirect::Policy::none());}
+            else if let Some(maximum)=max_redirects{builder=builder.redirect(reqwest::redirect::Policy::limited(maximum));}
+            if let Some(proxy)=proxy{builder=builder.proxy(reqwest::Proxy::all(proxy).map_err(|_|error("options","Invalid HTTP proxy configuration"))?);}
+            else if no_proxy==Some(true){builder=builder.no_proxy();}
             builder.build().map(|inner|Self{inner,body_limit}).map_err(|_|error("client","Cannot create HTTP client"))
         }
         pub async fn send(&self,request:Request)->Result<Response,Error>{
@@ -556,6 +577,13 @@ mod tsrust_native_http {
     #[cfg(test)]
     mod client_default_tests {
         use super::*;
+        #[test]
+        fn explicit_client_policy_matches_direct_backend_settings(){
+            let actual=Client::with_transport_options(None,None,Some(1234),Some(456),Some(false),None,None,Some(true)).unwrap();
+            let expected=reqwest::Client::builder().timeout(Duration::from_millis(1234)).connect_timeout(Duration::from_millis(456)).redirect(reqwest::redirect::Policy::none()).no_proxy().build().unwrap();
+            assert_eq!(format!("{:?}",actual.inner),format!("{expected:?}"));
+            let value=vec![1u8,0,255];let pointer=value.as_ptr();let request=Request::from_bytes("POST","http://localhost/",value).unwrap();let body=request.inner.into_body().into_request_body();assert_eq!(body.as_bytes().unwrap().as_ptr(),pointer);
+        }
         #[test]
         fn client_buffered_bodies_keep_the_owned_allocation_and_streams_remain_streaming() {
             let text=String::from("owned UTF-8 é payload");let pointer=text.as_ptr();let length=text.len();

@@ -544,7 +544,7 @@ fn readonly_mixed_record_arguments_keep_physical_union_layouts(){
  let mut observations=0;
  for function in &program.functions{if function.template{continue;}crate::fixed_storage::visit_function_expressions(function,&mut |value|{
   if let (Some(CallTarget::Function(target)),ExprKind::Call(_,arguments))=(value.target,&value.kind){let callee=&program.functions[target];if callee.name.ends_with("observe"){
-   observations+=1;assert_eq!(callee.bindings[0].mode,crate::Mode::Read);assert_eq!(arguments[0].ty,Some(callee.bindings[0].ty),"Readonly calls retain their selected physical union instead of an unrelated nominal tag");assert!(matches!(arguments[0].ty,Some(Type::BorrowedUnion(_))));
+   observations+=1;assert_eq!(callee.bindings[0].mode,crate::Mode::Read);assert_eq!(arguments[0].ty.map(Type::owning),Some(callee.bindings[0].ty.owning()),"Readonly calls retain their selected physical union instead of an unrelated nominal tag");assert!(matches!(arguments[0].ty,Some(Type::BorrowedUnion(_))));
   }}
  });}assert_eq!(observations,4);
  let rust=checked.emit_rust();let main=program.functions.iter().find(|function|function.name=="main").unwrap();let mut unions=0;

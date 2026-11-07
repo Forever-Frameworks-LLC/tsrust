@@ -33,3 +33,11 @@ fn tls_options_and_certificate_checks_are_documented(){
  let listen=request(source,"app.listen","textDocument/hover").to_string();assert!(listen.contains("TlsOptions")&&listen.contains("handshake")&&listen.contains("hostname"),"{listen}");
  let completion=request("import {TlsOptions} from 'std:http';function inspect(tls:TlsOptions):void{tls.;}","tls.","textDocument/completion").to_string();assert!(completion.contains("cert")&&completion.contains("key"),"{completion}");
 }
+
+#[test]
+fn client_transport_options_and_upload_help_keep_owned_contracts(){
+ let source="import {Client,ClientOptions,requestBytes,requestStream,requestChannel} from 'std:http';function inspect(options:ClientOptions){options.;}function main(){const client=new Client({noProxy:true,timeoutMs:0});}";
+ let result=request(source,"options.","textDocument/completion");let labels=result.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<Vec<_>>();for name in ["ca","bodyLimit","timeoutMs","connectTimeoutMs","followRedirects","maxRedirects","proxy","noProxy"]{assert!(labels.contains(&name),"{result}");}
+ for name in ["requestBytes","requestStream","requestChannel"]{let hover=request(source,name,"textDocument/hover").to_string();assert!(hover.contains("Ownership")&&hover.contains("consumes")&&hover.contains("Request"),"{hover}");}
+ let constructor=request(source,"new Client(","textDocument/signatureHelp").to_string();for text in ["timeoutMs","connectTimeoutMs","maxRedirects","noProxy","TLS"]{assert!(constructor.contains(text),"{constructor}");}
+}

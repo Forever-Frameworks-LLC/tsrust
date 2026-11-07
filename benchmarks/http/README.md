@@ -188,3 +188,34 @@ pins Node v24.19.0; older workloads retain their original v24.11.1 requirement.
 Run `node benchmarks/http/static-registration.test.mjs` for source/protocol guards.
 Both counterparts pass a separate one-batch untimed check with checksum 5376;
 timing remains pending. Registration/correctness is not performance measurement.
+
+
+## Client-owned upload comparison (source prepared; unvalidated)
+
+`requests-run.mjs --uploads` uses the existing HTTP runner with native,
+handwritten same-stack Rust and Node-after-tsc controls. Six workload rows cover
+owned bytes, true body streams and bounded channel producers at concurrency1/16.
+Every128-request batch cycles64/4096/65537-byte public payloads. The destination
+checks every byte in order; the common client independently checks the complete
+length/checksum response using BigInt arithmetic. Rust and native channels have
+capacity1; Node uses demand-driven Readable production, not an identical queue
+representation. No stream is accumulated to enable replay.
+
+The original3processes,8warmup batches and31timed128-request batches remain.
+Request latencies provide p50/p99;31separate resource batches measure CPU/request
+and RSS without overlapping timing. One executor worker is used. Build, startup
+and common-client payload preparation are excluded. Upload buffer generation,
+frontend client transport, backend validation and response consumption are timed.
+These rows have no accepted correctness or measurements yet.
+
+After a root-granted55-minute complete validation/timing lease:
+
+```sh
+node --test benchmarks/http/client-uploads.test.mjs
+TSRUST=/absolute/shared-target/release/tsrust CARGO_TARGET_DIR=/absolute/shared-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 node benchmarks/http/requests-run.mjs --uploads --verify
+TSRUST=/absolute/shared-target/release/tsrust CARGO_TARGET_DIR=/absolute/shared-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 node benchmarks/http/requests-run.mjs --uploads --prepared
+```
+
+Use pinnedNode24.11.1 andRust1.96.1. CPU/RSS sampling requires macOS; untimed
+correctness can run on other supported targets. No prototype/admission results
+are ingested as accepted public measurements.

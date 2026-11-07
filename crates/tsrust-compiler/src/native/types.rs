@@ -164,6 +164,12 @@ static HTTPSERVEROPTIONS: Declaration = Declaration {id:NativeTypeId::HttpServer
 static HTTPCLIENTOPTIONS: Declaration = Declaration {id:NativeTypeId::HttpClientOptions,module:"std:http",name:"ClientOptions",fields:&[
  Field{name:"ca",signature:Signature::String,optional:true},
  Field{name:"bodyLimit",signature:Signature::Int,optional:true},
+ Field{name:"timeoutMs",signature:Signature::Int,optional:true},
+ Field{name:"connectTimeoutMs",signature:Signature::Int,optional:true},
+ Field{name:"followRedirects",signature:Signature::Boolean,optional:true},
+ Field{name:"maxRedirects",signature:Signature::Int,optional:true},
+ Field{name:"proxy",signature:Signature::String,optional:true},
+ Field{name:"noProxy",signature:Signature::Boolean,optional:true},
 ],..SPAWN_ERROR};
 
 static JOB: Declaration = Declaration {id:NativeTypeId::Job,module:"std:futures",name:"Job",..THREAD};

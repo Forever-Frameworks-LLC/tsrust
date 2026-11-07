@@ -17,7 +17,7 @@ impl Emitter<'_>{
     let value=if *ty==Type::Undefined{"None"}else if *ty==Type::String{"Some(value.as_ref())"}else{"Some(*value)"};
     format!("Union{}::V{tag}(value)=>{value}",id.index())
    }).collect::<Vec<_>>().join(",");format!("match &options.field{field}{{{arms}}}")
-  }).collect::<Vec<_>>().join(",");format!("tsrust_native_http::Client::with_options({fields})")
+  }).collect::<Vec<_>>().join(",");format!("tsrust_native_http::Client::with_transport_options({fields})")
  }
  fn http_cookie_options(&self,ty:Type)->String{
   let record=match ty{Type::Record(record)=>record,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).expect("checked optional cookie options")};let names=["path","domain","max_age","secure","http_only","same_site","partitioned"];
@@ -68,6 +68,9 @@ impl Emitter<'_>{
    "__configure"|"__routerConfigure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
    "__routerStatic"=>{let fallback=args.get(3).map(|arg|self.native_optional_argument(&binding.parameters[3],"fallback_value".into(),arg.ty.unwrap())).unwrap_or("None".into());format!("{{let app={receiver};let prefix={};let directory={};let fallback_value={};let fallback:Option<&str>={fallback};app.serve_static(prefix.as_ref(),directory.as_ref(),fallback.unwrap_or(\"\"))}}",raw(1),raw(2),args.get(3).map(|_|raw(3)).unwrap_or("()".into()))},
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
+   "__requestBytes"=>format!("tsrust_native_http::Request::from_bytes({}, {}, ({}).bytes)",values[0],values[1],values[2]),
+   "__requestStream"=>format!("tsrust_native_http::Request::from_stream({}, {}, {})",values[0],values[1],values[2]),
+   "__requestChannel"=>format!("tsrust_native_http::Request::from_channel({}, {}, {}, |chunk|chunk.bytes)",values[0],values[1],values[2]),
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
    "__streamChannel"=>format!("tsrust_native_http::Response::stream_channel({}, {}, |chunk|chunk.bytes)",values[0],values[1]),

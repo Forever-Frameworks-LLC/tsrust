@@ -40,6 +40,13 @@ impl Analyzer {
     /// This changes its carrier, not nominal compatibility or ownership.
     pub(super) fn scoped_record_injection(&mut self, actual: Type, expected: UnionId, span: Span) -> Result<Option<Type>, Diagnostic> {
         let Some(Type::Record(target)) = self.unions.payload(Type::Union(expected)) else { return self.finite_record_union_carrier(actual,expected,span); };
+        // Ordinary owned callable storage also fits a finite destination. An
+        // absent initialization may have selected an empty physical payload;
+        // the incoming record must keep its actual storage for the slot planner.
+        let payload=self.unions.payload(actual.owning()).unwrap_or(actual.owning());
+        let target_owned=self.finite_owned_shape(Type::Record(target))
+            && self.owned_record_parameter(payload) && !self.aggregate_callable_facts(payload).unknown
+            && !self.native_shape_contains_view(payload);
         // A named nullable value already carries its concrete environment. Keep
         // that environment when injecting into the same nominal contract.
         if let Type::Union(source) = actual {
@@ -47,14 +54,14 @@ impl Analyzer {
             let Some(Type::Record(record)) = self.unions.payload(actual) else { return Ok(None); };
             let declaration = self.scoped_records.declaration(record);
             if declaration == self.scoped_records.declaration(target)
-                && (self.aggregate_callable_facts(Type::Record(declaration)).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record))
+                && (self.aggregate_callable_facts(Type::Record(declaration)).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record) || target_owned)
                 && self.unions.members(source).into_iter().filter(|member| !matches!(member, Type::Record(_)))
                     .eq(self.unions.members(expected).into_iter().filter(|member| !matches!(member, Type::Record(_))))
             { return Ok(Some(actual)); }
             return Ok(None);
         }
         let Type::Record(record) = actual else { return Ok(None); };
-        if actual == Type::Record(target) || !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record))
+        if actual == Type::Record(target) || !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record) || target_owned)
             || self.scoped_records.declaration(record) != self.scoped_records.declaration(target)
         { return Ok(None); }
         self.unions.intern(self.unions.members(expected).into_iter().map(|member| {

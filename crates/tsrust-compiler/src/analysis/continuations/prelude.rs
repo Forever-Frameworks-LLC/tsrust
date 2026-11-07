@@ -112,7 +112,7 @@ impl Analyzer{
         } else {
             mode
         };
-        if mode == Mode::Mutate && matches!(actual, Type::Union(id) if id != union) {
+        if mode == Mode::Mutate && actual != physical && matches!(actual, Type::Union(id) if id != union) {
             return Err(Diagnostic::new(
                 "unsupported",
                 "Replacing a narrowed tag requires assignment to its declared nullable storage.",
@@ -183,6 +183,16 @@ impl Analyzer{
             self.unions.payload(expected)
         };
         let member_hint = member_hint.filter(|ty| !matches!(ty, Type::Union(_)));
+        // A named record supplies its own physical fields. Check its nominal
+        // contract here; the injection completion joins/retargets that carrier.
+        let member_hint = match (hint,member_hint) {
+            (Some(Type::Record(actual)),Some(Type::Record(target)))
+                if actual!=target
+                    && self.scoped_records.declaration(actual)==self.scoped_records.declaration(target)
+                    && self.physical_record_result_needed(Type::Record(target)) =>
+                Some(Type::Record(self.scoped_records.declaration(target))),
+            _=>member_hint,
+        };
         let member_hint = match &expr.kind {
             ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:ui-runtime#reactive") => Some(Type::Record(self.ui_reactive_prop_type(Some(expected),expr.span)?.0)),
             ExprKind::Record(fields) if member_hint.is_none() => {
@@ -375,4 +385,15 @@ impl Analyzer{
             }
             return Ok(actual);
     }
+}
+
+#[cfg(test)]
+mod injection_context_tests {
+ use super::*;
+ #[test]
+ fn named_nullable_record_replacements_keep_their_actual_tagged_carrier(){
+  let source=crate::format("type Holder={pull:Owned<Function<int>>;};function main(){let current:Holder|undefined=undefined;const inner:Holder={pull:():int=>7};current=inner;if(current!==undefined){console.log(current.pull());}}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let checked=crate::check(&source).unwrap();let mut stores=0;
+  for function in &checked.program.functions{crate::fixed_storage::visit_function_expressions(function,&mut |value|{if matches!(&value.kind,ExprKind::Inject{value,..} if matches!(&value.kind,ExprKind::Name(name) if name=="inner")){assert!(matches!(value.ty,Some(Type::Union(_))));stores+=1;}});}assert_eq!(stores,1);
+ }
 }
