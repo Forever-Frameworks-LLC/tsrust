@@ -1480,6 +1480,17 @@ Witnesses: JSON/escaping/filtering, nested/concurrent contexts, error redaction
 and bounded sink cleanup. Performance: disabled events, formatting-only and
 actual output separately; identical direct tracing configuration for Rust.
 
+2026-11-07 source integration: local JSON logger, scalar lazy factories,
+contextual children, access middleware, per-poll/drop context, editor documentation,
+examples, one five-case registered suite and three matched workloads are present.
+Focused editor agreement/completion/catalog/hover and unused-import selection pass;
+all compiler/LSP test harnesses type-check with logging enabled. Public runtime,
+relocated export, matched measurements and final context-drop execution remain
+pending; the checkboxes above are deliberately unchanged. The logging example's
+readiness/cancellation cleanup was corrected after the runner caught an unsettled
+Job. Keep normal suite acceptance before offline exports. See agent-progress.md
+for exact source identities and passed/failed scopes.
+
 ### B18 — Everyday testing facilities
 
 Backend: current std:testing and native test runner. B06/B12 for task/regex support.

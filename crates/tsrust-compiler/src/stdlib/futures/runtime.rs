@@ -54,7 +54,7 @@ mod tsrust_native_futures {
         let Ok(runtime)=tokio::runtime::Handle::try_current()else{return;};
         let release=Arc::new(Cleanup{finished:std::sync::atomic::AtomicBool::new(false),done:Notify::new()});
         let _=SCOPE.try_with(|scope|{let mut pending=scope.cleanup.lock().unwrap();pending.retain(|release|!release.finished.load(Ordering::Acquire));pending.push(release.clone());});
-        runtime.spawn(async move{let _done=CleanupDone(release);future.await;});
+        runtime.spawn(capture_logging_context(async move{let _done=CleanupDone(release);future.await;}));
     }
     struct Control { abort: AbortHandle, shutdown: Mutex<Option<Box<dyn FnOnce()+Send>>>, state: AtomicU8, done: Notify, finished: std::sync::atomic::AtomicBool, handle_alive: std::sync::atomic::AtomicBool, owner:Mutex<std::sync::Weak<Scope>> }
     impl Control {
@@ -87,19 +87,23 @@ mod tsrust_native_futures {
         start_with_shutdown(future,None)
     }
     pub async fn in_scope<F:Future>(scope:Arc<Scope>,future:F)->F::Output {SCOPE.scope(scope,future).await}
+    fn capture_logging_context<F:Future>(future:F)->impl Future<Output=F::Output>{
+        #[cfg(feature="logging")]{super::tsrust_native_logging::capture(future)}
+        #[cfg(not(feature="logging"))]{future}
+    }
     pub(crate) fn start_with_shutdown<F,T,E>(future:F,shutdown:Option<Box<dyn FnOnce()+Send>>)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {
         let scope=Arc::new(Scope{parent:SCOPE.with(Arc::downgrade),..Scope::default()});
         let (gate,ready)=oneshot::channel::<Arc<Control>>();
         let child_scope=scope.clone();
-        let worker=tokio::spawn(SCOPE.scope(child_scope,async move {
+        let worker=tokio::spawn(capture_logging_context(SCOPE.scope(child_scope,async move {
             let control=ready.await.expect("task registration");
             let result=future.await;
             if control.state.compare_exchange(0,2,Ordering::AcqRel,Ordering::Acquire).is_ok() {result} else {Err(Failure::Cancelled)}
-        }));
+        })));
         let control=Arc::new(Control{abort:worker.abort_handle(),shutdown:Mutex::new(shutdown),state:AtomicU8::new(0),done:Notify::new(),finished:std::sync::atomic::AtomicBool::new(false),handle_alive:std::sync::atomic::AtomicBool::new(true),owner:Mutex::new(std::sync::Weak::new())});
         SCOPE.with(|parent|control.register(parent));
         let (send,result)=oneshot::channel();let completion=control.clone();
-        tokio::spawn(async move {
+        tokio::spawn(capture_logging_context(async move {
             let result=match worker.await {Ok(result)=>result,Err(error)=>Err(if error.is_cancelled(){Failure::Cancelled}else{Failure::Panic})};
             scope.drain(false).await;
             if let Err(result)=send.send(result){
@@ -107,7 +111,7 @@ mod tsrust_native_futures {
                 scope.drain(true).await;
             }
             completion.complete();
-        });
+        }));
         let _=gate.send(control.clone());
         Job{result:Some(result),control,settled:false}
     }

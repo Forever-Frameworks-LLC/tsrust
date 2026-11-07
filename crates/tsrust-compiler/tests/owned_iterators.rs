@@ -1,12 +1,19 @@
 mod support;
 #[test]
 fn owned_lazy_iterators_preserve_retry_ownership_and_finite_shapes(){
- let directory=support::TempDirectory::new();
- let source=support::format_round_trip(include_str!("fixtures/owned-iterators/contracts.tsr"));
- let file=directory.source(&source);
- let output=support::run(support::cli().arg("run").arg(file).current_dir(&directory.0),120);
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+ for source in [include_str!("fixtures/owned-iterators/contracts.tsr"),include_str!("fixtures/owned-iterators/contracts.test.tsr")]{assert_eq!(support::format_round_trip(source),source);}
+ let output=support::run(support::cli().args(["test","crates/tsrust-compiler/tests/fixtures/owned-iterators/contracts.test.tsr","--reporter=json","--profile"]).current_dir(&root),180);
  support::success(&output);
- assert!(String::from_utf8_lossy(&output.stdout).contains("owned iterators passed"));
+ assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
+ print!("{}",String::from_utf8_lossy(&output.stdout));
+ let rows=std::str::from_utf8(&output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();
+ let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);assert_eq!(builds[0]["testFiles"],1);
+ for field in ["durationMs","checkMs","emitMs","backendMs","cacheMs","nativeBuildMs"]{assert!(builds[0][field].as_f64().unwrap()>=0.0,"{field}");}
+ let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),1);assert_eq!(tests[0]["name"],"owned iterator contracts");assert_eq!(tests[0]["status"],"passed");
+ assert!(rows.iter().any(|row|row["event"]=="output"&&row["stream"]=="stdout"&&row["text"]=="owned iterators passed\n"));
+ let summaries=rows.iter().filter(|row|row["event"]=="summary").collect::<Vec<_>>();assert_eq!(summaries.len(),1);let summary=summaries[0];assert_eq!(rows.last().unwrap()["event"],"summary");
+ for (field,value) in [("passed",1),("failed",0),("hookFailures",0),("skipped",0),("filesPassed",1),("filesFailed",0)]{assert_eq!(summary[field],value,"{field}");}
 }
 fn checked(source:&str)->Result<Vec<String>,String>{
  use tsrust_compiler::project::{FileSourceProvider,check_graph,load_project};

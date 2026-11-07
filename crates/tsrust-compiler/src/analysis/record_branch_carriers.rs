@@ -128,7 +128,6 @@ impl Analyzer {
                 (Type::Closure(_),Type::BorrowedCallable(family))=>Self::retarget_record_callback(value,family),
                 (Type::Record(_),Type::Record(_))|(Type::BorrowedCallable(_),Type::BorrowedCallable(_))=>{
                     if self.distinct_owned_closures(source,destination) {
-                        #[cfg(test)]
                         self.trace_carrier_rejection("distinct-write",value.span,source,destination);
                         return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
                     }
@@ -311,8 +310,8 @@ impl Analyzer {
         }
         false
     }
-    #[cfg(test)]
     fn trace_carrier_rejection(&self,phase:&str,span:Span,source:Type,destination:Type){
+                if !cfg!(test)&&std::env::var("TSRUST_TRACE_CARRIERS").as_deref()!=Ok("1"){return;}
                 eprintln!("CARRIER_REJECT phase={phase} span={:?} source={:?} target={destination:?}",span,Some(source));
                 let mut pending=vec![source,destination];let mut seen=HashSet::new();
                 while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
@@ -326,7 +325,6 @@ impl Analyzer {
     }
     pub(super) fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
         if value.ty.is_some_and(|source|!self.carrier_convertible(source,destination)) {
-            #[cfg(test)]
             self.trace_carrier_rejection("checked",value.span,value.ty.unwrap(),destination);
             return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
         }

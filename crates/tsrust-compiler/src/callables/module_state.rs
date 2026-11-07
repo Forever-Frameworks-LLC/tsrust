@@ -20,12 +20,17 @@ pub(crate) fn lower(program: &mut Program) -> Result<(), Diagnostic> {
         _ => None,
     }).collect();
     let mut body = std::mem::take(&mut program.module_bindings);
-    let mut data_owners = Vec::new();
+    let mut external_functions = Vec::new();
     for function in std::mem::take(&mut program.functions) {
         // Validated data imports already have canonical, readonly ownership.
         // Their dedicated accessor encoding must keep its linked identity.
-        if function.name.text.ends_with(crate::data_lowering::OWNER) {
-            data_owners.push(function);
+        // These closed bundled helpers have no module storage. Checked method
+        // dispatch and private native leaves require their canonical identities;
+        // ordinary user declarations still join the shared program owner.
+        if function.name.text.ends_with(crate::data_lowering::OWNER)
+            || function.name.text.starts_with(crate::stdlib::iterator::PREFIX)
+            || function.name.text.starts_with(crate::stdlib::logging::PREFIX) {
+            external_functions.push(function);
             continue;
         }
         body.push(Stmt { labels: Vec::new(), control_target: None,
@@ -49,7 +54,7 @@ pub(crate) fn lower(program: &mut Program) -> Result<(), Diagnostic> {
     owner.scope_span = span;
     program.unresolved_local_function = Some(owner.name.clone());
     program.functions.push(owner);
-    program.functions.extend(data_owners);
+    program.functions.extend(external_functions);
     Ok(())
 }
 
@@ -99,6 +104,23 @@ mod tests {
         assert!(matches!(&program.functions[0].body[0].kind, StmtKind::Let { name, .. } if name.text == "first"));
         assert!(matches!(&program.functions[0].body[1].kind, StmtKind::Let { name, .. } if name.text == "second"));
         assert!(program.local_capture_plans.iter().flat_map(|plan| &plan.direct).flatten().any(|capture| capture.name == "second"));
+    }
+
+    #[test]
+    fn trusted_method_helpers_keep_symbols_while_user_functions_capture_module_storage() {
+        for prefix in [crate::stdlib::iterator::PREFIX,crate::stdlib::logging::PREFIX] {
+            let mut program=crate::syntax::parse_module("const value=1;function trusted(input:int):int{return input;}function read():int{return value;}function main(){console.log(read());}",false,Default::default(),Default::default()).unwrap();
+            let symbol=format!("{prefix}helper");
+            program.functions.iter_mut().find(|function|function.name.text=="trusted").unwrap().name.text=symbol.clone();
+            lower(&mut program).unwrap();
+            crate::local_functions::resolve(&mut program).unwrap();
+            assert!(program.functions.iter().any(|function|function.name.text==symbol));
+            assert!(program.local_declarations.iter().all(|declaration|declaration.emitted_name!=symbol));
+            let read=program.local_declarations.iter().find(|declaration|declaration.source_name.text=="read").expect("ordinary user function must remain program-scoped");
+            assert!(program.local_capture_plans.iter().flat_map(|plan|&plan.direct).flatten().any(|capture|capture.name=="value"));
+            assert!(program.functions.iter().any(|function|function.name.text==read.emitted_name));
+            assert_eq!(program.module_owner_bindings.len(),1);
+        }
     }
 
     #[test]

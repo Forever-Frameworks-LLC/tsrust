@@ -11,6 +11,7 @@ pub(crate) const CORS:NativeBinding=NativeBinding{module:"std:http",name:"__cors
 pub(crate) const PUBLIC_CORS:NativeBinding=NativeBinding{name:"cors",..CORS};
 pub(crate) const SECURE_HEADERS:NativeBinding=NativeBinding{module:"std:http",name:"secureHeaders",parameters:&[],result:NativeType::Structured(&Signature::Named(NativeTypeId::HttpMiddleware)),..CORS};
 pub(crate) const COMPRESS:NativeBinding=NativeBinding{name:"compress",..SECURE_HEADERS};
+pub(crate) const ACCESS_LOG:NativeBinding=NativeBinding{name:"accessLog",parameters:&[NativeParameter{name:"logger",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Logger)),access:Mode::Read,optional:false,rest:false}],features:&["http","http-middleware","logging"],..SECURE_HEADERS};
 pub(crate) const APP:NativeBinding=NativeBinding{module:"std:http",name:"__app",parameters:&[],result:NativeType::Structured(&Signature::Named(NativeTypeId::HttpApp)),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
 pub(crate) const CONFIGURE:NativeBinding=NativeBinding{module:"std:http",name:"__configure",parameters:&[NativeParameter{name:"app",ty:NativeType::Structured(&Signature::Named(NativeTypeId::HttpApp)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"options",ty:NativeType::Structured(&Signature::Named(NativeTypeId::HttpServerOptions)),access:Mode::Read,optional:false,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Void,&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
 pub(crate) const CLIENT:NativeBinding=NativeBinding{module:"std:http",name:"__client",parameters:&[NativeParameter{name:"options",ty:NativeType::Structured(&Signature::Named(NativeTypeId::HttpClientOptions)),access:Mode::Read,optional:true,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::HttpClient),&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
@@ -98,10 +99,12 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
  use crate::syntax::{Expr,ExprKind};
  defaults(program)?;
  wrappers::prepare(program)?;
+ let mut access_log_used=false;
  let mut middleware_used=program.records.iter().any(|r|r.native_type==Some(NativeTypeId::HttpMiddleware));
  let mut used=program.records.iter().any(|r|r.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http"));
  for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{
   let span=expression.span;
+  if matches!(&expression.kind,ExprKind::Name(symbol)if symbol=="@native:std:http#accessLog"){access_log_used=true;middleware_used=true;used=true;}
   if let ExprKind::Name(symbol)=&expression.kind&&symbol.strip_prefix("@native:std:http#").is_some_and(|name|matches!(name,"__cors"|"cors"|"secureHeaders"|"compress")){middleware_used=true;used=true;}
 
   let constructor=if let ExprKind::NativeConstructor(_,Some(annotation))=&expression.kind{if let crate::type_syntax::ValueAnnotationKind::Named(name)=&annotation.kind{[NativeTypeId::HttpApp,NativeTypeId::HttpClient].into_iter().find(|id|crate::native_type_resolution::linked_name(*id)==name.text)}else{None}}else{None};
@@ -117,11 +120,12 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
    }
   }Ok(())
  })?;}
- if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","parse").unwrap(),crate::Span::default())?;crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}if middleware_used{for binding in [CORS,SECURE_HEADERS,COMPRESS]{crate::native_binding_types::prepare(&mut program.records,&binding,crate::Span::default())?;}}}
+ if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","parse").unwrap(),crate::Span::default())?;crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}if access_log_used{crate::native_binding_types::prepare(&mut program.records,&ACCESS_LOG,crate::Span::default())?;}if middleware_used{for binding in [CORS,SECURE_HEADERS,COMPRESS]{crate::native_binding_types::prepare(&mut program.records,&binding,crate::Span::default())?;}}}
  Ok(())
 }
 #[cfg(test)]mod tests {
  use crate::stdlib::futures::tests as tsrust_native_futures;
+ #[cfg(feature="logging")] include!("../logging/runtime.rs");
  include!("runtime.rs");
  include!("runtime_tests.rs");
  mod client_transport_tests {include!("client_transport_tests.rs");}

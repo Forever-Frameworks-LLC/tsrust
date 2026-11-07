@@ -28657,6 +28657,152 @@
       },
       "source": "workloads/rust_owned_nested_option.tsr",
       "counterpart": "workloads/rust_owned_nested_option.ts"
+    },
+    {
+      "id": "logging_disabled",
+      "category": "logging",
+      "family": "structured-logging",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 1024,
+      "operationsPerIteration": 1,
+      "operationUnit": "disabled logging calls",
+      "specification": "Ordered base131 fold of exact seeded event indices; file peers independently parse and validate every JSON line and scalar field.",
+      "notes": "Whole public pipeline including logger/subscriber setup and close; disabled callbacks never run and no output occurs.",
+      "sourceRequired": {
+        "native": [
+          "from 'std:log'",
+          "sum=(sum*131+",
+          "sink:'stderr'",
+          "logger.debug",
+          "throw 'disabled factory ran'"
+        ],
+        "typescript": [
+          "sum=(sum*131+",
+          "const level='info'",
+          "throw Error('disabled factory ran')"
+        ],
+        "rust": [
+          "fn function0(n:i64,seed:i64)->i64",
+          "tracing_subscriber::fmt::layer().json()",
+          "with_writer(std::io::stderr)",
+          "if tracing::enabled!(tracing::Level::DEBUG)"
+        ]
+      },
+      "source": "workloads/logging_disabled.tsr",
+      "counterpart": "workloads/logging_disabled.ts",
+      "rustReference": "parity/logging_disabled.rs",
+      "measured": false,
+      "measurementStatus": "unmeasured-structured-logging",
+      "sourceSha256": "bc92cb334485105793a4e05401dfe71e5dba1aaa623b84d99ea6ed5828645389",
+      "counterpartSha256": "c6e811e7395e2733faf2dd4656b198dd38f4828eac3a0f508807ac74deef2e38",
+      "rustReferenceSha256": "1d96d67d8712318e35a31d86db7f0e2068dbde08159b9114ded110a7202e731b"
+    },
+    {
+      "id": "logging_file_output",
+      "category": "logging",
+      "family": "structured-logging",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 1024,
+      "operationsPerIteration": 1,
+      "operationUnit": "JSON file events",
+      "specification": "Ordered base131 fold of exact seeded event indices; file peers independently parse and validate every JSON line and scalar field.",
+      "notes": "Whole public file pipeline: temporary directory, append-only file open, payload generation, JSON serialization, synchronous writes, close, readback/JSON verification and cleanup included. Backend timestamps/target enabled; Node is a semantic JSON/file control, not identical tracing internals. No formatting-only claim or durability/fsync claim.",
+      "sourceRequired": {
+        "native": [
+          "from 'std:log'",
+          "sum=(sum*131+",
+          "createTempDir",
+          "readTextFile(path)",
+          "JSON.parse<Line>(lines[i])",
+          "unwrap(close(logger))",
+          "removeDirAll(directory)"
+        ],
+        "typescript": [
+          "sum=(sum*131+",
+          "openSync(path,'a')",
+          "writeSync(fd,JSON.stringify(row)+'\\n')",
+          "JSON.parse(lines[i])",
+          "rmSync(directory,{recursive:true})"
+        ],
+        "rust": [
+          "fn function0(n:i64,seed:i64)->i64",
+          "tracing_subscriber::fmt::layer().json()",
+          ".create(true).append(true).open(&path)",
+          "tracing::info!",
+          "serde_json::from_str(lines[i as usize])",
+          "drop(dispatch);drop(sink)"
+        ]
+      },
+      "source": "workloads/logging_file_output.tsr",
+      "counterpart": "workloads/logging_file_output.ts",
+      "rustReference": "parity/logging_file_output.rs",
+      "measured": false,
+      "measurementStatus": "unmeasured-structured-logging",
+      "sourceSha256": "f84929d2d9c1c19b31c00be306841c22d2b4c638ca4e18a325834e379a65416e",
+      "counterpartSha256": "299a1cc24426a598e28153906bda326fcdce73441ef09aaecdf30ffd1274596d",
+      "rustReferenceSha256": "db49507c49edeaa7fb67a2e4a237c541adc67eb9d1092b8145ce569a949d5d2a"
+    },
+    {
+      "id": "logging_child_file",
+      "category": "logging",
+      "family": "structured-logging",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 1024,
+      "operationsPerIteration": 1,
+      "operationUnit": "JSON file events",
+      "specification": "Ordered base131 fold of exact seeded event indices; file peers independently parse and validate every JSON line and scalar field.",
+      "notes": "Whole public file pipeline: temporary directory, append-only file open, payload generation, JSON serialization, synchronous writes, close, readback/JSON verification and cleanup included. Backend timestamps/target enabled; Node is a semantic JSON/file control, not identical tracing internals. No formatting-only claim or durability/fsync claim.",
+      "sourceRequired": {
+        "native": [
+          "from 'std:log'",
+          "sum=(sum*131+",
+          "createTempDir",
+          "readTextFile(path)",
+          "JSON.parse<Line>(lines[i])",
+          "unwrap(close(logger))",
+          "removeDirAll(directory)",
+          "logger.child({service:'bench',worker:7,healthy:true,ratio:1.5})",
+          "row.span.ratio!==1.5"
+        ],
+        "typescript": [
+          "sum=(sum*131+",
+          "openSync(path,'a')",
+          "writeSync(fd,JSON.stringify(row)+'\\n')",
+          "JSON.parse(lines[i])",
+          "rmSync(directory,{recursive:true})",
+          "span:{name:'child',service:'bench',worker:7,healthy:true,ratio:1.5}",
+          "row.span.ratio!==1.5"
+        ],
+        "rust": [
+          "fn function0(n:i64,seed:i64)->i64",
+          "tracing_subscriber::fmt::layer().json()",
+          ".create(true).append(true).open(&path)",
+          "tracing::info!",
+          "serde_json::from_str(lines[i as usize])",
+          "drop(dispatch);drop(sink)",
+          "tracing::debug_span!(\"child\",service=\"bench\",worker=7i64,healthy=true,ratio=1.5f64)"
+        ]
+      },
+      "source": "workloads/logging_child_file.tsr",
+      "counterpart": "workloads/logging_child_file.ts",
+      "rustReference": "parity/logging_child_file.rs",
+      "measured": false,
+      "measurementStatus": "unmeasured-structured-logging",
+      "sourceSha256": "0e341e6582dca25e1564f9a61b3f86a7a471fd355e2fe91b97d2c0ebfadfcec4",
+      "counterpartSha256": "2bcf53cc8124820aa3dec515d261cc6d4f20d38c4ce1978fc71828668abb8a63",
+      "rustReferenceSha256": "f176ca8c7137b7782ef8bae20b175d685c7068073234953f935364fd5f4def76"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

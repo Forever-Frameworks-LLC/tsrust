@@ -1,3 +1,4 @@
+import {loggingIDs,loggingChecksum} from './structured-logging-contract.mjs';
 import {rustOwnedAdapterIds,expectedRustOwnedAdapterChecksum} from './rust-owned-adapters-oracle.mjs';
 import {cryptoIDs,cryptoChecksum} from './crypto-primitives-contract.mjs';
 import {processIDs,processChecksum} from './process-contract.mjs';
@@ -235,6 +236,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
+ if(loggingIDs.includes(id))return loggingChecksum(n,seed);
  if(processIDs.includes(id))return processChecksum(id,n,seed);
  if(networkTransportIDs.includes(id))return networkTransportChecksum(id,n,seed);
  if(networkAddressIDs.includes(id))return networkAddressChecksum(id,n,seed,inputText);

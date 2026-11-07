@@ -16,6 +16,7 @@ mod futures;
 mod http;
 mod url;
 mod regex;
+mod logging;
 mod locale;
 mod process;
 mod net;
@@ -2775,7 +2776,8 @@ impl Analyzer {
                     .flat_map(|family|self.callables.storage.origins(family).unwrap_or_default())
                     .filter_map(|origin|self.closures.get(*origin))
                     .map(|closure|(closure.span.start,closure.span.end)).collect::<HashSet<_>>();
-                let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len()+schema_origins.len();
+                let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len()
+                    +crate::error_effects::record_stored_field_origins(&self.unions,&self.program.records,&self.scoped_records).len()+schema_origins.len();
                 let stale = (0..sources.len())
                     .filter(|&index| sources[index] && field_origins[index] < known && self.checked[index].as_ref().is_some_and(|function| !function.template))
                     .collect::<Vec<_>>();
@@ -3957,9 +3959,10 @@ impl Analyzer {
         let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let mut fields=crate::error_effects::record_field_origins(&self.unions,&self.program.records,&self.scoped_records);
+        let stored_fields=crate::error_effects::record_stored_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         fields.extend(context.caller_error_origins.iter().copied());
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields)
+        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields,&stored_fields)
     }
 
     #[inline(never)]
@@ -9068,6 +9071,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 return Ok(CallDispatch::PrepareReceiver);
             }
         }
+        if let Some(ty)=self.logging_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty)=self.iterator_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if Self::map_group_by_callee(context,expr) {return self.prepare_group_by_transform(context,expr,expected).map(CallDispatch::Transform);}
         if Self::array_from_callee(context, expr) {

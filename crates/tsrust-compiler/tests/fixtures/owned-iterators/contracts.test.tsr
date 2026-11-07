@@ -1,0 +1,6 @@
+import { test } from 'std:testing';
+import { runOwnedIteratorContracts } from './contracts.tsr';
+
+test('owned iterator contracts', (): void => {
+  runOwnedIteratorContracts();
+});

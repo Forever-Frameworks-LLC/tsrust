@@ -1,0 +1,24 @@
+import { createLogger, close } from 'std:log';
+
+type Event = {
+  message: string;
+  index: int
+};
+
+function workload(n: int, seed: int): int {
+  const logger = unwrap(createLogger({
+    sink: 'stderr'
+  }));
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    logger.debug((): Event => {
+      throw 'disabled factory ran';
+    });
+    sum = (sum * 131 + i + seed) % 1000000007;
+  }
+
+  unwrap(close(logger));
+  return sum;
+}
+
+function main() {}

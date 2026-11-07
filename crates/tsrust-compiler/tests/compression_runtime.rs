@@ -1,5 +1,6 @@
 //! Exact backend policy, error category, lazy ownership and CPU settlement witnesses.
 mod support;
+#[cfg(feature="logging")] include!("../src/stdlib/logging/runtime.rs");
 include!("../src/stdlib/futures/runtime.rs");
 mod tsrust_native_threads{include!("../src/stdlib/threads/runtime_core.rs");include!("../src/stdlib/threads/runtime_async.rs");}
 include!("../src/stdlib/compression/runtime.rs");

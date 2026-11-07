@@ -240,7 +240,10 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                             if let ExprKind::Call(callee,args)=&value.kind{eprintln!("ITERATOR_EFFECT function={} template={} span={:?} target={:?} callee={:?} invocation={:?} args={:?}",function.name,function.template,value.span,value.target,callee.ty,callee.generic_invocation,args.iter().map(|arg|arg.ty).collect::<Vec<_>>());}
                         }
                     }
-                    for(id,closure)in analyzer.closures.iter().enumerate(){eprintln!("ITERATOR_CLOSURE id={} forward={:?} polymorphic={} template={} effect={:?} methods={:?}",id,closure.forward.is_some(),closure.polymorphic,closure.function.template,effects.closure_errors.get(id),closure.methods.iter().enumerate().map(|(method,body)|(method,body.function.template,effects.method_errors.get(&(id,method)))).collect::<Vec<_>>());}
+                    for(id,closure)in analyzer.closures.iter().enumerate(){eprintln!("ITERATOR_CLOSURE id={} forward={:?} polymorphic={} template={} effect={:?} methods={:?}",id,closure.forward.is_some(),closure.polymorphic,closure.function.template,effects.closure_errors.get(id),closure.methods.iter().enumerate().map(|(method,body)|(method,body.function.template,effects.method_errors.get(&(id,method)))).collect::<Vec<_>>());if effects.closure_errors.get(id).is_some_and(|effect|effect.opaque){
+                        eprintln!("ITERATOR_CAPTURE id={id} captures={:?}",closure.captures.iter().map(|capture|(closure.function.bindings.get(capture.inner).map(|binding|(&binding.name,binding.ty)),capture.storage,capture.access)).collect::<Vec<_>>());
+                        for value in crate::error_effects::checked_expressions(&closure.function){if let ExprKind::Call(callee,args)=&value.kind{eprintln!("ITERATOR_CLOSURE_CALL id={id} span={:?} target={:?} callee={:?} args={:?}",value.span,value.target,callee.ty,args.iter().map(|arg|arg.ty).collect::<Vec<_>>());}}
+                    }}
                 }
                 let points = crate::error_effects::OperationEffects::for_body(&region.body);
                 let (normal, frame, mut errors) = exits;

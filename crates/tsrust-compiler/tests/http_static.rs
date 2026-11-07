@@ -2,7 +2,8 @@ mod support;
 // Exercise the exact bundled HTTP source without unrelated platform-only lib tests.
 #[allow(dead_code)]
 mod runtime {
-    include!("../src/stdlib/futures/runtime.rs");
+    #[cfg(feature="logging")] include!("../src/stdlib/logging/runtime.rs");
+include!("../src/stdlib/futures/runtime.rs");
     include!("../src/stdlib/http/runtime.rs");
 
     mod regressions {

@@ -22,6 +22,7 @@ enum Kind {
     PathEnvOs,
     Ui,
     Crypto,
+    Logging,
     Signals,
     Cache,
     Temporal,
@@ -85,6 +86,7 @@ const KINDS: &[Kind] = &[
     Kind::PathEnvOs,
     Kind::Ui,
     Kind::Crypto,
+    Kind::Logging,
     Kind::Signals,
     Kind::Cache,
     Kind::Temporal,
@@ -265,6 +267,9 @@ fn rows() -> Vec<Row> {
  Row {kind:Kind::Cache,name:"cache methods",before:"import {LruCache} from 'std:cache';function probe(cache:LruCache<int,string>){".into(),typed:"cache.",after:"clear();}function main(){}",includes:&["get","peek","set","remove","size","clear"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Cache,name:"cache entry",before:"import {CacheEntry} from 'std:cache';function probe(entry:ReadOnly<CacheEntry<int,string>>){".into(),typed:"entry.",after:"key;}function main(){}",includes:&["key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Cache,name:"cache insertion error",before:"import {CacheInsertError} from 'std:cache';function probe(error:ReadOnly<CacheInsertError<int,string>>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Logging,name:"logging imports",before:"import { ".into(),typed:"",after:" } from 'std:log';function main(){}",includes:&["Logger","LoggerOptions","LogError","LogLevel","createLogger","debug","info","warn","error","child","flush","close"],excludes:&["emit","enabled","create","__emit"],silent:None,needs_check:false},
+ Row {kind:Kind::Logging,name:"Logger alias members",before:"import {Logger as Subject} from 'std:log';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"flush();}function main(){}",includes:&["debug","info","warn","error","child","flush","close"],excludes:&["dispatch","sink","fields","emit","share"],silent:None,needs_check:true},
+ Row {kind:Kind::Logging,name:"LoggerOptions alias fields",before:"import {LoggerOptions as Subject} from 'std:log';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"sink;}function main(){}",includes:&["sink","path","level"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Crypto,name:"crypto imports",before:"import { ".into(),typed:"",after:" } from 'std:crypto';function main(){}",includes:&["randomBytes","sha256","sha384","sha512","createHasher","Hasher","hmacSha256","verifyHmacSha256","hkdfSha256","randomInt","hashPassword","verifyPassword","verifyPasswordBounded","PasswordHashOptions","PasswordVerifyOptions","CryptoError","timingSafeEqual"],excludes:&["md5","__update","__finalize","__hashPassword","__verifyPassword","__verifyPasswordBounded"],silent:None,needs_check:false},
  Row {kind:Kind::Crypto,name:"crypto Hasher alias members",before:"import {Hasher as Subject} from 'std:crypto';import {Bytes} from 'std:bytes';function inspect(value:Mutable<Subject>,input:ReadOnly<Bytes>){".into(),typed:"value.",after:"update(input);}function main(){}",includes:&["update","finalize"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Crypto,name:"crypto PasswordHashOptions alias members",before:"import {PasswordHashOptions as Subject} from 'std:crypto';import {Bytes} from 'std:bytes';function inspect(value:ReadOnly<Subject>,input:ReadOnly<Bytes>){".into(),typed:"value.",after:"memoryKiB;}function main(){}",includes:&["memoryKiB","iterations","parallelism","outputBytes"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
@@ -606,7 +611,7 @@ fn every_kind_and_std_module_has_a_row() {
     // Every importable std module needs an import-path expectation. The list
     // comes from the compiler, so a new module cannot land without a row.
     // `std:schema` and `std:testing` have no native binding of their own name.
-    let modules = tsrust_compiler::native_bindings::BINDINGS.iter().map(|binding| binding.module).filter(|module| module.starts_with("std:") && !module.ends_with("-runtime")).chain(["std:schema", "std:testing"]).collect::<BTreeSet<_>>();
+    let modules = tsrust_compiler::native_bindings::BINDINGS.iter().map(|binding| binding.module).filter(|module| module.starts_with("std:") && !module.ends_with("-runtime")).chain(["std:schema", "std:testing", "std:log"]).collect::<BTreeSet<_>>();
     let mut session = Session::start(&FILES);
     let before = "import { x } from '";
     let text = format!("{before}std:';\nfunction main() {{}}\n");
@@ -632,7 +637,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Locale|Kind::Io|Kind::Filesystem|Kind::PathEnvOs|Kind::Process|Kind::Network|Kind::Compression|Kind::Crypto|Kind::Http) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Locale|Kind::Io|Kind::Filesystem|Kind::PathEnvOs|Kind::Process|Kind::Network|Kind::Compression|Kind::Crypto|Kind::Logging|Kind::Http) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);

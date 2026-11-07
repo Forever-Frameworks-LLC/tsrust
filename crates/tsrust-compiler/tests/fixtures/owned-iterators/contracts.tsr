@@ -28,7 +28,7 @@ function choose(flag: boolean): Iterator<int> {
   return Iterator.from([1, 2, 3]).filter(value => value > 1);
 }
 
-function main() {
+export function runOwnedIteratorContracts(): void {
   strictEqual(throughOwned(Iterator.from([1, 2])).toArray().join(','), '2,3');
   strictEqual(choose(true).toArray().join(','), '2,4,6');
   strictEqual(choose(false).toArray().join(','), '2,3');
@@ -160,7 +160,7 @@ function main() {
     const capture = trackedResource();
     const captureId = resourceId(capture);
     let calls = 0;
-    const predicate = (value: Owned<TrackedResource>): boolean => {
+    const predicate: Owned<Function<boolean, [value: Owned<TrackedResource>]>> = (value: Owned<TrackedResource>): boolean => {
       strictEqual(resourceId(capture), captureId);
       calls += 1;
       strictEqual(calls, 1);
@@ -206,4 +206,8 @@ function main() {
   strictEqual(releaseCount(failedCaptureId), 1);
   strictEqual(liveCount(), before);
   console.log('owned iterators passed');
+}
+
+function main() {
+  runOwnedIteratorContracts();
 }

@@ -99,6 +99,9 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
 }
 fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<Type>,work:&mut Vec<Work<'a>>,value:&mut Option<Type>){
     let ExprKind::Call(callee,_)=&expr.kind else{unreachable!()};
+    if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Logger) && let ExprKind::Field(_,member)=&callee.kind{
+        *value=match member.as_str(){"child"=>Some(Type::Record(id)),"debug"|"info"|"warn"|"error"=>Some(Type::Void),"flush"|"close"=>crate::native_binding_types::resolve(&analyzer.program.records,&crate::stdlib::logging::FLUSH.result.signature()),_=>None};return;
+    }
     if let ExprKind::Field(_,member)=&callee.kind && let Some(Type::Record(id))=receiver && let Some(operation)=crate::stdlib::sqlite::method(analyzer.program.records[id].native_type,member){
         let binding=crate::native_bindings::lookup("std:sqlite",operation).ok().unwrap();*value=Some(native_type(binding.result,&analyzer.program.records));return;
     }

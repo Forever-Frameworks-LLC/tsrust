@@ -13915,6 +13915,23 @@
           "output": "compression\n"
         }
       ]
+    },
+    {
+      "name": "accessLog",
+      "signature": "accessLog(logger: ReadOnly<Logger>): Middleware",
+      "parameters": [
+        {
+          "label": "logger: ReadOnly<Logger>",
+          "documentation": "Local logger supplying explicit sink and threshold. Installation retains shared immutable configuration; source handle stays usable."
+        }
+      ],
+      "documentation": "Creates opt-in source-installed access logging for App.use/Router.use, including scoped Router paths and source order. Logs generated request ID, method, matched configured route template, response status and elapsed milliseconds. No body, raw URL/query, credentials or arbitrary headers are logged. Cancellation before a response has a separate request_cancelled event without a fabricated status. Context follows async work with per-poll instrumentation; no span guard crosses an await. Ownership: logger is borrowed; returned middleware owns shared backend/context handles.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';import {Router,accessLog} from 'std:http';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));const app=new Router();app.use(accessLog(logger));console.log('access log installed');}",
+          "output": "access log installed\n"
+        }
+      ]
     }
   ],
   "HttpApp": [
@@ -21533,6 +21550,387 @@
         {
           "source": "import {CorsOptions} from 'std:http';function main(){const options:CorsOptions={};console.log(options.credentials===undefined);}",
           "output": "true\n"
+        }
+      ]
+    }
+  ],
+  "std:log": [
+    {
+      "name": "Logger",
+      "signature": "type Logger",
+      "parameters": null,
+      "documentation": "An opaque local structured logger. Construct explicitly with createLogger; use level methods, child, flush and close. It never installs global tracing state. Ownership: uniquely owned source handle, explicitly shared internally by child loggers.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output. For stored calls, import a free function such as info and pass the logger explicitly. Bound extraction such as const write = logger.info is rejected.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "LoggerOptions",
+      "signature": "type LoggerOptions",
+      "parameters": null,
+      "documentation": "Explicit sink selection and optional backend event threshold. sink is stdout, stderr or file; file requires path and appends. level defaults info. Ownership: borrowed configuration.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "LogError",
+      "signature": "type LogError",
+      "parameters": null,
+      "documentation": "Logging option/open/flush errors as explicit Result data, with code and redacted message. Event write errors are handled by tracing and are not a per-event Result. Ownership: owned error data.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "LogLevel",
+      "signature": "type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'off'",
+      "parameters": null,
+      "documentation": "Selects event threshold; info is the backend default. Context spans remain available across filtering so enabled events keep their ancestry. Ownership: literal value.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "createLogger",
+      "signature": "createLogger(options: ReadOnly<LoggerOptions>): Result<Logger, LogError>",
+      "parameters": [
+        {
+          "label": "options: ReadOnly<LoggerOptions>",
+          "documentation": "Explicit sink plus optional level; file requires path and appends. Defaults preserve INFO and backend JSON metadata."
+        }
+      ],
+      "documentation": "Creates a local JSON logger with an explicit stdout, stderr or append-only file sink. File sinks require path; stdout/stderr reject path. The optional level defaults to info. Backend JSON includes timestamps, target and span ancestry. Returns Result<Logger,LogError>; invalid options and open errors are data. No global subscriber is installed and console remains unchanged. Ownership: options are borrowed; the returned owner retains its sink.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "debug",
+      "signature": "debug<T>(logger: ReadOnly<Logger>, make: Once<Function<T>>): void",
+      "parameters": [
+        {
+          "label": "logger: ReadOnly<Logger>",
+          "documentation": "Borrows the local logger and shared backend context."
+        },
+        {
+          "label": "make: Once<Function<T>>",
+          "documentation": "Zero-argument synchronous factory returning an owned concrete scalar record with string message. Runs once only when enabled; checked failures propagate. Eager capture construction still occurs."
+        }
+      ],
+      "documentation": "Runs make once only when debug is enabled, then emits its owned scalar record. The record requires a string message and may contain string, int, number and boolean fields. Checked callback errors propagate; event write errors follow the backend and are not returned. Disabled callbacks are dropped without running. Capture construction is ordinary eager work. Ownership: logger is borrowed; make and its result are consumed once.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "info",
+      "signature": "info<T>(logger: ReadOnly<Logger>, make: Once<Function<T>>): void",
+      "parameters": [
+        {
+          "label": "logger: ReadOnly<Logger>",
+          "documentation": "Borrows the local logger and shared backend context."
+        },
+        {
+          "label": "make: Once<Function<T>>",
+          "documentation": "Zero-argument synchronous factory returning an owned concrete scalar record with string message. Runs once only when enabled; checked failures propagate. Eager capture construction still occurs."
+        }
+      ],
+      "documentation": "Runs make once only when info is enabled and emits a typed JSON event. Fields require a string message and statically known scalar keys. Disabled callbacks do no formatting or field construction. Callback failures propagate unchanged; sink write failures are not event Results. Ownership: logger is borrowed; the single-use callback and result move.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "warn",
+      "signature": "warn<T>(logger: ReadOnly<Logger>, make: Once<Function<T>>): void",
+      "parameters": [
+        {
+          "label": "logger: ReadOnly<Logger>",
+          "documentation": "Borrows the local logger and shared backend context."
+        },
+        {
+          "label": "make: Once<Function<T>>",
+          "documentation": "Zero-argument synchronous factory returning an owned concrete scalar record with string message. Runs once only when enabled; checked failures propagate. Eager capture construction still occurs."
+        }
+      ],
+      "documentation": "Runs the single-use scalar-record factory only when warn is enabled. Emits JSON with native scalar types, including the required string message. Callback errors propagate. No implicit inspection of errors, bodies or credentials occurs. Ownership: logger is borrowed; callback/result move.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "error",
+      "signature": "error<T>(logger: ReadOnly<Logger>, make: Once<Function<T>>): void",
+      "parameters": [
+        {
+          "label": "logger: ReadOnly<Logger>",
+          "documentation": "Borrows the local logger and shared backend context."
+        },
+        {
+          "label": "make: Once<Function<T>>",
+          "documentation": "Zero-argument synchronous factory returning an owned concrete scalar record with string message. Runs once only when enabled; checked failures propagate. Eager capture construction still occurs."
+        }
+      ],
+      "documentation": "Runs the single-use scalar-record factory only when error is enabled. Emits JSON without converting scalar fields to debug strings. A callback throw remains a checked caller failure. Event sink failures are not a typed return; use explicit flush/close for their own I/O result. Ownership: logger is borrowed; callback/result move.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "child",
+      "signature": "child<T>(logger: ReadOnly<Logger>, fields: Owned<T>): Logger",
+      "parameters": [
+        {
+          "label": "logger: ReadOnly<Logger>",
+          "documentation": "Borrows the local logger and shared backend context."
+        },
+        {
+          "label": "fields: Owned<T>",
+          "documentation": "Concrete record of string/int/number/boolean fields. Moves once; cannot contain optional/aggregate/native/callback values."
+        }
+      ],
+      "documentation": "Moves a concrete scalar field record into a contextual logger. String/int/number/boolean fields retain their JSON types. The child shares immutable backend configuration and parent context, without copying field payloads per event. Its span is entered under the active request when emitting, so creating a child outside a request never pins another request ancestry. Ownership: fields move once; the parent is borrowed and may be used afterward.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "flush",
+      "signature": "flush(logger: ReadOnly<Logger>): Result<void, LogError>",
+      "parameters": [
+        {
+          "label": "logger: ReadOnly<Logger>",
+          "documentation": "Borrows the local logger and shared backend context."
+        }
+      ],
+      "documentation": "Flushes the selected synchronous sink and returns Result<void,LogError>. This is not fsync and does not promise durable storage or retroactively turn swallowed event-write errors into Results. Ownership: borrows the logger; children continue sharing the sink.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "signature": "close(logger: Owned<Logger>): Result<void, LogError>",
+      "parameters": [
+        {
+          "label": "logger: Owned<Logger>",
+          "documentation": "Consumes this logger handle."
+        }
+      ],
+      "documentation": "Flushes, then releases this logger handle, returning Result<void,LogError>. Children and installed access-log middleware retain their own shared sink until their final owner is released. Does not redirect or close the process console. Ownership: consumes this handle even when flush reports an error.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    }
+  ],
+  "Logger": [
+    {
+      "name": "debug",
+      "signature": "debug<T>(make: Once<Function<T>>): void",
+      "parameters": [
+        {
+          "label": "make: Once<Function<T>>",
+          "documentation": "Zero-argument synchronous factory returning an owned concrete scalar record with string message. Runs once only when enabled; checked failures propagate. Eager capture construction still occurs."
+        }
+      ],
+      "documentation": "Runs make once only when debug is enabled, then emits its owned scalar record. The record requires a string message and may contain string, int, number and boolean fields. Checked callback errors propagate; event write errors follow the backend and are not returned. Disabled callbacks are dropped without running. Capture construction is ordinary eager work. Ownership: logger is borrowed; make and its result are consumed once.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "info",
+      "signature": "info<T>(make: Once<Function<T>>): void",
+      "parameters": [
+        {
+          "label": "make: Once<Function<T>>",
+          "documentation": "Zero-argument synchronous factory returning an owned concrete scalar record with string message. Runs once only when enabled; checked failures propagate. Eager capture construction still occurs."
+        }
+      ],
+      "documentation": "Runs make once only when info is enabled and emits a typed JSON event. Fields require a string message and statically known scalar keys. Disabled callbacks do no formatting or field construction. Callback failures propagate unchanged; sink write failures are not event Results. Ownership: logger is borrowed; the single-use callback and result move.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "warn",
+      "signature": "warn<T>(make: Once<Function<T>>): void",
+      "parameters": [
+        {
+          "label": "make: Once<Function<T>>",
+          "documentation": "Zero-argument synchronous factory returning an owned concrete scalar record with string message. Runs once only when enabled; checked failures propagate. Eager capture construction still occurs."
+        }
+      ],
+      "documentation": "Runs the single-use scalar-record factory only when warn is enabled. Emits JSON with native scalar types, including the required string message. Callback errors propagate. No implicit inspection of errors, bodies or credentials occurs. Ownership: logger is borrowed; callback/result move.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "error",
+      "signature": "error<T>(make: Once<Function<T>>): void",
+      "parameters": [
+        {
+          "label": "make: Once<Function<T>>",
+          "documentation": "Zero-argument synchronous factory returning an owned concrete scalar record with string message. Runs once only when enabled; checked failures propagate. Eager capture construction still occurs."
+        }
+      ],
+      "documentation": "Runs the single-use scalar-record factory only when error is enabled. Emits JSON without converting scalar fields to debug strings. A callback throw remains a checked caller failure. Event sink failures are not a typed return; use explicit flush/close for their own I/O result. Ownership: logger is borrowed; callback/result move.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "child",
+      "signature": "child<T>(fields: Owned<T>): Logger",
+      "parameters": [
+        {
+          "label": "fields: Owned<T>",
+          "documentation": "Concrete record of string/int/number/boolean fields. Moves once; cannot contain optional/aggregate/native/callback values."
+        }
+      ],
+      "documentation": "Moves a concrete scalar field record into a contextual logger. String/int/number/boolean fields retain their JSON types. The child shares immutable backend configuration and parent context, without copying field payloads per event. Its span is entered under the active request when emitting, so creating a child outside a request never pins another request ancestry. Ownership: fields move once; the parent is borrowed and may be used afterward.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "flush",
+      "signature": "flush(): Result<void, LogError>",
+      "parameters": [],
+      "documentation": "Flushes the selected synchronous sink and returns Result<void,LogError>. This is not fsync and does not promise durable storage or retroactively turn swallowed event-write errors into Results. Ownership: borrows the logger; children continue sharing the sink.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "signature": "close(): Result<void, LogError>",
+      "parameters": [],
+      "documentation": "Flushes, then releases this logger handle, returning Result<void,LogError>. Children and installed access-log middleware retain their own shared sink until their final owner is released. Does not redirect or close the process console. Ownership: consumes this handle even when flush reports an error.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    }
+  ],
+  "LoggerOptions": [
+    {
+      "name": "sink",
+      "signature": "sink: 'stdout' | 'stderr' | 'file'",
+      "parameters": null,
+      "documentation": "Required explicit destination. file opens in append/create mode; no truncation. Ownership: read-only option.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "path",
+      "signature": "path?: string",
+      "parameters": null,
+      "documentation": "Required for file; rejected for stdout/stderr. Open errors have a redacted message. No arbitrary path-length limit is added. Ownership: borrowed at construction.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "level",
+      "signature": "level?: LogLevel",
+      "parameters": null,
+      "documentation": "Optional threshold, default info. off disables all events. Does not discard context fields of enabled descendant events. Ownership: borrowed at construction.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    }
+  ],
+  "LogError": [
+    {
+      "name": "code",
+      "signature": "code: string",
+      "parameters": null,
+      "documentation": "Error category options or io. Logging functions return this inside explicit Results. Ownership: owned error field.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
+        }
+      ]
+    },
+    {
+      "name": "message",
+      "signature": "message: string",
+      "parameters": null,
+      "documentation": "Readable failure description without copying file paths or credentials. Ownership: borrowed when observed.\n\n```tsrust\nimport { createLogger } from 'std:log';\n\nfunction main() {\n  const logger = unwrap(createLogger({\n    sink: 'stdout', level: 'off'\n  }));\n  logger.info(() => ({\n    message: 'disabled', count: 3, ok: true\n  }));\n  unwrap(logger.close());\n  console.log('logging ready');\n}\n```\n\nExpected output: logging ready. The disabled event produces no JSON output.",
+      "examples": [
+        {
+          "source": "import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stdout',level:'off'}));logger.info(()=>({message:'disabled',count:3,ok:true}));unwrap(logger.close());console.log('logging ready');}",
+          "output": "logging ready\n"
         }
       ]
     }

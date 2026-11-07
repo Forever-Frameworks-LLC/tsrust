@@ -5,6 +5,7 @@ mod support;
 #[path="../src/stdlib/fs/runtime/buffered_fs.rs"]pub mod buffered_fs;
 mod tsrust_native_files{pub use crate::{fs,buffered_fs};}
 
+#[cfg(feature="logging")] include!("../src/stdlib/logging/runtime.rs");
 include!("../src/stdlib/futures/runtime.rs");
 include!("../src/stdlib/io/runtime.rs");
 mod tsrust_native_threads{include!("../src/stdlib/threads/runtime_core.rs");include!("../src/stdlib/threads/runtime_async.rs");}

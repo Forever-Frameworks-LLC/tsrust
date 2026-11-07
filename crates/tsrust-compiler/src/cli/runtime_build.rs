@@ -116,6 +116,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_io {"){command.args(["--features","io"]);}
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_cancellation {"){command.args(["--features","cancellation"]);}
+  if runtime.contains("pub mod tsrust_native_logging {"){command.args(["--features","logging"]);}
   if runtime.contains("pub mod tsrust_native_locale {"){command.args(["--features","locale"]);}
   if runtime.contains("pub mod tsrust_native_regex {"){command.args(["--features","regex"]);}
   if runtime.contains("pub mod tsrust_native_url {"){command.args(["--features","url"]);}

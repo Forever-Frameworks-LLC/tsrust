@@ -1,7 +1,8 @@
 // The generated runtime contains optional entrypoints not used by every fixture.
 #[allow(dead_code, reason="Exercise the bundled runner with a small concrete program context.")]
 mod runtime {
-    include!("../src/stdlib/futures/runtime.rs");
+    #[cfg(feature="logging")] include!("../src/stdlib/logging/runtime.rs");
+include!("../src/stdlib/futures/runtime.rs");
     use std::{cell::Cell,rc::Rc,sync::{Arc,atomic::{AtomicUsize,Ordering}}};
 
     struct String(&'static str);

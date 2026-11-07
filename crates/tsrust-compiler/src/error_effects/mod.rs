@@ -311,6 +311,23 @@ pub(crate) fn record_field_origins(unions:&crate::unions::UnionArena,records:&[c
     origins
 }
 
+/// Effect sources of nominal owned callable fields. This is analysis metadata,
+/// never a mutation of the runtime family's constructors or native layout.
+pub(crate) fn record_stored_field_origins(unions:&crate::unions::UnionArena,records:&[crate::syntax::Record],instances:&crate::scoped_record_layout::Registry)->Vec<(usize,Type)> {
+    let mut origins=Vec::new();
+    for (instance,record) in records.iter().enumerate(){
+        let declaration=instances.declaration(instance);
+        if declaration==instance || instances.parameter_contract(instance){continue;}
+        for (declared,held) in records[declaration].fields.iter().zip(&record.fields){
+            let declared=declared.ty.map(|ty|unions.payload(ty).unwrap_or(ty));
+            let actual=held.ty.map(|ty|unions.payload(ty).unwrap_or(ty));
+            if let (Some(Type::StoredCallable(family)),Some(actual))=(declared,actual)
+                && actual!=Type::StoredCallable(family){origins.push((family,actual));}
+        }
+    }
+    origins
+}
+
 pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEffects {
     use std::collections::HashMap;
     let (active_functions,active_closures)=executable_callers(program);
@@ -542,21 +559,23 @@ pub(crate) fn annotate_with_callbacks(program:&mut CheckedProgram,callbacks:&std
     let families=program.stored_contracts.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
     // A closed owning family with no constructors is an empty enum, not an unknown callback.
     let uninhabited=program.stored_contracts.families().filter(|(id,_,origins)|origins.is_empty()&&!program.stored_contracts.is_borrowed(*id)&&program.stored_contracts.scoped_native_family(*id).is_none()).map(|(id,_,_)|id).collect();
+    let unions=crate::unions::UnionArena::from_snapshot(program.unions.clone());
+    let stored_fields=record_stored_field_origins(&unions,&program.records,&program.scoped_records);
     let mut functions=program.functions.iter_mut().map(Some).collect::<Vec<_>>();
-    annotate_partial_with_contracts(&mut functions,&mut program.closures,&families,callbacks,&program.polymorphic_invocations,&uninhabited)
+    annotate_partial_with_contracts(&mut functions,&mut program.closures,&families,callbacks,&program.polymorphic_invocations,&uninhabited,&stored_fields)
 }
 pub(crate) fn annotate_parts_with_storage(functions:&mut [&mut CheckedFunction],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry)->ErrorEffects {
     annotate_partial_with_storage(&mut functions.iter_mut().map(|function|Some(&mut **function)).collect::<Vec<_>>(),closures,families,invocations)
 }
 
 pub(crate) fn annotate_partial_with_storage(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry)->ErrorEffects {
-    annotate_partial_with_contracts(functions,closures,families,&Default::default(),invocations,&Default::default())
+    annotate_partial_with_contracts(functions,closures,families,&Default::default(),invocations,&Default::default(),&[])
 }
 
 /// Include calls in the currently checked region before its callable is stored.
 /// Callback-only cycles retain an unknown contract until a concrete origin exists.
 #[inline(never)]
-pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:&CheckedFunction,unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)])->ErrorEffects {
+pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:&CheckedFunction,unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)],stored_fields:&[(usize,Type)])->ErrorEffects {
     use std::collections::{HashMap,HashSet};
     let mut origins:HashMap<usize,Vec<Type>>=HashMap::new();
     for &(id,actual) in fields {origins.entry(id).or_default().push(actual);}
@@ -602,7 +621,7 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
     }
     let mut callbacks=origins.keys().map(|id|(*id,if grounded.contains(id){FailureSet::default()}else{FailureSet::unknown()})).collect::<HashMap<_,_>>();
     loop {
-        let effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default());
+        let effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
         let mut changed=false;
         for (id,types) in &origins {
             let mut found=FailureSet::default();
@@ -621,8 +640,20 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
     }
 }
 #[inline(never)]
-fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],callbacks:&std::collections::HashMap<usize,FailureSet>,invocations:&crate::polymorphic_invocation_plans::Registry,uninhabited:&std::collections::HashSet<usize>)->ErrorEffects {
-    let mut effects=ErrorEffects{invocation_errors:vec![FailureSet::default();invocations.entries().count()],method_errors:closures.iter().enumerate().flat_map(|(id,closure)|closure.methods.iter().enumerate().map(move |(method,_)|((id,method),FailureSet::default()))).collect(),callback_errors:callbacks.clone(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],function_errors:vec![FailureSet::default();functions.len()],closure_errors:vec![FailureSet::default();closures.len()],runtime_schema:Some(runtime_error_schema()),storage_errors:families.iter().map(|(id,origins)|(*id,if origins.is_empty()&&!uninhabited.contains(id){FailureSet::unknown()}else{FailureSet::default()})).collect()};
+fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],callbacks:&std::collections::HashMap<usize,FailureSet>,invocations:&crate::polymorphic_invocation_plans::Registry,uninhabited:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)])->ErrorEffects {
+    // A storage-only cycle is not a constructor witness. Ground sources through
+    // actual closure families or separately resolved callback/absence contracts;
+    // any unresolved source still contributes opaque below.
+    let mut grounded=families.iter().filter(|(id,origins)|!origins.is_empty()||uninhabited.contains(id)).map(|(id,_)|*id).collect::<std::collections::HashSet<_>>();
+    loop {
+        let mut changed=false;
+        for &(family,source) in stored_fields {
+            let known=match source {Type::StoredCallable(id)|Type::BorrowedCallable(id)=>grounded.contains(&id),_=>true};
+            if known {changed|=grounded.insert(family);}
+        }
+        if !changed {break;}
+    }
+    let mut effects=ErrorEffects{invocation_errors:vec![FailureSet::default();invocations.entries().count()],method_errors:closures.iter().enumerate().flat_map(|(id,closure)|closure.methods.iter().enumerate().map(move |(method,_)|((id,method),FailureSet::default()))).collect(),callback_errors:callbacks.clone(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],function_errors:vec![FailureSet::default();functions.len()],closure_errors:vec![FailureSet::default();closures.len()],runtime_schema:Some(runtime_error_schema()),storage_errors:families.iter().map(|(id,origins)|(*id,if origins.is_empty()&&!uninhabited.contains(id)&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()})).collect()};
     for (id,function) in functions.iter().enumerate() {
         if function.is_none() {effects.function_errors[id]=FailureSet::unknown();effects.functions[id]=true;}
     }
@@ -660,8 +691,17 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
             effects.closures[id]=effects.closure_errors[id].may_fail();
         }
         for (id,origins) in families {
-            let mut next=if origins.is_empty()&&!uninhabited.contains(id){FailureSet::unknown()}else{FailureSet::default()};
+            let mut next=if origins.is_empty()&&!uninhabited.contains(id)&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()};
             for origin in origins {next |= effects.closure_errors.get(*origin).cloned().unwrap_or_else(FailureSet::unknown);}
+            for &(_,source) in stored_fields.iter().filter(|(family,_)|family==id) {
+                next|=match source {
+                    Type::Closure(origin)=>effects.closure_errors.get(origin).cloned().unwrap_or_else(FailureSet::unknown),
+                    Type::StoredCallable(family)|Type::BorrowedCallable(family)=>effects.storage_errors.get(&family).cloned().unwrap_or_else(FailureSet::unknown),
+                    Type::Callback(callback)=>effects.callback_errors.get(&callback).cloned().unwrap_or_else(FailureSet::unknown),
+                    Type::Null|Type::Undefined=>FailureSet::default(),
+                    _=>FailureSet::unknown(),
+                };
+            }
             changed |= effects.storage_errors.get_mut(id).expect("initialized family effects").join(next);
         }
         // A consuming wrapper calls the selected method on its inner environment.
@@ -735,7 +775,7 @@ fn native_binding_effect(id:usize)->FailureSet {
     match crate::native_bindings::BINDINGS.get(id) {
         Some(binding) if binding.module=="std:futures"=>if matches!(binding.name,"__channel"|"__interval"){FailureSet::runtime()}else{FailureSet::default()},
         // HTTP and SQLite failures cross native calls as Result data.
-        Some(binding) if matches!(binding.module,"std:http"|"std:sqlite"|"std:sql"|"std:process"|"std:net"|"std:dns"|"std:io"|"std:compression")=>FailureSet::default(),
+        Some(binding) if matches!(binding.module,"std:http"|"std:sqlite"|"std:sql"|"std:process"|"std:net"|"std:dns"|"std:io"|"std:compression"|"std:log-runtime")=>FailureSet::default(),
         // Synthetic resources invoke no user callbacks; exhaustion/allocation are fatal native failures.
         Some(binding) if (binding.module=="std:testing-runtime" && matches!(binding.name,"trackedResource"|"resourceId"|"closeResource"|"releaseCount"|"releaseOrder"|"liveCount"))=>FailureSet::default(),
         // Reading the monotonic clock has no recoverable failure or callback.
@@ -948,7 +988,7 @@ mod tests {
             // Audited testing-runtime and target identity bindings have explicit contracts; every other binding stays unresolved.
             let audited=matches!(binding.module,
                 "std:ui-runtime"
-                    | "std:locale"|"std:url"|"std:regex"|"std:cache"|"std:signals"|"std:crypto"|"std:uuid"|"std:date"|"std:decimal"|"std:numeric"|"std:http"|"std:sqlite"|"std:sql"|"std:process"|"std:net"|"std:dns"|"std:io"|"std:compression") || binding.module=="std:futures" || (binding.module=="std:threads" && (binding.name.starts_with("__channel") || binding.name.starts_with("__sender"))) || (binding.module=="std:threads" && matches!(binding.name,"spawn"|"spawnScoped"|"join"|"detach"|"cancel"|"cancellationRequested"|"__poolCreate"|"__ownedPoolTask"|"__ownedPoolStats"|"__ownedPoolShutdown"|"__poolSubmission"|"__taskAsync"|"__taskCancelled")) || (binding.module=="std:time" && binding.name=="monotonicNow") || (binding.module=="std:json" && matches!(binding.name,"borrowRaw"|"parse"|"parseJsonc"|"stringify"|"kind"|"fromArray"|"fromEntries"|"nullValue"|"fromBoolean"|"fromInt"|"fromNumber"|"fromString"|"asString"|"asBoolean"|"asInt"|"asNumber"|"takeString"|"get"|"at"|"openJsonl"|"borrowJsonl"|"readJsonl"|"closeJsonl"|"createJsonl"|"borrowJsonlWriter"|"writeJsonl"|"flushJsonl"|"closeJsonlWriter")) || (binding.module=="std:schema" && matches!(binding.name,"__string"|"__boolean"|"__safeParseString"|"__safeParseOwnedString"|"__safeParseBoolean"|"__safeParseBooleanValue"|"__int"|"__safeParseInt"|"__safeParseIntValue"|"__number"|"__safeParseNumber"|"__safeParseNumberValue"|"__safeParseNumberInt"|"__null"|"__safeParseNull"|"__safeParseNullValue"|"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt"|"__minNumber"|"__maxNumber"|"__gtNumber"|"__ltNumber")) || (binding.module=="std:env" && matches!(binding.name,"get"|"args"|"vars"|"currentDir"|"currentExe"|"tempDir"|"homeDir")) || (binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll"|"readFile"|"writeFile"|"bufferReader"|"bufferWriter"|"flush"|"openFile"|"stat"|"lstat"|"fileStat"|"readDir"|"mkdir"|"mkdirAll"|"removeFile"|"removeDir"|"removeDirAll"|"rename"|"copyFile"|"hardLink"|"canonicalize"|"readLink"|"appendFile"|"readTextFile"|"writeTextFile"|"truncate"|"syncAll"|"syncData"|"createTempDir"|"seek"|"position")) || (binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy"|"fromUtf8"|"toUtf8"|"view"|"viewMut"|"toHex"|"fromHex"|"toUtf8Lossy"|"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url"|"fromUtf16"|"toUtf16"|"concat"|"copyInto"|"copyWithin"|"equals"|"compare"|"indexOf"|"readInt"|"writeInt"|"readUint"|"writeUint"|"readFloat32"|"writeFloat32"|"readFloat64"|"writeFloat64")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness"|"availableParallelism"|"hostname")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"trackedResource"|"resourceId"|"closeResource"|"releaseCount"|"releaseOrder"|"liveCount")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"createRegistry"|"checkAssertion"|"shareCallback"|"deepEqual"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
+                    | "std:log-runtime"|"std:locale"|"std:url"|"std:regex"|"std:cache"|"std:signals"|"std:crypto"|"std:uuid"|"std:date"|"std:decimal"|"std:numeric"|"std:http"|"std:sqlite"|"std:sql"|"std:process"|"std:net"|"std:dns"|"std:io"|"std:compression") || binding.module=="std:futures" || (binding.module=="std:threads" && (binding.name.starts_with("__channel") || binding.name.starts_with("__sender"))) || (binding.module=="std:threads" && matches!(binding.name,"spawn"|"spawnScoped"|"join"|"detach"|"cancel"|"cancellationRequested"|"__poolCreate"|"__ownedPoolTask"|"__ownedPoolStats"|"__ownedPoolShutdown"|"__poolSubmission"|"__taskAsync"|"__taskCancelled")) || (binding.module=="std:time" && binding.name=="monotonicNow") || (binding.module=="std:json" && matches!(binding.name,"borrowRaw"|"parse"|"parseJsonc"|"stringify"|"kind"|"fromArray"|"fromEntries"|"nullValue"|"fromBoolean"|"fromInt"|"fromNumber"|"fromString"|"asString"|"asBoolean"|"asInt"|"asNumber"|"takeString"|"get"|"at"|"openJsonl"|"borrowJsonl"|"readJsonl"|"closeJsonl"|"createJsonl"|"borrowJsonlWriter"|"writeJsonl"|"flushJsonl"|"closeJsonlWriter")) || (binding.module=="std:schema" && matches!(binding.name,"__string"|"__boolean"|"__safeParseString"|"__safeParseOwnedString"|"__safeParseBoolean"|"__safeParseBooleanValue"|"__int"|"__safeParseInt"|"__safeParseIntValue"|"__number"|"__safeParseNumber"|"__safeParseNumberValue"|"__safeParseNumberInt"|"__null"|"__safeParseNull"|"__safeParseNullValue"|"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt"|"__minNumber"|"__maxNumber"|"__gtNumber"|"__ltNumber")) || (binding.module=="std:env" && matches!(binding.name,"get"|"args"|"vars"|"currentDir"|"currentExe"|"tempDir"|"homeDir")) || (binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll"|"readFile"|"writeFile"|"bufferReader"|"bufferWriter"|"flush"|"openFile"|"stat"|"lstat"|"fileStat"|"readDir"|"mkdir"|"mkdirAll"|"removeFile"|"removeDir"|"removeDirAll"|"rename"|"copyFile"|"hardLink"|"canonicalize"|"readLink"|"appendFile"|"readTextFile"|"writeTextFile"|"truncate"|"syncAll"|"syncData"|"createTempDir"|"seek"|"position")) || (binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy"|"fromUtf8"|"toUtf8"|"view"|"viewMut"|"toHex"|"fromHex"|"toUtf8Lossy"|"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url"|"fromUtf16"|"toUtf16"|"concat"|"copyInto"|"copyWithin"|"equals"|"compare"|"indexOf"|"readInt"|"writeInt"|"readUint"|"writeUint"|"readFloat32"|"writeFloat32"|"readFloat64"|"writeFloat64")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness"|"availableParallelism"|"hostname")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"trackedResource"|"resourceId"|"closeResource"|"releaseCount"|"releaseOrder"|"liveCount")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"createRegistry"|"checkAssertion"|"shareCallback"|"deepEqual"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
             if binding.module=="std:os" {assert_eq!(super::native_binding_effect(id),super::FailureSet::default());}
             if !audited {assert!(super::native_binding_effect(id).opaque,"unreviewed binding {} must remain unresolved",binding.name);}
         }
@@ -1232,6 +1272,18 @@ mod tests {
         assert!(unknown.storage_errors.get(&9).is_none());
     }
     #[test]
+    fn nominal_stored_field_summaries_preserve_absence_unknowns_and_ungrounded_cycles(){
+        let mut functions=[];let mut closures=[];
+        let families=[(0,vec![]),(1,vec![]),(2,vec![])];
+        let sources=[(0,Type::Undefined),(1,Type::StoredCallable(2)),(2,Type::StoredCallable(1))];
+        let effects=annotate_partial_with_contracts(&mut functions,&mut closures,&families,&Default::default(),&Default::default(),&Default::default(),&sources);
+        assert_eq!(effects.storage_errors[&0],FailureSet::default());assert!(effects.storage_errors[&1].opaque);assert!(effects.storage_errors[&2].opaque);
+        let unresolved=[(0,Type::Undefined),(0,Type::StoredCallable(99))];
+        let effects=annotate_partial_with_contracts(&mut functions,&mut closures,&families,&Default::default(),&Default::default(),&Default::default(),&unresolved);
+        assert!(effects.storage_errors[&0].opaque,"one known source must not erase an unresolved alternative");
+        assert!(families.iter().all(|(_,origins)|origins.is_empty()),"effect summaries never populate runtime constructors");
+    }
+    #[test]
     fn finite_stored_family_contracts_propagate_without_opaque_errors() {
         let checked=crate::check("function value(a:int,field:boolean):int{const actions:((n:int)=>int)[]=[(n:int):int=>64/n,(n:int):int=>n];if(field){return actions[0](a);}let selected=actions.remove(0);return selected(a);}function caller(a:int):int{return value(a,true);}function main(){}").unwrap();
         let effects=&checked.program.error_effects;
@@ -1480,7 +1532,7 @@ mod tests {
         let (before,remaining)=program.functions.split_at_mut(main);
         let (caller,after)=remaining.split_first_mut().unwrap();
         let mut functions=before.iter_mut().map(Some).chain(std::iter::once(None)).chain(after.iter_mut().map(Some)).collect::<Vec<_>>();
-        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],caller,&unions,&program.polymorphic_invocations,&[]);
+        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],caller,&unions,&program.polymorphic_invocations,&[],&[]);
         let contract=regional.callback_errors.get(&callback).expect("regional selected callback origin");
         assert!(contract.runtime && !contract.opaque,"regional selected method must receive the failing argument: {contract:?}");
         let effects=annotate_inferred_callbacks(&mut program);

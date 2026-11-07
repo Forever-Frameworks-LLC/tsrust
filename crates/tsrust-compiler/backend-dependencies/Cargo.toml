@@ -7,6 +7,9 @@ publish = false
 [workspace]
 
 [dependencies]
+pin-project-lite = { version = "=0.2.17", optional = true }
+tracing = { version = "=0.1.44", default-features = false, features = ["std"], optional = true }
+tracing-subscriber = { version = "=0.3.23", default-features = false, features = ["fmt", "json"], optional = true }
 icu_provider = { version = "=2.3.1", default-features = false, features = ["sync"], optional = true }
 icu_collator = { version = "=2.3.1", optional = true }
 icu_decimal = { version = "=2.3.0", features = ["alloc"], optional = true }
@@ -64,6 +67,7 @@ compression-codecs = { version = "=0.4.47", optional = true, default-features = 
 compression-core = { version = "=0.4.34", optional = true }
 
 [features]
+logging = ["dep:tracing", "dep:tracing-subscriber", "dep:pin-project-lite"]
 http-middleware = ["http", "dep:tower", "dep:async-compression", "dep:compression-codecs", "dep:compression-core", "tower-http/cors", "tower-http/set-header", "tower-http/compression-gzip", "tower-http/compression-deflate"]
 compression-streams = ["compression", "io"]
 compression = ["dep:flate2", "threads", "async"]

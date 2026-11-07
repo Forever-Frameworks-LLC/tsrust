@@ -337,3 +337,8 @@ all 10 fixtures and the complete closure source corpus retains strict rejection
 assertions. SQLite evidence uses `tsrust-editor-*-b59d1055`, including the initial
 check output and the corpus adjustment's original failed run. Editor warnings are
 separate from these intentional errors and are not hidden by this cleanup.
+
+For an unresolved compiler carrier rejection, `TSRUST_TRACE_CARRIERS=1` exposes
+its existing failure-only source/destination type, field and callback-family trace
+in the normal CLI on stderr. Use it with the failing project check or documentation
+command; no separate native reproducer is needed. Default diagnostics are unchanged.

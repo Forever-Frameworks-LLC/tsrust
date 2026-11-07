@@ -1,0 +1,49 @@
+import { Logger as NativeLogger, LoggerOptions as NativeLoggerOptions, LogError as NativeLogError, create, enabled, emit, child as nativeChild, flush as nativeFlush, close as nativeClose } from 'std:log-runtime';
+
+export type Logger = NativeLogger;
+
+export type LoggerOptions = NativeLoggerOptions;
+
+export type LogError = NativeLogError;
+
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'off';
+/** Creates a local JSON logger with an explicit stdout, stderr or append-only file sink. File sinks require path; stdout/stderr reject path. The optional level defaults to info. Backend JSON includes timestamps, target and span ancestry. Returns Result<Logger,LogError>; invalid options and open errors are data. No global subscriber is installed and console remains unchanged. Ownership: options are borrowed; the returned owner retains its sink. */
+export function createLogger(options: ReadOnly<LoggerOptions>): Result<Logger, LogError> {
+  return create(options);
+}
+/** Runs make once only when debug is enabled, then emits its owned scalar record. The record requires a string message and may contain string, int, number and boolean fields. Checked callback errors propagate; event write errors follow the backend and are not returned. Disabled callbacks are dropped without running. Capture construction is ordinary eager work. Ownership: logger is borrowed; make and its result are consumed once. */
+export function debug<T>(logger: ReadOnly<Logger>, make: Once<Function<T>>): void {
+  if (enabled(logger, 'debug')) {
+    emit(logger, 'debug', make());
+  }
+}
+/** Runs make once only when info is enabled and emits a typed JSON event. Fields require a string message and statically known scalar keys. Disabled callbacks do no formatting or field construction. Callback failures propagate unchanged; sink write failures are not event Results. Ownership: logger is borrowed; the single-use callback and result move. */
+export function info<T>(logger: ReadOnly<Logger>, make: Once<Function<T>>): void {
+  if (enabled(logger, 'info')) {
+    emit(logger, 'info', make());
+  }
+}
+/** Runs the single-use scalar-record factory only when warn is enabled. Emits JSON with native scalar types, including the required string message. Callback errors propagate. No implicit inspection of errors, bodies or credentials occurs. Ownership: logger is borrowed; callback/result move. */
+export function warn<T>(logger: ReadOnly<Logger>, make: Once<Function<T>>): void {
+  if (enabled(logger, 'warn')) {
+    emit(logger, 'warn', make());
+  }
+}
+/** Runs the single-use scalar-record factory only when error is enabled. Emits JSON without converting scalar fields to debug strings. A callback throw remains a checked caller failure. Event sink failures are not a typed return; use explicit flush/close for their own I/O result. Ownership: logger is borrowed; callback/result move. */
+export function error<T>(logger: ReadOnly<Logger>, make: Once<Function<T>>): void {
+  if (enabled(logger, 'error')) {
+    emit(logger, 'error', make());
+  }
+}
+/** Moves a concrete scalar field record into a contextual logger. String/int/number/boolean fields retain their JSON types. The child shares immutable backend configuration and parent context, without copying field payloads per event. Its span is entered under the active request when emitting, so creating a child outside a request never pins another request ancestry. Ownership: fields move once; the parent is borrowed and may be used afterward. */
+export function child<T>(logger: ReadOnly<Logger>, fields: Owned<T>): Logger {
+  return nativeChild(logger, fields);
+}
+/** Flushes the selected synchronous sink and returns Result<void,LogError>. This is not fsync and does not promise durable storage or retroactively turn swallowed event-write errors into Results. Ownership: borrows the logger; children continue sharing the sink. */
+export function flush(logger: ReadOnly<Logger>): Result<void, LogError> {
+  return nativeFlush(logger);
+}
+/** Flushes, then releases this logger handle, returning Result<void,LogError>. Children and installed access-log middleware retain their own shared sink until their final owner is released. Does not redirect or close the process console. Ownership: consumes this handle even when flush reports an error. */
+export function close(logger: Owned<Logger>): Result<void, LogError> {
+  return nativeClose(logger);
+}

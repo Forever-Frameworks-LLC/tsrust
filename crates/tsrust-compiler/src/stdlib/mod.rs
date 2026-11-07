@@ -9,6 +9,7 @@ pub(crate) mod ui;
 pub(crate) fn source(module: &str) -> Option<&'static str> {
     match module {
         "std:ui" => Some(ui::SOURCE),
+        "std:log"=>Some(logging::SOURCE),
         "std:testing" => Some(testing::SOURCE), "std:iterator"=>Some(iterator::SOURCE), _ => None,
     }
 }
@@ -40,6 +41,7 @@ pub(crate) mod url;
 
 pub(crate) mod regex;
 pub(crate) mod locale;
+pub(crate) mod logging;
 
 pub(crate) mod io;
 

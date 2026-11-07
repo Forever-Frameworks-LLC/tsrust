@@ -1,0 +1,38 @@
+mod support;
+#[test]
+fn public_logging_suite_checks_lazy_errors_cleanup_and_request_context(){
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");let suite=root.join("crates/tsrust-compiler/tests/fixtures/structured-logging.test.tsr");
+ support::format_round_trip(include_str!("fixtures/structured-logging.test.tsr"));
+ let output=support::run(support::cli().current_dir(&root).arg("test").arg(&suite).args(["--timeout=5000","--reporter=json","--profile"]),240);assert_suite_output(output);
+}
+fn assert_suite_output(output:std::process::Output){support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
+ let stdout=String::from_utf8(output.stdout).unwrap();print!("{stdout}");assert!(!stdout.contains("never-log-this"));let rows=stdout.lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap_or_else(|error|panic!("invalid JSON {line}: {error}"))).collect::<Vec<_>>();
+ let summary=rows.iter().find(|row|row["event"]=="summary").expect("test runner summary");assert_eq!(summary["passed"],5);assert_eq!(summary["failed"],0);assert_eq!(summary["hookFailures"],0);
+ let cases=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(cases.len(),5);for expected in ["structured logging > request context and owned child cleanup","structured logging > disabled factory drops its owned capture without invocation","structured logging > aliases and stored calls retain children after parent close","structured logging > invalid sink options remain explicit Result errors","structured logging > enabled factory preserves its checked rejection"]{assert!(cases.iter().any(|case|case["name"]==expected),"missing {expected}");}for case in cases{assert_eq!(case["status"],"passed");assert!(case["durationMs"].is_number(),"test timing must be separate from build time: {case}");}
+ let logs=rows.iter().filter(|row|row["fields"]["message"].is_string()).collect::<Vec<_>>();assert_eq!(logs.len(),10);let mut requests=std::collections::BTreeMap::<u64,Vec<String>>::new();for row in logs{let message=row["fields"]["message"].as_str().unwrap();let id=row["spans"][0]["request_id"].as_u64().unwrap();requests.entry(id).or_default().push(message.into());assert!(row["timestamp"].is_string());if message=="request"{assert_eq!(row["fields"]["status"],200);assert_eq!(row["fields"]["method"],"GET");assert_eq!(row["fields"]["route"],"/items/:id");assert!(row["fields"]["elapsed_ms"].as_f64().unwrap()>=0.0);}else{assert_eq!(row["fields"]["ok"],true);assert_eq!(row["spans"][1]["service"],"api");assert_eq!(row["spans"][1]["worker"],7);}}
+ assert_eq!(requests.len(),2);for messages in requests.values(){assert_eq!(messages.as_slice(),["before","worker","cleanup","after","request"]);}
+}
+#[test]
+fn relocated_logging_suite_executes_offline_at_both_optimizations(){
+ let suite=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/structured-logging.test.tsr");
+ support::format_round_trip(include_str!("fixtures/structured-logging.test.tsr"));
+ let directory=support::TempDirectory::new();support::success(&support::run(support::cli().current_dir(&directory.0).args(["setup","--portable","--offline"]),180));
+ let package=directory.0.join("package");support::success(&support::run(support::cli().arg("emit").arg(&suite).args(["--package","-o"]).arg(&package),60));
+ let relocated=directory.0.join("relocated");std::fs::rename(package,&relocated).unwrap();let manifest=std::fs::read_to_string(relocated.join("Cargo.toml")).unwrap();let document=manifest.parse::<toml_edit::DocumentMut>().unwrap();assert!(document["features"]["default"].as_array().unwrap().iter().any(|value|value.as_str()==Some("logging")));assert!(relocated.join("vendor/tracing-subscriber-0.3.23/LICENSE").is_file());
+ let generated=relocated.join("src/main.rs");let emitted=std::fs::read_to_string(&generated).unwrap();std::fs::write(&generated,format!("#![forbid(unsafe_code)]\n{emitted}")).unwrap();
+ let home=directory.0.join("empty-cargo-home");std::fs::create_dir(&home).unwrap();let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));assert!(target.is_absolute());
+ for release in [false,true]{let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",&home).env("CARGO_TARGET_DIR",&target).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1");if release{command.arg("--release");}support::success(&support::run(&mut command,180));
+ let executable=target.join(if release{"release"}else{"debug"}).join(format!("program{}",std::env::consts::EXE_SUFFIX));let output=support::run(std::process::Command::new(executable).current_dir(&relocated).env("TSRUST_TEST_REPORTER","json").env("TSRUST_TEST_TIMEOUT_MS","5000"),30);support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
+ assert_suite_output(output);
+ }
+}
+#[test]
+fn logging_fields_ownership_and_private_runtime_reject_invalid_sources(){
+ let prefix="import {createLogger} from 'std:log';";for body in ["createLogger({});","createLogger({sink:'network'});","const logger=unwrap(createLogger({sink:'stdout'}));logger.info(()=>({count:1}));","const logger=unwrap(createLogger({sink:'stdout'}));logger.info(()=>({message:'bad',values:[1]}));","const logger=unwrap(createLogger({sink:'stdout'}));logger.child({nested:{value:1}});","const logger=unwrap(createLogger({sink:'stdout'}));logger.info(async()=>({message:'bad'}));","const logger=unwrap(createLogger({sink:'stdout'}));logger.close();logger.info(()=>({message:'moved'}));","const logger=unwrap(createLogger({sink:'stdout'}));clone(logger);","const logger=unwrap(createLogger({sink:'stdout'}));const write=logger.info;"]{let dir=support::TempDirectory::new();let source=support::format_round_trip(&format!("{prefix}function main(){{{body}}}"));let output=support::run(support::cli().arg("check").arg(dir.source(&source)),30);assert!(!output.status.success(),"accepted {body}");}
+ let dir=support::TempDirectory::new();let output=support::run(support::cli().arg("check").arg(dir.source("import {emit} from 'std:log-runtime';function main(){}")),30);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("module-native"));
+}
+
+#[test]
+fn unused_logging_imports_and_factories_do_not_select_runtime(){
+ for(source,selected)in[("import {createLogger} from 'std:log';function main(){const createLogger=7;console.log(createLogger);}",false),("import {Logger} from 'std:log';function main(){console.log('type import only');}",false),("import {Logger} from 'std:log';function observe(logger:ReadOnly<Logger>){unwrap(logger.flush());}function main(){}",true),("import {createLogger} from 'std:log';function main(){console.log('plain');}",false),("import {createLogger} from 'std:log';function main(){const unused=createLogger;console.log('plain');}",true),("import {yield} from 'std:futures';async function main():Task<void>{await yield();}",false),("import {createLogger} from 'std:log';function main(){const logger=unwrap(createLogger({sink:'stderr',level:'off'}));unwrap(logger.close());}",true)]{let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("emit").arg(&path),30);support::success(&output);let generated=String::from_utf8(output.stdout).unwrap();assert_eq!(generated.contains("mod tsrust_native_logging {"),selected,"{source}");assert_eq!(generated.contains("use tracing as tsr_tracing;"),selected,"{source}");}
+}

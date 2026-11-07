@@ -188,6 +188,7 @@ impl SourceIndex {
                 return if arguments.is_empty(){builtins_for("IteratorConstructor")}else{builtins_for(&format!("Iterator{arguments}"))};
             }
             if identity==tsrust_compiler::native_signatures::NativeTypeId::StringView{return borrowed_string_builtins();}
+            if declaration.module=="std:log-runtime"{return builtins_for(declaration.name);}
             if identity==tsrust_compiler::native_signatures::NativeTypeId::CryptoHasher{return builtins_for("Hasher");}
 
             if matches!(declaration.module,"std:regex"|"std:locale"|"std:compression"|"std:process"|"std:net") {return builtins_for(declaration.name);}
@@ -278,7 +279,7 @@ impl SourceIndex {
         if matches!(declaration.id,tsrust_compiler::native_signatures::NativeTypeId::HttpApp|tsrust_compiler::native_signatures::NativeTypeId::HttpRouter) { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpTlsOptions); self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpServerOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpClient { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpClientOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
-        let catalog_module = if declaration.module == "std:testing-runtime" { "std:testing" } else if declaration.module == "std:ui-runtime" { "std:ui" } else { declaration.module };
+        let catalog_module = if declaration.module == "std:log-runtime" { "std:log" } else if declaration.module == "std:testing-runtime" { "std:testing" } else if declaration.module == "std:ui-runtime" { "std:ui" } else { declaration.module };
         let Some(catalog) = builtins_for(catalog_module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);
         if !declaration.type_parameters.is_empty() {

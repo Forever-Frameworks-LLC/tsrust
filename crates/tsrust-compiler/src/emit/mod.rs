@@ -19,6 +19,7 @@ mod threads;
 mod ui;
 mod futures;
 mod http;
+mod logging;
 #[path="../stdlib/url/emit.rs"] mod url;
 #[path="../stdlib/regex/emit.rs"] mod regex;
 #[path="../stdlib/net/emit.rs"] mod net;
@@ -2536,8 +2537,10 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sql")){output.push_str(crate::stdlib::sql::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sqlite")){output.push_str(crate::stdlib::sqlite::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(&crate::stdlib::http::runtime());if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpMiddleware)){output.push_str(crate::stdlib::http::MIDDLEWARE_MARKER);}}
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Logger)){output.push_str("use tracing as tsr_tracing;\n");output.push_str(crate::stdlib::logging::RUNTIME);}
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Logger){let _=writeln!(output,"type Record{index}=tsrust_native_logging::Logger;");continue;}
             if self.sql_record(&mut output,index) || self.http_record(&mut output,index) || self.sqlite_record(&mut output,index){continue;}
             if self.future_record(&mut output, index) { continue; }
             if self.cache_record(&mut output,index) {continue;}
@@ -9357,6 +9360,7 @@ impl Emitter<'_> {
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
+                    if let Some(call)=self.logging_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.locale_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.net_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.regex_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}

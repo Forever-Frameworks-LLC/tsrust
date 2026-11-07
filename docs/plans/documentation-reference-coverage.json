@@ -223,7 +223,7 @@
     },
     "std:http": {
       "route": "/docs/framework/routing",
-      "members": 36
+      "members": 37
     },
     "HttpRouter": {
       "route": "/docs/framework/routing",
@@ -524,6 +524,22 @@
     "HttpCorsOptions": {
       "route": "/docs/framework/routing",
       "members": 6
+    },
+    "std:log": {
+      "route": "/docs/standard-library/logging",
+      "members": 12
+    },
+    "Logger": {
+      "route": "/docs/standard-library/logging",
+      "members": 7
+    },
+    "LoggerOptions": {
+      "route": "/docs/standard-library/logging",
+      "members": 3
+    },
+    "LogError": {
+      "route": "/docs/standard-library/logging",
+      "members": 2
     }
   }
 }

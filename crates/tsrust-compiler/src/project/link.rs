@@ -324,7 +324,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 } else {
                     symbol(module, &name.text)
                 };
-                let linked=if id.0=="std:iterator" && name.text.starts_with('_'){format!("{}{}",crate::stdlib::iterator::PREFIX,name.text.trim_start_matches('_'))}else{linked};
+                let linked=if id.0=="std:log" && (crate::stdlib::logging::METHODS.contains(&name.text.as_str()) || name.text=="createLogger"){format!("{}{}",crate::stdlib::logging::PREFIX,name.text)}else if id.0=="std:iterator" && name.text.starts_with('_'){format!("{}{}",crate::stdlib::iterator::PREFIX,name.text.trim_start_matches('_'))}else{linked};
                 (name.text.clone(), linked)
             })
             .collect::<BTreeMap<_, _>>();
@@ -396,6 +396,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         type_aliases: Default::default(),
         unresolved_bases: Vec::new(),
     };
+    let mut logging_native=BTreeMap::new();
     let mut closure_id = 0;
     let mut test_initializers = BTreeMap::new();
     for (module, id) in graph.order.iter().enumerate() {
@@ -520,6 +521,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             return Err(diagnostic(&graph, &segments, error));
         }
         for (name, span) in &visitor.used_native {
+            if id.0=="std:log"{logging_native.insert(name.clone(),*span);continue;}
             if let Some((_, binding)) = crate::native_bindings::by_symbol(name) {
                 crate::native_binding_types::prepare(&mut linked.records, binding, *span)
                     .map_err(|value| diagnostic(&graph, &segments, value))?;
@@ -582,6 +584,11 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         linked.module_bindings.extend(body);
         linked.functions.push(entry);
     }
+    let omit_logging=if let Some(names)=globals.get(&SourceId("std:log".into())){crate::stdlib::logging::omit_unused(&mut linked,names).map_err(|value|diagnostic(&graph,&segments,value))?}else{false};
+    if !omit_logging{for(name,span)in &logging_native{
+        if let Some((_,binding))=crate::native_bindings::by_symbol(name){crate::native_binding_types::prepare(&mut linked.records,binding,*span).map_err(|value|diagnostic(&graph,&segments,value))?;}
+        else if let Some((module,name))=name.strip_prefix(crate::type_aliases::LINKED_PREFIX).and_then(|name|name.strip_prefix("native#")).and_then(|name|name.split_once('#')){let item=crate::native_types::lookup(module,name).expect("linked native type identity");crate::native_type_resolution::intern(&mut linked.records,item.id,*span).map_err(|value|diagnostic(&graph,&segments,value))?;}
+    }}
     if let Some(names) = globals.get(&SourceId("std:ui".into())) {
         crate::stdlib::ui::retain_state(&mut linked,names).map_err(|value|diagnostic(&graph,&segments,value))?;
         crate::stdlib::ui::omit_unused(&mut linked, names)

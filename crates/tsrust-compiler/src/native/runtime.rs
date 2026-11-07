@@ -51,6 +51,7 @@ pub fn json_module_with_writer(writer:bool)->String {
 /// Whether the selected emitted support needs a compiler-owned Cargo dependency graph.
 /// This predicate preserves exact bundled module and Rust-binding detection without extraction.
 pub fn requires_dependencies(source:&str)->bool {
+    if source.contains(crate::stdlib::logging::RUNTIME){return true;}
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
     source.contains(crate::stdlib::process::RUNTIME) || source.contains(crate::stdlib::compression::RUNTIME) || source.contains(crate::stdlib::net::TRANSPORT_RUNTIME) || source.contains(crate::stdlib::net::DNS_RUNTIME) || source.contains(&crate::stdlib::io::runtime()) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
         || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::crypto::PASSWORD_RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains(crate::stdlib::threads::ASYNC_RUNTIME) || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("mod tsr_rust")
@@ -71,6 +72,7 @@ pub fn separate(source:&str)->Units {
         }
     }
 
+    if source.contains("use tracing as tsr_tracing;"){application=application.replace("use tracing as tsr_tracing;","use tsrust_runtime::tracing as tsr_tracing;");runtime.push_str("pub use tracing;\n");}
     if source.contains("use rayon as tsr_rayon;") {application=application.replace("use rayon as tsr_rayon;","use tsrust_runtime::rayon as tsr_rayon;");runtime.push_str("pub use rayon;\n");}
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
     let dependencies=requires_dependencies(source);
@@ -117,6 +119,7 @@ pub fn separate(source:&str)->Units {
     // Match complete variants; no feature is added merely because another is used.
     for views in [true,false] {for utf8 in [true,false] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {for operations in [false,true] {for binary in [false,true] {for search in [false,true] {extract("tsrust_native_bytes",bytes_module(views,utf8,codecs,base64,operations,binary,search));}}}}}}
     if let Some(module)=json {extract("tsrust_native_json",module);}
+    extract("tsrust_native_logging",crate::stdlib::logging::RUNTIME.to_owned());
     extract("tsrust_native_files",files_module());extract("tsrust_native_tempfiles",tempfiles_module());extract("tsrust_native_path",path_module());
     if application.contains(crate::runtime::STRINGS) {
         // Other application helpers can still call the small number tie helper.

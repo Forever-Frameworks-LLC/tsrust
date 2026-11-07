@@ -27,6 +27,8 @@ mod tsrust_native_http {
             BodySource::Multipart(form)=>reqwest::Body::wrap_stream(form.into_stream()),
         }}
     }
+    #[derive(Clone)]
+    struct RouteTemplate(Arc<str>);
     pub struct Request {inner:http::Request<ExclusiveBody>,params:BTreeMap<String,String>,limit:Option<usize>}
     pub struct Response {inner:http::Response<ExclusiveBody>,limit:Option<usize>}
     pub struct Stream {body:Body,remaining:Option<usize>}
@@ -96,10 +98,10 @@ mod tsrust_native_http {
         fn finish(self)->Response{if self.finalized{self.field2}else{failed()}}
     }
     #[derive(Clone)]
-    struct ContextPattern {router:Option<matchit::Router<()>>}
+    struct ContextPattern {router:Option<matchit::Router<()>>,source:Arc<str>}
     impl ContextPattern {
         fn new(path:&str)->Result<Self,Error>{
-            if matches!(path,"*"|"/*"){return Ok(Self{router:None});}
+            if matches!(path,"*"|"/*"){return Ok(Self{router:None,source:Arc::from(path)});}
             let wildcard=path.ends_with("/*");let base=if wildcard{&path[..path.len()-2]}else{path};
             let (normalized,_)=route_path(base)?;let mut router=matchit::Router::new();
             router.insert(normalized.clone(),()).map_err(|_|error("route","Invalid route pattern"))?;
@@ -107,7 +109,7 @@ mod tsrust_native_http {
                 router.insert(format!("{normalized}/{{*__router_tail}}"),()).map_err(|_|error("route","Invalid wildcard route"))?;
                 router.insert(format!("{normalized}/"),()).map_err(|_|error("route","Invalid wildcard route"))?;
             }
-            Ok(Self{router:Some(router)})
+            Ok(Self{router:Some(router),source:Arc::from(path)})
         }
         fn captures(&self,path:&str)->Result<Option<BTreeMap<String,String>>,Error>{
             let Some(router)=&self.router else{return Ok(Some(BTreeMap::new()));};
@@ -131,6 +133,7 @@ mod tsrust_native_http {
                         Ok(Some(params))=>params,Ok(None)=>continue,Err(_)=>{context.field2=context.text("Bad Request".into(),Some(400)).unwrap();context.finalized=true;return;}
                     };
                     context.field0.params=params;
+                    if layer.method.is_some(){context.field0.inner.extensions_mut().insert(RouteTemplate(layer.pattern.source.clone()));}
                     let callback=layer.callback.clone();
                     if let Some(mut response)=callback(context,self).await{context.apply_headers(&mut response);context.field2=response;context.finalized=true;}
                     return;
@@ -301,7 +304,8 @@ mod tsrust_native_http {
             for (method,path,handler) in self.routes {
                 let middleware=middleware.clone();let scope=scope.clone();let permits=permits.clone();
                 let filter=axum::routing::MethodFilter::try_from(method).map_err(|_|error("method","Unsupported HTTP method"))?;
-                router=router.route(&path,axum::routing::on(filter,move|request|dispatch(request,handler.clone(),middleware.clone(),scope.clone(),limits,permits.clone())));
+                let template=RouteTemplate(Arc::from(path.as_str()));
+                router=router.route(&path,axum::routing::on(filter,move|mut request: http::Request<Body>|{request.extensions_mut().insert(template.clone());dispatch(request,handler.clone(),middleware.clone(),scope.clone(),limits,permits.clone())}));
             }
             let missing_permits=permits.clone();let fallback=self.fallback;let missing_middleware=middleware.clone();let missing_scope=scope.clone();
             router=router.fallback(move|request|dispatch(request,fallback.clone(),missing_middleware.clone(),missing_scope.clone(),limits,missing_permits.clone()));
@@ -702,8 +706,12 @@ mod tsrust_native_http {
         use super::*;
         use std::convert::Infallible;
         use tower::{Layer,Service,ServiceBuilder,ServiceExt};
-        pub enum NativeMiddleware {Cors(tower_http::cors::CorsLayer),Secure,Compress(tower_http::compression::CompressionLayer)}
+        pub enum NativeMiddleware {Cors(tower_http::cors::CorsLayer),Secure,Compress(tower_http::compression::CompressionLayer),
+            #[cfg(feature="logging")] AccessLog(super::super::tsrust_native_logging::Logger),
+        }
         impl NativeMiddleware {
+            #[cfg(feature="logging")]
+            pub fn access_log(logger:&super::super::tsrust_native_logging::Logger)->Self{Self::AccessLog(logger.share())}
             pub fn cors_default()->Self{Self::Cors(tower_http::cors::CorsLayer::new())}
             pub fn cors<'a,O,M,A,E>(origins:Option<O>,methods:Option<M>,allowed:Option<A>,exposed:Option<E>,credentials:Option<bool>,max_age:Option<i64>)->Result<Self,Error>
             where O:IntoIterator<Item=&'a str>,M:IntoIterator<Item=&'a str>,A:IntoIterator<Item=&'a str>,E:IntoIterator<Item=&'a str>{
@@ -731,6 +739,18 @@ mod tsrust_native_http {
                         .layer(tower_http::set_header::SetResponseHeaderLayer::if_not_present(http::header::REFERRER_POLICY,HeaderValue::from_static("no-referrer")))
                         .service(service).oneshot(request).await.unwrap(),
                     Self::Compress(layer)=>layer.layer(service).oneshot(request).await.unwrap().map(Body::new),
+                    #[cfg(feature="logging")]
+                    Self::AccessLog(logger)=>{
+                        static NEXT:std::sync::atomic::AtomicU64=std::sync::atomic::AtomicU64::new(1);
+                        let id=NEXT.fetch_update(std::sync::atomic::Ordering::Relaxed,std::sync::atomic::Ordering::Relaxed,|n|n.checked_add(1)).expect("request identity exhausted");
+                        let method=request.method().clone();let route=request.extensions().get::<RouteTemplate>().cloned();
+                        logger.request(id,async move{
+                            let mut guard=AccessLogGuard{logger:logger.share(),id,method,route,started:std::time::Instant::now(),finished:false};
+                            let response=service.oneshot(request).await.unwrap();
+                            if let Some(route)=response.extensions().get::<RouteTemplate>(){guard.route=Some(route.clone());}
+                            guard.complete(response.status().as_u16());response
+                        }).await
+                    },
                 }
             }
             async fn app(&self,request:Request,next:Next)->Response{
@@ -743,7 +763,7 @@ mod tsrust_native_http {
                 // Keep the sole real body in Context, including preflight short circuits.
                 let mut request=http::Request::new(Body::empty());*request.method_mut()=context.field0.inner.method().clone();*request.uri_mut()=context.field0.inner.uri().clone();*request.version_mut()=context.field0.inner.version();*request.headers_mut()=context.field0.inner.headers().clone();
                 let mut response_limit=None;let mut invoked=false;let mut owned=Some((&mut *context,next,&mut response_limit,&mut invoked));
-                let service=tower::service_fn(move|_:http::Request<Body>|{let(context,next,response_limit,invoked)=owned.take().expect("owned context next is invoked once");async move{*invoked=true;next.run(context).await;let response=std::mem::replace(&mut context.field2,fixed(500,"Internal Server Error"));*response_limit=response.limit;Ok::<_,Infallible>(response.into_wire())}});
+                let service=tower::service_fn(move|_:http::Request<Body>|{let(context,next,response_limit,invoked)=owned.take().expect("owned context next is invoked once");async move{*invoked=true;next.run(context).await;let response=std::mem::replace(&mut context.field2,fixed(500,"Internal Server Error"));*response_limit=response.limit;let mut response=response.into_wire();if let Some(route)=context.field0.inner.extensions().get::<RouteTemplate>(){response.extensions_mut().insert(route.clone());}Ok::<_,Infallible>(response)}});
                 let response=self.apply(request,service).await;
                 let mut response=Response{inner:response.map(ExclusiveBody::new),limit:response_limit};
                 if !invoked{context.apply_headers(&mut response);}
@@ -779,6 +799,14 @@ mod tsrust_native_http {
                 let policy=NativeMiddleware::compress();let response=policy.apply(http::Request::builder().header("accept-encoding","gzip").body(Body::empty()).unwrap(),endpoint).await;let mut body=Stream{body:response.into_body(),remaining:None};loop{match body.next().await{Ok(Some(_))=>{},Err(error)=>{assert_eq!(error.code,"body");break;},Ok(None)=>panic!("compression erased the source error")}}
             });}
         }
+        #[cfg(feature="logging")]
+        struct AccessLogGuard{logger:super::super::tsrust_native_logging::Logger,id:u64,method:Method,route:Option<RouteTemplate>,started:std::time::Instant,finished:bool}
+        #[cfg(feature="logging")]
+        impl AccessLogGuard{
+            fn complete(&mut self,status:u16){self.finished=true;if self.logger.enabled("info"){self.logger.emit(||tracing::info!(message="request",request_id=self.id,method=self.method.as_str(),route=self.route.as_ref().map(|route|route.0.as_ref()).unwrap_or(""),status=i64::from(status),elapsed_ms=self.started.elapsed().as_secs_f64()*1000.0));}}
+        }
+        #[cfg(feature="logging")]
+        impl Drop for AccessLogGuard{fn drop(&mut self){if !self.finished&&self.logger.enabled("info"){self.logger.emit(||tracing::info!(message=if std::thread::panicking(){"request_failed"}else{"request_cancelled"},request_id=self.id,method=self.method.as_str(),route=self.route.as_ref().map(|route|route.0.as_ref()).unwrap_or(""),elapsed_ms=self.started.elapsed().as_secs_f64()*1000.0));}}}
         impl App {pub fn use_native(&mut self,middleware:NativeMiddleware){let middleware=Arc::new(middleware);self.use_middleware(move|request,next|{let middleware=middleware.clone();async move{middleware.app(request,next).await}});}}
     }
 }

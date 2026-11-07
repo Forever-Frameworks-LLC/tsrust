@@ -755,6 +755,7 @@ fn visit(
                 import.span,
             ));
         }
+        if import.path=="std:log-runtime" && id.0!="std:log"{return Err(error(&id,"module-native","Logging runtime bindings are private; import from std:log.",import.span));}
         if import.path == "std:testing-runtime" && id.0 != "std:testing" {
             return Err(error(&id, "module-native", "Testing runtime bindings are private; import from std:testing.", import.span));
         }

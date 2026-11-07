@@ -312,6 +312,12 @@
         "source": "src/examples/table-layouts.tsrx",
         "kind": "component",
         "export": "TableOverflow"
+      },
+      {
+        "id": "http-middleware",
+        "source": "src/examples/http-middleware.tsr",
+        "export": "policies",
+        "kind": "code"
       }
     ]
   }

@@ -56,6 +56,13 @@ static THREAD: Declaration = Declaration {
     independent_clone: false, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
+static LOGGER:Declaration=Declaration{id:NativeTypeId::Logger,module:"std:log-runtime",name:"Logger",type_parameters:&[],thread_transfer:true,..THREAD};
+static LOGGER_OPTIONS:Declaration=Declaration{id:NativeTypeId::LoggerOptions,module:"std:log-runtime",name:"LoggerOptions",fields:&[
+ Field{name:"sink",signature:Signature::Union(&[Signature::StringLiteral("stdout"),Signature::StringLiteral("stderr"),Signature::StringLiteral("file")]),optional:false},
+ Field{name:"path",signature:Signature::String,optional:true},
+ Field{name:"level",signature:Signature::Union(&[Signature::StringLiteral("trace"),Signature::StringLiteral("debug"),Signature::StringLiteral("info"),Signature::StringLiteral("warn"),Signature::StringLiteral("error"),Signature::StringLiteral("off")]),optional:true},
+],..SPAWN_ERROR};
+static LOG_ERROR:Declaration=Declaration{id:NativeTypeId::LogError,module:"std:log-runtime",name:"LogError",..FS_ERROR};
 static IP_ADDRESS:Declaration=Declaration{id:NativeTypeId::IpAddress,module:"std:net",name:"IpAddress",type_parameters:&[],independent_clone:true,thread_transfer:true,..THREAD};
 static SOCKET_ADDRESS:Declaration=Declaration{id:NativeTypeId::SocketAddress,name:"SocketAddress",..IP_ADDRESS};
 static TCP_LISTENER:Declaration=Declaration{id:NativeTypeId::TcpListener,module:"std:net",name:"TcpListener",thread_transfer:true,..FILE};
@@ -537,6 +544,7 @@ static ITERATOR_CURSOR:Declaration=Declaration{id:NativeTypeId::IteratorCursor,m
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
+        NativeTypeId::Logger=>&LOGGER,NativeTypeId::LoggerOptions=>&LOGGER_OPTIONS,NativeTypeId::LogError=>&LOG_ERROR,
         NativeTypeId::Locale=>&LOCALE_LOCALE,NativeTypeId::Collator=>&LOCALE_COLLATOR,NativeTypeId::Segmenter=>&LOCALE_SEGMENTER,NativeTypeId::NumberFormat=>&LOCALE_NUMBERFORMAT,NativeTypeId::SegmentRange=>&LOCALE_SEGMENTRANGE,NativeTypeId::LocaleError=>&LOCALE_LOCALEERROR,NativeTypeId::CollatorOptions=>&LOCALE_COLLATOROPTIONS,NativeTypeId::NumberFormatOptions=>&LOCALE_NUMBERFORMATOPTIONS,
         NativeTypeId::Regex=>&REGEX,NativeTypeId::RegexMatch=>&REGEX_MATCH,NativeTypeId::RegexCaptures=>&REGEX_CAPTURES,NativeTypeId::RegexError=>&REGEX_ERROR,NativeTypeId::RegexOptions=>&REGEX_OPTIONS,
         NativeTypeId::TcpListener=>&TCP_LISTENER,NativeTypeId::TcpStream=>&TCP_STREAM,NativeTypeId::UdpSocket=>&UDP_SOCKET,NativeTypeId::Datagram=>&DATAGRAM,NativeTypeId::IpAddress=>&IP_ADDRESS,NativeTypeId::SocketAddress=>&SOCKET_ADDRESS,NativeTypeId::NetError=>&NET_ERROR,
@@ -662,7 +670,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
     if module=="std:futures" {match name {"SendError"=>return Some(&SEND_ERROR),"ChannelError"=>return Some(&CHANNEL_ERROR),_=>{}}}
-    [&OWNED_ITERATOR,&ITERATOR_CURSOR,&TCP_LISTENER,&TCP_STREAM,&UDP_SOCKET,&DATAGRAM,&IP_ADDRESS,&SOCKET_ADDRESS,&NET_ERROR,&PROCESS_CHILD,&PROCESS_OPTIONS,&PROCESS_STATUS,&PROCESS_OUTPUT,&PROCESS_ERROR,&IO_READER,&IO_WRITER,&IO_LINE_READER,&IO_STDIN,&IO_ERROR,&LOCALE_LOCALE,&LOCALE_COLLATOR,&LOCALE_SEGMENTER,&LOCALE_NUMBERFORMAT,&LOCALE_SEGMENTRANGE,&LOCALE_LOCALEERROR,&LOCALE_COLLATOROPTIONS,&LOCALE_NUMBERFORMATOPTIONS,&REGEX,&REGEX_MATCH,&REGEX_CAPTURES,&REGEX_ERROR,&REGEX_OPTIONS,&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
+    [&LOGGER,&LOGGER_OPTIONS,&LOG_ERROR,&OWNED_ITERATOR,&ITERATOR_CURSOR,&TCP_LISTENER,&TCP_STREAM,&UDP_SOCKET,&DATAGRAM,&IP_ADDRESS,&SOCKET_ADDRESS,&NET_ERROR,&PROCESS_CHILD,&PROCESS_OPTIONS,&PROCESS_STATUS,&PROCESS_OUTPUT,&PROCESS_ERROR,&IO_READER,&IO_WRITER,&IO_LINE_READER,&IO_STDIN,&IO_ERROR,&LOCALE_LOCALE,&LOCALE_COLLATOR,&LOCALE_SEGMENTER,&LOCALE_NUMBERFORMAT,&LOCALE_SEGMENTRANGE,&LOCALE_LOCALEERROR,&LOCALE_COLLATOROPTIONS,&LOCALE_NUMBERFORMATOPTIONS,&REGEX,&REGEX_MATCH,&REGEX_CAPTURES,&REGEX_ERROR,&REGEX_OPTIONS,&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
         &UI_ERROR,
         &COMPRESSION_READER,&COMPRESSION_WRITER,&COMPRESSION_OPTIONS,&DECOMPRESSION_OPTIONS,&COMPRESSION_ERROR,&SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&CRYPTO_HASHER,&PASSWORD_HASH_OPTIONS,&PASSWORD_VERIFY_OPTIONS,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPMIDDLEWARE,&HTTPCORSOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&INTERVAL,&CANCELLATION_TOKEN,&POOL_SUBMISSION,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR,&ENV_VAR,&PATH_PARTS,&PATH_FORMAT_OPTIONS,&PATH_ERROR,&OS_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_OPEN_OPTIONS, &FS_FILE_TIME, &FS_METADATA, &FS_DIR_ENTRY, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
     ].into_iter().find(|item| item.module == module && item.name == name)

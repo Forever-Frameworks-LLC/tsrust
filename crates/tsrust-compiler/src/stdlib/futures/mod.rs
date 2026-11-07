@@ -163,6 +163,7 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
 
 #[cfg(test)]
 pub(crate) mod tests {
+ #[cfg(feature="logging")] include!("../logging/runtime.rs");
     include!("runtime.rs");
     pub(crate) use tsrust_native_futures::*;
     include!("runtime_tests.rs");

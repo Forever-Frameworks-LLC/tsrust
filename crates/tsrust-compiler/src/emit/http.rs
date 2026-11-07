@@ -71,6 +71,7 @@ impl Emitter<'_>{
   let raw=|index:usize|self.expr(fun,&args[index],binding.parameters[index].access);
   let optional=|index:usize|args.get(index).map(|arg|self.native_optional_argument(&binding.parameters[index],values[index].clone(),arg.ty.unwrap())).unwrap_or("None".into());
   let call=match binding.name{
+   "accessLog"=>format!("tsrust_native_http::NativeMiddleware::access_log({receiver})"),
    "listen" if binding.module=="std:signals"=>"tsrust_native_signals::listen()".into(),
    "__receive" if binding.module=="std:signals"=>format!("({receiver}).receive().await"),
    "__router"=>"tsrust_native_http::Router::new()".into(),

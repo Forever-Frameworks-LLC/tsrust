@@ -103,9 +103,15 @@ impl Analyzer {
             if record==declaration && !populated{target[index]=self.empty_scoped_record_environment(declaration)?;}
         }
         if !owned{return Ok(None);}
-        for member in actual_members{
+        for member in actual_members.iter().copied(){
             if let Type::Record(record)=member{
                 let declaration=self.scoped_records.declaration(record);
+                // An explicitly absent environment contributes no possible record
+                // value. It must not overwrite an inhabited alternative of the
+                // same nominal record through the declaration shortcut below.
+                let absent=|id:usize|self.program.records[id].fields.iter().any(|field|!field.optional && matches!(field.ty,Some(Type::Callback(callback)) if self.absent_callable_type(Type::Callback(callback))));
+                if absent(record) && actual_members.iter().copied().any(|other|
+                    matches!(other,Type::Record(id) if self.scoped_records.declaration(id)==declaration && !absent(id))) {continue;}
                 let candidates=members.iter().enumerate().filter_map(|(index,ty)|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration).then_some(index)).collect::<Vec<_>>();
                 let [index]=candidates.as_slice() else{return Ok(None);};
                 self.require(member,Some(Type::Record(declaration)),span)?;
@@ -195,4 +201,25 @@ impl Analyzer {
             Ok(())
         })
     }
+}
+
+#[cfg(test)]
+#[test]
+fn mixed_union_absent_environment_does_not_overwrite_an_inhabited_nominal_alternative(){
+ let mut analyzer=Analyzer::new(crate::syntax::parse("type Holder={run:Owned<Function<int>>;};function main(){const value:Holder={run:():int=>7};}").unwrap()).unwrap();
+ let main=analyzer.function_names["main"];analyzer.function(main).unwrap();
+ let record=analyzer.record_names["Holder"];
+ let Type::StoredCallable(family)=analyzer.program.records[record].fields[0].ty.unwrap()else{panic!("owned record storage")};
+ assert!(analyzer.callables.storage.origins(family).is_some_and(|origins|!origins.is_empty()),"exercise actual populated storage");
+ let inhabited=Type::Record(record);let empty=analyzer.empty_scoped_record_environment(record).unwrap();assert_ne!(inhabited,empty);
+ let actual=analyzer.unions.intern([inhabited,empty,Type::String],Span::default()).unwrap();
+ for payload in [empty,inhabited]{
+  let expected=analyzer.unions.intern([payload,Type::String,Type::Undefined],Span::default()).unwrap().union().unwrap();
+  let concrete=analyzer.finite_record_union_carrier(actual,expected,Span::default()).unwrap().unwrap();
+  let members=analyzer.unions.members(concrete.union().unwrap());assert!(members.contains(&inhabited));assert!(!members.contains(&empty));assert!(members.contains(&Type::String));assert!(members.contains(&Type::Undefined));
+ }
+ let absent=analyzer.unions.intern([empty,Type::String],Span::default()).unwrap();
+ let expected=analyzer.unions.intern([inhabited,Type::String,Type::Undefined],Span::default()).unwrap().union().unwrap();
+ let concrete=analyzer.finite_record_union_carrier(absent,expected,Span::default()).unwrap().unwrap();
+ assert!(analyzer.unions.members(concrete.union().unwrap()).contains(&empty));
 }

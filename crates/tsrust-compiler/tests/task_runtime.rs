@@ -1,4 +1,5 @@
 //! Runtime ownership witnesses independent of generated source or callback inference.
+#[cfg(feature="logging")] include!("../src/stdlib/logging/runtime.rs");
 include!("../src/stdlib/futures/runtime.rs");
 mod tsrust_native_threads {
  include!("../src/stdlib/threads/runtime_core.rs");
