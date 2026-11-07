@@ -5521,10 +5521,17 @@ impl Analyzer {
         if members.members.is_empty() {
             return None;
         }
-        let narrowed = self
-            .unions
-            .intern(members.members.iter().copied(), expr.span)
-            .ok()?;
+        // Reaching record-only facts can name earlier carrier epochs of the
+        // same private owned slot. Select its current checked physical payload;
+        // absent/scalar/unrelated alternatives never receive this normalization.
+        let physical_record=place.fields.is_empty().then(||self.owned_nullable_flow_record(context,place.root)).flatten();
+        let narrowed=if let Some(record)=physical_record.filter(|&record|members.members.iter().all(|member|matches!(*member,Type::Record(source)
+            if self.scoped_records.declaration(source)==self.scoped_records.declaration(record)
+                && self.program.records[source].application.as_ref().map(|application|&application.resolved_arguments)==self.program.records[record].application.as_ref().map(|application|&application.resolved_arguments)
+                && {let facts=self.aggregate_callable_facts(*member);facts.retains && !facts.scoped && !facts.unknown}
+                && !self.native_shape_contains_view(*member)))){Type::Record(record)}else{
+            self.unions.intern(members.members.iter().copied(),expr.span).ok()?
+        };
         (narrowed != Type::Union(union)).then_some((place, union, narrowed))
     }
 

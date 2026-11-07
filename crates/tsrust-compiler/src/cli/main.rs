@@ -62,6 +62,7 @@ Usage:
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline] [--portable]
+  tsrust bindings generate <file.bindings.json> --crate name --source crate-root.rs --select name,name [--rustdoc crate.json]
   tsrust new [name-or-path] [--app [--target backend]]
   tsrust docs content [--cwd directory]
   tsrust api generate [entry.tsr | --entry file | --config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]

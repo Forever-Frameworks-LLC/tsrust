@@ -128,6 +128,8 @@ impl Analyzer {
                 (Type::Closure(_),Type::BorrowedCallable(family))=>Self::retarget_record_callback(value,family),
                 (Type::Record(_),Type::Record(_))|(Type::BorrowedCallable(_),Type::BorrowedCallable(_))=>{
                     if self.distinct_owned_closures(source,destination) {
+                        #[cfg(test)]
+                        self.trace_carrier_rejection("distinct-write",value.span,source,destination);
                         return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
                     }
                     value.wrap_record_carrier(destination)
@@ -307,20 +309,23 @@ impl Analyzer {
         }
         false
     }
-    pub(super) fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
-        if value.ty.is_some_and(|source|!self.carrier_convertible(source,destination)) {
-            #[cfg(test)]
-            {
-                eprintln!("CARRIER_REJECT span={:?} source={:?} target={destination:?}",value.span,value.ty);
-                let mut pending=vec![value.ty.unwrap(),destination];let mut seen=HashSet::new();
+    #[cfg(test)]
+    fn trace_carrier_rejection(&self,phase:&str,span:Span,source:Type,destination:Type){
+                eprintln!("CARRIER_REJECT phase={phase} span={:?} source={:?} target={destination:?}",span,Some(source));
+                let mut pending=vec![source,destination];let mut seen=HashSet::new();
                 while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
                     Type::Record(id)=>{let record=&self.program.records[id];let fields=record.fields.iter().map(|field|(field.name.text.as_str(),field.ty.unwrap())).collect::<Vec<_>>();eprintln!("CARRIER_RECORD id={id} declaration={} fields={fields:?}",self.scoped_records.declaration(id));pending.extend(fields.into_iter().map(|(_,ty)|ty));}
                     Type::Union(id)|Type::BorrowedUnion(id)=>{let members=self.unions.members(id);eprintln!("CARRIER_UNION id={id:?} members={members:?}");pending.extend(members);}
                     Type::StoredCallable(id)|Type::BorrowedCallable(id)=>{eprintln!("CARRIER_FAMILY id={id} origins={:?} protocol={:?} scoped_protocol={:?}",self.callables.storage.origins(id),self.callables.storage.declaration(id).map(|declaration|self.callables.callbacks[declaration].structural),self.callables.storage.scoped_native_family(id).map(|family|family.signature));}
-                    Type::Callback(id)=>eprintln!("CARRIER_CALLBACK id={id} protocol={:?}",self.callables.callbacks[id].structural),
+                    Type::Callback(id)=>eprintln!("CARRIER_CALLBACK id={id} protocol={:?} kind={:?}",self.callables.callbacks[id].structural,self.callables.callbacks[id].kind),
+                    Type::Closure(id)=>if let Some(closure)=self.closures.get(id){let parameters=closure.parameters.iter().filter_map(|&binding|closure.function.bindings.get(binding).map(|binding|(binding.ty,binding.mode))).collect::<Vec<_>>();let captures=closure.captures.iter().map(|capture|(capture.inner,capture.outer,capture.storage,capture.access)).collect::<Vec<_>>();eprintln!("CARRIER_CLOSURE id={id} function={} invocation={:?} borrowed={} result={:?} parameters={parameters:?} captures={captures:?}",closure.function.name,closure.invocation,closure.borrowed,closure.function.result);},
                     _=>{}
                 }}
-            }
+    }
+    pub(super) fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
+        if value.ty.is_some_and(|source|!self.carrier_convertible(source,destination)) {
+            #[cfg(test)]
+            self.trace_carrier_rejection("checked",value.span,value.ty.unwrap(),destination);
             return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
         }
         value.wrap_record_carrier(destination);
@@ -475,5 +480,25 @@ fn flat_map_single_iterator_result_keeps_its_finite_record_contract(){
  }
  for callback in ["(value:int):Iterator<int>=>Iterator.from([value,value])","value=>Iterator.from([value,value])"] {
   let source=format!("import {{Iterator}} from 'std:iterator';function main(){{const values=Iterator.from([1,2]).flatMap({callback});console.log(values.toArray().join(','));}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=check_graph(load_project(&Input(source),"main.tsr").unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));drop(checked.emit_rust());
+ }
+}
+
+#[cfg(test)]
+#[test]
+fn retained_alert_props_spread_preserves_checked_callback_carriers(){
+ use crate::project::{SourceId,SourceProvider,FileSourceProvider,check_graph,load_project};
+ struct Entry{source:String,alert:SourceId}
+ impl SourceProvider for Entry{
+  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{
+   if importer.is_none()&&path=="main.tsr"{Ok(SourceId(path.into()))}
+   else if importer.is_some_and(|id|id.0=="main.tsr")&&path=="./alert.tsrx"{Ok(self.alert.clone())}
+   else{FileSourceProvider.resolve(importer,path)}
+  }
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.source.clone())}else{FileSourceProvider.read(id)}}
+ }
+ let alert=std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/src/components/ui/alert.tsrx")).unwrap();
+ for(http,body)in [("",""),("import {Router} from 'std:http';","const router=new Router();")]{
+  let source=format!("import {{Alert,AlertTitle,AlertDescription,AlertAction}} from './alert.tsrx';{http}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let checked=check_graph(load_project(&Entry{source,alert:SourceId(alert.to_str().unwrap().into())},"main.tsr").unwrap()).unwrap_or_else(|error|panic!("retained Alert {http}: {error:?}"));drop(checked.emit_rust());
  }
 }

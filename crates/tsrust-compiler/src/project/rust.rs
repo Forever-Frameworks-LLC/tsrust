@@ -4,21 +4,23 @@ use syn::{spanned::Spanned, visit::Visit};
 #[path="rust_data.rs"] mod data;
 pub use data::{Data,Variant};
 #[path="rust_dependencies.rs"] pub mod dependencies;
+#[path="rust_generation.rs"] pub mod generation;
 
 #[derive(Clone, Debug)]
-pub enum Type { Int, Number, Boolean, Void, String, Array(Box<Type>), Borrow(Box<Type>, bool), Context, Named(String), Result(Box<Type>, Box<Type>) }
+pub enum Type { Int, Number, Boolean, Void, String, Array(Box<Type>), Borrow(Box<Type>, bool), Context, Named(String), Option(Box<Type>,String), Result(Box<Type>, Box<Type>) }
 impl Type {
     fn source(&self) -> String {
         match self {
             Self::Int=>"int".into(), Self::Number=>"number".into(), Self::Boolean=>"boolean".into(), Self::Void=>"void".into(), Self::String=>"string".into(), Self::Context=>"TaskContext".into(),
             Self::Named(name)=>name.clone(),
             Self::Array(value)=>format!("{}[]",value.source()),
+            Self::Option(value,prefix)=>if matches!(value.as_ref(),Self::Void){format!("{prefix}UnitOption")}else{format!("{prefix}Option<{}>",value.source())},
             Self::Borrow(value,mutable)=>format!("{}<{}>",if *mutable {"Mutable"}else{"ReadOnly"},value.source()),
             Self::Result(ok,err)=>format!("Result<{}, {}>",ok.source(),err.source()),
         }
     }
-    fn seed(&self)->String {match self {Self::Int|Self::Number=>"0".into(),Self::Boolean=>"false".into(),Self::String=>"''".into(),Self::Array(_)=>"[]".into(),Self::Named(name)=>format!("rustSeed{name}()"),Self::Void=>"undefined".into(),Self::Result(ok,err)=>format!("Ok<{},{}>({})",ok.source(),err.source(),if matches!(ok.as_ref(),Self::Void){String::new()}else{ok.seed()}),_=>unreachable!()}}
-    fn owned(&self)->bool {matches!(self,Self::String|Self::Array(_)|Self::Named(_))}
+    fn seed(&self)->String {match self {Self::Int|Self::Number=>"0".into(),Self::Boolean=>"false".into(),Self::String=>"''".into(),Self::Array(_)=>"[]".into(),Self::Option(..)=>"{kind:'none'}".into(),Self::Named(name)=>format!("rustSeed{name}()"),Self::Void=>"undefined".into(),Self::Result(ok,err)=>format!("Ok<{},{}>({})",ok.source(),err.source(),if matches!(ok.as_ref(),Self::Void){String::new()}else{ok.seed()}),_=>unreachable!()}}
+    fn owned(&self)->bool {matches!(self,Self::String|Self::Array(_)|Self::Named(_)|Self::Option(..))}
 }
 #[derive(Clone, Debug)]
 pub struct Export {pub name:String,pub parameters:Vec<Type>,pub result:Type,pub declaration:Span,pub native:Span}
@@ -28,12 +30,15 @@ fn range(text:&str,span:proc_macro2::Span)->Span {
     let offset=|position:proc_macro2::LineColumn|text.split_inclusive('\n').take(position.line.saturating_sub(1)).map(str::len).sum::<usize>()+position.column;
     Span::new(offset(span.start()).min(text.len()),offset(span.end()).min(text.len()))
 }
-fn shape(ty:&syn::Type, output:bool)->Result<Type,String> {
+fn shape(ty:&syn::Type, output:bool,options:&str)->Result<Type,String> {
     match ty {
         syn::Type::Tuple(value) if value.elems.is_empty()=>Ok(Type::Void),
         syn::Type::Reference(value) if !output && value.lifetime.is_none()=>{
-            let inner=match value.elem.as_ref(){syn::Type::Slice(slice)=>Type::Array(Box::new(shape(&slice.elem,true)?)),syn::Type::Path(path) if path.path.is_ident("str")=>Type::String,other=>shape(other,true)?};
-            if !matches!(inner,Type::String|Type::Array(_)|Type::Context) || (value.mutability.is_some() && !matches!(inner,Type::Array(_))) {return Err("Borrowed Rust inputs support &str, primitive slices, mutable primitive slices and &TaskContext.".into());}
+            let inner=match value.elem.as_ref(){
+                syn::Type::Slice(slice)=>{let item=shape(&slice.elem,true,options)?;if !matches!(item,Type::Int|Type::Number|Type::Boolean){return Err("Borrowed slices require i64, f64 or bool elements; owned nested data must move through Vec.".into());}Type::Array(Box::new(item))},
+                syn::Type::Path(path) if path.path.is_ident("str")&&value.mutability.is_none()=>Type::String,
+                _=>return Err("Borrowed Rust inputs support &str, primitive slices, mutable primitive slices and &TaskContext.".into()),
+            };
             Ok(Type::Borrow(Box::new(inner),value.mutability.is_some()))
         },
         syn::Type::Path(path) if path.qself.is_none() && path.path.segments.len()==1=>{
@@ -41,12 +46,13 @@ fn shape(ty:&syn::Type, output:bool)->Result<Type,String> {
             if matches!(segment.ident.to_string().as_str(),"i64"|"f64"|"bool"|"String") && !matches!(segment.arguments,syn::PathArguments::None){return Err("Scalar and string boundary types do not accept generic arguments.".into());}
             match segment.ident.to_string().as_str(){
                 "i64"=>Ok(Type::Int),"f64"=>Ok(Type::Number),"bool"=>Ok(Type::Boolean),"String"=>Ok(Type::String),"TaskContext" if !output=>Err("TaskContext must be borrowed as &TaskContext.".into()),
-                "Vec"|"Result"=>{
+                "Vec"|"Option"|"Result"=>{
                     let syn::PathArguments::AngleBracketed(args)=&segment.arguments else{return Err("Expected explicit Rust type arguments.".into())};
-                    let args=args.args.iter().map(|arg|if let syn::GenericArgument::Type(ty)=arg{shape(ty,true)}else{Err("Only concrete type arguments are supported.".into())}).collect::<Result<Vec<_>,_>>()?;
-                    if segment.ident=="Vec" && args.len()==1 && matches!(args[0],Type::Int|Type::Number|Type::Boolean){return Ok(Type::Array(Box::new(args[0].clone())));}
-                    if segment.ident=="Result" && output && args.len()==2 && !args.iter().any(|arg|matches!(arg,Type::Result(..)|Type::Borrow(..)|Type::Context)) && !matches!(args[1],Type::Void){return Ok(Type::Result(Box::new(args[0].clone()),Box::new(args[1].clone())));}
-                    Err("Supported buffers are Vec<i64|f64|bool>; output Result needs two owned payload types.".into())
+                    let args=args.args.iter().map(|arg|if let syn::GenericArgument::Type(ty)=arg{shape(ty,true,options)}else{Err("Only concrete type arguments are supported.".into())}).collect::<Result<Vec<_>,_>>()?;
+                    if segment.ident=="Vec"&&args.len()==1{return Ok(Type::Array(Box::new(args[0].clone())));}
+                    if segment.ident=="Option"&&args.len()==1{return Ok(Type::Option(Box::new(args[0].clone()),options.into()));}
+                    if segment.ident=="Result" && output && args.len()==2 && !args.iter().any(|arg|matches!(arg,Type::Borrow(..)|Type::Context)) && !matches!(args[1],Type::Void){return Ok(Type::Result(Box::new(args[0].clone()),Box::new(args[1].clone())));}
+                    Err("Vec and Option need one concrete owned payload; output Result needs two supported payloads and a non-unit error.".into())
                 },
                 _ if matches!(segment.arguments,syn::PathArguments::None)=>Ok(Type::Named(segment.ident.to_string())),
                 _=>Err("Unsupported Rust boundary type. Declare a concrete public struct or enum in the binding module.".into())
@@ -83,7 +89,8 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
     let parsed=syn::parse_file(&source.text).map_err(|value|fail(value.span(),value.to_string()))?;
     if !parsed.attrs.is_empty(){return Err(fail(parsed.attrs[0].span(),"Rust module attributes are unsupported.".into()));}
     let mut policy=Policy{failure:None};policy.visit_file(&parsed);if let Some((span,message))=policy.failure{return Err(fail(span,message));}
-    let types=data::collect(&parsed).map_err(|(span,message)|fail(span,message))?;
+    let option_prefix=data::option_prefix(&parsed);
+    let types=data::collect(&parsed,&option_prefix).map_err(|(span,message)|fail(span,message))?;
     let mut declarations=data::declarations(&types,&parsed);let mut exports=Vec::new();let mut context=false;
     for item in &parsed.items {
         let syn::Item::Fn(function)=item else{continue};
@@ -95,7 +102,8 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
         for (index,input) in sig.inputs.iter().enumerate(){
             let syn::FnArg::Typed(input)=input else{return Err(fail(input.span(),"Methods are unsupported; export a free function.".into()));};
             let syn::Pat::Ident(pattern)=input.pat.as_ref() else{return Err(fail(input.span(),"Export parameters require simple names.".into()));};
-            let ty=if let syn::Type::Reference(reference)=input.ty.as_ref() {if reference.mutability.is_none() && reference.lifetime.is_none() && matches!(reference.elem.as_ref(),syn::Type::Path(path) if path.path.is_ident("TaskContext")){context=true;Type::Borrow(Box::new(Type::Context),false)}else{shape(&input.ty,false).map_err(|message|fail(input.ty.span(),message))?}}else{shape(&input.ty,false).map_err(|message|fail(input.ty.span(),message))?};
+            let ty=if let syn::Type::Reference(reference)=input.ty.as_ref() {if reference.mutability.is_none() && reference.lifetime.is_none() && matches!(reference.elem.as_ref(),syn::Type::Path(path) if path.path.is_ident("TaskContext")){context=true;Type::Borrow(Box::new(Type::Context),false)}else{shape(&input.ty,false,&option_prefix).map_err(|message|fail(input.ty.span(),message))?}}else{shape(&input.ty,false,&option_prefix).map_err(|message|fail(input.ty.span(),message))?};
+            data::input(&ty,&types).map_err(|message|fail(input.ty.span(),message))?;
             if matches!(ty,Type::Void){return Err(fail(input.span(),"Unit is supported only as a return type.".into()));}
             let label=pattern.ident.to_string();if label.starts_with("r#"){return Err(fail(pattern.ident.span(),"Raw Rust parameter identifiers are unsupported at the boundary.".into()));}labels.push(format!("{label}: {}",if ty.owned(){format!("Owned<{}>",ty.source())}else{ty.source()}));
             if ty.owned(){
@@ -105,7 +113,7 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
             }
             parameters.push(ty);
         }
-        let result=match &sig.output{syn::ReturnType::Default=>Type::Void,syn::ReturnType::Type(_,ty)=>shape(ty,true).map_err(|message|fail(ty.span(),message))?};
+        let result=match &sig.output{syn::ReturnType::Default=>Type::Void,syn::ReturnType::Type(_,ty)=>shape(ty,true,&option_prefix).map_err(|message|fail(ty.span(),message))?};
         for ty in parameters.iter().chain(std::iter::once(&result)){data::validate(ty,&types,&mut BTreeSet::new()).map_err(|message|fail(sig.span(),message))?;}
         let docs=documentation(&function.attrs);
         let start=declarations.len();
@@ -114,6 +122,11 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
         exports.push(Export{name,parameters,result,declaration:Span::new(name_start,name_start+sig.ident.to_string().len()),native:range(&source.text,sig.ident.span())});
     }
     if context{declarations.push_str("import {TaskContext} from 'std:threads';\n");}
+    if types.keys().any(|name|data::uses_option(&Type::Named(name.clone()),&types))||exports.iter().any(|export|export.parameters.iter().chain(std::iter::once(&export.result)).any(|ty|data::uses_option(ty,&types))) {
+        let prefix=data::option_declarations(&option_prefix);let offset=prefix.len();
+        declarations.insert_str(0,&prefix);
+        for export in &mut exports{export.declaration=Span::new(export.declaration.start+offset,export.declaration.end+offset);}
+    }
     let mut module=super::parse_module(SourceFile{id:SourceId(format!("{}.tsr",source.id.0)),text:declarations},true)?;
     let mut locations=Vec::new();
     let tokens=syntax::lex(&module.declaration_source).map_err(|error|source_error(&source.id,error))?;

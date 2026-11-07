@@ -1,8 +1,9 @@
 //! Explicit shared-cache resolution; optional portable preparation never runs in a build.
+#[path="rust_binding_generation.rs"] mod generation;
 use std::{fs,process::Stdio};
 use tsrust_compiler::project::rust::dependencies::Bindings;
 pub(crate) fn resolve(mut args:impl Iterator<Item=String>)->Result<u8,String>{
- if args.next().as_deref()!=Some("resolve"){return Err("Usage: tsrust bindings resolve file.bindings.json [--offline] [--portable]".into());}
+ match args.next().as_deref(){Some("generate")=>return generation::run(args),Some("resolve")=>{},_=>return Err("Usage: tsrust bindings resolve file.bindings.json [--offline] [--portable], or bindings generate file.bindings.json --crate name --source crate-root.rs --select name,name [--rustdoc crate.json]".into())}
  let path=args.next().ok_or("Missing .bindings.json path.")?;
  let (mut offline,mut portable)=(false,false);
  for argument in args {match argument.as_str(){"--offline" if !offline=>offline=true,"--portable" if !portable=>portable=true,_=>return Err("Expected optional --offline and --portable once each.".into())}}

@@ -169,3 +169,57 @@ arbitrary automatic crate-to-language mappings are outside this workflow.
 One program uses one managed dependency configuration. Independent configurations
 can coexist under a project root and are selected with `--bindings`. Callers mixing
 different dependency configurations are rejected before publication.
+
+
+## Generate selected owned-data adapters
+
+After adding an exact-pinned dependency to a binding, generate wrappers from its
+explicitly prepared crate source. This command performs source discovery without
+resolving or downloading dependencies:
+
+```sh
+tsrust bindings generate words.bindings.json --crate shlex --source /path/to/shlex-2.0.1/src/lib.rs --select split,try_join,try_quote
+```
+
+The generator selects concrete, safe synchronous root functions. It writes Rust
+adapter source, type-only Tsrust signatures, copied documentation, an unsupported
+item report and editable uncompiled stub functions. Fill their concrete owned parameter/result
+signatures and replace the `todo!` body before moving them into the compiled
+adapter. Unsupported methods, generic functions,
+conditional exports, returned borrows and foreign resource owners need an explicit
+adapter. Foreign records with explicit trait implementations are also reported
+for manual adaptation: source discovery cannot prove that an aliased trait is
+not Drop. Ordinary owned String/Vec fields remain supported. Subsequent generation is deterministic and refuses to overwrite
+customized adapter source. Ordinary builds never run generation.
+
+Owned `String`, `Vec<String>`, `Vec<OwnedRecord>` and nested supported containers
+move through the bridge without JSON conversion. Explicit Rust `Option<T>` uses
+adapter-local tagged records: `{kind:'none'}` and `{kind:'some', value:T}`.
+`Option<Option<T>>` therefore distinguishes None, Some(None), and Some(Some(value)).
+`Option<()>` uses the `some` tag without a void field. These tags do not change
+ordinary Tsrust optional values. Native `Result` remains output-only, including
+inside input containers or records. Arbitrary Drop-bearing foreign types remain
+outside the general bridge.
+
+Import runtime functions from the `.bindings.json` file; the generated `.api.tsr`
+file contains type signatures rather than executable placeholder functions.
+Function and field documentation appear in completion, hover and parameter help.
+The `examples/rust-owned-words` source example demonstrates valid, empty, invalid
+and Unicode shell-word results.
+
+
+To use prepared rustdoc discovery instead, add `--rustdoc /path/to/shlex.json` to
+the same generation command. The current reader supports the actual JSON format
+57 produced by the pinned Rust 1.96.1 toolchain. Keep `--source` for reachable
+owned record declarations. Unsupported JSON formats fail explicitly; omitting
+`--rustdoc` selects the defined source fallback. Generation itself never invokes
+rustdoc or installs a toolchain. Prepare JSON explicitly in your existing locked
+Cargo project:
+
+```sh
+RUSTC_BOOTSTRAP=1 rustup run 1.96.1 cargo rustdoc --offline --locked --package shlex@2.0.1 --lib -- -Z unstable-options --output-format json
+```
+
+`RUSTC_BOOTSTRAP` applies only to this explicit rustdoc invocation. The resulting
+JSON is a discovery input, not runtime code. Selected exports still pass the same
+safe concrete owned-data checks as explicit adapters.

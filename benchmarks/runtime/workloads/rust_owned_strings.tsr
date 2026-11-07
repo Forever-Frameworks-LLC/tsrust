@@ -1,0 +1,22 @@
+import { words } from "./rust-owned-adapter.rs";
+
+function workload(n: int, seed: int): int {
+  let checksum = 0;
+  let i = 0;
+  while (i < n) {
+    const returned = words(["alpha", "beta", "gamma"]);
+    let observed = seed + i;
+    for (const word of returned) {
+      observed = observed + word.length;
+    }
+
+    checksum = (checksum * 131 + observed) % 1000000007;
+    i = i + 1;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(17, 3));
+}

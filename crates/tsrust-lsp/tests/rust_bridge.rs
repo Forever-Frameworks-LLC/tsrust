@@ -1,3 +1,4 @@
+mod support;
 use serde_json::json;
 use tsrust_compiler::project::SourceId;
 use tsrust_lsp::{workspace::Workspace,project_intelligence::ProjectIndex};
@@ -65,4 +66,21 @@ fn checked_width_adapter_help_preserves_borrow_and_error_contract(){
  let checked=workspace.snapshot().check(&entry).unwrap();let index=ProjectIndex::checked(&checked);
  let answer=index.request("textDocument/hover",&json!({"position":{"line":0,"character":source.rfind("incrementWide").unwrap()}}),"file:///rust-width/main.tsr").unwrap().unwrap().to_string();
  for expected in ["ReadOnly<string>","Result<string, string>","width"]{assert!(answer.contains(expected),"{answer}");}
+}
+
+#[test]
+fn tagged_owned_option_adapter_help_agrees_in_all_server_phases(){
+ use support::session::Session;use std::time::Duration;
+ let rust="/// Split shell words; invalid quoting returns the explicit none tag.\npub fn words(value:&str)->Option<Vec<String>>{Some(vec![value.into()])}";
+ let before="import {words} from './words.rs';function main(){const result=";
+ let after="('two words');console.log(result.kind);}";let source=format!("{before}words{after}");
+ let entry=SourceId("/adapter-options/main.tsr".into());let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.clone());workspace.open(SourceId("/adapter-options/words.rs".into()),1,rust.into());assert!(workspace.snapshot().check(&entry).is_ok());
+ for phase in ["immediate","paced","settled","broken"]{
+  let broken=if phase=="broken"{" function unfinished( {"}else{""};let final_source=format!("{source}{broken}");
+  let mut session=Session::start(&[("main.tsr",&final_source),("words.rs",rust)]);
+  if phase=="immediate"||phase=="paced"{let after=format!("{after}{broken}");session.open("main.tsr",&format!("{before}{after}"));session.type_text("main.tsr",before,"words",&after,if phase=="paced"{Duration::from_millis(80)}else{Duration::ZERO});}else{session.open("main.tsr",&final_source);session.settle();}
+  let hover=session.hover("main.tsr",&final_source,before.len()).unwrap_or_else(||panic!("{phase}: missing adapter hover"));for expected in ["ReadOnly<string>","RustAdapterOption<string[]>","invalid quoting"]{assert!(hover.contains(expected),"{phase}: {hover}");}
+  let completion=session.completion("main.tsr",&final_source,final_source.find("result.kind").unwrap()+7).unwrap();assert!(completion.iter().any(|label|label=="kind"),"{phase}: {completion:?}");
+  let uri=session.uri("main.tsr");let help=session.request("textDocument/signatureHelp",json!({"textDocument":{"uri":uri},"position":{"line":0,"character":before.len()+6}})).to_string();assert!(help.contains("value")&&help.contains("ReadOnly<string>"),"{phase}: {help}");
+ }
 }

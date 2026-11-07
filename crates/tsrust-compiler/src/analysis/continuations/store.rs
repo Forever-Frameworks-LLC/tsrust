@@ -142,6 +142,17 @@ impl Analyzer {
         if matches!((actual,ty),(Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if matches!((actual,ty),(Type::Array(ArrayElement::Record(a,0)),Type::Array(ArrayElement::Record(b,0))) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if self.scoped_record_nullable_contract(actual, ty) { context.bindings[id].ty = actual; }
+        if let Some(record)=self.owned_nullable_flow_record(context,id){
+            let mut selected:&Expr=&*value;
+            while let ExprKind::Inject{value:inner,..}|ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&selected.kind{selected=inner;}
+            if let Some(Type::Record(source))=selected.ty
+                && self.scoped_records.declaration(source)==self.scoped_records.declaration(record)
+                && self.program.records[source].application.as_ref().map(|application|&application.resolved_arguments)==self.program.records[record].application.as_ref().map(|application|&application.resolved_arguments)
+                && {let facts=self.aggregate_callable_facts(Type::Record(source));facts.retains && !facts.scoped && !facts.unknown}
+                && !self.native_shape_contains_view(Type::Record(source)) {
+                context.flow.insert(crate::flow::Place{root:id,fields:Vec::new()},crate::flow::Fact{members:vec![Type::Record(record)],origin:Some((value.span.start,value.span.end))});
+            }
+        }
         let mut native_loans = Self::native_view_value_loans(context, value)?;
         Self::retain_unified_native_view_loans(context, id, &mut native_loans);
         Self::set_native_view_loans(context, id, native_loans);

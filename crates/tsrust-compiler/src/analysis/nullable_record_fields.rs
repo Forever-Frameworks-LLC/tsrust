@@ -177,6 +177,17 @@ impl Analyzer {
             }
     }
     }
+    /// Flow selects a payload of already checked private owned storage; it
+    /// never manufactures a non-null proof or changes the storage's carrier.
+    pub(super) fn owned_nullable_flow_record(&self,context:&Context,binding:usize)->Option<usize>{
+        if !self.sticky_nullable(context,binding){return None;}
+        let ty=context.bindings[binding].ty;
+        let Type::Record(record)=self.unions.payload(ty)? else{return None;};
+        let facts=self.aggregate_callable_facts(ty);
+        (facts.retains && !facts.scoped && !facts.unknown && !self.native_shape_contains_view(ty)
+            && !context.readonly_parameters.contains(&binding) && !context.mutable_parameters.contains(&binding))
+            .then_some(record)
+    }
     /// A nullable local whose callback environments share one storage carrier.
     pub(super) fn sticky_nullable(&self,context:&Context,binding:usize)->bool {
         let info=&context.bindings[binding];
@@ -640,4 +651,23 @@ impl Analyzer {
         }
         Ok(Some(result))
     }
+}
+
+#[cfg(test)]
+#[test]
+fn owned_nullable_assignment_flow_keeps_only_proven_present_payloads(){
+ use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+ struct Input(String);impl SourceProvider for Input{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ let source="import {Iterator} from 'std:iterator';function counter():Owned<Function<int>>{let current:Iterator<int>|undefined=undefined;return ():int=>{if(current===undefined){current=Iterator.from([3,5]);}const step=current.next();if(step.done){current=undefined;return 0;}return step.value;};}function main(){const next=counter();console.log(next(),next(),next(),next());}";
+ let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=check_graph(load_project(&Input(source),"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));drop(checked.emit_rust());
+ for source in [
+  "import {Iterator} from 'std:iterator';function inspect(flag:boolean):void{let current:Iterator<int>|undefined=undefined;if(flag){current=Iterator.from([1]);}current.next();}function main(){}",
+  "import {Iterator} from 'std:iterator';function main(){let current:Iterator<int>|undefined=undefined;if(current===undefined){current=Iterator.from([1]);}current=undefined;current.next();}",
+  "import {Iterator} from 'std:iterator';function inspect(current:ReadOnly<Iterator<int>|undefined>):void{if(current===undefined){current=Iterator.from([1]);}current.next();}function main(){}",
+  "import {Iterator} from 'std:iterator';function main(){let current:Iterator<int>|undefined=undefined;if(current===undefined){current=Iterator.from(['wrong']);}current.next();}",
+  "import {Iterator} from 'std:iterator';function consume(current:Owned<Iterator<int>|undefined>):void{}function main(){let current:Iterator<int>|undefined=undefined;if(current===undefined){current=Iterator.from([1]);}consume(current);current.next();}",
+ ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(check_graph(load_project(&Input(source.clone()),"main.tsr").unwrap()).is_err(),"No nullable/borrowed/moved payload may be invented: {source}");}
 }

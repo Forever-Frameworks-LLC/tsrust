@@ -1,0 +1,14 @@
+import { split } from './words.bindings.json';
+
+function main() {
+  const result = split("alpha 'two words' 世界");
+  if (result.kind === 'some') {
+    for (const word of result.value) {
+      console.log(word);
+    }
+  } else {
+    throw 'invalid shell quoting';
+  }
+
+  console.log(split("'unfinished").kind);
+}

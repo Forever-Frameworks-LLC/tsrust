@@ -1,3 +1,4 @@
+import {rustOwnedAdapterIds,expectedRustOwnedAdapterChecksum} from './rust-owned-adapters-oracle.mjs';
 import {cryptoIDs,cryptoChecksum} from './crypto-primitives-contract.mjs';
 import {processIDs,processChecksum} from './process-contract.mjs';
 import {networkTransportIDs,networkTransportChecksum} from './network-transport-contract.mjs';
@@ -290,6 +291,7 @@ export function expectedChecksum(id, n, seed, inputText) {
  if(id==='exception_completion')return expectedExceptionCompletionObservation(id,n,seed,inputText).checksum;
  if(cryptoIDs.includes(id))return cryptoChecksum(id,n,seed);
  if(id==='testing_expectation_predicates')return expectedTestingExpectationChecksum(n,seed);
+ if(rustOwnedAdapterIds.includes(id))return expectedRustOwnedAdapterChecksum(id,n,seed);
  if(['testing_scalar_assertions','testing_deep_data','testing_deep_collections'].includes(id))return expectedTestingAssertionChecksum(n,seed);
  if(arrayFromIds.includes(id))return expectedArrayFromObservation(id,n,seed,inputText).checksum;
  if(stringAtIds.includes(id))return expectedStringAtObservation(id,n,seed,inputText).checksum;

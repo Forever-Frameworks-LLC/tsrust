@@ -28497,6 +28497,166 @@
       "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
       "sourceSha256": "02788936173270fb5dcbcc4a65394402270a25411468ea3439b0a46f8b6eff1f",
       "counterpartSha256": "3190951a0ecece602247ff3a8246c34236719811a65c78f258daedced8894f4d"
+    },
+    {
+      "id": "rust_owned_scalar",
+      "category": "rust-owned-adapters",
+      "family": "rust-owned-adapters",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "one native adapter call including owned input/output construction and checksum observation",
+      "specification": "Call the concrete Rust scalar export and observe value*3+1.",
+      "notes": "Generated public adapter pipeline, not isolated conversion latency. The direct Rust reference calls the identical backend operation; Node performs the same ownership-observable value work. All cases use ASCII length inputs. Existing sample/warmup protocols remain unchanged. No generated API performance acceptance is claimed before execution.",
+      "sourceSha256": "23302ed65b1678336fd9b90c88bacb4a5a6a426fb86e0cde99a17783cb2e6a28",
+      "counterpartSha256": "c0a820fd5cf0733a291bed387a0e41e0e45b58d368171a552222fba85a0acadb",
+      "rustReference": "parity/rust_owned_scalar.rs",
+      "rustReferenceSha256": "8c7de567efa3b2d17cd2d162500619d2ce26474b76551912a280163f376d9c6d",
+      "adapterSource": "workloads/rust-owned-adapter.rs",
+      "adapterSha256": "5cb5b148032c02fb07cf0c8a501acd72f50e57ec05c1172cc067dcb2fa944624",
+      "sourceRequired": {
+        "native": [
+          "from \"./rust-owned-adapter.rs\"",
+          "checksum = (checksum * 131 + observed) % 1000000007;"
+        ],
+        "typescript": [
+          "checksum = (checksum * 131 + observed) % 1000000007;"
+        ]
+      },
+      "methodExpressions": {
+        "native": [
+          "const observed = scalar(seed + i);"
+        ],
+        "typescript": [
+          "const observed = scalar(seed + i);"
+        ]
+      },
+      "source": "workloads/rust_owned_scalar.tsr",
+      "counterpart": "workloads/rust_owned_scalar.ts"
+    },
+    {
+      "id": "rust_owned_strings",
+      "category": "rust-owned-adapters",
+      "family": "rust-owned-adapters",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "one native adapter call including owned input/output construction and checksum observation",
+      "specification": "Round-trip three owned ASCII strings; observe all returned lengths and the varying seed.",
+      "notes": "Generated public adapter pipeline, not isolated conversion latency. The direct Rust reference calls the identical backend operation; Node performs the same ownership-observable value work. All cases use ASCII length inputs. Existing sample/warmup protocols remain unchanged. No generated API performance acceptance is claimed before execution.",
+      "sourceSha256": "72c249b7bc112d2ae53b7f5a4da15e07e5e773a31745089ad994dbc44990b5f8",
+      "counterpartSha256": "4cac5c6cbb106ecb1364929b00bdd02e35ba819bcff5de36db679253fc542686",
+      "rustReference": "parity/rust_owned_strings.rs",
+      "rustReferenceSha256": "a7d1d836b0912fe2fd1d34abde11484d3e874c98a9c4b62482911dda59e5ae17",
+      "adapterSource": "workloads/rust-owned-adapter.rs",
+      "adapterSha256": "5cb5b148032c02fb07cf0c8a501acd72f50e57ec05c1172cc067dcb2fa944624",
+      "sourceRequired": {
+        "native": [
+          "from \"./rust-owned-adapter.rs\"",
+          "checksum = (checksum * 131 + observed) % 1000000007;"
+        ],
+        "typescript": [
+          "checksum = (checksum * 131 + observed) % 1000000007;"
+        ]
+      },
+      "methodExpressions": {
+        "native": [
+          "const returned = words([\"alpha\", \"beta\", \"gamma\"]);"
+        ],
+        "typescript": [
+          "const returned = words([\"alpha\", \"beta\", \"gamma\"]);"
+        ]
+      },
+      "source": "workloads/rust_owned_strings.tsr",
+      "counterpart": "workloads/rust_owned_strings.ts"
+    },
+    {
+      "id": "rust_owned_records",
+      "category": "rust-owned-adapters",
+      "family": "rust-owned-adapters",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "one native adapter call including owned input/output construction and checksum observation",
+      "specification": "Round-trip two non-Clone Rust records with owned strings; observe both labels and scalar fields.",
+      "notes": "Generated public adapter pipeline, not isolated conversion latency. The direct Rust reference calls the identical backend operation; Node performs the same ownership-observable value work. All cases use ASCII length inputs. Existing sample/warmup protocols remain unchanged. No generated API performance acceptance is claimed before execution.",
+      "sourceSha256": "f578044e10774b61ed7273895210f313aa85802bdb00ec8381f618d0b1da2909",
+      "counterpartSha256": "07a8879da5bdd633ed5363bb99fc6b4be659c5be4e822229a9e9bcc274b1723b",
+      "rustReference": "parity/rust_owned_records.rs",
+      "rustReferenceSha256": "68e0ec71323364ab2c351fde5d2cb6f88ae98cd87f26b5987ba181afad781dcd",
+      "adapterSource": "workloads/rust-owned-adapter.rs",
+      "adapterSha256": "5cb5b148032c02fb07cf0c8a501acd72f50e57ec05c1172cc067dcb2fa944624",
+      "sourceRequired": {
+        "native": [
+          "from \"./rust-owned-adapter.rs\"",
+          "checksum = (checksum * 131 + observed) % 1000000007;"
+        ],
+        "typescript": [
+          "checksum = (checksum * 131 + observed) % 1000000007;"
+        ]
+      },
+      "methodExpressions": {
+        "native": [
+          "const a: Row = {label: \"alpha\", value: seed + i};"
+        ],
+        "typescript": [
+          "const a: Row = {label: \"alpha\", value: seed + i};"
+        ]
+      },
+      "source": "workloads/rust_owned_records.tsr",
+      "counterpart": "workloads/rust_owned_records.ts"
+    },
+    {
+      "id": "rust_owned_nested_option",
+      "category": "rust-owned-adapters",
+      "family": "rust-owned-adapters",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "iterations": 4096,
+      "operationsPerIteration": 1,
+      "operationUnit": "one native adapter call including owned input/output construction and checksum observation",
+      "specification": "Return None, Some(None) and Some(Some(Vec<String>)) in rotation; observe both tags and all present strings.",
+      "notes": "Generated public adapter pipeline, not isolated conversion latency. The direct Rust reference calls the identical backend operation; Node performs the same ownership-observable value work. All cases use ASCII length inputs. Existing sample/warmup protocols remain unchanged. No generated API performance acceptance is claimed before execution.",
+      "sourceSha256": "af3fffb7ec0e64d11555c9739159d57cdf11542fff0ebe642535d8d7d2c16786",
+      "counterpartSha256": "6196003e05c15683b749fb50c8a04725f562ccb7abb04bcaf6395055730eeeff",
+      "rustReference": "parity/rust_owned_nested_option.rs",
+      "rustReferenceSha256": "fcbd7622b30a1806a6ea18a4893bdac9f733ae5ac03bd76b8824f67b5aafa80f",
+      "adapterSource": "workloads/rust-owned-adapter.rs",
+      "adapterSha256": "5cb5b148032c02fb07cf0c8a501acd72f50e57ec05c1172cc067dcb2fa944624",
+      "sourceRequired": {
+        "native": [
+          "from \"./rust-owned-adapter.rs\"",
+          "checksum = (checksum * 131 + observed) % 1000000007;"
+        ],
+        "typescript": [
+          "checksum = (checksum * 131 + observed) % 1000000007;"
+        ]
+      },
+      "methodExpressions": {
+        "native": [
+          "const result = nested(seed + i);"
+        ],
+        "typescript": [
+          "const result = nested(seed + i);"
+        ]
+      },
+      "source": "workloads/rust_owned_nested_option.tsr",
+      "counterpart": "workloads/rust_owned_nested_option.ts"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
