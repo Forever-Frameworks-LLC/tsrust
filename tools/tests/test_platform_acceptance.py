@@ -48,9 +48,11 @@ class PlatformAcceptance(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         messages = []
         expected = {(package, name) for package, names in [("tsrust-compiler", RUNNER.COMPILER_TARGETS), ("tsrust-lsp", RUNNER.LSP_TARGETS)] for name in names}
-        self.assertEqual(len(expected), 39)
+        self.assertEqual(len(expected), 46)
+        files = {"std_fs", "native_file_cleanup", "native_full_files", "native_file_writes", "native_filesystem_utilities", "native_buffered_files", "native_buffered_file_backend"}
+        self.assertTrue({("tsrust-compiler", name) for name in files} <= expected)
         selected = {(package, name) for package in ["tsrust-compiler", "tsrust-lsp"] for name in set(RUNNER.COMPILER_TARGETS + RUNNER.LSP_TARGETS) if (root / "crates" / package / "tests" / (name + ".rs")).is_file()}
-        self.assertEqual(len(selected), 42)
+        self.assertEqual(len(selected), 49)
         self.assertEqual(selected - expected, {("tsrust-compiler", "async_tasks"), ("tsrust-lsp", "http"), ("tsrust-lsp", "service_sections")})
         for package, name in sorted(selected):
             directory = root / "crates" / package
@@ -233,6 +235,11 @@ class PlatformAcceptance(unittest.TestCase):
         for package, targets in [("tsrust-compiler", RUNNER.COMPILER_TARGETS), ("tsrust-lsp", RUNNER.LSP_TARGETS)]:
             for target in targets:
                 self.assertTrue((root / "crates" / package / "tests" / (target + ".rs")).is_file(), target)
+        backend = (root / "crates/tsrust-compiler/tests/native_buffered_file_backend.rs").read_text()
+        self.assertIn('include_str!("../src/stdlib/fs/runtime/fs.rs")', backend)
+        self.assertIn('"--test"', backend)
+        self.assertIn('for level in ["0","3"]', backend)
+        self.assertIn("fn windows_close_and_scope_drop_release_exclusive_open_conflicts", (root / "crates/tsrust-compiler/src/stdlib/fs/runtime/fs.rs").read_text())
         self.assertIn("fn https_example_executes_with_verified_private_ca", (root / "crates/tsrust-compiler/tests/http.rs").read_text())
         self.assertIn("fn udp_large_datagram_delivers_all_60000_bytes", (root / "crates/tsrust-compiler/tests/network_transport_runtime.rs").read_text())
 

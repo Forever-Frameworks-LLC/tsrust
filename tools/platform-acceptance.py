@@ -15,7 +15,9 @@ import time
 import tomllib
 
 
-COMPILER_TARGETS = """std_bytes byte_operations byte_codecs byte_codec_export
+COMPILER_TARGETS = """std_fs native_file_cleanup native_full_files native_file_writes
+native_filesystem_utilities native_buffered_files native_buffered_file_backend
+std_bytes byte_operations byte_codecs byte_codec_export
 byte_operation_export native_path native_path_relative path_env_os environment service_sections
 async_io async_io_runtime task_runtime task_ergonomics native_channels
 native_threads native_threads_backend process process_runtime network_addresses

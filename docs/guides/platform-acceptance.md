@@ -16,6 +16,28 @@ host. Its success proves the selected Windows scope; retain the other hosts'
 separate evidence. Do not dispatch it on a ref with a live CI run: the workflow's
 ref concurrency policy would cancel that run.
 
+The finite selected scope includes 34 compiler integration targets and 12 LSP
+integration targets. All seven file targets are explicit: `std_fs`,
+`native_file_cleanup`, `native_full_files`, `native_file_writes`,
+`native_filesystem_utilities`, `native_buffered_files` and
+`native_buffered_file_backend`. They cover public close/ownership, lexical cleanup,
+ordinary large-file defaults and explicit limits, writes/views, filesystem utilities
+and buffered close/partial I/O. The buffered backend target compiles the actual
+`fs.rs` runtime test module at O0/O3; on Windows that includes
+`windows_close_and_scope_drop_release_exclusive_open_conflicts`. Its success must
+come from the Windows native run, not a source inspection or non-Windows pass.
+The generated listener test in `service_sections` separately exercises real
+Windows SIGINT/SIGBREAK delivery through its owned console helper.
+
+One explicit selected-test Cargo invocation builds all 46 intended test targets and
+the normal CLI/LSP consumers together. Cargo also emits three known same-name
+cross-package targets; artifact validation checks all 49 but executes only the 46
+intended targets. Existing package/source/profile/uniqueness guards remain strict.
+No whole library harness is added. This is native I/O family acceptance, not final
+backend regressions or complete v0.2 acceptance. The extra file scopes' elapsed
+cost still requires measurement within the unchanged 55-minute aggregate budget;
+exhaustion preserves completed cases and remains incomplete acceptance.
+
 The runner asserts the native Rust host and pinned Node version. Setup fetches
 locked dependencies explicitly; subsequent compilation and tests run offline and
 locked. One shared Cargo target, one build job and disabled incremental compilation
@@ -31,9 +53,10 @@ of compatibility with the pinned compiler. Successful native compilation and
 execution remain separate requirements. Audit findings and retained optional UI
 warnings must be reported with their active feature scope, without ignore flags.
 
-Each target is built separately. The runner requires terminal Cargo JSON success,
-finds that target's exact test executable, and records executable and CLI/LSP
-hashes. It then runs exact cases serially with `--test-threads=3`. Only passes
+The runner builds the selected targets together, requires terminal Cargo JSON
+success, finds each exact test executable, and records executable and CLI/LSP
+hashes. It runs targets serially, batching their pending exact cases with
+`--test-threads=3`. Only passes
 with matching source, executable and consumer identities can be reused. Ordinary
 assertion failures leave independent targets runnable. A resource or watchdog
 failure stops continuation. Successful integration executables are removed to

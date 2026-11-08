@@ -36,6 +36,13 @@ Current source05ea0131; compiler repair44a5e800 and attribution/export validatio
   export deleted. /tmp/tsrust-valuable-cli-build.json and
   /tmp/tsrust-valuable-export-result.json. JSfocused2tests remainPASS0.355s.
   No active Cargo/rustc processes at initial process inspection.
+- Platform selector repair: all7 existing B01 filesystem targets now selected,
+  46 intended integration targets/49 validated Cargo artifacts. Existing buffered
+  backend harness includes actual fs.rs O0/O3 tests, including Windows exclusive
+  open conflicts after explicit close/scope drop. Selector/watchdog unit tests
+  ACTUAL PASS15/0FAIL0.093s. No native family rerun or new remote execution yet;
+  55-minute aggregate fit and four-host execution remain pending. Guide corrected
+  to describe one Cargo build and per-target pending-case batches.
 - Owner permits profiling/additional test methods. Existing public test --profile
   separates check/emit/backend/cache/native build and per-case execution timings;
   use stable std:testing suites and cache, not independent programs per case.
