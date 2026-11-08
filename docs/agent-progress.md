@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpointd3511bf7; logging matchedmeasurement/ingest nowPASS; fullgoalactive.
+Current checkpoint5b11cb63; pending reviewed objectspreadconstructor repair; fullgoalactive.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0
@@ -114,7 +114,29 @@ Only root writes canonical; app worktree owner WIP stays protected.
   Wholepipelines includecreate/close/checksum; child1.38xNodeslower retained.
   Zero-eventallocationdelta and776Bfixedfirstcallretention remainseparate,strict
   genericprofileFAILEDnotretroactivelypassed. Rust/Nodecontrols unchanged.
-- NEXT affectedownership integration4targets (NOTfullB20): prepared
+- ACTUAL affectedownership scope: /tmp/tsrust-final-ownership-acceptance-788f019d501b.json,
+  session37998 terminal1/stopnull/remaining[]. SharedbuildPASS648.082s/4175300KiB;
+  phase796.959s/4297971928B; cleanup1330298880B newlycreatedobjectsrecovered.
+  All8compilerRustbridge (inclpreviousfailednestedtags/drops),7nullish,8LSPbridge,
+  5of6documentationcontentPASS. B19firstcheckboxclosed; preserveallpassedcases.
+  SoleFAIL authored_content_api_inventory_and_exact_examples_build_into_checked_native_data:
+  RustmissingRecord261/290/... constructoraliases,247reportederrors/cascades.
+- SAMEoriginalscope librarymilestone ACTUAL PASS, session36182 terminal0:
+  /tmp/tsrust-stdlib-family-final-libraries.json,compiler1530PASS/8UNCHANGEDoptins
+  106.487s/1262978632B; LSP27PASS0.566s/5915080B. No newbuild forlibraryruns.
+  Scopeoriginalstarted1794101250.8819342,budget1800; completedwithoutoverrun.
+- Reviewed pending rootfix /tmp/tsrust-object-spread-native-declaration.patch
+  SHA1a50d8bff6371a29ee5f18afc42d4a6e25ce580727276111a088567a095a3756:
+  object_spread_value_with constructorusesexistingnative_record_declaration(result),
+  matchingdeclarationloop/plainliterals. Resultfieldlayout/coercions/orderunchanged.
+  Existingnative_view_once_family_emits_real_alternative_lifetimes assert_family
+  nowchecksnormalizedconstructornames/bothmutablemodes/singleinput/keyorder.
+  SourcepeerreviewPASS; nativeDocfreshdiagnosticsstillrequired,notall247fixedclaimed.
+- NEXT targeted source-repair scope,30min/5GB AND originalmilestoneabsolute1hceiling:
+  buildnormalcompiler/LSP+updatedlibonce; runONLYupdatedscoped-family unit +failed
+  documentationcase, preserve1530/27/8/7/8passes. OriginalscopeAretainsdocFAIL;
+  don'treset/labelitpassed orrerunwhole4targets. Oldprepared command belowisNOTnext:
+  prepared
   /tmp/tsrust-final-ownership-acceptance-run.py +gates/scopes/cleanup sameprefix.
   One shared compiler+LSP selectedbuild,explicitbothpackages+samefeatures,rootlibs
   buildcacheonlyNOTexecuted; whole rust_bridge/documentation_content/nullish_coalescing

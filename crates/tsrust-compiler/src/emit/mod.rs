@@ -7320,7 +7320,8 @@ impl Emitter<'_> {
             let _=write!(code,"for spread_index in spread_part{part}.key_order{{let output=match spread_index{{{arms}_=>continue}};if !spread_seen[output]{{spread_seen[output]=true;spread_order[spread_next]=output;spread_next+=1;}}}}");
         }
         let fields=self.program.records[result].fields.iter().enumerate().map(|(index,definition)|{let (part,field)=last[&definition.name.text];let Type::Record(source)=args[part].ty.expect("checked spread part") else{unreachable!()};let copied=format!("spread_part{part}.field{field}");let adapted=self.element_alternative(self.program.records[source].fields[field].ty.expect("checked source field"),definition.ty.expect("checked result field"),&copied);format!("field{index}:{adapted}")}).collect::<Vec<_>>().join(",");
-        let _=write!(code,"Record{result}{{{fields}{}key_order:spread_order}}}}",if fields.is_empty(){""}else{","});code
+        let declaration=self.native_record_declaration(result);
+        let _=write!(code,"Record{declaration}{{{fields}{}key_order:spread_order}}}}",if fields.is_empty(){""}else{","});code
     }
 
     fn clone_argument(&self, fun: &CheckedFunction, value: &Expr) -> String {

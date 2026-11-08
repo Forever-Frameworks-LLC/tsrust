@@ -133,6 +133,13 @@ mod tests {
         let Type::StoredCallable(scoped)=scoped else {unreachable!()};
         let holder=checked.scoped_records.materialize(1,vec![Type::StoredCallable(scoped),Type::Int],&mut checked.records);
         let emitter=emitter_for(&checked,"");
+        // The concrete field layout is specialized, but its Rust constructor is
+        // emitted under the existing generic nominal declaration.
+        let declaration=emitter.native_record_declaration(holder);assert_ne!(holder,declaration);
+        let mut part=crate::syntax::Expr::new(crate::syntax::ExprKind::Name("input".into()),crate::Span::default());part.ty=Some(Type::Record(holder));
+        let spread=emitter.object_spread_value_with(holder,&[part],vec!["input".into()]);
+        assert!(spread.contains(&format!("Record{declaration}{{")),"{spread}");assert!(!spread.contains(&format!("Record{holder}{{")),"Specialized declaration must not be constructed: {spread}");
+        assert_eq!(spread.matches("let spread_part0=input;").count(),1);assert!(spread.contains("key_order:spread_order"));
         let mut inputs=BTreeMap::new();let mut returns=Vec::new();let mut names=Vec::new();
         for alternative in &layout.alternatives {
             for slot in &alternative.slots {

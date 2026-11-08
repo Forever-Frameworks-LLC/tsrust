@@ -1661,7 +1661,7 @@ Backend: extend existing adapter machinery and use pinned rustdoc JSON for
 discovery, with the existing source parser as a defined fallback. B00/B02;
 coordinate all shared compiler changes with B15's owner.
 
-- [ ] Support `Option<T>`, `Vec<String>`, `Vec<OwnedRecord>` and nested supported
+- [x] Support `Option<T>`, `Vec<String>`, `Vec<OwnedRecord>` and nested supported
   owned containers in explicit adapters, preserving exact values and moves.
 - [x] Explicit CLI generation from selected concrete synchronous crate exports:
   adapter source, Tsrust declarations, docs/hover and a skipped-item report.
@@ -1695,10 +1695,14 @@ scope above. The intentional compiler-owned regex backend's five accepted cases,
 including examples/stored calls and relocated offline export, are retained in
 `/tmp/tsrust-965de83f-full-integration.json`. Editor proof covers authored bridge
 contracts; it is not a separate Shlex-specific editor fixture.
-The first checkbox stays open: the older failed integration case
-`rust_bridge::owned_nested_options_strings_and_records_preserve_tags_buffers_and_drop`
-has no later successful receipt. Its old executable was pruned, so include it in
-the next meaningful integration build rather than rebuilding solely for one case.
+Nested tags, owned string containers and Drop now have actual current native
+acceptance: all8 compiler Rust-bridge cases pass in
+`/tmp/tsrust-final-ownership-acceptance-788f019d501b.json`, including
+`owned_nested_options_strings_and_records_preserve_tags_buffers_and_drop`.
+The same scope passes all8 bridge editor cases and all7 nullish cases. B19 API
+acceptance is complete; final platform/integration/measurement obligations remain
+separate. One documentation-content native example still fails, so the whole
+four-target scope is not a pass.
 
 ## Parallel execution and ownership
 
