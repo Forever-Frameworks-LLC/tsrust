@@ -6,6 +6,29 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Suite-time and catalog repairs — 2026-11-08 13:20 UTC
+
+- LSP test `Session::settle` now stops 50ms after every open document's current
+  version is published, keeping the old 900/400ms quiet window as fallback when a
+  version publication is not observed. Assertions are unchanged. Actual local
+  timings versus the 965de83f record: completion_matrix 341.5s (was 732s, 3 PASS),
+  editor_consistency 36.5s (was 234s, 38 PASS), intelligence 176.1s (was 570s),
+  checker_agreement 777.4s (unchanged 759s; not settle-bound, 6 PASS).
+- Catalog: 65 non-UI entries had verified `examples` but no documentation fence,
+  failing `backend_catalog_examples_match_native_output` at HttpClientOptions.ca.
+  Each now shows its first verified example, formatted by the current compiler,
+  with `Expected output:`. The test then PASSED alone in 679.3s.
+- OPEN regression found, not yet fixed: `contextual_generic_array_calls_keep_checked_parameter_and_result_help`
+  fails because `check` rejects
+  `function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}function main(){const values:number[]=identity([1,2]);const selected=first(identity([]),identity([7]));console.log(values.length,selected.length);}`
+  with `array-type: An empty array needs an array annotation or call/return context`
+  at `identity([])`. Sibling generic-argument context no longer reaches the nested
+  generic call. Candidate commits touching generic inference: 8b1d4e9f, 91428ba4,
+  e339008f (2026-11-07). Bisect or trace `generic_call_work.rs` parameter contexts.
+- C4 run 42480586761 at 3d6767c5: ARM and Linux SUCCESS, repairComplete true,
+  all 61 targets, zero failures (new passes 6/5; retained 546/552). Results
+  SHA prefixes 377d65d1f095 / 720c3bd41c0d. Intel/Windows pending at this entry.
+
 ### Resumed continuation — 2026-11-08 12:30 UTC
 
 Owner resumed the goal. Hosted run 42474075588 at a7795eea is terminal FAIL on all
