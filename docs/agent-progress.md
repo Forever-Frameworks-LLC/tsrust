@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpoint ddc61ed6; compiler/profile reuse and evidence-doc changes committed.
+Current checkpoint e05ed329; actual realtime timings ingested/checkpointed; full goal active.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0
@@ -63,7 +63,22 @@ Only root writes canonical; app worktree owner WIP stays protected.
   Buildpackage target/http-realtime-public-package nowclosed/disposable; controls
   and shareddeps retained. No indexing settings/path changes were made.
 - Harness6purechecksPASS,whole-project format0changes/diffclean beforeddc61ed6.
-- Then existing registered URL11 measurements/scaling; B17 logging_disabled public
+- URL session40300 terminalFAILED373.490s/507473608B beforetiming: first9
+  preparations/correctness passed;10th TypeScript querysnapshot lacksDOM.Iterable.
+  Fixed tsconfig declarationlib; affected tsc --noEmit PASS0.201s. Added finite
+  URL-only sealedprefix reuse to run.mjs, negativecompilerSHA rejectionPASS;
+  whole-project format0changes. Receipt /tmp/tsrust-url-prepared-prefix.json seals
+  compiler/input/generated/binarybytes and priorfailedscope; frontendregeneration
+  compares exactgeneratedsources before skippingcompilation. Remaining2prepare
+  normally; existing5-shape correctness and3x31timing loopsunchanged.
+  NEXT resume SAME original30minscope withreceipt; no timingingestclaimed.
+  Original /tmp/tsrust-url-family-measure.py: existing registered URL11
+  family, original3processx31samples/8warmups, native/Rust/Node firstcontrols,
+  explicit verifiedcompiler reuse. Fixed30min/5GB/jobs1/incremental0, actualingest
+  only afterall11pass. No URL measurement/ingestion claimed yet.
+- Realtime closed-package cleanup /tmp/tsrust-b11-closed-package-cleanup.json
+  recovered773849088B actual newly materialized vendor output; controls retained.
+- Next after URL: B17 logging_disabled public
   allocation profile (existing driver, separate setup/event costs). Remaining
   B00 ledger/package/platform, B19nested integration, B20 apps/final regression/
   platform/measurements/release acceptance stay open. Integrated persistent API

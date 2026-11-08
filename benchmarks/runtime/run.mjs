@@ -260,6 +260,32 @@ const engines = (id) => [
 ].filter(engine=>plan.engineIDs.includes(engine.id)&&(engine.id!=='rust-hand'||fs.existsSync(path.join(here,handReferenceSource(id)))));
 const compilation = [], execution = [], sources = [], handSources = new Map();
 const approximateReferences=new Map(),approximateProbes=new Map(),approximateCorrectness=[];
+// Explicit recovery of the already-built URL prefix after an interrupted preparation.
+const preparedFile=process.env.TSRUST_BENCH_PREPARED;
+const prepared=preparedFile?JSON.parse(fs.readFileSync(preparedFile,'utf8')):null;
+if(prepared){
+ if(plan.compilation||plan.startupSamples||plan.engineIDs.some(id=>!['native','rust-hand','node-tsc'].includes(id)))throw Error('Prepared reuse requires execution-only native/Rust/Node without startup');
+ if(prepared.compiler.path!==compiler||prepared.compiler.sha256!==hash(fs.readFileSync(compiler)))throw Error('Prepared compiler changed');
+ if(!prepared.previousScope?.path||hash(fs.readFileSync(prepared.previousScope.path))!==prepared.previousScope.sha256)throw Error('Prior failed scope evidence required');
+ if(!Array.isArray(prepared.workloads)||new Set(prepared.workloads.map(row=>row.id)).size!==prepared.workloads.length)throw Error('Invalid prepared prefix');
+ const ids=prepared.workloads.map(row=>row.id);if(ids.some((id,index)=>workloads[index]?.id!==id||workloads[index]?.family!=='native-url'))throw Error('Prepared reuse must name the exact URL workload prefix');
+}
+function reusePrepared(w){
+ const row=prepared?.workloads.find(row=>row.id===w.id);if(!row)return false;
+ const sourcePath=path.join(here,w.source??`workloads/${w.id}.tsr`),tsPath=path.join(here,w.counterpart??`workloads/${w.id}.ts`),handPath=path.join(here,handReferenceSource(w.id));
+ const required=[sourcePath,tsPath,handPath,...[`${w.id}.rs`,`${w.id}.ts`,`${w.id}.js`,w.id,`${w.id}-hand.rs`,`${w.id}-hand`].map(name=>path.join(build,name))];
+ if(!row.files)throw Error('Prepared input and binary evidence required');
+ for(const file of required)if(!row.files[file]||hash(fs.readFileSync(file))!==row.files[file])throw Error('Prepared artifact changed: '+file);
+ const source=fs.readFileSync(sourcePath,'utf8'),ts=fs.readFileSync(tsPath,'utf8'),hand=fs.readFileSync(handPath,'utf8');
+ assertUrlSource(source,w,'native');assertUrlSource(ts,w,'typescript');
+ const emitted=run([compiler],['emit',sourcePath]).stdout;const abi=assertABI(emitted,w,{source});
+ const allocatorHeader=allocatorRlib?'#[global_allocator]\nstatic TSRUST_BENCH_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;\n':'';
+ const expectedNative=emitted.replace('fn main()','fn source_main()')+'\n'+adaptRustDriver(driverRS,w,{emitted,source})+'\n'+allocatorHeader;
+ const expectedHand=hand.replace('fn main()','fn source_main()')+'\n'+adaptRustDriver(driverRS,w,{emitted:hand,source,reference:true})+'\n'+allocatorHeader;
+ if(fs.readFileSync(path.join(build,w.id+'.rs'),'utf8')!==expectedNative||fs.readFileSync(path.join(build,w.id+'-hand.rs'),'utf8')!==expectedHand||fs.readFileSync(path.join(build,w.id+'.ts'),'utf8')!==ts+'\n'+adaptTSDriver(driverTS,w))throw Error('Prepared generated source no longer matches current inputs');
+ sources.push({id:w.id,tsrSha256:hash(source),tsSha256:hash(ts),emittedSha256:hash(emitted),instrumentedSha256:hash(expectedNative),workloadABI:abi,reusedPrepared:{receipt:preparedFile,receiptSha256:hash(fs.readFileSync(preparedFile)),files:row.files,previousScope:prepared.previousScope}});
+ handSources.set(w.id,{source:handReferenceSource(w.id),sha256:hash(hand)});return true;
+}
 function prepare(w) {
  const source = fs.readFileSync(path.join(here, w.source ?? `workloads/${w.id}.tsr`), 'utf8');
  const ts = fs.readFileSync(path.join(here, w.counterpart ?? `workloads/${w.id}.ts`), 'utf8');
@@ -536,7 +562,7 @@ function execute(engine, iterations, seed, warmups, samples, inputText, workload
 const references = new Map(), exactReferences = new Map(),compressionProbes=[];
 for (const w of workloads) {
  console.log(`Prepare and validate ${w.id}`);
- prepare(w);
+ if(!reusePrepared(w))prepare(w);
  if(w.family==='compression')for(const engine of engines(w.id)){const probe=execute(engine,-1,manifest.seed,0,1,undefined,w);compressionProbes.push(validateCompressionProbe(w,engine,probe,manifest.seed));}
  // Boundary shapes and alternate seeds, including full-size workload, on every engine.
  for (const [iterations, seed] of plan.correctnessCases(w.iterations)) {
