@@ -36,6 +36,21 @@ Current source05ea0131; compiler repair44a5e800 and attribution/export validatio
   export deleted. /tmp/tsrust-valuable-cli-build.json and
   /tmp/tsrust-valuable-export-result.json. JSfocused2tests remainPASS0.355s.
   No active Cargo/rustc processes at initial process inspection.
+- Current alias/feature assertions uncommitted: existing2 std:testing suites
+  extended, no newruntimeprograms. FrontendPASS both aftercorrecting testscalar
+  annotations/directall alias/voidmatchsyntax. Hostbuild4.715s/413991704B;
+  featureselection14rowsPASS1.564s; iteratorprivate/extractedmethodnegatives
+  PASS0.555s. /tmp/tsrust-alias-feature-acceptance.json.
+  Sharednative2filebuildFAIL10.462s/491208704B: generatedRustE0282, fresh
+  parameter default_owner0 physicalunion lacks type annotation for unreachable
+  callbackrecord alternative. /tmp/tsrust-alias-feature-acceptance-registered.err.
+  Repaironlysharedemitter defaultownerannotation, preserveallassertions/passed
+  hostchecks. Original900s aggregatebudget includes setup/resume; no fullreplay.
+- B00 pin/wiring checklist reconciled with current54 common direct manifest
+  declarations/lock identities, reserved-package regression and actual relocated
+  exports. Broader package admission, optional-selection/minimal-program footprint
+  and four-host acceptance remain open. Reuse already-passed regex/locale/process/
+  network/compression/hostname selection controls; do not replay their nativeapps.
 - Platform selector repair: all7 existing B01 filesystem targets now selected,
   46 intended integration targets/49 validated Cargo artifacts. Existing buffered
   backend harness includes actual fs.rs O0/O3 tests, including Windows exclusive

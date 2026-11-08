@@ -93,7 +93,7 @@ Primary implementation evidence:
   before fixing the public facade. Prefer std, existing backend packages and
   thin typed adapters. Never implement URL parsers, regex engines, crypto,
   compression or protocol state machines from scratch to avoid a dependency.
-- [ ] Pin compatible versions/features in both dependency closures and locks,
+- [x] Pin compatible versions/features in both dependency closures and locks,
   reserved-package inventory, reexports, cache identity and portable exports.
   A transitive dependency or UI-only feature is not public backend availability.
 - [ ] Prove feature selection: an unused module adds no unwanted dependency
@@ -102,6 +102,31 @@ Primary implementation evidence:
 - [x] Prepare a reusable bounded test runner/build-slot procedure for every
   execution host. Keep one Cargo target per host, incremental off, jobs=1,
   process-tree memory/time monitoring, and ownership of killed processes clear.
+
+B00 pin/feature evidence reconciliation: the native/backend direct dependency
+crosswalk in `backend-distribution-inventory.md` records all 54 shared exact pins,
+requested features and matching lock checksums; retained UI-only roots stay out of
+the backend graph. The current complete compiler-library pass includes
+`every_bundled_dependency_pin_is_reserved` (both binding schemas), runtime
+extraction/feature-marker and graph/cache-identity controls. Retained relocated
+empty-Cargo-home debug/release exports cover the new HTTP policies, realtime,
+logging and generated adapters; earlier regex/locale/process/codec exports remain
+separate passed evidence. This closes pin/selection wiring, not four-host package
+admission or the remaining feature-selection measurement requirement.
+
+Feature-selection evidence already includes passed `regex_feature_selection_follows_used_owners_and_calls`,
+`locale_dependency_activation_is_optional`,
+`unused_process_imports_and_error_data_do_not_activate_backend`,
+`address_only_and_unused_dns_do_not_activate_async_backend`,
+`unused_compression_import_has_no_runtime_activation`,
+`compression_and_network_activate_only_their_required_runtimes` and
+`unused_imports_and_std_only_observers_do_not_select_hostname`. The selected
+production-sync ICU admission also measured six same-source build/footprint
+controls: baseline 609800 bytes and all-service 2104184 bytes; these are direct-backend
+code-plus-data results, not a generated minimal-program size claim. Reuse these
+passed controls. The parent feature-selection row remains open for the remaining
+new-family unused-import checks and the current generated minimal-program
+build/size comparison, rather than replaying covered families.
 
 B00 named migration acceptance: the filesystem and HTTP ceilings listed above
 are removed or explicit opt-ins, with the selected backend's own constraints

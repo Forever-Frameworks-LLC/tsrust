@@ -1,4 +1,4 @@
-import { Iterator, IteratorResult } from 'std:iterator';
+import { Iterator, IteratorResult, Iterator as Sequence } from 'std:iterator';
 import { strictEqual, trackedResource, resourceId, releaseCount, liveCount, closeResource, TrackedResource } from 'std:testing';
 
 type Failure = {
@@ -206,6 +206,24 @@ export function runOwnedIteratorContracts(): void {
   strictEqual(releaseCount(failedTailId), 1);
   strictEqual(releaseCount(failedCaptureId), 1);
   strictEqual(liveCount(), before);
+  // Imported constructors and stored callbacks retain the same owned protocol.
+  const project: Owned<Function<int, [value: int]>> = (value: int): int => value * 2;
+  const select: Owned<Function<boolean, [value: int]>> = (value: int): boolean => value > 2;
+  const expand: Owned<Function<int[], [value: int]>> = (value: int): int[] => [value, value + 1];
+  const aliased = Sequence.from([1, 2, 3, 4]).map(project).filter(select).drop(1).take(1).flatMap(expand).toArray();
+  strictEqual(aliased.join(','), '6,7');
+  const sum: Owned<Function<int, [accumulator: int, value: int]>> = (accumulator: int, value: int): int => accumulator + value;
+  strictEqual(Sequence.from([2, 3]).reduce(sum, 1), 6);
+  const positive: Owned<Function<boolean, [value: int]>> = (value: int): boolean => value > 0;
+  strictEqual(Sequence.from([0, 1]).some(positive), true);
+  const nonnegative: Owned<Function<boolean, [value: int]>> = (value: int): boolean => value >= 0;
+  strictEqual(Sequence.from([0, 1]).every(nonnegative), true);
+  const find: Owned<Function<boolean, [value: int]>> = (value: int): boolean => value === 2;
+  strictEqual(Sequence.from([1, 2, 3]).find(find)!, 2);
+  const observe: Owned<Function<void, [value: int]>> = (value: int): void => {
+    strictEqual(value, 7);
+  };
+  Sequence.from([7]).forEach(observe);
   console.log('owned iterators passed');
 }
 

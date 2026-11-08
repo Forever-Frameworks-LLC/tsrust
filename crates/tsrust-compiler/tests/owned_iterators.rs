@@ -23,6 +23,8 @@ fn lazy_and_started_responsibilities_remain_visible_inside_iterator_state(){
 fn owned_iterator_catalog_examples_execute_and_hide_private_cursor(){
  iterator_catalog_examples::assert_sources();
  for source in [
+  "import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1]);const next=values.next;}",
+  "import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1]);const map=values.map;}",
   "import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1]);values._pull();}",
   "import {Iterator} from 'std:iterator';function __tsrust_private_iterator_next(source:Mutable<Iterator<int>>):void{source._pull();}function main(){const values=Iterator.from([1]);__tsrust_private_iterator_next(values);}",
   "import {Iterator} from 'std:iterator';function __tsrust_private_iterator_next(source:Mutable<Iterator<int>>):void{const pull=source._pull;}function main(){const values=Iterator.from([1]);__tsrust_private_iterator_next(values);}",

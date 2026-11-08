@@ -1,6 +1,7 @@
 import { strictEqual } from 'std:testing';
 import { Iterator } from 'std:iterator';
-import { all, Job } from 'std:futures';
+import { all, Job, all as gather, Interval as Timer, CancellationToken as Token, Channel as Mailbox } from 'std:futures';
+import { ThreadPool as Pool } from 'std:threads';
 async function value(): Task<int> {
   return 3;
 }
@@ -12,4 +13,52 @@ export async function run(): Task<void> {
     const observed1_0 = values.join(',');
     strictEqual(observed1_0, "3,3");
   }
+
+  // Imported aliases and stored factories use the same checked task contracts.
+  const collected = await gather([value(), value().start()]);
+  strictEqual(collected.join(','), '3,3');
+  const timer = new Timer(1);
+  const ticking = timer.tick();
+  await ticking;
+  const token = new Token();
+  const shared = token.share();
+  const child = token.child();
+  const waiting = child.cancelled();
+  shared.cancel();
+  await waiting;
+  strictEqual(token.isCancelled(), true);
+  strictEqual(child.isCancelled(), true);
+  const queue = new Mailbox<int>(1);
+  const sender = queue.sender();
+  const endpoint = sender;
+  unwrap(endpoint.trySend(7));
+  match (queue.trySend(9)) {
+    Ok(_) => {
+      throw 'full channel unexpectedly accepted a value';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'full');
+      strictEqual(error.value, 9);
+    }
+  }
+
+  strictEqual(unwrap(queue.tryReceive()), 7);
+  endpoint.close();
+  match (endpoint.trySend(11)) {
+    Ok(_) => {
+      throw 'closed sender unexpectedly accepted a value';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'closed');
+      strictEqual(error.value, 11);
+    }
+  }
+
+  const pool = new Pool({
+    workers: 1, capacity: 1
+  });
+  const work: Owned<Function<int>> = (): int => 7;
+  const pending = pool.taskAsync(work);
+  strictEqual(await pending, 7);
+  unwrap(pool.shutdown());
 }

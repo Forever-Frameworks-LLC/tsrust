@@ -176,3 +176,54 @@ function main(){
   assert_eq!(output.stdout,b"PASS exported\n1 passed, 0 failed, 0 skipped\n");
  }
 }
+
+
+#[test]
+fn new_optional_backends_follow_unused_imports_and_actual_value_or_type_uses() {
+    use tsrust_compiler::project::{FileSourceProvider,check_graph,load_project};
+    let emit=|name:&str,source:&str| {
+        let directory=support::TempDirectory::new();
+        let path=directory.source(&support::format_round_trip(source));
+        let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap_or_else(|error|panic!("{name}: {error:?}"));
+        let checked=check_graph(graph).unwrap_or_else(|error|panic!("{name}: {error:?}"));
+        checked.emit_rust_with_native_features()
+    };
+    // An import is not a value use. None of these cases evaluates an owner,
+    // declares a used opaque signature or binds a factory value.
+    for(name,source)in [
+        ("plain","function main(){console.log('plain');}"),
+        ("io","import {readAll,Reader} from 'std:io';function main(){console.log('plain');}"),
+        ("iterator","import {Iterator} from 'std:iterator';function main(){console.log('plain');}"),
+        ("cancellation","import {CancellationToken} from 'std:futures';function main(){console.log('plain');}"),
+        ("password","import {hashPassword,Hasher} from 'std:crypto';function main(){console.log('plain');}"),
+        ("websocket","import {connectWebSocket,WebSocketRead} from 'std:http';function main(){console.log('plain');}"),
+    ] {
+        let(rust,features)=emit(name,source);
+        assert!(features.is_empty(),"{name}: {features:?}");
+        assert!(!tsrust_compiler::native_runtime::separate(&rust).dependencies,"{name}");
+        for marker in ["mod tsrust_native_io {","enum TsrIteratorCursor<","mod tsrust_native_cancellation {","mod tsrust_native_crypto {","mod tsrust_native_crypto_password {","// tsrust-http-websocket-selected","mod tsrust_native_http {"] {
+            assert!(!rust.contains(marker),"{name}: unexpectedly selected {marker}");
+        }
+    }
+    // A used value or an opaque owner in an actual signature still needs its
+    // backend, even if no constructor executes. Ordinary crypto/HTTP must not
+    // silently select the independent password/WebSocket dependency families.
+    for(name,source,required,forbidden,marker)in [
+        ("ordinary crypto","import {sha256} from 'std:crypto';import {fromUtf8,length} from 'std:bytes';function main(){const digest=sha256(unwrap(fromUtf8('x')));console.log(length(digest));}",&["crypto"][..],&["crypto-password","http-websocket"][..],"mod tsrust_native_crypto {"),
+        ("used Hasher signature","import {Hasher} from 'std:crypto';function consume(state:Owned<Hasher>):void{}function main(){}",&["crypto"][..],&["crypto-password"][..],"mod tsrust_native_crypto {"),
+        ("password","import {hashPassword} from 'std:crypto';import {ThreadPool} from 'std:threads';import {fromUtf8} from 'std:bytes';async function main():Task<void>{const pool=new ThreadPool({workers:1,capacity:1});const encoded=unwrap(await hashPassword(pool,unwrap(fromUtf8('x')),{memoryKiB:32,iterations:1,parallelism:1}));console.log(encoded.length);unwrap(pool.shutdown());}",&["crypto-password","threads","async"][..],&["http-websocket"][..],"mod tsrust_native_crypto_password {"),
+        ("ordinary HTTP","import {App} from 'std:http';function main(){const app=new App();console.log('plain');}",&["http"][..],&["http-websocket","http-middleware","crypto-password"][..],"mod tsrust_native_http {"),
+        ("SSE","import {sse,SseEvent} from 'std:http';import {Channel} from 'std:futures';function main(){const events=new Channel<SseEvent>(1);events.close();const response=sse(events);console.log(response.status());}",&["http"][..],&["http-websocket","crypto-password"][..],"mod tsrust_native_http {"),
+        ("WebSocket","import {connectWebSocket} from 'std:http';async function main():Task<void>{const socket=await connectWebSocket('ws://127.0.0.1:1/');await socket.close();}",&["http-websocket"][..],&["crypto-password"][..],"// tsrust-http-websocket-selected"),
+        ("used socket signature","import {WebSocketRead} from 'std:http';async function inspect(socket:Mutable<WebSocketRead>):Task<void>{const message=await socket.receive();if(message!==undefined&&message.kind==='text'){console.log(message.data);}}function main(){}",&["http-websocket"][..],&["crypto-password"][..],"// tsrust-http-websocket-selected"),
+        ("cancellation value","import {CancellationToken} from 'std:futures';function main(){const token=new CancellationToken();console.log(token.isCancelled());}",&["cancellation"][..],&["crypto-password","http-websocket"][..],"mod tsrust_native_cancellation {"),
+    ] {
+        let(rust,features)=emit(name,source);
+        for feature in required {assert!(features.contains(feature),"{name}: missing {feature}: {features:?}");}
+        for feature in forbidden {assert!(!features.contains(feature),"{name}: unwanted {feature}: {features:?}");}
+        assert!(rust.contains(marker),"{name}: missing {marker}");
+        if forbidden.contains(&"crypto-password"){assert!(!rust.contains("mod tsrust_native_crypto_password {"),"{name}");}
+        if forbidden.contains(&"http-websocket"){assert!(!rust.contains("// tsrust-http-websocket-selected"),"{name}");}
+        assert!(tsrust_compiler::native_runtime::separate(&rust).dependencies,"{name}");
+    }
+}
