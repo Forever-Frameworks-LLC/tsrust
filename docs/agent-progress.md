@@ -6,9 +6,76 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-Current locally validated candidate follows f2f0838b; this checkpoint contains the accepted repairs below.
-Latest hosted source469e8bb3 failed native acceptance; focused repair remains pending.
+Current accepted base f46d7400; focused missing-support/build-cleanup repair now locally accepted; working-tree changes include actual113-group measurement ingestion, plan/progress metadata, build-helper cleanup and missing-support-file restoration.
+Hosted469e8bb3 failed; focused repair42470181942 atf46d7400 has failed Linux/Windows jobs; both Macs remain running.
 Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
+
+- Focused cache/build repair ACTUALPASS: exactpriorCargo featuregraph restored;
+  onecorrectedno-run31.080s/697811784B, terminalbuild-finished success.
+  CLI54PASS10.598s includingmissingfile/changedmetadata/symlinkcontrols;
+  registeredIO18EACHprofile+rawstdioPASS193.470s; shared55EACHprofile
+  PASS130.231s. /tmp/tsrust-partial-support-repair-corrected.json.
+  Existing compiler1544/LSP27/relocatedexportsremainaccepted; notrerun.
+- Rootmistakepreserved: firstrepaircommand omitted priorhttp-websocket/logging
+  features andstartedredundantcompilerlibraryrebuild. Stoppedownsupervisor77436
+  /Cargo77519, verifiedsettlement, thenusedEXACTpriorgraph. Bothattemptscharged
+  sameoriginal1770sdeadline, noreset. /tmp/tsrust-partial-support-wrong-features-stop.json.
+- Closed-outputcleanup removed791files343910222logicalbytes and recovered
+  361938944observedfreebytes: aborted/closedloosecodegenobjects plusobsolete
+  profilingbinaries/sources only. CurrentmanifestconsumersSHAverifiedunchanged;
+  sourcepacks/shareddeps/currentdiagnostics preserved. Togetherwithprior
+  8958775296B cleanup, observedrecoverythiscontinuation9320714240B.
+  /tmp/tsrust-measured-repair-closed-output-cleanup.json.
+- Allocation follow-up finished within ORIGINAL1770s deadline: native8
+  iterator/adapter probesPASS5.829s; fourRustallocationcontrolsPASS1.607s.
+  All3observations strictzero. Adaptercounts/bytes IDENTICALnative/Rust;
+  nested4095allocations/77805B, so no allocationvolumecause for7.00x timinggap.
+  /tmp/tsrust-post-allocation-gates.json and
+  benchmarks/runtime/diagnostics/2026-11-08T10-37-09-708Z-native-allocations.json.
+- Original37allocation scopeFAILED755.902s/588445688B atfirstpasswordprobe;
+  noownedprocessesremaining.25syncprobes passedbeforefailure. Strictpassword
+  rejection remains: recovered3samplesretain4376–4424B; matchedunchangedRust
+  control4264–4376B. Backendstate/retirement plausible, leak/eventualcleanup
+  unproved. Remaining3passwordallocationprobesunrun. Existingbinary-onlycounter
+  recovery26rowsPASS2.151s afterEXACTemission/instrumentedsourcecomparison;
+  initialrecoveryfailed .trim() mismatch BEFOREexecution, preserved.
+  /tmp/tsrust-crypto-allocation-counter-recovery-v2.json;
+  /tmp/tsrust-password-rust-allocation-control.json (4.299s scopedbuild/run).
+- B18native-only originalprotocolPASS fivecorrectnesscases perworkload then
+  8warmups/3processes/31samples, quietguardwaited forload<4. Native2groups93samples
+  ingestedONCE at2026-11-08T10:38:29.075Z; cachedRust/Nodecontrolsunchanged.
+  deepdata .011042ms versusprior .045500, 4.12xfaster/Rustgap1.53x. Collections
+  .137666ms versusprior .070750, regression1.95x; no deferredrecordstack in
+  emittedcollections, relevantMap/Set/NumericArray/helpersunchanged. Three
+  processmedians .146625/.137666/.100292 drift; actualcauseunproved. Do not
+  relabelregressionasnoise/pass orretimeunchangedcontrols. Planrecordsboth.
+- Partialcache restoration repair nowLOCALLYPASSED: underexisting
+  ownedworkspacelock restoresONLYmissingbasefiles; changedmetadata/symlinks
+  rejected beforemutation. Contextualvalidationerrors includeactualpath.
+  RemoteENOENTcachecauseremainshypothesisuntilcontextualreceipt. Loggingcold
+  releasecommandbudget300s afterobserved180s compilationtimeout; scope55min/job
+  60min unchanged. Nootherpassedexportsorbackendregressionsrestarted.
+- Windows build-helper cleanup repair is in source: only code0 selected-test
+  builds may terminate exact-owned background helpers and then require fresh
+  empty-tree inspection. Runtime/test scopes still fail on unsettled children;
+  no executable-name exception. buildCleanup preserves before/after evidence.
+  Existing Python platform suite now23PASS0.125s. Hosted behavior is notyetproved.
+- Public37 measurement ACTUALPASS219.179s/404946944B: all555 correctness
+  comparisons passed before timing; original8warmups/3processes/31samples,
+  quietguard enabled/systemallocator. Actual111 engine/workloadgroups93samples
+  ingested ONCE with npm run store:ingest; SQLite integrityok. Canonical minimal
+  histories timestamp2026-11-08T10:14:12.271Z. Preserve unchanged Rust/Nodecontrols.
+  Raw disposable benchmarks/runtime/results/2026-11-08T10-14-12-271Z.json;
+  /tmp/tsrust-current-public-37-measurements.json. B15/B16/B19 plan nowrecords
+  actualmedians, including nestedoption7.00x Rustgap andrandomInt8.22x Nodegap.
+- Allocation scope is CLOSED; no profiling/native process remains. See actual
+  rejected/password and completed iterator/adapter evidence above. Do not
+  restart25passed synchronous probes orremeasureunchangedRust/Nodecontrols.
+- Focused42470181942 actualLinuxfailure: IO2/task1 instantfailures; logging
+  scope319.804s endedwithunsettledchild. Windowsbuildcode0/748.391s blockedby
+  genuinecurrentMSVCvctipdescendant, notoldPIDreuse. No nativeWindowscase ran.
+  Artifacts /tmp/tsrust-repair-42470181942-{linux,windows}; agentsreviewlogs
+  sourceonly. Keepownership/cleanup assertions; no blankettelemetryexemption.
 
 - ACTUAL current compiler library1543PASS/0FAIL/8unchanged opt-ins ignored,
   96.406s/1352483320B. Current LSP library27PASS/0FAIL1.053s.
@@ -80,6 +147,18 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
   hashes, not a claimed measurement pass. No samples/SQLite rows were ingested.
   Attempts: /tmp/tsrust-public-iterator-crypto-adapter-{measurements,resume,final,
   password-repair}.json. Originaldeadline was never reset.
+- Historicallaunchrecord (nowcompletedabove): Newpublic37 firstactualtiming atf46d7400 afterrealcompilerdependency
+  repair. Existing29crypto preparednative/Rust/Node artifacts mustmatchNEWCLI
+  emission/ABI/sourcebefore reuse; all37×5cases×3engines nowpassedindependent
+  correctness before original8warmups/3processes/31samples began. No oldfailed
+  scope reset or fabricated samples. Original publicpreparation gate remains
+  incomplete; newsourcecandidate supportsall4pureRustadapterprograms.
+  /tmp/tsrust-current-public-37-measurements.json; ingestONLYsuccessfulactualrun.
+- Hostedfocusedrepair42470181942RUNNING atf46d7400, all4hosts; priorrun42460717406
+  isexplicitinput withfixed4resulthashes. Failed/missing/new/unreachedcasesand
+  reviewedforcedaffectedcontrols rerun; oldpasseskeeporiginal469identity.
+  https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/42470181942.
+  LatestprepushPRs/Dependabotempty; no duplicatefullCI/publicationdispatched.
 - Final focused host classifierPASS0.569s; crypto source/negative guards5PASS,
   platform budget/ownership/repair-evidence guards22PASS0.110s. Whole-project
   format0changes/tokenfingerprints0 anddiff-checkPASS beforecheckpoint.
@@ -94,7 +173,7 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
   Currentarchives/binaries/metadata/shareddeps preserved. Rootcache remainsat
   target/; do notpurge dependencygraphs ordelete swapfiles.
   /tmp/tsrust-platform-repair-{obsolete-artifact,loose-object}-cleanup.json.
-- Remotevalidation decision fornextsourcecheckpoint: local1544compiler/27LSP/
+- Priorf46 remotevalidation decision (supersededbyactualhostresultsabove): local1544compiler/27LSP/
  52CLI/4editorphases/IO18bothprofiles/rawstdio/pure+genuineRust/logging+realtime
   relocatedbothprofilesPASS. NativeWindowsstack/signal phases andcoldhosttimeouts
   remainunresolved. SmallestreviewedCI inputplatform_prior_run=42460717406 retains

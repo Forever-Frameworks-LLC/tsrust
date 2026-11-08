@@ -44,9 +44,42 @@ pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Resul
     result
 }
 
+/// Caller holds the compiler-owned native workspace lock. Cache restoration may
+/// preserve the directory while omitting generated source/configuration files.
+pub(crate) fn restore_missing(root:&Path,manifest:&str,lock:&str)->Result<(),String>{
+    let directories=[root.to_owned(),root.join("src"),root.join(".cargo")];
+    let normalized=tsrust_compiler::native_url_patch::normalize_manifest(manifest).map_err(|e|e.to_string())?;
+    let files=[("Cargo.toml",normalized.as_bytes(),false),("Cargo.lock",lock.as_bytes(),true),
+        ("src/lib.rs",include_bytes!("../../backend-dependencies/src/lib.rs").as_slice(),false),
+        (".cargo/config.toml",b"[net]\noffline = true\n".as_slice(),true)];
+    // Refuse changed metadata and links before restoring anything. The manifest
+    // and runtime source are subsequently written by the existing runtime builder.
+    for path in &directories{match fs::symlink_metadata(path){
+        Ok(meta) if !meta.file_type().is_symlink() && meta.is_dir()=>{},
+        Ok(_)=>return Err(format!("Shared backend support requires a regular directory: {}",path.display())),
+        Err(error) if error.kind()==std::io::ErrorKind::NotFound && path!=root=>{},
+        Err(error)=>return Err(format!("Cannot inspect shared backend support {}: {error}",path.display())),
+    }}
+    let mut missing=Vec::new();
+    for (name,bytes,exact) in files{let path=root.join(name);match fs::symlink_metadata(&path){
+        Ok(meta) if !meta.file_type().is_symlink() && meta.is_file()=>{
+            if exact && fs::read(&path).map_err(|e|format!("Cannot read shared backend support {}: {e}",path.display()))?!=bytes{
+                return Err(format!("Shared backend support metadata was modified; preserved it: {}",path.display()));
+            }
+        },
+        Ok(_)=>return Err(format!("Shared backend support requires a regular file: {}",path.display())),
+        Err(error) if error.kind()==std::io::ErrorKind::NotFound=>missing.push((path,bytes)),
+        Err(error)=>return Err(format!("Cannot inspect shared backend support {}: {error}",path.display())),
+    }}
+    for path in &directories[1..]{match fs::create_dir(path){Ok(())=>{},Err(e) if e.kind()==std::io::ErrorKind::AlreadyExists=>{},Err(e)=>return Err(format!("Cannot restore shared backend directory {}: {e}",path.display()))}}
+    for (path,bytes) in missing{use std::io::Write;fs::OpenOptions::new().write(true).create_new(true).open(&path)
+        .and_then(|mut file|file.write_all(bytes)).map_err(|e|format!("Cannot restore shared backend support {}: {e}",path.display()))?;}
+    Ok(())
+}
+
 pub(crate) fn validate(root: &Path, manifest:&str, lock: &str) -> Result<(), String> {
     for path in [root.to_owned(),root.join("src"),root.join(".cargo"),root.join("Cargo.toml"),root.join("Cargo.lock"),root.join("src/lib.rs"),root.join(".cargo/config.toml")] {
-        if fs::symlink_metadata(&path).map_err(|e|e.to_string())?.file_type().is_symlink() {
+        if fs::symlink_metadata(&path).map_err(|e|format!("Cannot inspect shared backend support {}: {e}",path.display()))?.file_type().is_symlink() {
             return Err(format!("Shared backend support cannot traverse a symlink: {}", path.display()));
         }
     }
@@ -128,4 +161,28 @@ pub(crate) fn application_identity(source: &str, root: &Path) -> Result<Option<S
 pub(crate) fn dependency_identity()-> &'static str {
  static VALUE:std::sync::OnceLock<String>=std::sync::OnceLock::new();
  VALUE.get_or_init(||tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY)).as_str()
+}
+
+#[cfg(test)] mod restoration_tests {
+    use super::*;
+    #[test] fn incomplete_owned_support_restores_missing_files_but_preserves_changed_metadata(){
+        let directory=crate::TempDirectory::new().unwrap();
+        let workspace=crate::native_workspace::Workspace::acquire(&directory.0,b"restore-missing-test",false).unwrap().unwrap();
+        let package=workspace.root.join("native-support");materialize_with(&package,MANIFEST,LOCK).unwrap();
+        let manifest=fs::read(package.join("Cargo.toml")).unwrap();
+        fs::remove_dir_all(package.join("src")).unwrap();fs::remove_dir_all(package.join(".cargo")).unwrap();fs::remove_file(package.join("Cargo.lock")).unwrap();
+        restore_missing(&package,MANIFEST,LOCK).unwrap();validate(&package,MANIFEST,LOCK).unwrap();
+        assert_eq!(fs::read(package.join("Cargo.toml")).unwrap(),manifest);
+        fs::write(package.join("Cargo.lock"),b"changed").unwrap();fs::remove_file(package.join("src/lib.rs")).unwrap();
+        assert!(restore_missing(&package,MANIFEST,LOCK).unwrap_err().contains("modified"));
+        assert_eq!(fs::read(package.join("Cargo.lock")).unwrap(),b"changed");assert!(!package.join("src/lib.rs").exists());
+        fs::write(package.join("Cargo.lock"),LOCK).unwrap();fs::write(package.join(".cargo/config.toml"),b"changed").unwrap();
+        assert!(restore_missing(&package,MANIFEST,LOCK).is_err());assert!(!package.join("src/lib.rs").exists());
+    }
+    #[cfg(unix)]
+    #[test] fn incomplete_support_does_not_follow_source_directory_symlinks(){
+        let directory=crate::TempDirectory::new().unwrap();let package=directory.0.join("native-support");materialize_with(&package,MANIFEST,LOCK).unwrap();
+        fs::remove_dir_all(package.join("src")).unwrap();std::os::unix::fs::symlink(&directory.0,package.join("src")).unwrap();
+        assert!(restore_missing(&package,MANIFEST,LOCK).is_err());assert!(!directory.0.join("lib.rs").exists());
+    }
 }

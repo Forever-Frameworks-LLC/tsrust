@@ -316,6 +316,23 @@ class PlatformAcceptance(unittest.TestCase):
         self.assertEqual(row["remaining"], [child])
         cleanup.assert_called_once()
 
+    def test_successful_build_cleanup_requires_fresh_empty_owned_tree(self):
+        class Finished:
+            pid = 10
+            returncode = 0
+            def poll(self):
+                return 0
+        child = {"pid": 11, "ppid": 10, "born": "2026-11-06T17:00:00.1234567Z", "name": "arbitrary-worker.exe", "bytes": 4096}
+        for after in [[], [child]]:
+            with tempfile.TemporaryDirectory() as directory, patch.object(RUNNER.time, "time", return_value=1793984400), patch.object(RUNNER.time, "time_ns", return_value=1793984400_000000000), patch.object(RUNNER.subprocess, "Popen", return_value=Finished()), patch.object(RUNNER, "process_rows", side_effect=[[child], after]), patch.object(RUNNER, "kill_owned") as cleanup:
+                row = RUNNER.bounded(["finished"], directory, os.environ.copy(), Path(directory) / "build", settle_build_children=True)
+            self.assertEqual(row["stop"], "unsettled child processes" if after else None)
+            self.assertEqual(row["buildCleanup"], {"before": [child], "after": after, "settled": not after})
+            self.assertEqual(row["remaining"], after)
+            self.assertTrue(cleanup.called)
+        source = (Path(__file__).resolve().parents[1] / "platform-acceptance.py").read_text()
+        self.assertIn('settle_build_children=label == "selected-tests-build"', source)
+
     def test_counter_failure_still_kills_and_joins_child(self):
         process = None
         original = subprocess.Popen

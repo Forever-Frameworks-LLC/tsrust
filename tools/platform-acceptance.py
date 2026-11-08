@@ -227,12 +227,13 @@ def kill_owned(process, seen):
     process.wait(timeout=20)
 
 
-def bounded(command, cwd, env, prefix, limit_seconds=1800, limit_bytes=5_000_000 * 1024):
+def bounded(command, cwd, env, prefix, limit_seconds=1800, limit_bytes=5_000_000 * 1024, settle_build_children=False):
     """A failed counter is a stop condition, never unbounded execution."""
     start = time.monotonic()
     peak = 0
     reason = None
     seen = {}
+    cleanup = None
     with prefix.with_suffix(".out").open("w") as out, prefix.with_suffix(".err").open("w") as err:
         options = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
         created_after = time.time_ns() // 100 * 100 if os.name == "nt" else int(time.time()) * 1_000_000_000
@@ -252,6 +253,17 @@ def bounded(command, cwd, env, prefix, limit_seconds=1800, limit_bytes=5_000_000
             remaining = owned_rows(rows, process.pid, created_after)
             remaining += [r for r in rows if r["pid"] in seen and r["born"] == seen[r["pid"]]["born"] and r not in remaining]
             remaining = [r for r in remaining if r["pid"] != process.pid]
+            if remaining and reason is None and process.returncode == 0 and settle_build_children:
+                # Build tools may intentionally leave helpers alive. This is cleanup,
+                # not an exemption: retain the evidence and require a fresh empty tree.
+                before = remaining
+                seen.update({r["pid"]: r for r in before})
+                kill_owned(process, seen)
+                rows = process_rows()
+                remaining = owned_rows(rows, process.pid, created_after)
+                remaining += [r for r in rows if r["pid"] in seen and r["born"] == seen[r["pid"]]["born"] and r not in remaining]
+                remaining = [r for r in remaining if r["pid"] != process.pid]
+                cleanup = {"before": before, "after": remaining, "settled": not remaining}
             if remaining and reason is None:
                 reason = "unsettled child processes"
             if reason:
@@ -261,7 +273,7 @@ def bounded(command, cwd, env, prefix, limit_seconds=1800, limit_bytes=5_000_000
             kill_owned(process, seen)
             raise
     return {"code": process.returncode, "stop": reason, "seconds": round(time.monotonic() - start, 3),
-            "rootPid": process.pid, "root": seen.get(process.pid), "remaining": remaining,
+            "rootPid": process.pid, "root": seen.get(process.pid), "remaining": remaining, "buildCleanup": cleanup,
             "peakBytes": peak, "stdout": str(prefix.with_suffix(".out")), "stderr": str(prefix.with_suffix(".err"))}
 
 
@@ -338,7 +350,7 @@ def main():
         prefix = destination / (label + "-" + str(time.time_ns()))
         try:
             print("START", label, flush=True)
-            row = bounded(command, cwd, env, prefix, limit_seconds=remaining_scope_seconds(deadline))
+            row = bounded(command, cwd, env, prefix, limit_seconds=remaining_scope_seconds(deadline), settle_build_children=label == "selected-tests-build")
             print(json.dumps({"label": label, **{key: row[key] for key in ["code", "stop", "seconds", "peakBytes"]}}), flush=True)
             frozen()
         except BaseException as error:

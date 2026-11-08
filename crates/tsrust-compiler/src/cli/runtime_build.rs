@@ -86,7 +86,10 @@ impl Prepared {
   if workspace.is_none() || !package.exists(){
    if shared{crate::backend_sources::materialize_with(&package,input_manifest,input_lock)?;}else{bundle::materialize(&package).map_err(|e|e.to_string())?;}
   }
-  if shared{crate::backend_sources::validate(&package,input_manifest,input_lock)?;}
+  if shared{
+   crate::backend_sources::restore_missing(&package,input_manifest,input_lock)?;
+   crate::backend_sources::validate(&package,input_manifest,input_lock).map_err(|e|format!("Validating native support workspace {}: {e}",package.display()))?;
+  }
   let manifest=package.join("Cargo.toml");
   let mut text=tsrust_compiler::native_url_patch::normalize_manifest(if shared{input_manifest}else{include_str!("../../native-dependencies/Cargo.toml")}).map_err(|e|e.to_string())?;
   text.push_str(&format!("\n[lib]\nname = {library_name:?}\n"));

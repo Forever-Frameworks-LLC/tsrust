@@ -1617,8 +1617,8 @@ all32 iterator cases. Native four-host acceptance remains separate.
 
 Engineering admission selected concrete inline owned pull environments and finite
 owned joins through existing callable carriers. The public implementation passes
-32 registered runtime cases and retained compiler/editor controls. Matched
-workload measurements and remaining platform/final-family acceptance remain pending.
+32 registered runtime cases and retained compiler/editor controls. The four matched
+workloads are now measured below; remaining platform/final-family acceptance is pending.
 
 - `Iterator.from<T>(values: T[]): Iterator<T>` consumes the owned array without
   cloning its elements. `next(): IteratorResult<T>` mutates the iterator and
@@ -1667,7 +1667,18 @@ cheap checking exposed callable-factory readiness through ordinary imported
 functions. Discovery/cached-specialization repairs and their controls are in
 source. All 32 registered iterator cases now pass in the shared 55-case public
 runner, with catalog output comparison and retained ownership/editor controls.
-Matched measurements and remaining platform/final-family acceptance remain open.
+Matched public measurements, 2026-11-08 at f46d7400: all four iterator workloads
+passed five independent input cases on native, handwritten Rust and Node after tsc.
+The original eight warmups, three processes and 31 samples produced 93 samples
+per engine/workload; all 12 groups were ingested into measurements.sqlite.
+Native/Rust/Node medians in milliseconds: map/filter/reduce
+0.409709/0.570833/6.245500; take/array 0.377959/0.521625/4.716334;
+flat-array 1.047375/1.224291/13.595417; flat-iterator
+1.057333/1.232167/18.581667. These results do not justify a new iterator
+representation. Three allocation observations per iterator workload now pass strict zero retention;
+map/filter/reduce and both flat chains allocate 2,000 times/1,536,000 bytes, while
+take/array allocates 4,000 times/2,048,000 bytes for the registered work. This
+includes authored input/output construction. Platform/final-family acceptance remains separate.
 
 ### B16 — Crypto and password primitives
 
@@ -1708,7 +1719,7 @@ delegate to the existing `task_async` pool. Retained task-runtime tests prove
 queued cancellation drops owners without invocation and running cancellation
 waits for actual work; current library pool cancellation controls also pass.
 This is shared-backend lifecycle evidence, not a password-specific cancellation
-probe. Matched measurements remain pending.
+probe. Matched measurements are recorded below.
 
 B00 crypto range migration accepted in focused scope (2026-11-06, source
 7bd0e3fb): `randomBytes(0)` returns empty bytes and counts above the former 1 MiB
@@ -1718,6 +1729,30 @@ Rust behavior. The runtime known-answer/range test, formatted native zero/large/
 negative witness, editor range documentation and existing service-help control
 all pass in the bounded 550.888-second affected run. This closes that existing
 API's range migration, not the new B16 primitive checklist or its measurements.
+
+Matched public crypto measurements, 2026-11-08 at f46d7400: all 29 workloads
+passed five independent input cases on all three engines before timing. The
+original eight warmups, three processes and 31 samples yielded 93 samples per
+engine/workload; all 87 groups were ingested into measurements.sqlite. The quiet
+machine guard remained enabled. Four password round trips measured native
+84.043958–84.725916ms against Rust 83.876166–84.939542ms, preserving the actual
+Argon2 parameters. Small SHA-256 streaming measured 0.609750ms versus Rust
+0.438500ms, a 1.39x gap; other digest/HMAC/HKDF cases remain separately visible
+in the database. randomInt measured 0.734875ms versus Rust 0.732042ms and Node
+0.089375ms: native follows the direct backend cost here, rather than matching
+Node's performance. Allocation diagnostics remain separate from throughput and
+security claims. Unchanged controls must be reused for subsequent compiler-only work.
+
+Crypto allocation review, 2026-11-08: the 25 synchronous probes pass three
+observations with strict zero retention. The first async password probe was
+rejected, with 4,376–4,424 bytes after drop; the original 755.902-second scope
+remains failed. An unchanged direct Rust control reports 4,264–4,376 bytes under
+the same warmed runtime/counting allocator, so retained backend state is not
+unique to generated Tsrust. This does not prove a leak or prove eventual cleanup.
+The zero-retention witness remains rejected; the other three password allocation
+probes remain unrun. Completed synchronous counters were recovered from existing
+binaries only after exact current emitted/instrumented-source comparison, with no
+native recompilation. No allocation diagnostics were ingested as timings.
 
 ### B17 — Structured logging and request context
 
@@ -1803,7 +1838,19 @@ and Node after tsc: 93 samples per engine/workload, original1024 iterations,
 Rust0.007208ms and Node0.351208ms exposes a6.31x Rust gap under investigation;
 deep-collections medians0.070750/0.113917/1.551625ms. Native allocation profiles
 completed; reference collection representations differ, so these are not allocator
-parity claims. Full regressions and the performance review remain open.
+parity claims. Native-only follow-up, 2026-11-08 at f46d7400, passed five
+independent correctness cases before the original eight warmups/three processes/
+31 samples. Two actual native groups were ingested; unchanged Rust/Node controls
+retain their original timestamp and 93 samples. Deep-data now measures 0.011042ms,
+4.12x faster than its prior native median and 1.53x the cached Rust median, after
+removing the unconditional initial record-work allocation. Deep-collections now
+measures 0.137666ms versus prior native 0.070750ms and cached Rust 0.113917ms.
+This is a material regression, not a pass hidden by the deep-data improvement.
+The collection workload emits no record work stack; its Map/Set/NumericArray
+runtime and assertion helpers are unchanged. New process medians drifted
+0.146625/0.137666/0.100292ms despite passing the quiet guard. No concrete algorithm,
+copy or scheduler cause has been established; retain both measured records and
+investigate before claiming the performance review complete. Full regressions remain open.
 
 ### B19 — Practical Rust package adapters
 
@@ -1854,6 +1901,22 @@ acceptance is complete; final platform/integration/measurement obligations remai
 separate. That original four-target scope retained a documentation-content failure;
 the later03ec4f13 repair passed the actual documentation native case in119.67seconds.
 This repairs the named failure without relabeling the original scope as a pass.
+
+Matched public Rust-owned adapter measurements, 2026-11-08 at f46d7400:
+four workloads passed five independent input cases on each engine; the original
+protocol produced 93 samples per engine/workload and all 12 groups were ingested.
+Native/Rust/Node medians in milliseconds: scalar 0.014125/0.014125/0.065584;
+strings 0.361333/0.269042/0.085166; records 0.273833/0.214959/0.098541;
+nested option 0.091834/0.013125/0.085959. The nested result has a material 7.00x
+Rust gap. Source inspection finds moved owned buffers and conversion to tagged
+unions/inline arrays, with no clone on this path. Allocation/elision causes were
+not established by source inspection; the matched counters below narrow the finding.
+Matched allocation diagnostics now establish identical native/Rust counts and
+requested bytes across all four adapters: scalar 0/0, strings 16,384/352,256,
+records 12,288/299,008 and nested option 4,095/77,805. All three observations per
+workload retain zero bytes. Allocation volume therefore does not explain the
+nested timing gap; generated control-flow/representation costs remain unquantified.
+No padded reference or representation rewrite is accepted to obscure this gap.
 
 ## Parallel execution and ownership
 
