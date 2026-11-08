@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpoint d07cd476; pending reviewed benchmark/profile and evidence-doc changes.
+Current checkpoint ddc61ed6; compiler/profile reuse and evidence-doc changes committed.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0
@@ -49,10 +49,20 @@ Only root writes canonical; app worktree owner WIP stays protected.
 - Existing coverage guide now lists245 added catalog namespace identities since
   preplan8efaaee21bcc;520 current backend namespace rows documented. This does NOT
   close receiver/source-only/per-overload/platform/default/advisory acceptance.
-- NEXT actual quiet B11 measurement prepared /tmp/tsrust-b11-fresh-public-native-measure.py
-  with accepted gate JSON above; old generated package now removed. Exact Rust/Node
-  control source seals/binary present match; original3x31x128protocol, strictquiet,
-  actual store:ingest only. No timing/SQLite ingestion claimed yet.
+- ACTUAL B11 native measurement/ingest PASS: /tmp/tsrust-b11-fresh-public-native-sourcepack-resume.json,
+  session24482 terminal0. First source-pack environment mistake failed1.288s before
+  build; correctedresume used target/portable-source-packs/SAME original30minbudget.
+  Emit14.153s,releasebuild130.698s/peak554713856B,publicprotocol198.282s/508788736B,
+  ingest0.539s. Resume344.550s; no quiet bypass. Strict guard waited for Spotlight
+  load13->below4, thenall6nativecases original3x31x128 +separate resourcepasses.
+  SQLite18workload/engine rows/history18; each93samples/11904latencies.
+  Native at2026-11-08T00:43:50.142Z, unchangedRust/Node at2026-11-07T10:50:14.417Z.
+  WSbatch/nativeRust ratio0.91–1.04,Node0.83–0.92; SSE slower1.12–1.20Rust/
+  1.06–1.10Node. DirectSSEbackendfloor lacks requiredpublicchannelproducerbridge;
+  no hiddencontractweakening/optimizationclaim. Actualstore:ingest Added18entries.
+  Buildpackage target/http-realtime-public-package nowclosed/disposable; controls
+  and shareddeps retained. No indexing settings/path changes were made.
+- Harness6purechecksPASS,whole-project format0changes/diffclean beforeddc61ed6.
 - Then existing registered URL11 measurements/scaling; B17 logging_disabled public
   allocation profile (existing driver, separate setup/event costs). Remaining
   B00 ledger/package/platform, B19nested integration, B20 apps/final regression/

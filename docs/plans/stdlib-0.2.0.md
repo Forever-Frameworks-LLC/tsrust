@@ -1099,8 +1099,8 @@ compiler/runtime, editor, reference documentation and an18-case registered
 isolated from ordinary HTTP/SSE. Runtime defaults follow Axum/Tungstenite; custom
 CA verification retains hostname/date checks. No reconnect or hidden queue.
 The matched public benchmark/control adapter passes its schema self-check and
-preserves unchanged controls' original identities/timestamps; no public timings
-are claimed. Initial family gates passed completion/help/reference/rejection
+preserves unchanged controls' original identities/timestamps; actual public timings
+are recorded below. Initial family gates passed completion/help/reference/rejection
 checks but found signature preparation, record context and transfer metadata
 failures. Those failures are repaired and the native acceptance below is complete.
 See docs/agent-progress.md for source identities and exact scope evidence.
@@ -1113,7 +1113,25 @@ frame/message limits, binary sizes and private-CA hostname/date checks execute
 successfully. Realtime and logging exports also pass relocated, offline, locked
 builds with an empty Cargo home at debug and release profiles, with unsafe code
 forbidden (/tmp/tsrust-upgrade-handoff-d970ae7bc9e7.json). Actual matched public
-measurements and cross-platform acceptance remain pending.
+measurements now pass below; cross-platform acceptance remains pending.
+
+Matched public measurement, 2026-11-07: all six SSE/text/binary cases at
+one/sixteen clients passed the original three-process,31-sample,128-request
+protocol and separate resource pass. Each case has93 measured batches and11904
+request latencies. `npm run store:ingest` recorded18 workload/engine rows
+(six native,twelve unchanged Rust/Node controls) with original control dates
+preserved. The actual native run is2026-11-08T00:43:50.142Z; cached controls remain
+2026-11-07T10:50:14.417Z. Whole measurement preparation/run/ingest completed within
+its original30-minute scope; no quiet-machine bypass. Evidence:
+`/tmp/tsrust-b11-fresh-public-native-sourcepack-resume.json` and the result named
+there; canonical minimal histories live in `benchmarks/measurements.sqlite`.
+Native WebSocket median batches are0.91–1.04 times direct Rust and0.83–0.92 times
+Node. SSE batches are1.12–1.20 times direct Rust and1.06–1.10 times Node; retain
+this measured cost rather than claiming parity. SSE latency is request through
+all six events, not individual dispatch latency. Resource rows record CPU/request
+and warmed process RSS; they are not heap-allocation or leak proofs. The public
+SSE channel/producer bridge remains semantically required; no backpressure or
+cleanup contract was weakened to match the direct-stream backend floor.
 
 ### B12 — Reusable regular expressions and text entry points
 
