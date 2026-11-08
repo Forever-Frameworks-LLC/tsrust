@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-Current accepted compiler/runtime checkpoint04f3df1f; only this progress/plan update is pending.
+Current accepted compiler/runtime checkpoint04f3df1f; generated consumer footprint evidence committed at5c3414e7.
 Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 
 - ACTUAL current compiler library1543PASS/0FAIL/8unchanged opt-ins ignored,
@@ -37,7 +37,7 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 - Complete runtimevariant factories reused by emission/dependency detection/
   extraction. Pure tests prove ONE runtime SCOPE/collector and actual selected
   modules, including async-only runners. No new dependencies or unsafe code.
-  Non-runner runtime hooks remain passthrough. console_async.rs isnew; stage it.
+  Non-runner runtime hooks remain passthrough. console_async.rs is committed at04f3df1f.
 - Repair failures preserved honestly: originalbuild160.956s failed NEWtesthelper
   unwrap on InputDiagnostic(noDebug); corrected to render API. Sharedbuild
   399.154s then3guardsPASS/1FAIL: test wrongly expected bindingfeatureasync;
@@ -69,6 +69,30 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
   Existingstable sources, sharedtarget/cache, no directcontrols/11sample replay,
   no sampled-benchmark/SQLite claim. Temporarybinaries/emittedscratch removed.
   /tmp/tsrust-generated-minimal-footprint.json. B00feature-selection row closed.
+- Remote validation decision: checkpoint includes only platform selector/CI/docs
+  changes after5c3414e7. Local runner tests17PASS0.092s, release-policy9PASS,
+  whole-project format0changes and diff-checkPASS. Hosted OS file/signal/process/
+  TLS/export behavior and55-minute expanded fit cannot be proved locally. Smallest
+  available workflow is CI platform_acceptance=true, four native hosts, no full
+  regression/benchmark/publication dispatch. Previous equivalent full platform
+  run42259225163 at7d67daf8 was cancelled;42279800898 is UDP-only supporting
+  timing, not platform acceptance. Current PRs/Dependabot empty and no live run.
+- Pending platform selection now includes45 compiler/16LSP targets (61 intended,
+  64 validated Cargo artifacts); existing shared55, crypto24 and regex catalog
+  programs are reused. No newly ignored tests or runtime benchmark replay. Fit
+  on four hosts remains unmeasured under the unchanged55-minute aggregate.
+- Full CI regression scope corrected to complete compiler/LSP lib/bin/integration
+  and doctests, per development-workflow.md. Removed duplicate frozen UI runs;
+  test threads3, jobs1/incremental0 unchanged. Job ceiling remains60minutes.
+- B00 historical prototype audit found real pre-facade evidence for B03,
+  B05–B17 and B19, with retained SSE semantics qualification. B01/B02 retained
+  receipts are incomplete; B04/B18 retained profiling is post-facade. Global
+  historical-order checkbox remains open; later measurements do not establish
+  earlier chronology. No speculative prototype rebuild was launched.
+- Defaults audit found no additional implicit v0.2 limits. Process spawn inherits
+  stdio; run pipes output and closes absent input, matching spawn/output modes.
+  Drop cleanup is an explicit documented ownership difference. Existing bounded
+  date-format/Decimal/threadpool contracts remain intentionally preserved.
 - NEXT: reconcile remaining B00contracts/
   defaults/feature clauses; final backend all-target/bin/doctest acceptance and
   FOURHOST native/package/install proof still pending. Check current PRs/

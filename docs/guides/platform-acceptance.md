@@ -16,7 +16,7 @@ host. Its success proves the selected Windows scope; retain the other hosts'
 separate evidence. Do not dispatch it on a ref with a live CI run: the workflow's
 ref concurrency policy would cancel that run.
 
-The finite selected scope includes 34 compiler integration targets and 12 LSP
+The finite selected scope includes 45 compiler integration targets and 16 LSP
 integration targets. All seven file targets are explicit: `std_fs`,
 `native_file_cleanup`, `native_full_files`, `native_file_writes`,
 `native_filesystem_utilities`, `native_buffered_files` and
@@ -29,14 +29,37 @@ come from the Windows native run, not a source inspection or non-Windows pass.
 The generated listener test in `service_sections` separately exercises real
 Windows SIGINT/SIGBREAK delivery through its owned console helper.
 
-One explicit selected-test Cargo invocation builds all 46 intended test targets and
+One explicit selected-test Cargo invocation builds all 61 intended test targets and
 the normal CLI/LSP consumers together. Cargo also emits three known same-name
-cross-package targets; artifact validation checks all 49 but executes only the 46
+cross-package targets; artifact validation checks all 64 but executes only the 61
 intended targets. Existing package/source/profile/uniqueness guards remain strict.
-No whole library harness is added. This is native I/O family acceptance, not final
-backend regressions or complete v0.2 acceptance. The extra file scopes' elapsed
+No whole library harness is added. This is focused native standard-library acceptance, not final
+backend regressions or complete v0.2 acceptance. The expanded scopes' elapsed
 cost still requires measurement within the unchanged 55-minute aggregate budget;
 exhaustion preserves completed cases and remains incomplete acceptance.
+
+The additional used-root targets are `url_values`, `url_features`, `regex_text`,
+`explicit_locale`, `crypto_primitives`, `structured_logging`, `realtime`,
+`owned_iterators`, `stdlib_completion`, `rust_adapter_generation` and `rust_bridge`.
+Focused LSP targets `url`, `crypto`, `structured_logging` and `rust_bridge` add
+corresponding editor contracts. The one Cargo invocation explicitly selects the
+compiler's existing `http-websocket` and `logging` features; SSE-only/ordinary HTTP
+activation controls remain in the tests. There are no newly ignored tests or
+benchmark runs in these targets.
+
+The existing shared55 runner supplies5 logging,18 realtime and32 iterator cases
+at both profiles without a duplicate native runner. Crypto retains its24-case
+paired suite; regex's18 catalog examples already share one program per profile.
+The selected Rust adapter target retains actual Shlex generation and relocated
+empty-Cargo-home builds, alongside nominal buffer/pointer controls. Existing
+setup fetches all three locked production graphs and the binding-test graph;
+Shlex2.0.1 is already in the production locks. No npm install or Node comparison
+packages are added. This does not add the broad compiler/LSP libraries, all
+integration targets, deep B18 runner regressions or the full editor matrix.
+The remaining locale, URL, collection smoke and adapter/export programs retain
+individual native application builds with the shared native cache. Total expanded
+four-host cost is unmeasured: a budget stop is incomplete acceptance, not permission
+to drop cases or resume the same oversized suite through serial hour-long chunks.
 
 The runner asserts the native Rust host and pinned Node version. Setup fetches
 locked dependencies explicitly; subsequent compilation and tests run offline and

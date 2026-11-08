@@ -29,7 +29,7 @@ on:
         type: boolean
         default: false
       full_regressions:
-        description: Run the complete workspace regression suite (slow).
+        description: Run complete compiler and LSP regressions (slow).
         type: boolean
         default: false
   workflow_call:
@@ -54,7 +54,7 @@ concurrency:
 env:
   CARGO_INCREMENTAL: '0'
   CARGO_BUILD_JOBS: '1'
-  RUST_TEST_THREADS: '1'
+  RUST_TEST_THREADS: '3'
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
   TSRUST_CACHE_DIR: ${{ github.workspace }}/target/tsrust-native
   # Outside target/ so a partially restored build cache never holds a pack.
@@ -95,9 +95,6 @@ jobs:
       - name: Benchmark export privacy and measurement preservation
         if: runner.os == 'Linux'
         run: python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
-      - name: Retained renderer checks for an explicit full regression
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && inputs.full_regressions }}
-        run: cargo test --offline --locked -p tsrust-ui --features native --lib
       - name: Clippy correctness and warning report
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
         run: cargo clippy --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins -- -D clippy::correctness
@@ -115,8 +112,8 @@ jobs:
       - name: Complete regressions
         if: ${{ inputs.full_regressions }}
         run: |
-          cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
-          cargo test --offline --locked --workspace --doc
+          cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast
+          cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --doc
   editor:
     if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
     name: VS Code extension

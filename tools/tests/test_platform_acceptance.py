@@ -48,11 +48,15 @@ class PlatformAcceptance(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         messages = []
         expected = {(package, name) for package, names in [("tsrust-compiler", RUNNER.COMPILER_TARGETS), ("tsrust-lsp", RUNNER.LSP_TARGETS)] for name in names}
-        self.assertEqual(len(expected), 46)
+        self.assertEqual(len(expected), 61)
         files = {"std_fs", "native_file_cleanup", "native_full_files", "native_file_writes", "native_filesystem_utilities", "native_buffered_files", "native_buffered_file_backend"}
         self.assertTrue({("tsrust-compiler", name) for name in files} <= expected)
+        compiler_roots = {'regex_text', 'realtime', 'structured_logging', 'url_features', 'crypto_primitives', 'url_values', 'stdlib_completion', 'explicit_locale', 'owned_iterators', 'rust_bridge', 'rust_adapter_generation'}
+        editor_roots = {'rust_bridge', 'crypto', 'structured_logging', 'url'}
+        self.assertTrue({("tsrust-compiler", name) for name in compiler_roots} <= expected)
+        self.assertTrue({("tsrust-lsp", name) for name in editor_roots} <= expected)
         selected = {(package, name) for package in ["tsrust-compiler", "tsrust-lsp"] for name in set(RUNNER.COMPILER_TARGETS + RUNNER.LSP_TARGETS) if (root / "crates" / package / "tests" / (name + ".rs")).is_file()}
-        self.assertEqual(len(selected), 49)
+        self.assertEqual(len(selected), 64)
         self.assertEqual(selected - expected, {("tsrust-compiler", "async_tasks"), ("tsrust-lsp", "http"), ("tsrust-lsp", "service_sections")})
         for package, name in sorted(selected):
             directory = root / "crates" / package
@@ -93,6 +97,7 @@ class PlatformAcceptance(unittest.TestCase):
         source = (root / "tools/platform-acceptance.py").read_text()
         self.assertEqual(source.count('"--no-run"'), 1)
         self.assertIn('selected_names = sorted(set(COMPILER_TARGETS + LSP_TARGETS))', source)
+        self.assertIn('"--features", "tsrust-compiler/http-websocket,tsrust-compiler/logging"', source)
         self.assertIn('binary = artifacts[(package, name)]', source)
         self.assertNotIn('"--tests"', source)
         self.assertNotIn('run("consumers"', source)
@@ -122,6 +127,15 @@ class PlatformAcceptance(unittest.TestCase):
             self.assertEqual(RUNNER.remaining_scope_seconds(200), 25)
             with self.assertRaisesRegex(TimeoutError, "55-minute end-to-end budget"):
                 RUNNER.remaining_scope_seconds(200)
+
+    def test_full_regressions_select_complete_backend_without_frozen_ui(self):
+        workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml").read_text()
+        full = workflow.split("      - name: Complete regressions\n", 1)[1].split("  editor:", 1)[0]
+        self.assertIn("-p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast", full)
+        self.assertIn("-p tsrust-compiler -p tsrust-lsp --doc", full)
+        self.assertNotIn("--workspace", full)
+        self.assertNotIn("cargo test --offline --locked -p tsrust-ui", workflow)
+        self.assertIn("  RUST_TEST_THREADS: '3'", workflow)
 
     def test_workflow_timeouts_never_exceed_one_hour(self):
         root = Path(__file__).resolve().parents[2]

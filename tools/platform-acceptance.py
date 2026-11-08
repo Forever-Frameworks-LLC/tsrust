@@ -22,10 +22,12 @@ byte_operation_export native_path native_path_relative path_env_os environment s
 async_io async_io_runtime task_runtime task_ergonomics native_channels
 native_threads native_threads_backend process process_runtime network_addresses
 network_address_runtime network_transport network_transport_runtime compression
-compression_runtime compression_streams_runtime http""".split()
+compression_runtime compression_streams_runtime http
+url_values url_features regex_text explicit_locale crypto_primitives structured_logging realtime owned_iterators stdlib_completion rust_adapter_generation rust_bridge""".split()
 LSP_TARGETS = """byte_operations byte_codecs native_file_catalog
 native_environment_catalog async_io async_tasks native_threads process
-network_addresses network_transport compression stdio""".split()
+network_addresses network_transport compression stdio
+url crypto structured_logging rust_bridge""".split()
 
 
 def selected_test_artifacts(messages, root):
@@ -266,7 +268,7 @@ def main():
         return row
     failures = []
     selected_names = sorted(set(COMPILER_TARGETS + LSP_TARGETS))
-    row = run("selected-tests-build", cargo + ["test", "--offline", "--locked", "-p", "tsrust-compiler", "-p", "tsrust-lsp", *[argument for name in selected_names for argument in ["--test", name]], "--no-run", "--message-format=json"])
+    row = run("selected-tests-build", cargo + ["test", "--offline", "--locked", "-p", "tsrust-compiler", "-p", "tsrust-lsp", "--features", "tsrust-compiler/http-websocket,tsrust-compiler/logging", *[argument for name in selected_names for argument in ["--test", name]], "--no-run", "--message-format=json"])
     if row["code"] != 0:
         results["failures"] = ["selected-tests::build"]
         save()
