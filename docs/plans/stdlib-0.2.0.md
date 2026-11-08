@@ -131,10 +131,13 @@ Axum0.8.9 `routing/path_router.rs::validate_path`, Matchit0.8.4
 Those paths do not impose Tsrust's 4096-byte route cap or 400-day cookie cap.
 Cookie serialization writes the nonnegative i64 as decimal text without duration
 or expiry-date conversion; header validation remains the final trust boundary.
-The focused range witness covers a 4097-byte route, exact 34560001/i64::MAX cookie
-headers and unchanged negative age/route syntax rejection. This new range change
-is source-only until its focused native/editor gates pass; global default-policy
-checkboxes remain unchecked.
+The accepted shared `examples/http-context/body-stream.test.tsr` suite covers a
+4097-byte route, exact 34560001/i64::MAX cookie headers and unchanged negative
+age/route syntax rejection. Its three native cases passed together through
+`http_context::contextual_body_stream_preserves_metadata_and_response_helpers`
+(58.71s including setup); related editor controls passed in the retained ownership
+family scope. This closes the focused range migration; broader per-export
+default-policy checkboxes remain unchecked.
 
 First-wave source preparation identified these concrete shared prerequisites;
 they are not completed implementation gates:

@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current accepted source44a5e800; attribution/export fix pending checkpoint. Full goal active.
+Current source05ea0131; compiler repair44a5e800 and attribution/export validation accepted locally. Full goal active.
 - ACTUAL PASS currentCLI publicfrontend declared/inferredfactory4controls plus
   genuineMissing_response error; originalservicefrontendPASS; inventoryPASS1680
   rows/671bindings/174types/43sourceexports/78retainedexamplewitnesses.
@@ -28,10 +28,19 @@ Current accepted source44a5e800; attribution/export fix pending checkpoint. Full
 - B00newpackageaudit vs8efaaee:30native/31backenddirectadditions,17alreadylocked;
   44newregistryidentities checksumverified;42activehaveexactretainedadmission;
   2dormant. Currentbackendlock0vulns/0warnings; optionalUI warnings remainexplicit.
-- One realnoticegap: valuable0.1.1archiveomitsLICENSE. Pendingpatch adds exact
-  upstreamMIT atitsrecordedcommit9efc29b6e58cef28f6566a47aa7e142a55fead77,
-  SHAed60d479...b44/1065B, outsidevendor/checksums. JSfocused2testsACTUALPASS0.355s;
-  RustCLIhelper andactualportableexportvalidation next. No corelibraryrebuildneeded.
+- Attribution/export05ea0131 ACTUAL PASS: existing CLI build26.545s/654639920B,
+  terminal Cargo build-finished success; focused CLI notice test1PASS/0FAIL1.092s.
+  Actual structured-logging portable export13.131s/57999960B, no native build:
+  exact upstreamMIT1065B/SHAed60d479...b44 at root attributions/dependencies/,
+  all23 vendored Valuable files match unchanged Cargo checksums; disposable
+  export deleted. /tmp/tsrust-valuable-cli-build.json and
+  /tmp/tsrust-valuable-export-result.json. JSfocused2tests remainPASS0.355s.
+  No active Cargo/rustc processes at initial process inspection.
+- Owner permits profiling/additional test methods. Existing public test --profile
+  separates check/emit/backend/cache/native build and per-case execution timings;
+  use stable std:testing suites and cache, not independent programs per case.
+  Single observations remain distinct from sampled benchmark claims. No new
+  profiling framework or repeated accepted app builds were added.
 - B20localintegratedapp rownowcompletedwithqualifiedMac evidence; nativefourhost/
   finalregressions/remainingB00review remainunchecked. Namedfs/HTTPdefaultmigrations
   documentedascompletedwithoutnarrowingparentcross-exportdefaultrequirement.
