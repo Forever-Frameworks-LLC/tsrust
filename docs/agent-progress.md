@@ -42,6 +42,20 @@ not the main goal. v0.2.0 merge/publication is still not approved.
 - Measurement gap found: 80 registered runtime workloads (75 B02 byte codec/
   operation, 5 B01 file) and 16 B10 upload/middleware HTTP rows have never been
   measured; HTTP request/CPU native pins date from 2026-11-04.
+- Measured (not yet ingested): all 80 runtime workloads verified (795s) and timed
+  at 3×31 on native/node-tsc/rust-hand, results
+  `benchmarks/runtime/results/2026-11-08T15-45-57-371Z.json` (36 codec) and
+  `…T15-56-53-554Z.json` (44 operation/file). NEXT: `npm run store:ingest` in
+  benchmarks/runtime, verify, add the runs to website/tools/performance-runs.json.
+- B10 upload reference fixed: the hand-written Rust server never compiled
+  (`form_urlencoded::Serializer` held across an await made `forward` non-Send).
+  The serializer is now scoped; manifest pin updated; guard PASS. NEXT: run
+  `--uploads --verify` then `--uploads --prepared`, the same for `--middleware`,
+  then the native-only requests/CPU refresh (scripts http-*.sh pattern in this
+  note's commands), ingest, update pins.
+- C6 focused platform run 42494556962 at 3972fa49 dispatched (later chain
+  42480586761 42485215015). Review all four artifacts when terminal; then
+  dispatch `full_regressions=true` (eight shards) — same-ref runs cancel each other.
 
 ### C4 review and C5 dispatch — 2026-11-08 13:45 UTC
 
