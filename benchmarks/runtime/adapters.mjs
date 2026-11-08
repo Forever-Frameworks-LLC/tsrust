@@ -164,7 +164,7 @@ export function adaptRustDriver(driver, workload, {probe = false,emitted,source,
   if (probe) driver = driver.replace('std::hint::black_box(7)))', `std::hint::black_box(7)${argumentsCode}))`);
   else driver = driver.replaceAll('std::hint::black_box(seed),', `std::hint::black_box(seed)${argumentsCode},`);
  }
- if (emitted !== undefined && !(reference&&workload.family==='network-addresses') && !isCopying(workload) && !isRange(workload) && !isHigher(workload) && !isDeclared(workload) && !isConcat(workload) && !isReduction(workload)) {
+ if (emitted !== undefined && !(reference&&['network-addresses','structured-logging'].includes(workload.family)) && !isCopying(workload) && !isRange(workload) && !isHigher(workload) && !isDeclared(workload) && !isConcat(workload) && !isReduction(workload)) {
   const {functionName,parameters,result,fallible} = ordinaryWorkloadBinding(emitted, workload, source);
   if(fallible){
    const args=parameters.split(', ').map(parameter=>parameter.split(':')[0]).join(',');

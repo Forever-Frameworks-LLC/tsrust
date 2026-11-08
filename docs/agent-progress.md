@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpoint e05ed329; actual realtime timings ingested/checkpointed; full goal active.
+Current checkpoint3afcf3fe; actual URL+realtime timings ingested; pending logging adapter/docs repair.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0
@@ -79,7 +79,19 @@ Only root writes canonical; app worktree owner WIP stays protected.
   Generalnative/Rust components/query/setters1.06/0.92/0.96;Node0.66/0.71/0.12.
 - Realtime closed-package cleanup /tmp/tsrust-b11-closed-package-cleanup.json
   recovered773849088B actual newly materialized vendor output; controls retained.
-- NEXT B17: B17 logging_disabled public
+- B17 disabled-event allocation proofACTUAL: original profilebuilt30.313s then
+  FAILED genericzero-retention validation. SAMEcompiledbinary,3freshprocesses
+  eachn0/1/32/1024 all6alloc/0realloc/33656requested+peak/776retained+afterDrop.
+  /tmp/tsrust-disabled-logging-first-call-counts.json +source/binaryseals in
+  /tmp/tsrust-logging-family-resume.json. Independentchecksums +factoryneverinvoke;
+  eventincrement0. B17checkboxclosednarrowly; NOT zero-whole-workloadretention/
+  leakproof. Genericprofileassertunchanged/explicitlyFAILED, no probe rebuild.
+- Matched logging3 firstattempt stopped32.924s at handwrittenRust ABI adaptation,
+  beforetiming. Preserveauthored fnfunction0(n:i64,seed:i64) source/hash unchanged;
+  reuseexistingreferenceexception pattern with explicitguard, nativeABI staysstrict.
+  Focusedpure4PASS,format0changes. Resume SAME original30minscope aftercheckpoint;
+  currentCLI/compilerRust unchanged. No logging timings/ingest claimed.
+- NEXT B17timing: B17 logging_disabled public
   allocation profile (existing driver, separate setup/event costs). Remaining
   B00 ledger/package/platform, B19nested integration, B20 apps/final regression/
   platform/measurements/release acceptance stay open. Integrated persistent API

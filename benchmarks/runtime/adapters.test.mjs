@@ -73,3 +73,13 @@ test('logging allocation drivers preserve checked scalar Result ABI',()=>{
  assert.match(driver,/unexpected checked error/);
  assert.throws(()=>assertABI(emitted.replace('Result<i64,','Result<f64,'),workload),/Emitter ABI changed/);
 });
+
+
+test('logging handwritten controls keep their authored scalar ABI',()=>{
+ const workload={id:'logging_disabled',family:'structured-logging',result:'int'};
+ const hand='fn function0(n:i64,seed:i64)->i64{n+seed}fn main(){}';
+ const driver=adaptRustDriver(probeDriver,workload,{probe:true,emitted:hand,reference:true});
+ assert.match(driver,/function0\(/);
+ assert.doesNotMatch(driver,/benchmark_checked_workload/);
+ assert.throws(()=>adaptRustDriver(probeDriver,workload,{probe:true,emitted:hand}),/Emitter ABI changed/);
+});

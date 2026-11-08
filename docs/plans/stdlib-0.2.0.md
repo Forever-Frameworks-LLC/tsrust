@@ -1580,7 +1580,7 @@ Backend: tracing plus selected tracing-subscriber JSON formatting. B06/B10.
   elapsed time; no automatic body/credentials/query logging.
 - [x] Context follows async work without holding entered span guards over awaits;
   concurrent requests cannot inherit each other's fields.
-- [ ] Disabled logging avoids message formatting/allocation. Preserve console.
+- [x] Disabled logging avoids message formatting/allocation. Preserve console.
 
 Witnesses: JSON/escaping/filtering, nested/concurrent contexts, error redaction
 and bounded sink cleanup. Performance: disabled events, formatting-only and
@@ -1600,6 +1600,19 @@ Relocated logging exports pass at debug and release profiles with an empty Cargo
 home and offline locked builds (/tmp/tsrust-upgrade-handoff-d970ae7bc9e7.json).
 Matched measurements and disabled-event allocation proof remain pending. See
 agent-progress.md for exact source identities.
+
+Disabled-event allocation acceptance, 2026-11-07: one existing public
+`logging_disabled` instrumented executable was reused at0/1/32/1024 events,
+three fresh processes each. Every run has6 allocations,0 reallocations,
+33656 requested/peak bytes and776 first-call retained bytes. Thus the measured
+increment versus zero events is zero; the shared55 runner independently proves
+lazy factory non-invocation and preserves console behavior. Whole logger setup
+is not allocation-free. The existing generic profiler rejected nonzero retained
+bytes and remains failed; this differential diagnostic does not retroactively
+pass that assertion or prove leak freedom. Raw diagnostic:
+`/tmp/tsrust-disabled-logging-first-call-counts.json`; source/binary seals and
+comparison live in `/tmp/tsrust-logging-family-resume.json`. Matched whole-pipeline
+logging timings remain pending; no allocation observations were ingested as timing.
 
 ### B18 — Everyday testing facilities
 

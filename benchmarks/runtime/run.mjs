@@ -495,6 +495,7 @@ function prepare(w) {
   const hand = fs.readFileSync(handSourcePath, 'utf8');
   if(w.family==='network-addresses')assertNetworkAddressReference(hand,w);
   if(w.family==='crypto-primitives')assertCryptoReference(hand,w);
+  if(w.family==='structured-logging')assertLoggingSource(hand,w,'rust-hand');
   fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source, reference:true}) + '\n' + allocatorHeader);
   // Explicit reference closures replace generated-program bindings for the same crates.
   run([...rustc, ...(referenceDependencies.args.length ? referenceDependencies.args : nativeDependencies.args), ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
