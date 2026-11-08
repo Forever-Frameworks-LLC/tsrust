@@ -6,6 +6,31 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### C4 review and C5 dispatch — 2026-11-08 13:45 UTC
+
+- C4 42480586761 at 3d6767c5 terminal: ARM and Linux repairComplete=true (all 61
+  targets, zero failures). Windows reached all 61 targets with 118 new passes;
+  remaining failures: the real SIGINT delivery witness and LSP async_tasks/
+  native_threads/rust_bridge. Intel reached 41 targets, 17 new passes, then scope
+  stop. All four results sealed in `LATER_RUNS` (Linux 720c3bd4…, ARM 377d65d1…,
+  Intel 13a54555…, Windows e14c5b60…).
+- Windows SIGINT root cause: the runner started test binaries with
+  `CREATE_NEW_PROCESS_GROUP`, so every descendant inherited "ignore Ctrl+C" and the
+  generated listener could never observe CTRL_C. Windows cleanup never used the
+  group (owned handle plus exact PID/birth rows), so the flag is removed on
+  Windows; POSIX sessions are unchanged. Guard test added.
+- Windows LSP failures: tests used Unix-only absolute ids (`/async/main.tsr`,
+  `file:///…`). The three files now derive ids from host-absolute URIs (Windows
+  gains `C:`), unchanged on Unix; local async_tasks 30+3, native_threads 18+12,
+  rust_bridge 8+8, service_sections 3+3 PASS (96.8s).
+- Intel root cause: the compiler test harness counted time spent waiting for the
+  serialized heavy-build lock against each command's own timeout (180s). The
+  command budget now starts after the lock is held; the wait has its own 1800s
+  bound. Platform scope 55 min/job 60 min are unchanged.
+- Runner: ordered `LATER_RUNS` chain (`--later-repair-plan`, workflow input
+  `platform_later_prior_runs`) requires every earlier seal unchanged. Python 27 PASS.
+- Next: push and dispatch C5 with prior/second/third plus later 42480586761.
+
 ### Suite-time and catalog repairs — 2026-11-08 13:20 UTC
 
 - LSP test `Session::settle` now stops 50ms after every open document's current

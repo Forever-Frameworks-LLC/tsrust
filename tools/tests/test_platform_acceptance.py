@@ -350,6 +350,27 @@ class PlatformAcceptance(unittest.TestCase):
         self.assertEqual(run.call_count, 1)
         self.assertEqual(run.call_args.args[0], ["taskkill", "/PID", "11", "/F"])
 
+    def test_later_repair_requires_every_earlier_seal_in_order(self):
+        host = "x86_64-pc-windows-msvc"
+        later = {"run": "1", "checkpoint": "later", "results": {host: "sealed"}}
+        with tempfile.TemporaryDirectory() as temporary, patch.object(RUNNER, "LATER_RUNS", [later]), patch.object(RUNNER, "sha", return_value="sealed"):
+            path = Path(temporary) / "results.json"
+            evidence = {"host": host, "checkpoint": "later", **{key: value for key, value in RUNNER.earlier_seals(host, 0).items() if key != "laterRetainedEvidence"}}
+            path.write_text(json.dumps(evidence))
+            self.assertEqual(RUNNER.later_repair_plan(path, host, 0), evidence)
+            evidence["thirdRetainedEvidence"]["run"] = "unreviewed"
+            path.write_text(json.dumps(evidence))
+            with self.assertRaises(AssertionError):
+                RUNNER.later_repair_plan(path, host, 0)
+            with self.assertRaises(AssertionError):
+                RUNNER.later_repair_plan(path, "aarch64-apple-darwin", 0)
+
+    def test_windows_children_keep_ctrl_c_inheritance(self):
+        # A new process group makes descendants ignore Ctrl+C, hiding signal delivery.
+        source = (Path(__file__).resolve().parents[1] / "platform-acceptance.py").read_text()
+        self.assertIn('options = {} if os.name == "nt" else {"start_new_session": True}', source)
+        self.assertNotIn("subprocess.CREATE_NEW_PROCESS_GROUP", source)
+
     def test_timeout_kills_and_joins_the_owned_child(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(RUNNER, "process_rows", return_value=[]):
             row = RUNNER.bounded([sys.executable, "-c", "import time; time.sleep(60)"], directory, os.environ.copy(), Path(directory) / "timeout", limit_seconds=0)

@@ -96,19 +96,22 @@ pub fn is_heavy_build(command: &Command) -> bool {
 
 /// Preserve the old harness's timeouts without adding runtime dependencies.
 pub fn run(command: &mut Command, seconds: u64) -> Output {
-    let start = Instant::now();
+    // Waiting behind another serialized build is not this command's runtime:
+    // its own budget starts once it holds the lock. The wait has a separate bound.
+    let waiting = Instant::now();
     let _build_guard = if is_heavy_build(command) {
         Some(loop {
             match HEAVY_BUILD.try_lock() {
                 Ok(guard) => break guard,
                 Err(std::sync::TryLockError::Poisoned(error)) => break error.into_inner(),
                 Err(std::sync::TryLockError::WouldBlock) => {
-                    assert!(start.elapsed() < Duration::from_secs(seconds), "Test process exceeded {seconds}s waiting for serialized build: {command:?}");
+                    assert!(waiting.elapsed() < Duration::from_secs(1800), "Test process waited 1800s for a serialized build: {command:?}");
                     std::thread::sleep(Duration::from_millis(5));
                 }
             }
         })
     } else { None };
+    let start = Instant::now();
     let mut child = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

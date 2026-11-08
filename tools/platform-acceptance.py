@@ -92,6 +92,37 @@ def third_repair_plan(path, host):
     return prior
 
 
+# Reviewed later runs in order; each must carry every earlier seal unchanged.
+LATER_RUNS = [
+    {"run": "42480586761", "checkpoint": "3d6767c53984f81eddca9b8770d81b64f654975c", "results": {
+        "x86_64-unknown-linux-gnu": "720c3bd41c0d1fc70e30d160d93acfe18f0795cd0eca56122a8489c3a1704e9d",
+        "aarch64-apple-darwin": "377d65d1f09567c6c672ddd6992d0b9f97346d5518277f6db33be2ed29948d9a",
+        "x86_64-apple-darwin": "13a54555998dde8b60f5110343872b9cfc21c34b72f9b876c98e1668094c3d8a",
+        "x86_64-pc-windows-msvc": "e14c5b60e82c26af3b7076706a8120c457ad02282f57d6bd160d83dce9b55b58",
+    }},
+]
+
+
+def earlier_seals(host, count):
+    return {"retainedEvidence": {"checkpoint": REPAIR_CHECKPOINT, "resultsSha256": REPAIR_RESULTS[host], "run": "42460717406"},
+            "secondRetainedEvidence": {"checkpoint": SECOND_CHECKPOINT, "resultsSha256": SECOND_RESULTS[host], "run": "42470181942"},
+            "thirdRetainedEvidence": {"checkpoint": THIRD_CHECKPOINT, "resultsSha256": THIRD_RESULTS[host], "run": "42474075588"},
+            "laterRetainedEvidence": [{"checkpoint": later["checkpoint"], "resultsSha256": later["results"][host], "run": later["run"]} for later in LATER_RUNS[:count]]}
+
+
+def later_repair_plan(path, host, index):
+    later = LATER_RUNS[index]
+    paths = list(Path(path).rglob("results.json")) if Path(path).is_dir() else [Path(path)]
+    assert len(paths) == 1, "Expected one later-run host result"
+    assert host in later["results"], "Later-run host evidence not yet reviewed"
+    assert sha(paths[0]) == later["results"][host], "Later artifact results changed"
+    prior = json.loads(paths[0].read_text())
+    assert prior["host"] == host and prior["checkpoint"] == later["checkpoint"]
+    for key, value in earlier_seals(host, index).items():
+        assert prior.get(key, []) == value, f"Later run {later['run']} changed {key}"
+    return prior
+
+
 def own_passes(prior, key, names, checkpoint):
     previous = prior.get("targets", {}).get(key, {})
     if not previous:
@@ -296,7 +327,10 @@ def bounded(command, cwd, env, prefix, limit_seconds=1800, limit_bytes=5_000_000
     seen = {}
     cleanup = None
     with prefix.with_suffix(".out").open("w") as out, prefix.with_suffix(".err").open("w") as err:
-        options = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
+        # A new Windows process group would make every descendant inherit
+        # "ignore Ctrl+C", hiding real console-signal delivery. Windows cleanup
+        # uses the owned handle and exact PID/birth rows, not a group.
+        options = {} if os.name == "nt" else {"start_new_session": True}
         created_after = time.time_ns() // 100 * 100 if os.name == "nt" else int(time.time()) * 1_000_000_000
         process = subprocess.Popen(command, cwd=cwd, env=env, stdout=out, stderr=err, **options)
         try:
@@ -374,12 +408,15 @@ def main():
     parser.add_argument("--repair-plan", help="Prior run 42460717406 host artifact results JSON or directory; focused repair only")
     parser.add_argument("--second-repair-plan", help="Additional reviewed run 42470181942 artifact; requires first repair plan")
     parser.add_argument("--third-repair-plan", help="Additional reviewed run 42474075588 artifact; requires second repair plan")
+    parser.add_argument("--later-repair-plan", action="append", default=[], help="Reviewed later runs in LATER_RUNS order; requires third repair plan")
     args = parser.parse_args()
     prior = repair_plan(args.repair_plan, args.host) if args.repair_plan else None
     assert not args.second_repair_plan or prior, "Second evidence requires first evidence"
     second = second_repair_plan(args.second_repair_plan, args.host) if args.second_repair_plan else None
     assert not args.third_repair_plan or second, "Third evidence requires second evidence"
     third = third_repair_plan(args.third_repair_plan, args.host) if args.third_repair_plan else None
+    assert not args.later_repair_plan or third, "Later evidence requires third evidence"
+    later = [later_repair_plan(path, args.host, index) for index, path in enumerate(args.later_repair_plan)]
     root = Path(__file__).resolve().parent.parent
     target = root / "target"
     version = tomllib.loads((root / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
@@ -415,6 +452,8 @@ def main():
         results["secondRetainedEvidence"] = {"checkpoint": SECOND_CHECKPOINT, "resultsSha256": SECOND_RESULTS[args.host], "run": "42470181942"}
     if third:
         results["thirdRetainedEvidence"] = {"checkpoint": THIRD_CHECKPOINT, "resultsSha256": THIRD_RESULTS[args.host], "run": "42474075588"}
+    if later:
+        results["laterRetainedEvidence"] = earlier_seals(args.host, len(later))["laterRetainedEvidence"]
     def run(label, command, cwd=root):
         frozen()
         # Unique attempts preserve failed-scope evidence without overwriting logs.
@@ -470,6 +509,10 @@ def main():
                 third_cases = own_passes(third, key, names, THIRD_CHECKPOINT) - retained
                 results["targets"][key]["thirdRetained"] = {"identity": third.get("targets", {}).get(key, {}).get("identity"), "cases": sorted(third_cases)}
                 retained |= third_cases
+            for index, evidence in enumerate(later):
+                later_cases = own_passes(evidence, key, names, LATER_RUNS[index]["checkpoint"]) - retained
+                results["targets"][key].setdefault("laterRetained", []).append({"run": LATER_RUNS[index]["run"], "identity": evidence.get("targets", {}).get(key, {}).get("identity"), "cases": sorted(later_cases)})
+                retained |= later_cases
             pending = []
             for test in names:
                 if name == "service_sections" and test == "delivered_signals::internal_owned_console_signal_sender":

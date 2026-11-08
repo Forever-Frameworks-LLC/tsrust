@@ -24,6 +24,10 @@ on:
         description: Additional reviewed run 42474075588; requires platform_second_prior_run 42470181942.
         type: string
         default: ""
+      platform_later_prior_runs:
+        description: Space-separated reviewed later runs in runner order; requires platform_third_prior_run.
+        type: string
+        default: ""
       platform_windows_only:
         description: With platform_acceptance, validate a Windows repair without rerunning the other hosts.
         type: boolean
@@ -298,14 +302,29 @@ jobs:
           test "$SECOND_RUN" = 42470181942
           test "$THIRD_RUN" = 42474075588
           gh run download "$THIRD_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-third-prior
+      - name: Retrieve reviewed later host evidence
+        if: ${{ inputs.platform_later_prior_runs != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATER_RUNS: ${{ inputs.platform_later_prior_runs }}
+          THIRD_RUN: ${{ inputs.platform_third_prior_run }}
+        run: |
+          test "$THIRD_RUN" = 42474075588
+          for run in $LATER_RUNS; do
+            case "$run" in *[!0-9]*) exit 1;; esac
+            gh run download "$run" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir "target/platform-later-prior/$run"
+          done
       - name: Run bounded native family and packaged consumer acceptance
         env:
           PRIOR_RUN: ${{ inputs.platform_prior_run }}
           SECOND_RUN: ${{ inputs.platform_second_prior_run }}
           THIRD_RUN: ${{ inputs.platform_third_prior_run }}
+          LATER_RUNS: ${{ inputs.platform_later_prior_runs }}
         run: |
           if [ -n "$THIRD_RUN" ]; then
-            python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior --second-repair-plan target/platform-second-prior --third-repair-plan target/platform-third-prior
+            later=()
+            for run in $LATER_RUNS; do later+=(--later-repair-plan "target/platform-later-prior/$run"); done
+            python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior --second-repair-plan target/platform-second-prior --third-repair-plan target/platform-third-prior "${later[@]}"
           elif [ -n "$SECOND_RUN" ]; then
             python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior --second-repair-plan target/platform-second-prior
           elif [ -n "$PRIOR_RUN" ]; then
