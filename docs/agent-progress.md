@@ -6,6 +6,21 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### C9 complete; full run 2 — 2026-11-08 20:00 UTC
+
+- C9 42511473967 at 81f7beed: focused platform acceptance COMPLETE on all four
+  hosts (61 targets each, zero failures). The Windows Ctrl+C fix worked. B00
+  admission, B01/B03 Windows rows, B20 native acceptance and "finish B01–B19"
+  are checked.
+- Full run 2 42511475678: shards 0, 1, 3, 4 and 7 PASS; every shard finished
+  within its hour (max 56 min). Remaining (all pass locally):
+  native_buffered_file_backend E0460 (shared-target `cfg_if` rebuilt by tests
+  that run their own Cargo builds), native_json_build staging,
+  project_commands dev exit (status now printed), and the frozen-UI emit budget
+  (40→120s). Next: full run 3; fix whatever recurs.
+- Remaining plan: clean complete pass, release archives in the notice audit,
+  prune, owner approval.
+
 ### First sharded full regression — 2026-11-08 19:30 UTC
 
 - Run 42503200899 (8 shards, 2fd6e5e1-era HEAD on `codex/stdlib-0.2.0-full`):

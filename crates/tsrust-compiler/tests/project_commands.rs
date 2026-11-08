@@ -130,7 +130,7 @@ fn dev_is_quiet_by_default_and_reuses_native_builds_across_sessions() {
   }
   unsafe {kill(child.id() as i32,2);}
   let status=child.wait().unwrap();lines.extend(rx.try_iter());
-  assert!(success&&status.success(),"{lines:?}");
+  assert!(success&&status.success(),"dev exited with {status} (verbose={verbose}): {lines:?}");
   if verbose {assert!(lines.iter().any(|line|line.contains("cache=hit")),"{lines:?}");}
   else {
    assert!(lines.iter().any(|line|line.contains("Built in")&&line.contains("ms")),"{lines:?}");
