@@ -71,15 +71,41 @@ pub fn rustc() -> Command {
         command.arg("-L").arg(format!("dependency={}", deps.display()));
         command.arg("--extern").arg(format!("tokio={}", tokio.display()));
     }
-    let nix = std::fs::read_dir(&deps).unwrap().filter_map(Result::ok).map(|entry|entry.path())
-        .filter(|path|path.file_name().unwrap().to_string_lossy().starts_with("libnix-") && path.extension().is_some_and(|extension|extension=="rlib"))
-        .max_by_key(|path|std::fs::metadata(path).and_then(|metadata|metadata.modified()).ok());
-    if let Some(nix)=nix {
-        command.arg("-L").arg(format!("dependency={}",deps.display()));
+    if let Some((nix,dependencies))=private_nix(&deps) {
+        command.arg("-L").arg(format!("dependency={}",dependencies.display()));
         command.arg("--extern").arg(format!("nix={}",nix.display()));
     }
     command
 }
+
+/// Build nix once per test process into its own directory under the shared
+/// target. Relocated vendored builds recompile shared crates such as cfg_if in
+/// place, which would leave a nix rlib from target/debug/deps without its exact
+/// dependencies (E0460). The private closure stays consistent.
+#[cfg(unix)]
+fn private_nix(deps:&Path)->Option<(PathBuf,PathBuf)> {
+    static NIX:std::sync::OnceLock<Option<(PathBuf,PathBuf)>>=std::sync::OnceLock::new();
+    NIX.get_or_init(||{
+        // `cargo build -p nix` panics for a target-specific dev-dependency, so a
+        // two-line crate selects the same pinned version and features.
+        let target=deps.parent()?.parent()?.join("test-externs");
+        let package=target.join("nix-closure");std::fs::create_dir_all(package.join("src")).ok()?;
+        std::fs::write(package.join("Cargo.toml"),"[package]\nname=\"tsrust-test-nix\"\nversion=\"0.0.0\"\nedition=\"2024\"\n[workspace]\n[dependencies]\nnix={version=\"=0.31.2\",default-features=false,features=[\"process\"]}\n").ok()?;
+        std::fs::write(package.join("src/lib.rs"),"").ok()?;
+        let mut command=Command::new("rustup");
+        command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--lib","--message-format=json"])
+            .arg("--target-dir").arg(&target).current_dir(&package).env("CARGO_INCREMENTAL","0");
+        let output=run(&mut command,300);
+        if !output.status.success() {return None;}
+        String::from_utf8_lossy(&output.stdout).lines().filter_map(|line|serde_json::from_str::<serde_json::Value>(line).ok())
+            .filter(|message|message["reason"]=="compiler-artifact"&&message["target"]["name"]=="nix")
+            .flat_map(|message|message["filenames"].as_array().cloned().unwrap_or_default())
+            .filter_map(|file|file.as_str().map(PathBuf::from)).find(|file|file.extension().is_some_and(|extension|extension=="rlib"))
+            .map(|rlib|{let directory=rlib.parent().unwrap().to_path_buf();(rlib,directory)})
+    }).clone()
+}
+#[cfg(not(unix))]
+fn private_nix(_:&Path)->Option<(PathBuf,PathBuf)> {None}
 
 /// Serialize build-capable subprocesses within this integration-test binary.
 /// Platform targets themselves execute serially; cheap frontend checks and

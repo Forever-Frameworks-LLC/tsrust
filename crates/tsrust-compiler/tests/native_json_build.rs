@@ -56,7 +56,8 @@ fn dependency_build_honors_shared_target_and_stages_only_reported_artifacts(){
  let workspaces=fs::read_dir(cache.join("runtime/build-v1")).unwrap().map(Result::unwrap).filter(|entry|entry.path().join("native-support").is_dir()).collect::<Vec<_>>();assert_eq!(workspaces.len(),1);
  let workspace=workspaces[0].path();assert!(!workspace.join("native-target").exists());
  let artifacts=workspace.join("artifacts");assert!(artifacts.join("libtsrust_runtime.rlib").is_file());
- assert!(target.join("debug/libtsrust_runtime.rlib").is_file());
+ let staged=|dir:&std::path::Path|fs::read_dir(dir).map(|entries|entries.filter_map(Result::ok).map(|entry|entry.file_name().to_string_lossy().into_owned()).filter(|name|name.contains("tsrust_runtime")).collect::<Vec<_>>()).unwrap_or_default();
+ assert!(target.join("debug/libtsrust_runtime.rlib").is_file(),"target {}: debug {:?}, workspace artifacts {:?}",target.display(),staged(&target.join("debug")),staged(&artifacts));
  // Staging is an independent, graph-local directory, never shared deps itself.
  assert_ne!(artifacts.canonicalize().unwrap(),target.join("debug/deps").canonicalize().unwrap());
  let bytes=fs::read(artifacts.join("libtsrust_runtime.rlib")).unwrap();assert!(!bytes.is_empty());
