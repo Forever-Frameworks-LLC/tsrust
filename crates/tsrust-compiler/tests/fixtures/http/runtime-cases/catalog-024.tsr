@@ -1,0 +1,6 @@
+import { Router } from 'std:http';
+
+export function main() {
+  const app = new Router();
+  console.log('ok');
+}

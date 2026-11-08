@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current accepted source cf0b876e. Task/I/O suite consolidation and public reference mappings accepted; pending checkpoint. Full goal active.
+Current accepted source914a3dd6. Task/I/O consolidation and public reference mappings committed. Full HTTP/network/compression consolidation pending repairs. Full goal active.
 - Current CI/read-only remote check: no open PRs, no open Dependabot alerts,
   no live branch workflow. Latest42279800898 remains historical UDP-only timing.
   Do not dispatch46target IOscope yet: oldIntel non-Cargo work52.1min already
@@ -34,11 +34,26 @@ Current accepted source cf0b876e. Task/I/O suite consolidation and public refere
   126031.885417ms. ONE runner build per profile,20prior ordinarylaunches removed.
   Original900s aggregate scope preserved across all repairs. No process live.
   Temporary runtimeDATA only; sourcepaths/nativecache stable, exact cleanup checked.
-- Prepared source-only next consolidation patches (NOT accepted/applied yet):
-  /tmp/tsrust-network-runtime-consolidation.patch (18cases, bothprofiles),
-  /tmp/tsrust-compression-registered-suite.patch (16cases, bothprofiles).
-  HTTPcatalog/source consolidation agentworking; do not reassign without inspection.
-  No heavyagent build permitted; root owns shared target/DB/writer.
+- Applied current pending HTTP/network/compression consolidation: HTTP110cases
+  (172catalogrefs/103dedup+7regressions), network18cases, compression16cases.
+  Hostbuild5.256s/471367680B PASS. Explicit stabletaskcache check ACTUAL13PASS
+  twice; secondrun1.085s/cachehit/nativeBuildMs0. Preservecacheproof.
+  /tmp/tsrust-registered-http-network-compression.json, session61978closed.
+- Actualgate: network_addresses allPASS27.058s/468960024B; network_transport
+  9hostPASS then consolidatedfrontendFAILawait-task at storedlistenTcp alias
+  full-stream-short-reads...fixture15. Compression14hostPASS; runtime16ALLPASS
+  debug but validatorFAIL2workeroutputs name/location empty (7,5), retain exact
+  output validation; optimizedprofile unrun. HTTP11hostPASS/1knownignored;
+  sharednativebuildFAIL59.829s/906790160B soleE0282 conditional_temporary_26
+  declaredwithoutuse/type, serveStatic fallback uses27. Preservefailures/current
+  assertions; no nativeHTTP pass inferred. Allownedprocesses settled.
+- Existing Solsource-only repairs: B14 isolatesmultimodule nativealias typing;
+  B06fixesstd:testing workeroutputcontext; B03conditionaltemporary preparation.
+  Rootonlywriter/buildlease. Mergefixes once then ONEsharedcompilerbuild; rerun
+  onlyaffected/unrun scopes. No fourhostdispatch untilnativecohortactuallyfits.
+- Prepared butNOTapplied contractdocs/check-only rejectionpatch:
+  /tmp/tsrust-task-iterator-alias-contract-docs.patch. No new genericoperation
+  value/extractedmethod support; documentactualcheckedcontract.
 - ACTUAL PASS currentCLI publicfrontend declared/inferredfactory4controls plus
   genuineMissing_response error; originalservicefrontendPASS; inventoryPASS1680
   rows/671bindings/174types/43sourceexports/78retainedexamplewitnesses.

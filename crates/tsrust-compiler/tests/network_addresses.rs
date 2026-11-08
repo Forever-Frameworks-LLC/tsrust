@@ -1,7 +1,8 @@
 mod support;
+#[path="support/network_suite_reports.rs"] mod network_suite_reports;
 use tsrust_compiler::project::{FileSourceProvider,load_project,check_graph};
 fn checked(source:&str)->Result<String,String>{let directory=support::TempDirectory::new();let source=support::format_round_trip(source);let path=directory.source(&source);let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).map_err(|error|format!("{error:?}"))?;check_graph(graph).map(|checked|{assert!(checked.warnings().is_empty(),"{:?}",checked.warnings());checked.emit_rust()}).map_err(|error|format!("{error:?}"))}
-fn execute(source:&str,expected:&str){let _=checked(source).unwrap();let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));for release in [false,true]{let mut command=support::cli();command.arg("run").arg(&path);if release{command.arg("--release");}let output=support::run(&mut command,180);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());}}
+fn execute(source:&str,expected:&str){let _=checked(source).unwrap();network_suite_reports::assert_registered(source,expected);}
 #[test]
 fn address_values_std_grammar_scope_and_native_forwarding(){execute(include_str!("../../../examples/network-addresses/main.tsr"),"127.0.0.1 true false\n[2001:db8::1]:8080 [2001:db8::1]:8080\nsyntax parseAddress\n");execute("import {parseIp as parse,parseAddress,formatIp,formatAddress,isIPv6} from 'std:net';function main(){const operation=parse;const format=formatAddress;const ip=unwrap(operation('2001:0db8:0000:0000:0000:0000:0000:0001'));console.log(formatIp(ip),isIPv6(ip));const address=unwrap(parseAddress('[fe80::1%2]:80'));console.log(format(address));}","2001:db8::1 true\n[fe80::1%2]:80\n");}
 #[test]

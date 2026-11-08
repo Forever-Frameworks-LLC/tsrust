@@ -1,0 +1,7 @@
+import { Response } from 'std:http';
+
+function inspect(value: Response): void {}
+
+export function main() {
+  console.log('ok');
+}

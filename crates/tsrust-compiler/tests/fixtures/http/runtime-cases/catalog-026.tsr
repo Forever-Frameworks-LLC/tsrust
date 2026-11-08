@@ -1,0 +1,6 @@
+import { CorsOptions } from 'std:http';
+
+export function main() {
+  const options: CorsOptions = {};
+  console.log(options.credentials === undefined);
+}

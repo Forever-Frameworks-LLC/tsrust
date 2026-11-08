@@ -1,0 +1,8 @@
+import { request, FormField } from 'std:http';
+
+export async function main(): Task<void> {
+  const form = request('POST', 'http://localhost/', 'body=one+two');
+  form.setHeader('content-type', 'application/x-www-form-urlencoded');
+  const fields: FormField[] = await form.form();
+  console.log(fields[0].name, fields[0].value);
+}

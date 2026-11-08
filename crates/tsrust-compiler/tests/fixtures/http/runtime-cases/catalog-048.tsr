@@ -1,0 +1,16 @@
+import { App, Server } from 'std:http';
+async function keep(server: Server): Task<void> {
+  await server.wait();
+}
+
+export async function main(): Task<void> {
+  const app = new App();
+  const server = await app.listen('127.0.0.1:0');
+  const running = keep(server).start();
+  running.cancel();
+  try {
+    await running;
+  } catch (error) {
+    console.log(error.code);
+  }
+}

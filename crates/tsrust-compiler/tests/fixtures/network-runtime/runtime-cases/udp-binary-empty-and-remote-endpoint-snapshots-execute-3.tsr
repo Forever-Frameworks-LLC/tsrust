@@ -1,0 +1,14 @@
+import { parseAddress, bindUdp, formatAddress } from 'std:net';
+import { fromArray, at, length } from 'std:bytes';
+
+export async function run(): Task<void> {
+  const bind = unwrap(parseAddress('127.0.0.1:0'));
+  const sender = unwrap(await bindUdp(bind));
+  const receiver = unwrap(await bindUdp(bind));
+  const endpoint = unwrap(receiver.localAddress());
+  unwrap(await sender.sendTo(unwrap(fromArray([0, 255, 7])), endpoint));
+  const message = unwrap(await receiver.receiveFrom(3));
+  console.log(length(message.data), unwrap(at(message.data, 1)), formatAddress(message.remote) === formatAddress(unwrap(sender.localAddress())));
+  receiver.close();
+  sender.close();
+}

@@ -1,0 +1,8 @@
+import { App } from 'std:http';
+
+export function main() {
+  const app = new App();
+  app.configure({
+    bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100
+  });
+}

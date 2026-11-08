@@ -1,0 +1,9 @@
+import { CompressionOptions } from 'std:compression';
+
+export function main() {
+  const selected: CompressionOptions = {
+    level: 1
+  };
+  const defaults: CompressionOptions = {};
+  console.log(selected.level === 1, defaults.level === undefined);
+}

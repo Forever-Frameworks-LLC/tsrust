@@ -1,0 +1,8 @@
+import { App, Middleware, secureHeaders } from 'std:http';
+
+export function main() {
+  const app = new App();
+  const policy: Middleware = secureHeaders();
+  app.use(policy);
+  console.log('installed');
+}

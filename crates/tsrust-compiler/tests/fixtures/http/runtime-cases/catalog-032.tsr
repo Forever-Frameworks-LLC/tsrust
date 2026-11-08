@@ -1,0 +1,8 @@
+import { request } from 'std:http';
+import { kind } from 'std:json';
+
+export async function main(): Task<void> {
+  const input = request('POST', 'http://localhost/', '{"name":"hello"}');
+  const value = await input.json();
+  console.log(kind(value));
+}

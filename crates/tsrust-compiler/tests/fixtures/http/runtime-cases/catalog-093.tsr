@@ -1,0 +1,6 @@
+import { request, requestStream } from 'std:http';
+
+export function main() {
+  const input = requestStream('POST', 'http://localhost/', request('POST', 'http://localhost/', 'data').body());
+  console.log(input.method());
+}

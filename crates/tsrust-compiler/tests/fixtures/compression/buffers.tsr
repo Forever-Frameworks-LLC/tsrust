@@ -1,0 +1,23 @@
+import { gzip, gunzip, deflate, inflate, deflateRaw, inflateRaw } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  const compressed = unwrap(await gzip(pool, unwrap(fromUtf8('hello compression'))));
+  const decoded = unwrap(await gunzip(pool, compressed, {
+    maxOutputBytes: 17
+  }));
+  console.log(unwrap(toUtf8(decoded)));
+  const zlib = unwrap(await deflate(pool, unwrap(fromUtf8('zlib')), {
+    level: 1
+  }));
+  console.log(unwrap(toUtf8(unwrap(await inflate(pool, zlib)))));
+  const raw = unwrap(await deflateRaw(pool, unwrap(fromUtf8('raw')), {
+    level: 9
+  }));
+  console.log(unwrap(toUtf8(unwrap(await inflateRaw(pool, raw)))));
+  unwrap(pool.shutdown());
+}

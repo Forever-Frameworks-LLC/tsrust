@@ -1,0 +1,45 @@
+import { parseAddress, listenTcp, connectTcp, TcpListener, formatAddress } from 'std:net';
+import { readInto, readExact, writeAll } from 'std:io';
+import { fromUtf8, alloc, viewMut, toUtf8 } from 'std:bytes';
+async function server(listener: Owned<TcpListener>): Task<void> {
+  const [peer, remote] = unwrap(await listener.accept());
+  listener.close();
+  unwrap(await writeAll(peer, unwrap(fromUtf8('abcd'))));
+  unwrap(await peer.shutdownWrite());
+  peer.close();
+}
+
+export async function run(): Task<void> {
+  const listen = listenTcp;
+  const connect = connectTcp;
+  const listener = unwrap(await listen(unwrap(parseAddress('127.0.0.1:0'))));
+  const endpoint = unwrap(listener.localAddress());
+  const worker = server(listener).start();
+  try {
+    const client = unwrap(await connect(endpoint));
+    console.log(formatAddress(unwrap(client.peerAddress())) === formatAddress(endpoint), formatAddress(unwrap(client.localAddress())).startsWith('127.0.0.1:'));
+    const destination = unwrap(alloc(4));
+    {
+      const prefix = unwrap(viewMut(destination, 0, 2));
+      unwrap(await readExact(client, prefix));
+    }
+
+    {
+      const suffix = unwrap(viewMut(destination, 2, 4));
+      unwrap(await readExact(client, suffix));
+    }
+
+    console.log(unwrap(toUtf8(destination)));
+    console.log(unwrap(await readInto(client, unwrap(alloc(1)))));
+    client.close();
+  } catch (failure) {
+    worker.cancel();
+    try {
+      await worker;
+    } catch (cleanupFailure) {}
+
+    throw failure;
+  }
+
+  await worker;
+}

@@ -1,0 +1,75 @@
+import { describe, test } from 'std:testing';
+import { run as case0 } from './runtime-cases/address-values-std-grammar-scope-and-native-forwarding-0.tsr';
+import { run as case1 } from './runtime-cases/address-values-std-grammar-scope-and-native-forwarding-1.tsr';
+import { run as case2 } from './runtime-cases/malformed-addresses-reject-without-dns-or-implicit-whitespace-2.tsr';
+import { run as case3 } from './runtime-cases/dns-literal-default-optional-and-stored-calls-keep-explicit-results-3.tsr';
+import { run as case4 } from './runtime-cases/dns-literal-default-optional-and-stored-calls-keep-explicit-results-4.tsr';
+import { run as case5 } from './runtime-cases/dns-host-loans-settle-and-owned-factories-can-start-5.tsr';
+import { run as case6 } from './runtime-cases/borrowed-union-task-factories-keep-descriptor-and-other-input-lifetimes-6.tsr';
+import { run as case7 } from './runtime-cases/awaited-forwarded-task-keeps-temporary-argument-owner-through-settlement-7.tsr';
+import { run as case8 } from './runtime-cases/full-stream-and-split-half-close-examples-execute-0.tsr';
+import { run as case9 } from './runtime-cases/full-stream-and-split-half-close-examples-execute-1.tsr';
+import { run as case10 } from './runtime-cases/udp-binary-empty-and-remote-endpoint-snapshots-execute-2.tsr';
+import { run as case11 } from './runtime-cases/udp-binary-empty-and-remote-endpoint-snapshots-execute-3.tsr';
+import { run as case12 } from './runtime-cases/full-stream-short-reads-exact-destination-and-getter-aliases-4.tsr';
+import { run as case13 } from './runtime-cases/copy-supports-memory-reader-to-full-stream-5.tsr';
+import { run as case14 } from './runtime-cases/tcp-copy-to-full-stream-and-owned-writer-half-full.tsr';
+import { run as case15 } from './runtime-cases/tcp-copy-to-full-stream-and-owned-writer-half-half.tsr';
+import { run as case16 } from './runtime-cases/handler-owner-move-before-rethrow-preserves-normal-continuation-6.tsr';
+import { run as case17 } from './runtime-cases/catalog-net-ipaddress-0.tsr';
+describe('network runtime', () => {
+  test("address_values_std_grammar_scope_and_native_forwarding-0", (): void => {
+    case0();
+  });
+  test("address_values_std_grammar_scope_and_native_forwarding-1", (): void => {
+    case1();
+  });
+  test("malformed_addresses_reject_without_dns_or_implicit_whitespace-2", (): void => {
+    case2();
+  });
+  test("dns_literal_default_optional_and_stored_calls_keep_explicit_results-3", async (): Task<void> => {
+    await case3();
+  });
+  test("dns_literal_default_optional_and_stored_calls_keep_explicit_results-4", async (): Task<void> => {
+    await case4();
+  });
+  test("dns_host_loans_settle_and_owned_factories_can_start-5", async (): Task<void> => {
+    await case5();
+  });
+  test("borrowed_union_task_factories_keep_descriptor_and_other_input_lifetimes-6", async (): Task<void> => {
+    await case6();
+  });
+  test("awaited_forwarded_task_keeps_temporary_argument_owner_through_settlement-7", async (): Task<void> => {
+    await case7();
+  });
+  test("full_stream_and_split_half_close_examples_execute-0", async (): Task<void> => {
+    await case8();
+  });
+  test("full_stream_and_split_half_close_examples_execute-1", async (): Task<void> => {
+    await case9();
+  });
+  test("udp_binary_empty_and_remote_endpoint_snapshots_execute-2", async (): Task<void> => {
+    await case10();
+  });
+  test("udp_binary_empty_and_remote_endpoint_snapshots_execute-3", async (): Task<void> => {
+    await case11();
+  });
+  test("full_stream_short_reads_exact_destination_and_getter_aliases-4", async (): Task<void> => {
+    await case12();
+  });
+  test("copy_supports_memory_reader_to_full_stream-5", async (): Task<void> => {
+    await case13();
+  });
+  test("tcp_copy_to_full_stream_and_owned_writer_half-full", async (): Task<void> => {
+    await case14();
+  });
+  test("tcp_copy_to_full_stream_and_owned_writer_half-half", async (): Task<void> => {
+    await case15();
+  });
+  test("handler_owner_move_before_rethrow_preserves_normal_continuation-6", (): void => {
+    case16();
+  });
+  test("catalog-net-IpAddress-0", (): void => {
+    case17();
+  });
+});

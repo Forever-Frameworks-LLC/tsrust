@@ -1,0 +1,8 @@
+import { ClientOptions } from "std:http";
+
+export function main() {
+  const options: ClientOptions = {
+    timeoutMs: 1000
+  };
+  console.log(options.timeoutMs);
+}

@@ -1,0 +1,9 @@
+import { DecompressionOptions } from 'std:compression';
+
+export function main() {
+  const selected: DecompressionOptions = {
+    maxOutputBytes: 5
+  };
+  const defaults: DecompressionOptions = {};
+  console.log(selected.maxOutputBytes === 5, defaults.maxOutputBytes === undefined);
+}

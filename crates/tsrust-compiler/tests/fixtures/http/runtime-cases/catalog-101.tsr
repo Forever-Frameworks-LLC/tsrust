@@ -1,0 +1,7 @@
+import { App, compress } from 'std:http';
+
+export function main() {
+  const app = new App();
+  app.use(compress());
+  console.log('compression');
+}

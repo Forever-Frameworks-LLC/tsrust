@@ -1,0 +1,28 @@
+import { alloc, length, Bytes } from 'std:bytes';
+
+function consume(value: Owned<Bytes>): void {
+  console.log(length(value));
+}
+
+function inspect(fail: boolean): void {
+  const owner = unwrap(alloc(3));
+  try {
+    if (fail) {
+      throw 1;
+    }
+  } catch (error) {
+    consume(owner);
+    throw error;
+  }
+
+  consume(owner);
+}
+
+export function run() {
+  inspect(false);
+  try {
+    inspect(true);
+  } catch (error) {
+    console.log(error);
+  }
+}

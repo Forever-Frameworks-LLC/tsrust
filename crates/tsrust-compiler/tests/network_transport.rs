@@ -1,7 +1,8 @@
 mod support;
+#[path="support/network_suite_reports.rs"] mod network_suite_reports;
 use tsrust_compiler::project::{FileSourceProvider,load_project,check_graph};
 fn check(source:&str)->Result<String,String>{let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).map_err(|error|format!("{error:?}"))?;check_graph(graph).map(|checked|{assert!(checked.warnings().is_empty(),"{:?}",checked.warnings());checked.emit_rust()}).map_err(|error|format!("{error:?}"))}
-fn execute(source:&str,expected:&str){let rust=check(source).unwrap();fn safe(tokens:proc_macro2::TokenStream)->bool{tokens.into_iter().all(|token|match token{proc_macro2::TokenTree::Ident(name)=>name!="unsafe",proc_macro2::TokenTree::Group(group)=>safe(group.stream()),_=>true})}assert!(safe(rust.parse().unwrap()));let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));for release in [false,true]{let mut command=support::cli();command.arg("run").arg(&path);if release{command.arg("--release");}let output=support::run(command.current_dir(&directory.0),180);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());}}
+fn execute(source:&str,expected:&str){let rust=check(source).unwrap();fn safe(tokens:proc_macro2::TokenStream)->bool{tokens.into_iter().all(|token|match token{proc_macro2::TokenTree::Ident(name)=>name!="unsafe",proc_macro2::TokenTree::Group(group)=>safe(group.stream()),_=>true})}assert!(safe(rust.parse().unwrap()));network_suite_reports::assert_registered(source,expected);}
 #[test]
 fn full_stream_and_split_half_close_examples_execute(){execute(include_str!("../../../examples/network/tcp.tsr"),"ping\n");execute(include_str!("../../../examples/network/tcp-halves.tsr"),"reply after EOF\n");}
 #[test]
@@ -34,3 +35,6 @@ fn network_socket_package_relocates_and_builds_offline(){let directory=support::
 
 #[test]
 fn handler_owner_move_before_rethrow_preserves_normal_continuation(){execute("import {alloc,length,Bytes} from 'std:bytes';function consume(value:Owned<Bytes>):void{console.log(length(value));}function inspect(fail:boolean):void{const owner=unwrap(alloc(3));try{if(fail){throw 1;}}catch(error){consume(owner);throw error;}consume(owner);}function main(){inspect(false);try{inspect(true);}catch(error){console.log(error);}}","3\n3\n1\n");}
+
+#[test]
+fn registered_network_runtime_programs_share_one_profiled_runner(){network_suite_reports::execute();}
