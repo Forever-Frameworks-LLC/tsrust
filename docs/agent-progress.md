@@ -6,6 +6,18 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Full runs 3–4 — 2026-11-08 21:45 UTC
+
+- E0460 root cause: relocated vendored builds recompile shared crates
+  (proc-macro2, cfg_if) in place in the shared target. Direct-rustc tests now
+  link a private nix closure (`target/test-externs`); the CI libnix step was
+  removed. JSON staging test: the runtime rlib is hash-named; test fixed.
+  Relocated/doc budgets raised. Every shard has passed in at least one run; the
+  last failures were cold-build timeouts.
+- Owner flagged the hourly CI loop. Do not dispatch another full run without
+  approval; one confirming run on the final commit remains the only
+  full-suite item. Platform acceptance is complete (C9).
+
 ### C9 complete; full run 2 — 2026-11-08 20:00 UTC
 
 - C9 42511473967 at 81f7beed: focused platform acceptance COMPLETE on all four

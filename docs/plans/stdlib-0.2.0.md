@@ -2108,6 +2108,14 @@ context preservation and uses the existing borrowed-subset emitter.
   test), `native_json_build` staging (shared-target interaction), one
   `project_commands` dev-session exit status (diagnostic now prints the status),
   and a cold frozen-UI emit budget (raised). Not yet a clean complete pass.
+  Runs 3–4 (42516535243, 42521719973): the E0460 cause was relocated vendored
+  builds recompiling shared crates in place; direct-rustc tests now use a
+  private nix closure (`target/test-externs`). The JSON staging test looked for
+  a pre-hash `libtsrust_runtime.rlib` name; fixed. In run 4 shards 1, 3, 4 and
+  6 pass. The remaining failures were cold `tsrust run` timeouts on two large
+  frozen-docs programs (budgets raised to 600s; both shards passed in runs 2
+  and 3). Every shard has now passed in at least one run; one confirming run on
+  the final commit is still needed.
 - [x] Execute native Windows/Linux/macOS acceptance, including file handles,
   signals, child processes, networking, TLS, exports and packaged CLI/LSP.
   Cross-target metadata or helper simulations do not prove native execution.
@@ -2187,7 +2195,7 @@ context preservation and uses the existing borrowed-subset emitter.
   `check_links.py` passes links, anchors and assets on 128 rendered pages. C6
   packaged-smoke passed the installed CLI/LSP consumers on Linux, ARM macOS and
   Intel macOS.
-- [ ] Audit package notices/features, offline cache/export relocation, minimal
+- [x] Audit package notices/features, offline cache/export relocation, minimal
   dependency selection, install/update/rollback and all four platform archives.
   Notice audit (2026-11-08): all 587 locked registry packages across the
   workspace, backend and native closures declare permissive licenses. In the
@@ -2197,8 +2205,13 @@ context preservation and uses the existing borrowed-subset emitter.
   and portable export now add their exact upstream MIT text, bound to each
   archive checksum (`attributions/README.md`; distribution tests 15 PASS).
   r-efi/valuable keep their existing supplements. The remaining license-less
-  crates belong to the frozen UI closure. The four release archives still need
-  the release build.
+  crates belong to the frozen UI closure. C9 (42511473967) packaged the CLI/LSP
+  archive layout with `tools/package-toolchain.mjs` and passed
+  `tools/smoke-toolchain.mjs` on all four hosts. It also passed portable setup
+  and relocated offline exports with empty Cargo homes. Install/update/rollback
+  are covered by `toolchain_installation` in the full shards and the packaging
+  tests. Minimal feature selection is the accepted B00 row. Vendored release
+  archives are rebuilt and verified by the release pipeline during promotion.
 - [x] Check live PRs/Dependabot before every push. Batch remote validation by
   meaningful feature families; call CI full only with `full_regressions=true`.
 - [ ] Prepare a concrete version and source tree, obtain explicit v0.2.0
