@@ -1922,6 +1922,7 @@ impl Emitter<'_> {
                             // which can differ from the parameter's logical enum.
                             let from=value.ty.unwrap().union().expect("checked union default owner");
                             let arms=self.program.unions[from.index()].members.iter().enumerate().map(|(variant,member)|{
+                                if let Some(field)=self.absent_record_field(*member){return format!("Union{}::V{variant}(payload)=>match payload.field{field} {{}}",from.index());}
                                 let targets=&self.program.unions[body.index()].members;
                                 let to=if let Some(exact)=targets.iter().position(|target|target==member){exact}else{
                                     let matches=targets.iter().enumerate().filter_map(|(tag,target)|matches!((*member,*target),(Type::Record(a),Type::Record(b)) if self.native_record_declaration(a)==self.native_record_declaration(b)).then_some(tag)).collect::<Vec<_>>();
@@ -1934,6 +1935,10 @@ impl Emitter<'_> {
                     } else {format!("{reference}default_owner{id}")};
                     let view = if callback {format!("TsrDefault::Default({view})")} else {view};
                     format!("{{ default_owner{id}={fallback}; {view} }}")
+                } else if !borrowed && matches!((value.ty,binding.ty),(Some(Type::Union(from)),Type::Union(to)) if from!=to) {
+                    // Supplied arms use the body carrier; the owned default must
+                    // enter the same carrier, preserving its checked source type.
+                    self.record_carrier_conversion(value.ty.unwrap(),binding.ty,&fallback)
                 } else {fallback};
             let arms = self.program.unions[input.index()].members.iter().enumerate().map(|(variant,member)| {
                 let result = if let Some(field)=self.absent_record_field(*member) {format!("match payload.field{field} {{}}")}
@@ -8253,6 +8258,7 @@ impl Emitter<'_> {
                 } else if let Some(from)=value.ty.unwrap().union() {
                     let source=self.expr(fun,value,Mode::Mutate);
                     let arms=self.program.unions[from.index()].members.iter().enumerate().map(|(i,member)|{
+                        if let Some(field)=self.absent_record_field(*member){return format!("Union{}::V{i}(payload)=>match payload.field{field} {{}}",from.index());}
                         let to=target.iter().position(|ty|ty==member).unwrap_or_else(||{
                             let Type::Record(actual)=*member else{unreachable!("checked mutable input subset")};
                             let mut matching=target.iter().enumerate().filter_map(|(tag,ty)|matches!(*ty,Type::Record(expected) if self.native_record_declaration(actual)==self.native_record_declaration(expected)).then_some(tag));
@@ -11083,4 +11089,41 @@ fn mutable_record_union_defaults_match_the_checked_owner_enum(){
  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=crate::check(&source).unwrap();
  let function=checked.program.functions.iter().find(|function|function.name=="invoke").unwrap();let binding=&function.bindings[0];assert_eq!(binding.mode,Mode::Mutate);let from=binding.initializer.as_ref().unwrap().ty.unwrap().union().unwrap();
  let emitted=checked.emit_rust();assert!(emitted.contains(&format!("match &mut default_owner0 {{Union{}::V0(payload)",from.index())),"Default owner must match its own physical enum");
+}
+
+#[cfg(test)]
+mod mixed_union_absent_record_tests {
+ use super::*;
+ #[test]
+ fn mutable_mixed_union_eliminates_only_required_empty_callback_record_arms(){
+  let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<boolean|undefined>|boolean|undefined;function read(value:Mutable<Value>):boolean|undefined{if(value===undefined||typeof value==='boolean'){return value;}return value.evaluate();}type Config={value:Value};function forward(config:Mutable<Config>):boolean|undefined{return read(config.value);}function main(){const live:Config={value:{evaluate:()=>true}};console.log(forward(live));const absent:Config={value:undefined};console.log(forward(absent));}";
+  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let mut checked=crate::check(&source).unwrap();
+  let emitter=super::emitter_for(&checked.program,"");
+  let (record,field)=checked.program.records.iter().enumerate().find_map(|(record,_)|emitter.absent_record_field(Type::Record(record)).map(|field|(record,field))).expect("Required compiler-owned empty callback record");
+  let rust=checked.emit_rust();assert!(rust.contains(&format!("=>match payload.field{field} {{}}")),"Impossible mixed-union record arm must not forward a reference to a live callable layout");
+  assert!(rust.contains("StoredCallable0"));assert!(rust.contains("TsrAbsentCallable"));
+  // Optional empty fields do not make their enclosing record uninhabited.
+  checked.program.records[record].fields[field].optional=true;
+  let emitter=super::emitter_for(&checked.program,"");assert_eq!(emitter.absent_record_field(Type::Record(record)),None);
+ }
+}
+
+#[cfg(test)]
+#[test]
+fn owned_parameter_defaults_remap_the_checked_physical_union_into_the_body(){
+ let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string|undefined;function pass(value:Value=''):Value{return value;}function main(){console.log(typeof pass({evaluate:()=> 'live'}));console.log(typeof pass());}";
+ let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+ let checked=crate::check(&formatted).unwrap();let emitter=emitter_for(&checked.program,"");let mut expected=Vec::new();
+ for function in &checked.program.functions {
+  for binding in &function.bindings {
+   if !binding.parameter || !matches!(binding.mode,Mode::Consume){continue;}
+   let Some(value)=&binding.initializer else{continue;};
+   if let (Some(Type::Union(from)),Type::Union(to))=(value.ty,binding.ty) && from!=to {
+    expected.push(format!("let nullable_carrier: {} =",emitter.native_type(Type::Union(from))));
+   }
+  }
+ }
+ assert!(!expected.is_empty(),"Fixture must retain an actual distinct default carrier");
+ let rust=checked.emit_rust();for annotation in expected{assert!(rust.contains(&annotation),"Missing owned-default physical conversion: {annotation}");}
 }

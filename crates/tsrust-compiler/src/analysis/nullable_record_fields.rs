@@ -274,10 +274,14 @@ impl Analyzer {
     pub(super) fn physical_record_result(&mut self, body:&mut [Stmt], mut result:Type)->Result<Type,Diagnostic> {
         if let Type::Union(original)=result && self.unions.payload(result).is_none(){
             let mut values=Vec::new();returned_values(body,&mut values);
+            let mut physical=false;
             for value in &values{
-                if let Some(actual)=value.ty && let Some(next)=self.finite_record_union_carrier(actual,result.union().unwrap(),value.span)?{result=next;}
+                if let Some(actual)=value.ty && let Some(next)=self.finite_record_union_carrier(actual,result.union().unwrap(),value.span)?{physical=true;result=next;}
             }
-            if result!=Type::Union(original){for value in values{self.retarget_nullable_store(value,result)?;}}
+            // An early scalar return can select an empty callback carrier and
+            // a later live return can join back to the original result. Its
+            // tag still needs retargeting even when the final ID is unchanged.
+            if physical||result!=Type::Union(original){for value in values{self.retarget_nullable_store(value,result)?;}}
         }
         // A record annotation names its declaration; the checked result must
         // retain the concrete callback environment selected by its returns.
@@ -687,5 +691,18 @@ mod recursive_initializer_tests {
   assert_eq!(analyzer.nullable_record_initializer(&mut value),Some(Type::Record(0)));
   let ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&value.kind else{panic!("planned conversion was removed")};
   assert_eq!(inner.ty,Some(Type::Record(initial)));assert!(matches!(inner.kind,ExprKind::Name(_)));
+ }
+}
+
+#[cfg(test)]
+mod mixed_result_retarget_tests {
+ use super::*;
+ #[test]
+ fn scalar_return_retargets_after_later_live_carrier_restores_original_union(){
+  let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string|undefined;function pass(value:Value):Value{if(value===undefined){return '';}return value;}function main(){console.log(typeof pass({evaluate:()=> 'live'}));console.log(typeof pass(undefined));}";
+  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let checked=crate::check(&source).unwrap();
+  let functions=checked.program.functions.iter().filter(|function|!function.template&&function.name=="pass").collect::<Vec<_>>();assert!(!functions.is_empty());
+  for function in functions{let mut body=function.body.clone();let mut values=Vec::new();returned_values(&mut body,&mut values);assert_eq!(values.len(),2);for value in values{assert_eq!(value.ty,Some(function.result),"Every returned physical carrier must agree with the completed function result");if let ExprKind::Inject{union,..}=&value.kind{assert_eq!(Some(*union),function.result.union());}}}
  }
 }

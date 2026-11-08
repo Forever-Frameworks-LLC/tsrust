@@ -6,7 +6,22 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpoint5b11cb63; pending reviewed objectspreadconstructor repair; fullgoalactive.
+Current checkpoint4c6ffaf6; documentation native compilation repair in progress; full goal active.
+- Terminal ownership scope passed all8 compiler rust_bridge,7 nullish,8 LSP bridge,
+  and5/6 documentation cases. Final compiler library1530 runnable and LSP27 passed.
+  Preserve these scopes; documentation full-content native case is still failing.
+- Object-spread constructor now uses its canonical declaration; focused witness passed.
+  Follow-up documentation run ended with190 E0308 and73 E0282, zero E0422.
+  /tmp/tsrust-object-spread-repair-1db735c92aac.json records terminal failure, not acceptance.
+- Pending source-only reviewed repairs cover required empty callback record arms,
+  physical context for coalescing fallbacks, owned parameter defaults and final
+  result retargeting. Concrete record-field layout aliasing remains under investigation.
+  These changes have not yet passed native validation. Local host debug symbols
+  default to0 consistently with CI; application workspace profiles stay independent.
+- Next: finish concrete-layout diagnosis, format/checkpoint coherent repairs, then
+  run /tmp/tsrust-physical-carrier-repair-run.py once under its30-minute/5GB scope.
+  Prior ownership/docs attempts are terminal; do not extend their expired budget.
+  Then resume integrated service and remaining B00/B20/platform acceptance.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0

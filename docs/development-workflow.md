@@ -48,6 +48,18 @@ checks with the completed section. A future benchmark
 command must execute current supported workloads without first implementing or
 repairing support accumulated over dozens of gates.
 
+## Compiler and test host debug symbols
+
+The root workspace uses `profile.dev.debug = 0`; Cargo's test profile inherits
+that setting, matching the existing CI overrides. This removes Rust compiler/test
+host debug information while retaining current optimization, debug assertions and
+overflow checks. Generated Tsrust applications use their own manifests and
+sanitized profile environment, so their debug/release behavior is independent.
+For source-level debugging of compiler internals, explicitly set both
+`CARGO_PROFILE_DEV_DEBUG=2` and `CARGO_PROFILE_TEST_DEBUG=2` and retain the split
+debug objects until the debugging session ends. See the
+[Cargo profile reference](https://doc.rust-lang.org/cargo/reference/profiles.html#test).
+
 ## Batched development checks
 
 Finish a coherent section before running its affected suites. For the current

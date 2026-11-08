@@ -12,7 +12,14 @@ impl Emitter<'_> {
         // A recursive nominal declaration is concrete, not a generic template.
         // Its acyclic prefixes therefore need their own declarations too; their
         // independent field/lifetime parameters cannot be applied to the base.
-        if self.native_views.cyclic(id) || self.native_views.cyclic(base) { id } else { base }
+        if self.native_views.cyclic(id) || self.native_views.cyclic(base) { return id; }
+        // A shared declaration can substitute only its actual generic slots.
+        // Concrete fields keep their checked storage identity, including union tags.
+        let actual=&self.program.records[id];
+        let declared=&self.program.records[base];
+        if actual.fields.len()!=declared.fields.len() || actual.fields.iter().zip(&declared.fields).enumerate().any(|(position,(field,original))| {
+            !self.scoped_record_native_field(base,position,original.ty.expect("checked declared field")) && field.ty!=original.ty
+        }) { id } else { base }
     }
 
     /// A recursive component uses one lifetime for every contained native view.
@@ -246,6 +253,32 @@ mod recursive_prefix_tests {
         let native=emitter.native_type(Type::Record(prefix));assert!(native.starts_with(&format!("Record{prefix}<")),"independent prefix parameters: {native}");
         let signature=emitter.native_function_signature(relay,&[]);assert_eq!(signature.result,native);
         let generated=crate::emit::emit(&checked);assert!(generated.contains(&format!("struct Record{prefix}<")));assert!(generated.contains(&format!("struct Record{base} {{")),"concrete nominal declaration takes no field parameters");
+        syn::parse_file(&generated).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod concrete_field_declaration_tests {
+    use super::*;
+    #[test]
+    fn concrete_field_layouts_are_distinct_while_generic_slots_share() {
+        let source=crate::format("type Concrete={value:int;};type Generic={read:Function<int>;};type OwnedGeneric={read:Owned<Function<int>>;};function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let parsed=crate::syntax::parse(&source).unwrap();
+        let mut checked=crate::analysis::analyze(parsed).unwrap();
+        // Supply physical layouts directly: compatibility remains the checker's
+        // responsibility; declaration reuse must never erase a concrete slot.
+        let concrete=checked.scoped_records.materialize(0,vec![Type::Number],&mut checked.records);
+        let generic_payload=checked.records[2].fields[0].ty.unwrap();
+        let generic=checked.scoped_records.materialize(1,vec![generic_payload],&mut checked.records);
+        let emitter=super::super::emitter_for(&checked,"");
+        assert_ne!(concrete,0);assert_ne!(generic,1);
+        assert!(!emitter.scoped_record_native_field(0,0,Type::Int));
+        assert_eq!(emitter.native_record_declaration(concrete),concrete);
+        assert!(emitter.scoped_record_native_field(1,0,checked.records[1].fields[0].ty.unwrap()));
+        assert_eq!(emitter.native_record_declaration(generic),1);
+        let generated=crate::emit::emit(&checked);
+        assert!(generated.contains(&format!("struct Record{concrete} {{ field0: f64")),"{generated}");
+        assert!(!generated.contains(&format!("struct Record{generic}")));
         syn::parse_file(&generated).unwrap();
     }
 }
