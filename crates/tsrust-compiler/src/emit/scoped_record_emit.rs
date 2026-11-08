@@ -262,13 +262,14 @@ mod concrete_field_declaration_tests {
     use super::*;
     #[test]
     fn concrete_field_layouts_are_distinct_while_generic_slots_share() {
-        let source=crate::format("type Concrete={value:int;};type Generic={read:Function<int>;};type OwnedGeneric={read:Owned<Function<int>>;};function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let source=crate::format("type Concrete={value:int;};type Generic={read:Function<int>;};type ReadGeneric={read:ReadOnly<Function<int>>;};function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
         let parsed=crate::syntax::parse(&source).unwrap();
         let mut checked=crate::analysis::analyze(parsed).unwrap();
         // Supply physical layouts directly: compatibility remains the checker's
         // responsibility; declaration reuse must never erase a concrete slot.
         let concrete=checked.scoped_records.materialize(0,vec![Type::Number],&mut checked.records);
         let generic_payload=checked.records[2].fields[0].ty.unwrap();
+        assert_ne!(generic_payload,checked.records[1].fields[0].ty.unwrap(),"Explicit readonly callback changes the physical generic payload");
         let generic=checked.scoped_records.materialize(1,vec![generic_payload],&mut checked.records);
         let emitter=super::super::emitter_for(&checked,"");
         assert_ne!(concrete,0);assert_ne!(generic,1);

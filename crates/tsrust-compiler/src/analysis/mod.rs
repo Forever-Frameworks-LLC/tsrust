@@ -3606,7 +3606,9 @@ impl Analyzer {
         for (position,initializer) in self.program.functions[index].parameter_initializers.iter().enumerate() {
             if !matches!(initializer,ParameterInitializer::Default{..}) {signature.body_params[position]=signature.params[position];}
         }
-        let key = (index, types);
+        // Physical slots are positional: specializing (live, absent) must not
+        // reuse the body for (absent, live) through the same sparse type list.
+        let key = (index, signature.params.clone());
         if let Some(&id) = self.specializations.get(&key) {
             // A cached body may have been created during result discovery.
             // Readiness depends on this call's phase, not the cache's creation.
@@ -3616,7 +3618,7 @@ impl Analyzer {
         // reaches a fixed point; rustc rejects it at its recursion limit.
         let checking = if self.discovering_results { self.discovering_function } else { self.function_stack.last().copied() };
         let current = checking.and_then(|f| self.specialization_depths.get(&f)).copied().unwrap_or(0);
-        let depth = 1 + key.1.iter()
+        let depth = 1 + types.iter()
             .filter_map(|&ty| match self.unions.payload(ty).unwrap_or(ty) {
                 Type::Closure(closure) => Some(*self.closure_depths.entry(closure).or_insert(current)),
                 _ => None,

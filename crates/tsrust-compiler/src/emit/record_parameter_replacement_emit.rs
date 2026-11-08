@@ -362,8 +362,7 @@ fn owned_record_parameter_field_replacement_keeps_its_actual_union_storage(){
  let function=checked.program.functions.iter().find(|function|function.name=="clear"&&!function.template).unwrap();assert_eq!(function.bindings[0].mode,Mode::Consume);
  let Type::Record(record)=function.bindings[0].ty else{panic!("owned record")};let destination=checked.program.records[record].fields[0].ty.unwrap();assert!(destination.union().is_some());
  let (target,value)=function.body.iter().find_map(|statement|{
-  let crate::syntax::StmtKind::Expr(expression)=&statement.kind else{return None;};
-  if let ExprKind::Assign{target,value,..}=&expression.kind{Some((target.as_ref(),value.as_ref()))}else{None}
+  if let crate::syntax::StmtKind::Assign{target,value,..}=&statement.kind{Some((target,value))}else{None}
  }).expect("Actual checked field assignment");
  assert!(matches!((value.ty,destination),(Some(Type::Union(from)),Type::Union(to)) if from!=to));
  let emitter=super::emitter_for(&checked.program,"");

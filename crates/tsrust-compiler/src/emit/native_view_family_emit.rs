@@ -137,7 +137,7 @@ mod tests {
         // emitted under the existing generic nominal declaration.
         let declaration=emitter.native_record_declaration(holder);assert_ne!(holder,declaration);
         let mut part=crate::syntax::Expr::new(crate::syntax::ExprKind::Name("input".into()),crate::Span::default());part.ty=Some(Type::Record(holder));
-        let spread=emitter.object_spread_value_with(holder,&[part],vec!["input".into()]);
+        let spread=emitter.object_spread_value_with(&checked.functions[0],holder,&[part],vec!["input".into()]);
         assert!(spread.contains(&format!("Record{declaration}{{")),"{spread}");assert!(!spread.contains(&format!("Record{holder}{{")),"Specialized declaration must not be constructed: {spread}");
         assert_eq!(spread.matches("let spread_part0=input;").count(),1);assert!(spread.contains("key_order:spread_order"));
         let mut inputs=BTreeMap::new();let mut returns=Vec::new();let mut names=Vec::new();
@@ -368,4 +368,26 @@ mod tests {
         compile_family(&generated,"",&probe,vec![(new_owner,"does not live long enough"),(sibling,"does not live long enough")],"recursive-parameter-mutation");
     }
 
+}
+
+#[cfg(test)]
+#[test]
+fn object_spread_uses_owned_parameter_physical_field_storage(){
+    use super::*;
+    let source=crate::format("type Row={value:int|undefined;};function copy(row:Row):void{}function main(){}").unwrap();
+    assert_eq!(crate::format(&source).unwrap(),source);
+    let mut checked=crate::analysis::analyze(crate::syntax::parse(&source).unwrap()).unwrap();
+    let physical=checked.scoped_records.materialize(0,vec![Type::Undefined],&mut checked.records);
+    let function=checked.functions.iter().position(|function|function.name=="copy").unwrap();
+    checked.functions[function].bindings[0].ty=Type::Record(physical);
+    checked.functions[function].bindings[0].mode=Mode::Consume;
+    let mut argument=crate::syntax::Expr::new(crate::syntax::ExprKind::Name("row".into()),crate::Span::default());
+    argument.binding=Some(0);argument.ty=Some(Type::Record(0));argument.moved_spread=true;
+    let emitter=emitter_for(&checked,"");
+    let code=emitter.object_spread_value_with(&checked.functions[function],0,&[argument],vec!["checked_source".into()]);
+    let Type::Union(union)=checked.records[0].fields[0].ty.unwrap()else{panic!("nullable destination")};
+    let tag=checked.unions[union.index()].members.iter().position(|ty|*ty==Type::Undefined).unwrap();
+    assert!(code.contains(&format!("Union{}::V{tag}(spread_part0.field0)",union.index())),"{code}");
+    assert_eq!(code.matches("let spread_part0=checked_source;").count(),1);
+    assert!(code.contains("key_order:spread_order"));
 }

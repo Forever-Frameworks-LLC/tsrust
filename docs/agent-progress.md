@@ -6,22 +6,33 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpoint4c6ffaf6; documentation native compilation repair in progress; full goal active.
-- Terminal ownership scope passed all8 compiler rust_bridge,7 nullish,8 LSP bridge,
-  and5/6 documentation cases. Final compiler library1530 runnable and LSP27 passed.
-  Preserve these scopes; documentation full-content native case is still failing.
-- Object-spread constructor now uses its canonical declaration; focused witness passed.
-  Follow-up documentation run ended with190 E0308 and73 E0282, zero E0422.
-  /tmp/tsrust-object-spread-repair-1db735c92aac.json records terminal failure, not acceptance.
-- Pending source-only reviewed repairs cover required empty callback record arms,
-  physical context for coalescing fallbacks, owned parameter defaults and final
-  result retargeting. Concrete record-field layout aliasing remains under investigation.
-  These changes have not yet passed native validation. Local host debug symbols
-  default to0 consistently with CI; application workspace profiles stay independent.
-- Next: finish concrete-layout diagnosis, format/checkpoint coherent repairs, then
-  run /tmp/tsrust-physical-carrier-repair-run.py once under its30-minute/5GB scope.
-  Prior ownership/docs attempts are terminal; do not extend their expired budget.
-  Then resume integrated service and remaining B00/B20/platform acceptance.
+Current checkpointdfc71178; full goal active; no build currently running.
+- Changed-source shared build terminal PASS443.261s/3310067KiB. Compiler profile
+  debuginfo0, opt1, debug_assertions/overflow_checks true. Complete repair scope
+  ended561.245s/3425080672B, stopnull, remaining[].
+  /tmp/tsrust-physical-carrier-repair-08075e0796e7.json.
+- Four focused compiler regressions passed. Three private fixture constructions
+  failed (missing nullable left, lowered assignment shape, identical callback
+  types); fixture-only corrections are pending validation. No assertions weakened.
+- Documentation native case still FAIL112E0308, down from263 errors. ZeroE0282
+  andE0422. Remaining roots are consuming-spread physical field conversion and
+  a proven positional specialization-cache collision. Reviewed cache fix applied;
+  spread fix is being prepared. Do not claim documentation acceptance.
+- Retain all1530 compiler library/27LSP library, compiler rust_bridge8,
+  nullish7, LSP bridge8 and5/6 earlier documentation passes. B19 nested bridge
+  witness now passed; its earlier19b/19c failures remain historical only.
+- Quiet locked obsolete host cleanup reclaimed1430007808B; current selected
+  artifacts hash-preserved, application dependencies untouched. Post-build object
+  cleanup reclaimed30068736B of newly generated outputs, not historical recovery.
+- Pending B00 changes remove only the unbacked4096-byte route/400-day cookie
+  ceilings. Existing stableHTTP std:testing fixture now covers three cases in one
+  runner; frontend check passed, native wire validation pending. Current54 shared
+  package declarations match; license/declaredMSRV crosswalk added with current
+  advisory/four-host/minimal-build gaps explicit.
+- Next: format/checkpoint completed source repair and resume affected checks only
+  via /tmp/tsrust-physical-carrier-repair-resume-run.py within the ORIGINAL30minute
+  absolute deadline. If insufficient budget, do not reset or claim acceptance.
+  Then integrated service and remaining B00/B20/platform acceptance.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0

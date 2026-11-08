@@ -7308,7 +7308,7 @@ impl Emitter<'_> {
 
     /// An independent owned copy of a readable value in its ordinary storage.
     #[inline(never)]
-    fn object_spread_value_with(&self,result:usize,args:&[Expr],copied:Vec<String>)->String{
+    fn object_spread_value_with(&self,fun:&CheckedFunction,result:usize,args:&[Expr],copied:Vec<String>)->String{
         let mut code=String::from("{");let mut last=std::collections::HashMap::new();
         let count=self.program.records[result].fields.len();
         let _=write!(code,"let mut spread_order=[0usize;{count}];let mut spread_seen=[false;{count}];let mut spread_next=0usize;");
@@ -7324,7 +7324,13 @@ impl Emitter<'_> {
             if arms.is_empty(){continue;}
             let _=write!(code,"for spread_index in spread_part{part}.key_order{{let output=match spread_index{{{arms}_=>continue}};if !spread_seen[output]{{spread_seen[output]=true;spread_order[spread_next]=output;spread_next+=1;}}}}");
         }
-        let fields=self.program.records[result].fields.iter().enumerate().map(|(index,definition)|{let (part,field)=last[&definition.name.text];let Type::Record(source)=args[part].ty.expect("checked spread part") else{unreachable!()};let copied=format!("spread_part{part}.field{field}");let adapted=self.element_alternative(self.program.records[source].fields[field].ty.expect("checked source field"),definition.ty.expect("checked result field"),&copied);format!("field{index}:{adapted}")}).collect::<Vec<_>>().join(",");
+        let fields=self.program.records[result].fields.iter().enumerate().map(|(index,definition)|{let (part,field)=last[&definition.name.text];let Type::Record(source)=args[part].ty.expect("checked spread part") else{unreachable!()};let copied=format!("spread_part{part}.field{field}");let value=if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&args[part].kind {value.as_ref()}else{&args[part]};
+            let physical=if args[part].moved_spread {self.owned_record_source_type(fun,value).or_else(|| {
+                if matches!(value.kind,ExprKind::Name(_)) {value.binding.and_then(|id|fun.bindings.get(id)).filter(|binding|binding.mode==Mode::Consume && !binding.capture_reference && binding.borrowed_place.is_none() && binding.borrowed_element.is_none()).map(|binding|binding.ty)}else{None}
+            })}else{None};
+            let physical=if let Some(Type::Record(record))=physical {record}else{source};
+            let actual=self.program.records[physical].fields.iter().find(|field|field.name.text==definition.name.text).and_then(|field|field.ty).expect("checked physical spread field");
+            let destination=definition.ty.expect("checked result field");let adapted=if args[part].moved_spread {self.record_carrier_conversion(actual,destination,&copied)}else{self.element_alternative(actual,destination,&copied)};format!("field{index}:{adapted}")}).collect::<Vec<_>>().join(",");
         let declaration=self.native_record_declaration(result);
         let _=write!(code,"Record{declaration}{{{fields}{}key_order:spread_order}}}}",if fields.is_empty(){""}else{","});code
     }

@@ -605,3 +605,20 @@ mod cached_result_readiness_tests {
   }
  }
 }
+
+#[cfg(test)]
+#[test]
+fn physical_specialization_cache_preserves_parameter_positions(){
+ let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string|undefined;function make(text:string):Reactive<string>{return {evaluate:()=>clone(text)};}function pair(first:Value,second:Value):Value[]{return [first,second];}function main(){const first=pair(make('a'),undefined);const second=pair(undefined,make('b'));const third=pair(make('c'),undefined);console.log(third.length);console.log(first.length);console.log(second.length);}";
+ let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+ let checked=crate::check(&formatted).unwrap();let program=&checked.program;let mut targets=Vec::new();
+ let main=program.functions.iter().find(|function|function.name=="main").unwrap();
+ crate::fixed_storage::visit_function_expressions(main,&mut |value|{
+  if let (Some(CallTarget::Function(target)),ExprKind::Call(_,arguments))=(value.target,&value.kind){
+   let callee=&program.functions[target];if callee.name=="pair"{
+    targets.push(target);for (argument,parameter) in arguments.iter().zip(&callee.bindings){assert_eq!(argument.ty,Some(parameter.ty),"Each owned argument must match its own physical parameter position");}
+   }
+  }
+ });
+ assert_eq!(targets.len(),3);assert_ne!(targets[0],targets[1]);assert_eq!(targets[0],targets[2],"Equal positional carriers must still reuse their specialization");drop(checked.emit_rust());
+}

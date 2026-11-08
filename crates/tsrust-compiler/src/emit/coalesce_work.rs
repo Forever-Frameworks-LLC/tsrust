@@ -222,16 +222,16 @@ fn coalescing_empty_callback_fallback_has_its_checked_physical_union_context(){
  let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string;function observe(value:ReadOnly<Value>):void{if(typeof value==='string'){console.log(value);}else{console.log('reactive');}}function main(){const value:Value|undefined=undefined;observe(value??'');}";
  let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
  let checked=crate::check(&formatted).unwrap();let emitter=super::emitter_for(&checked.program,"");
- let find=|absent:bool|checked.program.unions.iter().enumerate().find_map(|(index,union)|{
-  (union.members.len()==2 && union.members.contains(&Type::String) && union.members.iter().any(|member|matches!(member,Type::Record(_))) && union.members.iter().any(|member|emitter.absent_record_field(*member).is_some())==absent).then_some(UnionId{index:index.try_into().unwrap(),copy:false,scalar_members:false})
+ let find=|absent:bool,nullable:bool|checked.program.unions.iter().enumerate().find_map(|(index,union)|{
+  (union.members.len()==(if nullable{3}else{2}) && union.members.contains(&Type::Undefined)==nullable && union.members.contains(&Type::String) && union.members.iter().any(|member|matches!(member,Type::Record(_))) && union.members.iter().any(|member|emitter.absent_record_field(*member).is_some())==absent).then_some(UnionId{index:index.try_into().unwrap(),copy:false,scalar_members:false})
  }).unwrap();
- let from=find(true);let target=find(false);assert_ne!(from,target);
+ let from=find(true,false);let target=find(false,false);let left=find(true,true);assert_ne!(from,target);assert!(checked.program.unions[left.index()].members.contains(&Type::Undefined));
  let tag=checked.program.unions[from.index()].members.iter().position(|member|*member==Type::String).unwrap();
  let mut right=Expr::new(ExprKind::Name("fallback".into()),crate::Span::default());right.ty=Some(Type::Union(from));
  for view in [false,true]{
   let mode=if view{Mode::Read}else{Mode::Consume};
   let physical=emitter.native_argument_type(ArgumentContract{ty:Type::Union(from),mode,omission:crate::ParameterOmission::Required,rest:false},"");
-  let plan=Plan{absent_only:false,undefined_only:false,left_mode:mode,right_mode:mode,logical_union:Some(from),union:Some(from),result:Type::Union(target),borrowed:view,target_view:view};
+  let plan=Plan{absent_only:false,undefined_only:false,left_mode:mode,right_mode:mode,logical_union:Some(left),union:Some(left),result:Type::Union(target),borrowed:view,target_view:view};
   let code=emitter.finish_coalesce_emission(plan,&right,"left".into(),format!("{}{}::V{tag}(scalar)",if view{"ViewUnion"}else{"Union"},from.index()));
   assert!(code.contains(&format!("match std::convert::identity::<{physical}>(")),"{code}");assert_eq!(code.matches("(scalar)").count(),1);assert!(code.contains("=>match payload.field0 {}"));
  }

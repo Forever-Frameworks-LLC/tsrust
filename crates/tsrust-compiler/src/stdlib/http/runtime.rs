@@ -317,7 +317,7 @@ mod tsrust_native_http {
         }
     }
     fn route_path(path:&str)->Result<(String,String),Error>{
-        if !path.starts_with('/') || path.contains(['?','#','%','\\','{','}']) || path.chars().any(char::is_control) || path.contains("//") || path.len()>4096{return Err(error("route","Use an absolute literal path with optional :name segments"));}
+        if !path.starts_with('/') || path.contains(['?','#','%','\\','{','}']) || path.chars().any(char::is_control) || path.contains("//"){return Err(error("route","Use an absolute literal path with optional :name segments"));}
         if path=="/" {return Ok((path.into(),path.into()));}
         let mut names=BTreeSet::new();let mut output=String::new();let mut identity=String::new();
         for part in path[1..].split('/') {
@@ -572,7 +572,7 @@ mod tsrust_native_http {
             let path=options.path.as_deref().unwrap_or("/");let secure=options.secure.unwrap_or(false);let http_only=options.http_only.unwrap_or(false);
             if !path.starts_with('/')||path.bytes().any(|byte|!(0x20..=0x7e).contains(&byte)||byte==b';'){return Err(error("cookie","Invalid cookie path"));}
             if options.domain.as_ref().is_some_and(|domain|domain.is_empty()||!domain.bytes().all(|byte|byte.is_ascii_alphanumeric()||matches!(byte,b'.'|b'-'))){return Err(error("cookie","Invalid cookie domain"));}
-            if options.max_age.is_some_and(|age|!(0..=34560000).contains(&age)){return Err(error("cookie","Cookie maxAge must be between 0 and 34560000 seconds"));}
+            if options.max_age.is_some_and(|age|age<0){return Err(error("cookie","Cookie maxAge must be nonnegative integer seconds"));}
             if name.starts_with("__Secure-")&&!secure || name.starts_with("__Host-")&&(!secure||path!="/"||options.domain.is_some()){return Err(error("cookie","Cookie prefix requires Secure and host-only Path=/ where applicable"));}
             let same_site=match options.same_site.as_deref(){None=>None,Some("Strict"|"strict")=>Some("Strict"),Some("Lax"|"lax")=>Some("Lax"),Some("None"|"none")=>Some("None"),_=>return Err(error("cookie","sameSite must be Strict, Lax or None"))};
             if options.partitioned.unwrap_or(false)&&!secure{return Err(error("cookie","Partitioned cookies require Secure"));}

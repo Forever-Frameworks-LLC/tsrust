@@ -57,3 +57,16 @@ CORS defaults are closed. Omitted/empty `origins`, `methods`, `allowedHeaders` a
 ## Structured request logs
 
 Install `app.use(accessLog(logger))` or `router.use(path, accessLog(logger))` in source order. The borrowed local logger is retained by middleware. Each request gets its own span; the completion event contains method, matched route template, status and elapsed milliseconds. Cancellation emits `request_cancelled` without inventing a response status. Bodies, query strings and credentials are never inspected. Child loggers enter under the active request, including owned Tasks and cleanup. See [structured logging](/standard-library/logging).
+
+## Route and cookie ranges
+
+Route registration has no additional path-length ceiling. Paths must still be
+absolute and obey the documented literal/parameter syntax; the HTTP backend keeps
+its own request parsing constraints. In v0.2, the former 4096-byte registration
+ceiling is removed.
+
+Cookie `maxAge` is an optional nonnegative `int` count of seconds. Omission makes
+a session cookie and zero requests deletion. The response emits the supplied
+integer exactly, including values above the former 400-day ceiling; browsers may
+clamp the effective lifetime. This does not promise retention beyond a client's
+policy. Cookie names, prefixes, attributes and header bytes remain validated.

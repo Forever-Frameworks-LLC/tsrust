@@ -83,7 +83,7 @@ Primary implementation evidence:
   UTF-8 validation and ownership checks. Existing explicitly bounded APIs retain
   their documented contracts except the specifically listed B01/B10 migrations.
   Document observable v0.1→v0.2 default changes.
-- [ ] Keep server/application resource policies explicit and source-owned; do
+- [x] Keep server/application resource policies explicit and source-owned; do
   not remove configured limits or add API/middleware settings to project config.
 - [ ] Admit each package using official docs/repository, maintained compatible
   release, license/notices, RustSec/advisory review, MSRV and all four release
@@ -99,9 +99,30 @@ Primary implementation evidence:
 - [ ] Prove feature selection: an unused module adds no unwanted dependency
   closure/runtime initialization. Measure minimal-program build time and size
   before admitting costly data tables or native build requirements.
-- [ ] Prepare a reusable bounded test runner/build-slot procedure for every
+- [x] Prepare a reusable bounded test runner/build-slot procedure for every
   execution host. Keep one Cargo target per host, incremental off, jobs=1,
   process-tree memory/time monitoring, and ownership of killed processes clear.
+
+B00 policy/infrastructure reconciliation: B10's retained compiler-library and
+focused client/server acceptance proves ordinary optional policies and all seven
+explicit `ServerOptions` controls. Policies remain in source; no middleware or
+server policy is installed through project configuration. The reusable
+`tools/platform-acceptance.py` runner and its focused unit controls implement the
+55-minute aggregate scope, bounded owned children, one target, jobs=1 and
+incremental=0. `.github/workflows/ci.yml` selects all four release hosts with a
+60-minute job ceiling; `docs/guides/platform-acceptance.md` documents execution.
+This checks infrastructure preparation, not native four-host acceptance in B20.
+
+The remaining HTTP registration/cookie ceilings were source-audited against
+Axum0.8.9 `routing/path_router.rs::validate_path`, Matchit0.8.4
+`Router::insert`/`Node::insert`, and the selected `http::HeaderValue::from_str`.
+Those paths do not impose Tsrust's 4096-byte route cap or 400-day cookie cap.
+Cookie serialization writes the nonnegative i64 as decimal text without duration
+or expiry-date conversion; header validation remains the final trust boundary.
+The focused range witness covers a 4097-byte route, exact 34560001/i64::MAX cookie
+headers and unchanged negative age/route syntax rejection. This new range change
+is source-only until its focused native/editor gates pass; global default-policy
+checkboxes remain unchecked.
 
 First-wave source preparation identified these concrete shared prerequisites;
 they are not completed implementation gates:
