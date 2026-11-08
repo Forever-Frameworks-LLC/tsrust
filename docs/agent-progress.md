@@ -6,29 +6,59 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpointc7dd78af; pending reviewed middleware factory+Shlex prep repairs.
+Current checkpoint d07cd476; pending reviewed benchmark/profile and evidence-doc changes.
 Only root writes canonical; app worktree owner WIP stays protected.
-- ACTUAL shared55 EACH debug+release PASS, plus filtered cachehit/nativeBuildMs0 at EACH: /tmp/tsrust-remaining-portable-acceptance-9ceb3a90f2c4.json. Logging5/exact10JSONrows,realtime18,iterator32/allcatalog/name oracles retained. Debug execution159.822375ms/setup17631.797333; release72.686708ms/setup145014.922709 (native136532.924584). Correctness observations,NOT comparable timings.
-- Same scope terminal497.315s,peak2983645936B,stopnull,remaining[]. Fresh normalCLI+3hosts buildPASS218.480s. Exports FAILED only: middleware unresolved http_intrinsic in storedsecureHeaders/compress aliases; realShlex lacks explicitly prepared portable pack. Host89.498s/4.249s; no export acceptance claimed. Cleanup511848448B actual recovery. No build/test live at this record.
-- Reviewed pending production fix b7487ed: reuse existing checked HTTP factory forwarders for secureHeaders/compress, preserve plainMiddleware result/directnativeconstructor (no fabricatedResult/unwrap). Reserved Symbol skip/exacthelperdedup prevents prepare reentry self-call; typed-first and preparetwice controls added. Authored middleware O0/O3 export remains native witness. Reviewed Shlex test-only75c7268 adds --portable to existing offline bindingsresolve; export itself remains Cargo-free.
-- Next prepared NOTRUN /tmp/tsrust-http-factory-portable-repair-run.py: one coherent compiler/LSP/5target build, affected HTTPwrapperprivate controls, shared55bothprofiles (freshHTTPproducer+benchmarkproof), focusedHTTPhelp, THEN middleware+realShlex O0/O3 relocated emptyCargoHome/offline/locked exports LAST. Fixed30min/5GB/jobs1/incremental0/threads3. No full-library/byte/crypto replay. B19 nominal projection19c and deterministic19b remain passed/unchanged; don't rerun.
-- Retained byte68 EACHdebug/release PASS: /tmp/tsrust-nullable-storage-proof-front-30bc05cbad9c.json. NativeABI actual10002node/O0O3/pointers/deepdrop64KiB/twoescapes PASS: /tmp/tsrust-abi-witness-repair-c5252aa3173b.json.
-- Retained meaningful library milestone: compiler1528PASS+one repairedHTTPfixture =all1529runnable;8UNCHANGED opt-in cases. FullLSP27PASS. /tmp/tsrust-closed-runtime-library-milestone.json plus affectedHTTPpair2PASS /tmp/tsrust-http-body-limit-proof-28fed979d29f.json. Corrected header-only actual413 probe preservesordinary/exactlimit1048577bytefulluploads; no runtime drain/reset acceptance. Fullwork/repairs fit original30minscope1794094074.6080792. No fullregression replay for current narrowHTTPfactory fix.
-APIchecklist reflects retainednative/editor/export evidence; B15eagersnapshots
-explicit arraykeys/entries/mapsnapshots/Setmutation-control passes at965 retained.
-Remaining B00package/platform/default-ledger, B17disabledallocation, B19exports,
-B20finalintegration/apps/platform/measurements remain open. Fullgoalactive.
-Quietmeasurement preparedNOTRUN /tmp/tsrust-b11-fresh-public-native-measure.py:
-validates TWOseparate55reports/currentCLI; unchangedRust/Node controls/original
-3x31x128protocol,strictquietguard,actualstore:ingest only. Inspect/pruneclosed
-old target/http-realtime-public-package before freshpackageassert; don'tdelete
-controls/trustoverwritten programalias. URLscaling already hasregistered workloads
-native_url_dot_segments_{long,short}_{8192,16384,32768,65536}; use those after
-portablebatch for remaining bounded investigation/measurements. Upstream1163/
-1164/1174 reread; existingdocs/runtimecorpus alreadystatepinnedrelative difference,
-correctness/patchpasses retained; complete scaling timingreceipt stillnotlocated.
-Whole-project format0changes,diffclean before checkpoints. No new comparable
-measurement/SQLiteingestion, push, merge or v0.2publication claimed.
+- ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
+  HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0
+  EACH, focused HTTP LSP3, middleware alias/native+relocated exports, real Shlex
+  generated adapter+relocated empty-Cargo-home locked/offline exports at both profiles.
+  Shared55 execution162.818459/67.557667ms; setup68631.7925/30725.667ms. Correctness
+  observations, NOT comparable timings. No new skips/weakening/unsafe.
+- Initial compiler build terminalPASS636.673s/4163284KiB; orchestration omitted
+  LSP package and failed artifact assertion before tests. Original artifacts SHA
+  retained. LSP-only alternate selection interrupted50.988s before compiler rebuild.
+  Correct shared package selection reused compiler and added LSP14.488s/711952KiB.
+  Resume terminalPASS400.573s/1668041368B,stopnull,remaining[]. All within SAME
+  original1800s scope /tmp/tsrust-http-factory-portable-repair-scope.json,
+  startedUnix1794096899.864186. Sessions53382/95717/24361 all terminal; no run live.
+- Source fixes accepted: existing checked factory forwarding now includes stored
+  secureHeaders/compress, plainMiddleware direct return and reentry-safe reserved
+  Symbol dedup. Shlex bindingsresolve explicitly prepares --portable; export
+  remains Cargo-free. All B10 API boxes now reflect actual passed evidence.
+- B19 generator/customization/rustdoc57/fallback/editor3/3 retained19b; nominal
+  nested String pointer/capacity moves O0/O3 retained19c. RealShlex paired with
+  compiler-owned regex backend5/export passes at965 closes package-witness scope.
+  B19 FIRST BOX STILL OPEN: rust_bridge::owned_nested_options_strings_and_records_preserve_tags_buffers_and_drop
+  failed19b/19c and lacks later PASS. Old host absent; queue in NEXT meaningful
+  integration build. Do not rebuild solely for it or replay passed19b/19c controls.
+- Retain byte68 EACHdebug/release PASS /tmp/tsrust-nullable-storage-proof-front-30bc05cbad9c.json;
+  actual10002node ABI/pointers/deepdrop/O0O3 PASS /tmp/tsrust-abi-witness-repair-c5252aa3173b.json;
+  full compiler library1528+repairedHTTPpair =all1529runnable,8unchanged opt-ins;
+  LSP27PASS /tmp/tsrust-closed-runtime-library-milestone.json plus
+  /tmp/tsrust-http-body-limit-proof-28fed979d29f.json. Do not replay for harness edits.
+- Cleanup quiet/locked /tmp/tsrust-closed-http-caches-cleanup.json recovered
+  1603506176B actual:3source-proven obsolete native cache entries+closed old
+  target/http-realtime-public-package. Current suites/shareddeps/controls retained.
+  Per-build rcgu cleanup recovered1140387840B+96890880B+334708736B newly created
+  objects; do not sum as net historical recovery.
+- Reviewed pending harness changes reuse explicit validated TSRUST rather than
+  rebuilding release compiler in run.mjs/profile-native.mjs. Logging allocation
+  driver now supports existing checked Result ABI/required pin_project_lite and
+  source guards. Pure focused checks6PASS; whole-project format0changes before
+  latest evidence docs; repeat required formatter before source checkpoint.
+- Existing coverage guide now lists245 added catalog namespace identities since
+  preplan8efaaee21bcc;520 current backend namespace rows documented. This does NOT
+  close receiver/source-only/per-overload/platform/default/advisory acceptance.
+- NEXT actual quiet B11 measurement prepared /tmp/tsrust-b11-fresh-public-native-measure.py
+  with accepted gate JSON above; old generated package now removed. Exact Rust/Node
+  control source seals/binary present match; original3x31x128protocol, strictquiet,
+  actual store:ingest only. No timing/SQLite ingestion claimed yet.
+- Then existing registered URL11 measurements/scaling; B17 logging_disabled public
+  allocation profile (existing driver, separate setup/event costs). Remaining
+  B00 ledger/package/platform, B19nested integration, B20 apps/final regression/
+  platform/measurements/release acceptance stay open. Integrated persistent API
+  control tools/check-service.mjs supports SERVICE_BINARY reuse; otherwise build
+  ONE app. Fullgoalactive; no push/merge/v0.2publication approved or claimed.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 

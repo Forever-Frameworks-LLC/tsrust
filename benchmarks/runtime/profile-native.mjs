@@ -1,3 +1,4 @@
+import {assertLoggingSource} from './structured-logging-contract.mjs';
 import {assertRustOwnedAdapterSource} from './rust-owned-adapters-source-contract.mjs';
 import {assertOwnedIteratorSource,assertOwnedIteratorReference} from './owned-iterators-contract.mjs';
 import {prepareProcessHelper,processHelperEvidence,assertProcessSource,assertProcessHelperUnchanged} from './process-contract.mjs';
@@ -187,12 +188,15 @@ const run = (command,childEnv=process.env,timeout=120000) => {
  if (result.error || result.status !== 0) throw new Error(result.error ?? result.stderr);
  return result.stdout.trim();
 };
-run(['cargo', 'build', '--release', '--offline', '--locked', '--quiet'],process.env,30*60*1000);
+// Resolve and validate an explicit compiler before deciding whether to bootstrap.
+compilerExecutable(root,root);
+if (!process.env.TSRUST) run(['cargo', 'build', '--release', '--offline', '--locked', '--quiet'],process.env,30*60*1000);
 const driver = fs.readFileSync(path.join(here, 'allocation-driver.rs'), 'utf8');
 const rows = [];
 for (const workload of workloads) {
  const sourcePath = path.join(here, workload.source ?? `workloads/${workload.id}.tsr`);
  const source = fs.readFileSync(sourcePath);
+ if(workload.family==='structured-logging'){assertLoggingSource(source.toString(),workload,'native');assertLoggingSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload,'typescript');assertLoggingSource(fs.readFileSync(path.join(here,workload.rustReference),'utf8'),workload,'rust-hand');}
  if(workload.family==='child-processes')assertProcessSource(source.toString(),workload,'native');
  if(workload.family==='network-addresses'){assertNetworkAddressSource(source.toString(),workload,'native');assertNetworkAddressSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload,'typescript');}
  if(workload.family==='network-transport'){assertNetworkTransportSource(source.toString(),workload,'native');assertNetworkTransportSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload,'typescript');}

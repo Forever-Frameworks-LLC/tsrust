@@ -1033,17 +1033,17 @@ allocation/platform/final-release gates.
 
 Backend: existing Reqwest/Axum/Tower stack. B04/B05/B06; compression uses B09.
 
-- [ ] Extend ClientOptions with timeout/connect-timeout, redirect and proxy
+- [x] Extend ClientOptions with timeout/connect-timeout, redirect and proxy
   policy and response-body policy; preserve TLS verification and existing ca.
-- [ ] Migrate unexplained client default overrides through B00: absent options
+- [x] Migrate unexplained client default overrides through B00: absent options
   use the selected Rust backend's defaults. Keep explicit disabling/bounds.
-- [ ] `requestBytes`, `requestStream`, `requestChannel`; owned binary and
+- [x] `requestBytes`, `requestStream`, `requestChannel`; owned binary and
   streaming upload bodies with backpressure, cancellation and exact framing.
-- [ ] Reusable client multipart/form construction, including binary parts,
+- [x] Reusable client multipart/form construction, including binary parts,
   instead of limiting public client requests to String bodies.
-- [ ] Source-installed `cors`, `secureHeaders`, `compress` middleware helpers.
+- [x] Source-installed `cors`, `secureHeaders`, `compress` middleware helpers.
   Defaults/arguments are documented; no helper installs itself globally.
-- [ ] Prove supported negotiated HTTP/2 and TLS paths end to end; expose a
+- [x] Prove supported negotiated HTTP/2 and TLS paths end to end; expose a
   transport mode option only where the existing backend needs explicit selection.
 
 Contract: policy remains application-owned. Test redirect credential stripping,
@@ -1056,13 +1056,16 @@ binary/stream uploads, pooled requests, middleware and CPU-per-request cases.
 Compare direct same-stack Rust and Node; include p50/p99, throughput, CPU/request
 and RSS for service scenarios, with the same load generator and concurrency.
 
-Source implementation is present for the client policies, owned upload/form
-factories and source-installed middleware. The executable middleware example is
-`examples/http-middleware/main.tsr`; matched upload and middleware workloads are
-in `benchmarks/http`. The latest affected run preserves successful native
-form/upload debug and release execution and crypto/CORS editor agreement.
-Middleware export execution, remaining ownership repairs and actual matched
-measurements are still pending; the unchecked items above are not accepted yet.
+Client policies/defaults, owned uploads/forms and negotiated TLS/HTTP2 have
+actual focused runtime and editor acceptance. The default-policy control compares
+against untouched Reqwest; TLS proves ALPN h2 and both public and independent
+client HTTP/2 responses. These cases are retained in the completed compiler-library
+milestone, not inferred from source. Fresh middleware factory alias execution and
+relocated offline debug/release export now pass at d07cd476:
+`/tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json`, alongside four
+forwarder/reentry controls, three HTTP editor cases and shared55 each profile.
+`examples/http-middleware/main.tsr` and matched upload/middleware workloads are
+present. Comparable measurements and multi-host final acceptance remain separate.
 
 ### B11 — SSE and WebSocket APIs
 
@@ -1598,14 +1601,14 @@ coordinate all shared compiler changes with B15's owner.
 
 - [ ] Support `Option<T>`, `Vec<String>`, `Vec<OwnedRecord>` and nested supported
   owned containers in explicit adapters, preserving exact values and moves.
-- [ ] Explicit CLI generation from selected concrete synchronous crate exports:
+- [x] Explicit CLI generation from selected concrete synchronous crate exports:
   adapter source, Tsrust declarations, docs/hover and a skipped-item report.
-- [ ] Editable stubs for unsupported signatures, deterministic regeneration and
+- [x] Editable stubs for unsupported signatures, deterministic regeneration and
   preservation of customized adapters; no overwrite by ordinary builds.
-- [ ] Pinned-toolchain rustdoc-JSON compatibility fixture and source-fallback
+- [x] Pinned-toolchain rustdoc-JSON compatibility fixture and source-fallback
   tests. Explicit generation may prepare inputs; ordinary compilation stays
   locked/offline and does not install/download silently.
-- [ ] At least two real package witnesses, including one retained compiled
+- [x] At least two real package witnesses, including one retained compiled
   stdlib backend through its intentional compiler-owned adapter and one ordinary
   generated concrete-data adapter; test relocated offline export and editor help.
 
@@ -1618,6 +1621,22 @@ the backend's responsibility and are included in dependency review.
 Performance: direct same-crate Rust calls versus generated calls, scalar and
 owned-container round trips, pointer/capacity/drop witnesses, generation/build
 cost separately from runtime. No redundant stringify/parse or field-copy bridge.
+
+Retained accepted generator controls: deterministic/customization-safe outputs,
+pinned Rust1.96.1 rustdoc JSON format57, source fallback, ownership negatives and
+bridge editor3/3 in `/tmp/tsrust-utilities-http-repair19b-66af5f02808e.json`.
+Nominal nested-string pointer/capacity move controls pass at both profiles in
+`/tmp/tsrust-utilities-http-repair19c-d2cd59ed7ca1.json`.
+Real Shlex generation/Unicode/error/version guards and relocated empty-Cargo-home
+locked/offline debug/release export pass at d07cd476 in the HTTP factory repair
+scope above. The intentional compiler-owned regex backend's five accepted cases,
+including examples/stored calls and relocated offline export, are retained in
+`/tmp/tsrust-965de83f-full-integration.json`. Editor proof covers authored bridge
+contracts; it is not a separate Shlex-specific editor fixture.
+The first checkbox stays open: the older failed integration case
+`rust_bridge::owned_nested_options_strings_and_records_preserve_tags_buffers_and_drop`
+has no later successful receipt. Its old executable was pruned, so include it in
+the next meaningful integration build rather than rebuilding solely for one case.
 
 ## Parallel execution and ownership
 

@@ -112,3 +112,10 @@ test('reference dependency routing selects declared compression and existing fam
  assert.deepEqual(prepareReferenceDependencies({workload:{family:'ordinary'}}),{args:[],evidence:null});
  }finally{childProcess.spawnSync=original;syncBuiltinESMExports();}
 });
+
+test('logging artifact closure requires its pinned projection macro library',()=>{
+ const required=['tracing','tracing_subscriber','pin_project_lite'];
+ const artifact=name=>JSON.stringify({reason:'compiler-artifact',target:{name,kind:['lib']},filenames:[`/target/release/deps/lib${name}-exact.rlib`]});
+ assert.throws(()=>dependencyArtifacts(required.slice(0,2).map(artifact).join('\n'),'/target',required),/Missing dependency artifact: pin_project_lite/);
+ assert.equal(dependencyArtifacts(required.map(artifact).join('\n'),'/target',required).pin_project_lite,'/target/release/deps/libpin_project_lite-exact.rlib');
+});
