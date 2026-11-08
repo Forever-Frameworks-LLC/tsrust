@@ -1,6 +1,9 @@
 import { PathParts, PathFormatOptions, parse, format, resolve, join, separator, delimiter } from 'std:path';
 import { vars, get, currentDir, currentExe, tempDir, homeDir } from 'std:env';
 import { availableParallelism, hostname } from 'std:os';
+import { parse as parsePath, format as formatPath, resolve as resolvePath, separator as pathSeparator, delimiter as pathDelimiter } from 'std:path';
+import { vars as environmentEntries, currentDir as workingDirectory, currentExe as executablePath, tempDir as temporaryDirectory, homeDir as userHome } from 'std:env';
+import { availableParallelism as parallelism, hostname as hostName } from 'std:os';
 import { strictEqual } from 'std:testing';
 
 function main() {
@@ -40,5 +43,33 @@ function main() {
   strictEqual(typeof temporary, 'string');
   strictEqual(unwrap(availableParallelism()) > 0, true);
   strictEqual(typeof unwrap(hostname()), 'string');
+  const inspect = parsePath;
+  const render = formatPath;
+  const absolute = resolvePath;
+  const slash = pathSeparator;
+  const listSeparator = pathDelimiter;
+  const edited = inspect('file.tar.gz');
+  edited.name = 'changed';
+  strictEqual(inspect('file.tar.gz').name, 'file.tar');
+  strictEqual(render({
+    name: edited.name, ext: edited.ext
+  }), 'changed.gz');
+  strictEqual(unwrap(absolute(directory, 'one', '..', 'two')), join(directory, 'two'));
+  strictEqual(slash(), separator());
+  strictEqual(listSeparator(), delimiter());
+  const entries = environmentEntries;
+  const cwd = workingDirectory;
+  const executable = executablePath;
+  const temp = temporaryDirectory;
+  const homeDirectory = userHome;
+  const capacity = parallelism;
+  const host = hostName;
+  strictEqual(unwrap(entries()).length > 0, true);
+  strictEqual(unwrap(cwd()), directory);
+  strictEqual(unwrap(executable()), unwrap(currentExe()));
+  strictEqual(unwrap(temp()), temporary);
+  strictEqual(unwrap(homeDirectory()), home);
+  strictEqual(unwrap(capacity()) > 0, true);
+  strictEqual(unwrap(host()), unwrap(hostname()));
   console.log('Path, environment and OS checks passed');
 }

@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-Current accepted compiler/runtime checkpoint04f3df1f; generated consumer footprint evidence committed at5c3414e7.
+Current accepted compiler/runtime checkpoint04f3df1f; generated consumer footprint at5c3414e7; platform/CI scope checkpoint469e8bb3.
 Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 
 - ACTUAL current compiler library1543PASS/0FAIL/8unchanged opt-ins ignored,
@@ -69,6 +69,45 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
   Existingstable sources, sharedtarget/cache, no directcontrols/11sample replay,
   no sampled-benchmark/SQLite claim. Temporarybinaries/emittedscratch removed.
   /tmp/tsrust-generated-minimal-footprint.json. B00feature-selection row closed.
+- ACTUAL stored realtime factory acceptance PASS162.370s: shared55 EACHprofile,
+  strict original identities/outputs, cache hit witness native0. Existing host and
+  oracle source hashes match their accepted builds; current stable suites are
+  loaded from disk. Only test fixtures/examples changed, no production compiler
+  code repair or new standalone case programs. Entire affected gate reused one
+  original1770s deadline, including build/repairs/cleanup; no budget reset.
+  /tmp/tsrust-observer-alias-acceptance.json retains failed attempts and passes.
+- Current source adds B03 renamed/stored observer coverage to existing example
+  and controlled process fixtures, plus9 checker-only invalid-argument/readonly
+  controls.17catalog entries now map to15stable std:testing modules, one native
+  runner with exact module/case/output identity and private output. Four existing
+  path testsPASS; new catalog guard initially failed only a blank-line expectation,
+  repaired and catalog15PASS2.629s. Original4passed scopes preserved.
+- Current CLI unit binary52PASS2.626s after ONE26.004s affected-host build.
+  Process11PASS initially; unchanged relocated export failed missing source-pack
+  env, then ONLYthat scope PASS29.153s with current prepared packs. Do not infer
+  a process implementation defect from that setup failure.
+- Compression renamed/stored buffer/stream factories now execute inside existing
+  cases without extra programs. Typed invalid-level assertion required evaluating
+  fallible byte creation before the owner-taking call (correct existing compiler
+  rejection, no weakening). Original failed cheap attempts retained. Current
+ 16casesEACHprofile PASS25.126s with strict old source/output oracles.
+- Complete backend doctest command ACTUALPASS156.752s/2258586768B; both crates
+  register0doctests. This closes command execution only, not executable examples.
+  /tmp/tsrust-final-backend-doctests.json.
+- Remaining public timing audit: B15four+B16twentynine+B19four workloads have
+  ZERO public SQLite histories. Private admission profiles are different work;
+  first public run must measure all3engines, then preserve unchanged controls.
+  Existing8warmups/3processes/31samples and quiet-machine rules remain unchanged.
+- ACTUAL new obsolete console-cache cleanup recovered5608370176bytes (71 exact
+  entries;5592688011logical bytes). Embedded old console collector identifies
+  obsolete source, not age/size. Namespace locks held; no native process active.
+  Current worker-context runtime artifacts, stable build workspaces and shared
+  dependency caches retained. /tmp/tsrust-obsolete-console-runtime-cleanup.json.
+- Hosted FOURHOST validation RUNNING at469e8bb3:
+  https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/42460717406.
+  Each host completed setup and entered bounded native acceptance. No full
+  regression/publication run dispatched. Preserve local passed scopes; monitor
+  terminal host results and actual packaged consumers before any acceptance claim.
 - Remote validation decision: checkpoint includes only platform selector/CI/docs
   changes after5c3414e7. Local runner tests17PASS0.092s, release-policy9PASS,
   whole-project format0changes and diff-checkPASS. Hosted OS file/signal/process/

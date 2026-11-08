@@ -51,7 +51,7 @@ Reconcile again against the final v0.1.2 main commit before starting code.
 | Operations/testing | Signals on Unix; console, assertions/matchers, sync/async tests and hooks, source-located reports. |
 | Rust packages | Locked package resolution and explicit safe synchronous adapters with concrete supported data; not arbitrary-crate automatic bindings. |
 
-There are 23 public backend std namespaces in the current editor catalog, excluding
+There are 33 public backend std namespaces (520 namespace entries) in the current editor catalog, excluding
 the private testing runtime and frozen UI. This is not a coverage percentage.
 The 1,993-row ECMAScript/language inventory contains overlapping/stale entries and
 is not a Node/Rust host-API ledger. Preserve implemented coverage when reconciling
@@ -66,18 +66,18 @@ Primary implementation evidence:
 
 ## B00 — Contracts, package admission and baseline infrastructure
 
-- [ ] Reconcile every checklist export against current compiler/catalog/tests.
+- [x] Reconcile every checklist export against current compiler/catalog/tests.
   Mark already-supported items with actual evidence rather than reimplementing.
 - [ ] For each new type/function/method, record the exact signature, receiver
   access, owned/borrowed result, error behavior, defaults, platform conditions,
   callback effects and cancellation/drop contract. Include aliases/stored calls.
-- [ ] Match Rust std or the selected Rust backend's ordinary defaults. Audit
+- [x] Match Rust std or the selected Rust backend's ordinary defaults. Audit
   the named v0.1 artificial ceilings: file reads/writes imposed 64 MiB;
   HTTP response readers imposed 1 MiB and client code fixed a 30-second timeout,
   disabled redirects and proxies. HTTP also capped forms at128fields/multipart at
   128parts and rejected configured body sizes over64MiB/deadlines over1hour.
   These are concrete v0.2 migration work, not defaults to copy into every new API.
-- [ ] Make Tsrust-added size/cardinality/deadline policies explicit opt-ins through
+- [x] Make Tsrust-added size/cardinality/deadline policies explicit opt-ins through
   options or clearly bounded operations. Preserve the selected backend's own
   defaults and algorithmic/protocol/integer constraints,
   UTF-8 validation and ownership checks. Existing explicitly bounded APIs retain
@@ -111,8 +111,8 @@ the backend graph. The current complete compiler-library pass includes
 extraction/feature-marker and graph/cache-identity controls. Retained relocated
 empty-Cargo-home debug/release exports cover the new HTTP policies, realtime,
 logging and generated adapters; earlier regex/locale/process/codec exports remain
-separate passed evidence. This closes pin/selection wiring, not four-host package
-admission or the remaining feature-selection measurement requirement.
+separate passed evidence. This closes pin/selection wiring; generated-consumer
+feature-selection measurements follow below. Four-host package admission remains open.
 
 Feature-selection evidence already includes passed `regex_feature_selection_follows_used_owners_and_calls`,
 `locale_dependency_activation_is_optional`,
@@ -159,6 +159,37 @@ published in `docs/content/standard-library/fs.md`, `docs/content/framework/clie
 and `docs/content/framework/routing.md`. This completes the named fs/HTTP migration
 work; the broader per-export contract/default and four-host review remains in
 its unchecked B00/B20 requirements.
+
+B00 ordinary-default and explicit-policy audit (2026-11-08): the named file/HTTP
+migrations above are complete. New process/network/DNS/compression/regex/locale/
+crypto/logging/realtime/testing operations preserve the selected backend defaults
+or expose explicit bounded operations/options. Regex and WebSocket configuration
+start from backend defaults; decoded-output, process deadline/output and async-test
+timeout bounds are absent unless supplied. HKDF8160-byte and ICU decimal-position
+bounds are algorithmic/backend limits, not application policies. Existing
+`date.format`256-byte patterns, `Decimal.parse`128-byte inputs and ThreadPool1024
+capacity contracts are unchanged from the baseline, as allowed by the bounded-API
+clause. Process spawn inherits stdio; run uses B07's approved output-style contract
+(null stdin without input, captured outputs), rather than promising exact Tokio
+output equivalence. Owned-child kill-on-drop is a documented direct-child cleanup
+backstop; cancellation does not promise process-tree termination. Public process,
+futures, HTTP and filesystem references state the observable behavior. These
+source/default-policy rows do not close per-export alias correspondence or native
+four-host execution.
+
+B00 B01–B05 export reconciliation: the derived public API inventory supplies
+compiler binding access/result signatures, catalog contracts and reference routes.
+Retained filesystem catalog/utilities/cleanup, byte codec/operation fixtures,
+path/environment/OS controlled observers, URL catalog/loan/export fixtures and the
+registered asynchronous I/O family provide concrete native behavior and ownership
+evidence. Stored-call coverage is explicit for filesystem seek/position, byte
+codecs and numeric operations, URL parse/format, and I/O adapters/read/write/close;
+it is not evidence for every other export's alias path. The remaining finite
+review is per-export alias/negative correspondence (including the path/environment/
+OS observer aliases), plus four-host conditions and close/drop behavior. Keep the
+global per-export contract reconciliation box open until those associations are
+reviewed. The named-export inventory row is complete from the B01–B19 source/
+catalog/test crosswalk; this is not a whole-language conformance claim.
 
 B00 policy/infrastructure reconciliation: B10's retained compiler-library and
 focused client/server acceptance proves ordinary optional policies and all seven
@@ -1233,6 +1264,39 @@ and warmed process RSS; they are not heap-allocation or leak proofs. The public
 SSE channel/producer bridge remains semantically required; no backpressure or
 cleanup contract was weakened to match the direct-stream backend floor.
 
+B00 source/contract reconciliation for B06–B19 (2026-11-08): every named API in
+these fourteen bundle checklists is present; the checked boxes record focused local
+acceptance, not four-host or final regression completion. Exact signatures,
+parameter access/defaults/errors, examples and ownership remain in the existing
+`builtins.json` entries and linked reference pages, rather than a duplicate
+contract schema. Native visibility/aliases are independently defined by
+`src/native/{exports,bindings,types,signatures}.rs`; source-owned exports also use
+`src/stdlib/mod.rs`. Paths below are relative to `crates/tsrust-compiler` unless
+otherwise stated.
+
+| Bundle | Concrete contract/source crosswalk | Existing acceptance controls |
+| --- | --- | --- |
+| B06 |17 added catalog identities: task aggregation, interval/missed ticks, cancellation tokens, channel/sender nonblocking operations/errors and ThreadPool.taskAsync; `src/stdlib/{futures,threads}/`. Lazy/started errors, owned captures and cancellation/drain contracts remain distinct. | `tests/{task_ergonomics,task_runtime}.rs`, registered task13 and offline cancellation exports. Renamed imports/stored callbacks pass; stored polymorphic all remains explicitly unsupported. |
+| B07 |14 new identities; `src/stdlib/process/{bindings,mod,runtime}.rs`. Borrowed immediate spawn versus consumed lazy run options, unique pipe transfer, exact status/errors and awaited direct-child cleanup are documented. | `tests/{process,process_runtime}.rs`: binary I/O, EOF, stdio/environment, explicit limits, aliases, cancellation and reaping. Stored spawn now executes in the existing controlled-child case. |
+| B08 |30 new identities; `src/stdlib/net/{bindings,mod,runtime,transport_runtime,dns_runtime}.rs`. Rust address grammar, Tokio socket defaults, explicit bounds and system DNS ordering/filtering remain the contract. | `network_suite_reports.rs` preserves18 registered programs/oracles including stored TCP/DNS factories; separate loan/transfer/clone and native process controls remain. |
+| B09 |27 new identities: six buffer operations, four endpoint constructors, six types and eleven methods; `src/stdlib/compression/{mod,runtime,runtime_streams}.rs`. Default levels, explicit decoded limits, typed pool/codec errors and consuming finish/close are documented. |16 registered cases at both profiles with exact catalog/regression source/output checks, plus independent Rust ABI and relocated export controls. Stored buffer/stream factories run inside existing cases. |
+| B10/B11 | B10 adds10 global identities for uploads/middleware; B11 adds16 globals and8 receiver operations; `src/stdlib/http/{mod,realtime,wrappers,runtime_realtime,runtime_websocket}.rs`. Typed request/stream owners, optional policies, SSE framing/producer settlement and WebSocket split/close contracts are explicit. | HTTP110 plus realtime18 registered cases, real verified-CA TLS and relocated controls. Upload/form/middleware stored factories are retained; new SSE/WebSocket stored calls preserve existing outputs. Access logging belongs to B17. |
+| B12 | `std:regex`7 exports, `Regex`8 methods and the three string entry points; `src/stdlib/regex/`. Reusable owners, UTF-8 snapshots, absent captures, literal/template replacements and explicit backend limits are documented. | `tests/regex_text.rs`: aliases/stored calls,18 bundled catalog examples, selection/ownership negatives and relocated export. |
+| B13 | `std:locale`13 exports, Collator/Segmenter/NumberFormat methods and `String.localeCompare`; `src/stdlib/locale/`. Explicit locales/options, backend fallback, exact int/Decimal formatting and owned range snapshots remain the finite contract. | `tests/explicit_locale.rs`: optional/union arguments, stored calls, snapshots, borrowed-byte and ownership controls; public measurements are recorded below. |
+| B14 | OrderedSet6, OrderedMap2, Deque/Heap snapshots, six numeric additions, seven date/time additions and existing `parseInt` radix update; `src/stdlib/{collections,numeric,date}/`. Owned snapshots versus scoped endpoints, ascending total order and checked numeric errors remain distinct. | Existing collections42, numeric/calendar/catalog/editor/export receipts below; `tests/stdlib_completion.rs` retains combined examples and borrow/clone rejections. |
+| B15 | `std:iterator`2 types, `IteratorConstructor.from` and12 Iterator members; `src/stdlib/iterator/`. Owned state/captures, value-only callbacks, retry after typed errors, event-counting take/drop and terminal cleanup are explicit. |32 registered cases in shared55 plus `tests/owned_iterators.rs` rejection/physical-carrier controls; no borrowed stored chains or arbitrary protocols are promised. |
+| B16 | `std:crypto`17 entries including existing operations, Hasher2 methods and both password option records; `src/stdlib/crypto/`. Consuming finalize, readable-byte loans, explicit password worker copy/pool, PHC bounds and typed OS/backend failures are documented. |24 registered cases at both profiles, catalog29-source mapping and ownership/editor controls below. Password-specific cancellation is not inferred beyond the retained shared-pool settlement evidence. |
+| B17 | `std:log`12 entries, Logger7 methods and option/error fields, plus HTTP access logging; `src/stdlib/logging/`. Explicit sinks, lazy fields, per-poll/drop context, flush/close errors and final sink ownership are documented. |5 registered cases,10 independent JSON observations, relocated exports and the disabled-event allocation differential below. Whole-logger allocation/leak freedom is not claimed. |
+| B18 | Structural assertion additions, checked async rejects, filter/JSON/timeout CLI contracts; `src/stdlib/testing/` and CLI test runner. Blocking callbacks remain watchdog-bound; timeout teardown must drain children. | Retained23 compiler/native and4 LSP cases plus subsequent runner controls; original assertion workload measurements and their Rust-performance gap remain explicit. |
+| B19 | Generated `.bindings.json`/Rust/Tsrust declarations use `src/project/rust_generation.rs`, `rust_rustdoc.rs` and the existing bridge; no fictitious `std:` namespace is added. Concrete owned containers, customization-safe stubs and explicit offline preparation remain bounded. | `tests/{rust_adapter_generation,rust_bridge}.rs`, pinned format57/source fallback and LSP bridge controls; actual Shlex and intentional regex native/relocated evidence below. |
+
+This reconciliation found no unimplemented checklist export in B06–B19. Remaining
+public measurements/allocation review where still named below, B18 performance
+review, current four-host used-root acceptance and final backend regressions remain
+separate requirements. Generic traits/methods/async Rust exports, returned borrows,
+borrowed iterator chains and broader locale families are explicitly deferred
+contracts, not missing implementations of these checked bundles.
+
 ### B12 — Reusable regular expressions and text entry points
 
 Backend: Rust `regex`; the current user-binding example is not a bundled module.
@@ -1542,8 +1606,8 @@ Eager snapshot compatibility retains the actual965de83f `array_keys_values`,
 independent nested values, receiver evaluation and snapshots surviving source
 mutation/clear are verified. Reviewed fixtures remain unchanged; collections42,
 iterator32 and the current compiler-library milestone supplement these passes.
-The shared runner now schedules debug and release together; its added release
-execution is pending the current portable acceptance scope.
+The shared runner passed all55 cases at both debug and release profiles, including
+all32 iterator cases. Native four-host acceptance remains separate.
 
 #### B15 ownership and lowering contract — admission draft
 
@@ -1679,8 +1743,9 @@ awaited Job settlement; abort drops owned resources and does not execute source
 finally statements. Existing backend per-drop context controls remain retained.
 Relocated logging exports pass at debug and release profiles with an empty Cargo
 home and offline locked builds (/tmp/tsrust-upgrade-handoff-d970ae7bc9e7.json).
-Matched measurements and disabled-event allocation proof remain pending. See
-agent-progress.md for exact source identities.
+Subsequent matched measurements and disabled-event allocation evidence are
+recorded below; preserve the strict first-call retention rejection and its stated
+limits. See agent-progress.md for exact source identities.
 
 Disabled-event allocation acceptance, 2026-11-07: one existing public
 `logging_disabled` instrumented executable was reused at0/1/32/1024 events,
@@ -1782,8 +1847,9 @@ acceptance: all8 compiler Rust-bridge cases pass in
 `owned_nested_options_strings_and_records_preserve_tags_buffers_and_drop`.
 The same scope passes all8 bridge editor cases and all7 nullish cases. B19 API
 acceptance is complete; final platform/integration/measurement obligations remain
-separate. One documentation-content native example still fails, so the whole
-four-target scope is not a pass.
+separate. That original four-target scope retained a documentation-content failure;
+the later03ec4f13 repair passed the actual documentation native case in119.67seconds.
+This repairs the named failure without relabeling the original scope as a pass.
 
 ## Parallel execution and ownership
 

@@ -1,0 +1,14 @@
+import { currentExe } from 'std:env';
+
+export function run() {
+  match (currentExe()) {
+    Ok(value) => {},
+    Err(error) => {
+      if (error.code !== 'Io' && error.code !== 'NotUnicode') {
+        throw error.message;
+      }
+    }
+  }
+
+  console.log('executable observed');
+}

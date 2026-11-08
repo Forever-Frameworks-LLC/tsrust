@@ -1,4 +1,8 @@
-import { describe, test } from 'std:testing';
+import { describe, test, strictEqual } from 'std:testing';
+import { gzip as encodeFactory, gunzip as decodeFactory, compressReader as readerFactory, decompressReader as decoderFactory } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { reader, close } from 'std:io';
+import { fromUtf8, toUtf8 } from 'std:bytes';
 import { main as example0 } from './catalog-00.tsr';
 import { main as example1 } from './catalog-01.tsr';
 import { main as example2 } from './catalog-02.tsr';
@@ -46,9 +50,52 @@ describe('compression runtime', () => {
   });
   test('buffers', async () => {
     await example9();
+    const pool = new ThreadPool({
+      workers: 1, capacity: 1
+    });
+    const pack = encodeFactory;
+    const unpack = decodeFactory;
+    const input = unwrap(fromUtf8('stored factory'));
+    const packed = unwrap(await pack(pool, input, {
+      level: 1
+    }));
+    strictEqual(unwrap(toUtf8(unwrap(await unpack(pool, packed, {
+      maxOutputBytes: 14
+    })))), 'stored factory');
+    const invalidInput = unwrap(fromUtf8('invalid level'));
+    match (await pack(pool, invalidInput, {
+      level: 10
+    })) {
+      Ok(value) => {
+        throw 'stored compressor accepted invalid level';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'range');
+      }
+    }
+
+    unwrap(pool.shutdown());
   });
   test('readers', async () => {
     await example10();
+    const pool = new ThreadPool({
+      workers: 1, capacity: 1
+    });
+    const encode = readerFactory;
+    const decode = decoderFactory;
+    const input = reader(unwrap(fromUtf8('stored stream')));
+    const encoded = unwrap(encode(pool, input, 'gzip', {
+      level: 1
+    }));
+    const packed = unwrap(await encoded.readAll());
+    unwrap(await close(unwrap(await encoded.finish())));
+    const packedInput = reader(packed);
+    const decoded = unwrap(decode(pool, packedInput, 'gzip', {
+      maxOutputBytes: 13
+    }));
+    strictEqual(unwrap(toUtf8(unwrap(await decoded.readAll()))), 'stored stream');
+    unwrap(await close(unwrap(await decoded.finish())));
+    unwrap(pool.shutdown());
   });
   test('writers', async () => {
     await example11();

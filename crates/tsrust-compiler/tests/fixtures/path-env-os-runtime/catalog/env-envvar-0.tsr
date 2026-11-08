@@ -1,0 +1,8 @@
+import { EnvVar } from 'std:env';
+
+export function run() {
+  const row: EnvVar = {
+    name: 'APP_MODE', value: ''
+  };
+  console.log(row.name, row.value.length);
+}

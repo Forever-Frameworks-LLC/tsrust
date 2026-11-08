@@ -1,4 +1,5 @@
 mod support;
+#[path="support/path_env_os_suite_reports.rs"] mod path_env_os_suite_reports;
 use tsrust_compiler::project::{FileSourceProvider,check_graph,load_project};
 
 fn emitted(source:&str)->String {
@@ -26,10 +27,11 @@ fn native_environment_observers_match_the_controlled_child_context_at_o0_and_o3(
     for path in [&home,&temporary,&cwd] {std::fs::create_dir(path).unwrap();}
     let home=std::fs::canonicalize(home).unwrap();let temporary=std::fs::canonicalize(temporary).unwrap();let cwd=std::fs::canonicalize(cwd).unwrap();
     let source=support::format_round_trip(r#"
-import {vars,get,currentDir,currentExe,tempDir,homeDir} from 'std:env';
+import {vars as environmentEntries,get as lookup,currentDir as workingDirectory,currentExe as executablePath,tempDir as temporaryDirectory,homeDir as userHome} from 'std:env';
 import {strictEqual} from 'std:testing';
 function main(){
-  const rows=unwrap(vars());let found=0;
+  const entries=environmentEntries;const get=lookup;const currentDir=workingDirectory;const currentExe=executablePath;const tempDir=temporaryDirectory;const homeDir=userHome;
+  const original=unwrap(entries());const rows=original;let found=0;
   for(let index=0;index<rows.length;index++){if(rows[index].name==='TSRUST_B03_TEXT'){
     found++;strictEqual(rows[index].value,'héllo 🦀','snapshot keeps the controlled Unicode value');
     rows[index].value='independent snapshot';
@@ -69,7 +71,10 @@ fn path_env_os_catalog_examples_execute_without_disclosing_os_values(){
         for example in row["examples"].as_array().unwrap(){examples.insert(example["source"].as_str().unwrap().to_owned(),example["output"].as_str().unwrap().to_owned());}
     }}
     assert_eq!(exports,17);
-    for (source,expected) in examples {let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());}
+    assert_eq!(examples.len(),15);
+    assert_eq!(path_env_os_suite_reports::CASES.len(),examples.len());
+    for (source,expected) in examples {path_env_os_suite_reports::assert_registered(&source,&expected);}
+    path_env_os_suite_reports::execute();
 }
 #[test]
 fn unused_imports_and_std_only_observers_do_not_select_hostname(){
@@ -86,4 +91,24 @@ fn unused_imports_and_std_only_observers_do_not_select_hostname(){
     let source=emitted("import {hostname} from 'std:os';function main(){console.log(unwrap(hostname()).length);}");
     assert!(tsrust_compiler::native_runtime::requires_hostname(&source));assert!(tsrust_compiler::native_runtime::requires_dependencies(&source));
     let units=tsrust_compiler::native_runtime::separate(&source);let runtime=units.runtime.unwrap();assert!(runtime.contains("pub mod tsrust_native_hostname"));assert!(units.application.contains("use tsrust_runtime::tsrust_native_hostname"));assert!(!runtime.contains("tsrust_native_ui"));
+}
+
+#[test]
+fn path_env_os_aliases_preserve_argument_and_snapshot_access_contracts(){
+    for source in [
+        "import {parse as inspect} from 'std:path';function main(){const saved=inspect;saved(1);}",
+        "import {format as render} from 'std:path';function main(){const saved=render;saved({ext:1});}",
+        "import {resolve as absolute} from 'std:path';function main(){const saved=absolute;saved(true);}",
+        "import {vars as entries} from 'std:env';function main(){const saved=entries;saved(1);}",
+        "import {currentDir as cwd} from 'std:env';function main(){const saved=cwd;saved('extra');}",
+        "import {hostname as host} from 'std:os';function main(){const saved=host;saved(1);}",
+        "import {availableParallelism as capacity} from 'std:os';function main(){const saved=capacity;saved(1);}",
+        "import {PathParts} from 'std:path';function edit(parts:ReadOnly<PathParts>){parts.name='changed';}function main(){}",
+        "import {EnvVar} from 'std:env';function edit(row:ReadOnly<EnvVar>){row.value='changed';}function main(){}",
+    ] {
+        let directory=support::TempDirectory::new();
+        let path=directory.source(&support::format_round_trip(source));
+        let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap();
+        assert!(check_graph(graph).is_err(),"accepted invalid alias/access contract: {source}");
+    }
 }

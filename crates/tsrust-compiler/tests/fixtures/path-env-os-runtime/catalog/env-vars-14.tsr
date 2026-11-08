@@ -1,0 +1,20 @@
+import { vars } from 'std:env';
+
+export function run() {
+  match (vars()) {
+    Ok(rows) => {
+      for (const row of rows) {
+        if (typeof row.name !== 'string' || typeof row.value !== 'string') {
+          throw 'invalid snapshot';
+        }
+      }
+    },
+    Err(error) => {
+      if (error.code !== 'NotUnicode') {
+        throw error.message;
+      }
+    }
+  }
+
+  console.log('snapshot observed');
+}

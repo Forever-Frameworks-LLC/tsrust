@@ -1,5 +1,5 @@
 import { describe, test, strictEqual, rejects } from 'std:testing';
-import { Router, WebSocket, WebSocketRead, WebSocketWrite, SseEvent, Request, sse, sseWithProducer, requestStream, connectWebSocket } from 'std:http';
+import { Router, WebSocket, WebSocketRead, WebSocketWrite, SseEvent, Request, sse, sse as makeEvents, sseWithProducer, sseWithProducer as makeProducedEvents, requestStream, connectWebSocket, connectWebSocket as connectFactory } from 'std:http';
 import { Channel, Sender, delay, all } from 'std:futures';
 import { fromArray, toHex, toUtf8 } from 'std:bytes';
 import { readFile } from 'std:fs';
@@ -85,7 +85,8 @@ describe('SSE backend bytes and ownership', () => {
       data: ''
     }));
     empty.close();
-    strictEqual(await sse(empty).text(), '\n');
+    const make = makeEvents;
+    strictEqual(await make(empty).text(), '\n');
     const crlf = new Channel<SseEvent>(1);
     unwrap(crlf.sender().trySend({
       data: 'a\r\nb'
@@ -102,7 +103,8 @@ describe('SSE backend bytes and ownership', () => {
   test('owned producer completes and drains buffered events', async () => {
     const events = new Channel<SseEvent>(1);
     const producer = produce(events.sender()).start();
-    const response = sseWithProducer(events, producer);
+    const make = makeProducedEvents;
+    const response = make(events, producer);
     strictEqual(await response.text(), 'data: first\nid: 1\n\ndata: second\ndata: line\nevent: update\nretry: 0\n\n');
   });
   test('unpolled response drop settles owned producer', async () => {
@@ -169,9 +171,12 @@ describe('WebSocket owned transport', () => {
     const server = await app.listen('127.0.0.1:0');
     const url = 'ws://' + server.address() + '/echo';
     try {
-      const { read, write } = (await connectWebSocket(url)).split();
+      const connect = connectFactory;
+      const { read, write } = (await connect(url)).split();
       await all([receiveSplitText(read), sendSplitText(write)]);
-      const socket = await connectWebSocket(url);
+      const socket = await connect(url, {
+        headers: []
+      });
       await socket.send({
         kind: 'binary', data: unwrap(fromArray([0, 255, 1, 128]))
       });
