@@ -19,3 +19,5 @@ fn tsrust_testing_check_assertion(condition: bool, message: &String) {
         panic!("AssertionError: {}", message.as_ref());
     }
 }
+fn tsrust_testing_begin_output_capture(){tsr_console_output_begin();}
+fn tsrust_testing_end_output_capture()->String{String::Owned(tsr_console_output_end())}

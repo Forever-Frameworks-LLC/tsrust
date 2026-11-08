@@ -416,7 +416,7 @@ fn tsr_console_width(text: &str) -> usize {
         })
         .sum()
 }
-fn tsr_console_table(
+pub fn tsr_console_table(
     data: &TsrConsoleValue,
     selected: Option<Vec<std::string::String>>,
 ) -> std::string::String {
@@ -546,7 +546,7 @@ pub fn tsr_console_write(error: bool, text: &str) {
     });
 }
 pub fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
-    if tsr_console_test_context().is_some() && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
+    if (tsr_console_test_context().is_some()||tsr_console_output_capturing()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     if tsr_console_test_json_output(error,"",&format!("{value}\n")){return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
@@ -569,7 +569,7 @@ pub fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
     });
 }
 pub fn tsr_console_text(error: bool, value: &str) {
-    if tsr_console_test_context().is_some() && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
+    if (tsr_console_test_context().is_some()||tsr_console_output_capturing()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     if tsr_console_test_json_output(error,"",&format!("{value}\n")){return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
@@ -815,7 +815,19 @@ pub fn tsr_console_test_begin(name:&str) {
     if !matches!(std::env::var("TSRUST_TEST_REPORTER").as_deref(),Ok("pretty"|"json")) {return;}
     TSR_CONSOLE_TEST.with(|slot|slot.replace(Some(std::sync::Arc::new(std::sync::Mutex::new(TsrConsoleTest{name:name.to_owned(),entries:Vec::new(),ended:false})))));
 }
+// std:testing captureOutput collects stdout for its callback; nested captures
+// see only their own text. Standard error is never captured here.
+std::thread_local! {static TSR_CONSOLE_OUTPUT: std::cell::RefCell<Vec<std::string::String>> = const { std::cell::RefCell::new(Vec::new()) };}
+fn tsr_console_output_capturing()->bool {TSR_CONSOLE_OUTPUT.with(|stack|!stack.borrow().is_empty())}
+pub fn tsr_console_output_begin() {TSR_CONSOLE_OUTPUT.with(|stack|stack.borrow_mut().push(std::string::String::new()));}
+pub fn tsr_console_output_reset() {TSR_CONSOLE_OUTPUT.with(|stack|stack.borrow_mut().clear());}
+pub fn tsr_console_output_end()->std::string::String {TSR_CONSOLE_OUTPUT.with(|stack|stack.borrow_mut().pop()).unwrap_or_default()}
 fn tsr_console_test_capture(error:bool,text:&str)->bool {
+    if !error && TSR_CONSOLE_OUTPUT.with(|stack|{
+        let mut stack=stack.borrow_mut();let Some(top)=stack.last_mut()else{return false;};
+        let indent=TSR_CONSOLE_STATE.with(|state|state.borrow().indent);
+        for line in text.split_inclusive('\n'){top.push_str(&" ".repeat(indent));top.push_str(line);}true
+    }) {return true;}
     let Some(context)=tsr_console_test_context()else{return false;};
     let indent=TSR_CONSOLE_STATE.with(|state|state.borrow().indent);
     let text=text.split_inclusive('\n').map(|line|format!("{:indent$}{line}","")).collect();

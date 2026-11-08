@@ -1,6 +1,6 @@
 // Checked public declarations for the bundled std:testing module.
 // These declarations are parsed by the compiler; native execution uses Rust backends.
-pub(crate) const SOURCE: &str = r####"import { assertionDetails, deepEqual, checkAssertion, shareCallback, numericValue, lengthValue, hasLength } from "std:testing-runtime";
+pub(crate) const SOURCE: &str = r####"import { assertionDetails, deepEqual, checkAssertion, shareCallback, numericValue, lengthValue, hasLength, beginOutputCapture, endOutputCapture } from "std:testing-runtime";
 
 import { TrackedResource as NativeTrackedResource, trackedResource as nativeTrackedResource, resourceId as nativeResourceId, closeResource as nativeCloseResource, releaseCount as nativeReleaseCount, releaseOrder as nativeReleaseOrder, liveCount as nativeLiveCount } from "std:testing-runtime";
 /**
@@ -223,6 +223,51 @@ export function throws(callback:Once<Function<void>>,message:string="Expected fu
     try {callback();} catch {didThrow=true;}
     checkAssertion(didThrow,message);
 }
+
+/**
+Calls a synchronous callback once and returns the console standard output it wrote, in order, as one string. Output written while capturing is not printed. console.error and other standard-error output are not captured. Nested captures return only their own text. If the callback throws, the exception propagates and its partial output is discarded when the next test starts.
+
+```tsrust
+import { captureOutput, strictEqual } from "std:testing";
+function main(){const text=captureOutput(()=>{console.log("a");console.log(1,2);});strictEqual(text,"a\n1 2\n");console.log("passed");}
+// passed
+```
+
+Use it to assert a program's exact output in a consolidated test suite. Asynchronous work that prints after the callback returns is not captured.
+
+Ownership: consumes the single-use callback; the returned string is owned.
+*/
+export function captureOutput(callback:Once<Function<void>>):string {
+    beginOutputCapture();
+    callback();
+    return endOutputCapture();
+}
+
+/**
+Starts capturing console standard output on the current test's thread. Pair it with finishOutputCapture(), which returns the captured text. Use the pair instead of captureOutput when the measured code can throw or await: errors propagate normally, and the runner discards an unfinished capture before the next test. Captures nest.
+
+```tsrust
+import { startOutputCapture, finishOutputCapture, strictEqual } from "std:testing";
+function main(){startOutputCapture();console.log("a");strictEqual(finishOutputCapture(),"a\n");console.log("passed");}
+// passed
+```
+
+Ownership: takes no arguments and returns void.
+*/
+export function startOutputCapture():void {beginOutputCapture();}
+
+/**
+Ends the innermost capture started by startOutputCapture() and returns its standard output as one owned string. Without an active capture it returns an empty string.
+
+```tsrust
+import { startOutputCapture, finishOutputCapture, strictEqual } from "std:testing";
+function main(){startOutputCapture();console.log(1,2);strictEqual(finishOutputCapture(),"1 2\n");console.log("passed");}
+// passed
+```
+
+Ownership: returns an owned string.
+*/
+export function finishOutputCapture():string {return endOutputCapture();}
 
 /**
 Invokes an owned zero-argument task factory once and awaits it. Succeeds only when the task throws a checked failure; the typed payload is observed and discarded. Normal completion raises AssertionError with the optional message (default "Expected task to reject"). The assertion's own failure is outside the catch. Direct native unwinding in the factory is not caught. Cancelling the outer rejects task cancels its execution rather than satisfying the assertion. Awaiting a started Job reports that job's panic or cancellation as a checked AsyncError; this checked payload does satisfy rejects, just like any other checked throw. Worker panic diagnostics may still be printed. No payload is accepted or rejected by inspecting its code field.

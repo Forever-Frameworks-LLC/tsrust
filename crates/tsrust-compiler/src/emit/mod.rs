@@ -3502,6 +3502,7 @@ impl Emitter<'_> {
             || output.contains("tsr_console_scalar(")
             || output.contains("tsr_console_text(")
             || output.contains("tsr_console_number(")
+            || output.contains("tsr_console_output_")
         {
             output.push_str(&crate::native_runtime::console_module(asynchronous_runtime && testing_runner));
         }

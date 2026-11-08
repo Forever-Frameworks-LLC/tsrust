@@ -62,7 +62,11 @@ and `docs/agent-goal.md`. Use project-local Ponytail for implementation decision
 and Caveman for concise chat updates; retain full technical detail in durable
 evidence. These preferences never weaken the acceptance requirements below.
 Routine checkpoints are local Git commits. Do not push on a timer, create release
-tags for testing, or use published releases as a development loop. Follow the
+tags for testing, or use published releases as a development loop.
+PRs and pushes exist to merge finished code toward a release, not to run checks
+on separate operating systems because it is possible. Validate a complete change
+set locally, push once to merge, and diagnose any CI failure locally before
+pushing again (owner, 2026-11-08; see `docs/plans/ci-build-once.md`). Follow the
 remote-validation decision in the project skill before triggering GitHub Actions.
 
 

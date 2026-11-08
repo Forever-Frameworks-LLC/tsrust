@@ -1,75 +1,19 @@
 name: CI
+# Build the compiler once per OS, then run every runtime suite with that build
+# through `tsrust test`. A push or PR exists to merge finished work toward a
+# release; see docs/plans/ci-build-once.md and AGENTS.md.
 on:
   pull_request:
     branches: [stag]
   workflow_dispatch:
-    inputs:
-      supporting_host_timing:
-        description: Measure only the supporting-host large UDP workload on Linux; not platform acceptance.
-        type: boolean
-        default: false
-      platform_acceptance:
-        description: Run bounded native I/O family acceptance on Linux, both Macs and Windows, without publishing.
-        type: boolean
-        default: false
-      platform_prior_run:
-        description: With platform_acceptance, repair reviewed run 42460717406 without repeating retained passes.
-        type: string
-        default: ""
-      platform_second_prior_run:
-        description: Additional reviewed run 42470181942; requires platform_prior_run 42460717406.
-        type: string
-        default: ""
-      platform_third_prior_run:
-        description: Additional reviewed run 42474075588; requires platform_second_prior_run 42470181942.
-        type: string
-        default: ""
-      platform_later_prior_runs:
-        description: Space-separated reviewed later runs in runner order; requires platform_third_prior_run.
-        type: string
-        default: ""
-      platform_windows_only:
-        description: With platform_acceptance, validate a Windows repair without rerunning the other hosts.
-        type: boolean
-        default: false
-      async_acceptance:
-        description: Run focused async testing acceptance on Linux, macOS and Windows.
-        type: boolean
-        default: false
-      toolchain_acceptance:
-        description: Run focused Windows installer and shared-cache acceptance without publishing.
-        type: boolean
-        default: false
-      editor_acceptance:
-        description: Run the VS Code extension integration and recovery suites on Linux and Windows.
-        type: boolean
-        default: false
-      full_regressions:
-        description: Run complete compiler and LSP regressions (slow).
-        type: boolean
-        default: false
   workflow_call:
-    inputs:
-      async_acceptance:
-        type: boolean
-        default: false
-      toolchain_acceptance:
-        type: boolean
-        default: false
-      editor_acceptance:
-        type: boolean
-        default: false
-      full_regressions:
-        type: boolean
-        default: false
 permissions:
   contents: read
 concurrency:
-  group: ${{ inputs.supporting_host_timing && 'supporting-host-timing-caller' || 'ci' }}-${{ github.ref }}
-  cancel-in-progress: ${{ !inputs.supporting_host_timing }}
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 env:
   CARGO_INCREMENTAL: '0'
-  CARGO_BUILD_JOBS: '1'
   RUST_TEST_THREADS: '3'
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
   TSRUST_CACHE_DIR: ${{ github.workspace }}/target/tsrust-native
@@ -79,70 +23,133 @@ env:
   CARGO_PROFILE_TEST_DEBUG: '0'
   CARGO_TERM_COLOR: always
 jobs:
-  source:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
-    name: Compiler and LSP (${{ matrix.os }}, shard ${{ matrix.shard }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04]
-        # Full regressions run as parallel shards, each on its own runner within
-        # the one-hour job ceiling. Ordinary runs use one shard.
-        shard: ${{ fromJSON(inputs.full_regressions && '[0,1,2,3,4,5,6,7]' || '[0]') }}
-    runs-on: ${{ matrix.os }}
-    # The owner ceiling includes setup, compilation and tests.
-    timeout-minutes: 60
+  lint:
+    name: Format, lint and tooling
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Install benchmark runtime packages for Node comparison tests
-        if: ${{ inputs.full_regressions }}
-        run: npm --prefix benchmarks/runtime ci --ignore-scripts --no-audit --no-fund
+      - name: Clippy correctness
+        run: cargo clippy --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins -- -D clippy::correctness
+      - name: Project formatting
+        run: |
+          cargo build --offline --locked -p tsrust-compiler --bin tsrust
+          target/debug/tsrust format . --check --color never
+      - name: Release tooling and benchmark storage
+        run: |
+          node --test tools/tests/distribution.test.mjs tools/tests/release-policy.test.cjs
+          python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
+  lib:
+    name: Compiler and LSP library tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      # Unit, rejection and diagnostic-code checks run in process: no native builds.
+      - run: cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins
+  build:
+    name: Build (${{ matrix.target }})
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - {os: ubuntu-24.04, target: x86_64-unknown-linux-gnu}
+          - {os: macos-15, target: aarch64-apple-darwin}
+          - {os: macos-15-intel, target: x86_64-apple-darwin}
+          - {os: windows-2022, target: x86_64-pc-windows-msvc}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: release
+      - name: Compile optimized consumers
+        run: cargo build --offline --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
+      - name: Package and smoke-test the CLI and LSP
+        env:
+          EXE_SUFFIX: ${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: |
+          node tools/package-toolchain.mjs "target/release/tsrust$EXE_SUFFIX" "target/release/tsrust-lsp$EXE_SUFFIX" '${{ matrix.target }}' dist/toolchain
+          node tools/smoke-toolchain.mjs "dist/toolchain/bin/tsrust$EXE_SUFFIX" "dist/toolchain/bin/tsrust-lsp$EXE_SUFFIX"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: toolchain-${{ matrix.target }}
+          path: dist/toolchain
+          if-no-files-found: error
+          retention-days: 7
+  suites:
+    name: Runtime suites (${{ matrix.target }})
+    needs: build
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - {os: ubuntu-24.04, target: x86_64-unknown-linux-gnu}
+          - {os: macos-15, target: aarch64-apple-darwin}
+          - {os: macos-15-intel, target: x86_64-apple-darwin}
+          - {os: windows-2022, target: x86_64-pc-windows-msvc}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: toolchain-${{ matrix.target }}
+          path: dist/toolchain
+      - name: Run every tsrust test suite with the built compiler
+        env:
+          EXE_SUFFIX: ${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: |
+          chmod +x dist/toolchain/bin/* || true
+          compiler="dist/toolchain/bin/tsrust$EXE_SUFFIX"
+          "$compiler" setup --portable --offline --yes
+          python3 tools/generate-catalog-suites.py target/catalog-suites
+          python3 tools/run-suites.py "$compiler" target/catalog-suites
+  host:
+    name: Host boundaries (${{ matrix.target }})
+    needs: build
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - {os: ubuntu-24.04, target: x86_64-unknown-linux-gnu}
+          - {os: macos-15, target: aarch64-apple-darwin}
+          - {os: macos-15-intel, target: x86_64-apple-darwin}
+          - {os: windows-2022, target: x86_64-pc-windows-msvc}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
       - name: Prepare locked offline binding-test dependencies
         run: cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
-      - name: Compile both consumers
-        id: consumers
-        run: cargo build --offline --locked -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
-      - name: Prepare portable sources for offline acceptance
-        run: target/debug/tsrust setup --portable --offline --yes
-      - name: Check project formatting
-        if: ${{ matrix.shard == 0 }}
-        run: target/debug/tsrust format . --check --color never
-      - name: Check release tooling and public documentation
-        if: ${{ matrix.shard == 0 }}
-        run: node --test tools/tests/distribution.test.mjs tools/tests/release-policy.test.cjs
-      - name: Benchmark export privacy and measurement preservation
-        if: ${{ runner.os == 'Linux' && matrix.shard == 0 }}
-        run: python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
-      - name: Clippy correctness and warning report
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && matrix.shard == 0 }}
-        run: cargo clippy --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins -- -D clippy::correctness
-      - name: Compiler and CLI acceptance
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
-        run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle --test api_project --test api_rust_client --test shared_sources --test package_management --test toolchain_installation
-      - name: Native SDK authorization and replica integration
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && matrix.shard == 0 }}
-        env:
-          TSRUST: ${{ github.workspace }}/target/debug/tsrust
-        run: node --test tools/verify-sdk-native-replicas.mjs
-      - name: LSP transport and compiler agreement
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
-        run: cargo test --offline --locked --no-fail-fast -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency --test api_project -- --nocapture
-      - name: Complete regressions
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && inputs.full_regressions }}
-        env:
-          SHARD: ${{ matrix.shard }}
-        run: |
-          status=0
-          while read -r selection; do
-            cargo test --offline --locked --no-fail-fast $selection || status=1
-          done < <(python3 tools/regression-shards.py "$SHARD" 8)
-          if [ "$SHARD" = 0 ]; then cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --doc || status=1; fi
-          exit $status
+      # Real process and language boundaries only: CLI, signals, child processes,
+      # offline export, package management, Rust adapters and LSP stdio.
+      - run: python3 tools/host-tests.py
   editor:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
     name: VS Code extension
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -164,232 +171,15 @@ jobs:
           path: editors/vscode/*.vsix
           if-no-files-found: error
           retention-days: 7
-  async:
-    name: Async testing acceptance (${{ matrix.os }})
-    if: ${{ inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-15, windows-2022]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Compiler and native async registration
-        run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --test testing_async -- --nocapture
-      - name: Async editor contracts
-        if: ${{ !cancelled() }}
-        run: cargo test --offline --locked --no-fail-fast -p tsrust-lsp --test testing_async -- --nocapture
-      - name: Backend all-target diagnostics
-        if: ${{ !cancelled() }}
-        run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
-  toolchain:
-    name: Windows toolchain and shared-cache acceptance
-    if: ${{ inputs.toolchain_acceptance && !inputs.async_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
-    runs-on: windows-2022
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Prepare locked offline binding-test dependencies
-        run: cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
-      - name: Compile both consumers
-        run: cargo build --offline --locked -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
-      - name: Prepare portable sources
-        run: target/debug/tsrust.exe setup --portable --offline --yes
-      - name: Paired installer, locked processes and binding cache acceptance
-        run: cargo test --offline --locked -p tsrust-compiler --test toolchain_installation --test shared_sources --test package_management --no-fail-fast
-      - name: Backend all-target diagnostics
-        if: ${{ !cancelled() }}
-        run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
-  editor_integration:
-    name: VS Code integration (${{ matrix.os }})
-    if: ${{ inputs.editor_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, windows-2022]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Compile both consumers
-        run: cargo build --offline --locked -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
-      - name: Put the compiler on PATH for editor tasks
-        run: echo "$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_PATH"
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24.11.1
-          cache: npm
-          cache-dependency-path: editors/vscode/package-lock.json
-      - run: npm --prefix editors/vscode ci
-      # The suite includes the surrogate-pair UTF-16 diagnostic range fixture.
-      - name: Editor integration suite
-        run: |
-          if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm --prefix editors/vscode run test:integration; else npm --prefix editors/vscode run test:integration; fi
-      - name: Language server recovery suite
-        if: ${{ !cancelled() }}
-        env:
-          TSRUST_VSCODE_SUITE: recovery
-        run: |
-          if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm --prefix editors/vscode run test:integration; else npm --prefix editors/vscode run test:integration; fi
-  platform:
-    name: ${{ inputs.platform_prior_run && 'Focused native repair' || 'Native I/O family' }} (${{ matrix.target }})
-    permissions:
-      contents: read
-      actions: read
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.platform_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.full_regressions && !inputs.supporting_host_timing }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include: >-
-          ${{ fromJSON(inputs.platform_windows_only &&
-          '[{"os":"windows-2022","target":"x86_64-pc-windows-msvc"}]' ||
-          '[{"os":"ubuntu-24.04","target":"x86_64-unknown-linux-gnu"},
-          {"os":"macos-15","target":"aarch64-apple-darwin"},
-          {"os":"macos-15-intel","target":"x86_64-apple-darwin"},
-          {"os":"windows-2022","target":"x86_64-pc-windows-msvc"}]') }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Start end-to-end platform budget before checkout and setup
-        run: |
-          printf 'TSRUST_PLATFORM_STARTED_AT=%s\n' "$(python3 -c 'import time; print(time.time())')" >> "$GITHUB_ENV"
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          cache-key: native-io-family
-      - name: Prepare locked binding-test dependencies
-        run: cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
-      - name: Retrieve reviewed prior host evidence
-        if: ${{ inputs.platform_prior_run != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PRIOR_RUN: ${{ inputs.platform_prior_run }}
-        run: |
-          test "$PRIOR_RUN" = 42460717406
-          gh run download "$PRIOR_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-prior
-      - name: Retrieve reviewed second host evidence
-        if: ${{ inputs.platform_second_prior_run != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SECOND_RUN: ${{ inputs.platform_second_prior_run }}
-          PRIOR_RUN: ${{ inputs.platform_prior_run }}
-        run: |
-          test "$PRIOR_RUN" = 42460717406
-          test "$SECOND_RUN" = 42470181942
-          gh run download "$SECOND_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-second-prior
-      - name: Retrieve reviewed third host evidence
-        if: ${{ inputs.platform_third_prior_run != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          THIRD_RUN: ${{ inputs.platform_third_prior_run }}
-          SECOND_RUN: ${{ inputs.platform_second_prior_run }}
-          PRIOR_RUN: ${{ inputs.platform_prior_run }}
-        run: |
-          test "$PRIOR_RUN" = 42460717406
-          test "$SECOND_RUN" = 42470181942
-          test "$THIRD_RUN" = 42474075588
-          gh run download "$THIRD_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-third-prior
-      - name: Retrieve reviewed later host evidence
-        if: ${{ inputs.platform_later_prior_runs != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          LATER_RUNS: ${{ inputs.platform_later_prior_runs }}
-          THIRD_RUN: ${{ inputs.platform_third_prior_run }}
-        run: |
-          test "$THIRD_RUN" = 42474075588
-          for run in $LATER_RUNS; do
-            case "$run" in *[!0-9]*) exit 1;; esac
-            gh run download "$run" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir "target/platform-later-prior/$run"
-          done
-      - name: Run bounded native family and packaged consumer acceptance
-        env:
-          PRIOR_RUN: ${{ inputs.platform_prior_run }}
-          SECOND_RUN: ${{ inputs.platform_second_prior_run }}
-          THIRD_RUN: ${{ inputs.platform_third_prior_run }}
-          LATER_RUNS: ${{ inputs.platform_later_prior_runs }}
-        run: |
-          if [ -n "$THIRD_RUN" ]; then
-            later=()
-            for run in $LATER_RUNS; do later+=(--later-repair-plan "target/platform-later-prior/$run"); done
-            python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior --second-repair-plan target/platform-second-prior --third-repair-plan target/platform-third-prior "${later[@]}"
-          elif [ -n "$SECOND_RUN" ]; then
-            python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior --second-repair-plan target/platform-second-prior
-          elif [ -n "$PRIOR_RUN" ]; then
-            python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior
-          else
-            python3 tools/platform-acceptance.py --host '${{ matrix.target }}'
-          fi
-      - name: Retain per-scope platform results
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: native-io-family-${{ matrix.target }}
-          path: target/platform-acceptance/
-          if-no-files-found: error
-          retention-days: 3
-  supporting_host_timing:
-    name: Supporting-host UDP timing
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.supporting_host_timing && !inputs.platform_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.full_regressions }}
-    uses: ./.github/workflows/supporting-host-timing.yml
   ci:
-    name: ${{ inputs.supporting_host_timing && 'Supporting-host UDP timing' || inputs.platform_acceptance && 'Native I/O family acceptance' || inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || inputs.editor_acceptance && 'Editor acceptance' || 'CI' }}
+    name: CI
     if: always()
-    needs: [source, editor, async, toolchain, editor_integration, platform, supporting_host_timing]
+    needs: [lint, lib, build, suites, host, editor]
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 5
     steps:
       - name: Require all checks
         env:
-          SUPPORTING_HOST_TIMING: ${{ inputs.supporting_host_timing }}
-          SUPPORTING_HOST_RESULT: ${{ needs.supporting_host_timing.result }}
-          PLATFORM_PRIOR_RUN: ${{ inputs.platform_prior_run }}
-          PLATFORM_ACCEPTANCE: ${{ inputs.platform_acceptance }}
-          PLATFORM_RESULT: ${{ needs.platform.result }}
-          FULL_REGRESSIONS: ${{ inputs.full_regressions }}
-          TOOLCHAIN_ACCEPTANCE: ${{ inputs.toolchain_acceptance }}
-          TOOLCHAIN_RESULT: ${{ needs.toolchain.result }}
-          ASYNC_ACCEPTANCE: ${{ inputs.async_acceptance }}
-          ASYNC_RESULT: ${{ needs.async.result }}
-          SOURCE_RESULT: ${{ needs.source.result }}
-          EDITOR_RESULT: ${{ needs.editor.result }}
-          EDITOR_ACCEPTANCE: ${{ inputs.editor_acceptance }}
-          EDITOR_INTEGRATION_RESULT: ${{ needs.editor_integration.result }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
         run: |
-          if [ "$SUPPORTING_HOST_TIMING" = true ]; then
-            test "$PLATFORM_ACCEPTANCE" != true && test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_ACCEPTANCE" != true && test "$EDITOR_ACCEPTANCE" != true && test "$FULL_REGRESSIONS" != true && test "$SUPPORTING_HOST_RESULT" = success
-          elif [ "$PLATFORM_ACCEPTANCE" = true ]; then
-            if [ -n "$PLATFORM_PRIOR_RUN" ]; then echo "Focused native repair only; retained evidence remains at its original checkpoint, not full current-source platform acceptance."; fi
-            test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_ACCEPTANCE" != true && test "$EDITOR_ACCEPTANCE" != true && test "$FULL_REGRESSIONS" != true && test "$PLATFORM_RESULT" = success
-          elif [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
-            test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_RESULT" = success
-          elif [ "$ASYNC_ACCEPTANCE" = true ]; then
-            test "$ASYNC_RESULT" = success
-          elif [ "$EDITOR_ACCEPTANCE" = true ]; then
-            test "$EDITOR_INTEGRATION_RESULT" = success
-          else
-            test "$SOURCE_RESULT" = success && test "$EDITOR_RESULT" = success
-          fi
+          for result in $RESULTS; do test "$result" = success; done

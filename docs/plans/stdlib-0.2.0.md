@@ -2116,6 +2116,10 @@ context preservation and uses the existing borrowed-subset emitter.
   frozen-docs programs (budgets raised to 600s; both shards passed in runs 2
   and 3). Every shard has now passed in at least one run; one confirming run on
   the final commit is still needed.
+  Superseded 2026-11-09 by `docs/plans/ci-build-once.md`: the complete backend
+  check is the library tests, every `tsrust test` suite (133, including one test
+  per verified catalog example) and 21 host-boundary targets, all built from one
+  compiler per OS.
 - [x] Execute native Windows/Linux/macOS acceptance, including file handles,
   signals, child processes, networking, TLS, exports and packaged CLI/LSP.
   Cross-target metadata or helper simulations do not prove native execution.

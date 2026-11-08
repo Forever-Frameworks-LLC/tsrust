@@ -718,6 +718,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::testing::resources::RELEASE_ORDER,
     crate::stdlib::testing::resources::LIVE_COUNT,
     crate::stdlib::testing::bindings::CHECK_ASSERTION,
+    crate::stdlib::testing::bindings::BEGIN_OUTPUT_CAPTURE,
+    crate::stdlib::testing::bindings::END_OUTPUT_CAPTURE,
     crate::stdlib::testing::bindings::INVOKE_REGISTRATION,
     crate::stdlib::testing::bindings::INVOKE_SUITE,
     crate::stdlib::testing::bindings::CREATE_REGISTRY,

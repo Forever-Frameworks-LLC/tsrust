@@ -125,7 +125,7 @@ fn tsrust_testing_run_suite(registry: &mut TsrTestRegistry, id: usize, path: &mu
                 let test_started = std::time::Instant::now();
                 path.push(name); let name = path.join(" > "); path.pop();
                 if !tsrust_testing_selected(&name){continue;}
-                tsr_console_test_begin(&name);
+                tsr_console_output_reset();tsr_console_test_begin(&name);
                 let mut errors = Vec::new();
                 if let Some(error) = blocked { errors.push(error.to_owned()); }
                 else {

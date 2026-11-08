@@ -193,22 +193,17 @@ engine, with a JSON history of each run's date, median sample time, mean speed a
 sample count. Markdown reports are optional exports. Do not retime unaffected
 workloads for presentation or replay history solely because a new feature landed.
 
-At a full backend milestone, run tests and doctest drivers in separate Cargo invocations:
-`RUST_TEST_THREADS=1 cargo test -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast`,
-then `cargo test -p tsrust-compiler -p tsrust-lsp --doc`. Relocated offline package witnesses rebuild
-vendored dependencies in the shared target; the second invocation refreshes the
-workspace dependency artifacts before rustdoc uses them. Keep the existing single
-build job and disabled incremental compilation. This does not trigger a full pass
-for individual packages or repairs; retain completed evidence and rerun affected
-checks only.
-
-A complete pass is about six hours of single-job work on one host, so it does not
-fit the one-hour ceiling serially. CI `full_regressions=true` runs it as eight
-parallel shards, each on its own runner and target with its own one-hour job:
-`python3 tools/regression-shards.py SHARD 8` prints each shard's `cargo test`
-selections. It balances by `tools/regression-weights.json`, and every target lands
-on exactly one shard. Shard 0 also owns the library, binary, doctest, format and
-lint units. Never run the shards one after another on one host to claim a pass.
+The complete backend check is three layers, all fast enough to run locally:
+`cargo test -p tsrust-compiler -p tsrust-lsp --lib --bins` (unit, rejection and
+diagnostic-code checks in process); `python3 tools/run-suites.py target/debug/tsrust
+target/catalog-suites` after `python3 tools/generate-catalog-suites.py target/catalog-suites`
+(every `tsrust test` suite, one native build per suite directory, including one
+generated test per verified catalog example); and `python3 tools/host-tests.py`
+(CLI, signals, processes, offline export, packages, Rust adapters, LSP stdio).
+Add runtime coverage as `.test.tsr` cases in an existing family suite, not as a
+Rust test that builds its own native program. The remaining per-case Rust
+integration targets are legacy witnesses outside CI; see
+`docs/plans/ci-build-once.md`.
 
 ## Analytics purpose and storage
 

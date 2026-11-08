@@ -6,6 +6,26 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### CI build-once restructure — 2026-11-09
+
+Owner: CI must compile once per OS and run `tsrust test`; consolidation instead
+of 1:1 is fine; no PRs/pushes until the restructure is done; pushes exist to
+merge toward release. Plan: `docs/plans/ci-build-once.md`.
+
+- New `std:testing` output capture: `captureOutput`, `startOutputCapture`,
+  `finishOutputCapture` (runner resets unfinished captures; effect table updated).
+- `tools/generate-catalog-suites.py`: 1,066 generated tests from verified catalog
+  examples (42 host-only by rule), one directory per group.
+- `tools/run-suites.py`: 133 suites, one native build each, PASS locally
+  (cold 17.7 min, warm 301s). It found and fixed a real defect:
+  `tsr_console_table` was private, so `console.table` failed in test programs.
+  The rust-regex example's stale bindings lock was re-locked.
+- `tools/host-tests.py`: 21 boundary targets. CI rewritten: lint, lib, build per
+  OS (release artifact), suites and host per OS on that build, editor, CI gate.
+  Removed: shard runner, platform runner/evidence chain, supporting-host timing.
+- About 530 legacy per-case integration targets remain as local deep-regression
+  witnesses, outside CI.
+
 ### Full runs 3–4 — 2026-11-08 21:45 UTC
 
 - E0460 root cause: relocated vendored builds recompile shared crates

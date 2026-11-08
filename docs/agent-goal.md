@@ -39,8 +39,8 @@ input. This ordering supersedes the older scheduling retained below.
    examples/oracles together, measure and optimize each completed coherent gate,
    ingest actual runs with `npm run store:ingest`, and commit accepted measured
    evidence. Keep unchanged handwritten-Rust/Node reference timings cached. Run
-   full regressions only at meaningful feature-family milestones; call CI full
-   only when dispatched with `full_regressions=true`.
+   the complete lib/suites/host check at meaningful milestones; push only to merge
+   finished work (`docs/plans/ci-build-once.md`).
 6. Keep [agent-progress.md](agent-progress.md) as the only handoff and update the
    v0.2.0 checklist as items pass. No archives, source snapshots or per-worker
    handoff files. Preserve owner files and the accepted optimization work; check
@@ -112,8 +112,7 @@ The owner approved this plan and asked for continuous autonomous work on it:
 
 Measurement rules: time benchmarks only on a quiet machine. The runner must
 check load before each chunk; never build, test or run CI-like work locally
-while timing. Run heavy regression suites on GitHub (dispatch
-`full_regressions`), not locally during measurements. Publish results through
+while timing. Never run test suites while timing. Publish results through
 the SQLite dataset and the generated performance page.
 
 

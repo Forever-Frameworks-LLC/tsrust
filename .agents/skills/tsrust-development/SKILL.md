@@ -59,7 +59,13 @@ checks unavailable or pending.
 ## GitHub validation and release
 
 Local commits are the normal durable checkpoints; elapsed time never justifies a
-push. Do not alter CI triggers to hide failures or use skip-ci as a substitute
+push.
+
+Owner rule, 2026-11-08: a push or PR exists to merge finished code toward a
+release. It is never a way to run checks on other operating systems because
+that is possible, and never a test-iteration loop. Finish and validate a change
+set locally, then push once to merge. If hosted CI fails, diagnose locally and
+fix the cause before the next push; do not dispatch repeated hour-long runs. Do not alter CI triggers to hide failures or use skip-ci as a substitute
 for validation. Never force-push, merge or publish a release merely to checkpoint.
 
 Before a remote validation, record the exact commit, locally completed checks,

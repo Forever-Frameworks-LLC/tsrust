@@ -7038,6 +7038,47 @@
       ]
     },
     {
+      "name": "captureOutput",
+      "signature": "captureOutput(callback: Once<Function<void>>): string",
+      "parameters": [
+        {
+          "label": "callback",
+          "documentation": "Required consuming single-use synchronous callback with no arguments and void result. Invoked exactly once; it may move owned captures."
+        }
+      ],
+      "documentation": "Calls a synchronous callback once and returns the console standard output it wrote, in order, as one string. Output written while capturing is not printed. console.error and other standard-error output are not captured. Nested captures return only their own text. If the callback throws, the exception propagates and its partial output is discarded when the next test starts.\n\n```tsrust\nimport { captureOutput, strictEqual } from \"std:testing\";\n\nfunction main() {\n  const text = captureOutput(() => {\n    console.log(\"a\");\n    console.log(1, 2);\n  });\n  strictEqual(text, \"a\\n1 2\\n\");\n  console.log(\"passed\");\n}\n```\n\nExpected output: passed.\n\nUse it to assert a program's exact output in a consolidated test suite. Asynchronous work that prints after the callback returns is not captured.\n\nOwnership: consumes the single-use callback; the returned string is owned.",
+      "examples": [
+        {
+          "source": "import { captureOutput, strictEqual } from \"std:testing\";\nfunction main(){const text=captureOutput(()=>{console.log(\"a\");console.log(1,2);});strictEqual(text,\"a\\n1 2\\n\");console.log(\"passed\");}",
+          "output": "passed\n"
+        }
+      ]
+    },
+    {
+      "name": "startOutputCapture",
+      "signature": "startOutputCapture(): void",
+      "parameters": [],
+      "documentation": "Starts capturing console standard output on the current test's thread. Pair it with finishOutputCapture(), which returns the captured text. Use the pair instead of captureOutput when the measured code can throw or await: errors propagate normally, and the runner discards an unfinished capture before the next test. Captures nest.\n\n```tsrust\nimport { startOutputCapture, finishOutputCapture, strictEqual } from \"std:testing\";\n\nfunction main() {\n  startOutputCapture();\n  console.log(\"a\");\n  strictEqual(finishOutputCapture(), \"a\\n\");\n  console.log(\"passed\");\n}\n```\n\nExpected output: passed.\n\nOwnership: takes no arguments and returns void.",
+      "examples": [
+        {
+          "source": "import { startOutputCapture, finishOutputCapture, strictEqual } from \"std:testing\";\nfunction main(){startOutputCapture();console.log(\"a\");strictEqual(finishOutputCapture(),\"a\\n\");console.log(\"passed\");}",
+          "output": "passed\n"
+        }
+      ]
+    },
+    {
+      "name": "finishOutputCapture",
+      "signature": "finishOutputCapture(): string",
+      "parameters": [],
+      "documentation": "Ends the innermost capture started by startOutputCapture() and returns its standard output as one owned string. Without an active capture it returns an empty string.\n\n```tsrust\nimport { startOutputCapture, finishOutputCapture, strictEqual } from \"std:testing\";\n\nfunction main() {\n  startOutputCapture();\n  console.log(1, 2);\n  strictEqual(finishOutputCapture(), \"1 2\\n\");\n  console.log(\"passed\");\n}\n```\n\nExpected output: passed.\n\nOwnership: returns an owned string.",
+      "examples": [
+        {
+          "source": "import { startOutputCapture, finishOutputCapture, strictEqual } from \"std:testing\";\nfunction main(){startOutputCapture();console.log(1,2);strictEqual(finishOutputCapture(),\"1 2\\n\");console.log(\"passed\");}",
+          "output": "passed\n"
+        }
+      ]
+    },
+    {
       "name": "TrackedResource",
       "signature": "type TrackedResource",
       "documentation": "An opaque, uniquely owned synthetic native resource for testing destruction. Construct with trackedResource(); inspect its identity with resourceId(resource); consume it with closeResource(resource). It exposes no fields or receiver methods. Scope exit and replacement destroy native storage automatically. releaseCount and releaseOrder observe destruction without retaining the resource. Cloning, field projection, worker transfer and started-task transport are rejected. Direct local async ownership is supported. This instrument does not represent asynchronous backend cleanup.\n\n```tsrust\nimport { trackedResource, resourceId, closeResource, releaseCount } from \"std:testing\";\n\nfunction main() {\n  const resource = trackedResource();\n  const id = resourceId(resource);\n  closeResource(resource);\n  console.log(releaseCount(id));\n}\n// 1\n```\n\nOwnership: moves transfer the resource; ReadOnly inspection borrows it. Its identity is a copied integer, not a resource handle.",
