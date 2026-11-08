@@ -6,22 +6,35 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current accepted source checkpoint03ec4f13; reviewed service-checker retry fix pending checkpoint; full goal active.
-- PROVEN minimal source: unused std:testing import activates speculative callback
-  discovery. A parameterless routes():App factory without its own try block loses
-  its source when selected through an unused async try/finally caller. Remove only
-  the unused import and it checks. NativeTrace/Sender are unnecessary to reproduce.
-- Pending one guard retains selected raw bodies in existing retry map BEFORE
-  prepare_selected_task_function temporarily disables discovery. Existing known/
-  visiting/pending guards and definitive diagnostics stay intact. Positive/control
-  and genuine missing_response negative use project SourceProvider, formatter
-  token behavior/idempotence. No diagnostic-only build occurred; optional trace
-  was removed before compilation. B14 peer review found no blocker.
-- Next /tmp/tsrust-service-retry-repair-run.py: one shared selected build/focused
-  compiler guard, original service frontend, ONE native app via check-service.mjs,
-  then existing export-inventory tool. Thirty-minute/5GB watchdog capped by the
-  ORIGINAL service attempt start+onehour; do not reset it. Preserve all03ec passes.
-
+Current source814f1a64; complete service-retry repair pending checkpoint. Full goal active.
+- DiagnosticONLY CLI+inventory build session60461 terminalPASS158.77s/2263944312B.
+  /tmp/tsrust-service-body-state-cli-build.json. Actual controlPASS, minimal and
+  originalserviceFAIL: checkedbody0/rawbody0 BUT retainedSome3/Some4. Flags show
+  resultdiscovery active. Thus sourceEXISTS; restoration occurs too late.
+  /tmp/tsrust-service-body-state-{minimal,original}.err and-probes.json.
+- Correct root boundary found: FunctionTask errorunwind discards consumedbody,
+  discovery_expression_inner catches pendingdiagnostic→Ok(None) and retriesBEFORE
+  outercallback-discovery replay. Reviewed ed499 patch restores ONLYfailedtask's
+  drained unchecked/empty functions from existingretainedsource BEFOREreturning
+  originalErr. Suspendedouterframes/successfulfunctions untouched. Applied/unvalidated.
+- Both discovery→full checking entries nowretainrawsource: existingfe1selected
+  helper plusfunction_request_ready. New inferredroutes variant FAILSoldCLIwith
+  Cannotbindnoreturn; removeunusedstdtestingimport CONTROLpasses. Regressionnow
+  hasdeclared/inferred with/withoutimport4positives +trueMissing_response negative.
+  No diagnosticsremaininsource. Temporarytrace removaltargeted; all otheredits preserved.
+- Next /tmp/tsrust-service-unwind-repair-run.py: NEWchanged-source30minute scope.
+  CLI-only build FIRST, exact5publicfrontendregressions, originalservicecheck,
+  actualinventory, ONEexistingserviceappbuild/restartchecks, thenfocusedRustlib
+  witness. Earlierfailedscopesstayterminal/incomplete; noactivebudgetreset or
+  serialpartitionofoversizedsuite. Heavybuildsserialized/sharedtarget/jobs1/inc0.
+- InventoryACTUALPASS4.743s:1680discoveredrows,671bindings,174native declarations,
+ 43sourceexports,78retainedFS/URLcatalogexamplewitnesses. Remainingper-export
+ negative/alias/platformreconciliationexplicit; NOTconformancepercentage.
+ /tmp/tsrust-current-public-api-inventory.json disposablecurrentreport.
+- Quietlocked oldbasepackcleanupACTUAL recovered766394368B (670417411logical,
+ 28282files); currentbasea1fe... andrealShlex849...metadatahashesunchanged.
+ /tmp/tsrust-obsolete-base-source-pack-cleanup.json. Netoldhostcleanup1430007808B
+ retainedseparately; newlycreatedobjectcleanupnotcountedasoldnetrecovery.
 - TERMINAL PASS current03ec4f13 repair: selectedbuild394.945s/3276963KiB,
   two focused compiler guards PASS, real documentation native case PASS119.67s.
   /tmp/tsrust-fixed-callback-repair-76986fc9793f.json.

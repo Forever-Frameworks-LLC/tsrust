@@ -63,7 +63,16 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts, mut tas
         Ok(Some(child)) => Step::Push(Task::Function(task), child),
         result => {
             if result.is_err() {
-                for index in analyzer.function_stack.drain(boundary.1..) { analyzer.visiting[index]=false; }
+                for index in analyzer.function_stack.drain(boundary.1..) {
+                    analyzer.visiting[index]=false;
+                    // Discovery may catch this failure and retry before its
+                    // outer pass restores consumed source bodies.
+                    if analyzer.checked[index].is_none() && analyzer.program.functions[index].body.is_empty()
+                        && let Some(source)=analyzer.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index))
+                    {
+                        analyzer.program.functions[index].body=source.clone();
+                    }
+                }
                 analyzer.depth=boundary.0;
             }
             task.schedule.release(analyzer);

@@ -43,6 +43,10 @@ impl Analyzer {
                 && !self.active_recursive_functions.contains(&index)
             {
                 let effects = self.effects_only;
+                // Preserve retry source before full checking hides discovery mode.
+                if let Some(sources)=&mut self.discovery_body_sources {
+                    sources.entry(index).or_insert_with(||self.program.functions[index].body.clone());
+                }
                 self.discovering_results = false;
                 self.effects_only = false;
                 let checked = self.function(index);
@@ -310,9 +314,6 @@ impl Analyzer {
         {
             sources.entry(index).or_insert_with(|| self.program.functions[index].body.clone());
         }
-        if self.program.functions[index].name.text=="routes" && std::env::var("TSRUST_TRACE_EFFECTS").as_deref()==Ok("1") {
-            eprintln!("ROUTES_BODY_TAKE index={index} body_len={} retained_len={:?} discovering={} effects_only={} assumed_modes={} discovering_function={:?} params={:?} stack={:?} backtrace={}",self.program.functions[index].body.len(),self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).map(Vec::len),self.discovering_results,self.effects_only,self.assumed_modes.is_some(),self.discovering_function,self.signatures[index].params,self.function_stack,std::backtrace::Backtrace::force_capture());
-        }
         let body = std::mem::take(&mut self.program.functions[index].body);
         let (context, parameters) = self.reserve_function_parameters(index)?;
         let result_type = self.signatures[index].result;
@@ -354,9 +355,6 @@ impl Analyzer {
         // still types its callers. A callable result needs its checked closure.
         let contract=self.program.diagnostic_contracts.contains(&name.span.start) && !self.callable_result_type(result_type);
         if result_type != Type::Void && !returned && !contract {
-            if std::env::var("TSRUST_TRACE_EFFECTS").as_deref()==Ok("1") {
-                eprintln!("MISSING_RETURN_STATE index={index} name={} checked_body_len={} raw_body_len={} retained_body_len={:?} discovering={} effects_only={} discovering_function={:?} visiting={} scheduled={} named_context={} named_ready={} checked={} params={:?} body_spans={:?}",name.text,body.len(),self.program.functions[index].body.len(),self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).map(Vec::len),self.discovering_results,self.effects_only,self.discovering_function,self.visiting[index],self.scheduled_functions.contains(&index),self.named_captures.needs_context(index),self.named_captures.ready(index),self.checked[index].is_some(),self.signatures[index].params,body.iter().map(|statement|statement.span).collect::<Vec<_>>());
-            }
             return Err(Diagnostic::new(
                 "type",
                 format!(
@@ -640,7 +638,9 @@ fn speculative_region_dependencies_preserve_native_factory_bodies_and_real_error
  }
  let source="import {strictEqual} from 'std:testing';import {App,Request,Response,text} from 'std:http';import {delay} from 'std:futures';type Trace={id:int;};type Loaded={trace:Trace;body:string;};type Metrics={count:int;};function emptyMetrics():Metrics{return {count:0};}async function child(trace:Owned<Trace>,fail:boolean):Task<Loaded>{await delay(1);if(fail){throw 'failed';}return {trace,body:'ready'};}async function handle(input:Request):Task<Response>{let response=text('unavailable',503);try{const loaded=await child({id:1},false);response=text(loaded.body);}catch{}return response;}function routes():App{const app=new App();app.post('/ok',(input:Request)=>handle(input));return app;}async function exercise():Task<Metrics>{try{const app=routes();return emptyMetrics();}finally{console.log('done');}}function main(){const app=routes();}";
  let control=source.replace("import {strictEqual} from 'std:testing';","");
- for text in [control,source.into()]{let text=crate::format(&text).unwrap();assert_eq!(crate::format(&text).unwrap(),text);let checked=check_graph(load_project(&Source(text),"main.tsr").unwrap());assert!(checked.is_ok(),"A valid returned App factory must survive speculative region dependency checking: {:?}",checked.err());}
+ let inferred=source.replace("function routes():App","function routes()");
+ let inferred_control=inferred.replace("import {strictEqual} from 'std:testing';","");
+ for text in [control,source.into(),inferred_control,inferred]{let text=crate::format(&text).unwrap();assert_eq!(crate::format(&text).unwrap(),text);let checked=check_graph(load_project(&Source(text),"main.tsr").unwrap());assert!(checked.is_ok(),"A valid returned App factory must survive speculative region dependency checking: {:?}",checked.err());}
  let invalid=crate::format(&source.replace("text(loaded.body)","text(missing_response)")).unwrap();assert_eq!(crate::format(&invalid).unwrap(),invalid);
  let errors=check_graph(load_project(&Source(invalid),"main.tsr").unwrap()).err().expect("A genuine nested body error must remain rejected");
  assert!(errors.message.contains("missing_response"),"Original nested diagnostic must not become a false missing-return cascade: {errors:?}");
