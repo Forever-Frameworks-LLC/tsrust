@@ -122,7 +122,7 @@ they are not completed implementation gates:
   add computed property lowering rather than treating native getter properties
   as physical record fields. Prove separate read/write types, receiver/RHS once
   evaluation, optional loans and mutation blocking through aliases/captures.
-- [ ] Investigate reported url2.5.8 empty-host setter panic, quadratic authority/
+- [x] Investigate reported url2.5.8 empty-host setter panic, quadratic authority/
   dot-segment parsing and relative-reference differences before admission:
   [1174](https://github.com/servo/rust-url/issues/1174),
   [1163](https://github.com/servo/rust-url/issues/1163),
@@ -475,6 +475,25 @@ Current-host API acceptance is retained from965de83f: `url_values`6,
 catalog execution, owners/setters and relocated offline export. Relevant runtime
 and reviewed test sources are unchanged. B20 shared compiler/platform and
 remaining measurement requirements remain open.
+
+URL measurement acceptance, 2026-11-07: all11 registered URL workloads pass
+165 matched native/Rust/Node correctness cases and original three-process,
+8-warmup,31-sample timing. Actual ingestion added33 workload/engine histories,
+each93 samples, at2026-11-08T01:00:48.357Z. The eight authority/dot-segment
+variants cover8192–65536 units without a facade input cap. Native adjacent-size
+ratios are1.85–2.11 for long authorities and1.93–1.98 for short authorities,
+consistent with linear scaling over this corpus. At65536, long/short medians
+are1.645375/1.156375ms; direct Rust1.638458/1.188250ms and
+Node0.579333/0.497042ms. Do not claim universal parser complexity or blanket
+WHATWG equivalence from this bounded corpus. Component/query/reused-setter
+native-to-Rust medians are1.06/0.92/0.96; native-to-Node0.66/0.71/0.12.
+The source-owned URL patch, empty-host guards and documented relative-reference
+difference remain unchanged. Evidence `/tmp/tsrust-url-family-resume.json` and
+`benchmarks/measurements.sqlite`. The initial TypeScript declaration failure was
+repaired with DOM.Iterable; nine actually prepared workloads were sealed and
+reused without recompilation. Fresh-source comparison and all correctness checks
+preceded timing. Preparation, repair and resumed157.18s protocol/ingestion fit
+one original30-minute scope. No full regressions or reference retiming occurred.
 
 ### B05 — Async byte I/O across resources
 

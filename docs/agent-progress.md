@@ -63,22 +63,23 @@ Only root writes canonical; app worktree owner WIP stays protected.
   Buildpackage target/http-realtime-public-package nowclosed/disposable; controls
   and shareddeps retained. No indexing settings/path changes were made.
 - Harness6purechecksPASS,whole-project format0changes/diffclean beforeddc61ed6.
-- URL session40300 terminalFAILED373.490s/507473608B beforetiming: first9
-  preparations/correctness passed;10th TypeScript querysnapshot lacksDOM.Iterable.
-  Fixed tsconfig declarationlib; affected tsc --noEmit PASS0.201s. Added finite
-  URL-only sealedprefix reuse to run.mjs, negativecompilerSHA rejectionPASS;
-  whole-project format0changes. Receipt /tmp/tsrust-url-prepared-prefix.json seals
-  compiler/input/generated/binarybytes and priorfailedscope; frontendregeneration
-  compares exactgeneratedsources before skippingcompilation. Remaining2prepare
-  normally; existing5-shape correctness and3x31timing loopsunchanged.
-  NEXT resume SAME original30minscope withreceipt; no timingingestclaimed.
-  Original /tmp/tsrust-url-family-measure.py: existing registered URL11
-  family, original3processx31samples/8warmups, native/Rust/Node firstcontrols,
-  explicit verifiedcompiler reuse. Fixed30min/5GB/jobs1/incremental0, actualingest
-  only afterall11pass. No URL measurement/ingestion claimed yet.
+- URL ACTUAL measurement/ingest PASS, current source75027f23:
+  /tmp/tsrust-url-family-resume.json session33695 terminal0, protocol157.180s/
+  peak571290008B,ingest0.558s,resume158.085s; SAME original30minscope as initial
+  failed373.490s preparation. Initial10th TSquerysnapshot lackedDOM.Iterable;
+  affected tsc --noEmit PASS0.201s, fixcheckpoint75027f23. Sealed first9artifact
+  prefix receipt /tmp/tsrust-url-prepared-prefix.json: currentCLI/input/generated/
+  binaryhashes +priorfailedscope; exactfrontendregenerationmatched, zerofirst9
+  recompiles; existing5-shape correctness rerun, remaining2preparednormally.
+  All11native/Rust/Node cases165correctness +3x31after8warmups; SQLite33rows/
+  histories33,each93samples,at2026-11-08T01:00:48.357Z. Native authority/path
+  scaling8192->65536 doubles1.85–2.11long/1.93–1.98short;65536medians1.645375/
+  1.156375ms vsRust1.638458/1.188250,Node0.579333/0.497042. Boundedlinear
+  corpus,notuniversalcomplexity/WHATWGclaim. B00URLinvestigation checkboxclosed.
+  Generalnative/Rust components/query/setters1.06/0.92/0.96;Node0.66/0.71/0.12.
 - Realtime closed-package cleanup /tmp/tsrust-b11-closed-package-cleanup.json
   recovered773849088B actual newly materialized vendor output; controls retained.
-- Next after URL: B17 logging_disabled public
+- NEXT B17: B17 logging_disabled public
   allocation profile (existing driver, separate setup/event costs). Remaining
   B00 ledger/package/platform, B19nested integration, B20 apps/final regression/
   platform/measurements/release acceptance stay open. Integrated persistent API
