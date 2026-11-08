@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpoint9f5ad468; logging source repairs committed; pending Node declaration selection.
+Current checkpointd3511bf7; logging matchedmeasurement/ingest nowPASS; fullgoalactive.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0
@@ -105,7 +105,25 @@ Only root writes canonical; app worktree owner WIP stays protected.
   One-linefamilyselectionrepair; BOTH filecontrol TypeScript --noEmit preflights
   PASS,whole-projectformat0changes/diffclean. Reuse SAME sealeddisabledprefix
   and SAME original30minscope; no compiler/probe rebuild or controlsource edits.
-- NEXT B17timing: B17 logging_disabled public
+- B17 ACTUAL MATCHEDTIMING/INGEST PASS: /tmp/tsrust-logging-family-node-resume.json,
+  session78133 terminal0,protocol164.558s/525921992B,ingest0.561s,resume165.554s.
+  SAMEoriginal30minscope includingearlierprofile/wiring repairs; no quietbypass.
+  All3workloads45correctness +3x31after8warmups; SQLite9rows/history9 each93samples,
+  at2026-11-08T01:24:07.067Z. Native disabled/file/child0.009375/3.058417/
+  5.668209ms; Rust0.005666/3.198125/6.186750;Node0.027625/3.622375/4.101875.
+  Wholepipelines includecreate/close/checksum; child1.38xNodeslower retained.
+  Zero-eventallocationdelta and776Bfixedfirstcallretention remainseparate,strict
+  genericprofileFAILEDnotretroactivelypassed. Rust/Nodecontrols unchanged.
+- NEXT affectedownership integration4targets (NOTfullB20): prepared
+  /tmp/tsrust-final-ownership-acceptance-run.py +gates/scopes/cleanup sameprefix.
+  One shared compiler+LSP selectedbuild,explicitbothpackages+samefeatures,rootlibs
+  buildcacheonlyNOTexecuted; whole rust_bridge/documentation_content/nullish_coalescing
+  compiler targets +LSPrust_bridge. Includes lastfailednestedOption/Result/Vec tags/
+  drops. Fixed30min/5GB/jobs1/incremental0/threads3; oldactualexecution~161s.
+  Preserve1529library/27LSP/55/68/24/42passes; thisisaffectedblock,NOTfullregression.
+  Existingfullintegrationoldtotals doNOTprove55minfit; oldbatcheddriverhascohort
+  editorfilters andmustNOTbeusedunchangedforfullclaims.
+- Remaining: B17 logging_disabled public
   allocation profile (existing driver, separate setup/event costs). Remaining
   B00 ledger/package/platform, B19nested integration, B20 apps/final regression/
   platform/measurements/release acceptance stay open. Integrated persistent API

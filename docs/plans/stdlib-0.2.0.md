@@ -1611,8 +1611,20 @@ is not allocation-free. The existing generic profiler rejected nonzero retained
 bytes and remains failed; this differential diagnostic does not retroactively
 pass that assertion or prove leak freedom. Raw diagnostic:
 `/tmp/tsrust-disabled-logging-first-call-counts.json`; source/binary seals and
-comparison live in `/tmp/tsrust-logging-family-resume.json`. Matched whole-pipeline
-logging timings remain pending; no allocation observations were ingested as timing.
+comparison live in `/tmp/tsrust-logging-family-resume.json`. Matched whole-pipeline logging timings now pass:45 native/Rust/Node correctness
+cases, original three-process/8-warmup/31-sample protocol,9 ingested workload/engine
+histories with93 samples each, at2026-11-08T01:24:07.067Z. File/child native
+medians are3.058417/5.668209ms versus direct Rust3.198125/6.186750ms and
+Node3.622375/4.101875ms. Disabled whole-pipeline median0.009375ms versus
+Rust0.005666ms and Node0.027625ms includes logger creation/close and checksum;
+it is not a pure per-event formatting cost. Child logging is1.38 times Node;
+retain this baseline limitation. Actual measurement/ingest evidence:
+`/tmp/tsrust-logging-family-node-resume.json` (164.558s protocol,0.561s ingestion),
+within the SAME original30-minute allocation/measurement scope. The disabled
+probe/compiler and completed disabled timing executable were not rebuilt after
+repairs. Only the two file Tsrust sources needed ownership/type corrections;
+Rust/Node controls stayed unchanged. No allocation observations were ingested as
+timings, and the strict first-call zero-retention rejection remains explicit.
 
 ### B18 — Everyday testing facilities
 
