@@ -84,7 +84,9 @@ mod delivered_signals {
         assert_ne!(unsafe{AttachConsole(target)},0,"cannot attach owned recipient console");let _detach=Detach;
         let mut attached=[0u32;3];let count=unsafe{GetConsoleProcessList(attached.as_mut_ptr(),attached.len() as u32)};
         assert_eq!(count,2,"refuse console-wide delivery unless only recipient and helper are attached");assert!(attached[..2].contains(&target)&&attached[..2].contains(&std::process::id()));
-        assert_ne!(unsafe{SetConsoleCtrlHandler(Some(ignore),1)},0);
+        // The owner restored normal Ctrl+C processing, so the helper inherits it;
+        // ignore the event process-wide as well as through the handler.
+        assert_ne!(unsafe{SetConsoleCtrlHandler(Some(ignore),1)},0);assert_ne!(unsafe{SetConsoleCtrlHandler(None,1)},0);
         assert_ne!(unsafe{GenerateConsoleCtrlEvent(event,0)},0);
     }
 

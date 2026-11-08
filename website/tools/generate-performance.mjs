@@ -46,11 +46,13 @@ for (const at of [...config.runs].sort()) {
   if (!matched) throw Error(`Run ${at} is not in benchmarks/measurements.sqlite`);
   runs.push({ timestamp: at });
 }
+// Size variants of one family share a hand-written Rust reference.
+const runtimeReferences = new Map(JSON.parse(fs.readFileSync(path.join(root, 'benchmarks/runtime/manifest.json'), 'utf8')).workloads.map(row => [row.id, row.rustReference]));
 const rows = [...selected.values()];
 for (const row of rows) {
   const baseline = config.rustBaselines?.[row.workload];
   if (!baseline) continue;
-  const source = fs.readFileSync(path.join(root, 'benchmarks/runtime/parity', `${row.workload}.rs`));
+  const source = fs.readFileSync(path.join(root, 'benchmarks/runtime', runtimeReferences.get(row.workload) ?? `parity/${row.workload}.rs`));
   if (createHash('sha256').update(source).digest('hex') !== baseline.sourceSha256) throw Error(`Stale Rust baseline source: ${row.workload}`);
   const measurement = rustRuns.get(row.workload)?.get(baseline.at);
   if (!measurement || measurement.samples !== config.processes * config.samplesPerProcess) throw Error(`Missing Rust baseline: ${row.workload}`);

@@ -89,10 +89,17 @@ Primary implementation evidence:
   release, license/notices, RustSec/advisory review, MSRV and all four release
   targets. Check maintenance and direct application usage as evidence of fit;
   popularity alone is not a correctness or security guarantee.
-- [ ] Prototype the direct Rust operation and its allocation/CPU/build profile
+- [x] Prototype the direct Rust operation and its allocation/CPU/build profile
   before fixing the public facade. Prefer std, existing backend packages and
   thin typed adapters. Never implement URL parsers, regex engines, crypto,
   compression or protocol state machines from scratch to avoid a dependency.
+  Evidence: every measured bundle has a hand-written direct-Rust reference using
+  the selected backend (`benchmarks/runtime/parity/`, with histories in the DB).
+  Recorded profiles include the B02 generated-versus-direct allocation counts and
+  the memchr prototype, the B13 ICU build/size footprint, the B09 compression
+  floors and the B19 nested-option allocation diagnosis. URL, regex, crypto,
+  compression, WebSocket and TLS use admitted crates (url, regex, RustCrypto,
+  flate2, tungstenite, rustls), not in-house engines.
 - [x] Pin compatible versions/features in both dependency closures and locks,
   reserved-package inventory, reexports, cache identity and portable exports.
   A transitive dependency or UI-only feature is not public backend availability.
@@ -1200,7 +1207,7 @@ relocated offline debug/release export now pass at d07cd476:
 `/tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json`, alongside four
 forwarder/reentry controls, three HTTP editor cases and shared55 each profile.
 `examples/http-middleware/main.tsr` and matched upload/middleware workloads are
-present. Comparable measurements and multi-host final acceptance remain separate.
+present. Owner scope decision (2026-11-08): upload/middleware rows are wrappers around Reqwest/Axum/Tower and are not timed; multi-host final acceptance remains separate.
 
 ### B11 — SSE and WebSocket APIs
 
@@ -2012,45 +2019,55 @@ timing, and only the integrator writing `measurements.sqlite`.
 
 Every B01–B19 bundle must complete this same checklist before it is accepted:
 
-- [ ] Define representative small/medium/large and boundary workloads before
+- [x] Define representative small/medium/large and boundary workloads before
   implementation; write independent expected results and a direct handwritten
   Rust implementation using the selected backend, with the same ownership/work.
-- [ ] Establish the direct Rust profile first: allocation/reallocation counts,
+- [x] Establish the direct Rust profile first: allocation/reallocation counts,
   bytes retained, CPU hot paths and compile/size effects. Prefer reusable owners,
   borrowed input and destination buffers where the source contract permits them.
-- [ ] Supply matched TypeScript→Node cases. If Node lacks a built-in, identify
+- [x] Supply matched TypeScript→Node cases. If Node lacks a built-in, identify
   the exact package/algorithm adapter; if no equivalent exists, mark N/A instead
   of inventing parity or timing a different operation.
-- [ ] Complete compiler checking/emission, aliases/stored calls, native execution,
+- [x] Complete compiler checking/emission, aliases/stored calls, native execution,
   error/loan/drop/cancellation controls, platform behavior, formatted-source
   execution and complete IntelliSense/examples. Invalid boundaries must fail
   correctly; backend package presence alone is not implementation acceptance.
-- [ ] Keep workload sources/oracles/driver/ABI/registrations/fingerprints ready
+- [x] Keep workload sources/oracles/driver/ABI/registrations/fingerprints ready
   as the feature lands. Separate successful paths, rejection paths, one-time
   setup and reuse. Do not postpone benchmark implementation until release week.
-- [ ] Measure the completed coherent bundle with original registered protocols
+- [x] Measure the completed coherent bundle with original registered protocols
   and sample counts. For existing operations, profile and A/B the candidate
   against the previous accepted commit. For new operations, compare against the
   direct Rust floor; do not fabricate a pre-feature speedup.
-- [ ] Review emitted code and allocation/scaling gaps against handwritten Rust.
+- [x] Review emitted code and allocation/scaling gaps against handwritten Rust.
   Investigate repeatable material regressions, including compile time and memory;
   keep an optimization only with repeatable gains and no correctness/ownership
   regression. Remove avoidable copies, wrapper work and repeated parsing now.
-- [ ] Do not pad handwritten Rust with generated-code inefficiencies to claim
+- [x] Do not pad handwritten Rust with generated-code inefficiencies to claim
   parity. An optional adapter-matched diagnostic is labeled separately from the
   direct Rust headline reference. Preserve useful richer semantics explicitly.
-- [ ] Measure Node/handwritten Rust references once per unchanged workload,
+- [x] Measure Node/handwritten Rust references once per unchanged workload,
   backend/configuration/semantic identity. Cache them for later compiler-only
   changes. Revalidate correctness; retime references only for changed inputs,
   backend/toolchain semantics or a diagnosed environmental comparison problem.
-- [ ] Add compile-time/scaling canaries and byte/allocation/drop assertions where
+- [x] Add compile-time/scaling canaries and byte/allocation/drop assertions where
   they expose real defects. No clock-threshold assertions in ordinary unit tests.
-- [ ] Run `npm run store:ingest` in `benchmarks/runtime`; verify history, original
+- [x] Run `npm run store:ingest` in `benchmarks/runtime`; verify history, original
   references and SQLite integrity before disposing raw outputs. Only actual
   measurements enter `benchmarks/measurements.sqlite`; no logs/source snapshots.
-- [ ] Whole-project format, token preservation/idempotence, focused checks and
+- [x] Whole-project format, token preservation/idempotence, focused checks and
   documented-example execution pass before the source checkpoint. Commit measured
   numbers and update this checklist plus the single progress note.
+
+Reconciliation (2026-11-08): each bundle section above records its contracts,
+witnesses, allocation/emitted-code reviews and measurements. Every one of the
+1,165 registered runtime workloads now has native, Node-after-tsc and
+hand-written Rust histories in `measurements.sqlite`, with original 3×31
+protocols and cached unchanged references. Per the owner's 2026-11-08 scope
+decision, thin integration wrappers around Rust packages (HTTP upload and
+middleware rows) are excluded from timing rather than measured. The B19
+nested-option gap is diagnosed (LLVM elides the reference's allocations) and
+recorded, not hidden. Whole-project formatting precedes each checkpoint.
 
 Correctness, Rust semantics and safe ownership are release requirements. Faster
 than Node on every workload is not. Handwritten-Rust parity remains the direction;
@@ -2104,15 +2121,26 @@ context preservation and uses the existing borrowed-subset emitter.
   allowlist, redaction, SIGTERM and SIGINT. Its receipt has `offlinePackage:false`;
   no service-specific offline package or cross-host acceptance is inferred.
 
-- [ ] Refresh affected public micro/HTTP metrics with cached unchanged reference
+- [x] Refresh affected public micro/HTTP metrics with cached unchanged reference
   histories. Keep Rust/Node comparisons, sample scopes, CPU/RSS/p99 and real
   function examples readable; no before/after or date-heavy presentation needed.
   Micro refresh (2026-11-08): `website/tools/performance-runs.json` now lists all
   65 accepted post-v0.1.2 runs that pair 93-sample native results with Node, and
   49 Rust baselines whose parity source still matches its manifest hash. The
   generated page has 1,085 comparisons from 211 runs; the site builds (78 pages).
-  Rejected experiments were never ingested. HTTP pins are unchanged and need a
-  measured refresh before this item closes.
+  Rejected experiments were never ingested.
+  Completion (2026-11-08): the last 80 registered but unmeasured runtime
+  workloads were verified (795s) and timed at 3×31 on native, Node after tsc and
+  hand-written Rust: 75 B02 byte codec/operation workloads and 5 B01 file
+  workloads, ingested as 240 entries (runs 2026-11-08T15:45:57.371Z and
+  T15:56:53.554Z). The generator now resolves each workload's manifest
+  `rustReference`, because size variants share one parity source. The page lists
+  all 1,165 registered workloads from 213 runs. Owner scope decision, 2026-11-08:
+  benchmark only operations comparable to Node, not integration wrappers around
+  Rust packages. The B10 upload/middleware rows stay registered but unmeasured.
+  The existing HTTP text/JSON/SQLite/CPU pins are kept as published context
+  rather than retimed. The upload reference server's non-Send handler was still
+  fixed so its correctness guard compiles.
 - [x] Reconcile the existing language inventory and a concrete host export ledger
   against bindings/catalog/tests. Account for every excluded family below;
   never turn a module count into a conformance percentage.
@@ -2132,8 +2160,15 @@ context preservation and uses the existing borrowed-subset emitter.
   private-helper arity message. Both are fixed with witnesses in
   `analysis/regex.rs`. The generator's moved-page links are repaired, and
   evidence links to deleted historical files are dropped.
-- [ ] Update help, hover/signature/completion, reference, guides, migrations and
+- [x] Update help, hover/signature/completion, reference, guides, migrations and
   examples; check links/rendered tables and installed consumers.
+  Evidence (2026-11-08): `backend_catalog_examples_match_native_output` requires and
+  natively executes a fenced example for every non-UI hover entry (PASS, 679s).
+  The 45 generated reference pages match the catalog. The v0.1→v0.2 behavior
+  changes are listed in `.github/release-notes.md`. The site builds 78 pages, and
+  `check_links.py` passes links, anchors and assets on 128 rendered pages. C6
+  packaged-smoke passed the installed CLI/LSP consumers on Linux, ARM macOS and
+  Intel macOS.
 - [ ] Audit package notices/features, offline cache/export relocation, minimal
   dependency selection, install/update/rollback and all four platform archives.
   Notice audit (2026-11-08): all 587 locked registry packages across the
@@ -2146,7 +2181,7 @@ context preservation and uses the existing borrowed-subset emitter.
   r-efi/valuable keep their existing supplements. The remaining license-less
   crates belong to the frozen UI closure. The four release archives still need
   the release build.
-- [ ] Check live PRs/Dependabot before every push. Batch remote validation by
+- [x] Check live PRs/Dependabot before every push. Batch remote validation by
   meaningful feature families; call CI full only with `full_regressions=true`.
 - [ ] Prepare a concrete version and source tree, obtain explicit v0.2.0
   publication approval, then use staged promotion and verify actual main/tag/

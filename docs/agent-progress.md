@@ -6,6 +6,22 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### C6 review and measurement completion — 2026-11-08 16:45 UTC
+
+- C6 42494556962 at 3972fa49: Linux, ARM and Intel macOS repairComplete=true
+  (61 targets, packaged smoke PASS). Windows' only failure is the SIGINT witness:
+  the owned console helper now dies on its own event, because it inherits the
+  restored normal Ctrl+C processing. The helper now also sets the process-wide
+  ignore. Sealed in LATER_RUNS (Linux 9e39f0fc…, ARM 5a4fc8a2…, Intel 98908cee…,
+  Windows af07e6fb…).
+- Ingested 240 entries (80 workloads × 3 engines); integrity ok. The page has
+  1,165 comparisons; the generator uses the manifest `rustReference`.
+- Owner: benchmark only Node-comparable operations, not integration wrappers.
+  HTTP upload/middleware timing and the native HTTP refresh are dropped.
+- Site 78 pages, links PASS (128 pages).
+- Open: Windows SIGINT (C7), the sharded full regression run, package admission,
+  B01/B03 Windows rows, prune, release approval.
+
 ### Plan completion pass — 2026-11-08 15:30 UTC
 
 Owner: keep going until the whole v0.2 plan is implemented; CI matters but is
