@@ -221,7 +221,7 @@
       "source": "workloads/crypto_sha256_stream_64.tsr",
       "counterpart": "workloads/crypto_sha256_stream_64.ts",
       "rustReference": "parity/crypto_sha256_stream_64.rs",
-      "sourceSha256": "e9f409cf969d1c2aa76f252f3a230e836f0c0bbb1b564d758122baba4f227c58",
+      "sourceSha256": "ea84feb110412168412f6e9ce20fdf91c43a989d842f8ccdf04baf76f3309166",
       "counterpartSha256": "2977ff8086ec5bfe41b2e94d90d461996c83b7dafe3e7fd6b5752315b7b2a020",
       "rustReferenceSha256": "d422f4545b5446e79aec502746825af5fea7b5e46682864acb3affbed3cb40bf"
     },
@@ -252,7 +252,7 @@
       "source": "workloads/crypto_sha256_stream_4096.tsr",
       "counterpart": "workloads/crypto_sha256_stream_4096.ts",
       "rustReference": "parity/crypto_sha256_stream_4096.rs",
-      "sourceSha256": "3667641670fbcb3c9019288caf322df18e17168894c87fb93f7a0d8af4490af4",
+      "sourceSha256": "a9e3288f11600fd9cad30f35f891678b3917abb259a7f54d4401ccd4c57f634c",
       "counterpartSha256": "b64fa68e7ace1ca373aa9299935b80dadd667fac344d39737138b2ab676b641c",
       "rustReferenceSha256": "bd91d78ed290a6b09e3718ec6255de7f30f4d0102e70a2dcffb6509a047de9fe"
     },
@@ -283,7 +283,7 @@
       "source": "workloads/crypto_sha256_stream_262144.tsr",
       "counterpart": "workloads/crypto_sha256_stream_262144.ts",
       "rustReference": "parity/crypto_sha256_stream_262144.rs",
-      "sourceSha256": "bb08694804aa84d947d3635d71803ba35a38eecf8c3f4d10b342a622d9f09ef8",
+      "sourceSha256": "337814a3f29e17c08dc98dc48cfa078b2b486c862945f1887ca6a2e9b17b8394",
       "counterpartSha256": "5dd442efe1ff47cdef9ceda72e66084cfb2bc71d39f29dedafd456cda5637fc2",
       "rustReferenceSha256": "58fd39054fc93c975f052ac240f0377739de37881bae4e23d2b3a327170db490"
     },
@@ -314,7 +314,7 @@
       "source": "workloads/crypto_sha384_stream_64.tsr",
       "counterpart": "workloads/crypto_sha384_stream_64.ts",
       "rustReference": "parity/crypto_sha384_stream_64.rs",
-      "sourceSha256": "5ad88c417a243295403f5979c32ed4ae3ce72c8df96e29ba90c79e40ca41ae4c",
+      "sourceSha256": "013c48faa485fb2d7ac277a0f27c1fc2c45cb0638f938a9e3957be0b4a9e49f3",
       "counterpartSha256": "85b1828e557254960c98621ff3787b563dd0b72121651865985d2bb11503609c",
       "rustReferenceSha256": "363c0213ae9e3417cea1e8b219e883cff905fc9a05de31c0de70cc1957247ec9"
     },
@@ -345,7 +345,7 @@
       "source": "workloads/crypto_sha384_stream_4096.tsr",
       "counterpart": "workloads/crypto_sha384_stream_4096.ts",
       "rustReference": "parity/crypto_sha384_stream_4096.rs",
-      "sourceSha256": "5773eb261e9da0c38a85d195e278ab94b08cd436b51e3d50434101a3960d23d3",
+      "sourceSha256": "d4aff0cae0d652c64e8318bfb5fd4227a76111d68e2d969fd2e5ad19f813821f",
       "counterpartSha256": "1684fc9fe9b3a265a99f43d5607682e4f4addc77d7d3a26613ac0be54d7a3b57",
       "rustReferenceSha256": "f37452be09da212994bb1b4daa6c3e57f08b5cfdb1a317d5373149c6ffe29606"
     },
@@ -376,7 +376,7 @@
       "source": "workloads/crypto_sha384_stream_262144.tsr",
       "counterpart": "workloads/crypto_sha384_stream_262144.ts",
       "rustReference": "parity/crypto_sha384_stream_262144.rs",
-      "sourceSha256": "8e570fcbb4b7f69f4e1e05f85ff45c9e49d9dd6fc88b7bce68b0807891d039c2",
+      "sourceSha256": "9842ec28dd1adee549ef3ec57c2100249545c7c8be105502d196dc668e5ad9d2",
       "counterpartSha256": "6d434e24e89dd11683f2c34a06b89bd0e457572f2bc0b3dfc16f797e6b896486",
       "rustReferenceSha256": "4f6f9cf03ed78cef64b2a39b82c0d3917e7aa3fa192a50cc24aabdf7a21b91da"
     },
@@ -407,7 +407,7 @@
       "source": "workloads/crypto_sha512_stream_64.tsr",
       "counterpart": "workloads/crypto_sha512_stream_64.ts",
       "rustReference": "parity/crypto_sha512_stream_64.rs",
-      "sourceSha256": "5b509c577cd85165569fa46b62c866316816870c49286ed2405366fdc39054a8",
+      "sourceSha256": "ee9c19fc4b1d857e993e780f271c058383ef7538125eabd80b63a9990d318ed4",
       "counterpartSha256": "ae12b89d1c7e73ac2f39c25d52a88b74e75cf8211864b16ce3def9ec3e9b92ed",
       "rustReferenceSha256": "ff5ca332c6791c31a0eec3c91b6a03be306baf013f2c26d5426c1d6183eade7d"
     },
@@ -438,7 +438,7 @@
       "source": "workloads/crypto_sha512_stream_4096.tsr",
       "counterpart": "workloads/crypto_sha512_stream_4096.ts",
       "rustReference": "parity/crypto_sha512_stream_4096.rs",
-      "sourceSha256": "129561f8df7b786e91c2b41acc5abe3c01b78f158ca5ce1d5a3235a76ee82fd4",
+      "sourceSha256": "a4fb115c1021cda2a284551fa74a557a89f20c7b219353de33728c7a9c755891",
       "counterpartSha256": "8d5c369d9272384593ce666a2af068a903175145e070c9da0dd18efe95c9b968",
       "rustReferenceSha256": "ef4667aa8f2af5d03bce5a60a02c31a4593c1c0543d951a908df9eff0f571c51"
     },
@@ -469,7 +469,7 @@
       "source": "workloads/crypto_sha512_stream_262144.tsr",
       "counterpart": "workloads/crypto_sha512_stream_262144.ts",
       "rustReference": "parity/crypto_sha512_stream_262144.rs",
-      "sourceSha256": "1f85f506949919a73d2e29afa517b9f776a8dce6a07379bd13bd461b00f11f89",
+      "sourceSha256": "96d8632c644dee23cd3f3f7d8a66324eadb44792426019b4263ea5739d896359",
       "counterpartSha256": "9dbd183b6bd7603c816aa2825f39a8858ff8cf35892a91d9adf951e12e1546d7",
       "rustReferenceSha256": "30aa2aa1293a67b9dc4444770987ffb3837735826777ef9c23c4a349a30460d0"
     },
@@ -691,7 +691,7 @@
       "rustReference": "parity/crypto_hkdf_64.rs",
       "sourceSha256": "3a781d0d6d4edcc495751def374fa9810a226ada91635bc90c3c057fae6790d8",
       "counterpartSha256": "454d4a0c3509fcf1c84caff7b687c59e6eaa568a08a436e65b224fc904a7966a",
-      "rustReferenceSha256": "618b5edab9d694adb02cf4b16cc793c22c936335c07c3f809a4d6f96e1214475"
+      "rustReferenceSha256": "c9cd5a9579ebdb2159f381f267d8643de215fe19fcd00b01e68e060a5c946839"
     },
     {
       "id": "crypto_hkdf_4096",
@@ -722,7 +722,7 @@
       "rustReference": "parity/crypto_hkdf_4096.rs",
       "sourceSha256": "779b42c970384b782d275ad57da47d498aa05cbe90528f4b5b0a6bd8da080e62",
       "counterpartSha256": "7ab0ecdc2925796d874b3a91fd2f31e2546ef14a33c744e16534dcff16171633",
-      "rustReferenceSha256": "d6635e15ef617fbc1c05d923f4cb4b8443812c2ee566a0829e9ffe4889e081d4"
+      "rustReferenceSha256": "29512c7ec145c6722c74a0a27e6d57a5bcf14510767e7f4d890cf4db62e66ec8"
     },
     {
       "id": "crypto_hkdf_262144",
@@ -753,7 +753,7 @@
       "rustReference": "parity/crypto_hkdf_262144.rs",
       "sourceSha256": "069e8392e1cd5d7d040e9e8a179660a1e097aba380ec9e127ba11ecc0e11e0d2",
       "counterpartSha256": "c240e078be30539190ddcc5f62c984244e86b94e3b03359f830069484648527a",
-      "rustReferenceSha256": "265c167c368a266f637f37a40f8c9b61a7b0737178410f9fd20dc6b40281dad7"
+      "rustReferenceSha256": "ecf57620943daa7b21577aab4748ffe1edfd08ec1f07875057f48429e8f10670"
     },
     {
       "id": "crypto_random_int",
@@ -818,7 +818,7 @@
       "rustReference": "parity/crypto_password_roundtrip_16.rs",
       "sourceSha256": "619851a48c0bccb3fbaaafb9872f23e7873794ba2c59a1ee5917916b36d96f1c",
       "counterpartSha256": "aa79ccaf7f6ca8a7d86991e4e5ea32949a943a3f6ea715444eaf021b830cef96",
-      "rustReferenceSha256": "746bc6e9b84c69e35014f7a873e6a61f785ec33d5ad87ffd369206b3e3b29567"
+      "rustReferenceSha256": "f636a29c694f2cb0f47ff4cdcf26731d5eca608ece46882935607a5326f51210"
     },
     {
       "id": "crypto_password_roundtrip_128",
@@ -852,7 +852,7 @@
       "rustReference": "parity/crypto_password_roundtrip_128.rs",
       "sourceSha256": "d2a5a0ad940d6f318add59c0dcb3fa99ed1ba9c3091ce44bcc7fbfe539186908",
       "counterpartSha256": "7f3ec67653b36cf2811e4a6f98799cb26c1937f3093229a9e1595412b79b856c",
-      "rustReferenceSha256": "aa2f093a753a5731094def687dff71649a88b5e191c20fd7bbb167c2d4174520"
+      "rustReferenceSha256": "fb8b37d256c46834a503e33a8aafeb52ae095b41f6527f727ea9fcdd9a92a44a"
     },
     {
       "id": "crypto_password_bounded_roundtrip_16",
@@ -886,7 +886,7 @@
       "rustReference": "parity/crypto_password_bounded_roundtrip_16.rs",
       "sourceSha256": "808ba73a0785b2e7a56f3df2f39bef1caa60beaaae03646b4a106e51c12eda06",
       "counterpartSha256": "391464171ae97aca358e38d22b2098707ee33982cbb0e1eeb49d1e3ef6f23318",
-      "rustReferenceSha256": "d9133b31238b2a399da09e451e7eed156bd5bc8c1ec97c95a105b29d8017ea1c"
+      "rustReferenceSha256": "8e76c91a5e3d84667a98a1a29f491b88957791783aeadec62df4c67ed49f5796"
     },
     {
       "id": "crypto_password_bounded_roundtrip_128",
@@ -920,7 +920,7 @@
       "rustReference": "parity/crypto_password_bounded_roundtrip_128.rs",
       "sourceSha256": "f3cda49b12b7cb417241fda4b94591bb0c6e20ab3713af9f672416ad3cdfb4cd",
       "counterpartSha256": "5883230c431106bd4476a68e8efee4aa5f808e3e6f7b50973c70a09ea7546db8",
-      "rustReferenceSha256": "50a3ccf10aece032778a13dac57dbc850c264adc9701cfe574e01094de8b7348"
+      "rustReferenceSha256": "17f874c848048154f683c8d9290176c3b6b560174a6d3db76caa3773cc3da9db"
     },
     {
       "id": "testing_deep_data",

@@ -268,7 +268,7 @@ if(prepared){
  if(prepared.compiler.path!==compiler||prepared.compiler.sha256!==hash(fs.readFileSync(compiler)))throw Error('Prepared compiler changed');
  if(!prepared.previousScope?.path||hash(fs.readFileSync(prepared.previousScope.path))!==prepared.previousScope.sha256)throw Error('Prior failed scope evidence required');
  if(!Array.isArray(prepared.workloads)||new Set(prepared.workloads.map(row=>row.id)).size!==prepared.workloads.length)throw Error('Invalid prepared prefix');
- const ids=prepared.workloads.map(row=>row.id);if(ids.some((id,index)=>workloads[index]?.id!==id||!['native-url','structured-logging'].includes(workloads[index]?.family)))throw Error('Prepared reuse must name the exact supported workload prefix');
+ const ids=prepared.workloads.map(row=>row.id);if(ids.some((id,index)=>workloads[index]?.id!==id||!['native-url','structured-logging','crypto-primitives'].includes(workloads[index]?.family)))throw Error('Prepared reuse must name the exact supported workload prefix');
 }
 function reusePrepared(w){
  const row=prepared?.workloads.find(row=>row.id===w.id);if(!row)return false;
@@ -277,7 +277,7 @@ function reusePrepared(w){
  if(!row.files)throw Error('Prepared input and binary evidence required');
  for(const file of required)if(!row.files[file]||hash(fs.readFileSync(file))!==row.files[file])throw Error('Prepared artifact changed: '+file);
  const source=fs.readFileSync(sourcePath,'utf8'),ts=fs.readFileSync(tsPath,'utf8'),hand=fs.readFileSync(handPath,'utf8');
- if(w.family==='native-url'){assertUrlSource(source,w,'native');assertUrlSource(ts,w,'typescript');}else{assertLoggingSource(source,w,'native');assertLoggingSource(ts,w,'typescript');assertLoggingSource(hand,w,'rust-hand');}
+ if(w.family==='native-url'){assertUrlSource(source,w,'native');assertUrlSource(ts,w,'typescript');}else if(w.family==='crypto-primitives'){freezeCryptoRuntime();assertCryptoSource(source,w,'native');assertCryptoSource(ts,w,'typescript');assertCryptoReference(hand,w);}else{assertLoggingSource(source,w,'native');assertLoggingSource(ts,w,'typescript');assertLoggingSource(hand,w,'rust-hand');}
  const emitted=run([compiler],['emit',sourcePath]).stdout;const abi=assertABI(emitted,w,{source});
  const allocatorHeader=allocatorRlib?'#[global_allocator]\nstatic TSRUST_BENCH_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;\n':'';
  const expectedNative=emitted.replace('fn main()','fn source_main()')+'\n'+adaptRustDriver(driverRS,w,{emitted,source})+'\n'+allocatorHeader;

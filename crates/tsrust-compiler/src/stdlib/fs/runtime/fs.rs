@@ -408,6 +408,10 @@ mod tests {
     fn timestamp_normalization_and_unsupported_fields_are_explicit() {
         use std::time::{UNIX_EPOCH,Duration};
         let epoch=file_time(UNIX_EPOCH,"stat").unwrap();assert_eq!((epoch.unix_seconds,epoch.nanoseconds),(0,0));
+        // Windows SystemTime stores100ns ticks; subtracting1ns rounds to epoch.
+        // Test its actual precision without losing the finer Unix normalization.
+        assert_eq!(file_time(UNIX_EPOCH-Duration::from_nanos(100),"stat").unwrap(),FileTime {unix_seconds:-1,nanoseconds:999999900});
+        #[cfg(not(windows))]
         assert_eq!(file_time(UNIX_EPOCH-Duration::from_nanos(1),"stat").unwrap(),FileTime {unix_seconds:-1,nanoseconds:999999999});
         assert_eq!(file_time(UNIX_EPOCH-Duration::new(1,500000000),"stat").unwrap(),FileTime {unix_seconds:-2,nanoseconds:500000000});
         assert_eq!(optional_time(Err(std::io::ErrorKind::Unsupported.into()),"stat").unwrap(),None);

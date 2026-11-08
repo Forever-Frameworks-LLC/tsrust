@@ -12,6 +12,10 @@ on:
         description: Run bounded native I/O family acceptance on Linux, both Macs and Windows, without publishing.
         type: boolean
         default: false
+      platform_prior_run:
+        description: With platform_acceptance, repair reviewed run 42460717406 without repeating retained passes.
+        type: string
+        default: ""
       platform_windows_only:
         description: With platform_acceptance, validate a Windows repair without rerunning the other hosts.
         type: boolean
@@ -224,7 +228,10 @@ jobs:
         run: |
           if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm --prefix editors/vscode run test:integration; else npm --prefix editors/vscode run test:integration; fi
   platform:
-    name: Native I/O family (${{ matrix.target }})
+    name: ${{ inputs.platform_prior_run && 'Focused native repair' || 'Native I/O family' }} (${{ matrix.target }})
+    permissions:
+      contents: read
+      actions: read
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.platform_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.full_regressions && !inputs.supporting_host_timing }}
     strategy:
       fail-fast: false
@@ -242,6 +249,9 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Start end-to-end platform budget before checkout and setup
+        run: |
+          printf 'TSRUST_PLATFORM_STARTED_AT=%s\n' "$(python3 -c 'import time; print(time.time())')" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -250,8 +260,23 @@ jobs:
           cache-key: native-io-family
       - name: Prepare locked binding-test dependencies
         run: cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
+      - name: Retrieve reviewed prior host evidence
+        if: ${{ inputs.platform_prior_run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIOR_RUN: ${{ inputs.platform_prior_run }}
+        run: |
+          test "$PRIOR_RUN" = 42460717406
+          gh run download "$PRIOR_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-prior
       - name: Run bounded native family and packaged consumer acceptance
-        run: python3 tools/platform-acceptance.py --host '${{ matrix.target }}'
+        env:
+          PRIOR_RUN: ${{ inputs.platform_prior_run }}
+        run: |
+          if [ -n "$PRIOR_RUN" ]; then
+            python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior
+          else
+            python3 tools/platform-acceptance.py --host '${{ matrix.target }}'
+          fi
       - name: Retain per-scope platform results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -275,6 +300,7 @@ jobs:
         env:
           SUPPORTING_HOST_TIMING: ${{ inputs.supporting_host_timing }}
           SUPPORTING_HOST_RESULT: ${{ needs.supporting_host_timing.result }}
+          PLATFORM_PRIOR_RUN: ${{ inputs.platform_prior_run }}
           PLATFORM_ACCEPTANCE: ${{ inputs.platform_acceptance }}
           PLATFORM_RESULT: ${{ needs.platform.result }}
           FULL_REGRESSIONS: ${{ inputs.full_regressions }}
@@ -290,6 +316,7 @@ jobs:
           if [ "$SUPPORTING_HOST_TIMING" = true ]; then
             test "$PLATFORM_ACCEPTANCE" != true && test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_ACCEPTANCE" != true && test "$EDITOR_ACCEPTANCE" != true && test "$FULL_REGRESSIONS" != true && test "$SUPPORTING_HOST_RESULT" = success
           elif [ "$PLATFORM_ACCEPTANCE" = true ]; then
+            if [ -n "$PLATFORM_PRIOR_RUN" ]; then echo "Focused native repair only; retained evidence remains at its original checkpoint, not full current-source platform acceptance."; fi
             test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_ACCEPTANCE" != true && test "$EDITOR_ACCEPTANCE" != true && test "$FULL_REGRESSIONS" != true && test "$PLATFORM_RESULT" = success
           elif [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
             test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_RESULT" = success

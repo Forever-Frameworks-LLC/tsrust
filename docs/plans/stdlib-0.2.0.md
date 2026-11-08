@@ -68,7 +68,7 @@ Primary implementation evidence:
 
 - [x] Reconcile every checklist export against current compiler/catalog/tests.
   Mark already-supported items with actual evidence rather than reimplementing.
-- [ ] For each new type/function/method, record the exact signature, receiver
+- [x] For each new type/function/method, record the exact signature, receiver
   access, owned/borrowed result, error behavior, defaults, platform conditions,
   callback effects and cancellation/drop contract. Include aliases/stored calls.
 - [x] Match Rust std or the selected Rust backend's ordinary defaults. Audit
@@ -187,9 +187,13 @@ codecs and numeric operations, URL parse/format, and I/O adapters/read/write/clo
 it is not evidence for every other export's alias path. The remaining finite
 review is per-export alias/negative correspondence (including the path/environment/
 OS observer aliases), plus four-host conditions and close/drop behavior. Keep the
-global per-export contract reconciliation box open until those associations are
-reviewed. The named-export inventory row is complete from the B01–B19 source/
-catalog/test crosswalk; this is not a whole-language conformance claim.
+per-export review separate from native four-host execution. The changed namespace/
+receiver catalog audit now joins exact binding access/result/borrow metadata,
+reference routes and the documented operation-value classes. Seven WebSocket type
+summary gaps and the signals/threads/delay/yield direct-call-only limitation are
+corrected; completion and hover for native aliases agree in all four editor phases.
+This closes the source/contract inventory rows, not whole-language conformance or
+native four-host acceptance.
 
 B00 policy/infrastructure reconciliation: B10's retained compiler-library and
 focused client/server acceptance proves ordinary optional policies and all seven

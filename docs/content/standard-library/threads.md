@@ -18,3 +18,5 @@ retains private weak admission identity, so it cannot keep a dropped public pool
 owner alive. Pools retain explicit bounded capacity; worker count uses the actual
 Rayon backend limit, and capacity must fit the target rather than an artificial
 one-million ceiling.
+
+Renamed imports preserve thread-operation contracts. Call `spawn`, `spawnScoped`, `join`, `detach`, `cancel` and `cancellationRequested` directly through their imported names; storing those operations as function values is unsupported. An explicit function wrapper supplies a callable without changing transfer or cancellation rules.

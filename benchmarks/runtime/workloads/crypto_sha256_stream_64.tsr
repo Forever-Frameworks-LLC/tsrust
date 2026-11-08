@@ -15,7 +15,7 @@ export function workload(n: int, seed: int): int {
         end = size;
       }
 
-      hasher.update(unwrap(view(input, offset, end - offset)));
+      hasher.update(unwrap(view(input, offset, end)));
       offset = end;
     }
 

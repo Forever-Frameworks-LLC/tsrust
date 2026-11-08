@@ -34,7 +34,12 @@ mod delivered_signals {
             let errors=std::thread::spawn(move||{let mut bytes=Vec::new();stderr.read_to_end(&mut bytes).unwrap();bytes});
             Self{child,lines,output:Some(output),errors:Some(errors)}
         }
-        fn line(&self)->String {self.lines.recv_timeout(Duration::from_secs(5)).expect("generated listener did not acknowledge readiness/delivery").unwrap()}
+        fn line(&mut self,stage:&str)->String {
+            match self.lines.recv_timeout(Duration::from_secs(5)) {
+                Ok(Ok(line))=>line,
+                failure=>panic!("generated listener did not acknowledge {stage}: {failure:?}; child status: {:?}",self.child.try_wait()),
+            }
+        }
         fn deliver(&mut self,name:&str){
             assert!(self.child.try_wait().unwrap().is_none(),"signal recipient exited");
             #[cfg(unix)]{
@@ -59,7 +64,7 @@ mod delivered_signals {
             assert!(status.success(),"listener exited abnormally: {status}");self.output.take().unwrap().join().unwrap();let errors=self.errors.take().unwrap().join().unwrap();assert!(errors.is_empty(),"{}",String::from_utf8_lossy(&errors));assert!(self.lines.try_recv().is_err(),"unexpected extra listener output");
         }
     }
-    impl Drop for Running {fn drop(&mut self){if self.child.try_wait().ok().flatten().is_none(){let _=self.child.kill();}let _=self.child.wait();if let Some(thread)=self.output.take(){let _=thread.join();}if let Some(thread)=self.errors.take(){let _=thread.join();}}}
+    impl Drop for Running {fn drop(&mut self){if self.child.try_wait().ok().flatten().is_none(){let _=self.child.kill();}let _=self.child.wait();if let Some(thread)=self.output.take(){let _=thread.join();}if let Some(thread)=self.errors.take(){if let Ok(errors)=thread.join(){if !errors.is_empty(){eprintln!("signal listener {} stderr:\n{}",self.child.id(),String::from_utf8_lossy(&errors));}}}}}
 
     #[cfg(windows)]
     fn console_sender(target:u32,event:u32){
@@ -100,7 +105,7 @@ mod delivered_signals {
         let mut running=Running::spawn(&binary);
         #[cfg(unix)]let expected=["SIGINT","SIGTERM"];
         #[cfg(windows)]let expected=["SIGINT","SIGBREAK"];
-        for name in expected{assert_eq!(running.line(),"ready");running.deliver(name);assert_eq!(running.line(),name);}
+        for name in expected{assert_eq!(running.line(&format!("readiness before {name}")),"ready");running.deliver(name);assert_eq!(running.line(&format!("delivery of {name}")),name);}
         running.finish();
     }
 }

@@ -6,7 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-Current accepted compiler/runtime checkpoint04f3df1f; generated consumer footprint at5c3414e7; platform/CI scope checkpoint469e8bb3.
+Current locally validated candidate follows f2f0838b; this checkpoint contains the accepted repairs below.
+Latest hosted source469e8bb3 failed native acceptance; focused repair remains pending.
 Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 
 - ACTUAL current compiler library1543PASS/0FAIL/8unchanged opt-ins ignored,
@@ -69,6 +70,112 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
   Existingstable sources, sharedtarget/cache, no directcontrols/11sample replay,
   no sampled-benchmark/SQLite claim. Temporarybinaries/emittedscratch removed.
   /tmp/tsrust-generated-minimal-footprint.json. B00feature-selection row closed.
+- Public37 original30min scope CLOSED INCOMPLETE before timing after genuine
+  preparation failures, no child/resource runaway and no accepted timing rows.
+  Corrected9stream endindices,3Rust HKDFreference slice calls and4Argon2reference
+  PHCstr calls; all29crypto+4iterator workloads then passed5independentcases on
+  native/Rust/Node. FirstpureRustadapter failed unconditional injected Rayon;
+  rootcompiler dependency-selection repair is required before timing can proceed.
+  Preserved validated prepared artifacts with exact compiler/source/ABI/binary
+  hashes, not a claimed measurement pass. No samples/SQLite rows were ingested.
+  Attempts: /tmp/tsrust-public-iterator-crypto-adapter-{measurements,resume,final,
+  password-repair}.json. Originaldeadline was never reset.
+- Final focused host classifierPASS0.569s; crypto source/negative guards5PASS,
+  platform budget/ownership/repair-evidence guards22PASS0.110s. Whole-project
+  format0changes/tokenfingerprints0 anddiff-checkPASS beforecheckpoint.
+- Explicit1MiB Rustthread frontendprobe ACTUALPASS: load/check/emit/drop current
+  process example,226778emittedbytes; compile1.072s/execute0.550s. This islocal
+  frontend evidence, notproof Windowsnative/runtime stackfailurefixed.
+  /tmp/tsrust-process-frontend-stack-probe.json. Windowscommands/stagesnowlogged.
+- Cleanup recoveredadditional2627801088bytes from64 source/CRC-provenobsolete
+  host/cacheoutputs; currentacceptedartifacts SHAverifiedunchanged. Removed1156
+  closedlooseRustobjects702278040logical/722604032observedfreebytes. Combinedwith
+  earlier5608370176bytes consolecleanup, sessionobserved recovery8958775296bytes.
+  Currentarchives/binaries/metadata/shareddeps preserved. Rootcache remainsat
+  target/; do notpurge dependencygraphs ordelete swapfiles.
+  /tmp/tsrust-platform-repair-{obsolete-artifact,loose-object}-cleanup.json.
+- Remotevalidation decision fornextsourcecheckpoint: local1544compiler/27LSP/
+ 52CLI/4editorphases/IO18bothprofiles/rawstdio/pure+genuineRust/logging+realtime
+  relocatedbothprofilesPASS. NativeWindowsstack/signal phases andcoldhosttimeouts
+  remainunresolved. SmallestreviewedCI inputplatform_prior_run=42460717406 retains
+  oldpasseswithOLDsourceidentity, listsfreshbinaries, rerunsallfailed/missing/new/
+  unreachedandforcedaffectedcases, thenpackagesmoke. It isFOCUSEDrepair, nevera
+  fullcurrent-sourcepass. Last4hostrun42460717406terminalFAIL; no liveCIrun.
+  CheckfreshPRs/Dependabotimmediatelybeforepush; publicationstillunapproved.
+- ACTUALcurrent compiler1544PASS/0FAIL/8unchangedopt-ins ignored96.012s;
+  LSP27PASS1.099s; CLI52PASS3.196s. PurestdownedadapterO0/O3 PASS2.690s
+  WITHOUTRayon; genuineRayon/TaskContextbridgePASS2.137s. Newdependencyselection
+  factworkswithoutremovingactualRayonavailability. /tmp/tsrust-platform-coherent-repair.json.
+- ACTUALcorrectedIO18 EACHprofile+stable rawstdio witnessPASS116.644s.
+  30min aggregate thenexhaustedduringloggingexport; no scopepass claimed and
+  remainingfield retainsPRE-killchildren. Liveinspectionconfirmedallownednative
+  processesdead. Passedcompiler/editor/CLI/IO/adapterswerenotrestarted.
+- Remainingexports continuedasdistincttrees underABSOLUTEonehourfromtheoriginal
+  repairbuildstart, notanewhour. ACTUALloggingrelocatedBOTHprofilesPASS216.862s;
+  realtimeBOTHprofilesPASS248.588s. Consolehelperrootnamespacefixnowhasactualraw
+  portable/nativeproof. /tmp/tsrust-platform-export-continuation.json. Original
+ 30minscope remainsincomplete; theseactualexportchecksareseparatecompletedproofs.
+- B00new/changed namespace+receivercontractaudit complete, includingbinding
+  signatures/access/results, catalog/reference docs, aliasclasses andcancel/drop.
+  Twoactualdocgapsfixed; no missingnewAPIidentityfound. Nativefourhostandhistorical
+  pre-facadeprofile chronology remainseparateunchecked requirements.
+- Coherent currentrepair build ACTUALPASS416.124s/3386036472B, oneCargo,
+  terminal build-finished success; normalCLI+LSP+selectedharnessescurrent. Original
+ 1770s repairdeadline retained. Watchdogsetup firstfailed on UnixThursday being
+  mistakenforISO(T); correctedformat detection,21Python testsPASS. Laterfocused
+  repair-selection tests bringcurrentPython count22PASS0.092s.
+- Current3compiler selection/worker guardsPASS2.143s. LSP4phaseIO firstrepair
+  fixedcompletiondetail but nothover's checked-call syntheticheader; focused
+  LSP-only rebuild11.583s/529908528B, correctedexistinghoverpath now4testsPASS
+ 12.619s. Originalfailedphasewitnessretained, no assertionweakening.
+- IOsharedsuiteguardfirstrejected blanklines; exacttoken mapping nowignores
+  formattingtrivia while preserving tokens/stringcontents. Thenactual19case run
+  failedNDJSON because stored-call witness writesrawstdout, a genuineprocess/
+  stdioboundary. Revertedthat registration tooriginal18; keepchecked-in stable
+  sourceandexecuteoriginalrawstdoutoracle separately, no tempsource/no library
+  interception. This corrects earliermisclassification, not anI/O runtimefix.
+- Additional hostedterminal evidence: ARM544passing/Intel401passing/Windows174
+  retained. Macs' I/O failures are180/300s setup/run timeouts without captured
+  diagnostics, not proven EOF/loan failures; Intel55min budget exhausted in HTTP,
+  so missing later cases are incomplete rather than independent defects. Global
+  CI60min cap remains; setup-inclusive55min accounting patch nowpasses20Python
+  tests with creation-ordered ownership changes included.
+- ConfirmedWindows watchdog bug: old vctip1508 born07:56 predates08:42root7032,
+  yet reused intermediatePPID1476 made it appear owned. Creation-ordered ancestry
+  and exact identity kills now exclude old processes; Windows taskkill/T removed
+  because it follows PID-only trees independently.20Python testsPASS0.092s.
+  Five raw process cases didpass; seven have genuine stack overflows whose CLI/
+  emitted-program phase is unlocated. No stack-limit increase or semantic pass
+  inferred. Source fixturetime nowuses100ns exactWindows precision, retains1ns
+  onotherhosts; rooted-path probe usesWindowsdrivequalified paths so onlyintended
+  relative call sees injectedcwd failure. Nativeplatformrepairs remainunvalidated.
+- Hosted469 Linux finished35min;551 exactpassing cases retained,4 realfailed
+  scopes. Consolehook namespace breaks raw logging/realtime exports; editor native
+  alias facts overwrite recovered hover shape; pure nominalRustadapter failsRayon
+  linkage. Windows finished with174passing cases and additionalnative issues;
+  full case/attempt evidence downloaded to /tmp/tsrust-platform-42460717406-{linux,
+  windows}/. Macs stillrunning; no duplicate dispatch. No fullplatform pass claimed.
+- Pending coherent source repairs: sharedconsole helper root aliases preserveONE
+  collector for raw+extracted programs; keepnative alias signatures in checked
+  generic-fact application. Docscontract audit additionally found7genericWebSocket
+  type summaries and missing direct-only operation-value limits for signals/
+  threads/delay/yield. Narrowdocs fixes prepared/applied; no newAPIbehavior.
+- Public37 measurement first attempt FAILED before timing258.136s/488713952B
+  at crypto_sha256_stream_262144. Actual native checked error exposed all9
+  streaming benchmark sources passing length instead of bytes.view end index.
+  Rust/Node peers/oracles were correct. Fixed9 Tsrust sources and exact hashes;
+  rehashed bad-length negative now rejects it. Crypto guard3PASS0.701s;
+  whole-project format0changes. No timing rows were produced/ingested.
+- SAME original1770s scope RESUMED with1336.0s remaining, exact6 unchanged
+  one-shotSHA native/Rust/Node prepared artifacts hash-validated/reused by existing
+  prepared-prefix path. No budget reset, sample reduction or new runner.
+  /tmp/tsrust-public-iterator-crypto-adapter-resume.json records deadline;
+  original failure /tmp/tsrust-public-iterator-crypto-adapter-measurements.json.
+  Source/helper/ABI/executable validation remains strict before reuse.
+- Allocation profiler crypto hooks were missing despite existing async driver
+  support. Added existing crypto source/reference validation, frozen runtime
+  rechecks and diagnostic evidence. Strict zero-retention assertion UNCHANGED;
+  no allocation pass or password-retention exception inferred before execution.
 - ACTUAL stored realtime factory acceptance PASS162.370s: shared55 EACHprofile,
   strict original identities/outputs, cache hit witness native0. Existing host and
   oracle source hashes match their accepted builds; current stable suites are

@@ -429,7 +429,10 @@ impl SourceIndex {
             };
             if !remap(&mut span) || !remap(&mut declaration) { continue; }
             let Some(source) = self.symbols.iter().find(|symbol| symbol.span == declaration && symbol.kind == 12).cloned() else { continue; };
-            for symbol in self.symbols.iter_mut().filter(|symbol| symbol.span == span) {
+            for (id,symbol) in self.symbols.iter_mut().enumerate().filter(|(_,symbol)| symbol.span == span) {
+                // Native alias recovery already supplies the public signature and docs.
+                // Keep that same shape while a sibling is syntactically incomplete.
+                if self.native_origins.contains_key(&id) {continue;}
                 symbol.signature = source.signature.replacen(&format!("function {}", source.name), &format!("function {}", symbol.name), 1);
                 symbol.kind = 12;
                 symbol.parameters = source.parameters.clone();
@@ -3371,7 +3374,7 @@ impl SourceIndex {
         let s = &self.symbols[symbol];
         match method {
             "textDocument/hover" => Ok(
-                json!({"contents":{"kind":"markdown","value":format!("{}{}",self.checked_generic_signature(token).map_or_else(||self.documentation(s),|(signature,_)|format!("```tsrust\n{signature}\n```{}",if s.docs.is_empty(){String::new()}else{format!("\n\n{}",crate::documentation::render(&s.docs))})),self.checked_view(token).filter(|ty|*ty!=s.ty).map_or(String::new(),|ty|format!("\n\nNarrowed here to `{ty}`.")))},"range":self.range(self.tokens[token].span)}),
+                json!({"contents":{"kind":"markdown","value":format!("{}{}",self.checked_generic_signature(token).filter(|_| !self.native_origins.contains_key(&symbol) || s.signature.starts_with("function ") || self.text(token+1)=="<").map_or_else(||self.documentation(s),|(signature,_)|format!("```tsrust\n{signature}\n```{}",if s.docs.is_empty(){String::new()}else{format!("\n\n{}",crate::documentation::render(&s.docs))})),self.checked_view(token).filter(|ty|*ty!=s.ty).map_or(String::new(),|ty|format!("\n\nNarrowed here to `{ty}`.")))},"range":self.range(self.tokens[token].span)}),
             ),
             "textDocument/definition" => Ok(self
                 .foreign_definitions

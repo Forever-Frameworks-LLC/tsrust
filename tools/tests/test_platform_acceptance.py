@@ -18,6 +18,37 @@ SPEC.loader.exec_module(RUNNER)
 
 
 class PlatformAcceptance(unittest.TestCase):
+    def test_repair_selection_retains_only_real_old_passes_and_runs_new_or_unreached_cases(self):
+        key = "tsrust-compiler::structured_logging"
+        forced = RUNNER.REPAIR_REPEAT[key]
+        names = [*forced, "old-pass", "failed", "new", "unsettled"]
+        prior = {"targets": {key: {"identity": {"checkpoint": RUNNER.REPAIR_CHECKPOINT}, "tests": {
+            name: {"success": True, "status": "ok", "scopeStop": None} for name in [*forced, "old-pass"]}}}}
+        prior["targets"][key]["tests"]["unsettled"] = {"success": False, "status": "ok", "scopeStop": "unsettled child processes"}
+        self.assertEqual(RUNNER.retained_cases(prior, key, names), {"old-pass"})
+        self.assertEqual(RUNNER.retained_cases(prior, "tsrust-compiler::http", names), set())
+        with self.assertRaises(AssertionError):
+            RUNNER.retained_cases(prior, key, ["old-pass"])
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "results.json"
+            host = "x86_64-unknown-linux-gnu"
+            path.write_text(json.dumps({"host": host, "checkpoint": RUNNER.REPAIR_CHECKPOINT, **prior}))
+            with patch.object(RUNNER, "sha", return_value=RUNNER.REPAIR_RESULTS[host]):
+                self.assertEqual(RUNNER.repair_plan(path, host)["targets"], prior["targets"])
+            with self.assertRaises(AssertionError):
+                RUNNER.repair_plan(path, host)
+
+    def test_scope_budget_includes_setup_and_rejects_invalid_ci_start(self):
+        self.assertEqual(RUNNER.scope_deadline(None, 10000.0, 200.0), 3500.0)
+        self.assertEqual(RUNNER.scope_deadline("9400", 10000.0, 200.0), 2900.0)
+        self.assertEqual(RUNNER.scope_deadline("9999.5", 10000.0, 200.0), 3499.5)
+        for started in ["", "garbage", "nan", "inf", "-inf", "0", "-1", "10000.1"]:
+            with self.subTest(started=started), self.assertRaises(ValueError):
+                RUNNER.scope_deadline(started, 10000.0, 200.0)
+        for started in ["6700", "6699"]:
+            with self.subTest(started=started), self.assertRaises(TimeoutError):
+                RUNNER.scope_deadline(started, 10000.0, 200.0)
+
     def test_target_statuses_keep_real_passes_and_reject_missing_duplicate_failed(self):
         complete = "running 2 tests\ntest a ... ok\ntest b ... ok\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;\n"
         self.assertEqual(RUNNER.target_statuses(complete, ["a", "b"], True), ({"a": "ok", "b": "ok"}, []))
@@ -205,13 +236,50 @@ class PlatformAcceptance(unittest.TestCase):
 
     def test_process_tree_includes_nested_and_regrouped_children_only(self):
         rows = [
-            {"pid": 10, "ppid": 1, "pgid": 10},
-            {"pid": 11, "ppid": 10, "pgid": 10},
-            {"pid": 12, "ppid": 11, "pgid": 12},
-            {"pid": 13, "ppid": 1, "pgid": 10},
-            {"pid": 99, "ppid": 1, "pgid": 99},
+            {"pid": 10, "ppid": 1, "pgid": 10, "born": "2026-11-08T08:42:02.0000000Z"},
+            {"pid": 11, "ppid": 10, "pgid": 10, "born": "2026-11-08T08:42:02.0000000Z"},
+            {"pid": 12, "ppid": 11, "pgid": 12, "born": "2026-11-08T08:42:02.0000000Z"},
+            {"pid": 13, "ppid": 1, "pgid": 10, "born": "2026-11-08T08:42:02.0000000Z"},
+            {"pid": 99, "ppid": 1, "pgid": 99, "born": "2026-11-08T08:42:02.0000000Z"},
         ]
         self.assertEqual({r["pid"] for r in RUNNER.owned_rows(rows, 10)}, {10, 11, 12, 13})
+
+    def test_unix_thursday_birth_is_not_an_iso_timestamp(self):
+        earlier = RUNNER.process_birth({"born": "Thu Oct 15 18:38:22 2026"})
+        later = RUNNER.process_birth({"born": "Thu Oct 15 18:38:23 2026"})
+        self.assertEqual(later - earlier, 1_000_000_000)
+
+    def test_reused_parent_pid_does_not_own_an_older_child_or_its_descendants(self):
+        rows = [
+            {"pid": 7032, "ppid": 1, "born": "2026-11-08T08:42:02.7328200Z", "bytes": 10},
+            {"pid": 1476, "ppid": 7032, "born": "2026-11-08T08:42:03.0000000Z", "bytes": 20},
+            {"pid": 1508, "ppid": 1476, "born": "2026-11-08T07:56:41.5884780Z", "bytes": 40000000},
+            {"pid": 1509, "ppid": 1508, "born": "2026-11-08T08:42:04.0000000Z", "bytes": 30},
+            {"pid": 1510, "ppid": 1476, "born": "2026-11-08T08:42:04.0000000Z", "bytes": 40},
+        ]
+        self.assertEqual(RUNNER.process_birth({"born":"2026-11-08T08:42:02.7328201Z"})-RUNNER.process_birth(rows[0]),100)
+        selected = RUNNER.owned_rows(rows, 7032)
+        self.assertEqual({row["pid"] for row in selected}, {7032, 1476, 1510})
+        self.assertEqual(sum(row["bytes"] for row in selected), 70)
+        floor = RUNNER.process_birth(rows[0])
+        self.assertEqual({row["pid"] for row in RUNNER.owned_rows(rows[1:], 7032, floor)}, {1476, 1510})
+
+    def test_windows_cleanup_uses_only_verified_ids_not_pid_only_tree_kill(self):
+        class Owned:
+            pid = 7032
+            alive = True
+            def poll(self):
+                return None if self.alive else 0
+            def kill(self):
+                self.alive = False
+            def wait(self, timeout):
+                return 0
+        root = {"pid": 7032, "born": "2026-11-08T08:42:02.7328200Z"}
+        child = {"pid": 1476, "born": "2026-11-08T08:42:03.0000000Z"}
+        older = {"pid": 1508, "born": "2026-11-08T07:56:41.5884780Z"}
+        with patch.object(RUNNER.os, "name", "nt"), patch.object(RUNNER, "process_rows", return_value=[root,child,older]), patch.object(RUNNER.subprocess, "run") as run:
+            RUNNER.kill_owned(Owned(), {7032: root,1476: child})
+        self.assertEqual([call.args[0] for call in run.call_args_list], [["taskkill","/PID","1476","/F"]])
 
     def test_dead_windows_root_is_never_killed_by_a_reused_pid(self):
         class Finished:
@@ -224,7 +292,7 @@ class PlatformAcceptance(unittest.TestCase):
         with patch.object(RUNNER.os, "name", "nt"), patch.object(RUNNER, "process_rows", return_value=current), patch.object(RUNNER.subprocess, "run") as run:
             RUNNER.kill_owned(Finished(), {10: {"born": "old"}, 11: {"born": "child"}})
         self.assertEqual(run.call_count, 1)
-        self.assertEqual(run.call_args.args[0], ["taskkill", "/PID", "11", "/T", "/F"])
+        self.assertEqual(run.call_args.args[0], ["taskkill", "/PID", "11", "/F"])
 
     def test_timeout_kills_and_joins_the_owned_child(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(RUNNER, "process_rows", return_value=[]):
@@ -240,7 +308,7 @@ class PlatformAcceptance(unittest.TestCase):
             def poll(self):
                 return 0
         child = {"pid": 11, "ppid": 10, "born": "2026-11-06T17:00:00.1234567Z", "name": "worker.exe", "bytes": 4096}
-        with tempfile.TemporaryDirectory() as directory, patch.object(RUNNER.subprocess, "Popen", return_value=Finished()), patch.object(RUNNER, "process_rows", return_value=[child]), patch.object(RUNNER, "kill_owned") as cleanup:
+        with tempfile.TemporaryDirectory() as directory, patch.object(RUNNER.time, "time", return_value=1793984400), patch.object(RUNNER.time, "time_ns", return_value=1793984400_000000000), patch.object(RUNNER.subprocess, "Popen", return_value=Finished()), patch.object(RUNNER, "process_rows", return_value=[child]), patch.object(RUNNER, "kill_owned") as cleanup:
             row = RUNNER.bounded(["finished"], directory, os.environ.copy(), Path(directory) / "remaining")
         self.assertEqual(row["code"], 0)
         self.assertEqual(row["stop"], "unsettled child processes")

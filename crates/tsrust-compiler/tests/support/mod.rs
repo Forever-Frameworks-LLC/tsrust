@@ -11,6 +11,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tsrust_compiler::{Diagnostic, Mode, check};
 
+static HEAVY_BUILD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
 
 pub struct TempDirectory(pub PathBuf);
@@ -79,8 +81,34 @@ pub fn rustc() -> Command {
     command
 }
 
+/// Serialize build-capable subprocesses within this integration-test binary.
+/// Platform targets themselves execute serially; cheap frontend checks and
+/// already-built native programs can still use the harness's three threads.
+pub fn is_heavy_build(command: &Command) -> bool {
+    let program = command.get_program().to_string_lossy().replace('\\', "/");
+    let name = program.rsplit('/').next().unwrap().to_ascii_lowercase();
+    match name.strip_suffix(".exe").unwrap_or(&name) {
+        "cargo" | "rustc" | "rustup" => true,
+        "tsrust" => command.get_args().next().is_some_and(|arg| matches!(arg.to_str(), Some("build" | "run" | "test"))),
+        _ => false,
+    }
+}
+
 /// Preserve the old harness's timeouts without adding runtime dependencies.
 pub fn run(command: &mut Command, seconds: u64) -> Output {
+    let start = Instant::now();
+    let _build_guard = if is_heavy_build(command) {
+        Some(loop {
+            match HEAVY_BUILD.try_lock() {
+                Ok(guard) => break guard,
+                Err(std::sync::TryLockError::Poisoned(error)) => break error.into_inner(),
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    assert!(start.elapsed() < Duration::from_secs(seconds), "Test process exceeded {seconds}s waiting for serialized build: {command:?}");
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+            }
+        })
+    } else { None };
     let mut child = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -98,7 +126,6 @@ pub fn run(command: &mut Command, seconds: u64) -> Output {
         stderr.read_to_end(&mut bytes).unwrap();
         bytes
     });
-    let start = Instant::now();
     let mut timed_out = false;
     let status = loop {
         if let Some(status) = child.try_wait().expect("poll test process") {
@@ -116,7 +143,12 @@ pub fn run(command: &mut Command, seconds: u64) -> Output {
         stdout: out.join().unwrap(),
         stderr: err.join().unwrap(),
     };
-    assert!(!timed_out, "Test process exceeded {seconds}s: {command:?}");
+    assert!(!timed_out, "Test process exceeded {seconds}s: {command:?}\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+    if !output.status.success() {
+        // Keep child bytes intact; attach phase/program evidence to host diagnostics.
+        eprintln!("Test subprocess failed ({}): {command:?}",output.status);
+    }
     output
 }
 

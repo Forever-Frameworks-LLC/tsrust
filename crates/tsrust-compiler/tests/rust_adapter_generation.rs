@@ -49,21 +49,10 @@ pub fn echo(value:Option<Vec<Row>>)->Option<Vec<Row>>{if let Some(rows)=&value{f
  let source=r#"import {Row,RustAdapterOption,echo,seed} from './owned.rs';import {strictEqual} from 'std:testing';function main(){const input:RustAdapterOption<Row[]>={kind:'some',value:[seed()]};const output=echo(input);if(output.kind==='some'){strictEqual(output.value[0].words[0],'retained');}else{throw 'lost rows';}console.log('nominal moves');}"#;
  let entry=dir.source(&support::format_round_trip(source));let checked=tsrust_compiler::project::check_graph(tsrust_compiler::project::load_project(&tsrust_compiler::project::FileSourceProvider,entry.to_str().unwrap()).unwrap()).unwrap();let rust=checked.emit_rust();
  let emitted=support::run(support::cli().arg("emit").arg(&entry),30);support::success(&emitted);assert_eq!(String::from_utf8(emitted.stdout).unwrap(),rust);let path=dir.0.join("application.rs");fs::write(&path,&rust).unwrap();
- // The compiler already depends on this pinned Rayon. Reuse the same test
- // dependency directory, as support::rustc does for the other runtime crates.
- let executable=std::env::current_exe().unwrap();let deps=executable.parent().unwrap().to_path_buf();
- // The pinned Cargo test fingerprint identifies the actual direct dependency.
- let stem=executable.file_stem().unwrap().to_str().unwrap();let (_,unit)=stem.rsplit_once('-').unwrap();let fingerprints=deps.parent().unwrap().join(".fingerprint");
- let fingerprint:serde_json::Value=serde_json::from_str(&fs::read_to_string(fingerprints.join(format!("tsrust-compiler-{unit}/test-integration-test-rust_adapter_generation.json"))).unwrap()).unwrap();
- let wanted=fingerprint["deps"].as_array().unwrap().iter().find(|dependency|dependency[1]=="rayon").unwrap()[3].as_u64().unwrap();
- let candidates=fs::read_dir(&fingerprints).unwrap().map(|entry|entry.unwrap().path()).filter(|path|path.file_name().unwrap().to_string_lossy().starts_with("rayon-")).filter_map(|path|{
-  let saved=fs::read_to_string(path.join("lib-rayon")).ok()?;let actual=u64::from_str_radix(saved.trim(),16).ok()?.swap_bytes();
-  if actual!=wanted{return None;}let name=path.file_name().unwrap().to_str().unwrap();let library=deps.join(format!("lib{name}.rlib"));library.is_file().then_some(library)
- }).collect::<Vec<_>>();
- let [rayon]=candidates.as_slice()else{panic!("Expected one exact Rayon dependency from the selected Cargo build: {candidates:?}")};
+ assert!(!rust.contains("use rayon as tsr_rayon;"));assert!(!rust.contains("use super::tsr_rayon as rayon;"));
  for optimization in ["0","3"]{
   let library=dir.0.join(format!("libbackend{optimization}.rlib"));support::success(&support::run(support::rustc().args(["--edition=2024","--crate-type=rlib","--crate-name=backend","-C"]).arg(format!("opt-level={optimization}")).args(["-C","overflow-checks=on"]).arg(dir.0.join("backend.rs")).arg("-o").arg(&library),60));
-  let binary=dir.0.join(format!("nominal{optimization}{}",std::env::consts::EXE_SUFFIX));let compiled=support::run(support::rustc().args(["--edition=2024","-C"]).arg(format!("opt-level={optimization}")).args(["-C","overflow-checks=on","--extern"]).arg(format!("backend={}",library.display())).arg("--extern").arg(format!("rayon={}",rayon.display())).arg("-L").arg(format!("dependency={}",deps.display())).arg(&path).arg("-o").arg(&binary),60);support::success(&compiled);let output=support::run(&mut std::process::Command::new(binary),20);support::success(&output);assert_eq!(output.stdout,b"nominal moves\n");
+  let binary=dir.0.join(format!("nominal{optimization}{}",std::env::consts::EXE_SUFFIX));let compiled=support::run(support::rustc().args(["--edition=2024","-C"]).arg(format!("opt-level={optimization}")).args(["-C","overflow-checks=on","--extern"]).arg(format!("backend={}",library.display())).arg(&path).arg("-o").arg(&binary),60);support::success(&compiled);let output=support::run(&mut std::process::Command::new(binary),20);support::success(&output);assert_eq!(output.stdout,b"nominal moves\n");
  }
 
 }

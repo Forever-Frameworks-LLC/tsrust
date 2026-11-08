@@ -66,7 +66,13 @@ fn synchronous_idle_stdin_blocks_only_its_process_and_exits_at_eof(){
 fn stored_io_calls_preserve_laziness_optional_arguments_views_and_two_loans(){
  let prefix="import {reader as adapt,readInto as fill,readAll,close,stdout,writeAll,IoError} from 'std:io';import {fromUtf8,alloc,viewMut,view,set,toUtf8} from 'std:bytes';function relay(work:Task<Result<int,IoError>>):Task<Result<int,IoError>>{return work;}";
  let source=format!("{prefix}async function main():Task<void>{{const make=adapt;const read=fill;const finish=close;const input=make(unwrap(fromUtf8('abc')));const bytes=unwrap(alloc(3));{{const destination=unwrap(viewMut(bytes,0,2));const task=read(input,destination);console.log(unwrap(await task));}}const rest=readAll;console.log(unwrap(toUtf8(unwrap(await rest(input)))));await finish(input);const output=stdout();const write=writeAll;{{const range=unwrap(view(bytes,0,2));unwrap(await write(output,range));}}unwrap(await finish(output));}}");
- assert!(check(&source).is_ok());let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));let result=support::run(support::cli().arg("run").arg(path),180);support::success(&result);assert_eq!(result.stdout,b"2\nc\nab");
+ assert!(check(&source).is_ok());io_suite_reports::assert_stored_stdio_source(&source);
+ // This case deliberately writes through std:io stdout, outside reporter capture.
+ // Keep its real process boundary and checked-in source/cache identity.
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap();
+ let path=root.join("crates/tsrust-compiler/tests/fixtures/async-io/stored-operations.tsr");
+ let result=support::run(support::cli().arg("run").arg(path).current_dir(root),180);
+ support::success(&result);assert_eq!(result.stdout,b"2\nc\nab");
  for invocation in ["read(input,bytes)","(true?read:read)(input,bytes)","pass(read(input,bytes))"]{
   let setup=format!("{prefix}async function main():Task<void>{{const read=fill;const pass=relay;const input=adapt(unwrap(fromUtf8('abc')));const bytes=unwrap(alloc(3));const task={invocation};");
   assert!(check(&format!("{setup}await task;unwrap(set(bytes,0,1));}}")).is_ok(),"loan did not settle: {invocation}");
@@ -126,4 +132,21 @@ fn registered_async_io_runtime_family_executes_at_both_required_profiles(){
   std::fs::remove_file(workspace.join("buffered-io.txt")).unwrap();
   for name in ["io-source.txt","io-destination.txt","pipeline.z"]{assert!(!workspace.join(name).exists(),"fixture leaked {name}");}
  }
+}
+
+#[test]
+fn heavy_build_classifier_keeps_frontend_checks_and_native_runs_concurrent(){
+ for (program,args,expected) in [
+  ("/tool/tsrust",vec!["build","input.tsr"],true),
+  ("/tool/tsrust",vec!["run","input.tsr"],true),
+  ("C:\\tool\\TSRUST.EXE",vec!["test","runtime.test.tsr"],true),
+  ("cargo",vec!["build","--offline"],true),
+  ("rustup",vec!["run","1.96.1","cargo","build"],true),
+  ("rustc",vec!["input.rs"],true),
+  ("/tool/tsrust",vec!["check","input.tsr"],false),
+  ("/tool/tsrust",vec!["emit","input.tsr"],false),
+  ("/tool/tsrust",vec!["format","input.tsr"],false),
+  ("/data/idle-stdin",vec![],false),
+  ("/data/program.exe",vec![],false),
+ ]{let mut command=std::process::Command::new(program);command.args(args);assert_eq!(support::is_heavy_build(&command),expected,"{command:?}");}
 }

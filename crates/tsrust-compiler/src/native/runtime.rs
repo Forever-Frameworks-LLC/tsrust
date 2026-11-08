@@ -50,11 +50,11 @@ pub fn json_module_with_writer(writer:bool)->String {
 
 pub(crate) fn futures_module(testing:bool)->String {
     let source=crate::stdlib::futures::RUNTIME;
-    if testing {source.replace("fn capture_testing_context<F:Future>(future:F)->impl Future<Output=F::Output>{future}","fn capture_testing_context<F:Future>(future:F)->impl Future<Output=F::Output>{super::console::tsr_console_test_future(future)}")}else{source.to_owned()}
+    if testing {source.replace("fn capture_testing_context<F:Future>(future:F)->impl Future<Output=F::Output>{future}","fn capture_testing_context<F:Future>(future:F)->impl Future<Output=F::Output>{super::tsr_console_test_future(future)}")}else{source.to_owned()}
 }
 pub(crate) fn threads_module(asynchronous:bool,testing:bool)->String {
     let source=if asynchronous{crate::stdlib::threads::ASYNC_RUNTIME}else{crate::stdlib::threads::RUNTIME};
-    if testing {source.replace("fn capture_testing_context<F:FnOnce()->R,R>(work:F)->impl FnOnce()->R{work}","fn capture_testing_context<F:FnOnce()->R,R>(work:F)->impl FnOnce()->R{super::console::tsr_console_test_work(work)}")}else{source.to_owned()}
+    if testing {source.replace("fn capture_testing_context<F:FnOnce()->R,R>(work:F)->impl FnOnce()->R{work}","fn capture_testing_context<F:FnOnce()->R,R>(work:F)->impl FnOnce()->R{super::tsr_console_test_work(work)}")}else{source.to_owned()}
 }
 pub(crate) fn console_module(asynchronous_testing:bool)->String {
     let mut source=include_str!("../runtime/console.rs").to_owned();
@@ -72,7 +72,7 @@ pub fn requires_dependencies(source:&str)->bool {
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
     let tasks=[true,false].into_iter().any(|testing|source.contains(&futures_module(testing)) || [true,false].into_iter().any(|asynchronous|source.contains(&threads_module(asynchronous,testing))));
     source.contains(crate::stdlib::process::RUNTIME) || source.contains(crate::stdlib::compression::RUNTIME) || source.contains(crate::stdlib::net::TRANSPORT_RUNTIME) || source.contains(crate::stdlib::net::DNS_RUNTIME) || source.contains(&crate::stdlib::io::runtime()) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
-        || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::crypto::PASSWORD_RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || tasks || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("mod tsr_rust")
+        || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::crypto::PASSWORD_RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || tasks || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("use rayon as tsr_rayon;") || source.contains(crate::project::rust::dependencies::MARKER)
 }
 
 /// Keep application record/union types, borrow adapters and generic ownership code
@@ -158,6 +158,10 @@ pub fn separate(source:&str)->Units {
             runtime.push_str("pub mod console {\n");
             runtime.push_str(include_str!("../runtime/number_tie.rs"));
             runtime.push_str(&console);runtime.push_str("\n}\n");
+            // Raw programs expose these at their root; shared runtimes alias the
+            // same collector functions rather than introducing another state.
+            runtime.push_str("pub use console::tsr_console_test_work;\n");
+            if asynchronous_testing {runtime.push_str("pub use console::tsr_console_test_future;\n");}
         }
     }
     Units{application,dependencies,runtime:(!runtime.is_empty()).then(||format!("#![allow(dead_code, unused_variables, unused_mut)]\n{runtime}"))}
@@ -171,7 +175,7 @@ mod tests {
     fn dependency_predicate_agrees_with_extraction_for_plain_files_url_and_bindings() {
         let package=crate::project::rust::dependencies::Package {manifest:String::new(),lock:String::new(),crates:vec!["probe_crate".into()]};
         let binding=format!("{}{}\nmod tsr_rust {{}}",crate::project::rust::dependencies::MARKER,serde_json::to_string(&package).unwrap());
-        for(source,expected)in[("fn main(){}".to_owned(),false),(files_module(),true),(crate::stdlib::url::RUNTIME.to_owned(),true),(binding,true)]{
+        for(source,expected)in[("fn main(){}".to_owned(),false),(files_module(),true),(crate::stdlib::url::RUNTIME.to_owned(),true),(binding,true),("mod tsr_rust0 {pub fn value()->i64{1}}".to_owned(),false),("use rayon as tsr_rayon;\nmod tsr_rust0 {use super::tsr_rayon as rayon;}".to_owned(),true)]{
             assert_eq!(requires_dependencies(&source),expected);assert_eq!(separate(&source).dependencies,expected);
         }
     }
@@ -249,11 +253,12 @@ mod testing_worker_extraction_tests {
             let runtime=units.runtime.unwrap();
             for name in ["tsrust_native_futures","tsrust_native_threads","console"] {assert_eq!(runtime.matches(&format!("pub mod {name} {{")).count(),1);assert!(units.application.contains(&format!("use tsrust_runtime::{name}")));}
             assert!(!units.application.contains("tokio::task_local!"));assert!(!units.application.contains("fn capture_testing_context"));
-            assert_eq!(runtime.contains("super::console::tsr_console_test_future"),testing);
-            assert_eq!(runtime.contains("super::console::tsr_console_test_work"),testing);
+            assert_eq!(runtime.contains("super::tsr_console_test_future"),testing);
+            assert_eq!(runtime.contains("super::tsr_console_test_work"),testing);
             assert_eq!(runtime.matches("static TSR_CONSOLE_ASYNC_TEST:").count(),usize::from(testing));
             assert_eq!(runtime.matches("static SCOPE:").count(),1);
-            assert!(!runtime.contains("super::tsr_console_test_"));
+            assert!(runtime.contains("pub use console::tsr_console_test_work;"));
+            assert_eq!(runtime.contains("pub use console::tsr_console_test_future;"),testing);
         }}
         let async_only=format!("{}{}",futures_module(true),console_module(true));
         assert!(requires_dependencies(&async_only));let units=separate(&async_only);assert!(units.dependencies);

@@ -4,11 +4,11 @@ use crate::project::rust::Type as RustType;
 impl Emitter<'_> {
     pub(super) fn rust_modules(&self,output:&mut String){
         let Some(graph)=self.source_graph else{return};
-        if graph.modules.values().any(|module|module.rust.is_some()){output.push_str("use rayon as tsr_rayon;\n");}
+        if graph.modules.values().any(|module|module.rust.as_ref().is_some_and(|rust|rust.rayon)){output.push_str("use rayon as tsr_rayon;\n");}
         for (index,id) in graph.order.iter().enumerate(){
             let module=&graph.modules[id];let Some(rust)=&module.rust else{continue};
             let _=writeln!(output,"mod tsr_rust{index} {{ #![forbid(unsafe_code)]");
-            output.push_str("use super::tsr_rayon as rayon;\n");
+            if rust.rayon {output.push_str("use super::tsr_rayon as rayon;\n");}
             if rust.context {output.push_str("use super::tsrust_native_threads::TaskContext;\n");}
             if let Some(package)=&rust.package {
                 let _=writeln!(output,"{}{}",crate::project::rust::dependencies::MARKER,serde_json::to_string(package).unwrap());

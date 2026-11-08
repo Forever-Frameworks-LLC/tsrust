@@ -121,3 +121,16 @@ Record accepted scopes and remaining work in `docs/agent-progress.md`; do not
 create another handoff file.
 
 Dispatch the existing registered CI workflow with `gh workflow run ci.yml --ref <branch> -f supporting_host_timing=true` to invoke its reusable `Supporting-host UDP timing` helper. This mode measures only `net_udp_large` on Linux, where the 60000-byte datagram is supported. Platform acceptance jobs provide correctness evidence and do not measure performance. This separate workflow retains the existing native, hand-written Rust and Node-after-tsc controls, three processes with 31 samples after eight warmups, and the quiet-machine guard. It validates all nine process rows before ingesting the one actual result and uploads that exact JSON for root verification and ingestion. The caller and helper have separate concurrency groups, both distinct from ordinary CI, so this mode does not cancel live platform jobs. The final status is supporting-host timing, not full or platform acceptance. A supporting-host result does not claim delivery or timing support on hosts that reject this datagram size.
+
+For the reviewed repair of run `42460717406` only, dispatch existing `ci.yml` with
+`platform_acceptance=true` and `platform_prior_run=42460717406`. The job downloads
+its own host artifact and validates the exact results SHA and original checkpoint
+`469e8bb32a86771eb3317cd3232554c6a4192752`. Freshly built, validated binaries list
+all61 targets. Failed, incomplete, new and previously unreached cases execute;
+the shared55, relocated exports, pure/genuine Rayon and async IO/worker controls
+repeat on every host. Other passes retain their OLD source/consumer identities.
+The same single55-minute budget includes retrieval, build and cleanup. Results
+say `scope: focused-repair`, `repairComplete` and `complete: false`; this does not
+claim a full current-source platform run or permit missing scopes to disappear.
+Unset the input for unchanged full-scope behavior. No tests or timing controls are
+removed, and budget exhaustion remains incomplete acceptance.

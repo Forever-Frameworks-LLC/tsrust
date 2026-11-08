@@ -40,3 +40,5 @@ once rather than returning a closed-send error.
 Delay and timeout no longer impose a one-year ceiling. Invalid negative or
 unrepresentable deadlines still fail with code `range`. Async channel capacity
 must be positive, fit the target and satisfy Tokio's semaphore limit.
+
+`delay` and `yield` also support renamed imports and direct calls, but the operations themselves are not storable function values. Their concrete returned Tasks can be stored or forwarded; an explicit async wrapper supplies a callable.

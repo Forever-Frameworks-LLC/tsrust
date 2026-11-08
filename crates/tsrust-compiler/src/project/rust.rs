@@ -25,7 +25,7 @@ impl Type {
 #[derive(Clone, Debug)]
 pub struct Export {pub name:String,pub parameters:Vec<Type>,pub result:Type,pub declaration:Span,pub native:Span}
 #[derive(Clone, Debug)]
-pub struct Module {pub exports:Vec<Export>,pub context:bool,pub types:BTreeMap<String,Data>,pub source:SourceFile,pub package:Option<dependencies::Package>,pub locations:Vec<(Span,Span)>}
+pub struct Module {pub exports:Vec<Export>,pub context:bool,pub rayon:bool,pub types:BTreeMap<String,Data>,pub source:SourceFile,pub package:Option<dependencies::Package>,pub locations:Vec<(Span,Span)>}
 fn range(text:&str,span:proc_macro2::Span)->Span {
     let offset=|position:proc_macro2::LineColumn|text.split_inclusive('\n').take(position.line.saturating_sub(1)).map(str::len).sum::<usize>()+position.column;
     Span::new(offset(span.start()).min(text.len()),offset(span.end()).min(text.len()))
@@ -63,10 +63,13 @@ fn shape(ty:&syn::Type, output:bool,options:&str)->Result<Type,String> {
 }
 // All Rust bodies are compiled with forbid(unsafe_code). External source inclusion
 // is rejected so the project graph owns every byte used by build/dev/export.
-struct Policy {failure:Option<(proc_macro2::Span,String)>}
+struct Policy {failure:Option<(proc_macro2::Span,String)>,rayon:bool}
 impl Policy {
     fn tokens(&mut self,tokens:proc_macro2::TokenStream){
-        for token in tokens {match token {
+        let tokens=tokens.into_iter().collect::<Vec<_>>();
+        for (index,token) in tokens.iter().enumerate() {
+        if matches!(token,proc_macro2::TokenTree::Ident(name) if name=="rayon") && tokens.get(index+1).is_some_and(|token|matches!(token,proc_macro2::TokenTree::Punct(value) if value.as_char()==':')) && tokens.get(index+2).is_some_and(|token|matches!(token,proc_macro2::TokenTree::Punct(value) if value.as_char()==':')) {self.rayon=true;}
+        match token {
             proc_macro2::TokenTree::Group(group)=>self.tokens(group.stream()),
             proc_macro2::TokenTree::Ident(name) if matches!(name.to_string().as_str(),"include"|"include_str"|"include_bytes"|"env"|"option_env")=>self.failure=Some((name.span(),"Compile-time external inputs are unsupported in local Rust bridges.".into())),
             _=>{}
@@ -74,6 +77,15 @@ impl Policy {
     }
 }
 impl<'ast> Visit<'ast> for Policy {
+    fn visit_path(&mut self,path:&'ast syn::Path){
+        if path.segments.len()>1 && path.segments.first().is_some_and(|segment|segment.ident=="rayon"){self.rayon=true;}
+        syn::visit::visit_path(self,path);
+    }
+    fn visit_item_use(&mut self,item:&'ast syn::ItemUse){
+        fn selected(tree:&syn::UseTree)->bool{match tree{syn::UseTree::Path(path)=>path.ident=="rayon",syn::UseTree::Name(name)=>name.ident=="rayon",syn::UseTree::Rename(name)=>name.ident=="rayon",syn::UseTree::Group(group)=>group.items.iter().any(selected),syn::UseTree::Glob(_)=>false}}
+        self.rayon|=selected(&item.tree);syn::visit::visit_item_use(self,item);
+    }
+
     fn visit_ident(&mut self,name:&'ast syn::Ident){
         if matches!(name.to_string().as_str(),"include"|"include_str"|"include_bytes"|"env"|"option_env"){self.failure=Some((name.span(),"Compile-time external input aliases are unsupported in local Rust bridges.".into()));}
     }
@@ -88,7 +100,7 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
     let fail=|span,message|error(&source.id,"rust-bridge",message,range(&source.text,span));
     let parsed=syn::parse_file(&source.text).map_err(|value|fail(value.span(),value.to_string()))?;
     if !parsed.attrs.is_empty(){return Err(fail(parsed.attrs[0].span(),"Rust module attributes are unsupported.".into()));}
-    let mut policy=Policy{failure:None};policy.visit_file(&parsed);if let Some((span,message))=policy.failure{return Err(fail(span,message));}
+    let mut policy=Policy{failure:None,rayon:false};policy.visit_file(&parsed);if let Some((span,message))=policy.failure{return Err(fail(span,message));}
     let option_prefix=data::option_prefix(&parsed);
     let types=data::collect(&parsed,&option_prefix).map_err(|(span,message)|fail(span,message))?;
     let mut declarations=data::declarations(&types,&parsed);let mut exports=Vec::new();let mut context=false;
@@ -150,7 +162,7 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
             }
         }
     }
-    module.source=source.clone();module.rust=Some(Module{exports,context,types,source,package:None,locations});Ok(module)
+    module.source=source.clone();module.rust=Some(Module{exports,context,rayon:policy.rayon,types,source,package:None,locations});Ok(module)
 }
 
 pub(super) fn bindings(provider:&impl SourceProvider,source:SourceFile)->Result<(ModuleSource,Vec<SourceFile>),ProjectDiagnostic>{
@@ -173,4 +185,15 @@ fn documentation(attrs:&[syn::Attribute])->String {
  attrs.iter().filter_map(|attr| {
   if let syn::Meta::NameValue(value)=&attr.meta && value.path.is_ident("doc") && let syn::Expr::Lit(value)=&value.value && let syn::Lit::Str(value)=&value.lit {Some(value.value().replace("*/","* /"))}else{None}
  }).collect::<Vec<_>>().join("\n")
+}
+
+#[cfg(test)]
+mod rayon_selection_tests {
+ use super::*;
+ #[test]
+ fn only_checked_rayon_paths_select_the_bundled_dependency(){
+  for(source,expected)in[(r#"pub fn value()->i64{let rayon=3;let _text="rayon::join";/*rayon::join*/rayon}"#,false),("pub fn value(task:&TaskContext)->i64{if task.cancellation_requested(){0}else{1}}",false),("pub fn value()->i64{rayon::current_num_threads() as i64}",true),("use {rayon as parallel};pub fn value()->i64{parallel::current_num_threads() as i64}",true),("pub fn value()->i64{assert!(rayon::current_num_threads()>0);1}",true)]{
+   let parsed=syn::parse_file(source).unwrap();let mut policy=Policy{failure:None,rayon:false};policy.visit_file(&parsed);assert!(policy.failure.is_none());assert_eq!(policy.rayon,expected,"{source}");
+  }
+ }
 }

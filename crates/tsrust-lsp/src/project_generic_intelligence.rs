@@ -317,7 +317,10 @@ impl SourceIndex {
                 }
                 for (start,end,spelling) in edits.into_iter().rev() { source.signature.replace_range(start..end,&spelling); }
             }
-            for symbol in self.symbols.iter_mut().filter(|symbol| symbol.span == location.span) {
+            for (id,symbol) in self.symbols.iter_mut().enumerate().filter(|(_,symbol)| symbol.span == location.span) {
+                // Native alias recovery already supplies the public signature and docs.
+                // Keep that same shape while a sibling is syntactically incomplete.
+                if self.native_origins.contains_key(&id) {continue;}
                 symbol.kind = 12;
                 symbol.signature = source.signature.replacen(&format!("function {}", source.name), &format!("function {}", symbol.name), 1);
                 symbol.parameters = source.parameters.clone();

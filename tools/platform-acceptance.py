@@ -2,8 +2,10 @@
 """Serial native-family acceptance, with bounded owned process trees. Not a benchmark."""
 import argparse
 import ctypes
+from datetime import datetime
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -28,6 +30,48 @@ LSP_TARGETS = """byte_operations byte_codecs native_file_catalog
 native_environment_catalog async_io async_tasks native_threads process
 network_addresses network_transport compression stdio
 url crypto structured_logging rust_bridge""".split()
+
+
+# One reviewed repair of run 42460717406; prior passes keep their old identity.
+REPAIR_CHECKPOINT = "469e8bb32a86771eb3317cd3232554c6a4192752"
+REPAIR_RESULTS = {
+    "x86_64-unknown-linux-gnu": "fdc9d24caca9f9f6368cce792192932cf223f91d3afcad57089747aeb21ab5e3",
+    "aarch64-apple-darwin": "ce95dc885f43006d06d622bfa538b69d6832f6f8bd30b943b2a2f8e261d18dba",
+    "x86_64-apple-darwin": "854b7e55f8c8adf3d2d1e6e8bfc850aa88bf1e77707aff58db4dd44bafc23bd3",
+    "x86_64-pc-windows-msvc": "3a6fb2f204ec44c00b02ac83b8e4b01dc30fcc39a4bb81325c01d00693d77c00",
+}
+REPAIR_REPEAT = {
+    "tsrust-compiler::structured_logging": {"public_registered_suites_share_one_native_build", "relocated_logging_suite_executes_offline_at_both_optimizations"},
+    "tsrust-compiler::realtime": {"relocated_realtime_suite_executes_offline_at_both_optimizations"},
+    "tsrust-compiler::rust_adapter_generation": {"generated_nominal_record_projections_move_nested_string_buffers_without_clone"},
+    "tsrust-compiler::rust_bridge": {"rust_owned_buffers_results_rayon_cancellation_and_cleanup"},
+    "tsrust-compiler::async_io": {"registered_async_io_runtime_family_executes_at_both_required_profiles", "stored_io_calls_preserve_laziness_optional_arguments_views_and_two_loans"},
+    "tsrust-compiler::task_ergonomics": {"registered_task_runtime_examples_share_one_profiled_runner"},
+    "tsrust-lsp::async_io": {"io_explicit_result_signature_and_docs_agree_in_all_server_phases"},
+}
+
+
+def repair_plan(path, host):
+    path = Path(path)
+    if path.is_dir():
+        paths = list(path.rglob("results.json"))
+        assert len(paths) == 1, "Expected one prior host result"
+        path = paths[0]
+    assert sha(path) == REPAIR_RESULTS[host], "Prior artifact results changed"
+    prior = json.loads(path.read_text())
+    assert prior["host"] == host and prior["checkpoint"] == REPAIR_CHECKPOINT
+    return prior
+
+
+def retained_cases(prior, key, names):
+    assert REPAIR_REPEAT.get(key, set()) <= set(names), "Required repair witness disappeared"
+    previous = prior.get("targets", {}).get(key, {})
+    if not previous:
+        return set()  # Every case of an unreached target must execute.
+    assert previous["identity"]["checkpoint"] == REPAIR_CHECKPOINT
+    return {name for name in names if name not in REPAIR_REPEAT.get(key, set())
+            and (row := previous.get("tests", {}).get(name, {})).get("success") is True
+            and row.get("status") == "ok" and row.get("scopeStop") is None}
 
 
 def selected_test_artifacts(messages, root):
@@ -101,14 +145,33 @@ def target_statuses(text, names, require_summary):
     return statuses, problems
 
 
-def owned_rows(rows, pid):
-    """Include group members and descendants, even if a descendant changed group."""
-    owned = {pid}
+def process_birth(row):
+    # CIM supplies UTC ISO timestamps; ps lstart has host-local second precision.
+    born = row["born"]
+    if re.match(r"^\d{4}-\d{2}-\d{2}T", born):
+        parsed = datetime.fromisoformat(born.replace("Z", "+00:00"))
+        fraction = re.search(r"\.(\d+)", born)
+        nanoseconds = int((fraction.group(1) if fraction else "").ljust(9, "0"))
+        return int(parsed.replace(microsecond=0).timestamp()) * 1_000_000_000 + nanoseconds
+    return int(time.mktime(time.strptime(born, "%a %b %d %H:%M:%S %Y"))) * 1_000_000_000
+
+
+def owned_rows(rows, pid, created_after=None):
+    """Require creation-ordered ancestry, including regrouped descendants."""
+    root = next((row for row in rows if row["pid"] == pid), None)
+    if created_after is None:
+        if root is None:
+            return []
+        created_after = process_birth(root)
+    owned = {pid: process_birth(root) if root is not None else created_after}
     while True:
-        added = {r["pid"] for r in rows if r["ppid"] in owned or r.get("pgid") == pid}
-        if added <= owned:
-            return [r for r in rows if r["pid"] in owned]
-        owned |= added
+        added = {row["pid"]: process_birth(row) for row in rows
+                 if process_birth(row) >= created_after
+                 and ((row["ppid"] in owned and process_birth(row) >= owned[row["ppid"]])
+                      or row.get("pgid") == pid)}
+        if added.keys() <= owned.keys():
+            return [row for row in rows if row["pid"] in owned and process_birth(row) >= created_after]
+        owned.update(added)
 
 
 def process_rows():
@@ -141,16 +204,14 @@ def process_rows():
 
 def kill_owned(process, seen):
     if os.name == "nt":
-        # taskkill handles the still-live root tree; retained creation identities
-        # also cover children whose immediate parent has already exited.
+        # A Windows PPID can refer to a reused process ID. Never taskkill /T:
+        # it can reach unrelated older processes even after our tree was filtered.
         if process.poll() is None:
-            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], capture_output=True, timeout=20)
+            process.kill()  # Popen's owned Windows handle cannot target a reused PID.
         current = {r["pid"]: r for r in process_rows()} if seen else {}
         for pid, row in seen.items():
-            if pid in current and current[pid]["born"] == row["born"]:
-                subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, timeout=20)
-        if process.poll() is None:
-            process.kill()  # Popen's Windows handle cannot target a reused PID.
+            if pid != process.pid and pid in current and current[pid]["born"] == row["born"]:
+                subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True, timeout=20)
     else:
         try:
             os.killpg(process.pid, signal.SIGKILL)
@@ -174,11 +235,12 @@ def bounded(command, cwd, env, prefix, limit_seconds=1800, limit_bytes=5_000_000
     seen = {}
     with prefix.with_suffix(".out").open("w") as out, prefix.with_suffix(".err").open("w") as err:
         options = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
+        created_after = time.time_ns() // 100 * 100 if os.name == "nt" else int(time.time()) * 1_000_000_000
         process = subprocess.Popen(command, cwd=cwd, env=env, stdout=out, stderr=err, **options)
         try:
             while process.poll() is None:
                 rows = process_rows()
-                selected = owned_rows(rows, process.pid)
+                selected = owned_rows(rows, process.pid, created_after)
                 selected += [r for r in rows if r["pid"] in seen and r["born"] == seen[r["pid"]]["born"] and r not in selected]
                 seen.update({r["pid"]: r for r in selected})
                 peak = max(peak, sum(r["bytes"] for r in selected))
@@ -187,7 +249,7 @@ def bounded(command, cwd, env, prefix, limit_seconds=1800, limit_bytes=5_000_000
                     break
                 time.sleep(1 if os.name == "nt" else 0.5)
             rows = process_rows()
-            remaining = owned_rows(rows, process.pid)
+            remaining = owned_rows(rows, process.pid, created_after)
             remaining += [r for r in rows if r["pid"] in seen and r["born"] == seen[r["pid"]]["born"] and r not in remaining]
             remaining = [r for r in remaining if r["pid"] != process.pid]
             if remaining and reason is None:
@@ -208,6 +270,23 @@ def sha(path):
         return hashlib.file_digest(source, "sha256").hexdigest()
 
 
+def scope_deadline(started_at, wall_now, monotonic_now):
+    # CI records the first step before checkout/setup; local runs start here.
+    elapsed = 0.0
+    if started_at is not None:
+        try:
+            started = float(started_at)
+        except (ValueError, TypeError) as error:
+            raise ValueError("Invalid platform start timestamp") from error
+        if not math.isfinite(started) or started <= 0 or started > wall_now:
+            raise ValueError("Invalid or future platform start timestamp")
+        elapsed = wall_now - started
+    remaining = 55 * 60 - elapsed
+    if remaining <= 0:
+        raise TimeoutError("Platform acceptance exhausted its 55-minute end-to-end budget during setup")
+    return monotonic_now + remaining
+
+
 def remaining_scope_seconds(deadline):
     remaining = deadline - time.monotonic()
     if remaining <= 0:
@@ -216,10 +295,12 @@ def remaining_scope_seconds(deadline):
 
 
 def main():
-    deadline = time.monotonic() + 55 * 60
+    deadline = scope_deadline(os.environ.get("TSRUST_PLATFORM_STARTED_AT"), time.time(), time.monotonic())
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", required=True, choices=["x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-pc-windows-msvc"])
+    parser.add_argument("--repair-plan", help="Prior run 42460717406 host artifact results JSON or directory; focused repair only")
     args = parser.parse_args()
+    prior = repair_plan(args.repair_plan, args.host) if args.repair_plan else None
     root = Path(__file__).resolve().parent.parent
     target = root / "target"
     version = tomllib.loads((root / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
@@ -242,7 +323,10 @@ def main():
     result_path = destination / "results.json"
     results = json.loads(result_path.read_text()) if result_path.exists() else {}
     assert not results or results["checkpoint"] == checkpoint
-    results.update(checkpoint=checkpoint, host=args.host, complete=False)
+    results.update(checkpoint=checkpoint, host=args.host, complete=False, scope="focused-repair" if prior else "full-native-family")
+    if prior:
+        results["retainedEvidence"] = {"checkpoint": REPAIR_CHECKPOINT, "resultsSha256": REPAIR_RESULTS[args.host], "run": "42460717406"}
+        results["repairComplete"] = False
     def save():
         temporary = result_path.with_suffix(".tmp")
         temporary.write_text(json.dumps(results, indent=2) + "\n")
@@ -292,6 +376,9 @@ def main():
             assert row["code"] == 0, row
             names = [line[:-6] for line in Path(row["stdout"]).read_text().splitlines() if line.endswith(": test")]
             assert names and len(set(names)) == len(names), key
+            retained = retained_cases(prior, key, names) if prior else set()
+            if prior:
+                results["targets"][key]["retained"] = {"identity": prior.get("targets", {}).get(key, {}).get("identity"), "cases": sorted(retained)}
             pending = []
             for test in names:
                 if name == "service_sections" and test == "delivered_signals::internal_owned_console_signal_sender":
@@ -307,7 +394,7 @@ def main():
                     tests[test] = {"status": "excluded", "reason": "The supporting-host 60000-byte datagram witness runs on Linux; this is not a delivery pass."}
                     save()
                     continue
-                if tests.get(test, {}).get("success"):
+                if test in retained or tests.get(test, {}).get("success"):
                     continue
                 pending.append(test)
             if pending:
@@ -341,7 +428,7 @@ def main():
                 save()
                 if scope_error:
                     raise scope_error
-            if all(tests.get(test, {}).get("success") or tests.get(test, {}).get("status") == "excluded" for test in names):
+            if all(test in retained or tests.get(test, {}).get("success") or tests.get(test, {}).get("status") == "excluded" for test in names):
                 binary.unlink()
     results["failures"] = failures
     save()
@@ -353,7 +440,9 @@ def main():
         row = run("packaged-smoke", ["node", "tools/smoke-toolchain.mjs", str(package / "bin" / ("tsrust" + suffix)), str(package / "bin" / ("tsrust-lsp" + suffix))])
         assert row["code"] == 0, row
     frozen()
-    results["complete"] = True
+    results["complete"] = not bool(prior)
+    if prior:
+        results["repairComplete"] = True
     save()
 
 
