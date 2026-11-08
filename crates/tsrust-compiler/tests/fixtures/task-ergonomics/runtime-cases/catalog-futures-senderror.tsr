@@ -1,0 +1,17 @@
+import { Channel } from 'std:futures';
+
+export async function run(): Task<void> {
+  const queue = new Channel<int>(1);
+  const sender = queue.sender();
+  unwrap(sender.trySend(7));
+  console.log(unwrap(queue.tryReceive()));
+  sender.close();
+  sender.close();
+  try {
+    await sender.send(9);
+  } catch (error) {
+    console.log(error.code, error.value);
+  }
+
+  queue.close();
+}

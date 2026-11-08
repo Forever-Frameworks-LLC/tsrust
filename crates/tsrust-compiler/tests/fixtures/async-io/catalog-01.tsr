@@ -1,0 +1,14 @@
+import { reader, writer, write, writeAll, flush, copy, close } from 'std:io';
+import { createTempDir, create, readFile, removeDirAll } from 'std:fs';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const directory = unwrap(createTempDir(undefined, 'io-example-'));
+  const path = directory + '/bytes';
+  const output = writer(unwrap(create(path)));
+  unwrap(await writeAll(output, unwrap(fromUtf8('ok'))));
+  unwrap(await flush(output));
+  unwrap(await close(output));
+  console.log(unwrap(toUtf8(unwrap(readFile(path)))));
+  unwrap(removeDirAll(directory));
+}

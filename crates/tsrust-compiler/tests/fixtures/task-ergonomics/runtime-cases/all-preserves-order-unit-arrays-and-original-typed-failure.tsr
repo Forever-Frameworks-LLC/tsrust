@@ -1,0 +1,27 @@
+import { all, yield } from 'std:futures';
+async function value(n: int): Task<int> {
+  await yield();
+  return n;
+}
+
+async function unit(): Task<void> {}
+
+async function fail(): Task<int> {
+  throw 'cause';
+}
+
+export async function run(): Task<void> {
+  const values = await all([value(2), value(1).start()]);
+  console.log(values[0], values[1]);
+  const units: void[] = await all([unit(), unit().start()]);
+  console.log(units.length, (await all([])).length);
+  try {
+    await all([value(3), fail()]);
+  } catch (error) {
+    if (typeof error.cause === 'string') {
+      console.log(error.code, error.cause);
+    } else {
+      throw 'unexpected failure';
+    }
+  }
+}

@@ -34,6 +34,8 @@ Use named imports for the declarations you need. See
 | Work with paths, files and bytes | [`std:path`](/tsrust/reference/library/path/), [`std:fs`](/tsrust/reference/library/fs/), [`std:bytes`](/tsrust/reference/library/bytes/) |
 | Parse JSON and validate shapes | [`std:json`](/tsrust/reference/library/json/), [`std:schema`](/tsrust/reference/library/schema/) |
 | Serve or call HTTP APIs | [`std:http`](/tsrust/reference/library/http/) |
+| Stream server events or exchange WebSocket messages | [`std:http` realtime APIs](/tsrust/reference/library/http/#sseevent) |
+| Write structured logs | [`std:log`](/tsrust/reference/library/log/) |
 | Match regular expressions or format explicit locales | [`std:regex`](/tsrust/reference/library/regex/), [`std:locale`](/tsrust/reference/library/locale/) |
 | Parse URLs and ordered query parameters | [`std:url`](/tsrust/reference/library/url/), [URL guide](/tsrust/library/urls/) |
 | Work with SQLite or pooled databases | [`std:sqlite`](/tsrust/reference/library/sqlite/), [`std:sql`](/tsrust/reference/library/sql/) |

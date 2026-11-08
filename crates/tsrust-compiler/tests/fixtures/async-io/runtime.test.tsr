@@ -1,0 +1,76 @@
+import { describe, test } from 'std:testing';
+import { main as example0 } from './catalog-00.tsr';
+import { main as example1 } from './catalog-01.tsr';
+import { main as example2 } from './catalog-04.tsr';
+import { main as example3 } from './catalog-05.tsr';
+import { main as example4 } from './catalog-06.tsr';
+import { main as example5 } from './catalog-07.tsr';
+import { main as example6 } from './catalog-08.tsr';
+import { main as example7 } from './catalog-09.tsr';
+import { main as example8 } from './catalog-10.tsr';
+import { main as example9 } from './catalog-11.tsr';
+import { main as example10 } from './catalog-12.tsr';
+import { main as example11 } from './catalog-13.tsr';
+import { main as example12 } from './catalog-14.tsr';
+import { main as example13 } from './catalog-15.tsr';
+import { main as example14 } from './buffered-adapters.tsr';
+import { main as example15 } from './http-files.tsr';
+import { main as example16 } from './started-reader.tsr';
+import { main as example17 } from './task-relay.tsr';
+
+describe('async io runtime', () => {
+  test('catalog-00', async () => {
+    await example0();
+  });
+  test('catalog-01', async () => {
+    await example1();
+  });
+  test('catalog-04', () => {
+    example2();
+  });
+  test('catalog-05', async () => {
+    await example3();
+  });
+  test('catalog-06', async () => {
+    await example4();
+  });
+  test('catalog-07', async () => {
+    await example5();
+  });
+  test('catalog-08', async () => {
+    await example6();
+  });
+  test('catalog-09', async () => {
+    await example7();
+  });
+  test('catalog-10', async () => {
+    await example8();
+  });
+  test('catalog-11', async () => {
+    await example9();
+  });
+  test('catalog-12', async () => {
+    await example10();
+  });
+  test('catalog-13', () => {
+    example11();
+  });
+  test('catalog-14', () => {
+    example12();
+  });
+  test('catalog-15', () => {
+    example13();
+  });
+  test('buffered-adapters', async () => {
+    await example14();
+  });
+  test('http-files', async () => {
+    await example15();
+  });
+  test('started-reader', async () => {
+    await example16();
+  });
+  test('task-relay', async () => {
+    await example17();
+  });
+});

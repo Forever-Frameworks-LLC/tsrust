@@ -1,0 +1,12 @@
+import { CancellationToken } from 'std:futures';
+
+export async function run(): Task<void> {
+  const token = new CancellationToken();
+  const shared = token.share();
+  const child = token.child();
+  child.cancel();
+  console.log(token.isCancelled(), child.isCancelled());
+  shared.cancel();
+  await token.cancelled();
+  console.log(token.isCancelled());
+}

@@ -6,7 +6,39 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current source a3d9a82e plus accepted physical-default annotation repair pending checkpoint. Full goal active.
+Current accepted source cf0b876e. Task/I/O suite consolidation and public reference mappings accepted; pending checkpoint. Full goal active.
+- Current CI/read-only remote check: no open PRs, no open Dependabot alerts,
+  no live branch workflow. Latest42279800898 remains historical UDP-only timing.
+  Do not dispatch46target IOscope yet: oldIntel non-Cargo work52.1min already
+  nearly fills55min. Root consolidates ordinary runtime/catalog programs first;
+  keeps real stdio/runtime-presence/Rust ABI/export/process boundaries separate.
+- Public site ACTUAL build failed0.538s for17 unmapped logging/realtime groups;
+  repaired existing mapping+overview, no new renderer. Actual repaired sitebuild
+  PASS4.752s/1221413768B and renderedlinks/assets/anchors PASS1.605s across128pages.
+  /tmp/tsrust-current-docs-repair-results.json. Not deployed/published.
+- ACCEPTED task/I/O consolidation at current cf0b876e working tree:13stable
+  task cases+18stableIOcases. Catalog/source correspondence, original stdout/
+  stderr and typed-error JSON oracles retained; unknown/unattributed output fails.
+  Outside-Tokio Interval witness remains a stable standalone source; real stdio,
+  idle-stdin, Rust ABI and relocated exports remain separate boundary controls.
+- Gate /tmp/tsrust-registered-task-io-{acceptance,resume,final}.json preserves
+  initial hostguards failures (export-format comparison/newstderr constraint),
+  then lastfixture extra-newline failure. Fixed harness/fixture, not assertions
+  or compiler. Union of hosttask scopes7+5+1=13PASS; unchangedexport retained.
+  Registered task13PASS, nativebuild3012.457208ms, execution6.832208ms. Existing
+  catalog unused-task warning is explicitly printed/limited to its exact source;
+  no warning-free compiler claim. No compiler source changed for consolidation.
+- ACTUAL final hostbuild2.079s/309067776B, lastsourceguardPASS0.544s; IOscope
+  PASS147.66s/1054442672B, stopnull/remaining[],18cases at EACHprofile.
+  Debug nativebuild18387.377541ms/execution15.250833ms; optimized nativebuild
+  126031.885417ms. ONE runner build per profile,20prior ordinarylaunches removed.
+  Original900s aggregate scope preserved across all repairs. No process live.
+  Temporary runtimeDATA only; sourcepaths/nativecache stable, exact cleanup checked.
+- Prepared source-only next consolidation patches (NOT accepted/applied yet):
+  /tmp/tsrust-network-runtime-consolidation.patch (18cases, bothprofiles),
+  /tmp/tsrust-compression-registered-suite.patch (16cases, bothprofiles).
+  HTTPcatalog/source consolidation agentworking; do not reassign without inspection.
+  No heavyagent build permitted; root owns shared target/DB/writer.
 - ACTUAL PASS currentCLI publicfrontend declared/inferredfactory4controls plus
   genuineMissing_response error; originalservicefrontendPASS; inventoryPASS1680
   rows/671bindings/174types/43sourceexports/78retainedexamplewitnesses.

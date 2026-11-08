@@ -1,0 +1,10 @@
+import { stdin, Stdin, IoError, readLineStdin } from 'std:io';
+import { Bytes } from 'std:bytes';
+
+function read(input: Mutable<Stdin>): Result<string | undefined, IoError> {
+  return readLineStdin(input);
+}
+
+export function main() {
+  const input = stdin();
+}

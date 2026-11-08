@@ -1,0 +1,13 @@
+import { Channel } from 'std:threads';
+
+export function run() {
+  const inbox = new Channel<string>(1);
+  const sender = inbox.sender();
+  unwrap(sender.trySend('first'));
+  match (sender.trySend('second'.repeat(1))) {
+    Ok(_) => {},
+    Err(error) => {
+      console.log(error.code, error.value);
+    }
+  }
+}

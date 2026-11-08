@@ -1,4 +1,5 @@
 mod support;
+#[path="support/io_suite_reports.rs"] mod io_suite_reports;
 fn assert_safe_rust(source:&str){
  fn safe(tokens:proc_macro2::TokenStream)->bool{tokens.into_iter().all(|token|match token{proc_macro2::TokenTree::Ident(name)=>name!="unsafe",proc_macro2::TokenTree::Group(group)=>safe(group.stream()),_=>true})}
  assert!(safe(source.parse().expect("valid generated Rust tokens")));
@@ -23,24 +24,22 @@ fn readonly_destination_and_adapter_reuse_are_rejected(){
 }
 #[test]
 fn memory_reader_example_executes_with_explicit_results(){
- let source=include_str!("../../../examples/async-io/main.tsr");let _=check(source).unwrap();let source=support::format_round_trip(source);let directory=support::TempDirectory::new();let path=directory.source(&source);let result=support::run(support::cli().arg("run").arg(path),180);support::success(&result);assert_eq!(result.stdout,b"2 he\nll o\na  last\ntrue\n");assert!(!String::from_utf8_lossy(&result.stderr).contains("unused-task"));
+ let source=include_str!("../../../examples/async-io/main.tsr");let _=check(source).unwrap();io_suite_reports::assert_registered_source("memory_reader_example_executes_with_explicit_results",source);
 }
 #[test]
 fn consuming_buffered_adapters_preserves_unread_and_pending_bytes(){
  let source=r#"import {create,open,bufferReader,bufferWriter,write as syncWrite,read as syncRead} from 'std:fs';import {reader,writer,readAll,writeAll,flush,close} from 'std:io';import {fromUtf8,toUtf8} from 'std:bytes';async function main():Task<void>{const buffered=unwrap(bufferWriter(unwrap(create('buffered-io.txt')),8));unwrap(syncWrite(buffered,unwrap(fromUtf8('first'))));const output=writer(buffered);unwrap(await writeAll(output,unwrap(fromUtf8('-last'))));unwrap(await flush(output));unwrap(await close(output));const source=unwrap(bufferReader(unwrap(open('buffered-io.txt')),8));console.log(unwrap(toUtf8(unwrap(syncRead(source,2)))));const input=reader(source);console.log(unwrap(toUtf8(unwrap(await readAll(input)))));unwrap(await close(input));}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));let result=support::run(support::cli().arg("run").arg(path).current_dir(&directory.0),180);support::success(&result);assert_eq!(result.stdout,b"fi\nrst-last\n");
+ io_suite_reports::assert_registered_source("consuming_buffered_adapters_preserves_unread_and_pending_bytes",source);
 }
-
 #[test]
-fn file_to_http_body_to_file_streams_without_whole_body_accumulation(){
- let source=support::format_round_trip(include_str!("../../../examples/async-io/http-files.tsr"));let _=check(&source).unwrap();let directory=support::TempDirectory::new();let path=directory.source(&source);let result=support::run(support::cli().arg("run").arg(path).current_dir(&directory.0),300);support::success(&result);assert_eq!(String::from_utf8_lossy(&result.stdout),"20\nsplit-é-lines\r\nlast\n");
-}
+fn file_to_http_body_to_file_streams_without_whole_body_accumulation(){let source=include_str!("../../../examples/async-io/http-files.tsr");let _=check(source).unwrap();io_suite_reports::assert_registered_source("file_to_http_body_to_file_streams_without_whole_body_accumulation",source);}
 #[test]
 fn io_catalog_examples_agree_and_keep_results_explicit(){
- let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let mut seen=std::collections::HashSet::new();let resume=std::env::var("TSRUST_CATALOG_RESUME_FROM").ok();let mut resumed=resume.is_none();
- for entry in catalog["std:io"].as_array().unwrap(){if resume.as_deref()==entry["name"].as_str(){resumed=true;}if !resumed{continue;}for example in entry["examples"].as_array().unwrap(){let source=example["source"].as_str().unwrap();if !seen.insert(source.to_owned()){continue;}eprintln!("IO catalog example: {}",entry["name"]);let _=check(source).unwrap();let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));let result=support::run(support::cli().arg("run").arg(path),180);support::success(&result);assert_eq!(String::from_utf8_lossy(&result.stdout),example["output"].as_str().unwrap());if let Some(stderr)=example["stderr"].as_str(){assert_eq!(String::from_utf8_lossy(&result.stderr),stderr);}}}assert!(resumed,"unknown catalog resume entry: {resume:?}");
+ io_suite_reports::assert_sources();
+ // Actual process stdout/stderr writes cannot share the NDJSON runner stream.
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+ for name in ["stdout","stderr"]{let entry=catalog["std:io"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();for example in entry["examples"].as_array().unwrap(){let source=example["source"].as_str().unwrap();let _=check(source).unwrap();let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));let result=support::run(support::cli().arg("run").arg(path),180);support::success(&result);assert_eq!(String::from_utf8_lossy(&result.stdout),example["output"].as_str().unwrap());assert_eq!(String::from_utf8_lossy(&result.stderr),example["stderr"].as_str().unwrap_or(""));}}
 }
-
 #[test]
 fn io_operation_values_use_checked_lazy_wrappers(){
  assert!(check("import {readInto} from 'std:io';function main(){const operation=readInto;}").is_ok());
@@ -79,9 +78,8 @@ fn stored_io_calls_preserve_laziness_optional_arguments_views_and_two_loans(){
 fn started_io_tasks_reject_caller_loans_and_owned_readers_transfer(){
  let prefix="import {reader,readInto,close,Reader} from 'std:io';import {fromUtf8,alloc,set} from 'std:bytes';";
  let negative=format!("{prefix}async function main():Task<void>{{const input=reader(unwrap(fromUtf8('abc')));const bytes=unwrap(alloc(3));const job=readInto(input,bytes).start();job.cancel();unwrap(set(bytes,0,1));try{{await job;}}catch(error){{}}}}");assert_eq!(check(&negative).unwrap_err(),"task-transfer","started I/O must not retain caller loans");
- let positive=format!("{prefix}async function run(input:Reader):Task<int>{{const bytes=unwrap(alloc(3));const count=unwrap(await readInto(input,bytes));unwrap(await close(input));return count;}}async function main():Task<void>{{const job=run(reader(unwrap(fromUtf8('abc')))).start();console.log(await job);}}");assert!(check(&positive).is_ok());let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&positive));let result=support::run(support::cli().arg("run").arg(path),180);support::success(&result);assert_eq!(result.stdout,b"3\n");
+ let positive=format!("{prefix}async function run(input:Reader):Task<int>{{const bytes=unwrap(alloc(3));const count=unwrap(await readInto(input,bytes));unwrap(await close(input));return count;}}async function main():Task<void>{{const job=run(reader(unwrap(fromUtf8('abc')))).start();console.log(await job);}}");assert!(check(&positive).is_ok());io_suite_reports::assert_registered_source("started_io_tasks_reject_caller_loans_and_owned_readers_transfer",&positive);
 }
-
 #[test]
 fn io_http_package_exports_and_builds_offline_after_relocation(){
  let directory=support::TempDirectory::new();let input=directory.source(&support::format_round_trip(include_str!("../../../examples/async-io/http-files.tsr")));let package=directory.0.join("package");
@@ -111,5 +109,21 @@ fn existing_lazy_sql_and_http_calls_keep_owned_argument_snapshots(){
 fn consumed_io_task_relays_preserve_outer_and_invariant_view_lifetimes_at_o0_and_o3(){
  let source="import {reader,readInto,close,IoError} from 'std:io';import {fromUtf8,alloc,viewMut,set,toUtf8} from 'std:bytes';function relay(work:Task<Result<int,IoError>>):Task<Result<int,IoError>>{return work;}function again(work:Task<Result<int,IoError>>):Task<Result<int,IoError>>{const pass=relay;return pass(work);}async function main():Task<void>{const input=reader(unwrap(fromUtf8('abc')));const bytes=unwrap(alloc(3));{const destination=unwrap(viewMut(bytes,0,3));const read=readInto;const pending=again(relay(read(input,destination)));console.log(unwrap(await pending));unwrap(set(destination,0,120));}console.log(unwrap(toUtf8(bytes)));unwrap(await close(input));}";
  let _=check(source).unwrap();for statement in["unwrap(set(destination,0,120));","const other=readInto(input,destination);await other;"]{let invalid=source.replace("console.log(unwrap(await pending));",&format!("{statement}console.log(unwrap(await pending));"));assert_eq!(check(&invalid).unwrap_err(),"capture-conflict");}
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));for release in[false,true]{let binary=directory.0.join(format!("io-task-relay-{release}{}",std::env::consts::EXE_SUFFIX));let mut build=support::cli();build.arg("build").arg(&path).arg("-o").arg(&binary);if release{build.arg("--release");}support::success(&support::run(&mut build,180));let output=support::run(&mut std::process::Command::new(binary),30);support::success(&output);assert_eq!(output.stdout,b"3\nxbc\n");assert!(!String::from_utf8_lossy(&output.stderr).contains("unused-task"));}
+ io_suite_reports::assert_registered_source("consumed_io_task_relays_preserve_outer_and_invariant_view_lifetimes_at_o0_and_o3",source);
+}
+
+#[test]
+fn registered_async_io_runtime_family_executes_at_both_required_profiles(){
+ io_suite_reports::assert_sources();let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap();let suite=root.join("crates/tsrust-compiler/tests/fixtures/async-io/runtime.test.tsr");
+ // Only runtime data is temporary. Absolute suite paths and an explicit shared
+ // native cache preserve executable identity without changing this host's cwd.
+ let data=support::TempDirectory::new();let workspace=&data.0;
+ let cache=root.join("target/tsrust-native");
+ for optimized in [false,true]{
+  let mut command=support::cli();command.current_dir(workspace).env("TSRUST_CACHE_DIR",&cache).args(["test",suite.to_str().unwrap(),"--reporter=json","--profile","--timeout=10000"]);if optimized{command.arg("--release");}
+  io_suite_reports::assert_report(support::run(&mut command,900));
+  // The buffered fixture originally relied on its temporary directory cleanup.
+  std::fs::remove_file(workspace.join("buffered-io.txt")).unwrap();
+  for name in ["io-source.txt","io-destination.txt","pipeline.z"]{assert!(!workspace.join(name).exists(),"fixture leaked {name}");}
+ }
 }

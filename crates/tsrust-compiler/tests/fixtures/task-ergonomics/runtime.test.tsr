@@ -1,0 +1,55 @@
+import { describe, test } from 'std:testing';
+import { run as case0 } from './runtime-cases/all-preserves-order-unit-arrays-and-original-typed-failure.tsr';
+import { run as case1 } from './runtime-cases/task-async-admission-and-completion-errors-keep-distinct-types.tsr';
+import { run as case2 } from './runtime-cases/task-async-moves-owned-captures-without-making-the-pool-transferable.tsr';
+import { run as case3 } from './runtime-cases/synchronous-try-operations-prepare-channel-error-types.tsr';
+import { run as case4 } from './runtime-cases/all-materializes-scalar-record-and-nested-array-carriers.tsr';
+import { run as case5 } from './runtime-cases/send-error-clone-is-structural-through-records-void-results-and-settled-jobs.tsr';
+import { run as case6 } from './runtime-cases/catalog-interval-tick.tsr';
+import { run as case7 } from './runtime-cases/catalog-cancellationtoken-share.tsr';
+import { run as case8 } from './runtime-cases/catalog-futures-all.tsr';
+import { run as case9 } from './runtime-cases/catalog-futures-senderror.tsr';
+import { run as case10 } from './runtime-cases/catalog-threads-senderror.tsr';
+import { run as case11 } from './runtime-cases/catalog-threadpool-taskasync.tsr';
+import { run as case12 } from './runtime-cases/task-async-typed-causes-survive-direct-started-and-all-transports.tsr';
+describe('task ergonomics', () => {
+  test("all_preserves_order_unit_arrays_and_original_typed_failure", async (): Task<void> => {
+    await case0();
+  });
+  test("task_async_admission_and_completion_errors_keep_distinct_types", async (): Task<void> => {
+    await case1();
+  });
+  test("task_async_moves_owned_captures_without_making_the_pool_transferable", async (): Task<void> => {
+    await case2();
+  });
+  test("synchronous_try_operations_prepare_channel_error_types", (): void => {
+    case3();
+  });
+  test("all_materializes_scalar_record_and_nested_array_carriers", async (): Task<void> => {
+    await case4();
+  });
+  test("send_error_clone_is_structural_through_records_void_results_and_settled_jobs", async (): Task<void> => {
+    await case5();
+  });
+  test("catalog-interval-tick", async (): Task<void> => {
+    await case6();
+  });
+  test("catalog-cancellationtoken-share", async (): Task<void> => {
+    await case7();
+  });
+  test("catalog-futures-all", async (): Task<void> => {
+    await case8();
+  });
+  test("catalog-futures-senderror", async (): Task<void> => {
+    await case9();
+  });
+  test("catalog-threads-senderror", (): void => {
+    case10();
+  });
+  test("catalog-threadpool-taskasync", async (): Task<void> => {
+    await case11();
+  });
+  test("task_async_typed_causes_survive_direct_started_and_all_transports", async (): Task<void> => {
+    await case12();
+  });
+});

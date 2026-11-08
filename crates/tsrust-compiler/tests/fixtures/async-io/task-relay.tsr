@@ -1,0 +1,26 @@
+import { reader, readInto, close, IoError } from 'std:io';
+import { fromUtf8, alloc, viewMut, set, toUtf8 } from 'std:bytes';
+
+function relay(work: Task<Result<int, IoError>>): Task<Result<int, IoError>> {
+  return work;
+}
+
+function again(work: Task<Result<int, IoError>>): Task<Result<int, IoError>> {
+  const pass = relay;
+  return pass(work);
+}
+
+export async function main(): Task<void> {
+  const input = reader(unwrap(fromUtf8('abc')));
+  const bytes = unwrap(alloc(3));
+  {
+    const destination = unwrap(viewMut(bytes, 0, 3));
+    const read = readInto;
+    const pending = again(relay(read(input, destination)));
+    console.log(unwrap(await pending));
+    unwrap(set(destination, 0, 120));
+  }
+
+  console.log(unwrap(toUtf8(bytes)));
+  unwrap(await close(input));
+}

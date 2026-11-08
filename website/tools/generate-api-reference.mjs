@@ -44,7 +44,12 @@ const modules = [
     Router: 'HttpRouter', Context: 'HttpContext', App: 'HttpApp', Request: 'HttpRequest', Response: 'HttpResponse',
     Body: 'HttpBody', Server: 'HttpServer', Client: 'HttpClient', ClientOptions: 'HttpClientOptions', Next: 'HttpNext', ServerOptions: 'HttpServerOptions',
     FormField: 'HttpFormField', MultipartPart: 'HttpMultipartPart',
+    CorsOptions: 'HttpCorsOptions', SseEvent: 'HttpSseEvent', SseOptions: 'HttpSseOptions',
+    WebSocketOptions: 'HttpWebSocketOptions', WebSocketClientOptions: 'HttpWebSocketClientOptions', WebSocketHeader: 'HttpWebSocketHeader',
+    WebSocketText: 'HttpWebSocketText', WebSocketBinary: 'HttpWebSocketBinary', WebSocketClose: 'HttpWebSocketClose',
+    WebSocketHalves: 'HttpWebSocketHalves', WebSocket: 'HttpWebSocket', WebSocketRead: 'HttpWebSocketRead', WebSocketWrite: 'HttpWebSocketWrite',
   } },
+  { module: 'std:log', summary: 'Write structured events with lazy fields, child context and explicit sink cleanup.', members: { Logger: 'Logger', LoggerOptions: 'LoggerOptions', LogError: 'LogError' } },
   { module: 'std:sql', summary: 'Pooled PostgreSQL, MySQL and SQLite access with bound parameters.', members: {
     Pool: 'SqlPool', Transaction: 'SqlTransaction', Row: 'SqlRow', Cursor: 'SqlCursor', SqlError: 'SqlSqlError',
   } },
