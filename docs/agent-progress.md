@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpoint3afcf3fe; actual URL+realtime timings ingested; pending logging adapter/docs repair.
+Current checkpoint9f5ad468; logging source repairs committed; pending Node declaration selection.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0
@@ -100,6 +100,11 @@ Only root writes canonical; app worktree owner WIP stays protected.
   family withfullsource/native/TS/hand hashes andfrontendregeneration. Sealed
   completeddisabledcase /tmp/tsrust-logging-prepared-prefix.json; no disabled
   program/probe/compiler rebuildneeded. Remaining2prepare normally.
+- Logging sourcesession82879 stopped34.027s beforetiming: secondcontrolimports
+  node:fs/os/path butfamilyomittedfromexistingNode typeRoots/types selector.
+  One-linefamilyselectionrepair; BOTH filecontrol TypeScript --noEmit preflights
+  PASS,whole-projectformat0changes/diffclean. Reuse SAME sealeddisabledprefix
+  and SAME original30minscope; no compiler/probe rebuild or controlsource edits.
 - NEXT B17timing: B17 logging_disabled public
   allocation profile (existing driver, separate setup/event costs). Remaining
   B00 ledger/package/platform, B19nested integration, B20 apps/final regression/
