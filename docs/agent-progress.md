@@ -4,56 +4,76 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full goal remains active;
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
-## Current continuation — 2026-11-07
+## Current continuation — 2026-11-08
 
-Current accepted source914a3dd6. Task/I/O consolidation and public reference mappings committed. Full HTTP/network/compression consolidation pending repairs. Full goal active.
-- Current CI/read-only remote check: no open PRs, no open Dependabot alerts,
-  no live branch workflow. Latest42279800898 remains historical UDP-only timing.
-  Do not dispatch46target IOscope yet: oldIntel non-Cargo work52.1min already
-  nearly fills55min. Root consolidates ordinary runtime/catalog programs first;
-  keeps real stdio/runtime-presence/Rust ABI/export/process boundaries separate.
-- Public site ACTUAL build failed0.538s for17 unmapped logging/realtime groups;
-  repaired existing mapping+overview, no new renderer. Actual repaired sitebuild
-  PASS4.752s/1221413768B and renderedlinks/assets/anchors PASS1.605s across128pages.
-  /tmp/tsrust-current-docs-repair-results.json. Not deployed/published.
-- ACCEPTED task/I/O consolidation at current cf0b876e working tree:13stable
-  task cases+18stableIOcases. Catalog/source correspondence, original stdout/
-  stderr and typed-error JSON oracles retained; unknown/unattributed output fails.
-  Outside-Tokio Interval witness remains a stable standalone source; real stdio,
-  idle-stdin, Rust ABI and relocated exports remain separate boundary controls.
-- Gate /tmp/tsrust-registered-task-io-{acceptance,resume,final}.json preserves
-  initial hostguards failures (export-format comparison/newstderr constraint),
-  then lastfixture extra-newline failure. Fixed harness/fixture, not assertions
-  or compiler. Union of hosttask scopes7+5+1=13PASS; unchangedexport retained.
-  Registered task13PASS, nativebuild3012.457208ms, execution6.832208ms. Existing
-  catalog unused-task warning is explicitly printed/limited to its exact source;
-  no warning-free compiler claim. No compiler source changed for consolidation.
-- ACTUAL final hostbuild2.079s/309067776B, lastsourceguardPASS0.544s; IOscope
-  PASS147.66s/1054442672B, stopnull/remaining[],18cases at EACHprofile.
-  Debug nativebuild18387.377541ms/execution15.250833ms; optimized nativebuild
-  126031.885417ms. ONE runner build per profile,20prior ordinarylaunches removed.
-  Original900s aggregate scope preserved across all repairs. No process live.
-  Temporary runtimeDATA only; sourcepaths/nativecache stable, exact cleanup checked.
-- Applied current pending HTTP/network/compression consolidation: HTTP110cases
-  (172catalogrefs/103dedup+7regressions), network18cases, compression16cases.
-  Hostbuild5.256s/471367680B PASS. Explicit stabletaskcache check ACTUAL13PASS
-  twice; secondrun1.085s/cachehit/nativeBuildMs0. Preservecacheproof.
-  /tmp/tsrust-registered-http-network-compression.json, session61978closed.
-- Actualgate: network_addresses allPASS27.058s/468960024B; network_transport
-  9hostPASS then consolidatedfrontendFAILawait-task at storedlistenTcp alias
-  full-stream-short-reads...fixture15. Compression14hostPASS; runtime16ALLPASS
-  debug but validatorFAIL2workeroutputs name/location empty (7,5), retain exact
-  output validation; optimizedprofile unrun. HTTP11hostPASS/1knownignored;
-  sharednativebuildFAIL59.829s/906790160B soleE0282 conditional_temporary_26
-  declaredwithoutuse/type, serveStatic fallback uses27. Preservefailures/current
-  assertions; no nativeHTTP pass inferred. Allownedprocesses settled.
-- Existing Solsource-only repairs: B14 isolatesmultimodule nativealias typing;
-  B06fixesstd:testing workeroutputcontext; B03conditionaltemporary preparation.
-  Rootonlywriter/buildlease. Mergefixes once then ONEsharedcompilerbuild; rerun
-  onlyaffected/unrun scopes. No fourhostdispatch untilnativecohortactuallyfits.
-- Prepared butNOTapplied contractdocs/check-only rejectionpatch:
-  /tmp/tsrust-task-iterator-alias-contract-docs.patch. No new genericoperation
-  value/extractedmethod support; documentactualcheckedcontract.
+Current source base1b24204b plus accepted compiler/runtime repairs ready for checkpoint.
+Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
+
+- ACTUAL current compiler library1543PASS/0FAIL/8unchanged opt-ins ignored,
+  96.406s/1352483320B. Current LSP library27PASS/0FAIL1.053s.
+  /tmp/tsrust-final-extraction-test.json and /tmp/tsrust-current-final-lsp-library.json.
+- Native family consolidation: task13, asyncIO18, network18, compression16,
+  HTTP110 =175 registered cases. IO/network/compression pass BOTHprofiles;
+  task/HTTP retain original default-profile protocols. Strict exact case names,
+  original output/typed error oracles, source correspondence, cleanup and no
+  unknown output retained. True stdio, no-runtime, cache, TLS, ABI and relocated
+  export boundaries stay separate. All owned processes settled; no build live.
+- Network BOTHprofiles ACTUALPASS16.694s/753188864B after closed native record/
+  finite plain literal option result-discovery repair. Minimal real2file projects
+  preserve listen alias and DNS conditionalalias/relay/undefined family; genuine
+  void/wrong native argument/invalid literal remain rejected. Recursive-summary
+  scalar eligibility unchanged. /tmp/tsrust-final-extraction-test-network-native.out.
+- HTTP110ACTUALPASS10.447s/1289913592B, nativebuild8180.098333ms. HTTP emitted
+  arguments ONCE; raw text reuses prepared operands, no abandoned conditional
+  owner. Compression16EACHprofile ACTUALPASS25.503s/713097216B, nativebuild
+  3513.819ms debug/20032.778ms optimized; worker7/5 outputs now correctly tagged.
+  /tmp/tsrust-shared-native-context-functional.json.
+- Existing6case testing fixture ACTUALPASS6.809s; FIVE child paths (TokioJob,
+  async pool, sync pool, dedicated, scoped thread) retain exact case/source
+  location/order, no orphan/duplicate output. Profile secondrun cachehit/native0.
+  ONE ArcMutex collector shared across extractedruntime; Tokio poll/drop and
+  sync worker/drop scope restored. Ended scopes reject late capture to existing
+  visible unattributed reporting, never silentlydiscard or leak into next case.
+- Complete runtimevariant factories reused by emission/dependency detection/
+  extraction. Pure tests prove ONE runtime SCOPE/collector and actual selected
+  modules, including async-only runners. No new dependencies or unsafe code.
+  Non-runner runtime hooks remain passthrough. console_async.rs isnew; stage it.
+- Repair failures preserved honestly: originalbuild160.956s failed NEWtesthelper
+  unwrap on InputDiagnostic(noDebug); corrected to render API. Sharedbuild
+  399.154s then3guardsPASS/1FAIL: test wrongly expected bindingfeatureasync;
+  actual async selection follows Task origins/runtime module. Secondbuild
+  388.352s then3PASS/1FAIL: test string matcher missed pub/comment/mod syntax.
+  Original1770s aggregate closed INCOMPLETE, no fake full acceptance.
+  /tmp/tsrust-shared-native-context-repair{,-resume}.json and
+  /tmp/tsrust-native-result-final.json retain failures.
+- Final correction is cfg(test) ONLY: parses Rust AST for exact public module
+  identity/visibility, not formatting. New600s gate rebuilt ONLYcompiler test
+  harness226.206s (no tool binaries), corrected guardPASS2.617s, full library
+  PASS96.406s. Earlier production consumers unchanged; native network is current.
+- CI cache defect fixed: shared Cargo target alone did NOT share standalone
+  native support. Platform runner AND CI env now explicitly use
+  TSRUST_CACHE_DIR=target/tsrust-native; deliberate per-command isolation still
+  overrides. Actual subprocess-environment regression + runner tests16PASS0.081s.
+  No trigger/timeout changes;55min platform/60min job remains. Not dispatched yet.
+- Contract catalog+guides now document direct imported aliases/stored callbacks
+  versus unsupported stored generic all/extracted Iterator method values. Exact
+  thread-call negativePASS. Public logging/realtime reference mapping/sitebuild
+  PASS4.752s and128page rendered links/assets/anchors PASS1.605s (not deployed).
+- Cleanup removed newly-created loose codegen objects only, preserving current
+  libraries, metadata, binaries and shared caches. Exact count/bytes:
+  /tmp/tsrust-native-context-object-cleanup.json. Prior net recovery oldhost
+  1430007808B +obsoletebasepack766394368B remains separate.
+- NEXT: checkpoint accepted source after wholeformat; generated minimal/unused
+  vs ICU selected consumer build/size proof still missing (reuse existing
+  benchmarks/compiler/stdlib-selection/unused/main.tsr + examples/explicit-locale/main.tsr;
+  sharedcache, no old isolated11sample driver). Reconcile remaining B00contracts/
+  defaults/feature clauses; final backend all-target/bin/doctest acceptance and
+  FOURHOST native/package/install proof still pending. Check current PRs/
+  Dependabot immediatelybeforepush; lastread empty/no live run. Do not dispatch
+  before a concrete current scope that fits55min. Full means full_regressions=true.
+
+## Earlier retained acceptance (superseded failures are not a work queue)
+
 - ACTUAL PASS currentCLI publicfrontend declared/inferredfactory4controls plus
   genuineMissing_response error; originalservicefrontendPASS; inventoryPASS1680
   rows/671bindings/174types/43sourceexports/78retainedexamplewitnesses.

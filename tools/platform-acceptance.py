@@ -223,7 +223,7 @@ def main():
     version = tomllib.loads((root / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
     cargo = ["rustup", "run", version, "cargo"]
     suffix = ".exe" if os.name == "nt" else ""
-    env = {**os.environ, "CARGO_TARGET_DIR": str(target), "CARGO_INCREMENTAL": "0", "CARGO_BUILD_JOBS": "1",
+    env = {**os.environ, "CARGO_TARGET_DIR": str(target), "TSRUST_CACHE_DIR": str(target / "tsrust-native"), "CARGO_INCREMENTAL": "0", "CARGO_BUILD_JOBS": "1",
            "TSRUST_LSP_SERVER": str(target / "debug" / ("tsrust-lsp" + suffix))}
     for key in ["TSRUST_LSP_MATRIX_ROW", "TSRUST_LSP_AGREEMENT_TYPE", "TSRUST_LSP_MATRIX_REPORT", "TSRUST_SIGNAL_DELIVERY_HELPER_PID", "TSRUST_SIGNAL_DELIVERY_HELPER_EVENT"]:
         env.pop(key, None)

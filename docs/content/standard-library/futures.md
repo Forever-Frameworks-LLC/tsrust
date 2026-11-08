@@ -11,6 +11,10 @@ Use `all` when every result is needed. Results keep input order; the first obser
 failure cancels siblings and waits for cleanup. `all([])` returns `void[]`;
 `Task<void>` inputs also produce `void[]`. `allSettled` retains every outcome.
 
+Call `all(...)` directly or use a renamed import such as `import { all as gather }`.
+The polymorphic operation itself is not a storable function value: `const collect = all`
+is rejected. Concrete Task/Job inputs and the Task returned by the call can be stored.
+
 `new Interval(periodMs, missedTickBehavior?)` requires an active async runtime
 and positive target-representable milliseconds. The first tick is immediately
 ready. The default `burst` catches up missed ticks; `delay` shifts the schedule;

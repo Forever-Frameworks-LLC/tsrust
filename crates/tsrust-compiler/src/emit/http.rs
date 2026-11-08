@@ -81,9 +81,12 @@ impl Emitter<'_>{
  }
  pub(super) fn http_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];if !matches!(binding.module,"std:http"|"std:signals"){return None;}self.native_bindings.borrow_mut().insert(id);
-  let values=args.iter().enumerate().map(|(index,arg)|{let param=&binding.parameters[index.min(binding.parameters.len()-1)];let value=self.expr(fun,arg,param.access);if arg.ty==Some(Type::String){if param.access==Mode::Consume{format!("({value}).as_ref().to_owned()")}else{format!("({value}).as_ref()")}}else{value}}).collect::<Vec<_>>();
+  // Emission can reserve temporary owners. Keep both text adaptations from the
+  // same emitted operand, so selecting raw text never abandons a preparation.
+  let raw_values=args.iter().enumerate().map(|(index,arg)|self.expr(fun,arg,binding.parameters[index.min(binding.parameters.len()-1)].access)).collect::<Vec<_>>();
+  let values=args.iter().enumerate().map(|(index,arg)|{let param=&binding.parameters[index.min(binding.parameters.len()-1)];let value=&raw_values[index];if arg.ty==Some(Type::String){if param.access==Mode::Consume{format!("({value}).as_ref().to_owned()")}else{format!("({value}).as_ref()")}}else{value.clone()}}).collect::<Vec<_>>();
   let receiver=values.first().cloned().unwrap_or_default();
-  let raw=|index:usize|self.expr(fun,&args[index],binding.parameters[index].access);
+  let raw=|index:usize|raw_values[index].clone();
   let optional=|index:usize|args.get(index).map(|arg|self.native_optional_argument(&binding.parameters[index],values[index].clone(),arg.ty.unwrap())).unwrap_or("None".into());
   let call=match binding.name{
    "accessLog"=>format!("tsrust_native_http::NativeMiddleware::access_log({receiver})"),
@@ -184,7 +187,7 @@ impl Emitter<'_>{
     let call=if index==3{"context.set_cookie(name.as_ref(),value.as_ref(),cookie_options)"}else{"context.delete_cookie(name.as_ref(),cookie_options)"};
     format!("{{let context={receiver};let name={};{value}{options}{call}}}",raw(1))
    },
-   "__contextSet"=>format!("({receiver}).set({}, {})",values[1],self.expr(fun,&args[2],Mode::Consume)),
+   "__contextSet"=>format!("({receiver}).set({}, {})",values[1],raw(2)),
    "__contextGet"=>{
     let Type::Record(record)=args[0].ty.unwrap()else{unreachable!()};let Type::Record(variables)=self.program.records[record].application.as_ref().unwrap().resolved_arguments[1]else{unreachable!()};
     let ExprKind::String(key)=&args[1].kind else{unreachable!()};let value=self.program.records[variables].fields.iter().find(|field|field.name.text==*key).unwrap().ty.unwrap();
@@ -213,4 +216,27 @@ impl Emitter<'_>{
   let arguments=if matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpRouter|NativeTypeId::HttpContext)){format!("<{}>",self.native_type(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]))}else{String::new()};
   writeln!(output,"type Record{id}=tsrust_native_http::{name}{arguments};").unwrap();true
  }
+}
+
+#[cfg(test)]
+mod argument_emission_tests {
+    #[test]
+    fn raw_http_text_arguments_keep_only_live_temporary_preparations() {
+        use crate::project::{FileSourceProvider,load_project,check_graph};
+        // This is the unchanged registered HTTP catalog program: both explicit
+        // and omitted static fallbacks remain part of the public runtime suite.
+        let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/http/runtime-cases/catalog-045.tsr");
+        let source=std::fs::read_to_string(&path).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap();
+        let generated=checked.emit_rust();
+        assert_eq!(generated.matches(".serve_static(").count(),2);
+        assert_eq!(generated.matches("String::Borrowed(\"index.html\")").count(),1,"argument renders once");
+        let declarations=generated.split("let mut conditional_temporary_").skip(1).collect::<Vec<_>>();
+        assert_eq!(declarations.len(),1,"one actual fallback owner, no abandoned preparation: {generated}");
+        for declaration in declarations {
+            let id=declaration.chars().take_while(|value|value.is_ascii_digit()).collect::<String>();assert!(!id.is_empty());
+            assert_eq!(generated.matches(&format!("conditional_temporary_{id} = ")).count(),1,"temporary is initialized once");
+        }
+        syn::parse_file(&generated).unwrap();
+    }
 }

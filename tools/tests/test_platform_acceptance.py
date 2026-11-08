@@ -98,6 +98,24 @@ class PlatformAcceptance(unittest.TestCase):
         self.assertNotIn('run("consumers"', source)
         self.assertLess(source.index('run("selected-tests-build"'), source.index('run("portable"'))
 
+    def test_platform_children_share_native_cache_even_without_a_project(self):
+        class InspectedEnvironment(Exception):
+            pass
+        captured = {}
+        def inspect(command, **kwargs):
+            captured.update(kwargs["env"])
+            raise InspectedEnvironment
+        with patch.object(sys, "argv", ["platform-acceptance.py", "--host", "x86_64-unknown-linux-gnu"]), patch.dict(os.environ, {"TSRUST_CACHE_DIR": "/inherited/cache", "CARGO_TARGET_DIR": "/inherited/target"}), patch.object(RUNNER.subprocess, "check_output", side_effect=inspect):
+            with self.assertRaises(InspectedEnvironment):
+                RUNNER.main()
+        target = Path(RUNNER.__file__).resolve().parents[1] / "target"
+        self.assertEqual(captured["TSRUST_CACHE_DIR"], str(target / "tsrust-native"))
+        self.assertEqual(captured["CARGO_TARGET_DIR"], str(target))
+        self.assertEqual(captured["CARGO_INCREMENTAL"], "0")
+        self.assertEqual(captured["CARGO_BUILD_JOBS"], "1")
+        workflow = (Path(RUNNER.__file__).resolve().parents[1] / ".github/workflows/ci.yml").read_text()
+        self.assertIn("  TSRUST_CACHE_DIR: ${{ github.workspace }}/target/tsrust-native\n", workflow)
+
     def test_remaining_scope_budget_caps_shortens_and_rejects_exhaustion(self):
         with patch.object(RUNNER.time, "monotonic", side_effect=[100, 175, 200]):
             self.assertEqual(RUNNER.remaining_scope_seconds(5000), 1800)

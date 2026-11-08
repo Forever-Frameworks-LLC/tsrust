@@ -1,9 +1,35 @@
+import { ThreadPool, spawn, spawnScoped, join } from 'std:threads';
+import { yield } from 'std:futures';
 import { test, deepStrictEqual, notDeepStrictEqual, rejects } from 'std:testing';
+
+async function jobOutput(): Task<void> {
+  await yield();
+  console.log('job output');
+}
+
 test('nested exact data', () => {
   deepStrictEqual([[1, 2]], [[1, 2]]);
   notDeepStrictEqual([1, 2], [1, 3]);
 });
 test('checked asynchronous rejection', async () => {
+  const job = jobOutput().start();
+  await job;
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  await pool.taskAsync((): void => {
+    console.log('async pool output');
+  });
+  unwrap(join(unwrap(pool.task((): void => {
+    console.log('pool output');
+  }))));
+  unwrap(join(unwrap(spawn((): void => {
+    console.log('dedicated output');
+  }))));
+  unwrap(join(unwrap(spawnScoped((): void => {
+    console.log('scoped output');
+  }))));
+  unwrap(pool.shutdown());
   await rejects(async () => {
     throw {
       code: 'expected', retry: false

@@ -546,7 +546,7 @@ pub fn tsr_console_write(error: bool, text: &str) {
     });
 }
 pub fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
-    if TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
+    if tsr_console_test_context().is_some() && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     if tsr_console_test_json_output(error,"",&format!("{value}\n")){return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
@@ -569,7 +569,7 @@ pub fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
     });
 }
 pub fn tsr_console_text(error: bool, value: &str) {
-    if TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
+    if tsr_console_test_context().is_some() && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     if tsr_console_test_json_output(error,"",&format!("{value}\n")){return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
@@ -780,15 +780,30 @@ pub fn tsr_console_call(method: &str, values: &[TsrConsoleValue]) {
 
 // Test reporting captures console calls only while a pretty-report scope is active.
 #[derive(Default)]
-struct TsrConsoleTest { name: Option<std::string::String>, entries: Vec<(bool,std::string::String,std::string::String)> }
+struct TsrConsoleTest { name: std::string::String, entries: Vec<(bool,std::string::String,std::string::String)>, ended:bool }
 std::thread_local! {
-    static TSR_CONSOLE_TEST: std::cell::RefCell<TsrConsoleTest> = std::cell::RefCell::new(TsrConsoleTest::default());
+    static TSR_CONSOLE_TEST: std::cell::RefCell<TsrConsoleTestContext> = const { std::cell::RefCell::new(None) };
     static TSR_CONSOLE_LOCATION: std::cell::RefCell<std::string::String> = const { std::cell::RefCell::new(std::string::String::new()) };
+}
+type TsrConsoleTestContext=Option<std::sync::Arc<std::sync::Mutex<TsrConsoleTest>>>;
+fn tsr_console_test_context()->TsrConsoleTestContext{
+    TSR_CONSOLE_TEST.with(|slot|slot.borrow().clone())
+}
+struct TsrConsoleTestScope(TsrConsoleTestContext);
+impl TsrConsoleTestScope{fn enter(context:TsrConsoleTestContext)->Self{Self(TSR_CONSOLE_TEST.with(|slot|slot.replace(context)))}}
+impl Drop for TsrConsoleTestScope{fn drop(&mut self){TSR_CONSOLE_TEST.with(|slot|slot.replace(self.0.take()));}}
+// Captured work may be cancelled before invocation. Its owners must still drop
+// under the originating test scope, and pooled threads must recover their scope.
+struct TsrConsoleTestWork<F>{work:Option<F>,context:TsrConsoleTestContext}
+impl<F> Drop for TsrConsoleTestWork<F>{fn drop(&mut self){let _scope=TsrConsoleTestScope::enter(self.context.clone());drop(self.work.take());}}
+pub fn tsr_console_test_work<F:FnOnce()->R,R>(work:F)->impl FnOnce()->R{
+    let mut owned=TsrConsoleTestWork{work:Some(work),context:tsr_console_test_context()};
+    move||{let _scope=TsrConsoleTestScope::enter(owned.context.clone());owned.work.take().unwrap()()}
 }
 pub struct TsrConsoleLocation(Option<std::string::String>);
 impl TsrConsoleLocation {
     pub fn new(path:&str,line:usize,column:usize)->Self {
-        if !TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) {return Self(None);}
+        if !tsr_console_test_context().is_some() {return Self(None);}
         let cwd=std::env::current_dir().unwrap_or_default();
         let path=std::path::Path::new(path);
         let location=format!("{}:{line}:{column}",path.strip_prefix(cwd).unwrap_or(path).display());
@@ -798,22 +813,21 @@ impl TsrConsoleLocation {
 impl Drop for TsrConsoleLocation {fn drop(&mut self){if let Some(previous)=self.0.take(){TSR_CONSOLE_LOCATION.with(|slot|{slot.replace(previous);});}}}
 pub fn tsr_console_test_begin(name:&str) {
     if !matches!(std::env::var("TSRUST_TEST_REPORTER").as_deref(),Ok("pretty"|"json")) {return;}
-    TSR_CONSOLE_TEST.with(|slot|slot.borrow_mut().name=Some(name.to_owned()));
+    TSR_CONSOLE_TEST.with(|slot|slot.replace(Some(std::sync::Arc::new(std::sync::Mutex::new(TsrConsoleTest{name:name.to_owned(),entries:Vec::new(),ended:false})))));
 }
 fn tsr_console_test_capture(error:bool,text:&str)->bool {
-    TSR_CONSOLE_TEST.with(|slot|{
-        let mut state=slot.borrow_mut();if state.name.is_none(){return false;}
-        let indent=TSR_CONSOLE_STATE.with(|state|state.borrow().indent);
-        let text=text.split_inclusive('\n').map(|line|format!("{:indent$}{line}","")).collect();
-        state.entries.push((error,TSR_CONSOLE_LOCATION.with(|slot|slot.borrow().clone()),text));true
-    })
+    let Some(context)=tsr_console_test_context()else{return false;};
+    let indent=TSR_CONSOLE_STATE.with(|state|state.borrow().indent);
+    let text=text.split_inclusive('\n').map(|line|format!("{:indent$}{line}","")).collect();
+    let mut state=context.lock().unwrap();if state.ended{return false;}
+    state.entries.push((error,TSR_CONSOLE_LOCATION.with(|slot|slot.borrow().clone()),text));true
 }
 fn tsr_console_test_json_output(error:bool,scope:&str,text:&str)->bool{if std::env::var("TSRUST_TEST_REPORTER").as_deref()!=Ok("json"){return false;}let location=TSR_CONSOLE_LOCATION.with(|slot|slot.borrow().clone());println!("{{\"event\":\"output\",\"name\":{},\"stream\":{},\"location\":{},\"text\":{}}}",tsr_console_quote(scope,true),tsr_console_quote(if error{"stderr"}else{"stdout"},true),tsr_console_quote(&location,true),tsr_console_quote(text,true));true}
 pub fn tsr_console_test_end(show_scope:bool) {
-    let state=TSR_CONSOLE_TEST.with(|slot|std::mem::take(&mut *slot.borrow_mut()));
-    let Some(name)=state.name else{return;};
+    let Some(context)=TSR_CONSOLE_TEST.with(|slot|slot.take())else{return;};
+    let (name,entries)={let mut state=context.lock().unwrap();state.ended=true;(state.name.clone(),std::mem::take(&mut state.entries))};
     use std::io::Write as _;
-    for (error,location,text) in state.entries {
+    for (error,location,text) in entries {
         if std::env::var("TSRUST_TEST_REPORTER").as_deref()==Ok("json"){println!("{{\"event\":\"output\",\"name\":{},\"stream\":{},\"location\":{},\"text\":{}}}",tsr_console_quote(&name,true),tsr_console_quote(if error{"stderr"}else{"stdout"},true),tsr_console_quote(&location,true),tsr_console_quote(&text,true));continue;}
         let stream=if error {"stderr"} else {"stdout"};
         let mut output=if show_scope {format!("     {stream} | {name}\n")} else {format!("     {stream}\n")};

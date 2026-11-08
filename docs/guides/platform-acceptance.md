@@ -41,7 +41,12 @@ exhaustion preserves completed cases and remains incomplete acceptance.
 The runner asserts the native Rust host and pinned Node version. Setup fetches
 locked dependencies explicitly; subsequent compilation and tests run offline and
 locked. One shared Cargo target, one build job and disabled incremental compilation
-apply throughout. Each command has a 30-minute limit and an approximately 5 GB
+apply throughout. The runner also sets `TSRUST_CACHE_DIR` to
+`target/tsrust-native` for every child, including standalone `tsrust run` boundary
+fixtures. A shared Cargo target alone does not prevent standalone commands from
+creating temporary native support caches. Other CI acceptance modes use the same
+explicit native cache. Tests that intentionally isolate cache behavior retain
+their explicit per-command override. Each command has a 30-minute limit and an approximately 5 GB
 process-tree budget. Counter failures stop the run. Windows uses owned process
 tree termination; POSIX uses an owned process group plus tracked descendants.
 The watchdog itself needs real validation on each host before its bounds are

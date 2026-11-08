@@ -217,7 +217,10 @@ pub fn assert_sources(){
 }
 pub fn assert_report(output:std::process::Output){
  super::support::success(&output);let stderr=String::from_utf8(output.stderr).unwrap();
- if !stderr.is_empty(){eprint!("{stderr}");assert_eq!(stderr.matches("warning[").count(),3,"{stderr}");assert_eq!(stderr.matches("warning[unused-task]:").count(),3,"{stderr}");assert!(stderr.starts_with("warning[unused-task]:")&&stderr.contains("consecutive-chunks.tsr")&&!stderr.contains("error["),"{stderr}");}
+ if !stderr.is_empty(){
+  eprint!("{stderr}");assert_eq!(stderr.matches("warning[").count(),4,"{stderr}");let warnings=stderr.split("warning[unused-task]:").skip(1).collect::<Vec<_>>();assert_eq!(warnings.len(),4,"{stderr}");
+  assert_eq!(warnings.iter().filter(|warning|warning.contains("catalog-046.tsr")).count(),1,"{stderr}");assert_eq!(warnings.iter().filter(|warning|warning.contains("consecutive-chunks.tsr")).count(),3,"{stderr}");assert!(stderr.starts_with("warning[unused-task]:")&&!stderr.contains("error["),"{stderr}");
+ }
  let text=String::from_utf8(output.stdout).unwrap();print!("{text}");let rows=text.lines().map(|line|serde_json::from_str::<Value>(line).unwrap_or_else(|error|panic!("invalid JSON {line}: {error}"))).collect::<Vec<_>>();
  let catalog=catalog();let mut expected=BTreeMap::new();for &(family,name,index,case,_)in REFERENCES{let output=example(&catalog,family,name,index)["output"].as_str().unwrap();if let Some(previous)=expected.insert(case,output){assert_eq!(previous,output);}}
  for &(_,case,output,_)in REGRESSIONS{assert!(expected.insert(case,output).is_none());}

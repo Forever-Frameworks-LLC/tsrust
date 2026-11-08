@@ -390,6 +390,10 @@ fn profile_separates_suite_build_from_execution_and_reuses_the_same_runner(){
   }
   let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),6);
   for test in tests{assert_eq!(test["status"],"passed");assert!(test["durationMs"].as_f64().unwrap()>=0.0);}
+  let outputs=rows.iter().filter(|row|row["event"]=="output").collect::<Vec<_>>();
+  assert_eq!(outputs.len(),5,"missing, duplicate or unattributed worker output");
+  assert_eq!(outputs.iter().map(|row|row["text"].as_str().unwrap()).collect::<Vec<_>>(),["job output\n","async pool output\n","pool output\n","dedicated output\n","scoped output\n"]);
+  for row in outputs{assert_eq!(row["name"],"checked asynchronous rejection");assert_eq!(row["stream"],"stdout");assert!(row["location"].as_str().unwrap().contains("data-and-async.test.tsr:"),"missing actual worker source: {row}");}
   let summary=rows.last().unwrap();assert_eq!(summary["event"],"summary");assert_eq!(summary["passed"],6);assert_eq!(summary["failed"],0);
  }
 }

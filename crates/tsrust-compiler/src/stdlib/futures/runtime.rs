@@ -93,9 +93,10 @@ mod tsrust_native_futures {
         start_with_shutdown(future,None)
     }
     pub async fn in_scope<F:Future>(scope:Arc<Scope>,future:F)->F::Output {SCOPE.scope(scope,future).await}
+    fn capture_testing_context<F:Future>(future:F)->impl Future<Output=F::Output>{future}
     fn capture_logging_context<F:Future>(future:F)->impl Future<Output=F::Output>{
-        #[cfg(feature="logging")]{super::tsrust_native_logging::capture(future)}
-        #[cfg(not(feature="logging"))]{future}
+        #[cfg(feature="logging")]let future=super::tsrust_native_logging::capture(future);
+        capture_testing_context(future)
     }
     pub(crate) fn start_with_shutdown<F,T,E>(future:F,shutdown:Option<Box<dyn FnOnce()+Send>>)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {
         let scope=Arc::new(Scope{parent:SCOPE.with(Arc::downgrade),..Scope::default()});

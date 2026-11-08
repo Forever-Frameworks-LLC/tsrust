@@ -2549,7 +2549,7 @@ impl Emitter<'_> {
         let io_runtime=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::IoReader | crate::native_signatures::NativeTypeId::IoWriter | crate::native_signatures::NativeTypeId::IoLineReader | crate::native_signatures::NativeTypeId::IoStdin | crate::native_signatures::NativeTypeId::CompressionReader | crate::native_signatures::NativeTypeId::CompressionWriter)));
         let asynchronous_runtime = io_runtime || !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql") || matches!(id,crate::native_signatures::NativeTypeId::Interval|crate::native_signatures::NativeTypeId::AsyncChannel|crate::native_signatures::NativeTypeId::AsyncSender|crate::native_signatures::NativeTypeId::Job)));
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CancellationToken)){output.push_str(crate::stdlib::futures::CANCELLATION_RUNTIME);}
-        if asynchronous_runtime { output.push_str(include_str!("async_runtime.rs")); output.push_str(crate::stdlib::futures::RUNTIME); }
+        if asynchronous_runtime { output.push_str(include_str!("async_runtime.rs")); output.push_str(&crate::native_runtime::futures_module(false)); }
         self.set_types(&mut output);
         self.map_types(&mut output);
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
@@ -3355,7 +3355,7 @@ impl Emitter<'_> {
         if compression_runtime || crypto_password_runtime || self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
             || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
             let asynchronous=compression_runtime || crypto_password_runtime || self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:threads"&&binding.name=="__taskAsync"});
-            output.push_str(if asynchronous{crate::stdlib::threads::ASYNC_RUNTIME}else{crate::stdlib::threads::RUNTIME});
+            output.push_str(&crate::native_runtime::threads_module(asynchronous,false));
         }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id]
@@ -3479,6 +3479,13 @@ impl Emitter<'_> {
         if owned_support {
             output.push_str(crate::runtime::ARRAYS);
         }
+        // Native bindings are complete here. Select complete runtime variants;
+        // dependency detection and extraction use these same exact factories.
+        let testing_runner=self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner"));
+        if testing_runner {
+            output=output.replace(&crate::native_runtime::futures_module(false),&crate::native_runtime::futures_module(true));
+            for asynchronous in [true,false] {output=output.replace(&crate::native_runtime::threads_module(asynchronous,false),&crate::native_runtime::threads_module(asynchronous,true));}
+        }
         if output.contains("tsr_console_test_")
             || output.contains("TsrConsoleValue")
             || output.contains("tsr_console_call(")
@@ -3487,7 +3494,7 @@ impl Emitter<'_> {
             || output.contains("tsr_console_text(")
             || output.contains("tsr_console_number(")
         {
-            output.push_str(include_str!("../runtime/console.rs"));
+            output.push_str(&crate::native_runtime::console_module(asynchronous_runtime && testing_runner));
         }
         if numeric_support {
             output.push_str(crate::runtime::NUMERIC_ARRAYS);

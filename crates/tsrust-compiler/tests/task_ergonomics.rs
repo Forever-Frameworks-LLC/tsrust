@@ -40,6 +40,11 @@ fn exclusive_tick_and_try_receive_loans_and_invalid_policies_are_rejected(){
  "import {Interval} from 'std:futures';async function main():Task<void>{const timer=new Interval(1,'unknown');}",
  "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const pending=queue.receive();queue.tryReceive();await pending;}",
  ]{let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("check").arg(directory.source(source)),30);assert!(!output.status.success(),"accepted {source}");}
+ let directory=support::TempDirectory::new();
+ let source="import {all as gather} from 'std:futures';async function main():Task<void>{const collect=gather;}";
+ let output=support::run(support::cli().arg("check").arg(directory.source(source)),30);
+ assert!(!output.status.success(),"stored polymorphic operation unexpectedly accepted");
+ assert!(String::from_utf8_lossy(&output.stderr).contains("error[thread-call]"),"{}",String::from_utf8_lossy(&output.stderr));
 }
 
 #[test]

@@ -112,6 +112,7 @@
         if requested { thread.completion.cancel.wake(); }
         requested
     }
+    fn capture_testing_context<F:FnOnce()->R,R>(work:F)->impl FnOnce()->R{work}
     fn execute<T, E>(completion: &Completion<T, E>, work: impl FnOnce() -> Result<T, E>) {
         if let Some(pool) = &completion.pool { let mut stats = pool.state.lock().unwrap(); stats.queued -= 1; stats.running += 1; }
         let previous = CANCELLATION.with(|slot| slot.replace(Some(completion.cancel.clone())));
@@ -138,12 +139,12 @@
             stats.outstanding += 1; stats.queued += 1;
         }
         let completion = completion(Some(pool.clone())); let worker = completion.clone();
-        pool.executor.spawn(move || execute(&worker, work));
+        pool.executor.spawn(capture_testing_context(move || execute(&worker, work)));
         Ok(Thread { completion, dedicated: None, settled: false })
     }
     pub fn spawn_dedicated<T: Send + 'static, E: Send + 'static>(work: impl FnOnce() -> Result<T, E> + Send + 'static) -> Result<Thread<T, E>, SpawnError> {
         let completion = completion(None); let worker = completion.clone();
-        let dedicated = std::thread::Builder::new().spawn(move || execute(&worker, work)).map_err(|e| failure("spawn", e.to_string()))?;
+        let dedicated = std::thread::Builder::new().spawn(capture_testing_context(move || execute(&worker, work))).map_err(|e| failure("spawn", e.to_string()))?;
         Ok(Thread { completion, dedicated: Some(dedicated), settled: false })
     }
     pub fn join<T, E>(mut thread: Thread<T, E>) -> Result<T, JoinError<E>> { thread.wait() }

@@ -5,6 +5,11 @@
 
 Import `Iterator` and `IteratorResult` from `std:iterator`. `Iterator.from(values)` consumes an owned array without cloning its elements. Arrays keep their eager methods and snapshot behavior.
 
+Renaming the import, for example `import { Iterator as Sequence }`, preserves
+`Sequence.from(values)`. Stored callback values work with the documented callback
+access contracts. Call operations on their iterator receiver; extracting a method
+value such as `const next = values.next` is rejected.
+
 ```tsrust
 import { Iterator } from 'std:iterator';
 function main() {

@@ -38,7 +38,8 @@ impl Analyzer {
             let physical=(self.physical_record_result_needed(self.signatures[index].result) || self.effects_only && self.assumed_modes.is_none())
                 && !self.templates.contains_key(&index)
                 && (!self.named_captures.needs_context(index) || self.named_captures.ready(index));
-            if ((self.signatures[index].result == Type::Void && self.inferred_result_context_is_closed(index)) || physical)
+            if ((self.signatures[index].result == Type::Void && (self.inferred_result_context_is_closed(index)
+                || self.inferred_native_result_context_is_closed(index))) || physical)
                 && !self.visiting[index]
                 && !self.active_recursive_functions.contains(&index)
             {
@@ -64,6 +65,20 @@ impl Analyzer {
         }
         if self.visiting[index] { return self.prepare_function_body(index).map(|_| true); }
         Ok(false)
+    }
+
+    // Native wrappers can have known record identities or finite plain option
+    // unions before their lazy Task result has been discovered. Keep
+    // this scheduling case separate from recursive-summary eligibility.
+    fn inferred_native_result_context_is_closed(&self,index:usize)->bool {
+        let plain=|ty:Type|matches!(ty,Type::Int|Type::Number|Type::Boolean|Type::String|Type::Null|Type::Undefined|Type::Literal(..));
+        let plain_union=|ty:Type|ty.union().is_some_and(|id|{let members=self.unions.members(id);!members.is_empty()&&members.into_iter().all(plain)});
+        self.signatures[index].inferred_result && !self.templates.contains_key(&index)
+            && !self.named_captures.needs_context(index)
+            && self.signatures[index].body_params.iter().any(|ty|plain_union(*ty) || matches!(ty,Type::Record(record) if self.program.records[*record].native_type.is_some()))
+            && self.signatures[index].body_params.iter().all(|ty|plain(*ty) || plain_union(*ty)
+                || matches!(ty,Type::Record(record) if self.program.records[*record].native_type.is_some()
+                    && !self.native_shape_contains_view(*ty) && !self.physical_record_result_needed(*ty)))
     }
 
     fn inferred_result_context_is_closed(&self, index: usize) -> bool {
@@ -645,4 +660,26 @@ fn speculative_region_dependencies_preserve_native_factory_bodies_and_real_error
  let errors=check_graph(load_project(&Source(invalid),"main.tsr").unwrap()).err().expect("A genuine nested body error must remain rejected");
  assert!(errors.message.contains("missing_response"),"Original nested diagnostic must not become a false missing-return cascade: {errors:?}");
  assert!(!errors.message.contains("must return App"),"Consumed speculative source must be restored before reporting: {errors:?}");
+}
+
+#[cfg(test)]
+#[test]
+fn registered_network_alias_factories_discover_native_input_task_results(){
+ use crate::project::{SourceId,SourceProvider,load_project,check_graph};
+ struct Sources{entry:String,body:String}
+ impl SourceProvider for Sources{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.test.tsr"{Ok(self.entry.clone())}else if id.0.ends_with("alias.tsr"){Ok(self.body.clone())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ let body="import {listenTcp,parseAddress,SocketAddress} from 'std:net';export async function run():Task<void>{const listen=listenTcp;const listener=unwrap(await listen(unwrap(parseAddress('127.0.0.1:0'))));listener.close();}";
+ let entry="import {test} from 'std:testing';import {run} from './alias.tsr';test('alias',async ():Task<void>=>{await run();});";
+ let formatted=|source:&str|{let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);formatted};
+ let check=|body:&str|check_graph(load_project(&Sources{entry:formatted(entry),body:formatted(body)},"main.test.tsr").unwrap());
+ let checked=check(body).unwrap_or_else(|error|panic!("Registered native alias must retain its lazy Task result: {error:?}"));drop(checked.emit_rust());
+ let void=body.replace("export async function run()","function notTask(address:ReadOnly<SocketAddress>):void{}export async function run()").replace("const listen=listenTcp;","const listen=notTask;");
+ let error=check(&void).err().expect("A real void return must never become a Task");assert_eq!(error.code,"await-task");
+ let wrong=body.replace("listen(unwrap(parseAddress('127.0.0.1:0')))","listen('wrong address type')");assert!(check(&wrong).is_err(),"Native parameter checking must remain strict");
+ let dns="import {lookup as resolve} from 'std:dns';import {IpAddress,NetError} from 'std:net';function relay(task:Task<Result<IpAddress[],NetError>>):Task<Result<IpAddress[],NetError>>{return task;}export async function run():Task<void>{const operation=resolve;const host='::1';const family:'any'|'ipv4'|'ipv6'|undefined=undefined;const values=unwrap(await relay((true?operation:operation)(host,family)));console.log(values.length);}";
+ let checked=check(dns).unwrap_or_else(|error|panic!("Optional literal family must not leave a lazy native factory's result as provisional void: {error:?}"));drop(checked.emit_rust());
+ let wrong_family=dns.replace("const family:'any'|'ipv4'|'ipv6'|undefined=undefined;","const family='ipv5';");assert_ne!(wrong_family,dns);assert!(check(&wrong_family).is_err(),"Literal option domains remain exact");
 }
