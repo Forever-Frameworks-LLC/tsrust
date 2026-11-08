@@ -72,10 +72,10 @@ Primary implementation evidence:
   access, owned/borrowed result, error behavior, defaults, platform conditions,
   callback effects and cancellation/drop contract. Include aliases/stored calls.
 - [ ] Match Rust std or the selected Rust backend's ordinary defaults. Audit
-  existing artificial ceilings: file reads/writes currently impose 64 MiB;
-  HTTP response readers impose 1 MiB and client code fixes a 30-second timeout,
-  disables redirects and proxies. HTTP also caps forms at128fields/multipart at
-  128parts and rejects configured body sizes over64MiB/deadlines over1hour.
+  the named v0.1 artificial ceilings: file reads/writes imposed 64 MiB;
+  HTTP response readers imposed 1 MiB and client code fixed a 30-second timeout,
+  disabled redirects and proxies. HTTP also capped forms at128fields/multipart at
+  128parts and rejected configured body sizes over64MiB/deadlines over1hour.
   These are concrete v0.2 migration work, not defaults to copy into every new API.
 - [ ] Make Tsrust-added size/cardinality/deadline policies explicit opt-ins through
   options or clearly bounded operations. Preserve the selected backend's own
@@ -102,6 +102,18 @@ Primary implementation evidence:
 - [x] Prepare a reusable bounded test runner/build-slot procedure for every
   execution host. Keep one Cargo target per host, incremental off, jobs=1,
   process-tree memory/time monitoring, and ownership of killed processes clear.
+
+B00 named migration acceptance: the filesystem and HTTP ceilings listed above
+are removed or explicit opt-ins, with the selected backend's own constraints
+preserved. Retained native witnesses cover lengths above64MiB, optional reads,
+redirects/proxies, ordinary/cumulative/increased response budgets, multipart
+backend defaults versus explicit budgets, server concurrency above128 and
+Context JSON above1MiB. The current shared HTTP suite also proves4097-byte route
+registration and exact positive `int` cookie lifetimes. Migration behavior is
+published in `docs/content/standard-library/fs.md`, `docs/content/framework/client.md`
+and `docs/content/framework/routing.md`. This completes the named fs/HTTP migration
+work; the broader per-export contract/default and four-host review remains in
+its unchecked B00/B20 requirements.
 
 B00 policy/infrastructure reconciliation: B10's retained compiler-library and
 focused client/server acceptance proves ordinary optional policies and all seven
@@ -1851,9 +1863,31 @@ context preservation and uses the existing borrowed-subset emitter.
 - [ ] Execute native Windows/Linux/macOS acceptance, including file handles,
   signals, child processes, networking, TLS, exports and packaged CLI/LSP.
   Cross-target metadata or helper simulations do not prove native execution.
-- [ ] Run the integrated applications: binary/file-transform CLI; persistent
-  JSON API; streamed file/proxy upload; SSE/WebSocket service; bounded CPU work;
-  generated Rust-package consumer. Include failures, disconnects and cleanup.
+- [x] Run the integrated applications on the local macOS host: binary/file-transform
+  CLI; persistent JSON API; streamed upload/body forwarding; SSE/WebSocket service;
+  bounded CPU work; generated Rust-package consumer. Include failures, disconnects
+  and cleanup. Native coverage on the other release hosts remains the separate
+  unchecked platform requirement above.
+
+  Local application evidence is cumulative, not a new full-regression claim:
+  `compression::typed_stream_examples_execute_with_one_pool_and_explicit_finish`,
+  `tcp_and_compression_copy_preserve_typed_errors_and_execute` and the remaining
+  compression controls passed in the965de83f integration (15cases), including
+  binary/file transforms and one-worker/capacity-one pool composition. Existing
+  `http_client_uploads::client_policies_and_owned_upload_factories_execute_through_aliases_and_stored_calls`
+  checks binary/stream/channel uploads and `/echo` body forwarding; B10's focused
+  native acceptance is retained above. `native_threads::configurable_pool_cancellation_and_shutdown_execute`
+  and ownership controls cover configured CPU cancellation/shutdown. Shared55
+  debug/release acceptance includes the18 registered realtime cases, with TLS,
+  disconnect and transferred producer cleanup. The422a7d392a0e export scope passed
+  the real generated Shlex consumer and relocated empty-Cargo-home builds at both
+  profiles; retained regex native/catalog/offline cases cover the intentional
+  compiler-owned package adapter. The integrated persistent service now passes
+  `tools/check-service.mjs` on Darwin (78.033s): TLS, authentication, session
+  revocation, persistence/restart, forms, multipart, CORS, body limit, static
+  allowlist, redaction, SIGTERM and SIGINT. Its receipt has `offlinePackage:false`;
+  no service-specific offline package or cross-host acceptance is inferred.
+
 - [ ] Refresh affected public micro/HTTP metrics with cached unchanged reference
   histories. Keep Rust/Node comparisons, sample scopes, CPU/RSS/p99 and real
   function examples readable; no before/after or date-heavy presentation needed.

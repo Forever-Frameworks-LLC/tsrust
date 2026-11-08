@@ -34,6 +34,16 @@ fn files(root: &Path, directory: &Path, result: &mut Vec<PathBuf>) -> io::Result
     }
     Ok(())
 }
+// The published archive omits its repository-root license. Emit the exact
+// reviewed supplement outside vendor/; never rewrite Cargo's checksums or cache.
+fn supplemental_notice(package:&str,checksum:&str)->io::Result<Option<&'static [u8]>> {
+    if package!="valuable-0.1.1" {return Ok(None);}
+    if checksum!="ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65" {return Err(error("valuable 0.1.1 archive identity changed"));}
+    let bytes=include_bytes!("../../../../attributions/valuable-0.1.1-MIT.txt");
+    if digest(bytes)!="ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44" {return Err(error("valuable 0.1.1 supplemental MIT notice changed"));}
+    Ok(Some(bytes))
+}
+
 fn packages(lock: &str) -> io::Result<BTreeMap<String,String>> {
     let document=lock.parse::<toml_edit::DocumentMut>().map_err(|e|error(e.to_string()))?;
     let mut packages=BTreeMap::new();
@@ -78,6 +88,9 @@ fn visit(root: &Path, manifest: &str, lock: &str, mut copy: impl FnMut(&Path,&[u
             copy(&Path::new("vendor").join(&name).join(relative),&bytes)?;
         }
         if !hashes.is_empty(){return Err(error(format!("Missing vendor files: {name}")));}
+        if let Some(notice)=supplemental_notice(&name,&checksum)? {
+            copy(Path::new("attributions/dependencies/valuable-0.1.1/LICENSE"),notice)?;
+        }
     }
     if !expected.is_empty(){return Err(error("Prepared source pack is incomplete"));}Ok(())
 }
@@ -116,4 +129,17 @@ pub(super) fn prepare(mut cargo: Command, offline: bool, manifest: &str, lock: &
     })();
     // Only the exclusively created staging directory is owned by this call.
     if staging.exists(){let _=fs::remove_dir_all(&staging);}result
+}
+
+#[cfg(test)]
+mod supplemental_notice_tests {
+    use super::*;
+    #[test]
+    fn valuable_notice_is_bound_to_the_exact_archive_and_kept_outside_vendor() {
+        let bytes=supplemental_notice("valuable-0.1.1","ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65").unwrap().unwrap();
+        assert_eq!(bytes.len(),1065);assert_eq!(digest(bytes),"ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44");
+        assert!(supplemental_notice("valuable-0.1.1","changed").is_err());
+        assert!(supplemental_notice("unrelated-0.1.1","changed").unwrap().is_none());
+        assert!(supplemental_notice("valuable-0.1.2","changed").unwrap().is_none());
+    }
 }

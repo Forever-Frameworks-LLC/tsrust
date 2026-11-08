@@ -274,6 +274,9 @@ Catalog examples are source witnesses with unreviewed execution, never inferred
 passes. Reconcile these with retained exact-case evidence before changing status;
 a family test or module count alone cannot establish a per-export pass. Keep
 private native lookup identities distinct from user-importable source exports.
-This source update has not produced a fresh compiled inventory or completed that
-reconciliation. Existing `globals-and-imports-coverage.json` remains its separate
+The current generator has executed successfully:1680 discovered rows include671
+native bindings,174 native declarations and43 bundled-source exports. Seventy-eight
+filesystem/URL catalog-example witnesses retain their exact reviewed input digests.
+These counts are discovery metadata; per-symbol negative/alias/native-platform
+reconciliation remains incomplete. Existing `globals-and-imports-coverage.json` remains its separate
 naming-review record; do not replace its reviewed identities with coverage claims.

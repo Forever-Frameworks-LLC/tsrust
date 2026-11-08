@@ -72,6 +72,18 @@ try {
         authorsNotice = `attributions/dependencies/${crate.name}/AUTHORS`;
       }
       notices(directory, `attributions/dependencies/${crate.name}`, false, authorsNotice);
+      if (packageName === 'valuable' || ['valuable','valuable-0.1.1'].includes(crate.name)) {
+        if (packageName !== 'valuable' || packageVersion !== '0.1.1' || !['valuable','valuable-0.1.1'].includes(crate.name))
+          throw Error('Unreviewed valuable package identity for supplemental MIT notice.');
+        const checksum = JSON.parse(fs.readFileSync(path.join(directory, '.cargo-checksum.json'), 'utf8'));
+        if (checksum.package !== 'ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65')
+          throw Error('valuable 0.1.1 requires the exact reviewed archive checksum.');
+        const supplemental = path.join(root, 'attributions/valuable-0.1.1-MIT.txt');
+        const bytes = fs.readFileSync(supplemental);
+        if (crypto.createHash('sha256').update(bytes).digest('hex') !== 'ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44')
+          throw Error('valuable 0.1.1 supplemental MIT notice changed.');
+        copy(supplemental, 'attributions/dependencies/valuable-0.1.1/LICENSE');
+      }
     }
   }
   if(vendor){

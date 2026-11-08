@@ -6,35 +6,37 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current source814f1a64; complete service-retry repair pending checkpoint. Full goal active.
-- DiagnosticONLY CLI+inventory build session60461 terminalPASS158.77s/2263944312B.
-  /tmp/tsrust-service-body-state-cli-build.json. Actual controlPASS, minimal and
-  originalserviceFAIL: checkedbody0/rawbody0 BUT retainedSome3/Some4. Flags show
-  resultdiscovery active. Thus sourceEXISTS; restoration occurs too late.
-  /tmp/tsrust-service-body-state-{minimal,original}.err and-probes.json.
-- Correct root boundary found: FunctionTask errorunwind discards consumedbody,
-  discovery_expression_inner catches pendingdiagnostic→Ok(None) and retriesBEFORE
-  outercallback-discovery replay. Reviewed ed499 patch restores ONLYfailedtask's
-  drained unchecked/empty functions from existingretainedsource BEFOREreturning
-  originalErr. Suspendedouterframes/successfulfunctions untouched. Applied/unvalidated.
-- Both discovery→full checking entries nowretainrawsource: existingfe1selected
-  helper plusfunction_request_ready. New inferredroutes variant FAILSoldCLIwith
-  Cannotbindnoreturn; removeunusedstdtestingimport CONTROLpasses. Regressionnow
-  hasdeclared/inferred with/withoutimport4positives +trueMissing_response negative.
-  No diagnosticsremaininsource. Temporarytrace removaltargeted; all otheredits preserved.
-- Next /tmp/tsrust-service-unwind-repair-run.py: NEWchanged-source30minute scope.
-  CLI-only build FIRST, exact5publicfrontendregressions, originalservicecheck,
-  actualinventory, ONEexistingserviceappbuild/restartchecks, thenfocusedRustlib
-  witness. Earlierfailedscopesstayterminal/incomplete; noactivebudgetreset or
-  serialpartitionofoversizedsuite. Heavybuildsserialized/sharedtarget/jobs1/inc0.
-- InventoryACTUALPASS4.743s:1680discoveredrows,671bindings,174native declarations,
- 43sourceexports,78retainedFS/URLcatalogexamplewitnesses. Remainingper-export
- negative/alias/platformreconciliationexplicit; NOTconformancepercentage.
- /tmp/tsrust-current-public-api-inventory.json disposablecurrentreport.
-- Quietlocked oldbasepackcleanupACTUAL recovered766394368B (670417411logical,
- 28282files); currentbasea1fe... andrealShlex849...metadatahashesunchanged.
- /tmp/tsrust-obsolete-base-source-pack-cleanup.json. Netoldhostcleanup1430007808B
- retainedseparately; newlycreatedobjectcleanupnotcountedasoldnetrecovery.
+Current accepted source44a5e800; attribution/export fix pending checkpoint. Full goal active.
+- ACTUAL PASS currentCLI publicfrontend declared/inferredfactory4controls plus
+  genuineMissing_response error; originalservicefrontendPASS; inventoryPASS1680
+  rows/671bindings/174types/43sourceexports/78retainedexamplewitnesses.
+  /tmp/tsrust-service-unwind-repair-results.json.
+- ACTUAL integratedservicePASS78.033s/1042023408B: ONEappbuild thenSAMEexecutable
+  TLS/auth/sessionrevocation/persistentSQLite restart/forms/multipart/CORS/bodylimit/
+  staticallowlist/redaction/SIGTERM/SIGINT. /tmp/tsrust-service-unwind-repair-service.out.
+  NativeDarwin only; offlinePackagefalse, notLinux/Windows/exportproof.
+- Main focusedharness launchfailed0.558s BEFORECargo becauseold /tmp/tsrust-watch.py
+  vanished. Restoredthinwrapperusingrepo platform.bounded, no newwatchframework.
+  ONLYpendingRustharness resumedinsideSAMEoriginal30minscope; actualPASS240.363s/
+  3371849128B; exactprojectregressionPASS0.613s including4variants+realerror.
+  /tmp/tsrust-service-unwind-host-tests-results.json and -d2e204380b48.json.
+  Session66923/83979closed. No build live. Preserveallpassednativeapp checks.
+- Current repairedsource retainsbeforeBOTHdiscovery→fullentries, restoresONLY
+  failedtask'sdraineduncheckedemptyfunctions BEFOREpendingerrorretry. Diagnostics
+  removed. Earlier03ec1538compiler/27LSP/Docnative/fullHTTP3passesretained; final
+  wholebackend/platform acceptance stillpending. Do notclaimallv0.2done.
+- B00newpackageaudit vs8efaaee:30native/31backenddirectadditions,17alreadylocked;
+  44newregistryidentities checksumverified;42activehaveexactretainedadmission;
+  2dormant. Currentbackendlock0vulns/0warnings; optionalUI warnings remainexplicit.
+- One realnoticegap: valuable0.1.1archiveomitsLICENSE. Pendingpatch adds exact
+  upstreamMIT atitsrecordedcommit9efc29b6e58cef28f6566a47aa7e142a55fead77,
+  SHAed60d479...b44/1065B, outsidevendor/checksums. JSfocused2testsACTUALPASS0.355s;
+  RustCLIhelper andactualportableexportvalidation next. No corelibraryrebuildneeded.
+- B20localintegratedapp rownowcompletedwithqualifiedMac evidence; nativefourhost/
+  finalregressions/remainingB00review remainunchecked. Namedfs/HTTPdefaultmigrations
+  documentedascompletedwithoutnarrowingparentcross-exportdefaultrequirement.
+- Netcleanup oldhost1430007808B +obsoletebasepack766394368B. Currentbase/Shlexpacks
+  protected; rawnewobjectcleanupseparate. Shareddepsretained. No push/publication.
 - TERMINAL PASS current03ec4f13 repair: selectedbuild394.945s/3276963KiB,
   two focused compiler guards PASS, real documentation native case PASS119.67s.
   /tmp/tsrust-fixed-callback-repair-76986fc9793f.json.

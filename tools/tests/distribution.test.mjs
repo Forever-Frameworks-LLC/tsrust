@@ -249,3 +249,39 @@ test('LSP smoke bounds an unresponsive child and reports spawn failures', async 
   await assert.rejects(smokeLsp(process.execPath, ['-e', server, 'hang'], {...options, timeout: 500}), /timed out/);
   await assert.rejects(smokeLsp('tsrust-missing-lsp-executable', [], options), /ENOENT/);
 });
+
+function valuableVendor(directory, versioned) {
+  const vendor = path.join(directory, 'vendor');
+  const crate = path.join(vendor, versioned ? 'valuable-0.1.1' : 'valuable');
+  fs.mkdirSync(crate, {recursive: true});
+  fs.writeFileSync(path.join(crate, 'Cargo.toml'), '[package]\nname="valuable"\nversion="0.1.1"\nlicense="MIT"\n');
+  fs.writeFileSync(path.join(crate, '.cargo-checksum.json'), JSON.stringify({package: 'ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65', files: {}}));
+  return {vendor, crate};
+}
+test('packaging adds the exact valuable MIT supplement without changing vendor bytes', () => {
+  for (const versioned of [false, true]) temporary(directory => {
+    const {vendor, crate} = valuableVendor(directory, versioned);
+    const before = fs.readFileSync(path.join(crate, '.cargo-checksum.json'));
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    assert.equal(result.status, 0, result.stderr);
+    const relative = 'attributions/dependencies/valuable-0.1.1/LICENSE';
+    const bytes = fs.readFileSync(path.join(output, relative));
+    assert.equal(digest(bytes), 'ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44');assert.equal(bytes.length, 1065);
+    assert.deepEqual(fs.readFileSync(path.join(crate, '.cargo-checksum.json')), before);
+    assert.ok(!fs.existsSync(path.join(crate, 'LICENSE')));
+    const manifest = JSON.parse(fs.readFileSync(path.join(output, 'manifest.json')));
+    assert.deepEqual(manifest.files[relative], {sha256: digest(bytes), bytes: bytes.length});
+  });
+});
+test('packaging rejects unreviewed valuable archive and nominal identities', () => {
+  for (const versioned of [false, true]) for (const mode of ['checksum','version','name']) temporary(directory => {
+    const {vendor, crate} = valuableVendor(directory, versioned);
+    if (mode === 'checksum') fs.writeFileSync(path.join(crate, '.cargo-checksum.json'), '{"package":"changed"}');
+    else {
+      const file = path.join(crate, 'Cargo.toml');
+      fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(mode === 'name' ? 'name="valuable"' : 'version="0.1.1"', mode === 'name' ? 'name="unrelated"' : 'version="0.1.2"'));
+    }
+    assert.notEqual(pack([...consumers(directory), 'aarch64-apple-darwin', path.join(directory, 'package'), vendor]).status, 0);
+  });
+});
