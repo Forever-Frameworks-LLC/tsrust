@@ -2495,7 +2495,14 @@ impl Emitter<'_> {
             };
             arms.push_str(&format!("{}::V{tag}(payload)=>{{{report}}},",exception_emit::constructor_path(error_name)));
         }
-        format!("fn main()->std::process::ExitCode{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup)
+        let entry=format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup);
+        if Self::async_entry(function) {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_main_thread(tsrust_entry_main) }}\n")}
+        else {format!("fn main()->std::process::ExitCode{entry}")}
+    }
+
+    /// A synchronous wrapper whose body awaits drives one async runtime.
+    fn async_entry(fun:&CheckedFunction)->bool {
+        fun.body.iter().any(|stmt|matches!(stmt.kind,StmtKind::Expr(Expr{kind:ExprKind::Unary{op:UnaryOp::Await,..},..})))
     }
 
     fn uses_locale_runtime(&self)->bool{self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::Locale|crate::native_signatures::NativeTypeId::Collator|crate::native_signatures::NativeTypeId::Segmenter|crate::native_signatures::NativeTypeId::NumberFormat)))||self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:locale")}
@@ -3198,8 +3205,9 @@ impl Emitter<'_> {
                 let _ = writeln!(output,"// tsrust-fixed-array-result {{\"function\":{name:?},\"result\":{view_result:?},\"element\":{element:?},\"width\":{width},\"rank\":{rank}}}");
             }
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
-            let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
-            let async_entry=fun.body.iter().any(|stmt|matches!(stmt.kind,StmtKind::Expr(Expr{kind:ExprKind::Unary{op:UnaryOp::Await,..},..})));
+            let async_entry=Self::async_entry(fun);
+            let threaded=name == "main" && async_entry;
+            let _ = writeln!(output,"fn {}{generics}({params}) -> {native_result}{replacement_where} {{",if threaded {"tsrust_entry_main"} else {&name});
             if async_entry {output.push_str("tsrust_async_block_on(async move {\n");}
             if name == "main" {
                 output.push_str(self.entry_setup);
@@ -3222,6 +3230,7 @@ impl Emitter<'_> {
             }
             if async_entry {output.push_str("})\n");}
             output.push_str("}\n\n");
+            if threaded {let _ = writeln!(output,"fn main() -> {native_result} {{ tsrust_main_thread(tsrust_entry_main) }}\n");}
         }
         self.active_plan.set(None);
         if let Some(index)=self.program.functions.iter().position(|function|function.name=="main") {
@@ -8988,6 +8997,29 @@ impl Emitter<'_> {
         format!("match (&equality_left, &equality_right) {{ {arms}#[allow(unreachable_patterns)] _ => false }}")
     }
 
+    /// `value.tag === "text"` where every record alternative declares `tag` as
+    /// one string literal: the variant already identifies the tag, so select
+    /// variants directly instead of comparing text. Returns the base, which is
+    /// still evaluated once, and the selected variant arms in either operand order.
+    pub(super) fn literal_tag_selection<'e>(&self, left: &'e Expr, right: &'e Expr) -> Option<(&'e Expr, String)> {
+        let select = |field: &'e Expr, literal: &Expr| {
+            let (ExprKind::Field(base, name), ExprKind::String(text)) = (&field.kind, &literal.kind) else { return None };
+            let union = base.ty?.union()?;
+            let mut arms = String::new();
+            for (variant, member) in self.program.unions[union.index()].members.iter().enumerate() {
+                let Type::Record(record) = member else { return None };
+                let tag = self.program.records[*record].fields.iter().find(|field| field.name.text == *name)?;
+                let Some(Type::Literal(id, crate::literal_types::LiteralKind::String)) = tag.ty else { return None };
+                let Some(crate::literal_types::LiteralValue::String(value)) = &self.program.records[id].literal_definition else { return None };
+                if value == text {
+                    let _ = write!(arms, "{}{}::V{variant}(_) => true, ", if union.copy { "Union" } else { "ViewUnion" }, union.index());
+                }
+            }
+            Some((base.as_ref(), arms))
+        };
+        select(left, right).or_else(|| select(right, left))
+    }
+
     #[inline(never)]
     fn binary_expression_frame(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
         match self.binary_expression_code(fun, expr) {
@@ -9054,6 +9086,12 @@ impl Emitter<'_> {
                 render(right, Mode::Read),
                 if *op == BinaryOp::Equal { equal } else { format!("!({equal})") }
             ));
+        }
+        if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual) {
+            if let Some((base, arms)) = self.literal_tag_selection(left, right) {
+                let test = format!("match &({}) {{ {arms}#[allow(unreachable_patterns)] _ => false }}", render(base, Mode::Read));
+                return Ok(if *op == BinaryOp::Equal { test } else { format!("!({test})") });
+            }
         }
         if let Some(operands) = Self::string_addition_chain(expr) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode) }).collect::<Vec<_>>();

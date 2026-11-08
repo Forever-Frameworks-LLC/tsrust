@@ -71,6 +71,29 @@ class PlatformAcceptance(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 RUNNER.second_repair_plan(path, host)
 
+    def test_third_repair_keeps_its_own_identity_and_requires_both_seals(self):
+        key = "tsrust-compiler::realtime"
+        names = ["second-pass", "third-pass", "failed"]
+        third = {"targets": {key: {"identity": {"checkpoint": RUNNER.THIRD_CHECKPOINT, "binary": "third"}, "secondRetained": {"cases": ["second-pass"]}, "tests": {"third-pass": {"success": True, "status": "ok", "scopeStop": None}, "failed": {"success": False, "status": "FAILED"}}}}}
+        self.assertEqual(RUNNER.own_passes(third, key, names, RUNNER.THIRD_CHECKPOINT), {"third-pass"})
+        with self.assertRaises(AssertionError):
+            RUNNER.own_passes(third, key, names, RUNNER.SECOND_CHECKPOINT)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "results.json"
+            host = "x86_64-unknown-linux-gnu"
+            evidence = {"host": host, "checkpoint": RUNNER.THIRD_CHECKPOINT,
+                        "retainedEvidence": {"checkpoint": RUNNER.REPAIR_CHECKPOINT, "resultsSha256": RUNNER.REPAIR_RESULTS[host], "run": "42460717406"},
+                        "secondRetainedEvidence": {"checkpoint": RUNNER.SECOND_CHECKPOINT, "resultsSha256": RUNNER.SECOND_RESULTS[host], "run": "42470181942"}}
+            path.write_text(json.dumps(evidence))
+            with patch.object(RUNNER, "sha", return_value=RUNNER.THIRD_RESULTS[host]):
+                self.assertEqual(RUNNER.third_repair_plan(path, host), evidence)
+                evidence["secondRetainedEvidence"]["run"] = "unreviewed"
+                path.write_text(json.dumps(evidence))
+                with self.assertRaises(AssertionError):
+                    RUNNER.third_repair_plan(path, host)
+            with self.assertRaises(AssertionError):
+                RUNNER.third_repair_plan(path, host)
+
     def test_scope_budget_includes_setup_and_rejects_invalid_ci_start(self):
         self.assertEqual(RUNNER.scope_deadline(None, 10000.0, 200.0), 3500.0)
         self.assertEqual(RUNNER.scope_deadline("9400", 10000.0, 200.0), 2900.0)

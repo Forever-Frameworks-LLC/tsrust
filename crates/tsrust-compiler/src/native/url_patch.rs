@@ -48,17 +48,48 @@ fn regular(path:&Path,directory:bool)->io::Result<()> {
     if metadata.file_type().is_symlink() || if directory{!metadata.is_dir()}else{!metadata.is_file()} {return Err(invalid(format!("URL patch has a link or unexpected file type: {}",path.display())));}
     Ok(())
 }
+fn parents(root:&Path,relative:&Path)->io::Result<()> {
+    let mut directory=root.to_owned();
+    for component in relative.parent().unwrap().components() {
+        directory.push(component);
+        match fs::create_dir(&directory) {Ok(())=>{},Err(error) if error.kind()==io::ErrorKind::AlreadyExists=>regular(&directory,true)?,Err(error)=>return Err(error)}
+    }
+    Ok(())
+}
 /// The caller owns a newly created root and cleans it up if installation fails.
 pub fn install(root:&Path,manifest:&str)->io::Result<()> {
     if selected(manifest)?.is_none(){return Ok(());}
     regular(root,true)?;
     for (relative,bytes) in FILES {
         let relative=Path::new(DIRECTORY).join(relative);
-        let mut directory=root.to_owned();
+        parents(root,&relative)?;
+        use io::Write;
+        fs::OpenOptions::new().write(true).create_new(true).open(root.join(relative))?.write_all(bytes)?;
+    }
+    Ok(())
+}
+/// The caller holds the workspace lock. Cache restoration can keep a support
+/// directory while omitting payload files: recreate only absent registered files.
+/// Present changed files and links are rejected before anything is written.
+pub fn restore_missing(root:&Path,manifest:&str)->io::Result<()> {
+    if selected(manifest)?.is_none(){return Ok(());}
+    regular(root,true)?;
+    let mut missing=Vec::new();
+    for (name,bytes) in FILES {
+        let relative=Path::new(DIRECTORY).join(name);
+        let mut ancestor=root.to_owned();
         for component in relative.parent().unwrap().components() {
-            directory.push(component);
-            match fs::create_dir(&directory) {Ok(())=>{},Err(error) if error.kind()==io::ErrorKind::AlreadyExists=>regular(&directory,true)?,Err(error)=>return Err(error)}
+            ancestor.push(component);
+            match fs::symlink_metadata(&ancestor) {Ok(_)=>regular(&ancestor,true)?,Err(error) if error.kind()==io::ErrorKind::NotFound=>break,Err(error)=>return Err(error)}
         }
+        match fs::symlink_metadata(root.join(&relative)) {
+            Ok(_)=>{regular(&root.join(&relative),false)?;if fs::read(root.join(&relative))?!=*bytes{return Err(invalid(format!("URL patch source changed: {}",relative.display())));}},
+            Err(error) if error.kind()==io::ErrorKind::NotFound=>missing.push((relative,*bytes)),
+            Err(error)=>return Err(error),
+        }
+    }
+    for (relative,bytes) in missing {
+        parents(root,&relative)?;
         use io::Write;
         fs::OpenOptions::new().write(true).create_new(true).open(root.join(relative))?.write_all(bytes)?;
     }
@@ -113,13 +144,21 @@ mod tests {
         let path=root.join(DIRECTORY).join("src/parser.rs");let original=fs::read(&path).unwrap();fs::write(&path,b"modified").unwrap();assert!(visit(&root,MANIFEST,|_,_|Ok(())).is_err());fs::write(path,original).unwrap();
         let injected=root.join(DIRECTORY).join("build.rs");fs::write(&injected,b"fn main(){}").unwrap();assert!(visit(&root,MANIFEST,|_,_|Ok(())).is_err());fs::remove_file(injected).unwrap();
         fs::remove_file(root.join(DIRECTORY).join("src/parser.rs")).unwrap();assert!(visit(&root,MANIFEST,|_,_|Ok(())).is_err());
+        fs::remove_dir_all(root.join(DIRECTORY).join("tests")).unwrap();
+        restore_missing(&root,MANIFEST).unwrap();visit(&root,MANIFEST,|_,_|Ok(())).unwrap();
+        fs::remove_dir_all(root.join("patched-dependencies")).unwrap();
+        restore_missing(&root,MANIFEST).unwrap();visit(&root,MANIFEST,|_,_|Ok(())).unwrap();
+        fs::write(root.join(DIRECTORY).join("README.md"),b"changed").unwrap();fs::remove_file(root.join(DIRECTORY).join("src/lib.rs")).unwrap();
+        assert!(restore_missing(&root,MANIFEST).unwrap_err().to_string().contains("changed"));
+        assert_eq!(fs::read(root.join(DIRECTORY).join("README.md")).unwrap(),b"changed");assert!(!root.join(DIRECTORY).join("src/lib.rs").exists());
+        assert!(restore_missing(&root,"[dependencies]\n").is_ok());
     }
     #[test]
     #[cfg(unix)]
     fn patch_payload_rejects_directory_symlinks() {
         let root=std::env::temp_dir().join(format!("tsrust-url-link-{}",std::process::id()));fs::create_dir(&root).unwrap();
         std::os::unix::fs::symlink(std::env::temp_dir(),root.join("patched-dependencies")).unwrap();
-        assert!(install(&root,MANIFEST).is_err());assert!(visit(&root,MANIFEST,|_,_|Ok(())).is_err());
+        assert!(install(&root,MANIFEST).is_err());assert!(restore_missing(&root,MANIFEST).is_err());assert!(visit(&root,MANIFEST,|_,_|Ok(())).is_err());
         fs::remove_file(root.join("patched-dependencies")).unwrap();fs::remove_dir(root).unwrap();
     }
 }

@@ -374,6 +374,10 @@ impl<'p> Emitter<'p> {
             && !matches!(op, BinaryOp::Coalesce | BinaryOp::PatternDefault)
             && (!matches!(op, BinaryOp::And | BinaryOp::Or) || (left.ty == Some(Type::Boolean) && right.ty == Some(Type::Boolean)))
         {
+            // A literal tag test renders only the union base; its variant selects the tag.
+            if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual) && let Some((base, _)) = self.literal_tag_selection(left, right) {
+                return Some(CallFrame { children: vec![(base, Mode::Read)], rendered: Vec::new(), invocation: None, state: CallState::Binary });
+            }
             let comparison = matches!(op, BinaryOp::Equal | BinaryOp::NotEqual)
                 && (matches!(left.ty, Some(Type::Null | Type::Undefined))
                     || matches!(right.ty, Some(Type::Null | Type::Undefined))

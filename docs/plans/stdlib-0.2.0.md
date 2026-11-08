@@ -1753,6 +1753,13 @@ The zero-retention witness remains rejected; the other three password allocation
 probes remain unrun. Completed synchronous counters were recovered from existing
 binaries only after exact current emitted/instrumented-source comparison, with no
 native recompilation. No allocation diagnostics were ingested as timings.
+A separate macOS `leaks --noContent --atExit` check then used existing compiled
+programs for all four password workloads, both native and unchanged direct Rust.
+All eight reported zero leaked blocks/bytes; each bounded scope finished in
+1.071–1.590 seconds, within one 120-second diagnostic budget. This checks
+unreachable allocations at exit, rather than redefining the earlier live-byte
+checkpoint. The original inside-runtime zero-retention rejection remains visible.
+
 
 ### B17 — Structured logging and request context
 
@@ -1851,6 +1858,13 @@ runtime and assertion helpers are unchanged. New process medians drifted
 0.146625/0.137666/0.100292ms despite passing the quiet guard. No concrete algorithm,
 copy or scheduler cause has been established; retain both measured records and
 investigate before claiming the performance review complete. Full regressions remain open.
+Current allocation follow-up passes three observations per workload with zero
+retained bytes: deep-data 18 allocations/1,728 requested bytes versus original
+2,066/132,800; deep-collections remains 5 allocations/2,400 bytes. Thus the record
+optimization removes 2,048 temporary work allocations for the registered input;
+no extra allocation volume explains the collection timing change. These are
+allocation diagnostics, not additional sampled timing measurements.
+
 
 ### B19 — Practical Rust package adapters
 
@@ -1917,6 +1931,10 @@ records 12,288/299,008 and nested option 4,095/77,805. All three observations pe
 workload retain zero bytes. Allocation volume therefore does not explain the
 nested timing gap; generated control-flow/representation costs remain unquantified.
 No padded reference or representation rewrite is accepted to obscure this gap.
+Generated equality between a record-union literal tag and a string literal now
+selects union variants instead of comparing tag text (2026-11-08); the nested
+workload emits no tag text comparison and its untimed oracle matches. The 7.00x
+record remains the latest measured timing until the original protocol is rerun.
 
 ## Parallel execution and ownership
 

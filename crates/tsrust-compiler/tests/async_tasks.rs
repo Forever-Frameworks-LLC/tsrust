@@ -45,6 +45,21 @@ fn unused_task_warnings_follow_reachable_paths_and_transfers() {
 }
 
 #[test]
+fn async_entrypoints_run_on_an_explicit_main_thread_stack() {
+    for (source, header) in [
+        ("async function value():Task<int>{return 4;}async function main():Task<void>{console.log(await value());}", "fn tsrust_entry_main() -> () {"),
+        ("async function value():Task<int>{return 4;}async function main():Task<void>{console.log(await value());throw 'boom';}", "fn tsrust_entry_main()->std::process::ExitCode{"),
+    ] {
+        let rust = check(&support::format_round_trip(source)).unwrap().emit_rust();
+        assert!(rust.contains(header), "{rust}");
+        assert_eq!(rust.matches("tsrust_main_thread(tsrust_entry_main) }").count(), 1, "{rust}");
+        assert!(rust.contains("stack_size(8 << 20)"));
+    }
+    let rust = check("function main(){console.log(1);}").unwrap().emit_rust();
+    assert!(rust.contains("fn main() -> () {") && !rust.contains("tsrust_entry_main"));
+}
+
+#[test]
 fn generated_future_retains_allocation_and_drops_once_across_real_suspension() {
     let source=support::format_round_trip("async function hold(text:string):Task<string>{return text;}function main(){}");
     let mut rust=check(&source).unwrap().emit_rust();

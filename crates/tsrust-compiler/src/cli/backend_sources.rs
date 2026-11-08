@@ -74,7 +74,7 @@ pub(crate) fn restore_missing(root:&Path,manifest:&str,lock:&str)->Result<(),Str
     for path in &directories[1..]{match fs::create_dir(path){Ok(())=>{},Err(e) if e.kind()==std::io::ErrorKind::AlreadyExists=>{},Err(e)=>return Err(format!("Cannot restore shared backend directory {}: {e}",path.display()))}}
     for (path,bytes) in missing{use std::io::Write;fs::OpenOptions::new().write(true).create_new(true).open(&path)
         .and_then(|mut file|file.write_all(bytes)).map_err(|e|format!("Cannot restore shared backend support {}: {e}",path.display()))?;}
-    Ok(())
+    tsrust_compiler::native_url_patch::restore_missing(root,manifest).map_err(|e|format!("Cannot restore shared backend URL patch in {}: {e}",root.display()))
 }
 
 pub(crate) fn validate(root: &Path, manifest:&str, lock: &str) -> Result<(), String> {
@@ -171,6 +171,7 @@ pub(crate) fn dependency_identity()-> &'static str {
         let package=workspace.root.join("native-support");materialize_with(&package,MANIFEST,LOCK).unwrap();
         let manifest=fs::read(package.join("Cargo.toml")).unwrap();
         fs::remove_dir_all(package.join("src")).unwrap();fs::remove_dir_all(package.join(".cargo")).unwrap();fs::remove_file(package.join("Cargo.lock")).unwrap();
+        if package.join("patched-dependencies").exists(){fs::remove_dir_all(package.join("patched-dependencies")).unwrap();}
         restore_missing(&package,MANIFEST,LOCK).unwrap();validate(&package,MANIFEST,LOCK).unwrap();
         assert_eq!(fs::read(package.join("Cargo.toml")).unwrap(),manifest);
         fs::write(package.join("Cargo.lock"),b"changed").unwrap();fs::remove_file(package.join("src/lib.rs")).unwrap();

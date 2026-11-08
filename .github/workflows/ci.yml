@@ -20,6 +20,10 @@ on:
         description: Additional reviewed run 42470181942; requires platform_prior_run 42460717406.
         type: string
         default: ""
+      platform_third_prior_run:
+        description: Additional reviewed run 42474075588; requires platform_second_prior_run 42470181942.
+        type: string
+        default: ""
       platform_windows_only:
         description: With platform_acceptance, validate a Windows repair without rerunning the other hosts.
         type: boolean
@@ -282,12 +286,27 @@ jobs:
           test "$PRIOR_RUN" = 42460717406
           test "$SECOND_RUN" = 42470181942
           gh run download "$SECOND_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-second-prior
+      - name: Retrieve reviewed third host evidence
+        if: ${{ inputs.platform_third_prior_run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          THIRD_RUN: ${{ inputs.platform_third_prior_run }}
+          SECOND_RUN: ${{ inputs.platform_second_prior_run }}
+          PRIOR_RUN: ${{ inputs.platform_prior_run }}
+        run: |
+          test "$PRIOR_RUN" = 42460717406
+          test "$SECOND_RUN" = 42470181942
+          test "$THIRD_RUN" = 42474075588
+          gh run download "$THIRD_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-third-prior
       - name: Run bounded native family and packaged consumer acceptance
         env:
           PRIOR_RUN: ${{ inputs.platform_prior_run }}
           SECOND_RUN: ${{ inputs.platform_second_prior_run }}
+          THIRD_RUN: ${{ inputs.platform_third_prior_run }}
         run: |
-          if [ -n "$SECOND_RUN" ]; then
+          if [ -n "$THIRD_RUN" ]; then
+            python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior --second-repair-plan target/platform-second-prior --third-repair-plan target/platform-third-prior
+          elif [ -n "$SECOND_RUN" ]; then
             python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior --second-repair-plan target/platform-second-prior
           elif [ -n "$PRIOR_RUN" ]; then
             python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior

@@ -6,10 +6,144 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-Current accepted checkpoint7ff214ea; focused missing-support/build-cleanup repair locally accepted; working-tree changes include actual113-group measurement ingestion, plan/progress metadata, build-helper cleanup and missing-support-file restoration.
-Hosted469e8bb3 andfocusedrepair42470181942@f46 areterminalFAIL. No remote job remains live.
+### Resumed continuation — 2026-11-08 12:30 UTC
+
+Owner resumed the goal. Hosted run 42474075588 at a7795eea is terminal FAIL on all
+four hosts; all four artifacts were downloaded, SHA-sealed and reviewed. This
+continuation repairs its diagnosed causes. Full B00–B20 stays incomplete;
+v0.2.0 merge/publication is not approved.
+
+- Actual C3 results (focused repair, not full-source acceptance): Linux 4 new
+  passes (relocated logging 357.8s, relocated realtime 392.9s, nominal projection
+  2.1s, LSP IO docs 11.8s); ARM 0; Intel 0; Windows 232 new passes across 22
+  targets, reaching 41 of 61 targets before the 55-minute scope stop. Windows
+  build-helper cleanup now works on the host. Results SHA256: Linux 3c28afa0…,
+  ARM 849cf27d…, Intel 8ef7dc2d…, Windows 5f3be802…; each retains the C1/C2 seals.
+- Root cause of almost every failure on all hosts: `Validating native support
+  workspace …: URL patch payload is incomplete.` The Actions cache restores
+  `target/tsrust-native` without some registered URL patch files, and
+  `backend_sources::restore_missing` restored only the four base files. Repair:
+  `native_url_patch::restore_missing` recreates only absent registered payload
+  files under the existing workspace lock; changed files and links are rejected
+  before any write. Unit witnesses cover partial/whole payload loss and changed
+  files. This resolves the earlier unexplained remote ENOENT/missing-path class.
+- Actual Windows stack receipt: relocated exported process `program.exe` (debug)
+  exits 0xc00000fd with main-thread stack overflow. Reproduced locally: the same
+  debug process example aborts under `ulimit -s 1024` (exit 134). Repair: an
+  async entrypoint now runs the whole generated `main` (hook setup, result
+  adapter, exit code) on a scoped thread named `main` with an 8 MiB stack; only
+  `()`/`ExitCode` crosses threads. Local repro then exits 0 with identical output.
+  The thread name keeps panic text unchanged. Witness:
+  `async_entrypoints_run_on_an_explicit_main_thread_stack`.
+- Remaining non-URL timeouts were cold per-command budgets on slow hosts: Intel
+  `emit --package` for logging/realtime exceeded 60s (now 180s, matching IO);
+  Intel IO relocated build and Windows logging relocated release build exceeded
+  300s (all three relocated cargo builds now 600s per profile). Scope 55 min and
+  job 60 min are unchanged.
+- Runner/workflow: optional reviewed third input `platform_third_prior_run=
+  42474075588` (`--third-repair-plan`) retains only C3's own successful cases at
+  their a7795eea identity, and requires both earlier seals. Python 25 PASS 0.14s;
+  workflow/release policy node tests 23 PASS.
+- B19 optimization: equality between a record-union literal tag field and a
+  string literal now selects variants (`match &(base) { ViewUnionN::Vk(_) => true,
+  … }`) in both emitter paths instead of comparing text. Nested-option workload
+  emits zero tag text comparisons; untimed oracle 505733888 matches. Not timed.
+- Local actual checks at the working tree (shared target, inc0, jobs1, exact
+  prior feature graph http-websocket+logging): compiler library 1544 PASS/8
+  ignored; LSP library 27 PASS; CLI 54 PASS (requires explicit CARGO_TARGET_DIR,
+  as on CI); schema_unions 14 incl. new witness, rust_bridge 8+8,
+  owned_iterators 12, recursive_callable_results 16, generic_value_adapters 92,
+  string_operators 6, async_tasks 30+3, async_io 17+4, process 12+4,
+  task_ergonomics 14, service_sections 3+3, structured_logging 4+1 all PASS.
+  The two relocated export cases need `TSRUST_SOURCE_PACK_DIR=target/portable-source-packs`
+  locally, as CI sets it. Each compiler rebuild took about 430s.
+- Next: commit, check PRs/Dependabot, push, dispatch one focused run with all
+  three prior inputs. Continue remaining B00–B20 work locally while it runs.
+
+### Owner-requested stop — 2026-11-08 11:14:58 UTC
+
+The owner explicitly requested a handoff and stop. Pause the goal; do not continue
+implementation or start more validation until the owner resumes it. Full B00–B20
+remains incomplete; v0.2.0 merge/publication is not approved.
+
+- Canonical writer: `/Users/seancotter/Desktop/dev/learning/tsrust`, branch
+  `codex/stdlib-0.2.0`, HEAD `a7795eea73d631a9f4340c0c5d898a107ac047db`, pushed.
+  Preserve the protected app worktree at
+  `/Users/seancotter/.codex/worktrees/stdlib-platform-acceptance/tsrust`.
+- Pending changes are ONLY `docs/agent-progress.md` and
+  `docs/plans/stdlib-0.2.0.md`: actual OS leak/allocation findings and current CI
+  evidence. Preserve them. No source edits or new builds followed a7795eea.
+- Verified at stop: no local Cargo/rustc/native/leaks process, no live agents.
+  Historical build PIDs and vanished sessions must not be restarted.
+- Existing hosted run **42474075588** remains LIVE at exact a7795eea, all four
+  hosts in bounded native-family/package acceptance. It was already dispatched;
+  left running, not cancelled. No additional run was launched for this handoff.
+  https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/42474075588
+- First action after resume: inspect this SAME run to terminal status, download
+  its host artifacts, inspect actual failures and preserve successful scopes
+  with their real identities. Prior two sealed inputs are42460717406@469 and
+  42470181942@f46. Current repair retains both separately and is NOT full-source
+  acceptance. Windows stack/signal phases and missing-support-path diagnosis
+  remain unresolved until actual new host evidence arrives.
+- Accepted local runtime/cache checkpoint7ff214ea: corrected one no-run build
+  31.080s/697811784B; CLI54PASS; IO18 both profiles plus raw stdioPASS; shared55
+  both profilesPASS. Existing compiler1544/LSP27/export proofs retained. Actual
+  113 timing-history entries are committed, original93 samples each; unchanged
+  Rust/Node controls must not be rebuilt or retimed without a diagnosed reason.
+- Latest additional evidence (details below): all four password workloads on
+  native/Rust have zero leaked blocks/bytes under macOS leaks at exit, using
+  existing binaries. The original inside-runtime allocator rejection remains
+  recorded. Current deep-data allocation count18 versus2066; collections5
+  unchanged. Material collection timing drift and nested-adapter7x Rust gap
+  remain explicitly recorded, not hidden by passing allocation observations.
+- Remaining complete-goal work includes final backend binaries/all integration/
+  doctest/editor/package/install/update/rollback/archive acceptance, public metric
+  and inventory reconciliation, and outstanding plan requirements. Do not claim
+  B00–B20 complete from the current focused scopes.
+- Full-suite budget audit is READ-ONLY, no optimization implemented or run:
+  old `/tmp/tsrust-965de83f-full-integration.json` has544 targets/4619 cases;
+  non-UI-prefix509/4503 accumulated10530s case time plus6288s per-target build
+  overhead. These are historical accumulated times, not a current wall-clock
+  estimate. Do not launch a known oversized suite or split it into serial hourly
+  chunks. One Cargo build and complete coherent coverage must fit one hour.
+  Largest historical groups: native_package_export, checker_agreement,
+  completion_matrix. `Session::settle` still waits900/400ms for quiet; replacing
+  it was only considered, NOT implemented or validated. Any future change must
+  preserve actual document-version/phase agreement and all existing assertions.
+- Public metric refresh entry points located, not executed:
+  `website/tools/generate-performance.mjs`,
+  `website/tools/performance-runs.json`, and `website/package.json` reference/build
+  scripts. Generator reads SQLite and explicitly curated Rust baselines. Add
+  accepted current measurements with cached controls; do not fabricate new runs.
+- No pushes/releases after a7795eea. Last prepush PR/Dependabot checks were empty.
+  Check both again before any future push. Keep this as the single handoff.
+
+
+Current source checkpoint a7795eea73d631a9f4340c0c5d898a107ac047db, pushed on
+codex/stdlib-0.2.0. Runtime/cache repair7ff214ea is locally accepted; a7795eea adds
+reviewed two-run evidence reuse and bounded cold-export command adjustments.
+Working-tree changes after this checkpoint are plan/progress evidence only.
+Hosted42460717406@469 and42470181942@f46 areterminalFAIL. Focused repair
+42474075588@a7795eea is RUNNING on all four hosts; do not dispatch another run.
 Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 
+- ACTUALC3dispatch42474075588 atEXACTa7795eea, usingbothreviewedpriorruns.
+  https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/42474075588.
+  LatestprepushPRs[]/Dependabot[], oldrunsallterminal. All4hostsnowinbounded
+  nativefamily/packageacceptance. Scope55min inclusiveofsetup/job60min. Thisis
+  focusedrepair, neverfullcurrent-sourceacceptance; publicationstillunapproved.
+- OSleakdiagnosisusedEXISTINGcompiledprobesonly, zeronativecompilation:
+  all4passwordworkloads×native/Rust report0leakedblocks/0bytes atprocessExit.
+  Eightownedscopes1.071–1.590s, same120saggregate ceiling. The3additional
+  measuredprogramsperenginehadexactacceptedbinarySHA verified beforeexecution.
+  /tmp/tsrust-password-os-leaks.json. This doesNOTerase earlierstrictallocator
+  inside-runtime zero-retentionfailure orprovezero livebackendallocations there.
+- CurrentB18allocationdiagnosticsACTUALPASS4.213s/283885568B: threeobservations
+  each retain0B. Deepdata18allocations/1728requestedB vsold2066/132800,
+  removing2048temporaryrecordworkallocations. Collections5allocations/2400B,
+  unchangedfromoldprofile. /tmp/tsrust-testing-current-allocations.json;
+  benchmarks/runtime/diagnostics/2026-11-08T11-08-53-828Z-native-allocations.json.
+  Noallocation-countcause forcollectiontimingdrift established; no controlretime.
 - Secondfocusedrepair preparation: all4 C2 artifacts SHA/host/source/parentseal
   verified locally. ActualC2passesLinux2/Windows0/ARM6/Intel127 remainf46;
   C1retained447/0/540/399 remain469. Newoptionalexplicitsecondartifactinput

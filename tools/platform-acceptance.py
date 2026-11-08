@@ -65,11 +65,39 @@ def second_repair_plan(path, host):
 
 
 def second_retained_cases(prior, key, names):
+    return own_passes(prior, key, names, SECOND_CHECKPOINT)
+
+# Reviewed third run at a7795eea; its own passes keep that identity.
+THIRD_CHECKPOINT = "a7795eea73d631a9f4340c0c5d898a107ac047db"
+THIRD_RESULTS = {
+    "x86_64-unknown-linux-gnu": "3c28afa0fa412413345f798a29737d3a41e59ff3894d17e435cde4969da2ca05",
+    "aarch64-apple-darwin": "849cf27d2e778b4fa51e2c0999ab80be59d6971b20afb04bdf832f56c2be950e",
+    "x86_64-apple-darwin": "8ef7dc2d85f5b32bd9ee7cbf304005e18f4f05a764fd249f5c1c804aed0715d3",
+    "x86_64-pc-windows-msvc": "5f3be8021b04ff80045fb2e4487de9b509a96034d7bba47c6c7b8b522a8759ed",
+}
+
+
+def third_repair_plan(path, host):
+    path = Path(path)
+    if path.is_dir():
+        paths = list(path.rglob("results.json"))
+        assert len(paths) == 1, "Expected one third-run host result"
+        path = paths[0]
+    assert host in THIRD_RESULTS, "Third-run host evidence not yet reviewed"
+    assert sha(path) == THIRD_RESULTS[host], "Third artifact results changed"
+    prior = json.loads(path.read_text())
+    assert prior["host"] == host and prior["checkpoint"] == THIRD_CHECKPOINT
+    assert prior["retainedEvidence"] == {"checkpoint": REPAIR_CHECKPOINT, "resultsSha256": REPAIR_RESULTS[host], "run": "42460717406"}
+    assert prior["secondRetainedEvidence"] == {"checkpoint": SECOND_CHECKPOINT, "resultsSha256": SECOND_RESULTS[host], "run": "42470181942"}
+    return prior
+
+
+def own_passes(prior, key, names, checkpoint):
     previous = prior.get("targets", {}).get(key, {})
     if not previous:
         return set()
-    assert previous["identity"]["checkpoint"] == SECOND_CHECKPOINT
-    # Never read nested retained cases here: those still belong to the first run.
+    assert previous["identity"]["checkpoint"] == checkpoint
+    # Never read nested retained cases here: those belong to earlier runs.
     return {name for name in names if (row := previous.get("tests", {}).get(name, {})).get("success") is True
             and row.get("status") == "ok" and row.get("scopeStop") is None}
 
@@ -345,10 +373,13 @@ def main():
     parser.add_argument("--host", required=True, choices=["x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-pc-windows-msvc"])
     parser.add_argument("--repair-plan", help="Prior run 42460717406 host artifact results JSON or directory; focused repair only")
     parser.add_argument("--second-repair-plan", help="Additional reviewed run 42470181942 artifact; requires first repair plan")
+    parser.add_argument("--third-repair-plan", help="Additional reviewed run 42474075588 artifact; requires second repair plan")
     args = parser.parse_args()
     prior = repair_plan(args.repair_plan, args.host) if args.repair_plan else None
     assert not args.second_repair_plan or prior, "Second evidence requires first evidence"
     second = second_repair_plan(args.second_repair_plan, args.host) if args.second_repair_plan else None
+    assert not args.third_repair_plan or second, "Third evidence requires second evidence"
+    third = third_repair_plan(args.third_repair_plan, args.host) if args.third_repair_plan else None
     root = Path(__file__).resolve().parent.parent
     target = root / "target"
     version = tomllib.loads((root / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
@@ -382,6 +413,8 @@ def main():
     save()
     if second:
         results["secondRetainedEvidence"] = {"checkpoint": SECOND_CHECKPOINT, "resultsSha256": SECOND_RESULTS[args.host], "run": "42470181942"}
+    if third:
+        results["thirdRetainedEvidence"] = {"checkpoint": THIRD_CHECKPOINT, "resultsSha256": THIRD_RESULTS[args.host], "run": "42474075588"}
     def run(label, command, cwd=root):
         frozen()
         # Unique attempts preserve failed-scope evidence without overwriting logs.
@@ -433,6 +466,10 @@ def main():
                 second_cases = second_retained_cases(second, key, names) - retained
                 results["targets"][key]["secondRetained"] = {"identity": second.get("targets", {}).get(key, {}).get("identity"), "cases": sorted(second_cases)}
                 retained |= second_cases
+            if third:
+                third_cases = own_passes(third, key, names, THIRD_CHECKPOINT) - retained
+                results["targets"][key]["thirdRetained"] = {"identity": third.get("targets", {}).get(key, {}).get("identity"), "cases": sorted(third_cases)}
+                retained |= third_cases
             pending = []
             for test in names:
                 if name == "service_sections" and test == "delivered_signals::internal_owned_console_signal_sender":

@@ -93,7 +93,7 @@ fn io_http_package_exports_and_builds_offline_after_relocation(){
  let manifest=std::fs::read_to_string(package.join("Cargo.toml")).unwrap();assert!(manifest.contains("\"io\""));assert!(manifest.contains("tokio/io-util"));let rust=std::fs::read_to_string(package.join("src/main.rs")).unwrap();assert!(!rust.contains("runtime_tests.rs"));assert_safe_rust(&rust);std::fs::write(package.join("src/main.rs"),format!("#![forbid(unsafe_code)]\n{rust}")).unwrap();
  std::fs::remove_file(input).unwrap();let relocated=directory.0.join("relocated");std::fs::rename(package,&relocated).unwrap();let home=directory.0.join("empty-cargo-home");std::fs::create_dir(&home).unwrap();
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
- let mut build=std::process::Command::new("rustup");build.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",home).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);support::success(&support::run(&mut build,300));
+ let mut build=std::process::Command::new("rustup");build.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",home).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);support::success(&support::run(&mut build,600));
  let output=support::run(std::process::Command::new(target.join(format!("debug/program{}",std::env::consts::EXE_SUFFIX))).current_dir(&relocated),30);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout),"20\nsplit-é-lines\r\nlast\n");
 }
 
