@@ -5,6 +5,15 @@ import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
+const SUPPLEMENTS = [
+  ['valuable', '0.1.1', 'ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65', 'valuable-0.1.1-MIT.txt', 'ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44'],
+  ['jni', '0.22.4', '5efd9a482cf3a427f00d6b35f14332adc7902ce91efb778580e180ff90fa3498', 'jni-0.22.4-MIT.txt', 'fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960'],
+  ['jni-macros', '0.22.4', 'a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3', 'jni-0.22.4-MIT.txt', 'fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960'],
+  ['jni-sys-macros', '0.4.1', '38c0b942f458fe50cdac086d2f946512305e5631e720728f2a61aabcd47a6264', 'jni-sys-macros-0.4.1-MIT.txt', '1d85bd754b04ceec93e98e890edd1fa3c6a22e81bcb32135806beeccefa51cd1'],
+  ['rustls-platform-verifier-android', '0.2.0', 'eec689c0bc40ff2458a5977b6619cb718087084a18e02a131c599b62d05e1a5f', 'rustls-platform-verifier-android-0.2.0-MIT.txt', '1c7cf76689c837a68ed8d704994e52a0f2940c087958f860d17f3186afbdcc0c'],
+  ['rsqlite-vfs', '0.1.1', 'c51c9ae4df8a7fba42103df5c621fa3c37eccf3a3c650879e90fc48b11cc192c', 'rsqlite-vfs-0.1.1-MIT.txt', 'e1c1975c3474cce31722836f101a40ffaf1cc784e4d2f38ce3e77b9712934e78'],
+];
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const [compiler, server, target, output, vendor] = process.argv.slice(2);
 if (!compiler || !server || !target || !output || process.argv.length > 7)
@@ -72,17 +81,19 @@ try {
         authorsNotice = `attributions/dependencies/${crate.name}/AUTHORS`;
       }
       notices(directory, `attributions/dependencies/${crate.name}`, false, authorsNotice);
-      if (packageName === 'valuable' || ['valuable','valuable-0.1.1'].includes(crate.name)) {
-        if (packageName !== 'valuable' || packageVersion !== '0.1.1' || !['valuable','valuable-0.1.1'].includes(crate.name))
-          throw Error('Unreviewed valuable package identity for supplemental MIT notice.');
+      // These published archives omit their repository-root license. Add the exact
+      // upstream MIT text (or MIT alternative) reviewed in attributions/README.md.
+      const supplement = SUPPLEMENTS.find(([name, version]) => packageName === name || [name, `${name}-${version}`].includes(crate.name));
+      if (supplement) {
+        const [name, version, archive, file, notice] = supplement;
+        if (packageName !== name || packageVersion !== version || ![name, `${name}-${version}`].includes(crate.name))
+          throw Error(`Unreviewed ${name} package identity for supplemental MIT notice.`);
         const checksum = JSON.parse(fs.readFileSync(path.join(directory, '.cargo-checksum.json'), 'utf8'));
-        if (checksum.package !== 'ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65')
-          throw Error('valuable 0.1.1 requires the exact reviewed archive checksum.');
-        const supplemental = path.join(root, 'attributions/valuable-0.1.1-MIT.txt');
-        const bytes = fs.readFileSync(supplemental);
-        if (crypto.createHash('sha256').update(bytes).digest('hex') !== 'ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44')
-          throw Error('valuable 0.1.1 supplemental MIT notice changed.');
-        copy(supplemental, 'attributions/dependencies/valuable-0.1.1/LICENSE');
+        if (checksum.package !== archive) throw Error(`${name} ${version} requires the exact reviewed archive checksum.`);
+        const supplemental = path.join(root, 'attributions', file);
+        if (crypto.createHash('sha256').update(fs.readFileSync(supplemental)).digest('hex') !== notice)
+          throw Error(`${name} ${version} supplemental MIT notice changed.`);
+        copy(supplemental, `attributions/dependencies/${name}-${version}/LICENSE`);
       }
     }
   }

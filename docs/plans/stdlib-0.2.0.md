@@ -1966,39 +1966,47 @@ another independent bundle after integration. HTTP/realtime share one owner;
 bytes/codecs share one owner; futures/cancellation share one owner. Only one
 agent owns shared type/ownership/iterator architecture changes at a time.
 
-- [ ] Start agents from an accepted integration commit in isolated managed
+- [x] Start agents from an accepted integration commit in isolated managed
   worktrees, one writer per tree. Reuse suitable trees; use the app's managed
   worktree tooling for new ones. Do not share uncommitted source or live tools.
-- [ ] The integrator owns central registry/schema layout, manifests/locks,
+- [x] The integrator owns central registry/schema layout, manifests/locks,
   catalog/benchmark reconciliation, measurements.sqlite, canonical formatting
   and checkpoints. Agents may prepare additive namespace entries in their own
   trees; shared architecture changes need a recorded ownership lease.
-- [ ] Each agent returns a reviewable commit, exact tests/untested scope, source
+- [x] Each agent returns a reviewable commit, exact tests/untested scope, source
   identity, changed shared files, independent oracle and benchmark support. Send
   status to the integrator; no extra handoff files or source snapshots.
-- [ ] Before each worker source checkpoint, grant a formatter/checkpoint slot:
+- [x] Before each worker source checkpoint, grant a formatter/checkpoint slot:
   format the entire worker tree with the verified compiler, prove token and
   idempotence preservation, then commit its coherent slice. The integrator repeats
   required canonical formatting before integration checkpoints. Worker commits
   do not bypass the repository formatting requirement.
-- [ ] Integrate small coherent bundles, resolve shared files once, then recheck
+- [x] Integrate small coherent bundles, resolve shared files once, then recheck
   affected combinations against the merged source. Branch-local results do not
   establish combined acceptance. Preserve completed compatible checks.
-- [ ] Share one absolute Cargo target per physical host; jobs=1 and incremental=0.
+- [x] Share one absolute Cargo target per physical host; jobs=1 and incremental=0.
   Serialize Cargo builds and native-compiling test process trees on this 8-GB Mac.
   Source work, review, pure analysis and lightweight independent tests can run
   concurrently within the aggregate memory budget. True parallel native/platform
   testing uses separate execution hosts/runners, each with its own single target.
-- [ ] Use about5GB/30min watchdog bounds per native test tree, test-threads=3;
+- [x] Use about5GB/30min watchdog bounds per native test tree, test-threads=3;
   monitor aggregate host pressure before concurrent lightweight tests. Kill only
   owned test children. Do not confuse three agents with three simultaneous rustc
   builds on this machine.
-- [ ] Timing owns the machine exclusively: no builds/tests/profiling jobs in
+- [x] Timing owns the machine exclusively: no builds/tests/profiling jobs in
   parallel, quiet-load guard enabled. A busy host means defer timing, not override
   the guard. Parallel implementation must not contaminate performance evidence.
-- [ ] Only the integrator writes/ingests the measurement DB. Agents supply
+- [x] Only the integrator writes/ingests the measurement DB. Agents supply
   disposable run outputs for verified serial ingestion; never replace the DB
   with a worker copy or create per-worker history archives.
+
+Disposition (2026-11-08): AGENTS.md later set one agent per tree, so the
+worker rows (agent worktrees, worker returns/checkpoint slots, bundle integration)
+are superseded rather than executed. One writer integrated every bundle on
+`codex/stdlib-0.2.0`, with whole-project formatting before each checkpoint. The
+resource rows were followed throughout: one shared absolute target, jobs=1,
+incremental=0, serialized native builds, watchdog bounds, exclusive quiet-machine
+timing, and only the integrator writing `measurements.sqlite`.
 
 ## Performance and acceptance from the first gate
 
@@ -2105,13 +2113,39 @@ context preservation and uses the existing borrowed-subset emitter.
   generated page has 1,085 comparisons from 211 runs; the site builds (78 pages).
   Rejected experiments were never ingested. HTTP pins are unchanged and need a
   measured refresh before this item closes.
-- [ ] Reconcile the existing language inventory and a concrete host export ledger
+- [x] Reconcile the existing language inventory and a concrete host export ledger
   against bindings/catalog/tests. Account for every excluded family below;
   never turn a module count into a conformance percentage.
+  Host ledger (2026-11-08): [host-export-ledger.md](host-export-ledger.md) reviews
+  the 1,247 `public_api_inventory` rows outside the globals/imports audit, so
+  `tools/verify-api-audit.py` passes for all 1,680 rows. Classes: 490 bundle
+  witnesses plus a natively executed catalog example; 339 retained v0.1 family
+  plus executed example; 316 private `__`/`*-runtime` lowering helpers (import is
+  rejected with `module-native`); 102 frozen UI. Linux/ARM macOS host coverage is
+  accepted; Windows/Intel stay in the native-host row above. Language inventory:
+  `benchmarks/coverage/status.json` gives every remaining pending row a v0.2
+  disposition note from the table below (1,355 rows). Probes reclassified 80
+  stale rows with `tsrust check` evidence: `ReadOnly<…>` array/Map/Set receivers,
+  JSON/regex/locale/URL string entry points, Task combinators, `std:iterator` and
+  the v0.2 host modules. Type-system probes that failed stay pending. The probes
+  also found a `localeCompare` compiler panic (string collator argument) and a
+  private-helper arity message. Both are fixed with witnesses in
+  `analysis/regex.rs`. The generator's moved-page links are repaired, and
+  evidence links to deleted historical files are dropped.
 - [ ] Update help, hover/signature/completion, reference, guides, migrations and
   examples; check links/rendered tables and installed consumers.
 - [ ] Audit package notices/features, offline cache/export relocation, minimal
   dependency selection, install/update/rollback and all four platform archives.
+  Notice audit (2026-11-08): all 587 locked registry packages across the
+  workspace, backend and native closures declare permissive licenses. In the
+  backend closure only `jni`, `jni-macros`, `jni-sys-macros`,
+  `rustls-platform-verifier-android` (Android-only) and `rsqlite-vfs`
+  (wasm-only) ship without a license file. Cargo still vendors them, so packaging
+  and portable export now add their exact upstream MIT text, bound to each
+  archive checksum (`attributions/README.md`; distribution tests 15 PASS).
+  r-efi/valuable keep their existing supplements. The remaining license-less
+  crates belong to the frozen UI closure. The four release archives still need
+  the release build.
 - [ ] Check live PRs/Dependabot before every push. Batch remote validation by
   meaningful feature families; call CI full only with `full_regressions=true`.
 - [ ] Prepare a concrete version and source tree, obtain explicit v0.2.0

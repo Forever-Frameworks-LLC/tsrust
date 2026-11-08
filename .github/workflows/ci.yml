@@ -81,11 +81,14 @@ env:
 jobs:
   source:
     if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
-    name: Compiler and LSP (${{ matrix.os }})
+    name: Compiler and LSP (${{ matrix.os }}, shard ${{ matrix.shard }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
+        # Full regressions run as parallel shards, each on its own runner within
+        # the one-hour job ceiling. Ordinary runs use one shard.
+        shard: ${{ fromJSON(inputs.full_regressions && '[0,1,2,3,4,5,6,7]' || '[0]') }}
     runs-on: ${{ matrix.os }}
     # The owner ceiling includes setup, compilation and tests.
     timeout-minutes: 60
@@ -105,20 +108,22 @@ jobs:
       - name: Prepare portable sources for offline acceptance
         run: target/debug/tsrust setup --portable --offline --yes
       - name: Check project formatting
+        if: ${{ matrix.shard == 0 }}
         run: target/debug/tsrust format . --check --color never
       - name: Check release tooling and public documentation
+        if: ${{ matrix.shard == 0 }}
         run: node --test tools/tests/distribution.test.mjs tools/tests/release-policy.test.cjs
       - name: Benchmark export privacy and measurement preservation
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' && matrix.shard == 0 }}
         run: python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
       - name: Clippy correctness and warning report
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && matrix.shard == 0 }}
         run: cargo clippy --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins -- -D clippy::correctness
       - name: Compiler and CLI acceptance
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
         run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle --test api_project --test api_rust_client --test shared_sources --test package_management --test toolchain_installation
       - name: Native SDK authorization and replica integration
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && matrix.shard == 0 }}
         env:
           TSRUST: ${{ github.workspace }}/target/debug/tsrust
         run: node --test tools/verify-sdk-native-replicas.mjs
@@ -127,9 +132,15 @@ jobs:
         run: cargo test --offline --locked --no-fail-fast -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency --test api_project -- --nocapture
       - name: Complete regressions
         if: ${{ inputs.full_regressions }}
+        env:
+          SHARD: ${{ matrix.shard }}
         run: |
-          cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast
-          cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --doc
+          status=0
+          while read -r selection; do
+            cargo test --offline --locked --no-fail-fast $selection || status=1
+          done < <(python3 tools/regression-shards.py "$SHARD" 8)
+          if [ "$SHARD" = 0 ]; then cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --doc || status=1; fi
+          exit $status
   editor:
     if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance && !inputs.platform_acceptance && !inputs.supporting_host_timing }}
     name: VS Code extension

@@ -28,6 +28,12 @@ mod delivered_signals {
                 // A separate console is essential: Ctrl+C cannot target one group.
                 // Do not use CREATE_NEW_PROCESS_GROUP, which disables Ctrl+C.
                 command.creation_flags(windows_sys::Win32::System::Threading::CREATE_NEW_CONSOLE);
+                // CI launchers can start this owner with Ctrl+C ignored, an attribute
+                // every child inherits. Restore normal processing for the recipient;
+                // the owner keeps ignoring Ctrl+C through its own handler.
+                use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
+                unsafe extern "system" fn ignore(_:u32)->i32{1}
+                unsafe{assert_ne!(SetConsoleCtrlHandler(Some(ignore),1),0);assert_ne!(SetConsoleCtrlHandler(None,0),0);}
             }
             let mut child=command.spawn().unwrap();let stdout=child.stdout.take().unwrap();let mut stderr=child.stderr.take().unwrap();let(tx,lines)=mpsc::channel();
             let output=std::thread::spawn(move||{for line in BufReader::new(stdout).lines(){if tx.send(line).is_err(){break;}}});

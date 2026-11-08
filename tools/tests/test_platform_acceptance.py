@@ -218,8 +218,18 @@ class PlatformAcceptance(unittest.TestCase):
     def test_full_regressions_select_complete_backend_without_frozen_ui(self):
         workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml").read_text()
         full = workflow.split("      - name: Complete regressions\n", 1)[1].split("  editor:", 1)[0]
-        self.assertIn("-p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast", full)
+        self.assertIn('python3 tools/regression-shards.py "$SHARD" 8', full)
+        self.assertIn("'[0,1,2,3,4,5,6,7]'", workflow)
         self.assertIn("-p tsrust-compiler -p tsrust-lsp --doc", full)
+        root = Path(__file__).resolve().parents[2]
+        spec = importlib.util.spec_from_file_location("regression_shards", root / "tools/regression-shards.py")
+        shards = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(shards)
+        plan, _ = shards.shards(8)
+        # Every target runs on exactly one parallel shard.
+        assigned = [target for shard in plan for target in shard]
+        self.assertEqual(sorted(assigned), sorted(shards.targets()))
+        self.assertGreater(len(assigned), 500)
         self.assertNotIn("--workspace", full)
         self.assertNotIn("cargo test --offline --locked -p tsrust-ui", workflow)
         self.assertIn("  RUST_TEST_THREADS: '3'", workflow)

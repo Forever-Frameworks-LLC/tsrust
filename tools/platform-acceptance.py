@@ -100,6 +100,12 @@ LATER_RUNS = [
         "x86_64-apple-darwin": "13a54555998dde8b60f5110343872b9cfc21c34b72f9b876c98e1668094c3d8a",
         "x86_64-pc-windows-msvc": "e14c5b60e82c26af3b7076706a8120c457ad02282f57d6bd160d83dce9b55b58",
     }},
+    {"run": "42485215015", "checkpoint": "a341f7ffed285d1adcde661792c659b03e123028", "results": {
+        "x86_64-unknown-linux-gnu": "33f3a296d0b9237ef48b8eab3c96b6045d4dde30beffb4f1564633d2fa7e95b9",
+        "aarch64-apple-darwin": "1be2637ef4645a2b20f82786dd94092a60c4f5aee06b52083091eb6e370b26aa",
+        "x86_64-apple-darwin": "86cca64f61d87778be1c17ad0850be3ed2ea6e7ae3be7b5fbc066dfb9872f349",
+        "x86_64-pc-windows-msvc": "ef36ee034f8c223a08cb79d6c9a228e90f726fc6123cc0ca4940ab805c7e0084",
+    }},
 ]
 
 

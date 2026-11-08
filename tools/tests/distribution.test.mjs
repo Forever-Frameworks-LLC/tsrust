@@ -274,6 +274,22 @@ test('packaging adds the exact valuable MIT supplement without changing vendor b
     assert.deepEqual(manifest.files[relative], {sha256: digest(bytes), bytes: bytes.length});
   });
 });
+test('packaging adds each reviewed Android/wasm MIT supplement only for its exact archive', () => {
+  for (const [name, version, archive, notice] of [
+    ['jni-macros', '0.22.4', 'a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3', 'fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960'],
+    ['rsqlite-vfs', '0.1.1', 'c51c9ae4df8a7fba42103df5c621fa3c37eccf3a3c650879e90fc48b11cc192c', 'e1c1975c3474cce31722836f101a40ffaf1cc784e4d2f38ce3e77b9712934e78'],
+  ]) for (const checksum of [archive, 'changed']) temporary(directory => {
+    const vendor = path.join(directory, 'vendor'), crate = path.join(vendor, `${name}-${version}`);
+    fs.mkdirSync(crate, {recursive: true});
+    fs.writeFileSync(path.join(crate, 'Cargo.toml'), `[package]\nname="${name}"\nversion="${version}"\n`);
+    fs.writeFileSync(path.join(crate, '.cargo-checksum.json'), JSON.stringify({package: checksum, files: {}}));
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    if (checksum !== archive) return assert.notEqual(result.status, 0);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(digest(fs.readFileSync(path.join(output, `attributions/dependencies/${name}-${version}/LICENSE`))), notice);
+  });
+});
 test('packaging rejects unreviewed valuable archive and nominal identities', () => {
   for (const versioned of [false, true]) for (const mode of ['checksum','version','name']) temporary(directory => {
     const {vendor, crate} = valuableVendor(directory, versioned);

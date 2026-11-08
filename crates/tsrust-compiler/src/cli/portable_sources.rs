@@ -34,13 +34,23 @@ fn files(root: &Path, directory: &Path, result: &mut Vec<PathBuf>) -> io::Result
     }
     Ok(())
 }
-// The published archive omits its repository-root license. Emit the exact
-// reviewed supplement outside vendor/; never rewrite Cargo's checksums or cache.
+// These published archives omit their repository-root license. Each supplement
+// is the exact upstream file at the commit in the archive's `.cargo_vcs_info.json`
+// (MIT, or the MIT alternative). Emit it outside vendor/; never rewrite Cargo's
+// checksums or cache.
+const SUPPLEMENTS:&[(&str,&str,&[u8],&str)]=&[
+    ("valuable-0.1.1","ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65",include_bytes!("../../../../attributions/valuable-0.1.1-MIT.txt"),"ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44"),
+    ("jni-0.22.4","5efd9a482cf3a427f00d6b35f14332adc7902ce91efb778580e180ff90fa3498",include_bytes!("../../../../attributions/jni-0.22.4-MIT.txt"),"fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960"),
+    ("jni-macros-0.22.4","a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3",include_bytes!("../../../../attributions/jni-0.22.4-MIT.txt"),"fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960"),
+    ("jni-sys-macros-0.4.1","38c0b942f458fe50cdac086d2f946512305e5631e720728f2a61aabcd47a6264",include_bytes!("../../../../attributions/jni-sys-macros-0.4.1-MIT.txt"),"1d85bd754b04ceec93e98e890edd1fa3c6a22e81bcb32135806beeccefa51cd1"),
+    ("rustls-platform-verifier-android-0.2.0","eec689c0bc40ff2458a5977b6619cb718087084a18e02a131c599b62d05e1a5f",include_bytes!("../../../../attributions/rustls-platform-verifier-android-0.2.0-MIT.txt"),"1c7cf76689c837a68ed8d704994e52a0f2940c087958f860d17f3186afbdcc0c"),
+    ("rsqlite-vfs-0.1.1","c51c9ae4df8a7fba42103df5c621fa3c37eccf3a3c650879e90fc48b11cc192c",include_bytes!("../../../../attributions/rsqlite-vfs-0.1.1-MIT.txt"),"e1c1975c3474cce31722836f101a40ffaf1cc784e4d2f38ce3e77b9712934e78"),
+];
+
 fn supplemental_notice(package:&str,checksum:&str)->io::Result<Option<&'static [u8]>> {
-    if package!="valuable-0.1.1" {return Ok(None);}
-    if checksum!="ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65" {return Err(error("valuable 0.1.1 archive identity changed"));}
-    let bytes=include_bytes!("../../../../attributions/valuable-0.1.1-MIT.txt");
-    if digest(bytes)!="ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44" {return Err(error("valuable 0.1.1 supplemental MIT notice changed"));}
+    let Some(&(_,archive,bytes,notice))=SUPPLEMENTS.iter().find(|entry|entry.0==package) else {return Ok(None);};
+    if checksum!=archive {return Err(error(format!("{package} archive identity changed")));}
+    if digest(bytes)!=notice {return Err(error(format!("{package} supplemental MIT notice changed")));}
     Ok(Some(bytes))
 }
 
@@ -89,7 +99,7 @@ fn visit(root: &Path, manifest: &str, lock: &str, mut copy: impl FnMut(&Path,&[u
         }
         if !hashes.is_empty(){return Err(error(format!("Missing vendor files: {name}")));}
         if let Some(notice)=supplemental_notice(&name,&checksum)? {
-            copy(Path::new("attributions/dependencies/valuable-0.1.1/LICENSE"),notice)?;
+            copy(&Path::new("attributions/dependencies").join(&name).join("LICENSE"),notice)?;
         }
     }
     if !expected.is_empty(){return Err(error("Prepared source pack is incomplete"));}Ok(())
@@ -141,5 +151,6 @@ mod supplemental_notice_tests {
         assert!(supplemental_notice("valuable-0.1.1","changed").is_err());
         assert!(supplemental_notice("unrelated-0.1.1","changed").unwrap().is_none());
         assert!(supplemental_notice("valuable-0.1.2","changed").unwrap().is_none());
+        for &(package,archive,_,_) in SUPPLEMENTS {assert!(supplemental_notice(package,archive).unwrap().is_some(),"{package}");assert!(supplemental_notice(package,"changed").is_err());}
     }
 }

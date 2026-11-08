@@ -7,6 +7,7 @@ impl Analyzer {
   let ty=self.expression_type_hint(context,receiver);
   let binding=match ty {Some(ty) if self.is_string_observation(ty)=>if name=="localeCompare"{Some(&crate::stdlib::locale::STRING_COMPARE)}else{None},Some(Type::Record(id))=>crate::stdlib::locale::method(self.program.records[id].native_type,name),_=>None};
   let Some(binding)=binding else{return Ok(None)};
+  self.prepare_receiver_binding(binding,name,args.len(),expression.span)?;
   let mut arguments=vec![(**receiver).clone()];arguments.extend(args.iter().cloned());
   let span=expression.span;
   *expression=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:std:locale#{}",binding.name)),span)),arguments),span);

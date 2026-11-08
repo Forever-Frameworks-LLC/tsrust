@@ -6,6 +6,43 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Plan completion pass — 2026-11-08 15:30 UTC
+
+Owner: keep going until the whole v0.2 plan is implemented; CI matters but is
+not the main goal. v0.2.0 merge/publication is still not approved.
+
+- C5 42485215015 at a341f7ff terminal: Linux/ARM repairComplete=true (61 targets).
+  Windows' only remaining failure is the real SIGINT witness (listener never saw
+  Ctrl+C although the helper's GenerateConsoleCtrlEvent succeeded). Intel reached
+  41 targets, then the relocated realtime case hit the 55-minute scope stop. All
+  four results sealed in `LATER_RUNS` (Linux 33f3a296…, ARM 1be2637e…, Intel
+  86cca64f…, Windows ef36ee03…); chain verified locally.
+- Windows SIGINT: the CI launcher starts the test owner with Ctrl+C ignored, an
+  attribute every child inherits even with CREATE_NEW_CONSOLE. The test owner now
+  installs its own ignore handler and restores normal processing
+  (`SetConsoleCtrlHandler(None,0)`) before spawning the listener. Unproven until
+  the next Windows run.
+- Generic sibling regression fixed: generic argument preparation retried only
+  `generic-inference` errors, so `identity([])` aborted before the sibling
+  `identity([7])` supplied T. A context-free `array-type` error is now deferred
+  the same way. Witness `empty_array_generic_arguments_take_context_from_generic_siblings`.
+- Host export ledger: `docs/plans/host-export-ledger.md`; verify-api-audit PASS
+  for all 1,680 identities. Language inventory reconciled (80 probe-backed
+  reclassifications, 1,355 disposition notes; generator links repaired).
+- Probe defects fixed: `'a'.localeCompare('b','en')` panicked (receiver rewrite
+  reached std:locale without preparing its records). Locale and regex receiver
+  rewrites now share `prepare_receiver_binding`, which also reports arity by the
+  public member name instead of `__stringCompare expects 3 to 3`.
+- Notice audit: five Android/wasm-only backend crates had no license file in
+  their archives; exact upstream MIT supplements are added by packaging and
+  portable export (distribution tests 15 PASS).
+- Full regression fit: CI `full_regressions=true` now runs eight parallel shards
+  (`tools/regression-shards.py`, weights from the 965de83f run, every target on
+  exactly one shard; shard 0 owns lib/bins/doc/format/lint). Not yet run.
+- Measurement gap found: 80 registered runtime workloads (75 B02 byte codec/
+  operation, 5 B01 file) and 16 B10 upload/middleware HTTP rows have never been
+  measured; HTTP request/CPU native pins date from 2026-11-04.
+
 ### C4 review and C5 dispatch — 2026-11-08 13:45 UTC
 
 - C4 42480586761 at 3d6767c5 terminal: ARM and Linux repairComplete=true (all 61

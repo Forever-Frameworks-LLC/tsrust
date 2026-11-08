@@ -125,7 +125,9 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                             }
                             pass.frame.prepared[index] = true; pass.progress = true;
                         }
-                        Err(error) if error.code == "generic-inference" => { if pass.deferred.is_none() { pass.deferred = Some(error); } }
+                        // A context-free empty array may gain T from a sibling that
+                        // is itself a generic call; retry it after that sibling is prepared.
+                        Err(error) if error.code == "generic-inference" || error.code == "array-type" && pass.contexts[index].is_none() => { if pass.deferred.is_none() { pass.deferred = Some(error); } }
                         Err(error) => return Err(error),
                     }
                     task.phase = Phase::Pass(pass);
@@ -194,6 +196,16 @@ mod tests {
         assert!(checked.program.closures.len() > count);
         drop(checked.emit_rust());
         drop(checked);
+    }
+    #[test]
+    fn empty_array_generic_arguments_take_context_from_generic_siblings() {
+        let prefix = "function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}";
+        for body in ["const selected=first(identity([]),identity([7]));console.log(selected.length);", "const selected=first(identity([7]),identity([]));console.log(selected.length);"] {
+            let source = crate::format(&format!("{prefix}function main(){{{body}}}")).unwrap();
+            drop(crate::check(&source).unwrap().emit_rust());
+        }
+        let source = crate::format(&format!("{prefix}function main(){{const selected=first(identity([]),identity([]));}}")).unwrap();
+        assert_eq!(crate::check(&source).err().expect("no sibling supplies T").code, "array-type");
     }
     #[test]
     fn generic_argument_preparation_restores_failed_nested_call_names() {

@@ -202,6 +202,14 @@ build job and disabled incremental compilation. This does not trigger a full pas
 for individual packages or repairs; retain completed evidence and rerun affected
 checks only.
 
+A complete pass is about six hours of single-job work on one host, so it does not
+fit the one-hour ceiling serially. CI `full_regressions=true` runs it as eight
+parallel shards, each on its own runner and target with its own one-hour job:
+`python3 tools/regression-shards.py SHARD 8` prints each shard's `cargo test`
+selections. It balances by `tools/regression-weights.json`, and every target lands
+on exactly one shard. Shard 0 also owns the library, binary, doctest, format and
+lint units. Never run the shards one after another on one host to claim a pass.
+
 ## Analytics purpose and storage
 
 The owner's October 30, 2026 direction replaced canonical records with a small
