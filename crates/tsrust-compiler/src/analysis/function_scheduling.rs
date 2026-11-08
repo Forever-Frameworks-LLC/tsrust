@@ -310,6 +310,9 @@ impl Analyzer {
         {
             sources.entry(index).or_insert_with(|| self.program.functions[index].body.clone());
         }
+        if self.program.functions[index].name.text=="routes" && std::env::var("TSRUST_TRACE_EFFECTS").as_deref()==Ok("1") {
+            eprintln!("ROUTES_BODY_TAKE index={index} body_len={} retained_len={:?} discovering={} effects_only={} assumed_modes={} discovering_function={:?} params={:?} stack={:?} backtrace={}",self.program.functions[index].body.len(),self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).map(Vec::len),self.discovering_results,self.effects_only,self.assumed_modes.is_some(),self.discovering_function,self.signatures[index].params,self.function_stack,std::backtrace::Backtrace::force_capture());
+        }
         let body = std::mem::take(&mut self.program.functions[index].body);
         let (context, parameters) = self.reserve_function_parameters(index)?;
         let result_type = self.signatures[index].result;
@@ -351,6 +354,9 @@ impl Analyzer {
         // still types its callers. A callable result needs its checked closure.
         let contract=self.program.diagnostic_contracts.contains(&name.span.start) && !self.callable_result_type(result_type);
         if result_type != Type::Void && !returned && !contract {
+            if std::env::var("TSRUST_TRACE_EFFECTS").as_deref()==Ok("1") {
+                eprintln!("MISSING_RETURN_STATE index={index} name={} checked_body_len={} raw_body_len={} retained_body_len={:?} discovering={} effects_only={} discovering_function={:?} visiting={} scheduled={} named_context={} named_ready={} checked={} params={:?} body_spans={:?}",name.text,body.len(),self.program.functions[index].body.len(),self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).map(Vec::len),self.discovering_results,self.effects_only,self.discovering_function,self.visiting[index],self.scheduled_functions.contains(&index),self.named_captures.needs_context(index),self.named_captures.ready(index),self.checked[index].is_some(),self.signatures[index].params,body.iter().map(|statement|statement.span).collect::<Vec<_>>());
+            }
             return Err(Diagnostic::new(
                 "type",
                 format!(
