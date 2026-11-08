@@ -91,6 +91,15 @@ Only root writes canonical; app worktree owner WIP stays protected.
   reuseexistingreferenceexception pattern with explicitguard, nativeABI staysstrict.
   Focusedpure4PASS,format0changes. Resume SAME original30minscope aftercheckpoint;
   currentCLI/compilerRust unchanged. No logging timings/ingest claimed.
+- Logging matchedsession70736 stopped31.879s on secondworkload's actual movedpath
+  error; firstdisabledworkload prepared/allcorrectnesspassed. Repair ONLY benchmark
+  sources: retain declaredLoggerOptions, narrowoptionalpath/readsamefieldafterclose;
+  child typedJSONspan usesexistingnamedSpanFields alias,notunsupportedinlineobject
+  type. BothsourcechecksPASS/focusedpure4PASS. Sourceoracles/fingerprintsupdated;
+  Rust/Nodecontrols unchanged. Existingsealed-prefixguard nowalsoallowslogging
+  family withfullsource/native/TS/hand hashes andfrontendregeneration. Sealed
+  completeddisabledcase /tmp/tsrust-logging-prepared-prefix.json; no disabled
+  program/probe/compiler rebuildneeded. Remaining2prepare normally.
 - NEXT B17timing: B17 logging_disabled public
   allocation profile (existing driver, separate setup/event costs). Remaining
   B00 ledger/package/platform, B19nested integration, B20 apps/final regression/

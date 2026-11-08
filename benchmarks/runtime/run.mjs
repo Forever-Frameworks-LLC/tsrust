@@ -260,7 +260,7 @@ const engines = (id) => [
 ].filter(engine=>plan.engineIDs.includes(engine.id)&&(engine.id!=='rust-hand'||fs.existsSync(path.join(here,handReferenceSource(id)))));
 const compilation = [], execution = [], sources = [], handSources = new Map();
 const approximateReferences=new Map(),approximateProbes=new Map(),approximateCorrectness=[];
-// Explicit recovery of the already-built URL prefix after an interrupted preparation.
+// Explicit recovery of the already-built supported workload prefix after an interrupted preparation.
 const preparedFile=process.env.TSRUST_BENCH_PREPARED;
 const prepared=preparedFile?JSON.parse(fs.readFileSync(preparedFile,'utf8')):null;
 if(prepared){
@@ -268,7 +268,7 @@ if(prepared){
  if(prepared.compiler.path!==compiler||prepared.compiler.sha256!==hash(fs.readFileSync(compiler)))throw Error('Prepared compiler changed');
  if(!prepared.previousScope?.path||hash(fs.readFileSync(prepared.previousScope.path))!==prepared.previousScope.sha256)throw Error('Prior failed scope evidence required');
  if(!Array.isArray(prepared.workloads)||new Set(prepared.workloads.map(row=>row.id)).size!==prepared.workloads.length)throw Error('Invalid prepared prefix');
- const ids=prepared.workloads.map(row=>row.id);if(ids.some((id,index)=>workloads[index]?.id!==id||workloads[index]?.family!=='native-url'))throw Error('Prepared reuse must name the exact URL workload prefix');
+ const ids=prepared.workloads.map(row=>row.id);if(ids.some((id,index)=>workloads[index]?.id!==id||!['native-url','structured-logging'].includes(workloads[index]?.family)))throw Error('Prepared reuse must name the exact supported workload prefix');
 }
 function reusePrepared(w){
  const row=prepared?.workloads.find(row=>row.id===w.id);if(!row)return false;
@@ -277,7 +277,7 @@ function reusePrepared(w){
  if(!row.files)throw Error('Prepared input and binary evidence required');
  for(const file of required)if(!row.files[file]||hash(fs.readFileSync(file))!==row.files[file])throw Error('Prepared artifact changed: '+file);
  const source=fs.readFileSync(sourcePath,'utf8'),ts=fs.readFileSync(tsPath,'utf8'),hand=fs.readFileSync(handPath,'utf8');
- assertUrlSource(source,w,'native');assertUrlSource(ts,w,'typescript');
+ if(w.family==='native-url'){assertUrlSource(source,w,'native');assertUrlSource(ts,w,'typescript');}else{assertLoggingSource(source,w,'native');assertLoggingSource(ts,w,'typescript');assertLoggingSource(hand,w,'rust-hand');}
  const emitted=run([compiler],['emit',sourcePath]).stdout;const abi=assertABI(emitted,w,{source});
  const allocatorHeader=allocatorRlib?'#[global_allocator]\nstatic TSRUST_BENCH_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;\n':'';
  const expectedNative=emitted.replace('fn main()','fn source_main()')+'\n'+adaptRustDriver(driverRS,w,{emitted,source})+'\n'+allocatorHeader;

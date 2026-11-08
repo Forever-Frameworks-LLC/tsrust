@@ -28720,10 +28720,11 @@
           "from 'std:log'",
           "sum=(sum*131+",
           "createTempDir",
-          "readTextFile(path)",
+          "readTextFile(options.path)",
           "JSON.parse<Line>(lines[i])",
           "unwrap(close(logger))",
-          "removeDirAll(directory)"
+          "removeDirAll(directory)",
+          "createLogger(options)"
         ],
         "typescript": [
           "sum=(sum*131+",
@@ -28746,7 +28747,7 @@
       "rustReference": "parity/logging_file_output.rs",
       "measured": false,
       "measurementStatus": "unmeasured-structured-logging",
-      "sourceSha256": "f84929d2d9c1c19b31c00be306841c22d2b4c638ca4e18a325834e379a65416e",
+      "sourceSha256": "bf4dcb7599b17ee5bc8ffebb7795a446188aec26660ccd70f2a8ec3b7323a050",
       "counterpartSha256": "299a1cc24426a598e28153906bda326fcdce73441ef09aaecdf30ffd1274596d",
       "rustReferenceSha256": "db49507c49edeaa7fb67a2e4a237c541adc67eb9d1092b8145ce569a949d5d2a"
     },
@@ -28769,12 +28770,13 @@
           "from 'std:log'",
           "sum=(sum*131+",
           "createTempDir",
-          "readTextFile(path)",
+          "readTextFile(options.path)",
           "JSON.parse<Line>(lines[i])",
           "unwrap(close(logger))",
           "removeDirAll(directory)",
           "logger.child({service:'bench',worker:7,healthy:true,ratio:1.5})",
-          "row.span.ratio!==1.5"
+          "row.span.ratio!==1.5",
+          "createLogger(options)"
         ],
         "typescript": [
           "sum=(sum*131+",
@@ -28800,7 +28802,7 @@
       "rustReference": "parity/logging_child_file.rs",
       "measured": false,
       "measurementStatus": "unmeasured-structured-logging",
-      "sourceSha256": "0e341e6582dca25e1564f9a61b3f86a7a471fd355e2fe91b97d2c0ebfadfcec4",
+      "sourceSha256": "6653b58908a1f63f2923d5a71b912c594ae772a288c90c9a20a09ea36027989e",
       "counterpartSha256": "2bcf53cc8124820aa3dec515d261cc6d4f20d38c4ce1978fc71828668abb8a63",
       "rustReferenceSha256": "f176ca8c7137b7782ef8bae20b175d685c7068073234953f935364fd5f4def76"
     }

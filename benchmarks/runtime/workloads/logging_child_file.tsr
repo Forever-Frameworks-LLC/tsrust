@@ -1,4 +1,4 @@
-import { createLogger, close, Logger } from 'std:log';
+import { createLogger, close, Logger, LoggerOptions } from 'std:log';
 import { createTempDir, readTextFile, removeDirAll } from 'std:fs';
 
 type Event = {
@@ -7,18 +7,20 @@ type Event = {
   ok: boolean
 };
 
+type SpanFields = {
+  name: string;
+  service: string;
+  worker: int;
+  healthy: boolean;
+  ratio: number
+};
+
 type Line = {
   timestamp: string;
   level: string;
   target: string;
   fields: Event;
-  span: {
-    name: string;
-    service: string;
-    worker: int;
-    healthy: boolean;
-    ratio: number
-  }
+  span: SpanFields
 };
 
 function emit(logger: ReadOnly<Logger>, n: int, seed: int): void {
@@ -32,17 +34,21 @@ function emit(logger: ReadOnly<Logger>, n: int, seed: int): void {
 function workload(n: int, seed: int): int {
   const directory = unwrap(createTempDir(undefined, 'tsrust-log-'));
   try {
-    const path = `${directory}/events.ndjson`;
-    const logger = unwrap(createLogger({
-      sink: 'file', path: path
-    }));
+    const options: LoggerOptions = {
+      sink: 'file', path: `${directory}/events.ndjson`
+    };
+    const logger = unwrap(createLogger(options));
     const nested = logger.child({
       service: 'bench', worker: 7, healthy: true, ratio: 1.5
     });
     emit(nested, n, seed);
     unwrap(close(nested));
     unwrap(close(logger));
-    const text = unwrap(readTextFile(path));
+    if (options.path === undefined) {
+      throw 'missing file path';
+    }
+
+    const text = unwrap(readTextFile(options.path));
     const lines = text.split('\n');
     if (lines.length !== n + 1) {
       throw 'line count';
