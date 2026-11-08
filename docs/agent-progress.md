@@ -29,7 +29,18 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
   bound. Platform scope 55 min/job 60 min are unchanged.
 - Runner: ordered `LATER_RUNS` chain (`--later-repair-plan`, workflow input
   `platform_later_prior_runs`) requires every earlier seal unchanged. Python 27 PASS.
-- Next: push and dispatch C5 with prior/second/third plus later 42480586761.
+- C5 dispatched: run 42485215015 at a341f7ff (prior/second/third + later
+  42480586761). PRs/Dependabot were empty before push. Do not dispatch another
+  run while it is live; download all four artifacts when terminal, seal them in
+  `LATER_RUNS`, and repair only diagnosed failures.
+- Remaining B00–B20 work after C5: four-host package admission and B01/B03
+  Windows rows from C5 evidence; the generic sibling-context regression above;
+  making the complete compiler/LSP suites fit one hour (historical 11,754s case
+  time plus per-target builds; settle repair saves about 1,000s; next levers are
+  consolidating integration targets into fewer binaries and the 777s
+  checker_agreement case); the per-export host ledger (1,247 inventory identities
+  lack a review entry; `tools/verify-api-audit.py`); measured HTTP metric refresh;
+  docs/help/install/update/archive audits; pruning; then release approval.
 
 ### Suite-time and catalog repairs — 2026-11-08 13:20 UTC
 
