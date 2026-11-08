@@ -6,33 +6,43 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current checkpointdfc71178; full goal active; no build currently running.
-- Changed-source shared build terminal PASS443.261s/3310067KiB. Compiler profile
-  debuginfo0, opt1, debug_assertions/overflow_checks true. Complete repair scope
-  ended561.245s/3425080672B, stopnull, remaining[].
-  /tmp/tsrust-physical-carrier-repair-08075e0796e7.json.
-- Four focused compiler regressions passed. Three private fixture constructions
-  failed (missing nullable left, lowered assignment shape, identical callback
-  types); fixture-only corrections are pending validation. No assertions weakened.
-- Documentation native case still FAIL112E0308, down from263 errors. ZeroE0282
-  andE0422. Remaining roots are consuming-spread physical field conversion and
-  a proven positional specialization-cache collision. Reviewed cache fix applied;
-  spread fix is being prepared. Do not claim documentation acceptance.
-- Retain all1530 compiler library/27LSP library, compiler rust_bridge8,
-  nullish7, LSP bridge8 and5/6 earlier documentation passes. B19 nested bridge
-  witness now passed; its earlier19b/19c failures remain historical only.
-- Quiet locked obsolete host cleanup reclaimed1430007808B; current selected
-  artifacts hash-preserved, application dependencies untouched. Post-build object
-  cleanup reclaimed30068736B of newly generated outputs, not historical recovery.
-- Pending B00 changes remove only the unbacked4096-byte route/400-day cookie
-  ceilings. Existing stableHTTP std:testing fixture now covers three cases in one
-  runner; frontend check passed, native wire validation pending. Current54 shared
-  package declarations match; license/declaredMSRV crosswalk added with current
-  advisory/four-host/minimal-build gaps explicit.
-- Next: format/checkpoint completed source repair and resume affected checks only
-  via /tmp/tsrust-physical-carrier-repair-resume-run.py within the ORIGINAL30minute
-  absolute deadline. If insufficient budget, do not reset or claim acceptance.
-  Then integrated service and remaining B00/B20/platform acceptance.
+Current source checkpoint89a88137; fixed-callback repair pending checkpoint; full goal active.
+- Second repair terminal: selected build PASS396.529s/3269491KiB; overall
+ 573.204s/3379566016B, stopnull, remaining[]. Session54291 closed; no build live.
+ /tmp/tsrust-physical-carrier-repair-resume-6a381ec5ec6a.json.
+- Positional cache key, coalescing context and owned-field replacement witnesses
+ passed. Generic-layout fixture still failed because its base callback was owned
+ rather than scoped; readonly-base fixture correction is pending native validation.
+- Actual sharedHTTP std:testing suite PASS all3 cases: existing request streaming,
+ real4097-byte route/syntax rejects, exact maxAge34560001/i64MAX headers and
+ negative values/cleanup. One public runner/build; host58.71s including setup,
+ not a comparable benchmark. Test now prints existing profile/build/test JSON
+ events for future visibility. Do not rerun passed native cases for logging only.
+- Documentation remains FAIL107E0308, all spread-boundary field mismatches; five
+ positional call errors resolved. f858 physical-spread lookup did not fix actual
+ failures and was removed, preserving canonical constructor repair. Tiny valid
+ public JSX repro proves missing conversion at FIXED callback argument boundary.
+ Reviewed replacement uses existing checked_carrier only after fixed invocation
+ resolution; named/forwarded functions and methods retain physical specialization.
+ Exact new uppercase JSX fixture frontend-check PASS before build.
+- All1530 compiler/27LSP earlier library, rust_bridge8/nullish7/LSPbridge8 and5/6
+ earlier docs passes retained. Actual generic fixture + new fixed-boundary guard
+ and failed docs case next; complete libraries at this ownership-family milestone
+ reuse the same build. Eight existing opt-ins remain unchanged, never forced.
+- Three current production lock audits ACTUAL0vulnerabilities. Backend0warnings;
+ workspace/native each four unmaintained +two yanked retained optionalUI packages.
+ DB309392b18f6b17022f82c701f300433126901068, updated2026-11-06. Exact lock hashes,
+ activation chains and qualifications are in backend-distribution-inventory.md.
+ /tmp/tsrust-current-production-audit-summary.json. No warnings suppressed.
+- Net obsolete host cleanup reclaimed1430007808B. Current selected artifacts and
+ application dependencies preserved. Per-build new-object cleanup30068736B and
+ 130850816B are separate, not additional net historical recovery.
+- Original30minute resume guard refused before launching another process when
+ insufficient time remained. Original failed scope unchanged. Subsequent repair
+ was independently capped30minutes AND first repair start+onehour. Next driver
+ /tmp/tsrust-fixed-callback-repair-run.py keeps that same absolute one-hour ceiling.
+ Do not extend it or claim budget exhaustion passed. After real doc acceptance,
+ resume existing integrated service and remaining B00/B20/native platforms.
 Only root writes canonical; app worktree owner WIP stays protected.
 - ACTUAL PASS /tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json:
   HTTP forwarder4, shared55 EACH debug/release plus filtered cachehit/nativeBuildMs0
@@ -54,9 +64,9 @@ Only root writes canonical; app worktree owner WIP stays protected.
 - B19 generator/customization/rustdoc57/fallback/editor3/3 retained19b; nominal
   nested String pointer/capacity moves O0/O3 retained19c. RealShlex paired with
   compiler-owned regex backend5/export passes at965 closes package-witness scope.
-  B19 FIRST BOX STILL OPEN: rust_bridge::owned_nested_options_strings_and_records_preserve_tags_buffers_and_drop
-  failed19b/19c and lacks later PASS. Old host absent; queue in NEXT meaningful
-  integration build. Do not rebuild solely for it or replay passed19b/19c controls.
+  Historical19b/19c nested bridge failure is now repaired: all8 compiler rust_bridge
+  cases passed in the ownership scope. Preserve that pass; do not replay the
+  already-passed adapter/native/export controls.
 - Retain byte68 EACHdebug/release PASS /tmp/tsrust-nullable-storage-proof-front-30bc05cbad9c.json;
   actual10002node ABI/pointers/deepdrop/O0O3 PASS /tmp/tsrust-abi-witness-repair-c5252aa3173b.json;
   full compiler library1528+repairedHTTPpair =all1529runnable,8unchanged opt-ins;

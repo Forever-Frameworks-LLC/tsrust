@@ -72,6 +72,7 @@ fn contextual_body_stream_preserves_metadata_and_response_helpers(){
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
  let output=support::run(support::cli().current_dir(&root).args(["test","examples/http-context/body-stream.test.tsr","--reporter=json","--profile"]),600);support::success(&output);assert!(output.stderr.is_empty());
  let rows=String::from_utf8(output.stdout).unwrap().lines().filter(|line|!line.is_empty()).map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();
+ for row in &rows {println!("{row}");}
  let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),3);let names=tests.iter().map(|row|row["name"].as_str().unwrap()).collect::<std::collections::BTreeSet<_>>();assert_eq!(names,["request streaming preserves context metadata and response helpers","route registration preserves backend ranges and rejects invalid syntax","cookie maxAge preserves integer wire values without a hidden lifetime ceiling"].into_iter().collect());assert!(tests.iter().all(|row|row["status"]=="passed"));
  let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);assert_eq!(builds[0]["testFiles"],1);
  let summaries=rows.iter().filter(|row|row["event"]=="summary").collect::<Vec<_>>();assert_eq!(summaries.len(),1);for (field,value) in [("passed",3),("failed",0),("hookFailures",0),("skipped",0),("filesPassed",1),("filesFailed",0)]{assert_eq!(summaries[0][field],value);}

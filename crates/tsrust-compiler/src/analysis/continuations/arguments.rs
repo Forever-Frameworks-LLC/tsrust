@@ -110,6 +110,19 @@ impl Analyzer {
         }
     }
 
+    pub(super) fn adapt_fixed_record_spread_arguments(&mut self,args:&mut [Expr],params:&[ArgumentContract])->Result<(),Diagnostic>{
+        for (argument,contract) in args.iter_mut().zip(params) {
+            if contract.mode==Mode::Consume
+                && matches!(argument.target,Some(CallTarget::RecordSpread(_)))
+                && let (Some(Type::Record(source)),Type::Record(target))=(argument.ty,contract.ty)
+                && source!=target
+                && self.scoped_records.declaration(source)==self.scoped_records.declaration(target) {
+                self.checked_carrier(argument,contract.ty)?;
+            }
+        }
+        Ok(())
+    }
+
     pub(super) fn next_argument(&mut self, context: &Context, args: &[Expr], frame: &mut Arguments) -> Option<(usize, ArgumentFrame)> {
         let index = frame.next;
         let arg = args.get(index)?;

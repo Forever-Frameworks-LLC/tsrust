@@ -247,6 +247,33 @@ The table records direct requested features; resolved transitive features remain
 Evidence boundaries:
 
 - Existing B09/B11/B12/B13/B16/B17/B19 plan sections and family admission metadata retain primary-source decisions, archives/licenses/notices, target-filtered graph checks and direct operation profiles. Keep those exact source/lock identities; they do not automatically cover a later aggregate lock. B11 and B17 historical admission metadata may still describe dependency-only stages despite later private profile success recorded in the sole handoff.
-- Retained B16 and B17 cached audits against RustSec `309392b18f6b17022f82c701f300433126901068` report zero vulnerabilities/warnings for their exact private locks. Earlier aggregate-security audits retain UI unmaintained/yanked warnings; they are not suppressed. A current production-three-lock audit must establish its own matching lock identities before marking aggregate advisory acceptance.
+- Current production-three-lock audit: RustSec database `309392b18f6b17022f82c701f300433126901068` (commit dated2026-11-06), all three commands exit0 and report zero known vulnerabilities. This is an advisory snapshot, not a claim that the whole project has no warnings or future vulnerabilities. Exact audited lock SHA256s are:
+  - workspace: `f3b431a58dd0af8259fb8f710d753c91fecf20261324acb65a0f86a427ec5273`;
+  - native: `a32781de184e9d1d5052ebb032e31485c93a922c670a0b512939c6f30c1771d5`;
+  - backend: `b3ce935e86b85b8e746b74d61eede955dd1c84bf7d9b551c7d3516fd6bfb11f1`.
+- The backend lock has no audit warnings and contains none of the six warned packages. Both workspace and native reports retain four unmaintained warnings: `ttf-parser0.25.1` (`RUSTSEC-2026-0192`), `zbus_names4.3.5` (`RUSTSEC-2026-0371`), `zvariant5.15.1` (`RUSTSEC-2026-0370`), `zvariant_derive5.15.1` (`RUSTSEC-2026-0372`); both also report yanked `async-executor1.14.0` and `clipboard-win5.4.1`. These warnings are not ignored, upgraded away or described as a clean whole-project audit.
+- Warning activation is retained desktop UI: `winit → sctk-adwaita → ab_glyph → owned_ttf_parser → ttf-parser`; `accesskit_winit → accesskit_unix → async-executor`; `accesskit_unix → zbus → zbus_names`; `accesskit_unix → accesskit_atspi_common → zvariant → zvariant_derive`; and `arboard → clipboard-win`. Native dependencies select these roots only through `ui-native`/`ui-acceptance`; `tsrust-ui` selects them through its explicit `native`/`acceptance` features. Compiler consumers disable `tsrust-ui` default features. The backend manifest excludes these desktop roots entirely. Lock reachability is not proof that an optional feature was activated in a particular binary; future UI revival must revisit these retained maintenance/yank findings. The existing B16/B17 private audits remain separate exact-lock evidence.
 - Declared MSRVs are not all-target compiler proof. The common direct packages include undeclared MSRVs (`webpki-roots`, `subtle`, `bigdecimal`, `rusqlite`, `matchit`, `compression-core`). Do not substitute a guessed value. Archive/source integrity and notices remain closure-wide requirements, including transitive packages.
 - Optional features and empty backend defaults are source-level selection contracts, not measured minimal-program build-time/size evidence. B20 still requires current four-host native/package/installed-consumer acceptance and the accumulated minimal-dependency performance review.
+
+## Current per-export crosswalk refresh
+
+`crates/tsrust-compiler/examples/public_api_inventory.rs` derives exact identities
+and native signatures from the compiler registry, joins the current editor catalog
+and reference routes, and discovers bundled testing/logging/iterator exports.
+Its output lists existing B01–B19 witness target/case selectors independently of
+per-export acceptance. B19 includes adapter-generation workflows, rather than a
+fabricated `std:rust` export family. `tools/domain-reference-inventory.mjs` remains
+upstream declaration comparison; it is not the current host-export ledger.
+
+Each export maps its exact catalog examples and explicit witness review state.
+Filesystem and URL catalog-example executions retain reviewed965de83f passes only
+while their exact group example digests match; other positive/negative/alias/
+platform coverage remains explicitly unreconciled.
+Catalog examples are source witnesses with unreviewed execution, never inferred
+passes. Reconcile these with retained exact-case evidence before changing status;
+a family test or module count alone cannot establish a per-export pass. Keep
+private native lookup identities distinct from user-importable source exports.
+This source update has not produced a fresh compiled inventory or completed that
+reconciliation. Existing `globals-and-imports-coverage.json` remains its separate
+naming-review record; do not replace its reviewed identities with coverage claims.

@@ -632,7 +632,7 @@ impl<'p> Emitter<'p> {
                 if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind && !arg.moved_spread {self.finish_clone_argument(fun,value,code)}else{code}
             }).collect();
             debug_assert!(rendered.next().is_none());
-            return Self::access_wrapped(expr,mode,self.object_spread_value_with(fun,result,args,copied));
+            return Self::access_wrapped(expr,mode,self.object_spread_value_with(result,args,copied));
         }
         if let CallState::BuiltinReceiver(receiver_mode)=state{
             let receiver=Self::builtin_chain_receiver(expr).expect("builtin chain receiver");

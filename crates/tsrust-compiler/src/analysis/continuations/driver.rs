@@ -1730,16 +1730,24 @@ fn schedule_argument<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
         }
         InvocationFinish::Conditional { frame, invocation, publish_type } => {
             match analyzer.finish_callable_invocation(context, args, expr.span, invocation) {
-                Ok(super::call::FinishedInvocation::Ready(target, result)) => complete_conditional_call(analyzer, context, expr, frame, (target, result), publish_type),
+                Ok(super::call::FinishedInvocation::Ready(target, result)) => {
+                    if !matches!(target,CallTarget::ForwardFunction(_))
+                        && let Err(error)=analyzer.adapt_fixed_record_spread_arguments(args,&call.arguments.params) {
+                        return finish_expression(analyzer,context,task,Err(error));
+                    }
+                    complete_conditional_call(analyzer, context, expr, frame, (target, result), publish_type)
+                },
                 Ok(super::call::FinishedInvocation::Method(origin, types)) => return schedule_method(task, origin, types, Some((frame, publish_type))),
                 Err(error) => Err(error),
             }
         }
         InvocationFinish::Bound { binding, result, target } => {
+            if let Err(error)=analyzer.adapt_fixed_record_spread_arguments(args,&call.arguments.params){return finish_expression(analyzer,context,task,Err(error));}
             analyzer.finish_bound_call(context, expr, binding, result, target)
                 .map(|ty| { analyzer.resolve_completed_capture_invocation(context, expr, ty); ty })
         }
         InvocationFinish::StoredField { family, result } => {
+            if let Err(error)=analyzer.adapt_fixed_record_spread_arguments(args,&call.arguments.params){return finish_expression(analyzer,context,task,Err(error));}
             analyzer.remember_native_family_returns(context, family, expr.span).map(|()| {
                 expr.target = Some(CallTarget::StoredCallableField(family));
                 expr.ty = Some(result);
