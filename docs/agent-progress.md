@@ -6,6 +6,34 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### First sharded full regression — 2026-11-08 19:30 UTC
+
+- Run 42503200899 (8 shards, 2fd6e5e1-era HEAD on `codex/stdlib-0.2.0-full`):
+  every shard finished within its one-hour job (slowest 54 min). Failures,
+  diagnosed and fixed locally:
+  - map-epoch `while(true)` loops emitted `while !stop && (true)`, so a function
+    ending in such a loop failed rustc with `()` instead of i64. A literal-true
+    loop with no break leaving it now emits `loop` (`breaks_out` uses resolved
+    control targets). Test sources with genuinely dead statements after
+    divergent loops were corrected (3 scoped-record cases).
+  - Stale fixtures: exception_handling inlined runtime lacked `report.rs`;
+    cache callback rejection is now `cache-payload`; `Option<T>` is supported
+    (B19), so it is no longer a rejection case; json.test.tsr now expects the
+    early 413; the empty generic call diagnostic is `array-type`.
+  - Pretty reporter printed absolute assertion paths; sites now render relative
+    to the working directory.
+  - CI environment: crates.io `url` was absent offline (the workspace patches
+    it), so it is now in `tests/dependencies`; a restored stale `libnix` broke
+    direct-rustc tests (dropped before the shards run); "Complete regressions"
+    was skipped after an earlier step failure (`!cancelled()` added); two cold
+    budgets raised.
+  - Local: all affected targets PASS, including scoped_record_composition 207
+    and the map suites.
+- C8 42503198395 sealed (Linux/ARM/Intel complete). The Windows helper died
+  with STATUS_CONTROL_C_EXIT. It now ignores Ctrl+C process-wide and stays
+  attached for one second after sending, so its own copy of the event is
+  delivered while ignored.
+
 ### C6 review and measurement completion — 2026-11-08 16:45 UTC
 
 - C6 42494556962 at 3972fa49: Linux, ARM and Intel macOS repairComplete=true

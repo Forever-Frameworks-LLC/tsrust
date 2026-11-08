@@ -703,7 +703,8 @@ fn nested_iteration_controls_join_only_their_target_storage() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});outer:while(true){while(true){handlers.delete('first');break;}break outer;}console.log(handlers.size);for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}";
     support::execute(&support::format_round_trip(source), "1\nsecond 5\n", None);
     verify_disposal(&support::format_round_trip(source), 2, "drop 0\n1\nsecond 5\ndrop 1\n");
-    let escaping = source.replace("handlers.delete('first');break;", "handlers.delete('first');break outer;");
+    // The inner loop now exits only through `break outer`; drop the dead outer break.
+    let escaping = source.replace("handlers.delete('first');break;}break outer;}", "handlers.delete('first');break outer;}}");
     support::execute(&support::format_round_trip(&escaping), "1\nsecond 5\n", None);
     let counted = source.replace("outer:while(true){while(true){", "outer:for(let turn=0;turn<1;turn++){for(const item of [0]){");
     support::execute(&support::format_round_trip(&counted), "1\nsecond 5\n", None);
@@ -711,7 +712,7 @@ fn nested_iteration_controls_join_only_their_target_storage() {
 
 #[test]
 fn ordinary_map_loop_without_backedge_releases_capture_before_return() {
-    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;return first[0];}return 0;}function main():void{console.log('result',scenario());}");
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;return first[0];}}function main():void{console.log('result',scenario());}");
     support::execute(&source,"result 4\n",None);
     verify_disposal(&source,2,"drop 0\ndrop 1\nresult 4\n");
     let failed=source.replace("return first[0];","throw first[0];").replace("console.log('result', scenario());","try{console.log('result',scenario());}catch(error){if(typeof error==='number')console.log('error',error);else throw error;}");
@@ -838,13 +839,15 @@ fn labelled_map_cleanup_loop_preserves_survivors_and_control() {
 
 #[test]
 fn map_cleanup_loop_without_backedge_releases_deleted_capture() {
-    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}return 0;}function main():void{console.log('result',scenario());}");
+    // Bounded variants can finish the loop and need the trailing return; the
+    // infinite base loop must not have it, because it would be unreachable.
+    let template="type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}TAIL}function main():void{console.log('result',scenario());}";
+    let source=support::format_round_trip(&template.replace("TAIL",""));
     support::execute(&source,"cleanup 1\nkept second 5\nresult 4\n",None);
     verify_disposal(&source,2,"drop 1\ncleanup 1\nkept second 5\ndrop 0\nresult 4\n");
     for replacement in ["for(let step=0;step<3;step+=1){","do{","for(const step of [0,1,2]){"] {
-        let mut variant=source.replace("while (true) {",replacement);
-        assert_ne!(variant,source);
-        if replacement=="do{" {variant=variant.replace("return 0;","while(false);");}
+        let variant=template.replace("while(true){",replacement).replace("TAIL",if replacement=="do{" {"while(false);"} else {"return 0;"});
+        assert_ne!(variant,template);
         support::execute(&support::format_round_trip(&variant),"cleanup 1\nkept second 5\nresult 4\n",None);
     }
     let unsafe_cleanup=source.replace("} finally {","}finally{first[0]+=10;");

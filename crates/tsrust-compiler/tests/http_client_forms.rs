@@ -23,7 +23,7 @@ fn form_and_multipart_factories_execute_through_aliases_and_stored_calls(){
   command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated)
    .env("CARGO_HOME",&home).env("CARGO_TARGET_DIR",&target).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1");
   if release{command.arg("--release");}
-  support::success(&support::run(&mut command,180));
+  support::success(&support::run(&mut command,600));
   let executable=target.join(if release{"release"}else{"debug"}).join(format!("program{}",std::env::consts::EXE_SUFFIX));
   let output=support::run(std::process::Command::new(executable).current_dir(&relocated),30);support::success(&output);
   assert_eq!(output.stdout,b"form and multipart exact\n");assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));

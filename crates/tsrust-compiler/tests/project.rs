@@ -1541,7 +1541,8 @@ fn inferred_generics_preserve_order_ownership_callback_contracts_and_result_cont
     for optimization in ["0","3"] { assert_eq!(native_stdout(&checked.emit_rust(),optimization),"0 1 2 Pat Pat 0 7 9 11\n"); }
     for (source, code) in [
         ("function identity<T>(value:T):T{return value;}function main(){const text='Pat';const moved=identity(text);console.log(text);}","transferred"),
-        ("function identity<T>(value:T):T{return value;}function main(){identity([]);}","generic-inference"),
+        // No argument supplies T, so the empty array itself reports its missing context.
+        ("function identity<T>(value:T):T{return value;}function main(){identity([]);}","array-type"),
         ("function pair<T>(left:T,right:T){}function main(){pair(1,'Pat');}","type"),
         ("function identity<T>(value:T):T{return value;}function main(){const identity=(value:int):int=>{return value+1;};console.log(identity(7));}","pass"),
     ] {
@@ -1596,7 +1597,7 @@ fn inferred_generics_use_numeric_array_context_and_later_nested_argument_hints()
     for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"1|2|3 3 0 Pat 0 1\n");}
     for (source, code) in [
         ("function identity<T>(value:T):T{return value;}function main(){const value:int=1;const numbers:number[]=identity([value]);}", "type"),
-        ("function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}function main(){first(identity([]),identity([]));}", "generic-inference"),
+        ("function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}function main(){first(identity([]),identity([]));}", "array-type"),
     ] {
         let error=tsrust_compiler::check(source).err().unwrap();
         assert_eq!(error.code,code,"{error:?}");

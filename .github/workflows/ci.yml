@@ -130,8 +130,13 @@ jobs:
       - name: LSP transport and compiler agreement
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
         run: cargo test --offline --locked --no-fail-fast -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency --test api_project -- --nocapture
-      - name: Complete regressions
+      - name: Drop restored test-only nix artifacts
+        # Tests that call rustc pick the newest libnix; a restored copy can name a
+        # pruned cfg_if. nix is a test-only dependency, so the rebuild is small.
         if: ${{ inputs.full_regressions }}
+        run: rm -f target/debug/deps/libnix-*
+      - name: Complete regressions
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && inputs.full_regressions }}
         env:
           SHARD: ${{ matrix.shard }}
         run: |

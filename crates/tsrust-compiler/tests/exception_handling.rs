@@ -65,7 +65,7 @@ fn native_runner_reports_result_errors_and_continues() {
     let directory = support::TempDirectory::new();
     let source = directory.0.join("runner.rs");
     let binary = directory.0.join("runner");
-    let runtime = concat!(include_str!("../src/runtime/number_tie.rs"),include_str!("../src/runtime/console.rs"),include_str!("../src/stdlib/testing/runtime/mod.rs"));
+    let runtime = concat!(include_str!("../src/runtime/number_tie.rs"),include_str!("../src/runtime/console.rs"),include_str!("../src/stdlib/testing/runtime/mod.rs"),include_str!("../src/stdlib/testing/runtime/report.rs"));
     let registration = include_str!("../src/stdlib/testing/runtime/registration.rs");
     std::fs::write(&source, format!(r#"
 type String=std::borrow::Cow<'static,str>;

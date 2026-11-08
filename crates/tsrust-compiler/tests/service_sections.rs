@@ -85,8 +85,11 @@ mod delivered_signals {
         assert_ne!(unsafe{AttachConsole(target)},0,"cannot attach owned recipient console");let _detach=Detach;
         let mut attached=[0u32;3];let count=unsafe{GetConsoleProcessList(attached.as_mut_ptr(),attached.len() as u32)};
         assert_eq!(count,2,"refuse console-wide delivery unless only recipient and helper are attached");assert!(attached[..2].contains(&target)&&attached[..2].contains(&std::process::id()));
-        assert_ne!(unsafe{SetConsoleCtrlHandler(Some(ignore),1)},0);
+        assert_ne!(unsafe{SetConsoleCtrlHandler(Some(ignore),1)},0);assert_ne!(unsafe{SetConsoleCtrlHandler(None,1)},0);
         assert_ne!(unsafe{GenerateConsoleCtrlEvent(event,0)},0);
+        // Delivery is asynchronous. Stay attached until this helper's own copy of
+        // the event has been ignored; detaching first exits with STATUS_CONTROL_C_EXIT.
+        std::thread::sleep(std::time::Duration::from_secs(1));
     }
 
     #[cfg(windows)]

@@ -10,6 +10,9 @@ publish = false
 path = "lib.rs"
 
 # Offline package-management witnesses need versions outside the runtime lock.
+# Generated HTTP SDKs use crates.io url; the runtime closures patch it locally,
+# so fetch the published copy here.
 [dependencies]
 regex = "=1.12.2"
 unicode-ident = "=1.0.27"
+url = "=2.5.8"
