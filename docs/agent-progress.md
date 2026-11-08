@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-Current source base1b24204b plus accepted compiler/runtime repairs ready for checkpoint.
+Current accepted compiler/runtime checkpoint04f3df1f; only this progress/plan update is pending.
 Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 
 - ACTUAL current compiler library1543PASS/0FAIL/8unchanged opt-ins ignored,
@@ -63,10 +63,13 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
   libraries, metadata, binaries and shared caches. Exact count/bytes:
   /tmp/tsrust-native-context-object-cleanup.json. Prior net recovery oldhost
   1430007808B +obsoletebasepack766394368B remains separate.
-- NEXT: checkpoint accepted source after wholeformat; generated minimal/unused
-  vs ICU selected consumer build/size proof still missing (reuse existing
-  benchmarks/compiler/stdlib-selection/unused/main.tsr + examples/explicit-locale/main.tsr;
-  sharedcache, no old isolated11sample driver). Reconcile remaining B00contracts/
+- Generated minimal/unused vs ICU consumer build/size proof ACTUALPASS at04f3df1f:
+  520872B vs2179640B (delta1658768B), exactoutputs7 and ICU4lines verified;
+  first appcachemiss nativebuild2056.4ms/24974.8ms, warmhitsbothnative0.
+  Existingstable sources, sharedtarget/cache, no directcontrols/11sample replay,
+  no sampled-benchmark/SQLite claim. Temporarybinaries/emittedscratch removed.
+  /tmp/tsrust-generated-minimal-footprint.json. B00feature-selection row closed.
+- NEXT: reconcile remaining B00contracts/
   defaults/feature clauses; final backend all-target/bin/doctest acceptance and
   FOURHOST native/package/install proof still pending. Check current PRs/
   Dependabot immediatelybeforepush; lastread empty/no live run. Do not dispatch

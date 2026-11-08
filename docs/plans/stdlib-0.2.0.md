@@ -96,7 +96,7 @@ Primary implementation evidence:
 - [x] Pin compatible versions/features in both dependency closures and locks,
   reserved-package inventory, reexports, cache identity and portable exports.
   A transitive dependency or UI-only feature is not public backend availability.
-- [ ] Prove feature selection: an unused module adds no unwanted dependency
+- [x] Prove feature selection: an unused module adds no unwanted dependency
   closure/runtime initialization. Measure minimal-program build time and size
   before admitting costly data tables or native build requirements.
 - [x] Prepare a reusable bounded test runner/build-slot procedure for every
@@ -124,9 +124,29 @@ Feature-selection evidence already includes passed `regex_feature_selection_foll
 production-sync ICU admission also measured six same-source build/footprint
 controls: baseline 609800 bytes and all-service 2104184 bytes; these are direct-backend
 code-plus-data results, not a generated minimal-program size claim. Reuse these
-passed controls. The parent feature-selection row remains open for the remaining
-new-family unused-import checks and the current generated minimal-program
-build/size comparison, rather than replaying covered families.
+passed controls. The remaining unused-import controls now pass in
+`native_package_export::new_optional_backends_follow_unused_imports_and_actual_value_or_type_uses`:
+14 source/emission rows cover plain and unused I/O, iterators, cancellation,
+password hashing and WebSockets, plus required/forbidden crypto/HTTP feature
+selection and genuinely used opaque signatures. They inspect emitted feature
+vectors, runtime markers and dependency extraction; imports alone do not select
+those backends.
+
+The generated-consumer build/size observation at `04f3df1f` uses the existing
+`benchmarks/compiler/stdlib-selection/unused/main.tsr` and
+`examples/explicit-locale/main.tsr` with one shared target/native cache. The minimal
+program emits none of the optional locale, HTTP, crypto, I/O, iterator or path
+runtime markers, produces `7`, and builds a 520872-byte optimized executable.
+The ICU example selects its locale runtime, exercises canonicalization, collation,
+grapheme segmentation and decimal formatting, and builds a 2179640-byte executable
+(1658768-byte difference). Exact outputs passed. First application-cache misses
+recorded 2056.4ms and 24974.8ms native build/link; unchanged warm builds both hit
+cache and recorded zero native build time. These are first-build observations
+with shared dependencies available, not cold-machine or sampled runtime benchmarks.
+Temporary consumer outputs were removed; shared artifacts remain reusable.
+This closes the feature-selection/minimal-consumer requirement without relabeling
+the earlier direct-backend footprint controls. Four-host package admission remains
+its separate unchecked requirement.
 
 B00 named migration acceptance: the filesystem and HTTP ceilings listed above
 are removed or explicit opt-ins, with the selected backend's own constraints
