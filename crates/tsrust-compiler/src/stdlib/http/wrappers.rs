@@ -1,13 +1,13 @@
 //! HTTP request factories use ordinary checked forwarding for aliases and stored calls.
 use crate::{Diagnostic,Span,native_bindings::NativeBinding,syntax::*};
 fn name(operation:&str)->String{format!("@http-adapter:{operation}")}
-fn factory(operation:&str)->bool{matches!(operation,"connectWebSocket"|"sse"|"sseWithProducer"|"cors"|"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
+fn factory(operation:&str)->bool{matches!(operation,"secureHeaders"|"compress"|"connectWebSocket"|"sse"|"sseWithProducer"|"cors"|"request"|"requestBytes"|"requestStream"|"requestChannel"|"requestForm"|"requestMultipart")}
 pub(super) fn prepare(program:&mut Program)->Result<(),Diagnostic>{
  let mut used=std::collections::BTreeSet::new();
  let mut rewrite=|value:&mut Expr|{if let ExprKind::Name(symbol)=&value.kind && let Some(operation)=symbol.strip_prefix("@native:std:http#") && factory(operation){used.insert(operation.to_owned());value.kind=ExprKind::Name(name(operation));}Ok(())};
- for function in &mut program.functions{crate::source_walk::function_body(function,&mut |_|Ok(()),&mut rewrite)?;}
+ for function in &mut program.functions{if function.name.kind==TokenKind::Symbol&&function.name.text.starts_with("@http-adapter:"){continue;}crate::source_walk::function_body(function,&mut |_|Ok(()),&mut rewrite)?;}
  crate::source_walk::body(&mut program.module_bindings,&mut |_|Ok(()),&mut rewrite)?;
- for operation in used{let binding=crate::native_bindings::lookup("std:http",&operation).expect("registered HTTP factory");let wrapper=adapter(program,binding)?;program.functions.push(wrapper);}
+ for operation in used{if program.functions.iter().any(|function|function.name.kind==TokenKind::Symbol&&function.name.text==name(&operation)){continue;}let binding=crate::native_bindings::lookup("std:http",&operation).expect("registered HTTP factory");let wrapper=adapter(program,binding)?;program.functions.push(wrapper);}
  Ok(())
 }
 fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Function,Diagnostic>{
@@ -25,13 +25,14 @@ fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Function,Diagnos
  let offset=program.functions.iter().map(|function|function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0)+1;
  let shift=|span:&mut Span|{span.start+=offset;span.end+=offset;};function.name.text=name(binding.name);function.name.kind=TokenKind::Symbol;shift(&mut function.name.span);shift(&mut function.scope_span);
  // Callable contexts need the unwrapped result before async body discovery.
- let crate::native_signatures::Signature::Result(success,_)=binding.result.signature() else{unreachable!("HTTP request factory result")};
+ let signature=binding.result.signature();
+ let success=if matches!(binding.name,"secureHeaders"|"compress"){&signature}else{let crate::native_signatures::Signature::Result(success,_)=&signature else{unreachable!("HTTP request factory result")};*success};
  if binding.name!="connectWebSocket"{function.result=Some(ResultAnnotation::Named(Box::new(crate::native_type_resolution::project(&mut program.records,success,function.name.span)?)));}
  let mut replacements=std::collections::HashMap::new();if binding.name=="connectWebSocket"{replacements.insert("Output".into(),crate::native_type_resolution::project(&mut program.records,success,function.name.span)?);}for(index,parameter)in binding.parameters.iter().enumerate(){if binding.name=="sseWithProducer"&&index==1{continue;}replacements.insert(format!("P{index}"),crate::native_type_resolution::project(&mut program.records,&parameter.ty.signature(),function.name.span)?);}
  crate::source_walk::substitute_function_annotations(&mut function,&replacements)?;for(parameter,_,_)in &mut function.params{shift(&mut parameter.span);}
  crate::source_walk::substitute_function_body(&mut function,&replacements,&mut |expression|{shift(&mut expression.span);Ok(())})?;
  crate::source_walk::function_body(&mut function,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Call(callee,args)=&mut expression.kind && matches!(&callee.kind,ExprKind::Name(value)if value=="backend"){
-  let args=std::mem::take(args);if binding.name=="connectWebSocket"{crate::stdlib::futures::lazy_module(expression,"std:http","__connectWebSocket",args);return Ok(());}*expression=crate::stdlib::futures::unwrap(super::call(&format!("__{}",binding.name),args,expression.span));
+  let args=std::mem::take(args);if matches!(binding.name,"secureHeaders"|"compress"){*expression=super::call(binding.name,args,expression.span);return Ok(());}if binding.name=="connectWebSocket"{crate::stdlib::futures::lazy_module(expression,"std:http","__connectWebSocket",args);return Ok(());}*expression=crate::stdlib::futures::unwrap(super::call(&format!("__{}",binding.name),args,expression.span));
  }Ok(())})?;Ok(function)
 }
 
@@ -78,5 +79,17 @@ fn cors_forwarders_preserve_optional_arity_for_direct_alias_and_stored_calls(){
  }
  let direct="import {App,Middleware,CorsOptions,cors} from 'std:http';type Factory=Function<Middleware,[options?:ReadOnly<CorsOptions>]>;function main(){const app=new App();app.use(cors());const alias=cors;app.use(alias());const stored:Factory=cors;app.use(stored());app.use(stored(undefined));app.use(stored({origins:['https://allowed.example']}));}";
  let typed_first="import {strictEqual} from 'std:testing';import {App,Middleware,CorsOptions,cors} from 'std:http';type Factory=Function<Middleware,[options?:ReadOnly<CorsOptions>]>;async function main():Task<void>{const stored:Factory=cors;const app=new App();app.use(stored());app.use(stored(undefined));app.use(stored({origins:['https://allowed.example']}));strictEqual(1,1);}";
- for source in [direct,typed_first]{let checked=check_graph(load_project(&Source(source.into()),"main.tsr").unwrap());assert!(checked.is_ok(),"Optional native factory forwarding must retain omission: {:?}",checked.err());}
+ let zero_arg="import {strictEqual} from 'std:testing';import {App,Middleware,secureHeaders,compress} from 'std:http';type PolicyFactory=Function<Middleware>;async function main():Task<void>{const headers:PolicyFactory=secureHeaders;const compression:PolicyFactory=compress;const app=new App();app.use(headers());app.use(compression());const alias=secureHeaders;app.use(alias());strictEqual(1,1);}";
+ for source in [direct,typed_first,zero_arg]{let checked=check_graph(load_project(&Source(source.into()),"main.tsr").unwrap());assert!(checked.is_ok(),"Optional native factory forwarding must retain omission: {:?}",checked.as_ref().err());
+  if source==zero_arg{let checked=checked.unwrap();for operation in ["secureHeaders","compress"]{let suffix=name(operation);assert!(checked.analysis.program.functions.iter().any(|function|!function.template&&function.name.ends_with(&suffix)&&matches!(function.result,crate::syntax::Type::Record(record)if checked.analysis.program.records[record].native_type==Some(crate::native_signatures::NativeTypeId::HttpMiddleware))),"Missing checked policy forwarder: {operation}");}}
+ }
+}
+
+#[cfg(test)]
+#[test]
+fn plain_policy_adapters_preserve_native_backend_when_prepared_twice(){
+ let mut program=crate::syntax::parse("function main(){secureHeaders();compress();}").unwrap();
+ crate::source_walk::function_body(&mut program.functions[0],&mut |_|Ok(()),&mut |expression|{if let ExprKind::Name(symbol)=&mut expression.kind{if matches!(symbol.as_str(),"secureHeaders"|"compress"){*symbol=format!("@native:std:http#{symbol}");}}Ok(())}).unwrap();
+ prepare(&mut program).unwrap();let count=program.functions.len();prepare(&mut program).unwrap();assert_eq!(program.functions.len(),count);
+ for operation in ["secureHeaders","compress"]{let adapter=program.functions.iter_mut().find(|function|function.name.text==name(operation)).unwrap();let mut native_calls=0;crate::source_walk::function_body(adapter,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Call(callee,_)=&expression.kind{if let ExprKind::Name(symbol)=&callee.kind{assert_ne!(symbol,&name(operation),"Adapter must not call itself");if symbol==&format!("@native:std:http#{operation}"){native_calls+=1;}}}Ok(())}).unwrap();assert_eq!(native_calls,1);}
 }

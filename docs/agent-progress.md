@@ -6,33 +6,29 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current production compiler acceptance is at d534db74; subsequentec29ffcd changes
-are test-only. Only root writes canonical; app worktree WIP remains protected.
-- ACTUAL byte68 EACH debug+release PASS, no skips/failures: /tmp/tsrust-nullable-storage-proof-front-30bc05cbad9c.json. Exact names/source/property-order oracles preserved. Execution1.407875/0.462916ms; setup14316.916583/18485.309333ms, not comparable timings.
-- ACTUAL native ABI PASS: /tmp/tsrust-abi-witness-repair-c5252aa3173b.json. All4variants/O0/O3; actual10002node conversion, all buffer pointers, full deep drop64KiB and both escape negatives. Host3.16s. Test-only fix selects real ghost/live layouts instead of identical canonicalized adopt types.
-- Compiler library milestone:1528PASS/1HTTPfixture failure/8UNCHANGED opt-in cases,107.08s. FullLSP27PASS0.17s. /tmp/tsrust-closed-runtime-library-milestone.json. Affected HTTP wire/concurrency pair now2PASS0.03s: /tmp/tsrust-http-body-limit-proof-28fed979d29f.json. Composite closes all1529 runnable compiler cases plus27LSP; original passes retained, not replayed. No new ignore added.
-- HTTP fixture corrected to read actual early413 from headers before rejected upload. Pinned Hyper closes unread bodies after cheap drain; requiring Reqwest to finish writing was a race. Ordinary/exact-limit full1048577byte/200/allbyte assertions preserved. No runtime change, reset acceptance or unbounded drain.
-- All milestone work/failure repairs fit original1800s scope started1794094074.6080792 (see /tmp/tsrust-abi-witness-repair-scope.json for exact timestamp). Latest affected phase314.753s/peak4307786040B,stopnull,remaining[],terminal Cargo PASS311.689s; cleanup514502656B actual recovery. NormalCLI/LSP hashes sealed/unchanged through test-only repairs. No build/test live at this record.
-Pending checkpoint changes: shared55case public host now runs serialdebug+release,
-with existing names/catalog/log oracles AND filtered cache-hit proof at EACH
-profile. No new fixture/program per case. Added release iteration still UNRUN.
-B15 eager snapshot checkbox now closes from explicit retained array_keys_values,
-array_entries,map_snapshots,sets native passes at965de83f; reviewed sources unchanged.
-Next prepared `/tmp/tsrust-remaining-portable-acceptance-run.py` (NOT started):
-one fresh normalCLI+3host build, shared55bothprofiles FIRST, middleware relocated
-O0/O3 export, realgeneratedShlex relocated O0/O3 export LAST. Fixed30min/5GB/
-jobs1/incremental0/threads3. No compiler/LSP library replay. Preserve B19 nominal
-projection PASS from /tmp/tsrust-utilities-http-repair19c-d2cd59ed7ca1.json (current
-test/bridge/generator unchanged); deterministic generator19b PASS retained too.
-Then actual quiet measurement: prepared NOTRUN /tmp/tsrust-b11-fresh-public-native-measure.py validates TWOseparate55reports/currentCLI; reuses unchangedRust/Node
-controls and original3x31x128protocol,30minbudget,strictquietguard,actualSQLiteingest.
-Closed old generated public-server package must be inspected/pruned before fresh
-package assertion; do not delete controls or trust overwritten program alias.
-No comparable new timing/SQLite ingest claimed. Full B00–B20 goal remains active;
-remaining platform/package/final integration/measurement requirements remain open.
-All source checkpoints whole-project formatted (0changes),diff clean. No push or
-v0.2publication. B00URLscaling/relative-reference investigation receipt still not
-located; keep open. Full current records are this single file plus source plan.
+Current checkpointc7dd78af; pending reviewed middleware factory+Shlex prep repairs.
+Only root writes canonical; app worktree owner WIP stays protected.
+- ACTUAL shared55 EACH debug+release PASS, plus filtered cachehit/nativeBuildMs0 at EACH: /tmp/tsrust-remaining-portable-acceptance-9ceb3a90f2c4.json. Logging5/exact10JSONrows,realtime18,iterator32/allcatalog/name oracles retained. Debug execution159.822375ms/setup17631.797333; release72.686708ms/setup145014.922709 (native136532.924584). Correctness observations,NOT comparable timings.
+- Same scope terminal497.315s,peak2983645936B,stopnull,remaining[]. Fresh normalCLI+3hosts buildPASS218.480s. Exports FAILED only: middleware unresolved http_intrinsic in storedsecureHeaders/compress aliases; realShlex lacks explicitly prepared portable pack. Host89.498s/4.249s; no export acceptance claimed. Cleanup511848448B actual recovery. No build/test live at this record.
+- Reviewed pending production fix b7487ed: reuse existing checked HTTP factory forwarders for secureHeaders/compress, preserve plainMiddleware result/directnativeconstructor (no fabricatedResult/unwrap). Reserved Symbol skip/exacthelperdedup prevents prepare reentry self-call; typed-first and preparetwice controls added. Authored middleware O0/O3 export remains native witness. Reviewed Shlex test-only75c7268 adds --portable to existing offline bindingsresolve; export itself remains Cargo-free.
+- Next prepared NOTRUN /tmp/tsrust-http-factory-portable-repair-run.py: one coherent compiler/LSP/5target build, affected HTTPwrapperprivate controls, shared55bothprofiles (freshHTTPproducer+benchmarkproof), focusedHTTPhelp, THEN middleware+realShlex O0/O3 relocated emptyCargoHome/offline/locked exports LAST. Fixed30min/5GB/jobs1/incremental0/threads3. No full-library/byte/crypto replay. B19 nominal projection19c and deterministic19b remain passed/unchanged; don't rerun.
+- Retained byte68 EACHdebug/release PASS: /tmp/tsrust-nullable-storage-proof-front-30bc05cbad9c.json. NativeABI actual10002node/O0O3/pointers/deepdrop64KiB/twoescapes PASS: /tmp/tsrust-abi-witness-repair-c5252aa3173b.json.
+- Retained meaningful library milestone: compiler1528PASS+one repairedHTTPfixture =all1529runnable;8UNCHANGED opt-in cases. FullLSP27PASS. /tmp/tsrust-closed-runtime-library-milestone.json plus affectedHTTPpair2PASS /tmp/tsrust-http-body-limit-proof-28fed979d29f.json. Corrected header-only actual413 probe preservesordinary/exactlimit1048577bytefulluploads; no runtime drain/reset acceptance. Fullwork/repairs fit original30minscope1794094074.6080792. No fullregression replay for current narrowHTTPfactory fix.
+APIchecklist reflects retainednative/editor/export evidence; B15eagersnapshots
+explicit arraykeys/entries/mapsnapshots/Setmutation-control passes at965 retained.
+Remaining B00package/platform/default-ledger, B17disabledallocation, B19exports,
+B20finalintegration/apps/platform/measurements remain open. Fullgoalactive.
+Quietmeasurement preparedNOTRUN /tmp/tsrust-b11-fresh-public-native-measure.py:
+validates TWOseparate55reports/currentCLI; unchangedRust/Node controls/original
+3x31x128protocol,strictquietguard,actualstore:ingest only. Inspect/pruneclosed
+old target/http-realtime-public-package before freshpackageassert; don'tdelete
+controls/trustoverwritten programalias. URLscaling already hasregistered workloads
+native_url_dot_segments_{long,short}_{8192,16384,32768,65536}; use those after
+portablebatch for remaining bounded investigation/measurements. Upstream1163/
+1164/1174 reread; existingdocs/runtimecorpus alreadystatepinnedrelative difference,
+correctness/patchpasses retained; complete scaling timingreceipt stillnotlocated.
+Whole-project format0changes,diffclean before checkpoints. No new comparable
+measurement/SQLiteingestion, push, merge or v0.2publication claimed.
 
 Latest accepted section — public55case native runtime; full v0.2.0 remains active:
 
