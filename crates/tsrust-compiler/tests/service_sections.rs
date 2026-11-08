@@ -28,14 +28,15 @@ mod delivered_signals {
                 // A separate console is essential: Ctrl+C cannot target one group.
                 // Do not use CREATE_NEW_PROCESS_GROUP, which disables Ctrl+C.
                 command.creation_flags(windows_sys::Win32::System::Threading::CREATE_NEW_CONSOLE);
-                // CI launchers can start this owner with Ctrl+C ignored, an attribute
-                // every child inherits. Restore normal processing for the recipient;
-                // the owner keeps ignoring Ctrl+C through its own handler.
-                use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
-                unsafe extern "system" fn ignore(_:u32)->i32{1}
-                unsafe{assert_ne!(SetConsoleCtrlHandler(Some(ignore),1),0);assert_ne!(SetConsoleCtrlHandler(None,0),0);}
             }
-            let mut child=command.spawn().unwrap();let stdout=child.stdout.take().unwrap();let mut stderr=child.stderr.take().unwrap();let(tx,lines)=mpsc::channel();
+            // CI launchers can start this owner with Ctrl+C ignored, an attribute
+            // every child inherits. Restore normal processing only while spawning
+            // the recipient; the console sender spawned later still inherits ignore.
+            #[cfg(windows)]let restore=unsafe{windows_sys::Win32::System::Console::SetConsoleCtrlHandler(None,0)};
+            #[cfg(windows)]assert_ne!(restore,0);
+            let child=command.spawn();
+            #[cfg(windows)]assert_ne!(unsafe{windows_sys::Win32::System::Console::SetConsoleCtrlHandler(None,1)},0);
+            let mut child=child.unwrap();let stdout=child.stdout.take().unwrap();let mut stderr=child.stderr.take().unwrap();let(tx,lines)=mpsc::channel();
             let output=std::thread::spawn(move||{for line in BufReader::new(stdout).lines(){if tx.send(line).is_err(){break;}}});
             let errors=std::thread::spawn(move||{let mut bytes=Vec::new();stderr.read_to_end(&mut bytes).unwrap();bytes});
             Self{child,lines,output:Some(output),errors:Some(errors)}
@@ -84,9 +85,7 @@ mod delivered_signals {
         assert_ne!(unsafe{AttachConsole(target)},0,"cannot attach owned recipient console");let _detach=Detach;
         let mut attached=[0u32;3];let count=unsafe{GetConsoleProcessList(attached.as_mut_ptr(),attached.len() as u32)};
         assert_eq!(count,2,"refuse console-wide delivery unless only recipient and helper are attached");assert!(attached[..2].contains(&target)&&attached[..2].contains(&std::process::id()));
-        // The owner restored normal Ctrl+C processing, so the helper inherits it;
-        // ignore the event process-wide as well as through the handler.
-        assert_ne!(unsafe{SetConsoleCtrlHandler(Some(ignore),1)},0);assert_ne!(unsafe{SetConsoleCtrlHandler(None,1)},0);
+        assert_ne!(unsafe{SetConsoleCtrlHandler(Some(ignore),1)},0);
         assert_ne!(unsafe{GenerateConsoleCtrlEvent(event,0)},0);
     }
 
