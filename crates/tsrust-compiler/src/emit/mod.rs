@@ -1906,7 +1906,12 @@ impl Emitter<'_> {
                 return;
             }
             let fresh_borrow = borrowed && !borrowed_default && !binding.ty.is_copy() && absent_body.is_none();
-            if fresh_borrow { let _ = writeln!(output,"let mut default_owner{id};"); }
+            if fresh_borrow {
+                // Preserve every initializer payload slot before borrowing it;
+                // an impossible callback arm cannot infer its physical type.
+                let annotation=value.ty.filter(|ty|ty.union().is_some()).map(|ty|format!(": {}",self.native_type(ty))).unwrap_or_default();
+                let _ = writeln!(output,"let mut default_owner{id}{annotation};");
+            }
             let default = if let Some((absent,body))=absent_body {
                     let to=self.program.unions[body.index()].members.iter().position(|ty|*ty==absent).expect("default absence belongs to body");
                     let tag=if borrowed && binding.mode==Mode::Read {"ViewUnion"}else{"Union"};
@@ -11088,7 +11093,9 @@ fn mutable_record_union_defaults_match_the_checked_owner_enum(){
  let source="type Reactive<T>={evaluate:Owned<Function<T>>;};type Value<T>=Reactive<T>|T;function snapshot(value:Mutable<Value<string|undefined>|undefined>):string{if(value===undefined){return '';}if(typeof value==='string'){return clone(value);}return value.evaluate()??'';}function invoke(value:Value<string|undefined>|undefined=''):string{return snapshot(value);}function main(){console.log(invoke());}";
  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=crate::check(&source).unwrap();
  let function=checked.program.functions.iter().find(|function|function.name=="invoke").unwrap();let binding=&function.bindings[0];assert_eq!(binding.mode,Mode::Mutate);let from=binding.initializer.as_ref().unwrap().ty.unwrap().union().unwrap();
- let emitted=checked.emit_rust();assert!(emitted.contains(&format!("match &mut default_owner0 {{Union{}::V0(payload)",from.index())),"Default owner must match its own physical enum");
+ let physical=emitter_for(&checked.program,"").native_type(binding.initializer.as_ref().unwrap().ty.unwrap());
+ let emitted=checked.emit_rust();assert!(emitted.contains(&format!("let mut default_owner0: {physical};")),"Default owner must retain its initializer's complete physical payload types, rather than infer them from an impossible arm");
+ assert!(emitted.contains(&format!("match &mut default_owner0 {{Union{}::V0(payload)",from.index())),"Default owner must match its own physical enum");
 }
 
 #[cfg(test)]

@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current source05ea0131; compiler repair44a5e800 and attribution/export validation accepted locally. Full goal active.
+Current source a3d9a82e plus accepted physical-default annotation repair pending checkpoint. Full goal active.
 - ACTUAL PASS currentCLI publicfrontend declared/inferredfactory4controls plus
   genuineMissing_response error; originalservicefrontendPASS; inventoryPASS1680
   rows/671bindings/174types/43sourceexports/78retainedexamplewitnesses.
@@ -36,16 +36,22 @@ Current source05ea0131; compiler repair44a5e800 and attribution/export validatio
   export deleted. /tmp/tsrust-valuable-cli-build.json and
   /tmp/tsrust-valuable-export-result.json. JSfocused2tests remainPASS0.355s.
   No active Cargo/rustc processes at initial process inspection.
-- Current alias/feature assertions uncommitted: existing2 std:testing suites
-  extended, no newruntimeprograms. FrontendPASS both aftercorrecting testscalar
-  annotations/directall alias/voidmatchsyntax. Hostbuild4.715s/413991704B;
-  featureselection14rowsPASS1.564s; iteratorprivate/extractedmethodnegatives
-  PASS0.555s. /tmp/tsrust-alias-feature-acceptance.json.
-  Sharednative2filebuildFAIL10.462s/491208704B: generatedRustE0282, fresh
-  parameter default_owner0 physicalunion lacks type annotation for unreachable
-  callbackrecord alternative. /tmp/tsrust-alias-feature-acceptance-registered.err.
-  Repaironlysharedemitter defaultownerannotation, preserveallassertions/passed
-  hostchecks. Original900s aggregatebudget includes setup/resume; no fullreplay.
+- Accepted alias/feature assertions from a3d9a82e plus narrow physical-default
+  annotation repair: host build4.715s/413991704B; feature selection14rowsPASS1.564s;
+  iterator private/extracted-method negativesPASS0.555s. Original shared native
+  build failed10.462s with E0282, preserved in /tmp/tsrust-alias-feature-acceptance.json.
+  Repaired deferred borrowed union owner now names INITIALIZER physical type;
+  ordinary non-union defaults/ownership/evaluation unchanged. Existing unit guard
+  retains physical enum check and verifies complete owner annotation.
+- ACTUAL repair PASS /tmp/tsrust-alias-feature-repair.json: build385.896s/
+  3387248888B, terminal Cargo success; focused physical-default guard1PASS1.067s.
+  TWO existing std:testing files share ONE native runner:18PASS/0FAIL/0SKIP,
+  native build/link2522.47175ms, check1275.527208ms, total setup4079.676458ms;
+  test execution3.244125ms. Outer runner5.225s/392691712B, remaining[]/stopnull.
+  Same original900s aggregate scope, not a new budget or full regression claim.
+  Removed61 newly-created loose codegen objects23723224 logical bytes after
+  all owned processes settled; kept libraries, metadata, binaries and shared caches.
+  /tmp/tsrust-alias-feature-object-cleanup.json. No build active.
 - B00 pin/wiring checklist reconciled with current54 common direct manifest
   declarations/lock identities, reserved-package regression and actual relocated
   exports. Broader package admission, optional-selection/minimal-program footprint
