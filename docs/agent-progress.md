@@ -6,10 +6,29 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-Current accepted base f46d7400; focused missing-support/build-cleanup repair now locally accepted; working-tree changes include actual113-group measurement ingestion, plan/progress metadata, build-helper cleanup and missing-support-file restoration.
-Hosted469e8bb3 failed; focused repair42470181942 atf46d7400 has failed Linux/Windows jobs; both Macs remain running.
+Current accepted checkpoint7ff214ea; focused missing-support/build-cleanup repair locally accepted; working-tree changes include actual113-group measurement ingestion, plan/progress metadata, build-helper cleanup and missing-support-file restoration.
+Hosted469e8bb3 andfocusedrepair42470181942@f46 areterminalFAIL. No remote job remains live.
 Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 
+- Secondfocusedrepair preparation: all4 C2 artifacts SHA/host/source/parentseal
+  verified locally. ActualC2passesLinux2/Windows0/ARM6/Intel127 remainf46;
+  C1retained447/0/540/399 remain469. Newoptionalexplicitsecondartifactinput
+  preservesbothidentities, ignoresnestedretainedasC2 proof, andskipsONLYactual
+  successfulok/noScopeStopcases; oldforcedC1controlsstillrequireactualC2pass.
+  Fourhostoriginal61targetselection/guards/package+smoke unchanged; focused
+  completefalse staysfalse. Python24PASS; actualall4sealedartifactsPASS.
+- TerminalC2Intel47.6min (jobcap60min/scope55min): mostnewnativefailuresbare
+  ENOENT plusIOpackageemit60s/logging+realtimeDEBUGCargo180s timeouts. Record
+  /tmp/tsrust-repair-42470181942-mac-intel. Logging/realtimeCargo budgets now
+  300s EACHprofile, IOpackageemit180s; onlypercommandcoldworklimits changed,
+  scope55min/job60min stays. Unchangedlocallyacceptedpayloadsnotrerun.
+- Nextremote decision: candidateafter7ffcheckpoint uses54CLI/IO18both+stdio/
+  shared55both accepted, priorcompiler1544/LSP27/exportproofretained. Need
+  Windowsactualstack/signal+successfulownedhelpercleanup and actualmissingpath
+  receipt/resolution onhost caches; selectplatform_acceptance=true,
+  platform_prior_run=42460717406, platform_second_prior_run=42470181942.
+  OldequivalentrunterminalFAIL; no duplicateactivevalidation, nofullCI/release.
+  CheckfreshPRs/Dependabot immediatelybeforepush. Publicationunapproved.
 - Focused cache/build repair ACTUALPASS: exactpriorCargo featuregraph restored;
   onecorrectedno-run31.080s/697811784B, terminalbuild-finished success.
   CLI54PASS10.598s includingmissingfile/changedmetadata/symlinkcontrols;

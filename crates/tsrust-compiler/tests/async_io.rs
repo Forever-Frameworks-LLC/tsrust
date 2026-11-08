@@ -89,7 +89,7 @@ fn started_io_tasks_reject_caller_loans_and_owned_readers_transfer(){
 #[test]
 fn io_http_package_exports_and_builds_offline_after_relocation(){
  let directory=support::TempDirectory::new();let input=directory.source(&support::format_round_trip(include_str!("../../../examples/async-io/http-files.tsr")));let package=directory.0.join("package");
- support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),60));
+ support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),180));
  let manifest=std::fs::read_to_string(package.join("Cargo.toml")).unwrap();assert!(manifest.contains("\"io\""));assert!(manifest.contains("tokio/io-util"));let rust=std::fs::read_to_string(package.join("src/main.rs")).unwrap();assert!(!rust.contains("runtime_tests.rs"));assert_safe_rust(&rust);std::fs::write(package.join("src/main.rs"),format!("#![forbid(unsafe_code)]\n{rust}")).unwrap();
  std::fs::remove_file(input).unwrap();let relocated=directory.0.join("relocated");std::fs::rename(package,&relocated).unwrap();let home=directory.0.join("empty-cargo-home");std::fs::create_dir(&home).unwrap();
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));

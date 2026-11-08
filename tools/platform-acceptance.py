@@ -40,6 +40,39 @@ REPAIR_RESULTS = {
     "x86_64-apple-darwin": "854b7e55f8c8adf3d2d1e6e8bfc850aa88bf1e77707aff58db4dd44bafc23bd3",
     "x86_64-pc-windows-msvc": "3a6fb2f204ec44c00b02ac83b8e4b01dc30fcc39a4bb81325c01d00693d77c00",
 }
+# Reviewed second run; each host is sealed independently.
+SECOND_CHECKPOINT = "f46d740023318f239e04ce190b1461c08f7272b5"
+SECOND_RESULTS = {
+    "x86_64-apple-darwin": "0ca76db650f65eb7d0728a2aa3721ee6c0f2b1213da76a3f603a9d69c5ecd6fd",
+    "x86_64-unknown-linux-gnu": "a90b6deb080bc6da0bc02f57f4c42fc60b67e699c8f4bbae1780867c2f08a4db",
+    "x86_64-pc-windows-msvc": "a84b5eb1c71682e10a2ef5e4da8136e7b77fd301b3a28d5801ad44afec61b28e",
+    "aarch64-apple-darwin": "1155d283594b0ce715890565209ca351e7c5cfece6993064a3e5f021d700eea6",
+}
+
+
+def second_repair_plan(path, host):
+    path = Path(path)
+    if path.is_dir():
+        paths = list(path.rglob("results.json"))
+        assert len(paths) == 1, "Expected one second-run host result"
+        path = paths[0]
+    assert host in SECOND_RESULTS, "Second-run host evidence not yet reviewed"
+    assert sha(path) == SECOND_RESULTS[host], "Second artifact results changed"
+    prior = json.loads(path.read_text())
+    assert prior["host"] == host and prior["checkpoint"] == SECOND_CHECKPOINT
+    assert prior["retainedEvidence"] == {"checkpoint": REPAIR_CHECKPOINT, "resultsSha256": REPAIR_RESULTS[host], "run": "42460717406"}
+    return prior
+
+
+def second_retained_cases(prior, key, names):
+    previous = prior.get("targets", {}).get(key, {})
+    if not previous:
+        return set()
+    assert previous["identity"]["checkpoint"] == SECOND_CHECKPOINT
+    # Never read nested retained cases here: those still belong to the first run.
+    return {name for name in names if (row := previous.get("tests", {}).get(name, {})).get("success") is True
+            and row.get("status") == "ok" and row.get("scopeStop") is None}
+
 REPAIR_REPEAT = {
     "tsrust-compiler::structured_logging": {"public_registered_suites_share_one_native_build", "relocated_logging_suite_executes_offline_at_both_optimizations"},
     "tsrust-compiler::realtime": {"relocated_realtime_suite_executes_offline_at_both_optimizations"},
@@ -311,8 +344,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", required=True, choices=["x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-pc-windows-msvc"])
     parser.add_argument("--repair-plan", help="Prior run 42460717406 host artifact results JSON or directory; focused repair only")
+    parser.add_argument("--second-repair-plan", help="Additional reviewed run 42470181942 artifact; requires first repair plan")
     args = parser.parse_args()
     prior = repair_plan(args.repair_plan, args.host) if args.repair_plan else None
+    assert not args.second_repair_plan or prior, "Second evidence requires first evidence"
+    second = second_repair_plan(args.second_repair_plan, args.host) if args.second_repair_plan else None
     root = Path(__file__).resolve().parent.parent
     target = root / "target"
     version = tomllib.loads((root / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
@@ -344,6 +380,8 @@ def main():
         temporary.write_text(json.dumps(results, indent=2) + "\n")
         temporary.replace(result_path)
     save()
+    if second:
+        results["secondRetainedEvidence"] = {"checkpoint": SECOND_CHECKPOINT, "resultsSha256": SECOND_RESULTS[args.host], "run": "42470181942"}
     def run(label, command, cwd=root):
         frozen()
         # Unique attempts preserve failed-scope evidence without overwriting logs.
@@ -391,6 +429,10 @@ def main():
             retained = retained_cases(prior, key, names) if prior else set()
             if prior:
                 results["targets"][key]["retained"] = {"identity": prior.get("targets", {}).get(key, {}).get("identity"), "cases": sorted(retained)}
+            if second:
+                second_cases = second_retained_cases(second, key, names) - retained
+                results["targets"][key]["secondRetained"] = {"identity": second.get("targets", {}).get(key, {}).get("identity"), "cases": sorted(second_cases)}
+                retained |= second_cases
             pending = []
             for test in names:
                 if name == "service_sections" and test == "delivered_signals::internal_owned_console_signal_sender":

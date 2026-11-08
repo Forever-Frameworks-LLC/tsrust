@@ -16,6 +16,10 @@ on:
         description: With platform_acceptance, repair reviewed run 42460717406 without repeating retained passes.
         type: string
         default: ""
+      platform_second_prior_run:
+        description: Additional reviewed run 42470181942; requires platform_prior_run 42460717406.
+        type: string
+        default: ""
       platform_windows_only:
         description: With platform_acceptance, validate a Windows repair without rerunning the other hosts.
         type: boolean
@@ -268,11 +272,24 @@ jobs:
         run: |
           test "$PRIOR_RUN" = 42460717406
           gh run download "$PRIOR_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-prior
+      - name: Retrieve reviewed second host evidence
+        if: ${{ inputs.platform_second_prior_run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SECOND_RUN: ${{ inputs.platform_second_prior_run }}
+          PRIOR_RUN: ${{ inputs.platform_prior_run }}
+        run: |
+          test "$PRIOR_RUN" = 42460717406
+          test "$SECOND_RUN" = 42470181942
+          gh run download "$SECOND_RUN" --repo "$GITHUB_REPOSITORY" --name 'native-io-family-${{ matrix.target }}' --dir target/platform-second-prior
       - name: Run bounded native family and packaged consumer acceptance
         env:
           PRIOR_RUN: ${{ inputs.platform_prior_run }}
+          SECOND_RUN: ${{ inputs.platform_second_prior_run }}
         run: |
-          if [ -n "$PRIOR_RUN" ]; then
+          if [ -n "$SECOND_RUN" ]; then
+            python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior --second-repair-plan target/platform-second-prior
+          elif [ -n "$PRIOR_RUN" ]; then
             python3 tools/platform-acceptance.py --host '${{ matrix.target }}' --repair-plan target/platform-prior
           else
             python3 tools/platform-acceptance.py --host '${{ matrix.target }}'

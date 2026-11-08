@@ -38,6 +38,39 @@ class PlatformAcceptance(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 RUNNER.repair_plan(path, host)
 
+    def test_second_repair_keeps_two_identities_and_ignores_nested_retained(self):
+        key = "tsrust-compiler::http"
+        names = ["first-pass", "second-pass", "failed", "missing", "stopped"]
+        first = {"targets": {key: {"identity": {"checkpoint": RUNNER.REPAIR_CHECKPOINT, "binary": "old"}, "tests": {"first-pass": {"success": True, "status": "ok", "scopeStop": None}}}}}
+        second = {"targets": {key: {"identity": {"checkpoint": RUNNER.SECOND_CHECKPOINT, "binary": "new"}, "retained": {"identity": first["targets"][key]["identity"], "cases": ["first-pass", "missing"]}, "tests": {"second-pass": {"success": True, "status": "ok", "scopeStop": None}, "failed": {"success": False, "status": "FAILED"}, "stopped": {"success": True, "status": "ok", "scopeStop": "timeout"}}}}}
+        self.assertEqual(RUNNER.retained_cases(first, key, names), {"first-pass"})
+        self.assertEqual(RUNNER.second_retained_cases(second, key, names), {"second-pass"})
+        self.assertEqual(first["targets"][key]["identity"]["binary"], "old")
+        self.assertEqual(second["targets"][key]["identity"]["binary"], "new")
+        forced_key = "tsrust-compiler::structured_logging"
+        forced = sorted(RUNNER.REPAIR_REPEAT[forced_key])[0]
+        forced_first = {"targets": {forced_key: {"identity": {"checkpoint": RUNNER.REPAIR_CHECKPOINT}, "tests": {forced: {"success": True, "status": "ok", "scopeStop": None}}}}}
+        self.assertEqual(RUNNER.retained_cases(forced_first, forced_key, sorted(RUNNER.REPAIR_REPEAT[forced_key])), set())
+        second["targets"][forced_key] = {"identity": {"checkpoint": RUNNER.SECOND_CHECKPOINT}, "tests": forced_first["targets"][forced_key]["tests"]}
+        self.assertEqual(RUNNER.second_retained_cases(second, forced_key, [forced]), {forced})
+        second["targets"][key]["identity"]["checkpoint"] = RUNNER.REPAIR_CHECKPOINT
+        with self.assertRaises(AssertionError):
+            RUNNER.second_retained_cases(second, key, names)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "results.json"
+            host = "x86_64-unknown-linux-gnu"
+            evidence = {"host": host, "checkpoint": RUNNER.SECOND_CHECKPOINT, "retainedEvidence": {"checkpoint": RUNNER.REPAIR_CHECKPOINT, "resultsSha256": RUNNER.REPAIR_RESULTS[host], "run": "42460717406"}}
+            path.write_text(json.dumps(evidence))
+            with patch.object(RUNNER, "sha", return_value=RUNNER.SECOND_RESULTS[host]):
+                self.assertEqual(RUNNER.second_repair_plan(path, host), evidence)
+                evidence["retainedEvidence"]["run"] = "unreviewed"
+                path.write_text(json.dumps(evidence))
+                with self.assertRaises(AssertionError):
+                    RUNNER.second_repair_plan(path, host)
+            with self.assertRaises(AssertionError):
+                RUNNER.second_repair_plan(path, host)
+
     def test_scope_budget_includes_setup_and_rejects_invalid_ci_start(self):
         self.assertEqual(RUNNER.scope_deadline(None, 10000.0, 200.0), 3500.0)
         self.assertEqual(RUNNER.scope_deadline("9400", 10000.0, 200.0), 2900.0)
