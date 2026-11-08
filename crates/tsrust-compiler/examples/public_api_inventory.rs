@@ -53,15 +53,29 @@ fn main() {
                 declarations.insert((declaration.module,declaration.name),declaration);
             }
         }}
-        if name=="TestRegistry" {
-            assert!(declarations.is_empty(),"review newly importable test registry");
-            rows.insert("std:testing-runtime::TestRegistry".into(),json!({"identity":"std:testing-runtime::TestRegistry","group":"std:testing-runtime","name":name,"private":true,"review":"internal non-importable registry; declaration metadata is not exposed by lookup"}));
-            continue;
+        // These exact identities are internal carriers, not public aliases.
+        // Keep the finite list explicit: new undiscoverable identities still fail.
+        let private_identity=match name {
+            "PoolSubmission"=>Some((tsrust_compiler::native_signatures::NativeTypeId::PoolSubmission,"std:threads","__PoolSubmission",true)),
+            "IteratorCursor"=>Some((tsrust_compiler::native_signatures::NativeTypeId::IteratorCursor,"std:iterator-runtime","ArrayCursor",true)),
+            "TestRegistry"=>Some((tsrust_compiler::native_signatures::NativeTypeId::TestRegistry,"std:testing-runtime","TestRegistry",false)),
+            _=>None,
+        };
+        if let Some((id,module,internal_name,lookup_visible))=private_identity {
+            assert!(declarations.is_empty(),"review newly public internal carrier: {name}");
+            let declaration=native_types::declaration(id);
+            assert_eq!((declaration.module,declaration.name),(module,internal_name),"review internal carrier identity: {name}");
+            assert!(native_types::lookup(module,name).is_none(),"review newly public carrier alias: {name}");
+            let lookup=native_types::lookup(module,internal_name);
+            assert_eq!(lookup.is_some(),lookup_visible,"review internal lookup policy: {name}");
+            assert!(lookup.is_none_or(|found|found.id==id),"internal lookup must preserve exact identity: {name}");
+            declarations.insert((declaration.module,declaration.name),declaration);
         }
         assert_eq!(declarations.len(),1,"missing or ambiguous declaration: {name}");
         let declaration=*declarations.values().next().unwrap();
         let key=format!("{}::{}",declaration.module,declaration.name);
         let row=rows.entry(key.clone()).or_insert_with(||json!({"identity":key,"group":declaration.module,"name":declaration.name,"review":"pending"}));
+        if private_identity.is_some() {row["private"]=json!(true);row["review"]=json!("internal carrier; not a public source export");}
         row["declaration"]=json!({"representation":format!("{:?}",declaration.representation),"independentClone":declaration.independent_clone,"threadTransfer":declaration.thread_transfer,"typeParameters":declaration.type_parameters,"fields":declaration.fields.iter().map(|field|json!({"name":field.name,"type":format!("{:?}",field.signature),"optional":field.optional})).collect::<Vec<_>>()});
     }
     for (module,file,source) in [

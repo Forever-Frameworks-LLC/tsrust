@@ -6,7 +6,43 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-07
 
-Current source checkpoint89a88137; fixed-callback repair pending checkpoint; full goal active.
+Current accepted source checkpoint03ec4f13; reviewed service-checker retry fix pending checkpoint; full goal active.
+- PROVEN minimal source: unused std:testing import activates speculative callback
+  discovery. A parameterless routes():App factory without its own try block loses
+  its source when selected through an unused async try/finally caller. Remove only
+  the unused import and it checks. NativeTrace/Sender are unnecessary to reproduce.
+- Pending one guard retains selected raw bodies in existing retry map BEFORE
+  prepare_selected_task_function temporarily disables discovery. Existing known/
+  visiting/pending guards and definitive diagnostics stay intact. Positive/control
+  and genuine missing_response negative use project SourceProvider, formatter
+  token behavior/idempotence. No diagnostic-only build occurred; optional trace
+  was removed before compilation. B14 peer review found no blocker.
+- Next /tmp/tsrust-service-retry-repair-run.py: one shared selected build/focused
+  compiler guard, original service frontend, ONE native app via check-service.mjs,
+  then existing export-inventory tool. Thirty-minute/5GB watchdog capped by the
+  ORIGINAL service attempt start+onehour; do not reset it. Preserve all03ec passes.
+
+- TERMINAL PASS current03ec4f13 repair: selectedbuild394.945s/3276963KiB,
+  two focused compiler guards PASS, real documentation native case PASS119.67s.
+  /tmp/tsrust-fixed-callback-repair-76986fc9793f.json.
+  Complete compiler library1538PASS/8unchanged opt-ins96.549s; LSP27PASS0.559s.
+  /tmp/tsrust-fixed-callback-family-libraries.json terminal-success. Outer public
+  phase518.307s, library98.167s; stopnull/remaining[] both. Session65004 closed.
+  No compiler rebuild currently running. Preserve all these accepted scopes.
+- Integratedservice ACTUALfrontendFAIL0.559s BEFORE nativeapp build:
+  /tmp/tsrust-current-integrated-service.json +.err. False `routes must return App`
+  at examples/service-observability/main.tsr45; function explicitly returnsapp.
+  Adding UNUSED exercise async try/finally calling routes reproducesfalseerror;
+  same routes/body withoutunusedexercise checks. B06/B14 investigate consumed-body
+  retry/checked-function invalidation, not an outdatedApp API. No speculative
+  productionfix yet; do not inline/removeobservability or weaken service checks.
+  No proven SERVICE_BINARY exists; afterfrontendrepair the existing harness needs
+  ONEappbuild thenrestarts SAMEexecutable foractualservicecontracts.
+- Existingpublic_api_inventory example build reused compiler/dependencies and
+  finished4.158s; no compilerlib rebuild. Tool execution exposed private internal
+  NativeTypeId lookup assumptions: PoolSubmission explicitly classified pending
+  commit; IteratorCursor remains tool-only reconciliation gap. No completed current
+  inventory/per-export acceptance claim. Root is only canonical writer.
 - Second repair terminal: selected build PASS396.529s/3269491KiB; overall
  573.204s/3379566016B, stopnull, remaining[]. Session54291 closed; no build live.
  /tmp/tsrust-physical-carrier-repair-resume-6a381ec5ec6a.json.

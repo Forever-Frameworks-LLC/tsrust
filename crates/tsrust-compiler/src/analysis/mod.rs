@@ -3997,6 +3997,12 @@ impl Analyzer {
         }
         // A known result must not skip the body needed to resolve selected error contracts.
         let discovering=self.discovering_results;let effects=self.effects_only;
+        // Speculative region checking may ignore a dependency error after full
+        // checking consumed this body. Preserve its source before changing modes,
+        // including factories without record parameters or their own try block.
+        if (discovering || defer_pending_origins) && let Some(sources)=&mut self.discovery_body_sources {
+            sources.entry(id).or_insert_with(||self.program.functions[id].body.clone());
+        }
         if discovering {self.discovering_results=false;self.effects_only=false;}
         let checked=self.function(id);
         self.discovering_results=discovering;self.effects_only=effects;

@@ -622,3 +622,21 @@ fn physical_specialization_cache_preserves_parameter_positions(){
  });
  assert_eq!(targets.len(),3);assert_ne!(targets[0],targets[1]);assert_eq!(targets[0],targets[2],"Equal positional carriers must still reuse their specialization");drop(checked.emit_rust());
 }
+
+#[cfg(test)]
+#[test]
+fn speculative_region_dependencies_preserve_native_factory_bodies_and_real_errors(){
+ use crate::project::{SourceProvider,SourceId,load_project,check_graph};
+ struct Source(String);
+ impl SourceProvider for Source{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ let source="import {strictEqual} from 'std:testing';import {App,Request,Response,text} from 'std:http';import {delay} from 'std:futures';type Trace={id:int;};type Loaded={trace:Trace;body:string;};type Metrics={count:int;};function emptyMetrics():Metrics{return {count:0};}async function child(trace:Owned<Trace>,fail:boolean):Task<Loaded>{await delay(1);if(fail){throw 'failed';}return {trace,body:'ready'};}async function handle(input:Request):Task<Response>{let response=text('unavailable',503);try{const loaded=await child({id:1},false);response=text(loaded.body);}catch{}return response;}function routes():App{const app=new App();app.post('/ok',(input:Request)=>handle(input));return app;}async function exercise():Task<Metrics>{try{const app=routes();return emptyMetrics();}finally{console.log('done');}}function main(){const app=routes();}";
+ let control=source.replace("import {strictEqual} from 'std:testing';","");
+ for text in [control,source.into()]{let text=crate::format(&text).unwrap();assert_eq!(crate::format(&text).unwrap(),text);let checked=check_graph(load_project(&Source(text),"main.tsr").unwrap());assert!(checked.is_ok(),"A valid returned App factory must survive speculative region dependency checking: {:?}",checked.err());}
+ let invalid=crate::format(&source.replace("text(loaded.body)","text(missing_response)")).unwrap();assert_eq!(crate::format(&invalid).unwrap(),invalid);
+ let errors=check_graph(load_project(&Source(invalid),"main.tsr").unwrap()).err().expect("A genuine nested body error must remain rejected");
+ assert!(errors.message.contains("missing_response"),"Original nested diagnostic must not become a false missing-return cascade: {errors:?}");
+ assert!(!errors.message.contains("must return App"),"Consumed speculative source must be restored before reporting: {errors:?}");
+}
