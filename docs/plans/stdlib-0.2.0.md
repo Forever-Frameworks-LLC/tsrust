@@ -1933,8 +1933,17 @@ nested timing gap; generated control-flow/representation costs remain unquantifi
 No padded reference or representation rewrite is accepted to obscure this gap.
 Generated equality between a record-union literal tag and a string literal now
 selects union variants instead of comparing tag text (2026-11-08); the nested
-workload emits no tag text comparison and its untimed oracle matches. The 7.00x
-record remains the latest measured timing until the original protocol is rerun.
+workload emits no tag text comparison and its untimed oracle matches. A native-only
+rerun with the original protocol (8 warmups, 3 processes, 31 samples, quiet guard)
+measured 0.09125ms (process medians 0.093125/0.090583/0.088), ingested once at
+2026-11-08T12:31:52.855Z; the change is not material, so tag comparison was not the
+gap. Cause found: the timed direct-Rust binary contains no `__rust_alloc` call in its
+inlined workload, only `__rust_no_alloc_shim_is_unstable_v2` markers, so LLVM elided
+the Vec/String heap allocations. The counting allocator prevents that elision, which
+is why allocation counts matched. The native path moves owned buffers into Tsrust
+array storage and does not get the elision. The 6.95x gap is therefore an
+allocation-elision difference on a constant-input reference, not extra generated
+copying; it stays recorded and is not hidden by changing the reference.
 
 ## Parallel execution and ownership
 
@@ -2090,6 +2099,12 @@ context preservation and uses the existing borrowed-subset emitter.
 - [ ] Refresh affected public micro/HTTP metrics with cached unchanged reference
   histories. Keep Rust/Node comparisons, sample scopes, CPU/RSS/p99 and real
   function examples readable; no before/after or date-heavy presentation needed.
+  Micro refresh (2026-11-08): `website/tools/performance-runs.json` now lists all
+  65 accepted post-v0.1.2 runs that pair 93-sample native results with Node, and
+  49 Rust baselines whose parity source still matches its manifest hash. The
+  generated page has 1,085 comparisons from 211 runs; the site builds (78 pages).
+  Rejected experiments were never ingested. HTTP pins are unchanged and need a
+  measured refresh before this item closes.
 - [ ] Reconcile the existing language inventory and a concrete host export ledger
   against bindings/catalog/tests. Account for every excluded family below;
   never turn a module count into a conformance percentage.

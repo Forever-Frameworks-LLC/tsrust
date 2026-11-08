@@ -152,7 +152,72 @@
     "2026-11-04T19:06:01.028Z",
     "2026-11-04T19:17:58.145Z",
     "2026-11-04T19:27:36.279Z",
-    "2026-11-04T19:31:20.101Z"
+    "2026-11-04T19:31:20.101Z",
+    "2026-11-05T01:43:15.754Z",
+    "2026-11-05T01:44:16.061Z",
+    "2026-11-05T14:40:20.088Z",
+    "2026-11-05T18:26:31.084Z",
+    "2026-11-05T19:40:03.159Z",
+    "2026-11-05T20:40:11.695Z",
+    "2026-11-05T22:00:33.080Z",
+    "2026-11-05T22:35:31.237Z",
+    "2026-11-05T23:52:27.792Z",
+    "2026-11-06T00:21:31.711Z",
+    "2026-11-06T03:20:26.164Z",
+    "2026-11-06T16:37:47.970Z",
+    "2026-11-06T16:46:34.290Z",
+    "2026-11-06T16:47:23.957Z",
+    "2026-11-06T16:47:26.306Z",
+    "2026-11-06T16:49:15.884Z",
+    "2026-11-06T16:51:36.284Z",
+    "2026-11-06T16:53:42.486Z",
+    "2026-11-06T16:56:18.351Z",
+    "2026-11-06T16:58:23.098Z",
+    "2026-11-06T17:00:13.556Z",
+    "2026-11-06T17:02:52.154Z",
+    "2026-11-06T17:07:03.236Z",
+    "2026-11-06T17:09:47.355Z",
+    "2026-11-06T17:11:45.981Z",
+    "2026-11-06T17:15:00.252Z",
+    "2026-11-06T17:17:00.239Z",
+    "2026-11-06T17:19:43.885Z",
+    "2026-11-06T17:21:43.849Z",
+    "2026-11-06T17:24:13.152Z",
+    "2026-11-06T17:27:13.084Z",
+    "2026-11-06T17:29:58.981Z",
+    "2026-11-06T17:32:30.014Z",
+    "2026-11-06T17:34:29.056Z",
+    "2026-11-06T17:39:21.500Z",
+    "2026-11-06T17:41:24.357Z",
+    "2026-11-06T17:43:43.078Z",
+    "2026-11-06T17:45:58.920Z",
+    "2026-11-06T17:48:48.316Z",
+    "2026-11-06T17:51:20.692Z",
+    "2026-11-06T17:54:07.918Z",
+    "2026-11-06T17:56:38.563Z",
+    "2026-11-06T17:58:57.337Z",
+    "2026-11-06T18:01:14.715Z",
+    "2026-11-06T18:03:47.083Z",
+    "2026-11-06T18:05:50.163Z",
+    "2026-11-06T18:13:49.900Z",
+    "2026-11-06T18:16:23.150Z",
+    "2026-11-06T18:18:43.832Z",
+    "2026-11-06T18:21:17.926Z",
+    "2026-11-06T18:23:50.497Z",
+    "2026-11-06T18:26:24.823Z",
+    "2026-11-06T18:28:43.421Z",
+    "2026-11-06T18:31:17.075Z",
+    "2026-11-06T18:33:36.662Z",
+    "2026-11-06T18:35:55.935Z",
+    "2026-11-06T18:38:44.354Z",
+    "2026-11-06T18:40:48.195Z",
+    "2026-11-06T19:39:23.108Z",
+    "2026-11-07T02:12:28.426Z",
+    "2026-11-08T01:00:48.357Z",
+    "2026-11-08T01:24:07.067Z",
+    "2026-11-08T10:14:12.271Z",
+    "2026-11-08T10:38:29.075Z",
+    "2026-11-08T12:31:52.855Z"
   ],
   "groups": {},
   "machine": {
@@ -3894,6 +3959,202 @@
     "native_schema_json_source_retain": {
       "at": "2026-11-01T23:16:59.787Z",
       "sourceSha256": "aa744dd4a3acd91b8c04e0313aad7fca343f30595e9852e26d938a608f92c306"
+    },
+    "crypto_sha384_64": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "cdbe79afccd7fb6bbb1f9c246dd49cd832621244092ab85e8ed2d5e925d8f07b"
+    },
+    "crypto_sha384_4096": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "c9e2aafa803b8d27d4f80b00afa6bdcbe60cf8e2cb2201de94a418925258d065"
+    },
+    "crypto_sha384_262144": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "9ca20caf028c4d68c628c5d6f9802d64b5274e4323913e36977f323b9146ed82"
+    },
+    "crypto_sha512_64": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "9d8ad3dd5aa024c1444fad781765c95f306ae5002954deb9ea3cf50fb70286ff"
+    },
+    "crypto_sha512_4096": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "6e058c180b3297f9c6e2e73f981a1aa0e467660c00212b5cc3ade76d811bf5f3"
+    },
+    "crypto_sha512_262144": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "75c32685081a341223d0255ac2f427947b99dccca50ed4d956d56b17acea7790"
+    },
+    "crypto_sha256_stream_64": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "d422f4545b5446e79aec502746825af5fea7b5e46682864acb3affbed3cb40bf"
+    },
+    "crypto_sha256_stream_4096": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "bd91d78ed290a6b09e3718ec6255de7f30f4d0102e70a2dcffb6509a047de9fe"
+    },
+    "crypto_sha256_stream_262144": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "58fd39054fc93c975f052ac240f0377739de37881bae4e23d2b3a327170db490"
+    },
+    "crypto_sha384_stream_64": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "363c0213ae9e3417cea1e8b219e883cff905fc9a05de31c0de70cc1957247ec9"
+    },
+    "crypto_sha384_stream_4096": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "f37452be09da212994bb1b4daa6c3e57f08b5cfdb1a317d5373149c6ffe29606"
+    },
+    "crypto_sha384_stream_262144": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "4f6f9cf03ed78cef64b2a39b82c0d3917e7aa3fa192a50cc24aabdf7a21b91da"
+    },
+    "crypto_sha512_stream_64": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "ff5ca332c6791c31a0eec3c91b6a03be306baf013f2c26d5426c1d6183eade7d"
+    },
+    "crypto_sha512_stream_4096": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "ef4667aa8f2af5d03bce5a60a02c31a4593c1c0543d951a908df9eff0f571c51"
+    },
+    "crypto_sha512_stream_262144": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "30aa2aa1293a67b9dc4444770987ffb3837735826777ef9c23c4a349a30460d0"
+    },
+    "crypto_hmac_64": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "f945fa0e38f2e8fba7f892326a4cbabf854d6b00feec17ff4084b3f872f81713"
+    },
+    "crypto_hmac_4096": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "0a00b20603e5d26b6c43ec01901db1e0487dfe56a48254d7fc55da31a7914c3c"
+    },
+    "crypto_hmac_262144": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "a0e80c678cc93fe353ab116a0cc2554edaf8a9278bd1c8d026037b36acb4954f"
+    },
+    "crypto_verify_hmac_64": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "4d34ec52aeaa1803d6c1682e65db1540125476181fefc3af8be35ecd0bc3ec45"
+    },
+    "crypto_verify_hmac_4096": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "3403409da79bbcd96937141bb31d0f592875babc1dcccf0838f34831c5186e9a"
+    },
+    "crypto_verify_hmac_262144": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "0e0505068bd651c977e211082ce2e01b6c88d3f229d96377f0b191d06ca746d8"
+    },
+    "crypto_hkdf_64": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "c9cd5a9579ebdb2159f381f267d8643de215fe19fcd00b01e68e060a5c946839"
+    },
+    "crypto_hkdf_4096": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "29512c7ec145c6722c74a0a27e6d57a5bcf14510767e7f4d890cf4db62e66ec8"
+    },
+    "crypto_hkdf_262144": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "ecf57620943daa7b21577aab4748ffe1edfd08ec1f07875057f48429e8f10670"
+    },
+    "crypto_random_int": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "d8fa4cf1551209a56bd53d1aa4791e17474226d70f684839f68a5a6de902c1ce"
+    },
+    "crypto_password_roundtrip_16": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "f636a29c694f2cb0f47ff4cdcf26731d5eca608ece46882935607a5326f51210"
+    },
+    "crypto_password_roundtrip_128": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "fb8b37d256c46834a503e33a8aafeb52ae095b41f6527f727ea9fcdd9a92a44a"
+    },
+    "crypto_password_bounded_roundtrip_16": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "8e76c91a5e3d84667a98a1a29f491b88957791783aeadec62df4c67ed49f5796"
+    },
+    "crypto_password_bounded_roundtrip_128": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "17f874c848048154f683c8d9290176c3b6b560174a6d3db76caa3773cc3da9db"
+    },
+    "testing_deep_data": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "271b6f586b1769c892bf73e2af230f97d580fd04ab6c9cb715975fa6bb878acc"
+    },
+    "testing_deep_collections": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "628b5c03d924582220a88da2826377c1fbd3bb7ba2bb54e5863a6a2444b03754"
+    },
+    "iterator_map_filter_reduce": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "e25e60b0e657ead3277d23dc75e6578e1984d41ea62023e19eba5b2404720aab"
+    },
+    "iterator_take_array": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "8ceced67abd2dad53092d2a5c187d0db5343c2c9b07829518ae666735e10e7d0"
+    },
+    "iterator_flat_array": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "26d2e718ff69effd2deac31c1611e8e1859ac8097a536a4149c861b075233ee9"
+    },
+    "iterator_flat_iterator": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "1a206ab9800e7fe0bb5f010d32a6bc731101cdce2fd22f25882aeb6e751fd911"
+    },
+    "collection_endpoints": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "c882ff8fbd6819f7e428d6246c242fa5b148f7768927a07afc9864642cefdad1"
+    },
+    "ordered_set_snapshots": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "adb5528ee7d706e401658476e2961281be68ba88cdf4ad2e296dd1b341262e91"
+    },
+    "deque_values_snapshot": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "cc35e10b7629fd42cb1ab3ed468499028d3339da2ea6ec485cf3ae7499ba78d0"
+    },
+    "heap_sorted_snapshot": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "bf5ba841ce3d47445a0e4527a8c8ffada2ba7b43c40703a96e6524849bd6aadf"
+    },
+    "numeric_strict_parse": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "4d158b88322e8ee29e277ee077c01d176a0b6613b0362520080153049e6ce4e4"
+    },
+    "numeric_checked_arithmetic": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "aa60aeb2405f7c14a43fb2bd2d8a61943806bd9eba267e1335efd2b5a0266cc3"
+    },
+    "date_completion_access": {
+      "at": "2026-11-07T02:12:28.426Z",
+      "sourceSha256": "3a2f9a4a2b1c0faef3c7bd88bb26f27f745bb0ad7b27b6c7b965c3d81774e680"
+    },
+    "rust_owned_scalar": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "8c7de567efa3b2d17cd2d162500619d2ce26474b76551912a280163f376d9c6d"
+    },
+    "rust_owned_strings": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "a7d1d836b0912fe2fd1d34abde11484d3e874c98a9c4b62482911dda59e5ae17"
+    },
+    "rust_owned_records": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "68e0ec71323364ab2c351fde5d2cb6f88ae98cd87f26b5987ba181afad781dcd"
+    },
+    "rust_owned_nested_option": {
+      "at": "2026-11-08T10:14:12.271Z",
+      "sourceSha256": "fcbd7622b30a1806a6ea18a4893bdac9f733ae5ac03bd76b8824f67b5aafa80f"
+    },
+    "logging_disabled": {
+      "at": "2026-11-08T01:24:07.067Z",
+      "sourceSha256": "1d96d67d8712318e35a31d86db7f0e2068dbde08159b9114ded110a7202e731b"
+    },
+    "logging_file_output": {
+      "at": "2026-11-08T01:24:07.067Z",
+      "sourceSha256": "db49507c49edeaa7fb67a2e4a237c541adc67eb9d1092b8145ce569a949d5d2a"
+    },
+    "logging_child_file": {
+      "at": "2026-11-08T01:24:07.067Z",
+      "sourceSha256": "f176ca8c7137b7782ef8bae20b175d685c7068073234953f935364fd5f4def76"
     }
   },
   "httpBaselines": {
