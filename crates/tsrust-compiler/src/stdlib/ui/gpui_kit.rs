@@ -206,6 +206,82 @@ fn platform_keys(keys: &str) -> String {
     keys.split(' ').map(|chord| chord.split('-').map(|part| if part == "secondary" {if cfg!(target_os = "macos") {"cmd"} else {"ctrl"}} else {part}).collect::<Vec<_>>().join("-")).collect::<Vec<_>>().join(" ")
 }
 
+/// Menu children that describe entries rather than render content.
+const MENU_PARTS: &[&str] = &["MenuItem", "MenuLabel", "MenuSeparator", "Submenu"];
+
+/// A menu entry captured from MenuItem, MenuLabel, MenuSeparator and Submenu nodes,
+/// so menu builders (which run later, per open) need no access to the tree.
+#[derive(Clone)]
+enum MenuEntry {
+    Item {id: u64, label: String, icon: Option<IconName>, disabled: bool, checked: bool, command: String, href: String, custom: bool, handles: bool},
+    Label(String),
+    Separator,
+    Submenu {label: String, icon: Option<IconName>, entries: Vec<MenuEntry>},
+}
+
+fn menu_entries(node: &Node) -> Vec<MenuEntry> {
+    node.visible_children().filter_map(|child| {
+        let kit = child.kit.as_deref()?;
+        Some(match kit.name.as_str() {
+            "MenuItem" => MenuEntry::Item {id: child.identity.get(), label: kit.text("label"), icon: icon_name(&kit.text("icon")), disabled: kit.flag("disabled"), checked: kit.flag("checked"),
+                command: kit.text("command"), href: kit.text("href"), custom: child.visible_children().next().is_some(), handles: kit.handles("select")},
+            "MenuLabel" => MenuEntry::Label(kit.text("text")),
+            "MenuSeparator" => MenuEntry::Separator,
+            "Submenu" => MenuEntry::Submenu {label: kit.text("label"), icon: icon_name(&kit.text("icon")), entries: menu_entries(child)},
+            _ => return None,
+        })
+    }).collect()
+}
+
+/// Menu-wide options from DropdownMenu or ContextMenu props.
+#[derive(Clone, Copy)]
+struct MenuOptions {min: Option<f32>, max: Option<f32>, height: Option<f32>, scrollable: bool, right: bool, link_icon: bool}
+
+impl MenuOptions {
+    fn new(kit: &Kit) -> Self {
+        Self {min: kit.number("minWidth").map(|value| value as f32), max: kit.number("maxWidth").map(|value| value as f32), height: kit.number("maxHeight").map(|value| value as f32),
+            scrollable: kit.flag("scrollable"), right: kit.prop("checkSide") == Some("right"), link_icon: kit.prop("externalLinkIcon") != Some("false")}
+    }
+    fn apply(self, mut menu: gpui_kit::component::menu::PopupMenu) -> gpui_kit::component::menu::PopupMenu {
+        if let Some(width) = self.min {menu = menu.min_w(px(width));}
+        if let Some(width) = self.max {menu = menu.max_w(px(width));}
+        if let Some(height) = self.height {menu = menu.max_h(px(height));}
+        menu.scrollable(self.scrollable).check_side(if self.right {gpui_kit::component::Side::Right} else {gpui_kit::component::Side::Left}).external_link_icon(self.link_icon)
+    }
+}
+
+fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEntry], root: &WeakEntity<Root>, window: &mut Window, cx: &mut Context<gpui_kit::component::menu::PopupMenu>) -> gpui_kit::component::menu::PopupMenu {
+    for entry in entries {
+        menu = match entry.clone() {
+            MenuEntry::Separator => menu.separator(),
+            MenuEntry::Label(text) => menu.label(text),
+            MenuEntry::Submenu {label, icon, entries} => {
+                let root = root.clone();
+                menu.submenu_with_icon(icon.map(Icon::new), label, window, cx, move |menu, window, cx| build_menu(menu, &entries, &root, window, cx))
+            }
+            MenuEntry::Item {id, label, icon, disabled, checked, command, href, custom, handles} => {
+                let mut item = if custom {
+                    let root = root.clone();
+                    PopupMenuItem::element(move |_, cx| root.update(cx, |root, cx| div().children(root.content_of(id, cx))).unwrap_or_else(|_| div()))
+                } else if !href.is_empty() {
+                    PopupMenuItem::link(label, href)
+                } else {
+                    PopupMenuItem::new(label)
+                };
+                if let Some(icon) = icon {item = item.icon(icon);}
+                if !command.is_empty() {item = item.action(Box::new(TsrustCommand {name: command}));}
+                item = item.disabled(disabled).checked(checked);
+                if handles {
+                    let root = root.clone();
+                    item = item.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", String::new(), cx));});
+                }
+                menu.item(item)
+            }
+        };
+    }
+    menu
+}
+
 /// The size prop shared by sizable Kit components.
 fn kit_size(kit: &Kit) -> Option<KitSize> {
     match kit.prop("size") {Some("xsmall") => Some(KitSize::XSmall), Some("small") => Some(KitSize::Small), Some("large") => Some(KitSize::Large), Some("medium") => Some(KitSize::Medium), _ => None}
@@ -1082,21 +1158,39 @@ impl Root {
             }
             "Dialog" | "Sheet" => div().into_any_element(),
             "DropdownMenu" | "ContextMenu" => {
-                let entries = items(node, "MenuItem").map(|(child, item)| (child.identity.get(), item.text("label"), item.flag("disabled"), item.flag("checked"))).collect::<Vec<_>>();
-                let build = move |mut menu: gpui_kit::component::menu::PopupMenu| {
-                    for (child, label, disabled, checked) in &entries {
-                        let (child, root) = (*child, root.clone());
-                        menu = menu.item(PopupMenuItem::new(label.clone()).disabled(*disabled).checked(*checked).on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(child, "select", String::new(), cx));}));
-                    }
-                    menu
+                let entries = std::rc::Rc::new(menu_entries(node));
+                let options = MenuOptions::new(kit);
+                let build = {
+                    let root = root.clone();
+                    move |menu: gpui_kit::component::menu::PopupMenu, window: &mut Window, cx: &mut Context<gpui_kit::component::menu::PopupMenu>| build_menu(options.apply(menu), &entries, &root, window, cx)
                 };
                 if kit.name == "DropdownMenu" {
-                    DropdownButton::new(element_id).button(gpui_kit::component::button::Button::new(ElementId::Name(format!("{id}-button").into())).label(text("label")))
-                        .dropdown_menu(move |menu, _, _| build(menu)).into_any_element()
+                    let trigger = node.visible_children().find(|child| child.kit.as_deref().is_none_or(|kit| kit.name.is_empty()) && matches!(child.kind, Kind::Button | Kind::DisabledButton));
+                    let button = match trigger {
+                        Some(child) => self.kit_button(child, cx),
+                        None => gpui_kit::component::button::Button::new(ElementId::Name(format!("{id}-button").into())).label(text("label")),
+                    };
+                    let mut dropdown = DropdownButton::new(element_id).button(button).disabled(kit.flag("disabled")).selected(kit.flag("selected"));
+                    if kit.flag("outline") {dropdown = dropdown.outline();}
+                    if let Some(size) = kit_size(kit) {dropdown = dropdown.with_size(size);}
+                    dropdown = match kit.prop("variant") {
+                        Some("primary") => dropdown.primary(), Some("secondary") => dropdown.secondary(), Some("danger") => dropdown.danger(), Some("warning") => dropdown.warning(),
+                        Some("success") => dropdown.success(), Some("info") => dropdown.info(), Some("ghost") => dropdown.ghost(), Some("link") => dropdown.link(), Some("text") => dropdown.text(), _ => dropdown,
+                    };
+                    if let Some(color) = theme_color(&kit.text("color"), cx) {
+                        let custom = gpui_kit::component::button::ButtonCustomVariant::new(cx).color(color);
+                        let custom = match theme_color(&kit.text("foreground"), cx) {Some(color) => custom.foreground(color), None => custom};
+                        let custom = match theme_color(&kit.text("hoverColor"), cx) {Some(color) => custom.hover(color), None => custom};
+                        let custom = match theme_color(&kit.text("activeColor"), cx) {Some(color) => custom.active(color), None => custom};
+                        dropdown = dropdown.custom(custom);
+                    }
+                    if !kit.text("menuLabel").is_empty() {dropdown = dropdown.menu_accessibility_label(text("menuLabel"));}
+                    let anchor = match kit.prop("anchor") {Some("top-right") => gpui_kit::Anchor::TopRight, Some("bottom-left") => gpui_kit::Anchor::BottomLeft, Some("bottom-right") => gpui_kit::Anchor::BottomRight, Some("top-center") => gpui_kit::Anchor::TopCenter, Some("bottom-center") => gpui_kit::Anchor::BottomCenter, Some("left-center") => gpui_kit::Anchor::LeftCenter, Some("right-center") => gpui_kit::Anchor::RightCenter, _ => gpui_kit::Anchor::TopLeft};
+                    dropdown.dropdown_menu_with_anchor(anchor, move |menu, window, cx| build(menu, window, cx)).into_any_element()
                 } else {
                     let theme = utility_theme(cx);
-                    let content = node.visible_children().filter(|child| child.kit.as_ref().is_none_or(|kit| kit.name != "MenuItem")).map(|child| self.element(child, &theme, mode(cx), cx)).collect::<Vec<_>>();
-                    div().id(element_id).children(content).context_menu(move |menu, _, _| build(menu)).into_any_element()
+                    let content = node.visible_children().filter(|child| child.kit.as_deref().is_none_or(|kit| !MENU_PARTS.contains(&kit.name.as_str()))).map(|child| self.element(child, &theme, mode(cx), cx)).collect::<Vec<_>>();
+                    div().id(element_id).children(content).context_menu(move |menu, window, cx| build(menu, window, cx)).into_any_element()
                 }
             }
             "Sidebar" => {

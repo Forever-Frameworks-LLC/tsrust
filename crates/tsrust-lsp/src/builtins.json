@@ -23984,12 +23984,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A button that opens a menu. Children are MenuItem elements.\n\nProps:\n- `label`: Button text.\n- `children`: MenuItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A button that opens a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children. A Button child, if present, is the trigger with all its options.\n\nProps:\n- `label`: Trigger text when no Button child is given.\n- `variant`: Trigger look.\n- `outline`: Outline trigger.\n- `size`: Trigger size.\n- `disabled`: Disables the trigger.\n- `selected`: Shows the trigger pressed.\n- `anchor`: Point of the menu aligned to the trigger. Defaults to top-left.\n- `menuLabel`: Name read by screen readers for the menu toggle.\n- `color`: Custom trigger fill: a theme color name or #rrggbb.\n- `foreground`: Custom trigger text color.\n- `hoverColor`: Custom trigger hover fill.\n- `activeColor`: Custom trigger pressed fill.\n- `minWidth`: Minimum menu width in pixels.\n- `maxWidth`: Maximum menu width in pixels.\n- `maxHeight`: Maximum menu height in pixels; taller menus scroll.\n- `scrollable`: Lets a long menu scroll.\n- `checkSide`: Side the check mark of checked items is drawn on. Defaults to left.\n- `externalLinkIcon`: Shows an external-link icon on link items. Defaults to true.\n- `children`: MenuItem, MenuLabel, MenuSeparator and Submenu elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "DropdownMenuProps",
       "signature": "interface DropdownMenuProps",
-      "documentation": "A button that opens a menu. Children are MenuItem elements.\n\nProps:\n- `label`: Button text.\n- `children`: MenuItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A button that opens a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children. A Button child, if present, is the trigger with all its options.\n\nProps:\n- `label`: Trigger text when no Button child is given.\n- `variant`: Trigger look.\n- `outline`: Outline trigger.\n- `size`: Trigger size.\n- `disabled`: Disables the trigger.\n- `selected`: Shows the trigger pressed.\n- `anchor`: Point of the menu aligned to the trigger. Defaults to top-left.\n- `menuLabel`: Name read by screen readers for the menu toggle.\n- `color`: Custom trigger fill: a theme color name or #rrggbb.\n- `foreground`: Custom trigger text color.\n- `hoverColor`: Custom trigger hover fill.\n- `activeColor`: Custom trigger pressed fill.\n- `minWidth`: Minimum menu width in pixels.\n- `maxWidth`: Maximum menu width in pixels.\n- `maxHeight`: Maximum menu height in pixels; taller menus scroll.\n- `scrollable`: Lets a long menu scroll.\n- `checkSide`: Side the check mark of checked items is drawn on. Defaults to left.\n- `externalLinkIcon`: Shows an external-link icon on link items. Defaults to true.\n- `children`: MenuItem, MenuLabel, MenuSeparator and Submenu elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "MenuItem",
@@ -24000,12 +24000,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "One entry in a DropdownMenu or ContextMenu.\n\nProps:\n- `label`: Entry text.\n- `disabled`: Disabled entries cannot be chosen.\n- `checked`: Shows a check mark.\n- `onSelect`: Called when the entry is chosen.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MenuItem label=\"Delete\" onSelect={() => { remove(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One menu entry. Children, if any, replace the label as custom content.\n\nProps:\n- `label`: Entry text.\n- `icon`: Leading icon.\n- `disabled`: Greys out the entry.\n- `checked`: Shows a check mark.\n- `command`: A Shortcut command: the entry shows its keys and choosing it runs the command.\n- `href`: Opens this URL in the browser when chosen.\n- `onSelect`: Called when the entry is chosen.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MenuItem label=\"Delete\" onSelect={() => { remove(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "MenuItemProps",
       "signature": "interface MenuItemProps",
-      "documentation": "One entry in a DropdownMenu or ContextMenu.\n\nProps:\n- `label`: Entry text.\n- `disabled`: Disabled entries cannot be chosen.\n- `checked`: Shows a check mark.\n- `onSelect`: Called when the entry is chosen.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MenuItem label=\"Delete\" onSelect={() => { remove(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One menu entry. Children, if any, replace the label as custom content.\n\nProps:\n- `label`: Entry text.\n- `icon`: Leading icon.\n- `disabled`: Greys out the entry.\n- `checked`: Shows a check mark.\n- `command`: A Shortcut command: the entry shows its keys and choosing it runs the command.\n- `href`: Opens this URL in the browser when chosen.\n- `onSelect`: Called when the entry is chosen.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MenuItem label=\"Delete\" onSelect={() => { remove(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "ContextMenu",
@@ -24016,12 +24016,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "Opens a menu on right-click. Children are the content, followed by MenuItem elements.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Shows a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children on right-click over its other children.\n\nProps:\n- `minWidth`: Minimum menu width in pixels.\n- `maxWidth`: Maximum menu width in pixels.\n- `maxHeight`: Maximum menu height in pixels; taller menus scroll.\n- `scrollable`: Lets a long menu scroll.\n- `checkSide`: Side the check mark of checked items is drawn on. Defaults to left.\n- `externalLinkIcon`: Shows an external-link icon on link items. Defaults to true.\n- `children`: MenuItem, MenuLabel, MenuSeparator and Submenu elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "ContextMenuProps",
       "signature": "interface ContextMenuProps",
-      "documentation": "Opens a menu on right-click. Children are the content, followed by MenuItem elements.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Shows a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children on right-click over its other children.\n\nProps:\n- `minWidth`: Minimum menu width in pixels.\n- `maxWidth`: Maximum menu width in pixels.\n- `maxHeight`: Maximum menu height in pixels; taller menus scroll.\n- `scrollable`: Lets a long menu scroll.\n- `checkSide`: Side the check mark of checked items is drawn on. Defaults to left.\n- `externalLinkIcon`: Shows an external-link icon on link items. Defaults to true.\n- `children`: MenuItem, MenuLabel, MenuSeparator and Submenu elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Sidebar",
@@ -24982,6 +24982,54 @@
       "name": "ShortcutProps",
       "signature": "interface ShortcutProps",
       "documentation": "Binds a keyboard shortcut to a named command while it is mounted. Buttons, menu items and key hints that name the same command show this shortcut.\n\nProps:\n- `command`: Command name, such as save; also named by Button tooltipCommand and menu items.\n- `keys`: Keystrokes in GPUI notation, such as cmd-s, ctrl-shift-p or alt-enter; secondary-s means cmd on macOS and ctrl elsewhere.\n- `onTrigger`: Called when the keys are pressed.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Shortcut command=\"save\" keys=\"secondary-s\" onTrigger={() => { save(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MenuLabel",
+      "signature": "MenuLabel(props: MenuLabelProps): Node",
+      "parameters": [
+        {
+          "label": "props: MenuLabelProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A non-interactive heading inside a menu.\n\nProps:\n- `text`: Heading text.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MenuLabel text=\"Recent\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MenuLabelProps",
+      "signature": "interface MenuLabelProps",
+      "documentation": "A non-interactive heading inside a menu.\n\nProps:\n- `text`: Heading text.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MenuLabel text=\"Recent\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MenuSeparator",
+      "signature": "MenuSeparator(props: MenuSeparatorProps): Node",
+      "parameters": [
+        {
+          "label": "props: MenuSeparatorProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A divider between menu entries.\n\nProps:\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MenuSeparator/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MenuSeparatorProps",
+      "signature": "interface MenuSeparatorProps",
+      "documentation": "A divider between menu entries.\n\nProps:\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MenuSeparator/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Submenu",
+      "signature": "Submenu(props: SubmenuProps): Node",
+      "parameters": [
+        {
+          "label": "props: SubmenuProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A nested menu opened from its parent menu.\n\nProps:\n- `label`: Entry text.\n- `icon`: Leading icon.\n- `children`: MenuItem, MenuLabel, MenuSeparator and Submenu elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Submenu label=\"Share\"><MenuItem label=\"Email\"/></Submenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SubmenuProps",
+      "signature": "interface SubmenuProps",
+      "documentation": "A nested menu opened from its parent menu.\n\nProps:\n- `label`: Entry text.\n- `icon`: Leading icon.\n- `children`: MenuItem, MenuLabel, MenuSeparator and Submenu elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Submenu label=\"Share\"><MenuItem label=\"Email\"/></Submenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     }
   ]
 }

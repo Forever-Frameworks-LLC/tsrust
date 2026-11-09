@@ -1545,20 +1545,155 @@ export function Sheet(props: SheetProps): Node {
 }
 
 export interface DropdownMenuProps {
-  /** Button text. */
+  /** Trigger text when no Button child is given. */
   label?: ReactiveValue<string> | TextBinding;
-  /** MenuItem elements. */
+  /** Trigger look. */
+  variant?: ReactiveValue<'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text'>;
+  /** Outline trigger. */
+  outline?: ReactiveValue<boolean>;
+  /** Trigger size. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Disables the trigger. */
+  disabled?: ReactiveValue<boolean>;
+  /** Shows the trigger pressed. */
+  selected?: ReactiveValue<boolean>;
+  /** Point of the menu aligned to the trigger. Defaults to top-left. */
+  anchor?: ReactiveValue<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center' | 'left-center' | 'right-center'>;
+  /** Name read by screen readers for the menu toggle. */
+  menuLabel?: ReactiveValue<string> | TextBinding;
+  /** Custom trigger fill: a theme color name or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Custom trigger text color. */
+  foreground?: ReactiveValue<string> | TextBinding;
+  /** Custom trigger hover fill. */
+  hoverColor?: ReactiveValue<string> | TextBinding;
+  /** Custom trigger pressed fill. */
+  activeColor?: ReactiveValue<string> | TextBinding;
+  /** Minimum menu width in pixels. */
+  minWidth?: ReactiveValue<number>;
+  /** Maximum menu width in pixels. */
+  maxWidth?: ReactiveValue<number>;
+  /** Maximum menu height in pixels; taller menus scroll. */
+  maxHeight?: ReactiveValue<number>;
+  /** Lets a long menu scroll. */
+  scrollable?: ReactiveValue<boolean>;
+  /** Side the check mark of checked items is drawn on. Defaults to left. */
+  checkSide?: ReactiveValue<'left' | 'right'>;
+  /** Shows an external-link icon on link items. Defaults to true. */
+  externalLinkIcon?: ReactiveValue<boolean>;
+  /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A button that opens a menu. Children are MenuItem elements. */
+/** A button that opens a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children. A Button child, if present, is the trigger with all its options. */
 export function DropdownMenu(props: DropdownMenuProps): Node {
   let node = kitNode('DropdownMenu', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_variant = props.variant;
+  if (prop_variant !== undefined) {
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
+  }
+
+  const prop_outline = props.outline;
+  if (prop_outline !== undefined) {
+    node = kitFlag(node, 'outline', prop_outline);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_selected = props.selected;
+  if (prop_selected !== undefined) {
+    node = kitFlag(node, 'selected', prop_selected);
+  }
+
+  const prop_anchor = props.anchor;
+  if (prop_anchor !== undefined) {
+    if (typeof prop_anchor === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'anchor', `${prop_anchor}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'anchor', nativeBindText(prop_anchor.evaluate)));
+    }
+  }
+
+  const prop_menuLabel = props.menuLabel;
+  if (prop_menuLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'menuLabel', prop_menuLabel));
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_foreground = props.foreground;
+  if (prop_foreground !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'foreground', prop_foreground));
+  }
+
+  const prop_hoverColor = props.hoverColor;
+  if (prop_hoverColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'hoverColor', prop_hoverColor));
+  }
+
+  const prop_activeColor = props.activeColor;
+  if (prop_activeColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'activeColor', prop_activeColor));
+  }
+
+  const prop_minWidth = props.minWidth;
+  if (prop_minWidth !== undefined) {
+    node = kitNumber(node, 'minWidth', prop_minWidth);
+  }
+
+  const prop_maxWidth = props.maxWidth;
+  if (prop_maxWidth !== undefined) {
+    node = kitNumber(node, 'maxWidth', prop_maxWidth);
+  }
+
+  const prop_maxHeight = props.maxHeight;
+  if (prop_maxHeight !== undefined) {
+    node = kitNumber(node, 'maxHeight', prop_maxHeight);
+  }
+
+  const prop_scrollable = props.scrollable;
+  if (prop_scrollable !== undefined) {
+    node = kitFlag(node, 'scrollable', prop_scrollable);
+  }
+
+  const prop_checkSide = props.checkSide;
+  if (prop_checkSide !== undefined) {
+    if (typeof prop_checkSide === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'checkSide', `${prop_checkSide}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'checkSide', nativeBindText(prop_checkSide.evaluate)));
+    }
+  }
+
+  const prop_externalLinkIcon = props.externalLinkIcon;
+  if (prop_externalLinkIcon !== undefined) {
+    node = kitFlag(node, 'externalLinkIcon', prop_externalLinkIcon);
   }
 
   return node;
@@ -1567,22 +1702,39 @@ export function DropdownMenu(props: DropdownMenuProps): Node {
 export interface MenuItemProps {
   /** Entry text. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Disabled entries cannot be chosen. */
+  /** Leading icon. */
+  icon?: ReactiveValue<IconName>;
+  /** Greys out the entry. */
   disabled?: ReactiveValue<boolean>;
   /** Shows a check mark. */
   checked?: ReactiveValue<boolean>;
+  /** A Shortcut command: the entry shows its keys and choosing it runs the command. */
+  command?: ReactiveValue<string> | TextBinding;
+  /** Opens this URL in the browser when chosen. */
+  href?: ReactiveValue<string> | TextBinding;
   /** Called when the entry is chosen. */
   onSelect?: Owned<Function<void>>;
+  /** Content shown inside the component. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** One entry in a DropdownMenu or ContextMenu. */
+/** One menu entry. Children, if any, replace the label as custom content. */
 export function MenuItem(props: MenuItemProps): Node {
-  let node = kitNode('MenuItem', [], props.className ?? '');
+  let node = kitNode('MenuItem', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
   }
 
   const prop_disabled = props.disabled;
@@ -1595,6 +1747,16 @@ export function MenuItem(props: MenuItemProps): Node {
     node = kitFlag(node, 'checked', prop_checked);
   }
 
+  const prop_command = props.command;
+  if (prop_command !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'command', prop_command));
+  }
+
+  const prop_href = props.href;
+  if (prop_href !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'href', prop_href));
+  }
+
   const event_onSelect = props.onSelect;
   if (event_onSelect !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'select', event_onSelect));
@@ -1604,15 +1766,61 @@ export function MenuItem(props: MenuItemProps): Node {
 }
 
 export interface ContextMenuProps {
-  /** Content shown inside the component. */
+  /** Minimum menu width in pixels. */
+  minWidth?: ReactiveValue<number>;
+  /** Maximum menu width in pixels. */
+  maxWidth?: ReactiveValue<number>;
+  /** Maximum menu height in pixels; taller menus scroll. */
+  maxHeight?: ReactiveValue<number>;
+  /** Lets a long menu scroll. */
+  scrollable?: ReactiveValue<boolean>;
+  /** Side the check mark of checked items is drawn on. Defaults to left. */
+  checkSide?: ReactiveValue<'left' | 'right'>;
+  /** Shows an external-link icon on link items. Defaults to true. */
+  externalLinkIcon?: ReactiveValue<boolean>;
+  /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** Opens a menu on right-click. Children are the content, followed by MenuItem elements. */
+/** Shows a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children on right-click over its other children. */
 export function ContextMenu(props: ContextMenuProps): Node {
   let node = kitNode('ContextMenu', props.children ?? [], props.className ?? '');
+  const prop_minWidth = props.minWidth;
+  if (prop_minWidth !== undefined) {
+    node = kitNumber(node, 'minWidth', prop_minWidth);
+  }
+
+  const prop_maxWidth = props.maxWidth;
+  if (prop_maxWidth !== undefined) {
+    node = kitNumber(node, 'maxWidth', prop_maxWidth);
+  }
+
+  const prop_maxHeight = props.maxHeight;
+  if (prop_maxHeight !== undefined) {
+    node = kitNumber(node, 'maxHeight', prop_maxHeight);
+  }
+
+  const prop_scrollable = props.scrollable;
+  if (prop_scrollable !== undefined) {
+    node = kitFlag(node, 'scrollable', prop_scrollable);
+  }
+
+  const prop_checkSide = props.checkSide;
+  if (prop_checkSide !== undefined) {
+    if (typeof prop_checkSide === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'checkSide', `${prop_checkSide}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'checkSide', nativeBindText(prop_checkSide.evaluate)));
+    }
+  }
+
+  const prop_externalLinkIcon = props.externalLinkIcon;
+  if (prop_externalLinkIcon !== undefined) {
+    node = kitFlag(node, 'externalLinkIcon', prop_externalLinkIcon);
+  }
+
   return node;
 }
 
@@ -3454,6 +3662,66 @@ export function Shortcut(props: ShortcutProps): Node {
   const event_onTrigger = props.onTrigger;
   if (event_onTrigger !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'trigger', event_onTrigger));
+  }
+
+  return node;
+}
+
+export interface MenuLabelProps {
+  /** Heading text. */
+  text?: ReactiveValue<string> | TextBinding;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A non-interactive heading inside a menu. */
+export function MenuLabel(props: MenuLabelProps): Node {
+  let node = kitNode('MenuLabel', [], props.className ?? '');
+  const prop_text = props.text;
+  if (prop_text !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'text', prop_text));
+  }
+
+  return node;
+}
+
+export interface MenuSeparatorProps {
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A divider between menu entries. */
+export function MenuSeparator(props: MenuSeparatorProps): Node {
+  let node = kitNode('MenuSeparator', [], props.className ?? '');
+  return node;
+}
+
+export interface SubmenuProps {
+  /** Entry text. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Leading icon. */
+  icon?: ReactiveValue<IconName>;
+  /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A nested menu opened from its parent menu. */
+export function Submenu(props: SubmenuProps): Node {
+  let node = kitNode('Submenu', props.children ?? [], props.className ?? '');
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
   }
 
   return node;

@@ -1094,13 +1094,126 @@
     },
     {
       "name": "DropdownMenu",
-      "children": "MenuItem",
-      "doc": "A button that opens a menu. Children are MenuItem elements.",
+      "children": "MenuItem, MenuLabel, MenuSeparator and Submenu",
+      "doc": "A button that opens a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children. A Button child, if present, is the trigger with all its options.",
       "props": [
         {
           "name": "label",
           "type": "string",
-          "doc": "Button text."
+          "doc": "Trigger text when no Button child is given."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "default",
+            "primary",
+            "secondary",
+            "danger",
+            "warning",
+            "success",
+            "info",
+            "ghost",
+            "link",
+            "text"
+          ],
+          "doc": "Trigger look."
+        },
+        {
+          "name": "outline",
+          "type": "boolean",
+          "doc": "Outline trigger."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Trigger size."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables the trigger."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "doc": "Shows the trigger pressed."
+        },
+        {
+          "name": "anchor",
+          "type": [
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right",
+            "top-center",
+            "bottom-center",
+            "left-center",
+            "right-center"
+          ],
+          "doc": "Point of the menu aligned to the trigger. Defaults to top-left."
+        },
+        {
+          "name": "menuLabel",
+          "type": "string",
+          "doc": "Name read by screen readers for the menu toggle."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Custom trigger fill: a theme color name or #rrggbb."
+        },
+        {
+          "name": "foreground",
+          "type": "string",
+          "doc": "Custom trigger text color."
+        },
+        {
+          "name": "hoverColor",
+          "type": "string",
+          "doc": "Custom trigger hover fill."
+        },
+        {
+          "name": "activeColor",
+          "type": "string",
+          "doc": "Custom trigger pressed fill."
+        },
+        {
+          "name": "minWidth",
+          "type": "number",
+          "doc": "Minimum menu width in pixels."
+        },
+        {
+          "name": "maxWidth",
+          "type": "number",
+          "doc": "Maximum menu width in pixels."
+        },
+        {
+          "name": "maxHeight",
+          "type": "number",
+          "doc": "Maximum menu height in pixels; taller menus scroll."
+        },
+        {
+          "name": "scrollable",
+          "type": "boolean",
+          "doc": "Lets a long menu scroll."
+        },
+        {
+          "name": "checkSide",
+          "type": [
+            "left",
+            "right"
+          ],
+          "doc": "Side the check mark of checked items is drawn on. Defaults to left."
+        },
+        {
+          "name": "externalLinkIcon",
+          "type": "boolean",
+          "doc": "Shows an external-link icon on link items. Defaults to true."
         }
       ],
       "example": "<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>"
@@ -1108,7 +1221,7 @@
     {
       "name": "MenuItem",
       "item": true,
-      "doc": "One entry in a DropdownMenu or ContextMenu.",
+      "doc": "One menu entry. Children, if any, replace the label as custom content.",
       "props": [
         {
           "name": "label",
@@ -1116,14 +1229,29 @@
           "doc": "Entry text."
         },
         {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Leading icon."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
-          "doc": "Disabled entries cannot be chosen."
+          "doc": "Greys out the entry."
         },
         {
           "name": "checked",
           "type": "boolean",
           "doc": "Shows a check mark."
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "doc": "A Shortcut command: the entry shows its keys and choosing it runs the command."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "doc": "Opens this URL in the browser when chosen."
         }
       ],
       "events": [
@@ -1133,13 +1261,48 @@
           "doc": "Called when the entry is chosen."
         }
       ],
-      "example": "<MenuItem label=\"Delete\" onSelect={() => { remove(); }}/>"
+      "example": "<MenuItem label=\"Delete\" onSelect={() => { remove(); }}/>",
+      "children": true
     },
     {
       "name": "ContextMenu",
-      "children": true,
-      "doc": "Opens a menu on right-click. Children are the content, followed by MenuItem elements.",
-      "props": [],
+      "children": "MenuItem, MenuLabel, MenuSeparator and Submenu",
+      "doc": "Shows a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children on right-click over its other children.",
+      "props": [
+        {
+          "name": "minWidth",
+          "type": "number",
+          "doc": "Minimum menu width in pixels."
+        },
+        {
+          "name": "maxWidth",
+          "type": "number",
+          "doc": "Maximum menu width in pixels."
+        },
+        {
+          "name": "maxHeight",
+          "type": "number",
+          "doc": "Maximum menu height in pixels; taller menus scroll."
+        },
+        {
+          "name": "scrollable",
+          "type": "boolean",
+          "doc": "Lets a long menu scroll."
+        },
+        {
+          "name": "checkSide",
+          "type": [
+            "left",
+            "right"
+          ],
+          "doc": "Side the check mark of checked items is drawn on. Defaults to left."
+        },
+        {
+          "name": "externalLinkIcon",
+          "type": "boolean",
+          "doc": "Shows an external-link icon on link items. Defaults to true."
+        }
+      ],
       "example": "<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>"
     },
     {
@@ -2463,6 +2626,45 @@
         }
       ],
       "example": "<Shortcut command=\"save\" keys=\"secondary-s\" onTrigger={() => { save(); }}/>"
+    },
+    {
+      "name": "MenuLabel",
+      "doc": "A non-interactive heading inside a menu.",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "doc": "Heading text."
+        }
+      ],
+      "item": true,
+      "example": "<MenuLabel text=\"Recent\"/>"
+    },
+    {
+      "name": "MenuSeparator",
+      "doc": "A divider between menu entries.",
+      "props": [],
+      "item": true,
+      "example": "<MenuSeparator/>"
+    },
+    {
+      "name": "Submenu",
+      "doc": "A nested menu opened from its parent menu.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Entry text."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Leading icon."
+        }
+      ],
+      "children": "MenuItem, MenuLabel, MenuSeparator and Submenu",
+      "item": true,
+      "example": "<Submenu label=\"Share\"><MenuItem label=\"Email\"/></Submenu>"
     }
   ],
   "kitTypes": [
@@ -2720,6 +2922,62 @@
       "link": "variant",
       "text": "variant",
       "custom": "color, foreground, hoverColor, activeColor"
+    },
+    "DropdownButton": {
+      "new": "DropdownMenu",
+      "button": "Button child (trigger)",
+      "dropdown_menu": "MenuItem children",
+      "dropdown_menu_with_anchor": "anchor",
+      "menu_accessibility_label": "menuLabel",
+      "outline": "outline",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "disabled": "disabled",
+      "selected": "selected",
+      "primary": "variant",
+      "secondary": "variant",
+      "danger": "variant",
+      "warning": "variant",
+      "success": "variant",
+      "info": "variant",
+      "ghost": "variant",
+      "link": "variant",
+      "text": "variant",
+      "custom": "color, foreground, hoverColor, activeColor"
+    },
+    "PopupMenu": {
+      "build": "DropdownMenu / ContextMenu",
+      "action_context": "n/a: commands dispatch from the window root",
+      "min_w": "minWidth",
+      "max_w": "maxWidth",
+      "max_h": "maxHeight",
+      "scrollable": "scrollable",
+      "check_side": "checkSide",
+      "external_link_icon": "externalLinkIcon",
+      "menu": "MenuItem command + disabled",
+      "menu_with_enable": "MenuItem command + disabled",
+      "menu_with_disabled": "MenuItem command + disabled",
+      "label": "MenuLabel",
+      "link": "MenuItem href + disabled",
+      "link_with_disabled": "MenuItem href + disabled",
+      "link_with_icon": "MenuItem href + icon",
+      "menu_with_icon": "MenuItem icon",
+      "menu_with_icon_and_disabled": "MenuItem icon",
+      "menu_with_check": "MenuItem checked",
+      "menu_with_check_and_disabled": "MenuItem checked",
+      "menu_element": "MenuItem children",
+      "menu_element_with_disabled": "MenuItem children",
+      "menu_element_with_icon": "MenuItem children",
+      "menu_element_with_check": "MenuItem children",
+      "separator": "MenuSeparator",
+      "submenu": "Submenu label + icon",
+      "submenu_with_icon": "Submenu label + icon",
+      "item": "MenuItem",
+      "rebuild": "n/a: menus rebuild from their children on each open",
+      "is_empty": "n/a: query for menu builders"
     },
     "Toggle": {
       "new": "Toggle",
