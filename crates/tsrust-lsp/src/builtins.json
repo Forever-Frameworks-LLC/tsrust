@@ -6339,7 +6339,8 @@
       "examples": [
         {
           "source": "import { normalize } from \"std:path\";\nfunction main() {\n    console.log(normalize(\"reports/../archive/\"));\n}\n",
-          "output": "archive/\n"
+          "output": "archive/\n",
+          "windowsOutput": "archive\\\n"
         }
       ]
     },

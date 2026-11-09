@@ -8,6 +8,7 @@ standard output through std:testing startOutputCapture/finishOutputCapture.
 usage: generate-catalog-suites.py OUTPUT_DIRECTORY
 """
 import json
+import os
 import re
 import shutil
 import sys
@@ -78,7 +79,9 @@ def main():
         written = 0
         for entry in entries:
             for index, example in enumerate(entry.get("examples", [])):
-                key = (example["source"], example["output"])
+                # Separator-sensitive examples record the Windows rendering separately.
+                expected = example.get("windowsOutput", example["output"]) if os.name == "nt" else example["output"]
+                key = (example["source"], expected)
                 if key in seen:
                     continue
                 seen.add(key)
@@ -89,9 +92,9 @@ def main():
                 module, asynchronous = converted
                 name = f"{group}.{entry['name']} #{index}"
                 if asynchronous:
-                    check = f"catalogTest({quote(name)}, async () => {{ catalogStart(); await catalogProgram(); catalogEqual(catalogFinish(), {quote(example['output'])}); }});\n"
+                    check = f"catalogTest({quote(name)}, async () => {{ catalogStart(); await catalogProgram(); catalogEqual(catalogFinish(), {quote(expected)}); }});\n"
                 else:
-                    check = f"catalogTest({quote(name)}, () => {{ catalogStart(); catalogProgram(); catalogEqual(catalogFinish(), {quote(example['output'])}); }});\n"
+                    check = f"catalogTest({quote(name)}, () => {{ catalogStart(); catalogProgram(); catalogEqual(catalogFinish(), {quote(expected)}); }});\n"
                 directory.mkdir(parents=True, exist_ok=True)
                 slug = re.sub(r"[^A-Za-z0-9]+", "-", entry["name"]).strip("-").lower() or "entry"
                 (directory / f"{slug}-{index}.test.tsr").write_text(HEADER + module + "\n" + check, encoding="utf-8")

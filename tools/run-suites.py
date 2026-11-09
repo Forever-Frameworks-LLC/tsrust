@@ -37,6 +37,8 @@ def suites(catalog):
 
 
 def main():
+    # Windows consoles default to a legacy code page; test output is UTF-8.
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     compiler = str(Path(sys.argv[1]).resolve())
     catalog = sys.argv[2] if len(sys.argv) > 2 else None
     results, failed = [], 0
