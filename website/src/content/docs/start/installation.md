@@ -67,7 +67,7 @@ for trust, recovery and platform acceptance.
 
 ## Install the native backend
 
-Native build, run, test and dev currently select **Rust 1.96.1 exactly**, through
+Native build, run, test and dev currently select **Rust 1.99.1 exactly**, through
 [Rustup](https://rustup.rs/). A newer default Rust installation does not replace
 that selected toolchain. Setup keeps the pin alongside your other Rust versions
 without changing the global default.

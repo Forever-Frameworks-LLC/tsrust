@@ -141,7 +141,7 @@ fn heavy_build_classifier_keeps_frontend_checks_and_native_runs_concurrent(){
   ("/tool/tsrust",vec!["run","input.tsr"],true),
   ("C:\\tool\\TSRUST.EXE",vec!["test","runtime.test.tsr"],true),
   ("cargo",vec!["build","--offline"],true),
-  ("rustup",vec!["run","1.96.1","cargo","build"],true),
+  ("rustup",vec!["run","1.99.1","cargo","build"],true),
   ("rustc",vec!["input.rs"],true),
   ("/tool/tsrust",vec!["check","input.tsr"],false),
   ("/tool/tsrust",vec!["emit","input.tsr"],false),

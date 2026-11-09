@@ -4,12 +4,17 @@
 
 ## Current decision: pin both compilation stages
 
-Use Rust **1.96.1**, the installed release used to validate the current compiler and ownership corpus. The compiler is written in Rust, and it also generates Rust; both stages need a deliberate version policy.
+Use Rust **1.99.1**, the installed release used to validate the current compiler and ownership corpus. The compiler is written in Rust, and it also generates Rust; both stages need a deliberate version policy.
+
+The pin is exact rather than a minimum because generated-code behavior, native
+cache identities and the rustdoc JSON reader (an unstable format, version 61 for
+1.99.1) are validated against one release. Rust 1.99.1 replaced 1.96.1 after
+v0.2.0 because GPUI Kit needs APIs stabilized after 1.96.
 
 | Stage | Selection |
 | --- | --- |
-| Building and testing `tsrust` | Root `rust-toolchain.toml` selects 1.96.1 with the minimal profile, rustfmt, and Clippy. |
-| Compiling generated `.rs` programs | `tsrust build/run` explicitly invokes `rustup run 1.96.1 rustc`. |
+| Building and testing `tsrust` | Root `rust-toolchain.toml` selects 1.99.1 with the minimal profile, rustfmt, and Clippy. |
+| Compiling generated `.rs` programs | `tsrust build/run` explicitly invokes `rustup run 1.99.1 rustc`. |
 | Analysis and Rust emission | `tsrust check/emit` and the analysis library require no external compiler. |
 
 The CLI verifies the selected backend's reported version before compiling generated code. It fails with setup instructions if the backend is missing or does not match. It does not fall back to ambient `rustc`, modify the user's default toolchain, or automatically download a compiler.

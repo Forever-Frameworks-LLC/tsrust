@@ -8,8 +8,8 @@ for acceptance requirements.
 ## Set up
 
 Install Rustup, a native linker/C toolchain, Node.js 24 and npm. The repository
-pins Rust 1.96.1. Linux native UI builds also need the development packages listed
-in [.github/actions/setup/action.yml](.github/actions/setup/action.yml).
+pins Rust 1.99.1. Linux builds also need the development packages listed in
+[.github/actions/setup/action.yml](.github/actions/setup/action.yml).
 
 ```sh
 cargo fetch --locked

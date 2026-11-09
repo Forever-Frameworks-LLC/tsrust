@@ -118,7 +118,7 @@ pub use diagnostic::{Diagnostic, Span, SuggestedFix, json_string, line_column};
 
 /// Exact Rust backend release validated for this version of the compiler.
 /// Keep synchronized with the workspace rust-toolchain.toml (checked by tests).
-pub const RUST_BACKEND_VERSION: &str = "1.96.1";
+pub const RUST_BACKEND_VERSION: &str = "1.99.1";
 /// Stack for threads that run the compiler. Source nesting has no fixed limit;
 /// the main passes use work stacks, and this leaves room for the rest. The
 /// reservation is virtual: only pages in use are committed.

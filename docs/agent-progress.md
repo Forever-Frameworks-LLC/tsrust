@@ -6,6 +6,20 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Rust 1.99.1 pin — 2026-11-09
+
+Branch `codex/gpui-ui`. The backend and repository pin move from 1.96.1 to exactly
+1.99.1 (GPUI Kit needs post-1.96 APIs). Exact, not minimum: the rustdoc JSON reader
+is format-specific, now format 61 with a regenerated trimmed shlex 2.0.1 fixture.
+Active docs, scripts and tests moved; measurement records keep their recorded
+toolchain. Also moved the ownership witnesses used by tests out of the deleted UI
+experiments into `crates/tsrust-compiler/tests/fixtures/owner-handles`, and
+recorded the GPUI bridge design in the platform plan. Local acceptance on 1.99.1:
+clippy correctness; lib 1540/47/25/6; host targets acceptance, async_io,
+native_dependency_bundle, project_commands, rust_adapter_generation, rust_bridge,
+rust_data_boundaries, toolchain_installation, named_handler_specialization,
+tracked_resources; seven pinned LSP targets; 134 runtime suites (415 s, cold cache).
+
 ### GPUI section: earlier UI removal — 2026-11-09
 
 Branch `codex/gpui-ui`. Both earlier UI attempts are removed: `crates/tsrust-ui`,

@@ -21,9 +21,9 @@ fn shlex_source()->std::path::PathBuf{
 fn real_generated_shlex_moves_values_and_relocated_export_builds_offline(){
  let dir=support::TempDirectory::new();config(&dir.0);support::success(&generate(&dir.0,&shlex_source(),"split,try_join,try_quote"));
  let report:serde_json::Value=serde_json::from_str(&fs::read_to_string(dir.0.join("words.bindings.generation.json")).unwrap()).unwrap();assert_eq!(report["selected"],serde_json::json!(["split"]));assert_eq!(report["skipped"].as_array().unwrap().len(),2);
- let json=dir.0.join("shlex-rustdoc.json");fs::write(&json,include_str!("../src/project/fixtures/shlex-rustdoc-1.96.1.json")).unwrap();
+ let json=dir.0.join("shlex-rustdoc.json");fs::write(&json,include_str!("../src/project/fixtures/shlex-rustdoc-1.99.1.json")).unwrap();
  let generate_json=||support::run(support::cli().args(["bindings","generate"]).arg(dir.0.join("words.bindings.json")).args(["--crate","shlex","--source"]).arg(shlex_source()).args(["--select","split,try_join,try_quote","--rustdoc"]).arg(&json),30);
- support::success(&generate_json());let adapter=fs::read(dir.0.join("words.rs")).unwrap();let mut wrong:serde_json::Value=serde_json::from_str(include_str!("../src/project/fixtures/shlex-rustdoc-1.96.1.json")).unwrap();wrong["crate_version"]=serde_json::json!("0.0.0");fs::write(&json,wrong.to_string()).unwrap();let failed=generate_json();assert!(!failed.status.success());assert!(String::from_utf8_lossy(&failed.stderr).contains("exact binding dependency pin"));assert_eq!(fs::read(dir.0.join("words.rs")).unwrap(),adapter);
+ support::success(&generate_json());let adapter=fs::read(dir.0.join("words.rs")).unwrap();let mut wrong:serde_json::Value=serde_json::from_str(include_str!("../src/project/fixtures/shlex-rustdoc-1.99.1.json")).unwrap();wrong["crate_version"]=serde_json::json!("0.0.0");fs::write(&json,wrong.to_string()).unwrap();let failed=generate_json();assert!(!failed.status.success());assert!(String::from_utf8_lossy(&failed.stderr).contains("exact binding dependency pin"));assert_eq!(fs::read(dir.0.join("words.rs")).unwrap(),adapter);
 
  // Export only copies a verified pack. Prepare the combined runtime+binding
  // source closure explicitly, offline, in the same inherited Cargo home/pack dir.

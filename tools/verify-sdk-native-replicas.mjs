@@ -165,8 +165,8 @@ fn real_native_replicas() { tokio::runtime::Builder::new_current_thread().enable
   }
 }); }
 `);
-    await run('rustup', ['run', '1.96.1', 'cargo', 'generate-lockfile', '--offline'], consumer);
-    const checked = await run('rustup', ['run', '1.96.1', 'cargo', 'test', '--offline', '--locked', '--test', 'replicas'], consumer);
+    await run('rustup', ['run', '1.99.1', 'cargo', 'generate-lockfile', '--offline'], consumer);
+    const checked = await run('rustup', ['run', '1.99.1', 'cargo', 'test', '--offline', '--locked', '--test', 'replicas'], consumer);
     assert.match(checked.stdout, /test result: ok/);
     // Rejected calls must not reach mutation bodies; successful writes execute once.
     for (const replica of [old, modern]) assert.equal(replica.record.stdout.split('\n').filter(line => line === 'effect:greet').length, 4);

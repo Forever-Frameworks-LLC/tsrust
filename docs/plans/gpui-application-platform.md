@@ -242,6 +242,43 @@ independent, and a backend never gains UI dependencies.
 - External consumers keep using `tsrust api generate` directly; the workspace
   only records edges and order.
 
+## Bridge design (2026-11-09)
+
+The bridge keeps today's JSX lowering (`<Tag {...}/>` is a call `Tag({...})`) and
+adds one bundled module, `std:gpui`, backed by a small Rust runtime over GPUI Kit.
+
+- Components run once. A function component's body executes at construction and
+  returns a `Node`. Nothing re-runs the body; GPUI's repeated `render` only
+  re-evaluates the node tree's live parts.
+- `Node` is a retained description owned by its view: a Kit/intrinsic element
+  kind, static props, children and live slots. The view entity stores the root
+  node and builds GPUI elements from it in `Render::render`.
+- `signal<T>(initial)` returns a native `Signal<T>` handle (`get`/`set`/
+  `update`), `computed(() => ...)` a read-only `Computed<T>`. A signal records the
+  views that read it during render and `set` calls `cx.notify()` on them, the
+  GPUI-native invalidation path. Signals are shared handles (`Rc`), not cloned
+  values; ownership rules stay explicit in the type surface.
+- Live props: an attribute or child expression that reads a signal is checked as
+  an ordinary expression and lowered to a closure evaluated at render time; other
+  props stay construction-time values. The analysis marks the closure boundary,
+  so `{count.get()}` updates while `{label}` does not.
+- Events (`onClick`, `onChange`, ...) are typed Tsrust callbacks invoked through
+  GPUI listeners on the UI thread. Controlled inputs pair `value` with `onChange`
+  over Kit `InputState`, matching the admission slice.
+- Conditional children (`{cond ? <A/> : <B/>}`, `&&`) and keyed lists are live
+  slots with stable identity; removing a slot drops its subscriptions once.
+- Kit components are compiler-owned wrappers in `std:gpui` with typed props
+  records. `tsrust ui add` copies an editable `.tsrx` composition (variants,
+  layout and defaults) into the project, shadcn-style; the bundled wrapper stays
+  the stable boundary to GPUI Kit.
+- `run(App)` opens the window (`application().with_assets(...).run`) with the
+  Kit theme initialized; dependencies come from a separate locked GPUI
+  dependency set, never the backend set.
+
+First slice: counter, controlled input and conditional greeting, compared
+side by side with `experiments/gpui-kit-admission` for behavior, binary size,
+build time and startup time.
+
 ## Execution checklist after v0.2.0
 
 Branch `codex/gpui-ui`. Push once, to merge, when the section is complete.

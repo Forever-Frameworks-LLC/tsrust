@@ -1,16 +1,59 @@
 {
   "root": 112,
-  "format_version": 57,
+  "format_version": 61,
   "index": {
-    "149": {
-      "id": 149,
+    "112": {
+      "id": 112,
+      "crate_id": 0,
+      "name": "shlex",
+      "span": {
+        "filename": "src/lib.rs",
+        "begin": [
+          6,
+          1
+        ],
+        "end": [
+          324,
+          2
+        ]
+      },
+      "visibility": "public",
+      "stability": null,
+      "const_stability": null,
+      "inner": {
+        "module": {
+          "is_crate": true,
+          "items": [
+            148,
+            110,
+            111
+          ],
+          "is_stripped": false
+        }
+      }
+    },
+    "148": {
+      "id": 148,
       "crate_id": 0,
       "name": "split",
+      "span": {
+        "filename": "src/lib.rs",
+        "begin": [
+          100,
+          1
+        ],
+        "end": [
+          104,
+          2
+        ]
+      },
       "visibility": "public",
       "docs": "Convenience function that consumes the whole string at once.  Returns None if the input was\nerroneous.",
       "links": {},
       "attrs": [],
       "deprecation": null,
+      "stability": null,
+      "const_stability": null,
       "inner": {
         "function": {
           "sig": {
@@ -47,7 +90,7 @@
                                     "type": {
                                       "resolved_path": {
                                         "path": "alloc::string::String",
-                                        "id": 143,
+                                        "id": 142,
                                         "args": null
                                       }
                                     }
@@ -77,7 +120,8 @@
             "is_async": false,
             "abi": "Rust"
           },
-          "has_body": true
+          "has_body": true,
+          "default_unstable": null
         }
       }
     },
@@ -85,6 +129,17 @@
       "id": 110,
       "crate_id": 0,
       "name": "try_join",
+      "span": {
+        "filename": "src/lib.rs",
+        "begin": [
+          205,
+          1
+        ],
+        "end": [
+          207,
+          2
+        ]
+      },
       "visibility": "public",
       "docs": "Convenience function that consumes an iterable of words and turns it into a single string,\nquoting words when necessary. Consecutive words will be separated by a single space.\n\nUses default settings. The only error that can be returned is [`QuoteError::Nul`].\n\nEquivalent to [`Quoter::new().join(words)`](Quoter).\n\nThe bytes equivalent is [bytes::try_join].",
       "links": {
@@ -94,6 +149,8 @@
       },
       "attrs": [],
       "deprecation": null,
+      "stability": null,
+      "const_stability": null,
       "inner": {
         "function": {
           "sig": {
@@ -116,7 +173,7 @@
                         "type": {
                           "resolved_path": {
                             "path": "alloc::string::String",
-                            "id": 143,
+                            "id": 142,
                             "args": null
                           }
                         }
@@ -202,7 +259,8 @@
             "is_async": false,
             "abi": "Rust"
           },
-          "has_body": true
+          "has_body": true,
+          "default_unstable": null
         }
       }
     },
@@ -210,6 +268,17 @@
       "id": 111,
       "crate_id": 0,
       "name": "try_quote",
+      "span": {
+        "filename": "src/lib.rs",
+        "begin": [
+          216,
+          1
+        ],
+        "end": [
+          218,
+          2
+        ]
+      },
       "visibility": "public",
       "docs": "Given a single word, return a string suitable to encode it as a shell argument.\n\nUses default settings. The only error that can be returned is [`QuoteError::Nul`].\n\nEquivalent to [`Quoter::new().quote(in_str)`](Quoter).\n\nThe bytes equivalent is [bytes::try_quote].",
       "links": {
@@ -219,6 +288,8 @@
       },
       "attrs": [],
       "deprecation": null,
+      "stability": null,
+      "const_stability": null,
       "inner": {
         "function": {
           "sig": {
@@ -293,7 +364,8 @@
             "is_async": false,
             "abi": "Rust"
           },
-          "has_body": true
+          "has_body": true,
+          "default_unstable": null
         }
       }
     },
@@ -301,11 +373,24 @@
       "id": 58,
       "crate_id": 0,
       "name": "split",
+      "span": {
+        "filename": "src/lib.rs",
+        "begin": [
+          158,
+          1
+        ],
+        "end": [
+          162,
+          2
+        ]
+      },
       "visibility": "public",
       "docs": "Convenience function that consumes the whole byte string at once.  Returns None if the input was\nerroneous.",
       "links": {},
       "attrs": [],
       "deprecation": null,
+      "stability": null,
+      "const_stability": null,
       "inner": {
         "function": {
           "sig": {
@@ -385,40 +470,15 @@
             "is_async": false,
             "abi": "Rust"
           },
-          "has_body": true
-        }
-      }
-    },
-    "112": {
-      "id": 112,
-      "crate_id": 0,
-      "name": "shlex",
-      "visibility": "public",
-      "inner": {
-        "module": {
-          "is_crate": true,
-          "items": [
-            149,
-            110,
-            111
-          ],
-          "is_stripped": false
+          "has_body": true,
+          "default_unstable": null
         }
       }
     }
   },
   "paths": {
-    "143": {
-      "crate_id": 3,
-      "path": [
-        "alloc",
-        "string",
-        "String"
-      ],
-      "kind": "struct"
-    },
     "36": {
-      "crate_id": 2,
+      "crate_id": 1,
       "path": [
         "core",
         "result",
@@ -426,8 +486,19 @@
       ],
       "kind": "enum"
     },
+    "52": {
+      "crate_id": 1,
+      "path": [
+        "core",
+        "iter",
+        "traits",
+        "collect",
+        "IntoIterator"
+      ],
+      "kind": "trait"
+    },
     "54": {
-      "crate_id": 3,
+      "crate_id": 2,
       "path": [
         "alloc",
         "vec",
@@ -436,7 +507,7 @@
       "kind": "struct"
     },
     "56": {
-      "crate_id": 2,
+      "crate_id": 1,
       "path": [
         "core",
         "option",
@@ -453,13 +524,22 @@
       "kind": "enum"
     },
     "71": {
-      "crate_id": 3,
+      "crate_id": 2,
       "path": [
         "alloc",
         "borrow",
         "Cow"
       ],
       "kind": "enum"
+    },
+    "142": {
+      "crate_id": 2,
+      "path": [
+        "alloc",
+        "string",
+        "String"
+      ],
+      "kind": "struct"
     }
   },
   "crate_version": "2.0.1",

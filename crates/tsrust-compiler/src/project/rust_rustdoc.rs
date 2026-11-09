@@ -1,8 +1,8 @@
-//! Rust 1.96.1 compatibility shape, verified by the real shlex 2.0.1 rustdoc job.
-//! Only format 57 is admitted; unsupported formats require explicit source fallback.
+//! Rust 1.99.1 compatibility shape, verified by the real shlex 2.0.1 rustdoc job.
+//! Only format 61 is admitted; unsupported formats require explicit source fallback.
 use super::*;
 use serde_json::Value;
-const FORMAT:u64=57;
+const FORMAT:u64=61;
 fn required<'a>(value:&'a Value,key:&str)->Result<&'a Value,String>{value.get(key).ok_or_else(||format!("Missing rustdoc field {key}."))}
 fn array<'a>(value:&'a Value,key:&str)->Result<&'a Vec<Value>,String>{required(value,key)?.as_array().ok_or_else(||format!("Invalid rustdoc array {key}."))}
 fn flag(value:&Value,key:&str)->Result<bool,String>{required(value,key)?.as_bool().ok_or_else(||format!("Invalid rustdoc boolean {key}."))}
@@ -39,7 +39,7 @@ fn signature(item:&Value,paths:&Value)->Result<String,String>{
 pub fn generate(crate_name:&str,json:&str,root_source:&str,selected:&[String])->Result<Generated,String>{
  let selected=selected_names(selected)?;
  let document:Value=serde_json::from_str(json).map_err(|error|error.to_string())?;
- if document.get("format_version").and_then(Value::as_u64)!=Some(FORMAT){return Err("Unsupported rustdoc JSON format; expected pinned Rust 1.96.1 format 57. Use explicit source fallback or regenerate with the pinned toolchain.".into());}
+ if document.get("format_version").and_then(Value::as_u64)!=Some(FORMAT){return Err("Unsupported rustdoc JSON format; expected pinned Rust 1.99.1 format 61. Use explicit source fallback or regenerate with the pinned toolchain.".into());}
  let index=required(&document,"index")?;let root=required(&document,"root")?.to_string();let root=index.get(&root).ok_or("Missing rustdoc crate root.")?;
  if root.get("name").and_then(Value::as_str)!=Some(crate_name){return Err("Rustdoc crate name does not match the selected binding dependency.".into());}
  let module=required(required(root,"inner")?,"module")?;if !flag(module,"is_crate")?{return Err("Rustdoc root is not a crate module.".into());}
@@ -57,18 +57,18 @@ pub fn generate(crate_name:&str,json:&str,root_source:&str,selected:&[String])->
 #[cfg(test)]mod tests{
  use super::*;
  #[test]fn pinned_real_shlex_rustdoc_selects_root_split_and_reports_generic_borrowed_items(){
-  let json=include_str!("fixtures/shlex-rustdoc-1.96.1.json");let source="pub fn split(in_str:&str)->Option<Vec<String>>{None}";
+  let json=include_str!("fixtures/shlex-rustdoc-1.99.1.json");let source="pub fn split(in_str:&str)->Option<Vec<String>>{None}";
   let output=generate("shlex",json,source,&["split".into(),"try_join".into(),"try_quote".into()]).unwrap();assert_eq!(output.selected,["split"]);assert_eq!(output.skipped.len(),2);assert!(output.adapter.contains("shlex::split(in_str)"));assert!(output.adapter.contains("Option<Vec<String>>"));assert!(output.declarations.contains("RustAdapterOption<string[]>"));assert!(!output.adapter.contains("u8"),"must not choose the bytes::split homonym");
-  let mut other:Value=serde_json::from_str(json).unwrap();other["format_version"]=Value::from(56);assert!(generate("shlex",&other.to_string(),source,&["split".into()]).is_err());assert!(generate("different",json,source,&["split".into()]).is_err());
+  let mut other:Value=serde_json::from_str(json).unwrap();other["format_version"]=Value::from(60);assert!(generate("shlex",&other.to_string(),source,&["split".into()]).is_err());assert!(generate("different",json,source,&["split".into()]).is_err());
  }
 }
 
 #[cfg(test)]mod foreign_ownership_tests{
  use super::*;
  #[test]fn both_discovery_paths_reject_custom_drop_but_move_ordinary_owned_fields(){
-  let mut document:Value=serde_json::from_str(include_str!("fixtures/shlex-rustdoc-1.96.1.json")).unwrap();
+  let mut document:Value=serde_json::from_str(include_str!("fixtures/shlex-rustdoc-1.99.1.json")).unwrap();
   let row=serde_json::json!({"resolved_path":{"path":"Row","id":9000,"args":null}});
-  document["index"]["149"]["inner"]["function"]["sig"]["inputs"]=serde_json::json!([["value",row.clone()]]);document["index"]["149"]["inner"]["function"]["sig"]["output"]=row;
+  document["index"]["148"]["inner"]["function"]["sig"]["inputs"]=serde_json::json!([["value",row.clone()]]);document["index"]["148"]["inner"]["function"]["sig"]["output"]=row;
   document["paths"]["9000"]=serde_json::json!({"crate_id":0,"path":["shlex","Row"],"kind":"struct"});
   let plain="pub struct Row{pub words:Vec<String>}pub fn split(value:Row)->Row{value}";
   let accepted=generate("shlex",&document.to_string(),plain,&["split".into()]).unwrap();assert_eq!(accepted.selected,["split"]);assert!(accepted.adapter.contains("shlex::Row{"));assert!(accepted.adapter.contains("native.words"));
@@ -81,7 +81,7 @@ pub fn generate(crate_name:&str,json:&str,root_source:&str,selected:&[String])->
 #[cfg(test)]mod selection_validation_tests{
  use super::*;
  #[test]fn selected_names_cannot_inject_stub_code_in_either_discovery_path(){
-  let json=include_str!("fixtures/shlex-rustdoc-1.96.1.json");
+  let json=include_str!("fixtures/shlex-rustdoc-1.99.1.json");
   for name in ["split\npub fn injected(){}","r#unsafe","parent::split",""]{assert!(generate("shlex",json,"",&[name.into()]).is_err());assert!(source("shlex","",&[name.into()]).is_err());}
  }
 }

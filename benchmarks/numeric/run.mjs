@@ -31,7 +31,7 @@ try{
  run(compiler,['format',input,'--write']);const once=fs.readFileSync(input);run(compiler,['format',input,'--write']);if(!once.equals(fs.readFileSync(input)))throw new Error('Formatting is not idempotent');
  const rust=run(compiler,['emit',input]);fs.writeFileSync(path.join(build,'native.rs'),rust+'\n');
  const binary=path.join(build,'native');
- run('rustup',['run','1.96.1','rustc','--edition=2024','-Copt-level=3',path.join(build,'native.rs'),'-o',binary]);
+ run('rustup',['run','1.99.1','rustc','--edition=2024','-Copt-level=3',path.join(build,'native.rs'),'-o',binary]);
  const tsc=path.join(root,'benchmarks/runtime/node_modules/typescript/bin/tsc');
  run(process.execPath,[tsc,'--target','ES2022','--module','commonjs','--strict','--skipLibCheck','--typeRoots',path.join(root,'benchmarks/runtime/node_modules/@types'),'--outDir',build,ts]);
  const execution=[];
@@ -43,7 +43,7 @@ try{
   observations.push({engine,processIndex,checksums:values.filter((_,index)=>index%2===0)});
   if(!verify)execution.push({engine,processIndex,durations:values.filter((_,index)=>index%2===1)});
  }
- const result={kind:`numeric-${workload}`,verifiedOnly:verify,timestamp:new Date().toISOString(),sourceCommit:run('git',['rev-parse','HEAD']),sourceTreeDirty:run('git',['status','--porcelain']).length>0,sourceSha256:hash(native),counterpartSha256:hash(node),compilerSha256:hash(fs.readFileSync(compiler)),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),versions:{node:process.version,rust:run('rustup',['run','1.96.1','rustc','--version']),typescript:run(process.execPath,[tsc,'--version'])},machine:{cpu:os.cpus()[0].model,platform:os.platform(),release:os.release()},protocol:{processes:verify?1:3,warmups:verify?0:8,samples:verify?1:31,iterationsPerBatch:2048,durationUnit:'milliseconds'},expectedChecksum,observations,execution};
+ const result={kind:`numeric-${workload}`,verifiedOnly:verify,timestamp:new Date().toISOString(),sourceCommit:run('git',['rev-parse','HEAD']),sourceTreeDirty:run('git',['status','--porcelain']).length>0,sourceSha256:hash(native),counterpartSha256:hash(node),compilerSha256:hash(fs.readFileSync(compiler)),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),versions:{node:process.version,rust:run('rustup',['run','1.99.1','rustc','--version']),typescript:run(process.execPath,[tsc,'--version'])},machine:{cpu:os.cpus()[0].model,platform:os.platform(),release:os.release()},protocol:{processes:verify?1:3,warmups:verify?0:8,samples:verify?1:31,iterationsPerBatch:2048,durationUnit:'milliseconds'},expectedChecksum,observations,execution};
  const output=path.join(here,`${workload}-${result.timestamp.replace(/[:.]/g,'-')}${verify?'-verify':''}.json`);
  fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(output);
 }finally{fs.rmSync(build,{recursive:true,force:true});}

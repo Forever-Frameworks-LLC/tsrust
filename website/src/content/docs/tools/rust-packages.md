@@ -210,14 +210,14 @@ and Unicode shell-word results.
 
 To use prepared rustdoc discovery instead, add `--rustdoc /path/to/shlex.json` to
 the same generation command. The current reader supports the actual JSON format
-57 produced by the pinned Rust 1.96.1 toolchain. Keep `--source` for reachable
+61 produced by the pinned Rust 1.99.1 toolchain. Keep `--source` for reachable
 owned record declarations. Unsupported JSON formats fail explicitly; omitting
 `--rustdoc` selects the defined source fallback. Generation itself never invokes
 rustdoc or installs a toolchain. Prepare JSON explicitly in your existing locked
 Cargo project:
 
 ```sh
-RUSTC_BOOTSTRAP=1 rustup run 1.96.1 cargo rustdoc --offline --locked --package shlex@2.0.1 --lib -- -Z unstable-options --output-format json
+RUSTC_BOOTSTRAP=1 rustup run 1.99.1 cargo rustdoc --offline --locked --package shlex@2.0.1 --lib -- -Z unstable-options --output-format json
 ```
 
 `RUSTC_BOOTSTRAP` applies only to this explicit rustdoc invocation. The resulting

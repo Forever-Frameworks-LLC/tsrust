@@ -6130,7 +6130,7 @@ fn nullish_assignment_checked_aliases_and_flow_views_match_language_examples() {
     for level in [0, 3] {
         let binary = directory.join(format!("examples-o{level}"));
         let build = std::process::Command::new("rustup")
-            .args(["run", "1.96.1", "rustc", "--edition=2024", "-C"])
+            .args(["run", "1.99.1", "rustc", "--edition=2024", "-C"])
             .arg(format!("opt-level={level}"))
             .arg(directory.join("examples.rs"))
             .arg("-o")
@@ -6411,7 +6411,7 @@ fn optional_chain_editor_views_and_language_examples_follow_checked_hops() {
     for level in [0, 3] {
         let binary = directory.join(format!("examples-o{level}"));
         let build = std::process::Command::new("rustup")
-            .args(["run", "1.96.1", "rustc", "--edition=2024", "-C"])
+            .args(["run", "1.99.1", "rustc", "--edition=2024", "-C"])
             .arg(format!("opt-level={level}"))
             .arg(directory.join("examples.rs"))
             .arg("-o")

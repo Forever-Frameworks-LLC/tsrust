@@ -56,7 +56,7 @@ Use absolute pinned Node24 and the single coordinated target:
 ```sh
 export CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
 export CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1
-python3 /tmp/tsrust-watch.py cargo +1.96.1 build --release --offline --locked --features thread-safe-locale --manifest-path benchmarks/runtime/admission/locale/Cargo.toml --message-format=json > /tmp/tsrust-locale-selected-sync-artifacts.jsonl 2> /tmp/tsrust-locale-selected-sync-build.log
+python3 /tmp/tsrust-watch.py cargo +1.99.1 build --release --offline --locked --features thread-safe-locale --manifest-path benchmarks/runtime/admission/locale/Cargo.toml --message-format=json > /tmp/tsrust-locale-selected-sync-artifacts.jsonl 2> /tmp/tsrust-locale-selected-sync-build.log
 python3 /tmp/tsrust-watch.py /Users/seancotter/.nvm/versions/node/v24.11.1/bin/node benchmarks/runtime/admission/locale/profile.mjs --candidate=sync --artifacts=/tmp/tsrust-locale-selected-sync-artifacts.jsonl > /tmp/tsrust-locale-selected-sync-profile.json 2> /tmp/tsrust-locale-selected-sync-profile.log
 ```
 
