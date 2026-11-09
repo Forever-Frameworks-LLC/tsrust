@@ -734,7 +734,10 @@ impl Root {
                 let fit = match kit.prop("fit") {Some("cover") => ObjectFit::Cover, Some("fill") => ObjectFit::Fill, Some("none") => ObjectFit::None, _ => ObjectFit::Contain};
                 let alt = text("alt");
                 let fallback = alt.clone();
-                img(text("src")).id(element_id).size_full().object_fit(fit)
+                // Existing files load from disk; other sources are URLs or embedded asset names.
+                let source = kit.text("src");
+                let source: ImageSource = if std::path::Path::new(&source).is_file() {std::path::PathBuf::from(source).into()} else {SharedString::from(source).into()};
+                img(source).id(element_id).size_full().object_fit(fit)
                     .with_loading(move || div().child(alt.clone()).into_any_element())
                     .with_fallback(move || div().child(fallback.clone()).into_any_element()).into_any_element()
             }

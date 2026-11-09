@@ -6,7 +6,7 @@
 use super::{Kind, Node, kit::Kit, style::{self, Length, State, Utility}, theme::{ResolvedColor, Theme}, window::Options};
 use gpui_kit::component::Disableable;
 use gpui_kit::component::button::{Button, ButtonVariants};
-use gpui_kit::component::input::{Input, InputEvent, InputState};
+use gpui_kit::component::input::{Input, InputEvent, InputState, Textarea, TextareaState};
 use gpui_kit::*;
 use std::collections::HashMap;
 
@@ -51,9 +51,12 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
+/// The Kit state behind a std:ui text field: one line, or a multiline textarea.
+enum Field {Line(Entity<InputState>), Text(Entity<TextareaState>)}
+
 struct Root {
     node: Node,
-    inputs: HashMap<u64, (Entity<InputState>, Subscription)>,
+    inputs: HashMap<u64, (Field, Subscription)>,
     /// Kit component state entities (select, sliders, pickers), by node.
     states: HashMap<u64, KitState>,
     /// The node whose dialog or sheet is open, if any.
@@ -77,34 +80,35 @@ impl Root {
     /// Keep one Kit input state per visible editable node and push controlled
     /// values into it when the Node value no longer matches the edited text.
     fn sync_inputs(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        // Multiline fields use the same single-line Kit input until Textarea
-        // (TextareaState) is wrapped with the component catalog.
-        fn collect(node: &Node, out: &mut Vec<(u64, String, String)>) {
+        fn collect(node: &Node, out: &mut Vec<(u64, String, String, bool)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(field) = &node.editable {out.push((node.identity.get(), field.value.clone(), field.placeholder.clone()));}
+            if let Some(field) = &node.editable {out.push((node.identity.get(), field.value.clone(), field.placeholder.clone(), field.multiline));}
             for child in &node.children {collect(child, out);}
         }
         let mut fields = Vec::new();
         collect(&self.node, &mut fields);
         self.inputs.retain(|id, _| fields.iter().any(|field| field.0 == *id));
-        for (id, value, placeholder) in fields {
-            if let Some((state, _)) = self.inputs.get(&id) {
-                if state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));}
-                continue;
+        for (id, value, placeholder, multiline) in fields {
+            match self.inputs.get(&id) {
+                Some((Field::Line(state), _)) => {if state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));} continue}
+                Some((Field::Text(state), _)) => {if state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));} continue}
+                None => {}
             }
-            let state = cx.new(|cx| {
-                let mut state = InputState::new(window, cx).placeholder(placeholder);
-                state.set_value(value, window, cx);
-                state
-            });
-            let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {
-                if matches!(event, InputEvent::Change) {
-                    let value = state.read(cx).value().to_string();
-                    let result = this.node.input(id, &value);
-                    this.settle(result, cx);
-                }
-            });
-            self.inputs.insert(id, (state, subscription));
+            // Edits update the Node and refresh the tree like any handler.
+            let entry = if multiline {
+                let state = cx.new(|cx| {let mut state = TextareaState::new(window, cx).rows(4).placeholder(placeholder); state.set_value(value, window, cx); state});
+                let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {
+                    if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); let result = this.node.input(id, &value); this.settle(result, cx);}
+                });
+                (Field::Text(state), subscription)
+            } else {
+                let state = cx.new(|cx| {let mut state = InputState::new(window, cx).placeholder(placeholder); state.set_value(value, window, cx); state});
+                let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {
+                    if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); let result = this.node.input(id, &value); this.settle(result, cx);}
+                });
+                (Field::Line(state), subscription)
+            };
+            self.inputs.insert(id, entry);
         }
     }
 
@@ -112,9 +116,13 @@ impl Root {
         let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
         let id = node.identity.get();
         if node.editable.is_some() {
-            let Some((state, _)) = self.inputs.get(&id) else {return div().into_any_element()};
+            let control = match self.inputs.get(&id) {
+                Some((Field::Line(state), _)) => Input::new(state).disabled(node.is_disabled()).into_any_element(),
+                Some((Field::Text(state), _)) => Textarea::new(state).disabled(node.is_disabled()).into_any_element(),
+                None => return div().into_any_element(),
+            };
             // Like a browser input, an unsized field keeps a usable intrinsic width.
-            return styled(div().min_w(px(240.)), &node.class_name, theme, mode, node.is_disabled()).child(Input::new(state).disabled(node.is_disabled())).into_any_element();
+            return styled(div().min_w(px(240.)), &node.class_name, theme, mode, node.is_disabled()).child(control).into_any_element();
         }
         if let Some(kit) = &node.kit {
             let element = self.kit_element(node, kit, cx);
