@@ -257,6 +257,9 @@ fn apply(style: &mut StyleRefinement, rule: Utility) {
             match side {0 => style.inset.top = value, 1 => style.inset.right = value, 2 => style.inset.bottom = value, _ => style.inset.left = value}
         }
         Utility::AspectRatio(value) => style.aspect_ratio = value,
+        // font-sans keeps the window font; serif and mono use each platform's standard families.
+        Utility::FontFamily(1) => style.text.font_family = Some(if cfg!(target_os = "linux") {"DejaVu Serif"} else {"Georgia"}.into()),
+        Utility::FontFamily(2) => style.text.font_family = Some(if cfg!(target_os = "macos") {"Menlo"} else if cfg!(windows) {"Consolas"} else {"DejaVu Sans Mono"}.into()),
         // Text decoration, rings, cursors, tables and grids have no direct GPUI
         // style field; the classes stay valid and render without the effect.
         _ => {}
