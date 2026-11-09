@@ -279,6 +279,35 @@ First slice: counter, controlled input and conditional greeting, compared
 side by side with `experiments/gpui-kit-admission` for behavior, binary size,
 build time and startup time.
 
+Owner decision, 2026-11-09: restore the earlier checked reactive lowering
+(`signal`, `computed`, text bindings, branches, controlled inputs and their
+closure adapters) instead of adding generic typed callbacks to the native
+binding framework first. Its renderer is replaced, not revived:
+
+- `std:ui` stays the public module name (backend-neutral, so the later WASM
+  target keeps the same imports); GPUI is its desktop renderer.
+- `crates/tsrust-ui` again holds the retained Node model, utility classes and
+  theme, without vello/winit/accesskit or a browser renderer.
+- `crates/tsrust-compiler/src/stdlib/ui/gpui.rs` renders a Node tree with one
+  GPUI root view. Events update the tree, refresh its live bindings and call
+  `cx.notify()`. Unclassed buttons and text inputs use GPUI Kit `Button` and
+  `Input`; classed views and buttons resolve the utility classes into GPUI
+  styles.
+- `gpui-dependencies/` is the backend manifest plus GPUI Kit behind `ui`/`gpui`
+  features, with its own lock seeded from the backend lock (every backend pin
+  unchanged). Backend-only programs never resolve it.
+- Programs that call `run` keep the OS main thread (GPUI requires it) instead
+  of the 8 MiB worker thread other entrypoints use.
+
+First slice result (2026-11-09, macOS arm64, debug):
+`experiments/gpui-kit-admission/tsrust/main.tsrx` reproduces the Rust reference
+(counter to 2, controlled input "Ada", conditional "Hello, Ada!"), driven by
+synthesized clicks and keystrokes. Window-visible startup over 5 launches:
+244 ms median for Tsrust and 253 ms for the reference. Binary size: 34 MB and
+77 MB (the GPUI set builds dependencies without debug info). A cold first
+build compiles GPUI Kit in about 3 minutes with 4 jobs; an application rebuild
+reusing the cached GPUI support takes 12 s.
+
 ## Execution checklist after v0.2.0
 
 Branch `codex/gpui-ui`. Push once, to merge, when the section is complete.
@@ -297,7 +326,8 @@ Branch `codex/gpui-ui`. Push once, to merge, when the section is complete.
   JSX still lowers to plain component calls (`<Tag {...}/>` is `Tag({...})`);
   native support now always builds from the shared backend dependency set, whose
   UI-free native manifest dropped from 571 to 326 locked packages.
-- [ ] Bridge: `.tsrx` function components lower to GPUI views (signals become
+- [ ] Bridge (first slice done; remaining: Textarea, focus/active states,
+  theme mode, Kit theme sync): `.tsrx` function components lower to GPUI views (signals become
   entity state plus `cx.notify`; events use `cx.listener`; intrinsic elements map
   to GPUI elements; Kit components bind through compiler-owned wrappers). Match
   the admission slice and compare against it.

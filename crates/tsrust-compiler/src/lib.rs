@@ -298,6 +298,7 @@ pub(crate) use types::unions as unions;
 #[cfg(test)]
 mod nesting_probe;
 
+pub mod ui_project;
 
 #[doc(hidden)]
 pub use native::url_patch as native_url_patch;

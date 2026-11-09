@@ -1,0 +1,25 @@
+[package]
+name = "tsrust-ui"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/Forever-Frameworks-LLC/tsrust"
+publish = false
+
+[features]
+# Compiler/LSP consumers disable defaults and keep style/theme authoring checks.
+# Generated GPUI programs embed these sources with `runtime` and `gpui` enabled;
+# the GPUI renderer itself lives in the compiler's std:gpui runtime.
+default = ["runtime"]
+runtime = ["dep:url", "dep:kurbo", "dep:svgtypes"]
+gpui = ["runtime"]
+# Browser target, reserved until the GPUI web platform follows desktop.
+gpui-web = ["runtime"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = { version = "=2.5.8", optional = true }
+color = "=0.3.3"
+kurbo = { version = "=0.13.1", optional = true }
+svgtypes = { version = "=0.16.1", optional = true }

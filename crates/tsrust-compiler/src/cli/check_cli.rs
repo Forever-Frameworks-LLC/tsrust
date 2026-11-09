@@ -54,10 +54,11 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
 
 fn print_analysis(analysis: &tsrust_compiler::project_cli::CheckedInput) {
             println!("{}", super::styled("Check passed.", "1;32", super::color_enabled(std::io::stdout().is_terminal())));
-            for (name, mode) in analysis.contracts() {
+            // Bundled std: sources (std:ui) are compiler-owned, not user contracts.
+            for (name, mode) in analysis.contracts().into_iter().filter(|(name, _)| !name.starts_with("std:")) {
                 println!("  {name}: {}", mode.as_str());
             }
-            for closure in analysis.closures() {
+            for closure in analysis.closures().into_iter().filter(|closure| !closure.function.starts_with("std:")) {
                 println!(
                     "  closure {} in {} (depth {}): {}, {}{}",
                     closure.id,

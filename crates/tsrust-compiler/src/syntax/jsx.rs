@@ -95,6 +95,7 @@ impl Parser<'_> {
                         } else if self.peek().kind==TokenKind::String {
                             let value=self.take();
                             let text=entities(&value.text,value.span,true)?;
+                            if name.text=="className" {tsrust_ui::style::validate(&text).map_err(|message|Diagnostic::new("ui-class",message,value.span))?;}
                             frame.fields.push((name,Expr::new(ExprKind::String(text),value.span)));
                             machine.work.push(Work::JsxAttributes(frame));
                         } else { return Err(Diagnostic::new("syntax","Expected a quoted JSX attribute or {expression}.",self.peek().span)); }
@@ -107,6 +108,7 @@ impl Parser<'_> {
             }
             Work::JsxAttribute(mut frame,name) => {
                 let value=machine.value(); self.expect("}")?;
+                if name.text=="className" && let ExprKind::String(text)=&value.kind {tsrust_ui::style::validate(text).map_err(|message|Diagnostic::new("ui-class",message,value.span))?;}
                 frame.fields.push((*name,value)); machine.work.push(Work::JsxAttributes(frame));
             }
             Work::JsxChildren(mut frame) => {

@@ -21,6 +21,7 @@ mod locale;
 mod process;
 mod net;
 mod sqlite;
+mod ui;
 mod sql;
 mod channels;
 #[path="../stdlib/cache/check.rs"] mod cache;
@@ -1555,6 +1556,7 @@ impl Analyzer {
         if let Some(statement) = program.module_bindings.first() {
             return Err(Diagnostic::new("module-state", "Module storage requires program ownership lowering.", statement.span));
         }
+        crate::stdlib::ui::prepare(&mut program)?;
         crate::stdlib::cache::prepare(&mut program)?;
         crate::stdlib::compression::prepare(&mut program)?;
         crate::stdlib::crypto::prepare(&mut program)?;
@@ -9099,6 +9101,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         expected: Option<Type>,
         receiver_prepared: bool,
     ) -> Result<CallDispatch, Diagnostic> {
+        self.ui_empty_props(context,expr);
         if let ExprKind::Call(callee,_) = &expr.kind
             && !matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..})
             && self.expression_type_hint(context,callee).is_some_and(|ty|self.is_task_type(ty)) {
@@ -9163,6 +9166,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if let Some(ty) = self.result_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.sql_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty) = self.ui_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty)=self.process_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}

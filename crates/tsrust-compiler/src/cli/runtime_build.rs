@@ -64,7 +64,10 @@ impl Prepared {
   let binding=crate::rust_binding_packages::checked(&packages)?;
   let dependency_identity=crate::backend_sources::dependency_identity();
   let shared_inputs=Some(crate::backend_sources::identity(root)?);
+  let gpui=runtime.contains("mod tsrust_native_ui {");
+  if gpui && binding.is_some(){return Err("std:gpui programs cannot import Rust packages yet".into());}
   let mut cache_parts:Vec<&[u8]>=vec![DEPENDENCY_RUNTIME_ABI,dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
+  if gpui{cache_parts.push(crate::backend_sources::GPUI_LOCK.as_bytes());}
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
   // Cargo primary aliases/fingerprints can otherwise collide across support workspaces.
@@ -75,12 +78,14 @@ impl Prepared {
   if copied && bundle::unpack(&packed,&restored).is_ok() {
    return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None,cargo:None});
   }
-  let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(false))).map_err(|e|e.to_string())?;
+  let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(gpui))).map_err(|e|e.to_string())?;
+  if gpui{identity.extend(crate::backend_sources::GPUI_LOCK.as_bytes());}
   if let Some(binding)=binding{identity.extend(serde_json::to_vec(&(&binding.manifest,&binding.lock)).map_err(|e|e.to_string())?);}
   let workspace=crate::native_workspace::Workspace::acquire(root,&identity,opportunistic)?;
   let build_root=workspace.as_ref().map(|workspace|workspace.root.as_path()).unwrap_or(temporary);
   let package=build_root.join("native-support");
-  let (input_manifest,input_lock)=binding.map_or((crate::backend_sources::MANIFEST,crate::backend_sources::LOCK),|p|(p.manifest.as_str(),p.lock.as_str()));
+  let default=if gpui{(crate::backend_sources::GPUI_MANIFEST,crate::backend_sources::GPUI_LOCK)}else{(crate::backend_sources::MANIFEST,crate::backend_sources::LOCK)};
+  let (input_manifest,input_lock)=binding.map_or(default,|p|(p.manifest.as_str(),p.lock.as_str()));
   if workspace.is_none() || !package.exists(){
    crate::backend_sources::materialize_with(&package,input_manifest,input_lock)?;
   }
@@ -91,7 +96,7 @@ impl Prepared {
   let manifest=package.join("Cargo.toml");
   let mut text=tsrust_compiler::native_url_patch::normalize_manifest(input_manifest).map_err(|e|e.to_string())?;
   text.push_str(&format!("\n[lib]\nname = {library_name:?}\n"));
-  text.push_str(profiles(false));
+  text.push_str(profiles(gpui));
   crate::native_workspace::write_changed(&manifest,text)?;crate::native_workspace::write_changed(&package.join("src/lib.rs"),runtime)?;
   let explicit_target=std::env::var_os("CARGO_TARGET_DIR");
   let cargo=artifacts::Build::new(root,manifest.clone(),build_root.join("artifacts"),temporary.join("runtime.stdout"),explicit_target.as_deref().map(Path::new),&library_name)?;
@@ -123,6 +128,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
   if runtime.contains("// tsrust-http-websocket-selected\n"){command.args(["--features","http-websocket"]);}
   if runtime.contains("// tsrust-http-middleware-selected\n"){command.args(["--features","http-middleware"]);}
+  if gpui{command.args(["--features",if runtime.contains("use gpui_kit::"){"gpui"}else{"ui"}]);}
 
         if runtime.contains("pub mod tsrust_native_date {") {
             command.args(["--features", "calendar"]);}

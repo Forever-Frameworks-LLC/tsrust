@@ -4,6 +4,10 @@ use sha2::{Digest, Sha256};
 
 pub(crate) const MANIFEST: &str = include_str!("../../backend-dependencies/Cargo.toml");
 pub(crate) const LOCK: &str = include_str!("../../backend-dependencies/Cargo.lock");
+/// std:gpui programs: the backend set plus GPUI Kit, locked separately so
+/// backend-only programs never resolve GPUI.
+pub(crate) const GPUI_MANIFEST: &str = include_str!("../../gpui-dependencies/Cargo.toml");
+pub(crate) const GPUI_LOCK: &str = include_str!("../../gpui-dependencies/Cargo.lock");
 const BASE_IDENTITY: &str = concat!("shared-backend-sources-2\n", include_str!("../../backend-dependencies/Cargo.toml"), include_str!("../../backend-dependencies/Cargo.lock"));
 
 pub(crate) fn cargo_home() -> Result<PathBuf, String> {

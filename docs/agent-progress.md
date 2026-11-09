@@ -6,6 +6,22 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### GPUI bridge: first slice — 2026-11-09
+
+Branch `codex/gpui-ui`. Owner chose to restore the checked reactive lowering
+(signals, computed, text bindings, branches, controlled inputs) rather than add
+generic typed native callbacks first. `std:ui` keeps its name; `crates/tsrust-ui`
+again holds the Node model, utility classes and theme without any renderer;
+`stdlib/ui/gpui.rs` renders Nodes through one GPUI root view (Kit Button/Input
+for unclassed controls, utility classes mapped to GPUI styles). `gpui-dependencies/`
+is the backend manifest plus GPUI Kit with its own lock (892 packages, backend pins
+unchanged). UI window programs keep the OS main thread. `check` hides bundled
+`std:` contracts. Slice in `experiments/gpui-kit-admission/tsrust` matches the
+Rust reference; startup 244 ms vs 253 ms median. Lib 1541/47/25/6, tsrust-ui 107.
+Next: Textarea, focus/active states, Kit theme sync, then CLI (`new --ui`,
+`ui add/list`), catalog and starter. Raise CI job timeouts to ~3 h with the next
+CI change (owner: only test execution has the one-hour limit).
+
 ### Rust 1.99.1 pin — 2026-11-09
 
 Branch `codex/gpui-ui`. The backend and repository pin move from 1.96.1 to exactly

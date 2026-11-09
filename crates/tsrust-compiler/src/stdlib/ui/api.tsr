@@ -1,0 +1,754 @@
+import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+
+/** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
+export type Node = NativeNode;
+/** A renderer or node-construction failure with a readable message. */
+export type UiError = NativeUiError;
+
+/** An owned live scalar text expression produced automatically by JSX. It has no public constructor or receiver methods. */
+export type TextBinding = NativeTextBinding;
+/** Ordered strings/numeric snapshots and live bindings; null and undefined produce no text. */
+export type TextChild = string | int | number | TextBinding | Signal<int> | Signal<number> | Signal<boolean> | Signal<string> | null | undefined;
+/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Supported JSX scalar expressions reading local component state refresh; local-state JSX ternaries lazily mount selected subtrees. Other computed values remain construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
+export type Child = TextChild | Node;
+
+/** A deferred child array. Nested JSX becomes this owned zero-argument factory only when the component declares it. Each call constructs fresh content; dropping it does not construct content. */
+export type LazyChildren = Owned<Function<Child[]>>;
+
+/** Reserves a unique runtime-local UI identifier. Keep its owned string in component construction; every call allocates a different ID. No arguments or receiver. Throws if the counter is exhausted. */
+export function useId(): string {
+  return unwrap(nativeUseId());
+}
+
+
+/** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
+interface ElementMetadata<Variant> {
+  /** A document ID without ASCII whitespace/control characters. Defaults to no ID. */
+  id?: string;
+  /** Live accessible name for buttons, headings, named sections or supported named roles. Generic text/containers, paragraphs, code and presentation cannot be named. */
+  'aria-label'?: ReactiveValue<string | undefined>;
+  /** Live flag excluding a noninteractive subtree from accessibility. Enabled controls inside it are rejected. Defaults to false. */
+  'aria-hidden'?: ReactiveValue<boolean | undefined>;
+  /** Live space-separated IDs of descriptive content. Missing IDs are ignored; text is exposed as a description. */
+  'aria-describedby'?: ReactiveValue<string | undefined>;
+  /** Live validation state for assistive technology and styling; does not run validation. Omission leaves it unspecified. */
+  'aria-invalid'?: ReactiveValue<boolean | undefined>;
+  /** Local component slot for styling and inspection. ASCII letters, digits and hyphens; defaults to none. */
+  'data-slot'?: string;
+  /** Component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
+  'data-size'?: string;
+  /** Component variant metadata for data/group selectors; ASCII letters, digits and hyphens. Empty means absent. Does not change styles without a matching class. */
+  'data-variant'?: Variant;
+}
+
+/** Noninteractive semantic roles shared by View and Text. Unsupported roles fail rather than losing accessibility behavior. */
+export type ElementProps<Variant = string> = ElementMetadata<Variant>;
+interface SemanticMetadata<Variant> extends ElementProps<Variant> {
+  /** Defaults to the element's implicit role. A region requires aria-label; separators require empty content. */
+  role?: 'alert' | 'status' | 'separator' | 'group' | 'note' | 'region' | 'none' | 'presentation';
+  /** Only valid for role=separator; defaults to horizontal. */
+  'aria-orientation'?: 'horizontal' | 'vertical';
+}
+
+export type SemanticProps<Variant = string> = SemanticMetadata<Variant>;
+
+interface SvgPaintProps {
+  /** Fill paint: none, currentColor, a semantic token name, checked hex or in-gamut oklch. Svg defaults to currentColor; Path inherits. External paint URLs are rejected. */
+  fill?: string;
+  /** Stroke paint with the same accepted values as fill. Svg defaults to none; Path inherits. */
+  stroke?: string;
+  /** Finite nonnegative stroke width in viewBox units. Svg defaults to 1; Path inherits. Native geometry precision applies. */
+  strokeWidth?: number;
+  /** End-cap geometry. Svg defaults to butt; Path inherits. */
+  strokeLinecap?: 'butt' | 'round' | 'square';
+  /** Join geometry. Svg defaults to miter; Path inherits. */
+  strokeLinejoin?: 'miter' | 'round' | 'bevel';
+  /** Finite miter length/width limit, at least 1. Svg defaults to 4; Path inherits. */
+  strokeMiterlimit?: number;
+  /** Interior winding rule. Svg defaults to nonzero; Path inherits. */
+  fillRule?: 'nonzero' | 'evenodd';
+}
+
+interface SvgProperties<Classes, Variant> extends ElementProps<Variant>, SvgPaintProps {
+  /** Four finite x/y/width/height numbers separated by spaces or commas. Width/height must be positive. Defaults to 0 0 24 24. */
+  viewBox?: string;
+  /** Preferred viewport width in logical pixels. Finite and nonnegative; defaults to 24. Width utilities override this value. */
+  width?: number;
+  /** Preferred viewport height in logical pixels. Finite and nonnegative; defaults to 24. Height utilities override this value. */
+  height?: number;
+  /** none stretches independently. xMin/Mid/MaxYMin/Mid/Max plus optional meet/slice aligns a uniform scale. Defaults to xMidYMid meet. */
+  preserveAspectRatio?: string;
+  /** Image semantics. Named images default to img; unlabelled icons default to presentation and aria-hidden. Visible images require aria-label. */
+  role?: 'img' | 'presentation';
+  /** Owned Path nodes in paint order. Other node/text children reject. An empty d hides a retained path. */
+  children?: Child[];
+  /** Shared box and color utilities. Defaults to empty. Svg starts at 24 by 24 and clips to its viewport; overflow-visible opts out. Intrinsic auto/fit sizing rejects; use explicit, fractional or viewport dimensions. */
+  className?: Classes;
+}
+
+export type SvgProps<Classes = string, Variant = string> = SvgProperties<Classes, Variant>;
+interface PathProperties<Data, Classes, Variant> extends ElementProps<Variant>, SvgPaintProps {
+  /** SVG M/L/H/V/C/S/Q/T/A/Z commands, relative or absolute. Empty is valid. Invalid/nonfinite data rejects. Live expressions update the same path. Limits: 1048576 UTF-8 bytes and 100000 source segments/resulting elements. Nonzero arc radii must exceed 0.00001 units; zero radii draw a line. Original strings stay unchanged. */
+  d: Data;
+  /** Base semantic text colors and opacity only. Defaults to empty. Put layout, theme scopes and interaction styles on the enclosing Svg. */
+  className?: Classes;
+}
+
+export type PathProps<Data = string, Classes = string, Variant = string> = PathProperties<Data, Classes, Variant>;
+interface SvgOptions {
+  viewBox: string;
+  width: number;
+  height: number;
+  preserveAspectRatio: string;
+  paint: SvgPaintProps;
+}
+
+function checkSvgPaint(strokeWidth: number | undefined, strokeMiterlimit: number | undefined): void {
+  if (strokeWidth !== undefined && (!Number.isFinite(strokeWidth) || strokeWidth < 0)) {
+    throw 'SVG strokeWidth must be finite and nonnegative';
+  }
+
+  if (strokeMiterlimit !== undefined && (!Number.isFinite(strokeMiterlimit) || strokeMiterlimit < 1)) {
+    throw 'SVG strokeMiterlimit must be finite and at least 1';
+  }
+}
+/** Creates a checked vector viewport with owned Path children. Defaults to a decorative 24px image; provide aria-label for meaningful imagery. No browser JS or external resources are loaded. */
+export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  checkSvgPaint(props.strokeWidth, props.strokeMiterlimit);
+  const width: number = props.width ?? 24;
+  const height: number = props.height ?? 24;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 0 || height < 0) {
+    throw 'SVG width/height must be finite and nonnegative';
+  }
+
+  const className = props.className;
+  const variant = props['data-variant'];
+  const label = props['aria-label'] ?? '';
+  const hidden = props['aria-hidden'];
+  const metadata = semanticConfig('svg', String(props.role ?? ''), label, props.id ?? '', hidden, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const options: SvgOptions = {
+    viewBox: props.viewBox ?? '0 0 24 24', width, height, preserveAspectRatio: props.preserveAspectRatio ?? 'xMidYMid meet', paint: {
+      fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
+    }
+  };
+  const config = JSON.stringify(options);
+  return applyProperties(unwrapNode(nativeSvg(props.children ?? [], typeof className === 'string' ? clone(className) : '', config)), metadata, className, variant);
+}
+/** Creates owned path geometry for an enclosing Svg. Paint inherits from Svg unless overridden. Resource bindings use weak captures; removing the tree releases its evaluators. */
+export function Path(props: PathProps<ReactiveValue<string>, ReactiveValue<string>, ReactiveValue<string>>): Node {
+  checkSvgPaint(props.strokeWidth, props.strokeMiterlimit);
+  const data = props.d;
+  const className = props.className;
+  const variant = props['data-variant'];
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const options: SvgPaintProps = {
+    fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
+  };
+  const config = JSON.stringify(options);
+  const node = unwrapNode(nativePath(typeof data === 'string' ? clone(data) : '', typeof className === 'string' ? clone(className) : '', config));
+  const bound = typeof data === 'string' ? node : unwrapNode(nativeBindPath(node, data.evaluate));
+  return applyProperties(bound, metadata, className, variant);
+}
+
+interface TextProperties<Classes, Variant> extends SemanticProps<Variant> {
+  /** Defaults to span. Heading levels are reflected in native accessibility. */
+  as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd' | 'strong' | 'em' | 'del';
+  /** Ordered text content. Pass between tags or with children={values}; combining both is rejected. */
+  children?: Child[];
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
+  className?: Classes;
+}
+
+export type TextProps<Classes = string, Variant = string> = TextProperties<Classes, Variant>;
+
+interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
+  /** Receives initial visibility and changes after layout. Visible means positive area inside the viewport and every clipping ancestor, not occlusion detection. Hidden subtrees report false. No scroll interception. */
+  onVisibilityChange?: Owned<Function<void, [visible: boolean]>>;
+  /** 0 participates in source-order keyboard focus; -1 allows pointer/accessibility focus only. Omission is not focusable. Positive values are rejected. Name scroll regions with role=region and aria-label. */
+  tabIndex?: int;
+  /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. JSX state conditions refresh after handlers. Defaults to false. */
+  hidden?: boolean | ReactiveBoolean;
+  /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. Browser hosts keep control of their own window. */
+  windowDragRegion?: boolean;
+  /** Semantic container tag; defaults to div. Landmarks, lists, blockquotes and table parts preserve their native accessibility roles. Layout remains explicit through className. kbd and code accept composed phrasing children. */
+  as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code' | 'nav' | 'main' | 'header' | 'footer' | 'aside' | 'article' | 'blockquote' | 'ul' | 'ol' | 'li' | 'table' | 'thead' | 'tbody' | 'tfoot' | 'caption' | 'tr' | 'th' | 'td';
+  /** For as=label, the single ID of its associated control. Omission labels the first enclosed control. */
+  htmlFor?: string;
+  /** Optional live styling state, such as selected. ASCII letters, digits and hyphens; empty omits it. Does not change accessibility selection. */
+  'data-state'?: ReactiveValue<string | undefined>;
+  /** Static horizontal table-cell span, integer 1–1000. Defaults to one; only th/td accept it. Invalid values throw. */
+  colSpan?: int;
+  /** Table header association; only th accepts row, col, rowgroup or colgroup. Omission uses automatic association. */
+  scope?: 'row' | 'col' | 'rowgroup' | 'colgroup';
+  /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
+  children?: Child[];
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
+  className?: Classes;
+}
+
+/** Props forwarded once to a replacement View renderer; there is no render field to recurse through. */
+export type ViewRenderProps<Classes = ReactiveValue<string>, Variant = ReactiveValue<string>> = ViewProperties<Classes, Variant>;
+interface ViewComponentProps<Classes, Variant> extends ViewRenderProps<Classes, Variant> {
+  /** Optional replacement factory. Forward its owned props into one UI node; returning it adds no wrapper or focus stop. */
+  render?: Owned<Function<Node, [props: Owned<ViewRenderProps>]>>;
+}
+
+export type ViewProps<Classes = string, Variant = string> = ViewComponentProps<Classes, Variant>;
+
+interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
+  /** Live expansion state. Undefined removes the explicit state; application handlers control visibility. */
+  'aria-expanded'?: ReactiveValue<boolean | undefined>;
+  /** Live space-separated controlled element IDs. Undefined/empty removes the relationship; missing targets are ignored natively. */
+  'aria-controls'?: ReactiveValue<string | undefined>;
+  /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
+  children?: Child[];
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
+  className?: Classes;
+  disabled?: boolean | ReactiveBoolean;
+  onPress?: Owned<Function<void>>;
+}
+
+/** Button props supplied to a replacement factory, including children, disabled state and onPress. */
+export type ButtonRenderProps<Classes = ReactiveValue<string>, Variant = ReactiveValue<string>> = ButtonProperties<Classes, Variant>;
+interface ButtonComponentProps<Classes, Variant> extends ButtonRenderProps<Classes, Variant> {
+  /** Optional replacement factory. Forward all supplied behavior onto one control; it is called once and adds no wrapper. */
+  render?: Owned<Function<Node, [props: Owned<ButtonRenderProps>]>>;
+}
+
+export type ButtonProps<Classes = string, Variant = string> = ButtonComponentProps<Classes, Variant>;
+
+/** Text-field values preserve exact ints and ordinary number formatting. Signal and derived bindings retain no state owner. */
+export type InputValue = string | int | number | Signal<string> | Signal<int> | Signal<number> | ReactiveInputValue;
+
+/** A read-only snapshot supplied during a text-field change. It retains no element or state. */
+export interface InputTarget {
+  /** Current normalized field text, including Unicode. It does not parse numeric input. */
+  value: string;
+  /** The field's name, or an empty string when omitted. */
+  name: string;
+  /** The field's explicit id, or an empty string when omitted. */
+  id: string;
+}
+
+export interface InputChangeEvent {
+  /** Snapshot of the field that changed. */
+  target: InputTarget;
+  /** Snapshot of the field whose handler is running; matches target for a directly registered handler. */
+  currentTarget: InputTarget;
+}
+
+interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
+  /** Controlled text/numeric value. Direct signals and state-reading JSX expressions refresh after handlers. Omission selects uncontrolled state. */
+  value?: InputValue;
+  /** Initial uncontrolled value only; an explicit value takes precedence, including the empty string and zero. */
+  defaultValue?: string | int | number;
+  /** Hint shown when empty. A visible Label or aria-label should provide the accessible name. */
+  placeholder?: string;
+  /** Disabled fields cannot edit or receive focus. State-reading JSX conditions refresh after handlers. */
+  disabled?: boolean | ReactiveBoolean;
+  /** Read-only fields retain selection/focus but cannot change text. State-reading JSX conditions refresh after handlers. */
+  readOnly?: boolean | ReactiveBoolean;
+  required?: boolean;
+  name?: string;
+  autoComplete?: string;
+  className?: Classes;
+  /** Receives a borrowed value snapshot; edit logic stays in application code. String state.set copies the new text. */
+  onChange?: Owned<Function<void, [event: ReadOnly<InputChangeEvent>]>>;
+}
+
+export type TextFieldProps<Classes = string, Variant = string> = TextFieldProperties<Classes, Variant>;
+
+interface InputProperties<Classes, Variant> extends TextFieldProps<Classes, Variant> {
+  /** This portable slice supports text. Password, file and other specialized input types fail explicitly. */
+  type?: 'text';
+}
+
+export type InputProps<Classes = string, Variant = string> = InputProperties<Classes, Variant>;
+
+export type TextareaProps<Classes = string, Variant = string> = TextFieldProps<Classes, Variant>;
+
+/** Creates a single-line field. CR/LF are removed like HTML text inputs; values otherwise remain exact Unicode strings. */
+export function Input(props: InputProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  return <TextField {...props} multiline={false}/>;
+}
+/** Creates a multiline field. CRLF/CR values normalize to LF; no numeric conversion occurs. */
+export function Textarea(props: TextareaProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  return <TextField {...props} multiline={true}/>;
+}
+
+interface InputOptions {
+  placeholder: string;
+  disabled: boolean;
+  readOnly: boolean;
+  multiline: boolean;
+  required: boolean;
+  name: string;
+  autoComplete: string;
+  type: string;
+}
+
+function inputReadOnly(node: Node, value: boolean | ReactiveBoolean | undefined): Node {
+  if (value !== undefined && typeof value !== 'boolean') {
+    return unwrapNode(nativeBindReadOnly(node, value.evaluate));
+  }
+
+  return node;
+}
+
+function inputFlags(node: Node, disabled: boolean | ReactiveBoolean | undefined, readOnly: boolean | ReactiveBoolean | undefined): Node {
+  if (disabled !== undefined && typeof disabled !== 'boolean') {
+    return inputReadOnly(unwrapNode(nativeBindDisabled(node, disabled.evaluate)), readOnly);
+  }
+
+  return inputReadOnly(node, readOnly);
+}
+
+interface TextFieldOptions extends TextFieldProps<ReactiveValue<string>, ReactiveValue<string>> {
+  multiline: boolean;
+}
+
+function TextField(props: TextFieldOptions): Node {
+  const name = props.name ?? '';
+  const id = props.id ?? '';
+  const disabled = props.disabled;
+  const readOnly = props.readOnly;
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const options: InputOptions = {
+    placeholder: props.placeholder ?? '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
+  };
+  const config = JSON.stringify(options);
+  const handler = props.onChange;
+  if (handler !== undefined) {
+    return applyProperties(inputFlags(unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)), disabled, readOnly), metadata, className, variant);
+  }
+
+  return applyProperties(inputFlags(unwrapNode(nativeInput(props.value, props.defaultValue, config, classes)), disabled, readOnly), metadata, className, variant);
+}
+
+/** A platform clipboard control. It reports completion only after the platform write settles. */
+interface CopyButtonProperties<Classes, Variant> extends ElementProps<Variant> {
+  /** Exact clipboard text; Unicode, CRLF and trailing whitespace are preserved. */
+  value: string;
+  /** Shared button utilities. Defaults to empty. */
+  className?: Classes;
+}
+
+export type CopyButtonProps<Classes = string, Variant = string> = CopyButtonProperties<Classes, Variant>;
+/** Copies value on activation. Shows Copy, Copying…, Copied or Copy failed. Try again.; failures retain the application and expose the platform message as a description. Ownership: owns a text snapshot; browser completion never retains a removed subtree. */
+export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  return applyProperties(unwrapNode(nativeCopyButton(props.value, classes)), metadata, className, variant);
+}
+
+/** Creates a text node by joining text children without a separator. className defaults to empty. Unknown utilities throw a message. Owns its text. */
+export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid']);
+  const result = text(props.children ?? [], classes);
+  match (result) {
+    Ok(value) => {
+      return applyProperties(value, metadata, className, variant);
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+/** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
+export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const Render = props.render;
+  props.render = undefined;
+  if (Render !== undefined) {
+    return <Render {...props}/>;
+  }
+
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'], props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex, undefined, undefined, props['data-state'], props.colSpan, String(props.scope ?? ''));
+  const result = view(props.children ?? [], classes);
+  match (result) {
+    Ok(value) => {
+      const decorated = applyProperties(value, metadata, className, variant);
+      const observer = props.onVisibilityChange;
+      const node = observer === undefined ? decorated : unwrapNode(nativeVisibility(decorated, observer));
+      const hidden = props.hidden;
+      if (hidden === undefined) {
+        return node;
+      }
+
+      if (typeof hidden !== 'boolean') {
+        return unwrapNode(nativeBindHidden(node, hidden.evaluate));
+      }
+
+      const collapsed = hidden === true;
+      return unwrapNode(nativeBindHidden(node, () => collapsed));
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+/** Creates a semantic button with optional retained onPress and composed phrasing children. Disabled buttons never activate. */
+export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const Render = props.render;
+  props.render = undefined;
+  if (Render !== undefined) {
+    return <Render {...props}/>;
+  }
+
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'], '', false, undefined, props['aria-expanded'], props['aria-controls']);
+  const children = props.children ?? [];
+  const handler = props.onPress;
+  const disabled = props.disabled;
+  if (disabled !== undefined && typeof disabled !== 'boolean') {
+    if (handler === undefined) {
+      return applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, classes, false)), disabled.evaluate)), metadata, className, variant);
+    }
+
+    return applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(nativeButton(children, classes, false, handler)), disabled.evaluate)), metadata, className, variant);
+  }
+
+  if (handler !== undefined) {
+    return applyProperties(unwrapNode(nativeButton(children, classes, disabled ?? false, handler)), metadata, className, variant);
+  }
+
+  return applyProperties(unwrapNode(staticButton(children, classes, disabled ?? false)), metadata, className, variant);
+}
+
+/** An application path or HTTPS link. External links open through the browser or native default browser. */
+interface LinkProperties<Classes, Variant> extends ElementProps<Variant> {
+  /** Absolute local path with optional heading fragment, or an HTTPS URL without credentials. Local queries, escapes and traversal are rejected. */
+  href: string;
+  children?: Child[];
+  className?: Classes;
+}
+
+export type LinkProps<Classes = string, Variant = string> = LinkProperties<Classes, Variant>;
+/** Navigates locally or opens an HTTPS URL. The current page and ancestor path segments expose aria-current for styling and accessibility. External links leave application history unchanged. Browser anchors retain modified-click behavior; native launch failures throw. */
+export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  return applyProperties(unwrapNode(nativeLink(props.children ?? [], classes, props.href)), metadata, className, variant);
+}
+/** Creates the single application location owner, initially the browser path or / on native. Its get/set methods use checked absolute local paths. */
+export function location(): Signal<string> {
+  return unwrap(nativeLocation());
+}
+/** Pushes an application path. Navigating to the current path is a no-op. */
+export function navigate(path: string): void {
+  unwrap(nativeNavigate(path));
+}
+/** Visits the preceding browser/native history entry. No prior entry is a no-op on native. */
+export function back(): void {
+  unwrap(nativeTraverse(false));
+}
+/** Visits the following browser/native history entry. No following entry is a no-op on native. */
+export function forward(): void {
+  unwrap(nativeTraverse(true));
+}
+
+/** A retained lazy route. Create one location() owner in the application root first. */
+export interface RouteProps {
+  /** Absolute local path. Trailing slashes normalize; queries, escapes, traversal and fragments reject. */
+  path: string;
+  /** True by default. False also matches descendant path segments; /docs does not match /docs-other. Hash changes do not reconstruct content. */
+  exact?: boolean;
+  /** Called once on the first matching location. Its Node, state, controls and scroll positions remain retained during later visits. Factory failures propagate; no retry is implied. */
+  render: Owned<Function<Node>>;
+}
+/** Renders no node until its path matches, then retains the same subtree while inactive. No wrapper layout or focus stop is added. Root disposal releases both uncalled factories and visited content. Only visited routes construct their content; this does not split downloaded executable code. */
+export function Route(props: RouteProps): Node {
+  return unwrapNode(nativeRoute(props.path, props.exact ?? true, props.render));
+}
+
+/** Produces a complete escaped HTML document with shared utility styles. Borrows the tree and title; returns an owned string. Does not execute callbacks or mutate nodes. */
+export function document(node: ReadOnly<Node>, title: string): string {
+  match (nativeValidateRoot(node)) {
+    Ok(_) => {},
+    Err(error) => {
+      throw error.message;
+    }
+  }
+
+  return nativeDocument(node, title);
+}
+/** Checked native window creation options. Browser hosts retain control of their own window. */
+export interface WindowOptions {
+  /** Initial content width, 240–16384 logical pixels; defaults to 640. */
+  width?: number;
+  /** Initial content height, 160–16384 logical pixels; defaults to 480. */
+  height?: number;
+  /** Minimum width, 240–initial width; defaults to 240. */
+  minWidth?: number;
+  /** Minimum height, 160–initial height; defaults to 160. */
+  minHeight?: number;
+  /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. Browsers retain their host window. */
+  titlebar?: 'native' | 'custom';
+}
+
+/** Opens a GPU-rendered native window on the main thread and waits for closure. Checked options apply during creation. Browsers mount within their host page. Returns Ok after cleanup or Err for invalid options, renderer or handler errors. Consumes the tree; title is borrowed. */
+export function run(node: Node, title: string, options?: WindowOptions): Result<void, UiError> {
+  return nativeRun(node, title, JSON.stringify(options ?? {}));
+}
+
+/** Component-owned scalar state. Returning its UI subtree transfers this owner automatically. */
+export type Signal<T = int> = NativeSignal<T>;
+
+export function signal<T>(initial: T): Signal<T> {
+  return nativeSignal(initial);
+}
+
+
+
+
+
+function retainComponentState<T, N>(node: N, state: T): N {
+  return unwrap(nativeOwnState(node, state));
+}
+
+/** Surface theme colors are required; syntax colors are optional. Colors are checked #RRGGBB/#RRGGBBAA sRGB, in-gamut oklch() or @token aliases in the same mode; background must be opaque. */
+export interface ThemeColors {
+  background: string;
+  foreground: string;
+  card: string;
+  cardForeground: string;
+  primary: string;
+  primaryForeground: string;
+  secondary: string;
+  secondaryForeground: string;
+  muted: string;
+  mutedForeground: string;
+  accent: string;
+  accentForeground: string;
+  destructive: string;
+  destructiveForeground: string;
+  border: string;
+  input: string;
+  ring: string;
+  /** Optional code keyword color; omitted uses the mode's built-in syntax color. */
+  syntaxKeyword?: string;
+  /** Optional quoted string color; supports the same checked color syntax and aliases. */
+  syntaxString?: string;
+  /** Optional numeric literal color. Omission keeps the built-in mode color. */
+  syntaxNumber?: string;
+  /** Optional type/component name color. Omission keeps the built-in mode color. */
+  syntaxType?: string;
+}
+
+export interface ThemeScale {
+  sm: int | number;
+  md: int | number;
+  lg: int | number;
+}
+
+/** Corner radius scale. xl defaults to lg for existing themes. */
+export interface ThemeRadius extends ThemeScale {
+  /** Extra-large corner radius in finite logical pixels, 0–256; omitted uses lg. */
+  xl?: int | number;
+}
+
+export interface ThemeTypography {
+  /** Heading generic family, default sans. Named font files are not supported. */
+  headingFamily?: 'sans' | 'serif' | 'mono';
+  base: int | number;
+  xl: int | number;
+}
+
+export interface ThemeConfig {
+  schemaVersion: int;
+  light: ThemeColors;
+  dark: ThemeColors;
+  spacing: ThemeScale;
+  radius: ThemeRadius;
+  typography: ThemeTypography;
+}
+/** Applies checked project tokens to this subtree. Mode defaults to light. A string Signal switches palettes after handlers without remounting children. */
+export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Signal<string>): Node {
+  const config = JSON.stringify(value);
+  if (mode === undefined) {
+    return unwrap(nativeTheme(node, config, 'light'));
+  }
+
+  if (typeof mode === 'string') {
+    return unwrap(nativeTheme(node, config, mode));
+  }
+
+  return unwrap(nativeThemeMode(node, config, mode));
+}
+
+/** A reusable scalar expression for a component prop. JSX creates this binding automatically for state-reading expressions. */
+export interface Reactive<T> {
+  /** Zero-argument checked getter. Owns its callback and does not retain component state owners. */
+  evaluate: Owned<Function<T>>;
+}
+/** A constant or live scalar component prop. Reactivity requires a declared ReactiveValue prop and useProp() in the component that reads it. */
+export type ReactiveValue<T> = Reactive<T> | T;
+/** A component-owned read-only expression. get() evaluates its latest scalar value; there is no setter. */
+export type Computed<T> = NativeComputed<T>;
+/** Owns a reusable zero-argument scalar getter. get() evaluates on each read without memoization. Returning the component tree retains this value automatically. */
+export function computed<T>(source: Owned<Function<T>>): Computed<T> {
+  return nativeComputed(source);
+}
+
+/** Adapts a constant or live component prop into a read-only value. The returned tree retains its owner automatically. */
+export function useProp<T>(source: ReactiveValue<T>): Computed<T> {
+  return nativeComputed(source);
+}
+/** A boolean condition refreshed after UI handlers without rerunning the component. */
+export interface ReactiveBoolean {
+  /** Zero-argument boolean predicate; owns its callback with non-retaining state captures. */
+  evaluate: Owned<Function<boolean>>;
+}
+/** A checked text-control value expression. The tagged scalar union preserves int, number and string without conversion. */
+export interface ReactiveInputValue {
+  /** Zero-argument scalar getter. Errors propagate; expressions must not mutate state. Captured component state remains non-retaining. */
+  evaluate: Owned<Function<string | int | number>>;
+}
+
+function bindBranch(predicate: Owned<Function<boolean>>, present: Owned<Function<Child>>, absent: Owned<Function<Child>>): Node {
+  return unwrapNode(nativeBranch(predicate, present, absent));
+}
+
+function bindText(evaluate: Owned<Function<string | int | number | boolean | null | undefined>>): TextBinding {
+  return nativeBindText(evaluate);
+}
+
+function bindValue(evaluate: Owned<Function<string | int | number>>): ReactiveInputValue {
+  return {
+    evaluate
+  };
+}
+
+function bindCondition(evaluate: Owned<Function<boolean>>): ReactiveBoolean {
+  return {
+    evaluate
+  };
+}
+
+interface SemanticConfig {
+  tag: string;
+  role: string;
+  label: string;
+  id: string;
+  hidden: boolean;
+  slot: string;
+  size: string;
+  variant: string;
+  orientation: string;
+  describedBy: string;
+  invalid: string;
+  expanded: string;
+  controls: string;
+  htmlFor: string;
+  windowDragRegion: boolean;
+  tabIndex?: int;
+  state: string;
+  colSpan?: int;
+  scope: string;
+}
+
+function semanticString(value: Mutable<ReactiveValue<string | undefined> | undefined>): string {
+  if (value === undefined) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    return clone(value);
+  }
+
+  return value.evaluate() ?? '';
+}
+
+function semanticBoolean(value: Mutable<ReactiveValue<boolean | undefined> | undefined>): boolean | undefined {
+  if (value === undefined || typeof value === 'boolean') {
+    return value;
+  }
+
+  return value.evaluate();
+}
+
+function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>, expanded: Mutable<ReactiveValue<boolean | undefined> | undefined>, controls: Mutable<ReactiveValue<string | undefined> | undefined>, state: Mutable<ReactiveValue<string | undefined> | undefined>): string {
+  const next = clone(config);
+  next.label = semanticString(label);
+  const hiddenValue = semanticBoolean(hidden);
+  next.hidden = hiddenValue ?? (config.tag === 'svg' && next.label === '');
+  next.describedBy = semanticString(describedBy);
+  const invalidValue = semanticBoolean(invalid);
+  next.invalid = invalidValue === undefined ? '' : String(invalidValue);
+  const expandedValue = semanticBoolean(expanded);
+  next.expanded = expandedValue === undefined ? '' : String(expandedValue);
+  next.controls = semanticString(controls);
+  next.state = semanticString(state);
+  if (config.tag === 'svg' && config.role === '') {
+    next.role = next.label === '' ? 'presentation' : 'img';
+  }
+
+  return JSON.stringify(next);
+}
+
+function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: string, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int, expanded?: ReactiveValue<boolean | undefined>, controls?: ReactiveValue<string | undefined>, state?: ReactiveValue<string | undefined>, colSpan?: int, scope: string = ''): ReactiveValue<string> {
+  const config: SemanticConfig = {
+    tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', expanded: '', controls: '', htmlFor, windowDragRegion, tabIndex, state: '', colSpan, scope
+  };
+  if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean') && (expanded === undefined || typeof expanded === 'boolean') && (controls === undefined || typeof controls === 'string') && (state === undefined || typeof state === 'string')) {
+    if (config.tag === '' && config.role === '' && (label === undefined || label === '') && config.id === '' && (hidden === undefined || !hidden) && config.slot === '' && config.size === '' && config.variant === '' && config.orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && expanded === undefined && (controls === undefined || controls === '') && config.htmlFor === '' && !config.windowDragRegion && config.tabIndex === undefined && (state === undefined || state === '') && colSpan === undefined && config.scope === '') {
+      return '';
+    }
+
+    config.label = typeof label === 'string' ? clone(label) : '';
+    config.hidden = typeof hidden === 'boolean' ? hidden : (config.tag === 'svg' && config.label === '');
+    config.describedBy = typeof describedBy === 'string' ? clone(describedBy) : '';
+    config.invalid = typeof invalid === 'boolean' ? String(invalid) : '';
+    config.expanded = typeof expanded === 'boolean' ? String(expanded) : '';
+    config.controls = typeof controls === 'string' ? clone(controls) : '';
+    config.state = typeof state === 'string' ? clone(state) : '';
+    if (config.tag === 'svg' && config.role === '') {
+      config.role = config.label === '' ? 'presentation' : 'img';
+    }
+
+    return JSON.stringify(config);
+  }
+
+  return {
+    evaluate: () => semanticSnapshot(config, label, hidden, describedBy, invalid, expanded, controls, state)
+  };
+}
+
+function applySemantics(node: Node, metadata: ReactiveValue<string>): Node {
+  if (typeof metadata === 'string') {
+    return unwrapNode(nativeSemantics(node, metadata));
+  }
+
+  return unwrapNode(nativeBindSemantics(node, metadata.evaluate));
+}
+
+function unwrapNode(result: Result<Node, UiError>): Node {
+  match (result) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function applyProperties(node: Node, metadata: ReactiveValue<string>, classes: ReactiveValue<string> | undefined, variant: ReactiveValue<string> | undefined): Node {
+  const decorated = applySemantics(node, metadata);
+  const styled = classes !== undefined && typeof classes !== 'string' ? unwrapNode(nativeBindClass(decorated, classes.evaluate)) : decorated;
+  return variant !== undefined && typeof variant !== 'string' ? unwrapNode(nativeBindVariant(styled, variant.evaluate)) : styled;
+}

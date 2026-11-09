@@ -598,6 +598,11 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         if let Some((_,binding))=crate::native_bindings::by_symbol(name){crate::native_binding_types::prepare(&mut linked.records,binding,*span).map_err(|value|diagnostic(&graph,&segments,value))?;}
         else if let Some((module,name))=name.strip_prefix(crate::type_aliases::LINKED_PREFIX).and_then(|name|name.strip_prefix("native#")).and_then(|name|name.split_once('#')){let item=crate::native_types::lookup(module,name).expect("linked native type identity");crate::native_type_resolution::intern(&mut linked.records,item.id,*span).map_err(|value|diagnostic(&graph,&segments,value))?;}
     }}
+    if let Some(names) = globals.get(&SourceId("std:ui".into())) {
+        crate::stdlib::ui::retain_state(&mut linked,names).map_err(|value|diagnostic(&graph,&segments,value))?;
+        crate::stdlib::ui::omit_unused(&mut linked, names)
+            .map_err(|value| diagnostic(&graph, &segments, value))?;
+    }
     if let Some(names) = globals.get(&SourceId("std:testing".into())) {
         crate::stdlib::testing::program::lower_suites(&mut linked,names).map_err(|value| diagnostic(&graph, &segments, value))?;
         crate::stdlib::testing::program::omit_unused_facades(&mut linked, names).map_err(|value| diagnostic(&graph, &segments, value))?;
