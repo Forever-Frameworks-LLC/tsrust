@@ -24966,6 +24966,22 @@
       "name": "PlotBarsProps",
       "signature": "interface PlotBarsProps",
       "documentation": "Vertical bars, one per Plot label; several PlotBars sit side by side.\n\nProps:\n- `values`: Values, in label order.\n- `color`: Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<PlotBars values={[5, 7, 6]} color=\"primary\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Shortcut",
+      "signature": "Shortcut(props: ShortcutProps): Node",
+      "parameters": [
+        {
+          "label": "props: ShortcutProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Binds a keyboard shortcut to a named command while it is mounted. Buttons, menu items and key hints that name the same command show this shortcut.\n\nProps:\n- `command`: Command name, such as save; also named by Button tooltipCommand and menu items.\n- `keys`: Keystrokes in GPUI notation, such as cmd-s, ctrl-shift-p or alt-enter; secondary-s means cmd on macOS and ctrl elsewhere.\n- `onTrigger`: Called when the keys are pressed.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Shortcut command=\"save\" keys=\"secondary-s\" onTrigger={() => { save(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ShortcutProps",
+      "signature": "interface ShortcutProps",
+      "documentation": "Binds a keyboard shortcut to a named command while it is mounted. Buttons, menu items and key hints that name the same command show this shortcut.\n\nProps:\n- `command`: Command name, such as save; also named by Button tooltipCommand and menu items.\n- `keys`: Keystrokes in GPUI notation, such as cmd-s, ctrl-shift-p or alt-enter; secondary-s means cmd on macOS and ctrl elsewhere.\n- `onTrigger`: Called when the keys are pressed.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Shortcut command=\"save\" keys=\"secondary-s\" onTrigger={() => { save(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     }
   ]
 }

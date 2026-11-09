@@ -185,6 +185,27 @@ fn utility_theme(cx: &App) -> Theme {
     })
 }
 
+/// The one GPUI action behind every Shortcut: it carries the command name, so
+/// key bindings, tooltips and menus can refer to a command by name.
+#[derive(Action, Clone, PartialEq, serde::Deserialize)]
+#[action(namespace = tsrust, no_json)]
+struct TsrustCommand {name: String}
+
+/// Bind a Shortcut's keys once per key and command pair.
+fn bind_shortcut(keys: &str, command: &str, cx: &mut App) {
+    thread_local! {static BOUND: std::cell::RefCell<std::collections::HashSet<(String, String)>> = std::cell::RefCell::new(Default::default());}
+    if keys.is_empty() || command.is_empty() || !BOUND.with(|bound| bound.borrow_mut().insert((keys.to_owned(), command.to_owned()))) {return;}
+    match KeyBinding::load(&platform_keys(keys), Box::new(TsrustCommand {name: command.to_owned()}), None, false, None, cx) {
+        Ok(binding) => cx.bind_keys([binding]),
+        Err(error) => eprintln!("Shortcut {command}: invalid keys {keys}: {error:?}"),
+    }
+}
+
+/// Keystrokes with `secondary` resolved: cmd on macOS, ctrl elsewhere.
+fn platform_keys(keys: &str) -> String {
+    keys.split(' ').map(|chord| chord.split('-').map(|part| if part == "secondary" {if cfg!(target_os = "macos") {"cmd"} else {"ctrl"}} else {part}).collect::<Vec<_>>().join("-")).collect::<Vec<_>>().join(" ")
+}
+
 /// The size prop shared by sizable Kit components.
 fn kit_size(kit: &Kit) -> Option<KitSize> {
     match kit.prop("size") {Some("xsmall") => Some(KitSize::XSmall), Some("small") => Some(KitSize::Small), Some("large") => Some(KitSize::Large), Some("medium") => Some(KitSize::Medium), _ => None}
@@ -309,6 +330,7 @@ fn parse_hex(text: &str) -> Option<Hsla> {
 
 /// Keystroke parsing needs 'static text; each distinct shortcut is kept once.
 fn keystroke(text: &str) -> Option<Keystroke> {
+    let text = &platform_keys(text);
     thread_local! {static KEYS: std::cell::RefCell<HashMap<String, &'static str>> = std::cell::RefCell::new(HashMap::new());}
     let text = KEYS.with(|keys| *keys.borrow_mut().entry(text.to_owned()).or_insert_with(|| Box::leak(text.to_owned().into_boxed_str())));
     Keystroke::parse(text).ok()
@@ -329,6 +351,18 @@ impl Root {
     /// Children of the node with this identity, for overlay content built later.
     fn content_of(&self, id: u64, cx: &mut Context<Self>) -> Vec<AnyElement> {
         match find(&self.node, id) {Some(node) => self.content(node, cx), None => Vec::new()}
+    }
+
+    /// Run every mounted Shortcut bound to this command.
+    fn run_command(&mut self, name: &str, cx: &mut Context<Self>) {
+        fn targets(node: &Node, name: &str, out: &mut Vec<u64>) {
+            let Some(node) = node.visible_root() else {return};
+            if node.kit.as_deref().is_some_and(|kit| kit.name == "Shortcut" && kit.text("command") == name) {out.push(node.identity.get());}
+            for child in &node.children {targets(child, name, out);}
+        }
+        let mut ids = Vec::new();
+        targets(&self.node, name, &mut ids);
+        for id in ids {self.emit(id, "trigger", String::new(), cx);}
     }
 
     /// The element for one visible child of a node, for row renderers built later.
@@ -378,6 +412,14 @@ impl Root {
         }
         let mut found = Vec::new();
         collect(&self.node, &mut found);
+        fn shortcuts(node: &Node, out: &mut Vec<(String, String)>) {
+            let Some(node) = node.visible_root() else {return};
+            if let Some(kit) = node.kit.as_deref().filter(|kit| kit.name == "Shortcut") {out.push((kit.text("keys"), kit.text("command")));}
+            for child in &node.children {shortcuts(child, out);}
+        }
+        let mut keys = Vec::new();
+        shortcuts(&self.node, &mut keys);
+        for (keys, command) in keys {bind_shortcut(&keys, &command, cx);}
         self.states.retain(|id, _| found.iter().any(|(other, _, _)| other == id));
         let mut dialog = None;
         let mut sheet = None;
@@ -1439,6 +1481,7 @@ impl Root {
                 }
                 _ => div().into_any_element(),
             },
+            "Shortcut" => div().into_any_element(),
             // Item and slot components render through their container.
             name => div().child(SharedString::from(format!("{name} must be placed inside its container component"))).into_any_element(),
         }

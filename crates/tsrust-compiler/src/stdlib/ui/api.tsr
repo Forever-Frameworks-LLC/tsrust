@@ -226,6 +226,8 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   caret?: boolean;
   /** Tooltip shown on hover. */
   tooltip?: string;
+  /** A Shortcut command whose keys the tooltip shows, such as save. */
+  tooltipCommand?: string;
   /** Side the tooltip opens on. Defaults to top. */
   tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right';
   /** Milliseconds before the tooltip appears. */
@@ -464,6 +466,10 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const disabled = props.disabled;
   const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false, props.tooltip ?? '');
   const extra: [string, string][] = [];
+  if (props.tooltipCommand !== undefined) {
+    extra.push(['tooltipCommand', clone(props.tooltipCommand)]);
+  }
+
   if (props.tooltipPlacement !== undefined) {
     extra.push(['tooltipPlacement', `${props.tooltipPlacement}`]);
   }

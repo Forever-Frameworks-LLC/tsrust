@@ -2439,6 +2439,30 @@
         }
       ],
       "example": "<PlotBars values={[5, 7, 6]} color=\"primary\"/>"
+    },
+    {
+      "name": "Shortcut",
+      "doc": "Binds a keyboard shortcut to a named command while it is mounted. Buttons, menu items and key hints that name the same command show this shortcut.",
+      "props": [
+        {
+          "name": "command",
+          "type": "string",
+          "doc": "Command name, such as save; also named by Button tooltipCommand and menu items."
+        },
+        {
+          "name": "keys",
+          "type": "string",
+          "doc": "Keystrokes in GPUI notation, such as cmd-s, ctrl-shift-p or alt-enter; secondary-s means cmd on macOS and ctrl elsewhere."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onTrigger",
+          "value": "void",
+          "doc": "Called when the keys are pressed."
+        }
+      ],
+      "example": "<Shortcut command=\"save\" keys=\"secondary-s\" onTrigger={() => { save(); }}/>"
     }
   ],
   "kitTypes": [
@@ -2668,7 +2692,8 @@
       "ghost": "variant",
       "link": "variant",
       "text": "variant",
-      "custom": "color, foreground, hoverColor, activeColor"
+      "custom": "color, foreground, hoverColor, activeColor",
+      "tooltip_with_action": "tooltip + tooltipCommand (a Shortcut command)"
     },
     "ButtonGroup": {
       "new": "ButtonGroup",

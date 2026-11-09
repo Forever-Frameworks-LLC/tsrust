@@ -85,9 +85,16 @@ function ButtonStates(): Node {
   );
 }
 --- With Tooltip
-A tooltip on hover.
+A tooltip on hover. With tooltipCommand it also shows the keys of that Shortcut command.
 function TooltipButton(): Node {
-  return <Button tooltip="Saves the document">Save</Button>;
+  const saved = signal(0);
+  return (
+    <View className="flex-row items-center gap-3">
+      <Shortcut command="save" keys="secondary-s" onTrigger={() => { saved.set(saved.get() + 1); }} />
+      <Button tooltip="Save" tooltipCommand="save" onPress={() => { saved.set(saved.get() + 1); }}>Save</Button>
+      <Text>Saved {saved} times</Text>
+    </View>
+  );
 }
 --- Spinner and Progress Icons
 A spinner or a progress circle can take the icon's place.
@@ -233,6 +240,20 @@ function SegmentedGroup(): Node {
         <Toggle label="Top" />
         <Toggle label="Bottom" />
       </ToggleGroup>
+    </View>
+  );
+}
+=== Shortcut | shortcut | Actions
+Binds keystrokes to a named command while it is mounted. Tooltips and menus that name the command show its keys.
+--- Basic Shortcut
+Press the keys anywhere in the window. secondary means cmd on macOS and ctrl elsewhere.
+function BasicShortcut(): Node {
+  const count = signal(0);
+  return (
+    <View className="flex-row items-center gap-3">
+      <Shortcut command="increment" keys="secondary-k" onTrigger={() => { count.set(count.get() + 1); }} />
+      <Kbd keys="secondary-k" />
+      <Text>Pressed {count} times</Text>
     </View>
   );
 }

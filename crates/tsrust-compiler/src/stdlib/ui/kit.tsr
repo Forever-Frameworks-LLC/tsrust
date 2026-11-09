@@ -3426,3 +3426,35 @@ export function PlotBars(props: PlotBarsProps): Node {
 
   return node;
 }
+
+export interface ShortcutProps {
+  /** Command name, such as save; also named by Button tooltipCommand and menu items. */
+  command?: ReactiveValue<string> | TextBinding;
+  /** Keystrokes in GPUI notation, such as cmd-s, ctrl-shift-p or alt-enter; secondary-s means cmd on macOS and ctrl elsewhere. */
+  keys?: ReactiveValue<string> | TextBinding;
+  /** Called when the keys are pressed. */
+  onTrigger?: Owned<Function<void>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Binds a keyboard shortcut to a named command while it is mounted. Buttons, menu items and key hints that name the same command show this shortcut. */
+export function Shortcut(props: ShortcutProps): Node {
+  let node = kitNode('Shortcut', [], props.className ?? '');
+  const prop_command = props.command;
+  if (prop_command !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'command', prop_command));
+  }
+
+  const prop_keys = props.keys;
+  if (prop_keys !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'keys', prop_keys));
+  }
+
+  const event_onTrigger = props.onTrigger;
+  if (event_onTrigger !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'trigger', event_onTrigger));
+  }
+
+  return node;
+}

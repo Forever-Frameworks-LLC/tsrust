@@ -4,6 +4,7 @@ import { Introduction } from './introduction.tsrx';
 import gruvbox from './themes/gruvbox.json';
 import { ButtonPage } from './pages/Button.tsrx';
 import { TogglePage } from './pages/Toggle.tsrx';
+import { ShortcutPage } from './pages/Shortcut.tsrx';
 
 function App(): Node {
   const path = location();
@@ -25,6 +26,7 @@ function App(): Node {
         <SidebarGroup label="Actions">
           <SidebarItem label="Button" active={path.get() === "/button"} onClick={() => { navigate("/button"); }} />
           <SidebarItem label="Toggle" active={path.get() === "/toggle"} onClick={() => { navigate("/toggle"); }} />
+          <SidebarItem label="Shortcut" active={path.get() === "/shortcut"} onClick={() => { navigate("/shortcut"); }} />
         </SidebarGroup>
       </Sidebar>
       <View className="flex-col grow min-w-0">
@@ -33,6 +35,7 @@ function App(): Node {
             <Route path="/" render={() => <Introduction />} />
             <Route path="/button" render={() => <ButtonPage />} />
             <Route path="/toggle" render={() => <TogglePage />} />
+            <Route path="/shortcut" render={() => <ShortcutPage />} />
           </View>
         </ScrollArea>
       </View>

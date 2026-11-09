@@ -51,7 +51,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|_| Root {node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {focus: cx.focus_handle(), node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -69,6 +69,8 @@ struct Root {
     /// Open sections of uncontrolled accordions.
     accordions: HashMap<u64, std::collections::BTreeSet<usize>>,
     failure: Failure,
+    /// Keeps the root on the action dispatch path when no control has focus.
+    focus: FocusHandle,
 }
 
 impl Root {
@@ -136,7 +138,10 @@ impl Root {
                 if let Some(icon) = icon_name(option("icon")) {button = button.icon(icon);}
                 button = match option("size") {"xsmall" => button.with_size(KitSize::XSmall), "small" => button.with_size(KitSize::Small), "large" => button.with_size(KitSize::Large), _ => button};
                 button = button.loading(flag("loading")).selected(flag("selected")).dropdown_caret(flag("caret"));
-                if !option("tooltip").is_empty() {button = button.tooltip(option("tooltip").to_owned());}
+                if !option("tooltip").is_empty() {
+                    button = if option("tooltipCommand").is_empty() {button.tooltip(option("tooltip").to_owned())}
+                        else {button.tooltip_with_action(option("tooltip").to_owned(), &TsrustCommand {name: option("tooltipCommand").to_owned()}, None)};
+                }
                 button = button.tooltip_placement(match option("tooltipPlacement") {"bottom" => Placement::Bottom, "left" => Placement::Left, "right" => Placement::Right, _ => Placement::Top});
                 if let Ok(delay) = option("tooltipDelay").parse::<u64>() {button = button.tooltip_show_delay(std::time::Duration::from_millis(delay));}
                 button = match option("rounded") {"none" => button.rounded(ButtonRounded::None), "small" => button.rounded(ButtonRounded::Small), "large" => button.rounded(ButtonRounded::Large), _ => button};
@@ -233,7 +238,8 @@ impl Render for Root {
         self.run_commands(window, cx);
         let theme = utility_theme(cx);
         let body = self.node.visible_root().map(|node| self.element(node, &theme, mode(cx), cx));
-        div().size_full().children(body)
+        if window.focused(cx).is_none() {self.focus.focus(window, cx);}
+        div().size_full().track_focus(&self.focus).on_action(cx.listener(|this, command: &TsrustCommand, _, cx| this.run_command(&command.name, cx))).children(body)
     }
 }
 
