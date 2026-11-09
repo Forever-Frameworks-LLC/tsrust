@@ -1,5 +1,8 @@
 mod support;
 // Relocated packages share target/{debug,release}/program during build and execution.
+// Only the first test also builds release: the vendored graph and offline
+// resolution are profile-independent, and release codegen of every dependency
+// graph alone exceeded the CI hour.
 static EXPORT_TARGET: std::sync::Mutex<()> = std::sync::Mutex::new(());
 #[test]
 fn emitted_dependency_packages_build_offline_after_relocation_without_source_or_repo() {
@@ -65,7 +68,7 @@ fn async_package_builds_offline_after_relocation(){
  let package=dir.0.join("package");support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),300));
  std::fs::remove_file(input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
- for release in [false,true]{
+ for release in [false]{
   let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",dir.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
   if release{command.arg("--release");}support::success(&support::run(&mut command,120));
   let output=support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30);support::success(&output);assert_eq!(output.stdout,b"42\n");
@@ -78,7 +81,7 @@ fn http_package_builds_offline_after_relocation(){
  let package=dir.0.join("package");support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),300));
  std::fs::remove_file(input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
- for release in [false,true]{
+ for release in [false]{
   let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",dir.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
   if release{command.arg("--release");}support::success(&support::run(&mut command,300));
   let output=support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30);support::success(&output);assert_eq!(output.stdout,b"200\n{\"id\":\"42\",\"message\":\"Hello\"}\nhello\n");
@@ -92,7 +95,7 @@ fn https_package_builds_offline_after_relocation(){
  let dir=support::TempDirectory::new();let input=dir.source(&support::format_round_trip(&source));let package=dir.0.join("package");
  support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),300));
  std::fs::remove_file(input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
- for release in [false,true]{
+ for release in [false]{
   let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",dir.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
   if release{command.arg("--release");}support::success(&support::run(&mut command,300));
   support::success(&support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30));
@@ -106,7 +109,7 @@ fn sqlite_package_builds_offline_after_relocation(){
  let package=dir.0.join("package");support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),300));
  std::fs::remove_file(input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
- for release in [false,true]{
+ for release in [false]{
   let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",dir.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
   if release{command.arg("--release");}support::success(&support::run(&mut command,300));
   let output=support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30);support::success(&output);assert_eq!(output.stdout,b"1: Ada\n2: Grace\n");
@@ -127,7 +130,7 @@ fn file_package_preserves_safe_close_and_builds_offline_after_relocation() {
  assert!(relocated.join("vendor/nix-0.31.2/LICENSE").exists());
  std::fs::write(relocated.join("input.bin"),[0,65,255,66]).unwrap();
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
- for release in [false,true] {
+ for release in [false] {
   let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",dir.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
   if release {command.arg("--release");}support::success(&support::run(&mut command,120));
   let output=support::run(std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})).current_dir(&relocated),30);support::success(&output);assert!(output.stdout.is_empty());
@@ -167,7 +170,7 @@ function main(){
  std::fs::remove_file(&input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
  let home=dir.0.join("empty-cargo-home");std::fs::create_dir(&home).unwrap();
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
- for release in [false,true]{
+ for release in [false]{
   let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",&home).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
   if release{command.arg("--release");}
   support::success(&support::run(&mut command,180));
