@@ -68,6 +68,8 @@ impl Prepared {
   if gpui && binding.is_some(){return Err("std:gpui programs cannot import Rust packages yet".into());}
   let mut cache_parts:Vec<&[u8]>=vec![DEPENDENCY_RUNTIME_ABI,dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
   if gpui{cache_parts.push(crate::backend_sources::GPUI_LOCK.as_bytes());}
+  // Profile settings change compiled artifacts, so they key the cache too.
+  cache_parts.push(profiles(gpui).as_bytes());
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
   // Cargo primary aliases/fingerprints can otherwise collide across support workspaces.
@@ -192,8 +194,13 @@ pub(crate) fn application_optimization(release:bool,native_ui:bool)->&'static st
 }
 
 /// UI rendering must remain responsive in development; omit bulky dependency debug symbols.
+/// The runtime build profile a program links against; it keys application caches.
+pub(crate) fn profile_identity(rust: &str) -> &'static str {profiles(rust.contains("mod tsrust_native_ui {"))}
+
 pub(crate) fn profiles(native_ui: bool) -> &'static str {
- if native_ui {"\n[profile.dev]\noverflow-checks = true\nincremental = false\ndebug = false\nopt-level = 1\n[profile.dev.package.\"*\"]\nopt-level = 2\ndebug = false\n[profile.release]\noverflow-checks = true\nincremental = false\n"}
+ // Third-party debug assertions stay off in dev, as in release: GPUI panics when
+ // GPUI Kit's own NumberInput draws one focus handle twice for accessibility.
+ if native_ui {"\n[profile.dev]\noverflow-checks = true\nincremental = false\ndebug = false\nopt-level = 1\n[profile.dev.package.\"*\"]\nopt-level = 2\ndebug = false\ndebug-assertions = false\n[profile.release]\noverflow-checks = true\nincremental = false\n"}
  else {"\n[profile.dev]\noverflow-checks = true\nincremental = false\n[profile.release]\noverflow-checks = true\nincremental = false\n"}
 }
 
