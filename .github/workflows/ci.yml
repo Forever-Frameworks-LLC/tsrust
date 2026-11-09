@@ -61,7 +61,6 @@ jobs:
         include:
           - {os: ubuntu-24.04, target: x86_64-unknown-linux-gnu}
           - {os: macos-15, target: aarch64-apple-darwin}
-          - {os: macos-15-intel, target: x86_64-apple-darwin}
           - {os: windows-2022, target: x86_64-pc-windows-msvc}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
@@ -99,7 +98,6 @@ jobs:
         include:
           - {os: ubuntu-24.04, target: x86_64-unknown-linux-gnu}
           - {os: macos-15, target: aarch64-apple-darwin}
-          - {os: macos-15-intel, target: x86_64-apple-darwin}
           - {os: windows-2022, target: x86_64-pc-windows-msvc}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
@@ -133,7 +131,6 @@ jobs:
         include:
           - {os: ubuntu-24.04, target: x86_64-unknown-linux-gnu}
           - {os: macos-15, target: aarch64-apple-darwin}
-          - {os: macos-15-intel, target: x86_64-apple-darwin}
           - {os: windows-2022, target: x86_64-pc-windows-msvc}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 180  # test execution stays under an hour; compiling on slow runners does not count
