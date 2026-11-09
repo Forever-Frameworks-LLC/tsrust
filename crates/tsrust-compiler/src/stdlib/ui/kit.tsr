@@ -32,8 +32,8 @@ function kitInt(node: Node, name: string, value: ReactiveValue<int>): Node {
   return unwrapNode(nativeKitBind(node, name, nativeBindText(value.evaluate)));
 }
 
-/** A GPUI Kit (Lucide) icon name. */
-export type IconName = 'a-large-small' | 'arrow-down' | 'arrow-left' | 'arrow-right' | 'arrow-up' | 'asterisk' | 'ban' | 'battery-charging' | 'battery-full' | 'battery-low' | 'battery-medium' | 'battery-warning' | 'battery' | 'bell' | 'book-open' | 'bot' | 'building-2' | 'calendar' | 'case-sensitive' | 'chart-pie' | 'check' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'chevron-up' | 'chevrons-up-down' | 'circle-alert' | 'circle-check' | 'circle-user' | 'circle-x' | 'close' | 'copy' | 'cpu' | 'dash' | 'delete' | 'ellipsis-vertical' | 'ellipsis' | 'external-link' | 'eye-off' | 'eye' | 'file-text' | 'file' | 'folder-closed' | 'folder-open' | 'folder' | 'frame' | 'gallery-vertical-end' | 'github' | 'globe' | 'hard-drive' | 'heart-off' | 'heart' | 'inbox' | 'info' | 'inspector' | 'layout-dashboard' | 'loader-circle' | 'loader' | 'map' | 'maximize' | 'memory-stick' | 'menu' | 'mic' | 'minimize' | 'minus' | 'moon' | 'network' | 'palette' | 'panel-bottom-open' | 'panel-bottom' | 'panel-left-close' | 'panel-left-open' | 'panel-left' | 'panel-right-close' | 'panel-right-open' | 'panel-right' | 'pause' | 'play' | 'plus' | 'redo-2' | 'redo' | 'refresh-cw' | 'replace' | 'resize-corner' | 'rotate-cw' | 'search' | 'settings-2' | 'settings' | 'sort-ascending' | 'sort-descending' | 'square-terminal' | 'square' | 'star-fill' | 'star-off' | 'star' | 'sun' | 'thumbs-down' | 'thumbs-up' | 'triangle-alert' | 'undo-2' | 'undo' | 'user' | 'window-close' | 'window-maximize' | 'window-minimize' | 'window-restore';
+/** A GPUI Kit (Lucide) icon name in kebab case, such as arrow-up or circle-check: any of the 1830 icons at https://lucide.dev/icons. Unknown names draw nothing. */
+export type IconName = string;
 
 export interface IconProps {
   /** Icon name, such as search or arrow-right. */
@@ -757,17 +757,27 @@ export function Radio(props: RadioProps): Node {
 }
 
 export interface ToggleProps {
-  /** Button text. */
+  /** Text. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Whether the toggle is pressed. */
+  /** Icon. */
+  icon?: ReactiveValue<IconName>;
+  /** Pressed (on) state. */
   checked?: ReactiveValue<boolean>;
-  /** Receives the requested state after a click. */
+  /** Prevents toggling. */
+  disabled?: ReactiveValue<boolean>;
+  /** Tooltip shown on hover. */
+  tooltip?: ReactiveValue<string> | TextBinding;
+  /** Milliseconds before the tooltip appears. */
+  tooltipDelay?: ReactiveValue<int>;
+  /** Control size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Receives the new pressed state. */
   onChange?: Owned<Function<void, [checked: boolean]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A pressed/unpressed button. Pair checked with onChange to control it. */
+/** A button that stays pressed while on. Use a label, an icon or both. */
 export function Toggle(props: ToggleProps): Node {
   let node = kitNode('Toggle', [], props.className ?? '');
   const prop_label = props.label;
@@ -775,9 +785,42 @@ export function Toggle(props: ToggleProps): Node {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
   const prop_checked = props.checked;
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_tooltip = props.tooltip;
+  if (prop_tooltip !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
+  }
+
+  const prop_tooltipDelay = props.tooltipDelay;
+  if (prop_tooltipDelay !== undefined) {
+    node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -2450,8 +2493,12 @@ export function CodeEditor(props: CodeEditorProps): Node {
 }
 
 export interface ToggleGroupProps {
-  /** Draws the group as one segmented control. */
+  /** Draws the toggles as one segmented control. */
   segmented?: ReactiveValue<boolean>;
+  /** Control size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Disables every toggle. */
+  disabled?: ReactiveValue<boolean>;
   /** Toggle elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -2466,24 +2513,123 @@ export function ToggleGroup(props: ToggleGroupProps): Node {
     node = kitFlag(node, 'segmented', prop_segmented);
   }
 
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   return node;
 }
 
 export interface ButtonGroupProps {
-  /** Uses outline buttons. */
+  /** Outline style for every button. */
   outline?: ReactiveValue<boolean>;
-  /** GroupButton elements. */
+  /** Tighter padding for every button. */
+  compact?: ReactiveValue<boolean>;
+  /** Lets several buttons be selected; onClick then reports every selected index. */
+  multiple?: ReactiveValue<boolean>;
+  /** Stacks the buttons vertically. */
+  vertical?: ReactiveValue<boolean>;
+  /** Look applied to every button in the group. */
+  variant?: ReactiveValue<'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text'>;
+  /** Control size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Disables every button. */
+  disabled?: ReactiveValue<boolean>;
+  /** Custom variant fill: a theme color name (such as magenta) or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Custom variant text color. */
+  foreground?: ReactiveValue<string> | TextBinding;
+  /** Custom variant hover fill. */
+  hoverColor?: ReactiveValue<string> | TextBinding;
+  /** Custom variant pressed fill. */
+  activeColor?: ReactiveValue<string> | TextBinding;
+  /** Receives the selected button indexes after a click, comma-separated (such as 0,2). */
+  onClick?: Owned<Function<void, [selected: ReadOnly<string>]>>;
+  /** Button or GroupButton elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** Buttons joined into one control. Children are GroupButton elements. */
+/** Buttons joined into one control. Children are Button elements (with all their options) or GroupButton shorthands; a selected child shows as pressed. */
 export function ButtonGroup(props: ButtonGroupProps): Node {
   let node = kitNode('ButtonGroup', props.children ?? [], props.className ?? '');
   const prop_outline = props.outline;
   if (prop_outline !== undefined) {
     node = kitFlag(node, 'outline', prop_outline);
+  }
+
+  const prop_compact = props.compact;
+  if (prop_compact !== undefined) {
+    node = kitFlag(node, 'compact', prop_compact);
+  }
+
+  const prop_multiple = props.multiple;
+  if (prop_multiple !== undefined) {
+    node = kitFlag(node, 'multiple', prop_multiple);
+  }
+
+  const prop_vertical = props.vertical;
+  if (prop_vertical !== undefined) {
+    node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
+  const prop_variant = props.variant;
+  if (prop_variant !== undefined) {
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_foreground = props.foreground;
+  if (prop_foreground !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'foreground', prop_foreground));
+  }
+
+  const prop_hoverColor = props.hoverColor;
+  if (prop_hoverColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'hoverColor', prop_hoverColor));
+  }
+
+  const prop_activeColor = props.activeColor;
+  if (prop_activeColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'activeColor', prop_activeColor));
+  }
+
+  const event_onClick = props.onClick;
+  if (event_onClick !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'click', event_onClick));
   }
 
   return node;
@@ -2492,8 +2638,12 @@ export function ButtonGroup(props: ButtonGroupProps): Node {
 export interface GroupButtonProps {
   /** Button text. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Shows the button as selected. */
+  /** Leading icon. */
+  icon?: ReactiveValue<IconName>;
+  /** Shows the button pressed. */
   selected?: ReactiveValue<boolean>;
+  /** Prevents clicking. */
+  disabled?: ReactiveValue<boolean>;
   /** Called when the button is clicked. */
   onClick?: Owned<Function<void>>;
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -2508,9 +2658,23 @@ export function GroupButton(props: GroupButtonProps): Node {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
   const prop_selected = props.selected;
   if (prop_selected !== undefined) {
     node = kitFlag(node, 'selected', prop_selected);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const event_onClick = props.onClick;

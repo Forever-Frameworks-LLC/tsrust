@@ -226,6 +226,36 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   caret?: boolean;
   /** Tooltip shown on hover. */
   tooltip?: string;
+  /** Side the tooltip opens on. Defaults to top. */
+  tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right';
+  /** Milliseconds before the tooltip appears. */
+  tooltipDelay?: int;
+  /** Corner rounding: none, small, medium (default) or large. */
+  rounded?: 'none' | 'small' | 'medium' | 'large';
+  /** Icon shown while loading, instead of the spinner. */
+  loadingIcon?: IconName;
+  /** Shows a spinner as the icon. */
+  spinner?: boolean;
+  /** Shows a progress circle (0–100) as the icon. */
+  progress?: ReactiveValue<number>;
+  /** Draws the button pressed in, as for a toggle. */
+  toggled?: ReactiveValue<boolean>;
+  /** Accessibility role: button (default), link, menuitem, tab, checkbox, switch or none. */
+  role?: 'button' | 'link' | 'menuitem' | 'tab' | 'checkbox' | 'switch' | 'none';
+  /** Keyboard tab order; -1 skips the button. */
+  tabIndex?: int;
+  /** False removes the button from the tab order. Defaults to true. */
+  tabStop?: boolean;
+  /** Custom variant fill: a theme color name (such as magenta) or #rrggbb. */
+  color?: string;
+  /** Custom variant text color. */
+  foreground?: string;
+  /** Custom variant hover fill. */
+  hoverColor?: string;
+  /** Custom variant pressed fill. */
+  activeColor?: string;
+  /** Called with true when the pointer enters and false when it leaves. */
+  onHover?: Owned<Function<void, [hovered: boolean]>>;
 }
 
 /** Button props supplied to a replacement factory, including children, disabled state and onPress. */
@@ -433,6 +463,58 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const handler = props.onPress;
   const disabled = props.disabled;
   const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false, props.tooltip ?? '');
+  const extra: [string, string][] = [];
+  if (props.tooltipPlacement !== undefined) {
+    extra.push(['tooltipPlacement', `${props.tooltipPlacement}`]);
+  }
+
+  if (props.tooltipDelay !== undefined) {
+    extra.push(['tooltipDelay', `${props.tooltipDelay}`]);
+  }
+
+  if (props.rounded !== undefined) {
+    extra.push(['rounded', `${props.rounded}`]);
+  }
+
+  if (props.loadingIcon !== undefined) {
+    extra.push(['loadingIcon', `${props.loadingIcon}`]);
+  }
+
+  if (props.spinner === true) {
+    extra.push(['spinner', 'true']);
+  }
+
+  if (props.role !== undefined) {
+    extra.push(['role', `${props.role}`]);
+  }
+
+  if (props.tabIndex !== undefined) {
+    extra.push(['tabIndex', `${props.tabIndex}`]);
+  }
+
+  if (props.tabStop === false) {
+    extra.push(['tabStop', 'false']);
+  }
+
+  if (props.color !== undefined) {
+    extra.push(['color', clone(props.color)]);
+  }
+
+  if (props.foreground !== undefined) {
+    extra.push(['foreground', clone(props.foreground)]);
+  }
+
+  if (props.hoverColor !== undefined) {
+    extra.push(['hoverColor', clone(props.hoverColor)]);
+  }
+
+  if (props.activeColor !== undefined) {
+    extra.push(['activeColor', clone(props.activeColor)]);
+  }
+
+  const progress = props.progress;
+  const toggled = props.toggled;
+  const onHover = props.onHover;
   const loading = props.loading;
   const selected = props.selected;
   let node: Node;
@@ -458,6 +540,22 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
 
   if (selected !== undefined) {
     node = kitFlag(node, 'selected', selected);
+  }
+
+  for (const [name, value] of extra) {
+    node = unwrapNode(nativeKitSet(node, name, value));
+  }
+
+  if (progress !== undefined) {
+    node = kitNumber(node, 'progress', progress);
+  }
+
+  if (toggled !== undefined) {
+    node = kitFlag(node, 'toggled', toggled);
+  }
+
+  if (onHover !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'hover', onHover));
   }
 
   return node;
@@ -1031,6 +1129,21 @@ export function translate(key: string): string {
 /** The translated text right now with values filled in, as a plain string. Inside JSX, an expression such as {translateWith('items', { count: count.get() })} refreshes with both the state it reads and the locale. */
 export function translateWith<T>(key: string, values: T): string {
   return nativeTranslate(key, JSON.stringify(values));
+}
+
+/** Registers a GPUI Kit theme set: a JSON-compatible object such as an imported themes/gruvbox.json, in GPUI Kit's theme format (a name and a themes array of named light or dark color sets). Use one with useTheme. An invalid set shows an error notification. */
+export function registerThemes<T>(themes: T): void {
+  const json: string = JSON.stringify(themes);
+  unwrap(nativeCommand('register-themes', JSON.stringify({
+    json: json
+  })));
+}
+
+/** Applies a registered GPUI Kit theme by name, such as 'Gruvbox Dark Medium', to every window. Utility colors such as text-muted-foreground follow it. An unknown name shows an error notification. */
+export function useTheme(name: string): void {
+  unwrap(nativeCommand('use-theme', JSON.stringify({
+    name: name
+  })));
 }
 
 /** Switches GPUI Kit's light or dark theme for every window, or follows the system appearance with 'system'. */

@@ -6,6 +6,23 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Gallery as Kit docs mirror; API coverage tracking — 2026-11-09
+
+Owner: the starter must mirror GPUI Kit's component docs (left nav, every Kit
+example live with copyable .tsrx) and every component must cover GPUI Kit's
+full public API, not just the docs. `tools/kit-coverage.py` inventories public
+methods from the locked gpui-component/gpui-base sources (184 types, 1765
+methods; gpui-component types shadow same-named gpui-base primitives) against
+kit.json `covers`; `--check` gates completeness. Done so far: Button (all but
+tooltip_with_action, which needs a std:ui actions/keybinding model shared with
+menus), ButtonGroup (Button children), Toggle, ToggleGroup. Gallery: generated
+from examples/gpui-starter/pages.spec by tools/generate-ui-gallery.py; custom
+title bar (renderer now honors titlebar: 'custom'), tabbed Preview/Code cards,
+Gruvbox theme set via new registerThemes/useTheme; std:ui utility colors now
+follow the active Kit theme. Icons: all 1830 Kit catalog names (IconName is a
+string; a literal union stalled rustc); programs naming non-default icons
+register AllAssets. Next: continue coverage type by type with gallery pages.
+
 ### Plot and Speech — 2026-11-09
 
 Owner: wrap the whole GPUI surface (low-level included) and trust GPUI behavior;

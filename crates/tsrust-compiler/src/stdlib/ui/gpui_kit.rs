@@ -158,6 +158,55 @@ impl KitPlot for Marks {
     }
 }
 
+/// The std:ui palette (light or dark) matching GPUI Kit's active theme, so
+/// utility colors such as text-muted-foreground follow dark mode.
+fn mode(cx: &App) -> &'static str {if cx.theme().mode.is_dark() {"dark"} else {"light"}}
+
+/// The std:ui utility palette built from the active GPUI Kit theme, so classes
+/// such as text-muted-foreground and border-border follow any Kit theme. Cached
+/// until the Kit colors change.
+fn utility_theme(cx: &App) -> Theme {
+    thread_local! {static CACHE: std::cell::RefCell<Option<(String, Theme)>> = const {std::cell::RefCell::new(None)};}
+    let kit = cx.theme();
+    let colors = [
+        ("background", kit.background), ("foreground", kit.foreground), ("card", kit.group_box), ("cardForeground", kit.group_box_foreground),
+        ("primary", kit.primary), ("primaryForeground", kit.primary_foreground), ("secondary", kit.secondary), ("secondaryForeground", kit.secondary_foreground),
+        ("muted", kit.muted), ("mutedForeground", kit.muted_foreground), ("accent", kit.accent), ("accentForeground", kit.accent_foreground),
+        ("destructive", kit.danger), ("destructiveForeground", kit.danger_foreground), ("border", kit.border), ("input", kit.input), ("ring", kit.ring),
+    ].map(|(name, color)| (name, hex(color)));
+    let key = colors.iter().map(|(_, color)| color.as_str()).collect::<String>();
+    CACHE.with(|cache| {
+        if let Some((cached, theme)) = cache.borrow().as_ref() && *cached == key {return theme.clone();}
+        let mut config: serde_json::Value = serde_json::from_str(super::theme::DEFAULT_JSON).expect("bundled theme");
+        for mode in ["light", "dark"] {for (name, color) in &colors {config[mode][*name] = color.clone().into();}}
+        let theme = Theme::parse(&config.to_string()).unwrap_or_default();
+        *cache.borrow_mut() = Some((key, theme.clone()));
+        theme
+    })
+}
+
+/// The size prop shared by sizable Kit components.
+fn kit_size(kit: &Kit) -> Option<KitSize> {
+    match kit.prop("size") {Some("xsmall") => Some(KitSize::XSmall), Some("small") => Some(KitSize::Small), Some("large") => Some(KitSize::Large), Some("medium") => Some(KitSize::Medium), _ => None}
+}
+
+/// A GPUI Kit theme color by name (primary, danger, magenta, chart-1, muted-foreground, …) or #rrggbb.
+fn theme_color(name: &str, cx: &App) -> Option<Hsla> {
+    let theme = cx.theme();
+    Some(match name.replace('-', "_").as_str() {
+        "" => return None,
+        "primary" => theme.primary, "primary_foreground" => theme.primary_foreground, "secondary" => theme.secondary, "secondary_foreground" => theme.secondary_foreground,
+        "danger" | "destructive" => theme.danger, "danger_foreground" => theme.danger_foreground, "warning" => theme.warning, "warning_foreground" => theme.warning_foreground,
+        "success" => theme.success, "success_foreground" => theme.success_foreground, "info" => theme.info, "info_foreground" => theme.info_foreground,
+        "foreground" => theme.foreground, "background" => theme.background, "muted" => theme.muted, "muted_foreground" => theme.muted_foreground,
+        "accent" => theme.accent, "accent_foreground" => theme.accent_foreground, "border" => theme.border, "ring" => theme.ring, "link" => theme.link,
+        "red" => theme.red, "red_light" => theme.red_light, "green" => theme.green, "green_light" => theme.green_light, "blue" => theme.blue, "blue_light" => theme.blue_light,
+        "yellow" => theme.yellow, "yellow_light" => theme.yellow_light, "magenta" => theme.magenta, "magenta_light" => theme.magenta_light, "cyan" => theme.cyan, "cyan_light" => theme.cyan_light,
+        "chart_1" => theme.chart_1, "chart_2" => theme.chart_2, "chart_3" => theme.chart_3, "chart_4" => theme.chart_4, "chart_5" => theme.chart_5,
+        other => return parse_hex(other),
+    })
+}
+
 /// A Plot color: a theme color name or #rrggbb, else the next chart color.
 fn plot_color(name: &str, index: usize, cx: &App) -> Hsla {
     let theme = cx.theme();
@@ -273,8 +322,8 @@ impl Root {
     }
 
     fn content(&self, node: &Node, cx: &mut Context<Self>) -> Vec<AnyElement> {
-        let theme = Theme::default();
-        node.visible_children().map(|child| self.element(child, &theme, "light", cx)).collect()
+        let theme = utility_theme(cx);
+        node.visible_children().map(|child| self.element(child, &theme, mode(cx), cx)).collect()
     }
 
     /// Children of the node with this identity, for overlay content built later.
@@ -284,8 +333,8 @@ impl Root {
 
     /// The element for one visible child of a node, for row renderers built later.
     fn child_of(&self, id: u64, index: usize, cx: &mut Context<Self>) -> AnyElement {
-        let theme = Theme::default();
-        match find(&self.node, id).and_then(|node| node.visible_children().nth(index)) {Some(child) => self.element(child, &theme, "light", cx), None => div().into_any_element()}
+        let theme = utility_theme(cx);
+        match find(&self.node, id).and_then(|node| node.visible_children().nth(index)) {Some(child) => self.element(child, &theme, mode(cx), cx), None => div().into_any_element()}
     }
 
     fn attachment(&self, node: &Node, kit: &Kit, cx: &mut Context<Self>) -> Attachment {
@@ -708,6 +757,17 @@ impl Root {
                             window.push_notification(if title.is_empty() {note} else {note.title(title)}, cx);
                         }
                         "set-title" => window.set_window_title(&text("title")),
+                        "register-themes" => if let Err(error) = gpui_kit::component::ThemeRegistry::global_mut(cx).load_themes_from_str(&text("json")) {
+                            window.push_notification(Notification::error(format!("Invalid themes: {error}")), cx);
+                        },
+                        "use-theme" => match gpui_kit::component::ThemeRegistry::global(cx).themes().get(text("name").as_str()).cloned() {
+                            Some(config) => {
+                                let mode = config.mode;
+                                KitTheme::global_mut(cx).apply_config(&config);
+                                KitTheme::change(mode, Some(window), cx);
+                            }
+                            None => window.push_notification(Notification::error(format!("Unknown theme {}", text("name"))), cx),
+                        },
                         "theme" => match text("mode").as_str() {
                             "dark" => KitTheme::change(ThemeMode::Dark, Some(window), cx),
                             "light" => KitTheme::change(ThemeMode::Light, Some(window), cx),
@@ -888,7 +948,12 @@ impl Root {
                 group.into_any_element()
             }
             "Toggle" => {
-                let mut toggle = Toggle::new(element_id).label(text("label")).checked(kit.flag("checked"));
+                let mut toggle = Toggle::new(element_id).checked(kit.flag("checked")).disabled(kit.flag("disabled"));
+                if !kit.text("label").is_empty() {toggle = toggle.label(text("label"));}
+                if let Some(icon) = icon_name(&kit.text("icon")) {toggle = toggle.icon(icon);}
+                if !kit.text("tooltip").is_empty() {toggle = toggle.tooltip(text("tooltip"));}
+                if let Some(delay) = kit.number("tooltipDelay") {toggle = toggle.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
+                if let Some(size) = kit_size(kit) {toggle = toggle.with_size(size);}
                 if kit.handles("change") {toggle = toggle.on_click(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
                 toggle.into_any_element()
             }
@@ -987,8 +1052,8 @@ impl Root {
                     DropdownButton::new(element_id).button(gpui_kit::component::button::Button::new(ElementId::Name(format!("{id}-button").into())).label(text("label")))
                         .dropdown_menu(move |menu, _, _| build(menu)).into_any_element()
                 } else {
-                    let theme = Theme::default();
-                    let content = node.visible_children().filter(|child| child.kit.as_ref().is_none_or(|kit| kit.name != "MenuItem")).map(|child| self.element(child, &theme, "light", cx)).collect::<Vec<_>>();
+                    let theme = utility_theme(cx);
+                    let content = node.visible_children().filter(|child| child.kit.as_ref().is_none_or(|kit| kit.name != "MenuItem")).map(|child| self.element(child, &theme, mode(cx), cx)).collect::<Vec<_>>();
                     div().id(element_id).children(content).context_menu(move |menu, _, _| build(menu)).into_any_element()
                 }
             }
@@ -1061,7 +1126,7 @@ impl Root {
                     bar = match child.kit.as_ref().map(|kit| kit.name.as_str()) {
                         Some("StatusBarLeft") => bar.left(element),
                         Some("StatusBarRight") => bar.right(element),
-                        _ => {let theme = Theme::default(); bar.child(self.element(child, &theme, "light", cx))}
+                        _ => {let theme = utility_theme(cx); bar.child(self.element(child, &theme, mode(cx), cx))}
                     };
                 }
                 bar.into_any_element()
@@ -1194,10 +1259,17 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "ToggleGroup" => {
-                let toggles = items(node, "Toggle").map(|(child, item)| (child.identity.get(), item.text("label"), item.flag("checked"), item.handles("change"))).collect::<Vec<_>>();
-                let targets = toggles.iter().map(|(child, _, checked, handles)| (*child, *checked, *handles)).collect::<Vec<_>>();
-                let mut group = ToggleGroup::new(element_id).children(toggles.into_iter().map(|(child, label, checked, _)| Toggle::new(ElementId::Integer(child)).label(label).checked(checked)));
+                let toggles = items(node, "Toggle").map(|(child, item)| {
+                    let mut toggle = Toggle::new(ElementId::Integer(child.identity.get())).checked(item.flag("checked")).disabled(item.flag("disabled"));
+                    if !item.text("label").is_empty() {toggle = toggle.label(item.text("label"));}
+                    if let Some(icon) = icon_name(&item.text("icon")) {toggle = toggle.icon(icon);}
+                    if !item.text("tooltip").is_empty() {toggle = toggle.tooltip(item.text("tooltip"));}
+                    (child.identity.get(), item.flag("checked"), item.handles("change"), toggle)
+                }).collect::<Vec<_>>();
+                let targets = toggles.iter().map(|(child, checked, handles, _)| (*child, *checked, *handles)).collect::<Vec<_>>();
+                let mut group = ToggleGroup::new(element_id).children(toggles.into_iter().map(|(_, _, _, toggle)| toggle)).disabled(kit.flag("disabled"));
                 if kit.flag("segmented") {group = group.segmented();}
+                if let Some(size) = kit_size(kit) {group = group.with_size(size);}
                 group.on_click(cx.listener(move |this, states: &Vec<bool>, _, cx| {
                     for ((target, before, handles), now) in targets.iter().zip(states) {
                         if *handles && before != now {this.emit(*target, "change", now.to_string(), cx);}
@@ -1205,12 +1277,45 @@ impl Root {
                 })).into_any_element()
             }
             "ButtonGroup" => {
-                let buttons = items(node, "GroupButton").map(|(child, item)| (child.identity.get(), item.text("label"), item.flag("selected"))).collect::<Vec<_>>();
-                let targets = buttons.iter().map(|(child, _, _)| *child).collect::<Vec<_>>();
-                let mut group = ButtonGroup::new(element_id).children(buttons.into_iter().map(|(child, label, selected)| gpui_kit::component::button::Button::new(ElementId::Integer(child)).label(label).selected(selected)));
+                // Children are core Buttons (full options) or GroupButton shorthands.
+                let mut buttons = Vec::new();
+                let mut targets = Vec::new();
+                for child in node.visible_children() {
+                    let child_id = child.identity.get();
+                    if let Some(item) = child.kit.as_deref().filter(|kit| kit.name == "GroupButton") {
+                        let mut button = gpui_kit::component::button::Button::new(ElementId::Integer(child_id)).label(item.text("label")).selected(item.flag("selected")).disabled(item.flag("disabled"));
+                        if let Some(icon) = icon_name(&item.text("icon")) {button = button.icon(icon);}
+                        buttons.push(button);
+                        targets.push((child_id, true, item.flag("selected")));
+                    } else if matches!(child.kind, Kind::Button | Kind::DisabledButton) {
+                        buttons.push(self.kit_button(child, cx));
+                        targets.push((child_id, false, child.option("selected") == Some("true")));
+                    }
+                }
+                let mut group = ButtonGroup::new(element_id).children(buttons).multiple(kit.flag("multiple")).disabled(kit.flag("disabled"));
                 if kit.flag("outline") {group = group.outline();}
-                group.on_click(cx.listener(move |this, clicked: &Vec<usize>, _, cx| {
-                    for index in clicked {if let Some(target) = targets.get(*index) {this.emit(*target, "click", String::new(), cx);}}
+                if kit.flag("compact") {group = group.compact();}
+                if kit.flag("vertical") {group = group.layout(gpui_kit::Axis::Vertical);}
+                if let Some(size) = kit_size(kit) {group = group.with_size(size);}
+                group = match kit.prop("variant") {
+                    Some("primary") => group.primary(), Some("secondary") => group.secondary(), Some("danger") => group.danger(), Some("warning") => group.warning(),
+                    Some("success") => group.success(), Some("info") => group.info(), Some("ghost") => group.ghost(), Some("link") => group.link(), Some("text") => group.text(), _ => group,
+                };
+                if let Some(color) = theme_color(&kit.text("color"), cx) {
+                    let custom = gpui_kit::component::button::ButtonCustomVariant::new(cx).color(color);
+                    let custom = match theme_color(&kit.text("foreground"), cx) {Some(color) => custom.foreground(color), None => custom};
+                    let custom = match theme_color(&kit.text("hoverColor"), cx) {Some(color) => custom.hover(color), None => custom};
+                    let custom = match theme_color(&kit.text("activeColor"), cx) {Some(color) => custom.active(color), None => custom};
+                    group = group.custom(custom);
+                }
+                group.on_click(cx.listener(move |this, selected: &Vec<usize>, _, cx| {
+                    // The clicked child is the one whose selection changed (or the only one selected).
+                    let before = targets.iter().enumerate().filter(|(_, target)| target.2).map(|(index, _)| index).collect::<Vec<_>>();
+                    let clicked = selected.iter().chain(before.iter()).find(|index| selected.contains(index) != before.contains(index)).or(selected.first()).copied();
+                    if let Some((child, shorthand, _)) = clicked.and_then(|index| targets.get(index)).copied() {
+                        if shorthand {this.emit(child, "click", String::new(), cx);} else {let result = this.node.activate(child); this.settle(result, cx);}
+                    }
+                    this.emit(id, "click", selected.iter().map(ToString::to_string).collect::<Vec<_>>().join(","), cx);
                 })).into_any_element()
             }
             "InputGroup" => match self.states.get(&id) {

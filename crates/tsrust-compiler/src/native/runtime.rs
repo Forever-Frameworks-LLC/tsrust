@@ -84,6 +84,9 @@ pub fn separate(source:&str)->Units {
     // CodeEditor and Markdown code blocks highlight through GPUI Kit syntect.
     if ["CodeEditor","Markdown"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HIGHLIGHT_MARKER);}
     if source.contains("String::Borrowed(\"SpeechButton\")"){runtime.push_str(crate::stdlib::ui::SPEECH_MARKER);}
+    // GPUI Kit embeds only its default icons; a program naming any other catalog
+    // icon registers the complete bundled set instead.
+    let all_icons=include_str!("../stdlib/ui/catalog-icons.txt").lines().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")")));
     let mut binding_crates=std::collections::BTreeSet::new();
     for line in source.lines().filter(|line|line.starts_with(crate::project::rust::dependencies::MARKER)) {
         if let Ok(package)=serde_json::from_str::<crate::project::rust::dependencies::Package>(line.trim_start_matches(crate::project::rust::dependencies::MARKER)) {
@@ -168,6 +171,7 @@ pub fn separate(source:&str)->Units {
             if asynchronous_testing {runtime.push_str("pub use console::tsr_console_test_future;\n");}
         }
     }
+    let runtime=if all_icons {runtime.replace("application().with_assets(assets::Assets)","application().with_assets(assets::AllAssets)")} else {runtime};
     Units{application,dependencies,runtime:(!runtime.is_empty()).then(||format!("#![allow(dead_code, unused_variables, unused_mut)]\n{runtime}"))}
 }
 

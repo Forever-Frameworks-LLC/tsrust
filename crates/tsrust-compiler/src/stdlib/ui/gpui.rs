@@ -5,7 +5,7 @@
 //! the shared utility classes, resolved against the active Tsrust theme.
 use super::{Kind, Node, kit::Kit, style::{self, Length, State, Utility}, theme::{ResolvedColor, Theme}, window::Options};
 use gpui_kit::component::Disableable;
-use gpui_kit::component::button::{Button, ButtonVariants};
+use gpui_kit::component::button::{Button, ButtonCustomVariant, ButtonRounded, ButtonVariants};
 use gpui_kit::component::input::{Input, InputEvent, InputState, Textarea, TextareaState};
 use gpui_kit::*;
 use std::collections::HashMap;
@@ -44,7 +44,11 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
     let window = WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(bounds)),
         window_min_size: Some(size(px(options.min_width as f32), px(options.min_height as f32))),
-        titlebar: Some(TitlebarOptions {title: Some(title.into()), ..Default::default()}),
+        // A custom titlebar draws the app's own TitleBar over a transparent native one.
+        titlebar: Some(match options.titlebar {
+            super::window::Titlebar::Custom => TitlebarOptions {title: Some(title.into()), ..gpui_kit::component::TitleBar::title_bar_options()},
+            super::window::Titlebar::Native => TitlebarOptions {title: Some(title.into()), ..Default::default()},
+        }),
         ..Default::default()
     };
     open_window(window, cx, move |_, cx| cx.new(|_| Root {node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
@@ -112,6 +116,57 @@ impl Root {
         }
     }
 
+    /// A GPUI Kit Button for an unclassed core Button, with its Kit options.
+    fn kit_button(&self, node: &Node, cx: &mut Context<Self>) -> Button {
+        let id = node.identity.get();
+                // Kit button options (variant, size, icon, states) arrive as node options.
+                let option = |name: &str| node.option(name).unwrap_or_default();
+                let flag = |name: &str| option(name) == "true";
+                let label = node.content_text();
+                let mut button = Button::new(ElementId::Integer(id)).disabled(node.is_disabled());
+                if !label.is_empty() {button = button.label(label);}
+                let variant = if option("variant").is_empty() {node.semantics.variant.as_str()} else {option("variant")};
+                button = match variant {
+                    "secondary" => button.secondary(), "ghost" => button.ghost(), "danger" | "destructive" => button.danger(),
+                    "warning" => button.warning(), "success" => button.success(), "info" => button.info(), "link" => button.link(), "text" => button.text(),
+                    "outline" => button.outline(), "primary" => button.primary(), _ => button,
+                };
+                if flag("outline") {button = button.outline();}
+                if flag("compact") {button = button.compact();}
+                if let Some(icon) = icon_name(option("icon")) {button = button.icon(icon);}
+                button = match option("size") {"xsmall" => button.with_size(KitSize::XSmall), "small" => button.with_size(KitSize::Small), "large" => button.with_size(KitSize::Large), _ => button};
+                button = button.loading(flag("loading")).selected(flag("selected")).dropdown_caret(flag("caret"));
+                if !option("tooltip").is_empty() {button = button.tooltip(option("tooltip").to_owned());}
+                button = button.tooltip_placement(match option("tooltipPlacement") {"bottom" => Placement::Bottom, "left" => Placement::Left, "right" => Placement::Right, _ => Placement::Top});
+                if let Ok(delay) = option("tooltipDelay").parse::<u64>() {button = button.tooltip_show_delay(std::time::Duration::from_millis(delay));}
+                button = match option("rounded") {"none" => button.rounded(ButtonRounded::None), "small" => button.rounded(ButtonRounded::Small), "large" => button.rounded(ButtonRounded::Large), _ => button};
+                if let Some(icon) = icon_name(option("loadingIcon")) {button = button.loading_icon(icon);}
+                if flag("spinner") {button = button.icon(gpui_kit::component::spinner::Spinner::new());}
+                if let Ok(value) = option("progress").parse::<f32>() {button = button.icon(gpui_kit::component::progress::ProgressCircle::new(ElementId::Name(format!("{id}-progress").into())).value(value));}
+                button = button.toggled(flag("toggled"));
+                button = match option("role") {
+                    "link" => button.role(Role::Link), "menuitem" => button.role(Role::MenuItem), "tab" => button.role(Role::Tab),
+                    "checkbox" => button.role(Role::CheckBox), "switch" => button.role(Role::Switch), "none" => button.role(None::<Role>), _ => button,
+                };
+                if !node.semantics.label.is_empty() {button = button.accessibility_label(node.semantics.label.clone());}
+                if !node.semantics.id.is_empty() {button = button.accessibility_id(node.semantics.id.clone());}
+                if let Ok(index) = option("tabIndex").parse::<isize>() {button = button.tab_index(index);}
+                if option("tabStop") == "false" {button = button.tab_stop(false);}
+                if !option("color").is_empty() {
+                    let custom = ButtonCustomVariant::new(cx);
+                    let custom = match theme_color(option("color"), cx) {Some(color) => custom.color(color), None => custom};
+                    let custom = match theme_color(option("foreground"), cx) {Some(color) => custom.foreground(color), None => custom};
+                    let custom = match theme_color(option("hoverColor"), cx) {Some(color) => custom.hover(color), None => custom};
+                    let custom = match theme_color(option("activeColor"), cx) {Some(color) => custom.active(color), None => custom};
+                    button = button.custom(custom);
+                }
+                if node.kit.as_deref().is_some_and(|kit| kit.handles("hover")) {
+                    let root = cx.entity().downgrade();
+                    button = button.on_hover(move |hovered, _, cx| {let hovered = *hovered; let _ = root.update(cx, |root, cx| root.emit(id, "hover", hovered.to_string(), cx));});
+                }
+                button.on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);}))
+    }
+
     fn element(&self, node: &Node, theme: &Theme, mode: &str, cx: &mut Context<Self>) -> AnyElement {
         let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
         let id = node.identity.get();
@@ -139,27 +194,7 @@ impl Root {
                 gpui_kit::component::link::Link::new(ElementId::Integer(id)).disabled(node.is_disabled()).child(SharedString::from(node.content_text()))
                     .on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
             }
-            Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => {
-                // Kit button options (variant, size, icon, states) arrive as node options.
-                let option = |name: &str| node.option(name).unwrap_or_default();
-                let flag = |name: &str| option(name) == "true";
-                let label = node.content_text();
-                let mut button = Button::new(ElementId::Integer(id)).disabled(node.is_disabled());
-                if !label.is_empty() {button = button.label(label);}
-                let variant = if option("variant").is_empty() {node.semantics.variant.as_str()} else {option("variant")};
-                button = match variant {
-                    "secondary" => button.secondary(), "ghost" => button.ghost(), "danger" | "destructive" => button.danger(),
-                    "warning" => button.warning(), "success" => button.success(), "info" => button.info(), "link" => button.link(), "text" => button.text(),
-                    "outline" => button.outline(), "primary" => button.primary(), _ => button,
-                };
-                if flag("outline") {button = button.outline();}
-                if flag("compact") {button = button.compact();}
-                if let Some(icon) = icon_name(option("icon")) {button = button.icon(icon);}
-                button = match option("size") {"xsmall" => button.with_size(KitSize::XSmall), "small" => button.with_size(KitSize::Small), "large" => button.with_size(KitSize::Large), _ => button};
-                button = button.loading(flag("loading")).selected(flag("selected")).dropdown_caret(flag("caret"));
-                if !option("tooltip").is_empty() {button = button.tooltip(option("tooltip").to_owned());}
-                button.on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
-            }
+            Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => self.kit_button(node, cx).into_any_element(),
             Kind::Button | Kind::DisabledButton => {
                 let element = styled(div(), &node.class_name, theme, mode, node.is_disabled()).children(children).id(ElementId::Integer(id));
                 if node.is_disabled() {return element.into_any_element();}
@@ -196,8 +231,8 @@ impl Render for Root {
         self.sync_inputs(window, cx);
         self.sync_kit(window, cx);
         self.run_commands(window, cx);
-        let theme = Theme::default();
-        let body = self.node.visible_root().map(|node| self.element(node, &theme, "light", cx));
+        let theme = utility_theme(cx);
+        let body = self.node.visible_root().map(|node| self.element(node, &theme, mode(cx), cx));
         div().size_full().children(body)
     }
 }

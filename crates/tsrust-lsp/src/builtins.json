@@ -23143,6 +23143,28 @@
       "documentation": "The translated text with values, right now, as a plain string. Inside JSX an expression such as {translateWith('messages', { count: count.get() })} refreshes with both the state it reads and the locale. Catalogs are JSON objects, usually imported: `import fr from './locales/fr.json'`. Nested objects make dotted keys (menu.save), {name} placeholders take values, and a numeric count selects key_zero, key_one or key_other (zero falls back to other). Lookup tries the exact locale (fr-CA), its language (fr), then en, then shows the key.\n\n```tsrx\nconst count = signal(3);\n<Text>{translateWith('files', { count: count.get() })}</Text> // 3 files\n```"
     },
     {
+      "name": "registerThemes",
+      "signature": "registerThemes<T>(themes: T): void",
+      "parameters": [
+        {
+          "label": "themes: T",
+          "documentation": "A theme set in GPUI Kit's format, usually an imported JSON file."
+        }
+      ],
+      "documentation": "Registers a GPUI Kit theme set: a name and a themes array, each theme with a name, a mode (light or dark), colors and an optional highlight section for code. Apply one with useTheme. Utility classes such as text-muted-foreground and border-border follow the active theme. An invalid set shows an error notification.\n\n```tsrx\nimport gruvbox from './themes/gruvbox.json';\n\nfunction main() {\n  registerThemes(gruvbox);\n  useTheme('Gruvbox Dark Medium');\n  unwrap(run(<App/>, 'Notes'));\n}\n```\n\nOwnership: the set is read and copied."
+    },
+    {
+      "name": "useTheme",
+      "signature": "useTheme(name: string): void",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "The name of a registered theme, such as Gruvbox Dark Medium."
+        }
+      ],
+      "documentation": "Applies a registered GPUI Kit theme to every window on the next frame; its mode sets light or dark. An unknown name shows an error notification.\n\n```tsrx\n<Switch label=\"Dark\" onChange={(on) => { useTheme(on ? 'Gruvbox Dark Medium' : 'Gruvbox Light Medium'); }}/>\n```"
+    },
+    {
       "name": "setTheme",
       "signature": "setTheme(mode: 'light' | 'dark' | 'system'): void",
       "parameters": [
@@ -23562,12 +23584,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A pressed/unpressed button. Pair checked with onChange to control it.\n\nProps:\n- `label`: Button text.\n- `checked`: Whether the toggle is pressed.\n- `onChange`: Receives the requested state after a click.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A button that stays pressed while on. Use a label, an icon or both.\n\nProps:\n- `label`: Text.\n- `icon`: Icon.\n- `checked`: Pressed (on) state.\n- `disabled`: Prevents toggling.\n- `tooltip`: Tooltip shown on hover.\n- `tooltipDelay`: Milliseconds before the tooltip appears.\n- `size`: Control size. Defaults to medium.\n- `onChange`: Receives the new pressed state.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "ToggleProps",
       "signature": "interface ToggleProps",
-      "documentation": "A pressed/unpressed button. Pair checked with onChange to control it.\n\nProps:\n- `label`: Button text.\n- `checked`: Whether the toggle is pressed.\n- `onChange`: Receives the requested state after a click.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A button that stays pressed while on. Use a label, an icon or both.\n\nProps:\n- `label`: Text.\n- `icon`: Icon.\n- `checked`: Pressed (on) state.\n- `disabled`: Prevents toggling.\n- `tooltip`: Tooltip shown on hover.\n- `tooltipDelay`: Milliseconds before the tooltip appears.\n- `size`: Control size. Defaults to medium.\n- `onChange`: Receives the new pressed state.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Rating",
@@ -24570,12 +24592,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A set of Toggle buttons shown as one control.\n\nProps:\n- `segmented`: Draws the group as one segmented control.\n- `children`: Toggle elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ToggleGroup><Toggle label=\"B\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/><Toggle label=\"I\"/></ToggleGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A set of Toggle buttons shown as one control.\n\nProps:\n- `segmented`: Draws the toggles as one segmented control.\n- `size`: Control size. Defaults to medium.\n- `disabled`: Disables every toggle.\n- `children`: Toggle elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ToggleGroup><Toggle label=\"B\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/><Toggle label=\"I\"/></ToggleGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "ToggleGroupProps",
       "signature": "interface ToggleGroupProps",
-      "documentation": "A set of Toggle buttons shown as one control.\n\nProps:\n- `segmented`: Draws the group as one segmented control.\n- `children`: Toggle elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ToggleGroup><Toggle label=\"B\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/><Toggle label=\"I\"/></ToggleGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A set of Toggle buttons shown as one control.\n\nProps:\n- `segmented`: Draws the toggles as one segmented control.\n- `size`: Control size. Defaults to medium.\n- `disabled`: Disables every toggle.\n- `children`: Toggle elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ToggleGroup><Toggle label=\"B\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/><Toggle label=\"I\"/></ToggleGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "ButtonGroup",
@@ -24586,12 +24608,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "Buttons joined into one control. Children are GroupButton elements.\n\nProps:\n- `outline`: Uses outline buttons.\n- `children`: GroupButton elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ButtonGroup><GroupButton label=\"Day\" onClick={() => { view.set('day'); }}/><GroupButton label=\"Week\"/></ButtonGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Buttons joined into one control. Children are Button elements (with all their options) or GroupButton shorthands; a selected child shows as pressed.\n\nProps:\n- `outline`: Outline style for every button.\n- `compact`: Tighter padding for every button.\n- `multiple`: Lets several buttons be selected; onClick then reports every selected index.\n- `vertical`: Stacks the buttons vertically.\n- `variant`: Look applied to every button in the group.\n- `size`: Control size. Defaults to medium.\n- `disabled`: Disables every button.\n- `color`: Custom variant fill: a theme color name (such as magenta) or #rrggbb.\n- `foreground`: Custom variant text color.\n- `hoverColor`: Custom variant hover fill.\n- `activeColor`: Custom variant pressed fill.\n- `onClick`: Receives the selected button indexes after a click, comma-separated (such as 0,2).\n- `children`: Button or GroupButton elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ButtonGroup><GroupButton label=\"Day\" onClick={() => { view.set('day'); }}/><GroupButton label=\"Week\"/></ButtonGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "ButtonGroupProps",
       "signature": "interface ButtonGroupProps",
-      "documentation": "Buttons joined into one control. Children are GroupButton elements.\n\nProps:\n- `outline`: Uses outline buttons.\n- `children`: GroupButton elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ButtonGroup><GroupButton label=\"Day\" onClick={() => { view.set('day'); }}/><GroupButton label=\"Week\"/></ButtonGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Buttons joined into one control. Children are Button elements (with all their options) or GroupButton shorthands; a selected child shows as pressed.\n\nProps:\n- `outline`: Outline style for every button.\n- `compact`: Tighter padding for every button.\n- `multiple`: Lets several buttons be selected; onClick then reports every selected index.\n- `vertical`: Stacks the buttons vertically.\n- `variant`: Look applied to every button in the group.\n- `size`: Control size. Defaults to medium.\n- `disabled`: Disables every button.\n- `color`: Custom variant fill: a theme color name (such as magenta) or #rrggbb.\n- `foreground`: Custom variant text color.\n- `hoverColor`: Custom variant hover fill.\n- `activeColor`: Custom variant pressed fill.\n- `onClick`: Receives the selected button indexes after a click, comma-separated (such as 0,2).\n- `children`: Button or GroupButton elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ButtonGroup><GroupButton label=\"Day\" onClick={() => { view.set('day'); }}/><GroupButton label=\"Week\"/></ButtonGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "GroupButton",
@@ -24602,12 +24624,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "One button in a ButtonGroup.\n\nProps:\n- `label`: Button text.\n- `selected`: Shows the button as selected.\n- `onClick`: Called when the button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<GroupButton label=\"Month\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One button in a ButtonGroup.\n\nProps:\n- `label`: Button text.\n- `icon`: Leading icon.\n- `selected`: Shows the button pressed.\n- `disabled`: Prevents clicking.\n- `onClick`: Called when the button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<GroupButton label=\"Month\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "GroupButtonProps",
       "signature": "interface GroupButtonProps",
-      "documentation": "One button in a ButtonGroup.\n\nProps:\n- `label`: Button text.\n- `selected`: Shows the button as selected.\n- `onClick`: Called when the button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<GroupButton label=\"Month\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One button in a ButtonGroup.\n\nProps:\n- `label`: Button text.\n- `icon`: Leading icon.\n- `selected`: Shows the button pressed.\n- `disabled`: Prevents clicking.\n- `onClick`: Called when the button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<GroupButton label=\"Month\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "InputGroup",

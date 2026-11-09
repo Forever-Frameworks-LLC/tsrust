@@ -89,30 +89,150 @@ A tooltip on hover.
 function TooltipButton(): Node {
   return <Button tooltip="Saves the document">Save</Button>;
 }
+--- Spinner and Progress Icons
+A spinner or a progress circle can take the icon's place.
+function ProgressIcons(): Node {
+  const progress = signal(45.0);
+  return (
+    <View className="flex-row items-center gap-3">
+      <Button spinner={true}>Loading...</Button>
+      <Button progress={progress.get()} onPress={() => { progress.set(progress.get() >= 100.0 ? 0.0 : progress.get() + 15.0); }}>Installing...</Button>
+      <Button variant="primary" icon="save" loading={true}>Saving</Button>
+    </View>
+  );
+}
+--- Rounding
+Corner rounding from none to large.
+function ButtonRounding(): Node {
+  return (
+    <View className="flex-row items-center gap-3">
+      <Button rounded="none">None</Button>
+      <Button rounded="small">Small</Button>
+      <Button>Medium</Button>
+      <Button rounded="large">Large</Button>
+    </View>
+  );
+}
+--- Hover
+onHover reports when the pointer enters and leaves.
+function HoverButton(): Node {
+  const hovered = signal(false);
+  return (
+    <View className="flex-row items-center gap-3">
+      <Button onHover={(on) => { hovered.set(on); }}>Hover me</Button>
+      <Text>{hovered.get() ? 'Hovering' : 'Not hovering'}</Text>
+    </View>
+  );
+}
 --- Button Group
-Buttons joined into one control.
+Buttons joined into one control; group options apply to every button.
 function GroupOfButtons(): Node {
   const last = signal('none');
   return (
     <View className="flex-col gap-3">
-      <ButtonGroup>
-        <GroupButton label="One" onClick={() => { last.set('one'); }} />
-        <GroupButton label="Two" onClick={() => { last.set('two'); }} />
-        <GroupButton label="Three" onClick={() => { last.set('three'); }} />
+      <ButtonGroup variant="primary">
+        <Button onPress={() => { last.set('one'); }}>One</Button>
+        <Button onPress={() => { last.set('two'); }}>Two</Button>
+        <Button icon="ellipsis" onPress={() => { last.set('more'); }} />
       </ButtonGroup>
       <Text>Last clicked: {last}</Text>
     </View>
   );
 }
 --- Toggle Button Group
-Selected buttons mark the active choice.
+With multiple, clicks toggle each button; onClick reports the selected indexes.
 function ToggleButtonGroup(): Node {
-  const choice = signal(0);
+  const selected = signal('0');
   return (
-    <ButtonGroup outline={true}>
-      <GroupButton label="Option 1" selected={choice.get() === 0} onClick={() => { choice.set(0); }} />
-      <GroupButton label="Option 2" selected={choice.get() === 1} onClick={() => { choice.set(1); }} />
-      <GroupButton label="Option 3" selected={choice.get() === 2} onClick={() => { choice.set(2); }} />
+    <View className="flex-col gap-3">
+      <ButtonGroup outline={true} multiple={true} onClick={(indexes) => { selected.set(clone(indexes)); }}>
+        <GroupButton label="Option 1" selected={selected.get().includes('0')} />
+        <GroupButton label="Option 2" selected={selected.get().includes('1')} />
+        <GroupButton label="Option 3" selected={selected.get().includes('2')} />
+      </ButtonGroup>
+      <Text>Selected: {selected}</Text>
+    </View>
+  );
+}
+--- Vertical Group
+Groups can stack vertically and take any size.
+function VerticalGroup(): Node {
+  return (
+    <ButtonGroup vertical={true} size="small" compact={true}>
+      <Button icon="arrow-up">Up</Button>
+      <Button icon="arrow-down">Down</Button>
     </ButtonGroup>
+  );
+}
+--- Custom Variant
+A custom fill, text, hover and pressed color, from theme color names or hex.
+function CustomVariant(): Node {
+  return <Button color="magenta" foreground="primary-foreground" hoverColor="magenta-light" activeColor="magenta">Custom Button</Button>;
+}
+=== Toggle | toggle | Actions
+A button that stays pressed while on. Toggles can be grouped, optionally as one segmented control.
+--- Basic Toggle
+A labelled toggle.
+function BasicToggle(): Node {
+  const on = signal(false);
+  return <Toggle label="Bold" checked={on.get()} onChange={(checked) => { on.set(checked); }} />;
+}
+--- Icon Toggle
+A toggle can show an icon instead of text.
+function IconToggle(): Node {
+  const on = signal(true);
+  return <Toggle icon="eye" tooltip="Show preview" checked={on.get()} onChange={(checked) => { on.set(checked); }} />;
+}
+--- Sizes
+xsmall, small, medium and large.
+function ToggleSizes(): Node {
+  return (
+    <View className="flex-row items-center gap-3">
+      <Toggle label="XS" size="xsmall" />
+      <Toggle label="Small" size="small" />
+      <Toggle label="Medium" />
+      <Toggle label="Large" size="large" />
+    </View>
+  );
+}
+--- Disabled State
+A disabled toggle keeps its state but cannot change.
+function DisabledToggle(): Node {
+  return (
+    <View className="flex-row gap-3">
+      <Toggle label="Off" disabled={true} />
+      <Toggle label="On" checked={true} disabled={true} />
+    </View>
+  );
+}
+--- Toggle Group
+Toggles in a row; each reports its own change.
+function TextFormatting(): Node {
+  const bold = signal(true);
+  const italic = signal(false);
+  const underline = signal(false);
+  return (
+    <ToggleGroup>
+      <Toggle icon="bold" checked={bold.get()} onChange={(on) => { bold.set(on); }} />
+      <Toggle icon="italic" checked={italic.get()} onChange={(on) => { italic.set(on); }} />
+      <Toggle icon="underline" checked={underline.get()} onChange={(on) => { underline.set(on); }} />
+    </ToggleGroup>
+  );
+}
+--- Segmented Group
+A segmented group draws as one control, in any size.
+function SegmentedGroup(): Node {
+  const view = signal(0);
+  return (
+    <View className="flex-row gap-6">
+      <ToggleGroup segmented={true}>
+        <Toggle label="List" checked={view.get() === 0} onChange={(on) => { if (on) { view.set(0); } }} />
+        <Toggle label="Grid" checked={view.get() === 1} onChange={(on) => { if (on) { view.set(1); } }} />
+      </ToggleGroup>
+      <ToggleGroup segmented={true} size="small">
+        <Toggle label="Top" />
+        <Toggle label="Bottom" />
+      </ToggleGroup>
+    </View>
   );
 }

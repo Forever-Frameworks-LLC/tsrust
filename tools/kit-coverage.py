@@ -84,6 +84,9 @@ def inventory():
                 ty, trait = target(header)
                 if not ty:
                     continue
+                # A gpui-component type shadows a gpui-base type of the same name.
+                if source.parent.name.startswith("gpui-base") and any(f.startswith("gpui-component") for f in types.get(ty, {}).get("files", ())):
+                    continue
                 entry = types.setdefault(ty, {"methods": [], "traits": set(), "files": set()})
                 entry["files"].add(str(path.relative_to(source.parent.parent)))
                 if trait:

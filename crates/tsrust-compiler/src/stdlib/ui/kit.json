@@ -517,17 +517,47 @@
     },
     {
       "name": "Toggle",
-      "doc": "A pressed/unpressed button. Pair checked with onChange to control it.",
+      "doc": "A button that stays pressed while on. Use a label, an icon or both.",
       "props": [
         {
           "name": "label",
           "type": "string",
-          "doc": "Button text."
+          "doc": "Text."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon."
         },
         {
           "name": "checked",
           "type": "boolean",
-          "doc": "Whether the toggle is pressed."
+          "doc": "Pressed (on) state."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Prevents toggling."
+        },
+        {
+          "name": "tooltip",
+          "type": "string",
+          "doc": "Tooltip shown on hover."
+        },
+        {
+          "name": "tooltipDelay",
+          "type": "int",
+          "doc": "Milliseconds before the tooltip appears."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Control size. Defaults to medium."
         }
       ],
       "events": [
@@ -535,7 +565,7 @@
           "prop": "onChange",
           "value": "boolean",
           "param": "checked",
-          "doc": "Receives the requested state after a click."
+          "doc": "Receives the new pressed state."
         }
       ],
       "example": "<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>"
@@ -1740,7 +1770,22 @@
         {
           "name": "segmented",
           "type": "boolean",
-          "doc": "Draws the group as one segmented control."
+          "doc": "Draws the toggles as one segmented control."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Control size. Defaults to medium."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables every toggle."
         }
       ],
       "example": "<ToggleGroup><Toggle label=\"B\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/><Toggle label=\"I\"/></ToggleGroup>",
@@ -1748,16 +1793,90 @@
     },
     {
       "name": "ButtonGroup",
-      "doc": "Buttons joined into one control. Children are GroupButton elements.",
+      "doc": "Buttons joined into one control. Children are Button elements (with all their options) or GroupButton shorthands; a selected child shows as pressed.",
       "props": [
         {
           "name": "outline",
           "type": "boolean",
-          "doc": "Uses outline buttons."
+          "doc": "Outline style for every button."
+        },
+        {
+          "name": "compact",
+          "type": "boolean",
+          "doc": "Tighter padding for every button."
+        },
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "doc": "Lets several buttons be selected; onClick then reports every selected index."
+        },
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "Stacks the buttons vertically."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "default",
+            "primary",
+            "secondary",
+            "danger",
+            "warning",
+            "success",
+            "info",
+            "ghost",
+            "link",
+            "text"
+          ],
+          "doc": "Look applied to every button in the group."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Control size. Defaults to medium."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables every button."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Custom variant fill: a theme color name (such as magenta) or #rrggbb."
+        },
+        {
+          "name": "foreground",
+          "type": "string",
+          "doc": "Custom variant text color."
+        },
+        {
+          "name": "hoverColor",
+          "type": "string",
+          "doc": "Custom variant hover fill."
+        },
+        {
+          "name": "activeColor",
+          "type": "string",
+          "doc": "Custom variant pressed fill."
         }
       ],
       "example": "<ButtonGroup><GroupButton label=\"Day\" onClick={() => { view.set('day'); }}/><GroupButton label=\"Week\"/></ButtonGroup>",
-      "children": "GroupButton"
+      "children": "Button or GroupButton",
+      "events": [
+        {
+          "prop": "onClick",
+          "value": "string",
+          "param": "selected",
+          "doc": "Receives the selected button indexes after a click, comma-separated (such as 0,2)."
+        }
+      ]
     },
     {
       "name": "GroupButton",
@@ -1769,9 +1888,19 @@
           "doc": "Button text."
         },
         {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Leading icon."
+        },
+        {
           "name": "selected",
           "type": "boolean",
-          "doc": "Shows the button as selected."
+          "doc": "Shows the button pressed."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Prevents clicking."
         }
       ],
       "example": "<GroupButton label=\"Month\"/>",
@@ -2312,114 +2441,6 @@
       "example": "<PlotBars values={[5, 7, 6]} color=\"primary\"/>"
     }
   ],
-  "icons": [
-    "a-large-small",
-    "arrow-down",
-    "arrow-left",
-    "arrow-right",
-    "arrow-up",
-    "asterisk",
-    "ban",
-    "battery-charging",
-    "battery-full",
-    "battery-low",
-    "battery-medium",
-    "battery-warning",
-    "battery",
-    "bell",
-    "book-open",
-    "bot",
-    "building-2",
-    "calendar",
-    "case-sensitive",
-    "chart-pie",
-    "check",
-    "chevron-down",
-    "chevron-left",
-    "chevron-right",
-    "chevron-up",
-    "chevrons-up-down",
-    "circle-alert",
-    "circle-check",
-    "circle-user",
-    "circle-x",
-    "close",
-    "copy",
-    "cpu",
-    "dash",
-    "delete",
-    "ellipsis-vertical",
-    "ellipsis",
-    "external-link",
-    "eye-off",
-    "eye",
-    "file-text",
-    "file",
-    "folder-closed",
-    "folder-open",
-    "folder",
-    "frame",
-    "gallery-vertical-end",
-    "github",
-    "globe",
-    "hard-drive",
-    "heart-off",
-    "heart",
-    "inbox",
-    "info",
-    "inspector",
-    "layout-dashboard",
-    "loader-circle",
-    "loader",
-    "map",
-    "maximize",
-    "memory-stick",
-    "menu",
-    "mic",
-    "minimize",
-    "minus",
-    "moon",
-    "network",
-    "palette",
-    "panel-bottom-open",
-    "panel-bottom",
-    "panel-left-close",
-    "panel-left-open",
-    "panel-left",
-    "panel-right-close",
-    "panel-right-open",
-    "panel-right",
-    "pause",
-    "play",
-    "plus",
-    "redo-2",
-    "redo",
-    "refresh-cw",
-    "replace",
-    "resize-corner",
-    "rotate-cw",
-    "search",
-    "settings-2",
-    "settings",
-    "sort-ascending",
-    "sort-descending",
-    "square-terminal",
-    "square",
-    "star-fill",
-    "star-off",
-    "star",
-    "sun",
-    "thumbs-down",
-    "thumbs-up",
-    "triangle-alert",
-    "undo-2",
-    "undo",
-    "user",
-    "window-close",
-    "window-maximize",
-    "window-minimize",
-    "window-restore"
-  ],
   "kitTypes": [
     "Accordion",
     "AccordionItem",
@@ -2606,5 +2627,102 @@
     "WindowBorder",
     "WindowControls"
   ],
-  "covers": {}
+  "covers": {
+    "Button": {
+      "new": "Button",
+      "role": "role",
+      "outline": "outline",
+      "rounded": "rounded",
+      "label": "children",
+      "accessibility_id": "id",
+      "accessibility_label": "aria-label",
+      "icon": "icon, spinner, progress",
+      "tooltip": "tooltip",
+      "tooltip_placement": "tooltipPlacement",
+      "tooltip_show_delay": "tooltipDelay",
+      "loading": "loading",
+      "compact": "compact",
+      "on_click": "onPress",
+      "on_hover": "onHover",
+      "loading_icon": "loadingIcon",
+      "track_focus": "n/a: the renderer owns focus handles",
+      "tab_index": "tabIndex",
+      "tab_stop": "tabStop",
+      "dropdown_caret": "caret",
+      "toggled": "toggled",
+      "disabled": "disabled",
+      "selected": "selected",
+      "styles": "className",
+      "focusable": "tabStop",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "primary": "variant",
+      "secondary": "variant",
+      "danger": "variant",
+      "warning": "variant",
+      "success": "variant",
+      "info": "variant",
+      "ghost": "variant",
+      "link": "variant",
+      "text": "variant",
+      "custom": "color, foreground, hoverColor, activeColor"
+    },
+    "ButtonGroup": {
+      "new": "ButtonGroup",
+      "child": "children (Button or GroupButton)",
+      "children": "children (Button or GroupButton)",
+      "multiple": "multiple",
+      "layout": "vertical",
+      "compact": "compact",
+      "outline": "outline",
+      "on_click": "onClick",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "disabled": "disabled",
+      "primary": "variant",
+      "secondary": "variant",
+      "danger": "variant",
+      "warning": "variant",
+      "success": "variant",
+      "info": "variant",
+      "ghost": "variant",
+      "link": "variant",
+      "text": "variant",
+      "custom": "color, foreground, hoverColor, activeColor"
+    },
+    "Toggle": {
+      "new": "Toggle",
+      "tooltip": "tooltip",
+      "tooltip_show_delay": "tooltipDelay",
+      "label": "label",
+      "icon": "icon",
+      "checked": "checked",
+      "on_click": "onChange",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "disabled": "disabled"
+    },
+    "ToggleGroup": {
+      "new": "ToggleGroup",
+      "child": "children (Toggle)",
+      "children": "children (Toggle)",
+      "on_click": "onChange on each Toggle",
+      "segmented": "segmented",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "disabled": "disabled"
+    }
+  }
 }

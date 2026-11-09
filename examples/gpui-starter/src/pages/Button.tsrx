@@ -82,14 +82,46 @@ function TooltipButton(): Node {
   return <Button tooltip="Saves the document">Save</Button>;
 }
 
+function ProgressIcons(): Node {
+  const progress = signal(45.0);
+  return (
+    <View className="flex-row items-center gap-3">
+      <Button spinner={true}>Loading...</Button>
+      <Button progress={progress.get()} onPress={() => { progress.set(progress.get() >= 100.0 ? 0.0 : progress.get() + 15.0); }}>Installing...</Button>
+      <Button variant="primary" icon="save" loading={true}>Saving</Button>
+    </View>
+  );
+}
+
+function ButtonRounding(): Node {
+  return (
+    <View className="flex-row items-center gap-3">
+      <Button rounded="none">None</Button>
+      <Button rounded="small">Small</Button>
+      <Button>Medium</Button>
+      <Button rounded="large">Large</Button>
+    </View>
+  );
+}
+
+function HoverButton(): Node {
+  const hovered = signal(false);
+  return (
+    <View className="flex-row items-center gap-3">
+      <Button onHover={(on) => { hovered.set(on); }}>Hover me</Button>
+      <Text>{hovered.get() ? 'Hovering' : 'Not hovering'}</Text>
+    </View>
+  );
+}
+
 function GroupOfButtons(): Node {
   const last = signal('none');
   return (
     <View className="flex-col gap-3">
-      <ButtonGroup>
-        <GroupButton label="One" onClick={() => { last.set('one'); }} />
-        <GroupButton label="Two" onClick={() => { last.set('two'); }} />
-        <GroupButton label="Three" onClick={() => { last.set('three'); }} />
+      <ButtonGroup variant="primary">
+        <Button onPress={() => { last.set('one'); }}>One</Button>
+        <Button onPress={() => { last.set('two'); }}>Two</Button>
+        <Button icon="ellipsis" onPress={() => { last.set('more'); }} />
       </ButtonGroup>
       <Text>Last clicked: {last}</Text>
     </View>
@@ -97,20 +129,36 @@ function GroupOfButtons(): Node {
 }
 
 function ToggleButtonGroup(): Node {
-  const choice = signal(0);
+  const selected = signal('0');
   return (
-    <ButtonGroup outline={true}>
-      <GroupButton label="Option 1" selected={choice.get() === 0} onClick={() => { choice.set(0); }} />
-      <GroupButton label="Option 2" selected={choice.get() === 1} onClick={() => { choice.set(1); }} />
-      <GroupButton label="Option 3" selected={choice.get() === 2} onClick={() => { choice.set(2); }} />
+    <View className="flex-col gap-3">
+      <ButtonGroup outline={true} multiple={true} onClick={(indexes) => { selected.set(clone(indexes)); }}>
+        <GroupButton label="Option 1" selected={selected.get().includes('0')} />
+        <GroupButton label="Option 2" selected={selected.get().includes('1')} />
+        <GroupButton label="Option 3" selected={selected.get().includes('2')} />
+      </ButtonGroup>
+      <Text>Selected: {selected}</Text>
+    </View>
+  );
+}
+
+function VerticalGroup(): Node {
+  return (
+    <ButtonGroup vertical={true} size="small" compact={true}>
+      <Button icon="arrow-up">Up</Button>
+      <Button icon="arrow-down">Down</Button>
     </ButtonGroup>
   );
+}
+
+function CustomVariant(): Node {
+  return <Button color="magenta" foreground="primary-foreground" hoverColor="magenta-light" activeColor="magenta">Custom Button</Button>;
 }
 
 export function ButtonPage(): Node {
   return (
     <View className="flex-col gap-10">
-      <PageHeader title="Button" summary="A button with variants, sizes, icons and states. Buttons can be grouped, and a group can act as a toggle." slug="button" />
+      <PageHeader summary="A button with variants, sizes, icons and states. Buttons can be grouped, and a group can act as a toggle." slug="button" />
       <Example title="Basic Button" description="A labelled button that runs a handler when clicked." code="function BasicButton(): Node {\n  const clicks = signal(0);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Button variant=\"primary\" onPress={() => { clicks.set(clicks.get() + 1); }}>Click me</Button>\n      <Text>Clicked {clicks} times</Text>\n    </View>\n  );\n}"><BasicButton /></Example>
       <Example title="Variants" description="Without a variant a button uses GPUI Kit's neutral default style." code="function ButtonVariants(): Node {\n  return (\n    <View className=\"flex-row flex-wrap gap-3\">\n      <Button variant=\"primary\">Primary</Button>\n      <Button>Default</Button>\n      <Button variant=\"secondary\">Secondary</Button>\n      <Button variant=\"danger\">Delete</Button>\n      <Button variant=\"warning\">Warning</Button>\n      <Button variant=\"success\">Success</Button>\n      <Button variant=\"info\">Info</Button>\n      <Button variant=\"ghost\">Ghost</Button>\n      <Button variant=\"link\">Link</Button>\n      <Button variant=\"text\">Text</Button>\n    </View>\n  );\n}"><ButtonVariants /></Example>
       <Example title="Outline Buttons" description="Outline combines with any variant." code="function OutlineButtons(): Node {\n  return (\n    <View className=\"flex-row gap-3\">\n      <Button variant=\"primary\" outline={true}>Primary Outline</Button>\n      <Button variant=\"danger\" outline={true}>Danger Outline</Button>\n    </View>\n  );\n}"><OutlineButtons /></Example>
@@ -120,8 +168,13 @@ export function ButtonPage(): Node {
       <Example title="With a dropdown caret icon" description="A caret after the label marks a button that opens a menu." code="function CaretButton(): Node {\n  return <Button caret={true}>Options</Button>;\n}"><CaretButton /></Example>
       <Example title="Button States" description="Disabled, loading and selected. Loading shows a spinner and blocks clicks." code="function ButtonStates(): Node {\n  const saving = signal(false);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Button disabled={true}>Disabled</Button>\n      <Button loading={saving.get()} onPress={() => { saving.set(!saving.get()); }}>Toggle loading</Button>\n      <Button selected={true}>Selected</Button>\n    </View>\n  );\n}"><ButtonStates /></Example>
       <Example title="With Tooltip" description="A tooltip on hover." code="function TooltipButton(): Node {\n  return <Button tooltip=\"Saves the document\">Save</Button>;\n}"><TooltipButton /></Example>
-      <Example title="Button Group" description="Buttons joined into one control." code="function GroupOfButtons(): Node {\n  const last = signal('none');\n  return (\n    <View className=\"flex-col gap-3\">\n      <ButtonGroup>\n        <GroupButton label=\"One\" onClick={() => { last.set('one'); }} />\n        <GroupButton label=\"Two\" onClick={() => { last.set('two'); }} />\n        <GroupButton label=\"Three\" onClick={() => { last.set('three'); }} />\n      </ButtonGroup>\n      <Text>Last clicked: {last}</Text>\n    </View>\n  );\n}"><GroupOfButtons /></Example>
-      <Example title="Toggle Button Group" description="Selected buttons mark the active choice." code="function ToggleButtonGroup(): Node {\n  const choice = signal(0);\n  return (\n    <ButtonGroup outline={true}>\n      <GroupButton label=\"Option 1\" selected={choice.get() === 0} onClick={() => { choice.set(0); }} />\n      <GroupButton label=\"Option 2\" selected={choice.get() === 1} onClick={() => { choice.set(1); }} />\n      <GroupButton label=\"Option 3\" selected={choice.get() === 2} onClick={() => { choice.set(2); }} />\n    </ButtonGroup>\n  );\n}"><ToggleButtonGroup /></Example>
+      <Example title="Spinner and Progress Icons" description="A spinner or a progress circle can take the icon's place." code="function ProgressIcons(): Node {\n  const progress = signal(45.0);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Button spinner={true}>Loading...</Button>\n      <Button progress={progress.get()} onPress={() => { progress.set(progress.get() >= 100.0 ? 0.0 : progress.get() + 15.0); }}>Installing...</Button>\n      <Button variant=\"primary\" icon=\"save\" loading={true}>Saving</Button>\n    </View>\n  );\n}"><ProgressIcons /></Example>
+      <Example title="Rounding" description="Corner rounding from none to large." code="function ButtonRounding(): Node {\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Button rounded=\"none\">None</Button>\n      <Button rounded=\"small\">Small</Button>\n      <Button>Medium</Button>\n      <Button rounded=\"large\">Large</Button>\n    </View>\n  );\n}"><ButtonRounding /></Example>
+      <Example title="Hover" description="onHover reports when the pointer enters and leaves." code="function HoverButton(): Node {\n  const hovered = signal(false);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Button onHover={(on) => { hovered.set(on); }}>Hover me</Button>\n      <Text>{hovered.get() ? 'Hovering' : 'Not hovering'}</Text>\n    </View>\n  );\n}"><HoverButton /></Example>
+      <Example title="Button Group" description="Buttons joined into one control; group options apply to every button." code="function GroupOfButtons(): Node {\n  const last = signal('none');\n  return (\n    <View className=\"flex-col gap-3\">\n      <ButtonGroup variant=\"primary\">\n        <Button onPress={() => { last.set('one'); }}>One</Button>\n        <Button onPress={() => { last.set('two'); }}>Two</Button>\n        <Button icon=\"ellipsis\" onPress={() => { last.set('more'); }} />\n      </ButtonGroup>\n      <Text>Last clicked: {last}</Text>\n    </View>\n  );\n}"><GroupOfButtons /></Example>
+      <Example title="Toggle Button Group" description="With multiple, clicks toggle each button; onClick reports the selected indexes." code="function ToggleButtonGroup(): Node {\n  const selected = signal('0');\n  return (\n    <View className=\"flex-col gap-3\">\n      <ButtonGroup outline={true} multiple={true} onClick={(indexes) => { selected.set(clone(indexes)); }}>\n        <GroupButton label=\"Option 1\" selected={selected.get().includes('0')} />\n        <GroupButton label=\"Option 2\" selected={selected.get().includes('1')} />\n        <GroupButton label=\"Option 3\" selected={selected.get().includes('2')} />\n      </ButtonGroup>\n      <Text>Selected: {selected}</Text>\n    </View>\n  );\n}"><ToggleButtonGroup /></Example>
+      <Example title="Vertical Group" description="Groups can stack vertically and take any size." code="function VerticalGroup(): Node {\n  return (\n    <ButtonGroup vertical={true} size=\"small\" compact={true}>\n      <Button icon=\"arrow-up\">Up</Button>\n      <Button icon=\"arrow-down\">Down</Button>\n    </ButtonGroup>\n  );\n}"><VerticalGroup /></Example>
+      <Example title="Custom Variant" description="A custom fill, text, hover and pressed color, from theme color names or hex." code="function CustomVariant(): Node {\n  return <Button color=\"magenta\" foreground=\"primary-foreground\" hoverColor=\"magenta-light\" activeColor=\"magenta\">Custom Button</Button>;\n}"><CustomVariant /></Example>
     </View>
   );
 }
