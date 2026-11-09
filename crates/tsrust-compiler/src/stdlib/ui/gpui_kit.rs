@@ -37,7 +37,13 @@ use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::stepper::{Stepper, StepperItem};
 use gpui_kit::component::switch::Switch;
 use gpui_kit::component::tab::{Tab, TabBar};
-use gpui_kit::component::table::{Table, TableBody, TableCell, TableHead, TableHeader, TableRow};
+use gpui_kit::component::table::{Column, ColumnSort, DataTable, Table, TableBody, TableCell, TableDelegate, TableEvent, TableHead, TableHeader, TableRow, TableState};
+use gpui_kit::component::attachment::{Attachment, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentStatus, AttachmentTitle};
+use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState};
+use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupInput, InputGroupText};
+use gpui_kit::component::marker::{Marker, MarkerContent, MarkerIcon, MarkerVariant};
+use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
+use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings};
 use gpui_kit::component::tag::Tag;
 use gpui_kit::component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
 use gpui_kit::component::tooltip::Tooltip;
@@ -81,6 +87,44 @@ enum KitState {
     Editor(Entity<EditorState>),
     Tree(Entity<TreeState>, String),
     List(VirtualListScrollHandle),
+    Field(Entity<InputState>),
+    Diff(Entity<DiffState>, String),
+    Table(Entity<TableState<Grid>>, String),
+    Scroller(Entity<MessageScrollerState>, usize),
+}
+
+/// DataTable rows: text cells shown in `order`, which sorting rearranges.
+struct Grid {columns: Vec<SharedString>, rows: Vec<Vec<SharedString>>, order: Vec<usize>, sortable: bool}
+
+impl Grid {
+    fn new(columns: &str, rows: &str, sortable: bool) -> Self {
+        let columns = columns.split('\n').filter(|column| !column.is_empty()).map(|column| SharedString::from(column.to_owned())).collect();
+        let rows = serde_json::from_str::<Vec<Vec<String>>>(rows).unwrap_or_default().into_iter().map(|row| row.into_iter().map(SharedString::from).collect()).collect::<Vec<Vec<_>>>();
+        Self {order: (0..rows.len()).collect(), columns, rows, sortable}
+    }
+    fn cell(&self, row: usize, column: usize) -> SharedString {self.order.get(row).and_then(|row| self.rows[*row].get(column)).cloned().unwrap_or_default()}
+}
+
+impl TableDelegate for Grid {
+    fn columns_count(&self, _: &App) -> usize {self.columns.len()}
+    fn rows_count(&self, _: &App) -> usize {self.rows.len()}
+    fn column(&self, column: usize, _: &App) -> Column {
+        let entry = Column::new(SharedString::from(format!("column-{column}")), self.columns[column].clone());
+        if self.sortable {entry.sortable()} else {entry}
+    }
+    fn perform_sort(&mut self, column: usize, sort: ColumnSort, _: &mut Window, _: &mut Context<TableState<Self>>) {
+        self.order = (0..self.rows.len()).collect();
+        if matches!(sort, ColumnSort::Default) {return;}
+        let rows = &self.rows;
+        // Numbers compare numerically; anything else compares as text.
+        self.order.sort_by(|left, right| {
+            let (left, right) = (rows[*left].get(column).map(|cell| cell.as_ref()).unwrap_or(""), rows[*right].get(column).map(|cell| cell.as_ref()).unwrap_or(""));
+            match (left.trim().parse::<f64>(), right.trim().parse::<f64>()) {(Ok(left), Ok(right)) => left.total_cmp(&right), _ => left.cmp(right)}
+        });
+        if matches!(sort, ColumnSort::Descending) {self.order.reverse();}
+    }
+    fn render_td(&mut self, row: usize, column: usize, _: &mut Window, _: &mut Context<TableState<Self>>) -> impl IntoElement {self.cell(row, column)}
+    fn cell_label(&self, row: usize, column: usize, _: &App) -> Option<SharedString> {Some(self.cell(row, column))}
 }
 
 /// A popover trigger wrapping arbitrary content; Kit triggers must be selectable.
@@ -142,12 +186,47 @@ impl Root {
         match find(&self.node, id) {Some(node) => self.content(node, cx), None => Vec::new()}
     }
 
+    /// The element for one visible child of a node, for row renderers built later.
+    fn child_of(&self, id: u64, index: usize, cx: &mut Context<Self>) -> AnyElement {
+        let theme = Theme::default();
+        match find(&self.node, id).and_then(|node| node.visible_children().nth(index)) {Some(child) => self.element(child, &theme, "light", cx), None => div().into_any_element()}
+    }
+
+    fn attachment(&self, node: &Node, kit: &Kit, cx: &mut Context<Self>) -> Attachment {
+        let id = node.identity.get();
+        let status = match kit.prop("status") {
+            Some("pending") => AttachmentStatus::Pending,
+            Some("uploading") => AttachmentStatus::Uploading,
+            Some("processing") => AttachmentStatus::Processing,
+            Some("failed") => AttachmentStatus::Failed,
+            _ => AttachmentStatus::Complete,
+        };
+        let image = kit.text("image");
+        let media = if image.is_empty() {
+            AttachmentMedia::new().child(Icon::new(icon_name(&kit.text("icon")).unwrap_or(IconName::File)))
+        } else {
+            AttachmentMedia::new().src(std::path::PathBuf::from(image))
+        };
+        let mut content = AttachmentContent::new().title(AttachmentTitle::new(kit.text("title")));
+        if !kit.text("description").is_empty() {content = content.description(AttachmentDescription::new(kit.text("description")));}
+        let mut attachment = Attachment::new().id(ElementId::Integer(id)).status(status).media(media).content(content);
+        if let Some(progress) = kit.number("progress") {attachment = attachment.progress(progress as f32);}
+        let root = cx.entity().downgrade();
+        for (event, handled) in [("click", kit.handles("click")), ("remove", kit.handles("remove")), ("retry", kit.handles("retry"))] {
+            if !handled {continue;}
+            let root = root.clone();
+            let handler = move |_: &ClickEvent, _: &mut Window, cx: &mut App| {let _ = root.update(cx, |root, cx| root.emit(id, event, String::new(), cx));};
+            attachment = match event {"click" => attachment.on_click(handler), "remove" => attachment.on_remove(handler), _ => attachment.on_retry(handler)};
+        }
+        attachment
+    }
+
     /// Create Kit state entities for stateful components, push changed props
     /// into them, and open or close dialogs and sheets to match their props.
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "InputGroup" | "Diff" | "DataTable" | "MessageScroller") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -199,6 +278,35 @@ impl Root {
                             let items = find(&self.node, id).map(tree_items).unwrap_or_default();
                             state.update(cx, |state, cx| state.set_items(items, cx));
                             if let Some(KitState::Tree(_, shape)) = self.states.get_mut(&id) {*shape = current;}
+                        }
+                    }
+                    KitState::Field(state) => {
+                        let value = text("value");
+                        if props.contains_key("value") && state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));}
+                    }
+                    KitState::Diff(state, patch) => {
+                        let mode = if text("mode") == "split" {DiffMode::Split} else {DiffMode::Unified};
+                        if *patch != text("patch") {
+                            let files = DiffFile::parse(&text("patch")).unwrap_or_default();
+                            state.update(cx, |state, cx| state.set_files(files, cx));
+                            if let Some(KitState::Diff(_, patch)) = self.states.get_mut(&id) {*patch = text("patch");}
+                        }
+                        if let Some(KitState::Diff(state, _)) = self.states.get(&id) && state.read(cx).mode() != mode {state.update(cx, |state, cx| state.set_mode(mode, cx));}
+                    }
+                    KitState::Table(state, shape) => {
+                        let current = format!("{}\u{1}{}\u{1}{}", text("columns"), text("rows"), text("sortable"));
+                        if *shape != current {
+                            let grid = Grid::new(&text("columns"), &text("rows"), text("sortable") == "true");
+                            state.update(cx, |state, cx| {*state.delegate_mut() = grid; state.refresh(cx);});
+                            if let Some(KitState::Table(_, shape)) = self.states.get_mut(&id) {*shape = current;}
+                        }
+                    }
+                    KitState::Scroller(state, count) => {
+                        let current = find(&self.node, id).map(|node| node.visible_children().count()).unwrap_or(0);
+                        if *count != current {
+                            let previous = *count;
+                            state.update(cx, |state, cx| if current > previous {state.append(current - previous, cx);} else {state.reset(current, cx);});
+                            if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
                         }
                     }
                     KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
@@ -323,6 +431,37 @@ impl Root {
                     }).detach();
                     KitState::Editor(state)
                 }
+                "InputGroup" => {
+                    let (placeholder, value) = (text("placeholder"), text("value"));
+                    let state = cx.new(|cx| {
+                        let mut state = InputState::new(window, cx).placeholder(placeholder);
+                        state.set_value(value, window, cx);
+                        state
+                    });
+                    cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
+                        if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); this.emit(id, "change", value, cx);}
+                    }).detach();
+                    KitState::Field(state)
+                }
+                "Diff" => {
+                    let files = DiffFile::parse(&text("patch")).unwrap_or_default();
+                    let mode = if text("mode") == "split" {DiffMode::Split} else {DiffMode::Unified};
+                    let state = cx.new(|cx| {let mut state = DiffState::new(files, cx); state.set_mode(mode, cx); state});
+                    KitState::Diff(state, text("patch"))
+                }
+                "DataTable" => {
+                    let sortable = text("sortable") == "true";
+                    let grid = Grid::new(&text("columns"), &text("rows"), sortable);
+                    let state = cx.new(|cx| TableState::new(grid, window, cx).sortable(sortable).row_selectable(true));
+                    cx.subscribe_in(&state, window, move |this, state, event: &TableEvent, _, cx| {
+                        if let TableEvent::SelectRow(row) = event && let Some(index) = state.read(cx).delegate().order.get(*row).copied() {this.emit(id, "select", index.to_string(), cx);}
+                    }).detach();
+                    KitState::Table(state, format!("{}\u{1}{}\u{1}{}", text("columns"), text("rows"), text("sortable")))
+                }
+                "MessageScroller" => {
+                    let count = find(&self.node, id).map(|node| node.visible_children().count()).unwrap_or(0);
+                    KitState::Scroller(cx.new(|cx| MessageScrollerState::new(count, cx)), count)
+                }
                 "Tree" => {
                     let items = find(&self.node, id).map(tree_items).unwrap_or_default();
                     let state = cx.new(|cx| TreeState::new(cx).items(items));
@@ -417,6 +556,7 @@ impl Root {
                         "close" => window.remove_window(),
                         "quit" => cx.quit(),
                         "open-url" => cx.open_url(&text("url")),
+                        "relaunch" => match super::update::relaunch() {Ok(()) => cx.quit(), Err(error) => window.push_notification(Notification::error(error), cx)},
                         _ => cx.write_to_clipboard(ClipboardItem::new_string(text("text"))),
                     }
                 }
@@ -427,6 +567,15 @@ impl Root {
                         let text = cx.read_from_clipboard().and_then(|item| item.text()).unwrap_or_default();
                         let result = reply(&text);
                         self.settle(result.map(|_| true), cx);
+                        continue;
+                    }
+                    if name == "check-update" || name == "install-update" {
+                        // Network and file work runs off the UI thread; the reply lands like a dialog's.
+                        let work = cx.background_executor().spawn(async move {if name == "check-update" {super::update::check()} else {super::update::install()}});
+                        cx.spawn(async move |this, cx| {
+                            let outcome = work.await;
+                            let _ = this.update(cx, |root, cx| {let result = reply(&outcome); root.settle(result.map(|_| true), cx);});
+                        }).detach();
                         continue;
                     }
                     let receiver = if name == "pick-files" {
@@ -445,7 +594,7 @@ impl Root {
                     }).detach();
                 }
                 Command::Window {mut node, title, options} => {
-                    let result = node.refresh().and_then(|_| {node.ensure_identities(); Options::parse(&options)}).and_then(|options| open(node, title, options, self.failure.clone(), cx));
+                    let result = node.refresh().and_then(|_| {node.ensure_identities(); Options::parse(&options)}).and_then(|options| open(*node, title, options, self.failure.clone(), cx));
                     if let Err(error) = result {*self.failure.borrow_mut() = Some(error); cx.quit();}
                 }
             }
@@ -878,6 +1027,84 @@ impl Root {
                     for index in clicked {if let Some(target) = targets.get(*index) {this.emit(*target, "click", String::new(), cx);}}
                 })).into_any_element()
             }
+            "InputGroup" => match self.states.get(&id) {
+                Some(KitState::Field(state)) => {
+                    let mut group = InputGroup::new(element_id).input(InputGroupInput::new(state)).disabled(kit.flag("disabled"));
+                    let (icon, prefix, suffix, button) = (icon_name(&kit.text("icon")), kit.text("prefix"), kit.text("suffix"), kit.text("buttonLabel"));
+                    if icon.is_some() || !prefix.is_empty() {
+                        let mut start = InputGroupAddon::new(ElementId::Name(format!("{id}-start").into()));
+                        if let Some(icon) = icon {start = start.child(Icon::new(icon));}
+                        if !prefix.is_empty() {start = start.child(InputGroupText::new().child(prefix));}
+                        group = group.addon(start);
+                    }
+                    if !suffix.is_empty() || !button.is_empty() {
+                        let mut end = InputGroupAddon::new(ElementId::Name(format!("{id}-end").into())).align(InputGroupAddonAlignment::InlineEnd);
+                        if !suffix.is_empty() {end = end.child(InputGroupText::new().child(suffix));}
+                        if !button.is_empty() {
+                            let root = root.clone();
+                            end = end.child(InputGroupButton::new(ElementId::Name(format!("{id}-button").into())).label(button).on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "button", String::new(), cx));}));
+                        }
+                        group = group.addon(end);
+                    }
+                    group.into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
+            "Diff" => match self.states.get(&id) {
+                Some(KitState::Diff(state, _)) => Diff::new(state).size_full().into_any_element(),
+                _ => div().into_any_element(),
+            },
+            "Marker" => {
+                let variant = match kit.prop("variant") {Some("separator") => MarkerVariant::Separator, Some("border") => MarkerVariant::Border, _ => MarkerVariant::Plain};
+                let mut marker = Marker::new().with_variant(variant).loading(kit.flag("loading"));
+                if let Some(icon) = icon_name(&kit.text("icon")) {marker = marker.icon(MarkerIcon::new().child(Icon::new(icon)));}
+                if !kit.text("text").is_empty() {marker = marker.content(MarkerContent::new().text(text("text")));}
+                marker.children(self.content(node, cx)).into_any_element()
+            }
+            "Attachment" => self.attachment(node, kit, cx).into_any_element(),
+            "AttachmentGroup" => {
+                let attachments = items(node, "Attachment").map(|(child, item)| self.attachment(child, item, cx)).collect::<Vec<_>>();
+                AttachmentGroup::new(element_id).children(attachments).into_any_element()
+            }
+            "DataTable" => match self.states.get(&id) {
+                Some(KitState::Table(state, _)) => DataTable::new(state).into_any_element(),
+                _ => div().into_any_element(),
+            },
+            "Settings" => {
+                let mut pages = Vec::new();
+                for (page_node, page) in items(node, "SettingsPage") {
+                    let mut entry = SettingPage::new(page.text("title"));
+                    if !page.text("description").is_empty() {entry = entry.description(page.text("description"));}
+                    for (group_node, group) in items(page_node, "SettingsGroup") {
+                        let mut set = SettingGroup::new().title(group.text("title"));
+                        if !group.text("description").is_empty() {set = set.description(group.text("description"));}
+                        for (item_node, item) in items(group_node, "SettingItem") {
+                            // The control renders later, inside Settings, through the root.
+                            let (child, root) = (item_node.identity.get(), root.clone());
+                            let field = SettingField::<SharedString>::render(move |_: &RenderOptions, _: &mut Window, cx: &mut App| {
+                                root.update(cx, |root, cx| div().flex().items_center().children(root.content_of(child, cx))).unwrap_or_else(|_| div())
+                            });
+                            let mut row = SettingItem::new(item.text("title"), field);
+                            if !item.text("description").is_empty() {row = row.description(item.text("description"));}
+                            set = set.item(row);
+                        }
+                        entry = entry.group(set);
+                    }
+                    pages.push(entry);
+                }
+                Settings::new(element_id).pages(pages).into_any_element()
+            }
+            "MessageScroller" => match self.states.get(&id) {
+                Some(KitState::Scroller(state, _)) => {
+                    let root = root.clone();
+                    let mut scroller = MessageScroller::new(element_id, state.clone(), move |index, _, cx| {
+                        root.update(cx, |root, cx| root.child_of(id, index, cx)).unwrap_or_else(|_| div().into_any_element())
+                    }).size_full();
+                    if !kit.text("jumpLabel").is_empty() {scroller = scroller.with_jump_button_label(kit.text("jumpLabel"));}
+                    scroller.into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
             // Item and slot components render through their container.
             name => div().child(SharedString::from(format!("{name} must be placed inside its container component"))).into_any_element(),
         }

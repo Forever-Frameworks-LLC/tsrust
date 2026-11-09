@@ -6,6 +6,32 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### GPUI services, packaging, updates and starter — 2026-11-09
+
+Branch `codex/gpui-ui`. Since the catalog pass: application services (notify,
+window control, clipboard, file dialogs, extra windows, appearance, theme),
+Icon/Animate, font utilities, i18n (`t`/`tWith`/`translate`/`translateWith`,
+JSON catalogs, plurals, live locale switching, Kit strings follow), catalog
+batch 2 (Markdown … ButtonGroup) and batch 3 (InputGroup, Diff, Marker,
+Attachment/AttachmentGroup, DataTable, Settings pages/groups/items,
+MessageScroller): 102 generated components. Kit 0.9.0 has no GridLayout (docs
+are ahead of the pinned crate). Not wrapped: Dock (Panel trait per view), Plot
+(closure drawing API; Chart covers data plots), Questionnaire, Speech (needs the
+`speech` feature and cpal), and code highlighting (syntect/tree-sitter features).
+`tsrust package` (cli/app_package_cli.rs) builds release, writes the `.app`
+(icon, Info.plist, app.json), optional codesign/notarytool/stapler, zip and DMG on
+macOS, zip on Windows, tar.gz and .deb on Linux, plus SHA256SUMS. The std:ui
+updater (tsrust-ui/src/update.rs; `appInfo`, `checkForUpdates`, `installUpdate`,
+`relaunch`) reads GitHub `releases/latest` through system curl, verifies the
+archive digest and macOS signing team, and swaps in place. Check verified against
+the live API; install path verified up to the missing asset; packaged `.app`
+launches. `examples/gpui-starter` is the demo (six pages, en/fr, dark mode,
+About & updates), verified with real input. Guide: docs/guides/tooling/desktop-apps.md.
+Open: Developer ID identity and notarytool profile choice, a release repository
+for the demo (owner approval before publishing), end-to-end install from a real
+release, the remaining components above, CLI `new --ui`/`ui add`, and rewriting
+the restored std:ui docs.
+
 ### GPUI Kit catalog pass — 2026-11-09
 
 Branch `codex/gpui-ui`. One spec (`stdlib/ui/kit.json`, 62 components including

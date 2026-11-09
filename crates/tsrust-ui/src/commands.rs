@@ -1,5 +1,5 @@
 //! Application commands issued from handlers: notifications, window control,
-//! clipboard, file dialogs, URLs and extra windows. They queue on the UI thread
+//! clipboard, file dialogs, URLs, updates and extra windows. They queue on the UI thread
 //! and the renderer runs them on its next frame; replies run as handlers do.
 #![cfg_attr(not(feature = "gpui"), allow(dead_code))]
 use super::{Node, window::Options};
@@ -10,11 +10,11 @@ pub(crate) type Reply = Box<dyn FnOnce(&str) -> Result<(), String>>;
 pub(crate) enum Command {
     Plain {name: String, payload: String},
     Reply {name: String, payload: String, reply: Reply},
-    Window {node: Node, title: String, options: String},
+    Window {node: Box<Node>, title: String, options: String},
 }
 
-const PLAIN: &[&str] = &["notify", "theme", "set-title", "minimize", "zoom", "fullscreen", "close", "quit", "open-url", "write-clipboard"];
-const REPLIES: &[&str] = &["read-clipboard", "pick-files", "save-file"];
+const PLAIN: &[&str] = &["notify", "theme", "set-title", "minimize", "zoom", "fullscreen", "close", "quit", "open-url", "write-clipboard", "relaunch"];
+const REPLIES: &[&str] = &["read-clipboard", "pick-files", "save-file", "check-update", "install-update"];
 
 thread_local! {
     static QUEUE: RefCell<Vec<Command>> = const {RefCell::new(Vec::new())};
@@ -38,7 +38,7 @@ pub fn command_reply(name: &str, payload: &str, reply: impl FnOnce(&str) -> Resu
 /// Queue another window; its options are checked now.
 pub fn open_window(node: Node, title: String, options: &str) -> Result<(), String> {
     Options::parse(options)?;
-    QUEUE.with(|queue| queue.borrow_mut().push(Command::Window {node, title, options: options.to_owned()}));
+    QUEUE.with(|queue| queue.borrow_mut().push(Command::Window {node: Box::new(node), title, options: options.to_owned()}));
     Ok(())
 }
 

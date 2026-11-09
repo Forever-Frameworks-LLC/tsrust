@@ -1,5 +1,5 @@
 import { setTranslations as nativeSetTranslations, setLocale as nativeSetLocale, locale as nativeLocale, translate as nativeTranslate, translation as nativeTranslation } from 'std:ui-runtime';
-import { command as nativeCommand, commandReply as nativeCommandReply, openWindow as nativeOpenWindow, appearance as nativeAppearance } from 'std:ui-runtime';
+import { command as nativeCommand, commandReply as nativeCommandReply, openWindow as nativeOpenWindow, appearance as nativeAppearance, appInfo as nativeAppInfo } from 'std:ui-runtime';
 import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
@@ -880,6 +880,54 @@ export function openWindow(node: Node, title: string, options?: WindowOptions): 
 /** The system light or dark appearance, as seen by the most recent frame. */
 export function systemAppearance(): 'light' | 'dark' {
   return nativeAppearance() === 'dark' ? 'dark' : 'light';
+}
+
+/** The packaged application's identity, from the app.json that tsrust package writes. Every field is empty when the program runs unpackaged, such as under tsrust run. */
+export interface AppInfo {
+  /** Display name, such as Notes. */
+  name: string;
+  /** Reverse-DNS identifier, such as com.example.notes. */
+  id: string;
+  /** Installed version, MAJOR.MINOR.PATCH. */
+  version: string;
+  /** GitHub repository (owner/name) whose releases provide updates. */
+  repo: string;
+}
+
+/** The packaged application's name, identifier, version and update repository. Example: appInfo().version is '1.2.0'. */
+export function appInfo(): AppInfo {
+  return JSON.parse<AppInfo>(nativeAppInfo());
+}
+
+/** The result of checkForUpdates. */
+export interface UpdateCheck {
+  /** The installed version. */
+  current: string;
+  /** The latest release's version, or empty when the check failed. */
+  latest: string;
+  /** True when the latest release is newer and ships an archive for this platform. */
+  available: boolean;
+  /** The release notes (Markdown). */
+  notes: string;
+  /** Why the check failed, such as no network or no --repo; empty on success. */
+  error: string;
+}
+
+/** Asks GitHub for the repository's latest release without blocking the window, then calls onChecked. Example: checkForUpdates((update) => { if (update.available) { notify(`Version ${update.latest} is ready`); } }). */
+export function checkForUpdates(onChecked: Owned<Function<void, [update: ReadOnly<UpdateCheck>]>>): void {
+  unwrap(nativeCommandReply('check-update', '{}', (text: ReadOnly<string>): void => {
+    onChecked(JSON.parse<UpdateCheck>(text));
+  }));
+}
+
+/** Downloads the latest release for this platform, verifies it against the release's SHA256SUMS (and its code signature on macOS), and replaces the installed app. onInstalled receives an empty string on success, else the error. The running app is unchanged until relaunch(). */
+export function installUpdate(onInstalled: Owned<Function<void, [error: ReadOnly<string>]>>): void {
+  unwrap(nativeCommandReply('install-update', '{}', onInstalled));
+}
+
+/** Starts the installed application again and quits this one, such as after installUpdate. */
+export function relaunch(): void {
+  unwrap(nativeCommand('relaunch', '{}'));
 }
 
 /** Registers one locale's messages: a JSON-compatible object such as an imported locales/fr.json. Nested objects make dotted keys (menu.save). Registering a locale again replaces it. */

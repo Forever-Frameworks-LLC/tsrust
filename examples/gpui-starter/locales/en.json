@@ -1,0 +1,6 @@
+{
+  "nav": {"group": "Showcase", "overview": "Overview", "controls": "Controls", "data": "Data", "overlays": "Overlays", "languages": "Languages", "about": "About & updates"},
+  "overview": {"title": "Tsrust desktop starter", "body": "A native GPUI application written in .tsrx. Every page uses GPUI Kit components through std:ui."},
+  "languages": {"title": "Languages", "greeting": "Hello, {name}!", "files_zero": "No files", "files_one": "{count} file", "files_other": "{count} files", "add": "Add file"},
+  "about": {"check": "Check for updates", "install": "Install update", "relaunch": "Restart", "idle": "Updates have not been checked yet."}
+}

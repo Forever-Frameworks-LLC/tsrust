@@ -1,7 +1,10 @@
 # GPUI application platform after v0.2.0
 
-Owner direction recorded 2026-11-05. Status: researched implementation plan;
-no GPUI integration or platform acceptance is claimed here.
+Owner direction recorded 2026-11-05. Status (2026-11-09): desktop integration in
+progress on `codex/gpui-ui` — 102 GPUI Kit components through `std:ui`, services,
+i18n, `tsrust package` and the GitHub-release updater, with `examples/gpui-starter`
+as the demo; see the handoff note for open items. Web, CLI `ui add` and platform
+acceptance are not claimed.
 
 ## Priority and product intent
 

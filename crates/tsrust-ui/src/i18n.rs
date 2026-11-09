@@ -54,7 +54,7 @@ pub(crate) fn take_changed() -> bool {CHANGED.with(|changed| changed.replace(fal
 pub fn translate(key: &str, values: &str) -> String {
     let values: serde_json::Map<String, serde_json::Value> = serde_json::from_str(values).unwrap_or_default();
     let count = values.get("count").and_then(serde_json::Value::as_f64);
-    let suffixes: &[&str] = match count {Some(count) if count == 0. => &["_zero", "_other", ""], Some(count) if count == 1. => &["_one", ""], Some(_) => &["_other", ""], None => &[""]};
+    let suffixes: &[&str] = match count {Some(0.) => &["_zero", "_other", ""], Some(1.) => &["_one", ""], Some(_) => &["_other", ""], None => &[""]};
     let current = locale();
     let language = current.split('-').next().unwrap_or_default().to_owned();
     let template = CATALOGS.with(|catalogs| {

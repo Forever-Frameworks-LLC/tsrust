@@ -54,6 +54,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         "command" => ("name:&String,payload:&String".into(),"tsrust_native_ui::command(name.as_ref(),payload.as_ref())".into()),
         "openWindow" => (format!("node:Record{node},title:&String,options:&String"),"tsrust_native_ui::open_window(node,title.as_ref().to_owned(),options.as_ref())".into()),
         "appearance" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::appearance())}}\n"),
+        "appInfo" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::app_info())}}\n"),
         "locale" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::locale())}}\n"),
         "setLocale" => return format!("fn {symbol}(locale:&String){{tsrust_native_ui::set_locale(locale.as_ref())}}\n"),
         "translate" => return format!("fn {symbol}(key:&String,values:&String)->String{{String::Owned(tsrust_native_ui::translate(key.as_ref(),values.as_ref()))}}\n"),

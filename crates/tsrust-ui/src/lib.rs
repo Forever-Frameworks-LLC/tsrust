@@ -43,6 +43,10 @@ mod commands;
 #[cfg(feature = "runtime")]
 mod i18n;
 #[cfg(feature = "runtime")]
+mod update;
+#[cfg(feature = "runtime")]
+pub use update::{app_info,check as check_update,install as install_update};
+#[cfg(feature = "runtime")]
 pub use i18n::{locale,set_locale,set_translations,translate,translation};
 #[cfg(feature = "runtime")]
 pub use commands::{appearance,command,command_reply,open_window};

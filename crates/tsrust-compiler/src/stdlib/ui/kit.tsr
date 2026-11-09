@@ -2485,3 +2485,407 @@ export function GroupButton(props: GroupButtonProps): Node {
 
   return node;
 }
+
+export interface InputGroupProps {
+  /** Current text. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Hint shown when empty. */
+  placeholder?: ReactiveValue<string> | TextBinding;
+  /** Icon at the start. */
+  icon?: ReactiveValue<IconName>;
+  /** Text before the field, such as https://. */
+  prefix?: ReactiveValue<string> | TextBinding;
+  /** Text after the field, such as .com. */
+  suffix?: ReactiveValue<string> | TextBinding;
+  /** Label of a trailing button; no button when omitted. */
+  buttonLabel?: ReactiveValue<string> | TextBinding;
+  /** Prevents editing. */
+  disabled?: ReactiveValue<boolean>;
+  /** Receives the text after each edit. */
+  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Called when the trailing button is clicked. */
+  onButton?: Owned<Function<void>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A text field framed together with an icon, leading and trailing text, and an optional action button. */
+export function InputGroup(props: InputGroupProps): Node {
+  let node = kitNode('InputGroup', [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_placeholder = props.placeholder;
+  if (prop_placeholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_prefix = props.prefix;
+  if (prop_prefix !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'prefix', prop_prefix));
+  }
+
+  const prop_suffix = props.suffix;
+  if (prop_suffix !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'suffix', prop_suffix));
+  }
+
+  const prop_buttonLabel = props.buttonLabel;
+  if (prop_buttonLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'buttonLabel', prop_buttonLabel));
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
+  const event_onButton = props.onButton;
+  if (event_onButton !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'button', event_onButton));
+  }
+
+  return node;
+}
+
+export interface DiffProps {
+  /** Unified diff text, as printed by git diff. */
+  patch?: ReactiveValue<string> | TextBinding;
+  /** One column, or old and new side by side. Defaults to unified. */
+  mode?: ReactiveValue<'unified' | 'split'>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A read-only view of a unified or Git patch, with one section per changed file. */
+export function Diff(props: DiffProps): Node {
+  let node = kitNode('Diff', [], props.className ?? '');
+  const prop_patch = props.patch;
+  if (prop_patch !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'patch', prop_patch));
+  }
+
+  const prop_mode = props.mode;
+  if (prop_mode !== undefined) {
+    if (typeof prop_mode === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'mode', `${prop_mode}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'mode', nativeBindText(prop_mode.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface MarkerProps {
+  /** Status text. */
+  text?: ReactiveValue<string> | TextBinding;
+  /** Leading icon. */
+  icon?: ReactiveValue<IconName>;
+  /** plain, separator (lines on both sides) or border. Defaults to plain. */
+  variant?: ReactiveValue<'plain' | 'separator' | 'border'>;
+  /** Shows a spinner instead of the icon. */
+  loading?: ReactiveValue<boolean>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A status row: an icon and text, optionally drawn as a separator line or bordered note, with a loading spinner. */
+export function Marker(props: MarkerProps): Node {
+  let node = kitNode('Marker', props.children ?? [], props.className ?? '');
+  const prop_text = props.text;
+  if (prop_text !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'text', prop_text));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_variant = props.variant;
+  if (prop_variant !== undefined) {
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
+  }
+
+  const prop_loading = props.loading;
+  if (prop_loading !== undefined) {
+    node = kitFlag(node, 'loading', prop_loading);
+  }
+
+  return node;
+}
+
+export interface AttachmentProps {
+  /** File name or title. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Secondary text, such as PDF · 2.4 MB. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** Preview icon. Defaults to file. */
+  icon?: ReactiveValue<IconName>;
+  /** Path of a local image used as the preview. */
+  image?: ReactiveValue<string> | TextBinding;
+  /** Lifecycle status. Defaults to complete. */
+  status?: ReactiveValue<'complete' | 'pending' | 'uploading' | 'processing' | 'failed'>;
+  /** Upload progress, 0–100, while uploading. */
+  progress?: ReactiveValue<number>;
+  /** Called when the attachment is clicked. */
+  onClick?: Owned<Function<void>>;
+  /** Shows a remove button; called when it is clicked. */
+  onRemove?: Owned<Function<void>>;
+  /** Shows a retry button on failure; called when it is clicked. */
+  onRetry?: Owned<Function<void>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One file or media item with a title, description, upload status and remove/retry controls. */
+export function Attachment(props: AttachmentProps): Node {
+  let node = kitNode('Attachment', [], props.className ?? '');
+  const prop_title = props.title;
+  if (prop_title !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_image = props.image;
+  if (prop_image !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'image', prop_image));
+  }
+
+  const prop_status = props.status;
+  if (prop_status !== undefined) {
+    if (typeof prop_status === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'status', `${prop_status}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'status', nativeBindText(prop_status.evaluate)));
+    }
+  }
+
+  const prop_progress = props.progress;
+  if (prop_progress !== undefined) {
+    node = kitNumber(node, 'progress', prop_progress);
+  }
+
+  const event_onClick = props.onClick;
+  if (event_onClick !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
+  }
+
+  const event_onRemove = props.onRemove;
+  if (event_onRemove !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'remove', event_onRemove));
+  }
+
+  const event_onRetry = props.onRetry;
+  if (event_onRetry !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'retry', event_onRetry));
+  }
+
+  return node;
+}
+
+export interface AttachmentGroupProps {
+  /** Attachment elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A horizontally scrolling row of Attachment elements. */
+export function AttachmentGroup(props: AttachmentGroupProps): Node {
+  let node = kitNode('AttachmentGroup', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface DataTableProps {
+  /** Column headings. */
+  columns?: string[];
+  /** Rows of cell text, in column order. */
+  rows?: string[][];
+  /** Lets the user sort by clicking a heading. Numbers sort numerically. */
+  sortable?: ReactiveValue<boolean>;
+  /** Receives the selected row's index in rows. */
+  onSelect?: Owned<Function<void, [row: int]>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A virtualized table of text rows with sortable, resizable columns and row selection. */
+export function DataTable(props: DataTableProps): Node {
+  let node = kitNode('DataTable', [], props.className ?? '');
+  const prop_columns = props.columns;
+  if (prop_columns !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'columns', prop_columns.join('\n')));
+  }
+
+  const prop_rows = props.rows;
+  if (prop_rows !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'rows', JSON.stringify(prop_rows)));
+  }
+
+  const prop_sortable = props.sortable;
+  if (prop_sortable !== undefined) {
+    node = kitFlag(node, 'sortable', prop_sortable);
+  }
+
+  const event_onSelect = props.onSelect;
+  if (event_onSelect !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'select', event_onSelect));
+  }
+
+  return node;
+}
+
+export interface SettingsProps {
+  /** SettingsPage elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A searchable settings window: a sidebar of SettingsPage entries, each with grouped SettingItem rows. */
+export function Settings(props: SettingsProps): Node {
+  let node = kitNode('Settings', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SettingsPageProps {
+  /** Sidebar and heading text. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Text under the heading. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** SettingsGroup elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One page in Settings, listed in its sidebar. */
+export function SettingsPage(props: SettingsPageProps): Node {
+  let node = kitNode('SettingsPage', props.children ?? [], props.className ?? '');
+  const prop_title = props.title;
+  if (prop_title !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  return node;
+}
+
+export interface SettingsGroupProps {
+  /** Group heading. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Text under the heading. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** SettingItem elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A titled box of SettingItem rows in a SettingsPage. */
+export function SettingsGroup(props: SettingsGroupProps): Node {
+  let node = kitNode('SettingsGroup', props.children ?? [], props.className ?? '');
+  const prop_title = props.title;
+  if (prop_title !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  return node;
+}
+
+export interface SettingItemProps {
+  /** Setting name; also searchable. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Explanation under the title. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One setting: a title and description beside its control (the children). */
+export function SettingItem(props: SettingItemProps): Node {
+  let node = kitNode('SettingItem', props.children ?? [], props.className ?? '');
+  const prop_title = props.title;
+  if (prop_title !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  return node;
+}
+
+export interface MessageScrollerProps {
+  /** Text of the jump-to-latest button. Defaults to Jump to latest. */
+  jumpLabel?: ReactiveValue<string> | TextBinding;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A chat transcript that follows new messages at the bottom, keeps its place while reading history, and offers a jump-to-latest button. */
+export function MessageScroller(props: MessageScrollerProps): Node {
+  let node = kitNode('MessageScroller', props.children ?? [], props.className ?? '');
+  const prop_jumpLabel = props.jumpLabel;
+  if (prop_jumpLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'jumpLabel', prop_jumpLabel));
+  }
+
+  return node;
+}

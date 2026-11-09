@@ -130,11 +130,13 @@ pub(crate) const KIT_ON_NUMBER:NativeBinding=NativeBinding{name:"kitOnNumber",pa
 pub(crate) const KIT_ON_VOID:NativeBinding=NativeBinding{name:"kitOnVoid",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_void"},..TEXT};
 
 // Application services: queued commands (notifications, windows, clipboard,
-// dialogs, URLs), commands with a later text reply, extra windows and appearance.
+// dialogs, URLs, updates), commands with a later text reply, extra windows,
+// appearance and the packaged app manifest.
 pub(crate) const COMMAND:NativeBinding=NativeBinding{name:"command",parameters:&[parameter("name",NativeType::String,Mode::Read),parameter("payload",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_command"},..TEXT};
 pub(crate) const COMMAND_REPLY:NativeBinding=NativeBinding{name:"commandReply",parameters:&[parameter("name",NativeType::String,Mode::Read),parameter("payload",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_command_reply"},..COMMAND};
 pub(crate) const OPEN_WINDOW:NativeBinding=NativeBinding{name:"openWindow",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("title",NativeType::String,Mode::Read),parameter("options",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_open_window"},..COMMAND};
 pub(crate) const APPEARANCE:NativeBinding=NativeBinding{name:"appearance",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_appearance"},..TEXT};
+pub(crate) const APP_INFO:NativeBinding=NativeBinding{name:"appInfo",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_app_info"},..TEXT};
 
 // Translations: catalogs, the current locale, live and snapshot lookups, and one
 // value-typed Kit prop setter that accepts text, numbers and live bindings.
@@ -170,6 +172,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod kit;",&module("kit",source!("kit.rs")))
         .replace("mod commands;",&module("commands",source!("commands.rs")))
         .replace("mod i18n;",&module("i18n",source!("i18n.rs")))
+        .replace("mod update;",&module("update",source!("update.rs")))
         .replace("mod editable;",&module("editable",source!("editable.rs")))
         .replace("pub mod clipboard;", &format!("pub {}",module("clipboard",&source!("clipboard.rs").replace("crate::Node", "super::Node"))))
         .replace("pub mod navigation;", &format!("pub {}",module("navigation",source!("navigation.rs"))))

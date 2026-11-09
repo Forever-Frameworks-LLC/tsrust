@@ -1755,6 +1755,287 @@
         }
       ],
       "item": true
+    },
+    {
+      "name": "InputGroup",
+      "doc": "A text field framed together with an icon, leading and trailing text, and an optional action button.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Current text."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Hint shown when empty."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon at the start."
+        },
+        {
+          "name": "prefix",
+          "type": "string",
+          "doc": "Text before the field, such as https://."
+        },
+        {
+          "name": "suffix",
+          "type": "string",
+          "doc": "Text after the field, such as .com."
+        },
+        {
+          "name": "buttonLabel",
+          "type": "string",
+          "doc": "Label of a trailing button; no button when omitted."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Prevents editing."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "value",
+          "doc": "Receives the text after each edit."
+        },
+        {
+          "prop": "onButton",
+          "value": "void",
+          "doc": "Called when the trailing button is clicked."
+        }
+      ],
+      "example": "<InputGroup icon=\"search\" placeholder=\"Search\" buttonLabel=\"Go\" value={query.get()} onChange={(text) => { query.set(clone(text)); }} onButton={() => { search(); }}/>"
+    },
+    {
+      "name": "Diff",
+      "doc": "A read-only view of a unified or Git patch, with one section per changed file.",
+      "props": [
+        {
+          "name": "patch",
+          "type": "string",
+          "doc": "Unified diff text, as printed by git diff."
+        },
+        {
+          "name": "mode",
+          "type": [
+            "unified",
+            "split"
+          ],
+          "doc": "One column, or old and new side by side. Defaults to unified."
+        }
+      ],
+      "example": "<Diff patch={patch} mode=\"split\" className=\"h-96\"/>"
+    },
+    {
+      "name": "Marker",
+      "doc": "A status row: an icon and text, optionally drawn as a separator line or bordered note, with a loading spinner.",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "doc": "Status text."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Leading icon."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "plain",
+            "separator",
+            "border"
+          ],
+          "doc": "plain, separator (lines on both sides) or border. Defaults to plain."
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "doc": "Shows a spinner instead of the icon."
+        }
+      ],
+      "children": true,
+      "example": "<Marker variant=\"separator\" icon=\"calendar\" text=\"Yesterday\"/>"
+    },
+    {
+      "name": "Attachment",
+      "doc": "One file or media item with a title, description, upload status and remove/retry controls.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "File name or title."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Secondary text, such as PDF · 2.4 MB."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Preview icon. Defaults to file."
+        },
+        {
+          "name": "image",
+          "type": "string",
+          "doc": "Path of a local image used as the preview."
+        },
+        {
+          "name": "status",
+          "type": [
+            "complete",
+            "pending",
+            "uploading",
+            "processing",
+            "failed"
+          ],
+          "doc": "Lifecycle status. Defaults to complete."
+        },
+        {
+          "name": "progress",
+          "type": "number",
+          "doc": "Upload progress, 0–100, while uploading."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onClick",
+          "value": "void",
+          "doc": "Called when the attachment is clicked."
+        },
+        {
+          "prop": "onRemove",
+          "value": "void",
+          "doc": "Shows a remove button; called when it is clicked."
+        },
+        {
+          "prop": "onRetry",
+          "value": "void",
+          "doc": "Shows a retry button on failure; called when it is clicked."
+        }
+      ],
+      "example": "<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>"
+    },
+    {
+      "name": "AttachmentGroup",
+      "doc": "A horizontally scrolling row of Attachment elements.",
+      "props": [],
+      "children": "Attachment",
+      "example": "<AttachmentGroup><Attachment title=\"a.png\"/><Attachment title=\"b.pdf\"/></AttachmentGroup>"
+    },
+    {
+      "name": "DataTable",
+      "doc": "A virtualized table of text rows with sortable, resizable columns and row selection.",
+      "props": [
+        {
+          "name": "columns",
+          "type": "string[]",
+          "doc": "Column headings."
+        },
+        {
+          "name": "rows",
+          "type": "string[][]",
+          "doc": "Rows of cell text, in column order."
+        },
+        {
+          "name": "sortable",
+          "type": "boolean",
+          "doc": "Lets the user sort by clicking a heading. Numbers sort numerically."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onSelect",
+          "value": "int",
+          "param": "row",
+          "doc": "Receives the selected row's index in rows."
+        }
+      ],
+      "example": "<DataTable columns={['Name', 'Age']} rows={[['Ada', '36'], ['Alan', '41']]} sortable={true} onSelect={(row) => { picked.set(row); }} className=\"h-64\"/>"
+    },
+    {
+      "name": "Settings",
+      "doc": "A searchable settings window: a sidebar of SettingsPage entries, each with grouped SettingItem rows.",
+      "props": [],
+      "children": "SettingsPage",
+      "example": "<Settings className=\"h-96\"><SettingsPage title=\"General\"><SettingsGroup title=\"Appearance\"><SettingItem title=\"Dark mode\"><Switch checked={dark.get()} onChange={(on) => { dark.set(on); }}/></SettingItem></SettingsGroup></SettingsPage></Settings>"
+    },
+    {
+      "name": "SettingsPage",
+      "doc": "One page in Settings, listed in its sidebar.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Sidebar and heading text."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Text under the heading."
+        }
+      ],
+      "children": "SettingsGroup",
+      "item": true,
+      "example": "<SettingsPage title=\"Editor\"/>"
+    },
+    {
+      "name": "SettingsGroup",
+      "doc": "A titled box of SettingItem rows in a SettingsPage.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Group heading."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Text under the heading."
+        }
+      ],
+      "children": "SettingItem",
+      "item": true,
+      "example": "<SettingsGroup title=\"Fonts\"/>"
+    },
+    {
+      "name": "SettingItem",
+      "doc": "One setting: a title and description beside its control (the children).",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Setting name; also searchable."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Explanation under the title."
+        }
+      ],
+      "children": true,
+      "item": true,
+      "example": "<SettingItem title=\"Font size\" description=\"In points.\"><NumberInput value={size.get()}/></SettingItem>"
+    },
+    {
+      "name": "MessageScroller",
+      "doc": "A chat transcript that follows new messages at the bottom, keeps its place while reading history, and offers a jump-to-latest button.",
+      "props": [
+        {
+          "name": "jumpLabel",
+          "type": "string",
+          "doc": "Text of the jump-to-latest button. Defaults to Jump to latest."
+        }
+      ],
+      "children": true,
+      "example": "<MessageScroller className=\"h-96\"><Message author=\"Ada\"><Text>Hi</Text></Message></MessageScroller>"
     }
   ],
   "icons": [

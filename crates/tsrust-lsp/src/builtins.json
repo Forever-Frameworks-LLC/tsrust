@@ -23041,6 +23041,52 @@
       "documentation": "Returns the operating system's light or dark appearance as seen by the most recent frame. Before the first frame it returns light."
     },
     {
+      "name": "appInfo",
+      "signature": "appInfo(): AppInfo",
+      "parameters": [],
+      "documentation": "Returns the packaged application's name, identifier, version and update repository, read from the app.json that `tsrust package` writes beside the executable (inside Contents/Resources on macOS). Every field is an empty string when the program runs unpackaged, such as under tsrust run.\n\n```tsrx\nconst info = appInfo();\n<Text>{`${info.name} ${info.version}`}</Text> // Notes 1.2.0\n```\n\nOwnership: returns a new owned value."
+    },
+    {
+      "name": "AppInfo",
+      "signature": "interface AppInfo",
+      "parameters": [],
+      "documentation": "The result of appInfo: name (display name), id (reverse-DNS identifier), version (MAJOR.MINOR.PATCH) and repo (the GitHub owner/name whose releases provide updates). All strings."
+    },
+    {
+      "name": "checkForUpdates",
+      "signature": "checkForUpdates(onChecked: Owned<Function<void, [update: ReadOnly<UpdateCheck>]>>): void",
+      "parameters": [
+        {
+          "label": "onChecked: Owned<Function<void, [update: ReadOnly<UpdateCheck>]>>",
+          "documentation": "Called once on the UI thread with the result."
+        }
+      ],
+      "documentation": "Asks GitHub for the latest release of the repository in appInfo().repo without blocking the window. update.available is true when that release is newer than the installed version and ships an archive for this platform; update.error explains a failed check (no network, no repository, rate limit).\n\n```tsrx\ncheckForUpdates((update) => {\n  if (update.available) { notify(`Version ${update.latest} is ready`); }\n});\n```\n\nThe app must be packaged with `tsrust package --repo owner/name`. Requests use the system curl and the public GitHub API, which allows 60 unauthenticated requests per hour per address. Ownership: consumes onChecked, which runs once."
+    },
+    {
+      "name": "UpdateCheck",
+      "signature": "interface UpdateCheck",
+      "parameters": [],
+      "documentation": "The result of checkForUpdates: current (installed version), latest (the newest release's version, empty when the check failed), available (newer and shipped for this platform), notes (release notes, Markdown) and error (empty on success)."
+    },
+    {
+      "name": "installUpdate",
+      "signature": "installUpdate(onInstalled: Owned<Function<void, [error: ReadOnly<string>]>>): void",
+      "parameters": [
+        {
+          "label": "onInstalled: Owned<Function<void, [error: ReadOnly<string>]>>",
+          "documentation": "Called once on the UI thread: an empty string on success, else the error."
+        }
+      ],
+      "documentation": "Downloads the latest release's archive for this platform, verifies it against the release's SHA256SUMS, and replaces the installed app in place. On macOS a signed app only accepts an update signed by the same team. The running program keeps its old code until relaunch().\n\n```tsrx\ninstallUpdate((error) => {\n  if (error === '') { relaunch(); } else { notify(error, { variant: 'error' }); }\n});\n```\n\nThe app's folder must be writable: apps installed by a system package manager (such as a .deb) report an error and should update through that manager. Ownership: consumes onInstalled, which runs once."
+    },
+    {
+      "name": "relaunch",
+      "signature": "relaunch(): void",
+      "parameters": [],
+      "documentation": "Starts the installed application again and quits this one, so an update from installUpdate takes effect. If the new process cannot start, an error notification appears and this one keeps running.\n\n```tsrx\n<Button onPress={() => { relaunch(); }}>Restart to update</Button>\n```"
+    },
+    {
       "name": "setTranslations",
       "signature": "setTranslations<T>(locale: string, messages: T): void",
       "parameters": [
@@ -24562,6 +24608,182 @@
       "name": "GroupButtonProps",
       "signature": "interface GroupButtonProps",
       "documentation": "One button in a ButtonGroup.\n\nProps:\n- `label`: Button text.\n- `selected`: Shows the button as selected.\n- `onClick`: Called when the button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<GroupButton label=\"Month\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "InputGroup",
+      "signature": "InputGroup(props: InputGroupProps): Node",
+      "parameters": [
+        {
+          "label": "props: InputGroupProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A text field framed together with an icon, leading and trailing text, and an optional action button.\n\nProps:\n- `value`: Current text.\n- `placeholder`: Hint shown when empty.\n- `icon`: Icon at the start.\n- `prefix`: Text before the field, such as https://.\n- `suffix`: Text after the field, such as .com.\n- `buttonLabel`: Label of a trailing button; no button when omitted.\n- `disabled`: Prevents editing.\n- `onChange`: Receives the text after each edit.\n- `onButton`: Called when the trailing button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup icon=\"search\" placeholder=\"Search\" buttonLabel=\"Go\" value={query.get()} onChange={(text) => { query.set(clone(text)); }} onButton={() => { search(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "InputGroupProps",
+      "signature": "interface InputGroupProps",
+      "documentation": "A text field framed together with an icon, leading and trailing text, and an optional action button.\n\nProps:\n- `value`: Current text.\n- `placeholder`: Hint shown when empty.\n- `icon`: Icon at the start.\n- `prefix`: Text before the field, such as https://.\n- `suffix`: Text after the field, such as .com.\n- `buttonLabel`: Label of a trailing button; no button when omitted.\n- `disabled`: Prevents editing.\n- `onChange`: Receives the text after each edit.\n- `onButton`: Called when the trailing button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup icon=\"search\" placeholder=\"Search\" buttonLabel=\"Go\" value={query.get()} onChange={(text) => { query.set(clone(text)); }} onButton={() => { search(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Diff",
+      "signature": "Diff(props: DiffProps): Node",
+      "parameters": [
+        {
+          "label": "props: DiffProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A read-only view of a unified or Git patch, with one section per changed file.\n\nProps:\n- `patch`: Unified diff text, as printed by git diff.\n- `mode`: One column, or old and new side by side. Defaults to unified.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Diff patch={patch} mode=\"split\" className=\"h-96\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DiffProps",
+      "signature": "interface DiffProps",
+      "documentation": "A read-only view of a unified or Git patch, with one section per changed file.\n\nProps:\n- `patch`: Unified diff text, as printed by git diff.\n- `mode`: One column, or old and new side by side. Defaults to unified.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Diff patch={patch} mode=\"split\" className=\"h-96\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Marker",
+      "signature": "Marker(props: MarkerProps): Node",
+      "parameters": [
+        {
+          "label": "props: MarkerProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A status row: an icon and text, optionally drawn as a separator line or bordered note, with a loading spinner.\n\nProps:\n- `text`: Status text.\n- `icon`: Leading icon.\n- `variant`: plain, separator (lines on both sides) or border. Defaults to plain.\n- `loading`: Shows a spinner instead of the icon.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Marker variant=\"separator\" icon=\"calendar\" text=\"Yesterday\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MarkerProps",
+      "signature": "interface MarkerProps",
+      "documentation": "A status row: an icon and text, optionally drawn as a separator line or bordered note, with a loading spinner.\n\nProps:\n- `text`: Status text.\n- `icon`: Leading icon.\n- `variant`: plain, separator (lines on both sides) or border. Defaults to plain.\n- `loading`: Shows a spinner instead of the icon.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Marker variant=\"separator\" icon=\"calendar\" text=\"Yesterday\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Attachment",
+      "signature": "Attachment(props: AttachmentProps): Node",
+      "parameters": [
+        {
+          "label": "props: AttachmentProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One file or media item with a title, description, upload status and remove/retry controls.\n\nProps:\n- `title`: File name or title.\n- `description`: Secondary text, such as PDF · 2.4 MB.\n- `icon`: Preview icon. Defaults to file.\n- `image`: Path of a local image used as the preview.\n- `status`: Lifecycle status. Defaults to complete.\n- `progress`: Upload progress, 0–100, while uploading.\n- `onClick`: Called when the attachment is clicked.\n- `onRemove`: Shows a remove button; called when it is clicked.\n- `onRetry`: Shows a retry button on failure; called when it is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AttachmentProps",
+      "signature": "interface AttachmentProps",
+      "documentation": "One file or media item with a title, description, upload status and remove/retry controls.\n\nProps:\n- `title`: File name or title.\n- `description`: Secondary text, such as PDF · 2.4 MB.\n- `icon`: Preview icon. Defaults to file.\n- `image`: Path of a local image used as the preview.\n- `status`: Lifecycle status. Defaults to complete.\n- `progress`: Upload progress, 0–100, while uploading.\n- `onClick`: Called when the attachment is clicked.\n- `onRemove`: Shows a remove button; called when it is clicked.\n- `onRetry`: Shows a retry button on failure; called when it is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AttachmentGroup",
+      "signature": "AttachmentGroup(props: AttachmentGroupProps): Node",
+      "parameters": [
+        {
+          "label": "props: AttachmentGroupProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A horizontally scrolling row of Attachment elements.\n\nProps:\n- `children`: Attachment elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AttachmentGroup><Attachment title=\"a.png\"/><Attachment title=\"b.pdf\"/></AttachmentGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AttachmentGroupProps",
+      "signature": "interface AttachmentGroupProps",
+      "documentation": "A horizontally scrolling row of Attachment elements.\n\nProps:\n- `children`: Attachment elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AttachmentGroup><Attachment title=\"a.png\"/><Attachment title=\"b.pdf\"/></AttachmentGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DataTable",
+      "signature": "DataTable(props: DataTableProps): Node",
+      "parameters": [
+        {
+          "label": "props: DataTableProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A virtualized table of text rows with sortable, resizable columns and row selection.\n\nProps:\n- `columns`: Column headings.\n- `rows`: Rows of cell text, in column order.\n- `sortable`: Lets the user sort by clicking a heading. Numbers sort numerically.\n- `onSelect`: Receives the selected row's index in rows.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DataTable columns={['Name', 'Age']} rows={[['Ada', '36'], ['Alan', '41']]} sortable={true} onSelect={(row) => { picked.set(row); }} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DataTableProps",
+      "signature": "interface DataTableProps",
+      "documentation": "A virtualized table of text rows with sortable, resizable columns and row selection.\n\nProps:\n- `columns`: Column headings.\n- `rows`: Rows of cell text, in column order.\n- `sortable`: Lets the user sort by clicking a heading. Numbers sort numerically.\n- `onSelect`: Receives the selected row's index in rows.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DataTable columns={['Name', 'Age']} rows={[['Ada', '36'], ['Alan', '41']]} sortable={true} onSelect={(row) => { picked.set(row); }} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Settings",
+      "signature": "Settings(props: SettingsProps): Node",
+      "parameters": [
+        {
+          "label": "props: SettingsProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A searchable settings window: a sidebar of SettingsPage entries, each with grouped SettingItem rows.\n\nProps:\n- `children`: SettingsPage elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Settings className=\"h-96\"><SettingsPage title=\"General\"><SettingsGroup title=\"Appearance\"><SettingItem title=\"Dark mode\"><Switch checked={dark.get()} onChange={(on) => { dark.set(on); }}/></SettingItem></SettingsGroup></SettingsPage></Settings>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SettingsProps",
+      "signature": "interface SettingsProps",
+      "documentation": "A searchable settings window: a sidebar of SettingsPage entries, each with grouped SettingItem rows.\n\nProps:\n- `children`: SettingsPage elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Settings className=\"h-96\"><SettingsPage title=\"General\"><SettingsGroup title=\"Appearance\"><SettingItem title=\"Dark mode\"><Switch checked={dark.get()} onChange={(on) => { dark.set(on); }}/></SettingItem></SettingsGroup></SettingsPage></Settings>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SettingsPage",
+      "signature": "SettingsPage(props: SettingsPageProps): Node",
+      "parameters": [
+        {
+          "label": "props: SettingsPageProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One page in Settings, listed in its sidebar.\n\nProps:\n- `title`: Sidebar and heading text.\n- `description`: Text under the heading.\n- `children`: SettingsGroup elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<SettingsPage title=\"Editor\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SettingsPageProps",
+      "signature": "interface SettingsPageProps",
+      "documentation": "One page in Settings, listed in its sidebar.\n\nProps:\n- `title`: Sidebar and heading text.\n- `description`: Text under the heading.\n- `children`: SettingsGroup elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<SettingsPage title=\"Editor\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SettingsGroup",
+      "signature": "SettingsGroup(props: SettingsGroupProps): Node",
+      "parameters": [
+        {
+          "label": "props: SettingsGroupProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A titled box of SettingItem rows in a SettingsPage.\n\nProps:\n- `title`: Group heading.\n- `description`: Text under the heading.\n- `children`: SettingItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<SettingsGroup title=\"Fonts\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SettingsGroupProps",
+      "signature": "interface SettingsGroupProps",
+      "documentation": "A titled box of SettingItem rows in a SettingsPage.\n\nProps:\n- `title`: Group heading.\n- `description`: Text under the heading.\n- `children`: SettingItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<SettingsGroup title=\"Fonts\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SettingItem",
+      "signature": "SettingItem(props: SettingItemProps): Node",
+      "parameters": [
+        {
+          "label": "props: SettingItemProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One setting: a title and description beside its control (the children).\n\nProps:\n- `title`: Setting name; also searchable.\n- `description`: Explanation under the title.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<SettingItem title=\"Font size\" description=\"In points.\"><NumberInput value={size.get()}/></SettingItem>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SettingItemProps",
+      "signature": "interface SettingItemProps",
+      "documentation": "One setting: a title and description beside its control (the children).\n\nProps:\n- `title`: Setting name; also searchable.\n- `description`: Explanation under the title.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<SettingItem title=\"Font size\" description=\"In points.\"><NumberInput value={size.get()}/></SettingItem>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MessageScroller",
+      "signature": "MessageScroller(props: MessageScrollerProps): Node",
+      "parameters": [
+        {
+          "label": "props: MessageScrollerProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A chat transcript that follows new messages at the bottom, keeps its place while reading history, and offers a jump-to-latest button.\n\nProps:\n- `jumpLabel`: Text of the jump-to-latest button. Defaults to Jump to latest.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MessageScroller className=\"h-96\"><Message author=\"Ada\"><Text>Hi</Text></Message></MessageScroller>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MessageScrollerProps",
+      "signature": "interface MessageScrollerProps",
+      "documentation": "A chat transcript that follows new messages at the bottom, keeps its place while reading history, and offers a jump-to-latest button.\n\nProps:\n- `jumpLabel`: Text of the jump-to-latest button. Defaults to Jump to latest.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MessageScroller className=\"h-96\"><Message author=\"Ada\"><Text>Hi</Text></Message></MessageScroller>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     }
   ]
 }

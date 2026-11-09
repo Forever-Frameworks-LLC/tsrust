@@ -93,7 +93,7 @@ def prop_type(prop):
     if isinstance(kind, list):
         literal = " | ".join(f"'{value}'" for value in kind)
         return f"ReactiveValue<{literal}>"
-    if kind in ("string[]", "number[]"):
+    if kind in ("string[]", "number[]", "string[][]"):
         return kind
     return SCALAR[kind][0]
 
@@ -145,6 +145,8 @@ def component_source(component):
             lines.append(f"    if (typeof {local} === 'string') {{ node = unwrapNode(nativeKitSet(node, '{field}', `${{{local}}}`)); }}")
             lines.append(f"    else {{ node = unwrapNode(nativeKitBind(node, '{field}', nativeBindText({local}.evaluate))); }}")
             lines.append("  }")
+        elif kind == "string[][]":
+            lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode(nativeKitSet(node, '{field}', JSON.stringify({local}))); }}")
         elif kind in ("string[]", "number[]"):
             lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode(nativeKitSet(node, '{field}', {local}.join('\\n'))); }}")
         elif kind == "string":
@@ -193,7 +195,7 @@ def formatted(source):
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / "kit.tsr"
         path.write_text(source)
-        subprocess.run([compiler, "format", str(path)], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run([compiler, "format", "--write", str(path)], check=True, stdout=subprocess.DEVNULL)
         return path.read_text()
 
 

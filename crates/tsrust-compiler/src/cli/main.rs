@@ -11,6 +11,7 @@ mod native_dependency_bundle;
 #[cfg(any(unix,windows))]
 mod dev_dependencies;
 mod dev_frontend;
+mod app_package_cli;
 #[cfg(any(unix,windows))]
 mod dev_watch;
 #[cfg(unix)]
@@ -91,6 +92,7 @@ Commands:
   emit     Emit Rust source or a standalone Cargo package
   build    Build a native executable using config output or -o
   run      Build and run a program
+  package  Package a std:ui application for this platform (.app/DMG, zip, tarball/.deb)
   test     Discover and run .test.tsr / .spec.tsr files
 
 Options:
@@ -196,6 +198,7 @@ fn run() -> Result<u8, String> {
     if command=="setup" {return setup_cli::setup(args);}
     if command=="ui" {return ui_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
+    if command=="package" {return app_package_cli::run(args);}
     let args=args.collect::<Vec<_>>();
     if let Some(result)=workspace_cli::dispatch(&command,&args) {return result;}
     let (arguments,program_arguments)=split_program_arguments(&command,args);

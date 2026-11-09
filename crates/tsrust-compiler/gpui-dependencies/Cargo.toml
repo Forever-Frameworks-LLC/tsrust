@@ -79,7 +79,7 @@ sys-locale = { version = "=0.3.2", optional = true }
 
 [features]
 # std:gpui only: the Node model (crates/tsrust-ui) and the GPUI Kit renderer.
-ui = ["dep:url", "dep:kurbo", "dep:svgtypes", "dep:color", "dep:sys-locale"]
+ui = ["dep:url", "dep:kurbo", "dep:svgtypes", "dep:color", "dep:sys-locale", "dep:sha2"]
 gpui = ["ui", "dep:gpui-kit", "dep:chrono"]
 # Browser renderer, reserved until GPUI web follows desktop.
 gpui-web = ["ui"]
