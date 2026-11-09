@@ -81,6 +81,7 @@ jobs:
         env:
           EXE_SUFFIX: ${{ runner.os == 'Windows' && '.exe' || '' }}
         run: |
+          mkdir -p dist
           node tools/package-toolchain.mjs "target/release/tsrust$EXE_SUFFIX" "target/release/tsrust-lsp$EXE_SUFFIX" '${{ matrix.target }}' dist/toolchain
           node tools/smoke-toolchain.mjs "dist/toolchain/bin/tsrust$EXE_SUFFIX" "dist/toolchain/bin/tsrust-lsp$EXE_SUFFIX"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
