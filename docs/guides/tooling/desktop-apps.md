@@ -4,6 +4,22 @@
 host platform. The in-app updater in `std:ui` installs newer versions from the
 GitHub releases of the repository named at packaging time.
 
+## Start and run
+
+```bash
+tsrust new notes --ui
+```
+
+```bash
+cd notes && tsrust dev
+```
+
+`new --ui` creates a desktop app from the GPUI starter. `tsrust dev` rebuilds and
+restarts the window whenever a source or locale file changes. `tsrust ui list`
+shows the GPUI Kit components; `tsrust ui add Settings DataTable` copies editable
+wrappers into `src/components/` (`--all` adds every component, `--force`
+replaces existing files).
+
 ## Package
 
 ```bash

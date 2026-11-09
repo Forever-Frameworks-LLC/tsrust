@@ -24,5 +24,8 @@ silence diagnostics. Keep behavioral tests and examples consistent with the code
 
 ## UI components
 
-`.tsrx` files hold JSX components. GPUI Kit UI support is in development
-(`tsrust ui` and `tsrust new --ui` report that); applications expose HTTP APIs today.
+`.tsrx` files hold JSX components rendered natively by GPUI Kit through
+`std:ui`. `tsrust new <name> --ui` creates a desktop app; `tsrust ui list` shows
+the components and `tsrust ui add <Component>` copies an editable wrapper into
+`src/components/`. `tsrust dev` rebuilds and restarts the window on save, and
+`tsrust package` builds downloadable artifacts (see the packaging guide).

@@ -24,7 +24,6 @@ mod dev_windows;
 mod project_config;
 mod new_cli;
 mod application_scaffold;
-#[path = "ui_disabled.rs"]
 mod ui_cli;
 mod cache_cli;
 mod setup_cli;
@@ -58,7 +57,9 @@ Usage:
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline] [--portable]
   tsrust bindings generate <file.bindings.json> --crate name --source crate-root.rs --select name,name [--rustdoc crate.json]
-  tsrust new [name-or-path] [--app [--target backend]]
+  tsrust new [name-or-path] [--ui | --app [--target backend]]
+  tsrust ui list | ui add [Component...] [--all] [--force]
+  tsrust package <entry.tsrx> [--name NAME] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--sign ID --notarize PROFILE]
   tsrust docs content [--cwd directory]
   tsrust api generate [entry.tsr | --entry file | --config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
@@ -86,7 +87,8 @@ Commands:
   docs     Compile checked documentation content and exact example/API data offline
   api      Generate checked TypeScript or async Rust clients from an API description
   dev      Rebuild and restart the configured program on source changes
-  new      Create a project with source, tests and configuration
+  new      Create a project with source, tests and configuration; --ui creates a desktop app
+  ui       List GPUI Kit components or copy editable wrappers into src/components
   check    Check files/directories recursively; defaults to the current directory
   format   Format all .tsr project files; one explicit file prints source
   emit     Emit Rust source or a standalone Cargo package

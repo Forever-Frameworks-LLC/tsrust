@@ -2936,3 +2936,103 @@ export function DockPanel(props: DockPanelProps): Node {
 
   return node;
 }
+
+export interface QuestionnaireProps {
+  /** Receives the answers as JSON: an object from question id to the array of chosen choice ids. */
+  onSubmit?: Owned<Function<void, [answers: ReadOnly<string>]>>;
+  /** Question elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A step-by-step survey of Question elements with progress, Back/Skip/Next/Submit and required-answer validation. Choosing an answer moves to the next question. */
+export function Questionnaire(props: QuestionnaireProps): Node {
+  let node = kitNode('Questionnaire', props.children ?? [], props.className ?? '');
+  const event_onSubmit = props.onSubmit;
+  if (event_onSubmit !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'submit', event_onSubmit));
+  }
+
+  return node;
+}
+
+export interface QuestionProps {
+  /** Key of this question in the submitted answers. */
+  id?: ReactiveValue<string> | TextBinding;
+  /** The question. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Help text under the question. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** Requires an answer before continuing. */
+  required?: ReactiveValue<boolean>;
+  /** Allows several choices; Next continues. */
+  multiple?: ReactiveValue<boolean>;
+  /** QuestionChoice elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One question in a Questionnaire; its QuestionChoice children are the answers. */
+export function Question(props: QuestionProps): Node {
+  let node = kitNode('Question', props.children ?? [], props.className ?? '');
+  const prop_id = props.id;
+  if (prop_id !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'id', prop_id));
+  }
+
+  const prop_title = props.title;
+  if (prop_title !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  const prop_required = props.required;
+  if (prop_required !== undefined) {
+    node = kitFlag(node, 'required', prop_required);
+  }
+
+  const prop_multiple = props.multiple;
+  if (prop_multiple !== undefined) {
+    node = kitFlag(node, 'multiple', prop_multiple);
+  }
+
+  return node;
+}
+
+export interface QuestionChoiceProps {
+  /** Value recorded in the answers. */
+  id?: ReactiveValue<string> | TextBinding;
+  /** Displayed text. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Secondary text under the label. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One answer to a Question. */
+export function QuestionChoice(props: QuestionChoiceProps): Node {
+  let node = kitNode('QuestionChoice', [], props.className ?? '');
+  const prop_id = props.id;
+  if (prop_id !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'id', prop_id));
+  }
+
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  return node;
+}

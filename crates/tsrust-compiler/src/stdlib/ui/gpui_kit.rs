@@ -44,6 +44,7 @@ use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAli
 use gpui_kit::component::marker::{Marker, MarkerContent, MarkerIcon, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
 use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, panel_handle};
+use gpui_kit::component::questionnaire::{Questionnaire, QuestionnaireActions, QuestionnaireChoice, QuestionnaireChoiceDefinition, QuestionnaireChoices, QuestionnaireDescription, QuestionnaireError, QuestionnaireEvent, QuestionnaireItem, QuestionnaireItemDefinition, QuestionnaireNext, QuestionnairePrevious, QuestionnaireProgress, QuestionnaireSkip, QuestionnaireState, QuestionnaireSubmit, QuestionnaireTitle};
 use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings};
 use gpui_kit::component::tag::Tag;
 use gpui_kit::component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
@@ -93,6 +94,7 @@ enum KitState {
     Table(Entity<TableState<Grid>>, String),
     Scroller(Entity<MessageScrollerState>, usize),
     Dock(Entity<DockArea>),
+    Questionnaire(Entity<QuestionnaireState>),
 }
 
 /// One DockPanel: its content is the node's children, drawn through the root.
@@ -248,7 +250,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "InputGroup" | "Diff" | "DataTable" | "MessageScroller" | "Dock") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "InputGroup" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -331,7 +333,7 @@ impl Root {
                             if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
                         }
                     }
-                    KitState::Dock(_) | KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
+                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
                 }
                 continue;
             }
@@ -497,6 +499,37 @@ impl Root {
                     }
                     area.update(cx, |area, cx| area.set_center(layout, window, cx));
                     KitState::Dock(area)
+                }
+                "Questionnaire" => {
+                    // Questions are read once; answers then live in the Kit state.
+                    let mut questions = Vec::new();
+                    let (mut seen, mut duplicate) = (std::collections::HashSet::new(), None);
+                    for (child, question) in find(&self.node, id).map(|node| items(node, "Question").collect::<Vec<_>>()).unwrap_or_default() {
+                        if !seen.insert(question.text("id")) {duplicate = Some(question.text("id"));}
+                        let mut values = std::collections::HashSet::new();
+                        let choices = items(child, "QuestionChoice").map(|(_, choice)| {
+                            if !values.insert(choice.text("id")) {duplicate = Some(format!("{}/{}", question.text("id"), choice.text("id")));}
+                            let definition = QuestionnaireChoiceDefinition::new(choice.text("id"), choice.text("label"));
+                            if choice.text("description").is_empty() {definition} else {definition.with_description(choice.text("description"))}
+                        }).collect::<Vec<_>>();
+                        let mut definition = QuestionnaireItemDefinition::new(question.text("id"), question.text("title"))
+                            .with_required(question.flag("required")).with_multiple(question.flag("multiple")).with_choices(choices);
+                        if !question.text("description").is_empty() {definition = definition.with_description(question.text("description"));}
+                        questions.push(definition);
+                    }
+                    if let Some(duplicate) = duplicate {
+                        *self.failure.borrow_mut() = Some(format!("Questionnaire ids must be unique; {duplicate} repeats"));
+                        cx.quit();
+                        continue;
+                    }
+                    let state = cx.new(|cx| QuestionnaireState::new(questions, cx).expect("question and choice ids are unique"));
+                    cx.subscribe_in(&state, window, move |this, _, event: &QuestionnaireEvent, _, cx| {
+                        if let QuestionnaireEvent::Submit(submission) = event {
+                            let answers = submission.items().iter().map(|item| (item.name().to_string(), serde_json::Value::from(item.answer().choices().iter().map(ToString::to_string).collect::<Vec<_>>()))).collect::<serde_json::Map<_, _>>();
+                            this.emit(id, "submit", serde_json::Value::Object(answers).to_string(), cx);
+                        }
+                    }).detach();
+                    KitState::Questionnaire(state)
                 }
                 "MessageScroller" => {
                     let count = find(&self.node, id).map(|node| node.visible_children().count()).unwrap_or(0);
@@ -1134,6 +1167,24 @@ impl Root {
                 }
                 Settings::new(element_id).pages(pages).into_any_element()
             }
+            "Questionnaire" => match self.states.get(&id) {
+                Some(KitState::Questionnaire(state)) => {
+                    let mut survey = Questionnaire::new(state).child(QuestionnaireProgress::new(state));
+                    for (child, question) in items(node, "Question") {
+                        let name = question.text("id");
+                        let choices = items(child, "QuestionChoice").fold(QuestionnaireChoices::new(state, name.clone()), |list, (_, choice)| list.child(QuestionnaireChoice::new(state, name.clone(), choice.text("id"))));
+                        let mut item = QuestionnaireItem::new(state, name.clone()).child(QuestionnaireTitle::new(state, name.clone()));
+                        if !question.text("description").is_empty() {item = item.child(QuestionnaireDescription::new(state, name.clone()));}
+                        survey = survey.child(item
+                            .child(choices)
+                            .child(QuestionnaireError::new(state, name)));
+                    }
+                    survey.child(QuestionnaireActions::new(state)
+                        .child(QuestionnairePrevious::new(state)).child(QuestionnaireSkip::new(state))
+                        .child(QuestionnaireNext::new(state)).child(QuestionnaireSubmit::new(state))).into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
             "Dock" => match self.states.get(&id) {
                 Some(KitState::Dock(area)) => div().size_full().child(area.clone()).into_any_element(),
                 _ => div().into_any_element(),

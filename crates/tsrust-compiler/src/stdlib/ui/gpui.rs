@@ -149,6 +149,16 @@ impl Root {
                 if node.is_disabled() {return element.into_any_element();}
                 element.cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
             }
+            // Vector art draws as an SVG image with colors resolved for this theme.
+            Kind::Svg => {
+                let (width, height) = node.svg_size().unwrap_or((24., 24.));
+                let current = style::resolved(&node.class_name, theme, mode).iter().find_map(|(_, rule)| match rule {Utility::Foreground(value) => Some(*value), _ => None}).or_else(|| theme.color(mode, "foreground").ok());
+                let base = styled(div().w(px(width as f32)).h(px(height as f32)).flex_shrink_0(), &node.class_name, theme, mode, false);
+                match current.and_then(|current| node.svg_markup(current, theme, mode)) {
+                    Some(markup) => base.child(img(std::sync::Arc::new(Image::from_bytes(ImageFormat::Svg, markup.into_bytes()))).size_full()).into_any_element(),
+                    None => base.into_any_element(),
+                }
+            }
             // Text is one inline run; its literal and bound parts render as one string.
             Kind::Text => styled(div(), &node.class_name, theme, mode, false).child(SharedString::from(node.content_text())).into_any_element(),
             _ if children.is_empty() => styled(div(), &node.class_name, theme, mode, false).child(SharedString::from(node.text.clone())).into_any_element(),

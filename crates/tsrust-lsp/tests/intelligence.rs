@@ -837,7 +837,10 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                         entry["parameters"].as_array().unwrap().len()
                     );
                 }
-                for example in entry["examples"].as_array().unwrap() {
+                // std:ui examples are window programs documented in tsrx fences;
+                // its optional console examples are checked like other modules.
+                let examples: &[Value] = match entry["examples"].as_array() {Some(list) => list, None => {assert!(family == "std:ui", "{family}.{method} lacks examples"); &[]}};
+                for example in examples {
                     checked_std_example(example["source"].as_str().unwrap());
                 }
                 continue;
@@ -1749,12 +1752,14 @@ fn documented_builtin_examples_match_native_output() {
     for (family, entries) in catalog.as_object().unwrap() {
         for entry in entries.as_array().unwrap() {
             let docs = entry["documentation"].as_str().unwrap();
+            let ui = family == "std:ui";
             assert!(
-                docs.contains("```tsrust"),
+                docs.contains("```tsrust") || ui && docs.contains("```tsrx"),
                 "{family}.{} lacks an example",
                 entry["name"]
             );
-            for example in entry["examples"].as_array().unwrap() {
+            let examples: &[Value] = match entry["examples"].as_array() {Some(list) => list, None => {assert!(ui, "{family}.{} lacks examples", entry["name"]); &[]}};
+            for example in examples {
                 let snippet = example["source"].as_str().unwrap();
                 // Standard-library and matcher examples are complete programs,
                 // as is any example that declares its own main function.

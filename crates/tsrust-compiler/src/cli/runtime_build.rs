@@ -217,7 +217,8 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
    if index<3 {
     assert_eq!(prepared.state,"miss");let mut command=prepared.command.take().unwrap();let manifest=command.get_args().skip_while(|arg|*arg!="--manifest-path").nth(1).map(PathBuf::from).unwrap();
     let manifest=fs::read_to_string(manifest).unwrap().parse::<toml_edit::DocumentMut>().unwrap();let name=manifest["lib"]["name"].as_str().unwrap().to_owned();
-    let target=prepared.cargo.as_ref().unwrap().target.clone();if let Some(first)=&first_target{assert_eq!(first,&target);}else{first_target=Some(target);}
+    let target=prepared.cargo.as_ref().unwrap().target.clone();// Distinct cache roots share one target only through an explicit CARGO_TARGET_DIR (as in CI).
+    if let Some(first)=&first_target{if std::env::var_os("CARGO_TARGET_DIR").is_some(){assert_eq!(first,&target);}}else{first_target=Some(target);}
     prepared.acquire_target(true).unwrap();let output=command.output().unwrap();assert!(output.status.success(),"{}",prepared.compilation_error(&String::from_utf8_lossy(&output.stderr)));
     if index==2 {let text=fs::read_to_string(temporary.join("runtime.stdout")).unwrap();let fresh=text.lines().filter_map(|line|serde_json::from_str::<serde_json::Value>(line).ok()).any(|row|row["reason"]=="compiler-artifact"&&row["target"]["name"]==name&&row["fresh"]==true);assert!(fresh,"Unchanged A must use Cargo's fresh graph");}
     prepared.finish().unwrap();let bytes=fs::read(prepared.library.as_ref().unwrap()).unwrap();

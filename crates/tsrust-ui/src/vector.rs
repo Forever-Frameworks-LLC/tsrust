@@ -143,3 +143,44 @@ impl Node {
   let root=root.with_semantics(r#"{"role":"img","label":"Saved"}"#).unwrap();assert!(!root.semantics.hidden);assert_eq!(root.content_text(),"Saved");assert!(Node::svg(vec![],String::new(),"{}").unwrap().with_semantics(r#"{"role":"img"}"#).is_err());
  }
 }
+
+impl Node {
+ /// A standalone SVG document for this Svg node, for renderers that draw SVG
+ /// images. Theme colors and currentColor become concrete rgba values.
+ #[cfg(any(test,feature="gpui"))]
+ pub fn svg_size(&self)->Option<(f64,f64)> {match self.vector.as_deref() {Some(Data::Root(root))=>Some((root.width,root.height)),_=>None}}
+ #[cfg(any(test,feature="gpui"))]
+ pub fn svg_markup(&self,current:ResolvedColor,theme:&Theme,mode:&str)->Option<String> {
+  fn css(color:ResolvedColor)->String {let [r,g,b,a]=color.components();format!("rgba({},{},{},{a})",(r*255.).round(),(g*255.).round(),(b*255.).round())}
+  fn escape(value:&str)->String {value.replace('&',"&amp;").replace('<',"&lt;").replace('>',"&gt;").replace('"',"&quot;")}
+  let attributes=|data:&Data,out:&mut String| for (key,value) in data.attributes() {
+   let value=match value.strip_prefix("var(--ui-").and_then(|rest|rest.strip_suffix(')')) {
+    Some(name)=>theme.color(mode,name).map(css).unwrap_or(value),
+    None if value=="currentColor"=>css(current),
+    None=>value,
+   };
+   out.push_str(&format!(" {key}=\"{}\"",escape(&value)));
+  };
+  let Some(root)=self.vector.as_deref().filter(|_|self.kind==Kind::Svg) else{return None};
+  let mut out=String::from("<svg");attributes(root,&mut out);out.push('>');
+  for path in self.visible_children() {if let Some(data)=path.vector.as_deref(){out.push_str("<path");attributes(data,&mut out);out.push_str("/>");}}
+  out.push_str("</svg>");Some(out)
+ }
+}
+
+#[cfg(test)]
+mod markup_tests {
+ use crate::{Child,Node,theme::Theme};
+ #[test]
+ fn svg_markup_resolves_current_and_theme_colors() {
+  let path=Node::svg_path("M0 0L10 10",String::new(),r#"{"stroke":"primary"}"#).unwrap();
+  let svg=Node::svg(vec![Child::Node(path)],String::new(),r#"{"viewBox":"0 0 10 10","width":20,"height":20}"#).unwrap();
+  let theme=Theme::default();
+  let current=theme.color("light","foreground").unwrap();
+  let markup=svg.svg_markup(current,&theme,"light").unwrap();
+  assert!(markup.starts_with("<svg") && markup.ends_with("</svg>"),"{markup}");
+  assert!(markup.contains(r#"viewBox="0 0 10 10""#) && markup.contains(r#"d="M0 0L10 10""#),"{markup}");
+  assert!(!markup.contains("currentColor") && !markup.contains("var(--ui-") && markup.contains("rgba("),"{markup}");
+  assert_eq!(svg.svg_size(),Some((20.,20.)));
+ }
+}

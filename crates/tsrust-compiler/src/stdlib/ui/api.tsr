@@ -114,7 +114,7 @@ function checkSvgPaint(strokeWidth: number | undefined, strokeMiterlimit: number
     throw 'SVG strokeMiterlimit must be finite and at least 1';
   }
 }
-/** Creates a checked vector viewport with owned Path children. Defaults to a decorative 24px image; provide aria-label for meaningful imagery. No browser JS or external resources are loaded. */
+/** Creates a checked vector viewport with owned Path children. Defaults to a decorative 24px image; provide aria-label for meaningful imagery. It draws as an SVG image with theme colors resolved; no external resources are loaded. */
 export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   checkSvgPaint(props.strokeWidth, props.strokeMiterlimit);
   const width: number = props.width ?? 24;
@@ -170,7 +170,7 @@ interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
   tabIndex?: int;
   /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. JSX state conditions refresh after handlers. Defaults to false. */
   hidden?: boolean | ReactiveBoolean;
-  /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. Browser hosts keep control of their own window. */
+  /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. */
   windowDragRegion?: boolean;
   /** Semantic container tag; defaults to div. Landmarks, lists, blockquotes and table parts preserve their native accessibility roles. Layout remains explicit through className. kbd and code accept composed phrasing children. */
   as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code' | 'nav' | 'main' | 'header' | 'footer' | 'aside' | 'article' | 'blockquote' | 'ul' | 'ol' | 'li' | 'table' | 'thead' | 'tbody' | 'tfoot' | 'caption' | 'tr' | 'th' | 'td';
@@ -339,7 +339,7 @@ interface CopyButtonProperties<Classes, Variant> extends ElementProps<Variant> {
 }
 
 export type CopyButtonProps<Classes = string, Variant = string> = CopyButtonProperties<Classes, Variant>;
-/** Copies value on activation. Shows Copy, Copying…, Copied or Copy failed. Try again.; failures retain the application and expose the platform message as a description. Ownership: owns a text snapshot; browser completion never retains a removed subtree. */
+/** A copy icon button: activating it writes value to the system clipboard and briefly shows a check mark. Ownership: owns a text snapshot. */
 export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const className = props.className;
   const variant = props['data-variant'];
@@ -429,7 +429,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   return applyProperties(unwrapNode(staticButton(children, classes, disabled ?? false)), metadata, className, variant);
 }
 
-/** An application path or HTTPS link. External links open through the browser or native default browser. */
+/** An application path or HTTPS link. External links open in the default browser. */
 interface LinkProperties<Classes, Variant> extends ElementProps<Variant> {
   /** Absolute local path with optional heading fragment, or an HTTPS URL without credentials. Local queries, escapes and traversal are rejected. */
   href: string;
@@ -438,7 +438,7 @@ interface LinkProperties<Classes, Variant> extends ElementProps<Variant> {
 }
 
 export type LinkProps<Classes = string, Variant = string> = LinkProperties<Classes, Variant>;
-/** Navigates locally or opens an HTTPS URL. The current page and ancestor path segments expose aria-current for styling and accessibility. External links leave application history unchanged. Browser anchors retain modified-click behavior; native launch failures throw. */
+/** Navigates locally or opens an HTTPS URL. The current page and ancestor path segments expose aria-current for styling and accessibility. External links leave application history unchanged. Launch failures throw. */
 export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const className = props.className;
   const variant = props['data-variant'];
@@ -446,7 +446,7 @@ export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<strin
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   return applyProperties(unwrapNode(nativeLink(props.children ?? [], classes, props.href)), metadata, className, variant);
 }
-/** Creates the single application location owner, initially the browser path or / on native. Its get/set methods use checked absolute local paths. */
+/** Creates the single application location owner, initially /. Its get/set methods use checked absolute local paths. */
 export function location(): Signal<string> {
   return unwrap(nativeLocation());
 }
@@ -454,11 +454,11 @@ export function location(): Signal<string> {
 export function navigate(path: string): void {
   unwrap(nativeNavigate(path));
 }
-/** Visits the preceding browser/native history entry. No prior entry is a no-op on native. */
+/** Visits the preceding application history entry. No prior entry is a no-op. */
 export function back(): void {
   unwrap(nativeTraverse(false));
 }
-/** Visits the following browser/native history entry. No following entry is a no-op on native. */
+/** Visits the following application history entry. No following entry is a no-op. */
 export function forward(): void {
   unwrap(nativeTraverse(true));
 }
@@ -488,7 +488,7 @@ export function document(node: ReadOnly<Node>, title: string): string {
 
   return nativeDocument(node, title);
 }
-/** Checked native window creation options. Browser hosts retain control of their own window. */
+/** Checked native window creation options. */
 export interface WindowOptions {
   /** Initial content width, 240–16384 logical pixels; defaults to 640. */
   width?: number;
@@ -498,7 +498,7 @@ export interface WindowOptions {
   minWidth?: number;
   /** Minimum height, 160–initial height; defaults to 160. */
   minHeight?: number;
-  /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. Browsers retain their host window. */
+  /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. */
   titlebar?: 'native' | 'custom';
   /** Font files (.ttf or .otf) loaded before the window opens, so their families can be used. */
   fonts?: string[];
@@ -506,7 +506,7 @@ export interface WindowOptions {
   font?: string;
 }
 
-/** Opens a GPU-rendered native window on the main thread and waits for closure. Checked options apply during creation. Browsers mount within their host page. Returns Ok after cleanup or Err for invalid options, renderer or handler errors. Consumes the tree; title is borrowed. */
+/** Opens a GPU-rendered native window on the main thread and waits for closure. Checked options apply during creation. Returns Ok after cleanup or Err for invalid options, renderer or handler errors. Consumes the tree; title is borrowed. */
 export function run(node: Node, title: string, options?: WindowOptions): Result<void, UiError> {
   return nativeRun(node, title, JSON.stringify(options ?? {}));
 }

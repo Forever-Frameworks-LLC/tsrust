@@ -3,15 +3,17 @@ use super::project_config::{FILE,valid_name};
 pub(super) const AGENT_GUIDANCE:&str=include_str!("project-agents.md");
 
 pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
-    let mut args=args;let mut application=false;let mut requested=None;let mut targets=vec![];
-    while let Some(arg)=args.next(){match arg.as_str(){"--app" if !application=>application=true,"--ui"=>return Err(format!("new --ui: {}",super::ui_cli::UNAVAILABLE)),"--target"=>targets.push(args.next().ok_or("--target requires a target name")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--app [--target backend]]".into())}}
+    let mut args=args;let mut application=false;let mut ui=false;let mut requested=None;let mut targets=vec![];
+    while let Some(arg)=args.next(){match arg.as_str(){"--app" if !application=>application=true,"--ui" if !ui=>ui=true,"--target"=>targets.push(args.next().ok_or("--target requires a target name")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--ui | --app [--target backend]]".into())}}
     if !application && !targets.is_empty(){return Err("--target requires --app".into());}
+    if ui && application {return Err("Choose --ui or --app".into());}
     if application {super::application_scaffold::validate_targets(&targets)?;}
     let guided=requested.is_none() && super::interactive_cli::available();
     let root=loop {
         let requested=if guided {let Some(value)=super::interactive_cli::text("Project name or path")? else{return Ok(0);};value}else{requested.take().ok_or("Missing project name. Run tsrust new in a terminal, or pass a name.")?};
         match destination(&requested) {Ok(root)=>break root,Err(error) if guided=>eprintln!("{error}"),Err(error)=>return Err(error)}
     };
+    if ui {super::ui_cli::create_app(&root)?;println!("Created {}.\nRun `tsrust dev` from that directory.",root.display());return Ok(0);}
     if guided && !application {
         let Some(kind)=super::interactive_cli::choose("Project type",&["Backend HTTP application","Console application"])? else{return Ok(0);};application=kind==0;
     }

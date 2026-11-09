@@ -17,18 +17,29 @@ fn redirected_bare_command_prints_help_without_prompting_or_writing() {
 }
 
 #[test]
-fn ui_commands_report_gpui_support_in_development_without_writing() {
+fn ui_commands_list_add_wrappers_and_create_desktop_projects() {
     let root = support::TempDirectory::new();
     let help = support::run(support::cli().arg("--help").current_dir(&root.0), 10);
     support::success(&help);
     let text = String::from_utf8(help.stdout).unwrap();
-    assert!(!text.contains("tsrust ui") && !text.contains("--ui") && !text.contains("--target native|web"), "{text}");
-    for (args, message) in [(vec!["ui", "list"], "in development"), (vec!["ui", "add", "button"], "in development"), (vec!["new", "counter", "--ui"], "in development"), (vec!["dev", "--target", "web"], "Unknown or repeated dev option")] {
+    assert!(text.contains("tsrust ui list") && text.contains("--ui") && !text.contains("--target native|web"), "{text}");
+    for (args, message) in [(vec!["ui"], "Usage: tsrust ui"), (vec!["ui", "add", "nonexistent"], "Unknown component"), (vec!["dev", "--target", "web"], "Unknown or repeated dev option")] {
         let output = support::run(support::cli().args(&args).current_dir(&root.0).stdin(std::process::Stdio::null()), 10);
         assert!(!output.status.success(), "{args:?}");
         assert!(String::from_utf8_lossy(&output.stderr).contains(message), "{args:?}: {}", String::from_utf8_lossy(&output.stderr));
         assert_eq!(std::fs::read_dir(&root.0).unwrap().count(), 0);
     }
+    let list = support::run(support::cli().args(["ui", "list"]).current_dir(&root.0), 10);
+    support::success(&list);
+    let listed = String::from_utf8(list.stdout).unwrap();
+    assert!(listed.lines().any(|line| line.starts_with("Settings ")) && listed.contains("DataTable") && !listed.lines().any(|line| line.starts_with("SettingItem ")), "{listed}");
+    support::success(&support::run(support::cli().args(["new", "counter", "--ui"]).current_dir(&root.0).stdin(std::process::Stdio::null()), 20));
+    let project = root.0.join("counter");
+    for file in ["tsrust.config.json", "src/main.tsrx", "src/locales/en.json", "icon.png", "README.md"] {assert!(project.join(file).is_file(), "{file}");}
+    support::success(&support::run(support::cli().args(["ui", "add", "settings"]).current_dir(&project).stdin(std::process::Stdio::null()), 20));
+    let wrapper = std::fs::read_to_string(project.join("src/components/Settings.tsrx")).unwrap();
+    assert!(wrapper.contains("export function SettingItem(props: SettingItemProps): Node"), "{wrapper}");
+    support::success(&support::run(support::cli().args(["check", "src/components"]).current_dir(&project), 60));
 }
 
 #[cfg(unix)]

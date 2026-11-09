@@ -6,6 +6,24 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### GPUI CLI, Questionnaire, Svg and doc rewrite — 2026-11-09
+
+Owner: no signing or published release; users run the source. The starter has
+`tsrust.config.json` and `examples/gpui-starter/dev.sh` (builds this checkout's
+compiler, then `tsrust dev`: ~20 s rebuild and restart on save; cold first build
+~3 min). `tsrust new <name> --ui` copies the starter; `tsrust ui list|add` writes
+editable wrappers (component plus its item components) into `src/components/`;
+all 75 wrappers check and a generated project builds. Questionnaire/Question/
+QuestionChoice (submit emits JSON answers) verified by input. Fixed: Svg/Path drew
+nothing on GPUI; they now render as SVG images with resolved theme colors
+(`Node::svg_markup`). Route, Link, navigate, back and CopyButton verified on GPUI.
+The 27 std:ui IntelliSense entries and api.tsr comments no longer describe the
+removed browser/Vello renderer; every std:ui entry now has a tsrx example, and
+the LSP catalog tests accept tsrx fences and optional console examples for std:ui
+(they had failed since std:ui returned). The runtime_build dependency-reuse test
+only asserts a shared Cargo target when CARGO_TARGET_DIR is set (it failed on
+every local run without it). 107 components.
+
 ### GPUI services, packaging, updates and starter — 2026-11-09
 
 Branch `codex/gpui-ui`. Since the catalog pass: application services (notify,

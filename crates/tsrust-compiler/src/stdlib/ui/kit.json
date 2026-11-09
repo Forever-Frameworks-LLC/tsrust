@@ -2068,6 +2068,78 @@
       "children": true,
       "item": true,
       "example": "<DockPanel title=\"Console\" size={200}/>"
+    },
+    {
+      "name": "Questionnaire",
+      "doc": "A step-by-step survey of Question elements with progress, Back/Skip/Next/Submit and required-answer validation. Choosing an answer moves to the next question.",
+      "props": [],
+      "children": "Question",
+      "events": [
+        {
+          "prop": "onSubmit",
+          "value": "string",
+          "param": "answers",
+          "doc": "Receives the answers as JSON: an object from question id to the array of chosen choice ids."
+        }
+      ],
+      "example": "<Questionnaire onSubmit={(answers) => { saved.set(clone(answers)); }}><Question id=\"plan\" title=\"Which plan?\" required={true}><QuestionChoice id=\"free\" label=\"Free\"/><QuestionChoice id=\"pro\" label=\"Pro\"/></Question></Questionnaire>"
+    },
+    {
+      "name": "Question",
+      "doc": "One question in a Questionnaire; its QuestionChoice children are the answers.",
+      "props": [
+        {
+          "name": "id",
+          "type": "string",
+          "doc": "Key of this question in the submitted answers."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "The question."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Help text under the question."
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "doc": "Requires an answer before continuing."
+        },
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "doc": "Allows several choices; Next continues."
+        }
+      ],
+      "children": "QuestionChoice",
+      "item": true,
+      "example": "<Question id=\"tools\" title=\"Which tools?\" multiple={true}/>"
+    },
+    {
+      "name": "QuestionChoice",
+      "doc": "One answer to a Question.",
+      "props": [
+        {
+          "name": "id",
+          "type": "string",
+          "doc": "Value recorded in the answers."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Displayed text."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Secondary text under the label."
+        }
+      ],
+      "item": true,
+      "example": "<QuestionChoice id=\"pro\" label=\"Pro\" description=\"For teams.\"/>"
     }
   ],
   "icons": [

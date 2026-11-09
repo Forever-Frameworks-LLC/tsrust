@@ -23,7 +23,7 @@ function Overview(): Node {
         <Kbd keys="cmd-k" />
         <ProgressCircle value={72} />
       </View>
-      <Alert variant="info" title="Built with tsrust package" message="Signed, notarized and updated from GitHub releases." />
+      <Alert variant="info" title="Edit and see it live" message="Run tsrust dev in this folder; saving main.tsrx rebuilds and restarts the app." />
       <Markdown content={'### Highlights\n\n- Signals drive every component\n- One `.tsrx` file, compiled to a native binary\n- `tsrust package` makes the app, zip and DMG'} />
       <View className="flex-row gap-4 h-48">
         <Chart kind="bar" labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri']} values={[12, 19, 9, 22, 16]} className="w-72 h-48" />
