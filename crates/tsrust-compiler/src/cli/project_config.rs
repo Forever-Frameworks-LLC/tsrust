@@ -34,8 +34,6 @@ pub(crate) fn parse(root:&Path,text:&str)->Result<Project,String> {
     if !config.get("name").and_then(Value::as_str).is_some_and(valid_name) {return Err(format!("{FILE}: name must start with a letter and contain only ASCII letters, digits, '_' or '-' (maximum 100 characters)"));}
     tsrust_compiler::project_resolution::Aliases::parse(root,config.get("paths"))?;
     config.get("api").map(super::api_cli::validate_inline).transpose()?;
-    config.get("ui").map(tsrust_compiler::ui_project::Config::parse).transpose()?;
-    if let Some(value)=config.get("documentation"){let config:tsrust_compiler::documentation::Config=serde_json::from_value(value.clone()).map_err(|error|format!("Invalid documentation configuration: {error}"))?;config.validate()?;}
     let build=object(config.get("build").ok_or("Missing build configuration")?,"build",&["entry","output"])?;
     let entry=relative(build.get("entry"),"build.entry")?;
     let output=relative(build.get("output"),"build.output")?;

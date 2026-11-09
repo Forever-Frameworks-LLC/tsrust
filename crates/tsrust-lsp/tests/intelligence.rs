@@ -725,16 +725,10 @@ fn nested_call_commas_and_utf16_positions() {
 
 #[test]
 fn backend_catalog_entries_have_current_compiler_witnesses() {
-    every_catalog_entry_has_a_current_compiler_witness(false);
+    every_catalog_entry_has_a_current_compiler_witness();
 }
 
-#[test]
-#[ignore = "frozen UI catalog (backend-only reset): UiComputed/UiSignal lack witnesses and in-text examples; run with --ignored if the UI is revived"]
-fn retained_ui_catalog_entries_have_current_compiler_witnesses() {
-    every_catalog_entry_has_a_current_compiler_witness(true);
-}
-
-fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
+fn every_catalog_entry_has_a_current_compiler_witness() {
     for (ty, literal, method, result) in [
         ("string", "\"x\"", "valueOf", "string"),
         ("string", "\"x\"", "toString", "string"),
@@ -832,9 +826,6 @@ fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
     }
     let catalog: Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     for (family, entries) in catalog.as_object().unwrap() {
-        if (family == "std:ui" || family.starts_with("Ui")) != retained_ui {
-            continue;
-        }
         for entry in entries.as_array().unwrap() {
             let method = entry["name"].as_str().unwrap();
             if family.starts_with("std:") {
@@ -1733,16 +1724,10 @@ impl CatalogExampleSource {
 
 #[test]
 fn backend_catalog_examples_match_native_output() {
-    documented_builtin_examples_match_native_output(false);
+    documented_builtin_examples_match_native_output();
 }
 
-#[test]
-#[ignore = "frozen UI catalog (backend-only reset): UiComputed/UiSignal lack witnesses and in-text examples; run with --ignored if the UI is revived"]
-fn retained_ui_catalog_examples_match_native_output() {
-    documented_builtin_examples_match_native_output(true);
-}
-
-fn documented_builtin_examples_match_native_output(retained_ui: bool) {
+fn documented_builtin_examples_match_native_output() {
     // File examples document a four-byte input; keep it outside the owner workspace.
     struct ExampleDirectory(std::path::PathBuf);
     impl Drop for ExampleDirectory {
@@ -1762,9 +1747,6 @@ fn documented_builtin_examples_match_native_output(retained_ui: bool) {
     let mut expected = String::new();
     let mut expected_stderr = String::new();
     for (family, entries) in catalog.as_object().unwrap() {
-        if (family == "std:ui" || family.starts_with("Ui")) != retained_ui {
-            continue;
-        }
         for entry in entries.as_array().unwrap() {
             let docs = entry["documentation"].as_str().unwrap();
             assert!(

@@ -38,6 +38,10 @@ number or release promise is assigned to this plan.
   LSP, startup time and the `ui add` flow, opened in VS Code.
 - Desktop (macOS/Windows/Linux) first; WASM follows, because GPUI Kit's web path
   is showcase-only and needs nightly.
+- Rust toolchain: GPUI Kit 0.9.0 fails on 1.96.1 (`Option::map_or_default`) and
+  builds on 1.99.1. Users get a minimum version, Rust 1.99 or newer from their
+  installed stable toolchain, checked by setup/doctor; native caches already key
+  on the exact `rustc` version. The repository pins 1.99.1 only for reproducible CI.
 
 ## Research and boundaries
 
@@ -242,15 +246,20 @@ independent, and a backend never gains UI dependencies.
 
 Branch `codex/gpui-ui`. Push once, to merge, when the section is complete.
 
-- [ ] Workspace: `tsrust.workspace.json` members and client edges; root
-  check/build/test/format with `--project` (implementation in progress).
-- [ ] Admission: pinned `gpui-kit =0.9.0` direct-Rust reference slice (counter,
-  controlled input, conditional child) builds and runs with Rust 1.96.1.
-- [ ] Removal: delete the ground-up renderer (`crates/tsrust-ui`, `std:ui`,
+- [x] Workspace: `tsrust.workspace.json` members and client edges; root
+  check/build/test/format with `--project`. Scaffolding (`new --workspace`,
+  `workspace add`) follows with the UI CLI.
+- [x] Admission: pinned `gpui-kit =0.9.0` direct-Rust reference slice (counter,
+  controlled input, conditional child) in `experiments/gpui-kit-admission`
+  builds with Rust 1.99.1 (1.96.1 lacks stable `Option::map_or_default`).
+- [x] Removal: delete the ground-up renderer (`crates/tsrust-ui`, `std:ui`,
   `ui-runtime`, UI lowering in analysis/emit, `ui_project`, UI CLI, dev web/
   frontend, `legacy-ui`, vello/winit/accesskit dependencies), UI tests, examples
   and docs, and every Electron/React/Expo/Vite/shadcn template and pin. Keep the
   `.tsrx` parser, formatter, JSX syntax and editor parsing. Backend layers pass.
+  JSX still lowers to plain component calls (`<Tag {...}/>` is `Tag({...})`);
+  native support now always builds from the shared backend dependency set, whose
+  UI-free native manifest dropped from 571 to 326 locked packages.
 - [ ] Bridge: `.tsrx` function components lower to GPUI views (signals become
   entity state plus `cx.notify`; events use `cx.listener`; intrinsic elements map
   to GPUI elements; Kit components bind through compiler-owned wrappers). Match

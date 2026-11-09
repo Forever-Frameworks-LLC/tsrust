@@ -6,6 +6,32 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### GPUI section: earlier UI removal — 2026-11-09
+
+Branch `codex/gpui-ui`. Both earlier UI attempts are removed: `crates/tsrust-ui`,
+`std:ui`/`std:ui-runtime`, UI analysis/emit, `ui_project`, the UI CLI, dev web
+and docs app (`docs/src`, `docs/content`), the UI catalog, UI examples, tests and
+benchmarks, and the React/Electron/Expo/shadcn traces. The `.tsrx` parser,
+formatter and JSX syntax stay; JSX lowers to plain component calls. The native
+dependency manifest dropped its UI crates (571 to 326 locked packages) and native
+support always builds from the shared backend set. `tsrust ui`/`new --ui` report
+GPUI Kit support in development. Fixed in passing: LSP snapshots record
+`tsrust.config.json` as a loaded source (previously implied by UI config reads);
+`testing_runtime` stubs the capture reset; four test helpers lex with the new
+`tsrust_compiler::source_tokens`.
+
+Local acceptance: compiler lib 1540, CLI 47, LSP lib 25 and bin 6; 134 runtime
+suites (370 s, 0 failed); affected host targets (acceptance, interactive_cli,
+native_cache, native_dependency_bundle, native_package_export, package_management,
+project_commands, router_contract, testing_runtime, toolchain_installation,
+url_features) and LSP targets (stdio, api_project, editor_consistency,
+completion_matrix, checker_agreement, project_intelligence) pass; API audit PASS
+at 1,583 identities (102 UI rows removed); clippy correctness, format check and
+tooling tests pass. Next: toolchain minimum-version policy, then the GPUI bridge.
+
+PR #16 CI fix `f324a669` (Windows `normalize` output, UTF-8 suite output, no `tsc`
+in host tests) is pushed; its CI run is pending.
+
 ### Outstanding-issue fixes and v0.2.0 preparation — 2026-11-09
 
 - Fixed: `captureOutput` now ends its capture in `finally`, so a throwing

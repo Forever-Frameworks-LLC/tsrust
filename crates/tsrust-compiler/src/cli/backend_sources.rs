@@ -6,10 +6,6 @@ pub(crate) const MANIFEST: &str = include_str!("../../backend-dependencies/Cargo
 pub(crate) const LOCK: &str = include_str!("../../backend-dependencies/Cargo.lock");
 const BASE_IDENTITY: &str = concat!("shared-backend-sources-2\n", include_str!("../../backend-dependencies/Cargo.toml"), include_str!("../../backend-dependencies/Cargo.lock"));
 
-pub(crate) fn shared(source: &str) -> Result<bool, String> {
-    Ok(!source.contains("pub mod tsrust_native_ui {") || !super::rust_binding_packages::packages(source)?.is_empty())
-}
-
 pub(crate) fn cargo_home() -> Result<PathBuf, String> {
     let home = std::env::var_os("CARGO_HOME").map(PathBuf::from).or_else(||
         std::env::var_os(if cfg!(windows) {"USERPROFILE"} else {"HOME"}).map(|home|PathBuf::from(home).join(".cargo")))
@@ -155,7 +151,7 @@ pub(crate) fn unchanged(expected: Option<&str>, root: &Path) -> bool {
 }
 
 pub(crate) fn application_identity(source: &str, root: &Path) -> Result<Option<String>, String> {
-    if tsrust_compiler::native_runtime::requires_dependencies(source) && shared(source)? {Ok(Some(identity(root)?))} else {Ok(None)}
+    if tsrust_compiler::native_runtime::requires_dependencies(source) {Ok(Some(identity(root)?))} else {Ok(None)}
 }
 
 pub(crate) fn dependency_identity()-> &'static str {

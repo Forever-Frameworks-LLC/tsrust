@@ -33,7 +33,9 @@ Current UI application contract (2026-10-18): inline ui.theme configuration,
 src/app and src/components conventions, explicit ui.target booleans and first-component ui add setup, shared semantic
 utilities, editable local components, exact offline installation/locks and LSP
 are implemented. Direct signal-reading disabled predicates refresh after handlers.
-See [the application guide](../guides/ui-applications.md) and current handoff for
+That UI was removed on 2026-11-08 in favor of GPUI Kit (see
+[the GPUI application platform plan](gpui-application-platform.md)); the history above
+is retained. See the current handoff for
 focused acceptance and explicit limits. Portable text controls, native selection/IME and local Nova Input/Textarea/Label
 sources now pass focused acceptance within their explicit partial scope. Required
 next UI work includes Field composition, complete

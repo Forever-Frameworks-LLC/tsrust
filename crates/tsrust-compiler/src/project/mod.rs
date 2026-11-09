@@ -35,16 +35,6 @@ pub trait SourceProvider {
 /// its bundled std import. Never infer trust from a basename or directory layout:
 /// require this tool's canonical implementation path and exact bundled bytes.
 /// Call only for an entry; imported user files retain normal private-binding checks.
-pub fn bundled_entry(provider:&impl SourceProvider,id:&SourceId)->Option<SourceId> {
-    static UI:std::sync::LazyLock<PathBuf>=std::sync::LazyLock::new(||{
-        let path=Path::new(env!("CARGO_MANIFEST_DIR")).join("src/stdlib/ui/api.tsr");
-        std::fs::canonicalize(&path).unwrap_or(path)
-    });
-    if Path::new(&id.0)!=UI.as_path(){return None;}
-    let logical=SourceId("std:ui".into());
-    (provider.read(id).ok()?.as_str()==bundled_source(&logical)?).then_some(logical)
-}
-
 pub struct FileSourceProvider;
 impl SourceProvider for FileSourceProvider {
     fn resolve(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
@@ -68,7 +58,7 @@ impl SourceProvider for FileSourceProvider {
             .to_str()
             .ok_or("Source path must be valid UTF-8.")?;
         let id=SourceId(identity.to_owned());
-        Ok(if importer.is_none(){bundled_entry(self,&id).unwrap_or(id)}else{id})
+        Ok(id)
     }
     fn read(&self, id: &SourceId) -> Result<String, String> {
         if let Some(source) = crate::stdlib::source(&id.0) {
@@ -673,16 +663,6 @@ fn load_graph(
     if crate::api::project::config_for_virtual(&entry).is_some(){
         return Err(error(&entry,"api-import","Import compiler-owned dispatch using api:server; it cannot be an operation entry.",Span::default()));
     }
-    if declarations && !entry.0.starts_with("std:") {
-        for root in Path::new(&entry.0).parent().unwrap_or(Path::new(".")).ancestors() {
-            let config=SourceId(root.join("tsrust.config.json").to_string_lossy().into_owned());
-            if let Ok(text)=provider.read(&config) {
-                let value:serde_json::Value=serde_json::from_str(&text).map_err(|e|error(&config,"ui-config",e.to_string(),Span::default()))?;
-                if let Some(ui)=value.get("ui") {crate::ui_project::Config::parse(ui).map_err(|e|error(&config,"ui-theme",e,Span::new(0,text.len().min(1))))?;}
-                break;
-            }
-        }
-    }
     let mut graph = ProjectGraph {
         entry: entry.clone(),
         modules: BTreeMap::new(),
@@ -729,12 +709,6 @@ fn visit(
         provider.read(&id)
             .map_err(|message| error(&id, "module-load", message, Span::default()))?
     };
-    if declarations && id.0.ends_with(".json") && crate::ui_project::configured_theme(Path::new(&id.0),|path|{
-        let source=SourceId(path.to_string_lossy().into_owned());
-        match provider.read(&source) {Ok(value)=>Ok(Some(value)),Err(_)=>Ok(None)}
-    }).map_err(|message|error(&id,"ui-config",message,Span::default()))? {
-        crate::ui_project::theme::Theme::parse(&crate::ui_project::theme_document(Path::new(&id.0),&text).map(|(value,_)|value.to_string()).unwrap_or_else(||text.clone())).map_err(|message|error(&id,"ui-theme",message,Span::new(0,text.len().min(1))))?;
-    }
     let source=SourceFile{id:id.clone(),text};
     let mut module=if id.0.ends_with(".bindings.json") {
         let (mut module,inputs)=rust::bindings(provider,source)?;
@@ -749,12 +723,6 @@ fn visit(
     }else if let Some(cache)=cache.as_deref_mut(){cache.parse(source)?}else{parse_module(source,declarations)?};
     for import in &mut module.imports {
         if import.target.is_some(){continue;}
-        if import.path == "std:ui-runtime" && id.0 != "std:ui" {
-            return Err(error(&id, "module-native",
-                "UI runtime bindings are private; import from std:ui.",
-                import.span,
-            ));
-        }
         if import.path=="std:log-runtime" && id.0!="std:log"{return Err(error(&id,"module-native","Logging runtime bindings are private; import from std:log.",import.span));}
         if import.path == "std:testing-runtime" && id.0 != "std:testing" {
             return Err(error(&id, "module-native", "Testing runtime bindings are private; import from std:testing.", import.span));

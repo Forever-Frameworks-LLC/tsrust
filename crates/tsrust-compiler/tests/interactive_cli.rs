@@ -16,18 +16,17 @@ fn redirected_bare_command_prints_help_without_prompting_or_writing() {
     }
 }
 
-#[cfg(not(feature = "legacy-ui"))]
 #[test]
-fn release_build_omits_frozen_ui_commands_without_writing() {
+fn ui_commands_report_gpui_support_in_development_without_writing() {
     let root = support::TempDirectory::new();
     let help = support::run(support::cli().arg("--help").current_dir(&root.0), 10);
     support::success(&help);
     let text = String::from_utf8(help.stdout).unwrap();
     assert!(!text.contains("tsrust ui") && !text.contains("--ui") && !text.contains("--target native|web"), "{text}");
-    for args in [vec!["ui", "list", "--bundled"], vec!["ui", "add", "button@3.0.0", "--target", "native"], vec!["new", "counter", "--ui"], vec!["dev", "--target", "web"]] {
+    for (args, message) in [(vec!["ui", "list"], "in development"), (vec!["ui", "add", "button"], "in development"), (vec!["new", "counter", "--ui"], "in development"), (vec!["dev", "--target", "web"], "Unknown or repeated dev option")] {
         let output = support::run(support::cli().args(&args).current_dir(&root.0).stdin(std::process::Stdio::null()), 10);
         assert!(!output.status.success(), "{args:?}");
-        assert!(String::from_utf8_lossy(&output.stderr).contains("frozen legacy UI"), "{args:?}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains(message), "{args:?}: {}", String::from_utf8_lossy(&output.stderr));
         assert_eq!(std::fs::read_dir(&root.0).unwrap().count(), 0);
     }
 }
@@ -115,15 +114,13 @@ mod terminal {
 
     const DOWN: &str = "\x1b[B";
     const ENTER: &str = "\r";
-    #[cfg_attr(not(feature = "legacy-ui"), allow(dead_code))]
     const CANCEL: &str = "\x03";
 
     #[test]
     fn keyboard_categories_create_and_check_a_project() {
         let root = support::TempDirectory::new();
         let mut terminal = Terminal::start(&root.0, &[]);
-        // The legacy UI category precedes Project only in legacy-ui builds.
-        terminal.answer("What would you like to do?", if cfg!(feature = "legacy-ui") { &[DOWN, ENTER][..] } else { &[ENTER][..] });
+        terminal.answer("What would you like to do?", &[ENTER]);
         terminal.answer("Create a project", &[ENTER]);
         terminal.answer("Project name or path", &["missing/hello", ENTER]);
         terminal.answer("Parent directory does not exist", &["hello", ENTER]);
@@ -150,51 +147,7 @@ mod terminal {
         assert_eq!(std::fs::read(project.join("tsrust.config.json")).unwrap(), bytes);
     }
 
-    #[cfg(feature = "legacy-ui")]
-    #[test]
-    fn searchable_catalog_has_details_and_returns_to_categories_without_writes() {
-        let root = support::TempDirectory::new();
-        let mut terminal = Terminal::start(&root.0, &[]);
-        terminal.answer("What would you like to do?", &[ENTER]);
-        terminal.answer("Browse components", &[ENTER]);
-        terminal.answer("Component catalog", &["button", ENTER]);
-        terminal.answer("Component actions", &[DOWN, ENTER]);
-        assert!(terminal.text.contains("Dependencies: tokens@1.0.0"));
-        assert!(terminal.text.contains("Install component"));
-        terminal.answer("Component catalog", &["Back to UI", ENTER]);
-        terminal.answer("Browse components", &[DOWN, DOWN, DOWN, ENTER]);
-        terminal.answer("What would you like to do?", &[CANCEL]);
-        terminal.finish();
-        assert_eq!(std::fs::read_dir(&root.0).unwrap().count(), 0);
-    }
 
-    #[cfg(feature = "legacy-ui")]
-    #[test]
-    fn guided_ui_multiselect_installs_current_components_in_one_transaction() {
-        let root = support::TempDirectory::new();
-        let mut terminal = Terminal::start(&root.0, &["ui", "add"]);
-        terminal.answer("Add components", &[ENTER]);
-        terminal.answer("Input required", &[DOWN, DOWN, DOWN, " ", DOWN, " ", ENTER]);
-        assert!(!root.0.join("tsrust.config.json").exists());
-        terminal.answer("UI targets", &[DOWN, " ", ENTER]);
-        terminal.finish();
-        let config: serde_json::Value = serde_json::from_slice(&std::fs::read(root.0.join("tsrust.config.json")).unwrap()).unwrap();
-        assert_eq!(config["ui"]["target"], serde_json::json!({"native":false,"web":true,"embedded":false}));
-        assert!(root.0.join("src/components/ui/button.tsrx").is_file());
-        assert!(root.0.join("src/components/ui/card.tsrx").is_file());
-        let lock: serde_json::Value = serde_json::from_slice(&std::fs::read(root.0.join("ui-components.lock.json")).unwrap()).unwrap();
-        assert!(lock["installed"].as_array().unwrap().iter().any(|item| item["identity"]["name"]=="button" && item["identity"]["version"]=="3.0.0"));
-        let output = support::run(support::cli().args(["check"]).current_dir(&root.0), 20);
-        support::success(&output);
-        let mut terminal = Terminal::start(&root.0, &["new", "--ui"]);
-        terminal.answer("Project name or path", &["counter", ENTER]);
-        terminal.answer("UI targets", &[" ", DOWN, " ", ENTER]);
-        terminal.finish();
-        let config: serde_json::Value = serde_json::from_slice(&std::fs::read(root.0.join("counter/tsrust.config.json")).unwrap()).unwrap();
-        assert_eq!(config["ui"]["target"], serde_json::json!({"native":true,"web":true,"embedded":false}));
-        let output = support::run(support::cli().args(["format", "--check"]).current_dir(root.0.join("counter")), 20);
-        support::success(&output);
-    }
 
     fn has_color(text: &str) -> bool {
         text.split("\x1b[").skip(1).any(|tail| {
@@ -203,59 +156,6 @@ mod terminal {
         })
     }
 
-    #[cfg(feature = "legacy-ui")]
-    #[test]
-    fn cancellation_color_policy_and_narrow_terminals_restore_terminal_state() {
-        for (args,env,width,height,expected_color) in [
-            (vec![],vec![],100,32,true),
-            (vec!["--color","never"],vec![],100,32,false),
-            (vec![],vec![("NO_COLOR","1")],100,32,false),
-            (vec!["--color=always"],vec![("NO_COLOR","1")],100,32,true),
-            (vec![],vec![],40,12,true),
-        ] {
-            let root=support::TempDirectory::new();
-            let mut terminal=Terminal::configured(&root.0,&args,&env,width,height);
-            terminal.answer("What would you like to do?", &[CANCEL]);terminal.finish();
-            assert_eq!(has_color(&terminal.text),expected_color,"{}",terminal.text);
-            if height<20 {assert!(!terminal.text.contains("▀█▀"));}
-            assert_eq!(std::fs::read_dir(&root.0).unwrap().count(),0);
-        }
-        for args in [&["ui"][..], &["ui","add"][..], &["new"][..]] {
-            let root=support::TempDirectory::new();let mut terminal=Terminal::start(&root.0,args);
-            let prompt=if args==["new"]{"Project name or path"}else if args==["ui"]{"UI components"}else{"Add components"};
-            terminal.answer(prompt,&[CANCEL]);terminal.finish();assert_eq!(std::fs::read_dir(&root.0).unwrap().count(),0);
-        }
-        for flag in ["--json","--yes","--dry-run"] {
-            let root=support::TempDirectory::new();let mut terminal=Terminal::start(&root.0,&["ui","add","button@3.0.0",flag]);
-            terminal.finish_status(false);assert!(terminal.text.contains("--target"));assert_eq!(std::fs::read_dir(&root.0).unwrap().count(),0);
-        }
-        let root=support::TempDirectory::new();let mut terminal=Terminal::configured(&root.0,&[],&[("TERM","dumb")],80,24);
-        terminal.answer("q to cancel",&["q\n"]);terminal.finish();assert!(!terminal.text.contains('\x1b'));
-    }
 
-    #[cfg(feature = "legacy-ui")]
-    #[test]
-    fn catalog_output_is_styled_only_for_people_and_json_remains_clean() {
-        let root=support::TempDirectory::new();let mut terminal=Terminal::start(&root.0,&["ui","list","--bundled"]);terminal.finish();
-        assert!(terminal.text.contains("COMPONENTS")&&terminal.text.contains("FOUNDATIONS")&&has_color(&terminal.text));
-        let output=support::run(support::cli().args(["ui","list","--bundled","--json"]).current_dir(&root.0),10);
-        support::success(&output);let items:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(items.as_array().unwrap().len(),13);assert!(!output.stdout.contains(&27));
-        let identities=items.as_array().unwrap().iter().map(|item|(item["name"].as_str().unwrap(),item["variant"].as_str().unwrap())).collect::<std::collections::BTreeSet<_>>();assert_eq!(identities.len(),13);
-        assert!(items.as_array().unwrap().iter().any(|item|item["name"]=="card" && item["version"]=="3.0.0"));
-        let output=support::run(support::cli().args(["ui","list","--bundled"]).current_dir(&root.0),10);
-        support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("button@3.0.0 --variant default (MIT)"));assert!(!output.stdout.contains(&27));
-    }
 
-    #[cfg(feature = "legacy-ui")]
-    #[test]
-    fn batch_selection_cancels_without_writes_and_scrolls_in_short_terminals() {
-        for (width,height) in [(100,32),(40,12)] {
-            let root=support::TempDirectory::new();let mut terminal=Terminal::configured(&root.0,&["ui","add"],&[],width,height);
-            terminal.answer("Add components",&[" ",DOWN," ",CANCEL]);terminal.finish();assert_eq!(std::fs::read_dir(&root.0).unwrap().count(),0);
-        }
-        let root=support::TempDirectory::new();let mut terminal=Terminal::configured(&root.0,&["ui","add"],&[("TERM","dumb")],80,24);
-        terminal.answer("q to cancel",&["4,5\n"]);terminal.answer("UI targets",&["1\n"]);terminal.finish();
-        for name in ["button","card"]{assert!(root.0.join(format!("src/components/ui/{name}.tsrx")).is_file());}
-        assert!(!terminal.text.contains('\x1b'));
-    }
 }

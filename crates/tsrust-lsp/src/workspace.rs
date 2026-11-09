@@ -136,14 +136,6 @@ fn disk_stamp(id: &SourceId) -> Option<DiskStamp> {
     })
 }
 impl WorkspaceSnapshot {
-    /// A compiler-development facade opened as a document is the immutable
-    /// bundled module, not an application importing private runtime bindings.
-    /// Both canonical location and exact snapshot bytes must match. Copies and
-    /// modified buffers remain ordinary user modules under the compiler's guard.
-    fn entry_identity(&self, importer: Option<&SourceId>, id: SourceId) -> Result<SourceId,String> {
-        if importer.is_some(){return Ok(id);}
-        Ok(tsrust_compiler::project::bundled_entry(self,&id).unwrap_or(id))
-    }
     /// Retain only inputs actually observed by a completed analysis. Active jobs
     /// still need every open buffer for resolution; cached results do not.
     pub(crate) fn retained(&self) -> Self {
@@ -280,9 +272,9 @@ impl WorkspaceSnapshot {
         } else {tsrust_compiler::project_resolution::discover(Path::new(path),|path|self.read_config(path))?;vec![PathBuf::from(path)]};
         for candidate in &candidates {
             let id=self.observe_path(candidate)?;
-            if self.open.contains_key(&id) {return self.entry_identity(importer,id);}
+            if self.open.contains_key(&id) {return Ok(id);}
             match std::fs::metadata(&id.0) {
-                Ok(metadata) if metadata.is_file()=>return self.entry_identity(importer,id),
+                Ok(metadata) if metadata.is_file()=>return Ok(id),
                 Ok(_)=>{},Err(error) if error.kind()==std::io::ErrorKind::NotFound=>{},
                 Err(error)=>return Err(format!("{}: {error}",id.0)),
             }
@@ -320,6 +312,8 @@ impl WorkspaceSnapshot {
             if disk_stamp(&id)!=before {self.consistent.set(false);return Err(format!("Configuration changed while reading {}",id.0));}
             result
         };
+        // Configurations are loaded inputs too: diagnostics map into their text.
+        if let Ok(Some(text))=&value {self.read.borrow_mut().insert(id.clone(),Arc::new(text.clone()));}
         self.configs.borrow_mut().insert(id,value.clone());value
     }
 

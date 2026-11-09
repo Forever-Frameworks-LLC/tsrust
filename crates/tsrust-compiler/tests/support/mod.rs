@@ -326,3 +326,17 @@ pub fn check_deep(source: &str) -> Result<String, Diagnostic> {
 pub fn accept_deep(source: &str) -> String {
     check_deep(source).unwrap_or_else(|error| panic!("deep source must be accepted: {} ({})", error.message, error.code))
 }
+
+/// Export an authored example's single `main` at its lexer-proven declaration,
+/// never inside comments or strings.
+pub fn exported_main(source: &str) -> String {
+    let tokens = tsrust_compiler::source_tokens(source).expect("valid authored example");
+    let declarations = tokens.windows(3).enumerate().filter(|(_, tokens)| tokens[0].1 == "function" && tokens[1].1 == "main" && tokens[2].1 == "(").map(|(index, _)| index).collect::<Vec<_>>();
+    assert_eq!(declarations.len(), 1, "one authored main declaration");
+    let mut index = declarations[0];
+    if index > 0 && tokens[index - 1].1 == "async" { index -= 1; }
+    assert!(index == 0 || tokens[index - 1].1 != "export", "authored example is not already exported");
+    let mut module = source.to_owned();
+    module.insert_str(tokens[index].0.start, "export ");
+    module
+}

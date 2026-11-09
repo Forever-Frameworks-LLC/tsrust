@@ -62,9 +62,8 @@ impl Prepared {
   let absolute_root=crate::absolute(root)?;fs::create_dir_all(&absolute_root).map_err(|e|e.to_string())?;let absolute_root=absolute_root.canonicalize().map_err(|e|e.to_string())?;let root=absolute_root.as_path();
   let packages=crate::rust_binding_packages::packages(runtime)?;
   let binding=crate::rust_binding_packages::checked(&packages)?;
-  let shared=crate::backend_sources::shared(runtime)?;
-  let dependency_identity=if shared{crate::backend_sources::dependency_identity()}else{bundle::dependency_identity()};
-  let shared_inputs=if shared{Some(crate::backend_sources::identity(root)?)}else{None};
+  let dependency_identity=crate::backend_sources::dependency_identity();
+  let shared_inputs=Some(crate::backend_sources::identity(root)?);
   let mut cache_parts:Vec<&[u8]>=vec![DEPENDENCY_RUNTIME_ABI,dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
@@ -74,34 +73,32 @@ impl Prepared {
   let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");
   let copied=if opportunistic{cache.try_copy_to(&packed)}else{cache.copy_to(&packed)};
   if copied && bundle::unpack(&packed,&restored).is_ok() {
-   return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:shared,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None,cargo:None});
+   return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None,cargo:None});
   }
-  let native_ui=runtime.contains("pub mod tsrust_native_ui {") && runtime.contains("use vello::");
-  let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(native_ui))).map_err(|e|e.to_string())?;
+  let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(false))).map_err(|e|e.to_string())?;
   if let Some(binding)=binding{identity.extend(serde_json::to_vec(&(&binding.manifest,&binding.lock)).map_err(|e|e.to_string())?);}
   let workspace=crate::native_workspace::Workspace::acquire(root,&identity,opportunistic)?;
   let build_root=workspace.as_ref().map(|workspace|workspace.root.as_path()).unwrap_or(temporary);
   let package=build_root.join("native-support");
   let (input_manifest,input_lock)=binding.map_or((crate::backend_sources::MANIFEST,crate::backend_sources::LOCK),|p|(p.manifest.as_str(),p.lock.as_str()));
   if workspace.is_none() || !package.exists(){
-   if shared{crate::backend_sources::materialize_with(&package,input_manifest,input_lock)?;}else{bundle::materialize(&package).map_err(|e|e.to_string())?;}
+   crate::backend_sources::materialize_with(&package,input_manifest,input_lock)?;
   }
-  if shared{
+  {
    crate::backend_sources::restore_missing(&package,input_manifest,input_lock)?;
    crate::backend_sources::validate(&package,input_manifest,input_lock).map_err(|e|format!("Validating native support workspace {}: {e}",package.display()))?;
   }
   let manifest=package.join("Cargo.toml");
-  let mut text=tsrust_compiler::native_url_patch::normalize_manifest(if shared{input_manifest}else{include_str!("../../native-dependencies/Cargo.toml")}).map_err(|e|e.to_string())?;
+  let mut text=tsrust_compiler::native_url_patch::normalize_manifest(input_manifest).map_err(|e|e.to_string())?;
   text.push_str(&format!("\n[lib]\nname = {library_name:?}\n"));
-  text.push_str(profiles(native_ui));
+  text.push_str(profiles(false));
   crate::native_workspace::write_changed(&manifest,text)?;crate::native_workspace::write_changed(&package.join("src/lib.rs"),runtime)?;
   let explicit_target=std::env::var_os("CARGO_TARGET_DIR");
   let cargo=artifacts::Build::new(root,manifest.clone(),build_root.join("artifacts"),temporary.join("runtime.stdout"),explicit_target.as_deref().map(Path::new),&library_name)?;
   let target=&cargo.target;
   let mut command=crate::backend_cargo_command();command.current_dir(&package).args(["build","--offline","--locked","--lib","--message-format=json-render-diagnostics","--manifest-path"]).arg(&manifest)
    .arg("--config").arg(package.join(".cargo/config.toml")).arg("--target-dir").arg(target).env("CARGO_INCREMENTAL","0");
-  if shared{command.current_dir(root).env("CARGO_HOME",crate::backend_sources::cargo_home()?);}
-  else{command.env("CARGO_HOME",build_root.join("cargo-home"));}
+  command.current_dir(root).env("CARGO_HOME",crate::backend_sources::cargo_home()?);
   // Compiler-owned support must not inherit user Cargo profiles or wrappers:
   // those would change artifacts without changing the verified cache identity.
   // The job limit only controls scheduling, so retain the caller's memory bound.
@@ -126,9 +123,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
   if runtime.contains("// tsrust-http-websocket-selected\n"){command.args(["--features","http-websocket"]);}
   if runtime.contains("// tsrust-http-middleware-selected\n"){command.args(["--features","http-middleware"]);}
-  if runtime.contains("pub mod tsrust_native_ui {"){command.args(["--features","ui"]);}
-  if runtime.contains("pub mod tsrust_native_ui {") && runtime.contains("use vello::"){command.args(["--features", "ui-native"]);
-        }
+
         if runtime.contains("pub mod tsrust_native_date {") {
             command.args(["--features", "calendar"]);}
   if runtime.contains("pub mod tsrust_native_crypto {"){command.args(["--features","crypto"]);}
@@ -140,7 +135,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_sqlite {"){command.args(["--features","sqlite"]);}
   if release {command.arg("--release");}
   cargo.capture(&mut command)?;
-  Ok(Self{application,library:None,command:Some(command),state:"miss",shared_sources:shared,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:None,packed:Some(packed),_workspace:workspace,cargo:Some(cargo)})
+  Ok(Self{application,library:None,command:Some(command),state:"miss",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:None,packed:Some(packed),_workspace:workspace,cargo:Some(cargo)})
  }
  /// Acquire before spawning Cargo; dev polls this without blocking cancellation.
  pub fn acquire_target(&mut self,blocking:bool)->Result<bool,String>{match &mut self.cargo{Some(cargo)=>cargo.acquire(blocking),None=>Ok(true)}}

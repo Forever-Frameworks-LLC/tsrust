@@ -183,14 +183,7 @@ const REGRESSIONS:&[(&str,&str,&str,&str)]=&[
 ("query_helpers_preserve_values_and_body_ownership","HTTP runtime > query-values","",include_str!("../fixtures/http/runtime-cases/query-values.tsr")),
 ("query_router_example","HTTP runtime > query-router","one two, three\n",include_str!("../fixtures/http/runtime-cases/query-router.tsr")),
 ];
-fn exported_main(source:&str)->String{
- let tokens=tsrust_compiler::documentation::highlight(source,"tsrust").expect("valid authored HTTP example").into_iter().filter(|token|!matches!(token.class.as_str(),"plain"|"comment")).collect::<Vec<_>>();
- let declarations=tokens.windows(3).enumerate().filter(|(_,tokens)|tokens[0].class=="keyword"&&tokens[0].text=="function"&&tokens[1].class=="name"&&tokens[1].text=="main"&&tokens[2].text=="(").map(|(index,_)|index).collect::<Vec<_>>();
- assert_eq!(declarations.len(),1,"one authored main declaration");let mut index=declarations[0];
- if index>0&&tokens[index-1].class=="keyword"&&tokens[index-1].text=="async"{index-=1;}
- assert!(index==0||tokens[index-1].text!="export","authored example is not already exported");
- let mut module=source.to_owned();module.insert_str(tokens[index].source.start,"export ");module
-}
+fn exported_main(source:&str)->String{super::support::exported_main(source)}
 fn assert_exported_source(authored:&str,fixture:&str,case:&str){
  assert_eq!(super::support::format_round_trip(&exported_main(authored)),super::support::format_round_trip(fixture),"source differs beyond added export/formatting: {case}");
 }

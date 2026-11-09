@@ -54,12 +54,7 @@ fn catalog()->Value{serde_json::from_str(include_str!("../../../tsrust-lsp/src/b
 fn example<'a>(catalog:&'a Value,name:&str,index:usize)->&'a Value{&catalog["std:io"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap()["examples"][index]}
 // Compare exported forms: export can affect formatter separators. Token offsets
 // ensure comments and quoted function spellings are never rewritten.
-fn exported_main(source:&str)->String{
- let tokens=tsrust_compiler::documentation::highlight(source,"tsrust").unwrap().into_iter().filter(|token|!matches!(token.class.as_str(),"plain"|"comment")).collect::<Vec<_>>();
- let declarations=tokens.windows(3).enumerate().filter(|(_,tokens)|tokens[0].class=="keyword"&&tokens[0].text=="function"&&tokens[1].class=="name"&&tokens[1].text=="main"&&tokens[2].text=="(").map(|(index,_)|index).collect::<Vec<_>>();assert_eq!(declarations.len(),1);
- let mut index=declarations[0];if index>0&&tokens[index-1].text=="async"{index-=1;}assert!(index==0||tokens[index-1].text!="export");
- let mut module=source.to_owned();module.insert_str(tokens[index].source.start,"export ");module
-}
+fn exported_main(source:&str)->String{super::support::exported_main(source)}
 fn same(source:&str,fixture:&str){assert_eq!(super::support::format_round_trip(&exported_main(source)),super::support::format_round_trip(fixture));}
 pub fn assert_stored_stdio_source(source:&str){same(source,include_str!("../fixtures/async-io/stored-operations.tsr"));}
 pub fn assert_registered_source(owner:&str,source:&str){
@@ -76,7 +71,7 @@ pub fn assert_sources(){
  suite.push_str("describe('async io runtime',()=>{\n");
  for(index,(case,source))in modules.iter().enumerate(){let name=case.strip_prefix("async io runtime > ").unwrap();let asynchronous=source.contains("export async function main(");suite.push_str(&format!("test('{name}',{}()=>{{{}example{index}();}});\n",if asynchronous{"async "}else{""},if asynchronous{"await "}else{""}));}
  suite.push_str("});\n");
- let tokens=|source:&str|tsrust_compiler::documentation::highlight(&super::support::format_round_trip(source),"tsrust").unwrap().into_iter().filter(|token|!matches!(token.class.as_str(),"plain"|"comment")).map(|token|(token.class,token.text)).collect::<Vec<_>>();
+ let tokens=|source:&str|tsrust_compiler::source_tokens(&super::support::format_round_trip(source)).unwrap().into_iter().map(|(_,text)|text).collect::<Vec<_>>();
  assert_eq!(tokens(&suite),tokens(include_str!("../fixtures/async-io/runtime.test.tsr")),"exact suite imports/registrations changed");
  let catalog=catalog();let actual=catalog["std:io"].as_array().unwrap().iter().flat_map(|entry|entry["examples"].as_array().unwrap().iter().enumerate().map(move |(index,_)|(entry["name"].as_str().unwrap(),index))).collect::<BTreeSet<_>>();
  assert_eq!(actual,REFERENCES.iter().map(|(name,index,_)|(*name,*index)).collect());assert_eq!(actual.len(),41);

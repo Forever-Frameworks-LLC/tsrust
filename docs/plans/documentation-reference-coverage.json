@@ -33,14 +33,6 @@
       "route": "/docs/language/builtins",
       "members": 22
     },
-    "std:ui": {
-      "route": "/docs/ui/foundations/reference",
-      "members": 56
-    },
-    "UiSignal": {
-      "route": "/docs/ui/foundations/reference",
-      "members": 2
-    },
     "Array": {
       "route": "/docs/standard-library/arrays",
       "members": 40
@@ -408,10 +400,6 @@
     "StringConstructor": {
       "route": "/docs/standard-library/strings",
       "members": 3
-    },
-    "UiComputed": {
-      "route": "/docs/ui/foundations/reference",
-      "members": 1
     },
     "std:url": {
       "route": "/docs/standard-library/url",

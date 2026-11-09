@@ -196,7 +196,7 @@ impl SourceIndex {
 
             if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}
             if declaration.module == "std:sqlite" {return builtins_for(&format!("Sqlite{}",declaration.name));}
-            if matches!(declaration.module,"std:http"|"std:ui-runtime") {
+            if declaration.module=="std:http" {
                 let mut entries=builtins_for(&format!("{}{}",if declaration.module=="std:http"{"Http"}else{"Ui"},declaration.name));
                 let values=tsrust_compiler::type_syntax::parse(ty).ok().and_then(|annotation|if let tsrust_compiler::type_syntax::ValueAnnotationKind::Applied{arguments,..}=annotation.into_kind(){Some(arguments.into_iter().map(|argument|ty[argument.span.start..argument.span.end].to_owned()).collect::<Vec<_>>())}else{None}).unwrap_or_default();
                 let substitutions=declaration.type_parameters.iter().enumerate().map(|(index,name)|(*name,values.get(index).map(String::as_str).unwrap_or("null"))).collect::<Vec<_>>();
@@ -279,7 +279,7 @@ impl SourceIndex {
         if matches!(declaration.id,tsrust_compiler::native_signatures::NativeTypeId::HttpApp|tsrust_compiler::native_signatures::NativeTypeId::HttpRouter) { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpTlsOptions); self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpServerOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpClient { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpClientOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
-        let catalog_module = if declaration.module == "std:log-runtime" { "std:log" } else if declaration.module == "std:testing-runtime" { "std:testing" } else if declaration.module == "std:ui-runtime" { "std:ui" } else { declaration.module };
+        let catalog_module = if declaration.module == "std:log-runtime" { "std:log" } else if declaration.module == "std:testing-runtime" { "std:testing" } else { declaration.module };
         let Some(catalog) = builtins_for(catalog_module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);
         if !declaration.type_parameters.is_empty() {

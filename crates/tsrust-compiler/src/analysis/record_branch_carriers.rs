@@ -471,23 +471,6 @@ fn empty_stored_carriers_require_the_same_protocol_and_nonempty_target(){
 }
 
 #[cfg(test)]
-#[test]
-fn retained_keyboard_ui_imports_and_router_preserve_checked_carriers(){
- use crate::project::{SourceId,SourceProvider,FileSourceProvider,check_graph,load_project};
- struct Entry{source:String,example:SourceId}
- impl SourceProvider for Entry{
-  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{
-   if importer.is_none()&&path=="main.tsr"{Ok(SourceId(path.into()))}
-   else if importer.is_some_and(|id|id.0=="main.tsr")&&path=="./keyboard-shortcuts.tsrx"{Ok(self.example.clone())}
-   else{FileSourceProvider.resolve(importer,path)}
-  }
-  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.source.clone())}else{FileSourceProvider.read(id)}}
- }
- let example=std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/src/examples/keyboard-shortcuts.tsrx")).unwrap();
- let source="import {KeyboardShortcuts as First,KeyboardCustomization as Second,KeyboardIconsAndTheme as Third} from './keyboard-shortcuts.tsrx';import {Router} from 'std:http';function main(){const router=new Router();}".to_owned();
- let checked=check_graph(load_project(&Entry{source,example:SourceId(example.to_str().unwrap().into())},"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
- drop(checked.emit_rust());
-}
 
 #[cfg(test)]
 #[test]
@@ -503,24 +486,6 @@ fn flat_map_single_iterator_result_keeps_its_finite_record_contract(){
 }
 
 #[cfg(test)]
-#[test]
-fn retained_alert_props_spread_preserves_checked_callback_carriers(){
- use crate::project::{SourceId,SourceProvider,FileSourceProvider,check_graph,load_project};
- struct Entry{source:String,alert:SourceId}
- impl SourceProvider for Entry{
-  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{
-   if importer.is_none()&&path=="main.tsr"{Ok(SourceId(path.into()))}
-   else if importer.is_some_and(|id|id.0=="main.tsr")&&path=="./alert.tsrx"{Ok(self.alert.clone())}
-   else{FileSourceProvider.resolve(importer,path)}
-  }
-  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.source.clone())}else{FileSourceProvider.read(id)}}
- }
- let alert=std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/src/components/ui/alert.tsrx")).unwrap();
- for(http,body)in [("",""),("import {Router} from 'std:http';","const router=new Router();")]{
-  let source=format!("import {{Alert,AlertTitle,AlertDescription,AlertAction}} from './alert.tsrx';{http}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
-  let checked=check_graph(load_project(&Entry{source,alert:SourceId(alert.to_str().unwrap().into())},"main.tsr").unwrap()).unwrap_or_else(|error|panic!("retained Alert {http}: {error:?}"));drop(checked.emit_rust());
- }
-}
 
 #[cfg(test)]
 #[test]

@@ -71,7 +71,7 @@ pub fn requires_dependencies(source:&str)->bool {
     if source.contains(crate::stdlib::logging::RUNTIME){return true;}
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
     let tasks=[true,false].into_iter().any(|testing|source.contains(&futures_module(testing)) || [true,false].into_iter().any(|asynchronous|source.contains(&threads_module(asynchronous,testing))));
-    source.contains(crate::stdlib::process::RUNTIME) || source.contains(crate::stdlib::compression::RUNTIME) || source.contains(crate::stdlib::net::TRANSPORT_RUNTIME) || source.contains(crate::stdlib::net::DNS_RUNTIME) || source.contains(&crate::stdlib::io::runtime()) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
+    source.contains(crate::stdlib::process::RUNTIME) || source.contains(crate::stdlib::compression::RUNTIME) || source.contains(crate::stdlib::net::TRANSPORT_RUNTIME) || source.contains(crate::stdlib::net::DNS_RUNTIME) || source.contains(&crate::stdlib::io::runtime()) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module())
         || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::crypto::PASSWORD_RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || tasks || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("use rayon as tsr_rayon;") || source.contains(crate::project::rust::dependencies::MARKER)
 }
 
@@ -101,9 +101,6 @@ pub fn separate(source:&str)->Units {
             runtime.push_str("pub ");runtime.push_str(&module);
         }
     };
-    for native in [true, false] {
-        extract("tsrust_native_ui", crate::stdlib::ui::runtime(native));
-    }
     extract("tsrust_native_date",crate::stdlib::date::RUNTIME.to_owned(),
     );
     extract("tsrust_native_signals",crate::stdlib::signals::RUNTIME.to_owned(),

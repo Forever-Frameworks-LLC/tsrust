@@ -92,9 +92,13 @@ pub(crate) use records::recursive_links as recursive_links;
 pub(crate) use records::runtime as record_runtime;
 mod runtime;
 mod storage;
-pub mod documentation;
 pub mod api;
 mod syntax;
+/// Lexed source tokens as (byte range, text); comments and whitespace are omitted.
+pub fn source_tokens(source: &str) -> Result<Vec<(std::ops::Range<usize>, String)>, String> {
+    let tokens = syntax::lex(source).map_err(|error| format!("{} at byte {}", error.message, error.span.start))?;
+    Ok(tokens.into_iter().filter(|token| token.kind != syntax::TokenKind::End).map(|token| (token.span.start..token.span.end, source[token.span.start..token.span.end].to_owned())).collect())
+}
 pub(crate) use callables::local_function_values as local_function_values;
 pub(crate) use callables::local_functions as local_functions;
 pub(crate) use callables::local_capture_plan as local_capture_plan;
@@ -294,7 +298,6 @@ pub(crate) use types::unions as unions;
 #[cfg(test)]
 mod nesting_probe;
 
-pub mod ui_project;
 
 #[doc(hidden)]
 pub use native::url_patch as native_url_patch;

@@ -87,7 +87,9 @@ pub const MARKER:&str="// tsrust-binding-package ";
   assert!(!binding.manifest().contains("vello ="));
   let mut legacy_binding=binding.clone();legacy_binding.schema_version=1;
   let legacy=legacy_binding.package(include_str!("../../native-dependencies/Cargo.lock").into());
-  assert!(legacy.manifest.contains("vello ="));
+  // Schema 1 keeps the native dependency set and its recorded lock.
+  assert!(legacy.manifest.contains("rusqlite =")&&!legacy.manifest.contains("vello ="));
+  assert_eq!(legacy.lock,include_str!("../../native-dependencies/Cargo.lock"));
   assert!(!serde_json::to_string(&legacy).unwrap().contains("vendor"));
  }
 

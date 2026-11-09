@@ -169,7 +169,7 @@ impl Session {
             match self.messages.recv_timeout(quiet) {
                 Ok(Message::Notification(notification)) if notification.method == "textDocument/publishDiagnostics" => {
                     let current = notification.params["uri"].as_str().and_then(|uri| pending.get(uri).map(|version| (uri.to_owned(), *version)));
-                    if let Some((uri, version)) = current.filter(|(uri, version)| diagnostic_publication_matches(&notification, uri, Some(*version))) {
+                    if let Some((uri, _)) = current.filter(|(uri, version)| diagnostic_publication_matches(&notification, uri, Some(*version))) {
                         pending.remove(&uri);
                     }
                     quiet = if pending.is_empty() { Duration::from_millis(50) } else { Duration::from_millis(400) };

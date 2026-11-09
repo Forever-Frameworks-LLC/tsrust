@@ -1,6 +1,5 @@
 mod dev_cli;
 mod workspace_cli;
-mod dev_web;
 mod runtime_build;
 mod native_workspace;
 mod rust_bindings;
@@ -10,9 +9,8 @@ mod rust_binding_packages;
 mod package_export;
 mod native_dependency_bundle;
 #[cfg(any(unix,windows))]
-mod dev_frontend;
-#[cfg(any(unix,windows))]
 mod dev_dependencies;
+mod dev_frontend;
 #[cfg(any(unix,windows))]
 mod dev_watch;
 #[cfg(unix)]
@@ -25,21 +23,16 @@ mod dev_windows;
 mod project_config;
 mod new_cli;
 mod application_scaffold;
-#[cfg(feature = "legacy-ui")]
-mod ui_cli;
-#[cfg(not(feature = "legacy-ui"))]
 #[path = "ui_disabled.rs"]
 mod ui_cli;
 mod cache_cli;
 mod setup_cli;
 mod backend_sources;
-mod docs_cli;
 mod api_cli;
 mod http_client;
 mod toolchain_cli;
 mod toolchain_install;
 mod toolchain_release;
-mod docs_model;
 mod format_cli;
 mod check_cli;
 mod interactive_cli;
@@ -140,19 +133,10 @@ fn color_enabled(terminal: bool) -> bool {
 fn styled(text: &str, code: &str, color: bool) -> String {
     if color { format!("\x1b[{code}m{text}\x1b[0m") } else { text.to_owned() }
 }
-#[cfg(feature = "legacy-ui")]
-const LEGACY_UI_USAGE: &str = "
-Legacy UI (frozen; built with the legacy-ui feature):
-  tsrust new [name-or-path] --ui [--target native|web]...
-  tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
-  tsrust ui attributions [--cwd directory] [--dry-run]
-  tsrust dev [--target native|web] [--port 4317]";
-#[cfg(not(feature = "legacy-ui"))]
-const LEGACY_UI_USAGE: &str = "";
 
 fn print_help() {
     let color = color_enabled(std::io::stdout().is_terminal());
-    for line in USAGE.lines().chain(LEGACY_UI_USAGE.lines()) {
+    for line in USAGE.lines() {
         if line.ends_with(':') || line.starts_with("tsrust —") { println!("{}", styled(line,"1;36",color)); }
         else { println!("{line}"); }
     }
@@ -205,7 +189,6 @@ fn run() -> Result<u8, String> {
     if matches!(command.as_str(),"add"|"update"|"features"|"remove"|"packages") {return package_cli::run(&command,args);}
     if command=="bindings" {return rust_bindings::resolve(args);}
     if command=="dev" {return dev_cli::run(args);}
-    if command=="docs" {return docs_cli::run(args);}
     if command=="api" {return api_cli::run(args);}
     if command=="cache" {return cache_cli::run(args);}
     if command=="doctor" {return setup_cli::doctor(args);}
@@ -307,7 +290,6 @@ fn run() -> Result<u8, String> {
     {
         return Err("output must not overwrite the source".into());
     }
-    if matches!(command.as_str(),"build"|"run") {docs_cli::prepare_entry(&source_path)?;ui_cli::check_setup(&source_path)?;}
     let source = fs::read_to_string(&source_path).map_err(|e| e.to_string())?;
 
     let check_started=std::time::Instant::now();
@@ -357,12 +339,7 @@ fn run() -> Result<u8, String> {
     if command == "emit" {
         if package {
             let output=output.as_ref().expect("package output");
-            let web_only=if native_features.contains(&"ui-native") {
-                let targets=tsrust_compiler::ui_project::configured_targets(&canonical_source,|path|match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())})?.ok_or("UI package export needs ui.target. Run tsrust ui add tokens@1.0.0 with --target native or --target web")?;
-                !targets.native && targets.web
-            }else{false};
-            let notices=if native_features.iter().any(|feature|feature.starts_with("ui")){ui_cli::attribution_files(&canonical_source)?}else{vec![]};
-            package_export::export(output,&rust,web_only,&notices).map_err(|error|format!("Unable to export package {}: {error}",output.display()))?;
+            package_export::export(output,&rust).map_err(|error|format!("Unable to export package {}: {error}",output.display()))?;
             println!("Emitted package {}",output.display());
             return Ok(0);
         }
@@ -373,7 +350,6 @@ fn run() -> Result<u8, String> {
         }
         return Ok(0);
     }
-    if native_features.contains(&"ui-native"){tsrust_compiler::ui_project::require_target(&canonical_source,"native",|path|match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())})?;}
     let backend_started=std::time::Instant::now();
     let backend_identity = verify_backend()?;
     let backend_elapsed=backend_started.elapsed();
@@ -408,7 +384,7 @@ fn run() -> Result<u8, String> {
         graph_identity.extend_from_slice(source.as_bytes());
     }
     let features = native_features.join(",");
-    let optimization = runtime_build::application_optimization(release,native_features.contains(&"ui-native"));
+    let optimization = runtime_build::application_optimization(release,false);
     let shared_inputs = backend_sources::application_identity(&rust, &cache_root)?;
     let mut cache_parts: Vec<&[u8]> = vec![
             b"native-cache-abi-4-ui-dev-profile",

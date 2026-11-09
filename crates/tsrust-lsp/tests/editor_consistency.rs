@@ -314,89 +314,14 @@ fn sql_cursor_members_have_live_hover_and_completion(){
     assert!(hover.contains("Task<Row | undefined>")&&hover.contains("exclusively borrows"),"{hover}");
 }
 
-#[test]
-fn ui_state_members_are_reachable_without_lifetime_helpers() {
-    let before="import {signal} from 'std:ui';function main(){const count=signal(0);count.";
-    let text=format!("{before}set(count.get()+1);}}");
-    let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
-    let offered=session.completion("main.tsr",&text,before.len()).unwrap();
-    assert_eq!(offered.into_iter().collect::<BTreeSet<_>>(),BTreeSet::from(["get".into(),"set".into()]));
-    for (needle,expected) in [("set(count","Replaces"),("get()","Reads")] {
-        assert!(session.hover("main.tsr",&text,text.find(needle).unwrap()).unwrap().contains(expected));
-    }
-    let counters=session.request("tsrust/counters",Value::Null);
-    for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"] {assert_eq!(counters[key],0,"{counters}");}
-}
 
-#[test]
-fn ui_condition_props_and_class_help_match_checked_source() {
- let source="import {Button,Node,signal} from 'std:ui';function Page():Node{const count=signal(0);return <Button disabled={count.get() < 5} onPress={()=>{count.set(count.get()+100);}} className=\"rounded\">Disabled</Button>;}function main(){const node=Page();}";
- let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();
- let at=source.find("disabled=").unwrap();let fields=session.completion("main.tsrx",source,at).unwrap();assert!(fields.contains(&"disabled".into()),"{fields:?}");
- assert!(session.hover("main.tsrx",source,at+2).unwrap().contains("ReactiveBoolean"));
- let class=source.find("rounded").unwrap()+3;assert!(session.hover("main.tsrx",source,class).unwrap().contains("Shared web/native"));
- let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
-}
 
-#[test]
-fn ui_semantic_attributes_keep_exact_names_and_checked_help() {
- let source="import {View,Text,Node} from 'std:ui';function Page():Node{return <View as=\"section\" role=\"region\" aria-label=\"Account\" data-variant=\"summary\"><Text as=\"h2\">Profile</Text></View>;}function main(){const node=Page();}";
- let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();
- let variant=source.find("data-variant=").unwrap();assert!(session.hover("main.tsrx",source,variant+3).unwrap().contains("variant"));
- let at=source.find("aria-label=").unwrap();assert!(session.hover("main.tsrx",source,at+6).unwrap().contains("string"));
- let labels=session.completion("main.tsrx",source,at+5).unwrap();assert!(labels.contains(&"aria-label".into()),"{labels:?}");
- let uri=session.uri("main.tsrx");let location=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at+6}}));assert!(!location.is_null());
- let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
-}
 
-#[test]
-fn editable_control_events_and_exact_props_keep_help_and_zero_fallbacks() {
- let source="import {Input,Node,signal} from 'std:ui';function Page():Node{const name=signal('Ada');return <Input aria-label=\"Name\" aria-describedby=\"hint\" value={name.get()} readOnly={false} onChange={(event)=>{name.set(event.target.value);}}/>;}function main(){const node=Page();}";
- let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();
- for (needle,wanted) in [("aria-describedby=","description"),("readOnly=","selection"),("onChange=","snapshot"),("target.value","InputTarget")] {
-  let at=source.find(needle).unwrap();let hover=session.hover("main.tsrx",source,at+2).unwrap_or_default();assert!(hover.to_lowercase().contains(&wanted.to_lowercase()),"{needle}: {hover}");
- }
- let at=source.find("target.value").unwrap()+"target.".len();let members=session.completion("main.tsrx",source,at).unwrap();for member in ["value","name","id"]{assert!(members.contains(&member.to_string()),"{members:?}");}
- let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
-}
 
-#[test]
-fn vector_public_exports_are_reachable_without_misleading_answers() {
- let source="import { Svg, Path, SvgProps, PathProps } from 'std:ui';function main(){}";
- let mut session=Session::start(&[]);let imports="import { } from 'std:ui';function main(){}";session.open("main.tsrx",imports);session.settle();
- let offered=session.completion("main.tsrx",imports,imports.find('}').unwrap()).unwrap();
- for name in ["Svg","Path","SvgProps","PathProps"]{assert!(offered.contains(&name.into()),"{name}: {offered:?}");}
- session.change("main.tsrx",source);session.settle();
- for name in ["Svg","Path","SvgProps","PathProps"]{assert!(!session.hover("main.tsrx",source,source.find(name).unwrap()+1).unwrap_or_default().is_empty(),"{name}");}
- let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
-}
 
-#[test]
-fn lazy_child_factories_have_invocation_help_without_resource_methods(){
- let source="import {View,Node,LazyChildren} from 'std:ui';interface Props{children:LazyChildren;}function Panel(props:Props):Node{const render=props.children;return <View children={render()}/>;}function main(){const node=<Panel><View/></Panel>;}";
- let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();let at=source.find("render()").unwrap()+2;let hover=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(hover.contains("Child")||hover.contains("Node"),"{hover}");
- let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
-}
 
-#[test]
-fn reactive_metadata_help_matches_completion_and_diagnostics(){
- let source="import {Input,signal} from 'std:ui';function main(){const changed=signal(false);const node=<Input aria-invalid={changed.get()?true:undefined}/>;}";
- let mut session=Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();let at=source.find("aria-invalid=").unwrap();let hover=session.hover("main.tsrx",source,at+3).unwrap_or_default();assert!(hover.contains("live")&&hover.contains("undefined"),"{hover}");let offered=session.completion("main.tsrx",source,at+3).unwrap();assert!(offered.contains(&"aria-invalid".into()),"{offered:?}");
- let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
-}
 
-#[test]
-fn disclosure_help_matches_completion_and_diagnostics(){
- let source="import {Button,signal} from 'std:ui';function main(){const open=signal(false);const node=<Button aria-expanded={open.get()}/>;}";
- let mut session=Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();let at=source.find("aria-expanded=").unwrap();let hover=session.hover("main.tsrx",source,at+3).unwrap_or_default();assert!(hover.contains("live")&&hover.contains("undefined"),"{hover}");let offered=session.completion("main.tsrx",source,at+3).unwrap();for field in ["aria-expanded","aria-controls"]{assert!(offered.contains(&field.into()),"{offered:?}");}
- let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
-}
 
-#[test]
-fn empty_heading_field_help_matches_completion_and_diagnostics(){
- let source="import {ThemeTypography} from 'std:ui';function main(){const typography:ThemeTypography={base:16,xl:24,headingFamily:'mono'};console.log(typography.headingFamily??'sans');}";
- let mut session=Session::start(&[]);session.open("main.tsr",source);let diagnostics=session.wait_for_diagnostics("main.tsr");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();let at=source.rfind("headingFamily").unwrap()+2;let hover=session.hover("main.tsr",source,at).unwrap_or_default();assert!(hover.contains("sans")&&hover.contains("Ownership:"),"{hover}");let labels=session.completion("main.tsr",source,at).unwrap();assert!(labels.contains(&"headingFamily".into()),"{labels:?}");let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
-}
 
 #[test]
 fn url_exports_and_documented_members_are_reachable() {

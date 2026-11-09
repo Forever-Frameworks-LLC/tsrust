@@ -26,7 +26,7 @@ try {
   const created = run('new', 'hello');
   const agentGuide = fs.readFileSync(path.join(directory, 'hello/AGENTS.md'), 'utf8');
   for (const command of ['tsrust check', 'tsrust test', 'tsrust format', 'tsrust dev']) assert.ok(agentGuide.includes(command));
-  assert.ok(agentGuide.includes('ui.components') && agentGuide.includes('AGENTS.md'));
+  assert.ok(agentGuide.includes('.tsrx'));
   const startCommand = 'tsrust dev';
   assert.ok(created.includes(`Run \`${startCommand}\``), created);
   assert.ok(fs.readFileSync(path.join(directory, 'hello/README.md'), 'utf8').includes(`Run \`${startCommand}\``));

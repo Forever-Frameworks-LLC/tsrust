@@ -489,23 +489,6 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::date::GET_DATE,
     crate::stdlib::date::START_OF_MONTH,
     crate::stdlib::date::END_OF_MONTH,
-    crate::stdlib::ui::LOCATION,crate::stdlib::ui::NAVIGATE,crate::stdlib::ui::TRAVERSE,crate::stdlib::ui::LINK,
-    crate::stdlib::ui::COMPUTED_NEW,crate::stdlib::ui::COMPUTED_GET,crate::stdlib::ui::SIGNAL_NEW,crate::stdlib::ui::HANDLE_NEW,crate::stdlib::ui::GET,crate::stdlib::ui::SET,crate::stdlib::ui::OWN_STATE,crate::stdlib::ui::PRESS_BUTTON,
-    crate::stdlib::ui::READ_ONLY_BINDING,
-    crate::stdlib::ui::SVG,crate::stdlib::ui::PATH,crate::stdlib::ui::PATH_BINDING,crate::stdlib::ui::VALIDATE_ROOT,
-    crate::stdlib::ui::USE_ID,crate::stdlib::ui::SEMANTIC_BINDING,crate::stdlib::ui::CLASS_BINDING,crate::stdlib::ui::VARIANT_BINDING,crate::stdlib::ui::HIDDEN_BINDING,
-    crate::stdlib::ui::TEXT_BINDING,
-    crate::stdlib::ui::BRANCH,crate::stdlib::ui::ROUTE,
-    crate::stdlib::ui::INPUT,crate::stdlib::ui::INPUT_CHANGE,
-    crate::stdlib::ui::TEXT,crate::stdlib::ui::COPY_BUTTON,
-    crate::stdlib::ui::VIEW,crate::stdlib::ui::VISIBILITY,
-    crate::stdlib::ui::THEME,
-    crate::stdlib::ui::THEME_MODE,
-    crate::stdlib::ui::SEMANTICS,
-    crate::stdlib::ui::DISABLED_BINDING,
-    crate::stdlib::ui::BUTTON,
-    crate::stdlib::ui::DOCUMENT,
-    crate::stdlib::ui::RUN,
     crate::stdlib::signals::LISTEN,
     crate::stdlib::locale::PARSE,
     crate::stdlib::locale::FORMAT_LOCALE,
@@ -802,12 +785,6 @@ pub fn sql_asynchronous(name:&str)->bool{crate::stdlib::sql::asynchronous(name)}
 /// Public HTTP factories unwrap their checked backend Result during lowering.
 pub fn http_unwrapped(name:&str)->bool{crate::stdlib::http::public_unwrapped(name)}
 
-/// State method signatures shared by checking and editor inference.
-pub fn ui_method(identity: crate::native_signatures::NativeTypeId, member: &str) -> Option<&'static NativeBinding> {
-    if identity==crate::native_signatures::NativeTypeId::UiComputed{return (member=="get").then(||lookup("std:ui-runtime","computedGet").ok()).flatten();}
-    if identity!=crate::native_signatures::NativeTypeId::UiSignal || !matches!(member,"get"|"set") {return None;}
-    lookup("std:ui-runtime",member).ok()
-}
 
 pub fn locale_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::locale::method(Some(identity),member)}
 pub fn regex_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::regex::method(Some(identity),member)}

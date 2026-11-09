@@ -16,7 +16,6 @@ mod expression_work;
 mod program_testing;
 mod testing_deep;
 mod threads;
-mod ui;
 mod futures;
 mod http;
 mod logging;
@@ -1349,37 +1348,6 @@ impl Emitter<'_> {
         self.typed_runner_result(&call,span,closure)
     }
 
-    fn ui_callback(&self,callback:Type,span:crate::Span,success:&str)->String {
-        self.ui_callback_arguments(callback,span,success,"()")
-    }
-    fn ui_callback_arguments(&self,callback:Type,span:crate::Span,success:&str,arguments:&str)->String {
-        let registered=match callback {
-            Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
-            Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),
-            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
-            _=>None,
-        };
-        let invocation=format!("Callback::invoke(&mut registered_callback,{arguments})");
-        let result=if let Some((name,contract))=registered {
-            let invocation=format!("{{let result:Result<{success},{name}>={invocation};result}}");
-            let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-            let payloads=contract.native_payloads(&unions,runtime,span).expect("checked runner callback contract");
-            let mut arms=String::new();
-            for (tag,ty) in payloads.into_iter().enumerate() {
-                let text=if Some(ty)==runtime {"std::format!(\"{}: {}\",payload.field0.as_ref(),payload.field2.as_ref())".to_owned()}else{
-                    self.error_payload_text("payload",ty)
-                };
-                arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
-            }
-            if arms.is_empty(){format!("{invocation}.map_err(|error|match error{{}})")}else{format!("{invocation}.map_err(|error|match &error{{{arms}}})")}
-        }else{format!("{{let result:{success}={invocation};Ok(result)}}")};
-        result
-    }
-    fn ui_press_adapter(&self,arguments:&[String],callback:Type,span:crate::Span)->String {
-        let result=self.ui_callback(callback,span,"()");
-        format!("{{let label={};let class_name={};let disabled={};let mut registered_callback={};tsrust_ui_press_button(label,class_name,disabled,move ||{result})}}",arguments[0],arguments[1],arguments[2],arguments[3])
-    }
     #[inline(never)]
     fn runtime_error_value(&self,record:usize,name:&str,code:&str,message:&str,span:crate::Span)->String {
         let location=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len);
@@ -2660,10 +2628,6 @@ impl Emitter<'_> {
             if let Some(name)=record.native_type.and_then(crate::stdlib::date::runtime_type) {let _=writeln!(output,"type Record{index} = tsrust_native_date::{name};");
                 continue;
             }
-            if let Some(name)=match record.native_type {Some(crate::native_signatures::NativeTypeId::UiSignal)=>Some("Signal"),Some(crate::native_signatures::NativeTypeId::UiComputed)=>Some("Computed"),_=>None} {let payload=record.application.as_ref().expect("applied state").resolved_arguments[0];let _=writeln!(output,"type Record{index} = tsrust_native_ui::{name}<{}>;",self.native_type(payload));continue;}
-            if record.native_type == Some(crate::native_signatures::NativeTypeId::UiTextBinding) {let _=writeln!(output,"type Record{index} = tsrust_native_ui::TextBinding;");continue;}
-            if record.native_type == Some(crate::native_signatures::NativeTypeId::UiNode) {
-                let _ = writeln!(output, "type Record{index} = tsrust_native_ui::Node;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::SignalListener) { let _=writeln!(output,"type Record{index} = tsrust_native_signals::Listener;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::Uuid) { let _=writeln!(output,"type Record{index} = tsrust_native_uuid::Uuid;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::Decimal) { let _=writeln!(output,"type Record{index} = tsrust_native_decimal::Decimal;");continue;}
@@ -3418,7 +3382,6 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CryptoHasher)) || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:crypto"){output.push_str(crate::stdlib::crypto::RUNTIME);}
         if crypto_password_runtime{output.push_str(crate::stdlib::crypto::PASSWORD_RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:env"){output.push_str(&format!("mod tsrust_native_env {{ {} }}",include_str!("../stdlib/env/runtime.rs")));}
-        if self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::UiNode|crate::native_signatures::NativeTypeId::UiComputed|crate::native_signatures::NativeTypeId::UiSignal|crate::native_signatures::NativeTypeId::UiTextBinding))){output.push_str(&crate::stdlib::ui::runtime(self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime" && crate::native_bindings::BINDINGS[id].name=="run")));}
         for &id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[id];
             if binding.module == "std:date" {output.push_str(&crate::stdlib::date::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
@@ -3427,8 +3390,6 @@ impl Emitter<'_> {
             if binding.module == "std:decimal" {output.push_str(&crate::stdlib::decimal::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
             if binding.module == "std:numeric" { output.push_str(&crate::stdlib::numeric::emit::bridge(self.program, binding, &self.record_runtime.ordered));
             }
-            if binding.module == "std:ui-runtime" {
-                output.push_str(&crate::stdlib::ui::emit::bridge(self.program,binding)); }
             if binding.module == "std:path" {output.push_str(&crate::stdlib::path::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
             if binding.module == "std:env" {let inline_pairs=binding.name=="vars"&&self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::EnvVar)).is_some_and(|id|self.small_record(id));output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding,&self.record_runtime.ordered,inline_pairs));}
             if binding.module == "std:time" { output.push_str(crate::stdlib::time::RUNTIME); }
@@ -9452,7 +9413,6 @@ impl Emitter<'_> {
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.future_native(fun, expr, id, args) { return call; }
-                    if let Some(call)=self.ui_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.cache_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.thread_native(fun, expr, id, args) { return call; }
                     if let Some(call) = self.program_testing_native(fun, expr, id, args) { return call; }
@@ -9525,8 +9485,6 @@ impl Emitter<'_> {
                         let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                         if let Some(call)=self.typed_runner_result(&call,expr.span,None){return call;}
                     }
-                    if binding.module=="std:ui-runtime" && matches!(binding.name,"bindDisabled"|"bindReadOnly"|"bindHidden") {let result=self.ui_callback(args[1].ty.expect("UI condition"),expr.span,"bool");let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;return format!("{{let node={};let mut registered_callback={};{symbol}(node,move ||{result})}}",arguments[0],arguments[1]);}
-                    if binding.module=="std:ui-runtime" && binding.name=="button" { return self.ui_press_adapter(&arguments,args[3].ty.expect("UI handler"),expr.span); }
                     if binding.module=="std:path" && binding.name=="relative" {
                         let call=crate::native_emit::call(binding,arguments);
                         self.typed_native_result(&call,expr.span,None,"Error","path-relative").unwrap_or_else(||format!("{call}.unwrap_or_else(|message|panic!(\"path.relative: {{message}}\"))"))

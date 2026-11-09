@@ -17,8 +17,6 @@ mod result_intelligence;
 mod outcome_intelligence;
 #[path = "native_type_intelligence.rs"]
 mod native_type_intelligence;
-#[path = "ui_intelligence.rs"]
-mod ui_intelligence;
 #[path = "data_intelligence.rs"]
 mod data_intelligence;
 #[path = "cursor_repair.rs"]
@@ -104,7 +102,6 @@ pub struct SourceIndex {
     declarator_separators: std::collections::HashMap<usize, &'static str>,
     /// The checker accepted exactly this text, so its facts describe it.
     checked: bool,
-    pub(crate) theme_document: bool,
     interface_bases:Vec<(String,Vec<String>)>,
     declared_record_fields:std::collections::BTreeSet<(String,String)>,
 }
@@ -142,7 +139,6 @@ impl SourceIndex {
             native_origins: Default::default(),
             native_type_aliases: Default::default(),
             entry_help,
-            theme_document: false,
             interface_bases:Vec::new(),
             declared_record_fields:Default::default(),
             source: source.into(),
@@ -2039,7 +2035,6 @@ impl SourceIndex {
         if receiver=="string" && matches!(method,"match"|"matchAll"|"search"|"localeCompare"){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::url_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sql_method(*id,method).is_some()){return true;}
-        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::ui_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method).is_some()){return true;}
         let receiver = observation_scalar_family(receiver).unwrap_or(receiver);
         if receiver=="@namespace:std:schema#s" && matches!(method,"string"|"boolean"|"int"|"number"|"null"|"literal"|"enum"|"union"|"discriminatedUnion") {return true;}
@@ -3270,11 +3265,6 @@ impl SourceIndex {
         let offset = self
             .offset(position)
             .ok_or("Position is outside the document or splits a surrogate pair")?;
-        if let Some(answer)=self.ui_theme_request(method,offset,uri) {return Ok(answer);}
-        if method=="textDocument/completion" && let Some(items)=self.ui_value_completion(offset) {return Ok(items);}
-        if method=="textDocument/hover" && let Some((class,span))=self.ui_class_at(offset) {
-            return Ok(json!({"contents":{"kind":"markdown","value":tsrust_compiler::ui_project::style::documentation(&class)},"range":self.range(span)}));
-        }
         if matches!(method,"textDocument/hover"|"textDocument/definition") && let Some((field,ty,symbol,span))=self.record_literal_field(offset) {
             if method=="textDocument/definition" {
                 if let Some(symbol)=symbol{return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));}
@@ -4786,12 +4776,6 @@ fn builtins_for(ty: &str) -> Vec<Value> {
     entries
 }
 
-#[cfg(test)]
-#[test]
-fn public_ui_record_aliases_hide_implementation_names(){
- let index=SourceIndex::with_entry_help(include_str!("../../tsrust-compiler/src/stdlib/ui/api.tsr"),false);
- for (private,public) in [("ViewProperties","ViewRenderProps"),("ButtonProperties","ButtonRenderProps"),("ViewComponentProps","ViewProps"),("ButtonComponentProps","ButtonProps")]{assert_eq!(index.public_record_alias(private).as_deref(),Some(public),"aliases={:?}; parameters={:?}",index.public_record_aliases,index.generic_parameters);}
-}
 
 #[cfg(test)]mod string_observation_family_tests{
  #[test]fn observation_family_preserves_schema_and_nullable_distinctions(){
