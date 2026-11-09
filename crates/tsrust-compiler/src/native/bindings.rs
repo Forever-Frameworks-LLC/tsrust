@@ -499,6 +499,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::INPUT,crate::stdlib::ui::INPUT_CHANGE,
     crate::stdlib::ui::TEXT,crate::stdlib::ui::COPY_BUTTON,
     crate::stdlib::ui::VIEW,crate::stdlib::ui::VISIBILITY,
+    crate::stdlib::ui::KIT,crate::stdlib::ui::KIT_SET,crate::stdlib::ui::KIT_BIND,crate::stdlib::ui::KIT_ON,crate::stdlib::ui::KIT_ON_BOOLEAN,crate::stdlib::ui::KIT_ON_INT,crate::stdlib::ui::KIT_ON_NUMBER,crate::stdlib::ui::KIT_ON_VOID,
     crate::stdlib::ui::THEME,
     crate::stdlib::ui::THEME_MODE,
     crate::stdlib::ui::SEMANTICS,

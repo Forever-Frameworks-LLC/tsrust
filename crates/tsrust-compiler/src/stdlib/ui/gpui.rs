@@ -3,7 +3,7 @@
 //! view; `render` turns the current tree into GPUI elements. Buttons without
 //! classes and text inputs use GPUI Kit components; classed views and buttons use
 //! the shared utility classes, resolved against the active Tsrust theme.
-use super::{Kind, Node, style::{self, Length, State, Utility}, theme::{ResolvedColor, Theme}, window::Options};
+use super::{Kind, Node, kit::Kit, style::{self, Length, State, Utility}, theme::{ResolvedColor, Theme}, window::Options};
 use gpui_kit::component::Disableable;
 use gpui_kit::component::button::{Button, ButtonVariants};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -28,7 +28,7 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
             ..Default::default()
         };
         let failure = reported.clone();
-        if let Err(error) = open_window(window, cx, move |_, cx| cx.new(|_| Root {node, inputs: HashMap::new(), failure})) {
+        if let Err(error) = open_window(window, cx, move |_, cx| cx.new(|_| Root {node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, failure})) {
             *reported.borrow_mut() = Some(format!("Failed to open the window: {error}"));
             cx.quit();
         }
@@ -39,6 +39,11 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
 struct Root {
     node: Node,
     inputs: HashMap<u64, (Entity<InputState>, Subscription)>,
+    /// Kit component state entities (select, sliders, pickers), by node.
+    states: HashMap<u64, KitState>,
+    /// The node whose dialog or sheet is open, if any.
+    dialog: Option<u64>,
+    sheet: Option<u64>,
     failure: std::rc::Rc<std::cell::RefCell<Option<String>>>,
 }
 
@@ -94,6 +99,11 @@ impl Root {
             // Like a browser input, an unsized field keeps a usable intrinsic width.
             return styled(div().min_w(px(240.)), &node.class_name, theme, mode, node.is_disabled()).child(Input::new(state).disabled(node.is_disabled())).into_any_element();
         }
+        if let Some(kit) = &node.kit {
+            let element = self.kit_element(node, kit, cx);
+            if node.class_name.is_empty() {return element;}
+            return styled(div(), &node.class_name, theme, mode, false).child(element).into_any_element();
+        }
         let children = node.visible_children().map(|child| self.element(child, theme, mode, cx)).collect::<Vec<_>>();
         match node.kind {
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => {
@@ -109,7 +119,14 @@ impl Root {
             // Text is one inline run; its literal and bound parts render as one string.
             Kind::Text => styled(div(), &node.class_name, theme, mode, false).child(SharedString::from(node.content_text())).into_any_element(),
             _ if children.is_empty() => styled(div(), &node.class_name, theme, mode, false).child(SharedString::from(node.text.clone())).into_any_element(),
-            _ => styled(div(), &node.class_name, theme, mode, false).children(children).into_any_element(),
+            _ => {
+                // GPUI keeps scroll offsets per element id; overflow-auto views need one.
+                // Their children keep their natural size instead of shrinking to fit.
+                let scrolls = style::resolved(&node.class_name, theme, mode).iter().any(|(_, rule)| matches!(rule, Utility::Overflow(2)));
+                if !scrolls {return styled(div(), &node.class_name, theme, mode, false).children(children).into_any_element();}
+                let children = children.into_iter().map(|child| div().flex_shrink_0().child(child));
+                styled(div(), &node.class_name, theme, mode, false).children(children).id(ElementId::Integer(id)).overflow_scroll().into_any_element()
+            }
         }
     }
 }
@@ -118,6 +135,7 @@ impl Render for Root {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.node.ensure_identities();
         self.sync_inputs(window, cx);
+        self.sync_kit(window, cx);
         let theme = Theme::default();
         let body = self.node.visible_root().map(|node| self.element(node, &theme, "light", cx));
         div().size_full().children(body)

@@ -6002,15 +6002,17 @@ impl Analyzer {
 
     fn finish_template_part(&self, part: &Expr, actual: Type) -> Result<(), Diagnostic> {
             self.require_native_capability(actual, crate::native_types::Capability::StringConversion, part.span, true)?;
-            if !matches!(
-                actual,
-                Type::String
-                    | Type::Int
-                    | Type::Number
-                    | Type::Boolean
-                    | Type::Null
-                    | Type::Undefined
-            ) {
+            // Literal types and unions of interpolable scalars format like their base values.
+            let mut pending = vec![actual];
+            let mut scalar = true;
+            while let Some(ty) = pending.pop() {
+                match ty {
+                    Type::String | Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::Literal(..) => {}
+                    Type::Union(id) => pending.extend(self.unions.members(id)),
+                    _ => scalar = false,
+                }
+            }
+            if !scalar {
                 return Err(Diagnostic::new(
                     "type",
                     "Template interpolation requires string, int, number, or boolean.",

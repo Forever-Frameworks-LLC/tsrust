@@ -2,7 +2,7 @@
 pub(crate) mod emit;
 mod components;
 pub(crate) use components::retain_state;
-pub(crate) const SOURCE: &str = include_str!("api.tsr");
+pub(crate) const SOURCE: &str = concat!(include_str!("api.tsr"), include_str!("kit.tsr"));
 use crate::{
     Mode,
     native_bindings::{NativeBackend, NativeBinding, NativeParameter, NativeType},
@@ -118,6 +118,17 @@ pub(crate) const BRANCH:NativeBinding=NativeBinding{name:"branch",parameters:&[p
 pub(crate) const INPUT:NativeBinding=NativeBinding{name:"input",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input"},..TEXT};
 pub(crate) const INPUT_CHANGE:NativeBinding=NativeBinding{name:"inputChange",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input_change"},..TEXT};
 
+// GPUI Kit components: one generic node with string props, live props and
+// events; generated std:ui wrappers (kit.tsr) give each component typed props.
+pub(crate) const KIT:NativeBinding=NativeBinding{name:"kit",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("name",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit"},..TEXT};
+pub(crate) const KIT_SET:NativeBinding=NativeBinding{name:"kitSet",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("value",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_set"},..TEXT};
+pub(crate) const KIT_BIND:NativeBinding=NativeBinding{name:"kitBind",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("binding",NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_bind"},..TEXT};
+pub(crate) const KIT_ON:NativeBinding=NativeBinding{name:"kitOn",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on"},..TEXT};
+pub(crate) const KIT_ON_BOOLEAN:NativeBinding=NativeBinding{name:"kitOnBoolean",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_boolean"},..TEXT};
+pub(crate) const KIT_ON_INT:NativeBinding=NativeBinding{name:"kitOnInt",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_int"},..TEXT};
+pub(crate) const KIT_ON_NUMBER:NativeBinding=NativeBinding{name:"kitOnNumber",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_number"},..TEXT};
+pub(crate) const KIT_ON_VOID:NativeBinding=NativeBinding{name:"kitOnVoid",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_void"},..TEXT};
+
 /// Generated programs embed the Node model from `crates/tsrust-ui` with the GPUI
 /// renderer as its `native` module; GPUI Kit comes from the separate locked
 /// GPUI dependency set, never from the backend graph.
@@ -140,6 +151,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[cfg(test)]\nmod application_tests;", "").replace("#[cfg(test)]\nmod empty_style_tests;", "")
         .replace("#[cfg(test)]\nmod table_semantics_tests;", "").replace("#[cfg(test)]\nmod reactive_semantics_tests;", "")
         .replace("mod visibility;",&module("visibility",source!("visibility.rs")))
+        .replace("mod kit;",&module("kit",source!("kit.rs")))
         .replace("mod editable;",&module("editable",source!("editable.rs")))
         .replace("pub mod clipboard;", &format!("pub {}",module("clipboard",&source!("clipboard.rs").replace("crate::Node", "super::Node"))))
         .replace("pub mod navigation;", &format!("pub {}",module("navigation",source!("navigation.rs"))))
@@ -155,7 +167,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
         .replace("feature = \"runtime\"", "feature = \"ui\"").replace("feature=\"runtime\"", "feature = \"ui\"");
     if with_native {
-        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs")));
+        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs"), include_str!("gpui_kit.rs")));
     }
     format!("mod tsrust_native_ui {{\n{body}\n}}\n")
 }

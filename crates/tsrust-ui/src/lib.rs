@@ -38,6 +38,8 @@ mod editable;
 #[cfg(feature = "runtime")]
 mod visibility;
 #[cfg(feature = "runtime")]
+mod kit;
+#[cfg(feature = "runtime")]
 pub mod clipboard;
 #[cfg(feature = "runtime")]
 pub(crate) use editable::{ValueBinding,ChangeHandler};
@@ -125,6 +127,7 @@ pub struct Node {
     semantic_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     state: Vec<Box<dyn std::any::Any>>,
     vector:Option<Box<vector::Data>>,
+    pub(crate) kit:Option<Box<kit::Kit>>,
 }
 
 #[cfg(feature = "runtime")]
@@ -330,6 +333,7 @@ impl Node {
         }
         if !retained {changed+=self.refresh_branch()?;}
         if let Some(data)=&mut self.vector{changed+=data.refresh()?;}
+        changed+=self.refresh_kit()?;
         let metadata=if let Some(binding)=&mut self.semantic_binding{Some(binding()?)}else{None};
         if let Some(config)=metadata{changed+=usize::from(self.apply_semantics(&config,false)?);}
 
@@ -437,7 +441,7 @@ impl Node {
             class_name,
             text,
             children,
-            vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,semantic_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
+            vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,semantic_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,kit:None,
         };if matches!(kind,Kind::Svg|Kind::SvgPath){node.check_class(&node.class_name)?;}
         if kind!=Kind::Svg && node.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}Ok(node)
     }

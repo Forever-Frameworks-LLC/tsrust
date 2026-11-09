@@ -3574,6 +3574,7 @@ impl Emitter<'_> {
             }
         }
         if output.contains("tsr_string_normalize(") { output.push_str(crate::runtime::STRING_NORMALIZATION); }
+        if output.contains("TsrTemplateText::append_template(") {self.template_text_support(&mut output);}
         if output.contains("tsr_math_") {
             output.push_str(crate::runtime::MATH_EXACT);
         }
@@ -8728,21 +8729,51 @@ impl Emitter<'_> {
         }
     }
 
+    /// Template text for scalar unions (literal families included): owned
+    /// unions, their views and references all format their active member.
+    fn template_text_support(&self, output: &mut String) {
+        output.push_str("trait TsrTemplateText { fn append_template(&self, output: &mut std::string::String); }\n\
+impl<T: TsrTemplateText + ?Sized> TsrTemplateText for &T { fn append_template(&self, output: &mut std::string::String) { (**self).append_template(output) } }\n\
+impl TsrTemplateText for String { fn append_template(&self, output: &mut std::string::String) { output.push_str(self.as_ref()) } }\n\
+impl TsrTemplateText for i64 { fn append_template(&self, output: &mut std::string::String) { tsr_push_int(output, *self) } }\n\
+impl TsrTemplateText for f64 { fn append_template(&self, output: &mut std::string::String) { output.push_str(tsr_number_to_string(*self, 10, \"Template value\").as_ref()) } }\n\
+impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::string::String) { output.push_str(if *self { \"true\" } else { \"false\" }) } }\n");
+        for name in ["TsrNull", "TsrUndefined"] {
+            if output.contains(&format!("struct {name}")) {let _ = writeln!(output, "impl TsrTemplateText for {name} {{ fn append_template(&self, output: &mut std::string::String) {{ output.push_str({:?}) }} }}", if name == "TsrNull" {"null"} else {"undefined"});}
+        }
+        for (index, union) in self.program.unions.iter().enumerate() {
+            if !union.members.iter().all(|member| matches!(member, Type::String | Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::Literal(..))) || self.nominal_union_alias(index).is_some() {continue;}
+            let payloads = union.members.iter().filter(|member| !member.is_copy()).count();
+            let parameters = (0..payloads).map(|position| if payloads == 1 {"P".to_owned()} else {format!("P{position}")}).collect::<Vec<_>>();
+            let bounds = parameters.iter().map(|name| format!("{name}: TsrTemplateText")).collect::<Vec<_>>().join(", ");
+            let (owned_generics, owned_arguments) = if payloads == 0 {(String::new(), String::new())} else {(format!("<{bounds}>"), format!("<{}>", parameters.join(", ")))};
+            let (view_generics, view_arguments) = if payloads == 0 {("<'a>".to_owned(), "<'a>".to_owned())} else {(format!("<'a, {bounds}>"), format!("<'a, {}>", parameters.join(", ")))};
+            let arms = |kind: &str| (0..union.members.len()).map(|variant| format!("{kind}{index}::V{variant}(payload)=>TsrTemplateText::append_template(payload, output),")).collect::<String>();
+            let emitted = |kind: &str| output.contains(&format!("enum {kind}{index}<")) || output.contains(&format!("enum {kind}{index} {{"));
+            let (owned, view) = (emitted("Union"), emitted("ViewUnion"));
+            if owned {let _ = writeln!(output, "impl{owned_generics} TsrTemplateText for Union{index}{owned_arguments} {{ fn append_template(&self, output: &mut std::string::String) {{ match self {{ {} }} }} }}", arms("Union"));}
+            if view {let _ = writeln!(output, "impl{view_generics} TsrTemplateText for ViewUnion{index}{view_arguments} {{ fn append_template(&self, output: &mut std::string::String) {{ match self {{ {} }} }} }}", arms("ViewUnion"));}
+        }
+    }
+
     fn finish_template_append(&self, part: &Expr, value: &str, declarations: &str) -> String {
         let mut code = String::new();
             code.push_str(&format!("{{ {declarations} "));
-            if part.ty == Some(Type::String) {
+            let literal = match part.ty {Some(Type::Literal(_, kind)) => Some(kind.base()), _ => None};
+            if matches!(part.ty, Some(Type::Union(_))) {
+                code.push_str(&format!("TsrTemplateText::append_template(&{value}, &mut template_output); "));
+            } else if part.ty == Some(Type::String) || literal == Some(Type::String) {
                 code.push_str(&format!(
                     "let template_value: &String = {value}; template_output.push_str(template_value.as_ref()); "
                 ));
-            } else if part.ty == Some(Type::Number) {
+            } else if part.ty == Some(Type::Number) || literal == Some(Type::Number) {
                 // Number text has its own spelling for infinities, zero,
                 // exponent ranges and tied digits.
                 // Scientific text keeps its existing allocation path.
                 code.push_str(&format!(
                     "let template_value: f64 = {value}; if !tsr_push_whole_number(&mut template_output, template_value) {{ if (1e-6..1e21).contains(&template_value.abs()) {{ TsrJoinText::append_join_text(&template_value, &mut template_output); }} else {{ template_output.push_str(tsr_number_to_string(template_value, 10, \"number text\").as_ref()); }} }} "
                 ));
-            } else if part.ty == Some(Type::Int) {
+            } else if part.ty == Some(Type::Int) || literal == Some(Type::Int) {
                 code.push_str(&format!("let template_value: i64 = {value}; tsr_push_int(&mut template_output, template_value); "));
             } else {
                 code.push_str(&format!(

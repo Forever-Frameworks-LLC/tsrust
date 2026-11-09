@@ -103,13 +103,15 @@ impl Analyzer {
  }
  fn ui_visibility_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
-  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&binding.name=="visibility") else{return Ok(None)};
-  Self::arity(args.len(),2,expression.span)?;
-  let annotation=crate::type_syntax::parse("Owned<Function<void, [visible: boolean]>>")?;
-  let callback=crate::callable_annotations::callback(&annotation).expect("visibility callback");let handler=self.resolve_callback(&callback)?;
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&matches!(binding.name,"visibility"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid")) else{return Ok(None)};
+  let event=binding.name!="visibility";
+  Self::arity(args.len(),if event{3}else{2},expression.span)?;
+  let annotation=crate::type_syntax::parse(match binding.name{"kitOn"=>"Owned<Function<void, [value: ReadOnly<string>]>>","kitOnBoolean"=>"Owned<Function<void, [value: boolean]>>","kitOnInt"=>"Owned<Function<void, [value: int]>>","kitOnNumber"=>"Owned<Function<void, [value: number]>>","kitOnVoid"=>"Owned<Function<void>>",_=>"Owned<Function<void, [visible: boolean]>>"})?;
+  let callback=crate::callable_annotations::callback(&annotation).expect("UI event callback");let handler=self.resolve_callback(&callback)?;
   let node=self.native_parameter_type(binding.parameters[0].ty)?;
-  let contract=|ty|ArgumentContract{ty,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false};
-  self.check_call_arguments(context,args,&[contract(node),contract(handler)],loans)?;
+  let contract=|ty,mode|ArgumentContract{ty,mode,omission:crate::ParameterOmission::Required,rest:false};
+  if event{self.check_call_arguments(context,args,&[contract(node,Mode::Consume),contract(Type::String,Mode::Read),contract(handler,Mode::Consume)],loans)?;}
+  else{self.check_call_arguments(context,args,&[contract(node,Mode::Consume),contract(handler,Mode::Consume)],loans)?;}
   let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }
  fn ui_route_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
@@ -138,9 +140,19 @@ impl Analyzer {
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
   let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime" && binding.name=="bindText") else{return Ok(None)};
   Self::arity(args.len(),1,expression.span)?;
+  // A stored getter of literal-typed scalars (such as a ReactiveValue<'a' | 'b'>
+  // field) formats like its base scalars; other arguments use the scalar contract.
+  let hint=self.expression_type_hint(context,&args[0]);
+  let literal=hint.and_then(|ty|self.ui_computed_callback(ty)).is_some_and(|(result,_)|{let mut pending=vec![result];let mut literal=false;while let Some(ty)=pending.pop(){match ty{Type::Literal(..)=>literal=true,Type::Union(id)=>pending.extend(self.unions.members(id)),_=>{}}}literal});
+  if literal {
+   let actual=self.expression(context,&mut args[0],Mode::Consume,loans,None)?;
+   let (result,_)=self.ui_computed_callback(actual).ok_or_else(||Diagnostic::new("type","A text binding requires a reusable zero-argument getter.",args[0].span))?;
+   self.ui_computed_scalar(result,args[0].span)?;
+  } else {
   let annotation=crate::type_syntax::parse("Owned<Function<string | int | number | boolean | null | undefined>>")?;
   let callback=crate::callable_annotations::callback(&annotation).expect("text binding callback");let wanted=self.resolve_callback(&callback)?;
   self.check_call_arguments(context,args,&[ArgumentContract{ty:wanted,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false}],loans)?;
+  }
   let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }
  #[inline(never)]

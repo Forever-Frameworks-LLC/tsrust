@@ -6,6 +6,26 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### GPUI Kit catalog pass — 2026-11-09
+
+Branch `codex/gpui-ui`. One spec (`stdlib/ui/kit.json`, 62 components including
+items and slots) drives `tools/generate-ui-kit.py`, which writes the typed `std:ui`
+wrappers (`kit.tsr`, formatted) and their IntelliSense entries; `--check` guards
+drift. The runtime has one generic Kit node (string props, live props through
+text bindings, typed events `kitOn{,Boolean,Int,Number,Void}`); `gpui_kit.rs`
+holds the renderer arms by pattern (display, controlled, Kit state entities,
+overlays through a weak root handle, item containers). Compiler fixes found on the
+way: literal and literal-union template interpolation (`TsrTemplateText`), and
+text bindings over literal-typed getters. Native cache readers now wait up to 2 s
+for short copies by other processes (dev reuse flake under parallel tests).
+`experiments/gpui-kit-admission/tsrust/gallery.tsrx` renders every component
+(screenshots checked). Lib 1541/47/25/6, tsrust-ui 108.
+Open: event and overlay interaction proof (headless GPUI test platform, since OS
+input injection is unavailable while the owner uses the machine); GPUI rendering
+for Svg/Path, Link navigation, CopyButton and visibility callbacks; rewrite 27
+restored std:ui docs that still describe the removed browser/Vello renderer; then
+CLI (`new --ui`, `ui add/list`) and the starter.
+
 ### GPUI bridge: first slice — 2026-11-09
 
 Branch `codex/gpui-ui`. Owner chose to restore the checked reactive lowering

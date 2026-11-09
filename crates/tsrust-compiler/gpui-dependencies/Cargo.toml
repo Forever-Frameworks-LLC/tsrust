@@ -79,7 +79,7 @@ svgtypes = { version = "=0.16.1", optional = true }
 [features]
 # std:gpui only: the Node model (crates/tsrust-ui) and the GPUI Kit renderer.
 ui = ["dep:url", "dep:kurbo", "dep:svgtypes", "dep:color"]
-gpui = ["ui", "dep:gpui-kit"]
+gpui = ["ui", "dep:gpui-kit", "dep:chrono"]
 http-websocket = ["http", "dep:futures-util", "axum/ws", "dep:tokio-tungstenite", "dep:webpki-roots"]
 logging = ["dep:tracing", "dep:tracing-subscriber", "dep:pin-project-lite"]
 http-middleware = ["http", "dep:tower", "dep:async-compression", "dep:compression-codecs", "dep:compression-core", "tower-http/cors", "tower-http/set-header", "tower-http/compression-gzip", "tower-http/compression-deflate"]

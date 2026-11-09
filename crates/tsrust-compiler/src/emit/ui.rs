@@ -5,12 +5,24 @@ const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string:
 impl Emitter<'_> {
  pub(super) fn ui_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];
-  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return None;}
+  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
   let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
   let call=match binding.name {
    "bindSemantics"|"bindClass"|"bindVariant"|"bindPath"=>{let callback=args[1].ty.unwrap();let invoke=self.ui_callback(callback,expr.span,"String");let method=match binding.name{"bindSemantics"=>"with_semantics_binding","bindClass"=>"with_class_binding","bindPath"=>"with_path_binding",_=>"with_variant_binding"};format!("{{let node={};let mut registered_callback={};node.{method}(move||({invoke}).map(|value|value.as_ref().to_owned()))}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume))},
+   "kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"=>{
+    // Component events arrive as text; typed handlers receive the parsed value.
+    let (convert,arguments)=match binding.name {
+     "kitOn"=>("let value=String::Owned(value.to_owned());","(&value,)"),
+     "kitOnBoolean"=>("let value=value==\"true\";","(value,)"),
+     "kitOnInt"=>("let value:i64=value.parse().map_err(|_|format!(\"Invalid integer component event value: {value}\"))?;","(value,)"),
+     "kitOnNumber"=>("let value:f64=value.parse().map_err(|_|format!(\"Invalid number component event value: {value}\"))?;","(value,)"),
+     _=>("let _=value;","()"),
+    };
+    let callback=args[2].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"()",arguments);
+    format!("{{let node={};let event={};let mut registered_callback={};node.with_kit_event(event.as_ref(),move |value:&str|{{{convert}{invoke}}})}}",self.expr(fun,&args[0],Mode::Consume),read(&args[1]),self.expr(fun,&args[2],Mode::Consume))
+   },
    "visibility"=>{
     let callback=args[1].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"()","(visible,)");
     format!("{{let node={};let mut registered_callback={};node.with_visibility(move |visible:bool|{{{invoke}}})}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume))
@@ -75,6 +87,7 @@ impl Emitter<'_> {
   },
  }}
  fn ui_text_scalar(&self,ty:Type,expression:&str)->String {match ty {
+  Type::Literal(_,kind)=>self.ui_text_scalar(kind.base(),expression),
   Type::Union(id)=>{let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,&ty)|format!("Union{}::V{tag}(value)=>{},",id.index(),self.ui_text_scalar(ty,"value"))).collect::<String>();format!("match {expression}{{{arms}}}")},
   Type::Boolean=>format!("({expression}).to_string()"),
   Type::Null|Type::Undefined=>format!("{{let _={expression};std::string::String::new()}}"),
