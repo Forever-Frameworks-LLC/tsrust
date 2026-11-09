@@ -22,7 +22,8 @@ New and expanded modules:
   helpers with cancellation tokens, and `std:crypto` hashes, HMAC, HKDF, random
   bytes and Argon2 password hashing on explicit CPU pools.
 - Operations: `std:log` structured logging with request context, and
-  `std:testing` hooks, deep assertions, rejection checks and profiling.
+  `std:testing` hooks, deep assertions, rejection checks, output capture
+  (`captureOutput`, `startOutputCapture`/`finishOutputCapture`) and profiling.
 - Rust packages: practical adapters for locked Rust crates, including generated
   nominal record projections.
 

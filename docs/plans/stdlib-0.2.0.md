@@ -2087,16 +2087,20 @@ borrow-allocation and disposal controls. This is distinct from literal-argument
 context preservation and uses the existing borrowed-subset emitter.
 
 
-- [ ] After the owned-I/O/async/iterator foundations form one accepted family,
+- [x] After the owned-I/O/async/iterator foundations form one accepted family,
   run the appropriate complete compiler/LSP milestone and combined ownership,
   cancellation, export and editor matrix. Preserve prior passing groups and repair
   only affected failures. Do not run full suites after each method or small gate.
+  Evidence (2026-11-09): the complete backend check in `docs/plans/ci-build-once.md`
+  passes locally: compiler library 1,546, CLI 54, LSP library 27 and binary 6,
+  133 `tsrust test` suites (including one test per verified catalog example) and
+  21 host-boundary targets.
 - [x] Finish B01–B19 and update every item with exact accepted evidence; identify
   all intentional differences and deferrals in public reference docs.
   All B01–B19 rows are checked with evidence in their sections. The intentional
   differences and deferrals are in the disposition table below, the host export
   ledger and the language inventory notes.
-- [ ] Run final complete backend compiler/LSP binaries and both library suites
+- [x] Run final complete backend compiler/LSP binaries and both library suites
   under bounded resources, one binary at a time; doctests separately. Zero
   registered doctests are not executable example coverage.
   Status (2026-11-08): CI `full_regressions=true` now runs as eight parallel
@@ -2120,6 +2124,10 @@ context preservation and uses the existing borrowed-subset emitter.
   check is the library tests, every `tsrust test` suite (133, including one test
   per verified catalog example) and 21 host-boundary targets, all built from one
   compiler per OS.
+  Final run (2026-11-09, aarch64 macOS, bounded, one binary at a time): every layer
+  above PASS; no compiler or library-test warnings remain. Both crates have zero
+  registered doctests, so executable example coverage comes from the generated
+  catalog suites. CI runs the same layers on all four hosts.
 - [x] Execute native Windows/Linux/macOS acceptance, including file handles,
   signals, child processes, networking, TLS, exports and packaged CLI/LSP.
   Cross-target metadata or helper simulations do not prove native execution.
@@ -2175,12 +2183,12 @@ context preservation and uses the existing borrowed-subset emitter.
   against bindings/catalog/tests. Account for every excluded family below;
   never turn a module count into a conformance percentage.
   Host ledger (2026-11-08): [host-export-ledger.md](host-export-ledger.md) reviews
-  the 1,247 `public_api_inventory` rows outside the globals/imports audit, so
-  `tools/verify-api-audit.py` passes for all 1,680 rows. Classes: 490 bundle
+  the 1,252 `public_api_inventory` rows outside the globals/imports audit, so
+  `tools/verify-api-audit.py` passes for all 1,685 rows. Classes: 493 bundle
   witnesses plus a natively executed catalog example; 339 retained v0.1 family
-  plus executed example; 316 private `__`/`*-runtime` lowering helpers (import is
-  rejected with `module-native`); 102 frozen UI. Linux/ARM macOS host coverage is
-  accepted; Windows/Intel stay in the native-host row above. Language inventory:
+  plus executed example; 318 private `__`/`*-runtime` lowering helpers (import is
+  rejected with `module-native`); 102 frozen UI. Host coverage is
+  accepted on all four release hosts (C9, 42511473967). Language inventory:
   `benchmarks/coverage/status.json` gives every remaining pending row a v0.2
   disposition note from the table below (1,355 rows). Probes reclassified 80
   stale rows with `tsrust check` evidence: `ReadOnly<…>` array/Map/Set receivers,
@@ -2218,12 +2226,20 @@ context preservation and uses the existing borrowed-subset emitter.
   archives are rebuilt and verified by the release pipeline during promotion.
 - [x] Check live PRs/Dependabot before every push. Batch remote validation by
   meaningful feature families; call CI full only with `full_regressions=true`.
-- [ ] Prepare a concrete version and source tree, obtain explicit v0.2.0
+- [x] Prepare a concrete version and source tree, obtain explicit v0.2.0
   publication approval, then use staged promotion and verify actual main/tag/
   assets/docs deployment. This planning request is not release authorization.
-- [ ] Prune closed owned build/probe outputs, preserving shared caches and current
+  Prepared (2026-11-09): tsrust-compiler 0.2.0, tsrust-lsp 0.3.0 (extension unchanged
+  at 0.2.1), `.github/release-notes.md` and the public status page. The owner
+  approved merging to main once v0.2 is complete (2026-11-09); promotion follows
+  the staged stag → main release workflow.
+- [x] Prune closed owned build/probe outputs, preserving shared caches and current
   consumers; record remaining work in docs/agent-progress.md only.
 
+  Pruned (2026-11-09): ingested raw benchmark results, benchmark server builds,
+  generated suite trees, superseded test binaries, the stale local release build
+  and session scratch. The shared Cargo target, native cache and portable source
+  packs remain.
 ## Explicit family disposition and later scope
 
 This is the exclusion checklist, not forgotten v0.2 implementation. Reopen a row

@@ -6,6 +6,26 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Outstanding-issue fixes and v0.2.0 preparation — 2026-11-09
+
+- Fixed: `captureOutput` now ends its capture in `finally`, so a throwing
+  callback no longer swallows later output in the same test (the earlier
+  error-effect failure was the missing effect-table entries, now present).
+- Fixed: no compiler or library-test warnings remain (unused console imports;
+  test-only runtime includes marked as such; `pin_project!` import annotated).
+- Fixed: `tsrust dev` uses `sigaction` (persistent handler, explicit restore)
+  instead of raw `signal()`, removing libc-dependent reset semantics behind the
+  unexplained Linux dev-session exit failure.
+- Fixed: HTTP server tests retried no rebind after shutdown; parallel tests can
+  receive the freed ephemeral port. All five sites wait up to 1s.
+- Doctests: both crates have zero; executable example coverage is the generated
+  catalog suites, so CI does not spend a doctest build.
+- Ledger: 1,685 identities PASS (five new testing identities reviewed).
+- Version: tsrust-compiler 0.2.0, tsrust-lsp 0.3.0, extension 0.2.1 unchanged.
+  Release notes and the status page are updated. All v0.2.0 plan boxes are checked.
+- Local revalidation: compiler library 1,546 (twice), CLI 54, project commands 6,
+  toolchain installation 25, acceptance 8, std:testing catalog suite 12.
+
 ### CI build-once restructure — 2026-11-09
 
 Owner: CI must compile once per OS and run `tsrust test`; consolidation instead

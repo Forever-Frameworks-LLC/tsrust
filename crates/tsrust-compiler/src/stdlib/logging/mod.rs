@@ -16,7 +16,7 @@ pub(crate) const CHILD:NativeBinding=binding("child",&[READ,parameter("fields",N
 pub(crate) const FLUSH:NativeBinding=binding("flush",&[READ],NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)));
 pub(crate) const CLOSE:NativeBinding=binding("close",&[parameter("logger",NativeType::Structured(&LOGGER),Mode::Consume)],FLUSH.result);
 
-#[cfg(test)]mod tests{include!("runtime.rs");include!("runtime_tests.rs");}
+#[cfg(test)]#[allow(dead_code)]mod tests{include!("runtime.rs");include!("runtime_tests.rs");}
 
 /// This trusted source module has no initializers. Delay its own native
 /// preparation until linked external references decide whether it is needed.

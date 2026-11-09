@@ -526,7 +526,6 @@ std::thread_local! {static TSR_CONSOLE_STATE: std::cell::RefCell<TsrConsoleState
 pub fn tsr_console_write(error: bool, text: &str) {
     if tsr_console_test_capture(error,text) {return;}
     if tsr_console_test_json_output(error,"",text){return;}
-    use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
         let indent = state.borrow().indent;
         fn write(destination: &mut impl std::io::Write, text: &str, indent: usize) {
@@ -571,7 +570,6 @@ pub fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
 pub fn tsr_console_text(error: bool, value: &str) {
     if (tsr_console_test_context().is_some()||tsr_console_output_capturing()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     if tsr_console_test_json_output(error,"",&format!("{value}\n")){return;}
-    use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
         let indent = state.borrow().indent;
         fn write(destination: &mut impl std::io::Write, value: &str, indent: usize) {

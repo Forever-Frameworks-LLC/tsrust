@@ -225,7 +225,7 @@ export function throws(callback:Once<Function<void>>,message:string="Expected fu
 }
 
 /**
-Calls a synchronous callback once and returns the console standard output it wrote, in order, as one string. Output written while capturing is not printed. console.error and other standard-error output are not captured. Nested captures return only their own text. If the callback throws, the exception propagates and its partial output is discarded when the next test starts.
+Calls a synchronous callback once and returns the console standard output it wrote, in order, as one string. Output written while capturing is not printed. console.error and other standard-error output are not captured. Nested captures return only their own text. If the callback throws, capture ends, its partial output is discarded and the exception propagates.
 
 ```tsrust
 import { captureOutput, strictEqual } from "std:testing";
@@ -238,9 +238,10 @@ Use it to assert a program's exact output in a consolidated test suite. Asynchro
 Ownership: consumes the single-use callback; the returned string is owned.
 */
 export function captureOutput(callback:Once<Function<void>>):string {
+    let output="";
     beginOutputCapture();
-    callback();
-    return endOutputCapture();
+    try {callback();} finally {output=endOutputCapture();}
+    return output;
 }
 
 /**

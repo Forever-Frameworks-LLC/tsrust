@@ -15,6 +15,8 @@ pub(crate) mod lines_emit;
 pub(crate) mod views_emit;
 
 #[cfg(test)]
+// Runtime source also compiled here for its tests; programs call the rest.
+#[allow(dead_code)]
 pub(crate) mod typed;
 
 pub(crate) mod writer_emit;

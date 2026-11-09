@@ -1,6 +1,6 @@
 //! Explicit locale owners share native bindings and ordinary Result transport.
 pub(crate) const RUNTIME:&str=include_str!("runtime.rs");
-#[cfg(test)]mod tests{include!("runtime.rs");include!("runtime_tests.rs");}
+#[cfg(test)]#[allow(dead_code)]mod tests{include!("runtime.rs");include!("runtime_tests.rs");}
 use crate::{Mode,native_bindings::{NativeBinding,NativeBackend,NativeParameter,NativeType},native_signatures::{Signature,NativeTypeId}};
 const fn parameter(name:&'static str,ty:&'static Signature,optional:bool)->NativeParameter{NativeParameter{name,ty:NativeType::Structured(ty),access:Mode::Read,optional,rest:false}}
 const fn binding(name:&'static str,parameters:&'static[NativeParameter],result:&'static Signature)->NativeBinding{NativeBinding{module:"std:locale",name,parameters,result:NativeType::Structured(result),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"locale_intrinsic"},features:&["locale"]}}

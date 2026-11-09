@@ -1,8 +1,8 @@
 # v0.2 host export ledger
 
-Review of the 1,247 public-API inventory identities that had no review entry
+Review of the 1,252 public-API inventory identities that had no review entry
 after the 433-identity globals/imports audit. Together the two reviews cover all
-1,680 rows of `public_api_inventory` (catalog entries, compiled native bindings,
+1,685 rows of `public_api_inventory` (catalog entries, compiled native bindings,
 native type declarations and bundled exports). Reproduce with
 `cargo run --offline --locked -p tsrust-compiler --example public_api_inventory`
 and `python3 tools/verify-api-audit.py <inventory.json>`.
@@ -19,10 +19,11 @@ conformance percentage.
 | private-helper | `__`-prefixed binding or `*-runtime` module | Compiler lowering target for a public member. It cannot be imported: `check` rejects `import {__setHostname} from 'std:url'` with `module-native`, and `*-runtime` imports with "runtime bindings are private". It is covered through the public member that lowers to it |
 | frozen-ui | `std:ui`, `std:ui-runtime` and `Ui*` members | Frozen by the backend-only reset. Its catalog examples run only through the ignored `retained_ui_catalog_examples_match_native_output`. It is not v0.2 backend surface |
 
-Catalog example execution: `backend_catalog_examples_match_native_output`
-requires a fenced example on every non-UI entry and runs each registered example
-natively against its recorded output. It passed at 92a465f7 on aarch64 macOS
-(679s).
+Catalog example execution: every non-UI entry carries a fenced example, and
+`tools/generate-catalog-suites.py` turns each verified example into a `tsrust test`
+case asserting its recorded output. CI runs those suites on all four hosts with
+the built compiler; 42 examples that need a database, input file, raw stdout,
+their own executable or test registration run in host tests instead.
 
 Host coverage follows the bundle family. Focused platform acceptance is
 complete on Linux and ARM macOS at C4/C5 (runs 42480586761 and 42485215015).
@@ -62,14 +63,14 @@ does not claim them.
 | `std:signals` | 4 | 0 | 1 | 0 | 0 |
 | `std:sql` | 0 | 6 | 19 | 0 | 0 |
 | `std:sqlite` | 0 | 6 | 13 | 0 | 0 |
-| `std:testing` | 11 | 0 | 0 | 0 | 0 |
-| `std:testing-runtime` | 0 | 0 | 12 | 0 | 0 |
+| `std:testing` | 14 | 0 | 0 | 0 | 0 |
+| `std:testing-runtime` | 0 | 0 | 14 | 0 | 0 |
 | `std:threads` | 18 | 0 | 16 | 0 | 0 |
 | `std:ui` | 0 | 0 | 0 | 0 | 56 |
 | `std:ui-runtime` | 0 | 0 | 0 | 0 | 43 |
 | `std:url` | 16 | 0 | 27 | 0 | 0 |
 | `std:uuid` | 0 | 9 | 0 | 0 | 0 |
-| Total | 490 | 339 | 316 | 0 | 102 | 1247
+| Total | 493 | 339 | 318 | 0 | 102 | 1252
 
 No public row lacks a witness: every non-private, non-UI identity has a catalog
 example that runs natively.

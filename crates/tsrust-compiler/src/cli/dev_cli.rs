@@ -17,24 +17,26 @@ mod platform {
     mod unix {
         use super::*;
     pub(super) static STOP:AtomicBool=AtomicBool::new(false);
-    unsafe extern "C" {fn signal(number:i32,handler:usize)->usize;pub(super) fn kill(pid:i32,signal:i32)->i32;}
+    unsafe extern "C" {pub(super) fn kill(pid:i32,signal:i32)->i32;}
     extern "C" fn stop(_:i32) {STOP.store(true,Ordering::Relaxed);}
-    pub(super) struct Signals {interrupt:usize,terminate:usize}
+    pub(super) struct Signals {interrupt:libc::sigaction,terminate:libc::sigaction}
     impl Signals {
         pub(super) fn install()->Result<Self,String> {
             STOP.store(false,Ordering::Relaxed);
-            // SAFETY: the handler only stores to a lock-free atomic flag. Restore
-            // both previous dispositions when this supervisor returns.
+            // sigaction keeps the handler installed for every delivery (no
+            // SysV reset) on each libc. The handler only stores to a lock-free
+            // atomic flag; both previous actions are restored on return.
             unsafe {
-                let interrupt=signal(2,stop as *const () as usize);
-                if interrupt==usize::MAX {return Err("Cannot install dev interrupt handler".into());}
-                let terminate=signal(15,stop as *const () as usize);
-                if terminate==usize::MAX {signal(2,interrupt);return Err("Cannot install dev termination handler".into());}
+                let mut action:libc::sigaction=std::mem::zeroed();
+                action.sa_sigaction=stop as *const () as usize;action.sa_flags=libc::SA_RESTART;libc::sigemptyset(&mut action.sa_mask);
+                let mut interrupt:libc::sigaction=std::mem::zeroed();let mut terminate:libc::sigaction=std::mem::zeroed();
+                if libc::sigaction(libc::SIGINT,&action,&mut interrupt)!=0 {return Err("Cannot install dev interrupt handler".into());}
+                if libc::sigaction(libc::SIGTERM,&action,&mut terminate)!=0 {libc::sigaction(libc::SIGINT,&interrupt,std::ptr::null_mut());return Err("Cannot install dev termination handler".into());}
                 Ok(Self{interrupt,terminate})
             }
         }
     }
-    impl Drop for Signals {fn drop(&mut self){unsafe {signal(2,self.interrupt);signal(15,self.terminate);}}}
+    impl Drop for Signals {fn drop(&mut self){unsafe {libc::sigaction(libc::SIGINT,&self.interrupt,std::ptr::null_mut());libc::sigaction(libc::SIGTERM,&self.terminate,std::ptr::null_mut());}}}
     pub(super) struct Process {pub(super) child:Child,stopped:bool}
     impl Process {
         pub(super) fn spawn(command:&mut Command)->Result<Self,String> {

@@ -164,7 +164,9 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
     Ok(())
 }
 
+// Runtime sources compiled here only for their unit tests; programs use the rest.
 #[cfg(test)]
+#[allow(dead_code)]
 pub(crate) mod tests {
  #[cfg(feature="logging")] include!("../logging/runtime.rs");
     include!("runtime.rs");

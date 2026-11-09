@@ -1,6 +1,6 @@
 pub(crate) mod emit;
 pub(crate) const RUNTIME:&str=include_str!("runtime.rs");
-#[cfg(test)] mod tests {include!("runtime.rs");include!("runtime_tests.rs");}
+#[cfg(test)] #[allow(dead_code)] mod tests {include!("runtime.rs");include!("runtime_tests.rs");}
 use crate::{Mode,native_bindings::{NativeBinding,NativeBackend,NativeParameter,NativeType},native_signatures::{Signature,NativeTypeId}};
 pub(crate) const RANDOM_BYTES:NativeBinding=NativeBinding{module:"std:crypto",name:"randomBytes",parameters:&[NativeParameter{name:"length",ty:NativeType::Int,access:Mode::Read,optional:false,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::Bytes),&Signature::Named(NativeTypeId::CryptoError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"tsrust_crypto_random_bytes"},features:&["crypto"]};
 pub(crate) const SHA256:NativeBinding=NativeBinding{module:"std:crypto",name:"sha256",parameters:&[NativeParameter{name:"bytes",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)),access:Mode::Read,optional:false,rest:false}],result:NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"tsrust_crypto_sha256"},features:&["crypto"]};

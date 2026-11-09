@@ -20,7 +20,7 @@ passed acceptance: consult its published assets and release notes.
 
 ## Standard-library development
 
-The v0.2.0 standard-library checklist is still in progress. Source builds include:
+Tsrust v0.2.0 completes the standard-library checklist. It includes:
 
 - Owned byte buffers, binary codecs, file/directory operations, streams and compression.
 - Path, environment and OS helpers, signals, child processes, TCP/UDP and DNS.
@@ -31,9 +31,8 @@ The v0.2.0 standard-library checklist is still in progress. Source builds includ
 - Structured logging, async coordination and testing hooks, assertions and profiling.
 
 Find the APIs in the [standard-library overview](/tsrust/library/overview/) and
-[test runner and profiling guide](/tsrust/tools/testing/). Source availability does
-not mean an older installed release includes these APIs. Platform, package,
-performance and final milestone acceptance remain incomplete.
+[test runner and profiling guide](/tsrust/tools/testing/). Releases before v0.2.0
+do not include these APIs.
 
 ## Compatibility
 

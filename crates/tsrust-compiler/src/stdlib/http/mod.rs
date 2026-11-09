@@ -128,7 +128,8 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
  if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","parse").unwrap(),crate::Span::default())?;crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}if access_log_used{crate::native_binding_types::prepare(&mut program.records,&ACCESS_LOG,crate::Span::default())?;}if middleware_used{for binding in [CORS,SECURE_HEADERS,COMPRESS]{crate::native_binding_types::prepare(&mut program.records,&binding,crate::Span::default())?;}}}
  Ok(())
 }
-#[cfg(test)]mod tests {
+// Runtime sources compiled here only for their unit tests; programs use the rest.
+#[cfg(test)]#[allow(dead_code, unused_imports)]mod tests {
  use crate::stdlib::futures::tests as tsrust_native_futures;
  #[cfg(feature="logging")] include!("../logging/runtime.rs");
  include!("runtime.rs");

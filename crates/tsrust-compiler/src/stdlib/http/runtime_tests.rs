@@ -112,7 +112,7 @@ fn loopback_routes_middleware_bodies_and_shutdown(){
   let response=client.send(Request::new("GET",&format!("http://{address}/items/42"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),200);assert_eq!(response.header("x-after").unwrap().as_deref(),Some("yes"));assert_eq!(response.text_body().await.unwrap(),"42");
   let response=client.send(Request::new("POST",&format!("http://{address}/echo"),"héllo".into()).unwrap()).await.unwrap();assert_eq!(response.status(),201);assert_eq!(response.text_body().await.unwrap(),"héllo");
   for (method,path,status) in [("GET","/missing",404),("POST","/items/42",405)]{let response=client.send(Request::new(method,&format!("http://{address}{path}"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),status);assert_eq!(response.header("x-after").unwrap().as_deref(),Some("yes"));}
-  server.shutdown().await;assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"shutdown must release the listening socket");
+  server.shutdown().await;assert!(released(&address).await,"shutdown must release the listening socket");
  });
 }
 #[test]
@@ -159,7 +159,7 @@ fn disconnect_and_shutdown_release_inflight_request_children(){
    tokio::time::timeout(std::time::Duration::from_secs(2),started.notified()).await.unwrap();
    if disconnect{drop(socket);tokio::time::timeout(std::time::Duration::from_secs(2),async{while observed.load(Ordering::SeqCst)==0{tokio::task::yield_now().await;}}).await.unwrap();server.shutdown().await;}
    else{tokio::time::timeout(std::time::Duration::from_secs(7),server.shutdown()).await.unwrap();drop(socket);}
-   assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"shutdown must release the listening socket");
+   assert!(released(&address).await,"shutdown must release the listening socket");
   });
   assert_eq!(drops.load(Ordering::SeqCst),1);
  }
@@ -191,13 +191,19 @@ fn cancelling_server_wait_drains_its_listener(){
   let server=App::new().listen("127.0.0.1:0").await.unwrap();let address=server.address();
   let job=tsrust_native_futures::start(async move{server.wait().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
   job.cancel();assert!(matches!(job.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
-  assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"cancelled wait must finish listener cleanup");
+  assert!(released(&address).await,"cancelled wait must finish listener cleanup");
  });
 }
 
 const TLS_CA:&str=include_str!("../../../tests/fixtures/tls/ca.pem");
 const TLS_CERT:&str=include_str!("../../../tests/fixtures/tls/server.pem");
 const TLS_KEY:&str=include_str!("../../../tests/fixtures/tls/server.key");
+/// Shutdown drops the listener before it returns. Parallel tests can briefly
+/// receive the same freed ephemeral port, so retry the rebind for up to a second.
+async fn released(address:&str)->bool{
+ for _ in 0..50{if tokio::net::TcpListener::bind(address).await.is_ok(){return true;}tokio::time::sleep(std::time::Duration::from_millis(20)).await;}
+ false
+}
 #[test]
 fn tls_verifies_trust_hostname_and_validity(){
  tsrust_native_futures::block_on(async{
@@ -213,7 +219,7 @@ fn tls_verifies_trust_hostname_and_validity(){
     if accepted{let response=response.unwrap();assert_eq!(response.status(),201);assert_eq!(response.text_body().await.unwrap(),"héllo");}else{assert!(response.is_err(),"invalid certificate accepted");}
    }
    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst),if accepted{3}else{0});
-   server.shutdown().await;assert!(tokio::net::TcpListener::bind(address).await.is_ok());
+   server.shutdown().await;assert!(released(&address).await,"TLS listener kept its port after shutdown");
   }
  });
 }
@@ -229,7 +235,7 @@ fn tls_rejects_bad_configuration_and_drains_stalled_handshakes(){
   let mut sockets=Vec::new();for _ in 0..16{sockets.push(tokio::net::TcpStream::connect(&address).await.unwrap());}
   tokio::time::sleep(std::time::Duration::from_millis(30)).await;
   tokio::time::timeout(std::time::Duration::from_secs(2),server.shutdown()).await.expect("shutdown must interrupt TLS handshakes");
-  assert!(tokio::net::TcpListener::bind(&address).await.is_ok());
+  assert!(released(&address).await,"TLS listener kept its port after shutdown");
   use tokio::io::AsyncReadExt;
   for mut socket in sockets{let mut byte=[0];let read=tokio::time::timeout(std::time::Duration::from_secs(1),socket.read(&mut byte)).await.unwrap();assert!(matches!(read,Ok(0)|Err(_)));}
  });
@@ -257,7 +263,7 @@ fn tls_negotiates_http_versions_and_cancellation_drains_children(){
   job.cancel();assert!(matches!(job.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
   let wait=tsrust_native_futures::start(async move{server.wait().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
   wait.cancel();assert!(matches!(wait.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
-  assert!(tokio::net::TcpListener::bind(address).await.is_ok());
+  assert!(released(&address).await);
  });
  assert_eq!(drops.load(Ordering::SeqCst),1);
 }

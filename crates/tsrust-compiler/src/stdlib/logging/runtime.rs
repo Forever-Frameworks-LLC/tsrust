@@ -1,6 +1,8 @@
 mod tsrust_native_logging {
  // Local tracing dispatch and synchronous sinks. No global subscriber or worker.
- use std::{future::Future,pin::Pin,io::{self,Write},sync::{Arc,Mutex}};
+ // `pin_project!` names `Pin` in its expansion, which the unused-import lint misses.
+#[allow(unused_imports)]
+use std::{future::Future,pin::Pin,io::{self,Write},sync::{Arc,Mutex}};
  use tracing::{Dispatch,Level,Span,Instrument,instrument::WithSubscriber};
  use tracing_subscriber::{layer::SubscriberExt,Layer,filter::filter_fn,fmt::MakeWriter};
  #[derive(Debug)]pub struct Error{pub code:&'static str,pub message:String}

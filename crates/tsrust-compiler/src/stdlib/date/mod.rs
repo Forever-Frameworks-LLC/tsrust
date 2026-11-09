@@ -1,6 +1,6 @@
 pub(crate) mod emit;
 pub(crate) const RUNTIME:&str=concat!("mod tsrust_native_date {\n",include_str!("runtime.rs"),include_str!("temporal.rs"),"\n}\n");
-#[cfg(test)] mod tests {mod tsrust_native_date {include!("runtime.rs");include!("temporal.rs");}include!("runtime_tests.rs");include!("temporal_tests.rs");}
+#[cfg(test)] #[allow(dead_code)] mod tests {mod tsrust_native_date {include!("runtime.rs");include!("temporal.rs");}include!("runtime_tests.rs");include!("temporal_tests.rs");}
 use crate::{Mode,native_bindings::{NativeBinding,NativeBackend,NativeParameter,NativeType},native_signatures::{Signature,NativeTypeId}};
 pub(crate) const PARSE_DATE:NativeBinding=NativeBinding{module:"std:date",name:"parseDate",parameters:&[NativeParameter{name:"text",ty:NativeType::String,access:Mode::Read,optional:false,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::CalendarDate),&Signature::Named(NativeTypeId::DateError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"tsrust_date_parse_date"},features:&["calendar"]};
 pub(crate) const FORMAT_DATE:NativeBinding=NativeBinding{module:"std:date",name:"formatDate",parameters:&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::CalendarDate)),access:Mode::Read,optional:false,rest:false}],result:NativeType::String,returned_borrow:None,backend:NativeBackend::Bundled{symbol:"tsrust_date_format_date"},features:&["calendar"]};
