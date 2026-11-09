@@ -1,5 +1,5 @@
 import {
-  View, Text, Button, Input, Node, signal, run, setTheme, notify, t, tWith, translateWith, setTranslations, setLocale,
+  View, Text, Button, Input, Node, signal, run, setTheme, notify, writeClipboard, t, tWith, translateWith, setTranslations, setLocale,
   appInfo, checkForUpdates, installUpdate, relaunch,
   Sidebar, SidebarGroup, SidebarItem, Toolbar, ScrollArea, StatusBar, StatusBarLeft, StatusBarRight, Switch, Select,
   Markdown, Badge, Tag, Avatar, Kbd, Alert, Progress, ProgressCircle, Separator, DescriptionList, DescriptionItem,
@@ -134,7 +134,7 @@ function Overlays(): Node {
         <Button onPress={() => { dialog.set(true); }}>Open dialog</Button>
         <Button onPress={() => { sheet.set(true); }}>Open sheet</Button>
         <Button onPress={() => { notify('Saved', { title: 'Done', variant: 'success' }); }}>Notify</Button>
-        <Tooltip text="Copies a link"><Button>Share</Button></Tooltip>
+        <Tooltip text="Copies a link"><Button onPress={() => { writeClipboard('https://github.com/Forever-Frameworks-LLC/tsrust'); notify('Link copied', { variant: 'success' }); }}>Share</Button></Tooltip>
         <Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Filter options</Text></PopoverContent></Popover>
         <DropdownMenu label="Actions"><MenuItem label="Duplicate" onSelect={() => { last.set('duplicate'); }} /><MenuItem label="Archive" onSelect={() => { last.set('archive'); }} /></DropdownMenu>
       </View>

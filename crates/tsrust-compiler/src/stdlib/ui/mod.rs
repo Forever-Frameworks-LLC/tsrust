@@ -147,7 +147,7 @@ pub(crate) const TRANSLATE:NativeBinding=NativeBinding{name:"translate",paramete
 pub(crate) const TRANSLATION:NativeBinding=NativeBinding{name:"translation",parameters:&[parameter("key",NativeType::String,Mode::Read),parameter("values",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_translation"},..TEXT};
 pub(crate) const KIT_VALUE:NativeBinding=NativeBinding{name:"kitValue",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("value",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_value"},..TEXT};
 
-/// Selects GPUI Kit code highlighting for programs that use CodeEditor.
+/// Selects GPUI Kit code highlighting for programs that use CodeEditor or Markdown.
 pub(crate) const HIGHLIGHT_MARKER:&str="// tsrust-ui-highlight-selected\n";
 /// Selects GPUI Kit speech recognition for programs that use SpeechButton.
 pub(crate) const SPEECH_MARKER:&str="// tsrust-ui-speech-selected\n";

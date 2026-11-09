@@ -208,6 +208,24 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   className?: Classes;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
+  /** GPUI Kit look: default (neutral, when omitted), primary, secondary, danger, warning, success, info, ghost, link or text. Applies to unclassed buttons. */
+  variant?: 'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text';
+  /** xsmall, small, medium (default) or large. */
+  size?: 'xsmall' | 'small' | 'medium' | 'large';
+  /** Leading icon; a button with only an icon becomes square. */
+  icon?: IconName;
+  /** Draws the variant as an outline. */
+  outline?: boolean;
+  /** Tighter horizontal padding. */
+  compact?: boolean;
+  /** Shows a spinner and blocks clicks while true. */
+  loading?: ReactiveValue<boolean>;
+  /** Marks the button as selected, as in a toggle group. */
+  selected?: ReactiveValue<boolean>;
+  /** Adds a dropdown caret after the label. */
+  caret?: boolean;
+  /** Tooltip shown on hover. */
+  tooltip?: string;
 }
 
 /** Button props supplied to a replacement factory, including children, disabled state and onPress. */
@@ -414,19 +432,69 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
+  const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false, props.tooltip ?? '');
+  const loading = props.loading;
+  const selected = props.selected;
+  let node: Node;
   if (disabled !== undefined && typeof disabled !== 'boolean') {
     if (handler === undefined) {
-      return applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, classes, false)), disabled.evaluate)), metadata, className, variant);
+      node = applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, classes, false)), disabled.evaluate)), metadata, className, variant);
+    } else {
+      node = applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(nativeButton(children, classes, false, handler)), disabled.evaluate)), metadata, className, variant);
     }
-
-    return applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(nativeButton(children, classes, false, handler)), disabled.evaluate)), metadata, className, variant);
+  } else if (handler !== undefined) {
+    node = applyProperties(unwrapNode(nativeButton(children, classes, disabled ?? false, handler)), metadata, className, variant);
+  } else {
+    node = applyProperties(unwrapNode(staticButton(children, classes, disabled ?? false)), metadata, className, variant);
   }
 
-  if (handler !== undefined) {
-    return applyProperties(unwrapNode(nativeButton(children, classes, disabled ?? false, handler)), metadata, className, variant);
+  for (const [name, value] of options) {
+    node = unwrapNode(nativeKitSet(node, name, value));
   }
 
-  return applyProperties(unwrapNode(staticButton(children, classes, disabled ?? false)), metadata, className, variant);
+  if (loading !== undefined) {
+    node = kitFlag(node, 'loading', loading);
+  }
+
+  if (selected !== undefined) {
+    node = kitFlag(node, 'selected', selected);
+  }
+
+  return node;
+}
+
+/** Kit button options that are set, as name/value pairs. */
+function buttonOptions(variant: string | undefined, size: string | undefined, icon: string | undefined, outline: boolean, compact: boolean, caret: boolean, tooltip: string): [string, string][] {
+  const options: [string, string][] = [];
+  if (variant !== undefined) {
+    options.push(['variant', variant]);
+  }
+
+  if (size !== undefined) {
+    options.push(['size', size]);
+  }
+
+  if (icon !== undefined) {
+    options.push(['icon', icon]);
+  }
+
+  if (outline) {
+    options.push(['outline', 'true']);
+  }
+
+  if (compact) {
+    options.push(['compact', 'true']);
+  }
+
+  if (caret) {
+    options.push(['caret', 'true']);
+  }
+
+  if (tooltip !== '') {
+    options.push(['tooltip', tooltip]);
+  }
+
+  return options;
 }
 
 /** An application path or HTTPS link. External links open in the default browser. */

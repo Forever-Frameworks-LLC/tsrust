@@ -31,7 +31,12 @@ impl Node {
         node.kit = Some(Box::new(Kit {name: name.to_owned(), props: BTreeMap::new(), bindings: Vec::new(), events: Vec::new()}));
         Ok(node)
     }
-    fn kit_mut(&mut self) -> Result<&mut Kit, String> {self.kit.as_deref_mut().ok_or_else(|| "Component props require a GPUI Kit component".to_owned())}
+    /// Kit props on a core node (such as Button options) live in an unnamed Kit record.
+    fn kit_mut(&mut self) -> Result<&mut Kit, String> {
+        Ok(self.kit.get_or_insert_with(|| Box::new(Kit {name: String::new(), props: BTreeMap::new(), bindings: Vec::new(), events: Vec::new()})))
+    }
+    /// A Kit-style option set on this node, if any.
+    pub(crate) fn option(&self, name: &str) -> Option<&str> {self.kit.as_deref().and_then(|kit| kit.prop(name))}
     pub fn with_kit_prop(mut self, name: &str, value: &str) -> Result<Self, String> {
         self.kit_mut()?.props.insert(name.to_owned(), value.to_owned());
         Ok(self)

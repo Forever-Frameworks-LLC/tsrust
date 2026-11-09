@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""Report how much of GPUI Kit's public component API `std:ui` covers.
+
+Inventories every public method on GPUI Kit's renderable component types and
+their state types (gpui-component, plus the gpui-base types it re-exports) from
+the locked crate sources, then checks each against the `covers` map in
+stdlib/ui/kit.json:
+
+    "covers": {"Button": {"primary": "variant", "on_click": "onPress", "id": "n/a: automatic"}}
+
+A method is covered when it maps to a prop, event or child, or carries an
+explicit "n/a: reason". Exit status is nonzero while anything is unmapped, so
+`--check` can gate completeness. `--component Name` lists one type's gaps.
+"""
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SPEC = ROOT / "crates/tsrust-compiler/src/stdlib/ui/kit.json"
+REGISTRY = Path(os.environ.get("CARGO_HOME", Path.home() / ".cargo")) / "registry/src"
+TRAITS = {"Sizable": ["xsmall", "small", "medium", "large", "with_size"], "Disableable": ["disabled"], "Selectable": ["selected"],
+          "ButtonVariants": ["primary", "secondary", "danger", "warning", "success", "info", "ghost", "link", "text", "custom"],
+          "Collapsible": ["collapsed"]}
+
+
+def crate(name):
+    matches = sorted(REGISTRY.glob(f"*/{name}"))
+    if not matches:
+        sys.exit(f"{name} sources are not in the Cargo registry; run tsrust setup --dependencies --yes")
+    return matches[-1] / "src"
+
+
+def impls(text):
+    """Yield (header, body) for every impl block, matching braces."""
+    for match in re.finditer(r"^impl\b[^{;]*\{", text, re.M):
+        depth, index = 1, match.end()
+        while depth and index < len(text):
+            depth += {"{": 1, "}": -1}.get(text[index], 0)
+            index += 1
+        yield match.group(0)[:-1], text[match.end():index]
+
+
+def without_tests(text):
+    """Drop `#[cfg(test)] mod name { ... }` blocks, matching braces."""
+    while (match := re.search(r"#\[cfg\(test\)\]\s*mod \w+\s*\{", text)):
+        depth, index = 1, match.end()
+        while depth and index < len(text):
+            depth += {"{": 1, "}": -1}.get(text[index], 0)
+            index += 1
+        text = text[:match.start()] + text[index:]
+    return text
+
+
+def target(header):
+    """The type an impl header targets, and the trait when it is a trait impl."""
+    header = re.sub(r"\s+", " ", header.split(" where ")[0])
+    rest = header[4:].lstrip()
+    if rest.startswith("<"):
+        depth = 0
+        for index, char in enumerate(rest):
+            depth += {"<": 1, ">": -1}.get(char, 0)
+            if depth == 0:
+                rest = rest[index + 1:].lstrip()
+                break
+    if " for " in rest:
+        trait, ty = rest.split(" for ", 1)
+        name = re.search(r"\b([A-Z]\w*)", ty.split("<")[0])
+        return (name.group(1) if name else None), re.sub(r"<.*", "", trait).split("::")[-1].strip()
+    found = re.match(r"(?:\w+::)*([A-Z]\w*)", rest)
+    return (found.group(1) if found else None), None
+
+
+def inventory():
+    types = {}
+    for source in [crate("gpui-component-0.9.0"), crate("gpui-base-0.9.0")]:
+        for path in source.rglob("*.rs"):
+            if "test" in path.name:
+                continue
+            text = without_tests(path.read_text())
+            for header, body in impls(text):
+                ty, trait = target(header)
+                if not ty:
+                    continue
+                entry = types.setdefault(ty, {"methods": [], "traits": set(), "files": set()})
+                entry["files"].add(str(path.relative_to(source.parent.parent)))
+                if trait:
+                    entry["traits"].add(trait)
+                else:
+                    for method in re.findall(r"^\s{4}pub fn (\w+)", body, re.M):
+                        if method not in entry["methods"]:
+                            entry["methods"].append(method)
+    for entry in types.values():
+        for trait, methods in TRAITS.items():
+            if trait in entry["traits"]:
+                entry["methods"] += [method for method in methods if method not in entry["methods"]]
+    return types
+
+
+def main():
+    spec = json.loads(SPEC.read_text())
+    covers = spec.get("covers", {})
+    types = inventory()
+    tracked = {name: types[name] for name in spec.get("kitTypes", []) if name in types}
+    missing = [name for name in spec.get("kitTypes", []) if name not in types]
+    only = sys.argv[sys.argv.index("--component") + 1] if "--component" in sys.argv else None
+    total = done = 0
+    gaps = {}
+    for name, entry in sorted(tracked.items()):
+        mapped = covers.get(name, {})
+        open_methods = [method for method in entry["methods"] if method not in mapped]
+        total += len(entry["methods"])
+        done += len(entry["methods"]) - len(open_methods)
+        if open_methods:
+            gaps[name] = open_methods
+    if only:
+        print(f"{only}: {', '.join(gaps.get(only, [])) or 'complete'}")
+    else:
+        for name, methods in gaps.items():
+            print(f"{name} ({len(methods)}): {', '.join(methods)}")
+        print(f"Covered {done}/{total} public methods across {len(tracked)} GPUI Kit types; {len(gaps)} types incomplete.")
+    if missing:
+        print("Unknown kitTypes:", ", ".join(missing))
+    if "--check" in sys.argv and (gaps or missing):
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

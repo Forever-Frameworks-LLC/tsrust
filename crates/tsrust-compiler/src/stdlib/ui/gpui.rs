@@ -124,7 +124,7 @@ impl Root {
             // Like a browser input, an unsized field keeps a usable intrinsic width.
             return styled(div().min_w(px(240.)), &node.class_name, theme, mode, node.is_disabled()).child(control).into_any_element();
         }
-        if let Some(kit) = &node.kit {
+        if let Some(kit) = node.kit.as_deref().filter(|kit| !kit.name.is_empty()) {
             let element = self.kit_element(node, kit, cx);
             if node.class_name.is_empty() {return element;}
             // The class wrapper can shrink in flex layouts, so scroll areas inside it scroll.
@@ -140,8 +140,24 @@ impl Root {
                     .on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
             }
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => {
-                let button = Button::new(ElementId::Integer(id)).label(node.content_text()).disabled(node.is_disabled());
-                let button = match node.semantics.variant.as_str() {"ghost" => button.ghost(), "danger" | "destructive" => button.danger(), "outline" => button.outline(), _ => button.primary()};
+                // Kit button options (variant, size, icon, states) arrive as node options.
+                let option = |name: &str| node.option(name).unwrap_or_default();
+                let flag = |name: &str| option(name) == "true";
+                let label = node.content_text();
+                let mut button = Button::new(ElementId::Integer(id)).disabled(node.is_disabled());
+                if !label.is_empty() {button = button.label(label);}
+                let variant = if option("variant").is_empty() {node.semantics.variant.as_str()} else {option("variant")};
+                button = match variant {
+                    "secondary" => button.secondary(), "ghost" => button.ghost(), "danger" | "destructive" => button.danger(),
+                    "warning" => button.warning(), "success" => button.success(), "info" => button.info(), "link" => button.link(), "text" => button.text(),
+                    "outline" => button.outline(), "primary" => button.primary(), _ => button,
+                };
+                if flag("outline") {button = button.outline();}
+                if flag("compact") {button = button.compact();}
+                if let Some(icon) = icon_name(option("icon")) {button = button.icon(icon);}
+                button = match option("size") {"xsmall" => button.with_size(KitSize::XSmall), "small" => button.with_size(KitSize::Small), "large" => button.with_size(KitSize::Large), _ => button};
+                button = button.loading(flag("loading")).selected(flag("selected")).dropdown_caret(flag("caret"));
+                if !option("tooltip").is_empty() {button = button.tooltip(option("tooltip").to_owned());}
                 button.on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
             }
             Kind::Button | Kind::DisabledButton => {

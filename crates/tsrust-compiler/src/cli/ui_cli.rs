@@ -82,16 +82,16 @@ fn wrapper(component:&Component,catalog:&[Component])->String {
     source
 }
 
-/// `tsrust new <name> --ui`: the desktop starter with live reload.
+/// `tsrust new <name> --ui`: a small desktop app (src/cli/ui-template) with live reload.
 pub(super) fn create_app(root:&Path)->Result<(),String> {
     let name=root.file_name().and_then(|value|value.to_str()).unwrap_or("app");
     fs::create_dir(root).map_err(|e|format!("Cannot create {}: {e}. Existing projects are never overwritten.",root.display()))?;
     let config=serde_json::json!({"schemaVersion":1,"name":name,"build":{"entry":"src/main.tsrx","output":format!("target/{name}{}",std::env::consts::EXE_SUFFIX)}});
     let files:[(&str,&[u8]);6]=[
-        ("src/main.tsrx",include_bytes!("../../../../examples/gpui-starter/main.tsrx")),
-        ("src/locales/en.json",include_bytes!("../../../../examples/gpui-starter/locales/en.json")),
-        ("src/locales/fr.json",include_bytes!("../../../../examples/gpui-starter/locales/fr.json")),
-        ("icon.png",include_bytes!("../../../../examples/gpui-starter/icon.png")),
+        ("src/main.tsrx",include_bytes!("ui-template/main.tsrx")),
+        ("src/locales/en.json",include_bytes!("ui-template/locales/en.json")),
+        ("src/locales/fr.json",include_bytes!("ui-template/locales/fr.json")),
+        ("icon.png",include_bytes!("ui-template/icon.png")),
         (".gitignore",b"/target/\n/dist/\n"),
         ("AGENTS.md",super::new_cli::AGENT_GUIDANCE.as_bytes()),
     ];

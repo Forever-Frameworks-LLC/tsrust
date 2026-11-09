@@ -81,7 +81,8 @@ pub fn separate(source:&str)->Units {
     let mut application=source.to_owned();let mut runtime=if source.contains(crate::stdlib::http::MIDDLEWARE_MARKER){crate::stdlib::http::MIDDLEWARE_MARKER.to_owned()}else{String::new()};
     if source.contains(crate::stdlib::http::WEBSOCKET_MARKER){runtime.push_str(crate::stdlib::http::WEBSOCKET_MARKER);}
     // Unused Kit wrappers are pruned, so the component name appears only when used.
-    if source.contains("String::Borrowed(\"CodeEditor\")"){runtime.push_str(crate::stdlib::ui::HIGHLIGHT_MARKER);}
+    // CodeEditor and Markdown code blocks highlight through GPUI Kit syntect.
+    if ["CodeEditor","Markdown"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HIGHLIGHT_MARKER);}
     if source.contains("String::Borrowed(\"SpeechButton\")"){runtime.push_str(crate::stdlib::ui::SPEECH_MARKER);}
     let mut binding_crates=std::collections::BTreeSet::new();
     for line in source.lines().filter(|line|line.starts_with(crate::project::rust::dependencies::MARKER)) {
