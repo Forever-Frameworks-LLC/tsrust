@@ -105,7 +105,14 @@ impl Root {
             return styled(div(), &node.class_name, theme, mode, false).child(element).into_any_element();
         }
         let children = node.visible_children().map(|child| self.element(child, theme, mode, cx)).collect::<Vec<_>>();
+        if let Some(copy) = &node.copy {
+            return Clipboard::new(ElementId::Integer(id)).value(SharedString::from(copy.value.clone())).into_any_element();
+        }
         match node.kind {
+            Kind::Button | Kind::DisabledButton if node.class_name.is_empty() && !node.semantics.href.is_empty() => {
+                gpui_kit::component::link::Link::new(ElementId::Integer(id)).disabled(node.is_disabled()).child(SharedString::from(node.content_text()))
+                    .on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
+            }
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => {
                 let button = Button::new(ElementId::Integer(id)).label(node.content_text()).disabled(node.is_disabled());
                 let button = match node.semantics.variant.as_str() {"ghost" => button.ghost(), "danger" | "destructive" => button.danger(), "outline" => button.outline(), _ => button.primary()};
