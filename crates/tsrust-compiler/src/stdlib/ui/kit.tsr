@@ -10,6 +10,7 @@ function kitText(node: Node, name: string, value: ReactiveValue<string>): Node {
   if (typeof value === 'string') {
     return unwrapNode(nativeKitSet(node, name, value));
   }
+
   return unwrapNode(nativeKitBind(node, name, nativeBindText(value.evaluate)));
 }
 
@@ -17,6 +18,7 @@ function kitFlag(node: Node, name: string, value: ReactiveValue<boolean>): Node 
   if (typeof value === 'boolean') {
     return unwrapNode(nativeKitSet(node, name, value ? 'true' : 'false'));
   }
+
   return unwrapNode(nativeKitBind(node, name, nativeBindText(value.evaluate)));
 }
 
@@ -25,6 +27,7 @@ function kitNumber(node: Node, name: string, value: ReactiveValue<number>): Node
     const constant = value;
     return unwrapNode(nativeKitBind(node, name, nativeBindText(() => constant)));
   }
+
   return unwrapNode(nativeKitBind(node, name, nativeBindText(value.evaluate)));
 }
 
@@ -33,7 +36,89 @@ function kitInt(node: Node, name: string, value: ReactiveValue<int>): Node {
     const constant = value;
     return unwrapNode(nativeKitBind(node, name, nativeBindText(() => constant)));
   }
+
   return unwrapNode(nativeKitBind(node, name, nativeBindText(value.evaluate)));
+}
+
+/** A GPUI Kit (Lucide) icon name. */
+export type IconName = 'a-large-small' | 'arrow-down' | 'arrow-left' | 'arrow-right' | 'arrow-up' | 'asterisk' | 'ban' | 'battery-charging' | 'battery-full' | 'battery-low' | 'battery-medium' | 'battery-warning' | 'battery' | 'bell' | 'book-open' | 'bot' | 'building-2' | 'calendar' | 'case-sensitive' | 'chart-pie' | 'check' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'chevron-up' | 'chevrons-up-down' | 'circle-alert' | 'circle-check' | 'circle-user' | 'circle-x' | 'close' | 'copy' | 'cpu' | 'dash' | 'delete' | 'ellipsis-vertical' | 'ellipsis' | 'external-link' | 'eye-off' | 'eye' | 'file-text' | 'file' | 'folder-closed' | 'folder-open' | 'folder' | 'frame' | 'gallery-vertical-end' | 'github' | 'globe' | 'hard-drive' | 'heart-off' | 'heart' | 'inbox' | 'info' | 'inspector' | 'layout-dashboard' | 'loader-circle' | 'loader' | 'map' | 'maximize' | 'memory-stick' | 'menu' | 'mic' | 'minimize' | 'minus' | 'moon' | 'network' | 'palette' | 'panel-bottom-open' | 'panel-bottom' | 'panel-left-close' | 'panel-left-open' | 'panel-left' | 'panel-right-close' | 'panel-right-open' | 'panel-right' | 'pause' | 'play' | 'plus' | 'redo-2' | 'redo' | 'refresh-cw' | 'replace' | 'resize-corner' | 'rotate-cw' | 'search' | 'settings-2' | 'settings' | 'sort-ascending' | 'sort-descending' | 'square-terminal' | 'square' | 'star-fill' | 'star-off' | 'star' | 'sun' | 'thumbs-down' | 'thumbs-up' | 'triangle-alert' | 'undo-2' | 'undo' | 'user' | 'window-close' | 'window-maximize' | 'window-minimize' | 'window-restore';
+
+export interface IconProps {
+  /** Icon name, such as search or arrow-right. */
+  name?: ReactiveValue<IconName>;
+  /** Icon size. Defaults to md; className text colors tint it. */
+  size?: ReactiveValue<'xs' | 'sm' | 'md' | 'lg'>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A GPUI Kit icon (the Lucide set). */
+export function Icon(props: IconProps): Node {
+  let node = kitNode('Icon', [], props.className ?? '');
+  const prop_name = props.name;
+  if (prop_name !== undefined) {
+    if (typeof prop_name === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'name', `${prop_name}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'name', nativeBindText(prop_name.evaluate)));
+    }
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface AnimateProps {
+  /** Animation. Defaults to fade-in. */
+  kind?: ReactiveValue<'fade-in' | 'fade-out' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | 'pulse'>;
+  /** Length in milliseconds. Defaults to 300. */
+  duration?: ReactiveValue<int>;
+  /** Restarts the animation after it finishes. */
+  repeat?: ReactiveValue<boolean>;
+  /** Changing the key replays the animation. */
+  key?: ReactiveValue<string>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Animates its children when they appear, or continuously with repeat. */
+export function Animate(props: AnimateProps): Node {
+  let node = kitNode('Animate', props.children ?? [], props.className ?? '');
+  const prop_kind = props.kind;
+  if (prop_kind !== undefined) {
+    if (typeof prop_kind === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'kind', `${prop_kind}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'kind', nativeBindText(prop_kind.evaluate)));
+    }
+  }
+
+  const prop_duration = props.duration;
+  if (prop_duration !== undefined) {
+    node = kitInt(node, 'duration', prop_duration);
+  }
+
+  const prop_repeat = props.repeat;
+  if (prop_repeat !== undefined) {
+    node = kitFlag(node, 'repeat', prop_repeat);
+  }
+
+  const prop_key = props.key;
+  if (prop_key !== undefined) {
+    node = kitText(node, 'key', prop_key);
+  }
+
+  return node;
 }
 
 export interface BadgeProps {
@@ -53,11 +138,20 @@ export interface BadgeProps {
 export function Badge(props: BadgeProps): Node {
   let node = kitNode('Badge', props.children ?? [], props.className ?? '');
   const prop_count = props.count;
-  if (prop_count !== undefined) { node = kitInt(node, 'count', prop_count); }
+  if (prop_count !== undefined) {
+    node = kitInt(node, 'count', prop_count);
+  }
+
   const prop_max = props.max;
-  if (prop_max !== undefined) { node = kitInt(node, 'max', prop_max); }
+  if (prop_max !== undefined) {
+    node = kitInt(node, 'max', prop_max);
+  }
+
   const prop_dot = props.dot;
-  if (prop_dot !== undefined) { node = kitFlag(node, 'dot', prop_dot); }
+  if (prop_dot !== undefined) {
+    node = kitFlag(node, 'dot', prop_dot);
+  }
+
   return node;
 }
 
@@ -77,11 +171,18 @@ export function Tag(props: TagProps): Node {
   let node = kitNode('Tag', props.children ?? [], props.className ?? '');
   const prop_variant = props.variant;
   if (prop_variant !== undefined) {
-    if (typeof prop_variant === 'string') { node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`)); }
-    else { node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate))); }
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
   }
+
   const prop_outline = props.outline;
-  if (prop_outline !== undefined) { node = kitFlag(node, 'outline', prop_outline); }
+  if (prop_outline !== undefined) {
+    node = kitFlag(node, 'outline', prop_outline);
+  }
+
   return node;
 }
 
@@ -98,9 +199,15 @@ export interface LabelProps {
 export function Label(props: LabelProps): Node {
   let node = kitNode('Label', [], props.className ?? '');
   const prop_text = props.text;
-  if (prop_text !== undefined) { node = kitText(node, 'text', prop_text); }
+  if (prop_text !== undefined) {
+    node = kitText(node, 'text', prop_text);
+  }
+
   const prop_secondary = props.secondary;
-  if (prop_secondary !== undefined) { node = kitText(node, 'secondary', prop_secondary); }
+  if (prop_secondary !== undefined) {
+    node = kitText(node, 'secondary', prop_secondary);
+  }
+
   return node;
 }
 
@@ -117,9 +224,15 @@ export interface KbdProps {
 export function Kbd(props: KbdProps): Node {
   let node = kitNode('Kbd', [], props.className ?? '');
   const prop_keys = props.keys;
-  if (prop_keys !== undefined) { node = kitText(node, 'keys', prop_keys); }
+  if (prop_keys !== undefined) {
+    node = kitText(node, 'keys', prop_keys);
+  }
+
   const prop_outline = props.outline;
-  if (prop_outline !== undefined) { node = kitFlag(node, 'outline', prop_outline); }
+  if (prop_outline !== undefined) {
+    node = kitFlag(node, 'outline', prop_outline);
+  }
+
   return node;
 }
 
@@ -139,13 +252,23 @@ export function Separator(props: SeparatorProps): Node {
   let node = kitNode('Separator', [], props.className ?? '');
   const prop_orientation = props.orientation;
   if (prop_orientation !== undefined) {
-    if (typeof prop_orientation === 'string') { node = unwrapNode(nativeKitSet(node, 'orientation', `${prop_orientation}`)); }
-    else { node = unwrapNode(nativeKitBind(node, 'orientation', nativeBindText(prop_orientation.evaluate))); }
+    if (typeof prop_orientation === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'orientation', `${prop_orientation}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'orientation', nativeBindText(prop_orientation.evaluate)));
+    }
   }
+
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_dashed = props.dashed;
-  if (prop_dashed !== undefined) { node = kitFlag(node, 'dashed', prop_dashed); }
+  if (prop_dashed !== undefined) {
+    node = kitFlag(node, 'dashed', prop_dashed);
+  }
+
   return node;
 }
 
@@ -160,7 +283,10 @@ export interface SkeletonProps {
 export function Skeleton(props: SkeletonProps): Node {
   let node = kitNode('Skeleton', [], props.className ?? '');
   const prop_secondary = props.secondary;
-  if (prop_secondary !== undefined) { node = kitFlag(node, 'secondary', prop_secondary); }
+  if (prop_secondary !== undefined) {
+    node = kitFlag(node, 'secondary', prop_secondary);
+  }
+
   return node;
 }
 
@@ -188,9 +314,15 @@ export interface ProgressProps {
 export function Progress(props: ProgressProps): Node {
   let node = kitNode('Progress', [], props.className ?? '');
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitNumber(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitNumber(node, 'value', prop_value);
+  }
+
   const prop_loading = props.loading;
-  if (prop_loading !== undefined) { node = kitFlag(node, 'loading', prop_loading); }
+  if (prop_loading !== undefined) {
+    node = kitFlag(node, 'loading', prop_loading);
+  }
+
   return node;
 }
 
@@ -207,9 +339,15 @@ export interface ProgressCircleProps {
 export function ProgressCircle(props: ProgressCircleProps): Node {
   let node = kitNode('ProgressCircle', [], props.className ?? '');
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitNumber(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitNumber(node, 'value', prop_value);
+  }
+
   const prop_loading = props.loading;
-  if (prop_loading !== undefined) { node = kitFlag(node, 'loading', prop_loading); }
+  if (prop_loading !== undefined) {
+    node = kitFlag(node, 'loading', prop_loading);
+  }
+
   return node;
 }
 
@@ -226,9 +364,15 @@ export interface AvatarProps {
 export function Avatar(props: AvatarProps): Node {
   let node = kitNode('Avatar', [], props.className ?? '');
   const prop_name = props.name;
-  if (prop_name !== undefined) { node = kitText(node, 'name', prop_name); }
+  if (prop_name !== undefined) {
+    node = kitText(node, 'name', prop_name);
+  }
+
   const prop_src = props.src;
-  if (prop_src !== undefined) { node = kitText(node, 'src', prop_src); }
+  if (prop_src !== undefined) {
+    node = kitText(node, 'src', prop_src);
+  }
+
   return node;
 }
 
@@ -251,18 +395,34 @@ export interface AlertProps {
 export function Alert(props: AlertProps): Node {
   let node = kitNode('Alert', [], props.className ?? '');
   const prop_message = props.message;
-  if (prop_message !== undefined) { node = kitText(node, 'message', prop_message); }
+  if (prop_message !== undefined) {
+    node = kitText(node, 'message', prop_message);
+  }
+
   const prop_title = props.title;
-  if (prop_title !== undefined) { node = kitText(node, 'title', prop_title); }
+  if (prop_title !== undefined) {
+    node = kitText(node, 'title', prop_title);
+  }
+
   const prop_variant = props.variant;
   if (prop_variant !== undefined) {
-    if (typeof prop_variant === 'string') { node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`)); }
-    else { node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate))); }
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
   }
+
   const prop_banner = props.banner;
-  if (prop_banner !== undefined) { node = kitFlag(node, 'banner', prop_banner); }
+  if (prop_banner !== undefined) {
+    node = kitFlag(node, 'banner', prop_banner);
+  }
+
   const event_onClose = props.onClose;
-  if (event_onClose !== undefined) { node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose)); }
+  if (event_onClose !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
+  }
+
   return node;
 }
 
@@ -277,7 +437,10 @@ export interface ShimmerTextProps {
 export function ShimmerText(props: ShimmerTextProps): Node {
   let node = kitNode('ShimmerText', [], props.className ?? '');
   const prop_text = props.text;
-  if (prop_text !== undefined) { node = kitText(node, 'text', prop_text); }
+  if (prop_text !== undefined) {
+    node = kitText(node, 'text', prop_text);
+  }
+
   return node;
 }
 
@@ -296,9 +459,15 @@ export interface EmptyProps {
 export function Empty(props: EmptyProps): Node {
   let node = kitNode('Empty', props.children ?? [], props.className ?? '');
   const prop_title = props.title;
-  if (prop_title !== undefined) { node = kitText(node, 'title', prop_title); }
+  if (prop_title !== undefined) {
+    node = kitText(node, 'title', prop_title);
+  }
+
   const prop_description = props.description;
-  if (prop_description !== undefined) { node = kitText(node, 'description', prop_description); }
+  if (prop_description !== undefined) {
+    node = kitText(node, 'description', prop_description);
+  }
+
   return node;
 }
 
@@ -315,7 +484,10 @@ export interface GroupBoxProps {
 export function GroupBox(props: GroupBoxProps): Node {
   let node = kitNode('GroupBox', props.children ?? [], props.className ?? '');
   const prop_title = props.title;
-  if (prop_title !== undefined) { node = kitText(node, 'title', prop_title); }
+  if (prop_title !== undefined) {
+    node = kitText(node, 'title', prop_title);
+  }
+
   return node;
 }
 
@@ -336,11 +508,20 @@ export interface DescriptionListProps {
 export function DescriptionList(props: DescriptionListProps): Node {
   let node = kitNode('DescriptionList', props.children ?? [], props.className ?? '');
   const prop_columns = props.columns;
-  if (prop_columns !== undefined) { node = kitInt(node, 'columns', prop_columns); }
+  if (prop_columns !== undefined) {
+    node = kitInt(node, 'columns', prop_columns);
+  }
+
   const prop_bordered = props.bordered;
-  if (prop_bordered !== undefined) { node = kitFlag(node, 'bordered', prop_bordered); }
+  if (prop_bordered !== undefined) {
+    node = kitFlag(node, 'bordered', prop_bordered);
+  }
+
   const prop_vertical = props.vertical;
-  if (prop_vertical !== undefined) { node = kitFlag(node, 'vertical', prop_vertical); }
+  if (prop_vertical !== undefined) {
+    node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
   return node;
 }
 
@@ -359,11 +540,20 @@ export interface DescriptionItemProps {
 export function DescriptionItem(props: DescriptionItemProps): Node {
   let node = kitNode('DescriptionItem', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitText(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitText(node, 'value', prop_value);
+  }
+
   const prop_span = props.span;
-  if (prop_span !== undefined) { node = kitInt(node, 'span', prop_span); }
+  if (prop_span !== undefined) {
+    node = kitInt(node, 'span', prop_span);
+  }
+
   return node;
 }
 
@@ -395,11 +585,20 @@ export interface BreadcrumbItemProps {
 export function BreadcrumbItem(props: BreadcrumbItemProps): Node {
   let node = kitNode('BreadcrumbItem', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   const event_onClick = props.onClick;
-  if (event_onClick !== undefined) { node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick)); }
+  if (event_onClick !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
+  }
+
   return node;
 }
 
@@ -414,7 +613,10 @@ export interface ClipboardProps {
 export function Clipboard(props: ClipboardProps): Node {
   let node = kitNode('Clipboard', [], props.className ?? '');
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitText(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitText(node, 'value', prop_value);
+  }
+
   return node;
 }
 
@@ -435,13 +637,25 @@ export interface CheckboxProps {
 export function Checkbox(props: CheckboxProps): Node {
   let node = kitNode('Checkbox', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_checked = props.checked;
-  if (prop_checked !== undefined) { node = kitFlag(node, 'checked', prop_checked); }
+  if (prop_checked !== undefined) {
+    node = kitFlag(node, 'checked', prop_checked);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -462,13 +676,25 @@ export interface SwitchProps {
 export function Switch(props: SwitchProps): Node {
   let node = kitNode('Switch', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_checked = props.checked;
-  if (prop_checked !== undefined) { node = kitFlag(node, 'checked', prop_checked); }
+  if (prop_checked !== undefined) {
+    node = kitFlag(node, 'checked', prop_checked);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -491,13 +717,25 @@ export interface RadioGroupProps {
 export function RadioGroup(props: RadioGroupProps): Node {
   let node = kitNode('RadioGroup', props.children ?? [], props.className ?? '');
   const prop_selected = props.selected;
-  if (prop_selected !== undefined) { node = kitInt(node, 'selected', prop_selected); }
+  if (prop_selected !== undefined) {
+    node = kitInt(node, 'selected', prop_selected);
+  }
+
   const prop_vertical = props.vertical;
-  if (prop_vertical !== undefined) { node = kitFlag(node, 'vertical', prop_vertical); }
+  if (prop_vertical !== undefined) {
+    node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -514,9 +752,15 @@ export interface RadioProps {
 export function Radio(props: RadioProps): Node {
   let node = kitNode('Radio', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   return node;
 }
 
@@ -535,11 +779,20 @@ export interface ToggleProps {
 export function Toggle(props: ToggleProps): Node {
   let node = kitNode('Toggle', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_checked = props.checked;
-  if (prop_checked !== undefined) { node = kitFlag(node, 'checked', prop_checked); }
+  if (prop_checked !== undefined) {
+    node = kitFlag(node, 'checked', prop_checked);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -560,13 +813,25 @@ export interface RatingProps {
 export function Rating(props: RatingProps): Node {
   let node = kitNode('Rating', [], props.className ?? '');
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitInt(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitInt(node, 'value', prop_value);
+  }
+
   const prop_max = props.max;
-  if (prop_max !== undefined) { node = kitInt(node, 'max', prop_max); }
+  if (prop_max !== undefined) {
+    node = kitInt(node, 'max', prop_max);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -587,13 +852,25 @@ export interface PaginationProps {
 export function Pagination(props: PaginationProps): Node {
   let node = kitNode('Pagination', [], props.className ?? '');
   const prop_page = props.page;
-  if (prop_page !== undefined) { node = kitInt(node, 'page', prop_page); }
+  if (prop_page !== undefined) {
+    node = kitInt(node, 'page', prop_page);
+  }
+
   const prop_total = props.total;
-  if (prop_total !== undefined) { node = kitInt(node, 'total', prop_total); }
+  if (prop_total !== undefined) {
+    node = kitInt(node, 'total', prop_total);
+  }
+
   const prop_compact = props.compact;
-  if (prop_compact !== undefined) { node = kitFlag(node, 'compact', prop_compact); }
+  if (prop_compact !== undefined) {
+    node = kitFlag(node, 'compact', prop_compact);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -618,17 +895,35 @@ export interface SliderProps {
 export function Slider(props: SliderProps): Node {
   let node = kitNode('Slider', [], props.className ?? '');
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitNumber(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitNumber(node, 'value', prop_value);
+  }
+
   const prop_min = props.min;
-  if (prop_min !== undefined) { node = kitNumber(node, 'min', prop_min); }
+  if (prop_min !== undefined) {
+    node = kitNumber(node, 'min', prop_min);
+  }
+
   const prop_max = props.max;
-  if (prop_max !== undefined) { node = kitNumber(node, 'max', prop_max); }
+  if (prop_max !== undefined) {
+    node = kitNumber(node, 'max', prop_max);
+  }
+
   const prop_step = props.step;
-  if (prop_step !== undefined) { node = kitNumber(node, 'step', prop_step); }
+  if (prop_step !== undefined) {
+    node = kitNumber(node, 'step', prop_step);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnNumber(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnNumber(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -647,9 +942,15 @@ export interface StepperProps {
 export function Stepper(props: StepperProps): Node {
   let node = kitNode('Stepper', props.children ?? [], props.className ?? '');
   const prop_selected = props.selected;
-  if (prop_selected !== undefined) { node = kitInt(node, 'selected', prop_selected); }
+  if (prop_selected !== undefined) {
+    node = kitInt(node, 'selected', prop_selected);
+  }
+
   const prop_vertical = props.vertical;
-  if (prop_vertical !== undefined) { node = kitFlag(node, 'vertical', prop_vertical); }
+  if (prop_vertical !== undefined) {
+    node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
   return node;
 }
 
@@ -666,9 +967,15 @@ export interface StepperItemProps {
 export function StepperItem(props: StepperItemProps): Node {
   let node = kitNode('StepperItem', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   return node;
 }
 
@@ -689,14 +996,24 @@ export interface TabsProps {
 export function Tabs(props: TabsProps): Node {
   let node = kitNode('Tabs', props.children ?? [], props.className ?? '');
   const prop_selected = props.selected;
-  if (prop_selected !== undefined) { node = kitInt(node, 'selected', prop_selected); }
+  if (prop_selected !== undefined) {
+    node = kitInt(node, 'selected', prop_selected);
+  }
+
   const prop_variant = props.variant;
   if (prop_variant !== undefined) {
-    if (typeof prop_variant === 'string') { node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`)); }
-    else { node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate))); }
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
   }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -713,9 +1030,15 @@ export interface TabProps {
 export function Tab(props: TabProps): Node {
   let node = kitNode('Tab', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   return node;
 }
 
@@ -736,11 +1059,20 @@ export interface AccordionProps {
 export function Accordion(props: AccordionProps): Node {
   let node = kitNode('Accordion', props.children ?? [], props.className ?? '');
   const prop_multiple = props.multiple;
-  if (prop_multiple !== undefined) { node = kitFlag(node, 'multiple', prop_multiple); }
+  if (prop_multiple !== undefined) {
+    node = kitFlag(node, 'multiple', prop_multiple);
+  }
+
   const prop_bordered = props.bordered;
-  if (prop_bordered !== undefined) { node = kitFlag(node, 'bordered', prop_bordered); }
+  if (prop_bordered !== undefined) {
+    node = kitFlag(node, 'bordered', prop_bordered);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOn(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -761,11 +1093,20 @@ export interface AccordionItemProps {
 export function AccordionItem(props: AccordionItemProps): Node {
   let node = kitNode('AccordionItem', props.children ?? [], props.className ?? '');
   const prop_title = props.title;
-  if (prop_title !== undefined) { node = kitText(node, 'title', prop_title); }
+  if (prop_title !== undefined) {
+    node = kitText(node, 'title', prop_title);
+  }
+
   const prop_open = props.open;
-  if (prop_open !== undefined) { node = kitFlag(node, 'open', prop_open); }
+  if (prop_open !== undefined) {
+    node = kitFlag(node, 'open', prop_open);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   return node;
 }
 
@@ -782,7 +1123,10 @@ export interface CollapsibleProps {
 export function Collapsible(props: CollapsibleProps): Node {
   let node = kitNode('Collapsible', props.children ?? [], props.className ?? '');
   const prop_open = props.open;
-  if (prop_open !== undefined) { node = kitFlag(node, 'open', prop_open); }
+  if (prop_open !== undefined) {
+    node = kitFlag(node, 'open', prop_open);
+  }
+
   return node;
 }
 
@@ -805,15 +1149,30 @@ export interface SelectProps {
 export function Select(props: SelectProps): Node {
   let node = kitNode('Select', [], props.className ?? '');
   const prop_items = props.items;
-  if (prop_items !== undefined) { node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n'))); }
+  if (prop_items !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
+  }
+
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitText(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitText(node, 'value', prop_value);
+  }
+
   const prop_placeholder = props.placeholder;
-  if (prop_placeholder !== undefined) { node = kitText(node, 'placeholder', prop_placeholder); }
+  if (prop_placeholder !== undefined) {
+    node = kitText(node, 'placeholder', prop_placeholder);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOn(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -834,13 +1193,25 @@ export interface NumberInputProps {
 export function NumberInput(props: NumberInputProps): Node {
   let node = kitNode('NumberInput', [], props.className ?? '');
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitNumber(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitNumber(node, 'value', prop_value);
+  }
+
   const prop_placeholder = props.placeholder;
-  if (prop_placeholder !== undefined) { node = kitText(node, 'placeholder', prop_placeholder); }
+  if (prop_placeholder !== undefined) {
+    node = kitText(node, 'placeholder', prop_placeholder);
+  }
+
   const prop_step = props.step;
-  if (prop_step !== undefined) { node = kitNumber(node, 'step', prop_step); }
+  if (prop_step !== undefined) {
+    node = kitNumber(node, 'step', prop_step);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOnNumber(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnNumber(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -859,11 +1230,20 @@ export interface OtpInputProps {
 export function OtpInput(props: OtpInputProps): Node {
   let node = kitNode('OtpInput', [], props.className ?? '');
   const prop_length = props.length;
-  if (prop_length !== undefined) { node = kitInt(node, 'length', prop_length); }
+  if (prop_length !== undefined) {
+    node = kitInt(node, 'length', prop_length);
+  }
+
   const prop_masked = props.masked;
-  if (prop_masked !== undefined) { node = kitFlag(node, 'masked', prop_masked); }
+  if (prop_masked !== undefined) {
+    node = kitFlag(node, 'masked', prop_masked);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOn(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -882,11 +1262,20 @@ export interface DatePickerProps {
 export function DatePicker(props: DatePickerProps): Node {
   let node = kitNode('DatePicker', [], props.className ?? '');
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitText(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitText(node, 'value', prop_value);
+  }
+
   const prop_placeholder = props.placeholder;
-  if (prop_placeholder !== undefined) { node = kitText(node, 'placeholder', prop_placeholder); }
+  if (prop_placeholder !== undefined) {
+    node = kitText(node, 'placeholder', prop_placeholder);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOn(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -905,11 +1294,20 @@ export interface ColorPickerProps {
 export function ColorPicker(props: ColorPickerProps): Node {
   let node = kitNode('ColorPicker', [], props.className ?? '');
   const prop_value = props.value;
-  if (prop_value !== undefined) { node = kitText(node, 'value', prop_value); }
+  if (prop_value !== undefined) {
+    node = kitText(node, 'value', prop_value);
+  }
+
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const event_onChange = props.onChange;
-  if (event_onChange !== undefined) { node = unwrapNode(nativeKitOn(node, 'change', event_onChange)); }
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
   return node;
 }
 
@@ -926,7 +1324,10 @@ export interface TooltipProps {
 export function Tooltip(props: TooltipProps): Node {
   let node = kitNode('Tooltip', props.children ?? [], props.className ?? '');
   const prop_text = props.text;
-  if (prop_text !== undefined) { node = kitText(node, 'text', prop_text); }
+  if (prop_text !== undefined) {
+    node = kitText(node, 'text', prop_text);
+  }
+
   return node;
 }
 
@@ -1031,17 +1432,35 @@ export interface DialogProps {
 export function Dialog(props: DialogProps): Node {
   let node = kitNode('Dialog', props.children ?? [], props.className ?? '');
   const prop_open = props.open;
-  if (prop_open !== undefined) { node = kitFlag(node, 'open', prop_open); }
+  if (prop_open !== undefined) {
+    node = kitFlag(node, 'open', prop_open);
+  }
+
   const prop_title = props.title;
-  if (prop_title !== undefined) { node = kitText(node, 'title', prop_title); }
+  if (prop_title !== undefined) {
+    node = kitText(node, 'title', prop_title);
+  }
+
   const prop_okText = props.okText;
-  if (prop_okText !== undefined) { node = kitText(node, 'okText', prop_okText); }
+  if (prop_okText !== undefined) {
+    node = kitText(node, 'okText', prop_okText);
+  }
+
   const prop_cancelText = props.cancelText;
-  if (prop_cancelText !== undefined) { node = kitText(node, 'cancelText', prop_cancelText); }
+  if (prop_cancelText !== undefined) {
+    node = kitText(node, 'cancelText', prop_cancelText);
+  }
+
   const event_onClose = props.onClose;
-  if (event_onClose !== undefined) { node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose)); }
+  if (event_onClose !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
+  }
+
   const event_onOk = props.onOk;
-  if (event_onOk !== undefined) { node = unwrapNode(nativeKitOnVoid(node, 'ok', event_onOk)); }
+  if (event_onOk !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'ok', event_onOk));
+  }
+
   return node;
 }
 
@@ -1064,16 +1483,29 @@ export interface SheetProps {
 export function Sheet(props: SheetProps): Node {
   let node = kitNode('Sheet', props.children ?? [], props.className ?? '');
   const prop_open = props.open;
-  if (prop_open !== undefined) { node = kitFlag(node, 'open', prop_open); }
+  if (prop_open !== undefined) {
+    node = kitFlag(node, 'open', prop_open);
+  }
+
   const prop_title = props.title;
-  if (prop_title !== undefined) { node = kitText(node, 'title', prop_title); }
+  if (prop_title !== undefined) {
+    node = kitText(node, 'title', prop_title);
+  }
+
   const prop_side = props.side;
   if (prop_side !== undefined) {
-    if (typeof prop_side === 'string') { node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`)); }
-    else { node = unwrapNode(nativeKitBind(node, 'side', nativeBindText(prop_side.evaluate))); }
+    if (typeof prop_side === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'side', nativeBindText(prop_side.evaluate)));
+    }
   }
+
   const event_onClose = props.onClose;
-  if (event_onClose !== undefined) { node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose)); }
+  if (event_onClose !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
+  }
+
   return node;
 }
 
@@ -1090,7 +1522,10 @@ export interface DropdownMenuProps {
 export function DropdownMenu(props: DropdownMenuProps): Node {
   let node = kitNode('DropdownMenu', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   return node;
 }
 
@@ -1111,13 +1546,25 @@ export interface MenuItemProps {
 export function MenuItem(props: MenuItemProps): Node {
   let node = kitNode('MenuItem', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) { node = kitFlag(node, 'disabled', prop_disabled); }
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
   const prop_checked = props.checked;
-  if (prop_checked !== undefined) { node = kitFlag(node, 'checked', prop_checked); }
+  if (prop_checked !== undefined) {
+    node = kitFlag(node, 'checked', prop_checked);
+  }
+
   const event_onSelect = props.onSelect;
-  if (event_onSelect !== undefined) { node = unwrapNode(nativeKitOnVoid(node, 'select', event_onSelect)); }
+  if (event_onSelect !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'select', event_onSelect));
+  }
+
   return node;
 }
 
@@ -1147,7 +1594,10 @@ export interface SidebarProps {
 export function Sidebar(props: SidebarProps): Node {
   let node = kitNode('Sidebar', props.children ?? [], props.className ?? '');
   const prop_collapsed = props.collapsed;
-  if (prop_collapsed !== undefined) { node = kitFlag(node, 'collapsed', prop_collapsed); }
+  if (prop_collapsed !== undefined) {
+    node = kitFlag(node, 'collapsed', prop_collapsed);
+  }
+
   return node;
 }
 
@@ -1164,7 +1614,10 @@ export interface SidebarGroupProps {
 export function SidebarGroup(props: SidebarGroupProps): Node {
   let node = kitNode('SidebarGroup', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   return node;
 }
 
@@ -1183,11 +1636,20 @@ export interface SidebarItemProps {
 export function SidebarItem(props: SidebarItemProps): Node {
   let node = kitNode('SidebarItem', [], props.className ?? '');
   const prop_label = props.label;
-  if (prop_label !== undefined) { node = kitText(node, 'label', prop_label); }
+  if (prop_label !== undefined) {
+    node = kitText(node, 'label', prop_label);
+  }
+
   const prop_active = props.active;
-  if (prop_active !== undefined) { node = kitFlag(node, 'active', prop_active); }
+  if (prop_active !== undefined) {
+    node = kitFlag(node, 'active', prop_active);
+  }
+
   const event_onClick = props.onClick;
-  if (event_onClick !== undefined) { node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick)); }
+  if (event_onClick !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
+  }
+
   return node;
 }
 
@@ -1204,7 +1666,10 @@ export interface ResizableProps {
 export function Resizable(props: ResizableProps): Node {
   let node = kitNode('Resizable', props.children ?? [], props.className ?? '');
   const prop_vertical = props.vertical;
-  if (prop_vertical !== undefined) { node = kitFlag(node, 'vertical', prop_vertical); }
+  if (prop_vertical !== undefined) {
+    node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
   return node;
 }
 
@@ -1221,7 +1686,10 @@ export interface ResizablePanelProps {
 export function ResizablePanel(props: ResizablePanelProps): Node {
   let node = kitNode('ResizablePanel', props.children ?? [], props.className ?? '');
   const prop_size = props.size;
-  if (prop_size !== undefined) { node = kitNumber(node, 'size', prop_size); }
+  if (prop_size !== undefined) {
+    node = kitNumber(node, 'size', prop_size);
+  }
+
   return node;
 }
 
@@ -1290,7 +1758,10 @@ export interface TableHeadProps {
 export function TableHead(props: TableHeadProps): Node {
   let node = kitNode('TableHead', props.children ?? [], props.className ?? '');
   const prop_colSpan = props.colSpan;
-  if (prop_colSpan !== undefined) { node = kitInt(node, 'colSpan', prop_colSpan); }
+  if (prop_colSpan !== undefined) {
+    node = kitInt(node, 'colSpan', prop_colSpan);
+  }
+
   return node;
 }
 
@@ -1307,6 +1778,9 @@ export interface TableCellProps {
 export function TableCell(props: TableCellProps): Node {
   let node = kitNode('TableCell', props.children ?? [], props.className ?? '');
   const prop_colSpan = props.colSpan;
-  if (prop_colSpan !== undefined) { node = kitInt(node, 'colSpan', prop_colSpan); }
+  if (prop_colSpan !== undefined) {
+    node = kitInt(node, 'colSpan', prop_colSpan);
+  }
+
   return node;
 }

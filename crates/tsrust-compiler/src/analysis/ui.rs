@@ -103,14 +103,15 @@ impl Analyzer {
  }
  fn ui_visibility_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
-  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&matches!(binding.name,"visibility"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid")) else{return Ok(None)};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&matches!(binding.name,"visibility"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply")) else{return Ok(None)};
   let event=binding.name!="visibility";
   Self::arity(args.len(),if event{3}else{2},expression.span)?;
-  let annotation=crate::type_syntax::parse(match binding.name{"kitOn"=>"Owned<Function<void, [value: ReadOnly<string>]>>","kitOnBoolean"=>"Owned<Function<void, [value: boolean]>>","kitOnInt"=>"Owned<Function<void, [value: int]>>","kitOnNumber"=>"Owned<Function<void, [value: number]>>","kitOnVoid"=>"Owned<Function<void>>",_=>"Owned<Function<void, [visible: boolean]>>"})?;
+  let annotation=crate::type_syntax::parse(match binding.name{"kitOn"|"commandReply"=>"Owned<Function<void, [value: ReadOnly<string>]>>","kitOnBoolean"=>"Owned<Function<void, [value: boolean]>>","kitOnInt"=>"Owned<Function<void, [value: int]>>","kitOnNumber"=>"Owned<Function<void, [value: number]>>","kitOnVoid"=>"Owned<Function<void>>",_=>"Owned<Function<void, [visible: boolean]>>"})?;
   let callback=crate::callable_annotations::callback(&annotation).expect("UI event callback");let handler=self.resolve_callback(&callback)?;
   let node=self.native_parameter_type(binding.parameters[0].ty)?;
   let contract=|ty,mode|ArgumentContract{ty,mode,omission:crate::ParameterOmission::Required,rest:false};
-  if event{self.check_call_arguments(context,args,&[contract(node,Mode::Consume),contract(Type::String,Mode::Read),contract(handler,Mode::Consume)],loans)?;}
+  if binding.name=="commandReply"{self.check_call_arguments(context,args,&[contract(Type::String,Mode::Read),contract(Type::String,Mode::Read),contract(handler,Mode::Consume)],loans)?;}
+  else if event{self.check_call_arguments(context,args,&[contract(node,Mode::Consume),contract(Type::String,Mode::Read),contract(handler,Mode::Consume)],loans)?;}
   else{self.check_call_arguments(context,args,&[contract(node,Mode::Consume),contract(handler,Mode::Consume)],loans)?;}
   let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }

@@ -21967,7 +21967,7 @@
     {
       "name": "WindowOptions",
       "signature": "interface WindowOptions",
-      "documentation": "Optional creation-time settings for run. Dimensions use finite logical pixels, not physical display pixels. Omitted fields use documented defaults. Minima cannot exceed initial dimensions. For example, run(node, \"Docs\", {width: 1040, height: 760, minWidth: 480, titlebar: \"custom\"}) creates a macOS window whose own content supplies the header while retaining OS window controls. Options are serialized and validated before opening; invalid values or unsupported custom titlebars return Err. Browser hosts retain their dimensions and chrome. Ownership: options are consumed as ordinary config data; no public window resource is exposed.",
+      "documentation": "Optional creation-time settings for run. Dimensions use finite logical pixels, not physical display pixels. Omitted fields use documented defaults. Minima cannot exceed initial dimensions. For example, run(node, \"Docs\", {width: 1040, height: 760, minWidth: 480, titlebar: \"custom\"}) creates a macOS window whose own content supplies the header while retaining OS window controls. Options are serialized and validated before opening; invalid values or unsupported custom titlebars return Err. Browser hosts retain their dimensions and chrome. Ownership: options are consumed as ordinary config data; no public window resource is exposed. fonts lists .ttf/.otf files loaded before the window opens, and font sets the default family for the whole window.",
       "fields": {
         "width": {
           "documentation": "Initial content width, 240–16384 logical pixels; defaults to 640. Invalid values return Err from run. Ownership: reads ordinary configuration during setup."
@@ -22883,6 +22883,194 @@
           "output": "Ready\n"
         }
       ]
+    },
+    {
+      "name": "notify",
+      "signature": "notify(message: string, options?: NotifyOptions): void",
+      "parameters": [
+        {
+          "label": "message: string",
+          "documentation": "Body text."
+        },
+        {
+          "label": "options?: NotifyOptions",
+          "documentation": "Title, variant (info, success, warning, error) and delivery (app, system, both)."
+        }
+      ],
+      "documentation": "Shows a notification. By default it is a toast in the active window that hides after a few seconds; delivery: 'system' posts to the operating system's notification center and 'both' does both.\n\n```tsrx\n<Button onPress={() => { notify('Saved', { title: 'Done', variant: 'success' }); }}>Save</Button>\n```\n\nThe toast appears on the next frame. System delivery needs a bundled app and can be disabled or delayed by the OS, so keep important state in the window too. Ownership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "NotifyOptions",
+      "signature": "interface NotifyOptions",
+      "parameters": [],
+      "documentation": "Options for notify: title (bold heading), variant ('info' | 'success' | 'warning' | 'error', default info) and delivery ('app' | 'system' | 'both', default app)."
+    },
+    {
+      "name": "setWindowTitle",
+      "signature": "setWindowTitle(title: string): void",
+      "parameters": [
+        {
+          "label": "title: string",
+          "documentation": "New title."
+        }
+      ],
+      "documentation": "Sets the active window's title on the next frame.\n\n```tsrx\nsetWindowTitle(`Editing ${name.get()}`);\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "minimizeWindow",
+      "signature": "minimizeWindow(): void",
+      "parameters": [],
+      "documentation": "Minimizes the active window on the next frame."
+    },
+    {
+      "name": "zoomWindow",
+      "signature": "zoomWindow(): void",
+      "parameters": [],
+      "documentation": "Toggles the active window between its normal and zoomed (maximized) size on the next frame."
+    },
+    {
+      "name": "toggleFullscreen",
+      "signature": "toggleFullscreen(): void",
+      "parameters": [],
+      "documentation": "Toggles full-screen mode for the active window on the next frame."
+    },
+    {
+      "name": "closeWindow",
+      "signature": "closeWindow(): void",
+      "parameters": [],
+      "documentation": "Closes the active window on the next frame. The application quits, and run returns Ok, when its last window closes."
+    },
+    {
+      "name": "quit",
+      "signature": "quit(): void",
+      "parameters": [],
+      "documentation": "Quits the application on the next frame; run then returns Ok."
+    },
+    {
+      "name": "openUrl",
+      "signature": "openUrl(url: string): void",
+      "parameters": [
+        {
+          "label": "url: string",
+          "documentation": "URL to open."
+        }
+      ],
+      "documentation": "Opens a URL with the system's default handler, such as a browser for https links or a mail client for mailto links.\n\n```tsrx\n<Button onPress={() => { openUrl('https://example.com/docs'); }}>Docs</Button>\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "writeClipboard",
+      "signature": "writeClipboard(text: string): void",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "Text to copy."
+        }
+      ],
+      "documentation": "Copies text to the system clipboard on the next frame. Ownership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "readClipboard",
+      "signature": "readClipboard(onRead: Owned<Function<void, [text: ReadOnly<string>]>>): void",
+      "parameters": [
+        {
+          "label": "onRead",
+          "documentation": "Receives the clipboard text."
+        }
+      ],
+      "documentation": "Reads text from the system clipboard and passes it to onRead on the next frame; the text is empty when the clipboard holds no text. Signals set in onRead refresh the window like any handler.\n\n```tsrx\nreadClipboard((text) => { pasted.set(clone(text)); });\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "pickFiles",
+      "signature": "pickFiles(onPicked: Owned<Function<void, [paths: ReadOnly<string>]>>, options?: PickFilesOptions): void",
+      "parameters": [
+        {
+          "label": "onPicked",
+          "documentation": "Receives newline-separated paths."
+        },
+        {
+          "label": "options?: PickFilesOptions",
+          "documentation": "multiple and directories, both default false."
+        }
+      ],
+      "documentation": "Shows the system open dialog. onPicked receives the chosen paths, one per line, or an empty string when the dialog is cancelled.\n\n```tsrx\npickFiles((paths) => { selected.set(clone(paths)); }, { multiple: true });\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "PickFilesOptions",
+      "signature": "interface PickFilesOptions",
+      "parameters": [],
+      "documentation": "Options for pickFiles: multiple allows several files; directories chooses folders instead of files. Both default to false."
+    },
+    {
+      "name": "saveFile",
+      "signature": "saveFile(suggestedName: string, onChosen: Owned<Function<void, [path: ReadOnly<string>]>>): void",
+      "parameters": [
+        {
+          "label": "suggestedName: string",
+          "documentation": "Initial file name."
+        },
+        {
+          "label": "onChosen",
+          "documentation": "Receives the chosen path."
+        }
+      ],
+      "documentation": "Shows the system save dialog with a suggested file name, starting in the current directory. onChosen receives the chosen path, or an empty string when cancelled. It does not write the file; use std:fs with the path.\n\n```tsrx\nsaveFile('report.csv', (path) => { target.set(clone(path)); });\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "openWindow",
+      "signature": "openWindow(node: Node, title: string, options?: WindowOptions): void",
+      "parameters": [
+        {
+          "label": "node: Node",
+          "documentation": "Content of the new window."
+        },
+        {
+          "label": "title: string",
+          "documentation": "Window title."
+        },
+        {
+          "label": "options?: WindowOptions",
+          "documentation": "Size, minimum size, titlebar, fonts and font."
+        }
+      ],
+      "documentation": "Opens another window showing node, with the same options as run. Call it from a handler; signals shared with the new window's components update both windows. Invalid options throw.\n\n```tsrx\n<Button onPress={() => { openWindow(<Settings/>, 'Settings', { width: 480, height: 360 }); }}>Settings</Button>\n```\n\nOwnership: consumes node; title and options are read."
+    },
+    {
+      "name": "systemAppearance",
+      "signature": "systemAppearance(): 'light' | 'dark'",
+      "parameters": [],
+      "documentation": "Returns the operating system's light or dark appearance as seen by the most recent frame. Before the first frame it returns light."
+    },
+    {
+      "name": "Icon",
+      "signature": "Icon(props: IconProps): Node",
+      "parameters": [
+        {
+          "label": "props: IconProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A GPUI Kit icon (the Lucide set).\n\nProps:\n- `name`: Icon name, such as search or arrow-right.\n- `size`: Icon size. Defaults to md; className text colors tint it.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Icon name=\"search\" size=\"sm\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "IconProps",
+      "signature": "interface IconProps",
+      "documentation": "A GPUI Kit icon (the Lucide set).\n\nProps:\n- `name`: Icon name, such as search or arrow-right.\n- `size`: Icon size. Defaults to md; className text colors tint it.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Icon name=\"search\" size=\"sm\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Animate",
+      "signature": "Animate(props: AnimateProps): Node",
+      "parameters": [
+        {
+          "label": "props: AnimateProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Animates its children when they appear, or continuously with repeat.\n\nProps:\n- `kind`: Animation. Defaults to fade-in.\n- `duration`: Length in milliseconds. Defaults to 300.\n- `repeat`: Restarts the animation after it finishes.\n- `key`: Changing the key replays the animation.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Animate kind=\"slide-up\" key={page.get()}><Text>Welcome</Text></Animate>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AnimateProps",
+      "signature": "interface AnimateProps",
+      "documentation": "Animates its children when they appear, or continuously with repeat.\n\nProps:\n- `kind`: Animation. Defaults to fade-in.\n- `duration`: Length in milliseconds. Defaults to 300.\n- `repeat`: Restarts the animation after it finishes.\n- `key`: Changing the key replays the animation.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Animate kind=\"slide-up\" key={page.get()}><Text>Welcome</Text></Animate>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Badge",

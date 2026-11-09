@@ -5,12 +5,16 @@ const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string:
 impl Emitter<'_> {
  pub(super) fn ui_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];
-  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"){return None;}
+  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
   let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
   let call=match binding.name {
    "bindSemantics"|"bindClass"|"bindVariant"|"bindPath"=>{let callback=args[1].ty.unwrap();let invoke=self.ui_callback(callback,expr.span,"String");let method=match binding.name{"bindSemantics"=>"with_semantics_binding","bindClass"=>"with_class_binding","bindPath"=>"with_path_binding",_=>"with_variant_binding"};format!("{{let node={};let mut registered_callback={};node.{method}(move||({invoke}).map(|value|value.as_ref().to_owned()))}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume))},
+   "commandReply"=>{
+    let callback=args[2].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"()","(&value,)");
+    format!("{{let name={};let payload={};let mut registered_callback={};tsrust_native_ui::command_reply(name.as_ref(),payload.as_ref(),move |value:&str|{{let value=String::Owned(value.to_owned());{invoke}}})}}",read(&args[0]),read(&args[1]),self.expr(fun,&args[2],Mode::Consume))
+   },
    "kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"=>{
     // Component events arrive as text; typed handlers receive the parsed value.
     let (convert,arguments)=match binding.name {

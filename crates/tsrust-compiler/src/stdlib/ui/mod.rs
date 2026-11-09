@@ -129,6 +129,13 @@ pub(crate) const KIT_ON_INT:NativeBinding=NativeBinding{name:"kitOnInt",paramete
 pub(crate) const KIT_ON_NUMBER:NativeBinding=NativeBinding{name:"kitOnNumber",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_number"},..TEXT};
 pub(crate) const KIT_ON_VOID:NativeBinding=NativeBinding{name:"kitOnVoid",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_void"},..TEXT};
 
+// Application services: queued commands (notifications, windows, clipboard,
+// dialogs, URLs), commands with a later text reply, extra windows and appearance.
+pub(crate) const COMMAND:NativeBinding=NativeBinding{name:"command",parameters:&[parameter("name",NativeType::String,Mode::Read),parameter("payload",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_command"},..TEXT};
+pub(crate) const COMMAND_REPLY:NativeBinding=NativeBinding{name:"commandReply",parameters:&[parameter("name",NativeType::String,Mode::Read),parameter("payload",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_command_reply"},..COMMAND};
+pub(crate) const OPEN_WINDOW:NativeBinding=NativeBinding{name:"openWindow",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("title",NativeType::String,Mode::Read),parameter("options",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_open_window"},..COMMAND};
+pub(crate) const APPEARANCE:NativeBinding=NativeBinding{name:"appearance",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_appearance"},..TEXT};
+
 /// Generated programs embed the Node model from `crates/tsrust-ui` with the GPUI
 /// renderer as its `native` module; GPUI Kit comes from the separate locked
 /// GPUI dependency set, never from the backend graph.
@@ -152,6 +159,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[cfg(test)]\nmod table_semantics_tests;", "").replace("#[cfg(test)]\nmod reactive_semantics_tests;", "")
         .replace("mod visibility;",&module("visibility",source!("visibility.rs")))
         .replace("mod kit;",&module("kit",source!("kit.rs")))
+        .replace("mod commands;",&module("commands",source!("commands.rs")))
         .replace("mod editable;",&module("editable",source!("editable.rs")))
         .replace("pub mod clipboard;", &format!("pub {}",module("clipboard",&source!("clipboard.rs").replace("crate::Node", "super::Node"))))
         .replace("pub mod navigation;", &format!("pub {}",module("navigation",source!("navigation.rs"))))
@@ -167,7 +175,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
         .replace("feature = \"runtime\"", "feature = \"ui\"").replace("feature=\"runtime\"", "feature = \"ui\"");
     if with_native {
-        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs"), include_str!("gpui_kit.rs")));
+        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs"), [include_str!("gpui_kit.rs"), include_str!("gpui_icons.rs")].concat()));
     }
     format!("mod tsrust_native_ui {{\n{body}\n}}\n")
 }

@@ -18,7 +18,6 @@ mod table;
 pub mod navigation;
 #[cfg(feature = "runtime")]
 mod branch;
-#[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
 #[cfg(feature = "runtime")]
 mod window;
 #[cfg(test)]
@@ -39,6 +38,10 @@ mod editable;
 mod visibility;
 #[cfg(feature = "runtime")]
 mod kit;
+#[cfg(feature = "runtime")]
+mod commands;
+#[cfg(feature = "runtime")]
+pub use commands::{appearance,command,command_reply,open_window};
 #[cfg(feature = "runtime")]
 pub mod clipboard;
 #[cfg(feature = "runtime")]

@@ -1,3 +1,4 @@
+import { command as nativeCommand, commandReply as nativeCommandReply, openWindow as nativeOpenWindow, appearance as nativeAppearance } from 'std:ui-runtime';
 import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
@@ -498,6 +499,10 @@ export interface WindowOptions {
   minHeight?: number;
   /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. Browsers retain their host window. */
   titlebar?: 'native' | 'custom';
+  /** Font files (.ttf or .otf) loaded before the window opens, so their families can be used. */
+  fonts?: string[];
+  /** Default font family for the whole window, such as a family loaded through fonts. */
+  font?: string;
 }
 
 /** Opens a GPU-rendered native window on the main thread and waits for closure. Checked options apply during creation. Browsers mount within their host page. Returns Ok after cleanup or Err for invalid options, renderer or handler errors. Consumes the tree; title is borrowed. */
@@ -751,4 +756,127 @@ function applyProperties(node: Node, metadata: ReactiveValue<string>, classes: R
   const decorated = applySemantics(node, metadata);
   const styled = classes !== undefined && typeof classes !== 'string' ? unwrapNode(nativeBindClass(decorated, classes.evaluate)) : decorated;
   return variant !== undefined && typeof variant !== 'string' ? unwrapNode(nativeBindVariant(styled, variant.evaluate)) : styled;
+}
+
+/** Notification options. */
+export interface NotifyOptions {
+  /** Bold heading above the message. */
+  title?: string;
+  /** Color and icon. Defaults to info. */
+  variant?: 'info' | 'success' | 'warning' | 'error';
+  /** Where it appears: app (an in-window toast, the default), system (the OS notification center) or both. System delivery needs a bundled app and may be disabled by the user. */
+  delivery?: 'app' | 'system' | 'both';
+}
+
+/** Shows a toast notification in the active window. It hides itself after a few seconds. Example: notify('Saved', { variant: 'success' }). */
+export function notify(message: string, options?: NotifyOptions): void {
+  let title = '';
+  let variant = 'info';
+  let delivery = 'app';
+  if (options !== undefined) {
+    const choice = clone(options);
+    const heading = choice.title;
+    if (heading !== undefined) {
+      title = heading;
+    }
+
+    const target = choice.delivery;
+    if (target !== undefined) {
+      delivery = `${target}`;
+    }
+
+    const chosen = options.variant;
+    if (chosen !== undefined) {
+      variant = `${chosen}`;
+    }
+  }
+
+  unwrap(nativeCommand('notify', JSON.stringify({
+    message: message, title: title, variant: variant, delivery: delivery
+  })));
+}
+
+/** Sets the active window's title. */
+export function setWindowTitle(title: string): void {
+  unwrap(nativeCommand('set-title', JSON.stringify({
+    title: title
+  })));
+}
+
+/** Minimizes the active window. */
+export function minimizeWindow(): void {
+  unwrap(nativeCommand('minimize', '{}'));
+}
+
+/** Toggles the active window between its normal and zoomed (maximized) size. */
+export function zoomWindow(): void {
+  unwrap(nativeCommand('zoom', '{}'));
+}
+
+/** Toggles full-screen mode for the active window. */
+export function toggleFullscreen(): void {
+  unwrap(nativeCommand('fullscreen', '{}'));
+}
+
+/** Closes the active window. The application quits when its last window closes. */
+export function closeWindow(): void {
+  unwrap(nativeCommand('close', '{}'));
+}
+
+/** Quits the application; run returns Ok afterwards. */
+export function quit(): void {
+  unwrap(nativeCommand('quit', '{}'));
+}
+
+/** Opens a URL with the system's default handler, such as a browser for https links. */
+export function openUrl(url: string): void {
+  unwrap(nativeCommand('open-url', JSON.stringify({
+    url: url
+  })));
+}
+
+/** Copies text to the system clipboard. */
+export function writeClipboard(text: string): void {
+  unwrap(nativeCommand('write-clipboard', JSON.stringify({
+    text: text
+  })));
+}
+
+/** Reads text from the system clipboard and passes it to onRead; empty when the clipboard has no text. */
+export function readClipboard(onRead: Owned<Function<void, [text: ReadOnly<string>]>>): void {
+  unwrap(nativeCommandReply('read-clipboard', '{}', onRead));
+}
+
+/** File picker options. */
+export interface PickFilesOptions {
+  /** Allows choosing several files. Defaults to false. */
+  multiple?: boolean;
+  /** Chooses folders instead of files. Defaults to false. */
+  directories?: boolean;
+}
+
+/** Shows the system open dialog. onPicked receives the chosen paths, one per line, or an empty string when cancelled. */
+export function pickFiles(onPicked: Owned<Function<void, [paths: ReadOnly<string>]>>, options?: PickFilesOptions): void {
+  const multiple = options?.multiple ?? false;
+  const directories = options?.directories ?? false;
+  unwrap(nativeCommandReply('pick-files', JSON.stringify({
+    multiple: multiple, directories: directories
+  }), onPicked));
+}
+
+/** Shows the system save dialog with a suggested file name. onChosen receives the chosen path, or an empty string when cancelled. */
+export function saveFile(suggestedName: string, onChosen: Owned<Function<void, [path: ReadOnly<string>]>>): void {
+  unwrap(nativeCommandReply('save-file', JSON.stringify({
+    name: suggestedName
+  }), onChosen));
+}
+
+/** Opens another window showing node. Call it from a handler or before run; windows share component state passed into them. */
+export function openWindow(node: Node, title: string, options?: WindowOptions): void {
+  unwrap(nativeOpenWindow(node, title, JSON.stringify(options ?? {})));
+}
+
+/** The system light or dark appearance, as seen by the most recent frame. */
+export function systemAppearance(): 'light' | 'dark' {
+  return nativeAppearance() === 'dark' ? 'dark' : 'light';
 }

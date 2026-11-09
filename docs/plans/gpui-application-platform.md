@@ -308,6 +308,38 @@ synthesized clicks and keystrokes. Window-visible startup over 5 launches:
 build compiles GPUI Kit in about 3 minutes with 4 jobs; an application rebuild
 reusing the cached GPUI support takes 12 s.
 
+## Application platform services (2026-11-09)
+
+Done, verified with real input on macOS: `Icon` (the 106 GPUI Kit Lucide icons,
+names generated from `kit.json`), `Animate` (fade, slide and pulse over GPUI
+`with_animation`; `key` replays), `notify` (in-app toast, system notification
+center or both), window control (`setWindowTitle`, `minimizeWindow`,
+`zoomWindow`, `toggleFullscreen`, `closeWindow`, `quit`), `openWindow` for extra
+windows (the app ends with its last window), `openUrl`, clipboard
+(`writeClipboard`, `readClipboard`), file dialogs (`pickFiles`, `saveFile`),
+`systemAppearance`, and fonts (`fonts` and `font` window options). Handlers queue
+commands; the renderer runs them on its next frame, and replies refresh the tree
+like handlers.
+
+Next, following GPUI Kit's guides (gpui-kit.com/docs):
+
+- Packaging: `tsrust package` producing a `.app` (zip/DMG, signing and
+  notarization hooks) on macOS, a portable ZIP plus an Inno Setup installer on
+  Windows, and a tarball plus `.deb` on Linux, with app identity and icons from
+  `tsrust.config.json`. Kit leaves package identity, signing and installers to
+  the application.
+- Updating: the updater matches the package owner. Portable single binaries can
+  self-update (reuse the CLI's verified self-update); `.app` bundles replace the
+  whole signed bundle; installers and package managers own their installs.
+- i18n: application text through `std:locale` plus per-locale message catalogs
+  (`t(key, values)`), Kit component strings through `rust-i18n` extension of the
+  `gpui_component` namespace, both from the project's locale files.
+- Dev tools: Kit's `inspector` and `profiler` features in `tsrust dev` builds
+  with a toggle shortcut; never in release builds.
+- WebView (experimental, `gpui-webview` over Wry) and remaining Kit components
+  (List/Tree/VirtualList delegates, Command, Combobox, Calendar, TimeField,
+  Editor, Chart, Carousel, Dock).
+
 ## Execution checklist after v0.2.0
 
 Branch `codex/gpui-ui`. Push once, to merge, when the section is complete.

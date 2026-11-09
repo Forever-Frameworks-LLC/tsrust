@@ -41,7 +41,9 @@ use gpui_kit::component::table::{Table, TableBody, TableCell, TableHead, TableHe
 use gpui_kit::component::tag::Tag;
 use gpui_kit::component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
 use gpui_kit::component::tooltip::Tooltip;
-use gpui_kit::component::{Placement, Selectable, WindowExt};
+use gpui_kit::component::notification::Notification;
+use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, WindowExt};
+use super::commands::{self, Command};
 
 enum KitState {
     Select(Entity<SelectState<Vec<SharedString>>>),
@@ -275,6 +277,64 @@ impl Root {
         }
     }
 
+    /// Run queued application commands; replies refresh the tree like handlers.
+    fn run_commands(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        commands::set_dark(matches!(window.appearance(), WindowAppearance::Dark | WindowAppearance::VibrantDark));
+        for command in commands::take() {
+            match command {
+                Command::Plain {name, payload} => {
+                    let value: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
+                    let text = |key: &str| value.get(key).and_then(|value| value.as_str()).unwrap_or_default().to_owned();
+                    match name.as_str() {
+                        "notify" => {
+                            let message = text("message");
+                            let note = match text("variant").as_str() {"success" => Notification::success(message), "warning" => Notification::warning(message), "error" => Notification::error(message), _ => Notification::info(message)};
+                            let note = match text("delivery").as_str() {"system" => note.system(), "both" => note.in_app_and_system(), _ => note};
+                            let title = text("title");
+                            window.push_notification(if title.is_empty() {note} else {note.title(title)}, cx);
+                        }
+                        "set-title" => window.set_window_title(&text("title")),
+                        "minimize" => window.minimize_window(),
+                        "zoom" => window.zoom_window(),
+                        "fullscreen" => window.toggle_fullscreen(),
+                        "close" => window.remove_window(),
+                        "quit" => cx.quit(),
+                        "open-url" => cx.open_url(&text("url")),
+                        _ => cx.write_to_clipboard(ClipboardItem::new_string(text("text"))),
+                    }
+                }
+                Command::Reply {name, payload, reply} => {
+                    let value: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
+                    let flag = |key: &str| value.get(key).and_then(|value| value.as_bool()).unwrap_or(false);
+                    if name == "read-clipboard" {
+                        let text = cx.read_from_clipboard().and_then(|item| item.text()).unwrap_or_default();
+                        let result = reply(&text);
+                        self.settle(result.map(|_| true), cx);
+                        continue;
+                    }
+                    let receiver = if name == "pick-files" {
+                        let directories = flag("directories");
+                        let prompt = cx.prompt_for_paths(PathPromptOptions {files: !directories, directories, multiple: flag("multiple"), prompt: None});
+                        Box::pin(async move {prompt.await.ok().and_then(Result::ok).flatten().unwrap_or_default().iter().map(|path| path.display().to_string()).collect::<Vec<_>>().join("\n")}) as std::pin::Pin<Box<dyn std::future::Future<Output = String>>>
+                    } else {
+                        let directory = std::env::current_dir().unwrap_or_default();
+                        let suggested = value.get("name").and_then(|name| name.as_str()).unwrap_or_default().to_owned();
+                        let prompt = cx.prompt_for_new_path(&directory, Some(&suggested));
+                        Box::pin(async move {prompt.await.ok().and_then(Result::ok).flatten().map(|path| path.display().to_string()).unwrap_or_default()})
+                    };
+                    cx.spawn(async move |this, cx| {
+                        let chosen = receiver.await;
+                        let _ = this.update(cx, |root, cx| {let result = reply(&chosen); root.settle(result.map(|_| true), cx);});
+                    }).detach();
+                }
+                Command::Window {mut node, title, options} => {
+                    let result = node.refresh().and_then(|_| {node.ensure_identities(); Options::parse(&options)}).and_then(|options| open(node, title, options, self.failure.clone(), cx));
+                    if let Err(error) = result {*self.failure.borrow_mut() = Some(error); cx.quit();}
+                }
+            }
+        }
+    }
+
     fn kit_element(&self, node: &Node, kit: &Kit, cx: &mut Context<Self>) -> AnyElement {
         let id = node.identity.get();
         let element_id = ElementId::Integer(id);
@@ -286,6 +346,28 @@ impl Root {
             move |value: String, cx: &mut App| {let _ = root.update(cx, |root, cx| root.emit(id, event, value, cx));}
         };
         match kit.name.as_str() {
+            "Icon" => match icon_name(&kit.text("name")) {
+                Some(name) => {
+                    let size = match kit.prop("size") {Some("xs") => KitSize::XSmall, Some("sm") => KitSize::Small, Some("lg") => KitSize::Large, _ => KitSize::Medium};
+                    Icon::new(name).with_size(size).into_any_element()
+                }
+                None => div().into_any_element(),
+            },
+            "Animate" => {
+                let kind = kit.text("kind");
+                let mut animation = Animation::new(std::time::Duration::from_millis(kit.index("duration").unwrap_or(300) as u64)).with_easing(ease_in_out);
+                if kit.flag("repeat") {animation = animation.repeat();}
+                let key = ElementId::Name(format!("animate-{id}-{}", kit.text("key")).into());
+                div().relative().children(self.content(node, cx)).with_animation(key, animation, move |element, delta| match kind.as_str() {
+                    "fade-out" => element.opacity(1. - delta),
+                    "slide-up" => element.top(px((1. - delta) * 16.)).opacity(delta),
+                    "slide-down" => element.top(px((delta - 1.) * 16.)).opacity(delta),
+                    "slide-left" => element.left(px((1. - delta) * 16.)).opacity(delta),
+                    "slide-right" => element.left(px((delta - 1.) * 16.)).opacity(delta),
+                    "pulse" => element.opacity(0.4 + 0.6 * (1. - (2. * delta - 1.).abs())),
+                    _ => element.opacity(delta),
+                }).into_any_element()
+            }
             "Badge" => {
                 let mut badge = Badge::new();
                 if kit.flag("dot") {badge = badge.dot();}

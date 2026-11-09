@@ -5,7 +5,7 @@ use crate::{
     syntax::Type,
 };
 pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> String {
-    if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"){return String::new();}
+    if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"){return String::new();}
     if binding.name=="useId"{return result_bridge(program,binding,String::new(),"tsrust_native_ui::use_id().map(String::Owned)".into());}
     let node = program
         .records
@@ -51,6 +51,9 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             (format!("node:Record{node},config:&String,mode:&{}",crate::emit::ty(mode)),"node.with_theme_binding(config.as_ref(),mode.text_binding(|value|value.as_ref().to_owned()))".into())
         },
         "semantics" => (format!("node:Record{node},config:&String"),"node.with_semantics(config.as_ref())".into()),
+        "command" => ("name:&String,payload:&String".into(),"tsrust_native_ui::command(name.as_ref(),payload.as_ref())".into()),
+        "openWindow" => (format!("node:Record{node},title:&String,options:&String"),"tsrust_native_ui::open_window(node,title.as_ref().to_owned(),options.as_ref())".into()),
+        "appearance" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::appearance())}}\n"),
         "kitSet" => (format!("node:Record{node},name:&String,value:&String"),"node.with_kit_prop(name.as_ref(),value.as_ref())".into()),
         "kitBind" => {
             let binding=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::UiTextBinding)).unwrap();

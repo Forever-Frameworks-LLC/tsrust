@@ -20,20 +20,34 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
     let reported = failure.clone();
     application().with_assets(assets::Assets).run(move |cx| {
         init(cx);
-        let bounds = Bounds::centered(None, size(px(options.width as f32), px(options.height as f32)), cx);
-        let window = WindowOptions {
-            window_bounds: Some(WindowBounds::Windowed(bounds)),
-            window_min_size: Some(size(px(options.min_width as f32), px(options.min_height as f32))),
-            titlebar: Some(TitlebarOptions {title: Some(title.into()), ..Default::default()}),
-            ..Default::default()
-        };
-        let failure = reported.clone();
-        if let Err(error) = open_window(window, cx, move |_, cx| cx.new(|_| Root {node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure})) {
-            *reported.borrow_mut() = Some(format!("Failed to open the window: {error}"));
+        // The application ends with its last window, as a single-window app does.
+        cx.on_window_closed(|cx, _| if cx.windows().is_empty() {cx.quit();}).detach();
+        if let Err(error) = open(node, title, options, reported.clone(), cx) {
+            *reported.borrow_mut() = Some(error);
             cx.quit();
         }
     });
     match failure.take() {Some(error) => Err(error), None => Ok(())}
+}
+
+type Failure = std::rc::Rc<std::cell::RefCell<Option<String>>>;
+
+/// Open one window over a Node tree. Fonts load first; the default font applies app-wide.
+fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut App) -> Result<(), String> {
+    for path in &options.fonts {
+        let bytes = std::fs::read(path).map_err(|error| format!("Cannot read font {path}: {error}"))?;
+        cx.text_system().add_fonts(vec![std::borrow::Cow::Owned(bytes)]).map_err(|error| format!("Cannot load font {path}: {error}"))?;
+    }
+    if !options.font.is_empty() {gpui_kit::component::Theme::global_mut(cx).font_family = options.font.clone().into();}
+    let bounds = Bounds::centered(None, size(px(options.width as f32), px(options.height as f32)), cx);
+    let window = WindowOptions {
+        window_bounds: Some(WindowBounds::Windowed(bounds)),
+        window_min_size: Some(size(px(options.min_width as f32), px(options.min_height as f32))),
+        titlebar: Some(TitlebarOptions {title: Some(title.into()), ..Default::default()}),
+        ..Default::default()
+    };
+    open_window(window, cx, move |_, cx| cx.new(|_| Root {node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+        .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
 struct Root {
@@ -46,7 +60,7 @@ struct Root {
     sheet: Option<u64>,
     /// Open sections of uncontrolled accordions.
     accordions: HashMap<u64, std::collections::BTreeSet<usize>>,
-    failure: std::rc::Rc<std::cell::RefCell<Option<String>>>,
+    failure: Failure,
 }
 
 impl Root {
@@ -145,6 +159,7 @@ impl Render for Root {
         self.node.ensure_identities();
         self.sync_inputs(window, cx);
         self.sync_kit(window, cx);
+        self.run_commands(window, cx);
         let theme = Theme::default();
         let body = self.node.visible_root().map(|node| self.element(node, &theme, "light", cx));
         div().size_full().children(body)

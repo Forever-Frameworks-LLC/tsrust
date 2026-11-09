@@ -1,286 +1,1362 @@
 {
   "components": [
-    {"name": "Badge", "children": true, "doc": "Shows a count or dot over its children, such as an unread total on an icon or label.",
-     "props": [
-      {"name": "count", "type": "int", "doc": "Number shown on the badge. Zero hides the count."},
-      {"name": "max", "type": "int", "doc": "Largest count shown; larger counts read as max+."},
-      {"name": "dot", "type": "boolean", "doc": "Shows a small dot instead of a count."}],
-     "example": "<Badge count={unread.get()}><Text>Inbox</Text></Badge>"},
-    {"name": "Tag", "children": true, "doc": "A small labelled tag for status or category.",
-     "props": [
-      {"name": "variant", "type": ["primary", "secondary", "danger", "success", "warning", "info"], "doc": "Color variant. Defaults to secondary."},
-      {"name": "outline", "type": "boolean", "doc": "Draws an outline instead of a filled tag."}],
-     "example": "<Tag variant=\"success\">Shipped</Tag>"},
-    {"name": "Label", "doc": "A text label with optional secondary text.",
-     "props": [
-      {"name": "text", "type": "string", "doc": "Primary label text."},
-      {"name": "secondary", "type": "string", "doc": "Muted text shown after the label."}],
-     "example": "<Label text=\"Email\" secondary=\"(required)\"/>"},
-    {"name": "Kbd", "doc": "Renders a keyboard shortcut as key caps.",
-     "props": [
-      {"name": "keys", "type": "string", "doc": "Keystroke such as cmd-k or ctrl-shift-p. Invalid keystrokes throw."},
-      {"name": "outline", "type": "boolean", "doc": "Uses the outline style."}],
-     "example": "<Kbd keys=\"cmd-k\"/>"},
-    {"name": "Separator", "doc": "A horizontal or vertical divider, optionally labelled.",
-     "props": [
-      {"name": "orientation", "type": ["horizontal", "vertical"], "doc": "Defaults to horizontal."},
-      {"name": "label", "type": "string", "doc": "Text shown in the middle of the line."},
-      {"name": "dashed", "type": "boolean", "doc": "Draws a dashed line."}],
-     "example": "<Separator label=\"or\"/>"},
-    {"name": "Skeleton", "doc": "A loading placeholder block. Size it with className.",
-     "props": [
-      {"name": "secondary", "type": "boolean", "doc": "Uses the lighter secondary color."}],
-     "example": "<Skeleton className=\"w-48 h-4\"/>"},
-    {"name": "Spinner", "doc": "An animated loading indicator.", "props": [], "example": "<Spinner/>"},
-    {"name": "Progress", "doc": "A horizontal progress bar.",
-     "props": [
-      {"name": "value", "type": "number", "doc": "Completion from 0 to 100."},
-      {"name": "loading", "type": "boolean", "doc": "Shows an indeterminate animation instead of the value."}],
-     "example": "<Progress value={percent.get()} className=\"w-64\"/>"},
-    {"name": "ProgressCircle", "doc": "A circular progress indicator.",
-     "props": [
-      {"name": "value", "type": "number", "doc": "Completion from 0 to 100."},
-      {"name": "loading", "type": "boolean", "doc": "Shows an indeterminate animation instead of the value."}],
-     "example": "<ProgressCircle value={75}/>"},
-    {"name": "Avatar", "doc": "A user avatar: an image, or initials from the name.",
-     "props": [
-      {"name": "name", "type": "string", "doc": "Person's name; its initials show when there is no image."},
-      {"name": "src", "type": "string", "doc": "Image URL or file path."}],
-     "example": "<Avatar name=\"Ada Lovelace\"/>"},
-    {"name": "Alert", "doc": "A callout message with a variant color and optional title.",
-     "props": [
-      {"name": "message", "type": "string", "doc": "Body text."},
-      {"name": "title", "type": "string", "doc": "Bold heading above the message."},
-      {"name": "variant", "type": ["info", "success", "warning", "error"], "doc": "Defaults to info."},
-      {"name": "banner", "type": "boolean", "doc": "Full-width banner layout without rounded corners."}],
-     "events": [{"prop": "onClose", "value": "void", "doc": "Shows a close button; called when it is clicked."}],
-     "example": "<Alert variant=\"warning\" title=\"Heads up\" message=\"Unsaved changes.\"/>"},
-    {"name": "ShimmerText", "doc": "Text with an animated shimmer, for pending or generated content.",
-     "props": [{"name": "text", "type": "string", "doc": "Text to animate."}],
-     "example": "<ShimmerText text=\"Thinking...\"/>"},
-    {"name": "Empty", "children": true, "doc": "An empty-state panel with a title, description and optional actions as children.",
-     "props": [
-      {"name": "title", "type": "string", "doc": "Heading."},
-      {"name": "description", "type": "string", "doc": "Supporting text."}],
-     "example": "<Empty title=\"No projects\" description=\"Create one to get started.\"/>"},
-    {"name": "GroupBox", "children": true, "doc": "A titled, bordered group of related content.",
-     "props": [{"name": "title", "type": "string", "doc": "Group heading."}],
-     "example": "<GroupBox title=\"Account\"><Text>Signed in</Text></GroupBox>"},
-    {"name": "DescriptionList", "children": "DescriptionItem", "doc": "Label and value pairs in a grid. Children are DescriptionItem elements.",
-     "props": [
-      {"name": "columns", "type": "int", "doc": "Number of columns. Defaults to 3."},
-      {"name": "bordered", "type": "boolean", "doc": "Draws cell borders."},
-      {"name": "vertical", "type": "boolean", "doc": "Puts each label above its value."}],
-     "example": "<DescriptionList columns={2}><DescriptionItem label=\"Plan\" value=\"Pro\"/></DescriptionList>"},
-    {"name": "DescriptionItem", "item": true, "doc": "One label and value inside a DescriptionList.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Label text."},
-      {"name": "value", "type": "string", "doc": "Value text."},
-      {"name": "span", "type": "int", "doc": "Number of columns the item spans. Defaults to 1."}],
-     "example": "<DescriptionItem label=\"Region\" value=\"us-east\"/>"},
-    {"name": "Breadcrumb", "children": "BreadcrumbItem", "doc": "A navigation trail. Children are BreadcrumbItem elements.", "props": [],
-     "example": "<Breadcrumb><BreadcrumbItem label=\"Home\" onClick={() => { go('/'); }}/><BreadcrumbItem label=\"Settings\"/></Breadcrumb>"},
-    {"name": "BreadcrumbItem", "item": true, "doc": "One entry in a Breadcrumb.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Entry text."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled entries ignore clicks."}],
-     "events": [{"prop": "onClick", "value": "void", "doc": "Called when the entry is clicked."}],
-     "example": "<BreadcrumbItem label=\"Docs\"/>"},
-    {"name": "Clipboard", "doc": "A copy-to-clipboard icon button.",
-     "props": [{"name": "value", "type": "string", "doc": "Text copied when clicked."}],
-     "example": "<Clipboard value=\"npm install\"/>"},
-    {"name": "Checkbox", "doc": "A checkbox with an optional label. Pair checked with onChange to control it.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Text beside the box."},
-      {"name": "checked", "type": "boolean", "doc": "Whether the box is checked."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled boxes ignore clicks."}],
-     "events": [{"prop": "onChange", "value": "boolean", "param": "checked", "doc": "Receives the requested checked state after a click."}],
-     "example": "<Checkbox label=\"Accept terms\" checked={accepted.get()} onChange={(checked) => { accepted.set(checked); }}/>"},
-    {"name": "Switch", "doc": "An on/off switch with an optional label. Pair checked with onChange to control it.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Text beside the switch."},
-      {"name": "checked", "type": "boolean", "doc": "Whether the switch is on."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled switches ignore clicks."}],
-     "events": [{"prop": "onChange", "value": "boolean", "param": "checked", "doc": "Receives the requested state after a click."}],
-     "example": "<Switch label=\"Dark mode\" checked={dark.get()} onChange={(on) => { dark.set(on); }}/>"},
-    {"name": "RadioGroup", "children": "Radio", "doc": "A single-choice group. Children are Radio elements; selection is by index.",
-     "props": [
-      {"name": "selected", "type": "int", "doc": "Index of the selected Radio, or -1 for none."},
-      {"name": "vertical", "type": "boolean", "doc": "Stacks options vertically. Defaults to horizontal."},
-      {"name": "disabled", "type": "boolean", "doc": "Disables every option."}],
-     "events": [{"prop": "onChange", "value": "int", "param": "index", "doc": "Receives the clicked option's index."}],
-     "example": "<RadioGroup selected={size.get()} onChange={(index) => { size.set(index); }}><Radio label=\"Small\"/><Radio label=\"Large\"/></RadioGroup>"},
-    {"name": "Radio", "item": true, "doc": "One option in a RadioGroup.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Option text."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled options cannot be chosen."}],
-     "example": "<Radio label=\"Monthly\"/>"},
-    {"name": "Toggle", "doc": "A pressed/unpressed button. Pair checked with onChange to control it.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Button text."},
-      {"name": "checked", "type": "boolean", "doc": "Whether the toggle is pressed."}],
-     "events": [{"prop": "onChange", "value": "boolean", "param": "checked", "doc": "Receives the requested state after a click."}],
-     "example": "<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>"},
-    {"name": "Rating", "doc": "A star rating input.",
-     "props": [
-      {"name": "value", "type": "int", "doc": "Number of filled stars."},
-      {"name": "max", "type": "int", "doc": "Total stars. Defaults to 5."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled ratings ignore clicks."}],
-     "events": [{"prop": "onChange", "value": "int", "param": "value", "doc": "Receives the clicked star count."}],
-     "example": "<Rating value={stars.get()} onChange={(value) => { stars.set(value); }}/>"},
-    {"name": "Pagination", "doc": "Page navigation buttons. Pages are numbered from 1.",
-     "props": [
-      {"name": "page", "type": "int", "doc": "Current page."},
-      {"name": "total", "type": "int", "doc": "Number of pages."},
-      {"name": "compact", "type": "boolean", "doc": "Shows only previous and next buttons."}],
-     "events": [{"prop": "onChange", "value": "int", "param": "page", "doc": "Receives the requested page."}],
-     "example": "<Pagination page={page.get()} total={10} onChange={(next) => { page.set(next); }}/>"},
-    {"name": "Slider", "doc": "A draggable numeric slider.",
-     "props": [
-      {"name": "value", "type": "number", "doc": "Current value."},
-      {"name": "min", "type": "number", "doc": "Lowest value. Defaults to 0."},
-      {"name": "max", "type": "number", "doc": "Highest value. Defaults to 100."},
-      {"name": "step", "type": "number", "doc": "Value increment. Defaults to 1."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled sliders ignore input."}],
-     "events": [{"prop": "onChange", "value": "number", "param": "value", "doc": "Receives the new value while dragging."}],
-     "example": "<Slider value={volume.get()} onChange={(value) => { volume.set(value); }} className=\"w-64\"/>"},
-    {"name": "Stepper", "children": "StepperItem", "doc": "Progress through numbered steps. Children are StepperItem elements.",
-     "props": [
-      {"name": "selected", "type": "int", "doc": "Index of the current step."},
-      {"name": "vertical", "type": "boolean", "doc": "Stacks steps vertically."}],
-     "example": "<Stepper selected={1}><StepperItem label=\"Account\"/><StepperItem label=\"Billing\"/></Stepper>"},
-    {"name": "StepperItem", "item": true, "doc": "One step in a Stepper.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Step title."},
-      {"name": "disabled", "type": "boolean", "doc": "Greys the step out."}],
-     "example": "<StepperItem label=\"Confirm\"/>"},
-    {"name": "Tabs", "children": "Tab", "doc": "A tab bar. Children are Tab elements; show the matching panel yourself from the selected index.",
-     "props": [
-      {"name": "selected", "type": "int", "doc": "Index of the selected tab."},
-      {"name": "variant", "type": ["underline", "pill", "outline", "segmented"], "doc": "Visual style. Defaults to the standard tab style."}],
-     "events": [{"prop": "onChange", "value": "int", "param": "index", "doc": "Receives the clicked tab's index."}],
-     "example": "<Tabs selected={tab.get()} onChange={(index) => { tab.set(index); }}><Tab label=\"Overview\"/><Tab label=\"Settings\"/></Tabs>"},
-    {"name": "Tab", "item": true, "doc": "One tab in Tabs.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Tab text."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled tabs cannot be selected."}],
-     "example": "<Tab label=\"Activity\"/>"},
-    {"name": "Accordion", "children": "AccordionItem", "doc": "Collapsible sections. Children are AccordionItem elements; each item's own children are its content.",
-     "props": [
-      {"name": "multiple", "type": "boolean", "doc": "Allows several sections open at once."},
-      {"name": "bordered", "type": "boolean", "doc": "Draws borders around sections. Defaults to true."}],
-     "events": [{"prop": "onChange", "value": "string", "param": "open", "doc": "Receives the open item indexes as comma-separated text, such as \"0,2\"."}],
-     "example": "<Accordion><AccordionItem title=\"Shipping\" open={true}><Text>2-3 days</Text></AccordionItem></Accordion>"},
-    {"name": "AccordionItem", "item": true, "children": true, "doc": "One section of an Accordion; its children are the section content.",
-     "props": [
-      {"name": "title", "type": "string", "doc": "Section heading."},
-      {"name": "open", "type": "boolean", "doc": "Whether the section is expanded."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled sections cannot be toggled."}],
-     "example": "<AccordionItem title=\"Returns\"><Text>30 days</Text></AccordionItem>"},
-    {"name": "Collapsible", "children": true, "doc": "Shows its children only while open.",
-     "props": [{"name": "open", "type": "boolean", "doc": "Whether the content is visible."}],
-     "example": "<Collapsible open={expanded.get()}><Text>More detail</Text></Collapsible>"},
-    {"name": "Select", "doc": "A dropdown that picks one string from a list.",
-     "props": [
-      {"name": "items", "type": "string[]", "doc": "Options, in order."},
-      {"name": "value", "type": "string", "doc": "Selected option. An empty string selects nothing."},
-      {"name": "placeholder", "type": "string", "doc": "Text shown when nothing is selected."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled selects cannot open."}],
-     "events": [{"prop": "onChange", "value": "string", "param": "value", "doc": "Receives the chosen option."}],
-     "example": "<Select items={['Red', 'Green']} value={color.get()} onChange={(value) => { color.set(value); }}/>"},
-    {"name": "NumberInput", "doc": "A numeric text field with increment and decrement buttons.",
-     "props": [
-      {"name": "value", "type": "number", "doc": "Current value."},
-      {"name": "placeholder", "type": "string", "doc": "Text shown while empty."},
-      {"name": "step", "type": "number", "doc": "Change per button press. Defaults to 1."}],
-     "events": [{"prop": "onChange", "value": "number", "param": "value", "doc": "Receives each valid edited value."}],
-     "example": "<NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }}/>"},
-    {"name": "OtpInput", "doc": "A one-time code field with one box per character.",
-     "props": [
-      {"name": "length", "type": "int", "doc": "Number of characters. Defaults to 6."},
-      {"name": "masked", "type": "boolean", "doc": "Hides the entered characters."}],
-     "events": [{"prop": "onChange", "value": "string", "param": "code", "doc": "Receives the code as it is typed."}],
-     "example": "<OtpInput length={6} onChange={(code) => { entered.set(code); }}/>"},
-    {"name": "DatePicker", "doc": "A date field with a calendar dropdown. Dates are YYYY-MM-DD text.",
-     "props": [
-      {"name": "value", "type": "string", "doc": "Selected date as YYYY-MM-DD, or empty for none."},
-      {"name": "placeholder", "type": "string", "doc": "Text shown when no date is selected."}],
-     "events": [{"prop": "onChange", "value": "string", "param": "date", "doc": "Receives the chosen date as YYYY-MM-DD, or empty when cleared."}],
-     "example": "<DatePicker value={due.get()} onChange={(date) => { due.set(date); }}/>"},
-    {"name": "ColorPicker", "doc": "A color swatch with a picker popover. Colors are #rrggbb text.",
-     "props": [
-      {"name": "value", "type": "string", "doc": "Current color as #rrggbb."},
-      {"name": "label", "type": "string", "doc": "Text beside the swatch."}],
-     "events": [{"prop": "onChange", "value": "string", "param": "color", "doc": "Receives the chosen color as #rrggbb."}],
-     "example": "<ColorPicker value={accent.get()} onChange={(color) => { accent.set(color); }}/>"},
-    {"name": "Tooltip", "children": true, "doc": "Shows text when the pointer rests on its children.",
-     "props": [{"name": "text", "type": "string", "doc": "Tooltip text."}],
-     "example": "<Tooltip text=\"Copy link\"><Button>Share</Button></Tooltip>"},
-    {"name": "Popover", "children": "PopoverTrigger, PopoverContent", "doc": "A floating panel opened by clicking its trigger. Children are one PopoverTrigger and one PopoverContent.", "props": [],
-     "example": "<Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Options</Text></PopoverContent></Popover>"},
-    {"name": "PopoverTrigger", "item": true, "children": true, "doc": "The element that opens a Popover.", "props": [], "example": "<PopoverTrigger><Button>Open</Button></PopoverTrigger>"},
-    {"name": "PopoverContent", "item": true, "children": true, "doc": "The floating content of a Popover.", "props": [], "example": "<PopoverContent><Text>Details</Text></PopoverContent>"},
-    {"name": "HoverCard", "children": "HoverCardTrigger, HoverCardContent", "doc": "A floating card shown while the pointer rests on its trigger.", "props": [],
-     "example": "<HoverCard><HoverCardTrigger><Text>@ada</Text></HoverCardTrigger><HoverCardContent><Text>Mathematician</Text></HoverCardContent></HoverCard>"},
-    {"name": "HoverCardTrigger", "item": true, "children": true, "doc": "The element that shows a HoverCard.", "props": [], "example": "<HoverCardTrigger><Text>Hover me</Text></HoverCardTrigger>"},
-    {"name": "HoverCardContent", "item": true, "children": true, "doc": "The content of a HoverCard.", "props": [], "example": "<HoverCardContent><Text>Profile</Text></HoverCardContent>"},
-    {"name": "Dialog", "children": true, "doc": "A modal dialog shown while open is true. Its children are the dialog body.",
-     "props": [
-      {"name": "open", "type": "boolean", "doc": "Opens the dialog when true and closes it when false."},
-      {"name": "title", "type": "string", "doc": "Dialog heading."},
-      {"name": "okText", "type": "string", "doc": "Shows an OK button with this text."},
-      {"name": "cancelText", "type": "string", "doc": "Shows a Cancel button with this text."}],
-     "events": [
-      {"prop": "onClose", "value": "void", "doc": "Called when the user dismisses the dialog; set open to false here."},
-      {"prop": "onOk", "value": "void", "doc": "Called when the OK button is clicked."}],
-     "example": "<Dialog open={editing.get()} title=\"Rename\" okText=\"Save\" onClose={() => { editing.set(false); }}><Input value={name}/></Dialog>"},
-    {"name": "Sheet", "children": true, "doc": "A panel that slides in from the window edge while open is true.",
-     "props": [
-      {"name": "open", "type": "boolean", "doc": "Shows the sheet when true and hides it when false."},
-      {"name": "title", "type": "string", "doc": "Sheet heading."},
-      {"name": "side", "type": ["right", "left", "top", "bottom"], "doc": "Window edge. Defaults to right."}],
-     "events": [{"prop": "onClose", "value": "void", "doc": "Called when the user dismisses the sheet; set open to false here."}],
-     "example": "<Sheet open={details.get()} title=\"Details\" onClose={() => { details.set(false); }}><Text>Body</Text></Sheet>"},
-    {"name": "DropdownMenu", "children": "MenuItem", "doc": "A button that opens a menu. Children are MenuItem elements.",
-     "props": [{"name": "label", "type": "string", "doc": "Button text."}],
-     "example": "<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>"},
-    {"name": "MenuItem", "item": true, "doc": "One entry in a DropdownMenu or ContextMenu.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Entry text."},
-      {"name": "disabled", "type": "boolean", "doc": "Disabled entries cannot be chosen."},
-      {"name": "checked", "type": "boolean", "doc": "Shows a check mark."}],
-     "events": [{"prop": "onSelect", "value": "void", "doc": "Called when the entry is chosen."}],
-     "example": "<MenuItem label=\"Delete\" onSelect={() => { remove(); }}/>"},
-    {"name": "ContextMenu", "children": true, "doc": "Opens a menu on right-click. Children are the content, followed by MenuItem elements.", "props": [],
-     "example": "<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>"},
-    {"name": "Sidebar", "children": "SidebarGroup", "doc": "An application sidebar. Children are SidebarGroup elements.",
-     "props": [{"name": "collapsed", "type": "boolean", "doc": "Shows icons only."}],
-     "example": "<Sidebar><SidebarGroup label=\"Workspace\"><SidebarItem label=\"Inbox\" active={true}/></SidebarGroup></Sidebar>"},
-    {"name": "SidebarGroup", "item": true, "children": "SidebarItem", "doc": "A labelled group of SidebarItem entries.",
-     "props": [{"name": "label", "type": "string", "doc": "Group heading."}],
-     "example": "<SidebarGroup label=\"Projects\"><SidebarItem label=\"Tsrust\"/></SidebarGroup>"},
-    {"name": "SidebarItem", "item": true, "doc": "One navigation entry in a SidebarGroup.",
-     "props": [
-      {"name": "label", "type": "string", "doc": "Entry text."},
-      {"name": "active", "type": "boolean", "doc": "Highlights the current entry."}],
-     "events": [{"prop": "onClick", "value": "void", "doc": "Called when the entry is clicked."}],
-     "example": "<SidebarItem label=\"Settings\" onClick={() => { page.set('settings'); }}/>"},
-    {"name": "Resizable", "children": "ResizablePanel", "doc": "Panels separated by draggable handles. Children are ResizablePanel elements.",
-     "props": [{"name": "vertical", "type": "boolean", "doc": "Stacks panels vertically. Defaults to side by side."}],
-     "example": "<Resizable><ResizablePanel size={240}><Text>Files</Text></ResizablePanel><ResizablePanel><Text>Editor</Text></ResizablePanel></Resizable>"},
-    {"name": "ResizablePanel", "item": true, "children": true, "doc": "One panel in a Resizable layout.",
-     "props": [{"name": "size", "type": "number", "doc": "Initial size in pixels. Omit to share the remaining space."}],
-     "example": "<ResizablePanel size={320}><Text>Preview</Text></ResizablePanel>"},
-    {"name": "Table", "children": "TableHeader, TableBody", "doc": "A static table. Children are TableHeader and TableBody, which contain TableRow elements.", "props": [],
-     "example": "<Table><TableHeader><TableRow><TableHead>Name</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell>Ada</TableCell></TableRow></TableBody></Table>"},
-    {"name": "TableHeader", "item": true, "children": "TableRow", "doc": "The header rows of a Table.", "props": [], "example": "<TableHeader><TableRow><TableHead>Name</TableHead></TableRow></TableHeader>"},
-    {"name": "TableBody", "item": true, "children": "TableRow", "doc": "The body rows of a Table.", "props": [], "example": "<TableBody><TableRow><TableCell>Ada</TableCell></TableRow></TableBody>"},
-    {"name": "TableRow", "item": true, "children": "TableHead, TableCell", "doc": "One row of a Table.", "props": [], "example": "<TableRow><TableCell>Ada</TableCell></TableRow>"},
-    {"name": "TableHead", "item": true, "children": true, "doc": "A header cell.",
-     "props": [{"name": "colSpan", "type": "int", "doc": "Columns spanned. Defaults to 1."}],
-     "example": "<TableHead>Email</TableHead>"},
-    {"name": "TableCell", "item": true, "children": true, "doc": "A body cell.",
-     "props": [{"name": "colSpan", "type": "int", "doc": "Columns spanned. Defaults to 1."}],
-     "example": "<TableCell>ada@example.com</TableCell>"}
+    {
+      "name": "Icon",
+      "doc": "A GPUI Kit icon (the Lucide set).",
+      "props": [
+        {
+          "name": "name",
+          "type": "icon",
+          "doc": "Icon name, such as search or arrow-right."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xs",
+            "sm",
+            "md",
+            "lg"
+          ],
+          "doc": "Icon size. Defaults to md; className text colors tint it."
+        }
+      ],
+      "example": "<Icon name=\"search\" size=\"sm\"/>"
+    },
+    {
+      "name": "Animate",
+      "children": true,
+      "doc": "Animates its children when they appear, or continuously with repeat.",
+      "props": [
+        {
+          "name": "kind",
+          "type": [
+            "fade-in",
+            "fade-out",
+            "slide-up",
+            "slide-down",
+            "slide-left",
+            "slide-right",
+            "pulse"
+          ],
+          "doc": "Animation. Defaults to fade-in."
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "doc": "Length in milliseconds. Defaults to 300."
+        },
+        {
+          "name": "repeat",
+          "type": "boolean",
+          "doc": "Restarts the animation after it finishes."
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "doc": "Changing the key replays the animation."
+        }
+      ],
+      "example": "<Animate kind=\"slide-up\" key={page.get()}><Text>Welcome</Text></Animate>"
+    },
+    {
+      "name": "Badge",
+      "children": true,
+      "doc": "Shows a count or dot over its children, such as an unread total on an icon or label.",
+      "props": [
+        {
+          "name": "count",
+          "type": "int",
+          "doc": "Number shown on the badge. Zero hides the count."
+        },
+        {
+          "name": "max",
+          "type": "int",
+          "doc": "Largest count shown; larger counts read as max+."
+        },
+        {
+          "name": "dot",
+          "type": "boolean",
+          "doc": "Shows a small dot instead of a count."
+        }
+      ],
+      "example": "<Badge count={unread.get()}><Text>Inbox</Text></Badge>"
+    },
+    {
+      "name": "Tag",
+      "children": true,
+      "doc": "A small labelled tag for status or category.",
+      "props": [
+        {
+          "name": "variant",
+          "type": [
+            "primary",
+            "secondary",
+            "danger",
+            "success",
+            "warning",
+            "info"
+          ],
+          "doc": "Color variant. Defaults to secondary."
+        },
+        {
+          "name": "outline",
+          "type": "boolean",
+          "doc": "Draws an outline instead of a filled tag."
+        }
+      ],
+      "example": "<Tag variant=\"success\">Shipped</Tag>"
+    },
+    {
+      "name": "Label",
+      "doc": "A text label with optional secondary text.",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "doc": "Primary label text."
+        },
+        {
+          "name": "secondary",
+          "type": "string",
+          "doc": "Muted text shown after the label."
+        }
+      ],
+      "example": "<Label text=\"Email\" secondary=\"(required)\"/>"
+    },
+    {
+      "name": "Kbd",
+      "doc": "Renders a keyboard shortcut as key caps.",
+      "props": [
+        {
+          "name": "keys",
+          "type": "string",
+          "doc": "Keystroke such as cmd-k or ctrl-shift-p. Invalid keystrokes throw."
+        },
+        {
+          "name": "outline",
+          "type": "boolean",
+          "doc": "Uses the outline style."
+        }
+      ],
+      "example": "<Kbd keys=\"cmd-k\"/>"
+    },
+    {
+      "name": "Separator",
+      "doc": "A horizontal or vertical divider, optionally labelled.",
+      "props": [
+        {
+          "name": "orientation",
+          "type": [
+            "horizontal",
+            "vertical"
+          ],
+          "doc": "Defaults to horizontal."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Text shown in the middle of the line."
+        },
+        {
+          "name": "dashed",
+          "type": "boolean",
+          "doc": "Draws a dashed line."
+        }
+      ],
+      "example": "<Separator label=\"or\"/>"
+    },
+    {
+      "name": "Skeleton",
+      "doc": "A loading placeholder block. Size it with className.",
+      "props": [
+        {
+          "name": "secondary",
+          "type": "boolean",
+          "doc": "Uses the lighter secondary color."
+        }
+      ],
+      "example": "<Skeleton className=\"w-48 h-4\"/>"
+    },
+    {
+      "name": "Spinner",
+      "doc": "An animated loading indicator.",
+      "props": [],
+      "example": "<Spinner/>"
+    },
+    {
+      "name": "Progress",
+      "doc": "A horizontal progress bar.",
+      "props": [
+        {
+          "name": "value",
+          "type": "number",
+          "doc": "Completion from 0 to 100."
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "doc": "Shows an indeterminate animation instead of the value."
+        }
+      ],
+      "example": "<Progress value={percent.get()} className=\"w-64\"/>"
+    },
+    {
+      "name": "ProgressCircle",
+      "doc": "A circular progress indicator.",
+      "props": [
+        {
+          "name": "value",
+          "type": "number",
+          "doc": "Completion from 0 to 100."
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "doc": "Shows an indeterminate animation instead of the value."
+        }
+      ],
+      "example": "<ProgressCircle value={75}/>"
+    },
+    {
+      "name": "Avatar",
+      "doc": "A user avatar: an image, or initials from the name.",
+      "props": [
+        {
+          "name": "name",
+          "type": "string",
+          "doc": "Person's name; its initials show when there is no image."
+        },
+        {
+          "name": "src",
+          "type": "string",
+          "doc": "Image URL or file path."
+        }
+      ],
+      "example": "<Avatar name=\"Ada Lovelace\"/>"
+    },
+    {
+      "name": "Alert",
+      "doc": "A callout message with a variant color and optional title.",
+      "props": [
+        {
+          "name": "message",
+          "type": "string",
+          "doc": "Body text."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Bold heading above the message."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "info",
+            "success",
+            "warning",
+            "error"
+          ],
+          "doc": "Defaults to info."
+        },
+        {
+          "name": "banner",
+          "type": "boolean",
+          "doc": "Full-width banner layout without rounded corners."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onClose",
+          "value": "void",
+          "doc": "Shows a close button; called when it is clicked."
+        }
+      ],
+      "example": "<Alert variant=\"warning\" title=\"Heads up\" message=\"Unsaved changes.\"/>"
+    },
+    {
+      "name": "ShimmerText",
+      "doc": "Text with an animated shimmer, for pending or generated content.",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "doc": "Text to animate."
+        }
+      ],
+      "example": "<ShimmerText text=\"Thinking...\"/>"
+    },
+    {
+      "name": "Empty",
+      "children": true,
+      "doc": "An empty-state panel with a title, description and optional actions as children.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Heading."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Supporting text."
+        }
+      ],
+      "example": "<Empty title=\"No projects\" description=\"Create one to get started.\"/>"
+    },
+    {
+      "name": "GroupBox",
+      "children": true,
+      "doc": "A titled, bordered group of related content.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Group heading."
+        }
+      ],
+      "example": "<GroupBox title=\"Account\"><Text>Signed in</Text></GroupBox>"
+    },
+    {
+      "name": "DescriptionList",
+      "children": "DescriptionItem",
+      "doc": "Label and value pairs in a grid. Children are DescriptionItem elements.",
+      "props": [
+        {
+          "name": "columns",
+          "type": "int",
+          "doc": "Number of columns. Defaults to 3."
+        },
+        {
+          "name": "bordered",
+          "type": "boolean",
+          "doc": "Draws cell borders."
+        },
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "Puts each label above its value."
+        }
+      ],
+      "example": "<DescriptionList columns={2}><DescriptionItem label=\"Plan\" value=\"Pro\"/></DescriptionList>"
+    },
+    {
+      "name": "DescriptionItem",
+      "item": true,
+      "doc": "One label and value inside a DescriptionList.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Label text."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Value text."
+        },
+        {
+          "name": "span",
+          "type": "int",
+          "doc": "Number of columns the item spans. Defaults to 1."
+        }
+      ],
+      "example": "<DescriptionItem label=\"Region\" value=\"us-east\"/>"
+    },
+    {
+      "name": "Breadcrumb",
+      "children": "BreadcrumbItem",
+      "doc": "A navigation trail. Children are BreadcrumbItem elements.",
+      "props": [],
+      "example": "<Breadcrumb><BreadcrumbItem label=\"Home\" onClick={() => { go('/'); }}/><BreadcrumbItem label=\"Settings\"/></Breadcrumb>"
+    },
+    {
+      "name": "BreadcrumbItem",
+      "item": true,
+      "doc": "One entry in a Breadcrumb.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Entry text."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled entries ignore clicks."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onClick",
+          "value": "void",
+          "doc": "Called when the entry is clicked."
+        }
+      ],
+      "example": "<BreadcrumbItem label=\"Docs\"/>"
+    },
+    {
+      "name": "Clipboard",
+      "doc": "A copy-to-clipboard icon button.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Text copied when clicked."
+        }
+      ],
+      "example": "<Clipboard value=\"npm install\"/>"
+    },
+    {
+      "name": "Checkbox",
+      "doc": "A checkbox with an optional label. Pair checked with onChange to control it.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Text beside the box."
+        },
+        {
+          "name": "checked",
+          "type": "boolean",
+          "doc": "Whether the box is checked."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled boxes ignore clicks."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "boolean",
+          "param": "checked",
+          "doc": "Receives the requested checked state after a click."
+        }
+      ],
+      "example": "<Checkbox label=\"Accept terms\" checked={accepted.get()} onChange={(checked) => { accepted.set(checked); }}/>"
+    },
+    {
+      "name": "Switch",
+      "doc": "An on/off switch with an optional label. Pair checked with onChange to control it.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Text beside the switch."
+        },
+        {
+          "name": "checked",
+          "type": "boolean",
+          "doc": "Whether the switch is on."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled switches ignore clicks."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "boolean",
+          "param": "checked",
+          "doc": "Receives the requested state after a click."
+        }
+      ],
+      "example": "<Switch label=\"Dark mode\" checked={dark.get()} onChange={(on) => { dark.set(on); }}/>"
+    },
+    {
+      "name": "RadioGroup",
+      "children": "Radio",
+      "doc": "A single-choice group. Children are Radio elements; selection is by index.",
+      "props": [
+        {
+          "name": "selected",
+          "type": "int",
+          "doc": "Index of the selected Radio, or -1 for none."
+        },
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "Stacks options vertically. Defaults to horizontal."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables every option."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "int",
+          "param": "index",
+          "doc": "Receives the clicked option's index."
+        }
+      ],
+      "example": "<RadioGroup selected={size.get()} onChange={(index) => { size.set(index); }}><Radio label=\"Small\"/><Radio label=\"Large\"/></RadioGroup>"
+    },
+    {
+      "name": "Radio",
+      "item": true,
+      "doc": "One option in a RadioGroup.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Option text."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled options cannot be chosen."
+        }
+      ],
+      "example": "<Radio label=\"Monthly\"/>"
+    },
+    {
+      "name": "Toggle",
+      "doc": "A pressed/unpressed button. Pair checked with onChange to control it.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Button text."
+        },
+        {
+          "name": "checked",
+          "type": "boolean",
+          "doc": "Whether the toggle is pressed."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "boolean",
+          "param": "checked",
+          "doc": "Receives the requested state after a click."
+        }
+      ],
+      "example": "<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>"
+    },
+    {
+      "name": "Rating",
+      "doc": "A star rating input.",
+      "props": [
+        {
+          "name": "value",
+          "type": "int",
+          "doc": "Number of filled stars."
+        },
+        {
+          "name": "max",
+          "type": "int",
+          "doc": "Total stars. Defaults to 5."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled ratings ignore clicks."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "int",
+          "param": "value",
+          "doc": "Receives the clicked star count."
+        }
+      ],
+      "example": "<Rating value={stars.get()} onChange={(value) => { stars.set(value); }}/>"
+    },
+    {
+      "name": "Pagination",
+      "doc": "Page navigation buttons. Pages are numbered from 1.",
+      "props": [
+        {
+          "name": "page",
+          "type": "int",
+          "doc": "Current page."
+        },
+        {
+          "name": "total",
+          "type": "int",
+          "doc": "Number of pages."
+        },
+        {
+          "name": "compact",
+          "type": "boolean",
+          "doc": "Shows only previous and next buttons."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "int",
+          "param": "page",
+          "doc": "Receives the requested page."
+        }
+      ],
+      "example": "<Pagination page={page.get()} total={10} onChange={(next) => { page.set(next); }}/>"
+    },
+    {
+      "name": "Slider",
+      "doc": "A draggable numeric slider.",
+      "props": [
+        {
+          "name": "value",
+          "type": "number",
+          "doc": "Current value."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "doc": "Lowest value. Defaults to 0."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "doc": "Highest value. Defaults to 100."
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "doc": "Value increment. Defaults to 1."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled sliders ignore input."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "number",
+          "param": "value",
+          "doc": "Receives the new value while dragging."
+        }
+      ],
+      "example": "<Slider value={volume.get()} onChange={(value) => { volume.set(value); }} className=\"w-64\"/>"
+    },
+    {
+      "name": "Stepper",
+      "children": "StepperItem",
+      "doc": "Progress through numbered steps. Children are StepperItem elements.",
+      "props": [
+        {
+          "name": "selected",
+          "type": "int",
+          "doc": "Index of the current step."
+        },
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "Stacks steps vertically."
+        }
+      ],
+      "example": "<Stepper selected={1}><StepperItem label=\"Account\"/><StepperItem label=\"Billing\"/></Stepper>"
+    },
+    {
+      "name": "StepperItem",
+      "item": true,
+      "doc": "One step in a Stepper.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Step title."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Greys the step out."
+        }
+      ],
+      "example": "<StepperItem label=\"Confirm\"/>"
+    },
+    {
+      "name": "Tabs",
+      "children": "Tab",
+      "doc": "A tab bar. Children are Tab elements; show the matching panel yourself from the selected index.",
+      "props": [
+        {
+          "name": "selected",
+          "type": "int",
+          "doc": "Index of the selected tab."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "underline",
+            "pill",
+            "outline",
+            "segmented"
+          ],
+          "doc": "Visual style. Defaults to the standard tab style."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "int",
+          "param": "index",
+          "doc": "Receives the clicked tab's index."
+        }
+      ],
+      "example": "<Tabs selected={tab.get()} onChange={(index) => { tab.set(index); }}><Tab label=\"Overview\"/><Tab label=\"Settings\"/></Tabs>"
+    },
+    {
+      "name": "Tab",
+      "item": true,
+      "doc": "One tab in Tabs.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Tab text."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled tabs cannot be selected."
+        }
+      ],
+      "example": "<Tab label=\"Activity\"/>"
+    },
+    {
+      "name": "Accordion",
+      "children": "AccordionItem",
+      "doc": "Collapsible sections. Children are AccordionItem elements; each item's own children are its content.",
+      "props": [
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "doc": "Allows several sections open at once."
+        },
+        {
+          "name": "bordered",
+          "type": "boolean",
+          "doc": "Draws borders around sections. Defaults to true."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "open",
+          "doc": "Receives the open item indexes as comma-separated text, such as \"0,2\"."
+        }
+      ],
+      "example": "<Accordion><AccordionItem title=\"Shipping\" open={true}><Text>2-3 days</Text></AccordionItem></Accordion>"
+    },
+    {
+      "name": "AccordionItem",
+      "item": true,
+      "children": true,
+      "doc": "One section of an Accordion; its children are the section content.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Section heading."
+        },
+        {
+          "name": "open",
+          "type": "boolean",
+          "doc": "Whether the section is expanded."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled sections cannot be toggled."
+        }
+      ],
+      "example": "<AccordionItem title=\"Returns\"><Text>30 days</Text></AccordionItem>"
+    },
+    {
+      "name": "Collapsible",
+      "children": true,
+      "doc": "Shows its children only while open.",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "doc": "Whether the content is visible."
+        }
+      ],
+      "example": "<Collapsible open={expanded.get()}><Text>More detail</Text></Collapsible>"
+    },
+    {
+      "name": "Select",
+      "doc": "A dropdown that picks one string from a list.",
+      "props": [
+        {
+          "name": "items",
+          "type": "string[]",
+          "doc": "Options, in order."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Selected option. An empty string selects nothing."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Text shown when nothing is selected."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled selects cannot open."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "value",
+          "doc": "Receives the chosen option."
+        }
+      ],
+      "example": "<Select items={['Red', 'Green']} value={color.get()} onChange={(value) => { color.set(value); }}/>"
+    },
+    {
+      "name": "NumberInput",
+      "doc": "A numeric text field with increment and decrement buttons.",
+      "props": [
+        {
+          "name": "value",
+          "type": "number",
+          "doc": "Current value."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Text shown while empty."
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "doc": "Change per button press. Defaults to 1."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "number",
+          "param": "value",
+          "doc": "Receives each valid edited value."
+        }
+      ],
+      "example": "<NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }}/>"
+    },
+    {
+      "name": "OtpInput",
+      "doc": "A one-time code field with one box per character.",
+      "props": [
+        {
+          "name": "length",
+          "type": "int",
+          "doc": "Number of characters. Defaults to 6."
+        },
+        {
+          "name": "masked",
+          "type": "boolean",
+          "doc": "Hides the entered characters."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "code",
+          "doc": "Receives the code as it is typed."
+        }
+      ],
+      "example": "<OtpInput length={6} onChange={(code) => { entered.set(code); }}/>"
+    },
+    {
+      "name": "DatePicker",
+      "doc": "A date field with a calendar dropdown. Dates are YYYY-MM-DD text.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Selected date as YYYY-MM-DD, or empty for none."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Text shown when no date is selected."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "date",
+          "doc": "Receives the chosen date as YYYY-MM-DD, or empty when cleared."
+        }
+      ],
+      "example": "<DatePicker value={due.get()} onChange={(date) => { due.set(date); }}/>"
+    },
+    {
+      "name": "ColorPicker",
+      "doc": "A color swatch with a picker popover. Colors are #rrggbb text.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Current color as #rrggbb."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Text beside the swatch."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "color",
+          "doc": "Receives the chosen color as #rrggbb."
+        }
+      ],
+      "example": "<ColorPicker value={accent.get()} onChange={(color) => { accent.set(color); }}/>"
+    },
+    {
+      "name": "Tooltip",
+      "children": true,
+      "doc": "Shows text when the pointer rests on its children.",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "doc": "Tooltip text."
+        }
+      ],
+      "example": "<Tooltip text=\"Copy link\"><Button>Share</Button></Tooltip>"
+    },
+    {
+      "name": "Popover",
+      "children": "PopoverTrigger, PopoverContent",
+      "doc": "A floating panel opened by clicking its trigger. Children are one PopoverTrigger and one PopoverContent.",
+      "props": [],
+      "example": "<Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Options</Text></PopoverContent></Popover>"
+    },
+    {
+      "name": "PopoverTrigger",
+      "item": true,
+      "children": true,
+      "doc": "The element that opens a Popover.",
+      "props": [],
+      "example": "<PopoverTrigger><Button>Open</Button></PopoverTrigger>"
+    },
+    {
+      "name": "PopoverContent",
+      "item": true,
+      "children": true,
+      "doc": "The floating content of a Popover.",
+      "props": [],
+      "example": "<PopoverContent><Text>Details</Text></PopoverContent>"
+    },
+    {
+      "name": "HoverCard",
+      "children": "HoverCardTrigger, HoverCardContent",
+      "doc": "A floating card shown while the pointer rests on its trigger.",
+      "props": [],
+      "example": "<HoverCard><HoverCardTrigger><Text>@ada</Text></HoverCardTrigger><HoverCardContent><Text>Mathematician</Text></HoverCardContent></HoverCard>"
+    },
+    {
+      "name": "HoverCardTrigger",
+      "item": true,
+      "children": true,
+      "doc": "The element that shows a HoverCard.",
+      "props": [],
+      "example": "<HoverCardTrigger><Text>Hover me</Text></HoverCardTrigger>"
+    },
+    {
+      "name": "HoverCardContent",
+      "item": true,
+      "children": true,
+      "doc": "The content of a HoverCard.",
+      "props": [],
+      "example": "<HoverCardContent><Text>Profile</Text></HoverCardContent>"
+    },
+    {
+      "name": "Dialog",
+      "children": true,
+      "doc": "A modal dialog shown while open is true. Its children are the dialog body.",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "doc": "Opens the dialog when true and closes it when false."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Dialog heading."
+        },
+        {
+          "name": "okText",
+          "type": "string",
+          "doc": "Shows an OK button with this text."
+        },
+        {
+          "name": "cancelText",
+          "type": "string",
+          "doc": "Shows a Cancel button with this text."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onClose",
+          "value": "void",
+          "doc": "Called when the user dismisses the dialog; set open to false here."
+        },
+        {
+          "prop": "onOk",
+          "value": "void",
+          "doc": "Called when the OK button is clicked."
+        }
+      ],
+      "example": "<Dialog open={editing.get()} title=\"Rename\" okText=\"Save\" onClose={() => { editing.set(false); }}><Input value={name}/></Dialog>"
+    },
+    {
+      "name": "Sheet",
+      "children": true,
+      "doc": "A panel that slides in from the window edge while open is true.",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "doc": "Shows the sheet when true and hides it when false."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Sheet heading."
+        },
+        {
+          "name": "side",
+          "type": [
+            "right",
+            "left",
+            "top",
+            "bottom"
+          ],
+          "doc": "Window edge. Defaults to right."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onClose",
+          "value": "void",
+          "doc": "Called when the user dismisses the sheet; set open to false here."
+        }
+      ],
+      "example": "<Sheet open={details.get()} title=\"Details\" onClose={() => { details.set(false); }}><Text>Body</Text></Sheet>"
+    },
+    {
+      "name": "DropdownMenu",
+      "children": "MenuItem",
+      "doc": "A button that opens a menu. Children are MenuItem elements.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Button text."
+        }
+      ],
+      "example": "<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>"
+    },
+    {
+      "name": "MenuItem",
+      "item": true,
+      "doc": "One entry in a DropdownMenu or ContextMenu.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Entry text."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled entries cannot be chosen."
+        },
+        {
+          "name": "checked",
+          "type": "boolean",
+          "doc": "Shows a check mark."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onSelect",
+          "value": "void",
+          "doc": "Called when the entry is chosen."
+        }
+      ],
+      "example": "<MenuItem label=\"Delete\" onSelect={() => { remove(); }}/>"
+    },
+    {
+      "name": "ContextMenu",
+      "children": true,
+      "doc": "Opens a menu on right-click. Children are the content, followed by MenuItem elements.",
+      "props": [],
+      "example": "<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>"
+    },
+    {
+      "name": "Sidebar",
+      "children": "SidebarGroup",
+      "doc": "An application sidebar. Children are SidebarGroup elements.",
+      "props": [
+        {
+          "name": "collapsed",
+          "type": "boolean",
+          "doc": "Shows icons only."
+        }
+      ],
+      "example": "<Sidebar><SidebarGroup label=\"Workspace\"><SidebarItem label=\"Inbox\" active={true}/></SidebarGroup></Sidebar>"
+    },
+    {
+      "name": "SidebarGroup",
+      "item": true,
+      "children": "SidebarItem",
+      "doc": "A labelled group of SidebarItem entries.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Group heading."
+        }
+      ],
+      "example": "<SidebarGroup label=\"Projects\"><SidebarItem label=\"Tsrust\"/></SidebarGroup>"
+    },
+    {
+      "name": "SidebarItem",
+      "item": true,
+      "doc": "One navigation entry in a SidebarGroup.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Entry text."
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "doc": "Highlights the current entry."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onClick",
+          "value": "void",
+          "doc": "Called when the entry is clicked."
+        }
+      ],
+      "example": "<SidebarItem label=\"Settings\" onClick={() => { page.set('settings'); }}/>"
+    },
+    {
+      "name": "Resizable",
+      "children": "ResizablePanel",
+      "doc": "Panels separated by draggable handles. Children are ResizablePanel elements.",
+      "props": [
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "Stacks panels vertically. Defaults to side by side."
+        }
+      ],
+      "example": "<Resizable><ResizablePanel size={240}><Text>Files</Text></ResizablePanel><ResizablePanel><Text>Editor</Text></ResizablePanel></Resizable>"
+    },
+    {
+      "name": "ResizablePanel",
+      "item": true,
+      "children": true,
+      "doc": "One panel in a Resizable layout.",
+      "props": [
+        {
+          "name": "size",
+          "type": "number",
+          "doc": "Initial size in pixels. Omit to share the remaining space."
+        }
+      ],
+      "example": "<ResizablePanel size={320}><Text>Preview</Text></ResizablePanel>"
+    },
+    {
+      "name": "Table",
+      "children": "TableHeader, TableBody",
+      "doc": "A static table. Children are TableHeader and TableBody, which contain TableRow elements.",
+      "props": [],
+      "example": "<Table><TableHeader><TableRow><TableHead>Name</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell>Ada</TableCell></TableRow></TableBody></Table>"
+    },
+    {
+      "name": "TableHeader",
+      "item": true,
+      "children": "TableRow",
+      "doc": "The header rows of a Table.",
+      "props": [],
+      "example": "<TableHeader><TableRow><TableHead>Name</TableHead></TableRow></TableHeader>"
+    },
+    {
+      "name": "TableBody",
+      "item": true,
+      "children": "TableRow",
+      "doc": "The body rows of a Table.",
+      "props": [],
+      "example": "<TableBody><TableRow><TableCell>Ada</TableCell></TableRow></TableBody>"
+    },
+    {
+      "name": "TableRow",
+      "item": true,
+      "children": "TableHead, TableCell",
+      "doc": "One row of a Table.",
+      "props": [],
+      "example": "<TableRow><TableCell>Ada</TableCell></TableRow>"
+    },
+    {
+      "name": "TableHead",
+      "item": true,
+      "children": true,
+      "doc": "A header cell.",
+      "props": [
+        {
+          "name": "colSpan",
+          "type": "int",
+          "doc": "Columns spanned. Defaults to 1."
+        }
+      ],
+      "example": "<TableHead>Email</TableHead>"
+    },
+    {
+      "name": "TableCell",
+      "item": true,
+      "children": true,
+      "doc": "A body cell.",
+      "props": [
+        {
+          "name": "colSpan",
+          "type": "int",
+          "doc": "Columns spanned. Defaults to 1."
+        }
+      ],
+      "example": "<TableCell>ada@example.com</TableCell>"
+    }
+  ],
+  "icons": [
+    "a-large-small",
+    "arrow-down",
+    "arrow-left",
+    "arrow-right",
+    "arrow-up",
+    "asterisk",
+    "ban",
+    "battery-charging",
+    "battery-full",
+    "battery-low",
+    "battery-medium",
+    "battery-warning",
+    "battery",
+    "bell",
+    "book-open",
+    "bot",
+    "building-2",
+    "calendar",
+    "case-sensitive",
+    "chart-pie",
+    "check",
+    "chevron-down",
+    "chevron-left",
+    "chevron-right",
+    "chevron-up",
+    "chevrons-up-down",
+    "circle-alert",
+    "circle-check",
+    "circle-user",
+    "circle-x",
+    "close",
+    "copy",
+    "cpu",
+    "dash",
+    "delete",
+    "ellipsis-vertical",
+    "ellipsis",
+    "external-link",
+    "eye-off",
+    "eye",
+    "file-text",
+    "file",
+    "folder-closed",
+    "folder-open",
+    "folder",
+    "frame",
+    "gallery-vertical-end",
+    "github",
+    "globe",
+    "hard-drive",
+    "heart-off",
+    "heart",
+    "inbox",
+    "info",
+    "inspector",
+    "layout-dashboard",
+    "loader-circle",
+    "loader",
+    "map",
+    "maximize",
+    "memory-stick",
+    "menu",
+    "mic",
+    "minimize",
+    "minus",
+    "moon",
+    "network",
+    "palette",
+    "panel-bottom-open",
+    "panel-bottom",
+    "panel-left-close",
+    "panel-left-open",
+    "panel-left",
+    "panel-right-close",
+    "panel-right-open",
+    "panel-right",
+    "pause",
+    "play",
+    "plus",
+    "redo-2",
+    "redo",
+    "refresh-cw",
+    "replace",
+    "resize-corner",
+    "rotate-cw",
+    "search",
+    "settings-2",
+    "settings",
+    "sort-ascending",
+    "sort-descending",
+    "square-terminal",
+    "square",
+    "star-fill",
+    "star-off",
+    "star",
+    "sun",
+    "thumbs-down",
+    "thumbs-up",
+    "triangle-alert",
+    "undo-2",
+    "undo",
+    "user",
+    "window-close",
+    "window-maximize",
+    "window-minimize",
+    "window-restore"
   ]
 }

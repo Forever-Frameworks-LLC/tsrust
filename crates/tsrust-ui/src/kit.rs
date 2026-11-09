@@ -1,6 +1,7 @@
 //! GPUI Kit components: a named component with string props, live props and
 //! named events. Values are strings at this boundary; the generated `std:ui`
 //! wrappers check their types and the renderer parses them per component.
+#![cfg_attr(not(feature = "gpui"), allow(dead_code))]
 use super::{Child, Node, TextBinding};
 use std::collections::BTreeMap;
 
@@ -13,7 +14,6 @@ pub(crate) struct Kit {
     pub(crate) events: Vec<(String, EventHandler)>,
 }
 
-#[cfg_attr(not(any(test, feature = "gpui")), allow(dead_code))]
 impl Kit {
     pub(crate) fn prop(&self, name: &str) -> Option<&str> {self.props.get(name).map(String::as_str)}
     pub(crate) fn text(&self, name: &str) -> String {self.prop(name).unwrap_or_default().to_owned()}
@@ -58,8 +58,7 @@ impl Node {
         Ok(changed)
     }
     /// Deliver a component event to the visible node with this identity.
-    #[cfg_attr(not(any(test, feature = "gpui")), allow(dead_code))]
-    pub(crate) fn kit_event(&mut self, target: u64, event: &str, value: &str) -> Result<bool, String> {
+        pub(crate) fn kit_event(&mut self, target: u64, event: &str, value: &str) -> Result<bool, String> {
         self.ensure_identities();
         fn visit(node: &mut Node, target: u64, event: &str, value: &str) -> Result<bool, String> {
             if node.collapsed {return Ok(false);}
