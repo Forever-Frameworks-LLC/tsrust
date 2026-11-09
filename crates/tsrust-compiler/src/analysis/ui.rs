@@ -20,6 +20,7 @@ impl Analyzer {
   if let Some(result)=self.ui_branch_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_text_binding_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_input_call(context,expression,loans,expected)? {return Ok(Some(result));}
+  if let Some(result)=self.ui_kit_value_call(context,expression,loans,expected)? {return Ok(Some(result));}
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};
   if let ExprKind::Field(base,member)=&callee.kind {
    let identity=self.expression_type_hint(context,base).and_then(|ty|if let Type::Record(id)=ty{self.program.records[id].native_type}else{None});
@@ -170,6 +171,18 @@ impl Analyzer {
   let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;
   expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }
+ /// kitValue(node, name, value): value is text, a number, or a live binding of those.
+ fn ui_kit_value_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+  let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None);};let ExprKind::Name(name)=&callee.kind else{return Ok(None);};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime" && binding.name=="kitValue") else{return Ok(None);};
+  Self::arity(args.len(),3,expression.span)?;
+  let node=self.native_parameter_type(binding.parameters[0].ty)?;
+  let actual=self.expression(context,&mut args[0],Mode::Consume,loans,Some(node))?;self.require(actual,Some(node),args[0].span)?;
+  let actual=self.expression(context,&mut args[1],Mode::Read,loans,Some(Type::String))?;self.require(actual,Some(Type::String),args[1].span)?;
+  let actual=self.expression(context,&mut args[2],Mode::Consume,loans,None)?;self.ui_input_value(actual,args[2].span)?;
+  let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;
+  expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+ }
  fn ui_input_handler(&self,ty:Type,span:Span)->Result<(),Diagnostic> {
   let declaration=match ty{Type::Callback(id)=>Some(id),Type::StoredCallable(family)=>self.callables.storage.declaration(family),_=>None};
   let valid=declaration.is_some_and(|id|{
@@ -191,6 +204,7 @@ impl Analyzer {
    Type::Union(id)=>pending.extend(self.unions.members(id)),
    Type::Record(id)=>{
     let record=&self.program.records[id];
+    if record.native_type==Some(NativeTypeId::UiTextBinding){continue;}
     let signal=record.native_type==Some(NativeTypeId::UiSignal) && record.application.as_ref().is_some_and(|app|app.resolved_arguments.len()==1 && matches!(app.resolved_arguments[0],Type::String|Type::Int|Type::Number));
     let derived=record.native_type.is_none() && record.fields.len()==1 && record.fields[0].name.text=="evaluate" && record.fields[0].ty.and_then(|ty|match ty{Type::Callback(id)=>Some(id),Type::StoredCallable(family)=>self.callables.storage.declaration(family),_=>None}).is_some_and(|id|{let contract=&self.callables.callbacks[id];contract.kind.is_owned() && !contract.kind.is_once() && contract.params.is_empty() && match contract.result{Type::String|Type::Int|Type::Number=>true,Type::Union(id)=>self.unions.members(id).into_iter().all(|ty|matches!(ty,Type::String|Type::Int|Type::Number)),_=>false}});
     if !signal && !derived{return Err(Diagnostic::new("ui-input-value","Input values must be strings, ints, numbers or checked bindings of those types.",span));}

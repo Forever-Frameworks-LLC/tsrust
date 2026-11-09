@@ -5,12 +5,16 @@ const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string:
 impl Emitter<'_> {
  pub(super) fn ui_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];
-  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"){return None;}
+  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
   let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
   let call=match binding.name {
    "bindSemantics"|"bindClass"|"bindVariant"|"bindPath"=>{let callback=args[1].ty.unwrap();let invoke=self.ui_callback(callback,expr.span,"String");let method=match binding.name{"bindSemantics"=>"with_semantics_binding","bindClass"=>"with_class_binding","bindPath"=>"with_path_binding",_=>"with_variant_binding"};format!("{{let node={};let mut registered_callback={};node.{method}(move||({invoke}).map(|value|value.as_ref().to_owned()))}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume))},
+   "kitValue"=>{
+    let value=self.ui_input_binding(args[2].ty.unwrap(),&self.expr(fun,&args[2],Mode::Consume),expr.span);
+    format!("{{let node={};let name={};let value={value};node.with_kit_value(name.as_ref(),value)}}",self.expr(fun,&args[0],Mode::Consume),read(&args[1]))
+   },
    "commandReply"=>{
     let callback=args[2].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"()","(&value,)");
     format!("{{let name={};let payload={};let mut registered_callback={};tsrust_native_ui::command_reply(name.as_ref(),payload.as_ref(),move |value:&str|{{let value=String::Owned(value.to_owned());{invoke}}})}}",read(&args[0]),read(&args[1]),self.expr(fun,&args[2],Mode::Consume))
@@ -133,6 +137,9 @@ impl Emitter<'_> {
    },
    Type::Undefined=>format!("{{let _={expression};None}}"),
    Type::String|Type::Int|Type::Number=>format!("{{let value={};Some(Box::new(move||Ok(value.clone())) as {VALUE_BINDING})}}",self.ui_input_scalar(ty,expression)),
+   Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::UiTextBinding)=>{
+    format!("{{let binding={expression};Some(Box::new(move||binding.value()) as {VALUE_BINDING})}}")
+   },
    Type::Record(id)=>{
     let record=&self.program.records[id];
     let payload=if record.native_type==Some(crate::native_signatures::NativeTypeId::UiSignal){record.application.as_ref().expect("checked state binding").resolved_arguments[0]}else{let id=match record.fields[0].ty.unwrap(){Type::Callback(id)=>id,Type::StoredCallable(family)=>self.program.stored_contracts.declaration(family).expect("computed input callback"),_=>unreachable!()};self.program.callback_contracts[id].result};

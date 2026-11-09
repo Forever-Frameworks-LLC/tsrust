@@ -44,6 +44,10 @@ impl Node {
         kit.bindings.push((name.to_owned(), binding));
         Ok(self)
     }
+    /// A text, number or live value (signal, reactive prop or translation); None leaves the prop unset.
+    pub fn with_kit_value(self, name: &str, value: Option<Box<dyn FnMut() -> Result<String, String>>>) -> Result<Self, String> {
+        match value {Some(value) => self.with_kit_binding(name, TextBinding::computed(value)), None => Ok(self)}
+    }
     pub fn with_kit_event(mut self, event: &str, handler: impl FnMut(&str) -> Result<(), String> + 'static) -> Result<Self, String> {
         self.kit_mut()?.events.push((event.to_owned(), Box::new(handler)));
         Ok(self)

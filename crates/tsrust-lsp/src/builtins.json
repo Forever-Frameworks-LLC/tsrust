@@ -23041,6 +23041,62 @@
       "documentation": "Returns the operating system's light or dark appearance as seen by the most recent frame. Before the first frame it returns light."
     },
     {
+      "name": "setTranslations",
+      "signature": "setTranslations<T>(locale: string, messages: T): void",
+      "parameters": [
+        {
+          "label": "locale: string",
+          "documentation": "Locale tag such as en, fr or pt-BR."
+        },
+        {
+          "label": "messages: T",
+          "documentation": "JSON-compatible object of strings and nested objects."
+        }
+      ],
+      "documentation": "Registers one locale's messages; registering a locale again replaces it. Catalogs are JSON objects, usually imported: `import fr from './locales/fr.json'`. Nested objects make dotted keys (menu.save), {name} placeholders take values, and a numeric count selects key_zero, key_one or key_other (zero falls back to other). Lookup tries the exact locale (fr-CA), its language (fr), then en, then shows the key.\n\n```tsrx\nimport { Text, t, tWith, translateWith, setTranslations, setLocale } from 'std:ui';\nimport en from './locales/en.json';\nimport fr from './locales/fr.json';\n\nsetTranslations('en', en);\nsetTranslations('fr', fr);\n// <Text>{t('title')}</Text>\n// <Text>{tWith('greeting', { name: 'Ada' })}</Text>\n// <Text>{translateWith('messages', { count: count.get() })}</Text>\n// <Button onPress={() => { setLocale('fr'); }}>Français</Button>\n```\n\nInvalid catalogs (not an object, or values other than strings and nested objects) throw. Ownership: messages are read and copied."
+    },
+    {
+      "name": "setLocale",
+      "signature": "setLocale(locale: string): void",
+      "parameters": [
+        {
+          "label": "locale: string",
+          "documentation": "Locale tag; underscores are accepted (fr_CA)."
+        }
+      ],
+      "documentation": "Switches the current locale. Text from t, tWith and reactive translateWith expressions updates on the next frame, as do GPUI Kit's own component strings where Kit ships that language (en, zh-CN, zh-HK, zh-TW, it)."
+    },
+    {
+      "name": "locale",
+      "signature": "locale(): string",
+      "parameters": [],
+      "documentation": "The current locale tag. It starts as the operating system's locale (such as en-US), or en when that cannot be read."
+    },
+    {
+      "name": "t",
+      "signature": "t(key: string): TextBinding",
+      "parameters": [],
+      "documentation": "Live translated text for a JSX child or a GPUI Kit string prop; it follows setLocale. Catalogs are JSON objects, usually imported: `import fr from './locales/fr.json'`. Nested objects make dotted keys (menu.save), {name} placeholders take values, and a numeric count selects key_zero, key_one or key_other (zero falls back to other). Lookup tries the exact locale (fr-CA), its language (fr), then en, then shows the key.\n\n```tsrx\nimport { Text, t, tWith, translateWith, setTranslations, setLocale } from 'std:ui';\nimport en from './locales/en.json';\nimport fr from './locales/fr.json';\n\nsetTranslations('en', en);\nsetTranslations('fr', fr);\n// <Text>{t('title')}</Text>\n// <Text>{tWith('greeting', { name: 'Ada' })}</Text>\n// <Text>{translateWith('messages', { count: count.get() })}</Text>\n// <Button onPress={() => { setLocale('fr'); }}>Français</Button>\n```"
+    },
+    {
+      "name": "tWith",
+      "signature": "tWith<T>(key: string, values: T): TextBinding",
+      "parameters": [],
+      "documentation": "Live translated text with fixed values. It follows setLocale, but its values are read once; for values that read state write translateWith inside JSX. Catalogs are JSON objects, usually imported: `import fr from './locales/fr.json'`. Nested objects make dotted keys (menu.save), {name} placeholders take values, and a numeric count selects key_zero, key_one or key_other (zero falls back to other). Lookup tries the exact locale (fr-CA), its language (fr), then en, then shows the key."
+    },
+    {
+      "name": "translate",
+      "signature": "translate(key: string): string",
+      "parameters": [],
+      "documentation": "The translated text right now, as a plain string, for code outside JSX such as notify(translate('saved')) or a std:ui prop that takes text."
+    },
+    {
+      "name": "translateWith",
+      "signature": "translateWith<T>(key: string, values: T): string",
+      "parameters": [],
+      "documentation": "The translated text with values, right now, as a plain string. Inside JSX an expression such as {translateWith('messages', { count: count.get() })} refreshes with both the state it reads and the locale. Catalogs are JSON objects, usually imported: `import fr from './locales/fr.json'`. Nested objects make dotted keys (menu.save), {name} placeholders take values, and a numeric count selects key_zero, key_one or key_other (zero falls back to other). Lookup tries the exact locale (fr-CA), its language (fr), then en, then shows the key."
+    },
+    {
       "name": "Icon",
       "signature": "Icon(props: IconProps): Node",
       "parameters": [

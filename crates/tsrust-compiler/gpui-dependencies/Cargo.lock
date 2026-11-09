@@ -7609,6 +7609,7 @@ dependencies = [
  "sqlx",
  "subtle",
  "svgtypes 0.16.1",
+ "sys-locale",
  "tempfile",
  "tokio",
  "tokio-rustls",

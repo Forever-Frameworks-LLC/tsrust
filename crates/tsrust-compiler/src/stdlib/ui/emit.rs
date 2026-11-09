@@ -5,7 +5,7 @@ use crate::{
     syntax::Type,
 };
 pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> String {
-    if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"){return String::new();}
+    if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return String::new();}
     if binding.name=="useId"{return result_bridge(program,binding,String::new(),"tsrust_native_ui::use_id().map(String::Owned)".into());}
     let node = program
         .records
@@ -54,6 +54,14 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         "command" => ("name:&String,payload:&String".into(),"tsrust_native_ui::command(name.as_ref(),payload.as_ref())".into()),
         "openWindow" => (format!("node:Record{node},title:&String,options:&String"),"tsrust_native_ui::open_window(node,title.as_ref().to_owned(),options.as_ref())".into()),
         "appearance" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::appearance())}}\n"),
+        "locale" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::locale())}}\n"),
+        "setLocale" => return format!("fn {symbol}(locale:&String){{tsrust_native_ui::set_locale(locale.as_ref())}}\n"),
+        "translate" => return format!("fn {symbol}(key:&String,values:&String)->String{{String::Owned(tsrust_native_ui::translate(key.as_ref(),values.as_ref()))}}\n"),
+        "translation" => {
+            let binding=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::UiTextBinding)).unwrap();
+            return format!("fn {symbol}(key:&String,values:&String)->Record{binding}{{tsrust_native_ui::translation(key.as_ref().to_owned(),values.as_ref().to_owned())}}\n");
+        },
+        "setTranslations" => ("locale:&String,messages:&String".into(),"tsrust_native_ui::set_translations(locale.as_ref(),messages.as_ref())".into()),
         "kitSet" => (format!("node:Record{node},name:&String,value:&String"),"node.with_kit_prop(name.as_ref(),value.as_ref())".into()),
         "kitBind" => {
             let binding=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::UiTextBinding)).unwrap();

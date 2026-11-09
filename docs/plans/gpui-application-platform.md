@@ -331,9 +331,13 @@ Next, following GPUI Kit's guides (gpui-kit.com/docs):
 - Updating: the updater matches the package owner. Portable single binaries can
   self-update (reuse the CLI's verified self-update); `.app` bundles replace the
   whole signed bundle; installers and package managers own their installs.
-- i18n: application text through `std:locale` plus per-locale message catalogs
-  (`t(key, values)`), Kit component strings through `rust-i18n` extension of the
-  `gpui_component` namespace, both from the project's locale files.
+- i18n (done): JSON catalogs per locale (`setTranslations`), `setLocale`/`locale`
+  (system locale by default), live `t`/`tWith` text bindings for JSX children
+  and Kit string props, `translate`/`translateWith` strings (state-reading JSX
+  expressions refresh with state and locale), dotted keys, `{name}` placeholders,
+  zero/one/other plurals and language/en fallback. Kit's own strings follow the
+  locale for the languages Kit ships (en, zh-CN, zh-HK, zh-TW, it). CLDR plural
+  categories beyond zero/one/other are not yet modelled.
 - Dev tools: Kit's `inspector` and `profiler` features in `tsrust dev` builds
   with a toggle shortcut; never in release builds.
 - WebView (experimental, `gpui-webview` over Wry) and remaining Kit components

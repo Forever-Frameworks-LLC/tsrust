@@ -280,6 +280,8 @@ impl Root {
     /// Run queued application commands; replies refresh the tree like handlers.
     fn run_commands(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         commands::set_dark(matches!(window.appearance(), WindowAppearance::Dark | WindowAppearance::VibrantDark));
+        // GPUI Kit's own strings (calendar months, placeholders) follow the app locale.
+        if super::i18n::take_changed() {gpui_kit::component::set_locale(&super::i18n::locale());}
         for command in commands::take() {
             match command {
                 Command::Plain {name, payload} => {

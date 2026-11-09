@@ -11,7 +11,7 @@ publish = false
 # Generated GPUI programs embed these sources with `runtime` and `gpui` enabled;
 # the GPUI renderer itself lives in the compiler's std:gpui runtime.
 default = ["runtime"]
-runtime = ["dep:url", "dep:kurbo", "dep:svgtypes"]
+runtime = ["dep:url", "dep:kurbo", "dep:svgtypes", "dep:sys-locale"]
 gpui = ["runtime"]
 # Browser target, reserved until the GPUI web platform follows desktop.
 gpui-web = ["runtime"]
@@ -23,3 +23,4 @@ url = { version = "=2.5.8", optional = true }
 color = "=0.3.3"
 kurbo = { version = "=0.13.1", optional = true }
 svgtypes = { version = "=0.16.1", optional = true }
+sys-locale = { version = "=0.3.2", optional = true }

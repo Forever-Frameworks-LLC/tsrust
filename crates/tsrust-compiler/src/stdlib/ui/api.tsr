@@ -1,3 +1,4 @@
+import { setTranslations as nativeSetTranslations, setLocale as nativeSetLocale, locale as nativeLocale, translate as nativeTranslate, translation as nativeTranslation } from 'std:ui-runtime';
 import { command as nativeCommand, commandReply as nativeCommandReply, openWindow as nativeOpenWindow, appearance as nativeAppearance } from 'std:ui-runtime';
 import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
@@ -879,4 +880,39 @@ export function openWindow(node: Node, title: string, options?: WindowOptions): 
 /** The system light or dark appearance, as seen by the most recent frame. */
 export function systemAppearance(): 'light' | 'dark' {
   return nativeAppearance() === 'dark' ? 'dark' : 'light';
+}
+
+/** Registers one locale's messages: a JSON-compatible object such as an imported locales/fr.json. Nested objects make dotted keys (menu.save). Registering a locale again replaces it. */
+export function setTranslations<T>(locale: string, messages: T): void {
+  unwrap(nativeSetTranslations(locale, JSON.stringify(messages)));
+}
+
+/** Switches the current locale, such as 'fr' or 'pt-BR'. Text from t() and GPUI Kit's own component strings update on the next frame. */
+export function setLocale(locale: string): void {
+  nativeSetLocale(locale);
+}
+
+/** The current locale tag. It starts as the system locale, or en when that cannot be read. */
+export function locale(): string {
+  return nativeLocale();
+}
+
+/** Live translated text for a JSX child or a component string prop; it follows setLocale. Missing keys fall back to the language, then en, then the key itself. Use tWith for placeholders. */
+export function t(key: string): TextBinding {
+  return nativeTranslation(key, '{}');
+}
+
+/** Live translated text with fixed values: {name} placeholders are filled from values, and a numeric count selects key_zero, key_one or key_other. It follows setLocale; values are read once, so for values that read state write translateWith inside JSX instead. Example: tWith('greeting', { name: 'Ada' }). */
+export function tWith<T>(key: string, values: T): TextBinding {
+  return nativeTranslation(key, JSON.stringify(values));
+}
+
+/** The translated text right now, as a plain string, for code outside JSX such as notify(translate('saved')). */
+export function translate(key: string): string {
+  return nativeTranslate(key, '{}');
+}
+
+/** The translated text right now with values filled in, as a plain string. Inside JSX, an expression such as {translateWith('items', { count: count.get() })} refreshes with both the state it reads and the locale. */
+export function translateWith<T>(key: string, values: T): string {
+  return nativeTranslate(key, JSON.stringify(values));
 }

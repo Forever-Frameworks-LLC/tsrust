@@ -20,6 +20,7 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
     let reported = failure.clone();
     application().with_assets(assets::Assets).run(move |cx| {
         init(cx);
+        gpui_kit::component::set_locale(&super::i18n::locale());
         // The application ends with its last window, as a single-window app does.
         cx.on_window_closed(|cx, _| if cx.windows().is_empty() {cx.quit();}).detach();
         if let Err(error) = open(node, title, options, reported.clone(), cx) {

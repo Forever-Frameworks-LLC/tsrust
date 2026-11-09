@@ -136,6 +136,15 @@ pub(crate) const COMMAND_REPLY:NativeBinding=NativeBinding{name:"commandReply",p
 pub(crate) const OPEN_WINDOW:NativeBinding=NativeBinding{name:"openWindow",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("title",NativeType::String,Mode::Read),parameter("options",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_open_window"},..COMMAND};
 pub(crate) const APPEARANCE:NativeBinding=NativeBinding{name:"appearance",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_appearance"},..TEXT};
 
+// Translations: catalogs, the current locale, live and snapshot lookups, and one
+// value-typed Kit prop setter that accepts text, numbers and live bindings.
+pub(crate) const SET_TRANSLATIONS:NativeBinding=NativeBinding{name:"setTranslations",parameters:&[parameter("locale",NativeType::String,Mode::Read),parameter("messages",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_set_translations"},..COMMAND};
+pub(crate) const SET_LOCALE:NativeBinding=NativeBinding{name:"setLocale",parameters:&[parameter("locale",NativeType::String,Mode::Read)],result:NativeType::Void,backend:NativeBackend::Bundled{symbol:"tsrust_ui_set_locale"},..TEXT};
+pub(crate) const LOCALE:NativeBinding=NativeBinding{name:"locale",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_locale"},..TEXT};
+pub(crate) const TRANSLATE:NativeBinding=NativeBinding{name:"translate",parameters:&[parameter("key",NativeType::String,Mode::Read),parameter("values",NativeType::String,Mode::Read)],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_translate"},..TEXT};
+pub(crate) const TRANSLATION:NativeBinding=NativeBinding{name:"translation",parameters:&[parameter("key",NativeType::String,Mode::Read),parameter("values",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_translation"},..TEXT};
+pub(crate) const KIT_VALUE:NativeBinding=NativeBinding{name:"kitValue",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("value",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_value"},..TEXT};
+
 /// Generated programs embed the Node model from `crates/tsrust-ui` with the GPUI
 /// renderer as its `native` module; GPUI Kit comes from the separate locked
 /// GPUI dependency set, never from the backend graph.
@@ -160,6 +169,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod visibility;",&module("visibility",source!("visibility.rs")))
         .replace("mod kit;",&module("kit",source!("kit.rs")))
         .replace("mod commands;",&module("commands",source!("commands.rs")))
+        .replace("mod i18n;",&module("i18n",source!("i18n.rs")))
         .replace("mod editable;",&module("editable",source!("editable.rs")))
         .replace("pub mod clipboard;", &format!("pub {}",module("clipboard",&source!("clipboard.rs").replace("crate::Node", "super::Node"))))
         .replace("pub mod navigation;", &format!("pub {}",module("navigation",source!("navigation.rs"))))
