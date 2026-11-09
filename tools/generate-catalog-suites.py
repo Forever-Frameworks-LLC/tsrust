@@ -68,7 +68,7 @@ def main():
     output = Path(sys.argv[1])
     if output.exists():
         shutil.rmtree(output)
-    catalog = json.loads((ROOT / "crates/tsrust-lsp/src/builtins.json").read_text())
+    catalog = json.loads((ROOT / "crates/tsrust-lsp/src/builtins.json").read_text(encoding="utf-8"))
     counts = {"tests": 0, "host": 0, "groups": 0}
     seen = set()
     for group, entries in sorted(catalog.items()):
@@ -94,7 +94,7 @@ def main():
                     check = f"catalogTest({quote(name)}, () => {{ catalogStart(); catalogProgram(); catalogEqual(catalogFinish(), {quote(example['output'])}); }});\n"
                 directory.mkdir(parents=True, exist_ok=True)
                 slug = re.sub(r"[^A-Za-z0-9]+", "-", entry["name"]).strip("-").lower() or "entry"
-                (directory / f"{slug}-{index}.test.tsr").write_text(HEADER + module + "\n" + check)
+                (directory / f"{slug}-{index}.test.tsr").write_text(HEADER + module + "\n" + check, encoding="utf-8")
                 written += 1
                 counts["tests"] += 1
         counts["groups"] += bool(written)

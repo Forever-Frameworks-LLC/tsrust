@@ -25,7 +25,7 @@ EXPECTED_FAILURES = {"crates/tsrust-compiler/tests/fixtures/testing-async/failur
 
 def suites(catalog):
     groups = defaultdict(list)
-    tracked = subprocess.run(["git", "ls-files", "*.test.tsr"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    tracked = subprocess.run(["git", "ls-files", "*.test.tsr"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True).stdout.split()
     for file in tracked:
         if file not in EXPECTED_FAILURES:
             groups[str(Path(file).parent)].append(file)
@@ -52,7 +52,7 @@ def main():
         try:
             with tempfile.TemporaryDirectory(prefix="tsrust-suite-") as working:
                 process = subprocess.run([compiler, "test", *[str((ROOT / file).resolve()) for file in files], "--color", "never"],
-                                         cwd=working, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=600)
+                                         cwd=working, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600)
         except subprocess.TimeoutExpired as error:
             process = subprocess.CompletedProcess(error.cmd, 124, error.stdout or "", f"suite exceeded 600s\n{error.stderr or ''}")
         seconds = round(time.monotonic() - started, 1)
