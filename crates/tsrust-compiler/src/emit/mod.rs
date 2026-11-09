@@ -3239,7 +3239,9 @@ impl Emitter<'_> {
             }
         }
         if !self.program.functions.iter().any(|function| function.name == "main") {
-            let _ = writeln!(output, "fn main() {{ {} }}", self.entry_setup);
+            // Test and statement-only programs run on the same 8 MiB main-thread
+            // stack as async entrypoints: Windows gives the main thread 1 MiB.
+            let _ = writeln!(output, "fn main() {{ std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(|| {{ {} }}).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}", self.entry_setup);
         }
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
