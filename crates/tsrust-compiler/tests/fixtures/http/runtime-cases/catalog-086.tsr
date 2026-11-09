@@ -1,0 +1,8 @@
+import { TlsOptions } from 'std:http';
+
+export function main() {
+  const options: TlsOptions = {
+    cert: "PEM", key: "PEM"
+  };
+  console.log(options.cert);
+}

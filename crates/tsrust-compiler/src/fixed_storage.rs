@@ -1442,6 +1442,8 @@ impl<'a> Proof<'a> {
                 CallTarget::Closure(_) | CallTarget::Callback(_) | CallTarget::StoredCallable(_) => args
                     .iter()
                     .all(|arg| !affected(arg, id) && self.expr(id, arg, Mode::Consume)),
+                // Cursor ownership escapes the fixed array storage proof.
+                CallTarget::IteratorCursor | CallTarget::IteratorNext => false,
                 CallTarget::StoredCallableField(_) | CallTarget::HeapMethod(_) | CallTarget::OrderedSetMethod(_) | CallTarget::DequeMethod(_) | CallTarget::MapMethod(_) | CallTarget::SetMethod(_) | CallTarget::MapGroupBy => false,
             },
         };

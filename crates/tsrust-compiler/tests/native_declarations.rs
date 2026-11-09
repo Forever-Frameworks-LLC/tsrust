@@ -40,6 +40,62 @@ fn native_exports_distinguish_types_from_functions_and_validate_modules() {
 }
 
 #[test]
+fn database_intrinsics_remain_internal_across_imports_aliases_and_reexports() {
+    use tsrust_compiler::project::{FileSourceProvider, load_project};
+    for module in ["std:sql", "std:sqlite"] {
+        let hidden=tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module==module && binding.name.starts_with("__")).collect::<Vec<_>>();
+        assert!(!hidden.is_empty(),"missing internal bindings for {module}");
+        for binding in hidden {
+            assert!(tsrust_compiler::native_bindings::lookup(module,binding.name).is_ok());
+            assert_eq!(tsrust_compiler::native_exports::lookup(module,binding.name).unwrap_err(),format!("Standard-library module {module:?} does not export {:?}.",binding.name));
+        }
+    }
+    let directory=support::TempDirectory::new();
+    for (module,name) in [("std:sql","__cursor"),("std:sqlite","__prepare")] {
+        for (entry,dependency) in [
+            (format!("import {{{name}}} from '{module}';function main(){{}}"),None),
+            (format!("import {{{name} as operation}} from '{module}';function main(){{}}"),None),
+            ("import {operation} from './database.tsr';function main(){}".into(),Some(format!("import {{{name} as privateOperation}} from '{module}';export function operation():void{{}}"))),
+        ] {
+            if let Some(dependency)=dependency {std::fs::write(directory.0.join("database.tsr"),support::format_round_trip(&dependency)).unwrap();}
+            let source=support::format_round_trip(&entry);let path=directory.source(&source);
+            let error=load_project(&FileSourceProvider,path.to_str().unwrap()).err().expect("private native export accepted");
+            assert_eq!(error.code,"module-native");
+            assert!(error.message.contains(module) && error.message.contains(name),"{error:?}");
+            // Directory checks may tolerate incomplete imports; strict emission
+            // must reject the source even when its private import is unused.
+            let output_path=directory.0.join("private.rs");
+            let output=support::run(support::cli().arg("emit").arg(&path).arg("-o").arg(&output_path),30);
+            assert!(!output.status.success(),"private export emitted for {entry}");
+            assert!(!output_path.exists());
+            let message=String::from_utf8_lossy(&output.stderr);
+            assert!(message.contains("error[module-native]") && message.contains(module) && message.contains(name),"{message}");
+        }
+    }
+}
+
+#[test]
+fn database_public_factories_types_and_borrowing_methods_survive_reexports() {
+    use tsrust_compiler::project::{FileSourceProvider, check_graph, load_project};
+    let directory=support::TempDirectory::new();
+    std::fs::write(directory.0.join("database.tsr"),support::format_round_trip("import {Pool as NativePool,connect as nativeConnect} from 'std:sql';import {Connection as NativeConnection,SqliteError,open as nativeOpen} from 'std:sqlite';export type Pool=NativePool;export type Connection=NativeConnection;export async function connect(url:string,max:int):Task<Pool>{return await nativeConnect(url,max);}export function open(path:string):Result<Connection,SqliteError>{return nativeOpen(path);}")).unwrap();
+    let source=support::format_round_trip(r#"
+import {Pool as AsyncPool,Connection as Database,connect,open} from './database.tsr';
+async function cursor(pool:ReadOnly<AsyncPool>):Task<void>{const rows=await pool.cursor('SELECT 1');rows.close();}
+function statement(db:ReadOnly<Database>):void{const rows=unwrap(db.prepare('SELECT 1'));unwrap(rows.finalize());}
+async function main():Task<void>{const db=unwrap(open(':memory:'));statement(db);unwrap(db.close());const pool=await connect('sqlite::memory:',1);await cursor(pool);await pool.close();}
+"#);
+    let path=directory.source(&source);
+    let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap();
+    let emitted=checked.emit_rust();
+    syn::parse_file(&emitted).unwrap();
+    assert!(emitted.contains(".cursor(") && emitted.contains(".prepare("));
+    let output_path=directory.0.join("public.rs");
+    support::success(&support::run(support::cli().arg("emit").arg(path).arg("-o").arg(&output_path),30));
+    assert_eq!(std::fs::read_to_string(output_path).unwrap(),emitted);
+}
+
+#[test]
 fn strict_and_tolerant_graphs_keep_native_type_aliases() {
     use tsrust_compiler::project::{SourceId, SourceProvider, load_project, load_project_headers};
     struct Provider;

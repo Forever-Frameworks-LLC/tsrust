@@ -1,0 +1,17 @@
+import { hostname } from 'std:os';
+
+function workload(n: int, seed: int): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = unwrap(hostname());
+    checksum += value.length;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0));
+}

@@ -24,7 +24,7 @@ fn may_defer(pattern: &ValueAnnotation) -> bool {
             Kind::Union(_) => return true,
             Kind::Group(inner) | Kind::Array(inner) => pending.push(inner),
             Kind::Applied { arguments, .. } | Kind::Tuple(arguments) => pending.extend(arguments.iter().rev()),
-            Kind::Literal(_) | Kind::Named(_) | Kind::Callable { .. } | Kind::Polymorphic { .. } => {},
+            Kind::Literal(_) | Kind::Named(_) | Kind::Callable { .. } | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
         }
     }
     false
@@ -223,14 +223,19 @@ impl Types<'_> {
             let mismatch_span = pattern.span;
             let mismatch = || constraint_mismatch(mismatch_span);
             match &pattern.kind {
-                Kind::Polymorphic { origin, .. } => if actual==Type::Closure(*origin) {Ok(())} else {Err(mismatch())},
+                Kind::NativeCallable { origin } | Kind::Polymorphic { origin, .. } => if actual==Type::Closure(*origin) {Ok(())} else {Err(mismatch())},
                 Kind::Named(name) if variables.contains(&name.text) => {
                     if let Some(prior) = bindings.get(&name.text) {
                         let same_callable = *prior != actual
                             && self.callable_annotations.is_some_and(|annotations| annotations.contains_key(prior) && annotations.contains_key(&actual))
                             && self.annotation(*prior, pattern.span).ok().zip(self.annotation(actual, pattern.span).ok())
                                 .is_some_and(|(left, right)| crate::generic_functions::same_annotation_contract(&left, &right));
-                        if *prior != actual && !self.unions.accepts(*prior, actual) && !same_callable {
+                        // A syntax-only argument hint reports a scalar base
+                        // before the real checker applies an established singleton
+                        // context. Keep T exact; ordinary argument checking still
+                        // rejects a different literal or an unrefined scalar value.
+                        let contextual_literal_hint=matches!(*prior,Type::Literal(_, _)) && prior.scalar_base()==actual;
+                        if *prior != actual && !self.unions.accepts(*prior, actual) && !same_callable && !contextual_literal_hint {
                             return Err(mismatch());
                         }
                     } else {
@@ -268,6 +273,15 @@ impl Types<'_> {
                     }
                     Ok(())
                 }
+                Kind::Applied { name, arguments } if name.text == "Result" && arguments.len() == 2 && matches!(actual,Type::Union(_)) => {
+                    let Type::Union(union)=actual else {unreachable!()};
+                    let variants=crate::result_identity::variants(self.records,&self.unions.members(union)).ok_or_else(mismatch)?;
+                    for (pattern,variant) in constraint_children(pattern).into_iter().zip(variants).rev() {
+                        let payload=crate::result_identity::payload(&self.records[variant]).ok_or_else(mismatch)?;
+                        work.push(ConstraintWork::Unify(pattern,payload));
+                    }
+                    Ok(())
+                }
                 Kind::Applied { name, arguments } => {
                     let (Type::Record(id) | Type::Set(id) | Type::Map(id)) = actual else {
                         return Err(mismatch());
@@ -280,8 +294,11 @@ impl Types<'_> {
                     {
                         return Err(mismatch());
                     }
-                    for (pattern, argument) in constraint_children(pattern).into_iter().zip(&application.arguments).rev() {
-                        work.push(ConstraintWork::Resolve(pattern, argument, None));
+                    // Applications already retain their checked argument identities,
+                    // including callable storage. Re-resolving their source syntax
+                    // as data loses those contracts (and rejects callable payloads).
+                    for (pattern, &argument) in constraint_children(pattern).into_iter().zip(&application.resolved_arguments).rev() {
+                        work.push(ConstraintWork::Unify(pattern, argument));
                     }
                     Ok(())
                 }
@@ -290,7 +307,7 @@ impl Types<'_> {
                     let mut unbound = false;
                     while let Some(value) = pending.pop() {
                         match &value.kind {
-                            Kind::Literal(_) | Kind::Polymorphic { .. } => {},
+                            Kind::Literal(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
                             Kind::Named(name) => {
                                 unbound |=
                                     variables.contains(&name.text) && !bindings.contains_key(&name.text)
@@ -330,6 +347,24 @@ impl Types<'_> {
                                 let known = known.union().map(|id| self.unions.members(id)).unwrap_or_else(|| vec![known]);
                                 absent.extend(known);
                             } else { unresolved.push(value); }
+                        }
+                        if unresolved.len()>1 {
+                            // Every concrete alternative must admit one consistent binding.
+                            // Keep candidate bindings separate; never choose by declaration order.
+                            let members=actual.union().map(|id|self.unions.members(id)).unwrap_or_else(||vec![actual]);
+                            let mut candidates=vec![bindings.clone()];
+                            for member in members.into_iter().filter(|member|!absent.contains(member)){
+                                let mut next=Vec::new();
+                                for candidate in candidates{
+                                    for value in &unresolved{
+                                        let mut checked=candidate.clone();
+                                        if self.unify(value,member,variables,&mut checked).is_ok() && !next.contains(&checked){next.push(checked);}
+                                    }
+                                }
+                                candidates=next;
+                                if candidates.is_empty(){return Err(mismatch());}
+                            }
+                            if candidates.len()==1 {*bindings=candidates.pop().unwrap();continue;}
                         }
                         if unresolved.len() != 1 {
                             return Err(Diagnostic::new("generic-inference", "Union inference requires one unresolved payload pattern; provide explicit type arguments for ambiguous patterns.", pattern.span));
@@ -527,7 +562,7 @@ impl Types<'_> {
                 .map(|argument| {
                     crate::analysis::resolve_value_type(
                         argument,
-                        false,
+                        true,
                         self.names,
                         self.unions,
                     )
@@ -549,7 +584,7 @@ impl Types<'_> {
                     .map(|argument| {
                         crate::analysis::resolve_value_type(
                             argument,
-                            false,
+                            true,
                             self.names,
                             self.unions,
                         )
@@ -610,6 +645,7 @@ impl Types<'_> {
                 text: "undefined".into(),
                 span,
             }),
+            Type::Void => Kind::Named(crate::type_syntax::TypeName {text:"void".into(),span}),
             Type::Record(id) | Type::Enum(id, _) | Type::Set(id) | Type::Map(id) => Kind::Named(crate::type_syntax::TypeName {
                 text: self.records[id].name.text.clone(),
                 span,
@@ -637,6 +673,21 @@ impl Types<'_> {
 mod tests {
     use super::*;
     use crate::type_syntax::parse;
+    #[test]
+    fn generic_result_arguments_infer_nominal_success_and_error_payloads() {
+        crate::check(r#"
+function tag<T>(value:Result<T,string>):string {match(value){Ok(_)=>{return "ok";},Err(error)=>{return error;},}}
+function identity<T,E>(value:Result<T,E>):Result<T,E>{return value;}
+function main(){
+ const first:Result<int,string>=Ok(7);console.log(tag(first));
+ const empty:Result<void,string>=Ok();console.log(tag(empty));
+ const failed:Result<int,string>=Err("bad");console.log(tag(identity(failed)));
+ const nested:Result<Result<int,string>,int>=Ok(Ok(1));identity(nested);
+}
+"#).unwrap();
+        assert!(crate::check(r#"function tag<T>(value:Result<T,string>):int{return 1;}function main(){const wrong:Result<int,int>=Err(2);tag(wrong);}"#).is_err());
+        assert!(crate::check("function empty():void{}function identity<T>(value:T):T{return value;}function main(){identity(empty());}").is_err());
+    }
     #[test]
     fn deep_callable_constraints_use_one_worklist_for_borrowed_and_owned_patterns() {
         let mut shapes = HashMap::new();
@@ -1097,4 +1148,32 @@ mod nullable_tests {
             vec![nullable]
         );
     }
+}
+
+#[cfg(test)]
+#[test]
+fn distinct_generic_union_payload_shapes_infer_without_first_match_bias(){
+    for source in [
+        "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function main(){consume([1]);const holder:Holder<int>={value:2};consume(holder);}",
+        "type Holder<T>={value:T;};function consume<T>(value:Holder<T>|T[]):void{}function main(){consume([1]);}",
+        "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function pick(flag:boolean):int[]|Holder<int>{return flag?[1]:{value:2};}function main(){consume(pick(true));}",
+        "type Holder<T>={value:T;};function consume<T>(value:Holder<T>|T[]):void{}function pick(flag:boolean):int[]|Holder<int>{return flag?[1]:{value:2};}function main(){consume(pick(false));}",
+    ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);crate::check(&source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",&source)));}
+    for source in [
+        "function ambiguous<T>(value:T[]|T):void{}function main(){ambiguous([1]);}",
+        "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function main(){consume<int>(['wrong']);}",
+        "type Holder<T>={value:T;};function consume<T>(value:T[]|Holder<T>):void{}function pick(flag:boolean):int[]|Holder<string>{return flag?[1]:{value:'wrong'};}function main(){consume(pick(true));}",
+    ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(crate::check(&source).is_err(),"{source}");}
+}
+
+#[cfg(test)]
+#[test]
+fn singleton_argument_hints_defer_to_exact_context_without_widening_the_type(){
+ let prefix="function pair<T>(actual:T,expected:T):T{return actual;}";
+ for body in ["const selected:'selected'='selected';const result:'selected'=pair(selected,'selected');console.log(result);","const selected:7=7;const result:7=pair(selected,7);console.log(result);"] {
+  let source=format!("{prefix}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);drop(crate::check(&source).unwrap().emit_rust());
+ }
+ for body in ["const selected:'selected'='selected';pair(selected,'other');","const selected:'selected'='selected';const broad:string='selected';pair(selected,broad);","const selected:7=7;pair(selected,8);","const selected:7=7;const broad:int=7;pair(selected,broad);"] {
+  let source=format!("{prefix}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(crate::check(&source).is_err(),"Singleton context must remain exact: {body}");
+ }
 }

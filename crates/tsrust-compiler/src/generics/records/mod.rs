@@ -14,6 +14,8 @@ pub(crate) struct Cache {
 }
 
 impl Cache {
+    pub(crate) fn native_template(&self,name:&str)->Option<crate::native_signatures::NativeTypeId>{self.templates.get(name)?.native_type}
+
     pub(crate) fn declaration(&self, name: &str) -> Option<Span> {
         self.templates.get(name).map(|record| record.name.span)
     }
@@ -167,7 +169,7 @@ impl Context<'_> {
         let mut pending = vec![value];
         while let Some(value) = pending.pop() {
             match &value.kind {
-                Kind::Literal(_) | Kind::Polymorphic { .. } => {},
+                Kind::Literal(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
                 Kind::Named(name) => {
                     if parameters
                         .iter()
@@ -302,7 +304,18 @@ impl Context<'_> {
         types: Vec<Type>,
         span: Span,
     ) -> Result<(usize, Option<(Vec<RecordField>, HashMap<String, ValueAnnotation>)>), Diagnostic> {
-        let key = (name.to_owned(), types.clone());
+        // Logical owned callable arguments name a signature, not its source
+        // span. Reuse the existing canonical storage declaration for the key
+        // only; retain all source annotations and concrete environment identities.
+        let key_types:Vec<Type>=types.iter().copied().map(|ty|{
+            let Type::Callback(id)=ty else{return ty;};
+            let contract=&self.callables.callbacks[id];
+            match self.callables.storage.intern(&self.callables.shapes,contract,id){
+                Some(Type::StoredCallable(family))=>Type::Callback(self.callables.storage.declaration(family).expect("canonical callback declaration")),
+                _=>ty,
+            }
+        }).collect();
+        let key = (name.to_owned(), key_types);
         if let Some(&index) = self.instances.get(&key) {
             return Ok((index, None));
         }
@@ -406,6 +419,7 @@ impl Context<'_> {
                             ArrayElement::String(_) => Type::String,
                             ArrayElement::Null(_) => Type::Null,
                             ArrayElement::Undefined(_) => Type::Undefined,
+                            ArrayElement::Void(_) => Type::Void,
                             ArrayElement::Record(id, _) => Type::Record(id),
                             ArrayElement::Enum(id, kind, _) => Type::Enum(id, kind),
                             ArrayElement::Set(id, _) => Type::Set(id),
@@ -414,6 +428,11 @@ impl Context<'_> {
                         }));
                     }
                 }
+                Type::Callback(id)=>output.push_str(&format!("callback{id}")),
+                Type::Callable(id)=>output.push_str(&format!("callable-result{id}")),
+                Type::Closure(id)=>output.push_str(&format!("closure{id}")),
+                Type::StoredCallable(id)=>output.push_str(&format!("callable{id}")),
+                Type::BorrowedCallable(id)=>output.push_str(&format!("borrowed-callable{id}")),
                 Type::Void => output.push_str("void"),
                 _ => unreachable!("validated value type argument"),
             }
@@ -727,4 +746,14 @@ mod tests {
         assert_eq!(program.records.len(), initial + 1);
     }
 
+}
+
+#[cfg(test)]
+#[test]
+fn logical_callable_record_arguments_share_nominal_identity_without_losing_source_contracts(){
+ let source=crate::format("type Box<T>={value:T;};type First={box:Box<Function<int>>;};type Second={box:Box<Function<int>>;};type OnceBox={box:Box<Once<Function<int>>>;};type TextBox={box:Box<Function<string>>;};function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+ let checked=crate::check(&source).unwrap();let program=&checked.program;
+ let field=|name:&str|program.records.iter().find(|record|record.name.text==name).unwrap().fields[0].ty.unwrap();
+ assert_eq!(field("First"),field("Second"));assert_ne!(field("First"),field("OnceBox"));assert_ne!(field("First"),field("TextBox"));
+ assert!(program.callback_contracts.iter().filter(|contract|contract.kind==CallbackKind::Owned && contract.params.is_empty() && contract.result==Type::Int).count()>=2,"Source callback declarations must remain distinct");
 }

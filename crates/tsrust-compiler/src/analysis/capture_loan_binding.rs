@@ -3,18 +3,60 @@ use super::*;
 use crate::capture_loan_owners::Place;
 
 impl Analyzer {
+    /// The checked invocation contract, including each concrete polymorphic method.
+    pub(super) fn task_call_argument_contracts(&self,value:&Expr)->Option<Vec<ArgumentContract>> {
+        let ExprKind::Call(callee,_) = &value.kind else {return None;};
+        match value.target {
+            Some(CallTarget::Function(index)|CallTarget::ForwardFunction(index))=>{
+                let function=self.checked.get(index)?.as_ref()?;
+                Some(function.bindings.iter().take(function.parameter_count).map(ArgumentContract::from).collect())
+            },
+            Some(CallTarget::ClosureMethod(method))=>{
+                if let Some(id)=callee.generic_invocation
+                    && let Ok(plan)=self.polymorphic_invocations.checked(id,&self.closures,value.span) {
+                    let body=plan.cases.first()?.body;
+                    return Some(body.parameters.iter().enumerate().map(|(index,&slot)|{
+                        let mut contract=ArgumentContract::from(&body.function.bindings[slot]);
+                        contract.mode=plan.argument_modes[index];contract
+                    }).collect());
+                }
+                let origin=value.closure_origin().or_else(||callee.closure_origin()).or_else(||match callee.ty{Some(Type::Closure(origin))=>Some(origin),_=>None})?;
+                let origin=match self.closures.get(origin)?.forward{Some(ClosureForward::Once(inner))=>inner,_=>origin};
+                let body=self.closures.get(origin)?.methods.get(method)?;
+                Some(body.parameters.iter().map(|&slot|ArgumentContract::from(&body.function.bindings[slot])).collect())
+            },
+            _=>match callee.ty? {
+                Type::Closure(origin)=>{
+                    let origin=match self.closures.get(origin)?.forward{Some(ClosureForward::Once(inner))=>inner,_=>origin};
+                    let closure=self.closures.get(origin)?;
+                    Some(closure.parameters.iter().map(|&slot|ArgumentContract::from(&closure.function.bindings[slot])).collect())
+                },
+                Type::Callable(id)=>Some(self.callables.results.get(id)?.params.clone()),
+                Type::Callback(id)=>Some(self.callables.callbacks.get(id)?.params.clone()),
+                Type::StoredCallable(family)|Type::BorrowedCallable(family)=>{
+                    let declaration=self.callables.storage.declaration(family)?;
+                    Some(self.callables.callbacks.get(declaration)?.params.clone())
+                },
+                _=>None,
+            },
+        }
+    }
     /// Task inputs survive argument-temporary cleanup when responsibility is returned.
     pub(super) fn retain_task_call_loans(&self,context:&mut Context,index:usize,args:&[Expr],span:Span) {
-        let mut calls=vec![(index,args,span)];
-        while let Some((index,args,span))=calls.pop() {
-            let Some(function)=self.checked[index].as_ref() else {continue;};
-            for (argument,parameter) in args.iter().zip(function.bindings.iter().take(function.parameter_count)) {
+        let Some(function)=self.checked.get(index).and_then(Option::as_ref)else{return;};
+        let params=function.bindings.iter().take(function.parameter_count).map(ArgumentContract::from).collect::<Vec<_>>();
+        self.retain_task_argument_loans(context,&params,args,span);
+    }
+    pub(super) fn retain_task_argument_loans(&self,context:&mut Context,params:&[ArgumentContract],args:&[Expr],span:Span) {
+        let mut calls=vec![(params.to_vec(),args,span)];
+        while let Some((params,args,span))=calls.pop() {
+            for (argument,parameter) in args.iter().zip(&params) {
                 if matches!(parameter.mode,Mode::Read|Mode::Mutate) && !parameter.ty.is_copy() {
                     for root in Self::loan_roots(argument,parameter.mode) {let loan=(root,parameter.mode,span);if !context.capture_loans.contains(&loan){context.capture_loans.push(loan);}}
                 } else if parameter.mode==Mode::Consume && argument.ty.is_some_and(|ty|self.is_task_type(ty)) {
                     let mut values=vec![argument];
                     while let Some(value)=values.pop() {match &value.kind {
-                        ExprKind::Call(_,args)=>if let Some(CallTarget::Function(index))=value.target {calls.push((index,args,value.span));},
+                        ExprKind::Call(_,args)=>if let Some(params)=self.task_call_argument_contracts(value){calls.push((params,args,value.span));},
                         ExprKind::Unary{value,..}|ExprKind::TypeAssertion{value,..}|ExprKind::Project{value,..}|ExprKind::Inject{value,..}=>values.push(value),
                         ExprKind::Conditional{consequent,alternate,..}=>values.extend([consequent.as_ref(),alternate.as_ref()]),
                         ExprKind::Sequence(values0)=>values.extend(values0.last()),
@@ -211,8 +253,9 @@ impl Analyzer {
                         let ids=context.capture_loans.iter().filter(|(_,_,span)|*span==value.span).map(|loan|context.capture_loan_ids.intern(*loan)).collect::<Vec<_>>();
                         context.capture_loan_owners.attach(destination.clone(),ids);
                         if let ExprKind::Call(_,arguments)=&value.kind {
+                            let params=self.task_call_argument_contracts(value).unwrap_or_default();
                             for (position,argument) in arguments.iter().enumerate() {
-                                if matches!(value.target,Some(CallTarget::Function(index)) if self.checked[index].as_ref().is_some_and(|function|function.bindings.get(position).is_some_and(|binding|binding.mode==Mode::Consume))) {
+                                if params.get(position).is_some_and(|parameter|parameter.mode==Mode::Consume) {
                                     pending.push((argument,destination.clone(),true));
                                 }
                             }

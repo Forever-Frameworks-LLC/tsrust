@@ -1,0 +1,19 @@
+import { App, request, ServerOptions, FormField, MultipartPart } from 'std:http';
+import { length } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const options: ServerOptions = {
+    bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100
+  };
+  const app = new App();
+  app.configure(options);
+  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);
+  const form = request('POST', 'http://localhost/', 'body=one+two');
+  form.setHeader('content-type', 'application/x-www-form-urlencoded');
+  const fields: FormField[] = await form.form();
+  console.log(fields[0].name, fields[0].value);
+  const upload = request('POST', 'http://localhost/', '--x\r\nContent-Disposition: form-data; name="attachment"; filename="../untrusted"\r\nContent-Type: application/octet-stream\r\n\r\nabc\r\n--x--\r\n');
+  upload.setHeader('content-type', 'multipart/form-data; boundary=x');
+  const parts: MultipartPart[] = await upload.multipart();
+  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));
+}

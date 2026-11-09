@@ -7,8 +7,28 @@ publish = false
 [workspace]
 
 [dependencies]
+futures-util = { version = "=0.3.34", optional = true, default-features = false, features = ["std", "sink"] }
+tokio-tungstenite = { version = "=0.29.0", optional = true, default-features = false, features = ["connect", "handshake", "rustls-tls-webpki-roots"] }
+webpki-roots = { version = "=0.26.11", optional = true }
+pin-project-lite = { version = "=0.2.17", optional = true }
+tracing = { version = "=0.1.44", default-features = false, features = ["std"], optional = true }
+tracing-subscriber = { version = "=0.3.23", default-features = false, features = ["fmt", "json"], optional = true }
+icu_provider = { version = "=2.3.1", default-features = false, features = ["sync"], optional = true }
+icu_collator = { version = "=2.3.1", optional = true }
+icu_decimal = { version = "=2.3.0", features = ["alloc"], optional = true }
+icu_locale = { version = "=2.3.1", optional = true }
+icu_segmenter = { version = "=2.3.0", default-features = false, features = ["compiled_data"], optional = true }
+fixed_decimal = { version = "=0.7.3", default-features = false, optional = true }
+
+tokio-util = { version = "=0.7.20", default-features = false, optional = true }
+regex = { version = "=1.13.1", optional = true }
+hostname = { version = "=0.4.2", default-features = false, optional = true }
+memchr = { version = "=2.8.3", optional = true }
+tempfile = { version = "=3.27.0", optional = true }
+percent-encoding = { version = "=2.3.2", optional = true }
+base64 = { version = "=0.23.1", optional = true }
 nix = { version = "=0.31.2", default-features = false, optional = true }
-sha2 = { version = "=0.11.1", optional = true }
+sha2 = { version = "=0.11.1", default-features = false, features = ["zeroize"], optional = true }
 subtle = { version = "=2.6.1", optional = true }
 uuid = { version = "=1.28.0", default-features = false, features = ["std"], optional = true }
 getrandom = { version = "=0.4.3", optional = true }
@@ -22,7 +42,7 @@ matchit = { version = "=0.8.4", optional = true }
 axum = { version = "=0.8.9", optional = true, default-features = false, features = ["http1", "http2", "tokio", "multipart"] }
 tower-http = { version = "=0.6.11", optional = true, default-features = false, features = ["fs"] }
 tokio-rustls = { version = "=0.26.6", optional = true, default-features = false, features = ["aws_lc_rs", "tls12"] }
-reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["rustls", "stream", "http2"] }
+reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["rustls", "stream", "http2", "multipart"] }
 http-body = { version = "=1.1.0", optional = true }
 http-body-util = { version = "=0.1.5", optional = true }
 hyper-util = { version = "=0.1.21", optional = true, features = ["server-auto", "tokio", "service"] }
@@ -45,13 +65,43 @@ accesskit = { version = "=0.25.1", optional = true }
 accesskit_winit = { version = "=0.34.0", optional = true }
 arboard = { version = "=3.7.0", default-features = false, features = ["wayland-data-control"], optional = true }
 
+flate2 = { version = "=1.1.10", default-features = false, features = ["zlib-rs", "runtime_detection"], optional = true }
+
+form_urlencoded = { version = "=1.2.2", optional = true }
+
+hmac = { version = "=0.13.0", default-features = false, features = ["zeroize"], optional = true }
+hkdf = { version = "=0.13.0", default-features = false, optional = true }
+rand = { version = "=0.10.3", default-features = false, features = ["std", "std_rng", "sys_rng", "unbiased"], optional = true }
+argon2 = { version = "=0.6.0", default-features = false, features = ["alloc", "password-hash", "zeroize"], optional = true }
+zeroize = { version = "=1.9.1", default-features = false, features = ["alloc"], optional = true }
+
+tower = { version = "=0.5.3", optional = true, default-features = false, features = ["util"] }
+async-compression = { version = "=0.4.51", optional = true, default-features = false, features = ["tokio", "gzip", "zlib"] }
+compression-codecs = { version = "=0.4.47", optional = true, default-features = false, features = ["gzip", "zlib"] }
+compression-core = { version = "=0.4.34", optional = true }
+
 [features]
+http-websocket = ["http", "dep:futures-util", "axum/ws", "dep:tokio-tungstenite", "dep:webpki-roots"]
+logging = ["dep:tracing", "dep:tracing-subscriber", "dep:pin-project-lite"]
+http-middleware = ["http", "dep:tower", "dep:async-compression", "dep:compression-codecs", "dep:compression-core", "tower-http/cors", "tower-http/set-header", "tower-http/compression-gzip", "tower-http/compression-deflate"]
+compression-streams = ["compression", "io"]
+compression = ["dep:flate2", "threads", "async"]
+locale = ["dep:icu_provider", "dep:icu_collator", "dep:icu_decimal", "dep:icu_locale", "dep:icu_segmenter", "dep:fixed_decimal", "decimal"]
+cancellation = ["dep:tokio-util"]
+regex = ["dep:regex"]
+hostname = ["dep:hostname"]
+url = ["dep:url", "dep:percent-encoding"]
+byte-codecs = ["dep:base64"]
+byte-search = ["dep:memchr"]
 ui = ["dep:url", "dep:kurbo", "dep:svgtypes"]
 ui-web = ["ui", "dep:wasm-bindgen", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen-futures"]
 default = []
 files = ["dep:nix"]
+temporary-files = ["files", "dep:tempfile"]
 async = ["dep:tokio"]
-http = ["async", "dep:axum", "dep:tower-http", "dep:matchit", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
+io = ["async", "files", "tokio/io-util"]
+process = ["io", "tokio/process", "tokio/macros"]
+http = ["dep:futures-core", "dep:form_urlencoded", "async", "dep:axum", "dep:tower-http", "dep:matchit", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
 threads = ["dep:rayon"]
 
 sqlite = ["dep:rusqlite"]
@@ -64,7 +114,8 @@ calendar = ["dep:chrono", "dep:chrono-tz"]
 
 uuid = ["dep:uuid", "dep:getrandom"]
 
-crypto = ["dep:sha2", "dep:subtle", "dep:getrandom"]
+crypto = ["dep:sha2", "dep:subtle", "dep:getrandom", "dep:hmac", "dep:hkdf", "dep:rand"]
+crypto-password = ["crypto", "dep:argon2", "dep:zeroize", "threads", "async"]
 
 signals = ["async"]
 
@@ -77,3 +128,6 @@ js-sys = { version = "=0.3.106", optional = true }
 web-sys = { version = "=0.3.106", optional = true, features = ["Window", "Document", "HtmlElement", "Element", "Node", "Event", "EventTarget", "IntersectionObserver", "IntersectionObserverEntry", "IntersectionObserverInit", "DomRectReadOnly", "ResizeObserver", "ResizeObserverEntry"] }
 
 wasm-bindgen-futures = { version = "=0.4.79", optional = true }
+
+[patch.crates-io]
+url = { path = "../patched-dependencies/url" }

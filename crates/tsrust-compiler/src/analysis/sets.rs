@@ -59,7 +59,7 @@ impl Analyzer {
         let Type::Set(id) = self.expression(context,base,Mode::Read,loans,None)? else { unreachable!("Set receiver hint") };
         if name=="entries" {
             Self::arity(arguments.len(),0,expression.span)?;
-            let (result,pair)=self.set_entries_type(id,expression.span)?;
+            let (result,pair)=self.set_entries_type(self.program.records[id].set_definition.as_ref().unwrap().key,expression.span)?;
             self.require(result,expected,expression.span)?;
             expression.target=Some(CallTarget::SetMethod(SetMethod::Entries(pair)));
             return Ok(result);
@@ -127,8 +127,7 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn set_entries_type(&mut self,id:usize,span:Span)->Result<(Type,usize),Diagnostic>{
-        let key=self.program.records[id].set_definition.as_ref().unwrap().key;
+    pub(super) fn set_entries_type(&mut self,key:Type,span:Span)->Result<(Type,usize),Diagnostic>{
         self.require_cloneable(key,span)?;
         let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(key,span)?,types.annotation(key,span)?])};

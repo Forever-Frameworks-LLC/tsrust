@@ -1,0 +1,6 @@
+import { CompressionFormat } from 'std:compression';
+
+export function main() {
+  const format: CompressionFormat = 'gzip';
+  console.log(format);
+}

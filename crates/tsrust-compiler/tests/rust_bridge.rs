@@ -53,7 +53,7 @@ function main(){
 }
 #[test]
 fn rust_signatures_and_source_ownership_fail_closed(){
- for rust in ["pub unsafe fn bad()->i64{0}","pub fn bad<T>(value:T)->i64{0}","pub fn bad()-> &'static str{\"x\"}","pub fn bad(value:*const i64){}","pub fn bad(value:usize){}","pub fn bad(value:Vec<String>){}","mod hidden;pub fn bad(){}","pub fn bad(){include!(\"hidden.rs\");}","#[cfg(any())]pub fn bad(){}", "pub fn bad(){vec![include!(\"hidden.rs\")];}", "use std::include as vec;pub fn bad(){vec!(\"hidden.rs\");}"] {
+ for rust in ["pub unsafe fn bad()->i64{0}","pub fn bad<T>(value:T)->i64{0}","pub fn bad()-> &'static str{\"x\"}","pub fn bad(value:*const i64){}","pub fn bad(value:usize){}","pub fn bad(value:Vec<Result<String,String>>){}","mod hidden;pub fn bad(){}","pub fn bad(){include!(\"hidden.rs\");}","#[cfg(any())]pub fn bad(){}", "pub fn bad(){vec![include!(\"hidden.rs\")];}", "use std::include as vec;pub fn bad(){vec!(\"hidden.rs\");}"] {
   let dir=support::TempDirectory::new();std::fs::write(dir.0.join("compute.rs"),rust).unwrap();let path=dir.source("import {bad} from './compute.rs';function main(){}");
   let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"accepted {rust}");assert!(String::from_utf8_lossy(&output.stderr).contains("rust-bridge"));
  }
@@ -141,4 +141,58 @@ fn declared_binding_packages_resolve_offline_track_inputs_and_fail_on_lock_drift
  support::success(&support::run(support::cli().arg("run").arg(&path),90));
  let lock=dir.0.join("api.bindings.lock");std::fs::write(&lock,"version = 4\n").unwrap();
  assert!(!support::run(support::cli().arg("run").arg(&path),90).status.success());
+}
+
+#[test]
+fn owned_nested_options_strings_and_records_preserve_tags_buffers_and_drop(){
+ let dir=support::TempDirectory::new();std::fs::write(dir.0.join("owned.rs"),r#"
+use std::sync::atomic::{AtomicUsize,Ordering};
+static DROPS:AtomicUsize=AtomicUsize::new(0);
+struct Guard;impl Drop for Guard{fn drop(&mut self){DROPS.fetch_add(1,Ordering::SeqCst);}}
+pub struct Row{pub words:Vec<String>,pub pointer:i64,pub capacity:i64}
+pub fn rows()->Vec<Row>{let mut word=String::with_capacity(128);word.push_str("retained");let pointer=word.as_ptr() as i64;let capacity=word.capacity() as i64;vec![Row{words:vec![word],pointer,capacity}]}
+pub fn move_rows(value:Vec<Row>)->Vec<Row>{let _guard=Guard;assert_eq!(value[0].words[0].as_ptr() as i64,value[0].pointer);assert_eq!(value[0].words[0].capacity() as i64,value[0].capacity);value}
+pub fn nested(mode:i64)->Option<Option<Vec<String>>>{match mode{0=>None,1=>Some(None),_=>Some(Some(vec!["hello".into(),"世界".into()]))}}
+pub fn move_nested(value:Option<Option<Vec<String>>>)->Option<Option<Vec<String>>>{let _guard=Guard;value}
+pub fn unit(value:Option<()>)->Option<()>{value}
+pub fn results(mode:i64)->Option<Vec<Result<Option<Vec<String>>,String>>>{match mode{0=>None,1=>Some(vec![]),2=>Some(vec![Ok(None)]),3=>Some(vec![Ok(Some(vec![]))]),4=>Some(vec![Ok(Some(vec!["payload".into()]))]),_=>Some(vec![Err("bad".into())])}}
+pub fn layered(mode:i64)->Result<Result<Option<Vec<String>>,String>,Result<i64,String>>{match mode{0=>Ok(Ok(None)),1=>Ok(Err("inner".into())),2=>Err(Ok(42)),_=>Err(Err("outer".into()))}}
+
+pub fn drops()->i64{DROPS.load(Ordering::SeqCst) as i64}
+"#).unwrap();
+ let source=r#"
+import {rows,move_rows,nested,move_nested,unit,results,layered,drops,RustAdapterOption,RustAdapterNone,RustAdapterSomeUnit} from './owned.rs';
+import {strictEqual} from 'std:testing';
+function main(){
+ const result=move_rows(rows());strictEqual(result.length,1);strictEqual(result[0].words[0],'retained');
+ const absent=move_nested(nested(0));strictEqual(absent.kind,'none');
+ const innerAbsent=move_nested(nested(1));if(innerAbsent.kind==='some'){strictEqual(innerAbsent.value.kind,'none');}else{throw 'lost outer Some';}
+ const present=move_nested(nested(2));if(present.kind==='some'){const inner=present.value;if(inner.kind==='some'){strictEqual(inner.value.length,2);strictEqual(inner.value[1],'世界');}else{throw 'lost inner Some';}}else{throw 'lost outer Some';}
+ const none:RustAdapterNone={kind:'none'};strictEqual(unit(none).kind,'none');
+ const some:RustAdapterSomeUnit={kind:'some'};strictEqual(unit(some).kind,'some');
+ const expected=[0,1,3,4,5,11];
+ for(let mode=0;mode<6;mode=mode+1){
+   const outer=results(mode);let observed=0;
+   if(outer.kind==='some'){observed=1;for(const item of outer.value){match(item){Ok(value)=>{if(value.kind==='some'){observed=observed+3+value.value.length;}else{observed=observed+2;}},Err(message)=>{strictEqual(message,'bad');observed=observed+10;}}}}
+   strictEqual(observed,expected[mode]);
+ }
+ match(layered(0)){Ok(inner)=>match(inner){Ok(value)=>strictEqual(value.kind,'none'),Err(_)=>{throw 'wrong inner result';}},Err(_)=>{throw 'wrong outer result';}}
+ match(layered(1)){Ok(inner)=>match(inner){Ok(_)=>{throw 'missing inner error';},Err(message)=>strictEqual(message,'inner')},Err(_)=>{throw 'wrong outer result';}}
+ let rejected=false;try{unwrap(layered(2));}catch(error){rejected=true;match(error){Ok(value)=>strictEqual(value,42),Err(_)=>{throw 'lost typed nested error';}}}strictEqual(rejected,true);
+ let rejectedAgain=false;try{unwrap(layered(3));}catch(error){rejectedAgain=true;match(error){Ok(_)=>{throw 'wrong nested error tag';},Err(message)=>strictEqual(message,'outer')}}strictEqual(rejectedAgain,true);
+ strictEqual(drops(),4);console.log('owned nested values');
+}
+"#;
+ let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path),120);support::success(&output);assert_eq!(output.stdout,b"owned nested values\n");
+}
+
+#[test]
+fn borrowed_nested_result_payloads_keep_common_discriminators_readonly(){
+ let prefix="type Absent={kind:'none'};type Present={kind:'some',value:string[]};type Choice=Absent|Present;";
+ let source=format!("{prefix}function inspect(values:ReadOnly<Result<Choice,string>[]>):void{{for(const item of values){{match(item){{Ok(value)=>{{if(value.kind==='some'){{console.log(value.value.length);}}}},Err(message)=>{{console.log(message);}}}}}}}}function main(){{}}");
+ let source=tsrust_compiler::format(&source).unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);let checked=tsrust_compiler::check(&source).unwrap_or_else(|error|panic!("Borrowed common discriminators remain readable: {error:?}"));drop(checked.emit_rust());
+ for action in ["value.value.push('x');","const moved:string[]=value.value;"]{
+  let source=format!("{prefix}function inspect(values:ReadOnly<Result<Choice,string>[]>):void{{for(const item of values){{match(item){{Ok(value)=>{{if(value.kind==='some'){{{action}}}}},Err(_)=>{{}}}}}}}}function main(){{}}");
+  let source=tsrust_compiler::format(&source).unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);assert!(tsrust_compiler::check(&source).is_err(),"Borrowed payload ownership must remain enforced: {action}");
+ }
 }

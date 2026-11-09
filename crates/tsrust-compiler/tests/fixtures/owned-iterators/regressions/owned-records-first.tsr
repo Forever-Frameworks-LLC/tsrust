@@ -1,0 +1,57 @@
+import { alloc, view, length } from 'std:bytes';
+import { trackedResource, resourceId, releaseCount, closeResource, strictEqual } from 'std:testing';
+
+type Holder = {
+  pull: ReadOnly<Function<int>>;
+};
+
+type OwnedHolder = {
+  pull: Once<Function<int>>;
+};
+
+function useHolder(value: ReadOnly<Holder>): int {
+  return value.pull();
+}
+
+function useOwned(value: Owned<OwnedHolder>): int {
+  return value.pull();
+}
+
+export function run() {
+  const bytes = unwrap(alloc(2));
+  const slice = unwrap(view(bytes, 0, 2));
+  const borrowed: Holder = {
+    pull: (): int => length(slice)
+  };
+  const number = 7;
+  const copied: Holder = {
+    pull: (): int => number
+  };
+  const resource = trackedResource();
+  const id = resourceId(resource);
+  const owned: OwnedHolder = {
+    pull: (): int => {
+      closeResource(resource);
+      return 9;
+    }
+  };
+  {
+    const observed1_0 = useOwned(owned);
+    strictEqual(observed1_0, 9);
+  }
+
+  {
+    const observed2_0 = useHolder(copied);
+    strictEqual(observed2_0, 7);
+  }
+
+  {
+    const observed3_0 = useHolder(borrowed);
+    strictEqual(observed3_0, 2);
+  }
+
+  {
+    const observed4_0 = releaseCount(id);
+    strictEqual(observed4_0, 1);
+  }
+}

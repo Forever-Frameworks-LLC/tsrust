@@ -1,0 +1,18 @@
+function workload(n: number, seed: number, input: string): number {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = new URL(input);
+    const href = value.href;
+    const host = value.hostname;
+    const password = value.password;
+    const search = value.search;
+    const hash = value.hash;
+    if (href.length !== 62 || !href.startsWith('https://user:secret@example.com:8443/b?tag=one&tag=two#section') || !host.startsWith('example.com') || host.length !== 11 || value.port !== '8443' || !value.pathname.startsWith('/b') || value.pathname.length !== 2 || !value.protocol.startsWith('https:') || value.protocol.length !== 6 || !value.username.startsWith('user') || value.username.length !== 4 || !password.startsWith('secret') || password.length !== 6 || !search.startsWith('?tag=one&tag=two') || search.length !== 16 || !hash.startsWith('#section') || hash.length !== 8) {
+      throw 'Invalid URL components';
+    }
+    checksum += href.length + host.length + value.pathname.length + value.protocol.length + value.username.length + password.length + search.length + hash.length + 8443;
+    i++;
+  }
+  return checksum;
+}

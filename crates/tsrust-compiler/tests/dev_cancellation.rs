@@ -97,3 +97,19 @@ exec "$REAL_RUSTUP" "$@"
  for pid in pids.split_whitespace().map(|s|s.parse::<i32>().unwrap()) {assert_ne!(unsafe{kill(pid,0)},0,"cancelled compiler descendant survived");}
  unsafe{kill(dev.0.id()as i32,2);}wait_text(&log,"[dev] Stopped.");assert!(dev.0.wait().unwrap().success());
 }
+
+#[test]
+fn interrupt_during_shared_target_contention_reaps_dev(){
+ let dir=support::TempDirectory::new();
+ support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","app"]),20));
+ let root=dir.0.join("app");fs::write(root.join("src/main.tsr"),support::format_round_trip("import {fromInt} from 'std:json';function main(){console.log(JSON.stringify(fromInt(42)));}")).unwrap();
+ let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().to_owned()).canonicalize().unwrap();
+ let lock=fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(target.join(".tsrust-runtime.lock")).unwrap();lock.lock().unwrap();
+ let log=dir.0.join("output");let file=fs::File::create(&log).unwrap();
+ let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose"]).env("CARGO_TARGET_DIR",&target).env("TSRUST_CACHE_DIR",dir.0.join("cache")).stdout(file.try_clone().unwrap()).stderr(file).process_group(0);
+ let mut dev=Group(command.spawn().unwrap());wait_text(&log,"runtime-prepare=");
+ // The lock remains held: cancellation must not wait for another Cargo user.
+ unsafe{kill(dev.0.id()as i32,2);}
+ let until=Instant::now()+Duration::from_secs(3);
+ loop{if let Some(status)=dev.0.try_wait().unwrap(){assert!(status.success(),"{}",fs::read_to_string(&log).unwrap());break;}assert!(Instant::now()<until,"dev blocked on the shared Cargo target after interrupt");std::thread::sleep(Duration::from_millis(20));}
+}

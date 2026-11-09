@@ -1,0 +1,6 @@
+import { delimiter } from 'std:path';
+
+export function run() {
+  const value = delimiter();
+  console.log(value === ':' || value === ';');
+}

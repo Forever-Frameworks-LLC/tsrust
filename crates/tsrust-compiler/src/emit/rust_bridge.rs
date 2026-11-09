@@ -4,11 +4,11 @@ use crate::project::rust::Type as RustType;
 impl Emitter<'_> {
     pub(super) fn rust_modules(&self,output:&mut String){
         let Some(graph)=self.source_graph else{return};
-        if graph.modules.values().any(|module|module.rust.is_some()){output.push_str("use rayon as tsr_rayon;\n");}
+        if graph.modules.values().any(|module|module.rust.as_ref().is_some_and(|rust|rust.rayon)){output.push_str("use rayon as tsr_rayon;\n");}
         for (index,id) in graph.order.iter().enumerate(){
             let module=&graph.modules[id];let Some(rust)=&module.rust else{continue};
             let _=writeln!(output,"mod tsr_rust{index} {{ #![forbid(unsafe_code)]");
-            output.push_str("use super::tsr_rayon as rayon;\n");
+            if rust.rayon {output.push_str("use super::tsr_rayon as rayon;\n");}
             if rust.context {output.push_str("use super::tsrust_native_threads::TaskContext;\n");}
             if let Some(package)=&rust.package {
                 let _=writeln!(output,"{}{}",crate::project::rust::dependencies::MARKER,serde_json::to_string(package).unwrap());
@@ -31,9 +31,10 @@ impl Emitter<'_> {
             let arguments=export.parameters.iter().enumerate().map(|(index,ty)|{
                 let value=format!("value{index}");
                 match ty {
-                    RustType::Named(_)=>self.rust_input(ty,function.bindings[index].ty,&value,module,rust),
+                    RustType::Named(_)|RustType::Option(..)=>self.rust_input(ty,function.bindings[index].ty,&value,module,rust),
                     RustType::String=>format!("{value}.into_owned()"),
                     RustType::Array(inner) if matches!(inner.as_ref(),RustType::Number)=>format!("Vec::from({value})"),
+                    RustType::Array(inner) if !matches!(inner.as_ref(),RustType::Int|RustType::Number|RustType::Boolean)=>self.rust_input(ty,function.bindings[index].ty,&value,module,rust),
                     RustType::Array(_)=>if shapes.get(index).is_some_and(Option::is_some){format!("Vec::from({value})")}else{format!("match {value}{{NumericArray::Heap(values)=>values,NumericArray::Small{{len,values}}=>values[..len].to_vec()}}")},
                     RustType::Borrow(inner,mutable)=>match inner.as_ref(){RustType::String=>format!("{value}.as_ref()"),RustType::Array(_)=>format!("{value}.{}()",if *mutable{"as_mut_slice"}else{"as_slice"}),_=>value},
                     _=>if matches!(function.bindings[index].mode,Mode::Read|Mode::Mutate){format!("*{value}")}else{value},
@@ -47,7 +48,13 @@ impl Emitter<'_> {
         match ty {
             RustType::String=>format!("String::Owned({value})"),
             RustType::Array(inner) if matches!(inner.as_ref(),RustType::Number)=>value.into(),
-            RustType::Array(_)=>format!("NumericArray::Heap({value})"),
+            RustType::Array(inner) if matches!(inner.as_ref(),RustType::Int|RustType::Boolean)=>format!("NumericArray::Heap({value})"),
+            RustType::Array(inner)=>{
+                let Type::Array(element)=checked else{unreachable!("checked owned array")};let item=element.ty();let converted=self.rust_output(inner,item,"native_item",module,rust);
+                let values=format!("({value}).into_iter().map(|native_item|{converted})");
+                format!("{values}.collect::<{}>()",self.native_type(checked))
+            },
+            RustType::Option(inner,_)=>self.rust_option_output(inner,checked,value,module,rust),
             RustType::Named(name)=>self.rust_data_output(name,checked,value,module,rust),
             RustType::Result(ok,err)=>{
                 let Type::Union(union)=checked else{unreachable!()};let mut arms=String::new();
@@ -68,7 +75,9 @@ impl Emitter<'_> {
         match ty {
             RustType::String=>format!("{value}.into_owned()"),
             RustType::Array(inner) if matches!(inner.as_ref(),RustType::Number)=>value.into(),
-            RustType::Array(_)=>format!("match {value}{{NumericArray::Heap(values)=>values,NumericArray::Small{{len,values}}=>values[..len].to_vec()}}"),
+            RustType::Array(inner) if matches!(inner.as_ref(),RustType::Int|RustType::Boolean)=>format!("match {value}{{NumericArray::Heap(values)=>values,NumericArray::Small{{len,values}}=>values[..len].to_vec()}}"),
+            RustType::Array(inner)=>{let Type::Array(element)=checked else{unreachable!("checked owned array")};let converted=self.rust_input(inner,element.ty(),"native_item",module,rust);format!("({value}).tsr_owned_items().map(|native_item|{converted}).collect::<Vec<_>>()")},
+            RustType::Option(inner,_)=>self.rust_option_input(inner,checked,value,module,rust),
             RustType::Named(name)=>match &rust.types[name] {
                 Data::Struct(fields)=> {
                     let Type::Record(record)=checked else{unreachable!()};
@@ -97,6 +106,28 @@ impl Emitter<'_> {
                 }
             },_=>value.into()
         }
+    }
+    fn rust_option_tag(&self,record:usize)->bool{
+        let field=self.program.records[record].fields.iter().find(|field|field.name.text=="kind").expect("checked Option tag");
+        let Type::Literal(id,crate::literal_types::LiteralKind::String)=field.ty.unwrap()else{unreachable!("literal Option tag")};
+        match self.program.records[id].literal_definition.as_ref().unwrap(){crate::literal_types::LiteralValue::String(value)if value=="some"=>true,crate::literal_types::LiteralValue::String(value)if value=="none"=>false,_=>unreachable!("checked Option variant")}
+    }
+    fn rust_option_output(&self,inner:&RustType,checked:Type,value:&str,module:usize,rust:&crate::project::rust::Module)->String{
+        let members=if let Type::Union(id)=checked{self.program.unions[id.index()].members.clone()}else{vec![checked]};let mut arms=Vec::new();
+        for(tag,&member)in members.iter().enumerate(){let Type::Record(record)=member else{unreachable!("checked Option record")};let some=self.rust_option_tag(record);
+            let fields=self.program.records[record].fields.iter().enumerate().map(|(index,field)|format!("field{index}:{}",if field.name.text=="kind"{format!("String::Borrowed({:?})",if some{"some"}else{"none"})}else{self.rust_output(inner,field.ty.unwrap(),"payload",module,rust)})).collect::<Vec<_>>().join(",");
+            let output=self.schema_output_record(record,&fields);let output=if let Type::Union(id)=checked{format!("Union{}::V{tag}({})",id.index(),self.union_store_payload(id,member,&output))}else{output};
+            arms.push(format!("{}=>{output}",if some{"Some(payload)"}else{"None"}));
+        }format!("match {value}{{{}}}",arms.join(","))
+    }
+    fn rust_option_input(&self,inner:&RustType,checked:Type,value:&str,module:usize,rust:&crate::project::rust::Module)->String{
+        let members=if let Type::Union(id)=checked{self.program.unions[id.index()].members.clone()}else{vec![checked]};let mut arms=Vec::new();
+        for(tag,&member)in members.iter().enumerate(){let Type::Record(record)=member else{unreachable!("checked Option record")};let some=self.rust_option_tag(record);
+            let pattern=if let Type::Union(id)=checked{format!("Union{}::V{tag}(payload)",id.index())}else{"payload".into()};
+            let payload=if let Type::Union(id)=checked{self.union_move_payload(id,member,"payload")}else{"payload".into()};
+            let output=if some{if matches!(inner,RustType::Void){"Some(())".into()}else{let(index,field)=self.program.records[record].fields.iter().enumerate().find(|(_,field)|field.name.text=="value").expect("checked Some payload");format!("Some({})",self.rust_input(inner,field.ty.unwrap(),&format!("native.field{index}"),module,rust))}}else{"None".into()};
+            arms.push(format!("{pattern}=>{{let native={payload};{output}}}"));
+        }format!("match {value}{{{}}}",arms.join(","))
     }
     fn rust_data_output(&self,name:&str,checked:Type,value:&str,module:usize,rust:&crate::project::rust::Module)->String {
         use crate::project::rust::Data;

@@ -1,0 +1,105 @@
+{
+  "semanticEpoch": "http-client-uploads-v1",
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "requestsPerBatch": 128,
+    "concurrency": [
+      1,
+      16
+    ],
+    "keepAlive": true,
+    "serverWorkers": 1,
+    "resourceBatches": 31,
+    "rssSampleMs": 50
+  },
+  "workloads": [
+    {
+      "scenario": "client_upload_bytes",
+      "name": "Owned bytes client upload",
+      "method": "POST",
+      "path": "/bytes",
+      "id": "http_client_upload_bytes_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "client_upload_bytes",
+      "name": "Owned bytes client upload",
+      "method": "POST",
+      "path": "/bytes",
+      "id": "http_client_upload_bytes_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "client_upload_stream",
+      "name": "Owned stream client upload",
+      "method": "POST",
+      "path": "/stream",
+      "id": "http_client_upload_stream_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "client_upload_stream",
+      "name": "Owned stream client upload",
+      "method": "POST",
+      "path": "/stream",
+      "id": "http_client_upload_stream_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "client_upload_channel",
+      "name": "Owned channel client upload",
+      "method": "POST",
+      "path": "/channel",
+      "id": "http_client_upload_channel_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "client_upload_channel",
+      "name": "Owned channel client upload",
+      "method": "POST",
+      "path": "/channel",
+      "id": "http_client_upload_channel_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "client_upload_form",
+      "name": "Owned form client upload",
+      "method": "POST",
+      "path": "/form",
+      "id": "http_client_upload_form_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "client_upload_form",
+      "name": "Owned form client upload",
+      "method": "POST",
+      "path": "/form",
+      "id": "http_client_upload_form_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "client_upload_multipart",
+      "name": "Owned multipart client upload",
+      "method": "POST",
+      "path": "/multipart",
+      "id": "http_client_upload_multipart_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "client_upload_multipart",
+      "name": "Owned multipart client upload",
+      "method": "POST",
+      "path": "/multipart",
+      "id": "http_client_upload_multipart_c16",
+      "concurrency": 16
+    }
+  ],
+  "sources": {
+    "native": "0c18280d5a4c232a6040a61b57c25b8a200a4560f504a525da523c1f4edd7ff2",
+    "rust-hand": "62674156c056cdd6aafaf981271203886ca4031c40d1647118f5a23690cd9484",
+    "node-tsc": "ebd120890a8c63a0555fc0c249ca188c8adfe52bce86b098050b51020a54595f"
+  },
+  "notes": "Each batch varies64/4096/65537 bytes by request ID; backend checks every byte and returns ordered checksum. Channel capacity1. Node uses demand-driven Readable, not a claim of identical queue representation. Original3x31after8, separate latency and CPU/RSS, no build/startup timing."
+}

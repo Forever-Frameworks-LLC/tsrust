@@ -17,6 +17,8 @@ pub(crate) const CREATE_POOL: NativeBinding = NativeBinding {
 };
 const POOL_RECEIVER: NativeParameter = NativeParameter { name: "pool", ty: NativeType::ObservedValue, access: Mode::Read, optional: false, rest: false };
 pub(crate) const OWNED_POOL_TASK: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER, NativeParameter { name: "callback", ty: NativeType::ObservedValue, access: Mode::Consume, optional: false, rest: false }], ..operation("__ownedPoolTask") };
+pub(crate) const POOL_SUBMISSION:NativeBinding=NativeBinding{parameters:&[POOL_RECEIVER],..operation("__poolSubmission")};
+pub(crate) const TASK_ASYNC:NativeBinding=NativeBinding{parameters:&[NativeParameter{access:Mode::Consume,..POOL_RECEIVER},NativeParameter{name:"callback",ty:NativeType::ObservedValue,access:Mode::Consume,optional:false,rest:false}],..operation("__taskAsync")};
 pub(crate) const OWNED_POOL_STATS: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__ownedPoolStats") };
 pub(crate) const OWNED_POOL_SHUTDOWN: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__ownedPoolShutdown") };
 pub(crate) const TASK_CANCELLED: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__taskCancelled") };
@@ -32,7 +34,8 @@ pub(crate) const SPAWN_SCOPED: NativeBinding = operation("spawnScoped");
 pub(crate) const SPAWN: NativeBinding = operation("spawn");
 pub(crate) const JOIN: NativeBinding = operation("join");
 pub(crate) const DETACH: NativeBinding = operation("detach");
-pub(crate) const RUNTIME: &str = include_str!("runtime.rs");
+pub(crate) const RUNTIME: &str = concat!("mod tsrust_native_threads {\n",include_str!("runtime_core.rs"),include_str!("runtime_sync.rs"),"}\n");
+pub(crate) const ASYNC_RUNTIME: &str = concat!("mod tsrust_native_threads {\n",include_str!("runtime_core.rs"),include_str!("runtime_async.rs"),"}\n");
 
 pub(crate) fn prepare(program: &mut crate::syntax::Program) -> Result<(), crate::Diagnostic> {
     let mut used = false;

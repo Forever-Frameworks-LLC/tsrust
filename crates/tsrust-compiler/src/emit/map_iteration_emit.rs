@@ -38,11 +38,35 @@ impl Emitter<'_> {
         let label = statement.span.start;
         let names = fun.storage_exits.map_iteration_epochs(statement.span).iter().map(|epoch| self.map_entry_epoch_place(fun, &epoch.entry)).collect::<Vec<_>>().join(",");
         if !post_test { let _ = writeln!(output, "let mut map_stop_{label}=false;"); }
-        let _ = writeln!(output, "'loop_{label}: while !map_stop_{label} && ({}) {{", self.expr(fun, condition, Mode::Copy));
+        // A literal-true loop without a break never stops; `loop` lets Rust type the
+        // checked divergence instead of a fall-through `()` after the loop.
+        if matches!(condition.kind, ExprKind::Boolean(true)) && !Self::breaks_out(statement) {
+            let _ = writeln!(output, "'loop_{label}: loop {{");
+        } else {
+            let _ = writeln!(output, "'loop_{label}: while !map_stop_{label} && ({}) {{", self.expr(fun, condition, Mode::Copy));
+        }
         let _ = writeln!(output, "    (map_stop_{label},{names},) = {{");
         pending.push(Work::Post(statement, depth));
         pending.push(Work::Text(format!("        (map_stop_{label},{names},)\n    }};\n}}\n")));
         self.schedule_map_iteration_work(output, fun, statement, visible, depth + 2, true, pending);
+    }
+    /// Whether any break in the loop body leaves the loop. A break stays inside only
+    /// when its resolved target is a statement nested in this body.
+    fn breaks_out(statement: &Stmt) -> bool {
+        let mut pending = match &statement.kind { StmtKind::While { body, .. } | StmtKind::Loop { body, .. } => body.iter().collect::<Vec<_>>(), _ => return true };
+        let (mut inner, mut breaks) = (std::collections::HashSet::new(), Vec::new());
+        while let Some(statement) = pending.pop() {
+            inner.insert(statement.span.start);
+            match &statement.kind {
+                StmtKind::Break => breaks.push(statement.control_target),
+                StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => pending.extend(body),
+                StmtKind::Loop { body, update, .. } => { pending.extend(body); pending.extend(update); },
+                StmtKind::If { then_body, else_body, .. } => { pending.extend(then_body); pending.extend(else_body); },
+                StmtKind::Try(region) => pending.extend(region.statements()),
+                _ => {},
+            }
+        }
+        breaks.into_iter().any(|target| !matches!(target, Some(ControlTarget::Loop(id) | ControlTarget::Tail(id) | ControlTarget::Block(id)) if inner.contains(&id)))
     }
     fn schedule_map_iteration_work<'a, 's:'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, widen: bool, pending: &mut Vec<Work<'a, 's>>) {
         let epochs = fun.storage_exits.map_iteration_epochs(statement.span);

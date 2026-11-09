@@ -1,0 +1,31 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+
+function owned(source: Owned<Iterator<int>>): Iterator<int> {
+  return source;
+}
+
+function choose(flag: boolean): Iterator<int> {
+  if (flag) {
+    return Iterator.from([2, 4]);
+  }
+
+  return Iterator.from([3, 5]).map(value => value + 1);
+}
+
+function capture(source: Owned<Iterator<int>>): Once<Function<int[]>> {
+  return (): int[] => source.toArray();
+}
+
+export function run() {
+  const action = capture(owned(choose(true)));
+  {
+    const observed1_0 = action().join(',');
+    strictEqual(observed1_0, "2,4");
+  }
+
+  {
+    const observed2_0 = owned(choose(false)).toArray().join(',');
+    strictEqual(observed2_0, "4,6");
+  }
+}

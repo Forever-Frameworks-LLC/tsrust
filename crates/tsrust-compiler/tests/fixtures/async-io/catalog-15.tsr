@@ -1,0 +1,8 @@
+import { IoError } from "std:io";
+
+export function main() {
+  const error: IoError = {
+    code: "range", operation: "read", message: "invalid length"
+  };
+  console.log(error.code, error.operation, error.message, error.osCode);
+}

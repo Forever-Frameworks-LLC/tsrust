@@ -1,7 +1,8 @@
 // The generated runtime contains optional entrypoints not used by every fixture.
 #[allow(dead_code, reason="Exercise the bundled runner with a small concrete program context.")]
 mod runtime {
-    include!("../src/stdlib/futures/runtime.rs");
+    #[cfg(feature="logging")] include!("../src/stdlib/logging/runtime.rs");
+include!("../src/stdlib/futures/runtime.rs");
     use std::{cell::Cell,rc::Rc,sync::{Arc,atomic::{AtomicUsize,Ordering}}};
 
     struct String(&'static str);
@@ -19,8 +20,11 @@ mod runtime {
         fn invoke_program(&mut self,args:A,program:&mut TsrTestContext<'_>,registry:&mut TsrTestRegistry)->R;
     }
     fn tsr_console_test_begin(_: &str) {}
+    fn tsr_console_output_reset() {}
     fn tsr_console_test_end(_: bool) {}
     include!("../src/stdlib/testing/runtime/mod.rs");
+    fn tsr_console_quote(text:&str,_json:bool)->std::string::String{serde_json::to_string(text).unwrap()}
+    include!("../src/stdlib/testing/runtime/report.rs");
     include!("../src/stdlib/testing/runtime/registration.rs");
     include!("../src/stdlib/testing/runtime/hooks.rs");
     include!("../src/stdlib/testing/runtime/async.rs");

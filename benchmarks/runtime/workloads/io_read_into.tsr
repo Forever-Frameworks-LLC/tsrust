@@ -1,0 +1,31 @@
+import { reader, readInto, close } from 'std:io';
+import { alloc, fromArray, at } from 'std:bytes';
+async function workload(n: int, seed: int): Task<int> {
+  const data: int[] = [];
+  for (let j: int = 0; j < 4096; j++) {
+    data.push((seed + j) % 251);
+  }
+
+  const payload = unwrap(fromArray(data));
+  const destination = unwrap(alloc(257));
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    const input = reader(clone(payload));
+    while (true) {
+      const count = unwrap(await readInto(input, destination));
+      if (count === 0) {
+        break;
+      }
+
+      for (let j: int = 0; j < count; j++) {
+        sum = (sum * 131 + unwrap(at(destination, j))) % 1000000007;
+      }
+    }
+
+    unwrap(await close(input));
+  }
+
+  return sum;
+}
+
+function main() {}

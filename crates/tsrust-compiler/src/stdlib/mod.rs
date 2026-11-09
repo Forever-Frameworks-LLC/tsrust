@@ -9,10 +9,12 @@ pub(crate) mod ui;
 pub(crate) fn source(module: &str) -> Option<&'static str> {
     match module {
         "std:ui" => Some(ui::SOURCE),
-        "std:testing" => Some(testing::SOURCE), _ => None,
+        "std:log"=>Some(logging::SOURCE),
+        "std:testing" => Some(testing::SOURCE), "std:iterator"=>Some(iterator::SOURCE), _ => None,
     }
 }
 
+pub(crate) mod iterator;
 pub(crate) mod numeric;
 pub(crate) mod decimal;
 pub(crate) mod env;
@@ -35,3 +37,14 @@ pub(crate) mod date;
 pub(crate) mod uuid;
 pub(crate) mod crypto;
 pub(crate) mod signals;
+pub(crate) mod url;
+
+pub(crate) mod regex;
+pub(crate) mod locale;
+pub(crate) mod logging;
+
+pub(crate) mod io;
+
+pub(crate) mod process;
+pub(crate) mod net;
+pub(crate) mod compression;

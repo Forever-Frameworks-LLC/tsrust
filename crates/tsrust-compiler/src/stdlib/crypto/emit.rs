@@ -1,16 +1,19 @@
 use crate::{analysis::CheckedProgram,native_bindings::{NativeBinding,NativeBackend,NativeType},native_signatures::{Signature,NativeTypeId},syntax::Type};
 pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std::collections::HashSet<usize>)->String {
  let order=|id|crate::records::runtime::declaration_order_suffix(program,ordered,id);
+ if super::password_operation(binding.name){return String::new();}
  let bytes=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::Bytes));
  let NativeBackend::Bundled{symbol}=binding.backend;
  let mut parameters=Vec::new();let mut arguments=Vec::new();
  for parameter in binding.parameters{
   let name=parameter.name;
-  let (ty,value)=match parameter.ty{NativeType::Structured(&Signature::Named(NativeTypeId::Bytes))=>(format!("&Record{}",bytes.unwrap()),format!("&{name}.bytes")),NativeType::Int=>("i64".into(),name.to_owned()),NativeType::String=>("&String".into(),format!("{name}.as_ref()")),_=>unreachable!()};
+  let (ty,value)=match parameter.ty{NativeType::Structured(&Signature::Named(NativeTypeId::Bytes))=>("&impl TsrReadableBytes".into(),format!("{name}.readable_bytes()")),NativeType::Structured(&Signature::Named(NativeTypeId::CryptoHasher))=>{let record=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::CryptoHasher)).unwrap();(format!("{}Record{record}",match parameter.access{crate::Mode::Mutate=>"&mut ",crate::Mode::Read=>"&",_=>""}),name.to_owned())},NativeType::Structured(signature) if *signature==super::ALGORITHM=>{let Type::Union(id)=crate::native_binding_types::resolve(&program.records,signature).unwrap()else{unreachable!()};let prefix=if id.copy{"Union"}else{"ViewUnion"};let arms=program.unions[id.index()].members.iter().enumerate().map(|(tag,member)|{let Type::Literal(record,_)=member else{unreachable!()};let crate::literal_types::LiteralValue::String(value)=program.records[*record].literal_definition.as_ref().unwrap()else{unreachable!()};format!("{prefix}{}::V{tag}(_)=>{value:?}",id.index())}).collect::<Vec<_>>().join(",");(if id.copy{format!("Union{}",id.index())}else{format!("ViewUnion{}<'_>",id.index())},format!("match {name}{{{arms}}}"))},NativeType::Int=>("i64".into(),name.to_owned()),NativeType::String=>("&String".into(),format!("{name}.as_ref()")),_=>unreachable!()};
   parameters.push(format!("{name}:{ty}"));arguments.push(value);
  }
  let call=format!("tsrust_native_crypto::{}({})",symbol.strip_prefix("tsrust_crypto_").unwrap(),arguments.join(","));
  let (ty,body)=match binding.result{
+ NativeType::Void=>("()".into(),call),
+ NativeType::Structured(&Signature::Named(NativeTypeId::CryptoHasher))=>{let record=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::CryptoHasher)).unwrap();(format!("Record{record}"),call)},
  NativeType::Structured(&Signature::Named(NativeTypeId::Bytes))=>(format!("Record{}",bytes.unwrap()),format!("Record{}{{bytes:{call}}}",bytes.unwrap())),
  NativeType::Int=>("i64".into(),call),NativeType::String=>("String".into(),format!("String::Owned({call})")),
  NativeType::Boolean=>("bool".into(),call),
@@ -18,7 +21,7 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std
  let Type::Union(result)=crate::native_binding_types::resolve(&program.records,signature).unwrap()else{unreachable!()};let members=&program.unions[result.index()].members;
  let [ok,err]=crate::result_identity::variants(&program.records,members).unwrap();let tag=|id|members.iter().position(|ty|*ty==Type::Record(id)).unwrap();
  let error=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::CryptoError)).unwrap();
- let value=format!("Record{}{{bytes:value}}",bytes.unwrap());
+ let value=match program.records[ok].fields[0].ty.unwrap(){Type::Record(record) if program.records[record].native_type==Some(NativeTypeId::Bytes)=>format!("Record{record}{{bytes:value}}"),Type::Int=>"value".into(),_=>unreachable!("crypto Result payload")};
  let (ok_order,err_order,error_order)=(order(ok),order(err),order(error));
  (format!("Union{}",result.index()),format!("match {call}{{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:{value}{ok_order}}}),Err((code,message))=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(code),field1:String::Borrowed(message){error_order}}}{err_order}}})}}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err)))
  },_=>unreachable!()};

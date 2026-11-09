@@ -1,0 +1,75 @@
+import { SendError as AsyncSendError, Channel, allSettled } from 'std:futures';
+import { SendError as SyncSendError } from 'std:threads';
+import { strictEqual } from 'std:testing';
+
+type ErrorRecord = {
+  error: AsyncSendError<int[]>;
+};
+async function rejected(): Task<void> {
+  const queue = new Channel<int>(1);
+  const sender = queue.sender();
+  queue.close();
+  await sender.send(7);
+}
+
+async function rejectedValue(): Task<void> {
+  const error: AsyncSendError<int> = {
+    code: 'closed', value: 7
+  };
+  throw error;
+}
+
+export async function run(): Task<void> {
+  const plain: SyncSendError<int[]> = {
+    code: 'closed', value: [1]
+  };
+  const plainCopy = clone(plain);
+  plainCopy.value.push(2);
+  strictEqual(plain.value.length, 1);
+  strictEqual(plainCopy.value.length, 2);
+  const record: ErrorRecord = {
+    error: {
+      code: 'closed', value: [3]
+    }
+  };
+  const recordCopy = clone(record);
+  recordCopy.error.value.push(4);
+  strictEqual(record.error.value.length, 1);
+  strictEqual(recordCopy.error.value.length, 2);
+  const unit: Result<void, AsyncSendError<int>> = Err({
+    code: 'closed', value: 8
+  });
+  match (clone(unit)) {
+    Ok(_) => {
+      throw 'unexpected success';
+    },
+    Err(error) => {
+      strictEqual(error.value, 8);
+    }
+  }
+
+  const settled = await allSettled([rejected().start()]);
+  match (clone(settled[0])) {
+    Ok(_) => {
+      throw 'unexpected success';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'worker');
+      strictEqual(error.cause!.code, 'closed');
+    }
+  }
+
+  const payloads = await allSettled([rejectedValue().start()]);
+  match (clone(payloads[0])) {
+    Ok(_) => {
+      throw 'unexpected success';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'worker');
+      strictEqual(error.cause!.code, 'closed');
+      strictEqual(error.cause!.value, 7);
+    }
+  }
+
+  console.log('send error clones preserve owned payloads');
+}

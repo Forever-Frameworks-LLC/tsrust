@@ -68,13 +68,7 @@ impl Cache {
         Ok(result)
     }
 
-    pub(crate) fn parameter_contexts(
-        &self,
-        name: &str,
-        expected: Option<Type>,
-        types: &crate::generic_inference::Types<'_>,
-        hints: Option<&[Option<Type>]>,
-    ) -> Result<Vec<Option<Type>>, Diagnostic> {
+    fn parameter_bindings(&self,name:&str,expected:Option<Type>,types:&crate::generic_inference::Types<'_>,hints:Option<&[Option<Type>]>)->Result<(Vec<ValueAnnotation>,HashMap<String,Type>),Diagnostic>{
         let template = &self.templates[name];
         let parameters = template.params.iter().map(|(_, annotation, _)| annotation.clone()).collect::<Vec<_>>();
         let unknown = vec![None; parameters.len()];
@@ -95,7 +89,21 @@ impl Cache {
             Err(error) if error.code == "generic-inference" => {},
             Err(error) => return Err(error),
         }
-        Ok(parameters.iter().map(|annotation| types.contextual_type(annotation, &bindings)).collect())
+        Ok((parameters,bindings))
+    }
+    pub(crate) fn parameter_contexts(&self,name:&str,expected:Option<Type>,types:&crate::generic_inference::Types<'_>,hints:Option<&[Option<Type>]>)->Result<Vec<Option<Type>>,Diagnostic>{
+        let (parameters,bindings)=self.parameter_bindings(name,expected,types,hints)?;
+        Ok(parameters.iter().map(|annotation|types.contextual_type(annotation,&bindings)).collect())
+    }
+    /// A callback result may remain unknown while every input parameter is known.
+    pub(crate) fn callable_parameter_contexts(&self,name:&str,expected:Option<Type>,types:&crate::generic_inference::Types<'_>,hints:Option<&[Option<Type>]>)->Result<Vec<Option<Vec<(Type,Option<crate::type_syntax::ParameterAccess>)>>>,Diagnostic>{
+        let (parameters,bindings)=self.parameter_bindings(name,expected,types,hints)?;
+        Ok(parameters.iter().map(|annotation|{
+            let mut annotation=annotation;
+            while let Kind::Group(inner)=&annotation.kind {annotation=inner;}
+            let Kind::Callable{parameters,..}=&annotation.kind else{return None;};
+            parameters.iter().map(|parameter|types.contextual_type(&parameter.annotation,&bindings).map(|ty|(ty,if ty.is_copy(){None}else{parameter.access.clone()}))).collect()
+        }).collect())
     }
 
     pub(crate) fn infer(
@@ -185,7 +193,7 @@ impl Cache {
             let mut callable = false;
             while let Some(annotation) = pending.pop() {
                 match &annotation.kind {
-                    Kind::Callable { .. } | Kind::Polymorphic { .. } => { callable = true; break; }
+                    Kind::Callable { .. } | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => { callable = true; break; }
                     Kind::Array(inner) | Kind::Group(inner) => pending.push(inner),
                     Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => pending.extend(arguments),
                     Kind::Literal(_) | Kind::Named(_) => {},
@@ -193,7 +201,7 @@ impl Cache {
             }
             if callable { continue; }
             let arguments = application.arguments.iter().map(|argument| {
-                crate::analysis::resolve_value_type(argument, false, names, unions)
+                crate::analysis::resolve_value_type(argument, true, names, unions)
             }).collect::<Result<Vec<_>, _>>()?;
             self.checked_instances.entry((declaration.clone(), arguments))
                 .or_insert_with(|| function.name.text.clone());
@@ -279,9 +287,7 @@ impl Cache {
     }) = self.pending.pop()
     {
         self.contextualize(&mut function, &bindings)?;
-        let mut substitute =
-            |value: &mut ValueAnnotation| crate::type_substitution::apply(value, &bindings);
-        crate::source_walk::function_annotations(&mut function, &mut substitute)?;
+        crate::source_walk::substitute_function_annotations(&mut function,&bindings)?;
         // A generic data slot can specialize to a callable. Rebuild the source
         // callable view after substitution before signature/escape analysis.
         for (_, annotation, callback) in &mut function.params {
@@ -309,7 +315,7 @@ impl Cache {
             Ok(())
         })?;
         let enclosing_name = function.name.text.clone();
-        crate::source_walk::function_body(&mut function, &mut substitute, &mut |expression| {
+        crate::source_walk::substitute_function_body(&mut function,&bindings, &mut |expression| {
             let ExprKind::Call(callee, _) = &mut expression.kind else {
                 return Ok(());
             };

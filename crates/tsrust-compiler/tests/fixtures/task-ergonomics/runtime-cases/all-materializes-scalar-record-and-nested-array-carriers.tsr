@@ -1,0 +1,25 @@
+import { all } from 'std:futures';
+
+type Item = {
+  value: int
+};
+async function text(): Task<string> {
+  return 'owned'.repeat(2);
+}
+
+async function record(): Task<Item> {
+  return {
+    value: 7
+  };
+}
+
+async function array(): Task<int[]> {
+  return [3, 4];
+}
+
+export async function run(): Task<void> {
+  const texts = await all([text(), text().start()]);
+  const records = await all([record(), record().start()]);
+  const arrays = await all([array(), array().start()]);
+  console.log(texts[0], texts[1], records[0].value, records[1].value, arrays[0][0], arrays[1][1]);
+}

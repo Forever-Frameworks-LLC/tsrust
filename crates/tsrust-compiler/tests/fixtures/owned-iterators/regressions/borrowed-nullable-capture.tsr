@@ -1,0 +1,12 @@
+import { strictEqual } from 'std:testing';
+import { alloc, view, length } from 'std:bytes';
+
+export function run() {
+  const bytes = unwrap(alloc(2));
+  const slice = unwrap(view(bytes, 0, 2));
+  const read: Owned<Function<int>> = (): int => length(slice);
+  {
+    const observed1_0 = read();
+    strictEqual(observed1_0, 2);
+  }
+}

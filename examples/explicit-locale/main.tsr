@@ -1,0 +1,17 @@
+import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';
+
+function main() {
+  const locale = unwrap(parseLocale('iw-IL'));
+  console.log(formatLocale(locale));
+  const swedish = unwrap(parseLocale('sv'));
+  const comparison = unwrap(createCollator(swedish));
+  console.log(comparison.compare('ä', 'z'));
+  const segmenter = createSegmenter();
+  const ranges = segmenter.segment('e\u0301🦀');
+  console.log(ranges[0].start, ranges[0].end, ranges[1].end);
+  const english = unwrap(parseLocale('en'));
+  const formatted = unwrap(createNumberFormat(english, {
+    fractionDigits: 2
+  }));
+  console.log(formatted.format(1234));
+}

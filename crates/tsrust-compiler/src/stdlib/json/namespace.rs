@@ -170,8 +170,8 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
     let identities=if name=="writeJsonlView" {vec![NativeTypeId::JsonlWriterView,NativeTypeId::JsonlError]}else if name=="writeJsonl" {vec![NativeTypeId::JsonlWriter,NativeTypeId::JsonlError]}else{vec![NativeTypeId::JsonError]};
     let mut replacements=std::collections::HashMap::new();
     for identity in identities {replacements.insert(crate::native_types::declaration(identity).name.to_owned(),crate::native_type_resolution::project(&mut program.records,&Signature::Named(identity),function.name.span)?);}
-    crate::source_walk::function_annotations(&mut function,&mut |annotation|crate::type_substitution::apply(annotation,&replacements))?;
-    crate::source_walk::function_body(&mut function, &mut |annotation|crate::type_substitution::apply(annotation,&replacements), &mut |expression| {
+    crate::source_walk::substitute_function_annotations(&mut function,&replacements)?;
+    crate::source_walk::substitute_function_body(&mut function,&replacements, &mut |expression| {
         shift(&mut expression.span);
         if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") {
             expression.kind = ExprKind::Name(if name == "parse" {format!("@native:std:json#{name}")} else if matches!(name,"writeJsonl"|"writeJsonlView"){"@json:write".into()}else {"@json:encode".into()});
@@ -214,8 +214,8 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
     for identity in identities {
         replacements.insert(crate::native_types::declaration(identity).name.to_owned(),crate::native_type_resolution::project(&mut program.records,&Signature::Named(identity),function.name.span)?);
     }
-    crate::source_walk::function_annotations(&mut function, &mut |annotation| crate::type_substitution::apply(annotation, &replacements))?;
-    crate::source_walk::function_body(&mut function, &mut |annotation| crate::type_substitution::apply(annotation, &replacements), &mut |expression| {
+    crate::source_walk::substitute_function_annotations(&mut function,&replacements)?;
+    crate::source_walk::substitute_function_body(&mut function,&replacements, &mut |expression| {
         shift(&mut expression.span);
         if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") { expression.kind = ExprKind::Name(if name=="parseJsonc"{"@json:decodeJsonc"}else if matches!(name,"readJsonl"|"readJsonlView"){"@json:decodeJsonl"}else{"@json:decode"}.into()); }
         Ok(())

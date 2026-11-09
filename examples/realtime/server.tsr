@@ -1,0 +1,48 @@
+import { Router, WebSocket, SseEvent, sseWithProducer } from 'std:http';
+import { Channel, Sender } from 'std:futures';
+
+async function produce(sender: Sender<SseEvent>): Task<void> {
+  await sender.send({
+    data: 'ready', event: 'status', id: '1'
+  });
+}
+
+async function echo(socket: Owned<WebSocket>): Task<void> {
+  while (true) {
+    const message = await socket.receive();
+    if (message === undefined || message.kind === 'close') {
+      break;
+    }
+
+    await socket.send(message);
+  }
+
+  await socket.close();
+}
+
+async function main(): Task<void> {
+  const app = new Router();
+  // Source middleware authorizes the request before any upgrade starts.
+  app.use(async (context, next) => {
+    if (context.req.header('authorization') !== 'Bearer example') {
+      return context.text('Unauthorized', 401);
+    }
+
+    if (context.req.header('origin') !== 'https://app.example') {
+      return context.text('Forbidden', 403);
+    }
+
+    await next();
+  });
+  app.get('/events', context => {
+    const events = new Channel<SseEvent>(1);
+    const producer = produce(events.sender()).start();
+    return sseWithProducer(events, producer, {
+      keepAliveMs: 15000
+    });
+  });
+  app.webSocket('/echo', echo);
+  const server = await app.listen('127.0.0.1:8080');
+  console.log(server.address());
+  await server.wait();
+}

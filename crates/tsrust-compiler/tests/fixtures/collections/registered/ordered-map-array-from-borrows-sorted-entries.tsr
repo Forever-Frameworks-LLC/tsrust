@@ -1,0 +1,12 @@
+import { OrderedMap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+export function main() {
+  const values = new OrderedMap<string, string>();
+  values.set('z', 'last');
+  values.set('a', 'first');
+  const mapped = Array.from(values, (entry: ReadOnly<[string, string]>, index: int): string => entry[0] + String(index) + entry[1]);
+  strictEqual(mapped[0], 'a0first');
+  strictEqual(mapped[1], 'z1last');
+  strictEqual(values.size, 2);
+}

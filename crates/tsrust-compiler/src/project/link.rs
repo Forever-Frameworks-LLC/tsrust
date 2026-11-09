@@ -112,14 +112,16 @@ impl ProjectAnalysis {
             })
             .collect::<Vec<_>>()
             .join(",");
-        let closures = self.analysis.closures().iter().map(|closure| {
-            let source=self.source_location(closure.span).expect("checked closure source");
-            let captures=closure.captures.iter().map(|capture| {
-                let location=self.source_location(capture.span).expect("checked capture source");
-                format!("{{\"name\":{},\"storage\":{},\"access\":{},\"file\":{},\"start\":{},\"end\":{}}}",crate::json_string(&capture.name),crate::json_string(capture.storage.as_str()),crate::json_string(capture.access.as_str()),crate::json_string(&location.source.0),location.span.start,location.span.end)
+        // Generated adapters retain internal coordinates outside source segments.
+        // Publish source-addressed metadata only when its coordinates are mapped.
+        let closures = self.analysis.closures().iter().filter_map(|closure| {
+            let source=self.source_location(closure.span)?;
+            let captures=closure.captures.iter().filter_map(|capture| {
+                let location=self.source_location(capture.span)?;
+                Some(format!("{{\"name\":{},\"storage\":{},\"access\":{},\"file\":{},\"start\":{},\"end\":{}}}",crate::json_string(&capture.name),crate::json_string(capture.storage.as_str()),crate::json_string(capture.access.as_str()),crate::json_string(&location.source.0),location.span.start,location.span.end))
             }).collect::<Vec<_>>().join(",");
             let parameters=closure.parameters.iter().map(|param|format!("{{\"name\":{},\"access\":{}}}",crate::json_string(&param.name),crate::json_string(param.access.as_str()))).collect::<Vec<_>>().join(",");
-            format!("{{\"id\":{},\"template\":{},\"depth\":{},\"function\":{},\"file\":{},\"start\":{},\"end\":{},\"escapes\":{},\"invocation\":{},\"captures\":[{captures}],\"parameters\":[{parameters}]}}",closure.id,closure.template,closure.depth,crate::json_string(&self.source_name(&closure.function)),crate::json_string(&source.source.0),source.span.start,source.span.end,closure.escapes,crate::json_string(closure.invocation.as_str()))
+            Some(format!("{{\"id\":{},\"template\":{},\"depth\":{},\"function\":{},\"file\":{},\"start\":{},\"end\":{},\"escapes\":{},\"invocation\":{},\"captures\":[{captures}],\"parameters\":[{parameters}]}}",closure.id,closure.template,closure.depth,crate::json_string(&self.source_name(&closure.function)),crate::json_string(&source.source.0),source.span.start,source.span.end,closure.escapes,crate::json_string(closure.invocation.as_str())))
         }).collect::<Vec<_>>().join(",");
         format!(
             "{{\"ok\":true,\"contracts\":{{{contracts}}},\"closures\":[{closures}],\"diagnostics\":[]}}"
@@ -219,6 +221,15 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         offset += length + 1;
         let mut imported = crate::type_aliases::Aliases::new();
         for import in &source.imports {
+            if let Some(native) = import.native {
+                for binding in &import.bindings {
+                    if let Ok(crate::native_exports::Export::Alias(alias)) = crate::native_exports::lookup(native, &binding.exported) {
+                        let annotation = crate::native_type_resolution::project(&mut Vec::new(), &alias.signature, binding.span)
+                            .map_err(|value| ProjectDiagnostic { code: value.code, message: value.message, location: SourceLocation { source: id.clone(), span: value.span }, related: vec![], fixes: Box::new([]) })?;
+                        imported.insert(binding.local.clone(), crate::type_aliases::Alias { span: binding.span, parameters: vec![], annotation });
+                    }
+                }
+            }
             let Some(target) = import.target.as_ref().and_then(|target| module_aliases.get(target)) else { continue };
             for binding in &import.bindings {
                 if let Some(alias) = target.get(&binding.exported) {
@@ -257,6 +268,15 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 fixes: Box::new([]),
             }
         })?;
+        // Parsing synthesizes an executable wrapper for async main. Imported
+        // modules export the original Task factory, not that void entry wrapper.
+        if id != &graph.entry && let Some(index)=program.functions.iter().position(|function|function.name.text=="async#entry") {
+            let span=program.functions[index].name.span;
+            let wrapper=program.functions.iter().position(|function|function.name.text=="main"&&function.name.span==span).expect("parser-generated async main wrapper");
+            assert!(wrapper>index,"async factory precedes its synthetic entry wrapper");
+            program.functions.remove(wrapper);
+            program.functions[index].name.text="main".into();
+        }
         if id.0 == "std:testing" { crate::stdlib::testing::program::facade(&mut program); }
         if let Some(base) = program.unresolved_bases.first() {
             return Err(ProjectDiagnostic {
@@ -313,6 +333,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 } else {
                     symbol(module, &name.text)
                 };
+                let linked=if id.0=="std:log" && (crate::stdlib::logging::METHODS.contains(&name.text.as_str()) || name.text=="createLogger"){format!("{}{}",crate::stdlib::logging::PREFIX,name.text)}else if id.0=="std:iterator" && name.text.starts_with('_'){format!("{}{}",crate::stdlib::iterator::PREFIX,name.text.trim_start_matches('_'))}else{linked};
                 (name.text.clone(), linked)
             })
             .collect::<BTreeMap<_, _>>();
@@ -384,6 +405,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         type_aliases: Default::default(),
         unresolved_bases: Vec::new(),
     };
+    let mut logging_native=BTreeMap::new();
     let mut closure_id = 0;
     let mut test_initializers = BTreeMap::new();
     for (module, id) in graph.order.iter().enumerate() {
@@ -395,16 +417,11 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                     if let Some(native) = import.native {
                         match crate::native_exports::lookup(native, &binding.exported).expect("validated native export") {
                             crate::native_exports::Export::Namespace(namespace) => namespace.symbol().into(),
+                            crate::native_exports::Export::Alias(_) => symbol(module, &binding.local),
                             crate::native_exports::Export::Function(function) => {
-                                let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
-                                crate::native_binding_types::prepare(&mut linked.records, function, span)
-                                    .map_err(|value| diagnostic(&graph, &segments, value))?;
-                                format!("@native:{native}#{}", binding.exported)
+                                format!("@native:{native}#{}", function.name)
                             },
                             crate::native_exports::Export::Type(item) => {
-                                let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
-                                crate::native_type_resolution::intern(&mut linked.records, item.id, span)
-                                    .map_err(|value| diagnostic(&graph, &segments, value))?;
                                 crate::native_type_resolution::linked_name(item.id)
                             }
                         }
@@ -424,6 +441,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             names: &names,
             imported_bindings: graph.modules[id].imports.iter().flat_map(|import| import.bindings.iter().map(|binding| binding.local.clone())).collect(),
             assignment_error: None,
+            used_native: BTreeMap::new(),
             testing_types: id.0 == "std:testing",
             module,
             offset: segments[module].1,
@@ -431,6 +449,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             type_parameters: BTreeSet::new(),
         };
         for record in &mut program.records {
+            if id.0=="std:iterator" && record.name.text=="Iterator"{record.native_type=Some(crate::native_signatures::NativeTypeId::OwnedIterator);}
             visitor.type_parameters = record.type_parameters.iter().map(|parameter| parameter.text.clone()).collect();
             for parameter in &mut record.type_parameters { visitor.span(&mut parameter.span); }
             record.name.text = names[&record.name.text].clone();
@@ -510,6 +529,17 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         if let Some(error) = visitor.assignment_error.take() {
             return Err(diagnostic(&graph, &segments, error));
         }
+        for (name, span) in &visitor.used_native {
+            if id.0=="std:log"{logging_native.insert(name.clone(),*span);continue;}
+            if let Some((_, binding)) = crate::native_bindings::by_symbol(name) {
+                crate::native_binding_types::prepare(&mut linked.records, binding, *span)
+                    .map_err(|value| diagnostic(&graph, &segments, value))?;
+            } else if let Some((module, name)) = name.strip_prefix(crate::type_aliases::LINKED_PREFIX).and_then(|name| name.strip_prefix("native#")).and_then(|name| name.split_once('#')) {
+                let item = crate::native_types::lookup(module, name).expect("linked native type identity");
+                crate::native_type_resolution::intern(&mut linked.records, item.id, *span)
+                    .map_err(|value| diagnostic(&graph, &segments, value))?;
+            }
+        }
         let declaration_offset = linked.local_declarations.len();
         let scope_offset = linked.local_declarations.iter().map(|declaration| declaration.scope + 1).max().unwrap_or(0);
         let owner_offset = linked.functions.len();
@@ -563,6 +593,11 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         linked.module_bindings.extend(body);
         linked.functions.push(entry);
     }
+    let omit_logging=if let Some(names)=globals.get(&SourceId("std:log".into())){crate::stdlib::logging::omit_unused(&mut linked,names).map_err(|value|diagnostic(&graph,&segments,value))?}else{false};
+    if !omit_logging{for(name,span)in &logging_native{
+        if let Some((_,binding))=crate::native_bindings::by_symbol(name){crate::native_binding_types::prepare(&mut linked.records,binding,*span).map_err(|value|diagnostic(&graph,&segments,value))?;}
+        else if let Some((module,name))=name.strip_prefix(crate::type_aliases::LINKED_PREFIX).and_then(|name|name.strip_prefix("native#")).and_then(|name|name.split_once('#')){let item=crate::native_types::lookup(module,name).expect("linked native type identity");crate::native_type_resolution::intern(&mut linked.records,item.id,*span).map_err(|value|diagnostic(&graph,&segments,value))?;}
+    }}
     if let Some(names) = globals.get(&SourceId("std:ui".into())) {
         crate::stdlib::ui::retain_state(&mut linked,names).map_err(|value|diagnostic(&graph,&segments,value))?;
         crate::stdlib::ui::omit_unused(&mut linked, names)
@@ -593,6 +628,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
 struct Linker<'a> {
     imported_bindings: BTreeSet<String>,
     assignment_error: Option<Diagnostic>,
+    used_native: BTreeMap<String, Span>,
     testing_types: bool,
     names: &'a BTreeMap<String, String>,
     module: usize,
@@ -608,7 +644,7 @@ impl Linker<'_> {
     fn token_span(&self, token: &mut Token) {
         self.span(&mut token.span);
     }
-    fn annotation(&self, token: &mut Token) {
+    fn annotation(&mut self, token: &mut Token) {
         token.text = token
             .text
             .split('|')
@@ -635,8 +671,14 @@ impl Linker<'_> {
             .collect::<Vec<_>>()
             .join("|");
         self.token_span(token);
+        for part in token.text.split('|') {
+            let name = part.trim_end_matches("[]");
+            if name.strip_prefix(crate::type_aliases::LINKED_PREFIX).is_some_and(|name| name.starts_with("native#")) {
+                self.used_native.entry(name.into()).or_insert(token.span);
+            }
+        }
     }
-    fn value_annotation(&self, annotation: &mut crate::type_syntax::ValueAnnotation) {
+    fn value_annotation(&mut self, annotation: &mut crate::type_syntax::ValueAnnotation) {
         use crate::type_syntax::ValueAnnotationKind as Kind;
         self.span(&mut annotation.span);
         match &mut annotation.kind {
@@ -653,7 +695,7 @@ impl Linker<'_> {
             _ => {}
         }
         match &mut annotation.kind {
-            Kind::Literal(_) | Kind::Named(_) => {}
+            Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable {..} => {}
             Kind::Polymorphic { declaration, .. } => self.span(&mut declaration.span),
             Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                 for argument in arguments { self.value_annotation(argument); }
@@ -670,7 +712,7 @@ impl Linker<'_> {
             }
         }
     }
-    fn parameter(&self, param: &mut CallableParameter) {
+    fn parameter(&mut self, param: &mut CallableParameter) {
         self.token_span(&mut param.name);
         if let Some(access) = &mut param.access {
             self.token_span(access);
@@ -688,14 +730,14 @@ impl Linker<'_> {
             ParameterInitializer::Default { value, span } => { self.span(span); self.expr(value, locals); }
         }
     }
-    fn callback(&self, callback: &mut CallbackAnnotation) {
+    fn callback(&mut self, callback: &mut CallbackAnnotation) {
         self.span(&mut callback.span);
         for param in &mut callback.params {
             self.parameter(param);
         }
         self.result(&mut callback.result);
     }
-    fn result(&self, result: &mut ResultAnnotation) {
+    fn result(&mut self, result: &mut ResultAnnotation) {
         match result {
             ResultAnnotation::Inferred(_) => {},
             ResultAnnotation::Named(token) => self.value_annotation(token),
@@ -874,6 +916,9 @@ impl Linker<'_> {
                         *name = symbol(self.module, name);
                     }
                 }
+                if crate::native_bindings::by_symbol(name).is_some() {
+                    self.used_native.entry(name.clone()).or_insert(expr.span);
+                }
             }
             ExprKind::Optional { base, body, .. } => {
                 self.expr(base, locals);
@@ -1034,7 +1079,7 @@ mod annotation_tests {
         let mut closure_id = 0;
         let mut linker = Linker {
             names: &names, testing_types: false, module: 1, offset: 17,
-            imported_bindings: BTreeSet::new(), assignment_error: None,
+            imported_bindings: BTreeSet::new(), assignment_error: None,used_native:BTreeMap::new(),
             closure_id: &mut closure_id,
             type_parameters: BTreeSet::from(["T".into()]),
         };
@@ -1059,7 +1104,7 @@ fn containment_projection_links_only_inside_the_bundled_testing_scope() {
     use crate::type_syntax::{parse,ValueAnnotationKind as Kind};
     let names=BTreeMap::new();let mut closure_id=0;
     for (testing_types,shadowed,wanted) in [(true,false,"@testing:element"),(false,false,"__tsrust_module_1_ContainmentValue"),(true,true,"ContainmentValue")] {
-        let linker=Linker {testing_types,names:&names,module:1,offset:17,imported_bindings:BTreeSet::new(),assignment_error:None,closure_id:&mut closure_id,type_parameters:if shadowed {BTreeSet::from(["ContainmentValue".into(),"T".into()])}else{BTreeSet::from(["T".into()])}};
+        let mut linker=Linker {testing_types,names:&names,module:1,offset:17,used_native:BTreeMap::new(),imported_bindings:BTreeSet::new(),assignment_error:None,closure_id:&mut closure_id,type_parameters:if shadowed {BTreeSet::from(["ContainmentValue".into(),"T".into()])}else{BTreeSet::from(["T".into()])}};
         let mut value=parse("ContainmentValue<T>").unwrap();linker.value_annotation(&mut value);
         let Kind::Applied{name,arguments}=&value.kind else {panic!("projection")};assert_eq!(name.text,wanted);
         assert_eq!(name.span,Span::new(17,33));

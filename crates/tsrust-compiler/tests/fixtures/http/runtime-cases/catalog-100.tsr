@@ -1,0 +1,7 @@
+import { App, secureHeaders } from 'std:http';
+
+export function main() {
+  const app = new App();
+  app.use(secureHeaders());
+  console.log('headers');
+}

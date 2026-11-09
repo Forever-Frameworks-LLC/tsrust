@@ -11,6 +11,7 @@ project-specific setup. Native execution requires the pinned Rust backend.
 | HTTP routing and request state | [http-context/](http-context/) and [http-state/](http-state/) |
 | An integrated service | [service/](service/) |
 | SQL values and migrations | [sql-domain-values/](sql-domain-values/) and [sql-migrations/](sql-migrations/) |
+| Files, directory snapshots and temporary trees | [filesystem-utilities/](filesystem-utilities/) |
 | A cache or queue | [cache/](cache/) and [work-queue/](work-queue/) |
 | Rust bindings | [rust-data-boundaries/](rust-data-boundaries/) and [rust-regex/](rust-regex/) |
 | Retained reactive UI | [ui-application/](ui-application/) and [ui-composition/](ui-composition/) |

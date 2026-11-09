@@ -18,10 +18,16 @@ impl Emitter<'_> {
         visible: Rc<Vec<&'a Stmt>>, depth: usize, label: Option<usize>, pending: &mut Vec<Work<'a, 's>>,
     ) -> bool {
         let StmtKind::Block(body) = &statement.kind else { return false; };
-        let arrays = fun.storage_exits.array_block_epochs(statement.span.start);
+        // Array-result liveness also records nullable fields as identity
+        // passthroughs. Cyclic records have concrete, unsplit native storage;
+        // their unchanged fields require no independent shadow across a block.
+        let arrays = fun.storage_exits.array_block_epochs(statement.span.start).iter().filter(|epoch| {
+            !(epoch.input==epoch.output && !epoch.empty && !epoch.place.fields.is_empty()
+                && matches!(epoch.input,Type::Record(record) if self.native_views.cyclic(record)))
+        }).collect::<Vec<_>>();
         let maps = fun.storage_exits.map_block_epochs(statement.span.start);
         if arrays.is_empty() && maps.is_empty() { return false; }
-        let mut names = arrays.iter().chain(maps).map(|epoch| self.map_entry_epoch_place(fun, epoch)).collect::<Vec<_>>();
+        let mut names = arrays.iter().copied().chain(maps).map(|epoch| self.map_entry_epoch_place(fun, epoch)).collect::<Vec<_>>();
         let ordinary = if arrays.is_empty() { Vec::new() } else {
             self.map_block_return_places(fun, Declarations::Visible(&visible), body)
         };

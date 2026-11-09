@@ -43,10 +43,9 @@ measurement. Artifacts expire after seven days.
 Builds use locked dependencies, one Cargo job, one test thread, disabled incremental
 compilation and explicit timeouts. Local development uses local checks by default.
 The standard suite is selected acceptance, not the entire regression matrix.
-Manual async-only and package-only runs use distinct status names, so they cannot
-satisfy the required CI or Release gate checks.
-Manual `full_regressions: true` runs the broader workspace suite at milestones;
-performance benchmarks and database-service checks do not run automatically.
+CI builds once per OS, then runs lint, library tests, every `tsrust test` suite and
+the host tests with that build. Performance benchmarks and database-service checks
+do not run automatically.
 
 ## Repository setup
 
@@ -108,8 +107,10 @@ The build matrix compiles optimized CLI and LSP executables on their host runner
 | --- | --- |
 | Ubuntu 24.04 x64 | `x86_64-unknown-linux-gnu` |
 | macOS 15 ARM | `aarch64-apple-darwin` |
-| macOS 15 Intel | `x86_64-apple-darwin` |
 | Windows Server 2022 x64 | `x86_64-pc-windows-msvc` |
+
+Intel macOS is not a release target (owner decision, 2026-11-09): official
+builds cover Apple silicon, Windows and Linux. Intel Macs can install from source.
 
 Each archive contains the two consumers, an MIT license, upstream notices,
 version/source metadata and per-file SHA-256 digests. Dependency sources are not

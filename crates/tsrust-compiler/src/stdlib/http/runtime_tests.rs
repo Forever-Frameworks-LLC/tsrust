@@ -1,5 +1,106 @@
 use tsrust_native_http::*;
 #[test]
+fn ordinary_server_admits_more_than_legacy_concurrency_and_explicit_limit_rejects(){
+ use std::{sync::{Arc,atomic::{AtomicUsize,Ordering}},time::Duration};
+ struct Release(Arc<tokio::sync::Semaphore>);impl Drop for Release{fn drop(&mut self){self.0.add_permits(256);}}
+ tsrust_native_futures::block_on(async{
+  for configured in [false,true]{
+   let entered=Arc::new(AtomicUsize::new(0));let changed=Arc::new(tokio::sync::Notify::new());let gate=Arc::new(tokio::sync::Semaphore::new(0));
+   let mut app=App::new();if configured{app.configure([64,256,128,30000,5000,5000,0]).unwrap();}
+   let observed=entered.clone();let signal=changed.clone();let blocked=gate.clone();
+   app.route("GET","/",move |_|{let observed=observed.clone();let signal=signal.clone();let blocked=blocked.clone();async move{observed.fetch_add(1,Ordering::SeqCst);signal.notify_waiters();let permit=blocked.acquire().await.unwrap();permit.forget();Response::text("ok".into(),200).unwrap()}}).unwrap();
+   let server=app.listen("127.0.0.1:0").await.unwrap();let release=Release(gate);let url=format!("http://{}/",server.address());let client=reqwest::Client::new();let mut requests=tokio::task::JoinSet::new();
+   for _ in 0..128{let client=client.clone();let url=url.clone();requests.spawn(async move{let response=client.get(url).send().await.unwrap();assert_eq!(response.status().as_u16(),200);assert_eq!(response.text().await.unwrap(),"ok");});}
+   tokio::time::timeout(Duration::from_secs(5),async{loop{let ready=changed.notified();if entered.load(Ordering::SeqCst)>=128{break;}ready.await;}}).await.expect("initial handlers did not enter");
+   if configured{let response=tokio::time::timeout(Duration::from_secs(5),client.get(&url).send()).await.expect("explicit overload did not settle").unwrap();assert_eq!(response.status().as_u16(),503);assert_eq!(entered.load(Ordering::SeqCst),128);}
+   else{let client=client.clone();let url=url.clone();requests.spawn(async move{let response=client.get(url).send().await.unwrap();assert_eq!(response.status().as_u16(),200);assert_eq!(response.text().await.unwrap(),"ok");});tokio::time::timeout(Duration::from_secs(5),async{loop{let ready=changed.notified();if entered.load(Ordering::SeqCst)>=129{break;}ready.await;}}).await.expect("ordinary backend still had the legacy128 cap");}
+   drop(release);tokio::time::timeout(Duration::from_secs(5),async{while let Some(result)=requests.join_next().await{result.unwrap();}}).await.expect("released handlers did not settle");tokio::time::timeout(Duration::from_secs(5),server.shutdown()).await.expect("idle server did not drain");
+  }
+ });
+}
+#[test]
+fn ordinary_server_body_reads_and_explicit_legacy_budgets_are_distinct(){
+ tsrust_native_futures::block_on(async{
+  for limit in [None,Some(1048576),Some(1048577)]{
+   let mut app=App::new();if let Some(limit)=limit{app.configure([limit,8,8,5000,5000,5000,0]).unwrap();}
+   app.route("POST","/echo",|request|async move{Response::stream(request.body(),200).unwrap()}).unwrap();
+   let server=app.listen("127.0.0.1:0").await.unwrap();
+   if limit==Some(1048576){
+    // This policy rejects from Content-Length before consuming the body. Send
+    // only headers so an in-flight upload cannot race the early 413 response.
+    use tokio::io::{AsyncBufReadExt,AsyncWriteExt};
+    let status=tokio::time::timeout(std::time::Duration::from_secs(5),async{
+     let mut socket=tokio::net::TcpStream::connect(server.address()).await.unwrap();
+     socket.write_all(b"POST /echo HTTP/1.1\r\nHost: localhost\r\nContent-Length: 1048577\r\nConnection: close\r\n\r\n").await.unwrap();
+     let mut response=tokio::io::BufReader::new(socket);let mut status=String::new();response.read_line(&mut status).await.unwrap();status
+    }).await.expect("header-only over-limit request did not receive its early response");
+    assert!(status.starts_with("HTTP/1.1 413 "),"{status:?}");
+   }else{
+    let response=reqwest::Client::new().post(format!("http://{}/echo",server.address())).body("x".repeat(1048577)).send().await.unwrap();
+    assert_eq!(response.status().as_u16(),200);let text=response.text().await.unwrap();assert_eq!(text.len(),1048577);assert!(text.bytes().all(|byte|byte==b'x'));
+   }
+   server.shutdown().await;
+  }
+ });
+}
+#[test]
+fn explicit_http_bounds_validate_before_read_and_preserve_configured_limits(){
+ tsrust_native_futures::block_on(async{
+  for limit in [-1,i64::MIN]{assert_eq!(Client::with_options(None,Some(limit)).err().unwrap().code,"options");}
+  #[cfg(target_pointer_width="32")]
+  assert_eq!(Client::with_options(None,Some(i64::from(u32::MAX)+1)).err().unwrap().code,"options");
+  let make_form=|body:String|{let mut input=Request::new("POST","http://localhost/",body).unwrap();input.set_header("content-type","application/x-www-form-urlencoded").unwrap();input};
+  assert_eq!(make_form("a=b".into()).form(Some(-1)).await.err().unwrap().code,"options");
+  assert!(make_form(String::new()).form(Some(0)).await.unwrap().is_empty());
+  assert_eq!(make_form("a=b".into()).form(Some(0)).await.err().unwrap().code,"limit");
+  let fields=(0..129).map(|i|format!("n={i}")).collect::<Vec<_>>().join("&");
+  assert_eq!(make_form(fields.clone()).form(None).await.unwrap().len(),129);
+  assert_eq!(make_form(fields.clone()).form(Some(128)).await.err().unwrap().code,"limit");
+  let fields=make_form(fields).form(Some(129)).await.unwrap();assert_eq!(fields.len(),129);assert_eq!(fields[128].value,"128");
+  let make_parts=||{let mut body=String::new();for i in 0..129{body.push_str(&format!("--x\r\nContent-Disposition: form-data; name=\"n\"\r\n\r\n{i}\r\n"));}body.push_str("--x--\r\n");let mut input=Request::new("POST","http://localhost/",body).unwrap();input.set_header("content-type","multipart/form-data; boundary=x").unwrap();input};
+  assert_eq!(make_parts().multipart(None).await.unwrap().len(),129);
+  assert_eq!(make_parts().multipart(Some(128)).await.err().unwrap().code,"limit");
+  let parts=make_parts().multipart(Some(129)).await.unwrap();assert_eq!(parts.len(),129);assert_eq!(parts[128].data,b"128");
+  let mut app=App::new();app.route("GET","/bytes",|_|async{Response::text("abcd".into(),200).unwrap()}).unwrap();app.route("GET","/empty",|_|async{Response::text(String::new(),200).unwrap()}).unwrap();
+  app.route("GET","/above-old-limit",|_|async{Response::text("x".repeat(1048577),200).unwrap()}).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();let base=format!("http://{}",server.address());
+  for(limit,path,ok)in[(0,"empty",true),(0,"bytes",false),(3,"bytes",false),(4,"bytes",true)]{
+   let client=Client::with_options(None,Some(limit)).unwrap();let response=client.send(Request::new("GET",&format!("{base}/{path}"),String::new()).unwrap()).await.unwrap();let result=response.text_body().await;
+   if ok{assert_eq!(result.unwrap(),if path=="empty"{""}else{"abcd"});}else{assert_eq!(result.err().unwrap().code,"limit");}
+  }
+  for limit in [1048576,1048577]{
+   let client=Client::with_options(None,Some(limit)).unwrap();let response=client.send(Request::new("GET",&format!("{base}/above-old-limit"),String::new()).unwrap()).await.unwrap();
+   let result=response.text_body().await;
+   if limit==1048577{let text=result.unwrap();assert_eq!(text.len(),1048577);assert!(text.bytes().all(|byte|byte==b'x'));}else{assert_eq!(result.err().unwrap().code,"limit");}
+  }
+  let response=Client::new().unwrap().send(Request::new("GET",&format!("{base}/above-old-limit"),String::new()).unwrap()).await.unwrap();
+  assert_eq!(response.text_body().await.unwrap().len(),1048577);
+  server.shutdown().await;
+ });
+}
+#[test]
+fn client_default_redirect_policy_follows_relative_locations_and_stops_loops(){
+ tsrust_native_futures::block_on(async{
+  let mut app=App::new();
+  app.route("GET","/start",|_|async{let mut response=Response::text(String::new(),302).unwrap();response.set_header("location","/final").unwrap();response}).unwrap();
+  app.route("GET","/final",|_|async{Response::text("followed".into(),200).unwrap()}).unwrap();
+  app.route("GET","/loop",|_|async{let mut response=Response::text(String::new(),302).unwrap();response.set_header("location","/loop").unwrap();response}).unwrap();
+  let observed=std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+  for path in ["/post-start","/post-final"]{let observed=observed.clone();app.route("POST",path,move |request|{let observed=observed.clone();async move{
+   assert_eq!(request.method(),"POST");assert_eq!(request.header("content-length").unwrap().as_deref(),Some("17"));
+   assert_eq!(request.header("transfer-encoding").unwrap(),None);
+   let start=request.url().ends_with("/post-start");assert_eq!(request.text().await.unwrap(),"replayed é bytes");
+   observed.fetch_add(1,std::sync::atomic::Ordering::SeqCst);
+   if start{let mut response=Response::text(String::new(),307).unwrap();response.set_header("location","/post-final").unwrap();response}else{Response::text("replayed".into(),200).unwrap()}
+  }}).unwrap();}
+  let server=app.listen("127.0.0.1:0").await.unwrap();let base=format!("http://{}",server.address());let client=Client::new().unwrap();
+  let response=client.send(Request::new("POST",&format!("{base}/post-start"),"replayed é bytes".into()).unwrap()).await.unwrap();assert_eq!(response.status(),200);assert_eq!(response.text_body().await.unwrap(),"replayed");assert_eq!(observed.load(std::sync::atomic::Ordering::SeqCst),2);
+  let response=client.send(Request::new("GET",&format!("{base}/start"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),200);assert_eq!(response.text_body().await.unwrap(),"followed");
+  let error=client.send(Request::new("GET",&format!("{base}/loop"),String::new()).unwrap()).await.err().expect("default backend redirect limit");assert_eq!(error.code,"request");
+  server.shutdown().await;
+ });
+}
+#[test]
 fn loopback_routes_middleware_bodies_and_shutdown(){
  tsrust_native_futures::block_on(async{
   let mut app=App::new();
@@ -11,7 +112,7 @@ fn loopback_routes_middleware_bodies_and_shutdown(){
   let response=client.send(Request::new("GET",&format!("http://{address}/items/42"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),200);assert_eq!(response.header("x-after").unwrap().as_deref(),Some("yes"));assert_eq!(response.text_body().await.unwrap(),"42");
   let response=client.send(Request::new("POST",&format!("http://{address}/echo"),"héllo".into()).unwrap()).await.unwrap();assert_eq!(response.status(),201);assert_eq!(response.text_body().await.unwrap(),"héllo");
   for (method,path,status) in [("GET","/missing",404),("POST","/items/42",405)]{let response=client.send(Request::new(method,&format!("http://{address}{path}"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),status);assert_eq!(response.header("x-after").unwrap().as_deref(),Some("yes"));}
-  server.shutdown().await;assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"shutdown must release the listening socket");
+  server.shutdown().await;assert!(released(&address).await,"shutdown must release the listening socket");
  });
 }
 #[test]
@@ -22,8 +123,8 @@ fn validation_and_streaming_limits_do_not_silently_truncate(){
   assert!(Response::text("bad".into(),199).is_err());let mut request=Request::new("POST","http://localhost/","body".into()).unwrap();assert!(request.set_header("x-test","bad\r\nInjected: true").is_err());assert!(request.set_header("content-length","100").is_err());
   assert_eq!(request.method(),"POST");assert_eq!(request.url(),"http://localhost/");assert_eq!(request.text().await.unwrap(),"body");
   let mut body=Request::new("POST","http://localhost/","abc".into()).unwrap().body();assert_eq!(body.next().await.unwrap(),Some(b"abc".to_vec()));assert_eq!(body.next().await.unwrap(),None);
-  let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();assert_eq!(request.text().await.unwrap_err().code,"limit");
-  let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();let response=Response::stream(request.body(),200).unwrap();assert!(response.text_body().await.is_err());
+  let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();assert_eq!(request.text().await.unwrap().len(),1048577);
+  let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();let response=Response::stream(request.body(),200).unwrap();assert_eq!(response.text_body().await.unwrap().len(),1048577);
  });
 }
 #[test]
@@ -46,7 +147,10 @@ fn disconnect_and_shutdown_release_inflight_request_children(){
   let drops=Arc::new(AtomicUsize::new(0));let observed=drops.clone();
   tsrust_native_futures::block_on(async move{
    let started=Arc::new(tokio::sync::Notify::new());let signal=started.clone();
-   let observed_handler=observed.clone();let mut app=App::new();app.route("GET","/pending",move |_|{let guard=Guard(observed_handler.clone());let signal=signal.clone();async move{
+   let observed_handler=observed.clone();let mut app=App::new();
+   // This witness requires a bounded graceful shutdown; it is application policy.
+   app.configure([1048576,128,128,30000,50,5000,0]).unwrap();
+   app.route("GET","/pending",move |_|{let guard=Guard(observed_handler.clone());let signal=signal.clone();async move{
     let _child=tsrust_native_futures::start(async move{let _guard=guard;signal.notify_one();std::future::pending::<()>().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
     std::future::pending::<Response>().await
    }}).unwrap();
@@ -55,7 +159,7 @@ fn disconnect_and_shutdown_release_inflight_request_children(){
    tokio::time::timeout(std::time::Duration::from_secs(2),started.notified()).await.unwrap();
    if disconnect{drop(socket);tokio::time::timeout(std::time::Duration::from_secs(2),async{while observed.load(Ordering::SeqCst)==0{tokio::task::yield_now().await;}}).await.unwrap();server.shutdown().await;}
    else{tokio::time::timeout(std::time::Duration::from_secs(7),server.shutdown()).await.unwrap();drop(socket);}
-   assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"shutdown must release the listening socket");
+   assert!(released(&address).await,"shutdown must release the listening socket");
   });
   assert_eq!(drops.load(Ordering::SeqCst),1);
  }
@@ -87,13 +191,19 @@ fn cancelling_server_wait_drains_its_listener(){
   let server=App::new().listen("127.0.0.1:0").await.unwrap();let address=server.address();
   let job=tsrust_native_futures::start(async move{server.wait().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
   job.cancel();assert!(matches!(job.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
-  assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"cancelled wait must finish listener cleanup");
+  assert!(released(&address).await,"cancelled wait must finish listener cleanup");
  });
 }
 
 const TLS_CA:&str=include_str!("../../../tests/fixtures/tls/ca.pem");
 const TLS_CERT:&str=include_str!("../../../tests/fixtures/tls/server.pem");
 const TLS_KEY:&str=include_str!("../../../tests/fixtures/tls/server.key");
+/// Shutdown drops the listener before it returns. Parallel tests can briefly
+/// receive the same freed ephemeral port, so retry the rebind for up to a second.
+async fn released(address:&str)->bool{
+ for _ in 0..50{if tokio::net::TcpListener::bind(address).await.is_ok(){return true;}tokio::time::sleep(std::time::Duration::from_millis(20)).await;}
+ false
+}
 #[test]
 fn tls_verifies_trust_hostname_and_validity(){
  tsrust_native_futures::block_on(async{
@@ -109,7 +219,7 @@ fn tls_verifies_trust_hostname_and_validity(){
     if accepted{let response=response.unwrap();assert_eq!(response.status(),201);assert_eq!(response.text_body().await.unwrap(),"héllo");}else{assert!(response.is_err(),"invalid certificate accepted");}
    }
    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst),if accepted{3}else{0});
-   server.shutdown().await;assert!(tokio::net::TcpListener::bind(address).await.is_ok());
+   server.shutdown().await;assert!(released(&address).await,"TLS listener kept its port after shutdown");
   }
  });
 }
@@ -125,7 +235,7 @@ fn tls_rejects_bad_configuration_and_drains_stalled_handshakes(){
   let mut sockets=Vec::new();for _ in 0..16{sockets.push(tokio::net::TcpStream::connect(&address).await.unwrap());}
   tokio::time::sleep(std::time::Duration::from_millis(30)).await;
   tokio::time::timeout(std::time::Duration::from_secs(2),server.shutdown()).await.expect("shutdown must interrupt TLS handshakes");
-  assert!(tokio::net::TcpListener::bind(&address).await.is_ok());
+  assert!(released(&address).await,"TLS listener kept its port after shutdown");
   use tokio::io::AsyncReadExt;
   for mut socket in sockets{let mut byte=[0];let read=tokio::time::timeout(std::time::Duration::from_secs(1),socket.read(&mut byte)).await.unwrap();assert!(matches!(read,Ok(0)|Err(_)));}
  });
@@ -153,7 +263,7 @@ fn tls_negotiates_http_versions_and_cancellation_drains_children(){
   job.cancel();assert!(matches!(job.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
   let wait=tsrust_native_futures::start(async move{server.wait().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
   wait.cancel();assert!(matches!(wait.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
-  assert!(tokio::net::TcpListener::bind(address).await.is_ok());
+  assert!(released(&address).await);
  });
  assert_eq!(drops.load(Ordering::SeqCst),1);
 }
@@ -185,10 +295,10 @@ fn service_limits_forms_multipart_and_deadline_disposal(){
  struct Guard(Arc<AtomicUsize>);impl Drop for Guard{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
  tsrust_native_futures::block_on(async{
   let mut form=Request::new("POST","http://localhost/","a=one+two&a=%C3%A9&empty=".into()).unwrap();form.set_header("content-type","application/x-www-form-urlencoded").unwrap();
-  let fields=form.form().await.unwrap();assert_eq!(fields.len(),3);assert_eq!(fields[0].value,"one two");assert_eq!(fields[1].name,"a");assert_eq!(fields[1].value,"é");assert_eq!(fields[2].value,"");
-  for input in ["a=%","a=%GG","a=%FF"]{let mut request=Request::new("POST","http://localhost/",input.into()).unwrap();request.set_header("content-type","application/x-www-form-urlencoded").unwrap();assert!(request.form().await.is_err());}
+  let fields=form.form(None).await.unwrap();assert_eq!(fields.len(),3);assert_eq!(fields[0].value,"one two");assert_eq!(fields[1].name,"a");assert_eq!(fields[1].value,"é");assert_eq!(fields[2].value,"");
+  for input in ["a=%","a=%GG","a=%FF"]{let mut request=Request::new("POST","http://localhost/",input.into()).unwrap();request.set_header("content-type","application/x-www-form-urlencoded").unwrap();assert!(request.form(None).await.is_err());}
   let mut upload=Request::new("POST","http://localhost/","--x\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\r\nContent-Type: application/octet-stream\r\n\r\nabc\r\n--x--\r\n".into()).unwrap();upload.set_header("content-type","multipart/form-data; boundary=x").unwrap();
-  let parts=upload.multipart().await.unwrap();assert_eq!(parts[0].name,"attachment");assert_eq!(parts[0].content_type.as_deref(),Some("application/octet-stream"));assert_eq!(parts[0].data,b"abc");assert_eq!(parts[0].file_name.as_deref(),Some("../untrusted"));
+  let parts=upload.multipart(None).await.unwrap();assert_eq!(parts[0].name,"attachment");assert_eq!(parts[0].content_type.as_deref(),Some("application/octet-stream"));assert_eq!(parts[0].data,b"abc");assert_eq!(parts[0].file_name.as_deref(),Some("../untrusted"));
   let drops=Arc::new(AtomicUsize::new(0));let seen=drops.clone();let entered=Arc::new(tokio::sync::Notify::new());let ready=entered.clone();
   let mut app=App::new();assert!(app.configure([0,1,1,10,10,10,0]).is_err());app.configure([8,8,1,100,100,100,0]).unwrap();
   app.route("GET","/slow",move |_|{let guard=Guard(seen.clone());let ready=ready.clone();async move{let _guard=guard;ready.notify_one();std::future::pending::<Response>().await}}).unwrap();
@@ -320,9 +430,9 @@ fn producer_channel_backpressure_end_and_disposal(){
  tsrust_native_futures::block_on(async{
   let channel=tsrust_native_futures::Channel::new(1).unwrap();
   let sender=channel.sender();
-  assert!(sender.send::<()>(b"first".to_vec()).await.is_ok());
+  assert!(sender.send(b"first".to_vec()).await.is_ok());
   let mut body=Response::stream_channel(channel,200,|bytes|bytes).unwrap().body();
-  {let send=sender.send::<()>(b"second".to_vec());tokio::pin!(send);
+  {let send=sender.send(b"second".to_vec());tokio::pin!(send);
   assert!(std::future::poll_fn(|cx|std::task::Poll::Ready(matches!(std::future::Future::poll(send.as_mut(),cx),std::task::Poll::Pending))).await,"full channel must suspend the producer");
   assert_eq!(body.next().await.unwrap(),Some(b"first".to_vec()));
   assert!(send.await.is_ok());}drop(sender);
@@ -330,14 +440,14 @@ fn producer_channel_backpressure_end_and_disposal(){
   assert_eq!(body.next().await.unwrap(),None,"the bridge must release the channel's internal sender");
   let channel=tsrust_native_futures::Channel::new(1).unwrap();let sender=channel.sender();
   let response=Response::stream_channel(channel,200,|bytes:Vec<u8>|bytes).unwrap();
-  assert!(sender.send::<()>(vec![1]).await.is_ok());
-  let blocked=sender.send::<()>(vec![2]);tokio::pin!(blocked);
+  assert!(sender.send(vec![1]).await.is_ok());
+  let blocked=sender.send(vec![2]);tokio::pin!(blocked);
   assert!(std::future::poll_fn(|cx|std::task::Poll::Ready(matches!(std::future::Future::poll(blocked.as_mut(),cx),std::task::Poll::Pending))).await);
   drop(response);
-  assert!(matches!(blocked.await,Err(tsrust_native_futures::Failure::Closed)));
+  assert!(matches!(blocked.await,Err(tsrust_native_futures::SendError{code:"closed",value}) if value==vec![2]));
   let channel=tsrust_native_futures::Channel::new(1).unwrap();let sender=channel.sender();
   assert!(Response::stream_channel(channel,199,|bytes:Vec<u8>|bytes).is_err());
-  assert!(matches!(sender.send::<()>(vec![1]).await,Err(tsrust_native_futures::Failure::Closed)));
+  assert!(matches!(sender.send(vec![1]).await,Err(tsrust_native_futures::SendError{code:"closed",..})));
  });
 }
 
@@ -401,7 +511,8 @@ fn context_body_readers_consume_once_and_preserve_response_status(){
    assert_eq!(context.request_text().await.unwrap_err().code,"body");Some(context.text(value,None).unwrap())
   })).unwrap();
   app.route("POST","/form",|context|Box::pin(async move{
-   let fields=context.request_form().await.unwrap();assert_eq!(fields[0].name,"name");
+   assert_eq!(context.request_form(Some(-1)).await.err().unwrap().code,"options");
+   let fields=context.request_form(None).await.unwrap();assert_eq!(fields[0].name,"name");
    Some(context.text(fields[0].value.clone(),None).unwrap())
   })).unwrap();
   app.route("POST","/stream",|context|Box::pin(async move{
@@ -414,7 +525,8 @@ fn context_body_readers_consume_once_and_preserve_response_status(){
    Some(context.text(value,None).unwrap())
   })).unwrap();
   app.route("POST","/multipart",|context|Box::pin(async move{
-   let parts=context.request_multipart().await.unwrap();assert_eq!(parts[0].name,"name");
+   assert_eq!(context.request_multipart(Some(-1)).await.err().unwrap().code,"options");
+   let parts=context.request_multipart(None).await.unwrap();assert_eq!(parts[0].name,"name");
    Some(context.text(String::from_utf8(parts[0].data.clone()).unwrap(),None).unwrap())
   })).unwrap();
   let server=app.listen("127.0.0.1:0").await.unwrap();let client=Client::new().unwrap();

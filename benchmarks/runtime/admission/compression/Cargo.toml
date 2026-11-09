@@ -1,0 +1,25 @@
+[package]
+name = "tsrust-compression-admission"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+flate2 = { version = "=1.1.10", default-features = false }
+
+[features]
+default = []
+miniz = ["flate2/rust_backend", "flate2/runtime_detection"]
+zlib-rs = ["flate2/zlib-rs", "flate2/runtime_detection"]
+allocation-probe = []
+
+[[bin]]
+name = "compression-profile"
+path = "profile.rs"
+
+[profile.release]
+opt-level = 3
+overflow-checks = true
+incremental = false

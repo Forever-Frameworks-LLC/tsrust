@@ -1,0 +1,22 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+
+export function run() {
+  const values = Iterator.from([1, 2]).flatMap((value: int): Iterator<int> => Iterator.from([value, value]));
+  for (let index = 0; index < 4; index++) {
+    const step = values.next();
+    if (step.done) {
+      throw 'early end';
+    }
+
+    {
+      const observed1_0 = step.value;
+      strictEqual(observed1_0, index < 2 ? 1 : 2);
+    }
+  }
+
+  {
+    const observed2_0 = values.next().done;
+    strictEqual(observed2_0, true);
+  }
+}

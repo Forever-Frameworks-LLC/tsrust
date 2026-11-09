@@ -1,0 +1,14 @@
+import { lookup as resolve } from 'std:dns';
+import { formatIp, IpAddress, NetError } from 'std:net';
+
+function relay(task: Task<Result<IpAddress[], NetError>>): Task<Result<IpAddress[], NetError>> {
+  return task;
+}
+
+export async function run(): Task<void> {
+  const operation = resolve;
+  const host = '::1';
+  const family: 'any' | 'ipv4' | 'ipv6' | undefined = undefined;
+  const values = unwrap(await relay((true ? operation : operation)(host, family)));
+  console.log(values.length, formatIp(values[0]));
+}

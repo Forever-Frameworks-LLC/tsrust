@@ -1,0 +1,28 @@
+import { Heap } from 'std:collections';
+
+function workload(n: int, seed: int): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const heap = new Heap<int>();
+    for (const v of [7, 1, 9, 3, 3, 0, 8, 2]) {
+      heap.push(v + seed + i);
+    }
+
+    const rows = heap.toSortedArray();
+    let j = 0;
+    while (j < rows.length) {
+      checksum += (j + 1) * rows[j];
+      j++;
+    }
+
+    checksum += heap.size;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 7));
+}

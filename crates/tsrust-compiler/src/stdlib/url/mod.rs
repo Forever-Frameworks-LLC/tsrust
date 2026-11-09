@@ -1,0 +1,78 @@
+//! URL owners and computed members share identity-bearing native bindings.
+pub(crate) const RUNTIME:&str=include_str!("runtime.rs");
+#[cfg(test)] mod tests {include!("runtime.rs");include!("runtime_tests.rs");}
+use crate::{Mode,native_bindings::{NativeBinding,NativeBackend,NativeParameter,NativeType},native_signatures::{Signature,NativeTypeId}};
+use crate::native_return_borrows::{ReturnedBorrow,BorrowAccess,ReturnSlot};
+const ERROR:Signature=Signature::Named(NativeTypeId::UrlError);
+const fn binding(name:&'static str,parameters:&'static [NativeParameter],result:&'static Signature,slot:Option<ReturnSlot>)->NativeBinding {
+ NativeBinding{module:"std:url",name,parameters,result:NativeType::Structured(result),returned_borrow:match slot {Some(slot)=>Some(ReturnedBorrow{source_parameter:0,access:BorrowAccess::ReadOnly,payload:NativeTypeId::StringView,slot}),None=>None},backend:NativeBackend::Bundled{symbol:"url_intrinsic"},features:&["url"]}
+}
+pub(crate) const PARSE:NativeBinding=binding("parseUrl",&[NativeParameter{name:"text",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false},NativeParameter{name:"base",ty:NativeType::Structured(&Signature::Optional(&Signature::Named(NativeTypeId::Url))),access:Mode::Read,optional:true,rest:false}],&Signature::Result(&Signature::Named(NativeTypeId::Url),&ERROR),None);
+pub(crate) const RESOLVE:NativeBinding=binding("resolveUrl",&[NativeParameter{name:"base",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false},NativeParameter{name:"reference",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Result(&Signature::Named(NativeTypeId::Url),&ERROR),None);
+pub(crate) const FORMAT:NativeBinding=binding("formatUrl",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Named(NativeTypeId::StringView),Some(ReturnSlot::Direct));
+pub(crate) const HREF:NativeBinding=binding("__href",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Named(NativeTypeId::StringView),Some(ReturnSlot::Direct));
+pub(crate) const SET_HREF:NativeBinding=binding("__setHref",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const PROTOCOL:NativeBinding=binding("__protocol",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Named(NativeTypeId::StringView),Some(ReturnSlot::Direct));
+pub(crate) const SET_PROTOCOL:NativeBinding=binding("__setProtocol",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const USERNAME:NativeBinding=binding("__username",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Named(NativeTypeId::StringView),Some(ReturnSlot::Direct));
+pub(crate) const SET_USERNAME:NativeBinding=binding("__setUsername",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const PASSWORD:NativeBinding=binding("__password",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Optional(&Signature::Named(NativeTypeId::StringView)),Some(ReturnSlot::DirectOptional));
+pub(crate) const SET_PASSWORD:NativeBinding=binding("__setPassword",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::Optional(&Signature::String)),access:Mode::Read,optional:true,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const HOSTNAME:NativeBinding=binding("__hostname",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Optional(&Signature::Named(NativeTypeId::StringView)),Some(ReturnSlot::DirectOptional));
+pub(crate) const SET_HOSTNAME:NativeBinding=binding("__setHostname",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::Optional(&Signature::String)),access:Mode::Read,optional:true,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const PORT:NativeBinding=binding("__port",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Optional(&Signature::Int),None);
+pub(crate) const SET_PORT:NativeBinding=binding("__setPort",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::Optional(&Signature::Int)),access:Mode::Copy,optional:true,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const PATHNAME:NativeBinding=binding("__pathname",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Named(NativeTypeId::StringView),Some(ReturnSlot::Direct));
+pub(crate) const SET_PATHNAME:NativeBinding=binding("__setPathname",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const SEARCH:NativeBinding=binding("__search",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Optional(&Signature::Named(NativeTypeId::StringView)),Some(ReturnSlot::DirectOptional));
+pub(crate) const SET_SEARCH:NativeBinding=binding("__setSearch",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::Optional(&Signature::String)),access:Mode::Read,optional:true,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const HASH:NativeBinding=binding("__hash",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Optional(&Signature::Named(NativeTypeId::StringView)),Some(ReturnSlot::DirectOptional));
+pub(crate) const SET_HASH:NativeBinding=binding("__setHash",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::Optional(&Signature::String)),access:Mode::Read,optional:true,rest:false}],&Signature::Result(&Signature::Void,&ERROR),None);
+pub(crate) const ORIGIN:NativeBinding=binding("__origin",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::String,None);
+pub(crate) const PARSE_QUERY:NativeBinding=binding("parseQuery",&[NativeParameter{name:"text",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Named(NativeTypeId::SearchParams),None);
+pub(crate) const FORMAT_QUERY:NativeBinding=binding("formatQuery",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Read,optional:false,rest:false}],&Signature::String,None);
+pub(crate) const SEARCH_PARAMS:NativeBinding=binding("searchParams",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Named(NativeTypeId::SearchParams),None);
+pub(crate) const SET_SEARCH_PARAMS:NativeBinding=binding("setSearchParams",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"params",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Read,optional:false,rest:false}],&Signature::Void,None);
+pub(crate) const GET:NativeBinding=binding("__get",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Read,optional:false,rest:false},NativeParameter{name:"name",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Optional(&Signature::Named(NativeTypeId::StringView)),Some(ReturnSlot::DirectOptional));
+pub(crate) const GET_ALL:NativeBinding=binding("__getAll",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Read,optional:false,rest:false},NativeParameter{name:"name",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Array(&Signature::String),None);
+pub(crate) const HAS:NativeBinding=binding("__has",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Read,optional:false,rest:false},NativeParameter{name:"name",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Boolean,None);
+pub(crate) const APPEND:NativeBinding=binding("__append",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"name",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Void,None);
+pub(crate) const SET:NativeBinding=binding("__set",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"name",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false},NativeParameter{name:"input",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Void,None);
+pub(crate) const DELETE:NativeBinding=binding("__delete",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"name",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Void,None);
+pub(crate) const ENTRIES:NativeBinding=binding("__entries",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Read,optional:false,rest:false}],&Signature::Array(&Signature::Named(NativeTypeId::QueryEntry)),None);
+pub(crate) const SORT:NativeBinding=binding("__sort",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::SearchParams)),access:Mode::Mutate,optional:false,rest:false}],&Signature::Void,None);
+pub(crate) const PATH_TO_FILE_URL:NativeBinding=binding("pathToFileUrl",&[NativeParameter{name:"path",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Result(&Signature::Named(NativeTypeId::Url),&ERROR),None);
+pub(crate) const FILE_URL_TO_PATH:NativeBinding=binding("fileUrlToPath",&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::Url)),access:Mode::Read,optional:false,rest:false}],&Signature::Result(&Signature::String,&ERROR),None);
+pub(crate) const ENCODE_COMPONENT:NativeBinding=binding("encodeURIComponent",&[NativeParameter{name:"text",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::String,None);
+pub(crate) const DECODE_COMPONENT:NativeBinding=binding("decodeURIComponent",&[NativeParameter{name:"text",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],&Signature::Result(&Signature::String,&ERROR),None);
+pub(crate) const OPERATIONS:&[NativeBinding]=&[PARSE,RESOLVE,FORMAT,HREF,SET_HREF,PROTOCOL,SET_PROTOCOL,USERNAME,SET_USERNAME,PASSWORD,SET_PASSWORD,HOSTNAME,SET_HOSTNAME,PORT,SET_PORT,PATHNAME,SET_PATHNAME,SEARCH,SET_SEARCH,HASH,SET_HASH,ORIGIN,PARSE_QUERY,FORMAT_QUERY,SEARCH_PARAMS,SET_SEARCH_PARAMS,GET,GET_ALL,HAS,APPEND,SET,DELETE,ENTRIES,SORT,PATH_TO_FILE_URL,FILE_URL_TO_PATH,ENCODE_COMPONENT,DECODE_COMPONENT];
+pub(crate) struct Property {pub name:&'static str,pub getter:NativeBinding,pub setter:Option<NativeBinding>}
+pub(crate) const PROPERTIES:&[Property]=&[
+ Property{name:"href",getter:HREF,setter:Some(SET_HREF)},
+ Property{name:"protocol",getter:PROTOCOL,setter:Some(SET_PROTOCOL)},
+ Property{name:"username",getter:USERNAME,setter:Some(SET_USERNAME)},
+ Property{name:"password",getter:PASSWORD,setter:Some(SET_PASSWORD)},
+ Property{name:"hostname",getter:HOSTNAME,setter:Some(SET_HOSTNAME)},
+ Property{name:"port",getter:PORT,setter:Some(SET_PORT)},
+ Property{name:"pathname",getter:PATHNAME,setter:Some(SET_PATHNAME)},
+ Property{name:"search",getter:SEARCH,setter:Some(SET_SEARCH)},
+ Property{name:"hash",getter:HASH,setter:Some(SET_HASH)},
+ Property{name:"origin",getter:ORIGIN,setter:None},
+];
+pub(crate) fn property(name:&str)->Option<&'static Property>{PROPERTIES.iter().find(|property|property.name==name)}
+pub(crate) fn method(identity:Option<NativeTypeId>,name:&str)->Option<&'static NativeBinding>{
+ if identity!=Some(NativeTypeId::SearchParams){return None;}
+ Some(match name {"get"=>&GET,"getAll"=>&GET_ALL,"has"=>&HAS,"append"=>&APPEND,"set"=>&SET,"delete"=>&DELETE,"entries"=>&ENTRIES,"sort"=>&SORT,_=>return None})
+}
+
+pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
+ if program.records.iter().any(|record|matches!(record.native_type,Some(NativeTypeId::Url | NativeTypeId::SearchParams))) {
+  for binding in OPERATIONS {crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}
+ }
+ Ok(())
+}
+
+pub(crate) fn call(binding:&NativeBinding,args:Vec<crate::syntax::Expr>,span:crate::Span)->crate::syntax::Expr {
+ use crate::syntax::{Expr,ExprKind};
+ Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:std:url#{}",binding.name)),span)),args),span)
+}

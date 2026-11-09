@@ -1,0 +1,7 @@
+import { HttpError } from 'std:http';
+
+function inspect(value: HttpError): void {}
+
+export function main() {
+  console.log('ok');
+}

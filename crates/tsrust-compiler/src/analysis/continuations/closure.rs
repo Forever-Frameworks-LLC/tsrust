@@ -88,6 +88,7 @@ impl Analyzer {
         let result = if let Some(result) = contextual_result { result }
             else if inferred_result { Type::Void } else { self.resolve_result(result)? };
         let escapes = self.escaping.contains(&origin) || self.program_callback_sites.get(&span.start) == Some(&CallbackKind::Program);
+        let program_scoped = self.program_callback_sites.contains_key(&span.start) || matches!(contextual, Some(Type::Callback(id)) if matches!(self.callables.callbacks[id].kind, CallbackKind::Program | CallbackKind::ProgramReusable));
         let mut visible = outer.names.values().copied().collect::<Vec<_>>();
         // A nested function called in the body can need a variable that has no
         // visible name here: a shadowed one, or one that only a called function uses.
@@ -98,6 +99,39 @@ impl Analyzer {
         visible.sort_unstable();
         visible.dedup();
         let mut context = capture_context::project(outer, &visible);
+        // These slots become private fields of an escaping owned environment,
+        // not borrowed parameters. Keep normal capture/loan checking; only the
+        // physical carrier planner receives this finite ownership capability.
+        let owned=contextual.is_some_and(|ty|match ty{
+            Type::Callback(id)=>self.callables.callbacks[id].kind.is_owned(),
+            Type::Callable(id)=>self.callables.shapes.get(self.callables.results[id].structural).kind.unwrap_or(CallbackKind::Owned).is_owned(),
+            Type::StoredCallable(id)=>self.callables.storage.declaration(id).is_some_and(|id|self.callables.callbacks[id].kind.is_owned()),
+            _=>false,
+        });
+        if escapes && owned && !program_scoped && !outer.program_retained_state{
+            for(inner,&root)in visible.iter().enumerate(){
+                let binding=&outer.bindings[root];
+                if !binding.rebindable || binding.capture_reference || binding.mutable_place
+                    || outer.readonly_parameters.contains(&root) || outer.mutable_parameters.contains(&root)
+                    || binding.parameter && binding.mode!=Mode::Consume
+                    || self.program.module_owner_bindings.iter().any(|declaration|outer.source_bindings.get(&declaration.start)==Some(&root))
+                    || self.native_shape_contains_view(binding.ty) || self.aggregate_callable_facts(binding.ty).scoped
+                {continue;}
+                if self.nullable_scoped_record_declaration(binding.ty).is_some(){
+                    context.owned_record_captures.insert(inner);
+                    context.control_stored.insert(inner);
+                }
+            }
+        }
+        if origin>=usize::MAX/2 && self.task_sources.contains(&origin) && !escapes {
+            // Compiler-created scoped tasks retain stable native input loans.
+            // Those loans protect the caller's proven alternative until task
+            // settlement. Generic/escaping closures still start without facts.
+            context.flow=outer.flow.iter().filter_map(|(place,fact)|{
+                visible.binary_search(&place.root).ok().map(|root|(
+                    crate::flow::Place{root,fields:place.fields.clone()},fact.clone()))
+            }).collect();
+        }
         context.http_retained_state = self.http_handler_origins.contains(&origin);
         context.program_retained_state=self.program_callback_sites.get(&span.start)==Some(&CallbackKind::Program)
             || matches!(contextual,Some(Type::Callback(id)) if self.callables.callbacks[id].kind==CallbackKind::Program);
@@ -123,7 +157,6 @@ impl Analyzer {
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();
         }
-        let program_scoped = self.program_callback_sites.contains_key(&span.start) || matches!(contextual, Some(Type::Callback(id)) if matches!(self.callables.callbacks[id].kind, CallbackKind::Program | CallbackKind::ProgramReusable));
         let contextual = contextual.and_then(|ty| match self.unions.payload(ty).unwrap_or(ty) {
             Type::Callback(id) => Some(self.callables.callbacks[id].params.clone()),
             Type::Callable(id) => Some(self.callables.results[id].params.clone()),
@@ -150,6 +183,12 @@ impl Analyzer {
             let ty = self.scoped_records.recursive_parameter(ty);
             self.arrow_parameter_contract(param, ty)?;
             let binding = Self::bind(&mut context,&param.name,ty,true)?;
+            // An inferred Task value uses the solved callback's input access.
+            // Explicit Task annotations retain intrinsic consuming ownership.
+            if matches!(param.ty,ParameterAnnotation::Inferred(_)) && self.is_task_type(ty)
+                && contextual.as_ref().and_then(|parameters|parameters.get(position)).is_some_and(|parameter|parameter.mode==Mode::Read) {
+                context.readonly_parameters.insert(binding);
+            }
             parameters.push(binding);
             declared.push(ty);
         }
@@ -216,10 +255,11 @@ impl Analyzer {
             context.bindings[binding].callback_kind=Some(kind);
             context.bindings[binding].callback_reference=matches!(kind,CallbackKind::Reusable|CallbackKind::Read);
             context.bindings[binding].callback_invocation=Some(kind.invocation());
-            if kind.is_owned()||kind.is_once() {context.bindings[binding].mode=Mode::Consume;}
+            if (kind.is_owned()||kind.is_once())&&!(kind==CallbackKind::Task&&(param.access.as_ref().is_some_and(|access|access.text=="read")||context.readonly_parameters.contains(&binding))) {context.bindings[binding].mode=Mode::Consume;}
         }
         if param.access.as_ref().is_some_and(|access|access.text=="read") && !body_ty.is_copy() {
             context.readonly_parameters.insert(binding);
+            if self.is_task_type(body_ty){context.bindings[binding].callback_kind=Some(CallbackKind::Task);context.bindings[binding].callback_invocation=Some(Mode::Consume);}
         }
         if param.access.as_ref().is_some_and(|access|access.text=="mutate") && !body_ty.is_copy() {
             context.mutable_parameters.insert(binding);
@@ -287,11 +327,19 @@ impl Analyzer {
             result
         };
         self.finalize_nullable_locals(&mut context.bindings, body)?;
+        let result = if method_template && !inferred_result { result } else { self.physical_record_result(body,result)? };
         let restoration_bounded=capture_restoration::bounded_body(body);
         let mut captures = Vec::new();
         let mut program_captures = Vec::new();
         let mut invocation = Mode::Read;
         for (inner, &outer_id) in visible.iter().enumerate() {
+            // A borrowed task input may be retained for ordinary reads, but its
+            // capture representation cannot erase consuming/mutating body use.
+            if self.task_sources.contains(&origin) && outer.readonly_parameters.contains(&outer_id)
+                && context.bindings[inner].used.is_some() {
+                let name=context.bindings[inner].name.clone();
+                Self::stated_parameter_access(&name,&mut context.bindings[inner],Mode::Read,span)?;
+            }
             let binding = &context.bindings[inner];
             if let Some(usage) = binding.used {
                 if self.discovering_results && self.has_pending_result(binding.ty) {
@@ -360,7 +408,24 @@ impl Analyzer {
                     program_captures.push(ProgramCapture { declaration, inner, access: storage, span: usage });
                     continue;
                 }
-                Self::access(outer, outer_id, storage, span, loans)?;
+                if context.owned_record_captures.contains(&inner) && storage!=Mode::Consume{
+                    return Err(Diagnostic::new("callback-escape","A private owned record carrier requires ownership of its captured slot.",span));
+                }
+                let keep_start=outer.keep_flow.len();
+                if origin>=usize::MAX/2 && self.task_sources.contains(&origin) && !escapes && storage==Mode::Mutate {
+                    // Reserving a scoped task's capture must not invalidate a
+                    // guarded tag that its checked body only projects through.
+                    // Preserve only facts still true after that body's effects;
+                    // whole-tag writes and ordinary closures retain invalidation.
+                    for (place,fact) in &outer.flow {
+                        if place.root==outer_id && context.flow.get(&crate::flow::Place{root:inner,fields:place.fields.clone()})==Some(fact) {
+                            outer.keep_flow.push(place.clone());
+                        }
+                    }
+                }
+                let accessed=Self::access(outer, outer_id, storage, span, loans);
+                outer.keep_flow.truncate(keep_start);
+                accessed?;
                 if matches!(storage, Mode::Read | Mode::Mutate) {
                     outer.capture_loans.push((outer_id, storage, span));
                 }

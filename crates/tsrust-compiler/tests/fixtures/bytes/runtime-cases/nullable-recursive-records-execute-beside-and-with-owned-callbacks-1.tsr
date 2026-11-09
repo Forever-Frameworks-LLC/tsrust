@@ -1,0 +1,23 @@
+import { strictEqual } from 'std:testing';
+
+type Link = {
+  value: int;
+  next?: Link;
+};
+
+type Holder = {
+  read: Function<int>;
+};
+
+export function run() {
+  const link: Link = {
+    value: 7, next: {
+      value: 11
+    }
+  };
+  const holder: Holder = {
+    read: (): int => 3
+  };
+  strictEqual(link.next!.value, 11);
+  strictEqual(holder.read(), 3);
+}

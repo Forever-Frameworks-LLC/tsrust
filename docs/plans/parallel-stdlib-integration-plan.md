@@ -1,5 +1,10 @@
 # Standard-library worker: integrate accepted work into main
 
+> Historical integration procedure. New stdlib work follows the
+> [v0.2.0 checklist](stdlib-0.2.0.md), current release policy and the single
+> agent-progress.md note. Do not recreate the retired archive/evidence stores or
+> extra handoff files described below.
+
 ## Goal
 
 Finish the current path joining and endianness checkpoint, then integrate the complete accepted standard-library series into main, including canonical evidence and executable consumers. The owner now explicitly requests integration; this supersedes the earlier worker prompts that prohibited merging into main. Branch acceptance alone is not completion of this goal.

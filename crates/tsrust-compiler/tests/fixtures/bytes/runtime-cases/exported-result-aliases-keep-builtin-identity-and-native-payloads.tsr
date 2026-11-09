@@ -1,0 +1,28 @@
+import { Outcome as Batch, Plain, build } from './types.tsr';
+import { length } from 'std:bytes';
+import { strictEqual } from 'std:testing';
+
+function inspect(result: ReadOnly<Batch>): int {
+  match (result) {
+    Ok(bytes) => {
+      return length(bytes);
+    },
+    Err(error) => {
+      return -1;
+    }
+  }
+}
+
+export function run() {
+  const result: Batch = build();
+  strictEqual(inspect(result), 2);
+  const plain: Plain = Ok(4);
+  match (plain) {
+    Ok(value) => {
+      strictEqual(value, 4);
+    },
+    Err(error) => {
+      throw error;
+    }
+  }
+}

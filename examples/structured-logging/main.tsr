@@ -1,0 +1,90 @@
+import { Logger, createLogger } from 'std:log';
+import { Router, Context, Response, Client, accessLog, request } from 'std:http';
+import { all, yield, delay, Channel, Sender } from 'std:futures';
+import { strictEqual } from 'std:testing';
+async function worker(logger: Logger): Task<void> {
+  await yield();
+  logger.info(() => ({
+    message: 'worker', count: 3, ok: true
+  }));
+}
+
+async function cancellable(logger: Logger, ready: Sender<int>): Task<void> {
+  await ready.send(1);
+  await delay(60000);
+  unwrap(logger.flush());
+}
+
+async function respond(logger: ReadOnly<Logger>, context: Mutable<Context>): Task<Response> {
+  logger.info(() => ({
+    message: 'before', count: 1, ok: true
+  }));
+  const job = worker(logger.child({
+    part: 'worker'
+  })).start();
+  await job;
+  const ready = new Channel<int>(1);
+  const pending = cancellable(logger.child({
+    part: 'cleanup'
+  }), ready.sender()).start();
+  let requested = false;
+  let cancelled = false;
+  try {
+    strictEqual(await ready.receive(), 1);
+  } finally {
+    requested = pending.cancel();
+    try {
+      await pending;
+    } catch {
+      cancelled = true;
+    }
+
+    // Aborting a Rust future drops its owners; cleanup code runs after settlement.
+    logger.info(() => ({
+      message: 'cleanup', count: 4, ok: true
+    }));
+  }
+
+  strictEqual(requested, true);
+  strictEqual(cancelled, true);
+  logger.info(() => ({
+    message: 'after', count: 2, ok: true
+  }));
+  return context.text('ok');
+}
+
+async function call(client: ReadOnly<Client>, url: ReadOnly<string>): Task<void> {
+  const reply = await client.send(request('GET', url, ''));
+  strictEqual(reply.status(), 200);
+  strictEqual(await reply.text(), 'ok');
+}
+
+export async function runScenario(): Task<void> {
+  const logger = unwrap(createLogger({
+    sink: 'stdout'
+  }));
+  const routeLogger = logger.child({
+    service: 'api', worker: 7, healthy: true, ratio: 1.5
+  });
+  const app = new Router();
+  app.use(accessLog(logger));
+  app.get('/items/:id', context => respond(routeLogger, context));
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const client = new Client({
+      noProxy: true
+    });
+    const one = 'http://' + server.address() + '/items/one?secret=never-log-this';
+    const two = 'http://' + server.address() + '/items/two?secret=never-log-this';
+    await all([call(client, one), call(client, two)]);
+  } finally {
+    await server.shutdown();
+  }
+
+  unwrap(logger.close());
+  console.log('logging exact');
+}
+
+async function main(): Task<void> {
+  await runScenario();
+}

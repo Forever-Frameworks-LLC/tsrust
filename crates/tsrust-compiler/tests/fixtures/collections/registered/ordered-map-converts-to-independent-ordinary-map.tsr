@@ -1,0 +1,19 @@
+import { OrderedMap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+export function main() {
+  const ordered = new OrderedMap<string, string>();
+  ordered.set('z', 'last');
+  ordered.set('a', 'first');
+  const ordinary = new Map<string, string>(ordered);
+  let keys = '';
+  for (const entry of ordinary) {
+    keys += entry[0];
+  }
+
+  strictEqual(keys, 'az');
+  ordinary.delete('a');
+  strictEqual(ordered.size, 2);
+  strictEqual(ordinary.size, 1);
+  strictEqual(ordinary.get('z'), 'last');
+}

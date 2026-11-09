@@ -1,0 +1,31 @@
+import { Router, cors, secureHeaders, compress } from 'std:http';
+import { listen, receive } from 'std:signals';
+
+type Ready = {
+  address: string
+};
+async function main(): Task<void> {
+  const signals = unwrap(listen());
+  const app = new Router();
+  app.use('/cors/*', cors({
+    origins: ['https://allowed.example'], methods: ['GET']
+  }));
+  app.use('/secure/*', secureHeaders());
+  app.use('/gzip/*', compress());
+  app.use('/deflate/*', compress());
+  app.get('/baseline/:id', c => c.text('middleware é '.repeat(256)));
+  app.get('/cors/:id', c => c.text('middleware é '.repeat(256)));
+  app.get('/secure/:id', c => c.text('middleware é '.repeat(256)));
+  app.get('/gzip/:id', c => c.text('middleware é '.repeat(256)));
+  app.get('/deflate/:id', c => c.text('middleware é '.repeat(256)));
+  const server = await app.listen('127.0.0.1:0');
+  const ready: Ready = {
+    address: server.address()
+  };
+  console.log(JSON.stringify(ready));
+  try {
+    await receive(signals);
+  } finally {
+    await server.shutdown();
+  }
+}

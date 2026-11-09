@@ -1,0 +1,52 @@
+import { alloc, at, readInt, writeInt, readUint, writeUint, readFloat32, writeFloat32, readFloat64, writeFloat64 } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[] {
+  let size = 64;
+  if (input === "4k") {
+    size = 4096;
+  }
+
+  if (input === "1m") {
+    size = 1048576;
+  }
+
+  const bytes = unwrap(alloc(size));
+  const records = size / 64;
+  const output: int[] = [];
+  let i = 0;
+  while (i < n) {
+    let record = 0;
+    while (record < records) {
+      const base = record * 64;
+      const order: "little" | "big" = record % 2 === 0 ? "little" : "big";
+      unwrap(writeInt(bytes, base + 1, 65, 1, order));
+      unwrap(writeInt(bytes, base + 3, -12345, 2, order));
+      unwrap(writeInt(bytes, base + 5, -1234567, 4, order));
+      unwrap(writeInt(bytes, base + 9, 123456789, 8, order));
+      unwrap(writeUint(bytes, base + 17, 255, 1, order));
+      unwrap(writeUint(bytes, base + 19, 65535, 2, order));
+      unwrap(writeUint(bytes, base + 21, 4294967295, 4, order));
+      unwrap(writeFloat32(bytes, base + 25, 1.5, order));
+      unwrap(writeFloat64(bytes, base + 33, -2.25, order));
+      record += 1;
+    }
+
+    let checksum = 0;
+    let byte = 0;
+    while (byte < size) {
+      checksum += unwrap(at(bytes, byte));
+      byte += 1;
+    }
+
+    output.push(size);
+    output.push(checksum);
+    output.push(records);
+    i += 1;
+  }
+
+  return output;
+}
+
+function main() {
+  workload(1, 7, "token");
+}

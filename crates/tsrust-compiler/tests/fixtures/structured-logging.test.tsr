@@ -1,0 +1,84 @@
+import { Channel } from 'std:futures';
+import { describe, test, strictEqual, rejects, trackedResource, resourceId, releaseCount, closeResource } from 'std:testing';
+import { createLogger, info, Logger } from 'std:log';
+
+type Write = (logger: ReadOnly<Logger>, make: Once<Function<Event>>) => void;
+import { runScenario } from '../../../../examples/structured-logging/main';
+
+type Event = {
+  message: string
+};
+describe('structured logging', () => {
+  test('request context and owned child cleanup', async () => {
+    await runScenario();
+  });
+  test('disabled factory drops its owned capture without invocation', () => {
+    const logger = unwrap(createLogger({
+      sink: 'stderr', level: 'off'
+    }));
+    const resource = trackedResource();
+    const id = resourceId(resource);
+    logger.debug((): Event => {
+      closeResource(resource);
+      throw 'disabled callback ran';
+    });
+    strictEqual(releaseCount(id), 1);
+    unwrap(logger.close());
+  });
+  test('aliases and stored calls retain children after parent close', () => {
+    const make = createLogger;
+    const root = unwrap(make({
+      sink: 'stderr', level: 'off'
+    }));
+    const nested = root.child({
+      service: 'alias'
+    });
+    unwrap(root.close());
+    const write = info;
+    const stored: Write = info;
+    write(nested, (): Event => {
+      throw 'disabled alias ran';
+    });
+    stored(nested, (): Event => {
+      throw 'disabled stored call ran';
+    });
+    unwrap(nested.close());
+  });
+  test('invalid sink options remain explicit Result errors', () => {
+    let rejected = false;
+    try {
+      const invalid = unwrap(createLogger({
+        sink: 'file'
+      }));
+      unwrap(invalid.close());
+    } catch (error) {
+      strictEqual(error.code, 'options');
+      rejected = true;
+    }
+
+    strictEqual(rejected, true);
+  });
+  test('enabled factory preserves its checked rejection', async () => {
+    const reported = new Channel<int>(1);
+    const sender = reported.sender();
+    await rejects(async () => {
+      const logger = unwrap(createLogger({
+        sink: 'stderr'
+      }));
+      try {
+        logger.info((): Event => {
+          throw {
+            code: 'factory', value: 7
+          };
+        });
+      } catch (error) {
+        strictEqual(error.code, 'factory');
+        await sender.send(error.value);
+        throw error;
+      } finally {
+        unwrap(logger.close());
+      }
+    });
+    strictEqual(await reported.receive(), 7);
+  });
+});

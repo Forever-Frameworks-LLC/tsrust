@@ -62,6 +62,7 @@ Usage:
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline] [--portable]
+  tsrust bindings generate <file.bindings.json> --crate name --source crate-root.rs --select name,name [--rustdoc crate.json]
   tsrust new [name-or-path] [--app [--target backend]]
   tsrust docs content [--cwd directory]
   tsrust api generate [entry.tsr | --entry file | --config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
@@ -98,6 +99,10 @@ Commands:
   test     Discover and run .test.tsr / .spec.tsr files
 
 Options:
+  --filter <text>            Test names containing literal full suite/name text
+  --reporter <mode>          Test reporter: pretty, plain or json (NDJSON)
+  --timeout <milliseconds>   Explicit async test-body deadline; no default
+  --profile                  Test setup/build timings, separate from test execution
   -h, --help                 Show this help
   -V, --version              Show compiler version
   -o, --output <path>        Output file for emit/build
@@ -178,6 +183,7 @@ mod argument_tests {
 }
 
 fn run() -> Result<u8, String> {
+    let command_started=std::time::Instant::now();
     if let Some(code)=toolchain_install::dispatch()?{return Ok(code);}
     let arguments=env::args().skip(1).collect::<Vec<_>>();
     interactive_cli::colors();
@@ -217,9 +223,9 @@ fn run() -> Result<u8, String> {
     let mut test_options = Vec::new();
     let source_path = if command == "test" {
         while let Some(arg) = args.next() {
-            if arg == "--color" {
-                test_options.push(arg);
-                test_options.push(args.next().ok_or("--color requires auto, always or never")?);
+            if matches!(arg.as_str(),"--color"|"--filter"|"--reporter"|"--timeout") {
+                let message=format!("{arg} requires a value");test_options.push(arg);
+                test_options.push(args.next().ok_or(message)?);
             } else if arg.starts_with('-') { test_options.push(arg); }
             else { test_paths.push(PathBuf::from(arg)); }
         }
@@ -231,6 +237,8 @@ fn run() -> Result<u8, String> {
     let mut output: Option<PathBuf> = None;
     let mut json = false;
     let mut color_mode = "auto".to_owned();
+    let mut test_filter:Option<String>=None;let mut test_reporter:Option<String>=None;let mut test_timeout:Option<u64>=None;
+    let mut test_profile=false;
     let mut release = false;
     let mut package = false;
     while let Some(arg) = args.next() {
@@ -239,6 +247,13 @@ fn run() -> Result<u8, String> {
                 output = Some(PathBuf::from(args.next().ok_or("Missing output path")?))
             }
             "--json" if !json => json = true,
+            "--filter" if command=="test"&&test_filter.is_none()=>test_filter=Some(args.next().ok_or("--filter requires a literal name substring")?),
+            _ if command=="test"&&arg.starts_with("--filter=")&&test_filter.is_none()=>test_filter=Some(arg[9..].to_owned()),
+            "--reporter" if command=="test"&&test_reporter.is_none()=>test_reporter=Some(args.next().ok_or("--reporter requires pretty, plain or json")?),
+            _ if command=="test"&&arg.starts_with("--reporter=")&&test_reporter.is_none()=>test_reporter=Some(arg[11..].to_owned()),
+            "--profile" if command=="test"&&!test_profile=>test_profile=true,
+            "--timeout" if command=="test"&&test_timeout.is_none()=>test_timeout=Some(test_timeout_value(&args.next().ok_or("--timeout requires milliseconds")?)?),
+            _ if command=="test"&&arg.starts_with("--timeout=")&&test_timeout.is_none()=>test_timeout=Some(test_timeout_value(&arg[10..])?),
             "--color" => {
                 color_mode = args
                     .next()
@@ -250,6 +265,7 @@ fn run() -> Result<u8, String> {
             _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
         }
     }
+    if test_reporter.as_deref().is_some_and(|value|!matches!(value,"pretty"|"plain"|"json")){return Err("--reporter requires pretty, plain or json".into());}
     if !matches!(color_mode.as_str(), "auto" | "always" | "never") {
         return Err("--color requires auto, always or never".into());
     }
@@ -392,7 +408,7 @@ fn run() -> Result<u8, String> {
     let shared_inputs = backend_sources::application_identity(&rust, &cache_root)?;
     let mut cache_parts: Vec<&[u8]> = vec![
             b"native-cache-abi-4-ui-dev-profile",
-            native_dependency_bundle::IDENTITY.as_bytes(),
+            native_dependency_bundle::dependency_identity().as_bytes(),
             backend_identity.as_bytes(),
             env!("CARGO_PKG_VERSION").as_bytes(),
             env::consts::OS.as_bytes(),
@@ -405,6 +421,7 @@ fn run() -> Result<u8, String> {
             optimization.as_bytes(),
         ];
     if let Some(inputs) = &shared_inputs { cache_parts.push(inputs.as_bytes()); }
+    if let Some(identity)=runtime_build::application_cache_identity(&rust){cache_parts.push(identity);}
     let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
     let reused = cache.copy_to(&executable);
@@ -413,11 +430,12 @@ fn run() -> Result<u8, String> {
     if !reused {
         let mut prepared=runtime_build::Prepared::new(&rust,&backend_identity,&cache_root,&directory.0,release)?;
         if let Some(mut runtime)=prepared.command.take() {
+            prepared.acquire_target(true)?;
             let result=runtime.output().map_err(|e|e.to_string())?;
             if !result.status.success(){return Err(prepared.compilation_error(&String::from_utf8_lossy(&result.stderr)));}
-            prepared.publish();
+            prepared.finish()?;prepared.publish();
         }
-        if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
+        if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
         let mut command=backend_command();prepared.link(&mut command)?;
         let result = command
             .arg("--edition=2024")
@@ -447,13 +465,32 @@ fn run() -> Result<u8, String> {
         // Cache failure must not turn a successful native build into a failure.
         if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root) { let _ = cache.publish(&executable); }
     }
-    if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
+    if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
         eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});
+    }
+    if test_profile {
+        let profile=serde_json::json!({
+            "event":"build", "durationMs":command_started.elapsed().as_secs_f64()*1000.0,
+            "checkMs":check_elapsed.as_secs_f64()*1000.0,
+            "emitMs":emit_elapsed.as_secs_f64()*1000.0,
+            "backendMs":backend_elapsed.as_secs_f64()*1000.0,
+            "cacheMs":cache_elapsed.as_secs_f64()*1000.0,
+            "nativeBuildMs":if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0},
+            "cache":if reused {"hit"}else{"miss"}, "testFiles":test_paths.len()
+        });
+        let reporter=test_reporter.clone().or_else(||env::var("TSRUST_TEST_REPORTER").ok());
+        if reporter.as_deref()==Some("json") {
+            use std::io::Write;
+            let mut stdout=std::io::stdout().lock();
+            writeln!(stdout,"{profile}").and_then(|()|stdout.flush()).map_err(|e|e.to_string())?;
+        } else {
+            eprintln!("[build] total={:.1}ms check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",profile["durationMs"].as_f64().unwrap(),profile["checkMs"].as_f64().unwrap(),profile["emitMs"].as_f64().unwrap(),profile["backendMs"].as_f64().unwrap(),if reused {"hit"}else{"miss"},profile["cacheMs"].as_f64().unwrap(),profile["nativeBuildMs"].as_f64().unwrap());
+        }
     }
     if command == "run" || command == "test" {
         let mut executable_command=Command::new(&executable);
         executable_command.args(&program_arguments);
-        if command == "test" && std::env::var_os("TSRUST_TEST_REPORTER").is_none() { executable_command.env("TSRUST_TEST_REPORTER", "pretty"); }
+        if command=="test"{if let Some(reporter)=&test_reporter{executable_command.env("TSRUST_TEST_REPORTER",reporter);}else if std::env::var_os("TSRUST_TEST_REPORTER").is_none(){executable_command.env("TSRUST_TEST_REPORTER","pretty");}if let Some(filter)=&test_filter{executable_command.env("TSRUST_TEST_FILTER",filter);}if let Some(timeout)=test_timeout{executable_command.env("TSRUST_TEST_TIMEOUT_MS",timeout.to_string());}}
         if let Some(root)=&project_root {executable_command.current_dir(root);}
         let status = executable_command
             .env("TSRUST_COLOR", &color_mode)
@@ -587,3 +624,5 @@ fn main() -> ExitCode {
         }
     }
 }
+
+fn test_timeout_value(text:&str)->Result<u64,String>{let value=text.parse::<u64>().map_err(|_|"--timeout requires a nonnegative integer millisecond duration".to_owned())?;std::time::Instant::now().checked_add(std::time::Duration::from_millis(value)).ok_or_else(||"--timeout exceeds the backend Instant range".to_owned())?;Ok(value)}

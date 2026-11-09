@@ -1,0 +1,8 @@
+import { SseEvent } from "std:http";
+
+export function main() {
+  const value: SseEvent = {
+    data: 'hello'
+  };
+  console.log(value.data);
+}

@@ -1,0 +1,84 @@
+import { Deque, Heap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function sum(...values: int[]): int {
+  let total = 0;
+  for (const value of values) {
+    total += value;
+  }
+
+  return total;
+}
+
+function read(value: ReadOnly<string>): int {
+  return value.length;
+}
+
+function take(...values: string[]): int {
+  let total = 0;
+  for (const value of values) {
+    total += value.length;
+  }
+
+  return total;
+}
+
+function update(value: Mutable<int[]>) {
+  value.push(2);
+}
+
+function change(values: Mutable<Deque<int>>): int {
+  values.pushBack(9);
+  return 4;
+}
+
+function pair(a: int, b: int): int {
+  return a + b;
+}
+
+export function main() {
+  const numbers = new Deque<int>();
+  numbers.pushBack(2);
+  numbers.pushFront(1);
+  strictEqual(sum(...numbers), 3);
+  strictEqual(numbers.size, 2);
+  const copied = [...numbers];
+  strictEqual(copied[0], 1);
+  strictEqual(numbers.size, 2);
+  strictEqual(sum(...numbers, change(numbers)), 7);
+  strictEqual(numbers.size, 3);
+  let caught = false;
+  try {
+    pair(...numbers);
+  } catch (error) {
+    caught = true;
+  }
+
+  strictEqual(caught, true);
+  const words = new Deque<string>();
+  words.pushBack('abc');
+  strictEqual(read(...words), 3);
+  strictEqual(words.size, 1);
+  strictEqual(take(...words), 3);
+  const nested = new Deque<int[]>();
+  nested.pushBack([1]);
+  update(...nested);
+  strictEqual(nested.popFront()!.length, 2);
+  const heap = new Heap<int>();
+  heap.push(2);
+  heap.push(1);
+  strictEqual(sum(...heap), 3);
+  strictEqual(heap.size, 2);
+  const items = [...heap];
+  strictEqual(sum(...items), 3);
+  strictEqual(heap.size, 2);
+  const strings = new Heap<string>();
+  strings.push('abc');
+  strictEqual(read(...strings), 3);
+  strictEqual(strings.size, 1);
+  strictEqual(take(...strings), 3);
+  const moving = new Deque<string>();
+  moving.pushBack('a');
+  const owned = [...moving];
+  strictEqual(owned[0], 'a');
+}

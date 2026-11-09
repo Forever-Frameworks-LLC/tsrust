@@ -68,19 +68,20 @@ fn graph(root:&Path,config:&docs::Config)->Result<project::ProjectAnalysis,Strin
         if path=="std:ui" {
             // Resolve the bundled facade in the actual project's configuration context.
             let provider=Inputs{entry:entry.clone(),source:"import {Node} from 'std:ui';function main(){}".into()};
-            let graph=project::load_project_headers(&provider,&entry.0).map_err(|error|error.message)?;
+            let graph=project::load_project_headers(&provider,&entry.0).map_err(|error|tsrust_compiler::project_cli::InputDiagnostic::Project(error).render_with_provider(&entry.0,&provider.source,false,&provider))?;
             let exports=&graph.modules.get(&SourceId("std:ui".into())).ok_or("Missing std:ui facade")?.exports;
             let imports=exports.keys().enumerate().map(|(item,name)|format!("{name} as D{index}_{item}")).collect::<Vec<_>>().join(",");
             source.push_str(&format!("import {{{imports}}} from 'std:ui';\n"));continue;
         }
-        let headers=project::load_project_headers(&FileSourceProvider,&target).map_err(|error|format!("{}: {}",error.location.source.0,error.message))?;
+        let headers=project::load_project_headers(&FileSourceProvider,&target).map_err(|error|tsrust_compiler::project_cli::InputDiagnostic::Project(error).render_with_provider(&target,"",false,&FileSourceProvider))?;
         let exports=&headers.modules[&headers.entry].exports;
         let imports=exports.keys().filter(|name|name.as_str()!="default").enumerate().map(|(item,name)|format!("{name} as D{index}_{item}")).collect::<Vec<_>>().join(",");
         if imports.is_empty(){return Err(format!("Documentation API/example has no named exports: {path}"));}
         source.push_str(&format!("import {{{imports}}} from {};\n",tsrust_compiler::json_string(&format!("../{path}"))));
     }
     source.push_str("function main() {}\n");let provider=Inputs{entry:entry.clone(),source};
-    project::check_graph(project::load_project(&provider,&entry.0).map_err(|error|format!("{}: {}",error.location.source.0,error.message))?).map_err(|error|format!("{}: {}",error.location.source.0,error.message))
+    let render=|error|tsrust_compiler::project_cli::InputDiagnostic::Project(error).render_with_provider(&entry.0,&provider.source,false,&provider);
+    project::check_graph(project::load_project(&provider,&entry.0).map_err(&render)?).map_err(render)
 }
 fn library(root:&Path,config:&docs::Config,inputs:&mut BTreeMap<String,String>,pages:&mut Vec<docs::Page>)->Result<Value,String>{
     let Some(path)=&config.inventory else{return Ok(json!({"components":[],"recipes":[],"blocks":[]}));};
@@ -284,6 +285,13 @@ fn build(root:&Path)->Result<String,String>{
 
 #[cfg(test)]mod tests{
  use super::*;
+ #[test]
+ fn documentation_graph_errors_preserve_imported_source_ranges(){
+  let temp=crate::TempDirectory::new().unwrap();let root=temp.0.canonicalize().unwrap();fs::create_dir(root.join("src")).unwrap();
+  let source=tsrust_compiler::format("export function broken():int {\n  return 'wrong';\n}\n").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);fs::write(root.join("src/bad.tsr"),source).unwrap();
+  let config=docs::Config{content:"content".into(),examples:Vec::new(),api_sources:vec!["src/bad.tsr".into()],inventory:None};
+  let error=graph(&root,&config).err().expect("invalid exported body must reject");assert!(error.contains("bad.tsr:2:"),"{error}");assert!(error.contains("return 'wrong'"),"{error}");assert!(error.contains("error[type]"),"{error}");
+ }
  #[test]
  fn virtual_publication_resolves_examples_before_output_exists(){
   let temp=crate::TempDirectory::new().unwrap();let root=temp.0.canonicalize().unwrap();

@@ -1,8 +1,9 @@
 //! Explicit shared-cache resolution; optional portable preparation never runs in a build.
+#[path="rust_binding_generation.rs"] mod generation;
 use std::{fs,process::Stdio};
 use tsrust_compiler::project::rust::dependencies::Bindings;
 pub(crate) fn resolve(mut args:impl Iterator<Item=String>)->Result<u8,String>{
- if args.next().as_deref()!=Some("resolve"){return Err("Usage: tsrust bindings resolve file.bindings.json [--offline] [--portable]".into());}
+ match args.next().as_deref(){Some("generate")=>return generation::run(args),Some("resolve")=>{},_=>return Err("Usage: tsrust bindings resolve file.bindings.json [--offline] [--portable], or bindings generate file.bindings.json --crate name --source crate-root.rs --select name,name [--rustdoc crate.json]".into())}
  let path=args.next().ok_or("Missing .bindings.json path.")?;
  let (mut offline,mut portable)=(false,false);
  for argument in args {match argument.as_str(){"--offline" if !offline=>offline=true,"--portable" if !portable=>portable=true,_=>return Err("Expected optional --offline and --portable once each.".into())}}
@@ -15,10 +16,7 @@ pub(crate) fn resolve(mut args:impl Iterator<Item=String>)->Result<u8,String>{
  let existing=crate::package_validation::read_optional(&destination)?;
  let pinned=binding.lockfile.as_deref().or(existing.as_deref());
  let temporary=crate::TempDirectory::new().map_err(|error|error.to_string())?;let root=&temporary.0;
- fs::create_dir(root.join("src")).map_err(|error|error.to_string())?;
- fs::write(root.join("src/lib.rs"),"").map_err(|error|error.to_string())?;
- fs::write(root.join("Cargo.toml"),binding.manifest()).map_err(|error|error.to_string())?;
- if let Some(lock)=pinned{fs::write(root.join("Cargo.lock"),lock).map_err(|error|error.to_string())?;}
+ crate::package_cli::prepare(root,&binding,pinned)?;
  if pinned.is_none(){
   let mut command=crate::backend_cargo_command();command.current_dir(root).arg("generate-lockfile").stdout(Stdio::null());
   if offline{command.arg("--offline");}

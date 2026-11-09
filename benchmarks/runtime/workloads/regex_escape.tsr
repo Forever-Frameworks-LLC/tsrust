@@ -1,0 +1,17 @@
+import { escape } from 'std:regex';
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = escape(input);
+    checksum += value.length;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, 'a+b[é].*'));
+}

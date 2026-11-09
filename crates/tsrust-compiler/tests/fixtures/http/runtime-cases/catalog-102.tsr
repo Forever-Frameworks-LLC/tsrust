@@ -1,0 +1,11 @@
+import { createLogger } from 'std:log';
+import { Router, accessLog } from 'std:http';
+
+export function main() {
+  const logger = unwrap(createLogger({
+    sink: 'stdout', level: 'off'
+  }));
+  const app = new Router();
+  app.use(accessLog(logger));
+  console.log('access log installed');
+}

@@ -13,13 +13,19 @@ impl Analyzer {
         super::driver::check_expression(self, context, expr, mode, loans, expected)
     }
 
+    // Preserve finite-literal context when a readonly argument is adapted to a
+    // borrowed union. Reuse exactly the ordinary contextual-literal lookup.
+    pub(super) fn contextual_literal_member(&self,expr:&Expr,union:UnionId)->Option<Type>{
+        self.unions.members(union).into_iter().find(|ty|if let Type::Literal(id,kind)=*ty{
+            crate::literal_types::LiteralValue::expression(expr,kind).is_some_and(|value|value.is_ok_and(|value|self.program.records[id].literal_definition.as_ref()==Some(&value)))
+        }else{false})
+    }
+
     pub(super) fn prepare_expression_work(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, mut expected: Option<Type>, completion: &mut Vec<Type>) -> Result<super::checked_expression::PreparedExpression, Diagnostic> {
         // Contextual literal wrappers finish from the innermost value outward.
         // They retain no host stack frames and do not repeat completion effects.
         if let Some(Type::Union(union)) = expected {
-            let literal = self.unions.members(union).into_iter().find(|ty| if let Type::Literal(id, kind) = *ty {
-                crate::literal_types::LiteralValue::expression(expr, kind).is_some_and(|value| value.is_ok_and(|value| self.program.records[id].literal_definition.as_ref() == Some(&value)))
-            } else { false });
+            let literal = self.contextual_literal_member(expr,union);
             if let Some(literal) = literal { completion.push(expected.unwrap()); expected = Some(literal); }
         }
         if let Some(Type::Literal(id, kind)) = expected && let Some(value) = crate::literal_types::LiteralValue::expression(expr, kind) {
@@ -64,6 +70,12 @@ impl Analyzer {
     }
 
     pub(super) fn finish_expression(&mut self, context: &mut Context, expr: &mut Expr, checked: Result<Type, Diagnostic>) -> Result<Type, Diagnostic> {
+        if checked.as_ref().is_ok_and(|ty|self.is_task_type(*ty))
+            && matches!(expr.target,Some(CallTarget::ClosureMethod(_)|CallTarget::Closure(_)|CallTarget::ConditionalClosure(_)|CallTarget::Callback(_)|CallTarget::ConditionalCallback(_)|CallTarget::StoredCallable(_)|CallTarget::StoredCallableField(_)))
+            && let ExprKind::Call(_,args)=&expr.kind
+            && let Some(params)=self.task_call_argument_contracts(expr) {
+            self.retain_task_argument_loans(context,&params,args,expr.span);
+        }
         if checked.is_ok() { self.apply_native_call_stores(context, expr)?; }
         if checked.is_ok() && matches!(expr.kind, ExprKind::Call(..) | ExprKind::Index(..) | ExprKind::Binary { .. } | ExprKind::Unary { .. }) {
             // Failure occurs after operand/argument evaluation. Exact spans

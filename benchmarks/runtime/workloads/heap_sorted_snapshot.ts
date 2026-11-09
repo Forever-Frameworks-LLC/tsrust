@@ -1,0 +1,1 @@
+function workload(n:number,seed:number):number{let checksum=seed;let i=0;while(i<n){const heap=[7,1,9,3,3,0,8,2].map(v=>v+seed+i);const rows=heap.slice().sort((a,b)=>a-b);let j=0;while(j<rows.length){checksum+=(j+1)*rows[j];j++;}checksum+=heap.length;i++;}return checksum;}

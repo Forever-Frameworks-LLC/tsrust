@@ -4,7 +4,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {prepareNativeDependencies, dependencyArtifacts, needsJsonDependencies} from './native-dependencies.mjs';
+import childProcess from 'node:child_process';
+import {syncBuiltinESMExports} from 'node:module';
+import {fileURLToPath} from 'node:url';
+import {prepareNativeDependencies, prepareReferenceDependencies, dependencyArtifacts, needsJsonDependencies} from './native-dependencies.mjs';
 
 test('ordinary native workloads need no dependency preparation',()=>{
  assert.deepEqual(prepareNativeDependencies({emitted:'fn main() {}'}),{args:[],evidence:null});
@@ -21,7 +24,7 @@ test('dependency artifacts require both exact Cargo library identities',()=>{
  assert.throws(()=>dependencyArtifacts(`${serde}\n${json}\n${artifact('serde','/target/release/deps/libserde-c.rlib')}`,target),/Ambiguous/);
 });
 
-test('exported JSON dependencies link a separately instrumented native program offline',{skip:!process.env.TSRUST},()=>{
+test('exported dependencies link instrumented JSON, files and hostname programs offline',{skip:!process.env.TSRUST},()=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-bench-dependencies-'));
  try {
   const source=path.join(root,'input.tsr');
@@ -54,6 +57,20 @@ test('exported JSON dependencies link a separately instrumented native program o
   fs.writeFileSync(instrumented,fileEmitted);
   run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...fileDependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'not-found\n');
+  fs.writeFileSync(source,`import {createTempDir,removeDirAll} from 'std:fs';function main(){const path=unwrap(createTempDir());unwrap(removeDirAll(path));console.log('temporary');}`);
+  const temporaryEmitted=run(process.env.TSRUST,['emit',source]);
+  const temporaryDependencies=prepareNativeDependencies({...options,emitted:temporaryEmitted});
+  assert.deepEqual(temporaryDependencies.evidence.libraries.map(library=>library.name),['nix','tempfile']);
+  fs.writeFileSync(instrumented,temporaryEmitted);
+  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...temporaryDependencies.args,instrumented,'-o',binary]);
+  assert.equal(run(binary,[]),'temporary\n');
+  fs.writeFileSync(source,`import {hostname} from 'std:os';function main(){match(hostname()){Ok(value)=>{console.log(value.length>=0);},Err(error)=>{console.log(error.code==='Io'||error.code==='NotUnicode');}}}`);
+  const hostnameEmitted=run(process.env.TSRUST,['emit',source]);
+  const hostnameDependencies=prepareNativeDependencies({...options,emitted:hostnameEmitted});
+  assert.deepEqual(hostnameDependencies.evidence.libraries.map(library=>library.name),['hostname']);
+  fs.writeFileSync(instrumented,hostnameEmitted);
+  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...hostnameDependencies.args,instrumented,'-o',binary]);
+  assert.equal(run(binary,[]),'true\n');
   assert.ok(!fs.readdirSync(root).some(name=>name.startsWith('package-')));
  } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
@@ -69,4 +86,36 @@ test('reference dependency selection leaves ordinary/native preparation untouche
  const target='/target';const artifact=JSON.stringify({reason:'compiler-artifact',target:{name:'unicode_normalization',kind:['lib']},filenames:['/target/release/deps/libunicode_normalization-a.rlib']});
  assert.deepEqual(dependencyArtifacts(artifact,target,['unicode_normalization']),{unicode_normalization:'/target/release/deps/libunicode_normalization-a.rlib'});
  assert.throws(()=>dependencyArtifacts(artifact,target,['rand']),/Missing.*rand/);
+});
+
+// Capture actual prepared Cargo commands; no Cargo, compiler or library executes.
+test('reference dependency routing selects declared compression and existing family features',()=>{
+ const manifest=JSON.parse(fs.readFileSync(new URL('manifest.json',import.meta.url),'utf8'));
+ const compression=manifest.workloads.filter(row=>row.family==='compression');assert.equal(compression.length,36);
+ const backend=new URL('../../crates/tsrust-compiler/backend-dependencies/Cargo.toml',import.meta.url),parity=new URL('./parity-dependencies/Cargo.toml',import.meta.url);
+ const expected=[[{family:'collection-numeric-date',id:'date_completion_access'},backend,'calendar'],...compression.map(row=>[row,backend,row.id.includes('_buffer_')?'compression':'compression-streams']),
+  [{family:'explicit-locale'},backend,'locale'],[{family:'child-processes'},backend,'process'],[{family:'network-transport'},backend,'io'],
+  [{family:'async-io'},parity,'async-io'],[{id:'task_all_ready'},parity,'task-join'],[{id:'task_all_yield'},parity,'task-join'],
+  [{family:'regex-text'},parity,'regex'],[{family:'path-env-os',id:'os_hostname_read'},parity,'hostname'],
+  ...[{family:'native-url'},{family:'byte-operations',id:'byte_ops_index_ascii'},{family:'byte-codecs',id:'bytes_base64_encode'},{id:'math_random_range'},{id:'string_normalize_forms'}].map(row=>[row,parity,null])];
+ const original=childProcess.spawnSync,sentinel=new Error('captured reference preparation');let observed;
+ childProcess.spawnSync=(command,args,options)=>{observed={command,args,options};throw sentinel;};syncBuiltinESMExports();
+ try{for(const [workload,url,feature]of expected){
+  observed=undefined;assert.throws(()=>prepareReferenceDependencies({workload,rustVersion:'1.96.1',targetDirectory:'/unused-reference-target'}),error=>error===sentinel);
+  assert.equal(observed.command,'rustup');assert.deepEqual(observed.args.slice(0,4),['run','1.96.1','cargo','build']);
+  assert.equal(observed.args[observed.args.indexOf('--manifest-path')+1],fileURLToPath(url));
+  assert.equal(path.resolve(observed.options.cwd),path.dirname(fileURLToPath(url)));
+  const index=observed.args.indexOf('--features');assert.deepEqual(index<0?[]:observed.args.slice(index),feature?['--features',feature]:[]);
+  if(feature){const source=fs.readFileSync(url,'utf8');assert(source.includes('\n'+feature+' = '),'selected manifest does not declare '+feature);}
+  for(const flag of ['--offline','--locked','--release','--message-format=json'])assert(observed.args.includes(flag));
+ }
+ assert.deepEqual(prepareReferenceDependencies({workload:{family:'ordinary'}}),{args:[],evidence:null});
+ }finally{childProcess.spawnSync=original;syncBuiltinESMExports();}
+});
+
+test('logging artifact closure requires its pinned projection macro library',()=>{
+ const required=['tracing','tracing_subscriber','pin_project_lite'];
+ const artifact=name=>JSON.stringify({reason:'compiler-artifact',target:{name,kind:['lib']},filenames:[`/target/release/deps/lib${name}-exact.rlib`]});
+ assert.throws(()=>dependencyArtifacts(required.slice(0,2).map(artifact).join('\n'),'/target',required),/Missing dependency artifact: pin_project_lite/);
+ assert.equal(dependencyArtifacts(required.map(artifact).join('\n'),'/target',required).pin_project_lite,'/target/release/deps/libpin_project_lite-exact.rlib');
 });

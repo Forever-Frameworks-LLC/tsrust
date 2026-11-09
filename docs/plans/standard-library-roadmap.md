@@ -1,3 +1,10 @@
+> v0.2.0 planning update, 2026-11-04: the owner requested the concrete
+> [standard-library checklist and parallel plan](stdlib-0.2.0.md), including
+> Rust package reuse and performance acceptance from each coherent gate. Use it
+> for new stdlib scope and scheduling; the S/H-series records below retain
+> historical evidence. This does not declare its unchecked APIs implemented or
+> authorize v0.2.0 publication. Current execution stays in agent-progress.md.
+
 <!-- Current continuation takes precedence over historical scheduling below. -->
 
 > Priority update, 2026-10-26: follow [the backend platform pivot](backend-platform-pivot.md)

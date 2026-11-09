@@ -1,5 +1,14 @@
 # Development and acceptance workflow
 
+Owner requirement, 2026-11-06: every test run has an absolute wall-clock ceiling of one hour, including setup/build and cleanup. This supersedes all older 90/120/330-minute or longer budgets. Platform acceptance uses one 55-minute end-to-end scope budget, leaving cleanup time within the CI 60-minute job ceiling. Preserve completed scope evidence; budget exhaustion is incomplete acceptance, never a pass or permission to skip required tests. Remove redundant work and batch coherent coverage to fit; do not split the same oversized suite into serial hour-long chunks.
+
+
+Owner update, 2026-11-05: the full v0.2.0 checklist remains first. Subsequent UI
+and shared application acceptance follows the
+[GPUI application platform plan](plans/gpui-application-platform.md). This updates
+the historical UI freeze below without adding frontend prerequisites to v0.2.0
+or backend-only builds.
+
 ## Active backend pivot scope
 
 The owner's 2026-10-27 backend-only reset supersedes the frontend acceptance below.
@@ -39,6 +48,18 @@ checks with the completed section. A future benchmark
 command must execute current supported workloads without first implementing or
 repairing support accumulated over dozens of gates.
 
+## Compiler and test host debug symbols
+
+The root workspace uses `profile.dev.debug = 0`; Cargo's test profile inherits
+that setting, matching the existing CI overrides. This removes Rust compiler/test
+host debug information while retaining current optimization, debug assertions and
+overflow checks. Generated Tsrust applications use their own manifests and
+sanitized profile environment, so their debug/release behavior is independent.
+For source-level debugging of compiler internals, explicitly set both
+`CARGO_PROFILE_DEV_DEBUG=2` and `CARGO_PROFILE_TEST_DEBUG=2` and retain the split
+debug objects until the debugging session ends. See the
+[Cargo profile reference](https://doc.rust-lang.org/cargo/reference/profiles.html#test).
+
 ## Batched development checks
 
 Finish a coherent section before running its affected suites. For the current
@@ -60,6 +81,11 @@ groups on a clean machine, prepare their separate locked source closure:
 ```sh
 cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
 ```
+
+Run relocated vendor builds last, after compiler/editor builds and direct checks.
+These builds update artifacts in the shared Cargo target and can make later
+compiler builds repeat dependency work. Preserve completed export evidence after
+repairs; do not rerun unchanged exports before another planned compiler build.
 
 Tests continue to execute offline. Do not replace the version-update witness with
 whatever version happens to be cached. Keep `TSRUST_SOURCE_PACK_DIR` fixed across
@@ -122,6 +148,19 @@ execution parity. Do not rewrite unrelated owner fixtures as a verification side
 
 ## Native assertion-based fixtures
 
+Owner requirement, 2026-11-07: ordinary runtime acceptance uses stable registered
+`.test.tsr` suites through `tsrust test`. Batch related cases/files into one native
+runner and reuse its persistent cache; do not compile a separate program or copy
+source into a fresh temporary directory for each case. Temporary runtime data is
+fine. Host tests remain appropriate for compiler internals, rejected source and
+real process/language boundaries, and may orchestrate the public suite. Reuse the
+same suite for relocated package validation. Compare assertions and observed
+outputs against unchanged Rust/Node controls where applicable.
+
+Use runner `durationMs` observations and `--profile` setup/build stages to locate
+costs. These single-run observations do not replace established benchmark sample
+counts, quiet-machine controls or actual timing ingestion into SQLite.
+
 Use the built-in std:testing library for new executable behavior checks wherever possible. Assert observed values directly instead of printing them solely for an external stdout comparison. Run through the compiler's project/module path so assertion imports and generated native execution are exercised. Keep stdout checks when output formatting itself is the behavior under test, and retain independent Node reference evidence for parity.
 
 When a required assertion or matcher is missing, implement it with focused failing tests, ownership and failure checks, IntelliSense documentation and the normal acceptance workflow. Do not replace the missing operation with logging or weaken the test to avoid adding it. Prefer borrowing assertions for existing owned or borrowed values; do not introduce implicit clones to make a matcher fit.
@@ -154,14 +193,17 @@ engine, with a JSON history of each run's date, median sample time, mean speed a
 sample count. Markdown reports are optional exports. Do not retime unaffected
 workloads for presentation or replay history solely because a new feature landed.
 
-At a full backend milestone, run tests and doctest drivers in separate Cargo invocations:
-`RUST_TEST_THREADS=1 cargo test -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast`,
-then `cargo test -p tsrust-compiler -p tsrust-lsp --doc`. Relocated offline package witnesses rebuild
-vendored dependencies in the shared target; the second invocation refreshes the
-workspace dependency artifacts before rustdoc uses them. Keep the existing single
-build job and disabled incremental compilation. This does not trigger a full pass
-for individual packages or repairs; retain completed evidence and rerun affected
-checks only.
+The complete backend check is three layers, all fast enough to run locally:
+`cargo test -p tsrust-compiler -p tsrust-lsp --lib --bins` (unit, rejection and
+diagnostic-code checks in process); `python3 tools/run-suites.py target/debug/tsrust
+target/catalog-suites` after `python3 tools/generate-catalog-suites.py target/catalog-suites`
+(every `tsrust test` suite, one native build per suite directory, including one
+generated test per verified catalog example); and `python3 tools/host-tests.py`
+(CLI, signals, processes, offline export, packages, Rust adapters, LSP stdio).
+Add runtime coverage as `.test.tsr` cases in an existing family suite, not as a
+Rust test that builds its own native program. The remaining per-case Rust
+integration targets are legacy witnesses outside CI; see
+`docs/plans/ci-build-once.md`.
 
 ## Analytics purpose and storage
 
@@ -280,15 +322,15 @@ directories or snapshots.
 
 ## Generated-file retention
 
-SQLite is the durable home for benchmark measurements. Historical diagnostic
-evidence remains in the local mixed archive; do not add routine logs or source
-snapshots. For measured records, import original bytes, verify hashes and
-database integrity, then remove loose copies.
-When a path already names different immutable bytes, preserve the new version under
-an explicit content-addressed SQLite record path; never overwrite historical data.
-Do not create filesystem archives, source snapshots or duplicate evidence trees.
-Keep concise logs for the current gate only, and preserve the five current executable
-consumers during cache cleanup.
+Owner direction, 2026-10-30: canonical records and filesystem archives are not
+kept. `benchmarks/measurements.sqlite` stores one row per workload and engine,
+with a JSON history containing minimal run details: date, median time, speed and
+sample count. Ingest actual timings through `npm run store:ingest` in
+`benchmarks/runtime`, verify the stored values and database integrity, then remove
+disposable raw result files. Do not ingest command logs, source snapshots or
+session receipts. Keep only concise current-gate diagnostics needed to resolve
+open failures; source checkpoints belong in Git. Rebuild executable consumers
+from commits when needed rather than preserving a separate canonical binary set.
 
 Reuse the documented single Cargo target with CARGO_INCREMENTAL=0. At handoffs,
 inspect workspace and scratch target growth and remove obsolete test/native executables,
@@ -310,3 +352,15 @@ all 10 fixtures and the complete closure source corpus retains strict rejection
 assertions. SQLite evidence uses `tsrust-editor-*-b59d1055`, including the initial
 check output and the corpus adjustment's original failed run. Editor warnings are
 separate from these intentional errors and are not hidden by this cleanup.
+
+For an unresolved compiler carrier rejection, `TSRUST_TRACE_CARRIERS=1` exposes
+its existing failure-only source/destination type, field and callback-family trace
+in the normal CLI on stderr. Use it with the failing project check or documentation
+command; no separate native reproducer is needed. Default diagnostics are unchanged.
+
+For unresolved callable error contracts, `TSRUST_TRACE_EFFECTS=1` exposes the existing
+failure-only iterator diagnostic in the ordinary CLI: stored-field provenance,
+actual constructors, capture types and checked call targets. Run the failing
+stable project check; no separate native reproducer or unit-test build is needed.
+When adding Rust runtime/test code, include harnesses in the preflight with
+`cargo check --tests`; `cargo check --lib` alone does not check cfg(test) bodies.

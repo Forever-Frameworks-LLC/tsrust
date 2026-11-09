@@ -1,0 +1,7 @@
+import { Interval, MissedTickBehavior } from 'std:futures';
+async function main(): Task<void> {
+  const policy: MissedTickBehavior = 'skip';
+  const timer = new Interval(1, policy);
+  await timer.tick();
+  console.log('tick');
+}

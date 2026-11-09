@@ -100,7 +100,13 @@ fn relative_windows_drives_unc_and_case_are_explicit() {
 fn imported_relative_preserves_aliases_stored_calls_and_checked_cwd_errors() {
     let temp = support::TempDirectory::new();
     let source = "import {relative as between} from 'std:path';import {strictEqual} from 'std:testing';function main(){const from='/a/b'.repeat(1);const to='/a/c'.repeat(1);const stored=between;strictEqual(between(from,to),'../c');strictEqual(stored(from,to),'../c');strictEqual(from,'/a/b');strictEqual(to,'/a/c');let caught=false;try{stored('a','b');}catch(error){caught=error.code==='path-relative';}strictEqual(caught,true);console.log('relative accepted');}";
-    let formatted = tsrust_compiler::format(source).unwrap();
+    // /a is rooted but drive-relative on Windows, so it legitimately needs cwd.
+    // Keep the injected failure for a/b below; drive-qualified paths do not need it.
+    let source = if cfg!(windows) {
+        source.replace("'/a/b'", "'C:/a/b'").replace("'/a/c'", "'C:/a/c'")
+            .replace("'../c'", &serde_json::to_string(r"..\c").unwrap())
+    } else {source.to_owned()};
+    let formatted = tsrust_compiler::format(&source).unwrap();
     assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
     let file = temp.source(&formatted);
     let output = support::run(support::cli().arg("emit").arg(file), 30);

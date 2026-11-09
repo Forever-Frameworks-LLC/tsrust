@@ -27,11 +27,9 @@ fn empty_literals_use_annotation_call_return_and_assignment_context() {
         None,
     );
     reject("function main() { const a = []; }", "array-type");
-    reject("function main() { const a: void[] = []; }", "array-element");
-    reject(
-        "function main() { const a: void[][] = []; }",
-        "array-element",
-    );
+    let units=check(&support::format_round_trip("function empty():void[]{return [];}function count(values:ReadOnly<void[]>):int{return values.length;}function main(){const values:void[]=[];const nested:void[][]=[empty(),[]];console.log(count(values),nested.length);}")).unwrap();
+    assert!(units.warnings().is_empty());
+    assert!(units.emit_rust().contains("Vec<()>"));
 }
 
 #[test]

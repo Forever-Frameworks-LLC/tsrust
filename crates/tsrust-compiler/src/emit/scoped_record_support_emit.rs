@@ -50,7 +50,7 @@ impl Emitter<'_> {
             let mut pending=vec![root];
             while let Some(record)=pending.pop() {
                 let record=self.program.scoped_records.declaration(record);
-                if self.record_borrow_leaf(record) || !family.insert(record){continue;}
+                if self.program.records[record].fields.is_empty() || self.record_borrow_leaf(record) || !family.insert(record){continue;}
                 pending.extend(self.program.records[record].fields.iter().filter_map(|field|if let Some(Type::Record(child))=field.ty{Some(child)}else{None}));
             }
         }

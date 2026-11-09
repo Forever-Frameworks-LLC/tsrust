@@ -1,0 +1,9 @@
+import { App, Client, Request, Response, Body, Next, text, html, json, request, stream } from 'std:http';
+async function handle(input: Request): Task<Response> {
+  return text('ok');
+}
+
+export async function main(): Task<void> {
+  const input = request("GET", "http://127.0.0.1:3000/", "");
+  console.log('ok');
+}

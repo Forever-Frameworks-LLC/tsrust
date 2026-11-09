@@ -1,0 +1,18 @@
+import { compile } from 'std:regex';
+
+function workload(n: int, seed: int, input: string): int {
+  const expression = unwrap(compile('([a-z]+)=([0-9]+)'));
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = expression.replace(input, '$2:$1 $$');
+    checksum += value.length;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, 'a=12 b=3'));
+}

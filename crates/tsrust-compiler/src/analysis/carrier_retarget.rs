@@ -54,11 +54,18 @@ impl Analyzer {
         }
     }
     fn prepare_carrier_retarget(&mut self,value:&mut Expr,destination:Type)->Step{
-        if value.ty==Some(destination){return Ok(None);}
+        // The checked result can already be the destination while an Inject
+        // tag or an inner wrapper still names its earlier storage carrier.
+        if value.ty==Some(destination) && !matches!(&value.kind,ExprKind::Inject{..}|ExprKind::Unary{op:UnaryOp::RecordCarrier,..}){return Ok(None);}
         match &mut value.kind{
             ExprKind::Inject{value:inner,union:tag} if destination.union().is_some()=>{
                 if let(Some(Type::Record(_)),Some(payload))=(inner.ty,self.unions.payload(destination)){
                     return Ok(Some((State::Inject,take(inner),payload)));
+                }
+                if let Some(Type::Record(record))=inner.ty{
+                    let declaration=self.scoped_records.declaration(record);
+                    let targets=self.unions.members(destination.union().unwrap()).into_iter().filter(|ty|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration)).collect::<Vec<_>>();
+                    if let [target]=targets.as_slice(){return Ok(Some((State::Inject,take(inner),*target)));}
                 }
                 *tag=destination.union().unwrap();value.ty=Some(destination);
             }
@@ -175,4 +182,22 @@ mod tests{
         let ExprKind::Inject{value:inner,union}=&value.kind else{panic!("restored injection")};
         assert_eq!(*union,source.union().unwrap());assert_eq!(inner.ty,Some(Type::Record(1)));assert!(matches!(inner.kind,ExprKind::Name(_)));
     }
+}
+
+#[cfg(test)]
+mod native_union_tag_tests {
+ use super::*;
+ #[test]
+ fn equal_checked_union_retags_absent_value_and_normalizes_existing_wrapper(){
+  let mut analyzer=Analyzer::new(crate::syntax::parse("type A={value:int;};type B={value:boolean;};function main(){}").unwrap()).unwrap();
+  let span=Span::new(12,24);let old=analyzer.unions.intern([Type::Record(0),Type::Undefined],span).unwrap();let destination=analyzer.unions.intern([Type::Record(1),Type::Undefined],span).unwrap();
+  for wrapped in [false,true]{
+   let mut payload=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("observe_once".into()),span)),Vec::new()),span);payload.ty=Some(Type::Undefined);
+   let mut value=Expr::new(ExprKind::Inject{value:Box::new(payload),union:old.union().unwrap()},span);value.ty=Some(destination);
+   if wrapped{value=Expr::new(ExprKind::Unary{op:UnaryOp::RecordCarrier,value:Box::new(value),operator:span},span);value.ty=Some(destination);}
+   analyzer.retarget_nullable_store(&mut value,destination).unwrap();
+   assert_eq!(value.ty,Some(destination));assert_eq!(value.span,span);
+   let ExprKind::Inject{union,value:payload}=&value.kind else{panic!("normalized native injection")};assert_eq!(*union,destination.union().unwrap());assert!(matches!(&payload.kind,ExprKind::Call(_,arguments) if arguments.is_empty()));assert_eq!(payload.span,span);
+  }
+ }
 }

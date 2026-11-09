@@ -18,7 +18,7 @@ pub(crate) fn parameter(
             Kind::Named(ty) if variables.iter().any(|variable| variable.text == ty.text) => {
                 return ParameterAnnotation::Inferred(name.clone());
             }
-            Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+            Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {}
             Kind::Array(value) | Kind::Group(value) => pending.push(value),
             Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => pending.extend(arguments),
             Kind::Callable { parameters, result, .. } => {
@@ -61,4 +61,28 @@ impl Analyzer {
         Ok(continuations::adapters::Request { value: Box::new(value), mode, expected: Some(expected), cleanup: continuations::adapters::Cleanup::None, restore_on_error: false })
     }
 
+}
+
+#[cfg(test)]
+mod nested_task_value_shape_tests {
+ use super::*;
+ #[test]
+ fn contextual_generic_async_value_has_every_nested_callable_shape(){
+  let source="async function observe<T>(action:Once<Function<Task<T>>>):Task<void>{try{await action();}catch{}}function main(){const stored:Function<Task<void>,[action:Once<Function<Task<int>>>]>=observe;}";
+  let program=crate::syntax::parse(source).unwrap();
+  let annotation=program.functions.iter().find(|function|function.name.text=="main").unwrap().body.iter().find_map(|statement|if let StmtKind::Let{annotation:Some(annotation),..}=&statement.kind{Some(annotation.clone())}else{None}).expect("contextual generic declaration");
+  let mut analyzer=Analyzer::new(program).unwrap();
+  let expected=analyzer.callable_resolver().resolve_value_annotation(&annotation,false).unwrap();
+  let (parameters,result)=analyzer.checked_generic_callable_shape(expected).expect("declared stored signature");
+  let callback=parameters[0];
+  let (_,task)=analyzer.checked_generic_callable_shape(callback).expect("declared Once input");
+  let shapes=analyzer.checked_inference_callable_shapes(parameters.iter().copied().chain([result]));
+  assert!(shapes.contains_key(&callback),"missing callback {callback:?}: {shapes:?}");
+  assert!(shapes.contains_key(&task),"missing nested task {task:?}: {shapes:?}");
+  let annotations=analyzer.checked_inference_callable_annotations(parameters.iter().copied().chain([result])).unwrap();
+  let types=crate::generic_inference::Types{callable_annotations:Some(&annotations),callable_shapes:Some(&shapes),inline_shapes:None,records:&analyzer.program.records,names:&analyzer.record_names,unions:&analyzer.unions};
+  let hints=parameters.iter().copied().map(Some).collect::<Vec<_>>();
+  analyzer.generic_functions.value_signature("observe",&hints,Some(result),&types,annotation.span)
+   .unwrap_or_else(|error|panic!("expected={expected:?}; callback={callback:?}; nested task={task:?}; result={result:?}; shapes={shapes:?}; error={error:?}"));
+ }
 }

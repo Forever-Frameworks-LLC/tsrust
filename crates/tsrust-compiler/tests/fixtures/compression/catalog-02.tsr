@@ -1,0 +1,24 @@
+import { compressReader } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { reader } from 'std:io';
+import { fromUtf8 } from 'std:bytes';
+
+export function main() {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  match (compressReader(pool, reader(unwrap(fromUtf8('hello'))), 'gzip', {
+    level: 10
+  })) {
+    Ok(value) => {
+      throw 'unexpected success';
+    },
+    Err(error) => {
+      console.log(error.code);
+      console.log(error.operation);
+      console.log(error.message);
+    }
+  }
+
+  unwrap(pool.shutdown());
+}

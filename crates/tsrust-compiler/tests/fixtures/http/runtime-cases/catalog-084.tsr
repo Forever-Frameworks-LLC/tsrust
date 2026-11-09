@@ -1,0 +1,7 @@
+import { Next } from 'std:http';
+
+function inspect(value: Next): void {}
+
+export function main() {
+  console.log('ok');
+}

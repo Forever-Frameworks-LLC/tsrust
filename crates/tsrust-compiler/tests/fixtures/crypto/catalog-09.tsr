@@ -1,0 +1,6 @@
+import { sha512 } from 'std:crypto';
+import { fromUtf8, length } from 'std:bytes';
+
+export function main() {
+  console.log(length(sha512(unwrap(fromUtf8('abc')))));
+}

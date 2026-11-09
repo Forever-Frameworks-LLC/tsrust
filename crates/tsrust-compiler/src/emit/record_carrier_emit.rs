@@ -1,6 +1,27 @@
 //! Owning record carrier conversion evaluates its input once and moves leaves.
 use super::*;
 impl Emitter<'_> {
+    /// Only a private owned nullable record slot may change its finite carrier
+    /// at capture construction. Borrowed/view and ordinary capture paths stay put.
+    pub(super) fn owned_nullable_record_capture(&self,source:Type,target:Type,value:&str)->Option<String>{
+        if source==target || self.native_views.contains(source) || self.native_views.contains(target)
+            || !super::native_view_record_parameters::contains_finite_owned(self.program,target){return None;}
+        let (Type::Union(from),Type::Union(to))=(source,target) else{return None;};
+        let shape=|union:UnionId|{
+            let mut record=None;let mut absent=Vec::new();
+            for &member in &self.program.unions[union.index()].members{
+                match member{
+                    Type::Record(id) if record.is_none()=>record=Some(self.program.scoped_records.declaration(id)),
+                    Type::Null|Type::Undefined=>absent.push(member),
+                    _=>return None,
+                }
+            }
+            if absent.is_empty(){return None;}Some((record?,absent))
+        };
+        let (record,absent)=shape(from)?;let (target_record,target_absent)=shape(to)?;
+        if record!=target_record || absent!=target_absent{return None;}
+        Some(self.record_carrier_conversion(source,target,value))
+    }
     /// Empty containers have no payload to convert. Construct them directly in
     /// the checked destination carrier; retain normal record literal emission
     /// for field order, optional defaults and once-only initializer evaluation.
@@ -67,11 +88,29 @@ impl Emitter<'_> {
         if target.accepts_scalar_value(source) {
             return value.into();
         }
+        // Empty callback environments make the whole required-field record
+        // uninhabited. Do not structurally expand its recursive sibling fields.
+        // Evaluate the source once, retaining ordinary ownership and effects.
+        if let Some(field)=self.absent_record_field(source) {
+            return format!("{{let absent_carrier={value};match absent_carrier.field{field}{{}}}}");
+        }
+        if std::env::var_os("TSRUST_TRACE_CARRIERS").is_some()
+            && let (Type::Record(source),Type::Record(target))=(source,target)
+            && (self.native_views.cyclic(source)||self.native_views.cyclic(target)) {
+            eprintln!("[record-carrier-cycle] source={source} target={target} source_declaration={} target_declaration={} source_name={} target_name={} source_fields={:?} target_fields={:?}",self.program.scoped_records.declaration(source),self.program.scoped_records.declaration(target),self.program.records[source].name.text,self.program.records[target].name.text,self.program.records[source].fields.iter().map(|field|(&field.name.text,field.ty)).collect::<Vec<_>>(),self.program.records[target].fields.iter().map(|field|(&field.name.text,field.ty)).collect::<Vec<_>>());
+        }
+        if let (Type::Record(from),Type::Record(to))=(source,target)
+            && self.native_views.cyclic(from)&&self.native_views.cyclic(to) {
+            return self.bounded_record_carrier_conversion(source,target,value);
+        }
         match (source, target) {
             (Type::Union(source), target) if matches!(target,Type::String|Type::Int|Type::Number|Type::Boolean)
                 && self.program.unions[source.index()].members.iter().all(|&member|target.accepts_scalar_value(member))=>{
                 let arms=(0..self.program.unions[source.index()].members.len()).map(|tag|format!("Union{}::V{tag}(payload)=>payload",source.index())).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
             }
+            (Type::StoredCallable(source),Type::Callback(target))
+                if self.program.stored_contracts.origins(source).is_some_and(|origins|origins.is_empty())
+                    && self.program.stored_contracts.declaration(source).is_some_and(|declaration|self.program.callback_contracts[declaration].structural==self.program.callback_contracts[target].structural)=>format!("match {value}{{}}"),
             (Type::StoredCallable(source),Type::StoredCallable(target))
                 if self.program.stored_contracts.scoped_native_family(source).is_some()
                     && self.program.stored_contracts.scoped_native_family(target).is_some()=> {
@@ -169,7 +208,11 @@ impl Emitter<'_> {
                             target.index(),
                             if targets[to].accepts_scalar_value(member) {
                                 self.union_transfer_payload(source, target, member, "payload")
-                            } else { self.record_carrier_conversion(member, targets[to], "payload") }
+                            } else {
+                                let owned=self.union_move_payload(source,member,"payload");
+                                let converted=self.record_carrier_conversion(member,targets[to],&owned);
+                                self.union_store_payload(target,targets[to],&converted)
+                            }
                         )
                     })
                     .collect::<Vec<_>>()

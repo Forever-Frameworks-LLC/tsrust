@@ -23,18 +23,31 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
    ("[package]\nname = \"tsrust-export\"\nversion = \"0.1.0\"\nedition = \"2024\"\npublish = false\n\n[workspace]\n".into(),
     "version = 4\n\n[[package]]\nname = \"tsrust-export\"\nversion = \"0.1.0\"\n".into())
   };
-  if rust.contains("mod tsrust_native_threads {") || rust.contains("mod tsr_rust") { manifest = manifest.replace("default = []", "default = [\"threads\"]"); }
-  if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = []", "default = [\"http\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"http\"]",
-                );}
-  if rust.contains("mod tsrust_native_futures {") {manifest=manifest.replace("default = []", "default = [\"async\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"async\"]",
-                );
-        }
+  if rust.contains("mod tsrust_native_threads {") || rust.contains("use rayon as tsr_rayon;") { manifest = manifest.replace("default = [", "default = [\"threads\", "); }
+  if rust.contains("mod tsrust_native_cancellation {"){manifest=manifest.replace("default = [", "default = [\"cancellation\", ");}
+  if rust.contains("mod tsrust_native_logging {"){manifest=manifest.replace("default = [", "default = [\"logging\", ");}
+  if rust.contains("mod tsrust_native_locale {"){manifest=manifest.replace("default = [", "default = [\"locale\", ");}
+  if rust.contains("mod tsrust_native_compression_streams {"){manifest=manifest.replace("default = [", "default = [\"compression-streams\", ");}
+  if rust.contains("mod tsrust_native_compression {"){manifest=manifest.replace("default = [", "default = [\"compression\", ");}
+  if rust.contains("mod tsrust_native_regex {"){manifest=manifest.replace("default = [", "default = [\"regex\", ");}
+  if rust.contains("mod tsrust_native_url {"){manifest=manifest.replace("default = [", "default = [\"url\", ");}
+  if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = [", "default = [\"http\", ");}
+  if rust.contains("// tsrust-http-websocket-selected\n"){manifest=manifest.replace("default = [", "default = [\"http-websocket\", ");}
+  if rust.contains("// tsrust-http-middleware-selected\n"){manifest=manifest.replace("default = [", "default = [\"http-middleware\", ");}
+  if rust.contains("mod tsrust_native_process {"){manifest=manifest.replace("default = [", "default = [\"process\", ");}
+  if rust.contains("mod tsrust_native_io {"){manifest=manifest.replace("default = [", "default = [\"io\", ");}
+  if rust.contains("mod tsrust_native_futures {"){manifest=manifest.replace("default = [", "default = [\"async\", ");}
   if rust.contains("mod tsrust_native_ui {"){manifest=manifest.replace("default = [", "default = [\"ui\", ");}
         if rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::") {
             let feature=if web_only{"ui-web"}else{"ui-native"};manifest = manifest.replace("default = [", &format!("default = [\"{feature}\", "));}
+  if tsrust_compiler::native_runtime::requires_byte_codecs(rust){manifest=manifest.replace("default = [", "default = [\"byte-codecs\", ");}
+  if tsrust_compiler::native_runtime::requires_byte_search(rust){manifest=manifest.replace("default = [", "default = [\"byte-search\", ");}
+  if tsrust_compiler::native_runtime::requires_hostname(rust){manifest=manifest.replace("default = [", "default = [\"hostname\", ");}
+  if tsrust_compiler::native_runtime::requires_temporary_files(rust){manifest=manifest.replace("default = [", "default = [\"temporary-files\", ");}
   if rust.contains("mod tsrust_native_files {"){manifest=manifest.replace("default = [", "default = [\"files\", ");}
   if rust.contains("mod tsrust_native_date {"){manifest=manifest.replace("default = [", "default = [\"calendar\", ");}
   if rust.contains("mod tsrust_native_crypto {"){manifest=manifest.replace("default = [", "default = [\"crypto\", ");}
+  if rust.contains("mod tsrust_native_crypto_password {"){manifest=manifest.replace("default = [", "default = [\"crypto-password\", ");}
   if rust.contains("mod tsrust_native_signals {"){manifest=manifest.replace("default = [", "default = [\"signals\", ");}
   if rust.contains("mod tsrust_native_uuid {"){manifest=manifest.replace("default = [", "default = [\"uuid\", ");}
   if rust.contains("mod tsrust_native_decimal {"){manifest=manifest.replace("default = [", "default = [\"decimal\", ");}

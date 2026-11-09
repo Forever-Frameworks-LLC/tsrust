@@ -1,0 +1,2 @@
+mod tsrust_native_futures {pub fn block_on<F:std::future::Future>(future:F)->F::Output{tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap().block_on(future)}}
+async fn function0(n:i64,seed:i64)->i64{let pool=rayon::ThreadPoolBuilder::new().num_threads(1).build().unwrap();let mut sum=0;for i in 0..n{let(send,receive)=tokio::sync::oneshot::channel();pool.spawn(move||{let mut value=seed+i;for j in 0..4096{value=(value*17+j)%1000000007;}let _=send.send(value);});sum=(sum+receive.await.unwrap())%1000000007;}sum}fn main(){}

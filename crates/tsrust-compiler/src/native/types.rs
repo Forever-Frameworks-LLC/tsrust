@@ -56,6 +56,52 @@ static THREAD: Declaration = Declaration {
     independent_clone: false, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
+static LOGGER:Declaration=Declaration{id:NativeTypeId::Logger,module:"std:log-runtime",name:"Logger",type_parameters:&[],thread_transfer:true,..THREAD};
+static LOGGER_OPTIONS:Declaration=Declaration{id:NativeTypeId::LoggerOptions,module:"std:log-runtime",name:"LoggerOptions",fields:&[
+ Field{name:"sink",signature:Signature::Union(&[Signature::StringLiteral("stdout"),Signature::StringLiteral("stderr"),Signature::StringLiteral("file")]),optional:false},
+ Field{name:"path",signature:Signature::String,optional:true},
+ Field{name:"level",signature:Signature::Union(&[Signature::StringLiteral("trace"),Signature::StringLiteral("debug"),Signature::StringLiteral("info"),Signature::StringLiteral("warn"),Signature::StringLiteral("error"),Signature::StringLiteral("off")]),optional:true},
+],..SPAWN_ERROR};
+static LOG_ERROR:Declaration=Declaration{id:NativeTypeId::LogError,module:"std:log-runtime",name:"LogError",fields:&[
+ Field{name:"code",signature:Signature::String,optional:false},Field{name:"message",signature:Signature::String,optional:false},
+],..FS_ERROR};
+static IP_ADDRESS:Declaration=Declaration{id:NativeTypeId::IpAddress,module:"std:net",name:"IpAddress",type_parameters:&[],independent_clone:true,thread_transfer:true,..THREAD};
+static SOCKET_ADDRESS:Declaration=Declaration{id:NativeTypeId::SocketAddress,name:"SocketAddress",..IP_ADDRESS};
+static TCP_LISTENER:Declaration=Declaration{id:NativeTypeId::TcpListener,module:"std:net",name:"TcpListener",thread_transfer:true,..FILE};
+static TCP_STREAM:Declaration=Declaration{id:NativeTypeId::TcpStream,name:"TcpStream",..TCP_LISTENER};
+static UDP_SOCKET:Declaration=Declaration{id:NativeTypeId::UdpSocket,name:"UdpSocket",..TCP_LISTENER};
+static DATAGRAM:Declaration=Declaration{id:NativeTypeId::Datagram,module:"std:net",name:"Datagram",fields:&[Field{name:"data",signature:Signature::Named(NativeTypeId::Bytes),optional:false},Field{name:"remote",signature:Signature::Named(NativeTypeId::SocketAddress),optional:false}],..SPAWN_ERROR};
+static NET_ERROR:Declaration=Declaration{id:NativeTypeId::NetError,module:"std:net",name:"NetError",..FS_ERROR};
+static URL: Declaration = Declaration {id:NativeTypeId::Url,module:"std:url",name:"Url",type_parameters:&[],independent_clone:true,thread_transfer:true,..THREAD};
+static SEARCH_PARAMS: Declaration = Declaration {id:NativeTypeId::SearchParams,name:"SearchParams",..URL};
+static URL_ERROR: Declaration = Declaration {id:NativeTypeId::UrlError,module:"std:url",name:"UrlError",fields:&[
+ Field{name:"code",signature:Signature::String,optional:false},Field{name:"operation",signature:Signature::String,optional:false},Field{name:"message",signature:Signature::String,optional:false},
+],..SPAWN_ERROR};
+static QUERY_ENTRY: Declaration = Declaration {id:NativeTypeId::QueryEntry,module:"std:url",name:"QueryEntry",fields:&[
+ Field{name:"name",signature:Signature::String,optional:false},Field{name:"value",signature:Signature::String,optional:false},
+],..SPAWN_ERROR};
+static LOCALE_LOCALE:Declaration=Declaration{id:NativeTypeId::Locale,module:"std:locale",name:"Locale",type_parameters:&[],thread_transfer:true,..THREAD};
+static LOCALE_COLLATOR:Declaration=Declaration{id:NativeTypeId::Collator,module:"std:locale",name:"Collator",type_parameters:&[],thread_transfer:true,..THREAD};
+static LOCALE_SEGMENTER:Declaration=Declaration{id:NativeTypeId::Segmenter,module:"std:locale",name:"Segmenter",type_parameters:&[],thread_transfer:true,..THREAD};
+static LOCALE_NUMBERFORMAT:Declaration=Declaration{id:NativeTypeId::NumberFormat,module:"std:locale",name:"NumberFormat",type_parameters:&[],thread_transfer:true,..THREAD};
+static LOCALE_SEGMENTRANGE:Declaration=Declaration{id:NativeTypeId::SegmentRange,module:"std:locale",name:"SegmentRange",fields:&[Field{name:"start",signature:Signature::Int,optional:false},Field{name:"end",signature:Signature::Int,optional:false}],..SPAWN_ERROR};
+static LOCALE_LOCALEERROR:Declaration=Declaration{id:NativeTypeId::LocaleError,module:"std:locale",name:"LocaleError",fields:&[Field{name:"code",signature:Signature::String,optional:false},Field{name:"message",signature:Signature::String,optional:false}],..SPAWN_ERROR};
+static LOCALE_COLLATOROPTIONS:Declaration=Declaration{id:NativeTypeId::CollatorOptions,module:"std:locale",name:"CollatorOptions",fields:&[Field{name:"strength",signature:Signature::Union(&[Signature::StringLiteral("primary"),Signature::StringLiteral("secondary"),Signature::StringLiteral("tertiary"),Signature::StringLiteral("quaternary"),Signature::StringLiteral("identical")]),optional:true},Field{name:"alternateHandling",signature:Signature::Union(&[Signature::StringLiteral("nonIgnorable"),Signature::StringLiteral("shifted")]),optional:true},Field{name:"maxVariable",signature:Signature::Union(&[Signature::StringLiteral("space"),Signature::StringLiteral("punctuation"),Signature::StringLiteral("symbol"),Signature::StringLiteral("currency")]),optional:true},Field{name:"caseLevel",signature:Signature::Boolean,optional:true}],..SPAWN_ERROR};
+static LOCALE_NUMBERFORMATOPTIONS:Declaration=Declaration{id:NativeTypeId::NumberFormatOptions,module:"std:locale",name:"NumberFormatOptions",fields:&[Field{name:"grouping",signature:Signature::Union(&[Signature::StringLiteral("auto"),Signature::StringLiteral("never"),Signature::StringLiteral("always"),Signature::StringLiteral("min2")]),optional:true},Field{name:"fractionDigits",signature:Signature::Int,optional:true}],..SPAWN_ERROR};
+static REGEX: Declaration = Declaration {id:NativeTypeId::Regex,module:"std:regex",name:"Regex",type_parameters:&[],thread_transfer:true,..THREAD};
+static REGEX_MATCH: Declaration = Declaration {id:NativeTypeId::RegexMatch,module:"std:regex",name:"RegexMatch",independent_clone:true,fields:&[
+ Field{name:"start",signature:Signature::Int,optional:false},Field{name:"end",signature:Signature::Int,optional:false},
+],..SPAWN_ERROR};
+static REGEX_CAPTURES: Declaration = Declaration {id:NativeTypeId::RegexCaptures,module:"std:regex",name:"RegexCaptures",fields:&[
+ Field{name:"match",signature:Signature::Named(NativeTypeId::RegexMatch),optional:false},
+ Field{name:"groups",signature:Signature::Array(&Signature::Optional(&Signature::Named(NativeTypeId::RegexMatch))),optional:false},
+],..SPAWN_ERROR};
+static REGEX_ERROR: Declaration = Declaration {id:NativeTypeId::RegexError,module:"std:regex",name:"RegexError",fields:&[
+ Field{name:"code",signature:Signature::String,optional:false},Field{name:"message",signature:Signature::String,optional:false},
+],..SPAWN_ERROR};
+static REGEX_OPTIONS: Declaration = Declaration {id:NativeTypeId::RegexOptions,module:"std:regex",name:"RegexOptions",fields:&[
+ Field{name:"sizeLimit",signature:Signature::Int,optional:true},Field{name:"dfaSizeLimit",signature:Signature::Int,optional:true},Field{name:"nestLimit",signature:Signature::Int,optional:true},
+],..SPAWN_ERROR};
 static UI_NODE: Declaration = Declaration {
     id: NativeTypeId::UiNode,
     module: "std:ui-runtime",
@@ -103,6 +149,49 @@ static HTTPSERVER: Declaration = Declaration {id:NativeTypeId::HttpServer,module
 static HTTPNEXT: Declaration = Declaration {id:NativeTypeId::HttpNext,module:"std:http",name:"Next",type_parameters:&[],thread_transfer:true,..THREAD};
 static HTTPERROR:Declaration=Declaration{id:NativeTypeId::HttpError,module:"std:http",name:"HttpError",independent_clone:true,..SPAWN_ERROR};
 
+static HTTPWEBSOCKET:Declaration=Declaration{id:NativeTypeId::HttpWebSocket,module:"std:http",name:"WebSocket",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPWEBSOCKETREAD:Declaration=Declaration{id:NativeTypeId::HttpWebSocketRead,module:"std:http",name:"WebSocketRead",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPWEBSOCKETWRITE:Declaration=Declaration{id:NativeTypeId::HttpWebSocketWrite,module:"std:http",name:"WebSocketWrite",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPWEBSOCKETHALVES:Declaration=Declaration{id:NativeTypeId::HttpWebSocketHalves,module:"std:http",name:"WebSocketHalves",fields:&[
+ Field{name:"read",signature:Signature::Named(NativeTypeId::HttpWebSocketRead),optional:false},
+ Field{name:"write",signature:Signature::Named(NativeTypeId::HttpWebSocketWrite),optional:false},
+],..SPAWN_ERROR};
+static HTTPWEBSOCKETOPTIONS:Declaration=Declaration{id:NativeTypeId::HttpWebSocketOptions,module:"std:http",name:"WebSocketOptions",fields:&[
+ Field{name:"readBufferSize",signature:Signature::Int,optional:true},
+ Field{name:"writeBufferSize",signature:Signature::Int,optional:true},
+ Field{name:"maxWriteBufferSize",signature:Signature::Union(&[Signature::Int,Signature::Null]),optional:true},
+ Field{name:"maxMessageSize",signature:Signature::Union(&[Signature::Int,Signature::Null]),optional:true},
+ Field{name:"maxFrameSize",signature:Signature::Union(&[Signature::Int,Signature::Null]),optional:true},
+ Field{name:"acceptUnmaskedFrames",signature:Signature::Boolean,optional:true},
+],..SPAWN_ERROR};
+static HTTPWEBSOCKETCLIENTOPTIONS:Declaration=Declaration{id:NativeTypeId::HttpWebSocketClientOptions,module:"std:http",name:"WebSocketClientOptions",fields:&[
+ Field{name:"ca",signature:Signature::String,optional:true},
+ Field{name:"headers",signature:Signature::Array(&Signature::Named(NativeTypeId::HttpWebSocketHeader)),optional:true},
+ Field{name:"socket",signature:Signature::Named(NativeTypeId::HttpWebSocketOptions),optional:true},
+],..SPAWN_ERROR};
+static HTTPWEBSOCKETHEADER:Declaration=Declaration{id:NativeTypeId::HttpWebSocketHeader,module:"std:http",name:"WebSocketHeader",fields:&[
+ Field{name:"name",signature:Signature::String,optional:false},
+ Field{name:"value",signature:Signature::String,optional:false},
+],..SPAWN_ERROR};
+static HTTPWEBSOCKETTEXT:Declaration=Declaration{id:NativeTypeId::HttpWebSocketText,module:"std:http",name:"WebSocketText",fields:&[
+ Field{name:"kind",signature:Signature::StringLiteral("text"),optional:false},
+ Field{name:"data",signature:Signature::String,optional:false},
+],..SPAWN_ERROR};
+static HTTPWEBSOCKETBINARY:Declaration=Declaration{id:NativeTypeId::HttpWebSocketBinary,module:"std:http",name:"WebSocketBinary",fields:&[
+ Field{name:"kind",signature:Signature::StringLiteral("binary"),optional:false},
+ Field{name:"data",signature:Signature::Named(NativeTypeId::Bytes),optional:false},
+],..SPAWN_ERROR};
+static HTTPWEBSOCKETCLOSE:Declaration=Declaration{id:NativeTypeId::HttpWebSocketClose,module:"std:http",name:"WebSocketClose",fields:&[
+ Field{name:"kind",signature:Signature::StringLiteral("close"),optional:false},
+ Field{name:"code",signature:Signature::Int,optional:true},
+ Field{name:"reason",signature:Signature::String,optional:true},
+],..SPAWN_ERROR};
+static HTTPSSEEVENT:Declaration=Declaration{id:NativeTypeId::HttpSseEvent,module:"std:http",name:"SseEvent",fields:&[
+ Field{name:"data",signature:Signature::String,optional:false},Field{name:"event",signature:Signature::String,optional:true},Field{name:"id",signature:Signature::String,optional:true},Field{name:"retryMs",signature:Signature::Int,optional:true},
+],..SPAWN_ERROR};
+static HTTPSSEOPTIONS:Declaration=Declaration{id:NativeTypeId::HttpSseOptions,module:"std:http",name:"SseOptions",fields:&[
+ Field{name:"keepAliveMs",signature:Signature::Int,optional:true},Field{name:"keepAliveText",signature:Signature::String,optional:true},
+],..SPAWN_ERROR};
 static HTTPTLSOPTIONS: Declaration = Declaration {id:NativeTypeId::HttpTlsOptions,module:"std:http",name:"TlsOptions",fields:&[
  Field{name:"cert",signature:Signature::String,optional:false},Field{name:"key",signature:Signature::String,optional:false},
 ],..SPAWN_ERROR};
@@ -124,8 +213,19 @@ static HTTPSERVEROPTIONS: Declaration = Declaration {id:NativeTypeId::HttpServer
  Field{name:"handshakeTimeoutMs",signature:Signature::Int,optional:false},
  Field{name:"requestsPerSecond",signature:Signature::Int,optional:false},
 ],..SPAWN_ERROR};
+static HTTPMIDDLEWARE:Declaration=Declaration{id:NativeTypeId::HttpMiddleware,module:"std:http",name:"Middleware",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPCORSOPTIONS:Declaration=Declaration{id:NativeTypeId::HttpCorsOptions,module:"std:http",name:"CorsOptions",fields:&[
+ Field{name:"origins",signature:Signature::Array(&Signature::String),optional:true},Field{name:"methods",signature:Signature::Array(&Signature::String),optional:true},Field{name:"allowedHeaders",signature:Signature::Array(&Signature::String),optional:true},Field{name:"exposeHeaders",signature:Signature::Array(&Signature::String),optional:true},Field{name:"credentials",signature:Signature::Boolean,optional:true},Field{name:"maxAgeSeconds",signature:Signature::Int,optional:true},
+],..SPAWN_ERROR};
 static HTTPCLIENTOPTIONS: Declaration = Declaration {id:NativeTypeId::HttpClientOptions,module:"std:http",name:"ClientOptions",fields:&[
- Field{name:"ca",signature:Signature::String,optional:false},
+ Field{name:"ca",signature:Signature::String,optional:true},
+ Field{name:"bodyLimit",signature:Signature::Int,optional:true},
+ Field{name:"timeoutMs",signature:Signature::Int,optional:true},
+ Field{name:"connectTimeoutMs",signature:Signature::Int,optional:true},
+ Field{name:"followRedirects",signature:Signature::Boolean,optional:true},
+ Field{name:"maxRedirects",signature:Signature::Int,optional:true},
+ Field{name:"proxy",signature:Signature::String,optional:true},
+ Field{name:"noProxy",signature:Signature::Boolean,optional:true},
 ],..SPAWN_ERROR};
 
 static JOB: Declaration = Declaration {id:NativeTypeId::Job,module:"std:futures",name:"Job",..THREAD};
@@ -135,12 +235,20 @@ static ASYNC_ERROR: Declaration = Declaration {id:NativeTypeId::AsyncError,modul
 ],..SPAWN_ERROR};
 static ASYNC_CHANNEL: Declaration = Declaration {id:NativeTypeId::AsyncChannel,module:"std:futures",name:"Channel",..CHANNEL};
 static ASYNC_SENDER: Declaration = Declaration {id:NativeTypeId::AsyncSender,module:"std:futures",name:"Sender",..SENDER};
+static INTERVAL: Declaration = Declaration {id:NativeTypeId::Interval,module:"std:futures",name:"Interval",type_parameters:&[],..THREAD};
+static CANCELLATION_TOKEN: Declaration = Declaration {id:NativeTypeId::CancellationToken,module:"std:futures",name:"CancellationToken",type_parameters:&[],thread_transfer:true,..THREAD};
+static COMPRESSION_READER:Declaration=Declaration{id:NativeTypeId::CompressionReader,module:"std:compression",name:"CompressionReader",thread_transfer:true,..FILE};
+static COMPRESSION_WRITER:Declaration=Declaration{id:NativeTypeId::CompressionWriter,module:"std:compression",name:"CompressionWriter",thread_transfer:true,..FILE};
+static COMPRESSION_OPTIONS:Declaration=Declaration{id:NativeTypeId::CompressionOptions,module:"std:compression",name:"CompressionOptions",fields:&[Field{name:"level",signature:Signature::Int,optional:true}],..SPAWN_ERROR};
+static DECOMPRESSION_OPTIONS:Declaration=Declaration{id:NativeTypeId::DecompressionOptions,module:"std:compression",name:"DecompressionOptions",fields:&[Field{name:"maxOutputBytes",signature:Signature::Int,optional:true}],..SPAWN_ERROR};
+static COMPRESSION_ERROR:Declaration=Declaration{id:NativeTypeId::CompressionError,module:"std:compression",name:"CompressionError",fields:&[Field{name:"code",signature:Signature::Union(&[Signature::StringLiteral("range"),Signature::StringLiteral("format"),Signature::StringLiteral("codec"),Signature::StringLiteral("truncated"),Signature::StringLiteral("trailing-data"),Signature::StringLiteral("output-limit"),Signature::StringLiteral("allocation"),Signature::StringLiteral("closed")]),optional:false},Field{name:"operation",signature:Signature::String,optional:false},Field{name:"message",signature:Signature::String,optional:false}],..SPAWN_ERROR};
+static POOL_SUBMISSION: Declaration = Declaration {id:NativeTypeId::PoolSubmission,name:"__PoolSubmission",type_parameters:&[],thread_transfer:true,..THREAD};
 static POOL: Declaration = Declaration { id: NativeTypeId::ThreadPool, name: "ThreadPool", type_parameters: &[], ..THREAD };
 static TASK_CONTEXT: Declaration = Declaration { id: NativeTypeId::TaskContext, name: "TaskContext", type_parameters: &[], ..THREAD };
 static CHANNEL: Declaration = Declaration { id: NativeTypeId::Channel, name: "Channel", type_parameters: &["T"], thread_transfer: true, ..THREAD };
 static SENDER: Declaration = Declaration { id: NativeTypeId::Sender, name: "Sender", ..CHANNEL };
 static CHANNEL_ERROR: Declaration = Declaration { id: NativeTypeId::ChannelError, name: "ChannelError", fields: &[Field { name: "code", signature: Signature::String, optional: false }], ..SPAWN_ERROR };
-static SEND_ERROR: Declaration = Declaration { id: NativeTypeId::SendError, name: "SendError", type_parameters: &["T"], fields: &[
+static SEND_ERROR: Declaration = Declaration { id: NativeTypeId::SendError, name: "SendError", independent_clone: true, type_parameters: &["T"], fields: &[
     Field { name: "code", signature: Signature::String, optional: false },
     Field { name: "value", signature: Signature::Parameter(0), optional: false },
 ], ..SPAWN_ERROR };
@@ -282,6 +390,49 @@ static FS_ERROR: Declaration = Declaration {
         Field { name: "osCode", signature: Signature::Int, optional: true },
     ],
 };
+static PROCESS_CHILD:Declaration=Declaration{id:NativeTypeId::ProcessChild,module:"std:process",name:"Child",thread_transfer:true,..FILE};
+static PROCESS_ERROR:Declaration=Declaration{id:NativeTypeId::ProcessError,module:"std:process",name:"ProcessError",..FS_ERROR};
+static PROCESS_STATUS:Declaration=Declaration{id:NativeTypeId::ProcessExitStatus,module:"std:process",name:"ExitStatus",fields:&[Field{name:"success",signature:Signature::Boolean,optional:false},Field{name:"code",signature:Signature::Int,optional:true},Field{name:"signal",signature:Signature::Int,optional:true}],..SPAWN_ERROR};
+static PROCESS_OUTPUT:Declaration=Declaration{id:NativeTypeId::ProcessOutput,module:"std:process",name:"Output",fields:&[Field{name:"status",signature:Signature::Named(NativeTypeId::ProcessExitStatus),optional:false},Field{name:"stdout",signature:Signature::Named(NativeTypeId::Bytes),optional:false},Field{name:"stderr",signature:Signature::Named(NativeTypeId::Bytes),optional:false}],..SPAWN_ERROR};
+static PROCESS_OPTIONS:Declaration=Declaration{id:NativeTypeId::ProcessCommandOptions,module:"std:process",name:"CommandOptions",fields:&[
+ Field{name:"cwd",signature:Signature::String,optional:true},Field{name:"env",signature:Signature::Array(&Signature::Named(NativeTypeId::EnvVar)),optional:true},Field{name:"clearEnv",signature:Signature::Boolean,optional:true},
+ Field{name:"stdin",signature:Signature::Union(&[Signature::StringLiteral("inherit"),Signature::StringLiteral("null"),Signature::StringLiteral("pipe")]),optional:true},Field{name:"stdout",signature:Signature::Union(&[Signature::StringLiteral("inherit"),Signature::StringLiteral("null"),Signature::StringLiteral("pipe")]),optional:true},Field{name:"stderr",signature:Signature::Union(&[Signature::StringLiteral("inherit"),Signature::StringLiteral("null"),Signature::StringLiteral("pipe")]),optional:true},
+ Field{name:"input",signature:Signature::Union(&[Signature::Named(NativeTypeId::Bytes),Signature::Named(NativeTypeId::IoReader)]),optional:true},Field{name:"deadlineMs",signature:Signature::Int,optional:true},Field{name:"maxOutputBytes",signature:Signature::Int,optional:true},
+],..SPAWN_ERROR};
+static IO_READER: Declaration = Declaration {id:NativeTypeId::IoReader,module:"std:io",name:"Reader",thread_transfer:true,..FILE};
+static IO_WRITER: Declaration = Declaration {id:NativeTypeId::IoWriter,module:"std:io",name:"Writer",thread_transfer:true,..FILE};
+static IO_LINE_READER: Declaration = Declaration {id:NativeTypeId::IoLineReader,module:"std:io",name:"LineReader",thread_transfer:true,..FILE};
+static IO_STDIN: Declaration = Declaration {id:NativeTypeId::IoStdin,module:"std:io",name:"Stdin",..FILE};
+static IO_ERROR: Declaration = Declaration {id:NativeTypeId::IoError,module:"std:io",name:"IoError",..FS_ERROR};
+static FS_OPEN_OPTIONS: Declaration = Declaration { id: NativeTypeId::FsOpenOptions, name: "OpenOptions", fields: &[
+    Field { name: "read", signature: Signature::Boolean, optional: true },
+    Field { name: "write", signature: Signature::Boolean, optional: true },
+    Field { name: "append", signature: Signature::Boolean, optional: true },
+    Field { name: "create", signature: Signature::Boolean, optional: true },
+    Field { name: "createNew", signature: Signature::Boolean, optional: true },
+    Field { name: "truncate", signature: Signature::Boolean, optional: true },
+], ..FS_ERROR };
+static FS_FILE_TIME: Declaration = Declaration { id: NativeTypeId::FsFileTime, name: "FileTime", fields: &[
+    Field { name: "unixSeconds", signature: Signature::Int, optional: false },
+    Field { name: "nanoseconds", signature: Signature::Int, optional: false },
+], ..FS_ERROR };
+static FS_METADATA: Declaration = Declaration { id: NativeTypeId::FsMetadata, name: "Metadata", fields: &[
+    Field { name: "isFile", signature: Signature::Boolean, optional: false },
+    Field { name: "isDirectory", signature: Signature::Boolean, optional: false },
+    Field { name: "isSymlink", signature: Signature::Boolean, optional: false },
+    Field { name: "size", signature: Signature::Int, optional: false },
+    Field { name: "readOnly", signature: Signature::Boolean, optional: false },
+    Field { name: "modified", signature: Signature::Named(NativeTypeId::FsFileTime), optional: true },
+    Field { name: "accessed", signature: Signature::Named(NativeTypeId::FsFileTime), optional: true },
+    Field { name: "created", signature: Signature::Named(NativeTypeId::FsFileTime), optional: true },
+], ..FS_ERROR };
+static FS_DIR_ENTRY: Declaration = Declaration { id: NativeTypeId::FsDirEntry, name: "DirEntry", fields: &[
+    Field { name: "name", signature: Signature::String, optional: false },
+    Field { name: "path", signature: Signature::String, optional: false },
+    Field { name: "isFile", signature: Signature::Boolean, optional: false },
+    Field { name: "isDirectory", signature: Signature::Boolean, optional: false },
+    Field { name: "isSymlink", signature: Signature::Boolean, optional: false },
+], ..FS_ERROR };
 static ENV_ERROR: Declaration = Declaration {
     id: NativeTypeId::EnvError, module: "std:env", name: "EnvError",
     fields: &[
@@ -289,6 +440,17 @@ static ENV_ERROR: Declaration = Declaration {
         Field { name: "message", signature: Signature::String, optional: false },
     ], ..FS_ERROR
 };
+static ENV_VAR:Declaration=Declaration{id:NativeTypeId::EnvVar,module:"std:env",name:"EnvVar",fields:&[
+    Field{name:"name",signature:Signature::String,optional:false},Field{name:"value",signature:Signature::String,optional:false},
+],..ENV_ERROR};
+static PATH_PARTS:Declaration=Declaration{id:NativeTypeId::PathParts,module:"std:path",name:"PathParts",fields:&[
+    Field{name:"root",signature:Signature::String,optional:false},Field{name:"dir",signature:Signature::String,optional:false},Field{name:"base",signature:Signature::String,optional:false},Field{name:"ext",signature:Signature::String,optional:false},Field{name:"name",signature:Signature::String,optional:false},
+],..ENV_ERROR};
+static PATH_FORMAT_OPTIONS:Declaration=Declaration{id:NativeTypeId::PathFormatOptions,module:"std:path",name:"PathFormatOptions",fields:&[
+    Field{name:"root",signature:Signature::String,optional:true},Field{name:"dir",signature:Signature::String,optional:true},Field{name:"base",signature:Signature::String,optional:true},Field{name:"ext",signature:Signature::String,optional:true},Field{name:"name",signature:Signature::String,optional:true},
+],..ENV_ERROR};
+static PATH_ERROR:Declaration=Declaration{id:NativeTypeId::PathError,module:"std:path",name:"PathError",..ENV_ERROR};
+static OS_ERROR:Declaration=Declaration{id:NativeTypeId::OsError,module:"std:os",name:"OsError",..ENV_ERROR};
 static TIMEOFDAY: Declaration = Declaration {id:NativeTypeId::TimeOfDay,module:"std:date",name:"Time",..BYTES};
 static UTCINSTANT: Declaration = Declaration {id:NativeTypeId::UtcInstant,module:"std:date",name:"Instant",..BYTES};
 static TIMEDURATION: Declaration = Declaration {id:NativeTypeId::TimeDuration,module:"std:date",name:"Duration",..BYTES};
@@ -298,6 +460,13 @@ static DATE_ERROR: Declaration = Declaration {id:NativeTypeId::DateError,module:
 static UUID: Declaration = Declaration {id:NativeTypeId::Uuid,module:"std:uuid",name:"Uuid",..BYTES};
 static SIGNAL_LISTENER: Declaration = Declaration {id:NativeTypeId::SignalListener,module:"std:signals",name:"SignalListener",type_parameters:&[],thread_transfer:true,..THREAD};
 static SIGNAL_ERROR: Declaration = Declaration {id:NativeTypeId::SignalError,module:"std:signals",name:"SignalError",..ENV_ERROR};
+static CRYPTO_HASHER:Declaration=Declaration{id:NativeTypeId::CryptoHasher,module:"std:crypto",name:"Hasher",thread_transfer:true,..FILE};
+static PASSWORD_HASH_OPTIONS:Declaration=Declaration{id:NativeTypeId::PasswordHashOptions,module:"std:crypto",name:"PasswordHashOptions",fields:&[
+ Field{name:"memoryKiB",signature:Signature::Int,optional:true},Field{name:"iterations",signature:Signature::Int,optional:true},Field{name:"parallelism",signature:Signature::Int,optional:true},Field{name:"outputBytes",signature:Signature::Int,optional:true},
+],..ENV_ERROR};
+static PASSWORD_VERIFY_OPTIONS:Declaration=Declaration{id:NativeTypeId::PasswordVerifyOptions,module:"std:crypto",name:"PasswordVerifyOptions",fields:&[
+ Field{name:"maxMemoryKiB",signature:Signature::Int,optional:false},Field{name:"maxIterations",signature:Signature::Int,optional:false},Field{name:"maxParallelism",signature:Signature::Int,optional:false},
+],..ENV_ERROR};
 static CRYPTO_ERROR: Declaration = Declaration {id:NativeTypeId::CryptoError,module:"std:crypto",name:"CryptoError",..ENV_ERROR};
 static UUID_ERROR: Declaration = Declaration {id:NativeTypeId::UuidError,module:"std:uuid",name:"UuidError",..ENV_ERROR};
 static DECIMAL: Declaration = Declaration {id:NativeTypeId::Decimal,module:"std:decimal",name:"Decimal",..BYTES};
@@ -414,12 +583,21 @@ static HEAP: Declaration = Declaration {
     fields: &[], capabilities: &[],
 };
 
+static OWNED_ITERATOR:Declaration=Declaration{id:NativeTypeId::OwnedIterator,module:"std:iterator",name:"Iterator",type_parameters:&["T"],..THREAD};
+static ITERATOR_CURSOR:Declaration=Declaration{id:NativeTypeId::IteratorCursor,module:"std:iterator-runtime",name:"ArrayCursor",type_parameters:&["T"],fields:&[Field{name:"_items",signature:Signature::Array(&Signature::Parameter(0)),optional:false}],..THREAD};
+
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
+        NativeTypeId::Logger=>&LOGGER,NativeTypeId::LoggerOptions=>&LOGGER_OPTIONS,NativeTypeId::LogError=>&LOG_ERROR,
+        NativeTypeId::Locale=>&LOCALE_LOCALE,NativeTypeId::Collator=>&LOCALE_COLLATOR,NativeTypeId::Segmenter=>&LOCALE_SEGMENTER,NativeTypeId::NumberFormat=>&LOCALE_NUMBERFORMAT,NativeTypeId::SegmentRange=>&LOCALE_SEGMENTRANGE,NativeTypeId::LocaleError=>&LOCALE_LOCALEERROR,NativeTypeId::CollatorOptions=>&LOCALE_COLLATOROPTIONS,NativeTypeId::NumberFormatOptions=>&LOCALE_NUMBERFORMATOPTIONS,
+        NativeTypeId::Regex=>&REGEX,NativeTypeId::RegexMatch=>&REGEX_MATCH,NativeTypeId::RegexCaptures=>&REGEX_CAPTURES,NativeTypeId::RegexError=>&REGEX_ERROR,NativeTypeId::RegexOptions=>&REGEX_OPTIONS,
+        NativeTypeId::TcpListener=>&TCP_LISTENER,NativeTypeId::TcpStream=>&TCP_STREAM,NativeTypeId::UdpSocket=>&UDP_SOCKET,NativeTypeId::Datagram=>&DATAGRAM,NativeTypeId::IpAddress=>&IP_ADDRESS,NativeTypeId::SocketAddress=>&SOCKET_ADDRESS,NativeTypeId::NetError=>&NET_ERROR,
+        NativeTypeId::Url=>&URL,NativeTypeId::SearchParams=>&SEARCH_PARAMS,NativeTypeId::UrlError=>&URL_ERROR,NativeTypeId::QueryEntry=>&QUERY_ENTRY,
         NativeTypeId::LruCache => &LRU_CACHE, NativeTypeId::SharedLruCache => &SHARED_LRU_CACHE, NativeTypeId::CacheEntry => &CACHE_ENTRY, NativeTypeId::CacheInsertError => &CACHE_INSERT_ERROR,
         NativeTypeId::HttpTlsOptions => &HTTPTLSOPTIONS,
         NativeTypeId::HttpClientOptions => &HTTPCLIENTOPTIONS,
+        NativeTypeId::HttpWebSocket=>&HTTPWEBSOCKET,NativeTypeId::HttpWebSocketRead=>&HTTPWEBSOCKETREAD,NativeTypeId::HttpWebSocketWrite=>&HTTPWEBSOCKETWRITE,NativeTypeId::HttpWebSocketHalves=>&HTTPWEBSOCKETHALVES,NativeTypeId::HttpWebSocketOptions=>&HTTPWEBSOCKETOPTIONS,NativeTypeId::HttpWebSocketClientOptions=>&HTTPWEBSOCKETCLIENTOPTIONS,NativeTypeId::HttpWebSocketHeader=>&HTTPWEBSOCKETHEADER,NativeTypeId::HttpWebSocketText=>&HTTPWEBSOCKETTEXT,NativeTypeId::HttpWebSocketBinary=>&HTTPWEBSOCKETBINARY,NativeTypeId::HttpWebSocketClose=>&HTTPWEBSOCKETCLOSE,NativeTypeId::HttpSseEvent=>&HTTPSSEEVENT,NativeTypeId::HttpSseOptions=>&HTTPSSEOPTIONS,
         NativeTypeId::HttpFormField => &HTTPFORMFIELD,
         NativeTypeId::HttpMultipartPart => &HTTPMULTIPARTPART,
         NativeTypeId::HttpCookieOptions => &HTTPCOOKIEOPTIONS,
@@ -439,6 +617,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::HttpRequest => &HTTPREQUEST,
         NativeTypeId::HttpResponse => &HTTPRESPONSE,
         NativeTypeId::HttpBody => &HTTPBODY,
+        NativeTypeId::HttpMiddleware=>&HTTPMIDDLEWARE,NativeTypeId::HttpCorsOptions=>&HTTPCORSOPTIONS,
         NativeTypeId::HttpClient => &HTTPCLIENT,
         NativeTypeId::HttpServer => &HTTPSERVER,
         NativeTypeId::HttpNext => &HTTPNEXT,
@@ -447,8 +626,12 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::AsyncError => &ASYNC_ERROR,
         NativeTypeId::AsyncChannel => &ASYNC_CHANNEL,
         NativeTypeId::AsyncSender => &ASYNC_SENDER,
+        NativeTypeId::Interval => &INTERVAL,
+        NativeTypeId::CancellationToken => &CANCELLATION_TOKEN,
+        NativeTypeId::PoolSubmission => &POOL_SUBMISSION,
         NativeTypeId::Thread => &THREAD,
         NativeTypeId::ScopedThread => &SCOPED_THREAD,
+        NativeTypeId::CompressionReader=>&COMPRESSION_READER,NativeTypeId::CompressionWriter=>&COMPRESSION_WRITER,NativeTypeId::CompressionOptions=>&COMPRESSION_OPTIONS,NativeTypeId::DecompressionOptions=>&DECOMPRESSION_OPTIONS,NativeTypeId::CompressionError=>&COMPRESSION_ERROR,
         NativeTypeId::ThreadError => &THREAD_ERROR,
         NativeTypeId::SpawnError => &SPAWN_ERROR,
         NativeTypeId::ThreadPoolStats => &POOL_STATS,
@@ -475,8 +658,19 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::File => &FILE,
         NativeTypeId::BufferedReader => &BUFFERED_READER,
         NativeTypeId::BufferedWriter => &BUFFERED_WRITER,
+        NativeTypeId::FsOpenOptions => &FS_OPEN_OPTIONS,
+        NativeTypeId::FsFileTime => &FS_FILE_TIME,
+        NativeTypeId::FsMetadata => &FS_METADATA,
+        NativeTypeId::FsDirEntry => &FS_DIR_ENTRY,
         NativeTypeId::FsError => &FS_ERROR,
+        NativeTypeId::ProcessChild=>&PROCESS_CHILD,NativeTypeId::ProcessCommandOptions=>&PROCESS_OPTIONS,NativeTypeId::ProcessExitStatus=>&PROCESS_STATUS,NativeTypeId::ProcessOutput=>&PROCESS_OUTPUT,NativeTypeId::ProcessError=>&PROCESS_ERROR,
+        NativeTypeId::IoReader=>&IO_READER,NativeTypeId::IoWriter=>&IO_WRITER,NativeTypeId::IoLineReader=>&IO_LINE_READER,NativeTypeId::IoStdin=>&IO_STDIN,NativeTypeId::IoError=>&IO_ERROR,
         NativeTypeId::EnvError => &ENV_ERROR,
+        NativeTypeId::EnvVar => &ENV_VAR,
+        NativeTypeId::PathParts => &PATH_PARTS,
+        NativeTypeId::PathFormatOptions => &PATH_FORMAT_OPTIONS,
+        NativeTypeId::PathError => &PATH_ERROR,
+        NativeTypeId::OsError => &OS_ERROR,
         NativeTypeId::UiSignal => &UI_SIGNAL,
         NativeTypeId::UiComputed => &UI_COMPUTED,
         NativeTypeId::UiNode => &UI_NODE,
@@ -493,6 +687,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::SignalListener => &SIGNAL_LISTENER,
         NativeTypeId::SignalError => &SIGNAL_ERROR,
         NativeTypeId::CryptoError => &CRYPTO_ERROR,
+        NativeTypeId::CryptoHasher=>&CRYPTO_HASHER,NativeTypeId::PasswordHashOptions=>&PASSWORD_HASH_OPTIONS,NativeTypeId::PasswordVerifyOptions=>&PASSWORD_VERIFY_OPTIONS,
         NativeTypeId::UuidError => &UUID_ERROR,
         NativeTypeId::Decimal => &DECIMAL,
         NativeTypeId::DecimalError => &DECIMAL_ERROR,
@@ -513,15 +708,17 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::OrderedMap => &ORDERED_MAP,
         NativeTypeId::OrderedSet => &ORDERED_SET,
         NativeTypeId::Heap => &HEAP,
+        NativeTypeId::OwnedIterator=>&OWNED_ITERATOR,NativeTypeId::IteratorCursor=>&ITERATOR_CURSOR,
     }
 }
 
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
+    if module=="std:futures" {match name {"SendError"=>return Some(&SEND_ERROR),"ChannelError"=>return Some(&CHANNEL_ERROR),_=>{}}}
+    [&HTTPWEBSOCKET,&HTTPWEBSOCKETREAD,&HTTPWEBSOCKETWRITE,&HTTPWEBSOCKETHALVES,&HTTPWEBSOCKETOPTIONS,&HTTPWEBSOCKETCLIENTOPTIONS,&HTTPWEBSOCKETHEADER,&HTTPWEBSOCKETTEXT,&HTTPWEBSOCKETBINARY,&HTTPWEBSOCKETCLOSE,&LOGGER,&LOGGER_OPTIONS,&LOG_ERROR,&OWNED_ITERATOR,&ITERATOR_CURSOR,&TCP_LISTENER,&TCP_STREAM,&UDP_SOCKET,&DATAGRAM,&IP_ADDRESS,&SOCKET_ADDRESS,&NET_ERROR,&PROCESS_CHILD,&PROCESS_OPTIONS,&PROCESS_STATUS,&PROCESS_OUTPUT,&PROCESS_ERROR,&IO_READER,&IO_WRITER,&IO_LINE_READER,&IO_STDIN,&IO_ERROR,&LOCALE_LOCALE,&LOCALE_COLLATOR,&LOCALE_SEGMENTER,&LOCALE_NUMBERFORMAT,&LOCALE_SEGMENTRANGE,&LOCALE_LOCALEERROR,&LOCALE_COLLATOROPTIONS,&LOCALE_NUMBERFORMATOPTIONS,&REGEX,&REGEX_MATCH,&REGEX_CAPTURES,&REGEX_ERROR,&REGEX_OPTIONS,&URL,&SEARCH_PARAMS,&URL_ERROR,&QUERY_ENTRY,&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
         &UI_ERROR,
-        &SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
+        &COMPRESSION_READER,&COMPRESSION_WRITER,&COMPRESSION_OPTIONS,&DECOMPRESSION_OPTIONS,&COMPRESSION_ERROR,&SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&CRYPTO_HASHER,&PASSWORD_HASH_OPTIONS,&PASSWORD_VERIFY_OPTIONS,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPSSEEVENT,&HTTPSSEOPTIONS,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPMIDDLEWARE,&HTTPCORSOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&INTERVAL,&CANCELLATION_TOKEN,&POOL_SUBMISSION,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR,&ENV_VAR,&PATH_PARTS,&PATH_FORMAT_OPTIONS,&PATH_ERROR,&OS_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_OPEN_OPTIONS, &FS_FILE_TIME, &FS_METADATA, &FS_DIR_ENTRY, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
     ].into_iter().find(|item| item.module == module && item.name == name)
 }
 

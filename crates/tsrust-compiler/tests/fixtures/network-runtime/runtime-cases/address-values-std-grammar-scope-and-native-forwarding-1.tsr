@@ -1,0 +1,10 @@
+import { parseIp as parse, parseAddress, formatIp, formatAddress, isIPv6 } from 'std:net';
+
+export function run() {
+  const operation = parse;
+  const format = formatAddress;
+  const ip = unwrap(operation('2001:0db8:0000:0000:0000:0000:0000:0001'));
+  console.log(formatIp(ip), isIPv6(ip));
+  const address = unwrap(parseAddress('[fe80::1%2]:80'));
+  console.log(format(address));
+}

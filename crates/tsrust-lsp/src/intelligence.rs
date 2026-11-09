@@ -93,6 +93,7 @@ pub struct SourceIndex {
     /// Import name regions with the completion items of the imported module.
     import_exports: Vec<(Span, Vec<Value>)>,
     checked_views: Vec<(Span, String)>,
+    checked_array_capabilities: Vec<(Span, tsrust_compiler::ArrayCapabilities)>,
     json_string_receivers: Vec<Span>,
     checked_method_results: Vec<(Span, String)>,
     schema_pipeline_types: std::collections::BTreeMap<String, (String, String, bool, bool, bool, bool)>,
@@ -116,6 +117,15 @@ fn name(text: &str) -> bool {
         .next()
         .is_some_and(|c| c.is_ascii_alphabetic() || c == b'_')
         && bytes.all(|c| c.is_ascii_alphanumeric() || c == b'_')
+}
+fn quote_field_edits(items: &mut [Value], access: Range, optional: bool) {
+    for item in items {
+        if item["kind"]==5 && let Some(field)=item["label"].as_str() && !name(field) {
+            let field=serde_json::to_string(field).expect("property spelling");
+            let optional=if optional{"?."}else{""};
+            item["textEdit"]=json!({"range":access,"newText":format!("{optional}[{field}]")});
+        }
+    }
 }
 impl SourceIndex {
     pub fn new(source: &str) -> Self {
@@ -153,6 +163,7 @@ impl SourceIndex {
             import_exports: vec![],
             type_aliases: Default::default(),generic_aliases:None,public_record_aliases:Default::default(),
             checked_views: vec![],
+            checked_array_capabilities: vec![],
             json_string_receivers: vec![],
             checked_method_results: vec![],
             schema_pipeline_types: Default::default(),
@@ -390,6 +401,13 @@ impl SourceIndex {
             }
         }
         let facts = analysis.checked_type_facts();
+        self.checked_array_capabilities = facts.array_capabilities.iter().filter_map(|(span, capability)| {
+            let mut span = *span;
+            if let Some((start, added, original_end)) = inserted {
+                if span.end <= start {} else if span.start >= start + added && span.end <= original_end + added { span.start -= added; span.end -= added; } else { return None; }
+            }
+            Some((span, *capability))
+        }).collect();
         self.enum_scalar_types=facts.enum_scalars.iter().cloned().collect();
         self.json_string_receivers=facts.json_string_receivers.iter().filter_map(|span|{
             let mut span=*span;
@@ -411,7 +429,10 @@ impl SourceIndex {
             };
             if !remap(&mut span) || !remap(&mut declaration) { continue; }
             let Some(source) = self.symbols.iter().find(|symbol| symbol.span == declaration && symbol.kind == 12).cloned() else { continue; };
-            for symbol in self.symbols.iter_mut().filter(|symbol| symbol.span == span) {
+            for (id,symbol) in self.symbols.iter_mut().enumerate().filter(|(_,symbol)| symbol.span == span) {
+                // Native alias recovery already supplies the public signature and docs.
+                // Keep that same shape while a sibling is syntactically incomplete.
+                if self.native_origins.contains_key(&id) {continue;}
                 symbol.signature = source.signature.replacen(&format!("function {}", source.name), &format!("function {}", symbol.name), 1);
                 symbol.kind = 12;
                 symbol.parameters = source.parameters.clone();
@@ -562,13 +583,20 @@ impl SourceIndex {
         facts: std::collections::BTreeMap<(usize, usize), Option<String>>,
     ) {
         for id in &self.parameter_symbols {
+            // Explicit annotations retain their written alias and access contract in
+            // presentation. Checked types still drive member/callable resolution.
+            let annotated=self.tokens.binary_search_by_key(&self.symbols[*id].span.start,|token|token.span.start).is_ok_and(|token|{
+                let colon=token+if self.text(token+1)=="?"{2}else{1};self.text(colon)==":"
+            });
             let symbol = &mut self.symbols[*id];
             let Some(Some(ty)) = facts.get(&(symbol.span.start, symbol.span.end)) else {
                 continue;
             };
             symbol.ty = ty.clone();
-            let label = symbol.signature.split(':').next().unwrap_or(&symbol.name);
-            symbol.signature = format!("{label}: {ty}");
+            if !annotated {
+                let label = symbol.signature.split(':').next().unwrap_or(&symbol.name);
+                symbol.signature = format!("{label}: {ty}");
+            }
             if let Some(parameters) = callable_parameters(ty) {
                 symbol.kind = 12;
                 symbol.parameters = parameters;
@@ -1176,7 +1204,8 @@ impl SourceIndex {
                         .unwrap_or(self.tokens[id].scope);
                     // The name of a function expression is visible only inside
                     // that function; a declaration belongs to its block.
-                    let expression = id > 0 && !matches!(self.text(id - 1), ";" | "{" | "}" | "export");
+                    let predecessor = if id > 0 && self.text(id - 1) == "async" { id - 1 } else { id };
+                    let expression = predecessor > 0 && !matches!(self.text(predecessor - 1), ";" | "{" | "}" | "export");
                     let declaration = self.add(
                         name_id,
                         12,
@@ -1762,16 +1791,15 @@ impl SourceIndex {
                 type_end
             };
             if name(self.text(n)) {
-                let declared = if annotated {
-                    self.written_type(&self.snippet(colon + 1, type_end))
-                } else {
-                    String::new()
-                };
+                let written = if annotated {self.snippet(colon+1,type_end)}else{String::new()};
+                let declared = if annotated {self.written_type(&written)}else{String::new()};
                 let ty = if optional {
                     optional_parameter_type(&declared)
                 } else {
                     declared
                 };
+                let display = canonical_data_type(&written);
+                let display = if optional {optional_parameter_type(&display)}else{display};
                 let signature = self.snippet(begin, parameter_end);
                 let access = self.snippet(access_begin, n);
                 let body_signature = format!(
@@ -1782,10 +1810,10 @@ impl SourceIndex {
                         format!("{access} ")
                     },
                     self.text(n),
-                    if ty.is_empty() {
+                    if display.is_empty() {
                         String::new()
                     } else {
-                        format!(": {ty}")
+                        format!(": {display}")
                     }
                 );
                 let parameter = self.add(
@@ -1911,6 +1939,17 @@ impl SourceIndex {
         Some(format!("{schema}<{output}>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::process_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if matches!(method,"wait"|"kill"){format!("Task<{result}>")}else{result};}
+        if receiver=="string"&&method=="localeCompare"{return "int".into();}
+
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::network_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if tsrust_compiler::native_bindings::network_asynchronous(method){format!("Task<{result}>")}else{result};}
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::locale_method(*id,method)){return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();}
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::regex_method(*id,method)) {
+            return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
+        }
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::url_method(*id,method)) {
+            return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
+        }
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::sql_method(*id,method)) {
             let signature=binding.result.signature();
             let ty=if tsrust_compiler::native_bindings::sql_asynchronous(binding.name){if let tsrust_compiler::native_signatures::Signature::Result(ok,_)=signature{*ok}else{signature}}else{signature};
@@ -1932,7 +1971,7 @@ impl SourceIndex {
         }
         if method=="parse" && let Some(output)=self.schema_element(&receiver) {return output.to_owned();}
         if method=="safeParseJson" && let Some(output)=self.schema_element(&receiver) {return format!("SafeParseSuccess<{output}> | SafeParseError<{{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>");}
-        let receiver = literal_scalar_family(&receiver).map(str::to_owned).unwrap_or(receiver);
+        let receiver = observation_scalar_family(&receiver).map(str::to_owned).unwrap_or(receiver);
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
         if self.schema_element(&receiver).is_some() && method=="default" {return receiver;}
         if let Some(output)=self.schema_element(&receiver) && matches!(method,"optional"|"nullable") {
@@ -1992,10 +2031,17 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::process_method(*id,method).is_some()){return true;}
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::network_method(*id,method).is_some()){return true;}
+
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::locale_method(*id,method).is_some()){return true;}
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::regex_method(*id,method).is_some()){return true;}
+        if receiver=="string" && matches!(method,"match"|"matchAll"|"search"|"localeCompare"){return true;}
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::url_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sql_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::ui_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method).is_some()){return true;}
-        let receiver = literal_scalar_family(receiver).unwrap_or(receiver);
+        let receiver = observation_scalar_family(receiver).unwrap_or(receiver);
         if receiver=="@namespace:std:schema#s" && matches!(method,"string"|"boolean"|"int"|"number"|"null"|"literal"|"enum"|"union"|"discriminatedUnion") {return true;}
         if matches!((self.schema_element(receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return true;}
         if self.schema_element(receiver).is_some() { return matches!(method,"parse"|"safeParse"|"safeParseJson"); }
@@ -2050,7 +2096,7 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
-        if self.text(id) == "new" && matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool | tsrust_compiler::native_signatures::NativeTypeId::HttpRouter | tsrust_compiler::native_signatures::NativeTypeId::HttpApp | tsrust_compiler::native_signatures::NativeTypeId::HttpClient)) {
+        if self.text(id) == "new" && matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool | tsrust_compiler::native_signatures::NativeTypeId::Interval | tsrust_compiler::native_signatures::NativeTypeId::CancellationToken | tsrust_compiler::native_signatures::NativeTypeId::HttpRouter | tsrust_compiler::native_signatures::NativeTypeId::HttpApp | tsrust_compiler::native_signatures::NativeTypeId::HttpClient)) {
             let open = self.member_call_open(id + 1)?;
             let ty = if self.text(id + 2) == "<" { self.snippet(id + 1, open) } else { self.text(id + 1).into() };
             return Some((ty, self.pairs.get(open).copied().flatten()? + 1));
@@ -2212,7 +2258,7 @@ impl SourceIndex {
                 end = close + 1;
                 continue;
             }
-            if self.text(end) == "[" && (ty == "string" || literal_scalar_family(&ty) == Some("string")) {
+            if self.text(end) == "[" && (ty == "string" || observation_scalar_family(&ty) == Some("string")) {
                 ty = "string".to_owned();
                 // A string position is a one-character string.
                 let close = self.pairs.get(end).copied().flatten()?;
@@ -2324,6 +2370,13 @@ impl SourceIndex {
         }
         if let Some((ty, _)) = self.set_constructor_type(id, offset, depth) { return ty; }
         let text = self.text(id);
+        if text=="unwrap" && self.text(id+1)=="(" && !(id>0 && member_separator(self.text(id-1))) && self.resolve_name(text,offset).is_none() {
+            // The builtin's declared Result contract is enough for syntax recovery;
+            // require exactly one complete argument and retain its native payload identity.
+            let Some(close)=self.pairs.get(id+1).copied().flatten()else{return String::new()};
+            let Some((result,end))=self.simple_expression_type(id+2,offset,depth+1)else{return String::new()};
+            return if end==close {self.result_alternatives(&result).map(|(ok,_)|ok).unwrap_or_default()}else{String::new()};
+        }
         if matches!(text.as_bytes().first(), Some(b'\'' | b'"' | b'`')) {
             return "string".into();
         }
@@ -2523,7 +2576,8 @@ impl SourceIndex {
         for wrapper in ["ReadOnly<", "Mutable<", "Owned<"] {
             if let Some(inner) = ty.strip_prefix(wrapper).and_then(|value| value.strip_suffix('>'))
                 && (self.native_type_aliases.contains_key(inner.split_once('<').map_or(inner, |(name, _)| name.trim()))
-                    || self.is_record_declaration(inner.split_once('<').map_or(inner, |(name, _)| name.trim()))) {
+                    || self.is_record_declaration(inner.split_once('<').map_or(inner, |(name, _)| name.trim()))
+                    || array_element_type(inner).is_some()) {
                 return inner.into();
             }
         }
@@ -2564,7 +2618,7 @@ impl SourceIndex {
                 if n==open+2 && let Some(key)=quoted_property_name(self.text(open+1))
                     && let Some(field)=self.common_record_fields(receiver,false).remove(&key) {return field;}
                 // A string position is a one-character string.
-                if receiver == "string" || literal_scalar_family(receiver) == Some("string") {
+                if receiver == "string" || observation_scalar_family(receiver) == Some("string") {
                     return "string".into();
                 }
                 // An unknown indexed receiver is not an array literal.
@@ -2727,7 +2781,19 @@ impl SourceIndex {
             });
             return;
         }
-        if let Some(declaration) = tsrust_compiler::native_types::lookup(module, exported) {
+        if let Ok(tsrust_compiler::native_exports::Export::Alias(alias)) = tsrust_compiler::native_exports::lookup(module, exported) {
+            let ty = alias.signature.render(|_| None).expect("literal native alias").into_owned();
+            self.type_aliases.insert(local.into(), ty.clone());
+            let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented native alias");
+            self.symbols.push(Symbol {
+                name: local.into(), kind: 26, span, extent: span, scope: 0,
+                signature: format!("type {local} = {ty}"), ty,
+                docs: catalog["documentation"].as_str().unwrap_or("").into(),
+                parameters: vec![], owner: None,
+            });
+            return;
+        }
+        if let Ok(tsrust_compiler::native_exports::Export::Type(declaration)) = tsrust_compiler::native_exports::lookup(module, exported) {
             self.import_native_type(declaration, local, span);
             return;
         }
@@ -2773,8 +2839,11 @@ impl SourceIndex {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
-        let result = if (binding.module=="std:sql" && tsrust_compiler::native_bindings::sql_asynchronous(binding.name)) || (binding.module=="std:signals" && binding.name=="receive") {
+        let result = if (binding.module=="std:crypto" && matches!(binding.name,"hashPassword"|"verifyPassword"|"verifyPasswordBounded")) || (binding.module=="std:compression" && tsrust_compiler::native_bindings::compression_asynchronous(binding.name)) || (binding.module=="std:dns" && binding.name=="lookup") || (binding.module=="std:net" && tsrust_compiler::native_bindings::network_asynchronous(binding.name)) || (binding.module=="std:io" && tsrust_compiler::native_bindings::io_asynchronous(binding.name)) || (binding.module=="std:process" && tsrust_compiler::native_bindings::process_asynchronous(binding.name)){format!("Task<{}>",signature_name(binding.result.signature()))}else if (binding.module=="std:sql" && tsrust_compiler::native_bindings::sql_asynchronous(binding.name)) || (binding.module=="std:signals" && binding.name=="receive") {
             let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("SQL task result")};
+            format!("Task<{}>",signature_name(*output))
+        }else if binding.module=="std:http" && binding.name=="connectWebSocket"{
+            let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("WebSocket task result")};
             format!("Task<{}>",signature_name(*output))
         }else if binding.module=="std:http" && tsrust_compiler::native_bindings::http_unwrapped(binding.name){
             let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("HTTP factory result")};
@@ -2783,7 +2852,7 @@ impl SourceIndex {
         let signature = self.display_type(&format!("function {local}({}): {result}", parameters.join(", ")));
         let signature=if let Some(inferred)=catalog["inferredSignature"].as_str(){
             parameters=catalog["parameters"].as_array().unwrap().iter().map(|parameter|parameter["label"].as_str().unwrap().to_owned()).collect();
-            inferred.replacen(exported,local,1)
+            if inferred.contains(&format!("function {exported}(")){inferred.replace(&format!("function {exported}("),&format!("function {local}("))}else{inferred.replacen(exported,local,1)}
         }else{signature};
         self.native_parameter_docs.insert(self.symbols.len(), docs);
         if let Some(id) = tsrust_compiler::native_bindings::BINDINGS
@@ -2877,9 +2946,14 @@ impl SourceIndex {
             id,
             json!({"uri":uri,"range":dependency.range(declaration.span)}),
         );
-        if let Some(identity) = dependency.native_type_aliases.get(exported) {
-            self.native_type_aliases.insert(local.into(), *identity);
-        }
+        let native_identity=dependency.native_type_aliases.get(exported).copied().or_else(||{
+            // Bundled source records keep their authored fields/navigation, while
+            // compiler-owned native metadata supplies their operation identity.
+            if !matches!(declaration.kind,10|23){return None;}
+            let module=uri.strip_prefix("tsrust-stdlib:///")?;
+            tsrust_compiler::native_types::lookup(module,exported).map(|declaration|declaration.id)
+        });
+        if let Some(identity)=native_identity{self.native_type_aliases.insert(local.into(),identity);}
         self.symbols.push(symbol);
         if matches!(declaration.kind, 10 | 23) {
             self.import_record_fields(dependency, exported, local, span, uri, types);
@@ -3240,15 +3314,11 @@ impl SourceIndex {
             });
         }
         if method == "textDocument/completion" {
-            let items = self.completion(offset);
-            // An unfinished member access that this text cannot answer is
-            // answered from the checker's view of the document without it.
-            if !self.checked && items.as_array().is_some_and(Vec::is_empty)
-                && let Some(repaired) = self.repaired_member_completion(offset)
-            {
+            // Recover the checked receiver before considering tolerant members.
+            if !self.checked && let Some(repaired) = self.repaired_member_completion(offset) {
                 return Ok(repaired);
             }
-            return Ok(items);
+            return Ok(self.completion(offset));
         }
         if method == "textDocument/signatureHelp" {
             return Ok(self.signature_help(offset));
@@ -3304,7 +3374,7 @@ impl SourceIndex {
         let s = &self.symbols[symbol];
         match method {
             "textDocument/hover" => Ok(
-                json!({"contents":{"kind":"markdown","value":format!("{}{}",self.checked_generic_signature(token).map_or_else(||self.documentation(s),|(signature,_)|format!("```tsrust\n{signature}\n```{}",if s.docs.is_empty(){String::new()}else{format!("\n\n{}",crate::documentation::render(&s.docs))})),self.checked_view(token).filter(|ty|*ty!=s.ty).map_or(String::new(),|ty|format!("\n\nNarrowed here to `{ty}`.")))},"range":self.range(self.tokens[token].span)}),
+                json!({"contents":{"kind":"markdown","value":format!("{}{}",self.checked_generic_signature(token).filter(|_| !self.native_origins.contains_key(&symbol) || s.signature.starts_with("function ") || self.text(token+1)=="<").map_or_else(||self.documentation(s),|(signature,_)|format!("```tsrust\n{signature}\n```{}",if s.docs.is_empty(){String::new()}else{format!("\n\n{}",crate::documentation::render(&s.docs))})),self.checked_view(token).filter(|ty|*ty!=s.ty).map_or(String::new(),|ty|format!("\n\nNarrowed here to `{ty}`.")))},"range":self.range(self.tokens[token].span)}),
             ),
             "textDocument/definition" => Ok(self
                 .foreign_definitions
@@ -3416,7 +3486,7 @@ impl SourceIndex {
             ),
             "void" => (
                 "type void",
-                "A function result with no usable value, such as console.log or array.push. It cannot be used as a numeric, string or array result.\n\n```tsrust\nfunction greet():void { console.log(\"Hello\"); }\n```",
+                "A function result with no usable value, such as console.log or array.push. It cannot be used as a numeric or string value. A void[] stores unit results as Rust Vec<()>; its length counts completed results. void and undefined remain distinct types. Unit arrays do not support text conversion, scalar-unit entries() tuples or optional scalar element results such as at(), pop() and shift(). Callback methods can omit the unit parameter; explicitly typed scalar void parameters remain unsupported.\n\n```tsrust\nfunction greet():void { console.log(\"Hello\"); }\n```",
                 vec![],
             ),
             _ => return None,
@@ -3443,7 +3513,7 @@ impl SourceIndex {
         } else {
             self.receiver_type(token - 1)
         };
-        let mut entry = self.receiver_builtins(&receiver)
+        let mut entry = self.receiver_builtins_at(&receiver, token - 2)
             .into_iter()
             .find(|b| b["name"] == self.text(token))?;
         if receiver == "@namespace:std:schema#s" {
@@ -3486,10 +3556,19 @@ impl SourceIndex {
         Some(entry)
     }
     /// Completion items for the members of a receiver of type `ty`.
-    fn member_items(&self, ty: &str, prefix: &str, replace: Range, receiver: &str) -> Vec<Value> {
-        let mut items=self.receiver_builtins(ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
+    fn member_items(&self, ty: &str, prefix: &str, replace: Range, receiver: &str, receiver_token: usize) -> Vec<Value> {
+        let mut items=self.receiver_builtins_at(ty, receiver_token).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
         let ty = self.native_owner(ty);
         let ty = ty.as_str();
+        let view=["ReadOnly<","Mutable<","Owned<"].into_iter().find_map(|wrapper|ty.strip_prefix(wrapper).and_then(|inner|inner.strip_suffix('>'))).unwrap_or(ty);
+        let base=view.split_once('<').map_or(view,|(base,_)|base).trim();
+        let identity=self.native_type_aliases.get(base).copied().or_else(||{
+            let(module,name)=base.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
+            tsrust_compiler::native_types::lookup(module,name).map(|declaration|declaration.id)
+        });
+        // Iterator's source record stores its private pull closure; only its
+        // native operations are visible outside the trusted implementation.
+        if identity==Some(tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator){return items;}
         items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":crate::documentation::render(&s.docs)},"textEdit":{"range":replace,"newText":s.name}})));
         if !self.symbols.iter().any(|symbol|symbol.owner.as_deref()==Some(ty)) {
             for (name, field_type) in self.common_record_fields(ty, false) {
@@ -3566,14 +3645,8 @@ impl SourceIndex {
             let ty = self.member_receiver_type(dot);
             // After a member separator only members are offered, never names
             // of the enclosing scope.
-            let mut items=self.member_items(&ty, prefix, replace, &self.receiver_text(dot));
-            for item in &mut items {
-                if item["kind"]==5 && let Some(field)=item["label"].as_str() && !name(field) {
-                    let field=serde_json::to_string(field).expect("property spelling");
-                    let optional=if self.text(dot)=="?."{"?."}else{""};
-                    item["textEdit"]=json!({"range":self.range(Span::new(self.tokens[dot].span.start,offset)),"newText":format!("{optional}[{field}]")});
-                }
-            }
+            let mut items=self.member_items(&ty, prefix, replace, &self.receiver_text(dot), dot - 1);
+            quote_field_edits(&mut items, self.member_access_range(dot, offset), self.text(dot)=="?.");
             return json!(items);
         }
         if before.is_some_and(|id| member_separator(self.text(id))) {
@@ -3870,7 +3943,7 @@ impl SourceIndex {
                 _ => {}
             }
         }
-        for (open, _) in stack.into_iter().rev() {
+        for (open, parameter) in stack.into_iter().rev() {
             if self.text(open) != "(" {
                 continue;
             }
@@ -3899,10 +3972,11 @@ impl SourceIndex {
                 let label=entry["signature"].as_str().unwrap().replace(&format!("new {name}("),&format!("new {}(",self.text(callee))).replace(&format!(": {name}"),&format!(": {}",self.text(callee)));
                 return json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
             }
-            if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) {
-                let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "ThreadPool").expect("documented ThreadPool constructor");
-                let label = entry["signature"].as_str().unwrap().replace("new ThreadPool(", &format!("new {}(", self.text(callee))).replace(": ThreadPool", &format!(": {}", self.text(callee)));
-                return json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
+            if callee > 0 && self.text(callee - 1)=="new" && matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool|tsrust_compiler::native_signatures::NativeTypeId::Interval|tsrust_compiler::native_signatures::NativeTypeId::CancellationToken)) {
+                let declaration=tsrust_compiler::native_types::declaration(self.native_type_aliases[self.text(callee)]);
+                let entry=builtins_for(declaration.module).into_iter().find(|entry|entry["name"]==declaration.name).expect("documented native constructor");
+                let label=entry["signature"].as_str().unwrap().replace(&format!("new {}(",declaration.name),&format!("new {}(",self.text(callee))).replace(&format!(": {}",declaration.name),&format!(": {}",self.text(callee)));
+                return json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":parameter});
             }
             if callee > 0 && self.text(callee - 1) == "new"
                 && matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap)) {
@@ -4548,6 +4622,28 @@ fn literal_scalar_family(ty: &str) -> Option<&'static str> {
         LiteralAnnotation::Number(_) => "number", LiteralAnnotation::Boolean(_) => "boolean" })
 }
 
+// Observation lookup may use a common string API; literal/schema identity stays
+// with literal_scalar_family and the original checked/aliased source spelling.
+fn observation_scalar_family(ty:&str)->Option<&'static str>{
+ if ty=="string"{return Some("string");}
+ if let Some(family)=literal_scalar_family(ty){return Some(family);}
+ // Parameter access is not a value-annotation kind. Peel only ReadOnly here;
+ // the string-only traversal below still rejects nullable/mixed/schema/array types.
+ let ty=ty.trim().strip_prefix("ReadOnly<").and_then(|inner|inner.strip_suffix('>')).map(str::trim).unwrap_or(ty);
+ if ty=="string"{return Some("string");}
+ if !ty.contains('|') && !ty.trim_start().starts_with(['(', '\'', '"']){return None;}
+ use tsrust_compiler::type_syntax::{ValueAnnotationKind as Kind,LiteralAnnotation};
+ let annotation=tsrust_compiler::type_syntax::parse(ty).ok()?;let mut pending=vec![&annotation];let mut found=false;
+ while let Some(value)=pending.pop(){match &value.kind{
+  Kind::Group(inner)=>pending.push(inner),
+  Kind::Union(members) if !members.is_empty()=>pending.extend(members),
+  Kind::Literal(LiteralAnnotation::String(_))=>found=true,
+  Kind::Named(name) if name.text=="string"=>found=true,
+  _=>return None,
+ }}
+ found.then_some("string")
+}
+
 fn builtin_catalog() -> &'static Value {
     static DATA: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
     DATA.get_or_init(|| {
@@ -4556,7 +4652,7 @@ fn builtin_catalog() -> &'static Value {
 }
 
 fn builtins_for(ty: &str) -> Vec<Value> {
-    let ty = literal_scalar_family(ty).unwrap_or(ty);
+    let ty = observation_scalar_family(ty).unwrap_or(ty);
     if let Some(result)=ty.strip_prefix("Task<").and_then(|text|text.strip_suffix('>')) {
         let mut entries=builtin_catalog()["TaskMethods"].as_array().cloned().unwrap_or_default();
         for entry in &mut entries {if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("T",result)]));}}
@@ -4580,7 +4676,7 @@ fn builtins_for(ty: &str) -> Vec<Value> {
     };
     let native_application = tsrust_compiler::type_syntax::parse(ty).ok().and_then(|annotation| {
         let tsrust_compiler::type_syntax::ValueAnnotationKind::Applied { name, arguments } = &annotation.kind else { return None; };
-        let declaration = match name.text.as_str(){"AsyncChannel"=>tsrust_compiler::native_types::lookup("std:futures","Channel"),"AsyncSender"=>tsrust_compiler::native_types::lookup("std:futures","Sender"),_=>tsrust_compiler::native_types::lookup("std:threads", &name.text).or_else(||tsrust_compiler::native_types::lookup("std:futures", &name.text)).or_else(||tsrust_compiler::native_types::lookup("std:cache", &name.text))}?;
+        let declaration = match name.text.as_str(){"AsyncChannel"=>tsrust_compiler::native_types::lookup("std:futures","Channel"),"AsyncSender"=>tsrust_compiler::native_types::lookup("std:futures","Sender"),_=>tsrust_compiler::native_types::lookup("std:threads", &name.text).or_else(||tsrust_compiler::native_types::lookup("std:futures", &name.text)).or_else(||tsrust_compiler::native_types::lookup("std:cache", &name.text)).or_else(||tsrust_compiler::native_types::lookup("std:iterator", &name.text))}?;
         let parameters = declaration.type_parameters.iter().zip(arguments.iter()).map(|(parameter, argument)| (*parameter, ty[argument.span.start..argument.span.end].to_owned())).collect::<Vec<_>>();
         Some((match name.text.as_str(){"AsyncChannel"=>"AsyncChannel","AsyncSender"=>"AsyncSender",_=>declaration.name}, parameters))
     });
@@ -4636,10 +4732,7 @@ fn builtins_for(ty: &str) -> Vec<Value> {
         });
         for entry in &mut entries {
             if matches!(entry["name"].as_str(), Some("sort" | "toSorted"))
-                && !matches!(
-                    element,
-                    "int" | "number" | "boolean" | "string" | "null" | "undefined"
-                )
+                && !matches!(element, "int" | "number" | "boolean" | "string" | "null" | "undefined")
             {
                 if let Some(signature) = entry["signature"].as_str() {
                     entry["signature"] = json!(signature.replace("compare?:", "compare:"));
@@ -4698,4 +4791,48 @@ fn builtins_for(ty: &str) -> Vec<Value> {
 fn public_ui_record_aliases_hide_implementation_names(){
  let index=SourceIndex::with_entry_help(include_str!("../../tsrust-compiler/src/stdlib/ui/api.tsr"),false);
  for (private,public) in [("ViewProperties","ViewRenderProps"),("ButtonProperties","ButtonRenderProps"),("ViewComponentProps","ViewProps"),("ButtonComponentProps","ButtonProps")]{assert_eq!(index.public_record_alias(private).as_deref(),Some(public),"aliases={:?}; parameters={:?}",index.public_record_aliases,index.generic_parameters);}
+}
+
+#[cfg(test)]mod string_observation_family_tests{
+ #[test]fn observation_family_preserves_schema_and_nullable_distinctions(){
+  use super::{literal_scalar_family,observation_scalar_family};
+  for ty in ["string","'start'","('start'|'current'|'end')","('left'|('right'))","ReadOnly<string>","ReadOnly<'start'>","ReadOnly<(('start'|'current'|'end'))>"]{assert_eq!(observation_scalar_family(ty),Some("string"),"{ty}");}
+  for ty in ["'start'|undefined","'start'|int","Schema<'start'|'end'>","NativeCallable","'start'[]","ReadOnly<('start'|undefined)>","ReadOnly<('start'|int)>","ReadOnly<Schema<'start'|'end'>>","ReadOnly<('start'|'end')[]>","ReadOnly<int>","Mutable<('start'|'end')>","Owned<('start'|'end')>"]{assert_eq!(observation_scalar_family(ty),None,"{ty}");}
+  assert_eq!(literal_scalar_family("'start'|'end'"),None,"schema enum identity must not become SchemaLiteral");
+ }
+}
+
+#[cfg(test)]mod parameter_presentation_tests {
+ use super::SourceIndex;
+ #[test]fn annotated_alias_parameters_preserve_written_access_while_inferred_parameters_use_checked_types(){
+  for source in [
+   "type Origin=('start'|'current'|'end');function inspect(value:ReadOnly<Origin>):string{return value.toUpperCase();}function main(){}",
+   "type Origin=('start'|'current'|'end');function main(){const callback=(value:ReadOnly<Origin>):string=>value.toUpperCase();console.log(callback('start'));}",
+  ]{
+   for broken in [false,true]{
+    let text=if broken{format!("{source}function broken(){{const = ;}} ")}else{source.into()};let index=SourceIndex::new(&text);
+    if !broken {assert!(index.checked,"valid annotated fixture must receive checked facts");}
+    let parameter=index.symbols.iter().enumerate().find(|(id,symbol)|index.parameter_symbols.contains(id)&&symbol.name=="value").unwrap().1;
+    assert_eq!(parameter.signature,"value: ReadOnly<Origin>","broken={broken}");
+   }
+  }
+  let index=SourceIndex::new("function main(){const values=[1,2];values.map(value=>value+1);}");assert!(index.checked,"inferred callback fixture must check");
+  let parameter=index.symbols.iter().enumerate().find(|(id,symbol)|index.parameter_symbols.contains(id)&&symbol.name=="value").unwrap().1;
+  assert_eq!(parameter.ty,"int");assert_eq!(parameter.signature,"value: int");
+ }
+}
+
+#[cfg(test)]
+mod async_declaration_scope_tests {
+    use super::*;
+    #[test]
+    fn exported_async_declarations_remain_public_and_named_async_expressions_stay_local() {
+        let source="export async function exposed():Task<void>{}const action=async function hidden():Task<void>{};function ordinary(){}function main(){}";
+        let index=SourceIndex::new(source);
+        let exposed=index.symbols.iter().find(|symbol|symbol.name=="exposed").expect("async declaration");
+        assert_eq!(exposed.scope,0);
+        let hidden=index.symbols.iter().find(|symbol|symbol.name=="hidden").expect("named async expression");
+        assert_ne!(hidden.scope,0);
+        assert!(index.symbols.iter().any(|symbol|symbol.name=="ordinary" && symbol.scope==0));
+    }
 }

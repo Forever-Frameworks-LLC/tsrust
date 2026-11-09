@@ -1,0 +1,51 @@
+import { OrderedMap } from 'std:collections';
+import { Bytes, ByteView, fromUtf8, view, length } from 'std:bytes';
+import { strictEqual } from 'std:testing';
+
+function bytes(): Bytes {
+  match (fromUtf8('ab')) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function window(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+type Row = {
+  data: ByteView;
+};
+
+export function main() {
+  const owner = bytes();
+  const values = new OrderedMap<int, Row>();
+  values.set(2, {
+    data: window(owner)
+  });
+  values.set(1, {
+    data: window(owner)
+  });
+  const lengths = Array.from(values, (entry: ReadOnly<[int, Row]>, index: int): int => length(entry[1].data) + entry[0] + index);
+  strictEqual(lengths[0], 3);
+  strictEqual(lengths[1], 5);
+  strictEqual(values.size, 2);
+  const plain = new OrderedMap<string, string>();
+  plain.set('z', 'last');
+  plain.set('a', 'first');
+  const copied = Array.from(plain);
+  plain.clear();
+  strictEqual(copied[0][0], 'a');
+  strictEqual(copied[1][1], 'last');
+}

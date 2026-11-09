@@ -1,0 +1,9 @@
+import { hmacSha256, verifyHmacSha256 } from 'std:crypto';
+import { fromUtf8, length } from 'std:bytes';
+
+export function main() {
+  const key = unwrap(fromUtf8('key'));
+  const input = unwrap(fromUtf8('abc'));
+  const tag = hmacSha256(key, input);
+  console.log(length(tag), verifyHmacSha256(key, input, tag));
+}

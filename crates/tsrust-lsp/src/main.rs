@@ -130,11 +130,11 @@ fn run(
                     let started = Instant::now();
                     let index = match &result {
                         Ok(analysis) => Some(tsrust_lsp::project_intelligence::ProjectIndex::checked(analysis)),
-                        Err(_) => {
+                        Err(errors) => {
                             tsrust_compiler::project::load_project_headers(workspace, &entry.0)
                                 .ok()
                                 .map(|graph| {
-                                    tsrust_lsp::project_intelligence::ProjectIndex::new(&graph)
+                                    tsrust_lsp::project_intelligence::ProjectIndex::with_diagnostics(&graph, errors)
                                 })
                         }
                     };

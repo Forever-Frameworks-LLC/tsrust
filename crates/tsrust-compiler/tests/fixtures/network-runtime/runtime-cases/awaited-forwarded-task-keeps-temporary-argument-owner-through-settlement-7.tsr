@@ -1,0 +1,21 @@
+type Item = {
+  value: string
+};
+async function read(item: ReadOnly<Item>): Task<int> {
+  return item.value.length;
+}
+
+function relay(item: ReadOnly<Item>): Task<int> {
+  return read(item);
+}
+
+export async function run(): Task<void> {
+  const operation = read;
+  console.log(await operation({
+    value: 'four'
+  }));
+  const forward = relay;
+  console.log(await(true ? forward : forward)({
+    value: 'five!'
+  }));
+}

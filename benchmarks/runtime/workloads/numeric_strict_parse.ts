@@ -1,0 +1,1 @@
+function workload(n:number,seed:number):number{let checksum=seed;let i=0;while(i<n){const integer=BigInt('0x7fffffffffffffff');const negative=-BigInt('0b100');const number=Number('1.25e2');if(integer!==9223372036854775807n||number!==125){throw 'parse';}checksum+=Number(negative)+125;i++;}return checksum;}

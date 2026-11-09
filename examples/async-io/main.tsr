@@ -1,0 +1,14 @@
+import { reader, readInto, readExact, readAll, lines, readLine, close } from "std:io";
+import { fromUtf8, alloc, toUtf8 } from "std:bytes";
+async function main(): Task<void> {
+  const input = reader(unwrap(fromUtf8("hello")));
+  const destination = unwrap(alloc(2));
+  console.log(unwrap(await readInto(input, destination)), unwrap(toUtf8(destination)));
+  unwrap(await readExact(input, destination));
+  console.log(unwrap(toUtf8(destination)), unwrap(toUtf8(unwrap(await readAll(input)))));
+  unwrap(await close(input));
+  const rows = unwrap(lines(reader(unwrap(fromUtf8("a\r\n\nlast")))));
+  console.log(unwrap(await readLine(rows)), unwrap(await readLine(rows)), unwrap(await readLine(rows)));
+  console.log(unwrap(await readLine(rows)) === undefined);
+  unwrap(await close(rows));
+}

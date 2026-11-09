@@ -1,0 +1,1 @@
+function workload(n:number,seed:number,input:string):number{const value=Intl.getCanonicalLocales(input)[0];let checksum=seed;let i=0;while(i<n){const text=value;checksum+=text.length;i++;}return checksum;}

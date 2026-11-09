@@ -1,0 +1,18 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+
+function values(flag: boolean): int[] | Iterator<int> {
+  if (flag) {
+    return [1, 2];
+  }
+
+  return Iterator.from([3, 4]).map(value => value + 1);
+}
+
+export function run() {
+  const source = Iterator.from([false, true]).flatMap((flag: boolean): int[] | Iterator<int> => values(flag));
+  {
+    const observed1_0 = source.toArray().join(',');
+    strictEqual(observed1_0, "4,5,1,2");
+  }
+}

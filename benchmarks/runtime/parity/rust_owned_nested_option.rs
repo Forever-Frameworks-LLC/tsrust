@@ -1,0 +1,13 @@
+mod backend {
+pub struct Row { pub label: String, pub value: i64 }
+pub fn scalar(value: i64) -> i64 { value * 3 + 1 }
+pub fn words(value: Vec<String>) -> Vec<String> { value }
+pub fn rows(value: Vec<Row>) -> Vec<Row> { value }
+pub fn nested(value: i64) -> Option<Option<Vec<String>>> {
+    match value % 3 { 0 => None, 1 => Some(None), _ => Some(Some(vec!["alpha".into(), "beta".into()])) }
+}
+}
+fn function0(value0: i64, value1: i64) -> i64 {
+let mut checksum=0i64;for i in 0..value0{let observed=match backend::nested(value1+i){None=>1,Some(None)=>2,Some(Some(words))=>3+words.iter().map(|word|word.len() as i64).sum::<i64>()};checksum=(checksum*131+observed)%1000000007;}checksum
+}
+fn main() {}

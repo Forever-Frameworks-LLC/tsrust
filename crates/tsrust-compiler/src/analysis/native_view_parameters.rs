@@ -30,6 +30,10 @@ impl Analyzer {
                 && self.program.records[id].native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) {
                 return true;
             }
+            if let Type::Closure(id)=ty
+                && self.closures[id].captures.iter().any(|capture|matches!(capture.storage,Mode::Read|Mode::Mutate)) {
+                return true;
+            }
             pending.extend(self.native_shape_children(ty).into_iter().map(|(ty,_,_)|ty));
         }
         false
@@ -54,13 +58,16 @@ impl Analyzer {
     }
 
     pub(super) fn seed_native_parameters(&self, context: &mut Context) -> Result<(), Diagnostic> {
-        if !self.native_borrow_types {return Ok(());}
-        self.refresh_native_recursive_shapes(context);
-        let shapes=std::rc::Rc::clone(context.native_recursive_shapes.as_ref().unwrap());
+        // Concrete Tasks can carry reference lifetimes without importing a
+        // native view type. Activate from the checked parameter shape itself.
+        let parameters=context.bindings.iter().enumerate().filter_map(|(root,binding)|
+            (binding.parameter && self.native_shape_contains_view(binding.ty)).then_some(root)).collect::<Vec<_>>();
+        if parameters.is_empty(){return Ok(());}
+        let shapes=self.native_recursive_shapes();
+        context.native_recursive_shapes=Some(std::rc::Rc::clone(&shapes));
         let recursive=&shapes.recursive;
-        for root in 0..context.bindings.len() {
+        for root in parameters {
             let binding=&context.bindings[root];
-            if !binding.parameter || !self.native_shape_contains_view(binding.ty) {continue;}
             let creation=binding.declaration_span.unwrap_or_default();
             let mut pending=vec![(binding.ty,Vec::<Segment>::new(),Vec::<VariantGuard>::new(),Vec::<Type>::new())];
             let mut loans=Vec::new();
@@ -71,6 +78,15 @@ impl Analyzer {
                         .map(|segment|match segment {Segment::Field(name)=>name.clone(),_=>unreachable!()}).collect();
                     loans.push(Loan{ whole: recursive.access(id).is_some(),root,owner_fields,source:LifetimeSource::carried(path.clone(),guards.clone()),access,creation,retained:false,path,guards});
                     continue;
+                }
+                if let Type::Closure(id)=ty {
+                    for capture in &self.closures[id].captures {
+                        if !matches!(capture.storage,Mode::Read|Mode::Mutate){continue;}
+                        let mut slot=path.clone();slot.push(Segment::CaptureBorrow(capture.inner));
+                        loans.push(Loan{whole:false,root,owner_fields:vec![],source:LifetimeSource::carried(slot.clone(),guards.clone()),
+                            access:if capture.storage==Mode::Mutate{crate::native_return_borrows::BorrowAccess::Exclusive}else{crate::native_return_borrows::BorrowAccess::ReadOnly},
+                            creation,retained:false,path:slot,guards:guards.clone()});
+                    }
                 }
                 if !self.native_shape_contains_view(ty) {continue;}
                 if ancestors.contains(&ty) {
@@ -95,6 +111,18 @@ impl Analyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn task_parameter_outer_references_have_distinct_carried_provenance_without_native_views(){
+        let source="async function size(left:ReadOnly<string>,right:ReadOnly<int[]>):Task<int>{return left.length+right.length;}function relay<T>(work:Task<T>):Task<T>{return work;}async function main():Task<void>{let left='four';const right=[1,2];const pending=relay(size(left,right));console.log(await pending);}";
+        let checked=analyze(crate::syntax::parse(&crate::format(source).unwrap()).unwrap()).unwrap();
+        assert!(checked.records.iter().all(|record|record.native_type.is_none_or(|id|crate::native_types::declaration(id).borrow_access().is_none())));
+        let relays=checked.functions.iter().filter(|function|function.name.starts_with("relay") && !function.template && function.bindings.first().is_some_and(|binding|matches!(binding.ty,Type::Closure(_)))).collect::<Vec<_>>();
+        assert!(!relays.is_empty());for function in relays{
+            let carried=function.bindings[0].native_view_loans.as_ref().expect("task parameter slots");let slots=carried.iter().filter(|loan|loan.environment_borrow()).collect::<Vec<_>>();assert_eq!(slots.len(),2);assert!(slots.iter().all(|loan|!loan.retained));assert_ne!(slots[0].source,slots[1].source);
+            let returns=function.native_returns.as_ref().expect("returned task slots");assert_eq!(returns.iter().filter(|loan|loan.environment_borrow()).count(),2);assert!(returns.iter().all(|loan|loan.root==0&&!loan.retained));
+        }
+    }
+
     #[test]
     fn deque_elements_retain_carried_owner_paths_and_environment_slots() {
         let source = "type Window={};type Queue<T>={};type Node={data:Window;children:Queue<Node>;};function identity(input:Queue<Window>):Queue<Window>{return input;}function recursive(input:Node):Node{return input;}function main(){}";
@@ -348,7 +376,7 @@ fn native_view_scoped_family_parameters_seed_each_environment_slot() {
         let pair=Analyzer::bind(&mut construction,&token,result,false).unwrap();construction.bindings[pair].parameter=true;
         analyzer.seed_native_parameters(&mut construction).unwrap();
         let capture=analyzer.closures[0].captures[0].inner;
-        construction.native_view_environments.get_or_insert_with(Default::default).insert(0,vec![(capture,pair)]);
+        construction.native_view_environments.get_or_insert_with(Default::default).insert(0,vec![(capture,pair,Mode::Consume)]);
         let mut closure=Expr::new(ExprKind::Closure{id:0,params:vec![],result:ResultAnnotation::Inferred(Span::default()),body:vec![]},Span::default());closure.ty=Some(Type::Closure(0));closure.wrap_storage(family);
         let stored=Analyzer::native_view_value_loans(&construction,&closure).unwrap();
         assert_eq!(stored.len(),2);

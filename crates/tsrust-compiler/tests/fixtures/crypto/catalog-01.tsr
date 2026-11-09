@@ -1,0 +1,6 @@
+import { randomBytes } from 'std:crypto';
+import { length } from 'std:bytes';
+
+export function main() {
+  console.log(length(unwrap(randomBytes(32))));
+}

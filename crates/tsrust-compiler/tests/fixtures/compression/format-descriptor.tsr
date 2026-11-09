@@ -1,0 +1,18 @@
+import { compressReader, decompressReader, CompressionFormat } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { reader, close } from 'std:io';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  const format: CompressionFormat = 'gzip';
+  const encoded = unwrap(compressReader(pool, reader(unwrap(fromUtf8('descriptor'))), format));
+  const bytes = unwrap(await encoded.readAll());
+  unwrap(await close(unwrap(await encoded.finish())));
+  const decoded = unwrap(decompressReader(pool, reader(bytes), format));
+  console.log(unwrap(toUtf8(unwrap(await decoded.readAll()))));
+  unwrap(await close(unwrap(await decoded.finish())));
+  unwrap(pool.shutdown());
+}

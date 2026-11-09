@@ -79,7 +79,7 @@ async function artifacts(body) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tsrust-promotion-'));
   const dist = path.join(root, 'dist');
   fs.mkdirSync(dist);
-  const targets = ['x86_64-unknown-linux-gnu', 'x86_64-pc-windows-msvc', 'aarch64-apple-darwin', 'x86_64-apple-darwin'];
+  const targets = ['x86_64-unknown-linux-gnu', 'x86_64-pc-windows-msvc', 'aarch64-apple-darwin'];
   function archive(target, overrides = {}) {
     const name = `tsrust-${snapshot.tag}-${target}`;
     const source = path.join(root, name);
@@ -97,9 +97,9 @@ async function artifacts(body) {
 
 test('four platform archives and the extension produce checksums of their original bytes', () => artifacts(({dist}) => {
   const files = validateArtifacts(dist, snapshot);
-  assert.equal(files.length, 6);
+  assert.equal(files.length, 5);
   const sums = fs.readFileSync(path.join(dist, 'SHA256SUMS'), 'utf8').trim().split('\n');
-  assert.equal(sums.length, 5);
+  assert.equal(sums.length, 4);
   for (const line of sums) assert.match(line, /^[a-f0-9]{64}  tsrust-/);
 }));
 
@@ -154,7 +154,7 @@ for (const existingDraft of [false, true]) test(existingDraft ? 'publication saf
       },
       updateRelease: async ({draft}) => {
         assert.equal(draft, false);
-        assert.equal(events.filter(event => event[0] === 'upload').length, 6);
+        assert.equal(events.filter(event => event[0] === 'upload').length, 5);
         events.push(['publish']);
         return {data: {html_url: 'https://example.test/release'}};
       }

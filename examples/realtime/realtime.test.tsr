@@ -1,0 +1,452 @@
+import { describe, test, strictEqual, rejects } from 'std:testing';
+import { Router, WebSocket, WebSocketRead, WebSocketWrite, SseEvent, Request, sse, sse as makeEvents, sseWithProducer, sseWithProducer as makeProducedEvents, requestStream, connectWebSocket, connectWebSocket as connectFactory } from 'std:http';
+import { Channel, Sender, delay, all } from 'std:futures';
+import { fromArray, toHex, toUtf8 } from 'std:bytes';
+import { readFile } from 'std:fs';
+import { get as envGet } from 'std:env';
+
+async function produce(sender: Sender<SseEvent>): Task<void> {
+  await sender.send({
+    data: 'first', id: '1'
+  });
+  await sender.send({
+    data: 'second\nline', event: 'update', retryMs: 0
+  });
+}
+
+// A full, never-polled body is a cleanup witness: sending again rejects only
+// after its receiver is dropped with the producer's owned request.
+type Held = {
+  body: Request;
+  probe: Sender<SseEvent>
+};
+
+function heldBody(): Held {
+  const events = new Channel<SseEvent>(1);
+  const probe = events.sender();
+  unwrap(probe.trySend({
+    data: 'held'
+  }));
+  return {
+    body: requestStream('POST', 'http://unused.invalid/', sse(events).body()), probe
+  };
+}
+
+async function stalled(sender: Sender<SseEvent>, guard: Owned<Request>): Task<void> {
+  await sender.send({
+    data: 'prefix'
+  });
+  await delay(60000);
+  strictEqual(guard.method(), 'POST');
+}
+
+async function failed(sender: Sender<SseEvent>, guard: Owned<Request>): Task<void> {
+  await sender.send({
+    data: 'prefix'
+  });
+  throw {
+    code: 'selected', guard
+  };
+}
+
+async function echo(socket: Owned<WebSocket>): Task<void> {
+  const message = await socket.receive();
+  if (message !== undefined) {
+    await socket.send(message);
+  }
+
+  await socket.close();
+}
+
+async function receiveSplitText(read: Owned<WebSocketRead>): Task<void> {
+  const text = await read.receive();
+  if (text === undefined || text.kind !== 'text') {
+    throw 'missing text';
+  }
+
+  strictEqual(text.data, 'é🦀');
+  const closing = await read.receive();
+  if (closing !== undefined) {
+    strictEqual(closing.kind, 'close');
+  }
+}
+
+async function sendSplitText(write: Owned<WebSocketWrite>): Task<void> {
+  await write.send({
+    kind: 'text', data: 'é🦀'
+  });
+  await write.close();
+}
+
+describe('SSE backend bytes and ownership', () => {
+  test('framing preserves empty and CRLF backend semantics', async () => {
+    const empty = new Channel<SseEvent>(1);
+    unwrap(empty.sender().trySend({
+      data: ''
+    }));
+    empty.close();
+    const make = makeEvents;
+    strictEqual(await make(empty).text(), '\n');
+    const crlf = new Channel<SseEvent>(1);
+    unwrap(crlf.sender().trySend({
+      data: 'a\r\nb'
+    }));
+    crlf.close();
+    strictEqual(await sse(crlf).text(), 'data: a\rdata: \ndata: b\n\n');
+    const fields = new Channel<SseEvent>(1);
+    unwrap(fields.sender().trySend({
+      data: 'é🦀', event: 'update', id: 'é-1', retryMs: 0
+    }));
+    fields.close();
+    strictEqual(await sse(fields).text(), 'data: é🦀\nevent: update\nid: é-1\nretry: 0\n\n');
+  });
+  test('owned producer completes and drains buffered events', async () => {
+    const events = new Channel<SseEvent>(1);
+    const producer = produce(events.sender()).start();
+    const make = makeProducedEvents;
+    const response = make(events, producer);
+    strictEqual(await response.text(), 'data: first\nid: 1\n\ndata: second\ndata: line\nevent: update\nretry: 0\n\n');
+  });
+  test('unpolled response drop settles owned producer', async () => {
+    const { body, probe } = heldBody();
+    {
+      const events = new Channel<SseEvent>(1);
+      const producer = stalled(events.sender(), body).start();
+      const response = sseWithProducer(events, producer);
+      strictEqual(response.status(), 200);
+    }
+
+    await rejects(async () => {
+      await probe.send({
+        data: 'probe'
+      });
+    });
+  });
+  test('partial body drop settles owned producer', async () => {
+    const { body, probe } = heldBody();
+    {
+      const events = new Channel<SseEvent>(1);
+      const producer = stalled(events.sender(), body).start();
+      const stream = sseWithProducer(events, producer).body();
+      strictEqual((await stream.next()) !== undefined, true);
+    }
+
+    await rejects(async () => {
+      await probe.send({
+        data: 'probe'
+      });
+    });
+  });
+  test('producer failure is a body failure and drops typed cause', async () => {
+    const { body, probe } = heldBody();
+    const events = new Channel<SseEvent>(1);
+    const producer = failed(events.sender(), body).start();
+    const response = sseWithProducer(events, producer);
+    await rejects(async () => {
+      await response.text();
+    });
+    await rejects(async () => {
+      await probe.send({
+        data: 'probe'
+      });
+    });
+  });
+  test('invalid event fields fail the body', async () => {
+    const events = new Channel<SseEvent>(1);
+    unwrap(events.sender().trySend({
+      data: 'value', id: 'bad\u0000id'
+    }));
+    events.close();
+    const response = sse(events);
+    await rejects(async () => {
+      await response.text();
+    });
+  });
+});
+
+describe('WebSocket owned transport', () => {
+  test('text and binary tags survive full socket and split halves', async () => {
+    const app = new Router();
+    app.webSocket('/echo', echo);
+    const server = await app.listen('127.0.0.1:0');
+    const url = 'ws://' + server.address() + '/echo';
+    try {
+      const connect = connectFactory;
+      const { read, write } = (await connect(url)).split();
+      await all([receiveSplitText(read), sendSplitText(write)]);
+      const socket = await connect(url, {
+        headers: []
+      });
+      await socket.send({
+        kind: 'binary', data: unwrap(fromArray([0, 255, 1, 128]))
+      });
+      const binary = await socket.receive();
+      if (binary === undefined || binary.kind !== 'binary') {
+        throw 'missing binary';
+      }
+
+      strictEqual(unwrap(toHex(binary.data)), '00ff0180');
+      await socket.close();
+    } finally {
+      await server.shutdown();
+    }
+  });
+});
+
+function pem(name: string): string {
+  const configured = unwrap(envGet('TSRUST_REALTIME_TLS_DIR'));
+  const directory = configured === undefined ? 'crates/tsrust-compiler/tests/fixtures/tls' : configured;
+  return unwrap(toUtf8(unwrap(readFile(directory + '/' + name))));
+}
+
+async function tlsRejected(certificate: string, customTrust: boolean): Task<void> {
+  const app = new Router();
+  app.webSocket('/echo', echo);
+  const server = await app.listen('127.0.0.1:0', {
+    cert: pem(certificate), key: pem('server.key')
+  });
+  const url = 'wss://' + server.address() + '/echo';
+  try {
+    if (customTrust) {
+      await rejects(async () => {
+        const socket = await connectWebSocket(url, {
+          ca: pem('ca.pem')
+        });
+        await socket.close();
+      });
+    } else {
+      await rejects(async () => {
+        const socket = await connectWebSocket(url);
+        await socket.close();
+      });
+    }
+  } finally {
+    await server.shutdown();
+  }
+}
+
+describe('explicit realtime policies', () => {
+  test('keepalive is opt in and preserves comment bytes', async () => {
+    const idle = new Channel<SseEvent>(1);
+    const hold = idle.sender();
+    const body = sse(idle).body();
+    let timedOut = false;
+    try {
+      await body.next().timeout(5);
+    } catch (error) {
+      strictEqual(error.code, 'timeout');
+      timedOut = true;
+    }
+
+    strictEqual(timedOut, true);
+    hold.close();
+    strictEqual((await body.next()) === undefined, true);
+    const active = new Channel<SseEvent>(1);
+    const sender = active.sender();
+    const comments = sse(active, {
+      keepAliveMs: 1, keepAliveText: 'alive'
+    }).body();
+    const comment = await comments.next();
+    if (comment === undefined) {
+      throw 'missing keepalive';
+    }
+
+    strictEqual(unwrap(toUtf8(comment)), ': alive\n\n');
+    sender.close();
+  });
+  test('authentication and Origin middleware reject before upgrade', async () => {
+    const app = new Router();
+    app.use(async (context, next) => {
+      if (context.req.header('authorization') !== 'Bearer selected') {
+        return context.text('Unauthorized', 401);
+      }
+
+      if (context.req.header('origin') !== 'https://allowed.invalid') {
+        return context.text('Forbidden', 403);
+      }
+
+      await next();
+    });
+    app.webSocket('/echo', echo);
+    const server = await app.listen('127.0.0.1:0');
+    const url = 'ws://' + server.address() + '/echo';
+    try {
+      const unauthorizedUrl = clone(url);
+      await rejects(async () => {
+        const socket = await connectWebSocket(unauthorizedUrl);
+        await socket.close();
+      });
+      const missingOriginUrl = clone(url);
+      await rejects(async () => {
+        const socket = await connectWebSocket(missingOriginUrl, {
+          headers: [{
+            name: 'authorization', value: 'Bearer selected'
+          }]
+        });
+        await socket.close();
+      });
+      const socket = await connectWebSocket(url, {
+        headers: [{
+          name: 'authorization', value: 'Bearer selected'
+        }, {
+          name: 'origin', value: 'https://allowed.invalid'
+        }]
+      });
+      await socket.send({
+        kind: 'text', data: 'authorized'
+      });
+      const message = await socket.receive();
+      if (message === undefined || message.kind !== 'text') {
+        throw 'missing authorized message';
+      }
+
+      strictEqual(message.data, 'authorized');
+      await socket.close();
+    } finally {
+      await server.shutdown();
+    }
+  });
+  test('explicit frame and message limits reject an oversized echo', async () => {
+    const app = new Router();
+    app.webSocket('/echo', echo);
+    const server = await app.listen('127.0.0.1:0');
+    try {
+      const url = 'ws://' + server.address() + '/echo';
+      const limitedMessage = await connectWebSocket(url, {
+        socket: {
+          maxMessageSize: 3
+        }
+      });
+      await limitedMessage.send({
+        kind: 'text', data: 'four'
+      });
+      await rejects(async () => {
+        await limitedMessage.receive();
+      });
+      const limitedFrame = await connectWebSocket(url, {
+        socket: {
+          maxFrameSize: 3
+        }
+      });
+      await limitedFrame.send({
+        kind: 'text', data: 'four'
+      });
+      await rejects(async () => {
+        await limitedFrame.receive();
+      });
+    } finally {
+      await server.shutdown();
+    }
+  });
+  test('invalid close frames fail before affecting the connection', async () => {
+    const app = new Router();
+    app.webSocket('/echo', echo);
+    const server = await app.listen('127.0.0.1:0');
+    try {
+      const socket = await connectWebSocket('ws://' + server.address() + '/echo');
+      let invalidCloseRejected = false;
+      try {
+        await socket.send({
+          kind: 'close', code: 1005
+        });
+      } catch {
+        invalidCloseRejected = true;
+      }
+
+      strictEqual(invalidCloseRejected, true);
+      await socket.send({
+        kind: 'text', data: 'still open'
+      });
+      const message = await socket.receive();
+      if (message === undefined || message.kind !== 'text') {
+        throw 'invalid close changed connection';
+      }
+
+      strictEqual(message.data, 'still open');
+      await socket.close();
+    } finally {
+      await server.shutdown();
+    }
+  });
+  test('explicit shutdown deadline settles an active upgraded handler', async () => {
+    const app = new Router();
+    app.configure({
+      bodyLimit: 65536, maxConnections: 8, maxRequests: 8, requestTimeoutMs: 5000, shutdownTimeoutMs: 10, handshakeTimeoutMs: 5000, requestsPerSecond: 0
+    });
+    app.webSocket('/echo', echo);
+    const server = await app.listen('127.0.0.1:0');
+    const socket = await connectWebSocket('ws://' + server.address() + '/echo');
+    await server.shutdown();
+    try {
+      strictEqual((await socket.receive().timeout(200)) === undefined, true);
+    } catch (error) {
+      strictEqual(error.code === 'timeout', false);
+    }
+  });
+  test('representative binary sizes retain exact bytes', async () => {
+    const app = new Router();
+    app.webSocket('/echo', echo);
+    const server = await app.listen('127.0.0.1:0');
+    try {
+      for (const size of [1, 64, 65536, 1048576]) {
+        const values: int[] = [];
+        for (let index = 0; index < size; index += 1) {
+          values.push((index * 31 + 7) % 251);
+        }
+
+        const socket = await connectWebSocket('ws://' + server.address() + '/echo');
+        await socket.send({
+          kind: 'binary', data: unwrap(fromArray(values))
+        });
+        const message = await socket.receive();
+        if (message === undefined || message.kind !== 'binary') {
+          throw 'missing binary';
+        }
+
+        strictEqual(unwrap(toHex(message.data)), unwrap(toHex(unwrap(fromArray(values)))));
+        await socket.close();
+      }
+    } finally {
+      await server.shutdown();
+    }
+  });
+});
+
+describe('WebSocket TLS verification', () => {
+  test('explicit private CA verifies a matching hostname', async () => {
+    const app = new Router();
+    app.webSocket('/echo', echo);
+    const server = await app.listen('127.0.0.1:0', {
+      cert: pem('server.pem'), key: pem('server.key')
+    });
+    try {
+      const socket = await connectWebSocket('wss://' + server.address() + '/echo', {
+        ca: pem('ca.pem')
+      });
+      await socket.send({
+        kind: 'text', data: 'verified'
+      });
+      const message = await socket.receive();
+      if (message === undefined || message.kind !== 'text') {
+        throw 'missing verified text';
+      }
+
+      strictEqual(message.data, 'verified');
+      await socket.close();
+    } finally {
+      await server.shutdown();
+    }
+  });
+  test('default public roots reject the private CA', async () => {
+    await tlsRejected('server.pem', false);
+  });
+  test('custom trust still rejects a wrong hostname', async () => {
+    await tlsRejected('wrong-host.pem', true);
+  });
+  test('custom trust still rejects an expired certificate', async () => {
+    await tlsRejected('expired.pem', true);
+  });
+  test('custom trust still rejects a future certificate', async () => {
+    await tlsRejected('future.pem', true);
+  });
+});

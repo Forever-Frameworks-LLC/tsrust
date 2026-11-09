@@ -1,0 +1,18 @@
+import { OrderedMap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function read(entry?: ReadOnly<[string, string]>): string {
+  if (entry === undefined) {
+    return 'empty';
+  }
+
+  return entry[0] + entry[1];
+}
+
+export function main() {
+  const values = new OrderedMap<string, string>();
+  strictEqual(read(...values), 'empty');
+  values.set('a', '1');
+  strictEqual(read(...values), 'a1');
+  strictEqual(values.size, 1);
+}

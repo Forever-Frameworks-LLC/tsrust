@@ -99,11 +99,8 @@ impl Cache {
                     Ok((variable.text.clone(), argument))
                 })
                 .collect::<Result<HashMap<_, _>, Diagnostic>>()?;
-            let mut substitute = |annotation: &mut ValueAnnotation| {
-                crate::type_substitution::apply(annotation, &replacements)
-            };
-            crate::source_walk::function_annotations(&mut child, &mut substitute)?;
-            crate::source_walk::function_body(&mut child, &mut substitute, &mut |_| Ok(()))?;
+            crate::source_walk::substitute_function_annotations(&mut child,&replacements)?;
+            crate::source_walk::substitute_function_body(&mut child,&replacements,&mut |_|Ok(()))?;
             rewrite(&mut child, &names)?;
             child.name.text = names[&name].clone();
             self.lexical

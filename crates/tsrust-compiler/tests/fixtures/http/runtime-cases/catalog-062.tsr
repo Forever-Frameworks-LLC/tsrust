@@ -1,0 +1,8 @@
+import { WebSocketClose } from "std:http";
+
+export function main() {
+  const value: WebSocketClose = {
+    kind: 'close', code: 1000, reason: 'done'
+  };
+  console.log(value.reason);
+}

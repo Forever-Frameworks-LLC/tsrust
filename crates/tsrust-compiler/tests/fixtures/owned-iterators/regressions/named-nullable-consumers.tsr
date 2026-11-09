@@ -1,0 +1,31 @@
+import { strictEqual } from 'std:testing';
+
+type Holder = {
+  pull: Owned<Function<int>>;
+};
+
+function use(value: Owned<Holder | undefined>): int {
+  if (value === undefined) {
+    return 0;
+  }
+
+  return value.pull();
+}
+
+function read(value: ReadOnly<Holder | undefined>): boolean {
+  return value !== undefined;
+}
+
+export function run() {
+  const item: Holder | undefined = {
+    pull: (): int => 7
+  };
+  {
+    const observed1_0 = read(item);
+    const observed1_1 = read(item);
+    const observed1_2 = use(item);
+    strictEqual(observed1_0, true);
+    strictEqual(observed1_1, true);
+    strictEqual(observed1_2, 7);
+  }
+}

@@ -79,19 +79,19 @@
     },
     "Deque": {
       "route": "/docs/standard-library/collections",
-      "members": 9
+      "members": 10
     },
     "OrderedSet": {
       "route": "/docs/standard-library/collections",
-      "members": 5
+      "members": 11
     },
     "Heap": {
       "route": "/docs/standard-library/collections",
-      "members": 5
+      "members": 6
     },
     "OrderedMap": {
       "route": "/docs/standard-library/collections",
-      "members": 10
+      "members": 12
     },
     "ValidationContext": {
       "route": "/docs/standard-library/schema",
@@ -163,7 +163,7 @@
     },
     "std:futures": {
       "route": "/docs/standard-library/futures",
-      "members": 8
+      "members": 14
     },
     "TaskMethods": {
       "route": "/docs/standard-library/futures",
@@ -175,11 +175,11 @@
     },
     "AsyncChannel": {
       "route": "/docs/standard-library/futures",
-      "members": 4
+      "members": 6
     },
     "AsyncSender": {
       "route": "/docs/standard-library/futures",
-      "members": 1
+      "members": 3
     },
     "std:threads": {
       "route": "/docs/standard-library/threads",
@@ -187,7 +187,7 @@
     },
     "ThreadPool": {
       "route": "/docs/standard-library/threads",
-      "members": 3
+      "members": 4
     },
     "Channel": {
       "route": "/docs/standard-library/threads",
@@ -211,7 +211,7 @@
     },
     "std:testing": {
       "route": "/docs/standard-library/testing",
-      "members": 24
+      "members": 27
     },
     "Expectation": {
       "route": "/docs/standard-library/testing",
@@ -223,11 +223,11 @@
     },
     "std:http": {
       "route": "/docs/framework/routing",
-      "members": 26
+      "members": 53
     },
     "HttpRouter": {
       "route": "/docs/framework/routing",
-      "members": 12
+      "members": 13
     },
     "HttpApp": {
       "route": "/docs/framework/routing",
@@ -351,23 +351,23 @@
     },
     "std:os": {
       "route": "/docs/standard-library/os",
-      "members": 3
+      "members": 6
     },
     "std:path": {
       "route": "/docs/standard-library/path",
-      "members": 7
+      "members": 15
     },
     "std:fs": {
       "route": "/docs/standard-library/fs",
-      "members": 15
+      "members": 44
     },
     "std:bytes": {
       "route": "/docs/standard-library/bytes",
-      "members": 16
+      "members": 39
     },
     "std:env": {
       "route": "/docs/standard-library/env",
-      "members": 3
+      "members": 9
     },
     "std:time": {
       "route": "/docs/standard-library/time",
@@ -379,7 +379,7 @@
     },
     "std:numeric": {
       "route": "/docs/standard-library/numeric",
-      "members": 7
+      "members": 13
     },
     "std:decimal": {
       "route": "/docs/standard-library/decimal",
@@ -387,7 +387,7 @@
     },
     "std:date": {
       "route": "/docs/standard-library/date",
-      "members": 47
+      "members": 54
     },
     "std:uuid": {
       "route": "/docs/standard-library/uuid",
@@ -395,7 +395,7 @@
     },
     "std:crypto": {
       "route": "/docs/standard-library/crypto",
-      "members": 4
+      "members": 17
     },
     "std:signals": {
       "route": "/docs/standard-library/signals",
@@ -403,7 +403,7 @@
     },
     "string": {
       "route": "/docs/standard-library/strings",
-      "members": 47
+      "members": 51
     },
     "StringConstructor": {
       "route": "/docs/standard-library/strings",
@@ -412,6 +412,182 @@
     "UiComputed": {
       "route": "/docs/ui/foundations/reference",
       "members": 1
+    },
+    "std:url": {
+      "route": "/docs/standard-library/url",
+      "members": 16
+    },
+    "Url": {
+      "route": "/docs/standard-library/url",
+      "members": 10
+    },
+    "SearchParams": {
+      "route": "/docs/standard-library/url",
+      "members": 8
+    },
+    "std:regex": {
+      "route": "/docs/standard-library/regex",
+      "members": 7
+    },
+    "Regex": {
+      "route": "/docs/standard-library/regex",
+      "members": 8
+    },
+    "Interval": {
+      "route": "/docs/standard-library/futures",
+      "members": 1
+    },
+    "CancellationToken": {
+      "route": "/docs/standard-library/futures",
+      "members": 5
+    },
+    "std:locale": {
+      "route": "/docs/standard-library/locale",
+      "members": 13
+    },
+    "Collator": {
+      "route": "/docs/standard-library/locale",
+      "members": 1
+    },
+    "Segmenter": {
+      "route": "/docs/standard-library/locale",
+      "members": 1
+    },
+    "NumberFormat": {
+      "route": "/docs/standard-library/locale",
+      "members": 1
+    },
+    "std:io": {
+      "route": "/docs/standard-library/io",
+      "members": 24
+    },
+    "std:process": {
+      "route": "/docs/standard-library/process",
+      "members": 7
+    },
+    "Child": {
+      "route": "/docs/standard-library/process",
+      "members": 7
+    },
+    "std:net": {
+      "route": "/docs/standard-library/network",
+      "members": 16
+    },
+    "std:dns": {
+      "route": "/docs/standard-library/network-addresses",
+      "members": 1
+    },
+    "TcpListener": {
+      "route": "/docs/standard-library/network",
+      "members": 3
+    },
+    "TcpStream": {
+      "route": "/docs/standard-library/network",
+      "members": 6
+    },
+    "UdpSocket": {
+      "route": "/docs/standard-library/network",
+      "members": 4
+    },
+    "std:compression": {
+      "route": "/docs/standard-library/compression",
+      "members": 16
+    },
+    "CompressionReader": {
+      "route": "/docs/standard-library/compression",
+      "members": 6
+    },
+    "CompressionWriter": {
+      "route": "/docs/standard-library/compression",
+      "members": 5
+    },
+    "std:iterator": {
+      "route": "/docs/standard-library/iterator",
+      "members": 2
+    },
+    "IteratorConstructor": {
+      "route": "/docs/standard-library/iterator",
+      "members": 1
+    },
+    "Iterator": {
+      "route": "/docs/standard-library/iterator",
+      "members": 12
+    },
+    "HttpClientOptions": {
+      "route": "/docs/framework/client",
+      "members": 8
+    },
+    "Hasher": {
+      "route": "/docs/standard-library/crypto",
+      "members": 2
+    },
+    "HttpCorsOptions": {
+      "route": "/docs/framework/routing",
+      "members": 6
+    },
+    "std:log": {
+      "route": "/docs/standard-library/logging",
+      "members": 12
+    },
+    "Logger": {
+      "route": "/docs/standard-library/logging",
+      "members": 7
+    },
+    "LoggerOptions": {
+      "route": "/docs/standard-library/logging",
+      "members": 3
+    },
+    "LogError": {
+      "route": "/docs/standard-library/logging",
+      "members": 2
+    },
+    "HttpSseEvent": {
+      "route": "/docs/framework/realtime",
+      "members": 4
+    },
+    "HttpSseOptions": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocketOptions": {
+      "route": "/docs/framework/realtime",
+      "members": 6
+    },
+    "HttpWebSocketClientOptions": {
+      "route": "/docs/framework/realtime",
+      "members": 3
+    },
+    "HttpWebSocketHeader": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocketText": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocketBinary": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocketClose": {
+      "route": "/docs/framework/realtime",
+      "members": 3
+    },
+    "HttpWebSocketHalves": {
+      "route": "/docs/framework/realtime",
+      "members": 2
+    },
+    "HttpWebSocket": {
+      "route": "/docs/framework/realtime",
+      "members": 4
+    },
+    "HttpWebSocketRead": {
+      "route": "/docs/framework/realtime",
+      "members": 1
+    },
+    "HttpWebSocketWrite": {
+      "route": "/docs/framework/realtime",
+      "members": 2
     }
   }
 }

@@ -13,7 +13,7 @@ impl ValueAnnotation {
         while let Some((value, depth)) = pending.pop() {
             let children = depth + 1;
             let level = match &value.kind {
-                Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => depth,
+                Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => depth,
                 Kind::Array(inner) | Kind::Group(inner) => { pending.push((inner, children)); children }
                 Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                     pending.extend(arguments.iter().map(|value| (value, children))); children
@@ -34,6 +34,7 @@ impl Clone for ValueAnnotation {
         let leaf = match &self.kind {
             Kind::Literal(value) => Some(Kind::Literal(value.clone())),
             Kind::Named(name) => Some(Kind::Named(name.clone())),
+            Kind::NativeCallable { origin } => Some(Kind::NativeCallable { origin: *origin }),
             Kind::Polymorphic { origin, declaration } => Some(Kind::Polymorphic { origin: *origin, declaration: declaration.clone() }),
             _ => None,
         };
@@ -47,7 +48,7 @@ impl Clone for ValueAnnotation {
                     pending.push(Work::Finish(value, results.len()));
                     let start = pending.len();
                     match &value.kind {
-                        Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+                        Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {}
                         Kind::Array(inner) | Kind::Group(inner) => pending.push(Work::Visit(inner)),
                         Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => pending.extend(arguments.iter().map(Work::Visit)),
                         Kind::Callable { parameters, result, .. } => {
@@ -61,6 +62,7 @@ impl Clone for ValueAnnotation {
                     let kind = match &value.kind {
                         Kind::Literal(literal) => Kind::Literal(literal.clone()),
                         Kind::Named(name) => Kind::Named(name.clone()),
+                        Kind::NativeCallable { origin } => Kind::NativeCallable { origin: *origin },
                         Kind::Polymorphic { origin, declaration } => Kind::Polymorphic { origin: *origin, declaration: declaration.clone() },
                         Kind::Array(_) => Kind::Array(Box::new(results.pop().expect("array annotation"))),
                         Kind::Group(_) => Kind::Group(Box::new(results.pop().expect("group annotation"))),
@@ -88,7 +90,7 @@ impl Drop for ValueAnnotation {
     fn drop(&mut self) {
         fn children(kind: Kind, pending: &mut Vec<ValueAnnotation>) {
             match kind {
-                Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+                Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {}
                 Kind::Array(inner) | Kind::Group(inner) => pending.push(*inner),
                 Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => pending.extend(arguments),
                 Kind::Callable { parameters, result, .. } => {
@@ -111,6 +113,7 @@ impl PartialEq for ValueAnnotation {
         match &self.kind {
             Kind::Named(left) => return matches!(&other.kind, Kind::Named(right) if left == right),
             Kind::Literal(left) => return matches!(&other.kind, Kind::Literal(right) if left == right),
+            Kind::NativeCallable { origin: a } => return matches!(&other.kind, Kind::NativeCallable { origin: b } if a == b),
             Kind::Polymorphic { origin: a, declaration: left } => return matches!(&other.kind, Kind::Polymorphic { origin: b, declaration: right } if a == b && left == right),
             _ => {}
         }
@@ -120,6 +123,7 @@ impl PartialEq for ValueAnnotation {
             match (&left.kind, &right.kind) {
                 (Kind::Named(left), Kind::Named(right)) if left == right => {}
                 (Kind::Literal(left), Kind::Literal(right)) if left == right => {}
+                (Kind::NativeCallable { origin: a }, Kind::NativeCallable { origin: b }) if a == b => {},
                 (Kind::Polymorphic { origin: a, declaration: left }, Kind::Polymorphic { origin: b, declaration: right }) if a == b && left == right => {}
                 (Kind::Array(left), Kind::Array(right)) | (Kind::Group(left), Kind::Group(right)) => pending.push((left, right)),
                 (Kind::Applied { name: a, arguments: left }, Kind::Applied { name: b, arguments: right }) if a == b && left.len() == right.len() => pending.extend(left.iter().zip(right)),

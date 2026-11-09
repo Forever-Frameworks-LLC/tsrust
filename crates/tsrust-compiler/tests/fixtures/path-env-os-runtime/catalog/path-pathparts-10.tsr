@@ -1,0 +1,6 @@
+import { parse } from 'std:path';
+
+export function run() {
+  const value = parse('file.tar.gz');
+  console.log(value.root, value.dir, value.base, value.ext, value.name);
+}

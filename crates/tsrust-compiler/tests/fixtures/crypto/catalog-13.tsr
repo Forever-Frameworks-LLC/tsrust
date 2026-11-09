@@ -1,0 +1,18 @@
+import { hashPassword, verifyPassword, verifyPasswordBounded } from 'std:crypto';
+import { fromUtf8 } from 'std:bytes';
+import { ThreadPool } from 'std:threads';
+
+export async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 2
+  });
+  try {
+    const password = unwrap(fromUtf8('public synthetic password'));
+    const encoded = unwrap(await hashPassword(pool, password));
+    console.log(unwrap(await verifyPassword(pool, password, encoded)), unwrap(await verifyPasswordBounded(pool, password, encoded, {
+      maxMemoryKiB: 19456, maxIterations: 2, maxParallelism: 1
+    })));
+  } finally {
+    pool.shutdown();
+  }
+}

@@ -9,7 +9,17 @@ impl Emitter<'_> {
     }
     pub(super) fn native_record_declaration(&self, id: usize) -> usize {
         let base = self.program.scoped_records.declaration(id);
-        if self.native_views.recursive(id) { id } else { base }
+        // A recursive nominal declaration is concrete, not a generic template.
+        // Its acyclic prefixes therefore need their own declarations too; their
+        // independent field/lifetime parameters cannot be applied to the base.
+        if self.native_views.cyclic(id) || self.native_views.cyclic(base) { return id; }
+        // A shared declaration can substitute only its actual generic slots.
+        // Concrete fields keep their checked storage identity, including union tags.
+        let actual=&self.program.records[id];
+        let declared=&self.program.records[base];
+        if actual.fields.len()!=declared.fields.len() || actual.fields.iter().zip(&declared.fields).enumerate().any(|(position,(field,original))| {
+            !self.scoped_record_native_field(base,position,original.ty.expect("checked declared field")) && field.ty!=original.ty
+        }) { id } else { base }
     }
 
     /// A recursive component uses one lifetime for every contained native view.
@@ -62,6 +72,7 @@ impl Emitter<'_> {
 
     pub(super) fn scoped_record_native_parameter(&self, ty: Type) -> bool {
         self.native_views.contains(ty) || self.callback_record_native_parameter(ty)
+            || super::native_view_record_parameters::contains_finite_owned(self.program,ty)
     }
 
     pub(super) fn callback_record_native_parameter(&self, ty: Type) -> bool {
@@ -218,4 +229,86 @@ impl Emitter<'_> {
             _ => self.native_type(ty),
         }
     }
+}
+
+#[cfg(test)]
+mod recursive_prefix_tests {
+    use super::*;
+    #[test]
+    fn empty_recursive_factory_keeps_ownerless_prefix_and_matching_relay_abi(){
+        let source="type Window={};type Holder={read?:Once<Function<Window>>;next?:Holder;};function make(value:Window):Holder{return {read:()=>value};}function empty(value:Window):Holder{return {};}function relay(value:Window):Holder{return empty(value);}function main(){}";
+        let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+        let checked=crate::analysis::analyze(parsed).unwrap();
+        let empty=checked.functions.iter().position(|function|function.name=="empty").unwrap();
+        let relay=checked.functions.iter().position(|function|function.name=="relay").unwrap();
+        let Type::Record(prefix)=checked.functions[empty].result else{panic!("empty physical prefix")};
+        let base=checked.scoped_records.declaration(prefix);assert_ne!(prefix,base);
+        assert_eq!(checked.functions[relay].result,checked.functions[empty].result,"direct callers retain the producer's stable physical result");
+        assert!(checked.functions[empty].native_returns.is_none(),"omitted callback fields retain no owner");
+        let emitter=super::super::emitter_for(&checked,"");
+        assert!(emitter.native_views.cyclic(base));assert!(!emitter.native_views.cyclic(prefix));
+        assert!(!emitter.native_views.contains(Type::Record(prefix)),"unrelated live family must not introduce output loans");
+        assert_eq!(emitter.native_record_declaration(prefix),prefix);
+        let native=emitter.native_type(Type::Record(prefix));assert!(native.starts_with(&format!("Record{prefix}<")),"independent prefix parameters: {native}");
+        let signature=emitter.native_function_signature(relay,&[]);assert_eq!(signature.result,native);
+        let generated=crate::emit::emit(&checked);assert!(generated.contains(&format!("struct Record{prefix}<")));assert!(generated.contains(&format!("struct Record{base} {{")),"concrete nominal declaration takes no field parameters");
+        syn::parse_file(&generated).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod concrete_field_declaration_tests {
+    use super::*;
+    #[test]
+    fn concrete_field_layouts_are_distinct_while_generic_slots_share() {
+        let source=crate::format("type Concrete={value:int;};type Generic={read:ReadOnly<Function<int>>;};type OwnedGeneric={read:Owned<Function<int>>;};function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let parsed=crate::syntax::parse(&source).unwrap();
+        let mut checked=crate::analysis::analyze(parsed).unwrap();
+        // Supply physical layouts directly: compatibility remains the checker's
+        // responsibility; declaration reuse must never erase a concrete slot.
+        let concrete=checked.scoped_records.materialize(0,vec![Type::Number],&mut checked.records);
+        let generic_payload=checked.records[2].fields[0].ty.unwrap();
+        assert_ne!(generic_payload,checked.records[1].fields[0].ty.unwrap(),"Explicit owned callback differs from the declared readonly generic payload");
+        let generic=checked.scoped_records.materialize(1,vec![generic_payload],&mut checked.records);
+        let emitter=super::super::emitter_for(&checked,"");
+        assert_ne!(concrete,0);assert_ne!(generic,1);
+        assert!(!emitter.scoped_record_native_field(0,0,Type::Int));
+        assert_eq!(emitter.native_record_declaration(concrete),concrete);
+        assert!(emitter.scoped_record_native_field(1,0,checked.records[1].fields[0].ty.unwrap()));
+        assert_eq!(emitter.native_record_declaration(generic),1);
+        let generated=crate::emit::emit(&checked);
+        assert!(generated.contains(&format!("struct Record{concrete} {{ field0: f64")),"{generated}");
+        assert!(!generated.contains(&format!("struct Record{generic}")));
+        syn::parse_file(&generated).unwrap();
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn consuming_jsx_spread_adapts_fixed_callable_but_preserves_named_specialization(){
+    use crate::syntax::{CallTarget,ExprKind,Type,UnaryOp};
+    let source=crate::format("interface Reactive<T>{evaluate:Owned<Function<T>>;}type Props={id?:Reactive<string>|string;};function Named(props:Owned<Props>):int{return props.id===undefined?2:0;}function relay(props:Props,Render:Owned<Function<int,[props:Owned<Props>]>>):int{return <Render {...props}/>;}function namedRelay(props:Props):int{return <Named {...props}/>;}function main(){console.log(relay({},(props:Owned<Props>):int=>props.id===undefined?1:0));console.log(namedRelay({}));}").unwrap();
+    assert_eq!(crate::format(&source).unwrap(),source);
+    let mut checked=crate::analysis::analyze(crate::syntax::parse(&source).unwrap()).unwrap();
+    let declarations=(0..checked.records.len()).map(|id|checked.scoped_records.declaration(id)).collect::<Vec<_>>();
+    let names=checked.functions.iter().map(|function|function.name.clone()).collect::<Vec<_>>();
+    let(mut adapted,mut named)=(0,0);
+    for function in &mut checked.functions {
+        crate::source_walk::body(&mut function.body,&mut |_|Ok(()),&mut |value|{
+            if let ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&value.kind
+                && let Some(CallTarget::RecordSpread(physical))=inner.target {
+                assert_eq!(inner.ty,Some(Type::Record(physical)));
+                let Some(Type::Record(target))=value.ty else{panic!("record formal")};
+                assert_ne!(physical,target);assert_eq!(declarations[physical],declarations[target]);adapted+=1;
+            }
+            if let Some(CallTarget::Function(target))=value.target
+                && names[target]=="Named" && let ExprKind::Call(_,args)=&value.kind {
+                assert!(matches!(args[0].target,Some(CallTarget::RecordSpread(_))),"named call keeps its physical argument for specialization");named+=1;
+            }
+            Ok(())
+        }).unwrap();
+    }
+    assert!(adapted>0);assert!(named>0);
+    let generated=crate::emit::emit(&checked);assert!(generated.contains("let record_carrier_input="),"{generated}");syn::parse_file(&generated).unwrap();
 }

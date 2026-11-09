@@ -5,11 +5,14 @@ pub(crate) struct Workspace {
     _lock:fs::File,
 }
 impl Workspace {
-    pub fn acquire(root:&Path,identity:&[u8],opportunistic:bool)->Result<Option<Self>,String> {
+    pub fn location(root:&Path,identity:&[u8])->PathBuf {
         let mut hash=std::collections::hash_map::DefaultHasher::new();identity.hash(&mut hash);
+        root.join("runtime/build-v1").join(format!("{:016x}",hash.finish()))
+    }
+    pub fn acquire(root:&Path,identity:&[u8],opportunistic:bool)->Result<Option<Self>,String> {
         let namespace=root.join("runtime/build-v1");fs::create_dir_all(&namespace).map_err(|e|e.to_string())?;
         if fs::symlink_metadata(&namespace).map_err(|e|e.to_string())?.file_type().is_symlink(){return Err("Native build workspace namespace must not be a symlink".into());}
-        let root=namespace.join(format!("{:016x}",hash.finish()));fs::create_dir_all(&root).map_err(|e|e.to_string())?;
+        let root=Self::location(root,identity);fs::create_dir_all(&root).map_err(|e|e.to_string())?;
         if fs::symlink_metadata(&root).map_err(|e|e.to_string())?.file_type().is_symlink(){return Err("Native build workspace must not be a symlink".into());}
         let lock=fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(root.join(".lock")).map_err(|e|e.to_string())?;
         if opportunistic {match lock.try_lock(){Ok(())=>{},Err(fs::TryLockError::WouldBlock)=>return Ok(None),Err(error)=>return Err(error.to_string())}}

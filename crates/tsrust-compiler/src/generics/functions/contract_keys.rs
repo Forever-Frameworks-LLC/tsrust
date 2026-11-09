@@ -7,7 +7,7 @@ use crate::type_syntax::LiteralAnnotation;
 pub(super) struct Key(Vec<Token>);
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Token {
-    Polymorphic(usize, String), Named(String), Literal(LiteralAnnotation),
+    NativeCallable(usize), Polymorphic(usize, String), Named(String), Literal(LiteralAnnotation),
     Array, Applied(String, usize), Union(usize), Tuple(usize),
     Callable(CallbackKind, usize), Parameter(bool, Mode, bool),
 }
@@ -16,7 +16,7 @@ enum Token {
 // retained, so unrelated arena insertion order cannot affect cache identity.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Node {
-    Polymorphic(usize, String), Named(String), Literal(LiteralAnnotation),
+    NativeCallable(usize), Polymorphic(usize, String), Named(String), Literal(LiteralAnnotation),
     Array(usize), Applied(String, Vec<usize>), Union(Vec<usize>), Tuple(Vec<usize>),
     Callable(CallbackKind, Vec<(bool, Mode, bool, usize)>, usize),
 }
@@ -51,6 +51,7 @@ impl Arena {
                 Work::Node(id) => id,
             };
             match &self.nodes[id] {
+                Node::NativeCallable(origin) => output.push(Token::NativeCallable(*origin)),
                 Node::Polymorphic(origin, name) => output.push(Token::Polymorphic(*origin, name.clone())),
                 Node::Named(name) => output.push(Token::Named(name.clone())),
                 Node::Literal(value) => output.push(Token::Literal(value.clone())),
@@ -86,6 +87,7 @@ pub(super) fn key(value: &ValueAnnotation) -> Result<Key, Diagnostic> {
         match work {
             Work::Visit(value) => {
                 let children = match &value.kind {
+                    Kind::NativeCallable { origin } => { values.push(arena.intern(Node::NativeCallable(*origin))); continue; }
                     Kind::Polymorphic { origin, declaration } => { values.push(arena.intern(Node::Polymorphic(*origin, declaration.text.clone()))); continue; }
                     Kind::Named(name) => { values.push(arena.intern(Node::Named(name.text.clone()))); continue; }
                     Kind::Literal(literal) => { values.push(arena.intern(Node::Literal(literal.clone()))); continue; }
@@ -142,6 +144,7 @@ mod tests {
     // Bounded differential oracle from the pre-worklist implementation.
     #[derive(Clone, Debug, PartialEq, Eq, Hash)]
     enum Reference {
+        NativeCallable(usize),
         Polymorphic(usize, String),
         Named(String),
         Literal(crate::type_syntax::LiteralAnnotation),
@@ -153,6 +156,7 @@ mod tests {
     }
     fn reference(value: &ValueAnnotation) -> Result<Reference, Diagnostic> {
         Ok(match &value.kind {
+            Kind::NativeCallable { origin } => Reference::NativeCallable(*origin),
             Kind::Polymorphic { origin, declaration } => Reference::Polymorphic(*origin,declaration.text.clone()),
             Kind::Named(name) => Reference::Named(name.text.clone()),
             Kind::Literal(value) => Reference::Literal(value.clone()),
@@ -176,6 +180,18 @@ mod tests {
                     parameter.omission.is_omittable(), reference(&parameter.annotation)?))).collect::<Result<_, Diagnostic>>()?,
                 Box::new(reference(result)?)),
         })
+    }
+
+    #[test]
+    fn native_callable_keys_preserve_origin_and_do_not_alias_polymorphic_values() {
+        let span=Span::new(3,8);
+        let native=|origin|ValueAnnotation {kind:Kind::NativeCallable {origin},span};
+        let polymorphic=ValueAnnotation {kind:Kind::Polymorphic {origin:1,declaration:crate::type_syntax::TypeName {text:"select".into(),span}},span};
+        assert_eq!(key(&native(1)).unwrap(),key(&native(1).clone()).unwrap());
+        assert_ne!(key(&native(1)).unwrap(),key(&native(2)).unwrap());
+        assert_ne!(key(&native(1)).unwrap(),key(&polymorphic).unwrap());
+        let wrapped=ValueAnnotation {kind:Kind::Array(Box::new(native(1))),span};
+        assert_eq!(reference(&wrapped).unwrap(),Reference::Array(Box::new(Reference::NativeCallable(1))));
     }
 
     #[test]

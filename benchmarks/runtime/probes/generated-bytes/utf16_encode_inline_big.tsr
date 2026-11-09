@@ -1,0 +1,27 @@
+import { fromUtf16, toUtf16, length, at } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int {
+  let size = 32;
+  if (input.endsWith("4k")) {
+    size = 4096;
+  }
+
+  if (input.endsWith("1m")) {
+    size = 1048576;
+  }
+
+  const text = input.startsWith("cjk") ? "汉字".repeat(size / 4) : "é😀Ab".repeat(size / 8);
+  let checksum = 0;
+  let i = 0;
+  while (i < n) {
+    const result = unwrap(fromUtf16(text, "big"));
+    checksum += length(result) + unwrap(at(result, 0)) + unwrap(at(result, length(result) - 1));
+    i += 1;
+  }
+
+  return checksum;
+}
+
+function main() {
+  workload(1, 7, "mixed-token");
+}

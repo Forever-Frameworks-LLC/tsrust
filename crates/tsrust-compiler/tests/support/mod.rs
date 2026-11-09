@@ -11,6 +11,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tsrust_compiler::{Diagnostic, Mode, check};
 
+static HEAVY_BUILD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
 
 pub struct TempDirectory(pub PathBuf);
@@ -59,28 +61,88 @@ pub fn rustc() -> Command {
     let deps = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
     let tokio = std::fs::read_dir(&deps).unwrap().filter_map(Result::ok)
         .map(|entry| entry.path()).filter(|path| path.file_name().unwrap().to_string_lossy().starts_with("libtokio-") && path.extension().is_some_and(|extension| extension == "rlib"))
-        .filter(|path| {
+        .max_by_key(|path| {
+            // Prefer a build Cargo's fingerprint confirms has the multi-thread
+            // runtime. A restored CI cache can lack the fingerprint, so the
+            // largest (most-featured, the dev-dependency) build ranks next.
             let name=path.file_stem().unwrap().to_string_lossy();
             let fingerprint=deps.parent().unwrap().join(".fingerprint").join(name.trim_start_matches("lib")).join("lib-tokio.json");
-            std::fs::read_to_string(fingerprint).ok().and_then(|text|serde_json::from_str::<serde_json::Value>(&text).ok())
-                .is_some_and(|value|value["features"].as_str().is_some_and(|features|features.contains("rt-multi-thread")))
-        }).max_by_key(|path|std::fs::metadata(path).and_then(|metadata|metadata.modified()).ok());
+            let confirmed=std::fs::read_to_string(fingerprint).ok().and_then(|text|serde_json::from_str::<serde_json::Value>(&text).ok())
+                .is_some_and(|value|value["features"].as_str().is_some_and(|features|features.contains("rt-multi-thread")));
+            let metadata=std::fs::metadata(path).ok();
+            (confirmed,metadata.as_ref().map(|metadata|metadata.len()),metadata.and_then(|metadata|metadata.modified().ok()))
+        });
     if let Some(tokio) = tokio {
         command.arg("-L").arg(format!("dependency={}", deps.display()));
         command.arg("--extern").arg(format!("tokio={}", tokio.display()));
     }
-    let nix = std::fs::read_dir(&deps).unwrap().filter_map(Result::ok).map(|entry|entry.path())
-        .filter(|path|path.file_name().unwrap().to_string_lossy().starts_with("libnix-") && path.extension().is_some_and(|extension|extension=="rlib"))
-        .max_by_key(|path|std::fs::metadata(path).and_then(|metadata|metadata.modified()).ok());
-    if let Some(nix)=nix {
-        command.arg("-L").arg(format!("dependency={}",deps.display()));
+    if let Some((nix,dependencies))=private_nix(&deps) {
+        command.arg("-L").arg(format!("dependency={}",dependencies.display()));
         command.arg("--extern").arg(format!("nix={}",nix.display()));
     }
     command
 }
 
+/// Build nix once per test process into its own directory under the shared
+/// target. Relocated vendored builds recompile shared crates such as cfg_if in
+/// place, which would leave a nix rlib from target/debug/deps without its exact
+/// dependencies (E0460). The private closure stays consistent.
+#[cfg(unix)]
+fn private_nix(deps:&Path)->Option<(PathBuf,PathBuf)> {
+    static NIX:std::sync::OnceLock<Option<(PathBuf,PathBuf)>>=std::sync::OnceLock::new();
+    NIX.get_or_init(||{
+        // `cargo build -p nix` panics for a target-specific dev-dependency, so a
+        // two-line crate selects the same pinned version and features.
+        let target=deps.parent()?.parent()?.join("test-externs");
+        let package=target.join("nix-closure");std::fs::create_dir_all(package.join("src")).ok()?;
+        std::fs::write(package.join("Cargo.toml"),"[package]\nname=\"tsrust-test-nix\"\nversion=\"0.0.0\"\nedition=\"2024\"\n[workspace]\n[dependencies]\nnix={version=\"=0.31.2\",default-features=false,features=[\"process\"]}\n").ok()?;
+        std::fs::write(package.join("src/lib.rs"),"").ok()?;
+        let mut command=Command::new("rustup");
+        command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--lib","--message-format=json"])
+            .arg("--target-dir").arg(&target).current_dir(&package).env("CARGO_INCREMENTAL","0");
+        let output=run(&mut command,300);
+        if !output.status.success() {return None;}
+        String::from_utf8_lossy(&output.stdout).lines().filter_map(|line|serde_json::from_str::<serde_json::Value>(line).ok())
+            .filter(|message|message["reason"]=="compiler-artifact"&&message["target"]["name"]=="nix")
+            .flat_map(|message|message["filenames"].as_array().cloned().unwrap_or_default())
+            .filter_map(|file|file.as_str().map(PathBuf::from)).find(|file|file.extension().is_some_and(|extension|extension=="rlib"))
+            .map(|rlib|{let directory=rlib.parent().unwrap().to_path_buf();(rlib,directory)})
+    }).clone()
+}
+#[cfg(not(unix))]
+fn private_nix(_:&Path)->Option<(PathBuf,PathBuf)> {None}
+
+/// Serialize build-capable subprocesses within this integration-test binary.
+/// Platform targets themselves execute serially; cheap frontend checks and
+/// already-built native programs can still use the harness's three threads.
+pub fn is_heavy_build(command: &Command) -> bool {
+    let program = command.get_program().to_string_lossy().replace('\\', "/");
+    let name = program.rsplit('/').next().unwrap().to_ascii_lowercase();
+    match name.strip_suffix(".exe").unwrap_or(&name) {
+        "cargo" | "rustc" | "rustup" => true,
+        "tsrust" => command.get_args().next().is_some_and(|arg| matches!(arg.to_str(), Some("build" | "run" | "test"))),
+        _ => false,
+    }
+}
+
 /// Preserve the old harness's timeouts without adding runtime dependencies.
 pub fn run(command: &mut Command, seconds: u64) -> Output {
+    // Waiting behind another serialized build is not this command's runtime:
+    // its own budget starts once it holds the lock. The wait has a separate bound.
+    let waiting = Instant::now();
+    let _build_guard = if is_heavy_build(command) {
+        Some(loop {
+            match HEAVY_BUILD.try_lock() {
+                Ok(guard) => break guard,
+                Err(std::sync::TryLockError::Poisoned(error)) => break error.into_inner(),
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    assert!(waiting.elapsed() < Duration::from_secs(1800), "Test process waited 1800s for a serialized build: {command:?}");
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+            }
+        })
+    } else { None };
+    let start = Instant::now();
     let mut child = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -98,7 +160,6 @@ pub fn run(command: &mut Command, seconds: u64) -> Output {
         stderr.read_to_end(&mut bytes).unwrap();
         bytes
     });
-    let start = Instant::now();
     let mut timed_out = false;
     let status = loop {
         if let Some(status) = child.try_wait().expect("poll test process") {
@@ -116,7 +177,12 @@ pub fn run(command: &mut Command, seconds: u64) -> Output {
         stdout: out.join().unwrap(),
         stderr: err.join().unwrap(),
     };
-    assert!(!timed_out, "Test process exceeded {seconds}s: {command:?}");
+    assert!(!timed_out, "Test process exceeded {seconds}s: {command:?}\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+    if !output.status.success() {
+        // Keep child bytes intact; attach phase/program evidence to host diagnostics.
+        eprintln!("Test subprocess failed ({}): {command:?}",output.status);
+    }
     output
 }
 
@@ -156,7 +222,7 @@ pub fn format_round_trip(source: &str) -> String {
     formatted
 }
 
-pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>) -> String {
+fn checked_fixture_rust(source: &str, contracts: Option<&[(&str, Mode)]>, directory: &TempDirectory) -> String {
     let formatted = format_round_trip(source);
     let source = formatted.as_str();
     let analysis =
@@ -168,7 +234,6 @@ pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>)
             .collect();
         assert_eq!(analysis.contracts(), expected);
     }
-    let directory = TempDirectory::new();
     let path = directory.source(source);
     let checked = run(cli().arg("check").arg(&path).arg("--json"), 10);
     success(&checked);
@@ -191,6 +256,12 @@ pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>)
     assert!(emitted.stderr.is_empty());
     let rust = String::from_utf8(emitted.stdout).unwrap();
     assert_eq!(rust, analysis.emit_rust());
+    rust
+}
+
+pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>) -> String {
+    let directory = TempDirectory::new();
+    let rust = checked_fixture_rust(source, contracts, &directory);
     let rust_path = directory.0.join("program.rs");
     std::fs::write(&rust_path, &rust).unwrap();
     let binary = directory
@@ -214,6 +285,34 @@ pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>)
     assert_eq!(result.stdout, expected.as_bytes());
     assert!(result.stderr.is_empty());
     rust
+}
+
+/// Independent programs with no argument/current-executable observations may
+/// share a Rust compilation. Every frontend oracle is identical to `execute`;
+/// each generated main still runs in a fresh process with its own output oracle.
+pub fn execute_batch(cases: &[(&str, &str)], contracts: Option<&[(&str, Mode)]>) {
+    assert!(!cases.is_empty());
+    let directory = TempDirectory::new();
+    let mut rust = String::new();
+    let mut dispatch = String::new();
+    let sources = cases.iter().map(|_| TempDirectory::new()).collect::<Vec<_>>();
+    for (index, (source, _)) in cases.iter().enumerate() {
+        let emitted = checked_fixture_rust(source, contracts, &sources[index]);
+        rust.push_str(&format!("mod native_{index}{{{emitted}\npub fn verify(){{main();}}\n}}\n"));
+        dispatch.push_str(&format!("Some(\"{index}\")=>native_{index}::verify(),"));
+    }
+    rust.push_str(&format!("fn main(){{match std::env::args().nth(1).as_deref(){{{dispatch}_=>panic!(\"unknown native fixture\"),}}}}"));
+    let input = directory.0.join("batch.rs");
+    let binary = directory.0.join(format!("batch{}", std::env::consts::EXE_SUFFIX));
+    std::fs::write(&input, &rust).unwrap();
+    let compiled = run(rustc().arg("--edition=2024").arg(&input).arg("-o").arg(&binary), 60);
+    assert!(compiled.status.success(), "batch cases 0..{}: {}\n{rust}", cases.len(), String::from_utf8_lossy(&compiled.stderr));
+    for (index, (_, expected)) in cases.iter().enumerate() {
+        let result = run(Command::new(&binary).arg(index.to_string()), 10);
+        assert!(result.status.success(), "case {index}: stdout:\n{}\nstderr:\n{}", String::from_utf8_lossy(&result.stdout), String::from_utf8_lossy(&result.stderr));
+        assert_eq!(result.stdout, expected.as_bytes(), "case {index}");
+        assert!(result.stderr.is_empty(), "case {index}: {}", String::from_utf8_lossy(&result.stderr));
+    }
 }
 
 /// Check and emit deeply nested source on a thread with the compiler's stack,

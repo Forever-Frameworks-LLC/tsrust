@@ -1,0 +1,81 @@
+import { hashPassword, verifyPassword, verifyPasswordBounded, hkdfSha256, randomInt } from 'std:crypto';
+import { ThreadPool } from 'std:threads';
+import { alloc } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const input = unwrap(alloc(0));
+  let count = 0;
+  try {
+    unwrap(randomInt(1, 1));
+  } catch (error) {
+    if (error.code !== 'Range') {
+      throw 'random range';
+    }
+
+    count++;
+  }
+
+  try {
+    unwrap(hkdfSha256(input, input, input, 8161));
+  } catch (error) {
+    if (error.code !== 'Range') {
+      throw 'HKDF range';
+    }
+
+    count++;
+  }
+
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  try {
+    try {
+      unwrap(await hashPassword(pool, input, {
+        memoryKiB: 1
+      }));
+    } catch (error) {
+      if (error.code !== 'Options') {
+        throw 'options';
+      }
+
+      count++;
+    }
+
+    try {
+      unwrap(await verifyPassword(pool, input, '$argon2id$broken'));
+    } catch (error) {
+      if (error.code !== 'Password') {
+        throw 'PHC';
+      }
+
+      count++;
+    }
+
+    const encoded = unwrap(await hashPassword(pool, input));
+    try {
+      unwrap(await verifyPasswordBounded(pool, input, encoded, {
+        maxMemoryKiB: 32, maxIterations: 2, maxParallelism: 1
+      }));
+    } catch (error) {
+      if (error.code !== 'Policy') {
+        throw 'policy';
+      }
+
+      count++;
+    }
+  } finally {
+    pool.shutdown();
+  }
+
+  try {
+    unwrap(await hashPassword(pool, input));
+  } catch (error) {
+    if (error.code !== 'closed') {
+      throw 'pool admission';
+    }
+
+    count++;
+  }
+
+  console.log(count);
+}

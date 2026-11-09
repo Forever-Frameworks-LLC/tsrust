@@ -1,0 +1,14 @@
+import { hostname } from 'std:os';
+
+export function run() {
+  match (hostname()) {
+    Ok(value) => {},
+    Err(error) => {
+      if (error.code !== 'Io' && error.code !== 'NotUnicode' && error.code !== 'Range') {
+        throw error.message;
+      }
+    }
+  }
+
+  console.log('OS observation completed');
+}

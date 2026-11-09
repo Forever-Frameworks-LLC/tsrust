@@ -1,0 +1,76 @@
+import { Deque } from 'std:collections';
+import { Bytes, ByteView, fromUtf8, view, toUtf8, length } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function bytes(text: string): Bytes {
+  match (fromUtf8(text)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function window(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, length(owner))) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function text(value: ByteView): string {
+  match (toUtf8(value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+
+function first(values: ReadOnly<Deque<ByteView>>): int {
+  for (const part of values) {
+    return length(part);
+  }
+
+  return 0;
+}
+
+function guarded(values: ReadOnly<Deque<ByteView>>): string {
+  let output = '';
+  try {
+    for (const part of values) {
+      output += text(part);
+      return output;
+    }
+  } finally {
+    strictEqual(values.size, 2);
+  }
+
+  return output;
+}
+
+export function main() {
+  const owner = bytes('ab');
+  const values = new Deque<ByteView>();
+  values.pushBack(window(owner));
+  values.pushFront(window(owner));
+  let sum = 0;
+  for (const part of values) {
+    sum += length(part);
+  }
+
+  strictEqual(sum, 4);
+  strictEqual(first(values), 2);
+  strictEqual(guarded(values), 'ab');
+  values.clear();
+  strictEqual(first(values), 0);
+}

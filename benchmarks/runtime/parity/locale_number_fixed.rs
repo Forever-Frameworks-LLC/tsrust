@@ -1,0 +1,3 @@
+type String=std::borrow::Cow<'static,str>;
+fn function0(value0: i64, value1: i64, value2: &String) -> i64 {let input=value2.as_ref();let locale="en".parse::<icu_locale::Locale>().unwrap();let mut options=icu_decimal::options::DecimalFormatterOptions::default();options.grouping_strategy=Some(icu_decimal::options::GroupingStrategy::Never);let value=icu_decimal::DecimalFormatter::try_new((&locale).into(),options).unwrap();let decimal=input.parse::<bigdecimal::BigDecimal>().unwrap().normalized();let mut checksum=value1;for _ in 0..value0{let plain=decimal.to_plain_string();let mut fixed=fixed_decimal::Decimal::try_from_str(&plain).unwrap();fixed.round(-2);checksum+=value.format_to_string(&fixed).len()as i64;}checksum}
+fn main(){}

@@ -1,0 +1,16 @@
+import { Deque } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function size(values: ReadOnly<Deque<int[]>>): int {
+  return values.front()!.length;
+}
+
+export function main() {
+  const values = new Deque<int[]>();
+  values.pushBack([1, 2]);
+  strictEqual(values.front()!.length, 2);
+  strictEqual(values.back()!.length, 2);
+  strictEqual(values.at(0)!.length, 2);
+  strictEqual(size(values), 2);
+  strictEqual(values.size, 1);
+}

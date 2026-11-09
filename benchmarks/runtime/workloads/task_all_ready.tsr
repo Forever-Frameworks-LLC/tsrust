@@ -1,0 +1,18 @@
+import { all, yield } from 'std:futures';
+async function workload(n: int, seed: int): Task<int> {
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    const values = await all([value(seed + i), value(seed + i + 1), value(seed + i + 2), value(seed + i + 3)]);
+    for (const value of values) {
+      sum = (sum * 131 + value) % 1000000007;
+    }
+  }
+
+  return sum;
+}
+
+async function value(value: int): Task<int> {
+  return value;
+}
+
+function main() {}

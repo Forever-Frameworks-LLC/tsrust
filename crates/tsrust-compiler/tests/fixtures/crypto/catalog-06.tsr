@@ -1,0 +1,9 @@
+import { randomInt } from 'std:crypto';
+
+export function main() {
+  try {
+    unwrap(randomInt(1, 1));
+  } catch (error) {
+    console.log(error.code);
+  }
+}

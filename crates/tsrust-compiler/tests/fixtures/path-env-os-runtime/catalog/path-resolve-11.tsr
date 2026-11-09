@@ -1,0 +1,13 @@
+import { resolve } from 'std:path';
+
+export function run() {
+  const result = resolve();
+  match (result) {
+    Ok(value) => {
+      console.log(value.length > 0);
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}

@@ -1,0 +1,31 @@
+[package]
+name = "tsrust-locale-admission"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Match existing native-runtime graph roots, including its unconditional backdrop.
+color = "=0.3.3"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.151", features = ["raw_value"] }
+bigdecimal = "=0.4.11"
+icu_collator = { version = "=2.3.1" }
+icu_decimal = { version = "=2.3.0", features = ["alloc"] }
+icu_locale = { version = "=2.3.1" }
+icu_segmenter = { version = "=2.3.0", default-features = false, features = ["compiled_data"] }
+icu_provider = { version = "=2.3.1", default-features = false }
+fixed_decimal = { version = "=0.7.3", default-features = false }
+
+[[bin]]
+name = "locale-profile"
+path = "profile.rs"
+
+[features]
+allocation-probe = []
+thread-safe-locale = ["icu_provider/sync"]
+
+[profile.release]
+overflow-checks = true

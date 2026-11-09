@@ -1,0 +1,33 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+
+function counter(): Owned<Function<int>> {
+  let current: Iterator<int> | undefined = undefined;
+  return (): int => {
+    if (current === undefined) {
+      current = Iterator.from([3, 5]);
+    }
+
+    const step = current.next();
+    if (step.done) {
+      current = undefined;
+      return 0;
+    }
+
+    return step.value;
+  };
+}
+
+export function run() {
+  const next = counter();
+  {
+    const observed1_0 = next();
+    const observed1_1 = next();
+    const observed1_2 = next();
+    const observed1_3 = next();
+    strictEqual(observed1_0, 3);
+    strictEqual(observed1_1, 5);
+    strictEqual(observed1_2, 0);
+    strictEqual(observed1_3, 3);
+  }
+}

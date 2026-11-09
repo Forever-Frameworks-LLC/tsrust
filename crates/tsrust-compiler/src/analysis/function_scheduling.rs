@@ -17,6 +17,17 @@ impl Analyzer {
         continuations::driver::check_function(self, index)
     }
 
+    /// Logical record signatures do not identify their stored callback environments.
+    pub(super) fn physical_record_result_needed(&self, result:Type)->bool {
+        !self.callable_result_type(result) && self.aggregate_callable_facts(result).retains
+    }
+
+    /// Owned records retain concrete environment fields, not one erased callable signature.
+    pub(super) fn owned_record_parameter(&self,ty:Type)->bool {
+        matches!(ty,Type::Record(_)|Type::Array(ArrayElement::Record(..))|Type::Union(_)|Type::Map(_))
+            && self.physical_record_result_needed(ty) && !self.aggregate_callable_facts(ty).scoped
+    }
+
     pub(super) fn function_request_ready(&mut self, index: usize) -> Result<bool, Diagnostic> {
         if self.checked[index].is_some() { return Ok(true); }
         if self.discovering_results {
@@ -24,12 +35,19 @@ impl Analyzer {
             // can revisit an async body before a later data factory is checked.
             // Its omitted result is unknown, not void. Context-independent
             // factories can be checked normally, without caller environments.
-            if self.signatures[index].result == Type::Void
-                && self.inferred_result_context_is_closed(index)
+            let physical=(self.physical_record_result_needed(self.signatures[index].result) || self.effects_only && self.assumed_modes.is_none())
+                && !self.templates.contains_key(&index)
+                && (!self.named_captures.needs_context(index) || self.named_captures.ready(index));
+            if ((self.signatures[index].result == Type::Void && (self.inferred_result_context_is_closed(index)
+                || self.inferred_native_result_context_is_closed(index))) || physical)
                 && !self.visiting[index]
                 && !self.active_recursive_functions.contains(&index)
             {
                 let effects = self.effects_only;
+                // Preserve retry source before full checking hides discovery mode.
+                if let Some(sources)=&mut self.discovery_body_sources {
+                    sources.entry(index).or_insert_with(||self.program.functions[index].body.clone());
+                }
                 self.discovering_results = false;
                 self.effects_only = false;
                 let checked = self.function(index);
@@ -47,6 +65,20 @@ impl Analyzer {
         }
         if self.visiting[index] { return self.prepare_function_body(index).map(|_| true); }
         Ok(false)
+    }
+
+    // Native wrappers can have known record identities or finite plain option
+    // unions before their lazy Task result has been discovered. Keep
+    // this scheduling case separate from recursive-summary eligibility.
+    fn inferred_native_result_context_is_closed(&self,index:usize)->bool {
+        let plain=|ty:Type|matches!(ty,Type::Int|Type::Number|Type::Boolean|Type::String|Type::Null|Type::Undefined|Type::Literal(..));
+        let plain_union=|ty:Type|ty.union().is_some_and(|id|{let members=self.unions.members(id);!members.is_empty()&&members.into_iter().all(plain)});
+        self.signatures[index].inferred_result && !self.templates.contains_key(&index)
+            && !self.named_captures.needs_context(index)
+            && self.signatures[index].body_params.iter().any(|ty|plain_union(*ty) || matches!(ty,Type::Record(record) if self.program.records[*record].native_type.is_some()))
+            && self.signatures[index].body_params.iter().all(|ty|plain(*ty) || plain_union(*ty)
+                || matches!(ty,Type::Record(record) if self.program.records[*record].native_type.is_some()
+                    && !self.native_shape_contains_view(*ty) && !self.physical_record_result_needed(*ty)))
     }
 
     fn inferred_result_context_is_closed(&self, index: usize) -> bool {
@@ -278,6 +310,10 @@ impl Analyzer {
             && self.assumed_modes.is_some()
             && !self.known_results.contains_key(&index)
         {
+            if self.discovering_function.is_some(){
+                self.note_result_wait(index,name.span);
+                return Err(Self::pending_result(name.span));
+            }
             self.discover_results()?;
         }
         self.visiting[index] = true;
@@ -286,9 +322,10 @@ impl Analyzer {
         // Result discovery can now finish a closed inferred factory and its
         // helpers before run() captures retry sources. Preserve bodies eligible
         // for callback/error-contract rechecking before consuming them.
+        let retain_body=self.signatures[index].params.iter().copied().any(|ty|matches!(ty,Type::Record(_)) || self.owned_record_parameter(ty))
+            || return_type_inference::has_exception_region(&self.program.functions[index].body);
         if let Some(sources) = &mut self.discovery_body_sources
-            && (self.signatures[index].params.iter().any(|ty| matches!(ty, Type::Record(_)))
-                || return_type_inference::has_exception_region(&self.program.functions[index].body))
+            && retain_body
         {
             sources.entry(index).or_insert_with(|| self.program.functions[index].body.clone());
         }
@@ -348,25 +385,7 @@ impl Analyzer {
             ));
         }
         self.finalize_nullable_locals(&mut context.bindings, &mut body)?;
-        // A record annotation names its declaration; the checked result must
-        // retain the concrete callback environment selected by its returns.
-        if let Type::Array(ArrayElement::Record(base, depth)) = result_type
-            && let Some(joined) = self.joined_array_result(&mut body, base, depth)?
-        {
-            result_type = joined;
-        }
-        if let Type::Record(base) = result_type
-            && let Some(joined) = self.joined_record_result(&mut body, base)?
-        {
-            result_type = joined;
-        } else if let Type::Record(base) = result_type {
-            let actual = self.inferred_body_result(&body)?;
-            if let Type::Record(instance) = actual {
-                if self.scoped_records.declaration(instance) == base {
-                    result_type = actual;
-                }
-            }
-        }
+        result_type = self.physical_record_result(&mut body, result_type)?;
         let result_type = if self.callable_result_type(result_type) {
             context.returned_callable.expect("checked callable return")
         } else {
@@ -376,7 +395,7 @@ impl Analyzer {
         self.finalize_nullable_returns(&mut body, result_type)?;
         self.declared_parameter_access(index, &mut context)?;
         self.validate_native_returns(&context)?;
-        if self.assumed_modes.is_some() && self.callable_result_type(self.signatures[index].result)
+        if self.assumed_modes.is_some() && (self.callable_result_type(self.signatures[index].result) || self.physical_record_result_needed(self.signatures[index].result))
         {
             self.known_results.insert(index, result_type);
         }
@@ -479,4 +498,188 @@ impl Schedule {
         for id in self.inserted { analyzer.scheduled_functions.remove(&id); }
         for id in self.recursive_inserted { analyzer.active_recursive_functions.remove(&id); }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn specialized_record_factories_publish_physical_results_before_callers() {
+    let source="type Holder={pull:Owned<Function<int>>;};function make(pull:Owned<Function<int>>):Holder{return {pull:pull};}function outer():Holder{return make(():int=>7);}function main(){const holder=outer();console.log(holder.pull());}";
+    let checked=crate::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source)));
+    let program=&checked.program;
+    let outer=program.functions.iter().find(|function|function.name=="outer").unwrap();
+    let value=outer.body.iter().find_map(|statement|if let StmtKind::Return(Some(value))=&statement.kind{Some(value)}else{None}).unwrap();
+    let Some(CallTarget::Function(target))=value.target else{panic!("factory call: {:?}",value.target)};
+    assert_eq!(value.ty,Some(program.functions[target].result),"call expression must retain its already checked callee shape");
+    assert_eq!(outer.result,program.functions[target].result,"owned return must preserve the physical carrier");
+}
+
+#[cfg(test)]
+#[test]
+fn owned_record_parameters_preserve_each_callers_physical_fields(){
+    let source="type Holder={pull:Owned<Function<int>>;};function useHolder(value:Owned<Holder>):int{return value.pull();}function make(pull:Owned<Function<int>>):Holder{return {pull:pull};}function main(){console.log(useHolder(make(():int=>7)),useHolder(make(():int=>9)));}";
+    let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+    let checked=crate::check(&source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",&source)));
+    let program=&checked.program;let mut count=0;
+    for function in &program.functions {if function.template{continue;}crate::fixed_storage::visit_function_expressions(function,&mut |value|{
+        if let (Some(CallTarget::Function(target)),ExprKind::Call(_,arguments))=(value.target,&value.kind){let callee=&program.functions[target];if callee.name=="useHolder"{count+=1;assert_eq!(arguments[0].ty,Some(callee.bindings[0].ty));}}
+    });}assert_eq!(count,2);
+}
+
+#[cfg(test)]
+#[test]
+fn native_view_and_owned_record_callers_keep_both_source_orders(){
+    use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+    struct Input<'a>(&'a str);
+    impl SourceProvider for Input<'_>{
+        fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+        fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.into())}else{Err(format!("Missing source: {}",id.0))}}
+    }
+    for borrowed_first in [true,false]{
+        let calls=if borrowed_first{"useHolder(borrowed);useHolder(copied);useOwned(owned);"}else{"useOwned(owned);useHolder(copied);useHolder(borrowed);"};
+        let source=format!("import {{alloc,view,length}} from 'std:bytes';import {{trackedResource,closeResource}} from 'std:testing';type Holder={{pull:ReadOnly<Function<int>>;}};type OwnedHolder={{pull:Once<Function<int>>;}};function useHolder(value:ReadOnly<Holder>):int{{return value.pull();}}function useOwned(value:Owned<OwnedHolder>):int{{return value.pull();}}function main(){{const bytes=unwrap(alloc(2));const slice=unwrap(view(bytes,0,2));const borrowed:Holder={{pull:():int=>length(slice)}};const number=7;const copied:Holder={{pull:():int=>number}};const resource=trackedResource();const owned:OwnedHolder={{pull:():int=>{{closeResource(resource);return 9;}}}};{calls}}}");
+        let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=check_graph(load_project(&Input(&source),"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
+        let program=&checked.analysis.program;let mut readonly=0;let mut owned=0;
+        for function in &program.functions{if function.template{continue;}crate::fixed_storage::visit_function_expressions(function,&mut |value|{
+            if let (Some(CallTarget::Function(target)),ExprKind::Call(_,arguments))=(value.target,&value.kind){
+                let callee=&program.functions[target];
+                if callee.name.ends_with("useHolder"){readonly+=1;assert_eq!(callee.bindings[0].mode,crate::Mode::Read);}
+                if callee.name.ends_with("useOwned"){owned+=1;assert_eq!(callee.bindings[0].mode,crate::Mode::Consume);assert_eq!(arguments[0].ty,Some(callee.bindings[0].ty),"Owned argument and parameter must share the actual physical carrier, whether nominal or specialized");}
+            }
+        });}
+        assert!(readonly>=1,"Borrowed native-view callers retain their readonly contract");
+        assert!(owned>=1,"The non-Clone capture reaches a consuming physical parameter");
+        drop(checked.emit_rust());
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn readonly_mixed_record_arguments_keep_physical_union_layouts(){
+ use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+ struct Input<'a>(&'a str);
+ impl SourceProvider for Input<'_>{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.into())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ let source=crate::format("import {Iterator} from 'std:iterator';function observe(value:ReadOnly<int[]|Iterator<int>>):boolean{return Array.isArray(value);}function main(){const value:int[]|Iterator<int>=Iterator.from([2,4]);if(!Array.isArray(value)){observe(value);observe(value);console.log(value.toArray().join(','));}const array:int[]|Iterator<int>=[5,6];if(Array.isArray(array)){observe(array);observe(array);console.log(array.join(','));}}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+ let checked=check_graph(load_project(&Input(&source),"main.tsr").unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));let program=&checked.analysis.program;
+ let mut observations=0;
+ for function in &program.functions{if function.template{continue;}crate::fixed_storage::visit_function_expressions(function,&mut |value|{
+  if let (Some(CallTarget::Function(target)),ExprKind::Call(_,arguments))=(value.target,&value.kind){let callee=&program.functions[target];if callee.name.ends_with("observe"){
+   observations+=1;assert_eq!(callee.bindings[0].mode,crate::Mode::Read);assert_eq!(arguments[0].ty.map(Type::owning),Some(callee.bindings[0].ty.owning()),"Readonly calls retain their selected physical union instead of an unrelated nominal tag");assert!(matches!(arguments[0].ty,Some(Type::BorrowedUnion(_))));
+  }}
+ });}assert_eq!(observations,4);
+ let rust=checked.emit_rust();let main=program.functions.iter().find(|function|function.name=="main").unwrap();let mut unions=0;
+ for(index,binding)in main.bindings.iter().enumerate(){if let Type::Union(union)=binding.ty{
+  let marker=format!("value{index}: Union{}",union.index());let position=rust.find(&marker).expect("owning mixed union annotation");assert!(rust[position+marker.len()..].starts_with('<'),"Every physical payload slot needs its concrete type: {}",&rust[position..rust[position..].find('\n').map_or(rust.len(),|end|position+end)]);unions+=1;
+ }}assert_eq!(unions,2);
+}
+
+#[cfg(test)]
+#[test]
+fn pending_region_checks_method_plan_origins_without_a_concrete_callee_type(){
+    let source="function selected():int{return 7;}function unrelated():int{return 9;}function generic<T>(value:T):int{return selected();}function main(){const read=generic;read<int>(1);}";
+    let mut analyzer=Analyzer::new(crate::syntax::parse(source).unwrap()).unwrap();
+    let selected=analyzer.function_names["selected"];let unrelated=analyzer.function_names["unrelated"];
+    let selected_body=analyzer.program.functions[selected].body.clone();let unrelated_body=analyzer.program.functions[unrelated].body.clone();
+    let main=analyzer.function_names["main"];analyzer.function(main).unwrap();
+    let checked=analyzer.checked[main].as_ref().unwrap();let mut body=checked.body.clone();let result=checked.result;
+    let mut found=false;
+    crate::source_walk::body(&mut body,&mut |_|Ok(()),&mut |value|{
+        if let Some(CallTarget::ClosureMethod(method))=value.target{
+            let ExprKind::Call(callee,_)=&mut value.kind else{panic!("method invocation")};
+            let Some(Type::Closure(origin))=callee.ty else{panic!("concrete control environment")};
+            let plan=analyzer.polymorphic_invocations.publish([crate::polymorphic_invocation_plans::Pair{origin,method}],&analyzer.closures,callee.span)?;
+            callee.generic_invocation=Some(plan);callee.ty=None;found=true;
+        }
+        Ok(())
+    }).unwrap();assert!(found);
+    analyzer.checked[selected]=None;analyzer.program.functions[selected].body=selected_body;
+    analyzer.checked[unrelated]=None;analyzer.program.functions[unrelated].body=unrelated_body;
+    analyzer.check_pending_region_functions(&body,result,false).unwrap();
+    assert!(analyzer.checked[selected].is_some(),"the checked plan identifies the real method's callee");
+    assert!(analyzer.checked[unrelated].is_none(),"preparation must not eagerly check unrelated functions");
+}
+
+#[cfg(test)]
+mod cached_result_readiness_tests {
+ use super::*;
+ #[test]
+ fn cached_callable_specialization_requeries_current_discovery_phase(){
+  let source="function factory(callback:Owned<Function<int>>):Once<Function<int>>{return()=>callback();}function data(callback:Owned<Function<int>>):int{return callback();}function main(){factory(()=>7);}";
+  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let mut analyzer=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+  let main=analyzer.function_names["main"];let mut body=analyzer.program.functions[main].body.clone();let mut context=analyzer.function_context(main,&mut body).unwrap();
+  let StmtKind::Expr(expression)=&mut body[0].kind else{panic!("factory call")};
+  let ExprKind::Call(_,arguments)=&mut expression.kind else{panic!("factory arguments")};
+  for argument in arguments.iter_mut(){analyzer.expression(&mut context,argument,Mode::Consume,&Loans::new(),None).unwrap();}
+  let span=expression.span;
+  for(name,needs_origin)in[("factory",true),("data",false)]{
+   let index=analyzer.function_names[name];analyzer.discovering_results=true;
+   let(first,immediate)=analyzer.prepare_specialization(index,arguments,span).unwrap();assert!(!immediate,"{name}: discovery remains deferred");assert_ne!(first,index,"{name}: actual specialization required");
+   let count=analyzer.specializations.len();analyzer.discovering_results=false;
+   let(second,immediate)=analyzer.prepare_specialization(index,arguments,span).unwrap();assert_eq!(second,first);assert_eq!(analyzer.specializations.len(),count);assert_eq!(immediate,needs_origin,"{name}: cached readiness must match a fresh entry");
+   analyzer.discovering_results=true;let(third,immediate)=analyzer.prepare_specialization(index,arguments,span).unwrap();assert_eq!(third,first);assert!(!immediate,"{name}: returning to discovery restores deferral");
+  }
+ }
+}
+
+#[cfg(test)]
+#[test]
+fn physical_specialization_cache_preserves_parameter_positions(){
+ let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string|undefined;function make(text:string):Reactive<string>{return {evaluate:()=>clone(text)};}function pair(first:Value,second:Value):Value[]{return [first,second];}function main(){const first=pair(make('a'),undefined);const second=pair(undefined,make('b'));const third=pair(make('c'),undefined);console.log(third.length);console.log(first.length);console.log(second.length);}";
+ let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+ let checked=crate::check(&formatted).unwrap();let program=&checked.program;let mut targets=Vec::new();
+ let main=program.functions.iter().find(|function|function.name=="main").unwrap();
+ crate::fixed_storage::visit_function_expressions(main,&mut |value|{
+  if let (Some(CallTarget::Function(target)),ExprKind::Call(_,arguments))=(value.target,&value.kind){
+   let callee=&program.functions[target];if callee.name=="pair"{
+    targets.push(target);for (argument,parameter) in arguments.iter().zip(&callee.bindings){assert_eq!(argument.ty,Some(parameter.ty),"Each owned argument must match its own physical parameter position");}
+   }
+  }
+ });
+ assert_eq!(targets.len(),3);assert_ne!(targets[0],targets[1]);assert_eq!(targets[0],targets[2],"Equal positional carriers must still reuse their specialization");drop(checked.emit_rust());
+}
+
+#[cfg(test)]
+#[test]
+fn speculative_region_dependencies_preserve_native_factory_bodies_and_real_errors(){
+ use crate::project::{SourceProvider,SourceId,load_project,check_graph};
+ struct Source(String);
+ impl SourceProvider for Source{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ let source="import {strictEqual} from 'std:testing';import {App,Request,Response,text} from 'std:http';import {delay} from 'std:futures';type Trace={id:int;};type Loaded={trace:Trace;body:string;};type Metrics={count:int;};function emptyMetrics():Metrics{return {count:0};}async function child(trace:Owned<Trace>,fail:boolean):Task<Loaded>{await delay(1);if(fail){throw 'failed';}return {trace,body:'ready'};}async function handle(input:Request):Task<Response>{let response=text('unavailable',503);try{const loaded=await child({id:1},false);response=text(loaded.body);}catch{}return response;}function routes():App{const app=new App();app.post('/ok',(input:Request)=>handle(input));return app;}async function exercise():Task<Metrics>{try{const app=routes();return emptyMetrics();}finally{console.log('done');}}function main(){const app=routes();}";
+ let control=source.replace("import {strictEqual} from 'std:testing';","");
+ let inferred=source.replace("function routes():App","function routes()");
+ let inferred_control=inferred.replace("import {strictEqual} from 'std:testing';","");
+ for text in [control,source.into(),inferred_control,inferred]{let text=crate::format(&text).unwrap();assert_eq!(crate::format(&text).unwrap(),text);let checked=check_graph(load_project(&Source(text),"main.tsr").unwrap());assert!(checked.is_ok(),"A valid returned App factory must survive speculative region dependency checking: {:?}",checked.err());}
+ let invalid=crate::format(&source.replace("text(loaded.body)","text(missing_response)")).unwrap();assert_eq!(crate::format(&invalid).unwrap(),invalid);
+ let errors=check_graph(load_project(&Source(invalid),"main.tsr").unwrap()).err().expect("A genuine nested body error must remain rejected");
+ assert!(errors.message.contains("missing_response"),"Original nested diagnostic must not become a false missing-return cascade: {errors:?}");
+ assert!(!errors.message.contains("must return App"),"Consumed speculative source must be restored before reporting: {errors:?}");
+}
+
+#[cfg(test)]
+#[test]
+fn registered_network_alias_factories_discover_native_input_task_results(){
+ use crate::project::{SourceId,SourceProvider,load_project,check_graph};
+ struct Sources{entry:String,body:String}
+ impl SourceProvider for Sources{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.test.tsr"{Ok(self.entry.clone())}else if id.0.ends_with("alias.tsr"){Ok(self.body.clone())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ let body="import {listenTcp,parseAddress,SocketAddress} from 'std:net';export async function run():Task<void>{const listen=listenTcp;const listener=unwrap(await listen(unwrap(parseAddress('127.0.0.1:0'))));listener.close();}";
+ let entry="import {test} from 'std:testing';import {run} from './alias.tsr';test('alias',async ():Task<void>=>{await run();});";
+ let formatted=|source:&str|{let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);formatted};
+ let check=|body:&str|check_graph(load_project(&Sources{entry:formatted(entry),body:formatted(body)},"main.test.tsr").unwrap());
+ let checked=check(body).unwrap_or_else(|error|panic!("Registered native alias must retain its lazy Task result: {error:?}"));drop(checked.emit_rust());
+ let void=body.replace("export async function run()","function notTask(address:ReadOnly<SocketAddress>):void{}export async function run()").replace("const listen=listenTcp;","const listen=notTask;");
+ let error=check(&void).err().expect("A real void return must never become a Task");assert_eq!(error.code,"await-task");
+ let wrong=body.replace("listen(unwrap(parseAddress('127.0.0.1:0')))","listen('wrong address type')");assert!(check(&wrong).is_err(),"Native parameter checking must remain strict");
+ let dns="import {lookup as resolve} from 'std:dns';import {IpAddress,NetError} from 'std:net';function relay(task:Task<Result<IpAddress[],NetError>>):Task<Result<IpAddress[],NetError>>{return task;}export async function run():Task<void>{const operation=resolve;const host='::1';const family:'any'|'ipv4'|'ipv6'|undefined=undefined;const values=unwrap(await relay((true?operation:operation)(host,family)));console.log(values.length);}";
+ let checked=check(dns).unwrap_or_else(|error|panic!("Optional literal family must not leave a lazy native factory's result as provisional void: {error:?}"));drop(checked.emit_rust());
+ let wrong_family=dns.replace("const family:'any'|'ipv4'|'ipv6'|undefined=undefined;","const family='ipv5';");assert_ne!(wrong_family,dns);assert!(check(&wrong_family).is_err(),"Literal option domains remain exact");
 }

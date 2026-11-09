@@ -1,0 +1,35 @@
+import { OrderedSet } from 'std:collections';
+
+function workload(n: int, seed: int): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const set = new OrderedSet<int>();
+    for (const v of [seed + 3, seed + 1, seed + 2]) {
+      set.add(v);
+    }
+
+    const values = set.values();
+    const keys = set.keys();
+    const entries = set.entries();
+    let calls = 0;
+    set.forEach((value, key, source) => {
+      calls += value + key + source.size;
+    });
+    set.clear();
+    let j = 0;
+    while (j < 3) {
+      checksum += (j + 1) * (values[j] + keys[j] + entries[j][0] + entries[j][1]);
+      j++;
+    }
+
+    checksum += calls + set.size;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 7));
+}

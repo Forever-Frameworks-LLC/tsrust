@@ -42,7 +42,7 @@ fn cache_projection_cannot_escape_or_mutate_borrowed_values(){
  let source="import {LruCache} from 'std:cache';function leak():string{const c=new LruCache<int,string>(1);unwrap(c.set(1,'x'));return c.get(1)!;}function main(){console.log(leak());}";
  assert!(!check(source).status.success(),"local cache borrow escaped");
  for declaration in ["LruCache<int,ByteView>","LruCache<int,Holder>","LruCache<int,Function<void>>"]{
-  let source=format!("import {{LruCache}} from 'std:cache';import {{ByteView}} from 'std:bytes';type Holder={{view:ByteView;}};function invalid(cache:ReadOnly<{declaration}>){{}}function main(){{}}");let result=check(&source);assert!(!result.status.success());assert!(String::from_utf8_lossy(&result.stderr).contains(if declaration.contains("Function"){"error[unsupported]"}else{"error[cache-payload]"}),"{}",String::from_utf8_lossy(&result.stderr));
+  let source=format!("import {{LruCache}} from 'std:cache';import {{ByteView}} from 'std:bytes';type Holder={{view:ByteView;}};function invalid(cache:ReadOnly<{declaration}>){{}}function main(){{}}");let result=check(&source);assert!(!result.status.success());assert!(String::from_utf8_lossy(&result.stderr).contains("error[cache-payload]"),"{}",String::from_utf8_lossy(&result.stderr));
  }
 }
 #[test]

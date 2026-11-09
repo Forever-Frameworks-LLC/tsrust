@@ -1,0 +1,2304 @@
+# Standard library v0.2.0 implementation checklist
+
+Owner requirement, 2026-11-06: every test run has an absolute wall-clock ceiling of one hour, including setup/build and cleanup. This supersedes all older 90/120/330-minute or longer budgets. Platform acceptance uses one 55-minute end-to-end scope budget, leaving cleanup time within the CI 60-minute job ceiling. Preserve completed scope evidence; budget exhaustion is incomplete acceptance, never a pass or permission to skip required tests. Remove redundant work and batch coherent coverage to fit; do not split the same oversized suite into serial hour-long chunks.
+
+
+Owner direction, 2026-11-04: plan the missing useful standard-library features as
+one explicit v0.2.0 checklist; bundle related implementation and acceptance work;
+use Sol 6.1 subagents in parallel; design and measure performance from the first
+gate. Popular, maintained, well-tested Rust packages are approved backends.
+
+Status: finite release contract with implementation in progress, not completed
+acceptance or permission to publish v0.2.0. The v0.1.2 main/tag/assets/docs
+promotion is verified complete at main8efaaee2.
+This plan supersedes historical stdlib scheduling and parallel-worker instructions
+where they conflict. `docs/agent-progress.md` remains the only continuation note.
+Update this checklist with accepted commits and evidence; do not create worker
+handoff files. Source/fixture directories use descriptive feature names, not the
+bundle IDs below.
+
+## What completion means
+
+v0.2.0 supplies the finite API surface listed in B01–B19, with B00 foundations and
+B20 integration acceptance. It does not promise every Node export, JavaScript
+runtime behavior or Rust trait/type. The disposition table below accounts for
+the deliberately excluded families. A failed dependency gate does not silently
+remove a release checkbox: repair the prerequisite or obtain an explicit scope
+decision. API names below are proposed concrete spellings; freeze signatures,
+defaults and ownership in B00 before implementing each bundle.
+
+Owner update, 2026-11-05: research and record the
+[GPUI application platform plan](gpui-application-platform.md) now; implement it
+after completing v0.2.0. That next scope includes GPUI/Kit wrappers with retained
+`.tsrx` signals, the full component/example catalog on desktop and experimental
+web, `.tsr` HTTP clients and shared backend/frontend roots with automatic codegen.
+It does not replace any checkbox in this release checklist.
+
+## Audited starting point
+
+Read-only audits used `e3fea93666d9cc97e5d0e31190ffd6bd753dadd3`, including actual
+native bindings/types/exports, stdlib runtime modules and `builtins.json`.
+Reconcile again against the final v0.1.2 main commit before starting code.
+
+| Existing capability | Preserve and extend |
+|---|---|
+| Arrays, strings, Map/Set, numbers | Rich eager collection/callback operations, Unicode normalization/casing, checked arithmetic/conversions and formatting already exist. Basic indexing/length are implemented despite stale inventory rows. |
+| Files/bytes/path | Owned file and buffer handles, read/write/flush, strict UTF-8, borrowed byte views; seven lexical path functions. Public files are currently macOS/Linux only. |
+| Data | JSON/JSONC/JSONL, typed schemas, exact decimal, Date/Time/Instant/Duration/TimeZone and UUID. |
+| Services | HTTP client/server/TLS, Router/middleware/context/cookies, forms/multipart/typed JSON, static serving, streamed bodies/channels and graceful shutdown. |
+| Async/threads | Tasks/Jobs, cancellation/timeout, race/allSettled, bounded channels, scoped/dedicated threads and ThreadPool. |
+| Persistence | PostgreSQL/MySQL/SQLite pools, transactions, cursors and migrations; synchronous SQLite prepared statements; local/shared LRU and TTL. |
+| Operations/testing | Signals on Unix; console, assertions/matchers, sync/async tests and hooks, source-located reports. |
+| Rust packages | Locked package resolution and explicit safe synchronous adapters with concrete supported data; not arbitrary-crate automatic bindings. |
+
+There are 33 public backend std namespaces (520 namespace entries) in the current editor catalog, excluding
+the private testing runtime and frozen UI. This is not a coverage percentage.
+The 1,993-row ECMAScript/language inventory contains overlapping/stale entries and
+is not a Node/Rust host-API ledger. Preserve implemented coverage when reconciling
+it; do not manufacture missing work by reading an old `pending` label.
+
+Primary implementation evidence:
+
+- `crates/tsrust-compiler/src/native/{bindings,exports,types,signatures}.rs`.
+- `crates/tsrust-compiler/src/stdlib/` and `crates/tsrust-lsp/src/builtins.json`.
+- `crates/tsrust-compiler/src/project/rust.rs` and `examples/rust-regex/regex.rs`.
+- Both `native-dependencies/Cargo.toml` and `backend-dependencies/Cargo.toml`.
+
+## B00 — Contracts, package admission and baseline infrastructure
+
+- [x] Reconcile every checklist export against current compiler/catalog/tests.
+  Mark already-supported items with actual evidence rather than reimplementing.
+- [x] For each new type/function/method, record the exact signature, receiver
+  access, owned/borrowed result, error behavior, defaults, platform conditions,
+  callback effects and cancellation/drop contract. Include aliases/stored calls.
+- [x] Match Rust std or the selected Rust backend's ordinary defaults. Audit
+  the named v0.1 artificial ceilings: file reads/writes imposed 64 MiB;
+  HTTP response readers imposed 1 MiB and client code fixed a 30-second timeout,
+  disabled redirects and proxies. HTTP also capped forms at128fields/multipart at
+  128parts and rejected configured body sizes over64MiB/deadlines over1hour.
+  These are concrete v0.2 migration work, not defaults to copy into every new API.
+- [x] Make Tsrust-added size/cardinality/deadline policies explicit opt-ins through
+  options or clearly bounded operations. Preserve the selected backend's own
+  defaults and algorithmic/protocol/integer constraints,
+  UTF-8 validation and ownership checks. Existing explicitly bounded APIs retain
+  their documented contracts except the specifically listed B01/B10 migrations.
+  Document observable v0.1→v0.2 default changes.
+- [x] Keep server/application resource policies explicit and source-owned; do
+  not remove configured limits or add API/middleware settings to project config.
+- [x] Admit each package using official docs/repository, maintained compatible
+  release, license/notices, RustSec/advisory review, MSRV and all four release
+  targets. Check maintenance and direct application usage as evidence of fit;
+  popularity alone is not a correctness or security guarantee.
+  Evidence: focused platform acceptance run 42511473967 at 81f7beed is complete on all four release hosts (Linux x64, ARM macOS, Intel macOS, Windows MSVC: 61 targets each, zero failures, retained-evidence chain C1–C8 sealed in `tools/platform-acceptance.py`). Notices are audited in B20.
+- [x] Prototype the direct Rust operation and its allocation/CPU/build profile
+  before fixing the public facade. Prefer std, existing backend packages and
+  thin typed adapters. Never implement URL parsers, regex engines, crypto,
+  compression or protocol state machines from scratch to avoid a dependency.
+  Evidence: every measured bundle has a hand-written direct-Rust reference using
+  the selected backend (`benchmarks/runtime/parity/`, with histories in the DB).
+  Recorded profiles include the B02 generated-versus-direct allocation counts and
+  the memchr prototype, the B13 ICU build/size footprint, the B09 compression
+  floors and the B19 nested-option allocation diagnosis. URL, regex, crypto,
+  compression, WebSocket and TLS use admitted crates (url, regex, RustCrypto,
+  flate2, tungstenite, rustls), not in-house engines.
+- [x] Pin compatible versions/features in both dependency closures and locks,
+  reserved-package inventory, reexports, cache identity and portable exports.
+  A transitive dependency or UI-only feature is not public backend availability.
+- [x] Prove feature selection: an unused module adds no unwanted dependency
+  closure/runtime initialization. Measure minimal-program build time and size
+  before admitting costly data tables or native build requirements.
+- [x] Prepare a reusable bounded test runner/build-slot procedure for every
+  execution host. Keep one Cargo target per host, incremental off, jobs=1,
+  process-tree memory/time monitoring, and ownership of killed processes clear.
+
+B00 pin/feature evidence reconciliation: the native/backend direct dependency
+crosswalk in `backend-distribution-inventory.md` records all 54 shared exact pins,
+requested features and matching lock checksums; retained UI-only roots stay out of
+the backend graph. The current complete compiler-library pass includes
+`every_bundled_dependency_pin_is_reserved` (both binding schemas), runtime
+extraction/feature-marker and graph/cache-identity controls. Retained relocated
+empty-Cargo-home debug/release exports cover the new HTTP policies, realtime,
+logging and generated adapters; earlier regex/locale/process/codec exports remain
+separate passed evidence. This closes pin/selection wiring; generated-consumer
+feature-selection measurements follow below. Four-host package admission remains open.
+
+Feature-selection evidence already includes passed `regex_feature_selection_follows_used_owners_and_calls`,
+`locale_dependency_activation_is_optional`,
+`unused_process_imports_and_error_data_do_not_activate_backend`,
+`address_only_and_unused_dns_do_not_activate_async_backend`,
+`unused_compression_import_has_no_runtime_activation`,
+`compression_and_network_activate_only_their_required_runtimes` and
+`unused_imports_and_std_only_observers_do_not_select_hostname`. The selected
+production-sync ICU admission also measured six same-source build/footprint
+controls: baseline 609800 bytes and all-service 2104184 bytes; these are direct-backend
+code-plus-data results, not a generated minimal-program size claim. Reuse these
+passed controls. The remaining unused-import controls now pass in
+`native_package_export::new_optional_backends_follow_unused_imports_and_actual_value_or_type_uses`:
+14 source/emission rows cover plain and unused I/O, iterators, cancellation,
+password hashing and WebSockets, plus required/forbidden crypto/HTTP feature
+selection and genuinely used opaque signatures. They inspect emitted feature
+vectors, runtime markers and dependency extraction; imports alone do not select
+those backends.
+
+The generated-consumer build/size observation at `04f3df1f` uses the existing
+`benchmarks/compiler/stdlib-selection/unused/main.tsr` and
+`examples/explicit-locale/main.tsr` with one shared target/native cache. The minimal
+program emits none of the optional locale, HTTP, crypto, I/O, iterator or path
+runtime markers, produces `7`, and builds a 520872-byte optimized executable.
+The ICU example selects its locale runtime, exercises canonicalization, collation,
+grapheme segmentation and decimal formatting, and builds a 2179640-byte executable
+(1658768-byte difference). Exact outputs passed. First application-cache misses
+recorded 2056.4ms and 24974.8ms native build/link; unchanged warm builds both hit
+cache and recorded zero native build time. These are first-build observations
+with shared dependencies available, not cold-machine or sampled runtime benchmarks.
+Temporary consumer outputs were removed; shared artifacts remain reusable.
+This closes the feature-selection/minimal-consumer requirement without relabeling
+the earlier direct-backend footprint controls. Four-host package admission remains
+its separate unchecked requirement.
+
+B00 named migration acceptance: the filesystem and HTTP ceilings listed above
+are removed or explicit opt-ins, with the selected backend's own constraints
+preserved. Retained native witnesses cover lengths above64MiB, optional reads,
+redirects/proxies, ordinary/cumulative/increased response budgets, multipart
+backend defaults versus explicit budgets, server concurrency above128 and
+Context JSON above1MiB. The current shared HTTP suite also proves4097-byte route
+registration and exact positive `int` cookie lifetimes. Migration behavior is
+published in `docs/content/standard-library/fs.md`, `docs/content/framework/client.md`
+and `docs/content/framework/routing.md`. This completes the named fs/HTTP migration
+work; the broader per-export contract/default and four-host review remains in
+its unchecked B00/B20 requirements.
+
+B00 ordinary-default and explicit-policy audit (2026-11-08): the named file/HTTP
+migrations above are complete. New process/network/DNS/compression/regex/locale/
+crypto/logging/realtime/testing operations preserve the selected backend defaults
+or expose explicit bounded operations/options. Regex and WebSocket configuration
+start from backend defaults; decoded-output, process deadline/output and async-test
+timeout bounds are absent unless supplied. HKDF8160-byte and ICU decimal-position
+bounds are algorithmic/backend limits, not application policies. Existing
+`date.format`256-byte patterns, `Decimal.parse`128-byte inputs and ThreadPool1024
+capacity contracts are unchanged from the baseline, as allowed by the bounded-API
+clause. Process spawn inherits stdio; run uses B07's approved output-style contract
+(null stdin without input, captured outputs), rather than promising exact Tokio
+output equivalence. Owned-child kill-on-drop is a documented direct-child cleanup
+backstop; cancellation does not promise process-tree termination. Public process,
+futures, HTTP and filesystem references state the observable behavior. These
+source/default-policy rows do not close per-export alias correspondence or native
+four-host execution.
+
+B00 B01–B05 export reconciliation: the derived public API inventory supplies
+compiler binding access/result signatures, catalog contracts and reference routes.
+Retained filesystem catalog/utilities/cleanup, byte codec/operation fixtures,
+path/environment/OS controlled observers, URL catalog/loan/export fixtures and the
+registered asynchronous I/O family provide concrete native behavior and ownership
+evidence. Stored-call coverage is explicit for filesystem seek/position, byte
+codecs and numeric operations, URL parse/format, and I/O adapters/read/write/close;
+it is not evidence for every other export's alias path. The remaining finite
+review is per-export alias/negative correspondence (including the path/environment/
+OS observer aliases), plus four-host conditions and close/drop behavior. Keep the
+per-export review separate from native four-host execution. The changed namespace/
+receiver catalog audit now joins exact binding access/result/borrow metadata,
+reference routes and the documented operation-value classes. Seven WebSocket type
+summary gaps and the signals/threads/delay/yield direct-call-only limitation are
+corrected; completion and hover for native aliases agree in all four editor phases.
+This closes the source/contract inventory rows, not whole-language conformance or
+native four-host acceptance.
+
+B00 policy/infrastructure reconciliation: B10's retained compiler-library and
+focused client/server acceptance proves ordinary optional policies and all seven
+explicit `ServerOptions` controls. Policies remain in source; no middleware or
+server policy is installed through project configuration. The reusable
+`tools/platform-acceptance.py` runner and its focused unit controls implement the
+55-minute aggregate scope, bounded owned children, one target, jobs=1 and
+incremental=0. `.github/workflows/ci.yml` selects all four release hosts with a
+60-minute job ceiling; `docs/guides/platform-acceptance.md` documents execution.
+This checks infrastructure preparation, not native four-host acceptance in B20.
+
+The remaining HTTP registration/cookie ceilings were source-audited against
+Axum0.8.9 `routing/path_router.rs::validate_path`, Matchit0.8.4
+`Router::insert`/`Node::insert`, and the selected `http::HeaderValue::from_str`.
+Those paths do not impose Tsrust's 4096-byte route cap or 400-day cookie cap.
+Cookie serialization writes the nonnegative i64 as decimal text without duration
+or expiry-date conversion; header validation remains the final trust boundary.
+The accepted shared `examples/http-context/body-stream.test.tsr` suite covers a
+4097-byte route, exact 34560001/i64::MAX cookie headers and unchanged negative
+age/route syntax rejection. Its three native cases passed together through
+`http_context::contextual_body_stream_preserves_metadata_and_response_helpers`
+(58.71s including setup); related editor controls passed in the retained ownership
+family scope. This closes the focused range migration; broader per-export
+default-policy checkboxes remain unchecked.
+
+First-wave source preparation identified these concrete shared prerequisites;
+they are not completed implementation gates:
+
+- [x] Add narrow native signature literal/exported-alias support where required
+  for `SeekOrigin` and similar finite contracts. The source language already has
+  literals; the native registry currently does not. Do not invent opaque owners
+  or silently widen a promised literal union to arbitrary string.
+  Accepted on9d3573ee: both `native_literal_aliases` tests pass, including
+  shared exported native types in either import order without selecting an
+  unrelated runtime. Homogeneous literal-string operations retain their exact
+  type identity in compiler checks; editor phase identity repair remains open.
+- [x] Extend readable/writable byte alternatives by argument position for paired
+  inputs; preserve input-only borrowed-shape checks and abstract callable
+  contracts. Update the current single-byte-generic emission bridge where two
+  independent input storage types are needed. Do not clone views to adapt them.
+- [x] Reuse existing StringView returned-loan machinery for borrowed URL getters;
+  add computed property lowering rather than treating native getter properties
+  as physical record fields. Prove separate read/write types, receiver/RHS once
+  evaluation, optional loans and mutation blocking through aliases/captures.
+- [x] Investigate reported url2.5.8 empty-host setter panic, quadratic authority/
+  dot-segment parsing and relative-reference differences before admission:
+  [1174](https://github.com/servo/rust-url/issues/1174),
+  [1163](https://github.com/servo/rust-url/issues/1163),
+  [1164](https://github.com/servo/rust-url/issues/1164). These are upstream
+  reports, not locally reproduced defects. Confirm under the watchdog and fix
+  real failures; do not hide scaling problems with an arbitrary input cap or
+  claim blanket WHATWG conformance from package selection.
+
+URL2.5.8 now uses the compiler-owned patch described in its `TSRUST-PATCH.md`;
+empty-host protection, authority-scan repair and patch-integrity/relocation controls
+pass. The full bounded upstream scaling/relative-reference investigation remains
+open above. Base640.23.1 uses the selected SIMD engines and scalar fallback.
+Current-host vectors are not proof of all-target or scalar-path execution;
+remaining package/platform admission stays open. Trusted dependency internals may
+use unsafe; generated Tsrust Rust remains safe.
+
+Paired byte positions and borrowed computed URL getters have retained native,
+ownership, editor and pointer-identity evidence in the965de83f integration and
+current library controls. No new timing or platform result is inferred here.
+
+## Concrete API checklist
+
+Implementation inventory, 2026-11-06: all public exports listed in B01–B05 are
+present in compiler/native bindings and the editor catalog, with documentation,
+examples and benchmark registrations. This is source availability, not proof of
+complete runtime or release acceptance. Unchecked requirements retain their full
+native, ownership, editor, package and platform acceptance scope; notably Windows
+console delivery and final platform regressions remain unverified.
+
+### B01 — Portable files, directories and file utilities
+
+Backend: Rust `std::fs`/`std::io` first; retain the existing error/resource model.
+Depends on B00. One owner covers file handles, directory operations and cursors.
+
+- [x] Port all existing `std:fs` exports and deterministic close/drop behavior to
+  Windows; preserve `FsError {code, operation, message, osCode?}` and unique owners.
+  Evidence: focused platform acceptance run 42511473967 at 81f7beed is complete on all four release hosts (Linux x64, ARM macOS, Intel macOS, Windows MSVC: 61 targets each, zero failures, retained-evidence chain C1–C8 sealed in `tools/platform-acceptance.py`).
+- [x] `OpenOptions`; `openFile(path, options)` with read/write/append/create/
+  createNew/truncate. Validate contradictory options before filesystem mutation.
+- [x] `FileTime {unixSeconds, nanoseconds}`, `Metadata`, `DirEntry`; `stat`,
+  `lstat`, `fileStat`, `readDir`. Normalize pre-epoch times exactly; do not pull
+  calendar dependencies or impose Instant's year range on basic filesystem times.
+- [x] `mkdir`, `mkdirAll`, `rename`, `copyFile`, `removeFile`, `removeDir`,
+  `removeDirAll`, `canonicalize`, `readLink`, `hardLink`.
+- [x] `SeekOrigin`; `seek`, `position`, `truncate`, `syncAll`, `syncData`.
+- [x] `appendFile`, `readTextFile`, `writeTextFile`, `createTempDir`.
+  Use admitted `tempfile::Builder` for exclusive temporary creation; validate a
+  filename-only prefix and path conversion before transferring cleanup ownership.
+- [x] Remove arbitrary ordinary file-size ceilings through the B00 migration;
+  retain explicit optional `maxBytes`/`maxEntries` controls and exact-bound tests.
+
+Contract: no implicit recursive deletion; stat follows links and lstat does not;
+tree deletion does not traverse directory symlinks. Preserve host directory order,
+host rename/overwrite/cross-volume semantics and partial I/O. Non-Unicode paths
+fail explicitly. Unsupported timestamps are absent, not invented. Positions/sizes
+must fit exact public integers. Restrict cursor operations to plain File until
+buffer invalidation is implemented. Temporary creation is atomic/exclusive.
+Windows explicit close must use a safe backend. If it follows std File drop,
+document that OS close errors are not observable there; do not pretend syncAll
+is a close-error check or emit an unsafe Win32 call to manufacture parity.
+
+Witnesses: Unicode/link/dangling-link tree, exclusive create, permissions, cursor
+and EOF, short I/O, close failures, malformed UTF-8, explicit bounds, Windows
+locked handles and exact drop counts. Performance: enumeration/stat, binary copy,
+buffered append and random-position reads; same files/cache/durability policy in
+Tsrust, handwritten Rust and Node. Report sync-to-storage costs separately.
+
+Read-only dependency review (2026-11-04): `tempfile =3.27.0` with default
+`getrandom` is the selected candidate for `createTempDir`; no nightly/wasm/sys_rng
+extras. Declared crate MSRV1.63; effective selected native closure requires1.85
+from getrandom0.4.3, compatible with pinned1.96.1. MIT OR Apache-2.0; retain
+additional LLVM-exception notices where selected rustix/linux-raw-sys offer them.
+The official RustSec snapshot965bf9ad083b58e6340d65829d85217b18be9290 has no
+matching advisory for the selected locked native versions; once_cell's old
+advisory is patched by1.21.4. This review is not runtime/platform admission.
+Use Builder's .tmp prefix/six random characters/default collision behavior and
+platform permissions/umask; do not promise0700. Validate UTF8 before keep().
+Sources: [crate manifest](https://docs.rs/crate/tempfile/3.27.0/source/Cargo.toml),
+[Builder](https://docs.rs/tempfile/3.27.0/tempfile/struct.Builder.html),
+[RustSec snapshot](https://github.com/RustSec/advisory-db/tree/965bf9ad083b58e6340d65829d85217b18be9290/crates).
+
+Current-host API acceptance is retained from the complete965de83f integration:
+14 filesystem/backend cases and two file-catalog editor cases passed, including
+both optimization levels, cursor ownership, symlink safety and explicit limits.
+Relevant runtime and test sources are unchanged. Windows delivery and B20 shared
+compiler/platform regression requirements remain open.
+
+### B02 — Byte codecs and binary records
+
+Backend: std for binary/hex/UTF-16; `base64` for base64. Depends on B00.
+
+- [x] `std:bytes.toHex/fromHex`, `toBase64/fromBase64`,
+  `toBase64Url/fromBase64Url`, explicit `toUtf8Lossy`, `fromUtf16/toUtf16`.
+- [x] `concat`, `copyInto`, in-place `copyWithin`, `equals`, `compare`, `indexOf`.
+- [x] `readInt/writeInt` for widths 1/2/4/8; `readUint/writeUint` for widths
+  1/2/4; `readFloat32/writeFloat32`, `readFloat64/writeFloat64`.
+- [x] Explicit offsets and byte order; reject unsupported widths/unrepresentable
+  integer values before mutation. Float32 writes use Rust f64→f32 rounding,
+  including nonfinite values, rather than the existing exact-conversion helper.
+  Full-u64 values await a separately accepted exact type.
+
+Implementation acceptance (macOS ARM64, worker174218b9): all23 new APIs have
+compiler/runtime/catalog/editor/export witnesses accepted in40focused checks,
+including actual O0/O3 catalog execution and safe relocated offline exports.
+This checks implementation only. All75 matched runtime workloads and Windows/Linux
+execution remain pending; shared performance/platform/release gates stay open.
+
+Contract: readable Bytes/views for observers, writable Bytes/mutable views for
+mutators. `copyInto` respects distinct-owner loans; same-owner overlap uses one
+exclusive `copyWithin` receiver and Rust slice copy_within, without a hidden
+temporary or relaxed alias checks. Canonical padded base64 and unpadded base64url output;
+strict input alphabet/padding/trailing-bit checks. Hex output lowercase. UTF-16
+endianness is explicit; malformed pairs/odd bytes error, without BOM guessing.
+Existing strict UTF-8 stays strict; lossy conversion is separately named.
+
+Witnesses: published codec vectors, all byte values, malformed offsets/encodings,
+overlapping ranges, endianness, unaligned reads, NaN/signed zero and no partial
+writes. Performance: token/4 KiB/1 MiB codecs and packet parsing/writing into reused
+buffers, with independent byte checksums and equivalent strict Node validation.
+
+- [x] Count allocations in actual emitted native packet and UTF-16 kernels,
+  including inline endian literals and stored callable aliases with a checked
+  literal-union order variable. Compare n=0 setup and several iteration counts
+  against independent direct-Rust floors; do not infer bridge behavior from a
+  zero-allocation direct-Rust kernel.
+- [x] Packet field access must not add per-field/per-iteration allocations.
+  UTF-16 output buffers are expected allocations; identify extra order/alias
+  allocations separately, including mixed Unicode and CJK growth/reallocation.
+  Preserve actual borrowed union payloads while profiling. Record actual emitted
+  source/binary identity, exact outputs, requested/peak/live/drop counts and
+  allocation slopes before considering a literal/storage optimization.
+
+Generated allocation acceptance, 2026-11-05 (macOS ARM64): 104 scoped O0/O3
+cases and 1,872 independent generated/direct-Rust samples pass exact outputs,
+deterministic counters and complete disposal. Inline endian arguments and stored
+aliases add no per-field/per-iteration allocations. Packet kernels keep one
+64-byte setup allocation; UTF-16 encoders allocate one output per iteration.
+Mixed decoding has no output reallocation; CJK decoding has one per output,
+compared with one/two respectively in the direct std floor. This difference
+justifies no sizing redesign. Unmodified generated variants compile with unsafe
+code forbidden. Matched runtime workload timings remain pending; these untimed
+allocation controls do not establish Windows/Linux execution.
+
+Search backend prerequisite (2026-11-04): pin `memchr =2.8.3` with its default
+std/alloc features, optional behind `byte-search` in both runtime graphs. Other
+byte operations remain std-backed. The version was already locked in compiler
+and runtime graphs; only the independent Rust reference graph adds a package.
+Offline resolution preserves every previous package/version/checksum and all
+default feature selections. Cached archive checksum
+`cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98` matches
+the lock. The crate declares edition2021/MSRV1.61, Unlicense OR MIT, no required
+runtime dependencies. Keep optional logging/libc/core features disabled. Official
+RustSec snapshot965bf9ad083b58e6340d65829d85217b18be9290 contains no memchr advisory;
+platform execution and actual Tsrust API measurements remain pending.
+
+The direct-Rust prototype supports using `memmem::find` for indexOf: linear time,
+constant auxiliary space and portable fallback avoid the naive windows search's
+adversarial growth. Token-sized inputs favored windows (10.19ns vs20.55ns), while
+4KiB/1MiB tail matches and65KiB repetitive misses favored memchr (107/20,969/
+66,063ns vs1,428/465,823/377,313ns). These are prototype samples, not released
+Tsrust workload measurements. Do not add a hand-written size hybrid without an
+accepted need. Pinned Node24.11.1 independent oracle preflight passed; earlier
+Node26 prototype timings are supplementary, not canonical reference controls.
+Sources: [pinned memmem find](https://docs.rs/memchr/2.8.3/memchr/memmem/fn.find.html),
+[crate manifest](https://docs.rs/crate/memchr/2.8.3/source/Cargo.toml),
+[reviewed advisory tree](https://github.com/RustSec/advisory-db/tree/965bf9ad083b58e6340d65829d85217b18be9290/crates).
+
+### B03 — Path, environment, OS and signal completion
+
+Backend: existing lexical path implementation, std and existing Tokio signals;
+small `hostname`/platform adapter only where std lacks the operation. B00/B01.
+
+- [x] `PathParts`; `std:path.resolve`, `parse`, `format`, `separator`, `delimiter`.
+- [x] `std:env.vars`, `currentDir`, `currentExe`, `tempDir`, `homeDir`.
+- [x] `std:os.availableParallelism`, `hostname`.
+- [x] Windows console interrupt/control-break support through existing signals.
+  Evidence: focused platform acceptance run 42511473967 at 81f7beed is complete on all four release hosts (Linux x64, ARM macOS, Intel macOS, Windows MSVC: 61 targets each, zero failures, retained-evidence chain C1–C8 sealed in `tools/platform-acceptance.py`). The real CTRL_C/CTRL_BREAK delivery witness `generated_listener_receives_real_platform_signals` passes on Windows.
+
+Contract: preserve existing POSIX/Windows lexical path rules; normalization is
+not filesystem containment. Resolve can fail on cwd. Environment absence, empty
+values and non-Unicode failures remain distinct. No process-global env setters,
+env removal or cwd mutation in the multithreaded runtime; B07 supplies per-child
+configuration. Parallelism is an estimate. Unsupported signal events error.
+
+Witnesses: drives/UNC/roots/dotfiles, controlled child cwd/environment, optional
+home and real Windows interrupt handling. Performance: path corpus and environment
+reads; do not fabricate meaningful speedups for constant target identity.
+
+Preparation: hostname0.4.2 matches its official non-yanked sparse-index checksum
+617aaa3557aef3810a6369d0a99fac8a080891b68bd9f9812a1eeda0c0730cbd,
+MIT license and declared MSRV1.74. Locked metadata/fetch/tree admission kept
+existing cfg-if1.0.5, libc0.2.190 and windows-link0.2.1 pins unchanged. Default
+and optional setter features remain disabled. Advisory and platform admission remain separate from the macOS implementation
+acceptance below. Direct-Rust allocation/build/timing prototypes remain distinct
+from generated API throughput measurements.
+
+B03 contracts frozen for implementation (2026-11-05; native/platform acceptance
+remains separate):
+
+| Module | New public signature or record |
+|---|---|
+| `std:path` | `PathParts {root:string; dir:string; base:string; ext:string; name:string}`; `PathFormatOptions {root?:string; dir?:string; base?:string; ext?:string; name?:string}`; `PathError {code:string; message:string}` |
+| `std:path` | `parse(path:string):PathParts`; `format(parts:ReadOnly<PathFormatOptions>):string`; `resolve(...paths:string[]):Result<string,PathError>`; `separator():string`; `delimiter():string` |
+| `std:env` | `EnvVar {name:string; value:string}`; `vars():Result<EnvVar[],EnvError>`; `currentDir():Result<string,EnvError>`; `currentExe():Result<string,EnvError>`; `tempDir():Result<string,EnvError>`; `homeDir():Result<string\|undefined,EnvError>` |
+| `std:os` | `OsError {code:string; message:string}`; `availableParallelism():Result<int,OsError>`; `hostname():Result<string,OsError>` |
+
+These are exactly12 functions and5 new ordinary record identities. String input
+modes are Read, including resolve's rest inputs; spelling follows existing path
+metadata, whose scalar signatures omit redundant access wrappers. Results are
+independent values, with no returned-borrow contract or implicit input cloning.
+Constants may use the existing static string representation. No public path-style
+argument is added: execution-target cfg selects native separators and delimiters.
+
+Parse returns all five fields, preserves lexical root/dir spelling and existing
+dotfile/extname behavior; empty input returns five empty strings. Format treats
+omitted and empty fields alike: nonempty dir precedes root, nonempty base precedes
+name/ext; add a dot only for nonempty undotted ext and a separator only between a
+non-root directory and the selected base. Use the measured checked exact-capacity
+single-output adapter, ordinary Rust allocation behavior and no arbitrary cap.
+Resolve ignores empty segments, stops right-to-left when an absolute device/root
+is sufficient, observes cwd/drive context only as needed, and never canonicalizes.
+New PathError codes are Io/NotUnicode; new resolve propagates bad-Unicode drive
+context only when needed. Keep relative’s public signature and successful lexical
+behavior; repair its known invalid-Unicode drive-context fallback through the
+existing error channel, with focused demand/error witnesses.
+
+Existing env get/args already preserve strict Unicode and explicit Result errors;
+no getter migration is needed. Keep existing EnvError identity and InvalidName/
+NotUnicode code spelling; add Io for fallible OS observers. vars converts both
+names and values from vars_os into a complete owned unsorted snapshot, accepts
+names that get's lookup validator rejects, and returns no partial data or raw
+values on Unicode error. homeDir delegates pinned std::env::home_dir, including
+its platform fallback and unavailable/unsupported None behavior; returned empty
+paths remain empty. tempDir delegates std::env::temp_dir and creates nothing.
+Convert all returned paths strictly. availableParallelism queries std each call,
+checks positive usize-to-int conversion and never caches, caps or invents1.
+Hostname uses selected hostname0.4.2, strict Unicode and no DNS/env fallback.
+OsError codes are Io/NotUnicode/Range. New recoverable failures are Result data;
+only ordinary unwrap introduces a throwing effect.
+
+Windows extends existing listen/receive exports with Tokio ctrl_c/ctrl_break
+and SIGINT/SIGBREAK results; Unix retains SIGINT/SIGTERM. No event selector,
+configuration setting, process-global setter, kill API or listener framework.
+Actual Windows console/OS acceptance remains required. The22 injected Windows
+lexical controls (including demand/error ordering) passed both Rust and pinned
+Node locally; they do not prove Windows OS behavior. Baseline/format allocation
+profiles and their cached Node controls remain prototype evidence, not measured
+Tsrust workloads or SQLite ingestion.
+
+Source ownership: bundle worker owns stdlib path/env/os/signals runtime/bindings/
+emission, bounded additive native signature/type/binding and feature predicate
+hunks, effects audit, complete catalog/docs/examples/fixtures/editor agreement and
+matched benchmark support. Integrator owns dependency manifests/locks/admission,
+sourcepack/cache/export and benchmark dependency wiring, goal/plan/sole handoff.
+Only hostname selects its optional dependency; all other new observers remain
+std-only and unused imports add no runtime/dependency closure. Finish the entire
+coherent section before batched affected checks.
+
+Implementation acceptance (macOS ARM64, source72039246 plus fixture repairs):
+all51 focused compiler/native/editor tests now pass; preserve46 initial passes
+and5 repaired-test rechecks rather than replaying passed scopes. Coverage includes
+17 catalog entries/15 unique examples, O0/O3 controlled environment observers,
+path allocation and relative controls,17 help cases across four editor phases,
+11 completion matrix rows and checker agreement. Five offline dependency/export
+integration checks pass, including safe hostname linkage. All seven registered
+workloads pass five independent correctness cases in Node24.11.1 and generated
+O0/O3; this is untimed acceptance, not throughput measurement. Actual Windows
+console signals, Windows/Linux execution, final package admission and performance
+gap review remain pending. The official runner subsequently exposed a missing
+fallible-family ABI registration; the existing Result-aware path now includes
+path-env-os, with actual seven-workload emission and invalid-result guards. Eight
+focused adapter/source/oracle tests pass; subsequent official timing is recorded below.
+Fixture repairs preserve read-only iteration, use
+supported module aliases/factory wrappers, and handle macOS filesystem rejection
+of invalid-Unicode names while retaining strict conversion and child-env checks.
+
+B03 first registered measurements (macOS ARM64,2026-11-05T14:40:20.088Z):
+all three engines passed five correctness cases/workload, then3 processes ×31
+samples after8 warmups. Quiet-load override was false, maximum observed load3.917;
+watchdog90.710s/471,530KiB. Ingested21 actual run entries with npm run store:ingest;
+verified93 samples per history and SQLite integrity. These are new API baselines,
+not pre-feature speedups. Values below are median milliseconds per2,000 iterations
+(env_get performs3 lookups per iteration).
+
+| Workload | Native | Handwritten Rust | Node after tsc |
+|---|---:|---:|---:|
+| path_parse_parts | 0.181375 | 0.326500 | 0.106625 |
+| path_format_options | 0.052292 | 0.048500 | 0.148167 |
+| path_resolve_parts | 0.337583 | 0.305833 | 0.357708 |
+| env_vars_snapshot | 11.734000 | 10.959166 | 101.418958 |
+| env_get_snapshot | 0.598416 | 0.577208 | 0.999000 |
+| os_parallelism_query | 0.444625 | 0.441541 | 1.008583 |
+| os_hostname_read | 0.550625 | 0.549209 | 0.585625 |
+
+Review: parse trails Node while beating the direct std-based Rust reference;
+format is1.078× its corrected Rust floor. The first Rust format control omitted
+the prefix check observed by native/Node; it measured0.038083ms and remains in
+history. Added the same required prefix observation and remeasured ONLY that
+changed reference at2026-11-05T14:47:48.571Z (93 samples, quiet max1.874,
+watchdog6.757s/325,216KiB), ingesting one additional actual run. Native/Node
+samples remain unchanged. Emitted-code review finds four owned nonempty parse
+field allocations and a repeated basename scan, while format already uses one
+exact-capacity output allocation. These allocation observations are source-derived,
+not measured generated allocation counts. Profile any proposed parse scan change
+before implementation; do not attribute inherent owned-string costs to the bridge.
+Other native/Rust ratios range1.003–1.104. OS identity observations are not broad
+compiler speed claims. Reuse these unchanged Node/Rust controls for later
+compiler-only candidates. Official preparation also exposed compact handwritten
+signatures and duplicate hostname extern selection; references now conform to
+the existing ABI, and explicit reference closures replace generated bindings.
+Nine focused adapter/oracle/emission/reference guards pass. Preserve first-run
+failures as preparation evidence; none produced timing samples or ingested rows.
+
+B03 bookkeeping reconciliation: all seven workload entries are marked measured
+for native, handwritten Rust and Node-after-tsc. SQLite holds21 workload/engine
+rows and22 histories, including the corrected Rust-only format observation;
+each history retains93 samples. Current native/TypeScript/Rust source SHA256s
+match the corresponding timing artifacts, using the second artifact for the
+corrected format reference. No control was retimed. The51 macOS focused passes
+are46 initial individual passes plus5 repaired rechecks; five offline integration
+checks also passed. Existing API checkboxes stay checked; the Windows console
+checkbox stays open because metadata and injected lexical cases do not prove
+actual Windows signal delivery or execution.
+
+### B04 — General URL and query parameters
+
+Backend: `url` plus its form-query support; `percent-encoding` if directly needed.
+The existing url pin is UI-only and needs backend wiring. Depends on B00 and
+existing byte/path capabilities; it does not wait for B02/B03's new public APIs.
+
+- [x] `Url`, `UrlError`, `parseUrl(text, base?)`, `formatUrl`, `resolveUrl`.
+- [x] Read/write href/protocol/username/password/hostname/port/pathname/search/hash
+  and readonly origin, using checked backend component setters.
+- [x] `SearchParams`, `parseQuery`, `formatQuery`; `get`, `getAll`, `has`,
+  `append`, `set`, `delete`, `entries`, stable `sort`.
+- [x] Independent `searchParams(url)` snapshot and explicit
+  `setSearchParams(url, params)` replacement; no invisible parent alias.
+- [x] `pathToFileUrl`, `fileUrlToPath`, `encodeURIComponent`,
+  `decodeURIComponent` with a documented UTF-8 component encoding set.
+
+Contract: WHATWG/url normalization, IDNA/IPv6/default ports/opaque schemes;
+duplicate query keys and absence versus empty; form-query plus differs from
+component percent decoding. Strict malformed percent/UTF-8 failures where the
+explicit decoder promises them. Do not expose URL credentials in errors.
+
+Witnesses/performance: base-relative URL corpus, mutation and snapshot loans,
+duplicate-key parse/mutate/serialize, IDNA/IPv6/file URLs and invalid input.
+Node URL/URLSearchParams and direct Rust url are matched references.
+
+Current-host API acceptance is retained from965de83f: `url_values`6,
+`url_features`2, `url_export`1 and language-server URL6 cases passed, including
+catalog execution, owners/setters and relocated offline export. Relevant runtime
+and reviewed test sources are unchanged. B20 shared compiler/platform and
+remaining measurement requirements remain open.
+
+URL measurement acceptance, 2026-11-07: all11 registered URL workloads pass
+165 matched native/Rust/Node correctness cases and original three-process,
+8-warmup,31-sample timing. Actual ingestion added33 workload/engine histories,
+each93 samples, at2026-11-08T01:00:48.357Z. The eight authority/dot-segment
+variants cover8192–65536 units without a facade input cap. Native adjacent-size
+ratios are1.85–2.11 for long authorities and1.93–1.98 for short authorities,
+consistent with linear scaling over this corpus. At65536, long/short medians
+are1.645375/1.156375ms; direct Rust1.638458/1.188250ms and
+Node0.579333/0.497042ms. Do not claim universal parser complexity or blanket
+WHATWG equivalence from this bounded corpus. Component/query/reused-setter
+native-to-Rust medians are1.06/0.92/0.96; native-to-Node0.66/0.71/0.12.
+The source-owned URL patch, empty-host guards and documented relative-reference
+difference remain unchanged. Evidence `/tmp/tsrust-url-family-resume.json` and
+`benchmarks/measurements.sqlite`. The initial TypeScript declaration failure was
+repaired with DOM.Iterable; nine actually prepared workloads were sealed and
+reused without recompilation. Fresh-source comparison and all correctness checks
+preceded timing. Preparation, repair and resumed157.18s protocol/ingestion fit
+one original30-minute scope. No full regressions or reference retiming occurred.
+
+### B05 — Async byte I/O across resources
+
+Backend: existing Tokio with needed fs/io-util/io-std features. B01/B02/B06.
+
+- [x] Owned `Reader`, `Writer`, `LineReader`, `IoError` and explicit adapters for
+  files/buffer handles, HTTP Body and standard output/error.
+- [x] Separate explicitly synchronous `Stdin`, `stdin`, `readStdin`,
+  `readLineStdin` using Rust std blocking semantics. Do not expose an async stdin
+  Task until portable interruptible/settlement behavior is proven.
+- [x] `read`, `readExact`, `readAll`, `write`, `writeAll`, `flush`, `copy`.
+- [x] Freeze and implement writable-destination Reader reads, concretely
+  `readInto(reader: Mutable<Reader>, destination: Mutable<Bytes | ByteViewMut>):
+  Task<Result<int, IoError>>` or the equivalent documented read overload. Return
+  bytes written, observe only that range, and specify EOF versus a zero-length
+  destination. Reuse caller-owned storage without per-read allocation. Keep both
+  the reader and destination exclusively borrowed through actual I/O settlement;
+  cancellation/deadline completion must not release a pending loan early,
+  including blocking-backed file reads. Reject readonly or aliased destinations.
+- [x] `lines`, `readLine`; UTF-8 split across chunks, LF/CRLF and unterminated
+  final-line behavior specified. EOF is distinct from an empty line.
+- [x] Consuming `close`/writer shutdown; report fallible flush/finish errors.
+- [x] Adapter points for B07 child pipes and B08 TCP halves.
+- [x] Optional explicit total-byte/line-byte bounds; ordinary defaults follow
+  Rust/Tokio rather than new 64 MiB/1 MiB ceilings. Copy uses bounded working
+  buffers and backpressure instead of whole-stream accumulation.
+
+Contract: no blocking file calls on an async executor worker; input borrows live
+through completion or inputs move into Tasks. No per-chunk hidden clone/boxing.
+Cancellation of socket/body work must settle owned work and release resources;
+partial I/O remains observable. Blocking-backed filesystem work may continue
+after cancellation: retain its owner/completion handle and wait for actual
+completion before claiming cleanup. A deadline is not a hard syscall interrupt.
+Tokio stdin is an uncancellable blocking read, so it cannot be smuggled behind
+the ordinary async Reader contract. Synchronous stdin blocks its caller as Rust
+std does; cancellable interactive/async stdin remains later scope. Do not
+introduce a public generic trait system for adapter plumbing.
+
+Witnesses: short/interrupted synthetic I/O, EOF, malformed text, explicit bounds,
+flush failure, cancellation, file→HTTP and HTTP→file; controlled blocking-operation
+settlement and a process-isolated idle-stdin watchdog witness. Performance: fixed-payload
+copy and line processing with chunk boundaries; allocations and peak retained
+memory alongside throughput against direct Tokio and Node streams.
+
+B01 allocation signal: the owned-read-contract handwritten seek prototype used
+1,024 fresh 64-byte Vec buffers plus one observation Vec, with eight observation
+reallocations and 16 KiB of retained rows. Those samples remain labeled as that
+prototype, rather than the idiomatic Rust floor. Before actual timing, the public
+handwritten reference uses one reusable stack buffer and preallocated observation
+storage; Node likewise reuses one Buffer and reserves its result array. B01's
+owned `read` remains unchanged, so generated allocation gaps remain observable.
+B05's writable-destination contract must address this reuse case; no B01 API was
+expanded and no generated allocation improvement is claimed from the prototype.
+
+B05 public integration (2026-11-05): compiler/runtime/LSP/catalog/docs/examples
+and three matched workload registrations are integrated. Runtime7, catalog/native
+including file→HTTP and offline forbidden-unsafe export, shared editor agreement,
+and focused task/SQL/HTTP compatibility scopes passed. Stored/conditional/forwarded
+Task calls now retain reader/destination loans through await; positive native and
+negative compiler/editor witnesses pass. Final service/literal compatibility repairs
+pass their focused scopes. Actual public I/O timing/allocation review remains
+pending; child-pipe/TCP adapters depend on their later bundles. This is local
+integration evidence, not full release/platform acceptance.
+
+B05 public measurements (2026-11-05, source6f8d3342): all45 correctness
+combinations pass. Original3processes×31samples after8warmups for native/directRust/
+Node; maximum quiet load3.79834. Nine actual histories ingested and SQLite integrity
+verified. Median ms native/Rust/Node: readInto14.366958/14.348959/108.940625;
+lines16.219/2.813625/18.351167; filecopy31.995583/24.175333/53.446625.
+Line reading remains5.76×the Rust floor; filecopy1.32×. Native allocation profiling completed: readInto1003allocations/7reallocations;
+lines5003/11000; filecopy5513/9, at their registered iteration counts. Line-reader
+bytewise append/growth is a concrete candidate for chunk-based comparison before
+implementation. No claim of optimized parity or full bundle/platform acceptance.
+
+B05 line-reader optimization acceptance (2026-11-05): same-path/flags/library
+paired comparison selected chunk scanning/appending over bytewise work, preserving
+exact limit-detection consumption and reservation-failure progress. Three runtime
+boundaries, eight oracle checks,18 allocation observations and186 timing samples
+pass. Paired median15.513792→3.265958ms; full-workload allocations unchanged at
+5003/11000reallocations; quiet max3.984375. Fresh libraries differ from the original
+public measurement, so this is candidate evidence only. Canonical integration
+passes all eight runtime witnesses plus the formatted native example. Fresh public
+native timing completed atb1a32713:3.265750ms median,93samples, quiet maximum
+3.999512. One actual native history ingested and SQLite integrity verified;
+original16.219000ms history retained. Unchanged Rust/Node controls remain
+2.813625/18.351167ms from the earlier matched run. This confirms about80% lower
+public native time; it does not retime or fabricate the unchanged controls.
+
+B05 direct-Rust admission (2026-11-05): safe owned blocking-reader staging with
+one reusable buffer passed short/interrupted reads, EOF/zero destination, retained
+partial-error bytes, cancellation/deadline settlement and staged recovery without
+rereading. Synthetic retained Bytes frames preserve the unread tail without a Vec
+bridge; real HTTP integration remains pending. Three negative Rust witnesses reject
+readonly destination, borrowed-destination reuse and reader reuse during a read.
+Current futures runtime correctness passed1.558s/312,304KiB.
+
+Optimized profile passed31.172s/300,432KiB, separate allocation builds,3processes×
+31samples after8warmups, quiet maximum3.816. Both candidates reuse a64-byte caller
+destination; file setup/drop are outside timing but inside allocation counts.
+
+| Reads per operation | Staged median ms | Direct Tokio median ms |
+| --- | ---: | ---: |
+| 64 | 0.327583 | 0.315083 |
+| 1024 | 5.003625 | 4.882750 |
+| 8192 | 39.754334 | 38.860583 |
+
+Staging costs2.3–4.0% over this matched backend floor. Ordinary allocation rows are
+reads+3 staged versus reads+4 Tokio, principally blocking-task scheduling; reusable
+destination storage does not imply allocation-free I/O. One staged1024-read sample
+recorded1032allocations/1reallocation and151retained bytes; other retained deltas
+were0. Keep this observation visible; no source attribution or zero-retention claim
+is inferred. Prepared-source/profiling guards and actual output validate unchanged
+inputs. These are admission prototypes, not generated facade or Node measurements;
+no rows were ingested into generated workload storage. This is the admission
+prototype; generated B05 adapters and later matched I/O measurements are recorded
+under B09 below. Final family/platform acceptance remains open.
+
+### B06 — Task, timer and channel ergonomics
+
+Backend: existing Tokio; `tokio-util::sync::CancellationToken` where appropriate.
+Depends on B00; retain existing Job/Task cancellation and child-drain behavior.
+
+- [x] `all` for homogeneous Task/Job collections: ordered results, empty input,
+  first failure, sibling cancellation and awaited cleanup.
+- [x] `Interval`, `tick`, explicit missed-tick policy; document Tokio's actual
+  first-tick/default behavior rather than silently emulating JS setInterval.
+- [x] Cooperative `CancellationToken`: `share`, `child`, `cancel`,
+  `isCancelled`, `cancelled`. Child cancellation does not cancel its parent.
+- [x] Async `Sender.close`, `trySend`, `Channel.tryReceive`; full/closed send
+  errors retain the unsent owner, matching the synchronous channel contract.
+- [x] `ThreadPool.taskAsync` returning a Task with asynchronous completion rather
+  than calling today's blocking Thread.join on an executor worker. Use an
+  explicit bounded pool; freeze lazy submission/queue admission, owned captures,
+  failure results and completion transport. Reject full/closed admission cleanly.
+- [x] Prove cancellation-before-start drops/reclaims owned inputs; after start,
+  signal cooperative cancellation and await noninterruptible CPU work before
+  claiming cleanup. B09/B16 use this adapter, with no hidden unbounded global pool.
+
+Witnesses: ordering, failures, cancellation-before-wait, nested child cleanup,
+missed ticks and move/drop tests. Performance: direct Tokio task/channel batches
+and Node Promise/timer counterparts with equivalent work; timers themselves are
+not a CPU speed benchmark. This is not JS Promise.then/catch compatibility.
+
+B06 initial preparation findings, before the accepted unit-array prerequisite: allSettled<void> stores
+Result<void,E>[] with empty Ok payloads; it does not establish a void[] mapping.
+Task output and generic inference preserve Void, while current value/array type
+resolution lacks a Void leaf. Preserve the ordered T[] contract for all, including
+void, rather than silently substituting undefined[] or rejecting that case.
+Prototype Rust Vec<()> and explicit compiler witnesses must settle this prerequisite.
+Existing OwnedPool contains Arc<Pool>; cloning the public close-on-Drop owner or
+marking it globally transferable would change shutdown/transfer semantics. A
+lazy private submission capability can retain the existing Arc, submit only on
+first poll, and observe closed admission if the public owner shuts down first.
+Prototype both borrowed and retained transports, .start and awaited CPU cleanup
+before fixing implementation. Locked tokio-util0.7.20 exports CancellationToken
+without rt/default features; do not enable unrelated features. The preflight and direct-Rust prototype passed. Public B06 APIs are now integrated in source checkpointcb7d5a08, with subsequent public acceptance recorded below. The
+unit-array prerequisite has since passed the focused acceptance below.
+
+B06 prerequisite worker candidate f6f14954 is accepted in focused scope:
+unit-array native ownership/callback/alias/TaskJob/mixed-tuple witnesses passed;
+actual checked receiver capabilities survive local/imported aliases, incomplete
+members and unrelated errors. Nonempty3receiver agreement,4rows×4phases and
+editor consistency passed23.895s/79,088KiB; pure4case recovery-span unit passed.
+Canonical integration3de00c52 subsequently built successfully517.850s/3,748,787KiB.
+Focused integrated native/discard checks, nonempty3receiver agreement and all16
+matrix observations passed18.660s/218,240KiB. This completes the prerequisite,
+not any public B06 API checklist item.
+
+B06 public source status (2026-11-05): all/Interval/CancellationToken, owner-retaining
+async send/trySend/tryReceive/close and lazy ThreadPool.taskAsync are integrated with
+compiler/LSP/catalog/examples and six matched workloads. Shared sync/async pool
+transports preserve synchronous dependency isolation; cancellation uses exact
+optional tokio-util0.7.20 with default features disabled. Root also added mixed
+threads/async/cancellation portable export coverage. Benchmark source/oracle/ABI
+mutation checks pass; generated workloads and timings remain unrun. Initial
+combined no-run build exposed three test-only type/migration errors, repaired in
+72ad2f9f together with deterministic cancellation cleanup witnesses. Combined
+validation now has preserved passes through118539c4:18 runtime tests (including
+cancelled-drain registration and deterministic missed ticks),2 CPU cleanup tests,
+HTTP producer disposal, sync thread/channel baselines, taskAsync admission/owned
+captures, all ordered/unit/scalar/record/nested-array outputs, catalog examples,
+portable relocated offline export at O0/O3, five receiver agreement cases, eight
+matrix rows×4phases and async editor consistency. Two final public failures led to
+9ba4fa48: select futures runtime for synchronous async-channel operations and
+correct the fixture to assert existing ThreadError.error beneath AsyncError.cause.
+Their focused rebuild/validation passed all3 affected scopes in6.234s/383,648KiB.
+Additional populated-array probes found fictitious ArrayPush failures, unsupported
+owned Job-array iteration and skipped task evaluation inside rvalue/named indices.
+Repairs reuse owned array storage and evaluate index side effects before token
+transfer, preserving failure ordering and diagnostic severity. Source98d63784
+passed all42 affected tests (6array,24async,12Tokio),27.490s/785,536KiB.
+Named-index tests cover settled tasks/jobs, stores/assignments/indexed receivers,
+hidden abandoned jobs and throwing evaluation order. No full regressions claimed.
+Benchmark references now have
+optional exact regex/Tokio dependencies; task group/channel observations detect
+reordering through a matched ordered fold and independent BigInt oracle. Original
+sample counts remain3×31after8. Generated workload validation and actual timing have since passed below;
+performance-gap review and family/platform acceptance remain pending.
+
+B06 prototype profile (2026-11-05): three processes ×31 samples after8 warmups,
+separate allocation builds, quiet load3.448, watchdog8.434s/424,832KiB. Direct
+polling all_yield measured48.30ns/input versus1,400.23ns for independently
+spawned JoinSet tasks; these have different scheduling costs, so preserve direct
+polling rather than claiming equivalent public performance. all_ready measured
+21.43ns/input versus2.00ns for a sequential ready-only floor that lacks concurrent
+polling/cleanup semantics. The71-allocation direct-polling batch includes64
+individual future pins. Source review found no safe existing contiguous projection
+for arbitrary !Unpin futures; do not impose Unpin or emit unsafe to remove these
+allocations. The locked try_join_all large-collection path can delay a later error
+behind an earlier pending future, so it does not preserve this fail-fast contract.
+Keep direct polling and existing scoped drop/drain cleanup. Exclusive try-receive measured
+47.64ns/operation versus47.46ns direct, both5 allocations/batch. Existing shared
+async receiver measured190.87ns versus106.12ns direct and one additional64-byte
+allocation/batch; this supports the planned exclusive receiver path.
+Both pool capability variants passed lazy submission, start, owner-drop closed
+admission and awaited cleanup controls with136-byte futures and zero construction
+allocations. Strong retains a closed pool allocation; Weak does not. Select Weak for the lazy
+private capability: public owner Drop closes admission either way, and accepted
+Completion already retains its pool through execution/cleanup. Construction
+5.30/7.50ns and closed polling25.86/30.87ns (Strong/Weak) are small relative to
+CPU work. Async completion adds one64-byte allocation/job; observed CPU medians
+7,410/7,415ns (Strong/Weak) versus6,945ns blocking join are noisy prototype signals,
+not generated API measurements. Dependencies are unoptimized existing exact
+rlibs; optimized probe code does not make this release-build performance. No
+prototype rows were ingested as accepted API workloads.
+
+B06 generated measurement (2026-11-05, source1c2367cd): all6 workloads passed
+native/handwritten-Rust/Node-after-tsc five-case correctness. Actual execution-only
+run passed294.179s/589,146KiB,3processes×31samples after8warmups, quiet maximum3.878.
+All18 workload/engine groups were ingested;93samples each, exact medians and SQLite
+integrity independently verified. No unchanged control was retimed after ingestion.
+
+| Workload | Iterations | Native ms | Hand Rust ms | Node ms |
+| --- | ---: | ---: | ---: | ---: |
+| task_all_ready | 2000 | 0.845209 | 0.030666 | 0.640917 |
+| task_all_yield | 2000 | 0.959041 | 0.076958 | 26.213084 |
+| async_channel_try | 2000 | 0.103417 | 0.110916 | 0.242875 |
+| async_channel_await | 2000 | 0.335333 | 0.181125 | 0.881125 |
+| cancellation_fanout | 2000 | 1.191500 | 1.215875 | 36.341042 |
+| thread_pool_async | 100 | 1.798625 | 1.777958 | 17.904041 |
+
+Task groups show material costs against the naked Tokio join floor: about27.6×
+ready and12.5×yield. The pre-optimization generated literal path boxed each future for
+type erasure, then the generic runtime pinned it in another box; group scope/drain
+and owned result storage also differ from the narrower hand control. These are
+source observations, not isolated allocation attribution. Profile safe single-pin
+and stack-pinned literal candidates while preserving arbitrary !Unpin futures,
+borrowed inputs, ordered results, fail-fast drop and exact cancellation/cleanup
+scope behavior before optimizing. Async-channel await is1.85×hand Rust and also
+needs gap review; other3 rows are close to that backend floor. Full family/platform
+acceptance and the measured optimization review remain pending.
+
+B06 literal-all optimization (2026-11-05, source21c71460): safe stack-pinned
+fixed inputs replace double-boxed futures and dynamic polling scratch storage.
+Eight focused witnesses passed, including borrowed !Unpin futures, construction
+order, typed failure, drop order, dynamic-array fallback and catalog execution.
+A crate-visibility defect was repaired atc0b3c2bc before native acceptance.
+Native-only actual run `2026-11-05T20-40-11-695Z.json` passed373.261s/
+2,291,916KiB including release bootstrap and quiet waiting; five correctness cases
+per workload,3processes×31samples after8warmups, maximum quiet load3.620.
+Ready median0.506292ms versus0.845209ms previously (40.1% lower); yield0.670125ms
+versus0.959041ms (30.1% lower). Both93sample histories ingested and independently
+verified with SQLite integrity. Existing handwritten-Rust/Node controls remain
+unchanged and were not retimed. Ready is still16.5×the narrower Rust join floor;
+yield8.7×. Scope registration/draining and owned results remain required work,
+so these ratios do not isolate compiler overhead. Four false unused-task warnings
+after a named task await remain a separate checker repair; native behavior passes.
+
+### B07 — Subprocesses
+
+Backend: Tokio process, not a new process framework. B03/B05/B06.
+
+- [x] `CommandOptions`, `Child`, `ExitStatus`, `Output`, `ProcessError`.
+- [x] `spawn(program, args, options?)`, `run(program, args, options?)`.
+- [x] Per-child cwd/env/clearEnv and finite inherit/null/pipe stdio choices.
+- [x] Freeze Rust-style spawn inherited stdio versus run captured stdout/stderr
+  and null stdin. Give run a consumed Bytes/Reader input option; reject an
+  inaccessible stdin pipe when no payload/reader is supplied, then close input
+  after draining it so a child can observe EOF.
+- [x] Child `id`, `takeStdin`, `takeStdout`, `takeStderr`, `wait`, `tryWait`,
+  `kill`; pipe endpoints transfer once and use B05.
+- [x] Concurrent stdout/stderr draining and awaited reaping; optional explicit
+  deadline/output bound, no arbitrary default 30-second/64-MiB policy.
+
+Contract: no implicit shell interpolation. Nonzero exit is an Output status,
+distinct from spawn failure. Cancellation/explicit limits terminate and reap the
+owned child. Document direct-child scope and best-effort destructor limitations;
+do not promise whole-process-tree termination from ordinary kill-on-drop.
+
+Witnesses: binary echo, pipe-capacity flooding, argument boundaries, cwd/env,
+missing executable, nonzero exit, timeout, cancellation, inaccessible run pipe
+rejection and closed stdin on all
+platforms. Performance: same helper executable for spawn/wait, capture and duplex
+I/O; separate OS launch time from adapter work.
+
+B07 direct-Rust admission (2026-11-05): normal and separately instrumented
+release builds pass exact source/dependency/binary guards. All19 correctness
+records pass, including binary duplex and EOF, flooded outputs, environment/cwd,
+nonzero/missing executable, explicit bounds/deadline, lazy unpolled input,
+cancellation/reaping and transferred/borrowed child-pipe ownership. The runner
+verified1,395 matched timing rows and10 allocation cases after a quiet start3.69238.
+These are admission prototypes, not acceptance of public Tsrust APIs or target
+platform execution. Public implementation is now integrated in the canonical tree.
+
+B07 local implementation checkpoint **c2045518**: all30 focused compiler/runtime/
+editor/borrowing scopes pass with unchanged scopes retained. Covers owned and
+borrowed input, distinct binary stdout/stderr, actual cleanup, child-only cwd/env,
+clear/default-inherit behavior, UTF8/quoted args, optional limits, all catalog
+examples and portable offline forbidden-unsafe export. Four matched workloads
+pass60 native/handwritten-Rust/Node-after-tsc correctness checks (5cases×3engines),
+including independent checksums and source/helper/library guards. All10 process/
+IO benchmark guards pass; whole-project formatting0changes. These surface boxes
+record local implementation/correctness; public timings and remaining platform/
+full-family acceptance are still required, not silently waived.
+
+B07 generated performance (2026-11-05 local date): all4workloads×3engines passed
+3processes×31samples after8warmups (93samples per row). Actual12histories ingested
+with `npm run store:ingest`; medians, mean throughput, timestamp/sample counts and
+SQLite integrity independently verified. Quiet max3.95361328125<4; watchdog
+285.317s/677,930KiB. Median ms per10operations (native/Rust/Node-after-tsc): launch
+13.416708/13.377709/14.321500; capture15.120458/15.159625/21.699833; byte duplex
+14.037792/14.054167/17.768291; Reader duplex14.072500/14.120167/17.752166.
+End-to-end native/Rust differences are within0.4%; Node/native ratios1.07–1.44.
+These include OS launch/pipe work and do not isolate compiler CPU overhead.
+No material matched regression justifies changing backend/defaults or retiming.
+Original Rust/Node controls remain reusable for later unchanged comparisons.
+
+Generated allocation driver passed155.430s/659,930KiB,4workloads×3process samples,
+one runtime and one warmup each. Allocations/reallocations per10operations:
+launch61/10; capture191–194/220; byte duplex213–216/110; Reader duplex212–213/110.
+Peaks553/66,640–66,800/50,000–50,352/50,352–50,416requested bytes respectively.
+Signed after-drop global deltas span−352..352bytes; launch is0all3samples.
+These are global runtime-inclusive observations, not an adapter leak/cache proof.
+Checksums and helper/source/dependency guards pass. Raw diagnostics are disposable;
+measured histories live in SQLite. Cross-platform and final family regressions
+remain required acceptance; this is current-host implementation/performance.
+
+### B08 — TCP/UDP, address parsing and system DNS
+
+Backend: existing Tokio net/system resolver; std address types. B05/B06.
+
+- [x] `IpAddress`, `SocketAddress`, `NetError`; `parseIp`, `formatIp`,
+  `parseAddress`, `formatAddress`, `isIPv4`, `isIPv6`.
+- [x] `TcpListener`, `TcpStream`, read/write halves; `listenTcp`, `connectTcp`,
+  `accept`, `localAddress`, `peerAddress`, `split`, `setNoDelay`,
+  `shutdownWrite`, `close`.
+- [x] `UdpSocket`, `Datagram`; `bindUdp`, `sendTo`, `receiveFrom`,
+  `localAddress`, `close`.
+- [x] `std:dns.lookup(host, family?)` for any/ipv4/ipv6 via the system resolver.
+
+Contract: parsing performs no DNS; bind port zero returns the actual endpoint.
+Preserve half-close, datagram boundaries, empty datagrams and underlying receive
+truncation semantics explicitly; do not invent a reliable truncation flag. DNS
+does not imply TTL/cache/record-query support. Backend timeouts remain opt-in;
+timeout does not prove an OS resolver thread was forcibly cancelled.
+
+Witnesses/performance: deterministic loopback IPv4/IPv6, refusal, EOF, partial
+traffic, UDP boundaries/receive capacity and controlled resolver fixtures.
+Measure fixed-size echo/transfer with equal connection policy; DNS latency is a
+separate environmental observation, not a compiler throughput claim.
+
+B08 admission update (2026-11-05): allocation-only continuation passed10.920s/
+269,456KiB, preserving all1,860 earlier timing rows/60groups. Seven Node guards
+passed. Fresh16steady allocation rows and13ownership records use the repaired
+pre-JSON peak protocol and exact constructor ledger. Owned split allocates48bytes
+in1Arc; boxed split72bytes in3allocations. All constructor-owned bytes release
+after both halves, in both drop orders. Immediate global deltas were+96bytes for
+both floor and adapter; endpoint/reactor settlement reached0. Signed global and
+boxed-minus-floor growth were0 at1/32/256cycles, with all traced bytes freed.
+This supports scoped adapter ownership, not a claim about arbitrary runtime leaks.
+Result `/tmp/tsrust-network-attempt5-allocation-continuation.json`; actual timing
+consumer remains29f8bdfb, with separate dirty-source allocation identity.
+Allocation repair source is checkpoint8cd62213 (parent29f8bdfb), after two
+whole-project0-change formatting passes and unchanged measured source bytes.
+The60000-byte UDP case is still unmeasured throughput on this host: native and
+Node both reject EMSGSIZE. Required supporting-host/platform and public B08
+compiler/editor/SDK/export acceptance remain pending; no cap/kernel change made.
+
+### B09 — Compression and streaming transforms
+
+Backend: maintained `flate2` with one deliberately selected Rust backend. B02/B05/B06.
+
+- [x] `CompressionOptions`, `DecompressionOptions`, `CompressionError`.
+- [x] `gzip/gunzip`, `deflate/inflate`, `deflateRaw/inflateRaw`.
+- [x] Reader/writer transform adapters and explicit `finish`/close.
+- [x] Optional explicit decompressed-byte policy and clearly bounded entry
+  points for untrusted input; no hidden default expansion ceiling on ordinary
+  Rust-equivalent operations. Apply explicit bounds incrementally.
+
+Contract: inherit backend compression defaults; validate level and format options.
+Check trailers/checksums/truncation, concatenate gzip members according to the
+chosen documented decoder, and define trailing-data rejection. Deterministic
+gzip metadata where controllable. CPU-heavy work must not block async I/O workers.
+
+Witnesses: cross-engine decode, corruption, concatenation, explicit expansion
+bounds and finish failures. Performance: compressible/incompressible buffers and
+streaming chunks at matched levels, recording output size, CPU and memory.
+
+B09 admission update (2026-11-05): full backend comparison passed6groups,
+80,352 timing samples,1,728 allocation rows,432 cross-decoded fixtures and2pool
+witnesses. Miniz produced smaller default compressible output/lower peak, while
+zlib-rs was faster in118/144 compression and142/144 decompression comparisons.
+The streaming contract requires non-EOF Sync flush and non-finalizing state Drop;
+the safe low-level gzip APIs admit zlib-rs for this bridge. No handwritten framing
+or checksum implementation is added. Native default gzip metadata remains
+deterministic per platform, including backend OS byte, rather than rewritten.
+The private explicit-pool/B05 bridge passed all8 groups at O0/O3 (16 scopes),
+7.272s/566,192KiB: formats, errors, backpressure, cancellation, queued work, files,
+flush and disposal. Includes size1pool composition and actual CPU settlement.
+Result `/tmp/tsrust-compression-bridge-attempt2-result.json`; failed first fixture
+compilation scope retained. This selects a feasible bridge/backend candidate;
+public compiler/editor/export/application acceptance and matched measurements
+remain unchecked above. Original direct-backend timings are not public API timings.
+
+Focused B08/B09 source acceptance (2026-11-06): all38 selected native/compiler
+scopes pass, combining unchanged successes across attempts6/7/8. This includes
+O0/O3 TCP/codec pipelines, retained and forwarded task inputs, single split
+consumption, byte-error property ordering, every codec catalog/field example,
+and relocated offline packages. Runtime161scopes, focused editor11cases,
+22completion rows in all4phases, all18checker receivers and16consistency subjects
+in all4phases pass. New accumulated unit witnesses pass14selected tests after
+prior23metadata and77affected-unit passes. Exact current handoff links results.
+These are focused checks, not a complete compiler/LSP regression claim.
+Source checkpoint57039b96 contains the coherent networking/compression slice.
+The meaningful-family library pass found2failures among1394executed compiler
+scopes (1392passed,8additional scopes ignored), while all23LSP library scopes
+passed. Both failures now pass: reserved flate2 pins and logical readonly views
+of recursive union owner temporaries. The repair retains complete owner type
+annotations and reuses existing data/callback view conversion. All53affected
+checks pass (20library,29conditional-expression,4codec native scopes),65.334s/
+514,560KiB. Preserve the original full results and repaired-scope evidence;
+full integration/diagnostic/doctest and measurement gates remain open.
+
+Local I/O-family integration continuation (2026-11-06, source4790f320): the
+complete non-library inventory built all544targets with terminal Cargo success;
+522targets passed initially, with46failed cases across22targets. Focused repair
+runs preserve those successes and close the known failures through compiler,
+native ownership/error transport, editor and export witnesses. Full backend
+catalog checking and602distinct standalone native example programs plus the
+fragment batch pass, including declared stderr. Real signal delivery and all six
+relocated offline exports pass with the updated verified source pack. The final
+13affected controls pass: HTTP2, task/channel6, async HTTP lifecycle1 and queue4.
+They include actual queue execution, generic string assertions in scheduled
+Tasks, local named captures, ordered success/typed-failure results, conditional
+SendError cloning and retained unknown-callback/resource rejection. Async
+program-context lifetimes separately pass all8focused cases, including paired
+globals and cross-file state. Pending-function checking now runs outside the
+result-only discovery phase for the selected task callees, restoring both phase
+flags before propagating errors. No global scheduling or error-contract widening
+is introduced. These are the original full run plus scoped repairs, not a newly
+replayed full matrix or complete cross-platform/release acceptance. Public matched
+benchmark correctness, actual timings, allocation review and ingestion remain next.
+
+All47 selected benchmark wrappers (4address,6transport,36compression and affected
+io_file_copy) are source/ABI ready;11JS guards pass. Source preflight executes no
+workloads and records no timings. Actual matched native/Rust/Node correctness,
+family regressions, timing/allocation review and SQLite ingestion remain pending.
+The registered60000-byte UDP case remains required on a supporting host; native
+and Node return EMSGSIZE here. Platform and full-goal checkboxes remain open.
+
+Matched public correctness continuation (2026-11-06): all47local workloads
+(4address,6supportedtransport,36buffer/reader/writercompression,io_file_copy)
+pass all3engines at all5registered correctness cases:705engine/case checks plus
+108produced-stream cross-decoding probes. The shared runner routes these families
+through their existing strict source/ABI guards instead of its scalar-only
+fallback; workload/control bytes and measurement protocols are unchanged. Eleven
+existing source/oracle/provenance guards pass. No correctness-only run was ingested
+as a timing measurement. Supporting-host60000-byte UDP remains required.
+
+Public network measurements (2026-11-06): all4address and6supported TCP/UDP
+workloads have actual native/Rust/Node execution timings ingested with
+npm run store:ingest into benchmarks/measurements.sqlite. Each workload/engine
+uses the original3processes×31samples after8warmups (2790samples total), with
+quiet-machine guard enabled and maximum admitted load below4. Exact imported
+medians/rates/sample counts and SQLite integrity were verified before removing
+closed raw result files. Native TCP medians are1–1.5% above handwrittenRust and
+3.9–4.5×faster thanNode in these loopback workloads; address native medians are
+within about1–25% of Rust. These are scoped workload observations, not universal
+networking claims. Affected native io_file_copy timing is also ingested:93samples,
+32.158625ms median versus prior31.995583ms (about0.5% higher). Fresh all-engine
+correctness and exact unchanged control binaries/JS support retaining the prior
+Rust24.175333ms andNode53.446625ms controls, each93samples; those histories were
+not retimed or modified. Compression timings, native allocation review and
+cross-platform acceptance remain pending.
+
+
+Public compression-buffer measurements (2026-11-06): all12gzip/gunzip,
+deflate/inflate andrawdeflate/inflate workloads, each with compressible/random
+input, have actual native/Rust/Node timings ingested withnpm run store:ingest.
+Original3processes×31samples after8warmups remain unchanged:3348samples total.
+Quietguard stayed enabled, every admitted load<4, each workload had the existing
+5GB/30minute watchdog. Exact imported histories and SQLite integrity were verified
+before discarding each closed raw result. Native/Rust median-duration ratios
+range0.972–1.090; Node/native ratios2.49–5.07 in these workloads. The largest
+native overhead is compressible rawdeflate (2.164ms versus Rust1.985916ms), retained
+for allocation review; no speculative optimization or control retiming. Reader/
+writer24timings, native allocation review and platform acceptance remain pending.
+
+
+Public compression-reader measurements (2026-11-06): all12reader-transform
+workloads are measured across native/Rust/Node and ingested withnpm run store:ingest,
+3348actualsamples using unchanged3processes×31samples after8warmups. Quietguard
+and per-workloadwatchdog remain enabled; exact imported histories and SQLite
+integrity pass. Native/Rust median-duration ratios range0.975–1.045; Node/native
+ratios2.21–4.10 for these workloads. Buffer+reader24 are now measured; writer12
+and native allocation review remain pending. Preserve all existing controls and
+correctness checks; these timings do not establish cross-platform acceptance.
+
+
+Public compression-writer measurements (2026-11-06): all12writer-transform
+workloads now have actual native/Rust/Node timings ingested,3348samples with the
+original3processes×31samples after8warmups, quietguard enabled and per-workload
+5GB/30minute watchdog. Exact histories and SQLite integrity pass. Native/Rust
+median-duration ratios0.979–1.061; Node/native1.65–2.34 in these workloads.
+All36localcompression workloads are now timed (10044samples). Together with
+network10 and affectednativefilecopy, all47localworkloads have matched histories,
+12927newtimings; unchanged Rust/Nodefilecopycontrols remain reused. Native
+allocation review and supporting-host net_udp_large timing remain pending.
+
+
+Public I/O platform correctness (2026-11-06): hosted run42259225163 at exact
+7d67daf8d5971d934939da02b39d3bd989720abb passed Linux x86_64 and macOS ARM64.
+Each host built all39selected targets with successful terminal CargoJSON.
+Linux passed451exact cases (397compiler/54LSP), including the actual60000-byte
+UDP datagram; macOS passed446 (392/54), excluding that unsupported host case.
+All saved exact-case passes agree with their stdout, with no watchdog stops.
+Both passed portable setup, packaging, distributed CLI execution and LSP
+initialize/capabilities/clean shutdown. Peak owned-tree memory was2.165GiB on
+Linux and2.135GiB on macOS. These are focused family/platform results, not full
+regressions or throughput measurements. macOS Intel and repaired Windows
+acceptance remain open; supporting-host UDP timing is a separate running job.
+
+Public allocation continuation (2026-11-06): address4, supportedtransport6,
+compressionbuffer12 andreader12 have completed the original allocation protocol,
+three fresh samples per workload. Reader12 finished480.365s/573788KiB. Address
+samples retain0bytes; transport samples report signed128bytes and compression
+buffer/reader samples4376bytes at the existing inside-runtime snapshot. That
+snapshot precedes production root-scope drain and runtime destruction; these
+values establish neither a leak nor a cache. Separate settlement diagnosis and
+remaining writer/filecopy profiles are required before closing allocation review.
+Allocation diagnostics are not imported into measurement histories.
+
+Supporting-host large UDP timing (2026-11-06): run42279800898 at794c8397
+completed successfully onLinux x86_64. Actualnet_udp_large timings were imported
+withnpm run store:ingest: native5.822362ms, handwrittenRust5.592775ms,
+Node-after-tsc19.908222ms medians,93samples each using unchanged3processes×31
+samples after8warmups. Quietguard admitted maximum1.57 below the host limit2;
+no allow-busy. Current sources/controls/oracle and exact histories/integrity were
+verified; unrelated histories are unchanged and closed raw output discarded.
+Native is about4.1% above Rust and3.42×faster thanNode in this scoped Linux test.
+Together with47localworkloads this completes48scoped timing histories with13206
+new samples; it does not compare absolute timings across hosts or close remaining
+allocation/platform/final-release gates.
+
+### B10 — HTTP client completeness and source-owned middleware
+
+Backend: existing Reqwest/Axum/Tower stack. B04/B05/B06; compression uses B09.
+
+- [x] Extend ClientOptions with timeout/connect-timeout, redirect and proxy
+  policy and response-body policy; preserve TLS verification and existing ca.
+- [x] Migrate unexplained client default overrides through B00: absent options
+  use the selected Rust backend's defaults. Keep explicit disabling/bounds.
+- [x] `requestBytes`, `requestStream`, `requestChannel`; owned binary and
+  streaming upload bodies with backpressure, cancellation and exact framing.
+- [x] Reusable client multipart/form construction, including binary parts,
+  instead of limiting public client requests to String bodies.
+- [x] Source-installed `cors`, `secureHeaders`, `compress` middleware helpers.
+  Defaults/arguments are documented; no helper installs itself globally.
+- [x] Prove supported negotiated HTTP/2 and TLS paths end to end; expose a
+  transport mode option only where the existing backend needs explicit selection.
+
+Contract: policy remains application-owned. Test redirect credential stripping,
+proxy auth/error redaction, CORS preflight and normal/error/stream responses,
+header behavior, disconnects and configured limits. API/client generation remains
+source/contract-owned with no new project-config requirements.
+
+Performance: existing text/JSON/SQLite comparisons remain controls; add fixed
+binary/stream uploads, pooled requests, middleware and CPU-per-request cases.
+Compare direct same-stack Rust and Node; include p50/p99, throughput, CPU/request
+and RSS for service scenarios, with the same load generator and concurrency.
+
+Client policies/defaults, owned uploads/forms and negotiated TLS/HTTP2 have
+actual focused runtime and editor acceptance. The default-policy control compares
+against untouched Reqwest; TLS proves ALPN h2 and both public and independent
+client HTTP/2 responses. These cases are retained in the completed compiler-library
+milestone, not inferred from source. Fresh middleware factory alias execution and
+relocated offline debug/release export now pass at d07cd476:
+`/tmp/tsrust-http-factory-portable-repair-422a7d392a0e.json`, alongside four
+forwarder/reentry controls, three HTTP editor cases and shared55 each profile.
+`examples/http-middleware/main.tsr` and matched upload/middleware workloads are
+present. Owner scope decision (2026-11-08): upload/middleware rows are wrappers around Reqwest/Axum/Tower and are not timed; multi-host final acceptance remains separate.
+
+### B11 — SSE and WebSocket APIs
+
+Backend: Axum SSE/ws and compatible Tokio Tungstenite client. B05/B06/B10.
+
+- [x] `SseEvent {data, event?, id?, retryMs?}` and `sse` over a typed producer
+  channel, with optional keepalive and correct event framing.
+- [x] Router WebSocket upgrade registration with application auth/origin hook.
+- [x] Owned `WebSocket`, typed text/binary/close messages, `receive`, `send`,
+  `close`, and backend ping/pong/close processing.
+- [x] Consuming `split` into owned read/write halves, so send can proceed while
+  receive is pending without violating exclusive async receiver loans.
+- [x] `connectWebSocket(url, options?)` using the same socket contract and TLS
+  verification, with explicit frame/message/queue policies.
+
+Contract: SSE transport already exists manually; this adds safe framing. Auth
+runs before upgrade; no automatic reconnect, unbounded facade queues or hidden
+per-message clones. Follow underlying backend defaults and expose bounds/policy.
+Disconnect and shutdown settle producer/socket tasks and release owned state.
+
+Witnesses/performance: independent multiline/Unicode SSE byte oracle, slow readers,
+authentication rejection, invalid frames, text/binary echo, full-duplex pending
+receive plus send, half-drop/cancellation, close races and exact
+cleanup. Measure events/bytes, p99 and retained memory against direct backend Rust
+and Node WebSocket/SSE implementations with versions recorded.
+
+Source integration, 2026-11-07: public SSE framing,
+owned producer settlement, WebSocket server/client and split halves now have
+compiler/runtime, editor, reference documentation and an18-case registered
+`examples/realtime/realtime.test.tsr` suite. Optional socket dependencies remain
+isolated from ordinary HTTP/SSE. Runtime defaults follow Axum/Tungstenite; custom
+CA verification retains hostname/date checks. No reconnect or hidden queue.
+The matched public benchmark/control adapter passes its schema self-check and
+preserves unchanged controls' original identities/timestamps; actual public timings
+are recorded below. Initial family gates passed completion/help/reference/rejection
+checks but found signature preparation, record context and transfer metadata
+failures. Those failures are repaired and the native acceptance below is complete.
+See docs/agent-progress.md for source identities and exact scope evidence.
+Source presence alone is not acceptance.
+
+Native acceptance, 2026-11-07: the shared five-file public runner passes all55
+cases, including all18 realtime cases and the exact output oracles. WebSocket
+HTTP upgrade handoff, full/split echo, close acknowledgment, authentication,
+frame/message limits, binary sizes and private-CA hostname/date checks execute
+successfully. Realtime and logging exports also pass relocated, offline, locked
+builds with an empty Cargo home at debug and release profiles, with unsafe code
+forbidden (/tmp/tsrust-upgrade-handoff-d970ae7bc9e7.json). Actual matched public
+measurements now pass below; cross-platform acceptance remains pending.
+
+Matched public measurement, 2026-11-07: all six SSE/text/binary cases at
+one/sixteen clients passed the original three-process,31-sample,128-request
+protocol and separate resource pass. Each case has93 measured batches and11904
+request latencies. `npm run store:ingest` recorded18 workload/engine rows
+(six native,twelve unchanged Rust/Node controls) with original control dates
+preserved. The actual native run is2026-11-08T00:43:50.142Z; cached controls remain
+2026-11-07T10:50:14.417Z. Whole measurement preparation/run/ingest completed within
+its original30-minute scope; no quiet-machine bypass. Evidence:
+`/tmp/tsrust-b11-fresh-public-native-sourcepack-resume.json` and the result named
+there; canonical minimal histories live in `benchmarks/measurements.sqlite`.
+Native WebSocket median batches are0.91–1.04 times direct Rust and0.83–0.92 times
+Node. SSE batches are1.12–1.20 times direct Rust and1.06–1.10 times Node; retain
+this measured cost rather than claiming parity. SSE latency is request through
+all six events, not individual dispatch latency. Resource rows record CPU/request
+and warmed process RSS; they are not heap-allocation or leak proofs. The public
+SSE channel/producer bridge remains semantically required; no backpressure or
+cleanup contract was weakened to match the direct-stream backend floor.
+
+B00 source/contract reconciliation for B06–B19 (2026-11-08): every named API in
+these fourteen bundle checklists is present; the checked boxes record focused local
+acceptance, not four-host or final regression completion. Exact signatures,
+parameter access/defaults/errors, examples and ownership remain in the existing
+`builtins.json` entries and linked reference pages, rather than a duplicate
+contract schema. Native visibility/aliases are independently defined by
+`src/native/{exports,bindings,types,signatures}.rs`; source-owned exports also use
+`src/stdlib/mod.rs`. Paths below are relative to `crates/tsrust-compiler` unless
+otherwise stated.
+
+| Bundle | Concrete contract/source crosswalk | Existing acceptance controls |
+| --- | --- | --- |
+| B06 |17 added catalog identities: task aggregation, interval/missed ticks, cancellation tokens, channel/sender nonblocking operations/errors and ThreadPool.taskAsync; `src/stdlib/{futures,threads}/`. Lazy/started errors, owned captures and cancellation/drain contracts remain distinct. | `tests/{task_ergonomics,task_runtime}.rs`, registered task13 and offline cancellation exports. Renamed imports/stored callbacks pass; stored polymorphic all remains explicitly unsupported. |
+| B07 |14 new identities; `src/stdlib/process/{bindings,mod,runtime}.rs`. Borrowed immediate spawn versus consumed lazy run options, unique pipe transfer, exact status/errors and awaited direct-child cleanup are documented. | `tests/{process,process_runtime}.rs`: binary I/O, EOF, stdio/environment, explicit limits, aliases, cancellation and reaping. Stored spawn now executes in the existing controlled-child case. |
+| B08 |30 new identities; `src/stdlib/net/{bindings,mod,runtime,transport_runtime,dns_runtime}.rs`. Rust address grammar, Tokio socket defaults, explicit bounds and system DNS ordering/filtering remain the contract. | `network_suite_reports.rs` preserves18 registered programs/oracles including stored TCP/DNS factories; separate loan/transfer/clone and native process controls remain. |
+| B09 |27 new identities: six buffer operations, four endpoint constructors, six types and eleven methods; `src/stdlib/compression/{mod,runtime,runtime_streams}.rs`. Default levels, explicit decoded limits, typed pool/codec errors and consuming finish/close are documented. |16 registered cases at both profiles with exact catalog/regression source/output checks, plus independent Rust ABI and relocated export controls. Stored buffer/stream factories run inside existing cases. |
+| B10/B11 | B10 adds10 global identities for uploads/middleware; B11 adds16 globals and8 receiver operations; `src/stdlib/http/{mod,realtime,wrappers,runtime_realtime,runtime_websocket}.rs`. Typed request/stream owners, optional policies, SSE framing/producer settlement and WebSocket split/close contracts are explicit. | HTTP110 plus realtime18 registered cases, real verified-CA TLS and relocated controls. Upload/form/middleware stored factories are retained; new SSE/WebSocket stored calls preserve existing outputs. Access logging belongs to B17. |
+| B12 | `std:regex`7 exports, `Regex`8 methods and the three string entry points; `src/stdlib/regex/`. Reusable owners, UTF-8 snapshots, absent captures, literal/template replacements and explicit backend limits are documented. | `tests/regex_text.rs`: aliases/stored calls,18 bundled catalog examples, selection/ownership negatives and relocated export. |
+| B13 | `std:locale`13 exports, Collator/Segmenter/NumberFormat methods and `String.localeCompare`; `src/stdlib/locale/`. Explicit locales/options, backend fallback, exact int/Decimal formatting and owned range snapshots remain the finite contract. | `tests/explicit_locale.rs`: optional/union arguments, stored calls, snapshots, borrowed-byte and ownership controls; public measurements are recorded below. |
+| B14 | OrderedSet6, OrderedMap2, Deque/Heap snapshots, six numeric additions, seven date/time additions and existing `parseInt` radix update; `src/stdlib/{collections,numeric,date}/`. Owned snapshots versus scoped endpoints, ascending total order and checked numeric errors remain distinct. | Existing collections42, numeric/calendar/catalog/editor/export receipts below; `tests/stdlib_completion.rs` retains combined examples and borrow/clone rejections. |
+| B15 | `std:iterator`2 types, `IteratorConstructor.from` and12 Iterator members; `src/stdlib/iterator/`. Owned state/captures, value-only callbacks, retry after typed errors, event-counting take/drop and terminal cleanup are explicit. |32 registered cases in shared55 plus `tests/owned_iterators.rs` rejection/physical-carrier controls; no borrowed stored chains or arbitrary protocols are promised. |
+| B16 | `std:crypto`17 entries including existing operations, Hasher2 methods and both password option records; `src/stdlib/crypto/`. Consuming finalize, readable-byte loans, explicit password worker copy/pool, PHC bounds and typed OS/backend failures are documented. |24 registered cases at both profiles, catalog29-source mapping and ownership/editor controls below. Password-specific cancellation is not inferred beyond the retained shared-pool settlement evidence. |
+| B17 | `std:log`12 entries, Logger7 methods and option/error fields, plus HTTP access logging; `src/stdlib/logging/`. Explicit sinks, lazy fields, per-poll/drop context, flush/close errors and final sink ownership are documented. |5 registered cases,10 independent JSON observations, relocated exports and the disabled-event allocation differential below. Whole-logger allocation/leak freedom is not claimed. |
+| B18 | Structural assertion additions, checked async rejects, filter/JSON/timeout CLI contracts; `src/stdlib/testing/` and CLI test runner. Blocking callbacks remain watchdog-bound; timeout teardown must drain children. | Retained23 compiler/native and4 LSP cases plus subsequent runner controls; original assertion workload measurements and their Rust-performance gap remain explicit. |
+| B19 | Generated `.bindings.json`/Rust/Tsrust declarations use `src/project/rust_generation.rs`, `rust_rustdoc.rs` and the existing bridge; no fictitious `std:` namespace is added. Concrete owned containers, customization-safe stubs and explicit offline preparation remain bounded. | `tests/{rust_adapter_generation,rust_bridge}.rs`, pinned format57/source fallback and LSP bridge controls; actual Shlex and intentional regex native/relocated evidence below. |
+
+This reconciliation found no unimplemented checklist export in B06–B19. Remaining
+public measurements/allocation review where still named below, B18 performance
+review, current four-host used-root acceptance and final backend regressions remain
+separate requirements. Generic traits/methods/async Rust exports, returned borrows,
+borrowed iterator chains and broader locale families are explicitly deferred
+contracts, not missing implementations of these checked bundles.
+
+### B12 — Reusable regular expressions and text entry points
+
+Backend: Rust `regex`; the current user-binding example is not a bundled module.
+Depends on B00, independently of generic lazy iterators.
+
+- [x] `Regex`, `RegexError`, match/capture records; `compile`, `escape`.
+- [x] `isMatch`, `find`, `findAll`, `captures`, `capturesAll`, `replace`,
+  `replaceAll`, `split` on a reusable compiled owner.
+- [x] `String.match`, `matchAll`, `search` entry points over compiled Regex,
+  with the same explicit result/offset/ownership contracts.
+- [x] UTF-8 byte ranges and optional capture ranges; avoid copying every matched
+  substring or capture name into every result. Distinguish absent/empty capture.
+- [x] Ordinary builder limits follow regex defaults; optional explicit compile/
+  result limits are documented. Replacement literal/template behavior must be
+  named explicitly; never accidentally interpret replacement tokens.
+
+Contract: no repeated compilation in matching loops, mutable lastIndex or silent
+JS lookaround/backreference emulation. Explicitly document native regex syntax,
+Unicode and zero-width progress, including any eager matchAll snapshot behavior.
+
+Witnesses/performance: invalid/unsupported patterns, Unicode byte offsets, capture
+absence, zero-width matches, reuse and resource lifetime. Separate compilation
+from reused search/capture/replace workloads; use shared-semantic Node patterns
+and independent range oracles. Include allocation counts and adversarial scaling.
+
+B12 implementation status (2026-11-05): source preparation1379a46e and repairs
+938f57b2/11ae1144/31738942 cover compiler/runtime/LSP/catalog/examples, optional
+backend dependency wiring and13 matched workload registrations. Eight direct
+runtime tests, feature selection/hidden exports, all18entry editor consistency,
+16matrix observations and5receiver checker agreement passed in their focused
+scopes. All13 intrinsic error-effect contracts and the unreviewed-effect guard
+passed11ae1144. Native/catalog execution exposed optional-input signature lookup;
+portable export exposed missing default feature activation. Both are repaired in
+31738942. All18 catalog examples and portable relocation/offline/forbid-unsafe
+export now pass at O0/O3. Native ownership exposed a temporary-borrow staging
+error for computed optional options; its same-statement conversion fix passed
+formatted native ownership/options/stored-call execution at O0/O3 on72ad2f9f
+(32.088s). These local API requirements are accepted;
+Generated benchmark correctness and actual timings now pass as recorded below;
+remaining platform and feature-family checks stay pending. Prototype evidence
+is distinct from generated API performance.
+
+B12 generated workload correctness/timing (2026-11-05, sourcebe086e3a): all13
+workloads passed5cases on native, handwritten Rust and Node-after-tsc. Official
+execution-only run completed535.232s/526,155KiB with quiet guard enabled,
+maxload3.690. Each engine/workload has93samples (3processes×31after8warmups).
+`npm run store:ingest` added39 actual histories at2026-11-05T18:26:31.084Z;
+exact medians/samplecounts and SQLite integrity were verified. Unchanged Rust/Node
+controls are now reusable. Disposable result2026-11-05T18-26-31-084Z.json.
+
+All rows below are milliseconds for2000iterations:
+
+| Workload | Native | Handwritten Rust | Node after tsc |
+|---|---:|---:|---:|
+| regex_compile | 31.836792 | 31.238375 | 0.114375 |
+| regex_escape | 0.126375 | 0.132875 | 0.441833 |
+| regex_is_match | 0.048166 | 0.047041 | 0.032958 |
+| regex_find | 0.057167 | 0.054958 | 0.059459 |
+| regex_find_all | 0.186334 | 0.176667 | 0.584750 |
+| regex_captures | 0.234541 | 0.244167 | 0.306375 |
+| regex_captures_all | 0.651041 | 0.652542 | 1.046167 |
+| regex_replace | 0.399833 | 0.381542 | 0.388208 |
+| regex_replace_all | 0.660791 | 0.664000 | 0.346041 |
+| regex_split | 0.186541 | 0.178292 | 0.482625 |
+| string_regex_match | 0.248500 | 0.232000 | 0.309875 |
+| string_regex_match_all | 0.656959 | 0.696042 | 1.046750 |
+| string_regex_search | 0.055500 | 0.055625 | 0.037292 |
+
+Native/direct-Rust median ratios span0.944–1.071; no large adapter gap appeared
+in this run. Constructor timing measures repeated public construction, not isolated
+fresh backend code generation; the large Node/Rust construction difference must
+not be represented as compiler bridge overhead. Backend operations and eager
+snapshots retain their documented semantics. Platform execution and remaining
+feature-family acceptance stay separate; no v0.2 publication approval is implied.
+
+B12 initial admission preparation (2026-11-05; before package wiring):
+select regex1.13.1 with default std/perf/unicode and regex-syntax/default features.
+The [official index](https://raw.githubusercontent.com/rust-lang/crates.io-index/master/re/ge/regex)
+records a non-yanked July15,2026 release, MSRV1.65 and checksum
+f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d.
+The [selected manifest](https://raw.githubusercontent.com/rust-lang/regex/1.13.1/Cargo.toml)
+uses MIT OR Apache-2.0. The [changelog](https://raw.githubusercontent.com/rust-lang/regex/1.13.1/CHANGELOG.md)
+fixes incorrect leftmost-first offsets in reverse-suffix/inner optimizations;
+do not choose cached1.12.2 solely for availability. Keep the backend builder's
+10MiB compiled-NFA and2MiB hybrid-cache defaults. The
+[package advisory listing](https://rustsec.org/packages/regex.html) identifies
+RUSTSEC-2022-0013 as fixed before this version; resolved-closure advisory review,
+archive verification, target execution and optional-feature/export admission
+remain pending.
+
+B12 resolved prototype admission (2026-11-05): standalone lock selects
+aho-corasick1.1.5 (Unlicense OR MIT, MSRV1.60), memchr2.8.3
+(Unlicense OR MIT, MSRV1.61), regex1.13.1, regex-automata0.4.18 and
+regex-syntax0.8.11 (MIT OR Apache-2.0, MSRV1.65). All five archive SHA256s
+match their lock checksums. Current official RustSec database26fd2d43
+(1409 advisories) reports zero vulnerabilities and zero warnings for this closure.
+Offline locked optimized prototype build passed13.447s/348,064KiB; direct
+correctness/allocation/timing driver passed2.065s/213,408KiB with optimized exact
+rlibs, three processes ×31 samples after8 warmups and separate allocation builds.
+Ten semantic cases plus invalid-pattern/explicit-limit/escape/owner-lifetime
+controls passed independent Node oracles. Quiet guard maxload2.226. Driver
+verifies unchanged source/artifact hashes and materializes owned outputs through
+black_box before checksum traversal. Evidence `/tmp/tsrust-b12-{artifacts.jsonl,
+build.log,profile.json,profile.log,closure.json,audit.json}`. This admits a
+prototype, not public APIs, production package wiring, portable export or other
+platforms. No prototype timing is ingested as generated API performance.
+
+Profile decision: retain the thin backend owner, no extra cache or mutable scratch.
+ASCII/Unicode compile costs11.49/18.27µs versus reused isMatch22.12/16.94ns
+with zero allocations. For64matches, findAll ranges take3.161/2.723µs and
+1allocation+4reallocations versus copied strings4.384/4.018µs and65+4;
+requested bytes1,984 versus3,424/3,232. Streaming floors2.819/2.417µs do not
+return equivalent owned snapshots. Captures snapshots132.81/152.34ns allocate2;
+capturesAll9.434/9.185µs allocate130+4 for64matches. Mutable reused
+CaptureLocations is a non-equivalent floor, not grounds for owner locks/caches.
+No-match owned replacement adds one32byte copy by contract. Split ranges use
+one output allocation+5reallocations; avoid counting prepasses. Adversarial
+`a+z|a` iteration64/256/1024bytes takes backend2.136/15.198/166.750µs and
+range snapshots2.354/15.833/166.302µs: potentially quadratic total iteration
+work already exists in the backend and must be documented. These are warmed
+direct Rust prototype medians, not generated workload acceptance measurements.
+
+Use owned UTF-8 byte-range records for find/capture/split snapshots; borrow regex
+and text only during the call. Missing captures remain distinct from empty ranges.
+Numbered capture slots cover this finite family without copying names into each
+result. Preserve Rust replacement-template expansion with an explicitly named
+replacementTemplate argument and documented numbered/named references, braces
+and literal-dollar escaping. This is a contract direction, not frozen signatures
+or completed APIs. Profile compile/reuse, optional/empty captures, zero-width
+progress, range versus substring allocations and adversarial iteration before
+implementation; include all three String entry points in the coherent gate.
+
+### B13 — A useful explicit-locale subset
+
+Backend: selected ICU4X components, not automatic inclusion of the meta-crate.
+B00/B02; measure locale-data footprint before API acceptance.
+
+- [x] `Locale` parsing/canonicalization with explicit locale input.
+- [x] Reusable `Collator.compare`, and `String.localeCompare` using that contract.
+- [x] `Segmenter.segment` for grapheme boundaries with UTF-8 byte ranges.
+- [x] Reusable `NumberFormat.format` for exact int/Decimal inputs; document
+  supported rounding/grouping/options and reject unsupported options.
+- [x] Pin selected compiled data and document backend locale fallback/coverage.
+  Do not label this full ECMAScript Intl or infer host-user locale silently.
+
+Witnesses: combining text, emoji clusters, collation fixtures, negative/large exact
+decimals, unsupported options and data fallback. Performance: construct once versus
+format/compare repeatedly, allocation counts, binary size and cold/build memory.
+Node ICU and Rust ICU versions/locales are recorded; differing data is not a
+compiler defect or permission to combine incomparable timing rows.
+
+B13 focused public acceptance (2026-11-05, source458500b2):3 runtime cases,
+7 compiler/native cases (including17catalog examples atO0/O3, exact int/Decimal
+union inputs, optional options, aliases/stored calls, negative constructors,
+NumberFormat worker transfer/suspension and relocated offline forbid-unsafe
+builds) passed. Editor exports/hover/signature help,6completion rows across4modes
+and8receiver agreement groups passed. Runtime selection stays optional. Selected
+provider sync preserves all existing dependency versions and the previously
+measured54active-identity production graph. Required borrowed-union input repair
+80795335 adds repeated concrete Decimal/union/forwarding owner reuse atO0/O3 and
+preserves contextual record/generic inference and narrowed union projections;
+26focused tests accepted after repairing two intermediate projection regressions.
+Actual public11workload measurements passed on80795335:165correctness cases,
+33workload/engine groups with3processes×31samples after8warmups, quiet maximum
+3.83447265625. All33actual histories ingested and independently verified against
+checksums,93positive samples, median/rate calculations and SQLite integrity.
+Result `benchmarks/runtime/results/2026-11-05T22-00-33-080Z.json`; watchdog851.767s/
+2,280,220KiB includes release compilation, preparation and quiet wait. Native/hand
+median ratios span0.9855–1.1144; fixed Decimal1.1144 and reusable segmentation1.1013
+need allocation review before optimization claims. Node locale formatting uses an
+already canonical string and comparison uses its ICU backend; do not attribute those
+differences solely to compiler overhead. Allocation/gap review and cross-platform
+milestone validation remain pending; these API items do not close those gates.
+
+Allocation review on80795335 passed11workloads×3stable samples, all zero retained
+bytes (`diagnostics/2026-11-05T22-09-20-074Z-native-allocations.json`,504.716s/
+530,651KiB watchdog). Reused and constructed collators/String.localeCompare allocate
+zero; locale strings and integer format outputs allocate once per operation.
+Separate unchanged Rust controls passed54samples acrossn0/1/full for segmentation
+and both Decimal cases (`/tmp/tsrust-locale-control-allocations.json`,2.590s/259,584KiB).
+Per formatting operation, Decimal matches Rust at6allocations/4reallocations/231
+requested bytes; fixed Decimal matches at4allocations/0reallocations/28bytes.
+Setup-only native differences are2allocations/32bytes for large Decimal and1/5bytes
+for fixed formatting. No measured per-iteration allocation penalty explains the
+fixed-format timing gap. Segmentation matches Rust at1allocation/64bytes per call,
+but generated Array stores this three-range result inline after consuming a backend
+Vec. The direct backend iterator-to-owned-array candidate passed owned Unicode
+snapshot and allocation controls: zero allocations for0..4graphemes, one at5, and
+one plus3reallocations at64, all retained0. Candidate timing was provisional because
+shared-target rebuilds changed dependency artifact bytes; it reused exact current
+control-library hashes and retained prior timing identities separately.
+The selected runtime change keeps the existing emitter's owned collection and
+avoids the temporary Vec. Three runtime tests, expanded snapshot thresholds at
+O0/O3,17catalog examples and relocated offline forbid-unsafe builds passed6focused
+cases (130.575s/425,024KiB); no public API or editor contract changed. Build501.188s/
+3,794,563KiB, with the same3unit-harness warnings as the prior accepted builds.
+Fresh actual timing for only2changed native workloads passed on86664712:
+`results/2026-11-05T22-35-31-237Z.json`,458.599s/2,323,996KiB including compilation
+and quiet wait, quietmax3.67236328125. Both93-sample histories were ingested and
+independently verified. Reuse0.189833ms and construct0.170250ms are higher than the
+prior0.174416/0.167708ms; all observations remain recorded without outlier removal.
+Process medians vary substantially (reuse0.213208/0.189833/0.149916ms).
+One controlled A/B used identical current libraries, source pathname/crate name and
+flags, alternating variant order: all six pairs favored the iterator, but substantial
+process variation prevents a stable cross-run speed claim (372samples,quietmax2.515,
+4.135s/293,408KiB). No Rust/Node controls were retimed or duplicate histories invented.
+The accepted benefit is removal of the temporary allocation. Exact newly measured
+sources/library hashes passed18allocation invocations atn0/1/full, all zero allocation,
+reallocation and retention (3.642s/304,432KiB). Source remains selected; no further
+local retiming solely for presentation. Other locale measurements remain unchanged.
+
+B13 admission/profile status (2026-11-05): isolated exact ICU4X locale/collator/
+decimal/segmenter closure passed offline optimized build26.933s/319,104KiB.
+Initial32record correctness classification has31 matching Node contracts and one
+explicit untimed backend difference: en-u-nu-arab retains English separators while
+using Arabic digits, as asserted by the selected ICU4X upstream test. Both raw
+outputs are retained; no normalization or comparable timing uses that locale.
+Node24.11.1 uses ICU77.1/CLDR47; selected ICU4X compiled data has its own epoch.
+Profile78912 passed7.752s/318,880KiB,99rows/process,3×31after8warmups with separate
+allocation builds and quiet guard. These are direct Rust prototypes, not public
+API or Node throughput measurements; nothing was ingested as generated performance.
+
+Profile supports reusable Collator (roughly5–7× construct+compare cost reduction),
+owned grapheme byte ranges instead of substring copies, and an initial exact
+normalized BigDecimal-to-fixed_decimal text bridge. The bridge costs about2.9–3.4×
+the fixed-input formatting floor, with4/6/5allocations versus1 for the sampled
+English/German/Hindi cases; do not hide the bridge cost or add an unmeasured cache.
+All measured allocation rows retained0bytes. The2,144,904byte prototype executable
+is a combined size, not incremental compiled-data overhead.
+
+Expanded profile1470 passed9.315s/274,640KiB:43 correctness records (36 matching,
+one explicit fallback difference,6 backend limit controls),99rows/process and
+3×31samples after8warmups; quiet max2.145. Same-source optimized footprint controls
+measured baseline609,800bytes; incremental locale167,168,collator1,296,448,
+decimal87,456,grapheme17,344,all1,494,368bytes. These are reachable service code
+plus compiled data, not pure data sizes or additive costs. All checksum guards pass.
+Explicit fractionDigits requests fixed displayed
+scale plus half-even rounding, not merely a maximum; absent preserves the normalized
+value. Backend checked range is0..32768 (i16 magnitude0..-32768), not an arbitrary
+28digit formatting cap derived from Decimal input precision. Large padding edges
+and rejection without mutation passed. At that admission checkpoint, public
+option/type signatures and generated compiler/runtime/editor/export implementation
+were still pending; the subsequent public acceptance and measurements are recorded
+above.
+
+### B14 — Small collection, numeric and date completion
+
+Backend: existing Rust containers/numeric/date implementations. B00.
+
+- [x] OrderedSet `values`, `keys`, `entries`, `forEach`, `first`, `last`;
+  OrderedMap `firstKey`, `lastKey`; Deque `values`; Heap `toSortedArray`.
+- [x] Keep snapshots independently owned and endpoint borrows scoped; specify
+  heap output order and preserve existing total ordering/NaN/zero rules.
+- [x] `std:numeric.parseNumber` with whole-input Rust floating parsing semantics;
+  optional radix2..36 on existing strict `parseInt`, default10.
+- [x] Result-returning `checkedAdd`, `checkedSubtract`, `checkedMultiply`,
+  `checkedDivide`, `checkedRemainder` for int, without changing existing operators.
+- [x] Date `getDay`, `startOfYear`, `endOfYear`; Time `getHours`, `getMinutes`,
+  `getSeconds`, `getNanoseconds`, following current date-fns-style conventions.
+
+Witnesses: empty endpoints, owned values, order, exact int bounds, MIN/-1/zero,
+NaN/infinity/negative zero, malformed/radix text, leap-century/year/time bounds.
+Performance: endpoint/heap/deque kernels, strict parse/arithmetic and date access;
+Node exact integers use BigInt. This is not JS Date mutability/coercion support.
+
+Focused local acceptance is preserved: `7dad5628` passed endpoint-borrow and
+snapshot-cloneability rejection witnesses, numeric backend/boundary checks and all
+13 numeric catalog examples, plus 36 temporal examples and a locked offline export.
+`59a0673d` then passed the formatted collections/numeric/date fixtures and all 50
+examples from 43 collection catalog entries. `433365dc` passed 18 calendar examples
+(including the three new Date operations) and its locked offline export;
+`36b3c965` passed five selected B14 editor rows across four typing phases. The B14
+stdlib implementation folders, authored fixtures and 23 new API catalog entries
+plus updated parseInt entry remain unchanged through `2004bf65`. These are focused
+implementation/compiler/native/editor gates; complete regression and all-platform
+milestone acceptance remain pending under B20.
+
+B14 measurements at `5c45370d`: seven workloads (collection endpoints,
+ordered-set/deque/heap snapshots, strict numeric parse, checked arithmetic and date
+completion) passed five correctness cases for each selected engine, then completed
+93 samples per native/Rust/Node group. All21 groups were ingested into the shared
+measurement database together with six B18 groups. Original protocols and controls
+were retained. Native allocation profiles completed separately. This timing evidence
+does not accept the unfinished B15 iterator implementation or full milestone checks.
+
+### B15 — Owned lazy iterator pipelines
+
+Backend: typed Rust iterators; dedicated compiler owner. B00/B14 and an explicit
+ownership/type-lowering contract before other agents depend on this bundle.
+
+- [x] `Iterator<T>`, `IteratorResult<T>`, `Iterator.from` consuming an owned array.
+- [x] `next`, `map`, `filter`, `take`, `drop`, `flatMap`.
+- [x] `reduce`, `forEach`, `some`, `every`, `find`, `toArray`.
+- [x] Adaptors consume their input iterator and own captures; next transfers
+  yielded values; terminal operations consume/short-circuit and clean up.
+- [x] Preserve eager Array/Map/Set keys/values/entries behavior. Do not quietly
+  replace snapshot APIs or claim a public general trait/generator system.
+
+Witnesses: non-Clone owners, partial consumption/early drop, callback order/errors,
+capture lifetime, short circuit and zero surplus drops. Performance: direct Rust
+map/filter/take/reduce pipelines, allocated bytes, early-exit work, compiler time
+and emitted size. Avoid mandatory boxing/allocation per adaptor; preserve safe
+generated Rust. Borrowed stored chains and arbitrary user protocols are deferred.
+
+Eager snapshot compatibility retains the actual965de83f `array_keys_values`,
+`array_entries`, `map_snapshots` and `sets` native passes: array return shapes,
+independent nested values, receiver evaluation and snapshots surviving source
+mutation/clear are verified. Reviewed fixtures remain unchanged; collections42,
+iterator32 and the current compiler-library milestone supplement these passes.
+The shared runner passed all55 cases at both debug and release profiles, including
+all32 iterator cases. Native four-host acceptance remains separate.
+
+#### B15 ownership and lowering contract — admission draft
+
+Engineering admission selected concrete inline owned pull environments and finite
+owned joins through existing callable carriers. The public implementation passes
+32 registered runtime cases and retained compiler/editor controls. The four matched
+workloads are now measured below; remaining platform/final-family acceptance is pending.
+
+- `Iterator.from<T>(values: T[]): Iterator<T>` consumes the owned array without
+  cloning its elements. `next(): IteratorResult<T>` mutates the iterator and
+  transfers one item. `IteratorResult<T>` is the discriminated owned value
+  `{done: false, value: T} | {done: true}`; exhausted results contain no payload.
+- `map`, `flatMap`, `take` and `drop` consume the receiver and return a new owned
+  iterator. Each callback and its captured owners move into that chain. Callbacks
+  are reusable and receive only the current value; reduce receives accumulator
+  and value. No implicit index or source argument is introduced.
+- `map`, `flatMap`, `forEach`, `some` and `every` callbacks consume each item;
+  `filter` and `find` predicates borrow it readonly. `flatMap` accepts owned
+  arrays and owned iterators, with static lowering for each form. `reduce`
+  consumes accumulator and item and requires an explicit initial accumulator.
+- `toArray`, `reduce`, `forEach`, `some`, `every` and `find` consume the chain.
+  Short circuit and callback failure release all remaining owners and captures.
+  `find` transfers the matched item, or returns undefined. No Clone bound is
+  introduced on owned items or captures.
+- An error from `next` consumes the triggering item and propagates through the
+  existing typed error mechanism. It retains the remaining chain and captures;
+  a later next may continue. No automatic error fusion is added. Both take and
+  drop count consumed input events, including failed events. Drop decrements its
+  remaining count on an error but propagates that error instead of swallowing it;
+  take also spends one count on an error. `take(0)`
+  does not pull upstream. Counts are nonnegative ints checked at adaptor creation,
+  with platform integer conversion checks and no new cardinality cap.
+- Public `Iterator<T>` hides a compiler-owned physical shape identity. Source
+  arrays lower through existing owned-item adapters into Rust IntoIter; adaptors
+  lower to statically composed Rust iterators and owned callback carriers.
+  Shape identity propagates through owned functions, returns, records and captures
+  using existing specialization/callable carrier machinery. Genuine finite joins
+  of different same-item shapes use generated owned enum carriers. They must not
+  silently reject joins or require per-adaptor boxes. No user trait/protocol system
+  or borrowed stored chain is introduced.
+- Existing eager collection snapshots keep their current behavior. Compiler,
+  ownership/error analysis, native emission, formatting, editor agreement,
+  documentation and matched workload support form one coherent implementation.
+
+Runtime test consolidation, 2026-11-07: ordinary
+iterator carrier regressions now register through `std:testing`, sharing one
+public runner with the existing iterator contract, logging and realtime suites.
+Seventeen former native launches retain their helper/type scopes in stable
+fixture modules; their observations use typed assertions. Compiler rejection and
+emission controls remain host tests. Catalog examples are being batched with
+verbatim source and output comparison rather than separate executables. Initial
+cheap checking exposed callable-factory readiness through ordinary imported
+functions. Discovery/cached-specialization repairs and their controls are in
+source. All 32 registered iterator cases now pass in the shared 55-case public
+runner, with catalog output comparison and retained ownership/editor controls.
+Matched public measurements, 2026-11-08 at f46d7400: all four iterator workloads
+passed five independent input cases on native, handwritten Rust and Node after tsc.
+The original eight warmups, three processes and 31 samples produced 93 samples
+per engine/workload; all 12 groups were ingested into measurements.sqlite.
+Native/Rust/Node medians in milliseconds: map/filter/reduce
+0.409709/0.570833/6.245500; take/array 0.377959/0.521625/4.716334;
+flat-array 1.047375/1.224291/13.595417; flat-iterator
+1.057333/1.232167/18.581667. These results do not justify a new iterator
+representation. Three allocation observations per iterator workload now pass strict zero retention;
+map/filter/reduce and both flat chains allocate 2,000 times/1,536,000 bytes, while
+take/array allocates 4,000 times/2,048,000 bytes for the registered work. This
+includes authored input/output construction. Platform/final-family acceptance remains separate.
+
+### B16 — Crypto and password primitives
+
+Backend: existing sha2/getrandom/subtle; compatible RustCrypto hmac/hkdf/argon2.
+B02/B06. Do not implement algorithms or application authentication frameworks.
+
+- [x] `sha384`, `sha512`, `createHasher` for sha256/sha384/sha512, `Hasher.update`
+  and consuming `finalize`; no post-finalization reuse or hidden state clone.
+- [x] `hmacSha256`, constant-time `verifyHmacSha256`, `hkdfSha256`.
+- [x] Unbiased `randomInt(min, max)` with half-open integer bounds.
+- [x] `PasswordHashOptions`, `hashPassword`, `verifyPassword`, PHC encoding and
+  Argon2id. Use backend default parameters/recommended salt generation, recorded
+  explicitly after version selection; do not invent a new default cost profile.
+- [x] Explicit bounded PHC verification policy for untrusted encoded parameters;
+  `PasswordVerifyOptions` and `verifyPasswordBounded` require caller-selected
+  memory/iteration/parallelism limits checked before allocation/expensive work.
+  Ordinary and bounded operations are clearly distinguished under B00.
+- [x] Memory-heavy password Tasks use existing bounded CPU work facilities;
+  cancellation does not falsely promise immediate interruption of crate code.
+
+Contract: readable byte views accepted, constant-time verification delegated to
+the crate, no secret logging, no hidden password normalization or insecure RNG
+fallback. Review key copies/backend zeroization without promising caller-owned
+memory was wiped. HKDF's algorithmic output limit remains enforced.
+
+Witnesses: SHA/HMAC/HKDF vectors, mismatch/truncation, random-bound failures,
+PHC corruption/cost bounds and awaited cleanup. Performance: matched sizes and
+exact password parameters, kernel versus scheduling costs separately. Security
+does not follow from benchmark speed or passing a statistical randomness test.
+
+The digest/Hasher, HMAC/HKDF, random integer and password APIs now have compiler,
+runtime, IntelliSense, executable examples and 29 matched benchmark workloads in
+source. Examples live in `examples/crypto`; private backend known-answer checks
+and focused editor agreement pass. All 24 registered public cases, including
+password/alias validation and bounded PHC policy controls, pass at debug and release
+profiles (/tmp/tsrust-native-effects-75f59227bec7.json). Password operations
+delegate to the existing `task_async` pool. Retained task-runtime tests prove
+queued cancellation drops owners without invocation and running cancellation
+waits for actual work; current library pool cancellation controls also pass.
+This is shared-backend lifecycle evidence, not a password-specific cancellation
+probe. Matched measurements are recorded below.
+
+B00 crypto range migration accepted in focused scope (2026-11-06, source
+7bd0e3fb): `randomBytes(0)` returns empty bytes and counts above the former 1 MiB
+ceiling use the selected getrandom backend without an added size cap. Negative
+and target-unrepresentable lengths retain `Range`; allocation follows ordinary
+Rust behavior. The runtime known-answer/range test, formatted native zero/large/
+negative witness, editor range documentation and existing service-help control
+all pass in the bounded 550.888-second affected run. This closes that existing
+API's range migration, not the new B16 primitive checklist or its measurements.
+
+Matched public crypto measurements, 2026-11-08 at f46d7400: all 29 workloads
+passed five independent input cases on all three engines before timing. The
+original eight warmups, three processes and 31 samples yielded 93 samples per
+engine/workload; all 87 groups were ingested into measurements.sqlite. The quiet
+machine guard remained enabled. Four password round trips measured native
+84.043958–84.725916ms against Rust 83.876166–84.939542ms, preserving the actual
+Argon2 parameters. Small SHA-256 streaming measured 0.609750ms versus Rust
+0.438500ms, a 1.39x gap; other digest/HMAC/HKDF cases remain separately visible
+in the database. randomInt measured 0.734875ms versus Rust 0.732042ms and Node
+0.089375ms: native follows the direct backend cost here, rather than matching
+Node's performance. Allocation diagnostics remain separate from throughput and
+security claims. Unchanged controls must be reused for subsequent compiler-only work.
+
+Crypto allocation review, 2026-11-08: the 25 synchronous probes pass three
+observations with strict zero retention. The first async password probe was
+rejected, with 4,376–4,424 bytes after drop; the original 755.902-second scope
+remains failed. An unchanged direct Rust control reports 4,264–4,376 bytes under
+the same warmed runtime/counting allocator, so retained backend state is not
+unique to generated Tsrust. This does not prove a leak or prove eventual cleanup.
+The zero-retention witness remains rejected; the other three password allocation
+probes remain unrun. Completed synchronous counters were recovered from existing
+binaries only after exact current emitted/instrumented-source comparison, with no
+native recompilation. No allocation diagnostics were ingested as timings.
+A separate macOS `leaks --noContent --atExit` check then used existing compiled
+programs for all four password workloads, both native and unchanged direct Rust.
+All eight reported zero leaked blocks/bytes; each bounded scope finished in
+1.071–1.590 seconds, within one 120-second diagnostic budget. This checks
+unreachable allocations at exit, rather than redefining the earlier live-byte
+checkpoint. The original inside-runtime zero-retention rejection remains visible.
+
+
+### B17 — Structured logging and request context
+
+Backend: tracing plus selected tracing-subscriber JSON formatting. B06/B10.
+
+- [x] `Logger`, levels, scalar structured fields, `debug/info/warn/error`,
+  contextual child logger and explicit sink/setup.
+- [x] Opt-in access-log middleware: request ID, method, route template, status,
+  elapsed time; no automatic body/credentials/query logging.
+- [x] Context follows async work without holding entered span guards over awaits;
+  concurrent requests cannot inherit each other's fields.
+- [x] Disabled logging avoids message formatting/allocation. Preserve console.
+
+Witnesses: JSON/escaping/filtering, nested/concurrent contexts, error redaction
+and bounded sink cleanup. Performance: disabled events, formatting-only and
+actual output separately; identical direct tracing configuration for Rust.
+
+2026-11-07 source integration: local JSON logger, scalar lazy factories,
+contextual children, access middleware, per-poll/drop context, editor documentation,
+examples, one five-case registered suite and three matched workloads are present.
+Focused editor agreement/completion/catalog/hover and unused-import selection pass;
+all compiler/LSP test harnesses type-check with logging enabled. Public native
+execution now passes all five registered cases within the shared55case runner;
+the independent host oracle verifies ten JSON log rows, exact per-request order
+and separate concurrent contexts. Cancellation cleanup is explicitly logged after
+awaited Job settlement; abort drops owned resources and does not execute source
+finally statements. Existing backend per-drop context controls remain retained.
+Relocated logging exports pass at debug and release profiles with an empty Cargo
+home and offline locked builds (/tmp/tsrust-upgrade-handoff-d970ae7bc9e7.json).
+Subsequent matched measurements and disabled-event allocation evidence are
+recorded below; preserve the strict first-call retention rejection and its stated
+limits. See agent-progress.md for exact source identities.
+
+Disabled-event allocation acceptance, 2026-11-07: one existing public
+`logging_disabled` instrumented executable was reused at0/1/32/1024 events,
+three fresh processes each. Every run has6 allocations,0 reallocations,
+33656 requested/peak bytes and776 first-call retained bytes. Thus the measured
+increment versus zero events is zero; the shared55 runner independently proves
+lazy factory non-invocation and preserves console behavior. Whole logger setup
+is not allocation-free. The existing generic profiler rejected nonzero retained
+bytes and remains failed; this differential diagnostic does not retroactively
+pass that assertion or prove leak freedom. Raw diagnostic:
+`/tmp/tsrust-disabled-logging-first-call-counts.json`; source/binary seals and
+comparison live in `/tmp/tsrust-logging-family-resume.json`. Matched whole-pipeline logging timings now pass:45 native/Rust/Node correctness
+cases, original three-process/8-warmup/31-sample protocol,9 ingested workload/engine
+histories with93 samples each, at2026-11-08T01:24:07.067Z. File/child native
+medians are3.058417/5.668209ms versus direct Rust3.198125/6.186750ms and
+Node3.622375/4.101875ms. Disabled whole-pipeline median0.009375ms versus
+Rust0.005666ms and Node0.027625ms includes logger creation/close and checksum;
+it is not a pure per-event formatting cost. Child logging is1.38 times Node;
+retain this baseline limitation. Actual measurement/ingest evidence:
+`/tmp/tsrust-logging-family-node-resume.json` (164.558s protocol,0.561s ingestion),
+within the SAME original30-minute allocation/measurement scope. The disabled
+probe/compiler and completed disabled timing executable were not rebuilt after
+repairs. Only the two file Tsrust sources needed ownership/type corrections;
+Rust/Node controls stayed unchanged. No allocation observations were ingested as
+timings, and the strict first-call zero-retention rejection remains explicit.
+
+### B18 — Everyday testing facilities
+
+Backend: current std:testing and native test runner. B06/B12 for task/regex support.
+
+- [x] `deepStrictEqual`, `notDeepStrictEqual` for supported structural data,
+  following existing scalar equality semantics and ownership.
+- [x] Async `rejects` with checked failure payloads.
+- [x] CLI test-name filtering and machine-readable JSON reporter.
+- [x] Explicit async-test timeout with child drainage and teardown completion;
+  blocking callbacks still require the process watchdog.
+
+Witnesses: nested exact values, NaN/signed zero, mismatches/source ranges, rejected
+tasks, hooks after timeout, filter and reporter oracles. Measure assertion-heavy
+overhead only where meaningful; do not invent a whole-framework speed score.
+
+Focused acceptance at `5c45370d`: all23 compiler/native `testing_everyday`
+cases and all4 LSP `testing_everyday` cases passed in the selected attempt9
+(584.265seconds including one shared build). This covers stored/aliased rejects,
+checked worker panic/cancellation transport, timeout cleanup, source provenance,
+filtering and JSON output; it does not claim full milestone regressions.
+The two structural-assertion workloads were measured with native, handwritten Rust
+and Node after tsc: 93 samples per engine/workload, original1024 iterations,
+27 total engine/workload groups across these and seven B14 workloads ingested into
+`benchmarks/measurements.sqlite`. Deep-data native median0.045500ms versus
+Rust0.007208ms and Node0.351208ms exposes a6.31x Rust gap under investigation;
+deep-collections medians0.070750/0.113917/1.551625ms. Native allocation profiles
+completed; reference collection representations differ, so these are not allocator
+parity claims. Native-only follow-up, 2026-11-08 at f46d7400, passed five
+independent correctness cases before the original eight warmups/three processes/
+31 samples. Two actual native groups were ingested; unchanged Rust/Node controls
+retain their original timestamp and 93 samples. Deep-data now measures 0.011042ms,
+4.12x faster than its prior native median and 1.53x the cached Rust median, after
+removing the unconditional initial record-work allocation. Deep-collections now
+measures 0.137666ms versus prior native 0.070750ms and cached Rust 0.113917ms.
+This is a material regression, not a pass hidden by the deep-data improvement.
+The collection workload emits no record work stack; its Map/Set/NumericArray
+runtime and assertion helpers are unchanged. New process medians drifted
+0.146625/0.137666/0.100292ms despite passing the quiet guard. No concrete algorithm,
+copy or scheduler cause has been established; retain both measured records and
+investigate before claiming the performance review complete. Full regressions remain open.
+Current allocation follow-up passes three observations per workload with zero
+retained bytes: deep-data 18 allocations/1,728 requested bytes versus original
+2,066/132,800; deep-collections remains 5 allocations/2,400 bytes. Thus the record
+optimization removes 2,048 temporary work allocations for the registered input;
+no extra allocation volume explains the collection timing change. These are
+allocation diagnostics, not additional sampled timing measurements.
+
+
+### B19 — Practical Rust package adapters
+
+Backend: extend existing adapter machinery and use pinned rustdoc JSON for
+discovery, with the existing source parser as a defined fallback. B00/B02;
+coordinate all shared compiler changes with B15's owner.
+
+- [x] Support `Option<T>`, `Vec<String>`, `Vec<OwnedRecord>` and nested supported
+  owned containers in explicit adapters, preserving exact values and moves.
+- [x] Explicit CLI generation from selected concrete synchronous crate exports:
+  adapter source, Tsrust declarations, docs/hover and a skipped-item report.
+- [x] Editable stubs for unsupported signatures, deterministic regeneration and
+  preservation of customized adapters; no overwrite by ordinary builds.
+- [x] Pinned-toolchain rustdoc-JSON compatibility fixture and source-fallback
+  tests. Explicit generation may prepare inputs; ordinary compilation stays
+  locked/offline and does not install/download silently.
+- [x] At least two real package witnesses, including one retained compiled
+  stdlib backend through its intentional compiler-owned adapter and one ordinary
+  generated concrete-data adapter; test relocated offline export and editor help.
+
+Contract: a bundled compiler-owned resource adapter is not proof that arbitrary
+Drop-bearing crate types can cross the general bridge. Generic traits, methods,
+async exports, returned borrows and general opaque-owner inference remain named
+follow-ups. Generated code contains no unsafe; trusted backend internals remain
+the backend's responsibility and are included in dependency review.
+
+Performance: direct same-crate Rust calls versus generated calls, scalar and
+owned-container round trips, pointer/capacity/drop witnesses, generation/build
+cost separately from runtime. No redundant stringify/parse or field-copy bridge.
+
+Retained accepted generator controls: deterministic/customization-safe outputs,
+pinned Rust1.96.1 rustdoc JSON format57, source fallback, ownership negatives and
+bridge editor3/3 in `/tmp/tsrust-utilities-http-repair19b-66af5f02808e.json`.
+Nominal nested-string pointer/capacity move controls pass at both profiles in
+`/tmp/tsrust-utilities-http-repair19c-d2cd59ed7ca1.json`.
+Real Shlex generation/Unicode/error/version guards and relocated empty-Cargo-home
+locked/offline debug/release export pass at d07cd476 in the HTTP factory repair
+scope above. The intentional compiler-owned regex backend's five accepted cases,
+including examples/stored calls and relocated offline export, are retained in
+`/tmp/tsrust-965de83f-full-integration.json`. Editor proof covers authored bridge
+contracts; it is not a separate Shlex-specific editor fixture.
+Nested tags, owned string containers and Drop now have actual current native
+acceptance: all8 compiler Rust-bridge cases pass in
+`/tmp/tsrust-final-ownership-acceptance-788f019d501b.json`, including
+`owned_nested_options_strings_and_records_preserve_tags_buffers_and_drop`.
+The same scope passes all8 bridge editor cases and all7 nullish cases. B19 API
+acceptance is complete; final platform/integration/measurement obligations remain
+separate. That original four-target scope retained a documentation-content failure;
+the later03ec4f13 repair passed the actual documentation native case in119.67seconds.
+This repairs the named failure without relabeling the original scope as a pass.
+
+Matched public Rust-owned adapter measurements, 2026-11-08 at f46d7400:
+four workloads passed five independent input cases on each engine; the original
+protocol produced 93 samples per engine/workload and all 12 groups were ingested.
+Native/Rust/Node medians in milliseconds: scalar 0.014125/0.014125/0.065584;
+strings 0.361333/0.269042/0.085166; records 0.273833/0.214959/0.098541;
+nested option 0.091834/0.013125/0.085959. The nested result has a material 7.00x
+Rust gap. Source inspection finds moved owned buffers and conversion to tagged
+unions/inline arrays, with no clone on this path. Allocation/elision causes were
+not established by source inspection; the matched counters below narrow the finding.
+Matched allocation diagnostics now establish identical native/Rust counts and
+requested bytes across all four adapters: scalar 0/0, strings 16,384/352,256,
+records 12,288/299,008 and nested option 4,095/77,805. All three observations per
+workload retain zero bytes. Allocation volume therefore does not explain the
+nested timing gap; generated control-flow/representation costs remain unquantified.
+No padded reference or representation rewrite is accepted to obscure this gap.
+Generated equality between a record-union literal tag and a string literal now
+selects union variants instead of comparing tag text (2026-11-08); the nested
+workload emits no tag text comparison and its untimed oracle matches. A native-only
+rerun with the original protocol (8 warmups, 3 processes, 31 samples, quiet guard)
+measured 0.09125ms (process medians 0.093125/0.090583/0.088), ingested once at
+2026-11-08T12:31:52.855Z; the change is not material, so tag comparison was not the
+gap. Cause found: the timed direct-Rust binary contains no `__rust_alloc` call in its
+inlined workload, only `__rust_no_alloc_shim_is_unstable_v2` markers, so LLVM elided
+the Vec/String heap allocations. The counting allocator prevents that elision, which
+is why allocation counts matched. The native path moves owned buffers into Tsrust
+array storage and does not get the elision. The 6.95x gap is therefore an
+allocation-elision difference on a constant-input reference, not extra generated
+copying; it stays recorded and is not hidden by changing the reference.
+
+## Parallel execution and ownership
+
+Owner-approved model: `gpt-6.1-sol` (Sol 6.1), up to three bundle agents plus the
+integrator with the current four-agent capacity. Each agent owns a coherent
+compiler/runtime/editor/examples/benchmark slice, not one method at a time.
+
+| Wave | Agent A | Agent B | Agent C |
+|---|---|---|---|
+| 0 | B00 inventory/contracts + filesystem prototype | B00 codec/regex/crypto backend profiles | B00 async/network/bridge contracts |
+| 1 | B01 files/directories/cursors | B02 bytes/codecs/binary | B04 URLs/queries |
+| 2 | B03 path/env/OS/signals | B12 regex/text | B06 task/channel/timer extensions |
+| 3 | B05 cross-resource I/O | B14 completion, then B15 iterator foundation | B16 crypto/password primitives |
+| 4 | B07 subprocess | B08 networking/DNS | B09 compression |
+| 5 | B10 HTTP/client/middleware | B13 explicit-locale subset | B19 Rust adapter/generation work |
+| 6 | B11 realtime | B17 logging, then B18 testing | B20 examples, package/platform and coverage integration |
+
+These are dependency waves, not mandatory idle barriers. A ready agent may take
+another independent bundle after integration. HTTP/realtime share one owner;
+bytes/codecs share one owner; futures/cancellation share one owner. Only one
+agent owns shared type/ownership/iterator architecture changes at a time.
+
+- [x] Start agents from an accepted integration commit in isolated managed
+  worktrees, one writer per tree. Reuse suitable trees; use the app's managed
+  worktree tooling for new ones. Do not share uncommitted source or live tools.
+- [x] The integrator owns central registry/schema layout, manifests/locks,
+  catalog/benchmark reconciliation, measurements.sqlite, canonical formatting
+  and checkpoints. Agents may prepare additive namespace entries in their own
+  trees; shared architecture changes need a recorded ownership lease.
+- [x] Each agent returns a reviewable commit, exact tests/untested scope, source
+  identity, changed shared files, independent oracle and benchmark support. Send
+  status to the integrator; no extra handoff files or source snapshots.
+- [x] Before each worker source checkpoint, grant a formatter/checkpoint slot:
+  format the entire worker tree with the verified compiler, prove token and
+  idempotence preservation, then commit its coherent slice. The integrator repeats
+  required canonical formatting before integration checkpoints. Worker commits
+  do not bypass the repository formatting requirement.
+- [x] Integrate small coherent bundles, resolve shared files once, then recheck
+  affected combinations against the merged source. Branch-local results do not
+  establish combined acceptance. Preserve completed compatible checks.
+- [x] Share one absolute Cargo target per physical host; jobs=1 and incremental=0.
+  Serialize Cargo builds and native-compiling test process trees on this 8-GB Mac.
+  Source work, review, pure analysis and lightweight independent tests can run
+  concurrently within the aggregate memory budget. True parallel native/platform
+  testing uses separate execution hosts/runners, each with its own single target.
+- [x] Use about5GB/30min watchdog bounds per native test tree, test-threads=3;
+  monitor aggregate host pressure before concurrent lightweight tests. Kill only
+  owned test children. Do not confuse three agents with three simultaneous rustc
+  builds on this machine.
+- [x] Timing owns the machine exclusively: no builds/tests/profiling jobs in
+  parallel, quiet-load guard enabled. A busy host means defer timing, not override
+  the guard. Parallel implementation must not contaminate performance evidence.
+- [x] Only the integrator writes/ingests the measurement DB. Agents supply
+  disposable run outputs for verified serial ingestion; never replace the DB
+  with a worker copy or create per-worker history archives.
+
+Disposition (2026-11-08): AGENTS.md later set one agent per tree, so the
+worker rows (agent worktrees, worker returns/checkpoint slots, bundle integration)
+are superseded rather than executed. One writer integrated every bundle on
+`codex/stdlib-0.2.0`, with whole-project formatting before each checkpoint. The
+resource rows were followed throughout: one shared absolute target, jobs=1,
+incremental=0, serialized native builds, watchdog bounds, exclusive quiet-machine
+timing, and only the integrator writing `measurements.sqlite`.
+
+## Performance and acceptance from the first gate
+
+Every B01–B19 bundle must complete this same checklist before it is accepted:
+
+- [x] Define representative small/medium/large and boundary workloads before
+  implementation; write independent expected results and a direct handwritten
+  Rust implementation using the selected backend, with the same ownership/work.
+- [x] Establish the direct Rust profile first: allocation/reallocation counts,
+  bytes retained, CPU hot paths and compile/size effects. Prefer reusable owners,
+  borrowed input and destination buffers where the source contract permits them.
+- [x] Supply matched TypeScript→Node cases. If Node lacks a built-in, identify
+  the exact package/algorithm adapter; if no equivalent exists, mark N/A instead
+  of inventing parity or timing a different operation.
+- [x] Complete compiler checking/emission, aliases/stored calls, native execution,
+  error/loan/drop/cancellation controls, platform behavior, formatted-source
+  execution and complete IntelliSense/examples. Invalid boundaries must fail
+  correctly; backend package presence alone is not implementation acceptance.
+- [x] Keep workload sources/oracles/driver/ABI/registrations/fingerprints ready
+  as the feature lands. Separate successful paths, rejection paths, one-time
+  setup and reuse. Do not postpone benchmark implementation until release week.
+- [x] Measure the completed coherent bundle with original registered protocols
+  and sample counts. For existing operations, profile and A/B the candidate
+  against the previous accepted commit. For new operations, compare against the
+  direct Rust floor; do not fabricate a pre-feature speedup.
+- [x] Review emitted code and allocation/scaling gaps against handwritten Rust.
+  Investigate repeatable material regressions, including compile time and memory;
+  keep an optimization only with repeatable gains and no correctness/ownership
+  regression. Remove avoidable copies, wrapper work and repeated parsing now.
+- [x] Do not pad handwritten Rust with generated-code inefficiencies to claim
+  parity. An optional adapter-matched diagnostic is labeled separately from the
+  direct Rust headline reference. Preserve useful richer semantics explicitly.
+- [x] Measure Node/handwritten Rust references once per unchanged workload,
+  backend/configuration/semantic identity. Cache them for later compiler-only
+  changes. Revalidate correctness; retime references only for changed inputs,
+  backend/toolchain semantics or a diagnosed environmental comparison problem.
+- [x] Add compile-time/scaling canaries and byte/allocation/drop assertions where
+  they expose real defects. No clock-threshold assertions in ordinary unit tests.
+- [x] Run `npm run store:ingest` in `benchmarks/runtime`; verify history, original
+  references and SQLite integrity before disposing raw outputs. Only actual
+  measurements enter `benchmarks/measurements.sqlite`; no logs/source snapshots.
+- [x] Whole-project format, token preservation/idempotence, focused checks and
+  documented-example execution pass before the source checkpoint. Commit measured
+  numbers and update this checklist plus the single progress note.
+
+Reconciliation (2026-11-08): each bundle section above records its contracts,
+witnesses, allocation/emitted-code reviews and measurements. Every one of the
+1,165 registered runtime workloads now has native, Node-after-tsc and
+hand-written Rust histories in `measurements.sqlite`, with original 3×31
+protocols and cached unchanged references. Per the owner's 2026-11-08 scope
+decision, thin integration wrappers around Rust packages (HTTP upload and
+middleware rows) are excluded from timing rather than measured. The B19
+nested-option gap is diagnosed (LLVM elides the reference's allocations) and
+recorded, not hidden. Whole-project formatting precedes each checkpoint.
+
+Correctness, Rust semantics and safe ownership are release requirements. Faster
+than Node on every workload is not. Handwritten-Rust parity remains the direction;
+an unresolved avoidable adapter gap is work to investigate, not a marketing win.
+
+## B20 — Feature-family and v0.2.0 release checklist
+
+Accepted compiler inventory repair (2026-11-05): optional readonly finite-string
+unions retain their proven string-only residual after an undefined guard. Native
+length/index/string-method observations, aliases and repeated owner reuse pass;
+missing guards, mixed residuals, mutation and loop invalidation remain rejected.
+Fourteen focused compiler/native/editor witnesses pass, including existing tag,
+borrow-allocation and disposal controls. This is distinct from literal-argument
+context preservation and uses the existing borrowed-subset emitter.
+
+
+- [x] After the owned-I/O/async/iterator foundations form one accepted family,
+  run the appropriate complete compiler/LSP milestone and combined ownership,
+  cancellation, export and editor matrix. Preserve prior passing groups and repair
+  only affected failures. Do not run full suites after each method or small gate.
+  Evidence (2026-11-09): the complete backend check in `docs/plans/ci-build-once.md`
+  passes locally: compiler library 1,546, CLI 54, LSP library 27 and binary 6,
+  133 `tsrust test` suites (including one test per verified catalog example) and
+  21 host-boundary targets.
+- [x] Finish B01–B19 and update every item with exact accepted evidence; identify
+  all intentional differences and deferrals in public reference docs.
+  All B01–B19 rows are checked with evidence in their sections. The intentional
+  differences and deferrals are in the disposition table below, the host export
+  ledger and the language inventory notes.
+- [x] Run final complete backend compiler/LSP binaries and both library suites
+  under bounded resources, one binary at a time; doctests separately. Zero
+  registered doctests are not executable example coverage.
+  Status (2026-11-08): CI `full_regressions=true` now runs as eight parallel
+  shards; every shard finishes within its one-hour job (longest 56 min). Run 1
+  (42503200899) exposed real regressions and fixture drift, fixed in 81f7beed.
+  Run 2 (42511475678) passes shards 0, 1, 3, 4 and 7. The remaining failures
+  pass locally: `native_buffered_file_backend` (E0460: tests that run their own
+  Cargo builds rebuild `cfg_if` in the shared target before this direct-rustc
+  test), `native_json_build` staging (shared-target interaction), one
+  `project_commands` dev-session exit status (diagnostic now prints the status),
+  and a cold frozen-UI emit budget (raised). Not yet a clean complete pass.
+  Runs 3–4 (42516535243, 42521719973): the E0460 cause was relocated vendored
+  builds recompiling shared crates in place; direct-rustc tests now use a
+  private nix closure (`target/test-externs`). The JSON staging test looked for
+  a pre-hash `libtsrust_runtime.rlib` name; fixed. In run 4 shards 1, 3, 4 and
+  6 pass. The remaining failures were cold `tsrust run` timeouts on two large
+  frozen-docs programs (budgets raised to 600s; both shards passed in runs 2
+  and 3). Every shard has now passed in at least one run; one confirming run on
+  the final commit is still needed.
+  Superseded 2026-11-09 by `docs/plans/ci-build-once.md`: the complete backend
+  check is the library tests, every `tsrust test` suite (133, including one test
+  per verified catalog example) and 21 host-boundary targets, all built from one
+  compiler per OS.
+  Final run (2026-11-09, aarch64 macOS, bounded, one binary at a time): every layer
+  above PASS; no compiler or library-test warnings remain. Both crates have zero
+  registered doctests, so executable example coverage comes from the generated
+  catalog suites. CI runs the same layers on all four hosts.
+- [x] Execute native Windows/Linux/macOS acceptance, including file handles,
+  signals, child processes, networking, TLS, exports and packaged CLI/LSP.
+  Cross-target metadata or helper simulations do not prove native execution.
+  C9 evidence (2026-11-08): run 42511473967 at 81f7beed completed focused native
+  acceptance on all four hosts, including file handles, signals, child processes,
+  networking, TLS, relocated exports and packaged CLI/LSP smoke.
+- [x] Run the integrated applications on the local macOS host: binary/file-transform
+  CLI; persistent JSON API; streamed upload/body forwarding; SSE/WebSocket service;
+  bounded CPU work; generated Rust-package consumer. Include failures, disconnects
+  and cleanup. Native coverage on the other release hosts remains the separate
+  unchecked platform requirement above.
+
+  Local application evidence is cumulative, not a new full-regression claim:
+  `compression::typed_stream_examples_execute_with_one_pool_and_explicit_finish`,
+  `tcp_and_compression_copy_preserve_typed_errors_and_execute` and the remaining
+  compression controls passed in the965de83f integration (15cases), including
+  binary/file transforms and one-worker/capacity-one pool composition. Existing
+  `http_client_uploads::client_policies_and_owned_upload_factories_execute_through_aliases_and_stored_calls`
+  checks binary/stream/channel uploads and `/echo` body forwarding; B10's focused
+  native acceptance is retained above. `native_threads::configurable_pool_cancellation_and_shutdown_execute`
+  and ownership controls cover configured CPU cancellation/shutdown. Shared55
+  debug/release acceptance includes the18 registered realtime cases, with TLS,
+  disconnect and transferred producer cleanup. The422a7d392a0e export scope passed
+  the real generated Shlex consumer and relocated empty-Cargo-home builds at both
+  profiles; retained regex native/catalog/offline cases cover the intentional
+  compiler-owned package adapter. The integrated persistent service now passes
+  `tools/check-service.mjs` on Darwin (78.033s): TLS, authentication, session
+  revocation, persistence/restart, forms, multipart, CORS, body limit, static
+  allowlist, redaction, SIGTERM and SIGINT. Its receipt has `offlinePackage:false`;
+  no service-specific offline package or cross-host acceptance is inferred.
+
+- [x] Refresh affected public micro/HTTP metrics with cached unchanged reference
+  histories. Keep Rust/Node comparisons, sample scopes, CPU/RSS/p99 and real
+  function examples readable; no before/after or date-heavy presentation needed.
+  Micro refresh (2026-11-08): `website/tools/performance-runs.json` now lists all
+  65 accepted post-v0.1.2 runs that pair 93-sample native results with Node, and
+  49 Rust baselines whose parity source still matches its manifest hash. The
+  generated page has 1,085 comparisons from 211 runs; the site builds (78 pages).
+  Rejected experiments were never ingested.
+  Completion (2026-11-08): the last 80 registered but unmeasured runtime
+  workloads were verified (795s) and timed at 3×31 on native, Node after tsc and
+  hand-written Rust: 75 B02 byte codec/operation workloads and 5 B01 file
+  workloads, ingested as 240 entries (runs 2026-11-08T15:45:57.371Z and
+  T15:56:53.554Z). The generator now resolves each workload's manifest
+  `rustReference`, because size variants share one parity source. The page lists
+  all 1,165 registered workloads from 213 runs. Owner scope decision, 2026-11-08:
+  benchmark only operations comparable to Node, not integration wrappers around
+  Rust packages. The B10 upload/middleware rows stay registered but unmeasured.
+  The existing HTTP text/JSON/SQLite/CPU pins are kept as published context
+  rather than retimed. The upload reference server's non-Send handler was still
+  fixed so its correctness guard compiles.
+- [x] Reconcile the existing language inventory and a concrete host export ledger
+  against bindings/catalog/tests. Account for every excluded family below;
+  never turn a module count into a conformance percentage.
+  Host ledger (2026-11-08): [host-export-ledger.md](host-export-ledger.md) reviews
+  the 1,252 `public_api_inventory` rows outside the globals/imports audit, so
+  `tools/verify-api-audit.py` passes for all 1,685 rows. Classes: 493 bundle
+  witnesses plus a natively executed catalog example; 339 retained v0.1 family
+  plus executed example; 318 private `__`/`*-runtime` lowering helpers (import is
+  rejected with `module-native`); 102 frozen UI. Host coverage is
+  accepted on all four release hosts (C9, 42511473967). Language inventory:
+  `benchmarks/coverage/status.json` gives every remaining pending row a v0.2
+  disposition note from the table below (1,355 rows). Probes reclassified 80
+  stale rows with `tsrust check` evidence: `ReadOnly<…>` array/Map/Set receivers,
+  JSON/regex/locale/URL string entry points, Task combinators, `std:iterator` and
+  the v0.2 host modules. Type-system probes that failed stay pending. The probes
+  also found a `localeCompare` compiler panic (string collator argument) and a
+  private-helper arity message. Both are fixed with witnesses in
+  `analysis/regex.rs`. The generator's moved-page links are repaired, and
+  evidence links to deleted historical files are dropped.
+- [x] Update help, hover/signature/completion, reference, guides, migrations and
+  examples; check links/rendered tables and installed consumers.
+  Evidence (2026-11-08): `backend_catalog_examples_match_native_output` requires and
+  natively executes a fenced example for every non-UI hover entry (PASS, 679s).
+  The 45 generated reference pages match the catalog. The v0.1→v0.2 behavior
+  changes are listed in `.github/release-notes.md`. The site builds 78 pages, and
+  `check_links.py` passes links, anchors and assets on 128 rendered pages. C6
+  packaged-smoke passed the installed CLI/LSP consumers on Linux, ARM macOS and
+  Intel macOS.
+- [x] Audit package notices/features, offline cache/export relocation, minimal
+  dependency selection, install/update/rollback and all four platform archives.
+  Notice audit (2026-11-08): all 587 locked registry packages across the
+  workspace, backend and native closures declare permissive licenses. In the
+  backend closure only `jni`, `jni-macros`, `jni-sys-macros`,
+  `rustls-platform-verifier-android` (Android-only) and `rsqlite-vfs`
+  (wasm-only) ship without a license file. Cargo still vendors them, so packaging
+  and portable export now add their exact upstream MIT text, bound to each
+  archive checksum (`attributions/README.md`; distribution tests 15 PASS).
+  r-efi/valuable keep their existing supplements. The remaining license-less
+  crates belong to the frozen UI closure. C9 (42511473967) packaged the CLI/LSP
+  archive layout with `tools/package-toolchain.mjs` and passed
+  `tools/smoke-toolchain.mjs` on all four hosts. It also passed portable setup
+  and relocated offline exports with empty Cargo homes. Install/update/rollback
+  are covered by `toolchain_installation` in the full shards and the packaging
+  tests. Minimal feature selection is the accepted B00 row. Vendored release
+  archives are rebuilt and verified by the release pipeline during promotion.
+- [x] Check live PRs/Dependabot before every push. Batch remote validation by
+  meaningful feature families; call CI full only with `full_regressions=true`.
+- [x] Prepare a concrete version and source tree, obtain explicit v0.2.0
+  publication approval, then use staged promotion and verify actual main/tag/
+  assets/docs deployment. This planning request is not release authorization.
+  Prepared (2026-11-09): tsrust-compiler 0.2.0, tsrust-lsp 0.3.0 (extension unchanged
+  at 0.2.1), `.github/release-notes.md` and the public status page. The owner
+  approved merging to main once v0.2 is complete (2026-11-09); promotion follows
+  the staged stag → main release workflow.
+- [x] Prune closed owned build/probe outputs, preserving shared caches and current
+  consumers; record remaining work in docs/agent-progress.md only.
+
+  Pruned (2026-11-09): ingested raw benchmark results, benchmark server builds,
+  generated suite trees, superseded test binaries, the stale local release build
+  and session scratch. The shared Cargo target, native cache and portable source
+  packs remain.
+## Explicit family disposition and later scope
+
+This is the exclusion checklist, not forgotten v0.2 implementation. Reopen a row
+with a concrete application need and its own acceptance scope.
+
+| Node/Rust family | v0.2 treatment and deliberate boundary |
+|---|---|
+| Buffer/string decoding/files/path/env/OS/process | B01–B07. Legacy encoding aliases, watchers/glob, mmap, ACL/chown/xattrs, recursive copy, PTY and process-tree supervision remain later. |
+| Streams/timers/workers | B05/B06/B15 extend existing foundations. Cancellable interactive/async stdin, JS callback/object-mode stream graphs, generator syntax, arbitrary iterator protocols, async iteration/select, broadcast/watch and generic synchronization APIs remain later. |
+| HTTP/HTTPS/HTTP2/TLS/net/UDP/DNS | B08/B10/B11. Low-level HTTP2 sessions, raw TLS sockets, custom DNS record queries/reverse/DNSSEC, multicast, Unix sockets/named pipes and reconnect protocols remain later. |
+| URL/query/zlib | B04/B09. Legacy querystring quirks, Brotli/zstd/archive extraction/dictionaries remain later. |
+| Crypto/WebCrypto | B16 exact listed primitives. General WebCrypto compatibility, encryption/key exchange, PEM/X509/RSA/ECDSA/JWT/OAuth/session frameworks and legacy security hashes remain later. Application auth policy stays user-owned. |
+| Intl/text/RegExp | B12/B13. No JS lone-surrogate/stateful regex emulation; full ECMA Intl, non-Gregorian calendars, currency/plural/list/relative-time families and legacy locale APIs remain later. |
+| Console/events/errors/utilities/async context/diagnostics/performance/trace/report | Existing console/typed errors plus B17/B18. General EventEmitter/EventTarget, callbackify/promisify, inspector/trace protocols, OpenTelemetry exporters, metrics registries, process reports and background log rotation remain later. |
+| SQLite/SQL/cache/jobs | Preserve existing drivers/pools/cursors/migrations/LRU/TTL. ORM/query builder, Redis/distributed cache, durable broker/cron, cache single-flight and driver-specific advanced types remain later. They are ecosystem additions, not missing Node/Rust std methods. |
+| Additional config/serialization formats | Existing JSON/JSONC/schema support remains. YAML/TOML/CSV, XML parsing and generalized serializer plugins are later ecosystem adapters, rather than unlisted requirements for complete Node/Rust std parity. B19 keeps explicit package adapters usable. |
+| Tests/readline/TTY/REPL | B18 plus existing runner. Fake clocks, mocks/snapshots/coverage, unrestricted test parallelism/watch, line editor and REPL remain later. |
+| Rust adapters/modules/packages/TS loading/SEA | B19 plus existing offline build/install/export. General methods/generics/traits/async/borrowed/Drop-bearing foreign types need separate bridge contracts. Arbitrary JS/npm/CommonJS loaders are not supplied by native imports. |
+| Typed arrays/BigInt/weak references/Symbol/prototypes/reflection | Existing owned bytes/views and exact numeric types remain. Full JS object identity, shared/detachable buffers, full-u64/BigInt scalar work and dynamic reflection are separate compiler scope. |
+| Rust alloc/ptr/mem/marker/unsafe internals | Use compiler-owned safe representations. Do not expose raw-pointer/unchecked APIs or generate unsafe to reproduce Rust implementation internals. |
+| V8/VM/Node addons/C++ embedding/WASI/permissions/cluster/debugger | No native parity claim. Interpreter/sandbox/FFI/target capabilities, multiprocess supervisors and source-level native debugging need separate product/ownership decisions. |
+| Domain/punycode/deprecated Node APIs | URL backend handles its declared IDNA behavior; no deprecated-runtime compatibility campaign. |
+| Newer Node FFI/VFS/iterable-stream/benchmark APIs beyond pinned index | Track separately when choosing a new baseline, not as silently added v0.2 obligations. |
+
+## Package/source references
+
+Official documentation reviewed for planning, 2026-11-04. These are backend
+choices/candidates, not claims of admitted compatible versions or new pins.
+
+- [Node 24.11.1 API index](https://nodejs.org/download/release/v24.11.1/docs/api/)
+  and [Rust std](https://doc.rust-lang.org/std/): different scopes; check Rust APIs
+  against pinned1.96.1 rather than assuming latest online docs are that version.
+- [std files](https://doc.rust-lang.org/std/fs/),
+  [Tokio features](https://docs.rs/tokio/1.53.3/tokio/),
+  [Tokio process](https://docs.rs/tokio/latest/tokio/process/),
+  [Tokio net](https://docs.rs/tokio/latest/tokio/net/),
+  [environment mutation safety](https://doc.rust-lang.org/std/env/fn.set_var.html).
+- [url](https://docs.rs/url/latest/url/),
+  [base64](https://docs.rs/base64/latest/base64/),
+  [percent-encoding](https://docs.rs/percent-encoding/latest/percent_encoding/),
+  [regex](https://docs.rs/regex/latest/regex/),
+  [hostname](https://docs.rs/hostname/latest/hostname/).
+- [tempfile Builder](https://docs.rs/tempfile/latest/tempfile/struct.Builder.html)
+  and [TempDir](https://docs.rs/tempfile/latest/tempfile/struct.TempDir.html).
+- [flate2](https://docs.rs/flate2/latest/flate2/),
+  [ICU4X/components](https://docs.rs/icu/latest/icu/),
+  [CancellationToken](https://docs.rs/tokio-util/latest/tokio_util/sync/struct.CancellationToken.html).
+- [Axum SSE](https://docs.rs/axum/0.8.9/axum/response/sse/),
+  [Axum WebSockets](https://docs.rs/axum/0.8.9/axum/extract/ws/),
+  [Tokio Tungstenite](https://docs.rs/tokio-tungstenite/latest/tokio_tungstenite/).
+- [sha2](https://docs.rs/sha2/latest/sha2/),
+  [hmac](https://docs.rs/hmac/latest/hmac/),
+  [hkdf](https://docs.rs/hkdf/latest/hkdf/),
+  [Argon2](https://docs.rs/argon2/latest/argon2/),
+  [pinned Node crypto](https://nodejs.org/download/release/v24.11.1/docs/api/crypto.html).
+- [tracing](https://docs.rs/tracing/latest/tracing/),
+  [tracing-subscriber](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/),
+  [rustdoc JSON](https://doc.rust-lang.org/nightly/rustdoc/unstable-features.html#json-output).
+
+No new API, package version, platform result or performance number is accepted
+by writing this plan. Implementation, measurement and release evidence remain
+separate checklist states.

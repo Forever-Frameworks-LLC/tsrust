@@ -1,0 +1,21 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+import { all } from 'std:futures';
+async function task(): Task<int> {
+  return 3;
+}
+
+export async function run(): Task<void> {
+  const number = 7;
+  const callbacks = Iterator.from([(): int => number]).toArray();
+  {
+    const observed1_0 = callbacks[0]();
+    strictEqual(observed1_0, 7);
+  }
+
+  const values = await all(Iterator.from([task()]).toArray());
+  {
+    const observed2_0 = values.join(',');
+    strictEqual(observed2_0, "3");
+  }
+}

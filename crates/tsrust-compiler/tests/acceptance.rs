@@ -646,7 +646,11 @@ fn missing_linker_reports_environment_setup_without_output(){
  let directory=support::TempDirectory::new();
  let source=directory.source("function main(){console.log(\"link\");}");
  let binary=directory.0.join("program");
- let output=support::run(support::cli().arg("build").arg(&source).arg("-o").arg(&binary).env("PATH", "").env("TSRUST_CACHE_DIR",directory.0.join("cache")),60);
+ // PATH holds only rustup, wherever the host installed it, so rustc runs but no
+ // system linker is reachable.
+ let rustup=std::env::split_paths(&std::env::var_os("PATH").unwrap()).map(|dir|dir.join("rustup")).find(|path|path.is_file()).expect("rustup on PATH");
+ let tools=directory.0.join("tools");std::fs::create_dir(&tools).unwrap();std::os::unix::fs::symlink(&rustup,tools.join("rustup")).unwrap();
+ let output=support::run(support::cli().arg("build").arg(&source).arg("-o").arg(&binary).env("PATH",&tools).env("TSRUST_CACHE_DIR",directory.0.join("cache")),60);
  assert!(!output.status.success());
  let message=String::from_utf8_lossy(&output.stderr);
  assert!(message.contains("Native linker unavailable"),"{message}");

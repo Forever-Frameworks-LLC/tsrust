@@ -1,5 +1,10 @@
 # Parallel standard-library implementation plan
 
+> Historical path-family plan. New work follows the owner-requested
+> [v0.2.0 checklist](stdlib-0.2.0.md). Its managed-worktree ownership, single Cargo
+> target per physical host, serial measurement ingestion and single progress note
+> supersede the old target/evidence/handoff instructions below.
+
 ## Goal and first deliverable
 
 Build useful bundled standard-library APIs while the language agent finishes callable replacement. The first bounded family is lexical path operations: extend the existing `std:path.basename` integration with `dirname`, `extname`, `isAbsolute`, and `normalize`. Deliver compiler bindings, native execution, editor assistance, executable documentation, matched benchmark support, acceptance evidence, and integration-ready commits. Completion means this family is accepted, not that the entire standard library is complete.

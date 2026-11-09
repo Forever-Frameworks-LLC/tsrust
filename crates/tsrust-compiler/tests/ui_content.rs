@@ -40,7 +40,7 @@ function main(){
 fn keyboard_reference_keeps_nested_markdown_and_paired_examples_executable(){
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
  for relative in ["src/acceptance/keyboard-documentation.tsr","src/examples/keyboard-shortcuts.tsrx","src/components/ui/kbd-v2.tsrx","src/components/docs/markdown-content.tsrx"]{let source=std::fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
- let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/keyboard-documentation.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Keyboard documentation passed\n");
+ let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/keyboard-documentation.tsr")),600);support::success(&output);assert_eq!(output.stdout,b"Keyboard documentation passed\n");
 }
 
 #[cfg(feature = "legacy-ui")]

@@ -1,0 +1,23 @@
+import { reader, lines, readLine, close } from 'std:io';
+import { fromUtf8 } from 'std:bytes';
+async function workload(n: int, seed: int): Task<int> {
+  const payload = unwrap(fromUtf8('a'.repeat(8191) + 'é\r\n\nlast'));
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    const input = unwrap(lines(reader(clone(payload))));
+    while (true) {
+      const line = unwrap(await readLine(input));
+      if (line === undefined) {
+        break;
+      }
+
+      sum = (sum * 131 + line.length + seed + i) % 1000000007;
+    }
+
+    unwrap(await close(input));
+  }
+
+  return sum;
+}
+
+function main() {}

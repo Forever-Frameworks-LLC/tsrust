@@ -30,7 +30,9 @@ impl Analyzer {
             _ => return None,
         };
         // Records may declare methods with these names; their callee checks differ.
-        match self.expression_type_hint(context, base)? {
+        let hint=self.expression_type_hint(context,base)?;
+        if self.is_string_observation(hint){return Some(literals);}
+        match hint {
             Type::String | Type::Int | Type::Number | Type::Boolean | Type::Array(_) => Some(literals),
             _ => None,
         }

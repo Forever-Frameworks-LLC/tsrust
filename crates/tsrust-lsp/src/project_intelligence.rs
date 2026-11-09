@@ -89,9 +89,20 @@ impl ProjectIndex {
         if trace { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
         index
     }
-    pub fn new(graph: &ProjectGraph) -> Self {
+    pub fn new(graph: &ProjectGraph) -> Self { Self::with_diagnostics(graph, &[]) }
+    pub fn with_diagnostics(graph: &ProjectGraph, errors: &[tsrust_compiler::project::ProjectDiagnostic]) -> Self {
         let mut index = Self::build(graph);
-        for (id,source) in &mut index.indices {if graph.modules[id].data.is_none(){source.recover_project_member_receivers(graph,id);}}
+        for id in &graph.order {
+            if graph.modules[id].data.is_some(){continue;}
+            let mut source=index.indices.remove(id).expect("indexed project source");
+            source.recover_project_member_receivers(graph,id);
+            if let Some(error)=errors.iter().filter(|error|error.code=="syntax" && error.location.source==*id)
+                .min_by_key(|error|error.location.span.start)
+            {
+                source.recover_project_generic_prefix(graph,id,error.location.span.start,&index.indices);
+            }
+            index.indices.insert(id.clone(),source);
+        }
         index.refresh_references();
         index
     }
@@ -252,15 +263,13 @@ impl ProjectIndex {
             );
         }
         let index = self.indices.get(&id)?;
-        let answer = index.request(method, params, uri);
         if method == "textDocument/completion"
             && !index.checked()
-            && answer.as_ref().is_ok_and(|items| items.as_array().is_some_and(Vec::is_empty))
             && let Some(items) = self.repaired_member_completion(&id, index, params)
         {
             return Some(Ok(items));
         }
-        Some(answer.map(|mut answer| { self.rust_locations(&mut answer); answer }))
+        Some(index.request(method, params, uri).map(|mut answer| { self.rust_locations(&mut answer); answer }))
     }
 
     fn rust_locations(&self, value: &mut Value) {
@@ -289,6 +298,7 @@ impl ProjectIndex {
         let source = &self.graph.modules.get(id)?.source.text;
         let prefix = source.get(prefix_start..offset)?;
         let replace = index.source_range(prefix_start, offset);
+        let access = index.member_access_range(separator, offset);
         let receiver = index.receiver_text(separator);
         index.declaration_prefix_repairs(offset).into_iter().chain(index.member_repairs(offset)).find_map(|repair| {
             let mut graph = self.graph.clone();
@@ -296,7 +306,45 @@ impl ProjectIndex {
             module.declaration_source = format!("{}{}", module.declaration_source.get(..repair.start)?, &repair.text[repair.start..]);
             module.source.text = repair.text;
             let analysis = tsrust_compiler::project::check_graph(graph).ok()?;
-            Self::checked(&analysis).indices.get(id)?.members_ending_at(repair.receiver_end, prefix, replace, &receiver, index.optional_separator(separator))
+            Self::checked(&analysis).indices.get(id)?.members_ending_at(repair.receiver_end, prefix, replace, access, &receiver, index.optional_separator(separator))
         })
+    }
+}
+
+#[cfg(test)]
+mod generic_prefix_recovery_tests {
+    use super::*;
+    #[test]
+    fn completed_generic_call_hover_survives_a_broken_sibling_without_accepting_invalid_prefixes() {
+        let root=std::env::temp_dir().canonicalize().unwrap().join("tsrust-generic-prefix-recovery");
+        let id=SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let uri=file_uri(&id).unwrap().to_string();
+        let valid="import {deepStrictEqual} from 'std:testing';function main(){deepStrictEqual([[1]],[[1]]);}";
+        let mut workspace=crate::workspace::Workspace::default();
+        workspace.open(id.clone(),1,valid.into());
+        let analysis=workspace.snapshot().check_with_diagnostics(&id).unwrap();
+        let checked=ProjectIndex::checked(&analysis);
+        let params=serde_json::json!({"position":{"line":0,"character":valid.rfind("deepStrictEqual").unwrap()+2}});
+        let expected=checked.request("textDocument/hover",&params,&uri).unwrap().unwrap();
+        assert!(expected.to_string().contains("ReadOnly<int[][]>"));
+        let broken=format!("{valid}function broken(){{const = ;}}");
+        assert!(workspace.change(&id,2,broken));
+        let snapshot=workspace.snapshot();
+        let errors=snapshot.check_with_diagnostics(&id).err().expect("original syntax error");
+        assert!(errors.iter().any(|error|error.code=="syntax"));
+        let graph=tsrust_compiler::project::load_project_headers(&snapshot,&id.0).unwrap();
+        let recovered=ProjectIndex::with_diagnostics(&graph,&errors);
+        assert_eq!(recovered.request("textDocument/hover",&params,&uri).unwrap().unwrap(),expected);
+        assert!(snapshot.check_with_diagnostics(&id).is_err(),"index recovery never repairs the document");
+
+        let invalid="import {deepStrictEqual,trackedResource} from 'std:testing';function main(){deepStrictEqual([trackedResource()],[trackedResource()]);}function broken(){const = ;}";
+        assert!(workspace.change(&id,3,invalid.into()));
+        let snapshot=workspace.snapshot();
+        let errors=snapshot.check_with_diagnostics(&id).err().expect("invalid prefix and sibling");
+        let graph=tsrust_compiler::project::load_project_headers(&snapshot,&id.0).unwrap();
+        let recovered=ProjectIndex::with_diagnostics(&graph,&errors);
+        let params=serde_json::json!({"position":{"line":0,"character":invalid.rfind("deepStrictEqual").unwrap()+2}});
+        let hover=recovered.request("textDocument/hover",&params,&uri).unwrap().unwrap();
+        assert!(hover.to_string().contains("deepStrictEqual<T>"),"invalid prefixes cannot supply checked specialization: {hover}");
     }
 }

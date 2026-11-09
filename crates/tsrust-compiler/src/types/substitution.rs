@@ -45,11 +45,15 @@ fn take(value: &mut ValueAnnotation) -> ValueAnnotation {
     std::mem::replace(value, ValueAnnotation { kind: Kind::Tuple(Vec::new()), span })
 }
 
+pub(crate) fn substitutes_parameter(value:&ValueAnnotation,bindings:&HashMap<String,ValueAnnotation>)->bool {
+    matches!(&value.kind,Kind::Named(name)if bindings.contains_key(&name.text)) ||
+        matches!(&value.kind,Kind::Applied{name,..}if name.text=="@testing:element")
+}
+
 fn descend(mut parent: ValueAnnotation, path: Child, bindings: &HashMap<String, ValueAnnotation>, frames: &mut Vec<Frame>) -> ValueAnnotation {
     let value = take(child(&mut parent, path));
     let adjust_access = matches!(path, Child::Parameter(_)) &&
-        (matches!(&value.kind, Kind::Named(name) if bindings.contains_key(&name.text)) ||
-         matches!(&value.kind, Kind::Applied { name, .. } if name.text == "@testing:element"));
+        substitutes_parameter(&value,bindings);
     frames.push(Frame { parent, child: path, adjust_access });
     value
 }
@@ -90,9 +94,9 @@ fn apply_with_limit(value: &mut ValueAnnotation, bindings: &HashMap<String, Valu
             current = containment_element(&arguments[0]);
         }
         let Some(mut frame) = frames.pop() else { break Ok(()); };
-        if frame.adjust_access && copy_annotation(&current) {
+        if frame.adjust_access {
             let (Kind::Callable { parameters, .. }, Child::Parameter(index)) = (&mut frame.parent.kind, frame.child) else { unreachable!() };
-            parameters[index].access = None;
+            if copy_annotation(&current) || task_annotation(&current) && parameters[index].access.as_ref().is_some_and(|access|access.mode==crate::Mode::Consume){parameters[index].access=None;}
         }
         *child(&mut frame.parent, frame.child) = current;
         if let Some(path) = next_child(&frame.parent, Some(frame.child)) {
@@ -144,7 +148,12 @@ fn containment_element(root: &ValueAnnotation) -> ValueAnnotation {
     results.pop().expect("projected containment element")
 }
 
-fn copy_annotation(value: &ValueAnnotation) -> bool {
+pub(crate) fn task_annotation(mut value:&ValueAnnotation)->bool{
+    while let Kind::Group(inner)=&value.kind{value=inner;}
+    matches!(value.kind,Kind::Callable{ownership:crate::type_syntax::CallableOwnership::Task,..})
+}
+
+pub(crate) fn copy_annotation(value: &ValueAnnotation) -> bool {
     let mut pending = vec![value];
     while let Some(value) = pending.pop() {
         match &value.kind {
@@ -169,7 +178,7 @@ fn validate_depth(value: &ValueAnnotation, depth: usize, limit: usize) -> Result
             ));
         }
         match &value.kind {
-            Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+            Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {}
             Kind::Group(inner) | Kind::Array(inner) => pending.push((inner, depth + 1)),
             Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                 pending.extend(arguments.iter().map(|value| (value, depth + 1)))

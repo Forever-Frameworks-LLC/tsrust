@@ -22,6 +22,10 @@ impl Analyzer {
         loans: &Loans,
         span: Span,
     ) -> Result<FieldDispatch, Diagnostic> {
+        if let Some(Type::Record(id))=self.expression_type_hint(context,base) {
+            if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OwnedIterator) && !context.function_name.starts_with(crate::stdlib::iterator::PREFIX){return Err(Diagnostic::new("iterator-member","Iterator state is opaque; call its iterator operations.",span));}
+            if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::IteratorCursor){return Err(Diagnostic::new("iterator-member","Iterator cursor storage is private.",span));}
+        }
         if matches!(name,"env"|"res") && matches!(self.expression_type_hint(context,base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::HttpContext)) && matches!(mode,Mode::Mutate|Mode::Consume){
             return Err(Diagnostic::new("http-state","Context env and res are read-only; borrow state and use context response methods.",span));
         }
@@ -160,7 +164,7 @@ impl Analyzer {
             }
             FieldFrame::Length => {
                 let actual = result?;
-                if !matches!(actual, Type::String | Type::Array(_))
+                if !matches!(actual, Type::Array(_)) && !self.is_string_observation(actual)
                     && !matches!(actual, Type::Record(id) if self.program.records[id].is_tuple())
                 {
                     return Err(Diagnostic::new(
@@ -187,7 +191,7 @@ impl Analyzer {
                     }
                     return Ok(Type::Int);
                 }
-                if matches!(ty.scalar_base(), Type::String | Type::Array(_)) && name == "length" {
+                if (matches!(ty,Type::Array(_)) || self.is_string_observation(ty)) && name == "length" {
                     if mode == Mode::Mutate {
                         return Err(Diagnostic::new(
                             "unsupported",
@@ -199,8 +203,14 @@ impl Analyzer {
                 }
                 let field = match ty {
                     Type::Record(record) => self.fields[record].get(name).copied(),
+                    Type::Union(union) | Type::BorrowedUnion(union) => self.record_union_field(union, name),
                     _ => None,
                 };
+                if matches!(ty, Type::Union(_) | Type::BorrowedUnion(_))
+                    && (mode == Mode::Mutate || mode == Mode::Consume && field.is_some_and(|ty| !ty.is_copy()))
+                {
+                    return Err(Diagnostic::new("union-field-ownership", "Narrow the record alternative before mutating or moving an owned field.", span));
+                }
                 if borrowed && mode == Mode::Consume && field.is_some_and(|ty| !ty.is_copy()) {
                     return Err(Diagnostic::new(
                         "borrowed-place",
@@ -222,7 +232,7 @@ impl Analyzer {
                 }
                 let base_type = result?;
                 let base_type = self.recursive_array_receiver(context, base, base_type);
-                if (matches!(base_type.scalar_base(), Type::Array(_) | Type::String)
+                if ((matches!(base_type,Type::Array(_)) || self.is_string_observation(base_type))
                     || matches!(base_type, Type::Record(id) if self.program.records[id].is_tuple()))
                     && name == "length"
                 {
@@ -237,7 +247,7 @@ impl Analyzer {
                 }
                 let field_type = match base_type {
                     Type::Record(index) => self.fields[index].get(name).copied(),
-                    Type::Union(union) => self.record_union_field(union, name),
+                    Type::Union(union) | Type::BorrowedUnion(union) => self.record_union_field(union, name),
                     _ => None,
                 }
                 .ok_or_else(|| {
@@ -250,7 +260,7 @@ impl Analyzer {
                         span,
                     )
                 })?;
-                if matches!(base_type, Type::Union(_))
+                if matches!(base_type, Type::Union(_) | Type::BorrowedUnion(_))
                     && (mode == Mode::Mutate || mode == Mode::Consume && !field_type.is_copy())
                 {
                     return Err(Diagnostic::new(
@@ -267,7 +277,7 @@ impl Analyzer {
                                 parent = values.last().expect("nonempty sequence")
                             }
                             ExprKind::Field(value, _)
-                                if matches!(value.ty, Some(Type::Union(_))) =>
+                                if matches!(value.ty, Some(Type::Union(_) | Type::BorrowedUnion(_))) =>
                             {
                                 return Err(Diagnostic::new(
                                     "union-field-ownership",
@@ -360,10 +370,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<(IndexFrame, Mode, Option<Type>), Diagnostic> {
         if !Self::optional_hint_boundary(base)
-            && self
-                .expression_type_hint(context, base)
-                .map(Type::scalar_base)
-                == Some(Type::String)
+            && self.string_observation_hint(context,base)
         {
             return Ok((
                 IndexFrame {
@@ -413,7 +420,7 @@ impl Analyzer {
     ) -> Result<IndexAdvance, Diagnostic> {
         let (element, active, named) = match frame.kind {
             IndexKind::String => {
-                debug_assert_eq!(ty.scalar_base(), Type::String);
+                debug_assert!(self.is_string_observation(ty));
                 let mut active = loans.clone();
                 for root in Self::loan_roots(base, Mode::Read) {
                     active

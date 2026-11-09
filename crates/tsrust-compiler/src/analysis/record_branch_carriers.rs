@@ -57,7 +57,7 @@ impl Analyzer {
             let mut changed=false;
             for write in &writes {
                 let binding=&context.bindings[write.binding];
-                if binding.parameter || binding.capture_reference{continue;}
+                if (binding.parameter || binding.capture_reference) && !context.owned_record_captures.contains(&write.binding){continue;}
                 let ty=*plans.entry(write.binding).or_insert(binding.ty);
                 let sticky=self.sticky_nullable(context,write.binding);
                 if sticky && write.path.is_empty() && ty.union().is_some() {
@@ -75,7 +75,7 @@ impl Analyzer {
                 }else{
                     let Some(previous)=self.record_field_type(ty,&write.path)else{continue;};
                     if previous==incoming{None}
-                    else if sticky && let Some(joined)=self.join_nullable_record_unions(previous,incoming,write.span)?{
+                    else if (sticky || self.native_borrow_types && (self.native_shape_contains_view(previous)||self.native_shape_contains_view(incoming))) && let Some(joined)=self.join_nullable_record_unions(previous,incoming,write.span)?{
                         self.record_type_with_field(record,&write.path,joined).map(Type::Record)
                     }
                     else if let Some(family)=self.common_borrowed_conditional_family(previous,incoming,write.span)?{
@@ -120,20 +120,25 @@ impl Analyzer {
             }
             let Some(destination)=destinations.remove(&(value.span.start,value.span.end))else{return Ok(());};
             let source=self.record_value_carrier_type(context,value,&plans)?;
-            if source==destination{return Ok(());}
-            if sticky_destinations.contains(&(value.span.start,value.span.end)) {
+            // An equal carrier query does not prove that an existing Inject or
+            // wrapper already names the final native union. Normalize first.
+            if sticky_destinations.contains(&(value.span.start,value.span.end))
+                || self.native_borrow_types && matches!(self.unions.payload(destination),Some(Type::Record(_)))
+                    && (self.native_shape_contains_view(source)||self.native_shape_contains_view(destination)) {
                 return self.retarget_nullable_store(value,destination);
             }
+            if source==destination{return Ok(());}
             match(source,destination){
                 (Type::Closure(_),Type::BorrowedCallable(family))=>Self::retarget_record_callback(value,family),
                 (Type::Record(_),Type::Record(_))|(Type::BorrowedCallable(_),Type::BorrowedCallable(_))=>{
                     if self.distinct_owned_closures(source,destination) {
+                        self.trace_carrier_rejection("distinct-write",value.span,source,destination);
                         return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
                     }
                     value.wrap_record_carrier(destination)
                 }
                 // A view callback, or its nullable union, moves into the joined storage.
-                (Type::StoredCallable(_),Type::StoredCallable(_))|(Type::Union(_),Type::Union(_)) if self.native_borrow_types && self.native_shape_contains_view(destination)=>value.wrap_record_carrier(destination),
+                (Type::StoredCallable(_),Type::StoredCallable(_))|(Type::Union(_),Type::Union(_)) if self.native_borrow_types && self.native_shape_contains_view(destination) || self.finite_owned_shape(destination)=>value.wrap_record_carrier(destination),
                 _=>{}
             }
             Ok(())
@@ -209,7 +214,8 @@ impl Analyzer {
             fields[index]=ty;
             let recursive=self.native_borrow_types && fields.iter().any(|ty| self.native_shape_contains_view(*ty))
                 && crate::recursive_view_shapes::Index::new(&self.program.records,&|id|self.unions.members(id)).recursive(self.scoped_records.declaration(record));
-            let id=if recursive {self.scoped_records.materialize_recursive(record,fields,&mut self.program.records,&self.unions).ok()?}
+            let absent=&self.absent_callback_payloads;
+            let id=if recursive {self.scoped_records.materialize_recursive(record,fields,&mut self.program.records,&self.unions,&|id|absent.values().any(|&empty|empty==id)).ok()?}
                 else {self.scoped_records.materialize(record,fields,&mut self.program.records)};
             while self.fields.len()<self.program.records.len(){let id=self.fields.len();self.fields.push(self.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
             ty=Type::Record(id);
@@ -228,15 +234,18 @@ impl Analyzer {
     fn carrier_convertible(&self,source:Type,target:Type)->bool{
         enum Task {
             Check(Type,Type),
+            FinishPair(Type,Type),
             Pairs(std::vec::IntoIter<(Type,Type)>,bool),
             AfterPair(std::vec::IntoIter<(Type,Type)>,bool),
             Members(std::vec::IntoIter<Type>,std::rc::Rc<Vec<Type>>),
             AfterMember(std::vec::IntoIter<Type>,std::rc::Rc<Vec<Type>>),
         }
         let mut work=vec![Task::Check(source,target)];
+        let mut active=HashSet::new();
         let mut result=true;
         while let Some(task)=work.pop() {
             match task {
+                Task::FinishPair(source,target)=>{active.remove(&(source,target));},
                 Task::Pairs(mut pairs,all)=>{
                     if let Some((source,target))=pairs.next(){
                         work.push(Task::AfterPair(pairs,all));
@@ -248,8 +257,9 @@ impl Analyzer {
                 }
                 Task::Members(mut members,targets)=>{
                     if let Some(member)=members.next(){
-                        // Union alternatives only admit identity or record conversion.
-                        let pairs=targets.iter().copied().filter(|&candidate|candidate==member || matches!((member,candidate),(Type::Record(_),Type::Record(_)))).map(|candidate|(member,candidate)).collect::<Vec<_>>();
+                        // Candidate selection must reach the same checked callable conversions as direct storage.
+                        let callable=|ty|matches!(ty,Type::Callback(_)|Type::Closure(_)|Type::StoredCallable(_)|Type::BorrowedCallable(_));
+                        let pairs=targets.iter().copied().filter(|&candidate|candidate.accepts_scalar_value(member) || matches!((member,candidate),(Type::Record(_),Type::Record(_))|(Type::Array(_),Type::Array(_))) || callable(member)&&callable(candidate)).map(|candidate|(member,candidate)).collect::<Vec<_>>();
                         work.push(Task::AfterMember(members,targets));
                         work.push(Task::Pairs(pairs.into_iter(),false));
                     }else{result=true;}
@@ -258,11 +268,22 @@ impl Analyzer {
                     if result{work.push(Task::Members(members,targets));}
                 }
                 Task::Check(source,target)=>{
-                    if source==target{result=true;continue;}
+                    if target.accepts_scalar_value(source){result=true;continue;}
+                    // Coinduction is scoped to the active branch. A failed union
+                    // alternative must not publish a successful pair globally.
+                    if !active.insert((source,target)){result=true;continue;}
+                    work.push(Task::FinishPair(source,target));
                     result=match(source,target){
+                        (Type::StoredCallable(source),Type::Callback(target))=>
+                            self.callables.storage.origins(source).is_some_and(|origins|origins.is_empty())
+                                && self.callables.storage.declaration(source).is_some_and(|declaration|self.callables.callbacks[declaration].structural==self.callables.callbacks[target].structural),
                         (Type::StoredCallable(source),Type::StoredCallable(target))=>{
                             match (self.callables.storage.scoped_native_family(source),self.callables.storage.scoped_native_family(target)) {
                                 (Some(source),Some(target))=>source.signature==target.signature && source.alternatives.iter().all(|alternative|target.alternatives.contains(alternative)),
+                                // The written family has no possible environment. Match the
+                                // emitter's empty match, without admitting a different protocol.
+                                (None,Some(target)) if self.callables.storage.origins(source).is_some_and(|origins|origins.is_empty())=>
+                                    self.callables.storage.declaration(source).is_some_and(|declaration|self.callables.callbacks[declaration].structural==target.signature),
                                 _=>false,
                             }
                         }
@@ -276,6 +297,8 @@ impl Analyzer {
                         (Type::Closure(origin),Type::BorrowedCallable(family))=>self.callables.storage.origins(family).is_some_and(|origins|origins.contains(&origin)),
                         (Type::BorrowedCallable(source),Type::BorrowedCallable(target))=>match(self.callables.storage.origins(source),self.callables.storage.origins(target)){(Some(source),Some(target))=>source.iter().all(|origin|target.contains(origin)),_=>false},
                         (Type::Callback(id),_)=>self.absent_callback_payloads.values().any(|&empty|empty==id),
+                        (Type::Union(source),target) if matches!(target,Type::String|Type::Int|Type::Number|Type::Boolean)=>
+                            self.unions.members(source).into_iter().all(|member|target.accepts_scalar_value(member)),
                         (Type::Union(source),Type::Union(target))=>{
                             work.push(Task::Members(self.unions.members(source).into_iter(),std::rc::Rc::new(self.unions.members(target))));continue;
                         }
@@ -300,8 +323,22 @@ impl Analyzer {
         }
         false
     }
+    fn trace_carrier_rejection(&self,phase:&str,span:Span,source:Type,destination:Type){
+                if !cfg!(test)&&std::env::var("TSRUST_TRACE_CARRIERS").as_deref()!=Ok("1"){return;}
+                eprintln!("CARRIER_REJECT phase={phase} span={:?} source={:?} target={destination:?}",span,Some(source));
+                let mut pending=vec![source,destination];let mut seen=HashSet::new();
+                while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
+                    Type::Record(id)=>{let record=&self.program.records[id];let fields=record.fields.iter().map(|field|(field.name.text.as_str(),field.ty.unwrap())).collect::<Vec<_>>();eprintln!("CARRIER_RECORD id={id} declaration={} fields={fields:?}",self.scoped_records.declaration(id));pending.extend(fields.into_iter().map(|(_,ty)|ty));}
+                    Type::Union(id)|Type::BorrowedUnion(id)=>{let members=self.unions.members(id);eprintln!("CARRIER_UNION id={id:?} members={members:?}");pending.extend(members);}
+                    Type::StoredCallable(id)|Type::BorrowedCallable(id)=>{eprintln!("CARRIER_FAMILY id={id} origins={:?} protocol={:?} scoped_protocol={:?}",self.callables.storage.origins(id),self.callables.storage.declaration(id).map(|declaration|self.callables.callbacks[declaration].structural),self.callables.storage.scoped_native_family(id).map(|family|family.signature));}
+                    Type::Callback(id)=>eprintln!("CARRIER_CALLBACK id={id} protocol={:?} kind={:?}",self.callables.callbacks[id].structural,self.callables.callbacks[id].kind),
+                    Type::Closure(id)=>if let Some(closure)=self.closures.get(id){let parameters=closure.parameters.iter().filter_map(|&binding|closure.function.bindings.get(binding).map(|binding|(binding.ty,binding.mode))).collect::<Vec<_>>();let captures=closure.captures.iter().map(|capture|(capture.inner,capture.outer,capture.storage,capture.access)).collect::<Vec<_>>();eprintln!("CARRIER_CLOSURE id={id} function={} invocation={:?} borrowed={} result={:?} parameters={parameters:?} captures={captures:?}",closure.function.name,closure.invocation,closure.borrowed,closure.function.result);},
+                    _=>{}
+                }}
+    }
     pub(super) fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
         if value.ty.is_some_and(|source|!self.carrier_convertible(source,destination)) {
+            self.trace_carrier_rejection("checked",value.span,value.ty.unwrap(),destination);
             return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
         }
         value.wrap_record_carrier(destination);
@@ -388,4 +425,125 @@ mod traversal_tests {
         assert!(context.control_stored.is_empty());
         drop(body);
     }
+}
+
+#[cfg(test)]
+#[test]
+fn flat_map_mixed_inner_result_checks_selected_nullable_carrier(){
+ use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+ struct Input;
+ impl SourceProvider for Input{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0!="main.tsr"{return Err(format!("Missing source: {}",id.0));}Ok("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]).flatMap((value:int):int[]|Iterator<int>=>value===1?[value,value]:Iterator.from([value]));console.log(values.toArray().join(','));}".into())}
+ }
+ let checked=check_graph(load_project(&Input,"main.tsr").unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));
+ drop(checked.emit_rust());
+}
+
+#[cfg(test)]
+#[test]
+fn empty_stored_carriers_require_the_same_protocol_and_nonempty_target(){
+ let source="function first():Owned<Function<int>>{const values=[1];return ():int=>values.length;}function second():Owned<Function<int>>{const values=[2];return ():int=>values.length;}function main(){}";
+ let checked=analyze(crate::syntax::parse(source).unwrap()).unwrap();
+ let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();analyzer.closures=checked.closures;assert_eq!(analyzer.closures.len(),2);
+ let signature=analyzer.callables.shapes.intern([],Type::Int,Some(CallbackKind::Owned));
+ let declaration=analyzer.callables.callbacks.len();analyzer.callables.callbacks.push(CallbackContract{structural:signature,parameter_names:vec![],params:vec![],result:Type::Int,kind:CallbackKind::Owned});
+ let callback=&analyzer.callables.callbacks[declaration];
+ let empty=analyzer.callables.storage.intern(&analyzer.callables.shapes,callback,declaration).unwrap();
+ let target=analyzer.callables.storage.intern_finite_owned(&analyzer.callables.shapes,callback,declaration,[0],&analyzer.closures,Span::default()).unwrap().unwrap();
+ let other=analyzer.callables.storage.intern_finite_owned(&analyzer.callables.shapes,callback,declaration,[1],&analyzer.closures,Span::default()).unwrap().unwrap();
+ assert!(analyzer.carrier_convertible(empty,target),"Empty owning storage has no payload to move into the same protocol");
+ assert!(analyzer.carrier_convertible(empty,Type::Callback(declaration)),"Absent storage converts only into the same callback protocol");
+ assert!(!analyzer.carrier_convertible(target,Type::Callback(declaration)),"A real environment cannot become a generic callback payload without an adapter");
+ assert!(!analyzer.carrier_convertible(other,target),"A real unadmitted environment cannot be discarded");
+ assert!(!analyzer.carrier_convertible(target,empty),"A populated family cannot become absent storage");
+ let signature=analyzer.callables.shapes.intern([],Type::Boolean,Some(CallbackKind::Owned));
+ let declaration=analyzer.callables.callbacks.len();analyzer.callables.callbacks.push(CallbackContract{structural:signature,parameter_names:vec![],params:vec![],result:Type::Boolean,kind:CallbackKind::Owned});
+ let wrong=analyzer.callables.storage.intern(&analyzer.callables.shapes,&analyzer.callables.callbacks[declaration],declaration).unwrap();
+ assert!(!analyzer.carrier_convertible(wrong,target),"Empty storage does not bypass protocol identity");
+ assert!(!analyzer.carrier_convertible(empty,Type::Callback(declaration)),"Absent storage still preserves the callback result protocol");
+ for(from,to,allowed)in [(empty,target,true),(target,empty,false),(other,target,false),(wrong,target,false)]{
+  for(from,to)in [(from,to),(Type::Array(ArrayElement::from_value_type(from).unwrap()),Type::Array(ArrayElement::from_value_type(to).unwrap()))]{
+   let from=analyzer.unions.intern([from,Type::Undefined],Span::default()).unwrap();let to=analyzer.unions.intern([to,Type::Undefined],Span::default()).unwrap();
+   assert_eq!(analyzer.carrier_convertible(from,to),allowed,"nullable storage preserves the direct callable conversion proof");
+  }
+ }
+}
+
+#[cfg(test)]
+#[test]
+fn retained_keyboard_ui_imports_and_router_preserve_checked_carriers(){
+ use crate::project::{SourceId,SourceProvider,FileSourceProvider,check_graph,load_project};
+ struct Entry{source:String,example:SourceId}
+ impl SourceProvider for Entry{
+  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{
+   if importer.is_none()&&path=="main.tsr"{Ok(SourceId(path.into()))}
+   else if importer.is_some_and(|id|id.0=="main.tsr")&&path=="./keyboard-shortcuts.tsrx"{Ok(self.example.clone())}
+   else{FileSourceProvider.resolve(importer,path)}
+  }
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.source.clone())}else{FileSourceProvider.read(id)}}
+ }
+ let example=std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/src/examples/keyboard-shortcuts.tsrx")).unwrap();
+ let source="import {KeyboardShortcuts as First,KeyboardCustomization as Second,KeyboardIconsAndTheme as Third} from './keyboard-shortcuts.tsrx';import {Router} from 'std:http';function main(){const router=new Router();}".to_owned();
+ let checked=check_graph(load_project(&Entry{source,example:SourceId(example.to_str().unwrap().into())},"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));
+ drop(checked.emit_rust());
+}
+
+#[cfg(test)]
+#[test]
+fn flat_map_single_iterator_result_keeps_its_finite_record_contract(){
+ use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+ struct Input(String);impl SourceProvider for Input{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ for callback in ["(value:int):Iterator<int>=>Iterator.from([value,value])","value=>Iterator.from([value,value])"] {
+  let source=format!("import {{Iterator}} from 'std:iterator';function main(){{const values=Iterator.from([1,2]).flatMap({callback});console.log(values.toArray().join(','));}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=check_graph(load_project(&Input(source),"main.tsr").unwrap()).unwrap_or_else(|errors|panic!("{errors:?}"));drop(checked.emit_rust());
+ }
+}
+
+#[cfg(test)]
+#[test]
+fn retained_alert_props_spread_preserves_checked_callback_carriers(){
+ use crate::project::{SourceId,SourceProvider,FileSourceProvider,check_graph,load_project};
+ struct Entry{source:String,alert:SourceId}
+ impl SourceProvider for Entry{
+  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{
+   if importer.is_none()&&path=="main.tsr"{Ok(SourceId(path.into()))}
+   else if importer.is_some_and(|id|id.0=="main.tsr")&&path=="./alert.tsrx"{Ok(self.alert.clone())}
+   else{FileSourceProvider.resolve(importer,path)}
+  }
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.source.clone())}else{FileSourceProvider.read(id)}}
+ }
+ let alert=std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/src/components/ui/alert.tsrx")).unwrap();
+ for(http,body)in [("",""),("import {Router} from 'std:http';","const router=new Router();")]{
+  let source=format!("import {{Alert,AlertTitle,AlertDescription,AlertAction}} from './alert.tsrx';{http}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let checked=check_graph(load_project(&Entry{source,alert:SourceId(alert.to_str().unwrap().into())},"main.tsr").unwrap()).unwrap_or_else(|error|panic!("retained Alert {http}: {error:?}"));drop(checked.emit_rust());
+ }
+}
+
+#[cfg(test)]
+#[test]
+fn literal_scalar_union_carriers_widen_without_narrowing_or_callback_conversion(){
+ let mut analyzer=Analyzer::new(crate::syntax::parse("type Item={value:int;};function main(){}").unwrap()).unwrap();
+ let computed=0;let mut literals=Vec::new();for value in ["left","right"]{let mut record=analyzer.program.records[computed].clone();record.literal_definition=Some(crate::literal_types::LiteralValue::String(value.into()));let id=analyzer.program.records.len();analyzer.program.records.push(record);literals.push(Type::Literal(id,crate::literal_types::LiteralKind::String));}let left=literals[0];let right=literals[1];
+ let from=analyzer.unions.intern(vec![left,right],Span::default()).unwrap();let target=analyzer.unions.intern(vec![Type::Record(computed),Type::String,Type::Undefined],Span::default()).unwrap();
+ assert!(analyzer.carrier_convertible(from,Type::String));assert!(!analyzer.carrier_convertible(from,Type::Int));
+ let nullable=analyzer.unions.intern(vec![left,Type::Undefined],Span::default()).unwrap();assert!(!analyzer.carrier_convertible(nullable,Type::String));
+ assert!(analyzer.carrier_convertible(from,target));assert!(analyzer.carrier_convertible(left,Type::String));assert!(!analyzer.carrier_convertible(Type::String,left));assert!(!analyzer.carrier_convertible(left,right));
+ let missing=analyzer.unions.intern(vec![left,Type::Undefined],Span::default()).unwrap();assert!(!analyzer.carrier_convertible(from,missing));
+ let wrong=analyzer.unions.intern(vec![Type::Record(computed),Type::Int,Type::Undefined],Span::default()).unwrap();assert!(!analyzer.carrier_convertible(from,wrong));
+}
+
+#[cfg(test)]
+mod recursive_conversion_tests {
+ use super::*;
+ #[test]
+ fn cyclic_conversion_checks_late_mismatch_and_keeps_union_alternatives_independent(){
+  let analyzer=Analyzer::new(crate::syntax::parse("type A={next?:A;value:int;};type B={next?:B;value:boolean;};type C={next?:C;value:int;};function main(){}").unwrap()).unwrap();
+  assert!(analyzer.carrier_convertible(Type::Record(0),Type::Record(2)));
+  assert!(!analyzer.carrier_convertible(Type::Record(0),Type::Record(1)),"backedge does not suppress later mismatched field");
+  let span=Span::default();let source=analyzer.unions.intern([Type::Record(0),Type::Undefined],span).unwrap();let target=analyzer.unions.intern([Type::Record(1),Type::Record(2),Type::Undefined],span).unwrap();
+  assert!(analyzer.carrier_convertible(source,target),"failed first record candidate must not poison the compatible alternative");
+ }
 }

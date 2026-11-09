@@ -68,7 +68,7 @@ impl Analyzer {
             },
             _ => unreachable!("checked assignment target"),
         };
-        let active = Self::selection_loans(selected, loans);
+        let active = self.url_store_selection_loans(context,target,loans).unwrap_or_else(||Self::selection_loans(selected, loans));
         if self.local_record_nullable_callback(context,target) {
             return Err(Diagnostic::new("unsupported","A callback field that can be null or undefined and borrows local variables cannot be replaced yet. Declare a new record with the new value.",target.span));
         }
@@ -142,6 +142,17 @@ impl Analyzer {
         if matches!((actual,ty),(Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if matches!((actual,ty),(Type::Array(ArrayElement::Record(a,0)),Type::Array(ArrayElement::Record(b,0))) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if self.scoped_record_nullable_contract(actual, ty) { context.bindings[id].ty = actual; }
+        if let Some(record)=self.owned_nullable_flow_record(context,id){
+            let mut selected:&Expr=&*value;
+            while let ExprKind::Inject{value:inner,..}|ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&selected.kind{selected=inner;}
+            if let Some(Type::Record(source))=selected.ty
+                && self.scoped_records.declaration(source)==self.scoped_records.declaration(record)
+                && self.program.records[source].application.as_ref().map(|application|&application.resolved_arguments)==self.program.records[record].application.as_ref().map(|application|&application.resolved_arguments)
+                && {let facts=self.aggregate_callable_facts(Type::Record(source));facts.retains && !facts.scoped && !facts.unknown}
+                && !self.native_shape_contains_view(Type::Record(source)) {
+                context.flow.insert(crate::flow::Place{root:id,fields:Vec::new()},crate::flow::Fact{members:vec![Type::Record(record)],origin:Some((value.span.start,value.span.end))});
+            }
+        }
         let mut native_loans = Self::native_view_value_loans(context, value)?;
         Self::retain_unified_native_view_loans(context, id, &mut native_loans);
         Self::set_native_view_loans(context, id, native_loans);
@@ -159,6 +170,7 @@ impl Analyzer {
         if !self.scoped_native_storage_contract(actual, contract, value.span)? {
             self.require(actual, Some(contract), value.span)?;
         }
+        if self.finish_url_store(context,target,loans)?{return Ok(());}
         let actual = self.recursive_native_field_value(context, target, value, actual)?;
         let binding = Self::root_binding(target).expect("checked field has a binding");
         if let Some((_, path)) = Self::direct_fields(target) {

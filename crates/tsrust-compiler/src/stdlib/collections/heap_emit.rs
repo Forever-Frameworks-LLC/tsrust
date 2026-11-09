@@ -4,10 +4,11 @@ impl Emitter<'_> {
     pub(super) fn heap_method_expression(&self,function:&CheckedFunction,expression:&Expr,callee:&Expr,arguments:&[Expr],method:HeapMethod)->String{
         let ExprKind::Field(base,_)=&callee.kind else{unreachable!()};
         let Type::Record(id)=base.ty.unwrap() else{unreachable!()};let element=self.program.records[id].native_element().unwrap();
-        let read=method==HeapMethod::Peek;
+        let read=matches!(method,HeapMethod::Peek|HeapMethod::ToSortedArray);
         let receiver=self.expr(function,base,if read{Mode::Read}else{Mode::Mutate});
         let selected=match method{
             HeapMethod::Push=>format!("heap_receiver.values.push(TsrOrdered::new({}))",self.expr(function,&arguments[0],Mode::Consume)),
+            HeapMethod::ToSortedArray=>self.flat_array_result(expression.ty.unwrap(),"{let mut values=heap_receiver.values.values.iter().cloned().collect::<Vec<_>>();values.sort_unstable();values.into_iter().map(|value|value.0).collect::<Vec<_>>()}"),
             HeapMethod::Clear=>"heap_receiver.values.clear()".into(),
             HeapMethod::Pop=>"heap_receiver.values.pop().map(|value|value.0)".into(),
             HeapMethod::Peek=>format!("heap_receiver.values.peek().map(|value|{}value.0)",if element.is_copy(){""}else{"&"}),

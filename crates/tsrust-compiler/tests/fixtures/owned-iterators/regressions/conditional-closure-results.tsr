@@ -1,0 +1,24 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+
+function conditional(flag: boolean): Iterator<int> {
+  return flag ? Iterator.from([8]) : Iterator.from([3]).map(value => value + 1);
+}
+
+export function run() {
+  const factory = (): Iterator<int> => Iterator.from([2, 4]);
+  {
+    const observed1_0 = factory().toArray().join(',');
+    strictEqual(observed1_0, "2,4");
+  }
+
+  {
+    const observed2_0 = conditional(true).toArray().join(',');
+    strictEqual(observed2_0, "8");
+  }
+
+  {
+    const observed3_0 = conditional(false).toArray().join(',');
+    strictEqual(observed3_0, "4");
+  }
+}

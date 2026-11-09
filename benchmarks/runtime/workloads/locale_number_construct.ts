@@ -1,0 +1,1 @@
+function workload(n:number,seed:number,input:string):number{const locale='en';let checksum=seed;let i=0;while(i<n){const value=new Intl.NumberFormat(locale);checksum+=value.format(1234).length;i++;}return checksum;}

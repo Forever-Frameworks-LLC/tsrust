@@ -31,6 +31,21 @@ impl Registry {
         self.native_views.get_or_insert_with(Default::default).prepare(family,layout);
         Ok(Some(ty))
     }
+    /// Keep a fully owned pull environment finite instead of merging signatures.
+    pub(crate) fn intern_finite_owned(
+        &mut self,signatures:&Contracts,callback:&crate::analysis::CallbackContract,
+        declaration:usize,origins:impl IntoIterator<Item=usize>,closures:&[CheckedClosure],span:Span,
+    )->Result<Option<crate::syntax::Type>,Diagnostic>{
+        let Some(layout)=crate::native_view_callable_storage::owned_family_slots(callback,signatures,origins,closures,span)? else{return Ok(None);};
+        let origins=layout.alternatives.iter().map(|alternative|alternative.origin).collect::<Vec<_>>();
+        let ty=self.intern_contract(StorageContract::ScopedOwned(callback.structural,origins.clone()),declaration);
+        let crate::syntax::Type::StoredCallable(family)=ty else{unreachable!()};
+        self.origins[family]=origins;
+        self.scoped_native.insert(family);
+        self.native_views.get_or_insert_with(Default::default).prepare(family,layout);
+        Ok(Some(ty))
+    }
+
     /// Recursive fields have one shared lifetime and one stable family identity.
     /// Each factory contributes alternatives without changing nonrecursive families.
     pub(crate) fn intern_recursive_scoped_native(

@@ -1,0 +1,29 @@
+import { App, Client, TlsOptions } from 'std:http';
+import { strictEqual } from 'std:testing';
+
+export async function main(): Task<void> {
+  const tls: TlsOptions = {
+    key: 'bad key', cert: 'bad cert'
+  };
+  let failed = false;
+  try {
+    const app = new App();
+    await app.listen('127.0.0.1:0', tls);
+  } catch (error) {
+    strictEqual(error.code, 'tls');
+    failed = true;
+  }
+
+  strictEqual(failed, true);
+  failed = false;
+  try {
+    new Client({
+      ca: ''
+    });
+  } catch (error) {
+    strictEqual(error.code, 'tls');
+    failed = true;
+  }
+
+  strictEqual(failed, true);
+}

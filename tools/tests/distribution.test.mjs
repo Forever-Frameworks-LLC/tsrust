@@ -63,6 +63,74 @@ test('packaging preserves bytes, source versions, notices and executable permiss
   assert.ok(!readme.includes('Web UI additionally needs'));
 }));
 
+const rEfiVersions = {
+  '5.3.0': 'ff92bed461f50338dd703a9ba9aee496a425957873df1d91192776e4bdf5dda7',
+  '6.0.0': 'd027e91dbc9cdbb2f1190068e498bd6b61cff022b6a032b191021ba658d96111',
+};
+function rEfiVendor(directory, version, versioned) {
+  const vendor = path.join(directory, 'vendor');
+  const crate = path.join(vendor, versioned ? `r-efi-${version}` : 'r-efi');
+  fs.mkdirSync(crate, {recursive: true});
+  fs.writeFileSync(path.join(crate, 'Cargo.toml'), `[package]\nname="r-efi"\nversion="${version}"\nlicense="MIT OR Apache-2.0 OR LGPL-2.1-or-later"\n`);
+  fs.writeFileSync(path.join(crate, '.cargo-checksum.json'), '{}');
+  fs.copyFileSync(new URL(`fixtures/r-efi-${version}/AUTHORS`, import.meta.url), path.join(crate, 'AUTHORS'));
+  return {vendor, crate};
+}
+
+test('packaging retains exact r-efi notices in versioned and ordinary Cargo vendor directories', () => {
+  for (const version of Object.keys(rEfiVersions)) for (const versioned of [false, true]) temporary(directory => {
+    const {vendor, crate} = rEfiVendor(directory, version, versioned);
+    const other = path.join(vendor, 'example-1.0.0');
+    fs.mkdirSync(other);
+    fs.writeFileSync(path.join(other, 'Cargo.toml'), '[package]\nname="example"\nversion="1.0.0"\nlicense="MIT"\n[lib]\nname="r-efi"\n');
+    fs.writeFileSync(path.join(other, '.cargo-checksum.json'), '{}');
+    fs.writeFileSync(path.join(other, 'LICENSE'), 'existing license fixture\n');
+    fs.writeFileSync(path.join(other, 'AUTHORS'), 'Names only, not a license\n');
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    assert.equal(result.status, 0, result.stderr);
+    const relative = `attributions/dependencies/${path.basename(crate)}/AUTHORS`;
+    const bytes = fs.readFileSync(path.join(output, relative));
+    assert.deepEqual(bytes, fs.readFileSync(path.join(crate, 'AUTHORS')));
+    assert.equal(digest(bytes), rEfiVersions[version]);
+    assert.match(bytes.toString(), /Permission is hereby granted, free of charge/);
+    const manifest = JSON.parse(fs.readFileSync(path.join(output, 'manifest.json')));
+    assert.deepEqual(manifest.files[relative], {sha256: digest(bytes), bytes: bytes.length});
+    assert.ok(!fs.existsSync(path.join(output, 'attributions/dependencies/example-1.0.0/AUTHORS')));
+  });
+});
+
+test('packaging rejects tampered or missing r-efi notices in both Cargo directory forms', () => {
+  for (const version of Object.keys(rEfiVersions)) for (const versioned of [false, true]) for (const mode of ['tampered', 'missing']) temporary(directory => {
+    const {vendor, crate} = rEfiVendor(directory, version, versioned);
+    const authors = path.join(crate, 'AUTHORS');
+    if (mode === 'missing') fs.rmSync(authors);
+    else fs.writeFileSync(authors, 'Authors only; full MIT notice removed\n');
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    assert.notEqual(result.status, 0, `${version}/${versioned}/${mode}`);
+    assert.match(result.stderr, /reviewed published AUTHORS MIT notice/);
+    assert.ok(!fs.existsSync(output));
+    assert.ok(fs.existsSync(crate), 'caller vendor tree must be preserved');
+    if (mode === 'tampered') assert.equal(fs.readFileSync(authors, 'utf8'), 'Authors only; full MIT notice removed\n');
+  });
+});
+
+test('packaging validates actual r-efi package identity and rejects mismatched notice versions', () => {
+  for (const mode of ['wrong-notice-version','wrong-package','unknown-version','wrong-directory-version']) temporary(directory => {
+    const {vendor, crate} = rEfiVendor(directory, '6.0.0', mode === 'wrong-directory-version');
+    const name = mode === 'wrong-package' ? 'unrelated' : 'r-efi';
+    const version = ['wrong-notice-version','wrong-directory-version'].includes(mode) ? '5.3.0' : mode === 'unknown-version' ? '7.0.0' : '6.0.0';
+    fs.writeFileSync(path.join(crate, 'Cargo.toml'), `[package]\nname="${name}"\nversion="${version}"\n`);
+    if (mode === 'wrong-directory-version') fs.copyFileSync(new URL('fixtures/r-efi-5.3.0/AUTHORS', import.meta.url), path.join(crate, 'AUTHORS'));
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    assert.notEqual(result.status, 0, mode);
+    assert.match(result.stderr, mode === 'wrong-directory-version' ? /directory does not match/ : /r-efi/);
+    assert.ok(!fs.existsSync(output));
+  });
+});
+
 test('packaging never replaces existing destinations and removes incomplete output', () => temporary(directory => {
   const inputs = consumers(directory);
   const output = path.join(directory, 'package');
@@ -180,4 +248,56 @@ test('LSP smoke rejects missing shutdown replies and unsuccessful exit', async (
 test('LSP smoke bounds an unresponsive child and reports spawn failures', async () => {
   await assert.rejects(smokeLsp(process.execPath, ['-e', server, 'hang'], {...options, timeout: 500}), /timed out/);
   await assert.rejects(smokeLsp('tsrust-missing-lsp-executable', [], options), /ENOENT/);
+});
+
+function valuableVendor(directory, versioned) {
+  const vendor = path.join(directory, 'vendor');
+  const crate = path.join(vendor, versioned ? 'valuable-0.1.1' : 'valuable');
+  fs.mkdirSync(crate, {recursive: true});
+  fs.writeFileSync(path.join(crate, 'Cargo.toml'), '[package]\nname="valuable"\nversion="0.1.1"\nlicense="MIT"\n');
+  fs.writeFileSync(path.join(crate, '.cargo-checksum.json'), JSON.stringify({package: 'ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65', files: {}}));
+  return {vendor, crate};
+}
+test('packaging adds the exact valuable MIT supplement without changing vendor bytes', () => {
+  for (const versioned of [false, true]) temporary(directory => {
+    const {vendor, crate} = valuableVendor(directory, versioned);
+    const before = fs.readFileSync(path.join(crate, '.cargo-checksum.json'));
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    assert.equal(result.status, 0, result.stderr);
+    const relative = 'attributions/dependencies/valuable-0.1.1/LICENSE';
+    const bytes = fs.readFileSync(path.join(output, relative));
+    assert.equal(digest(bytes), 'ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44');assert.equal(bytes.length, 1065);
+    assert.deepEqual(fs.readFileSync(path.join(crate, '.cargo-checksum.json')), before);
+    assert.ok(!fs.existsSync(path.join(crate, 'LICENSE')));
+    const manifest = JSON.parse(fs.readFileSync(path.join(output, 'manifest.json')));
+    assert.deepEqual(manifest.files[relative], {sha256: digest(bytes), bytes: bytes.length});
+  });
+});
+test('packaging adds each reviewed Android/wasm MIT supplement only for its exact archive', () => {
+  for (const [name, version, archive, notice] of [
+    ['jni-macros', '0.22.4', 'a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3', 'fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960'],
+    ['rsqlite-vfs', '0.1.1', 'c51c9ae4df8a7fba42103df5c621fa3c37eccf3a3c650879e90fc48b11cc192c', 'e1c1975c3474cce31722836f101a40ffaf1cc784e4d2f38ce3e77b9712934e78'],
+  ]) for (const checksum of [archive, 'changed']) temporary(directory => {
+    const vendor = path.join(directory, 'vendor'), crate = path.join(vendor, `${name}-${version}`);
+    fs.mkdirSync(crate, {recursive: true});
+    fs.writeFileSync(path.join(crate, 'Cargo.toml'), `[package]\nname="${name}"\nversion="${version}"\n`);
+    fs.writeFileSync(path.join(crate, '.cargo-checksum.json'), JSON.stringify({package: checksum, files: {}}));
+    const output = path.join(directory, 'package');
+    const result = pack([...consumers(directory), 'aarch64-apple-darwin', output, vendor]);
+    if (checksum !== archive) return assert.notEqual(result.status, 0);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(digest(fs.readFileSync(path.join(output, `attributions/dependencies/${name}-${version}/LICENSE`))), notice);
+  });
+});
+test('packaging rejects unreviewed valuable archive and nominal identities', () => {
+  for (const versioned of [false, true]) for (const mode of ['checksum','version','name']) temporary(directory => {
+    const {vendor, crate} = valuableVendor(directory, versioned);
+    if (mode === 'checksum') fs.writeFileSync(path.join(crate, '.cargo-checksum.json'), '{"package":"changed"}');
+    else {
+      const file = path.join(crate, 'Cargo.toml');
+      fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(mode === 'name' ? 'name="valuable"' : 'version="0.1.1"', mode === 'name' ? 'name="unrelated"' : 'version="0.1.2"'));
+    }
+    assert.notEqual(pack([...consumers(directory), 'aarch64-apple-darwin', path.join(directory, 'package'), vendor]).status, 0);
+  });
 });

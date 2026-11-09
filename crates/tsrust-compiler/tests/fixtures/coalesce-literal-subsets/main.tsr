@@ -1,0 +1,37 @@
+type Choice = 'left' | 'right';
+
+function wide(value: int): string | undefined {
+  if (value === 0) {
+    return undefined;
+  }
+
+  return 'wide';
+}
+
+function narrow(value: int): Choice | undefined {
+  if (value === 0) {
+    return undefined;
+  }
+
+  if (value === 1) {
+    return 'left';
+  }
+
+  return 'right';
+}
+
+function observe(value: ReadOnly<string | undefined>): void {
+  console.log(value);
+}
+
+function main() {
+  const left = wide(0);
+  const right = narrow(1);
+  observe(clone(left) ?? clone(right));
+  observe(clone(right) ?? 'none');
+  const saved = clone(left) ?? clone(right);
+  observe(saved ?? 'none');
+  const present = wide(1);
+  observe(clone(present) ?? clone(right));
+  observe(clone(present) ?? 'none');
+}

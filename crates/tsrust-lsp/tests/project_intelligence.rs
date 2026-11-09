@@ -7,7 +7,9 @@ use tsrust_lsp::{
     project_diagnostics::source_id, project_intelligence::ProjectIndex, workspace::Workspace,
 };
 fn ask(index: &ProjectIndex, source: &str, needle: &str, method: &str) -> Value {
-    let offset = source.rfind(needle).unwrap();
+    ask_at(index,source,source.rfind(needle).unwrap(),method)
+}
+fn ask_at(index:&ProjectIndex,source:&str,offset:usize,method:&str)->Value {
     let prefix = &source[..offset];
     let position = json!({"line":prefix.bytes().filter(|byte| *byte == b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()});
     index
@@ -18,6 +20,32 @@ fn ask(index: &ProjectIndex, source: &str, needle: &str, method: &str) -> Value 
         )
         .unwrap()
         .unwrap()
+}
+
+#[test]
+fn recovered_imported_member_edits_preserve_original_utf16_ranges() {
+    for (access,label) in [(".","aria-label"),("?.","aria-label"),(".ar","aria-label"),("?.ar","aria-label"),(".ti","title"),("?.ti","title")] {
+        let optional=access.starts_with("?.");
+        let ty=if optional{"Props | undefined"}else{"Props"};
+        let source=format!("import {{Props}} from './dep.tsr';function probe(props:{ty}){{/* 😀 */props{access};}}");
+        let uri=fixture_uri!("/tsrust-intelligence/main.tsr");
+        let id=source_id(uri).unwrap();
+        let mut workspace=Workspace::default();
+        workspace.open(source_id(fixture_uri!("/tsrust-intelligence/dep.tsr")).unwrap(),1,"export interface Props {'aria-label':string;title:string;}".into());
+        workspace.open(id.clone(),1,source.clone());
+        let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&id.0).unwrap();
+        let start=source.rfind("props").unwrap()+5;
+        let cursor=start+access.len();
+        let items=ask_at(&ProjectIndex::new(&graph),&source,cursor,"textDocument/completion");
+        let item=items.as_array().unwrap().iter().find(|item|item["label"]==label).unwrap();
+        let start=if label=="title"{cursor-2}else{start};
+        let replacement=if label=="title"{"title"}else if optional{"?.[\"aria-label\"]"}else{"[\"aria-label\"]"};
+        assert_eq!(item["textEdit"]["newText"],replacement,"{access}: {item}");
+        assert_eq!(item["textEdit"]["range"],json!({"start":{"line":0,"character":source[..start].encode_utf16().count()},"end":{"line":0,"character":source[..cursor].encode_utf16().count()}}));
+        let fixed=format!("{}{replacement}{}",&source[..start],&source[cursor..]);
+        workspace.open(id.clone(),2,fixed);
+        workspace.snapshot().check(&id).unwrap();
+    }
 }
 
 #[test]
@@ -32,7 +60,7 @@ fn file_api_hover_and_signature_help_preserve_consuming_close() {
     assert!(hover.to_string().contains("consumed even when close fails"), "{hover}");
     assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
     let help = ask(&index, &entry, "file, 4", "textDocument/signatureHelp");
-    assert!(help.to_string().contains("Mutable<File | BufferedReader>") && help.to_string().contains("67108864"), "{help}");
+    assert!(help.to_string().contains("Mutable<File | BufferedReader>") && help.to_string().contains("nonnegative"), "{help}");
     let hover = ask(&index, &entry, "error.osCode", "textDocument/hover");
     assert!(!hover.is_null());
     let importing = "import { F } from 'std:fs';function main(){}";
@@ -41,7 +69,7 @@ fn file_api_hover_and_signature_help_preserve_consuming_close() {
     let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &source_id(uri).unwrap().0).unwrap();
     let completion = ask(&ProjectIndex::new(&graph), importing, " }", "textDocument/completion");
     let labels = completion.as_array().unwrap().iter().filter_map(|item| item["label"].as_str()).collect::<Vec<_>>();
-    assert_eq!(labels, ["File", "FsError"], "{completion}");
+    assert_eq!(labels, ["File", "FsError", "FileTime"], "{completion}");
 }
 
 #[test]
@@ -1873,7 +1901,7 @@ fn file_write_signature_help_documents_borrowed_views_and_partial_progress() {
     let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let index = ProjectIndex::checked(&checked);
     let help = ask(&index, &entry, "file, bytes", "textDocument/signatureHelp");
-    for phrase in ["ByteView", "ByteViewMut", "67108864"] { assert!(help.to_string().contains(phrase), "{help}"); }
+    for phrase in ["ByteView", "ByteViewMut", "no additional operation-size ceiling"] { assert!(help.to_string().contains(phrase), "{help}"); }
     let hover = ask(&index, &entry, "writeAll(file", "textDocument/hover");
     assert!(hover.to_string().contains("not rolled back"), "{hover}");
     assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
@@ -1886,9 +1914,9 @@ fn full_file_helpers_document_limits_defaults_and_view_inputs() {
  workspace.open(source_id(uri).unwrap(),1,entry.clone());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let help=ask(&index,&entry,"4);","textDocument/signatureHelp");
- assert!(help.to_string().contains("67108864")&&help.to_string().contains("maxBytes"),"{help}");
+ assert!(help.to_string().contains("no application-size ceiling")&&help.to_string().contains("maxBytes"),"{help}");
  let hover=ask(&index,&entry,"writeFile(","textDocument/hover");
- assert!(hover.to_string().contains("ByteViewMut")&&hover.to_string().contains("before the destination changes"),"{hover}");
+ assert!(hover.to_string().contains("ByteViewMut")&&hover.to_string().contains("not an atomic replacement"),"{hover}");
 }
 
 #[test]
@@ -3216,4 +3244,20 @@ fn json_default_limit_help_agrees_for_native_and_typed_calls(){
   let hover=ask(&index,&source,needle,"textDocument/hover");assert!(hover.to_string().contains(expected),"{needle}: {hover}");
   assert!(!hover.to_string().contains("16777216")&&!hover.to_string().contains("1048576"),"{hover}");
  }
+}
+
+#[test]
+fn filesystem_options_metadata_and_entry_help_agree_with_native_signatures() {
+    let entry=tsrust_compiler::format("import {openFile,fileStat,readDir,close} from 'std:fs';function main(){const file=unwrap(openFile('input.bin',{read:true}));const info=unwrap(fileStat(file));console.log(info.size);const entries=unwrap(readDir('.'));for(const entry of entries){console.log(entry.isSymlink);}unwrap(close(file));}").unwrap();
+    let uri=fixture_uri!("/tsrust-intelligence/main.tsr");
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"size","textDocument/hover").to_string();
+    assert!(hover.contains("Host metadata length in bytes"),"{hover}");assert!(!hover.contains("__tsrust_private_"));
+    let hover=ask(&index,&entry,"isSymlink","textDocument/hover").to_string();
+    assert!(hover.contains("including links to directories or missing targets"),"{hover}");
+    let options=ask_at(&index,&entry,entry.rfind("openFile(").unwrap()+"openFile(".len(),"textDocument/signatureHelp").to_string();
+    assert!(options.contains("options: ReadOnly<OpenOptions>"),"{options}");
+    let directory=ask_at(&index,&entry,entry.rfind("readDir(").unwrap()+"readDir(".len(),"textDocument/signatureHelp").to_string();
+    assert!(directory.contains("maxEntries?: int"),"{directory}");assert!(directory.contains("no application entry cap"),"{directory}");
 }

@@ -1,0 +1,29 @@
+import { alloc, length, at, compare } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[] {
+  let size = 32;
+  if (input === "4k") {
+    size = 4096;
+  }
+
+  if (input === "1m") {
+    size = 1048576;
+  }
+
+  const bytes = unwrap(alloc(size, 97));
+  const other = unwrap(alloc(size, 97));
+  const output: int[] = [];
+  let i = 0;
+  while (i < n) {
+    output.push(compare(bytes, other) + 1);
+    output.push(size);
+    output.push(length(other));
+    i += 1;
+  }
+
+  return output;
+}
+
+function main() {
+  workload(1, 7, "token");
+}

@@ -4,13 +4,9 @@ mod support;
 
 #[test]
 fn deque_clone_is_deep_and_requires_cloneable_payloads() {
-    let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
-type Item={values:int[];};
-function main(){const original=new Deque<Item>();original.pushBack({values:[1,2]});const copied=clone(original);const item=copied.popFront()!;item.values.push(3);strictEqual(item.values.length,3);const source=original.popFront()!;strictEqual(source.values.length,2);strictEqual(source.values[0],1);const empty=new Deque<int>();strictEqual(clone(empty).size,0);}
-"#;
     let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+
+
     for declaration in ["import {ByteView} from 'std:bytes';type Item=ByteView;", "type Item={read:ReadOnly<Function<int>>;};", "import {ByteView} from 'std:bytes';type Item={next?:Item;data:ByteView;};"] {
         let source=format!("import {{Deque}} from 'std:collections';{declaration}function main(){{const values=new Deque<Item>();const copied=clone(values);}}");
         let path=directory.source(&support::format_round_trip(&source));
@@ -28,8 +24,8 @@ type Reader={read:ReadOnly<Function<int>>;};
 function main(){const text='borrowed';const values=new Deque<Reader>();values.pushBack({read:()=>text.length});for(const item of values){strictEqual(item.read(),8);}const item=values.popFront()!;strictEqual(item.read(),8);}
 "#;
     let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+
+
     for source in [
         source.replace("for(const item of values)", "const moved=text;for(const item of values)"),
         source.replace("const item=values.popFront()!;strictEqual", "const item=values.popFront()!;const moved=text;strictEqual"),
@@ -42,29 +38,6 @@ function main(){const text='borrowed';const values=new Deque<Reader>();values.pu
 }
 
 #[test]
-fn deque_callback_records_join_distinct_environments() {
-    let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
-type Reader={read:ReadOnly<Function<int>>;};
-function main(){const text='one';const other='seven';const values=new Deque<Reader>();values.pushBack({read:()=>text.length});values.pushBack({read:()=>other.length});let sum=0;for(const item of values){sum+=item.read();}strictEqual(sum,8);const first=values.popFront()!;const last=values.popBack()!;strictEqual(first.read(),3);strictEqual(last.read(),5);values.pushBack({read:()=>text.length+other.length});strictEqual(values.popFront()!.read(),8);}
-"#;
-    let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
-}
-
-#[test]
-fn deque_callback_records_retain_native_view_captures() {
-    let helpers = include_str!("fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
-    let source = format!(r#"import {{Deque}} from 'std:collections';{helpers}
-type Reader={{read:ReadOnly<Function<int>>;}};
-function main(){{const owner=bytes('ab');const part=window(owner);const values=new Deque<Reader>();values.pushBack({{read:()=>length(part)}});for(const item of values){{strictEqual(item.read(),2);}}const item=values.popFront()!;strictEqual(item.read(),2);}}
-"#);
-    let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(&source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
-}
-
-#[test]
 fn returned_deque_callback_records_keep_parameter_owners() {
     let helpers = include_str!("fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
     let source = format!(r#"import {{Deque}} from 'std:collections';{helpers}
@@ -73,8 +46,8 @@ function collect(owner:ReadOnly<Bytes>):Deque<Reader>{{const part=window(owner);
 function main(){{const owner=bytes('ab');const values=collect(owner);const item=values.popFront()!;strictEqual(length(item.read()),2);}}
 "#);
     let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(&source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+
+
     let invalid = source.replace("const values=collect(owner);const item", "const values=collect(owner);const moved=owner;const item");
     let path = directory.source(&support::format_round_trip(&invalid));
     let output = support::run(support::cli().arg("check").arg(path), 30);
@@ -93,44 +66,13 @@ fn deque_iteration_borrows_in_front_to_back_order() {
 function main(){const values=new Deque<string>();values.pushBack('b');values.pushFront('a');values.pushBack('c');let joined='';for(const value of values){joined+=value;}strictEqual(joined,'abc');strictEqual(values.size,3);values.clear();for(const value of values){throw 'empty queue visited';}}
 "#;
     let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+
+
     let source = source.replace("joined+=value;", "values.clear();joined+=value;");
     let path = directory.source(&support::format_round_trip(&source));
     let output = support::run(support::cli().arg("check").arg(path), 30);
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("iteration-conflict"));
-}
-
-#[test]
-fn deque_iteration_retains_views_and_handles_early_completion() {
-    let helpers = include_str!("fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
-    let source = format!(r#"import {{Deque}} from 'std:collections';{helpers}
-function first(values:ReadOnly<Deque<ByteView>>):int{{for(const part of values){{return length(part);}}return 0;}}
-function guarded(values:ReadOnly<Deque<ByteView>>):string{{let output='';try{{for(const part of values){{output+=text(part);return output;}}}}finally{{strictEqual(values.size,2);}}return output;}}
-function main(){{const owner=bytes('ab');const values=new Deque<ByteView>();values.pushBack(window(owner));values.pushFront(window(owner));let sum=0;for(const part of values){{sum+=length(part);}}strictEqual(sum,4);strictEqual(first(values),2);strictEqual(guarded(values),'ab');values.clear();strictEqual(first(values),0);}}
-"#);
-    let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(&source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
-}
-
-#[test]
-fn deque_end_operations_move_values_and_borrow_reads() {
-    let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
-function main(){
- const values=new Deque<int>();strictEqual(values.size,0);strictEqual(values.popFront(),undefined);
- values.pushBack(2);values.pushFront(1);values.pushBack(3);
- strictEqual(values.size,3);strictEqual(values.front()!,1);strictEqual(values.back()!,3);
- strictEqual(values.at(1)!,2);strictEqual(values.at(-1),undefined);strictEqual(values.at(3),undefined);
- strictEqual(values.popFront()!,1);strictEqual(values.popBack()!,3);strictEqual(values.popBack()!,2);
- strictEqual(values.popBack(),undefined);values.pushBack(9);values.clear();strictEqual(values.size,0);
- const words=new Deque<string>();words.pushBack('owned');{const word=words.front();
- if(word!==undefined){strictEqual(word.length,5);}}const moved=words.popFront()!;strictEqual(moved,'owned');
-}"#;
-    let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
 }
 
 #[test]
@@ -141,9 +83,6 @@ function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)
 function transfer(input:ByteView):ByteView{const values=new Deque<ByteView>();values.pushBack(input);return values.popFront()!;}
 "#;
     let directory = support::TempDirectory::new();
-    let good = format!("{helpers}function main(){{const owner=bytes();const result=transfer(window(owner));strictEqual(length(result),2);}}");
-    let path = directory.source(&support::format_round_trip(&good));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
     for body in [
         "const owner=bytes();const values=new Deque<ByteView>();values.pushBack(window(owner));set(owner,0,9);console.log(values.size);",
         "const owner=bytes();const values=new Deque<ByteView>();values.pushBack(window(owner));const first=values.front();values.clear();if(first!==undefined){console.log(length(first));}",
@@ -178,20 +117,6 @@ fn deque_methods_reject_invalid_access_and_arguments() {
 }
 
 #[test]
-fn deque_construction_uses_import_identity_and_owned_native_storage() {
-    for source in [
-        "import {Deque as Queue} from 'std:collections';function create<T>():Queue<T>{return new Queue<T>();}function accept(value:Queue<int>){}function main(){const values=create<int>();accept(values);}",
-        "import {Deque} from 'std:collections';function read(value:ReadOnly<Deque<int>>){}function write(value:Mutable<Deque<int>>){}function main(){read(new Deque<int>());write(new Deque<int>());}",
-    ] {
-        let directory = support::TempDirectory::new();
-        let path = directory.source(&support::format_round_trip(source));
-        let output = support::run(support::cli().arg("run").arg(path), 120);
-        support::success(&output);
-        assert!(output.stdout.is_empty());
-    }
-}
-
-#[test]
 fn deque_constructor_rejects_arguments_and_unregistered_type_identities() {
     for (source, code) in [
         ("import {Deque} from 'std:collections';function main(){const values=new Deque<int>(1);}", "arity"),
@@ -204,25 +129,6 @@ fn deque_constructor_rejects_arguments_and_unregistered_type_identities() {
         assert!(!output.status.success());
         assert!(String::from_utf8_lossy(&output.stderr).contains(code), "{}", String::from_utf8_lossy(&output.stderr));
     }
-}
-
-#[test]
-fn empty_deque_of_views_returns_without_inventing_an_owner() {
-    let source = "import {Deque} from 'std:collections';import {ByteView} from 'std:bytes';function empty():Deque<ByteView>{return new Deque<ByteView>();}function accept(values:Deque<ByteView>){}function main(){accept(empty());}";
-    let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
-}
-
-#[test]
-fn maps_hold_borrowed_native_views_without_copying_and_clones_are_independent() {
-    let directory = support::TempDirectory::new();
-    let source = support::format_round_trip(include_str!("fixtures/collections/borrowed-values.tsr"));
-    let path = directory.source(&source);
-    let output = support::run(support::cli().arg("run").arg(path), 120);
-    support::success(&output);
-    assert!(output.stdout.is_empty());
-    assert!(output.stderr.is_empty());
 }
 
 #[test]
@@ -246,14 +152,6 @@ fn collection_storage_keeps_view_owners_and_iteration_loans_live() {
 }
 
 #[test]
-fn returned_map_views_keep_selected_owner_through_parameters_and_capture() {
-    let directory = support::TempDirectory::new();
-    let source = support::format_round_trip(include_str!("fixtures/collections/returned-views.tsr"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path), 120));
-}
-
-#[test]
 fn map_view_transport_rejects_short_owner_escape_and_mutated_parameter_conflicts() {
     let fixture = include_str!("fixtures/collections/returned-views.tsr");
     let helpers = fixture.split("function main()").next().unwrap();
@@ -268,15 +166,6 @@ fn map_view_transport_rejects_short_owner_escape_and_mutated_parameter_conflicts
         assert!(!output.status.success(), "short owner escaped: {source}");
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(stderr.contains("native-view"), "{stderr}");
-    }
-}
-
-#[test]
-fn projected_and_recursive_map_views_execute_with_real_owner_lifetimes() {
-    for fixture in [include_str!("fixtures/collections/projected-views.tsr"), include_str!("fixtures/collections/recursive-map-views.tsr")] {
-        let directory = support::TempDirectory::new();
-        let path = directory.source(&support::format_round_trip(fixture));
-        support::success(&support::run(support::cli().arg("run").arg(path), 120));
     }
 }
 
@@ -398,22 +287,9 @@ fn ordered_backends_reject_invalidation_noncloneable_values_and_escape() {
 }
 
 #[test]
-fn heap_orders_scalars_and_transfers_owned_values() {
-    let source=r#"import {Heap as Queue} from 'std:collections';import {strictEqual} from 'std:testing';
-function main(){const values=new Queue<int>();strictEqual(values.size,0);strictEqual(values.pop(),undefined);values.push(2);values.push(9);values.push(9);strictEqual(values.peek(),9);const copy=clone(values);strictEqual(copy.pop(),9);strictEqual(values.size,3);strictEqual(values.pop(),9);strictEqual(values.pop(),9);strictEqual(values.pop(),2);strictEqual(values.peek(),undefined);const words=new Queue<string>();words.push('a');words.push('🦀');words.push('界');{const top=words.peek();if(top!==undefined){strictEqual(top,'🦀');}}const word=words.pop()!;strictEqual(word,'🦀');words.clear();strictEqual(words.size,0);}
-"#;
-    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
 fn heap_number_enum_order_and_invalid_access_are_checked() {
-    let source=r#"import {Heap} from 'std:collections';import {strictEqual} from 'std:testing';
-enum Priority{Low=1,High=9}
-function main(){const values=new Heap<number>();values.push(-0.0);values.push(Infinity);values.push(NaN);values.push(-Infinity);strictEqual(Number.isNaN(values.pop()!),true);strictEqual(values.pop(),Infinity);strictEqual(Object.is(values.pop()!,0.0),true);strictEqual(values.pop(),-Infinity);const priorities=new Heap<Priority>();priorities.push(Priority.Low);priorities.push(Priority.High);strictEqual(priorities.pop(),Priority.High);const flags=new Heap<boolean>();flags.push(false);flags.push(true);strictEqual(flags.pop(),true);}
-"#;
-    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    let directory=support::TempDirectory::new();
+
     for body in [
         "const values=new Heap<int>(1);",
         "const values=new Heap<int>();values.push('bad');",
@@ -434,37 +310,13 @@ fn heap_iteration_borrows_every_value_and_preserves_completion() {
 function first(values:ReadOnly<Heap<int>>):int{for(const value of values){try{return value;}finally{strictEqual(values.size,3);}}return -1;}
 function main(){const values=new Heap<int>();values.push(2);values.push(9);values.push(4);let count=0;let sum=0;for(const value of values){sum+=value;count++;}strictEqual(count,3);strictEqual(sum,15);strictEqual(values.size,3);strictEqual(first(values)>0,true);const words=new Heap<string>();words.push('abc');words.push('xy');let length=0;for(const word of words){length+=word.length;}strictEqual(length,5);strictEqual(words.size,2);words.clear();for(const word of words){throw 'empty heap visited';}}
 "#;
-    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    let directory=support::TempDirectory::new();
+
     for replacement in ["values.clear();sum+=value;","const moved=values;sum+=value;"] {
         let source=source.replace("sum+=value;",replacement);let path=directory.source(&support::format_round_trip(&source));
         let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success());
         assert!(String::from_utf8_lossy(&output.stderr).contains("iteration-conflict"),"{}",String::from_utf8_lossy(&output.stderr));
     }
-}
-
-#[test]
-fn native_collection_spread_preserves_copy_borrow_and_move() {
-    let source = r#"import {Deque,Heap} from 'std:collections';import {strictEqual} from 'std:testing';
-function sum(...values:int[]):int{let total=0;for(const value of values){total+=value;}return total;}
-function read(value:ReadOnly<string>):int{return value.length;}
-function take(...values:string[]):int{let total=0;for(const value of values){total+=value.length;}return total;}
-function update(value:Mutable<int[]>){value.push(2);}
-function change(values:Mutable<Deque<int>>):int{values.pushBack(9);return 4;}
-function pair(a:int,b:int):int{return a+b;}
-function main(){
- const numbers=new Deque<int>();numbers.pushBack(2);numbers.pushFront(1);strictEqual(sum(...numbers),3);strictEqual(numbers.size,2);const copied=[...numbers];strictEqual(copied[0],1);strictEqual(numbers.size,2);
- strictEqual(sum(...numbers,change(numbers)),7);strictEqual(numbers.size,3);let caught=false;try{pair(...numbers);}catch(error){caught=true;}strictEqual(caught,true);
- const words=new Deque<string>();words.pushBack('abc');strictEqual(read(...words),3);strictEqual(words.size,1);strictEqual(take(...words),3);
- const nested=new Deque<int[]>();nested.pushBack([1]);update(...nested);strictEqual(nested.popFront()!.length,2);
- const heap=new Heap<int>();heap.push(2);heap.push(1);strictEqual(sum(...heap),3);strictEqual(heap.size,2);const items=[...heap];strictEqual(sum(...items),3);strictEqual(heap.size,2);
- const strings=new Heap<string>();strings.push('abc');strictEqual(read(...strings),3);strictEqual(strings.size,1);strictEqual(take(...strings),3);
- const moving=new Deque<string>();moving.pushBack('a');const owned=[...moving];strictEqual(owned[0],'a');
-}
-"#;
-    let directory = support::TempDirectory::new();
-    let path = directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
 }
 
 #[test]
@@ -495,8 +347,8 @@ function main(){{const owner=bytes('ab');const values=new Deque<ByteView>();valu
 "#);
     for source in [source.clone(),source.replace("const parts=[...values];","const parts=take(...values);"),source.replace("const parts=[...values];","const parts=[identity(...values)];")] {
     let directory=support::TempDirectory::new();
-    let path=directory.source(&support::format_round_trip(&source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
+
+
     let invalid=source.replace("strictEqual(length(parts[0]),2);","const moved=owner;strictEqual(length(parts[0]),2);");
     let path=directory.source(&support::format_round_trip(&invalid));
     let output=support::run(support::cli().arg("check").arg(path),30);
@@ -506,47 +358,21 @@ function main(){{const owner=bytes('ab');const values=new Deque<ByteView>();valu
 }
 
 #[test]
-fn deque_borrowed_array_reads_support_non_null_projection() {
-    let source=r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
-function size(values:ReadOnly<Deque<int[]>>):int{return values.front()!.length;}
-function main(){const values=new Deque<int[]>();values.pushBack([1,2]);strictEqual(values.front()!.length,2);strictEqual(values.back()!.length,2);strictEqual(values.at(0)!.length,2);strictEqual(size(values),2);strictEqual(values.size,1);}
-"#;
-    let directory=support::TempDirectory::new();
-    let path=directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
 fn deque_borrowed_nested_indexing_reads_without_transfers() {
  let source=r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
 function consume(value:string):string{return value;}
 function change(values:Mutable<Deque<int[]>>):int{values.clear();return 0;}
 function main(){const values=new Deque<int[]>();values.pushBack([4,5]);strictEqual(values.front()![0],4);strictEqual(values.back()![1],5);strictEqual(values.at(0)![0],4);strictEqual(values.size,1);const words=new Deque<string[]>();words.pushBack(['word']);strictEqual(words.front()![0].length,4);strictEqual(words.size,1);}
 "#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ let directory=support::TempDirectory::new();
  for invalid in [source.replace("strictEqual(values.front()![0],4);","values.front()![0]=9;"),source.replace("strictEqual(words.front()![0].length,4);","consume(words.front()![0]);"),source.replace("strictEqual(values.front()![0],4);","strictEqual(values.front()![change(values)],4);"),source.replace("strictEqual(words.front()![0].length,4);","const borrowed=words.front()![0];words.clear();console.log(borrowed);")] {
   let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"borrowed index accepted: {invalid}");
  }
 }
 
 #[test]
-fn ordered_set_public_surface_preserves_order_and_borrowed_queries() {
- let source=r#"import {OrderedSet as Tree} from 'std:collections';import {strictEqual} from 'std:testing';
-function total(...values:int[]):int{let sum=0;for(const value of values){sum+=value;}return sum;}
-function main(){const values=new Tree<int>();strictEqual(values.size,0);values.add(3);values.add(1);values.add(2);values.add(1);strictEqual(values.size,3);let ordered='';for(const value of values){ordered+=String(value);}strictEqual(ordered,'123');strictEqual(values.has(2),true);strictEqual(values.has(4),false);strictEqual(total(...values),6);const array=[...values];strictEqual(array[0],1);strictEqual(array[2],3);const copied=clone(values);strictEqual(copied.delete(2),true);strictEqual(copied.delete(2),false);strictEqual(values.size,3);copied.clear();strictEqual(copied.size,0);const words=new Tree<string>();const owned='z'.repeat(2);words.add(owned);words.add('a');const query='z'.repeat(2);strictEqual(words.has(query),true);strictEqual(query.length,2);strictEqual(words.delete(query),true);strictEqual(query.length,2);for(const word of words){strictEqual(word,'a');}}
-"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
 fn ordered_set_number_enum_and_ownership_boundaries() {
- let source=r#"import {OrderedSet} from 'std:collections';import {strictEqual} from 'std:testing';
-enum Code{Low=1,High=4}
-enum Label{Last='z',First='a'}
-function take(...words:string[]):int{let size=0;for(const word of words){size+=word.length;}return size;}
-function main(){const numbers=new OrderedSet<number>();numbers.add(-0.0);numbers.add(0.0);numbers.add(NaN);numbers.add(NaN);numbers.add(Infinity);numbers.add(-Infinity);strictEqual(numbers.size,4);strictEqual(numbers.has(NaN),true);strictEqual(numbers.has(-0.0),true);const sorted=[...numbers];strictEqual(sorted[0],-Infinity);strictEqual(1.0/sorted[1],Infinity);strictEqual(sorted[2],Infinity);strictEqual(Number.isNaN(sorted[3]),true);strictEqual(numbers.delete(NaN),true);strictEqual(numbers.has(NaN),false);const codes=new OrderedSet<Code>();codes.add(Code.High);codes.add(Code.Low);strictEqual(codes.has(Code.Low),true);strictEqual(codes.delete(Code.High),true);for(const code of codes){strictEqual(code,Code.Low);}const flags=new OrderedSet<boolean>();flags.add(true);flags.add(false);const ordered=[...flags];strictEqual(ordered[0],false);const labels=new OrderedSet<Label>();labels.add(Label.Last);labels.add(Label.First);strictEqual(labels.has(Label.First),true);strictEqual(labels.delete(Label.Last),true);const unicode=new OrderedSet<string>();unicode.add('😀');unicode.add('\uE000');const sequence=[...unicode];strictEqual(sequence[0],'\uE000');strictEqual(sequence[1],'😀');const words=new OrderedSet<string>();words.add('a');words.add('bb');strictEqual(take(...words),3);}
-"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ let directory=support::TempDirectory::new();
  for body in ["const values=new OrderedSet<int[]>();","const values=new OrderedSet<int>();values.add('x');","const values=new OrderedSet<int>();values.size=3;","const values=new OrderedSet<int>();values.add(1);for(const item of values){values.clear();}","const values=new OrderedSet<string>();const word='x'.repeat(2);values.add(word);console.log(word);","const values=new OrderedSet<int>();values.has();","function read(values:ReadOnly<OrderedSet<int>>){values.add(1);}","function change(value:Mutable<string>){}const values=new OrderedSet<string>();values.add('x');change(...values);"] {
   let source=format!("import {{OrderedSet}} from 'std:collections';function main(){{{body}}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"invalid ordered set accepted: {source}");
  }
@@ -579,15 +405,6 @@ fn ordered_map_source_queries_reject_borrow_invalidation_and_escape() {
 }
 
 #[test]
-fn ordered_map_public_constructor_preserves_sorted_owned_storage() {
-    let source=r#"import {OrderedMap as Tree} from 'std:collections';import {strictEqual} from 'std:testing';
-function main(){const values=new Tree<string,int>();values.set('z',3);values.set('a',1);values.set('m',2);let seen='';for(const entry of values){seen+=entry[0];}strictEqual(seen,'amz');strictEqual(values.get('m'),2);const copy=clone(values);strictEqual(copy.delete('a'),true);strictEqual(values.size,3);strictEqual(copy.size,2);}
-"#;
-    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
 fn ordered_map_public_constructor_checks_keys_ownership_and_family() {
     let directory=support::TempDirectory::new();
     for body in [
@@ -611,24 +428,6 @@ fn ordered_map_public_constructor_checks_keys_ownership_and_family() {
 }
 
 #[test]
-fn map_set_copied_key_can_feed_the_value_expression() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function main(){const key=2;const ordered=new OrderedMap<int,int>();ordered.set(key,key*3+1);strictEqual(ordered.get(key),7);const ordinary=new Map<int,int>();ordinary.set(key,key*4+1);strictEqual(ordinary.get(key),9);}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
-fn ordered_map_converts_to_independent_ordinary_map() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function main(){const ordered=new OrderedMap<string,string>();ordered.set('z','last');ordered.set('a','first');const ordinary=new Map<string,string>(ordered);let keys='';for(const entry of ordinary){keys+=entry[0];}strictEqual(keys,'az');ordinary.delete('a');strictEqual(ordered.size,2);strictEqual(ordinary.size,1);strictEqual(ordinary.get('z'),'last');}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
-fn ordered_map_array_from_borrows_sorted_entries() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function main(){const values=new OrderedMap<string,string>();values.set('z','last');values.set('a','first');const mapped=Array.from(values,(entry:ReadOnly<[string,string]>,index:int):string=>entry[0]+String(index)+entry[1]);strictEqual(mapped[0],'a0first');strictEqual(mapped[1],'z1last');strictEqual(values.size,2);}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
 fn ordered_map_array_from_preserves_view_payloads_and_copy_boundaries() {
  let source=r#"import {OrderedMap} from 'std:collections';import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';import {strictEqual} from 'std:testing';
 function bytes():Bytes{match(fromUtf8('ab')){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}
@@ -636,71 +435,26 @@ function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)
 type Row={data:ByteView;};
 function main(){const owner=bytes();const values=new OrderedMap<int,Row>();values.set(2,{data:window(owner)});values.set(1,{data:window(owner)});const lengths=Array.from(values,(entry:ReadOnly<[int,Row]>,index:int):int=>length(entry[1].data)+entry[0]+index);strictEqual(lengths[0],3);strictEqual(lengths[1],5);strictEqual(values.size,2);const plain=new OrderedMap<string,string>();plain.set('z','last');plain.set('a','first');const copied=Array.from(plain);plain.clear();strictEqual(copied[0][0],'a');strictEqual(copied[1][1],'last');}
 "#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ let directory=support::TempDirectory::new();
  for invalid in [source.replace("length(entry[1].data)+entry[0]+index","{values.clear();return 0;}"),source.replace("const lengths=Array.from(values,","const forbidden=Array.from(values);const lengths=Array.from(values,")] {
   let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"unsafe mapping accepted");
  }
 }
 
 #[test]
-fn ordered_map_owned_spread_transfers_sorted_entries() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function collect(...entries:[string,string][]):string{let text='';for(const entry of entries){text+=entry[0]+entry[1];}return text;}function main(){const values=new OrderedMap<string,string>();values.set('z','last');values.set('a','first');const entries=[...values];strictEqual(entries[0][0],'a');strictEqual(entries[1][1],'last');const more=new OrderedMap<string,string>();more.set('b','2');more.set('a','1');strictEqual(collect(...more),'a1b2');}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
 fn ordered_map_owned_spread_retains_noncloneable_payloads() {
  let source=r#"import {OrderedMap} from 'std:collections';import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';import {strictEqual} from 'std:testing';function bytes():Bytes{match(fromUtf8('ab')){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function total(...entries:[int,ByteView][]):int{let sum=0;for(const entry of entries){sum+=entry[0]+length(entry[1]);}return sum;}function main(){const owner=bytes();const values=new OrderedMap<int,ByteView>();values.set(2,window(owner));values.set(1,window(owner));const entries=[...values];strictEqual(entries[0][0],1);strictEqual(length(entries[1][1]),2);const more=new OrderedMap<int,ByteView>();more.set(3,window(owner));strictEqual(total(...more),5);}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ let directory=support::TempDirectory::new();
  for invalid in [source.replace("const entries=[...values];","const entries=[...values];console.log(values.size);"),source.replace("strictEqual(length(entries[1][1]),2);","const moved=owner;strictEqual(length(entries[1][1]),2);")] {
   let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"invalid owning spread accepted");
  }
 }
 
 #[test]
-fn ordered_map_readonly_spread_borrows_mixed_entry_sources() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function read(first:ReadOnly<[string,string]>,second:ReadOnly<[string,string]>):string{return first[0]+first[1]+second[0]+second[1];}function main(){const values=new OrderedMap<string,string>();values.set('b','2');values.set('a','1');strictEqual(read(...values),'a1b2');strictEqual(values.size,2);const one=new OrderedMap<string,string>();one.set('c','3');const pair:[string,string]=['d','4'];strictEqual(read(...one,pair),'c3d4');strictEqual(read(pair,...one),'d4c3');strictEqual(one.size,1);strictEqual(pair[0],'d');}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
-fn ordered_map_readonly_spread_keeps_view_owners() {
- let source=r#"import {OrderedMap} from 'std:collections';import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';import {strictEqual} from 'std:testing';function bytes():Bytes{match(fromUtf8('ab')){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function read(entry:ReadOnly<[int,ByteView]>):int{return entry[0]+length(entry[1]);}function main(){const owner=bytes();const values=new OrderedMap<int,ByteView>();values.set(3,window(owner));strictEqual(read(...values),5);strictEqual(values.size,1);const entries:[int,ByteView][]=[[4,window(owner)]];strictEqual(read(...entries),6);strictEqual(entries.length,1);}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
-fn ordered_map_spread_combines_readonly_and_owning_parameters() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';type Row={text:string;};function mixed(first:ReadOnly<[string,Row]>,second:[string,Row]):string{return first[0]+first[1].text+second[0]+second[1].text;}function read(first:ReadOnly<[string,Row]>,second:ReadOnly<[string,Row]>):string{return first[0]+first[1].text+second[0]+second[1].text;}function main(){const values=new OrderedMap<string,Row>();values.set('b',{text:'2'});values.set('a',{text:'1'});strictEqual(read(...values),'a1b2');strictEqual(mixed(...values),'a1b2');}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
-fn ordered_map_spread_handles_optional_readonly_entries() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function read(entry?:ReadOnly<[string,string]>):string{if(entry===undefined){return 'empty';}return entry[0]+entry[1];}function main(){const values=new OrderedMap<string,string>();strictEqual(read(...values),'empty');values.set('a','1');strictEqual(read(...values),'a1');strictEqual(values.size,1);}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
 fn ordered_map_spread_returns_original_view_projection() {
  let source=r#"import {OrderedMap} from 'std:collections';import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';import {strictEqual} from 'std:testing';function bytes():Bytes{match(fromUtf8('ab')){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function project(entry:ReadOnly<[int,ByteView]>):ByteView{match(view(entry[1],0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function select(owner:ReadOnly<Bytes>):ByteView{const values=new OrderedMap<int,ByteView>();values.set(3,window(owner));return project(...values);}function main(){const owner=bytes();const result=select(owner);strictEqual(length(result),2);}"#;
  let directory=support::TempDirectory::new();
- for candidate in [source.to_owned(),source.replace("new OrderedMap<int,ByteView>()","new Map<int,ByteView>()")] {
-  let path=directory.source(&support::format_round_trip(&candidate));support::success(&support::run(support::cli().arg("run").arg(path),120));
- }
  let invalid=source.replace("strictEqual(length(result),2);","const moved=owner;strictEqual(length(result),2);");let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"escaped projection lost owner");
-}
-
-#[test]
-fn ordered_map_spread_mixes_nullable_entry_sources() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function text(entry:ReadOnly<[string,string]|null>):string{if(entry===null){return '-';}return entry[0]+entry[1];}function read(first:ReadOnly<[string,string]|null>,second:ReadOnly<[string,string]|null>):string{return text(first)+text(second);}function main(){const values=new OrderedMap<string,string>();values.set('a','1');const absent:([string,string]|null)[]=[null];strictEqual(read(...values,...absent),'a1-');strictEqual(read(...absent,...values),'-a1');strictEqual(values.size,1);const present:([string,string]|null)[]=[['b','2']];strictEqual(read(...values,...present),'a1b2');strictEqual(read(...present,...values),'b2a1');}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
-}
-
-#[test]
-fn ordered_map_parameters_and_branches_preserve_family_and_order() {
- let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function build(flag:boolean):OrderedMap<string,int>{const left=new OrderedMap<string,int>();left.set('b',2);left.set('a',1);const right=new OrderedMap<string,int>();right.set('d',4);right.set('c',3);if(flag){return left;}return right;}function add(values:Mutable<OrderedMap<string,int>>){values.set('e',5);}function text(values:ReadOnly<OrderedMap<string,int>>):string{let result='';for(const entry of values){result+=entry[0]+String(entry[1]);}return result;}function main(){const first=build(true);const second=build(false);strictEqual(text(first),'a1b2');strictEqual(text(second),'c3d4');add(first);strictEqual(text(first),'a1b2e5');strictEqual(text(second),'c3d4');}"#;
- let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
 }
 
 #[test]
@@ -729,4 +483,113 @@ fn hash_buckets_avoid_single_key_allocations_and_preserve_collisions() {
             support::success(&support::run(&mut std::process::Command::new(binary),30));
         }
     }
+}
+
+
+#[test]
+fn registered_collection_runtime_contracts_execute(){
+    let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap();
+    let fixtures=root.join("crates/tsrust-compiler/tests/fixtures/collections/registered");
+    for (name,source) in [
+        ("deque-clone-is-deep-and-requires-cloneable-payloads.tsr",include_str!("fixtures/collections/registered/deque-clone-is-deep-and-requires-cloneable-payloads.tsr")),
+        ("deque-callback-records-preserve-borrowed-captures.tsr",include_str!("fixtures/collections/registered/deque-callback-records-preserve-borrowed-captures.tsr")),
+        ("deque-callback-records-join-distinct-environments.tsr",include_str!("fixtures/collections/registered/deque-callback-records-join-distinct-environments.tsr")),
+        ("deque-callback-records-retain-native-view-captures.tsr",include_str!("fixtures/collections/registered/deque-callback-records-retain-native-view-captures.tsr")),
+        ("returned-deque-callback-records-keep-parameter-owners.tsr",include_str!("fixtures/collections/registered/returned-deque-callback-records-keep-parameter-owners.tsr")),
+        ("deque-iteration-borrows-in-front-to-back-order.tsr",include_str!("fixtures/collections/registered/deque-iteration-borrows-in-front-to-back-order.tsr")),
+        ("deque-iteration-retains-views-and-handles-early-completion.tsr",include_str!("fixtures/collections/registered/deque-iteration-retains-views-and-handles-early-completion.tsr")),
+        ("deque-end-operations-move-values-and-borrow-reads.tsr",include_str!("fixtures/collections/registered/deque-end-operations-move-values-and-borrow-reads.tsr")),
+        ("deque-view-transport-keeps-owners-and-rejects-mutation-conflicts.tsr",include_str!("fixtures/collections/registered/deque-view-transport-keeps-owners-and-rejects-mutation-conflicts.tsr")),
+        ("deque-construction-uses-import-identity-and-owned-native-storage-1.tsr",include_str!("fixtures/collections/registered/deque-construction-uses-import-identity-and-owned-native-storage-1.tsr")),
+        ("deque-construction-uses-import-identity-and-owned-native-storage-2.tsr",include_str!("fixtures/collections/registered/deque-construction-uses-import-identity-and-owned-native-storage-2.tsr")),
+        ("empty-deque-of-views-returns-without-inventing-an-owner.tsr",include_str!("fixtures/collections/registered/empty-deque-of-views-returns-without-inventing-an-owner.tsr")),
+        ("maps-hold-borrowed-native-views-without-copying-and-clones-are-independent.tsr",include_str!("fixtures/collections/registered/maps-hold-borrowed-native-views-without-copying-and-clones-are-independent.tsr")),
+        ("returned-map-views-keep-selected-owner-through-parameters-and-capture.tsr",include_str!("fixtures/collections/registered/returned-map-views-keep-selected-owner-through-parameters-and-capture.tsr")),
+        ("projected-and-recursive-map-views-execute-with-real-owner-lifetimes-1.tsr",include_str!("fixtures/collections/registered/projected-and-recursive-map-views-execute-with-real-owner-lifetimes-1.tsr")),
+        ("projected-and-recursive-map-views-execute-with-real-owner-lifetimes-2.tsr",include_str!("fixtures/collections/registered/projected-and-recursive-map-views-execute-with-real-owner-lifetimes-2.tsr")),
+        ("heap-orders-scalars-and-transfers-owned-values.tsr",include_str!("fixtures/collections/registered/heap-orders-scalars-and-transfers-owned-values.tsr")),
+        ("heap-number-enum-order-and-invalid-access-are-checked.tsr",include_str!("fixtures/collections/registered/heap-number-enum-order-and-invalid-access-are-checked.tsr")),
+        ("heap-iteration-borrows-every-value-and-preserves-completion.tsr",include_str!("fixtures/collections/registered/heap-iteration-borrows-every-value-and-preserves-completion.tsr")),
+        ("native-collection-spread-preserves-copy-borrow-and-move.tsr",include_str!("fixtures/collections/registered/native-collection-spread-preserves-copy-borrow-and-move.tsr")),
+        ("native-collection-spread-retains-view-owners-1.tsr",include_str!("fixtures/collections/registered/native-collection-spread-retains-view-owners-1.tsr")),
+        ("native-collection-spread-retains-view-owners-2.tsr",include_str!("fixtures/collections/registered/native-collection-spread-retains-view-owners-2.tsr")),
+        ("native-collection-spread-retains-view-owners-3.tsr",include_str!("fixtures/collections/registered/native-collection-spread-retains-view-owners-3.tsr")),
+        ("deque-borrowed-array-reads-support-non-null-projection.tsr",include_str!("fixtures/collections/registered/deque-borrowed-array-reads-support-non-null-projection.tsr")),
+        ("deque-borrowed-nested-indexing-reads-without-transfers.tsr",include_str!("fixtures/collections/registered/deque-borrowed-nested-indexing-reads-without-transfers.tsr")),
+        ("ordered-set-public-surface-preserves-order-and-borrowed-queries.tsr",include_str!("fixtures/collections/registered/ordered-set-public-surface-preserves-order-and-borrowed-queries.tsr")),
+        ("ordered-set-number-enum-and-ownership-boundaries.tsr",include_str!("fixtures/collections/registered/ordered-set-number-enum-and-ownership-boundaries.tsr")),
+        ("ordered-map-public-constructor-preserves-sorted-owned-storage.tsr",include_str!("fixtures/collections/registered/ordered-map-public-constructor-preserves-sorted-owned-storage.tsr")),
+        ("map-set-copied-key-can-feed-the-value-expression.tsr",include_str!("fixtures/collections/registered/map-set-copied-key-can-feed-the-value-expression.tsr")),
+        ("ordered-map-converts-to-independent-ordinary-map.tsr",include_str!("fixtures/collections/registered/ordered-map-converts-to-independent-ordinary-map.tsr")),
+        ("ordered-map-array-from-borrows-sorted-entries.tsr",include_str!("fixtures/collections/registered/ordered-map-array-from-borrows-sorted-entries.tsr")),
+        ("ordered-map-array-from-preserves-view-payloads-and-copy-boundaries.tsr",include_str!("fixtures/collections/registered/ordered-map-array-from-preserves-view-payloads-and-copy-boundaries.tsr")),
+        ("ordered-map-owned-spread-transfers-sorted-entries.tsr",include_str!("fixtures/collections/registered/ordered-map-owned-spread-transfers-sorted-entries.tsr")),
+        ("ordered-map-owned-spread-retains-noncloneable-payloads.tsr",include_str!("fixtures/collections/registered/ordered-map-owned-spread-retains-noncloneable-payloads.tsr")),
+        ("ordered-map-readonly-spread-borrows-mixed-entry-sources.tsr",include_str!("fixtures/collections/registered/ordered-map-readonly-spread-borrows-mixed-entry-sources.tsr")),
+        ("ordered-map-readonly-spread-keeps-view-owners.tsr",include_str!("fixtures/collections/registered/ordered-map-readonly-spread-keeps-view-owners.tsr")),
+        ("ordered-map-spread-combines-readonly-and-owning-parameters.tsr",include_str!("fixtures/collections/registered/ordered-map-spread-combines-readonly-and-owning-parameters.tsr")),
+        ("ordered-map-spread-handles-optional-readonly-entries.tsr",include_str!("fixtures/collections/registered/ordered-map-spread-handles-optional-readonly-entries.tsr")),
+        ("ordered-map-spread-returns-original-view-projection-1.tsr",include_str!("fixtures/collections/registered/ordered-map-spread-returns-original-view-projection-1.tsr")),
+        ("ordered-map-spread-returns-original-view-projection-2.tsr",include_str!("fixtures/collections/registered/ordered-map-spread-returns-original-view-projection-2.tsr")),
+        ("ordered-map-spread-mixes-nullable-entry-sources.tsr",include_str!("fixtures/collections/registered/ordered-map-spread-mixes-nullable-entry-sources.tsr")),
+        ("ordered-map-parameters-and-branches-preserve-family-and-order.tsr",include_str!("fixtures/collections/registered/ordered-map-parameters-and-branches-preserve-family-and-order.tsr")),
+        ("collections.test.tsr",include_str!("fixtures/collections/registered/collections.test.tsr")),
+    ]{
+        assert_eq!(std::fs::read_to_string(fixtures.join(name)).unwrap(),source,"checked-in fixture changed after host compilation: {name}");
+        support::format_round_trip(source);
+    }
+    let output=support::run(support::cli().arg("test").arg(fixtures.join("collections.test.tsr")).args(["--reporter=json","--profile"]).current_dir(&root),180);
+    support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));print!("{}",String::from_utf8_lossy(&output.stdout));
+    let rows=std::str::from_utf8(&output.stdout).unwrap().lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();
+    let expected=[
+        "deque-clone-is-deep-and-requires-cloneable-payloads",
+        "deque-callback-records-preserve-borrowed-captures",
+        "deque-callback-records-join-distinct-environments",
+        "deque-callback-records-retain-native-view-captures",
+        "returned-deque-callback-records-keep-parameter-owners",
+        "deque-iteration-borrows-in-front-to-back-order",
+        "deque-iteration-retains-views-and-handles-early-completion",
+        "deque-end-operations-move-values-and-borrow-reads",
+        "deque-view-transport-keeps-owners-and-rejects-mutation-conflicts",
+        "deque-construction-uses-import-identity-and-owned-native-storage-1",
+        "deque-construction-uses-import-identity-and-owned-native-storage-2",
+        "empty-deque-of-views-returns-without-inventing-an-owner",
+        "maps-hold-borrowed-native-views-without-copying-and-clones-are-independent",
+        "returned-map-views-keep-selected-owner-through-parameters-and-capture",
+        "projected-and-recursive-map-views-execute-with-real-owner-lifetimes-1",
+        "projected-and-recursive-map-views-execute-with-real-owner-lifetimes-2",
+        "heap-orders-scalars-and-transfers-owned-values",
+        "heap-number-enum-order-and-invalid-access-are-checked",
+        "heap-iteration-borrows-every-value-and-preserves-completion",
+        "native-collection-spread-preserves-copy-borrow-and-move",
+        "native-collection-spread-retains-view-owners-1",
+        "native-collection-spread-retains-view-owners-2",
+        "native-collection-spread-retains-view-owners-3",
+        "deque-borrowed-array-reads-support-non-null-projection",
+        "deque-borrowed-nested-indexing-reads-without-transfers",
+        "ordered-set-public-surface-preserves-order-and-borrowed-queries",
+        "ordered-set-number-enum-and-ownership-boundaries",
+        "ordered-map-public-constructor-preserves-sorted-owned-storage",
+        "map-set-copied-key-can-feed-the-value-expression",
+        "ordered-map-converts-to-independent-ordinary-map",
+        "ordered-map-array-from-borrows-sorted-entries",
+        "ordered-map-array-from-preserves-view-payloads-and-copy-boundaries",
+        "ordered-map-owned-spread-transfers-sorted-entries",
+        "ordered-map-owned-spread-retains-noncloneable-payloads",
+        "ordered-map-readonly-spread-borrows-mixed-entry-sources",
+        "ordered-map-readonly-spread-keeps-view-owners",
+        "ordered-map-spread-combines-readonly-and-owning-parameters",
+        "ordered-map-spread-handles-optional-readonly-entries",
+        "ordered-map-spread-returns-original-view-projection-1",
+        "ordered-map-spread-returns-original-view-projection-2",
+        "ordered-map-spread-mixes-nullable-entry-sources",
+        "ordered-map-parameters-and-branches-preserve-family-and-order"
+    ];
+    let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);assert_eq!(builds[0]["testFiles"],1);
+    for field in ["durationMs","checkMs","emitMs","backendMs","cacheMs","nativeBuildMs"]{assert!(builds[0][field].as_f64().unwrap()>=0.0,"{field}");}
+    let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),expected.len());
+    for (row,name) in tests.iter().zip(expected){assert_eq!(row["name"],name);assert_eq!(row["status"],"passed");}
+    assert!(!rows.iter().any(|row|row["event"]=="output"),"original positive cases produce no console output");
+    let summaries=rows.iter().filter(|row|row["event"]=="summary").collect::<Vec<_>>();assert_eq!(summaries.len(),1);let summary=summaries[0];assert_eq!(rows.last().unwrap()["event"],"summary");
+    for (field,value) in [("passed",42),("failed",0),("hookFailures",0),("skipped",0),("filesPassed",1),("filesFailed",0)]{assert_eq!(summary[field],value,"{field}");}
 }

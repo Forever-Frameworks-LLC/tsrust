@@ -1,0 +1,25 @@
+import { compressWriter, decompressWriter } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { writer, close } from 'std:io';
+import { create, readFile, removeFile } from 'std:fs';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  const encoded = unwrap(compressWriter(pool, writer(unwrap(create('message.gz'))), 'gzip'));
+  console.log(unwrap(await encoded.write(unwrap(fromUtf8('he')))));
+  unwrap(await encoded.writeAll(unwrap(fromUtf8('llo'))));
+  unwrap(await encoded.flush());
+  unwrap(await close(unwrap(await encoded.finish())));
+  const decoded = unwrap(decompressWriter(pool, writer(unwrap(create('message.txt'))), 'gzip', {
+    maxOutputBytes: 5
+  }));
+  unwrap(await decoded.writeAll(unwrap(readFile('message.gz'))));
+  unwrap(await decoded.close());
+  console.log(unwrap(toUtf8(unwrap(readFile('message.txt')))));
+  unwrap(removeFile('message.gz'));
+  unwrap(removeFile('message.txt'));
+  unwrap(pool.shutdown());
+}

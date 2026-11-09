@@ -17,6 +17,14 @@ impl Analyzer {
         while let Some(ty) = pending.pop() {
             if !visited.insert(ty) { continue; }
             if let Some(id) = ty.union() { pending.extend(self.unions.members(id)); }
+            if let Type::Array(element)=ty {pending.push(element.ty());}
+            if let Type::Record(id)|Type::Map(id)|Type::Set(id)=ty{
+                let record=&self.program.records[id];
+                if let Some(application)=&record.application{pending.extend(application.resolved_arguments.iter().copied());}
+                pending.extend(record.fields.iter().filter_map(|field|field.ty));
+                if let Some(map)=&record.map_definition{pending.extend([map.key,map.value]);}
+                if let Some(set)=&record.set_definition{pending.push(set.key);}
+            }
             if let Some((parameters, result)) = self.checked_generic_callable_shape(ty) {
                 pending.extend(parameters.iter().copied());
                 pending.push(result);
@@ -33,6 +41,9 @@ impl Analyzer {
     fn checked_annotation_plan(&self, ty: Type, span: Span) -> Result<Plan, Diagnostic> {
         if let Type::Closure(origin)=ty && let Some(source)=self.deferred_generic_values.get(&origin) {
             return Ok(Plan::Leaf(ValueAnnotation {kind:Kind::Polymorphic {origin,declaration:TypeName {text:source.declaration.clone(),span}},span}));
+        }
+        if let Type::Closure(origin)=ty && matches!(self.closures[origin].forward,Some(ClosureForward::Native(_))) {
+            return Ok(Plan::Leaf(ValueAnnotation {kind:Kind::NativeCallable {origin},span}));
         }
         let contract = match ty {
             Type::Callable(id) => {
@@ -175,4 +186,17 @@ mod tests {
             assert_eq!(analyzer.callables.callbacks[original].structural, analyzer.callables.callbacks[round_trip].structural);
         }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn generic_record_callable_payloads_supply_canonical_checked_annotations(){
+ let source="type Holder<T>={value:T;};function take(value:Owned<Holder<Function<int>>>):void{}function main(){}";
+ let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+ let analyzer=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();
+ let(id,record)=analyzer.program.records.iter().enumerate().find(|(_,record)|record.application.is_some()).expect("concrete Holder application");
+ let argument=record.application.as_ref().unwrap().resolved_arguments[0];let field=*analyzer.fields[id].get("value").unwrap();
+ let shapes=analyzer.checked_inference_callable_shapes([Type::Record(id)]);
+ assert!(shapes.contains_key(&argument));assert!(shapes.contains_key(&field));
+ let annotations=analyzer.checked_inference_callable_annotations([Type::Record(id)]).unwrap();assert!(annotations.contains_key(&argument));assert!(annotations.contains_key(&field));
 }

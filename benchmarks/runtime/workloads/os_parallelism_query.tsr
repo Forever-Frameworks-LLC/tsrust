@@ -1,0 +1,21 @@
+import { availableParallelism } from 'std:os';
+
+function workload(n: int, seed: int): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = unwrap(availableParallelism());
+    if (value < 1) {
+      throw 'parallelism';
+    }
+
+    checksum += 1;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0));
+}

@@ -1,0 +1,8 @@
+import { Iterator, IteratorResult } from "std:iterator";
+
+export function main() {
+  const step: IteratorResult<int> = Iterator.from([2]).next();
+  if (!step.done) {
+    console.log(step.value);
+  }
+}

@@ -1,0 +1,22 @@
+import { Deque } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+type Item = {
+  values: int[];
+};
+
+export function main() {
+  const original = new Deque<Item>();
+  original.pushBack({
+    values: [1, 2]
+  });
+  const copied = clone(original);
+  const item = copied.popFront()!;
+  item.values.push(3);
+  strictEqual(item.values.length, 3);
+  const source = original.popFront()!;
+  strictEqual(source.values.length, 2);
+  strictEqual(source.values[0], 1);
+  const empty = new Deque<int>();
+  strictEqual(clone(empty).size, 0);
+}

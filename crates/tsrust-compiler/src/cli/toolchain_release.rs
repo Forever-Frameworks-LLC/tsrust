@@ -25,7 +25,7 @@ pub(super) fn version(value:&str)->Result<[u64;4],String>{
  Ok(result)
 }
 pub(super) fn host()->Result<&'static str,String>{match(std::env::consts::OS,std::env::consts::ARCH){
- ("macos","aarch64")=>Ok("aarch64-apple-darwin"),("macos","x86_64")=>Ok("x86_64-apple-darwin"),
+ ("macos","aarch64")=>Ok("aarch64-apple-darwin"),
  ("linux","x86_64") if cfg!(target_env="gnu")=>Ok("x86_64-unknown-linux-gnu"),
  ("windows","x86_64") if cfg!(target_env="msvc")=>Ok("x86_64-pc-windows-msvc"),
  _=>Err("No official prebuilt toolchain supports this host; use a source installation".into())

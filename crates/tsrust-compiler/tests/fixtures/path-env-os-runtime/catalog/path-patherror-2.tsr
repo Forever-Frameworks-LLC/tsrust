@@ -1,0 +1,8 @@
+import { PathError } from 'std:path';
+
+export function run() {
+  const error: PathError = {
+    code: 'Io', message: 'cwd unavailable'
+  };
+  console.log(error.code);
+}

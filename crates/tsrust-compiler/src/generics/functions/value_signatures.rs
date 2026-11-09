@@ -42,7 +42,7 @@ impl Cache {
         }).collect::<Result<Vec<_>, Diagnostic>>()?;
         let mut result = template.result.clone();
         if let Some(result) = &mut result {
-            crate::source_walk::result_annotation(result, &mut |annotation| crate::type_substitution::apply(annotation, &replacements))?;
+            crate::source_walk::substitute_result_annotation(result,&replacements)?;
         }
         Ok(ValueSignature { type_arguments, parameters, result })
     }

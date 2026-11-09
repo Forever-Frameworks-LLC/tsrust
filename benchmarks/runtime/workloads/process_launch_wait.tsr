@@ -1,0 +1,30 @@
+import { run, spawn } from 'std:process';
+import { get } from 'std:env';
+import { alloc, set, at, length } from 'std:bytes';
+import { reader } from 'std:io';
+async function workload(n: int, seed: int): Task<int> {
+  const executable = unwrap(get('TSRUST_PROCESS_HELPER'));
+  if (executable === undefined) {
+    throw 'missing helper';
+  }
+
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    const child = unwrap(spawn(executable, ['silent'], {
+      stdin: 'null', stdout: 'null', stderr: 'null'
+    }));
+    const status = unwrap(await child.wait());
+    if (!status.success) {
+      throw 'child failed';
+    }
+
+    const code = status.code;
+    if (code === undefined) {
+      throw 'missing exit code';
+    }
+
+    sum = (sum * 131 + code + seed + i) % 1000000007;
+  }
+
+  return sum;
+}

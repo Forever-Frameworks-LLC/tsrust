@@ -172,10 +172,6 @@ fn flattening_diagnostics_literal_depth_and_normal_stack_limits_are_precise() {
             "arity",
         ),
         (
-            "function main(){[1].flatMap((x:int):void=>{});}",
-            "array-element",
-        ),
-        (
             "function main(){const a=[\"a\".repeat(1)];a.flatMap((x:string):string=>{return x;});}",
             "callback-access",
         ),
@@ -184,6 +180,7 @@ fn flattening_diagnostics_literal_depth_and_normal_stack_limits_are_precise() {
         assert_eq!(error.code, code, "{source}:{}", error.message);
         assert!(error.span.end > error.span.start);
     }
+    native(&support::format_round_trip("function main(){let total=0;const units:void[]=[1,2,3].flatMap((value:int):void=>{total=total*10+value;});console.log(units.length,total);}"),"3 123\n","","");
     let source = format!(
         "function main(){{const a=[0];console.log({}0{});}}",
         "a[".repeat(100),

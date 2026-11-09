@@ -14,7 +14,7 @@ fn every_file_catalog_example_checks_and_executes() {
     std::fs::write(directory.0.join("input.bin"), [0, 65, 255, 66]).unwrap();
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:fs"].as_array().unwrap();
-    assert_eq!(entries.len(), 15);
+    assert_eq!(entries.len(), 44);
     for entry in entries {
         for example in entry["examples"].as_array().unwrap() {
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
@@ -41,4 +41,20 @@ fn every_file_catalog_example_checks_and_executes() {
             }
         }
     }
+}
+
+#[test]
+fn file_help_retains_optional_bounds_and_platform_close_contract() {
+    let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+    let entries=catalog["std:fs"].as_array().unwrap();
+    for entry in entries {
+        let text=entry["documentation"].as_str().unwrap();
+        assert!(!text.contains("67108864"),"{} retains obsolete ceiling",entry["name"]);
+        assert!(!text.contains("other targets produce a native compilation diagnostic"));
+    }
+    let read=entries.iter().find(|entry|entry["name"]=="readFile").unwrap();
+    assert!(read["documentation"].as_str().unwrap().contains("Omitting maxBytes or passing undefined"));
+    assert!(read["parameters"][1]["documentation"].as_str().unwrap().contains("Invalid explicit limits fail before opening"));
+    let close=entries.iter().find(|entry|entry["name"]=="close").unwrap();
+    assert!(close["documentation"].as_str().unwrap().contains("does not expose OS close failures"));
 }

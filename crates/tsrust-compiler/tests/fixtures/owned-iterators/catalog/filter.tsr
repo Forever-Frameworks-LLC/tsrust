@@ -1,0 +1,6 @@
+import { Iterator } from "std:iterator";
+
+export function main() {
+  const values = Iterator.from([1, 2, 3]).filter(value => value > 1);
+  console.log(values.toArray().join(",")); // 2,3
+}

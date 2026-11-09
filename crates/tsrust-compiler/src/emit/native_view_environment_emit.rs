@@ -15,9 +15,14 @@ impl Emitter<'_> {
         if self.native_captures.lifetimes[origin] == 0 {
             return self.native_type(Type::Closure(origin));
         }
+        enum Slot { Borrow(Vec<Segment>,Vec<VariantGuard>), Value(Type, Vec<Segment>, Vec<VariantGuard>) }
         let mut names = Vec::new();
-        let mut pending = vec![(Type::Closure(origin), path.to_vec(), guards.to_vec())];
-        while let Some((ty, path, guards)) = pending.pop() {
+        let mut pending = vec![Slot::Value(Type::Closure(origin), path.to_vec(), guards.to_vec())];
+        while let Some(slot) = pending.pop() {
+            let (ty,path,guards)=match slot {
+                Slot::Borrow(path,guards)=>{names.push(plan.slot(input,&path,&guards).to_owned());continue;},
+                Slot::Value(ty,path,guards)=>(ty,path,guards),
+            };
             if !self.native_views.contains(ty) && !matches!(ty, Type::Closure(_)) {
                 continue;
             }
@@ -51,33 +56,38 @@ impl Emitter<'_> {
                     for capture in self.program.closures[id].captures.iter().rev() {
                         let mut child = path.clone();
                         child.push(Segment::Field(format!("capture{}", capture.inner)));
-                        pending.push((
+                        pending.push(Slot::Value(
                             self.native_captures
                                 .ty(&self.program.closures[id].function, capture.inner),
                             child,
                             guards.clone(),
                         ));
+                        // Outer loans precede carried view lifetimes in the physical capture layout.
+                        if matches!(capture.storage, Mode::Read | Mode::Mutate) {
+                            let mut borrow=path.clone();borrow.push(Segment::CaptureBorrow(capture.inner));
+                            pending.push(Slot::Borrow(borrow,guards.clone()));
+                        }
                     }
                 }
                 Type::Record(id) if self.program.records[id].native_element().is_some() => {
                     let mut child=path;child.push(Segment::Element);
-                    pending.push((self.program.records[id].native_element().unwrap(),child,guards));
+                    pending.push(Slot::Value(self.program.records[id].native_element().unwrap(),child,guards));
                 }
                 Type::Record(id) => {
                     for field in self.program.records[id].fields.iter().rev() {
                         let mut child = path.clone();
                         child.push(Segment::Field(field.name.text.clone()));
-                        pending.push((field.ty.expect("checked field"), child, guards.clone()));
+                        pending.push(Slot::Value(field.ty.expect("checked field"), child, guards.clone()));
                     }
                 }
                 Type::Map(id) => {
                     let mut child=path;child.push(Segment::Element);
-                    pending.push((self.program.records[id].map_definition.as_ref().unwrap().value,child,guards));
+                    pending.push(Slot::Value(self.program.records[id].map_definition.as_ref().unwrap().value,child,guards));
                 }
                 Type::Array(element) => {
                     let mut child = path;
                     child.push(Segment::Element);
-                    pending.push((element.ty(), child, guards));
+                    pending.push(Slot::Value(element.ty(), child, guards));
                 }
                 Type::Union(id) | Type::BorrowedUnion(id) => {
                     for &member in self.program.unions[id.index()].members.iter().rev() {
@@ -88,7 +98,7 @@ impl Emitter<'_> {
                                 success,
                             });
                         }
-                        pending.push((member, path.clone(), child));
+                        pending.push(Slot::Value(member, path.clone(), child));
                     }
                 }
                 _ => (),

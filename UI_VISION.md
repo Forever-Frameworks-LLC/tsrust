@@ -1,5 +1,12 @@
 # Universal UI vision
 
+> Owner update, 2026-11-05: after completing v0.2.0, the preferred UI framework
+> is GPUI + GPUI Kit behind the retained `.tsrx` syntax and signal semantics.
+> Follow the [GPUI application platform plan](docs/plans/gpui-application-platform.md)
+> for full component/example coverage, desktop/experimental web acceptance,
+> `.tsr` API clients and shared backend/frontend projects. Older framework and
+> scheduling notices below are historical; preserve accepted language behavior.
+
 > Active scope update, 2026-10-26: the owner approved the
 > [backend platform pivot](docs/plans/backend-platform-pivot.md). This document
 > preserves the universal UI design and historical decisions. Its unfinished

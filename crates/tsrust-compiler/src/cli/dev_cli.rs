@@ -17,24 +17,26 @@ mod platform {
     mod unix {
         use super::*;
     pub(super) static STOP:AtomicBool=AtomicBool::new(false);
-    unsafe extern "C" {fn signal(number:i32,handler:usize)->usize;pub(super) fn kill(pid:i32,signal:i32)->i32;}
+    unsafe extern "C" {pub(super) fn kill(pid:i32,signal:i32)->i32;}
     extern "C" fn stop(_:i32) {STOP.store(true,Ordering::Relaxed);}
-    pub(super) struct Signals {interrupt:usize,terminate:usize}
+    pub(super) struct Signals {interrupt:libc::sigaction,terminate:libc::sigaction}
     impl Signals {
         pub(super) fn install()->Result<Self,String> {
             STOP.store(false,Ordering::Relaxed);
-            // SAFETY: the handler only stores to a lock-free atomic flag. Restore
-            // both previous dispositions when this supervisor returns.
+            // sigaction keeps the handler installed for every delivery (no
+            // SysV reset) on each libc. The handler only stores to a lock-free
+            // atomic flag; both previous actions are restored on return.
             unsafe {
-                let interrupt=signal(2,stop as *const () as usize);
-                if interrupt==usize::MAX {return Err("Cannot install dev interrupt handler".into());}
-                let terminate=signal(15,stop as *const () as usize);
-                if terminate==usize::MAX {signal(2,interrupt);return Err("Cannot install dev termination handler".into());}
+                let mut action:libc::sigaction=std::mem::zeroed();
+                action.sa_sigaction=stop as *const () as usize;action.sa_flags=libc::SA_RESTART;libc::sigemptyset(&mut action.sa_mask);
+                let mut interrupt:libc::sigaction=std::mem::zeroed();let mut terminate:libc::sigaction=std::mem::zeroed();
+                if libc::sigaction(libc::SIGINT,&action,&mut interrupt)!=0 {return Err("Cannot install dev interrupt handler".into());}
+                if libc::sigaction(libc::SIGTERM,&action,&mut terminate)!=0 {libc::sigaction(libc::SIGINT,&interrupt,std::ptr::null_mut());return Err("Cannot install dev termination handler".into());}
                 Ok(Self{interrupt,terminate})
             }
         }
     }
-    impl Drop for Signals {fn drop(&mut self){unsafe {signal(2,self.interrupt);signal(15,self.terminate);}}}
+    impl Drop for Signals {fn drop(&mut self){unsafe {libc::sigaction(libc::SIGINT,&self.interrupt,std::ptr::null_mut());libc::sigaction(libc::SIGTERM,&self.terminate,std::ptr::null_mut());}}}
     pub(super) struct Process {pub(super) child:Child,stopped:bool}
     impl Process {
         pub(super) fn spawn(command:&mut Command)->Result<Self,String> {
@@ -131,10 +133,11 @@ mod platform {
         let cache_root=std::env::var_os("TSRUST_CACHE_DIR").map(PathBuf::from).unwrap_or_else(||root.join("target/tsrust-native"));
         let shared_inputs=crate::backend_sources::application_identity(&frontend.rust,&cache_root)?;
         let mut cache_parts:Vec<&[u8]>=vec![
-            b"native-cache-abi-4-ui-dev-profile",crate::native_dependency_bundle::IDENTITY.as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
+            b"native-cache-abi-4-ui-dev-profile",crate::native_dependency_bundle::dependency_identity().as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
             if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),optimization.as_bytes(),
         ];
         if let Some(inputs)=&shared_inputs {cache_parts.push(inputs.as_bytes());}
+        if let Some(identity)=crate::runtime_build::application_cache_identity(&frontend.rust){cache_parts.push(identity);}
         let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&cache_parts);
         let cache_started=Instant::now();let reused=cache.try_copy_to(&binary);let cache_elapsed=cache_started.elapsed();
         let native_started=Instant::now();
@@ -144,15 +147,24 @@ mod platform {
             if verbose{eprintln!("[build] runtime-prepare={:.1}ms",prepare_started.elapsed().as_secs_f64()*1000.);}
             if let Some(mut command)=prepared.command.take() {
                 let runtime_started=Instant::now();
+                let mut last_input_check=Instant::now();
+                while !prepared.acquire_target(false)? {
+                    if STOP.load(Ordering::Relaxed){return Ok(None);}
+                    if last_input_check.elapsed()>=Duration::from_millis(100){
+                        if &watcher.snapshot(root)!=expected{return Ok(None);}
+                        last_input_check=Instant::now();
+                    }
+                    std::thread::sleep(Duration::from_millis(20));
+                }
                 if verbose{if let Some(directory)=command.get_current_dir(){eprintln!("[build] dependency-workspace={}",directory.display());}}
                 if frontend.features.contains(&"ui") { report(Status::Info,"Preparing native UI renderer (runtime cache miss)."); }
                 else { report(Status::Info,"Preparing native runtime (offline; runtime cache miss)."); }
                 let errors=files.0.join("runtime.stderr");
-                command.stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
+                command.stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
                 let mut compiler=Process::spawn(&mut command)?;
                 let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
                 if !status.success(){return Err(prepared.compilation_error(&std::fs::read_to_string(errors).unwrap_or_default()));}
-                prepared.publish();
+                prepared.finish()?;prepared.publish();
                 if verbose{eprintln!("[build] runtime-build+publish={:.1}ms",runtime_started.elapsed().as_secs_f64()*1000.);}
             }
             if verbose{eprintln!("[build] runtime={}",prepared.state);}

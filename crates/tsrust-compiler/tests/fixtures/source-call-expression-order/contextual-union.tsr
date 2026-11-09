@@ -43,6 +43,14 @@ function direct(first: boolean): First | Second {
   return choose(first);
 }
 
+function visit(value: ReadOnly<First | Second>): int {
+  if (value.kind === 'first') {
+    return value.value;
+  }
+
+  return value.text.length;
+}
+
 function main() {
   const counter: Counter = {
     calls: 0
@@ -73,4 +81,9 @@ function main() {
   strictEqual(returned.text, 'ready');
   const nullable: string | null = identity('input wins');
   strictEqual(nullable, 'input wins');
+  strictEqual(visit({
+    kind: 'first', value: 7
+  }), 7);
+  strictEqual(visit(choose(flag(counter, true))), 7);
+  strictEqual(counter.calls, 3);
 }

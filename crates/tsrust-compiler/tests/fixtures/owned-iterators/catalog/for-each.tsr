@@ -1,0 +1,7 @@
+import { Iterator } from "std:iterator";
+
+export function main() {
+  Iterator.from([1, 2]).forEach(value => {
+    console.log(value);
+  }); // 1 then 2
+}

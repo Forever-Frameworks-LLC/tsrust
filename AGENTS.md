@@ -1,5 +1,37 @@
 # Development requirements
 
+Owner requirement, 2026-11-06, clarified 2026-11-09: test execution in one run must
+stay under an hour; compiling and setup do not count toward that limit, and CI jobs
+may run up to about three hours. Preserve completed scope evidence; budget
+exhaustion is incomplete acceptance, never a pass or permission to skip required
+tests. Remove redundant work and batch coherent coverage to fit; do not split the
+same oversized suite into serial hour-long chunks.
+
+
+## Owner test workflow — 2026-11-07
+
+Use `std:testing` and `tsrust test` for ordinary runtime acceptance. Keep related
+cases in stable `.test.tsr` suites and compile the selected suite together once;
+do not build an independent native program or temporary source tree per case.
+Host tests may orchestrate the public runner, test compiler internals/rejections,
+or cover real cross-language/process boundaries. Reuse unchanged Rust/Node
+controls and compare assertions and observable outputs. Extend the testing library
+when an assertion or profiling capability is missing. Per-test durations are
+execution observations; report setup/build separately and retain the established
+sampling/quiet-machine protocol for comparable benchmark claims and SQLite runs.
+
+## Next application direction — 2026-11-05
+
+Finish the full v0.2.0 standard-library checklist first. The owner's strong
+post-v0.2.0 preference is GPUI + GPUI Kit behind the existing React/Solid-like
+`.tsrx` syntax and signal semantics, with the complete component catalog and
+upstream examples verified on desktop and web, then basic application validation.
+Experimental WASM maturity is acceptable. Also plan generated `.tsr` HTTP clients
+and CLI-managed shared backend/frontend roots with automatic contract codegen.
+Follow `docs/plans/gpui-application-platform.md`. This supersedes the UI freeze
+below for future planning; retain backend dependency isolation and existing
+workflows. Research/planning is authorized now; implementation follows v0.2.0.
+
 ## Active product direction — 2026-10-26
 
 Owner reset, 2026-10-27: the backend-only direction in
@@ -35,7 +67,11 @@ and `docs/agent-goal.md`. Use project-local Ponytail for implementation decision
 and Caveman for concise chat updates; retain full technical detail in durable
 evidence. These preferences never weaken the acceptance requirements below.
 Routine checkpoints are local Git commits. Do not push on a timer, create release
-tags for testing, or use published releases as a development loop. Follow the
+tags for testing, or use published releases as a development loop.
+PRs and pushes exist to merge finished code toward a release, not to run checks
+on separate operating systems because it is possible. Validate a complete change
+set locally, push once to merge, and diagnose any CI failure locally before
+pushing again (owner, 2026-11-08; see `docs/plans/ci-build-once.md`). Follow the
 remote-validation decision in the project skill before triggering GitHub Actions.
 
 

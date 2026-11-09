@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+import {loggingIDs,loggingChecksum,assertLoggingSource} from './structured-logging-contract.mjs';
+const manifest=JSON.parse(fs.readFileSync(new URL('./manifest.json',import.meta.url)));
+test('logging peers are exact guarded public file/disabled workloads',()=>{for(const id of loggingIDs){const row=manifest.workloads.find(row=>row.id===id);assert.ok(row);for(const [key,engine]of[['source','native'],['counterpart','typescript'],['rustReference','rust-hand']]){const source=fs.readFileSync(new URL(row[key],import.meta.url),'utf8');assertLoggingSource(source,row,engine);assert.throws(()=>assertLoggingSource(source+'\n//mutation',row,engine),/fingerprint/);}}});
+test('independent logging checksum detects count/order/seed mutations',()=>{const fold=values=>values.reduce((sum,value)=>(sum*131+value)%1000000007,0);assert.equal(loggingChecksum(3,7),fold([7,8,9]));assert.notEqual(loggingChecksum(3,7),fold([8,7,9]));assert.notEqual(loggingChecksum(3,7),loggingChecksum(2,7));assert.notEqual(loggingChecksum(3,7),loggingChecksum(3,8));assert.equal(loggingChecksum(0,7),0);});

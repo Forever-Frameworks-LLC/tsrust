@@ -27,6 +27,9 @@ impl Storage {
                         .iter()
                         .flat_map(|closure| closure.methods.iter().map(|method| &method.function)),
                 )
+                // Symbolic template bodies retain source origins across DCE;
+                // only executable bodies use the compacted native arena.
+                .filter(|function| !function.template)
             {
                 crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
                     if !matches!(expr.kind, ExprKind::Closure { .. }) {
@@ -89,6 +92,7 @@ impl Storage {
                         alternatives,
                         |origin| counts[origin],
                         storage.ty(&closure.function, capture.inner),
+                        |_,_,_| true,
                     ) else {
                         resolved = false;
                         break;
@@ -122,6 +126,7 @@ impl Storage {
         alternatives: &borrowed_payload_emit::Alternatives,
         counts: impl Fn(usize) -> Option<usize>,
         root: Type,
+        field_is_parameter: impl Fn(usize,usize,Type)->bool,
     ) -> Option<usize> {
         let members = |id: crate::syntax::UnionId| program.unions[id.index()].members.clone();
         let recursive = crate::environment_lifetimes::contains_native_view(root, &program.records, &members, &program.stored_contracts)
@@ -172,7 +177,8 @@ impl Storage {
                     program.records[record]
                         .fields
                         .iter()
-                        .filter_map(|field| field.ty)
+                        .enumerate()
+                        .filter_map(|(position,field)|field.ty.filter(|&ty|field_is_parameter(record,position,ty)))
                         .map(|ty| (ty, false)),
                 ),
                 Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(
@@ -193,12 +199,14 @@ impl Storage {
         program: &CheckedProgram,
         alternatives: &borrowed_payload_emit::Alternatives,
         ty: Type,
+        field_is_parameter: impl Fn(usize,usize,Type)->bool,
     ) -> usize {
         Self::count(
             program,
             alternatives,
             |origin| Some(self.lifetimes[origin]),
             ty,
+            field_is_parameter,
         )
         .expect("resolved native environment")
     }
@@ -218,10 +226,20 @@ mod tests {
         let program = crate::analysis::analyze(parsed).unwrap();
         let alternatives = borrowed_payload_emit::Alternatives::default();
         for (id, expected) in [(1, 1), (2, 2)] {
-            assert_eq!(Storage::count(&program, &alternatives, |_| Some(0), Type::Record(id)), Some(expected));
+            assert_eq!(Storage::count(&program, &alternatives, |_| Some(0), Type::Record(id), |_,_,_| true), Some(expected));
             assert_eq!(crate::environment_lifetimes::count(Type::Record(id), &program.records,
                 |id| program.unions[id.index()].members.clone(), |_| 0), expected);
         }
+    }
+
+    #[test]
+    fn physical_record_environment_follows_selected_fields_not_recursive_symbolic_storage() {
+        let parsed=crate::syntax::parse("type Symbolic={next:Symbolic|undefined;};function main(){}").unwrap();
+        let program=crate::analysis::analyze(parsed).unwrap();
+        let alternatives=borrowed_payload_emit::Alternatives::default();
+        assert_eq!(Storage::count(&program,&alternatives,|_|Some(0),Type::Record(0),|_,_,_|true),None);
+        // scoped_record_native_field excludes every field of a cyclic symbolic base.
+        assert_eq!(Storage::count(&program,&alternatives,|_|Some(0),Type::Record(0),|_,_,_|false),Some(0));
     }
 
     #[test]
@@ -271,4 +289,31 @@ mod tests {
         assert_eq!(closure.function.bindings[capture.inner].ty, point_type);
         assert_eq!(closure.lifetime_count, source_lifetimes);
     }
+}
+
+#[cfg(test)]
+mod symbolic_template_tests {
+ use super::*;
+ fn source_with_symbolic_origin(template:bool)->CheckedProgram {
+  let mut program=crate::check("function main(){const action=():int=>1;console.log(action());}").unwrap().program;
+  let mut function=program.functions.pop().expect("main function");
+  function.template=template;
+  let span=crate::Span::default();
+  let mut value=Expr::new(ExprKind::Closure{id:0,params:Vec::new(),result:ResultAnnotation::Inferred(span),body:Vec::new()},span);
+  value.ty=Some(Type::Closure(program.closures.len()+7));
+  function.body=vec![Stmt{labels:Vec::new(),control_target:None,span,kind:StmtKind::Expr(value)}];
+  program.functions.push(function);program
+ }
+ #[test]
+ fn native_capture_storage_ignores_symbolic_template_source_origins(){
+  let program=source_with_symbolic_origin(true);
+  let storage=Storage::new(&program,&Default::default());
+  assert_eq!(storage.lifetimes.len(),program.closures.len());
+ }
+ #[test]
+ #[should_panic(expected="index out of bounds")]
+ fn executable_capture_origins_still_require_the_actual_compacted_arena(){
+  let program=source_with_symbolic_origin(false);
+  let _=Storage::new(&program,&Default::default());
+ }
 }

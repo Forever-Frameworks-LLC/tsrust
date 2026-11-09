@@ -1,0 +1,11 @@
+//! Direct address/resolver witnesses; public generated coverage is separate.
+include!("../src/stdlib/net/runtime.rs");
+include!("../src/stdlib/net/dns_runtime.rs");
+#[test]
+fn address_snapshots_are_independent_send_sync_values(){fn require<T:Send+Sync+Clone>(){}require::<tsrust_native_net::IpAddress>();require::<tsrust_native_net::SocketAddress>();let ip=tsrust_native_net::parse_ip("2001:0db8::1").unwrap();assert!(tsrust_native_net::is_ipv6(&ip));assert!(!tsrust_native_net::is_ipv4(&ip));assert_eq!(tsrust_native_net::format_ip(&ip),"2001:db8::1");let address=tsrust_native_net::parse_address("[fe80::1%2]:80").unwrap();assert_eq!(tsrust_native_net::format_address(&address),"[fe80::1%2]:80");}
+#[test]
+fn exact_std_parse_failures_preserve_error_domain(){for text in ["localhost","127.01.0.1","::1%2"," 127.0.0.1"]{let error=tsrust_native_net::parse_ip(text).unwrap_err();assert_eq!(error.code,"syntax");assert_eq!(error.operation,"parseIp");assert!(error.os_code.is_none());}for text in ["localhost:80","::1:80","127.0.0.1:65536","127.0.0.1"]{assert_eq!(tsrust_native_net::parse_address(text).unwrap_err().code,"syntax");}}
+#[test]
+fn literal_lookup_filters_after_resolution_and_future_is_send(){fn send<T:Send>(_:T){}send(tsrust_native_dns::lookup("127.0.0.1",Default::default()));tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap().block_on(async{for(host,family,expected)in[("127.0.0.1",tsrust_native_dns::Family::Any,vec!["127.0.0.1"]),("127.0.0.1",tsrust_native_dns::Family::Ipv6,vec![]),("::1",tsrust_native_dns::Family::Any,vec!["::1"]),("::1",tsrust_native_dns::Family::Ipv4,vec![])]{let values=tsrust_native_dns::lookup(host,family).await.unwrap();assert_eq!(values.iter().map(ToString::to_string).collect::<Vec<_>>(),expected);}});}
+#[test]
+fn lookup_without_runtime_returns_checked_runtime_failure(){use std::future::Future;let mut future=std::pin::pin!(tsrust_native_dns::lookup("127.0.0.1",Default::default()));let mut context=std::task::Context::from_waker(std::task::Waker::noop());let std::task::Poll::Ready(Err(error))=future.as_mut().poll(&mut context)else{panic!("lookup without runtime did not return checked error")};assert_eq!(error.code,"runtime");assert_eq!(error.operation,"lookup");}

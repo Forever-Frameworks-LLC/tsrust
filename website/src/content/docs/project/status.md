@@ -18,6 +18,22 @@ The release pipeline targets Linux x64/glibc, Windows x64/MSVC, macOS Apple Sili
 and macOS Intel. A configured target is not proof that a particular release has
 passed acceptance: consult its published assets and release notes.
 
+## Standard-library development
+
+Tsrust v0.2.0 completes the standard-library checklist. It includes:
+
+- Owned byte buffers, binary codecs, file/directory operations, streams and compression.
+- Path, environment and OS helpers, signals, child processes, TCP/UDP and DNS.
+- Binary and streaming HTTP requests, multipart forms, middleware, SSE and WebSockets.
+- Reusable regular expressions and explicit-locale text and number operations.
+- Owned iterator pipelines and expanded collection, numeric and date operations.
+- Incremental hashes, HMAC/HKDF and password hashing/verification on explicit CPU pools.
+- Structured logging, async coordination and testing hooks, assertions and profiling.
+
+Find the APIs in the [standard-library overview](/tsrust/library/overview/) and
+[test runner and profiling guide](/tsrust/tools/testing/). Releases before v0.2.0
+do not include these APIs.
+
 ## Compatibility
 
 Source files use `.tsr`; retained UI source uses `.tsrx`. Familiar syntax does not

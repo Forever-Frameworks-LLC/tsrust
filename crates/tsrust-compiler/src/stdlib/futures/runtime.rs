@@ -1,23 +1,24 @@
 mod tsrust_native_futures {
     use std::{future::Future, sync::{Arc, Mutex, atomic::{AtomicU8, Ordering}}, task::Poll, time::Duration};
     use tokio::{sync::{Notify, oneshot, mpsc}, task::AbortHandle};
+    pub use tokio::time::{Instant, timeout_at};
     tokio::task_local! { static SCOPE: Arc<Scope>; }
     #[derive(Default)]
-    pub(crate) struct Scope {
+    pub struct Scope {
         children: Mutex<std::collections::BTreeMap<usize,Arc<Control>>>,
         cleanup: Mutex<Vec<Arc<Cleanup>>>,
         groups: Mutex<std::collections::BTreeMap<usize,Arc<Scope>>>,
         parent: std::sync::Weak<Scope>,
     }
     impl Scope {
-        pub(crate) fn group()->Arc<Self> {
+        pub fn group()->Arc<Self> {
             SCOPE.with(|parent| {
                 let scope=Arc::new(Self{parent:Arc::downgrade(parent),..Self::default()});
                 parent.groups.lock().unwrap().insert(Arc::as_ptr(&scope) as usize,scope.clone());
                 scope
             })
         }
-        pub(crate) async fn drain(&self, cancel_all:bool) {
+        pub async fn drain(self:&Arc<Self>, cancel_all:bool) {
             let mut children = std::mem::take(&mut *self.children.lock().unwrap());
             let mut cleanup=self.cleanup.lock().unwrap().clone();
             let mut groups=std::mem::take(&mut *self.groups.lock().unwrap()).into_values().collect::<Vec<_>>();
@@ -30,13 +31,18 @@ mod tsrust_native_futures {
             let parent=self.parent.upgrade();
             let mut abandoned=Vec::new();
             for child in children.into_values() {
-                if !cancel_all && child.handle_alive.load(Ordering::Acquire) && let Some(parent)=&parent {child.register(parent);}else{child.cancel();abandoned.push(child);}
+                if !cancel_all && child.handle_alive.load(Ordering::Acquire) && let Some(parent)=&parent {child.register(parent);}else{
+                    // Keep cancellation responsibility reachable if this drain is dropped while waiting.
+                    // register also moves descendant ownership to this scope for completion removal.
+                    child.register(self);child.cancel();abandoned.push(child);
+                }
             }
             for child in abandoned {child.wait().await;}
             cleanup.extend(self.cleanup.lock().unwrap().iter().cloned());
             for release in cleanup {release.wait().await;}
+            self.children.lock().unwrap().retain(|_,child|!child.finished.load(Ordering::Acquire));
             self.cleanup.lock().unwrap().retain(|release|!release.finished.load(Ordering::Acquire));
-            if let Some(parent)=self.parent.upgrade(){parent.groups.lock().unwrap().remove(&(self as *const Self as usize));}
+            if let Some(parent)=self.parent.upgrade(){parent.groups.lock().unwrap().remove(&(Arc::as_ptr(self) as usize));}
         }
     }
     struct Cleanup {finished:std::sync::atomic::AtomicBool,done:Notify}
@@ -48,7 +54,7 @@ mod tsrust_native_futures {
         let Ok(runtime)=tokio::runtime::Handle::try_current()else{return;};
         let release=Arc::new(Cleanup{finished:std::sync::atomic::AtomicBool::new(false),done:Notify::new()});
         let _=SCOPE.try_with(|scope|{let mut pending=scope.cleanup.lock().unwrap();pending.retain(|release|!release.finished.load(Ordering::Acquire));pending.push(release.clone());});
-        runtime.spawn(async move{let _done=CleanupDone(release);future.await;});
+        runtime.spawn(capture_logging_context(async move{let _done=CleanupDone(release);future.await;}));
     }
     struct Control { abort: AbortHandle, shutdown: Mutex<Option<Box<dyn FnOnce()+Send>>>, state: AtomicU8, done: Notify, finished: std::sync::atomic::AtomicBool, handle_alive: std::sync::atomic::AtomicBool, owner:Mutex<std::sync::Weak<Scope>> }
     impl Control {
@@ -74,26 +80,37 @@ mod tsrust_native_futures {
     pub struct Job<T,E> { result: Option<oneshot::Receiver<Result<T,Failure<E>>>>, control: Arc<Control>, settled: bool }
     impl<T,E> Job<T,E> {
         pub fn cancel(&self)->bool {self.control.cancel()}
-        pub async fn join(mut self)->Result<T,Failure<E>> {let result=self.result.take().unwrap().await.unwrap_or(Err(Failure::Panic));self.settled=true;result}
+        pub(crate) fn poll_join(&mut self,cx:&mut std::task::Context<'_>)->Poll<Result<T,Failure<E>>>{
+            match std::pin::Pin::new(self.result.as_mut().expect("unsettled job result")).poll(cx){
+                Poll::Pending=>Poll::Pending,
+                Poll::Ready(result)=>{self.result.take();self.settled=true;Poll::Ready(result.unwrap_or(Err(Failure::Panic)))}
+            }
+        }
+        pub async fn join(mut self)->Result<T,Failure<E>> {std::future::poll_fn(|cx|self.poll_join(cx)).await}
     }
     impl<T,E> Drop for Job<T,E> { fn drop(&mut self) {self.control.handle_alive.store(false,Ordering::Release);if !self.settled{self.control.cancel();let _=SCOPE.try_with(|scope|self.control.register(scope));}} }
     pub fn start<F,T,E>(future:F)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {
         start_with_shutdown(future,None)
     }
-    pub(crate) async fn in_scope<F:Future>(scope:Arc<Scope>,future:F)->F::Output {SCOPE.scope(scope,future).await}
+    pub async fn in_scope<F:Future>(scope:Arc<Scope>,future:F)->F::Output {SCOPE.scope(scope,future).await}
+    fn capture_testing_context<F:Future>(future:F)->impl Future<Output=F::Output>{future}
+    fn capture_logging_context<F:Future>(future:F)->impl Future<Output=F::Output>{
+        #[cfg(feature="logging")]let future=super::tsrust_native_logging::capture(future);
+        capture_testing_context(future)
+    }
     pub(crate) fn start_with_shutdown<F,T,E>(future:F,shutdown:Option<Box<dyn FnOnce()+Send>>)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {
         let scope=Arc::new(Scope{parent:SCOPE.with(Arc::downgrade),..Scope::default()});
         let (gate,ready)=oneshot::channel::<Arc<Control>>();
         let child_scope=scope.clone();
-        let worker=tokio::spawn(SCOPE.scope(child_scope,async move {
+        let worker=tokio::spawn(capture_logging_context(SCOPE.scope(child_scope,async move {
             let control=ready.await.expect("task registration");
             let result=future.await;
             if control.state.compare_exchange(0,2,Ordering::AcqRel,Ordering::Acquire).is_ok() {result} else {Err(Failure::Cancelled)}
-        }));
+        })));
         let control=Arc::new(Control{abort:worker.abort_handle(),shutdown:Mutex::new(shutdown),state:AtomicU8::new(0),done:Notify::new(),finished:std::sync::atomic::AtomicBool::new(false),handle_alive:std::sync::atomic::AtomicBool::new(true),owner:Mutex::new(std::sync::Weak::new())});
         SCOPE.with(|parent|control.register(parent));
         let (send,result)=oneshot::channel();let completion=control.clone();
-        tokio::spawn(async move {
+        tokio::spawn(capture_logging_context(async move {
             let result=match worker.await {Ok(result)=>result,Err(error)=>Err(if error.is_cancelled(){Failure::Cancelled}else{Failure::Panic})};
             scope.drain(false).await;
             if let Err(result)=send.send(result){
@@ -101,7 +118,7 @@ mod tsrust_native_futures {
                 scope.drain(true).await;
             }
             completion.complete();
-        });
+        }));
         let _=gate.send(control.clone());
         Job{result:Some(result),control,settled:false}
     }
@@ -133,17 +150,32 @@ mod tsrust_native_futures {
         let runtime=tokio::runtime::Handle::current();
         tokio::task::block_in_place(||runtime.block_on(SCOPE.scope(scope,future)))
     }
+    fn deadline(milliseconds:i64)->Option<Instant> {
+        let milliseconds=u64::try_from(milliseconds).ok()?;
+        Instant::now().checked_add(Duration::from_millis(milliseconds))
+    }
+    pub struct Interval(tokio::time::Interval);
+    impl Interval {
+        pub fn new(milliseconds:i64,behavior:&str)->Result<Self,&'static str> {
+            if milliseconds<=0 {return Err("range");}
+            let start=deadline(milliseconds).ok_or("range")?;
+            // Check the active runtime before Tokio's constructor can panic.
+            tokio::runtime::Handle::try_current().map_err(|_|"runtime")?;
+            let behavior=match behavior {"burst"=>tokio::time::MissedTickBehavior::Burst,"delay"=>tokio::time::MissedTickBehavior::Delay,"skip"=>tokio::time::MissedTickBehavior::Skip,_=>return Err("range")};
+            let mut interval=tokio::time::interval_at(start-Duration::from_millis(milliseconds as u64),Duration::from_millis(milliseconds as u64));
+            interval.set_missed_tick_behavior(behavior);Ok(Self(interval))
+        }
+        pub async fn tick(&mut self){self.0.tick().await;}
+    }
     pub async fn delay<E>(milliseconds:i64)->Result<(),Failure<E>> {
-        if !(0..=31536000000).contains(&milliseconds){return Err(Failure::Range);}
-        tokio::time::sleep(Duration::from_millis(milliseconds as u64)).await;Ok(())
+        let deadline=deadline(milliseconds).ok_or(Failure::Range)?;
+        tokio::time::sleep_until(deadline).await;Ok(())
     }
     pub async fn yield_now<E>()->Result<(),Failure<E>> {tokio::task::yield_now().await;Ok(())}
     pub async fn timeout<F,T,E>(future:F,milliseconds:i64)->Result<T,Failure<E>> where F:Future<Output=Result<T,Failure<E>>> {
         let scope=Scope::group();
         let result=SCOPE.scope(scope.clone(),async move {
-            if !(0..=31536000000).contains(&milliseconds) {drop(future);Err(Failure::Range)} else {
-                tokio::time::timeout(Duration::from_millis(milliseconds as u64),future).await.unwrap_or(Err(Failure::Timeout))
-            }
+            match deadline(milliseconds) {None=>{drop(future);Err(Failure::Range)},Some(deadline)=>timeout_at(deadline,future).await.unwrap_or(Err(Failure::Timeout))}
         }).await;
         scope.drain(false).await;result
     }
@@ -153,6 +185,23 @@ mod tsrust_native_futures {
         let result=SCOPE.scope(scope.clone(),async move {
             let mut futures=futures.into_iter().map(Box::pin).collect::<Vec<_>>();
             std::future::poll_fn(|cx|{for future in &mut futures {if let Poll::Ready(value)=future.as_mut().poll(cx){return Poll::Ready(value);}}Poll::Pending}).await
+        }).await;
+        scope.drain(false).await;result
+    }
+    pub async fn all<F,T,E>(futures:Vec<F>)->Result<Vec<T>,Failure<E>> where F:Future<Output=Result<T,Failure<E>>> {
+        let scope=Scope::group();
+        let result=SCOPE.scope(scope.clone(),async move {
+            let mut futures=futures.into_iter().map(|future|Some(Box::pin(future))).collect::<Vec<_>>();
+            let mut results=(0..futures.len()).map(|_|None).collect::<Vec<_>>();
+            std::future::poll_fn(|cx|{
+                let mut complete=true;
+                for (future,result) in futures.iter_mut().zip(&mut results) {if let Some(value)=future {match value.as_mut().poll(cx){
+                    Poll::Ready(Ok(value))=>{*result=Some(value);*future=None;},
+                    Poll::Ready(Err(error))=>return Poll::Ready(Err(error)),
+                    Poll::Pending=>complete=false,
+                }}}
+                if complete {Poll::Ready(Ok(results.iter_mut().map(|value|value.take().unwrap()).collect()))}else{Poll::Pending}
+            }).await
         }).await;
         scope.drain(false).await;result
     }
@@ -169,15 +218,28 @@ mod tsrust_native_futures {
         }).await;
         scope.drain(false).await;result
     }
+    pub struct SendError<T>{pub code:&'static str,pub value:T}
+    fn try_send<T>(sender:&mpsc::Sender<T>,value:T)->Result<(),SendError<T>> {
+        sender.try_send(value).map_err(|error|match error {mpsc::error::TrySendError::Full(value)=>SendError{code:"full",value},mpsc::error::TrySendError::Closed(value)=>SendError{code:"closed",value}})
+    }
     pub struct Channel<T> {sender:mpsc::Sender<T>,receiver:tokio::sync::Mutex<mpsc::Receiver<T>>}
-    pub struct Sender<T>(mpsc::Sender<T>);
+    pub struct Sender<T>(Option<mpsc::Sender<T>>);
     impl<T> Channel<T> {
-        pub fn new(capacity:i64)->Result<Self,()> {if !(1..=1000000).contains(&capacity){return Err(());}let(sender,receiver)=mpsc::channel(capacity as usize);Ok(Self{sender,receiver:tokio::sync::Mutex::new(receiver)})}
-        pub fn sender(&self)->Sender<T>{Sender(self.sender.clone())}
+        pub fn new(capacity:i64)->Result<Self,()> {
+            let capacity=usize::try_from(capacity).ok().filter(|capacity|*capacity>0&&*capacity<=tokio::sync::Semaphore::MAX_PERMITS).ok_or(())?;
+            let(sender,receiver)=mpsc::channel(capacity);Ok(Self{sender,receiver:tokio::sync::Mutex::new(receiver)})
+        }
+        pub fn sender(&self)->Sender<T>{Sender(Some(self.sender.clone()))}
         pub fn into_receiver(self)->mpsc::Receiver<T>{self.receiver.into_inner()}
-        pub async fn send<E>(&self,value:T)->Result<(),Failure<E>>{self.sender.send(value).await.map_err(|_|Failure::Closed)}
+        pub async fn send(&self,value:T)->Result<(),SendError<T>>{self.sender.send(value).await.map_err(|error|SendError{code:"closed",value:error.0})}
+        pub fn try_send(&self,value:T)->Result<(),SendError<T>>{try_send(&self.sender,value)}
         pub async fn receive<E>(&self)->Result<T,Failure<E>>{self.receiver.lock().await.recv().await.ok_or(Failure::Closed)}
+        pub fn try_receive(&mut self)->Result<T,&'static str>{self.receiver.get_mut().try_recv().map_err(|error|match error{mpsc::error::TryRecvError::Empty=>"empty",mpsc::error::TryRecvError::Disconnected=>"closed"})}
         pub fn close(&mut self){self.receiver.get_mut().close();}
     }
-    impl<T> Sender<T>{pub async fn send<E>(&self,value:T)->Result<(),Failure<E>>{self.0.send(value).await.map_err(|_|Failure::Closed)}}
+    impl<T> Sender<T>{
+        pub async fn send(&self,value:T)->Result<(),SendError<T>>{match &self.0{Some(sender)=>sender.send(value).await.map_err(|error|SendError{code:"closed",value:error.0}),None=>Err(SendError{code:"closed",value})}}
+        pub fn try_send(&self,value:T)->Result<(),SendError<T>>{match &self.0{Some(sender)=>try_send(sender,value),None=>Err(SendError{code:"closed",value})}}
+        pub fn close(&mut self){self.0.take();}
+    }
 }

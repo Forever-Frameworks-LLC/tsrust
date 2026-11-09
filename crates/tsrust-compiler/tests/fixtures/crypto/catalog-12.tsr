@@ -1,0 +1,9 @@
+import { hkdfSha256 } from 'std:crypto';
+import { fromUtf8, length } from 'std:bytes';
+
+export function main() {
+  const input = unwrap(fromUtf8('input'));
+  const salt = unwrap(fromUtf8('salt'));
+  const info = unwrap(fromUtf8('context'));
+  console.log(length(unwrap(hkdfSha256(input, salt, info, 32))));
+}

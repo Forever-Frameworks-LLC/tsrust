@@ -223,10 +223,36 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 let initial_runtime = task.environment.runtime;
                 let region = task.region.value();
                 if refresh {
-                    analyzer.check_pending_region_functions(&region.body, result_type)?;
+                    analyzer.check_pending_region_functions(&region.body, result_type, false)?;
                     effects = if partial { analyzer.region_caller_error_effects(context, &region.body, result_type) } else { analyzer.region_error_effects(context)? };
                 }
                 let incoming = crate::error_effects::annotate_region_body(&mut region.body, &effects);
+                if incoming.opaque && (std::env::var("TSRUST_TRACE_EFFECTS").as_deref()==Ok("1") || cfg!(test) && std::thread::current().name().is_some_and(|name|name.ends_with("iterator_terminal_error_contract_after_prior_catch_diagnostic"))) {
+                    eprintln!("ITERATOR_OPAQUE incoming={:?} fields={:?} retained={:?} callbacks={:?} storage={:?}",incoming,crate::error_effects::record_field_origins(&analyzer.unions,&analyzer.program.records,&analyzer.scoped_records),context.caller_error_origins,effects.callback_errors,effects.storage_errors);
+                    eprintln!("ITERATOR_FAMILIES {:?}",analyzer.callables.storage.families().map(|(family,declaration,origins)|(family,declaration,origins.to_vec())).collect::<Vec<_>>());
+                    eprintln!("ITERATOR_STORED_FIELDS {:?}",crate::error_effects::record_stored_field_origins(&analyzer.unions,&analyzer.program.records,&analyzer.scoped_records));
+                    for(id,record)in analyzer.program.records.iter().enumerate(){if record.fields.iter().any(|field|matches!(field.ty,Some(Type::StoredCallable(_)|Type::Callback(_)))){
+                        eprintln!("ITERATOR_FIELD_RECORD id={id} declaration={} parameter_contract={} fields={:?}",analyzer.scoped_records.declaration(id),analyzer.scoped_records.parameter_contract(id),record.fields.iter().map(|field|(&field.name.text,field.ty)).collect::<Vec<_>>());
+                    }}
+                    for function in analyzer.checked.iter().filter_map(Option::as_ref).chain(analyzer.closures.iter().map(|closure|&closure.function)){
+                        for value in crate::error_effects::checked_expressions(function){if matches!(value.kind,ExprKind::Record(_)) && let Some(Type::Record(record))=value.ty{
+                            if analyzer.program.records[record].fields.iter().any(|field|matches!(field.ty,Some(Type::StoredCallable(_)|Type::Callback(_)))){eprintln!("ITERATOR_RECORD_CONSTRUCTOR function={} template={} span={:?} record={record}",function.name,function.template,value.span);}
+                        }}
+                    }
+                    for function in analyzer.checked.iter().filter_map(Option::as_ref).filter(|function|function.name.contains("iterator#next")||function.name.contains("iterator#forEach")) {
+                        eprintln!("ITERATOR_PARAMETERS {} {:?}",function.name,function.bindings.iter().take(function.parameter_count).map(|binding|(&binding.name,binding.ty)).collect::<Vec<_>>());
+                    }
+                    for function in analyzer.checked.iter().filter_map(Option::as_ref) {
+                        for value in crate::error_effects::checked_expressions(function) {
+                            if !value.own_may_fail{continue;}
+                            if let ExprKind::Call(callee,args)=&value.kind{eprintln!("ITERATOR_EFFECT function={} template={} span={:?} target={:?} callee={:?} invocation={:?} args={:?}",function.name,function.template,value.span,value.target,callee.ty,callee.generic_invocation,args.iter().map(|arg|arg.ty).collect::<Vec<_>>());}
+                        }
+                    }
+                    for(id,closure)in analyzer.closures.iter().enumerate(){eprintln!("ITERATOR_CLOSURE id={} forward={:?} polymorphic={} template={} effect={:?} methods={:?}",id,closure.forward.is_some(),closure.polymorphic,closure.function.template,effects.closure_errors.get(id),closure.methods.iter().enumerate().map(|(method,body)|(method,body.function.template,effects.method_errors.get(&(id,method)))).collect::<Vec<_>>());if effects.closure_errors.get(id).is_some_and(|effect|effect.opaque){
+                        eprintln!("ITERATOR_CAPTURE id={id} captures={:?}",closure.captures.iter().map(|capture|(closure.function.bindings.get(capture.inner).map(|binding|(&binding.name,binding.ty)),capture.storage,capture.access)).collect::<Vec<_>>());
+                        for value in crate::error_effects::checked_expressions(&closure.function){if let ExprKind::Call(callee,args)=&value.kind{eprintln!("ITERATOR_CLOSURE_CALL id={id} span={:?} target={:?} callee={:?} args={:?}",value.span,value.target,callee.ty,args.iter().map(|arg|arg.ty).collect::<Vec<_>>());}}
+                    }}
+                }
                 let points = crate::error_effects::OperationEffects::for_body(&region.body);
                 let (normal, frame, mut errors) = exits;
                 errors.refine(&mut |span| points.get(span));

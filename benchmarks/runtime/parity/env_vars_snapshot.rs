@@ -1,0 +1,1 @@
+fn function0(value0: i64, value1: i64) -> i64 {let mut checksum=value1;for _ in 0..value0 {let rows=std::env::vars_os().map(|(name,value)|(name.into_string().unwrap(),value.into_string().unwrap())).collect::<Vec<_>>();for (name,value) in &rows {if name=="TSRUST_B03_TEXT"||name=="TSRUST_B03_EMPTY"{checksum+=i64::try_from(name.len()+value.len()).unwrap();}}}checksum}fn main(){}

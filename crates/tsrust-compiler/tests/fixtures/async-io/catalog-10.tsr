@@ -1,0 +1,8 @@
+import { reader, readAll, close } from 'std:io';
+import { fromUtf8, toUtf8, alloc } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const input = reader(unwrap(fromUtf8('hello')));
+  console.log(unwrap(toUtf8(unwrap(await readAll(input)))));
+  unwrap(await close(input));
+}

@@ -1,0 +1,8 @@
+import { PasswordHashOptions } from 'std:crypto';
+
+export function main() {
+  const options: PasswordHashOptions = {
+    parallelism: 1
+  };
+  console.log(options.parallelism);
+}

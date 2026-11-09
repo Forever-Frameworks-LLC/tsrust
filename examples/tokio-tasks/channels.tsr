@@ -15,7 +15,12 @@ async function main(): Task<void> {
   const queue = new Channel<int>(1);
   const outcomes = await allSettled([produce(queue.sender()).start(), consume(queue)]);
   for (const outcome of outcomes) {
-    unwrap(clone(outcome));
+    match (outcome) {
+      Ok(_) => {},
+      Err(_) => {
+        throw 'channel group failed';
+      }
+    }
   }
 
   queue.close();

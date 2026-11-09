@@ -1,0 +1,13 @@
+import { reader, readInto, close, Reader } from 'std:io';
+import { fromUtf8, alloc, set } from 'std:bytes';
+async function run(input: Reader): Task<int> {
+  const bytes = unwrap(alloc(3));
+  const count = unwrap(await readInto(input, bytes));
+  unwrap(await close(input));
+  return count;
+}
+
+export async function main(): Task<void> {
+  const job = run(reader(unwrap(fromUtf8('abc')))).start();
+  console.log(await job);
+}

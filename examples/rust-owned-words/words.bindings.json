@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 2,
+  "source": "./words.rs",
+  "dependencies": {
+    "shlex": {
+      "version": "=2.0.1",
+      "features": [],
+      "defaultFeatures": true
+    }
+  }
+}

@@ -38,8 +38,15 @@ fn strip_carrier(value: &mut Expr) {
 impl Analyzer {
     /// Preserve a new nominal record environment inside an optional contract.
     /// This changes its carrier, not nominal compatibility or ownership.
-    pub(super) fn scoped_record_injection(&self, actual: Type, expected: UnionId, span: Span) -> Result<Option<Type>, Diagnostic> {
-        let Some(Type::Record(target)) = self.unions.payload(Type::Union(expected)) else { return Ok(None); };
+    pub(super) fn scoped_record_injection(&mut self, actual: Type, expected: UnionId, span: Span) -> Result<Option<Type>, Diagnostic> {
+        let Some(Type::Record(target)) = self.unions.payload(Type::Union(expected)) else { return self.finite_record_union_carrier(actual,expected,span); };
+        // Ordinary owned callable storage also fits a finite destination. An
+        // absent initialization may have selected an empty physical payload;
+        // the incoming record must keep its actual storage for the slot planner.
+        let payload=self.unions.payload(actual.owning()).unwrap_or(actual.owning());
+        let target_owned=self.finite_owned_shape(Type::Record(target))
+            && self.owned_record_parameter(payload) && !self.aggregate_callable_facts(payload).unknown
+            && !self.native_shape_contains_view(payload);
         // A named nullable value already carries its concrete environment. Keep
         // that environment when injecting into the same nominal contract.
         if let Type::Union(source) = actual {
@@ -47,19 +54,100 @@ impl Analyzer {
             let Some(Type::Record(record)) = self.unions.payload(actual) else { return Ok(None); };
             let declaration = self.scoped_records.declaration(record);
             if declaration == self.scoped_records.declaration(target)
-                && self.aggregate_callable_facts(Type::Record(declaration)).scoped
+                && (self.aggregate_callable_facts(Type::Record(declaration)).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record) || self.scoped_native_record_contract(record,target) || target_owned)
                 && self.unions.members(source).into_iter().filter(|member| !matches!(member, Type::Record(_)))
                     .eq(self.unions.members(expected).into_iter().filter(|member| !matches!(member, Type::Record(_))))
             { return Ok(Some(actual)); }
             return Ok(None);
         }
         let Type::Record(record) = actual else { return Ok(None); };
-        if actual == Type::Record(target) || !self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped
+        if actual == Type::Record(target) || !(self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(record))).scoped || self.finite_owned_shape(actual) || self.concrete_owned_record_carrier(record) || self.scoped_native_record_contract(record,target) || target_owned)
             || self.scoped_records.declaration(record) != self.scoped_records.declaration(target)
         { return Ok(None); }
         self.unions.intern(self.unions.members(expected).into_iter().map(|member| {
             if member == Type::Record(target) { actual } else { member }
         }), span).map(Some)
+    }
+
+    /// Owned callback fields may retain native-view lifetimes without becoming
+    /// borrowing callbacks. Preserve that checked physical record in optional storage.
+    pub(super) fn scoped_native_record_carrier(&self,record:usize)->bool {
+        if !self.native_borrow_types || record==self.scoped_records.declaration(record) || self.aggregate_callable_facts(Type::Record(record)).unknown{return false;}
+        let mut pending=vec![Type::Record(record)];let mut seen=HashSet::new();
+        while let Some(ty)=pending.pop(){
+            if !seen.insert(ty){continue;}
+            match ty{
+                Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some_and(|layout|layout.lifetimes()>0)=>return true,
+                Type::Record(id)=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+                Type::Array(element)=>pending.push(element.ty()),
+                Type::Union(id)=>pending.extend(self.unions.members(id)),
+                Type::Map(id)=>pending.push(self.program.records[id].map_definition.as_ref().unwrap().value),
+                _=>{},
+            }
+        }false
+    }
+    pub(super) fn scoped_native_record_contract(&self,record:usize,target:usize)->bool {
+        self.scoped_native_record_carrier(record)
+            && self.scoped_records.declaration(record)==self.scoped_records.declaration(target)
+            && self.program.records[record].application.as_ref().map(|application|&application.resolved_arguments)
+                ==self.program.records[target].application.as_ref().map(|application|&application.resolved_arguments)
+    }
+
+    // A checked nonborrowed closure field has a concrete origin even when it
+    // does not need a scoped StoredCallable family. Do not admit declarations.
+    pub(super) fn concrete_owned_record_carrier(&self,record:usize)->bool {
+        let ty=Type::Record(record);
+        let facts=self.aggregate_callable_facts(ty);
+        record!=self.scoped_records.declaration(record) && facts.retains && !facts.scoped && !facts.unknown && !self.native_shape_contains_view(ty)
+    }
+
+    pub(super) fn owned_record_argument_shape(&self,actual:Type)->bool {
+        if self.native_shape_contains_view(actual){return false;}
+        let owned=actual.owning();
+        self.finite_owned_shape(owned) || match owned {
+            Type::Record(record)=>self.concrete_owned_record_carrier(record),
+            Type::Union(id)=>self.unions.members(id).into_iter().any(|ty|matches!(ty,Type::Record(record) if self.concrete_owned_record_carrier(record))),
+            _=>false,
+        }
+    }
+
+    /// Preserve owned record environments in a mixed union. A variant not
+    /// populated by this value uses the existing explicit absent environment.
+    pub(super) fn finite_record_union_carrier(&mut self,actual:Type,expected:UnionId,span:Span)->Result<Option<Type>,Diagnostic>{
+        if self.unions.payload(Type::Union(expected)).is_some() || matches!(actual,Type::BorrowedUnion(_)){return Ok(None);}
+        let members=self.unions.members(expected);let mut target=members.clone();
+        let actual_members=if let Type::Union(id)=actual{self.unions.members(id)}else{vec![actual]};
+        let mut owned=false;
+        for(index,&member)in members.iter().enumerate(){
+            let Type::Record(record)=member else{continue;};
+            let declaration=self.scoped_records.declaration(record);let facts=self.aggregate_callable_facts(Type::Record(declaration));
+            if !facts.retains || facts.scoped{continue;}
+            owned=true;
+            let populated=actual_members.iter().any(|ty|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration));
+            if record==declaration && !populated{target[index]=self.empty_scoped_record_environment(declaration)?;}
+        }
+        if !owned{return Ok(None);}
+        for member in actual_members.iter().copied(){
+            if let Type::Record(record)=member{
+                let declaration=self.scoped_records.declaration(record);
+                // An explicitly absent environment contributes no possible record
+                // value. It must not overwrite an inhabited alternative of the
+                // same nominal record through the declaration shortcut below.
+                let absent=|id:usize|self.program.records[id].fields.iter().any(|field|!field.optional && matches!(field.ty,Some(Type::Callback(callback)) if self.absent_callable_type(Type::Callback(callback))));
+                if absent(record) && actual_members.iter().copied().any(|other|
+                    matches!(other,Type::Record(id) if self.scoped_records.declaration(id)==declaration && !absent(id))) {continue;}
+                let candidates=members.iter().enumerate().filter_map(|(index,ty)|matches!(ty,Type::Record(id) if self.scoped_records.declaration(*id)==declaration).then_some(index)).collect::<Vec<_>>();
+                let [index]=candidates.as_slice() else{return Ok(None);};
+                self.require(member,Some(Type::Record(declaration)),span)?;
+                let Type::Record(previous)=target[*index] else{unreachable!()};
+                if previous==record{continue;}
+                target[*index]=if previous==declaration{member}else{
+                    self.join_sticky_record_types(previous,record,span)?.ok_or_else(||Diagnostic::new("type","Owned record alternatives cannot share a finite environment.",span))?
+                };
+            }else{self.require(member,Some(Type::Union(expected)),span)?;}
+        }
+        let concrete=self.unions.intern(target,span)?;
+        Ok((concrete!=Type::Union(expected) || actual!=concrete).then_some(concrete))
     }
 
     pub(super) fn array_result_replacement_type(&mut self, value: &mut Expr, selected: Option<Type>, previous: Type, results: &HashMap<usize, Type>) -> Result<Option<Type>, Diagnostic> {
@@ -137,4 +225,45 @@ impl Analyzer {
             Ok(())
         })
     }
+}
+
+#[cfg(test)]
+#[test]
+fn mixed_union_absent_environment_does_not_overwrite_an_inhabited_nominal_alternative(){
+ let mut analyzer=Analyzer::new(crate::syntax::parse("type Holder={run:Owned<Function<int>>;};function main(){const value:Holder={run:():int=>7};}").unwrap()).unwrap();
+ let main=analyzer.function_names["main"];analyzer.function(main).unwrap();
+ let record=analyzer.record_names["Holder"];
+ let Type::StoredCallable(family)=analyzer.program.records[record].fields[0].ty.unwrap()else{panic!("owned record storage")};
+ assert!(analyzer.callables.storage.origins(family).is_some_and(|origins|!origins.is_empty()),"exercise actual populated storage");
+ let inhabited=Type::Record(record);let empty=analyzer.empty_scoped_record_environment(record).unwrap();assert_ne!(inhabited,empty);
+ let actual=analyzer.unions.intern([inhabited,empty,Type::String],Span::default()).unwrap();
+ for payload in [empty,inhabited]{
+  let expected=analyzer.unions.intern([payload,Type::String,Type::Undefined],Span::default()).unwrap().union().unwrap();
+  let concrete=analyzer.finite_record_union_carrier(actual,expected,Span::default()).unwrap().unwrap();
+  let members=analyzer.unions.members(concrete.union().unwrap());assert!(members.contains(&inhabited));assert!(!members.contains(&empty));assert!(members.contains(&Type::String));assert!(members.contains(&Type::Undefined));
+ }
+ let absent=analyzer.unions.intern([empty,Type::String],Span::default()).unwrap();
+ let expected=analyzer.unions.intern([inhabited,Type::String,Type::Undefined],Span::default()).unwrap().union().unwrap();
+ let concrete=analyzer.finite_record_union_carrier(absent,expected,Span::default()).unwrap().unwrap();
+ assert!(analyzer.unions.members(concrete.union().unwrap()).contains(&empty));
+}
+
+#[cfg(test)]
+#[test]
+fn optional_owned_callback_record_preserves_checked_native_lifetime_carrier(){
+ let source="type Window={};type Holder={read:Once<Function<Window>>;};type Other={read:Once<Function<Window>>;};function make(value:Window):Holder{return {read:()=>value};}function main(){}";
+ let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+ let mut parsed=crate::syntax::parse(&formatted).unwrap();parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+ let mut analyzer=Analyzer::new(parsed).unwrap();let make=analyzer.function_names["make"];analyzer.function(make).unwrap();
+ let actual=analyzer.checked[make].as_ref().unwrap().result;let Type::Record(record)=actual else{panic!("physical factory record")};
+ assert!(analyzer.scoped_native_record_carrier(record));assert!(!analyzer.finite_owned_shape(actual));
+ let holder=analyzer.record_names["Holder"];let other=analyzer.record_names["Other"];
+ let optional=analyzer.unions.intern([Type::Record(holder),Type::Undefined],Span::default()).unwrap();
+ let injected=analyzer.scoped_record_injection(actual,optional.union().unwrap(),Span::default()).unwrap().expect("checked native callback record injects");
+ assert_eq!(analyzer.unions.payload(injected),Some(actual));assert!(analyzer.scoped_record_nullable_contract(injected,optional));
+ let wrong=analyzer.unions.intern([Type::Record(other),Type::Undefined],Span::default()).unwrap();
+ assert!(analyzer.scoped_record_injection(actual,wrong.union().unwrap(),Span::default()).unwrap().is_none());
+ assert!(!analyzer.scoped_record_nullable_contract(injected,wrong));
+ let null=analyzer.unions.intern([actual,Type::Null],Span::default()).unwrap();
+ assert!(analyzer.scoped_record_injection(null,optional.union().unwrap(),Span::default()).unwrap().is_none());
 }

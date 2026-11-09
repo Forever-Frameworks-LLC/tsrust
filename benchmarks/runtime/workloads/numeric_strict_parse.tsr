@@ -1,0 +1,23 @@
+import { parseInt as exact, parseNumber } from 'std:numeric';
+
+function workload(n: int, seed: int): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const integer = unwrap(exact('7fffffffffffffff', 16));
+    const negative = unwrap(exact('-100', 2));
+    const number = unwrap(parseNumber('1.25e2'));
+    if (integer !== 9223372036854775807 || number !== 125.0) {
+      throw 'parse';
+    }
+
+    checksum += negative + 125;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 7));
+}

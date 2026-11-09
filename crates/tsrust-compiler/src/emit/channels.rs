@@ -7,7 +7,7 @@ impl Emitter<'_> {
         if !matches!(self.program.records[record].native_type,Some(NativeTypeId::Channel|NativeTypeId::AsyncChannel)) { return None; }
         let ExprKind::NativeConstructor(args, _) = &expr.kind else { return None; };
         let capacity = self.expr(fun, &args[0], Mode::Read);
-        let failed = self.runtime_failure_exit("RangeError", "range", "Channel capacity must be 1..1000000.", expr.span).unwrap_or_else(|| "panic!(\"Channel capacity must be 1..1000000.\")".into());
+        let failed = self.runtime_failure_exit("RangeError", "range", "Channel capacity must be positive and fit the target backend limit.", expr.span).unwrap_or_else(|| "panic!(\"Channel capacity must be positive and fit the target backend limit.\")".into());
         let code = format!("match <{}>::new({capacity}){{Ok(channel)=>channel,Err(_)=>{{{failed}}}}}", self.native_type(expr.ty.unwrap()));
         Some(match mode { Mode::Read => format!("&({code})"), Mode::Mutate => format!("&mut ({code})"), _ => code })
     }

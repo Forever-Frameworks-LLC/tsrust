@@ -1,0 +1,32 @@
+import { gzip, compressWriter, decompressReader, CompressionReader, CompressionError } from 'std:compression';
+import { ThreadPool, SpawnError, ThreadError } from 'std:threads';
+import { Reader, Writer, IoError, reader, writer, copy, close } from 'std:io';
+import { create, readFile, removeFile } from 'std:fs';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+async function plain(input: Mutable<Reader>, output: Mutable<Writer>): Task<Result<int, IoError>> {
+  return await copy(input, output);
+}
+
+async function transformed(input: Mutable<CompressionReader>, output: Mutable<Writer>): Task<Result<int, CompressionError | IoError | SpawnError | ThreadError<undefined>>> {
+  return await copy(input, output);
+}
+
+export async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  const source = reader(unwrap(fromUtf8('copy')));
+  const encoded = unwrap(compressWriter(pool, writer(unwrap(create('copy.gz'))), 'gzip'));
+  console.log(unwrap(await copy(source, encoded, 2)));
+  unwrap(await close(source));
+  unwrap(await close(encoded));
+  const decoded = unwrap(decompressReader(pool, reader(unwrap(readFile('copy.gz'))), 'gzip'));
+  const destination = writer(unwrap(create('copy.txt')));
+  console.log(unwrap(await transformed(decoded, destination)));
+  unwrap(await close(decoded));
+  unwrap(await close(destination));
+  console.log(unwrap(toUtf8(unwrap(readFile('copy.txt')))));
+  unwrap(removeFile('copy.gz'));
+  unwrap(removeFile('copy.txt'));
+  unwrap(pool.shutdown());
+}

@@ -1,0 +1,4 @@
+import {createHash,createHmac,hkdfSync,timingSafeEqual} from 'node:crypto';
+export function workload(n:number,seed:number):number{const size=262144;const input=inputBytes(size,seed);const key=Buffer.alloc(32,7);const tag=createHmac('sha256',key).update(input).digest();const bad=Buffer.from(tag);bad[0]^=1;let sum=0;for(let i=0;i<n;i++){const expected=createHmac('sha256',key).update(input).digest();const valid=timingSafeEqual(expected,tag);const changed=timingSafeEqual(createHmac('sha256',key).update(input).digest(),bad);sum=(sum*131+Number(valid))%1000000007;sum=(sum*131+Number(changed))%1000000007;}return sum;}
+function inputBytes(size:number,seed:number):Buffer{const bytes=Buffer.alloc(size);for(let i=0;i<size;i++)bytes[i]=(i+seed)%251;return bytes;}
+function fold(sum:number,bytes:Uint8Array):number{for(const byte of bytes)sum=(sum*131+byte)%1000000007;return sum;}

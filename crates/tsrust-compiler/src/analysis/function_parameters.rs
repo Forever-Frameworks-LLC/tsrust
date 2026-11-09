@@ -95,7 +95,7 @@ impl Analyzer {
             context.bindings[binding].callback_reference =
                 matches!(kind, CallbackKind::Reusable | CallbackKind::Read);
             context.bindings[binding].callback_invocation = Some(kind.invocation());
-            if kind.is_once() || kind.is_owned() {
+            if (kind.is_once() || kind.is_owned()) && !(kind==CallbackKind::Task&&matches!(self.program.functions[index].parameter_access[position],Some((Mode::Read,_)))) {
                 context.bindings[binding].mode = Mode::Consume;
             }
         }
@@ -107,7 +107,7 @@ impl Analyzer {
         }
         if annotation
             .as_ref()
-            .is_some_and(|c| c.kind.is_once() || c.kind.is_owned())
+            .is_some_and(|c| (c.kind.is_once() || c.kind.is_owned())&&!(c.kind==CallbackKind::Task&&matches!(self.program.functions[index].parameter_access[position],Some((Mode::Read,_)))))
         {
             // The annotation transfers ownership even when never invoked.
             context.bindings[binding].mode = Mode::Consume;
@@ -117,6 +117,7 @@ impl Analyzer {
         }
         if matches!(self.program.functions[index].parameter_access[position],Some((Mode::Read,_))) && !body_ty.is_copy() {
             context.readonly_parameters.insert(binding);
+            if self.is_task_type(body_ty){context.bindings[binding].callback_kind=Some(CallbackKind::Task);context.bindings[binding].callback_invocation=Some(Mode::Consume);}
         }
         if matches!(self.program.functions[index].parameter_access[position], Some((Mode::Mutate, _))) { context.mutable_parameters.insert(binding); }
         frame.next += 1;

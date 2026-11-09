@@ -264,10 +264,6 @@ fn field_diagnostics_and_frontend_operation_need_no_backend() {
             "array-element",
         ),
         (
-            "type Box = { items: void[]; }; function main() {}",
-            "array-element",
-        ),
-        (
             "type Box = { items: int[]; items: int[]; }; function main() {}",
             "duplicate",
         ),
@@ -286,6 +282,9 @@ fn field_diagnostics_and_frontend_operation_need_no_backend() {
     ] {
         reject(source, code);
     }
+    let units=check(&support::format_round_trip("type Box={items:void[];};function done():void{}function main(){const box:Box={items:[done(),done()]};const copied=clone(box);console.log(box.items.length,copied.items.length);}")).unwrap();
+    assert!(units.warnings().is_empty());
+    assert!(units.emit_rust().contains("Vec<()>"));
     let dir = support::TempDirectory::new();
     let path = dir.source(include_str!("fixtures/array-fields/catalog.tsr"));
     for command in ["check", "emit"] {

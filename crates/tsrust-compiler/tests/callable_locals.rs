@@ -129,3 +129,23 @@ function main() {
         None,
     );
 }
+
+#[test]
+fn inferred_record_fields_move_callable_bindings_and_retain_program_function_values(){
+ support::execute_batch(&[
+  ("function work(value:int):int{return value+1;}function main(){const alias=work;const stored={alias};console.log(stored.alias(1));}","2\n"),
+  ("function work(value:int):int{return value+1;}const alias=work;const stored={alias};function main(){console.log(alias(2),stored.alias(1));}","3 2\n"),
+  ("function work<T>(value:T):T{return value;}const alias=work;const stored={alias};function main(){console.log(alias(2),stored.alias('kept'));}","2 kept\n"),
+  ("function main(){const original:Once<Function<int>>=():int=>{return 4;};const stored={original};console.log(stored.original());}","4\n"),
+ ],None);
+ for (source,code) in [
+  ("function main(){const original:Once<Function<int>>=():int=>{return 4;};const stored={original};original();}","closure-consumed"),
+  ("function main(){const original:Once<Function<int>>=():int=>{return 4;};const stored={original};stored.original();stored.original();}","partial-transfer"),
+ ] {support::reject(source,code);}
+ support::reject("type State={value:int;};function main(){const state:State={value:3};const original=():int=>{return state.value;};const stored={original};state.value=8;console.log(stored.original());}","capture-conflict");
+ support::reject("function inspect(action:ReadOnly<Function<int>>):void{const stored={action};}function main(){}","callback-escape");
+ support::reject("function work(value:int):int{return value+1;}let alias=work;const stored={alias};function main(){console.log(stored.alias(1));}","module-state-consume");
+ support::reject("function work(value:int):int{return value+1;}const alias=work;function observe<T>(action:Mutable<Function<int,[value:int]>>,stored:T):void{}function main(){observe(alias,{alias});}","conflicting-access");
+
+ support::reject("type State={value:int;};const state:State={value:3};const original=():int=>{return state.value;};const stored={original};function main(){console.log(stored.original());}","module-state-consume");
+}

@@ -11,6 +11,7 @@ impl Analyzer {
         match name {
             "set" | "clear" | "forEach" => Ok(Type::Void),
             "has" | "delete" => Ok(Type::Boolean),
+            "firstKey"|"lastKey" if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)=>self.unions.intern([self.program.records[id].map_definition.as_ref().unwrap().key,Type::Undefined],span),
             "get" => self.unions.intern([self.program.records[id].map_definition.as_ref().unwrap().value, Type::Undefined], span),
             "keys" | "values" => {
                 let map=self.program.records[id].map_definition.as_ref().unwrap();
@@ -37,9 +38,10 @@ impl Analyzer {
         let method = match name.as_str() {
             "set" => MapMethod::Set, "get" => MapMethod::Get, "has" => MapMethod::Has,
             "delete" => MapMethod::Delete, "clear" => MapMethod::Clear,
+            "firstKey"|"lastKey" if matches!(self.expression_type_hint(context,base),Some(Type::Map(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap))=>if name=="firstKey"{MapMethod::FirstKey}else{MapMethod::LastKey},
             _ => return Err(Diagnostic::new("map-member", "Unsupported Map method.", callee.span)),
         };
-        Self::arity(arguments.len(), match method { MapMethod::Set => 2, MapMethod::Clear => 0, _ => 1 }, expression.span)?;
+        Self::arity(arguments.len(), match method { MapMethod::Set => 2, MapMethod::Clear | MapMethod::FirstKey | MapMethod::LastKey => 0, _ => 1 }, expression.span)?;
         let named = Self::stable_at_receiver(base);
         let receiver_mode = if method == MapMethod::Get && !named { Mode::Consume } else { Mode::Read };
         let Type::Map(id) = self.expression(context, base, receiver_mode, loans, None)? else { unreachable!("Map receiver hint") };
@@ -116,7 +118,8 @@ impl Analyzer {
             self.record_native_element_store(context, base, &arguments[1])?;
         }
         let mut result = self.map_method_type(id, name, expression.span)?;
-        if method == MapMethod::Get && named && !result.is_copy() { result = Type::BorrowedUnion(result.union().unwrap()); }
+        if matches!(method,MapMethod::FirstKey|MapMethod::LastKey) && !result.is_copy() && !named{return Err(Diagnostic::new("borrow","Borrowed OrderedMap endpoints require a stored receiver.",base.span));}
+        if matches!(method,MapMethod::Get|MapMethod::FirstKey|MapMethod::LastKey) && named && !result.is_copy() { result = Type::BorrowedUnion(result.union().unwrap()); }
         self.require(result, expected, expression.span)?;
         expression.target = Some(CallTarget::MapMethod(method));
         Ok(result)

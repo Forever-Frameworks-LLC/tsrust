@@ -1,0 +1,24 @@
+import { ThreadPool } from 'std:threads';
+async function workload(n: int, seed: int): Task<int> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 4
+  });
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    const input = seed + i;
+    const value = await pool.taskAsync((): int => {
+      let value: int = input;
+      for (let j: int = 0; j < 4096; j++) {
+        value = (value * 17 + j) % 1000000007;
+      }
+
+      return value;
+    });
+    sum = (sum + value) % 1000000007;
+  }
+
+  unwrap(pool.shutdown());
+  return sum;
+}
+
+function main() {}

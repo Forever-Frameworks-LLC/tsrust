@@ -84,7 +84,7 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
         if (name=="@native:std:result#unwrap"||global_unwrap) && arguments.len()==1 {query(work,Frame::Unwrap,&arguments[0]);return;}
         if let Some((_,binding))=crate::native_bindings::by_symbol(name){
             if binding.module=="std:ui-runtime" && binding.name=="handle" && arguments.len()==1{query(work,Frame::Own,&arguments[0]);return;}
-            *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || matches!(binding.result,crate::native_bindings::NativeType::SharedCallback|crate::native_bindings::NativeType::ObservedValue){None}else{Some(native_type(binding.result,&analyzer.program.records))};return;
+            *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || matches!(binding.result,crate::native_bindings::NativeType::SharedCallback|crate::native_bindings::NativeType::ObservedValue){None}else{native_result_hint(binding.result,&analyzer.program.records)};return;
         }
         if !context.names.contains_key(name) && !context.pending_names.contains(name) && !analyzer.function_names.contains_key(name)
             && let Some(member)=crate::syntax::global_number_member(name,true){*value=Some(if member.starts_with("parse"){Type::Number}else{Type::Boolean});return;}
@@ -99,6 +99,18 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
 }
 fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<Type>,work:&mut Vec<Work<'a>>,value:&mut Option<Type>){
     let ExprKind::Call(callee,_)=&expr.kind else{unreachable!()};
+    if let (Some(Type::Record(channel)),ExprKind::Field(_,member))=(receiver,&callee.kind)
+        && member=="sender" && matches!(&expr.kind,ExprKind::Call(_,args)if args.is_empty())
+        && analyzer.program.records[channel].native_type==Some(crate::native_signatures::NativeTypeId::AsyncChannel){
+        let arguments=analyzer.program.records[channel].application.as_ref().map(|application|&application.resolved_arguments);
+        *value=analyzer.program.records.iter().enumerate().find_map(|(id,record)|
+            (record.native_type==Some(crate::native_signatures::NativeTypeId::AsyncSender)
+                && arguments.is_some() && record.application.as_ref().map(|application|&application.resolved_arguments)==arguments).then_some(Type::Record(id)));
+        return;
+    }
+    if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Logger) && let ExprKind::Field(_,member)=&callee.kind{
+        *value=match member.as_str(){"child"=>Some(Type::Record(id)),"debug"|"info"|"warn"|"error"=>Some(Type::Void),"flush"|"close"=>crate::native_binding_types::resolve(&analyzer.program.records,&crate::stdlib::logging::FLUSH.result.signature()),_=>None};return;
+    }
     if let ExprKind::Field(_,member)=&callee.kind && let Some(Type::Record(id))=receiver && let Some(operation)=crate::stdlib::sqlite::method(analyzer.program.records[id].native_type,member){
         let binding=crate::native_bindings::lookup("std:sqlite",operation).ok().unwrap();*value=Some(native_type(binding.result,&analyzer.program.records));return;
     }
@@ -119,7 +131,7 @@ fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<
     if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_element().is_some(){*value=analyzer.native_collection_method_hint(id,name,expr.span);return;}
     if let Some(Type::Map(id))=receiver{
         *value=analyzer.map_method_type(id,name,expr.span).ok().and_then(|result|{
-            if name=="get" && Analyzer::stable_at_receiver(base) && !result.is_copy(){result.union().map(Type::BorrowedUnion)}else{Some(result)}
+            if matches!(name.as_str(),"get"|"firstKey"|"lastKey") && Analyzer::stable_at_receiver(base) && !result.is_copy(){result.union().map(Type::BorrowedUnion)}else{Some(result)}
         });return;
     }
     if let Some(Type::Set(id))=receiver{
@@ -152,6 +164,7 @@ impl Analyzer{
         if matches!(name,"reduce"|"reduceRight") || (name=="flatMap" && matches!(result,Type::Array(_))){Some(result)}else{Self::transform_array_type(result,span).ok()}
     }
     fn simple_method_hint(&self,context:&Context,expr:&Expr,receiver_hint:Option<Type>)->Option<Type>{
+        let receiver_hint=receiver_hint.map(|ty|if self.is_string_observation(ty){Type::String}else{ty});
         let ExprKind::Call(callee,arguments)=&expr.kind else{unreachable!()};
         let ExprKind::Field(base,name)=&callee.kind else{unreachable!()};
                     if name == "isArray"
@@ -281,6 +294,33 @@ mod tests{
     fn name(value:&str)->Expr{Expr::new(ExprKind::Name(value.into()),Span::default())}
     fn call(callee:Expr,args:Vec<Expr>)->Expr{Expr::new(ExprKind::Call(Box::new(callee),args),Span::default())}
     #[test]
+    fn awaiting_a_lowered_native_result_preserves_the_payload_hint(){
+        let mut parsed=crate::syntax::parse("function main(){}").unwrap();
+        let binding=crate::native_bindings::lookup("std:compression","__gzip").unwrap();
+        crate::native_binding_types::prepare(&mut parsed.records,binding,Span::default()).unwrap();
+        let analyzer=Analyzer::new(parsed).unwrap();let context=Context::new("main".into());
+        let expected=native_type(binding.result,&analyzer.program.records);
+        let mut lazy=name("placeholder");crate::stdlib::futures::lazy_result(&mut lazy,"std:compression","__gzip",vec![]);
+        let awaited=Expr::new(ExprKind::Unary{op:UnaryOp::Await,value:Box::new(lazy),operator:Span::default()},Span::default());
+        assert_eq!(analyzer.expression_type_hint(&context,&awaited),Some(expected));
+        let unwrapped=call(name("@native:std:result#unwrap"),vec![awaited]);
+        assert_eq!(analyzer.expression_type_hint(&context,&unwrapped),Some(super::unwrapped(&analyzer,expected).expect("native Result payload")));
+        let mut ordinary=name("placeholder");crate::stdlib::futures::lazy_result(&mut ordinary,"std:compression","__gzip",vec![]);
+        let ExprKind::Match{id,..}=&mut ordinary.kind else{panic!("lazy match")};*id=0;
+        assert!(crate::stdlib::futures::lazy_native_result(&ordinary).is_none());
+    }
+    #[test]
+    fn unprepared_native_string_method_hints_do_not_activate_regex_metadata(){
+        let analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();let context=Context::new("main".into());
+        for member in ["match","matchAll","search"]{
+            let binding=crate::stdlib::regex::string_method(member).unwrap();
+            assert_eq!(http_result(&analyzer,Some(Type::String),member,false),None);
+            let call=call(name(&format!("@native:std:regex#{}",binding.name)),vec![]);
+            assert_eq!(analyzer.expression_type_hint(&context,&call),None);
+        }
+        assert!(!analyzer.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Regex)));
+    }
+    #[test]
     fn nested_native_receiver_and_clone_hints_share_the_structural_scheduler(){
         let analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();let context=Context::new("main".into());
         let mut value=Expr::new(ExprKind::String("value".into()),Span::default());
@@ -306,9 +346,24 @@ mod tests{
     }
 }
 
+// Speculative hints do not prepare or activate a native binding. Checked
+// dispatch owns preparation before enforcing its complete argument contract.
+fn native_result_hint(ty:crate::native_bindings::NativeType,records:&[Record])->Option<Type>{
+ use crate::native_bindings::NativeType;
+ match ty{
+  NativeType::Structured(signature)=>crate::native_binding_types::resolve(records,signature),
+  NativeType::String|NativeType::Boolean|NativeType::Int|NativeType::Number|NativeType::Void=>Some(native_type(ty,records)),
+  _=>None,
+ }
+}
 pub(super) fn unwrapped(analyzer:&Analyzer,ty:Type)->Option<Type>{let Type::Union(id)=ty else{return None};let [ok,_]=crate::result_identity::variants(&analyzer.program.records,&analyzer.unions.members(id))?;Some(analyzer.program.records[ok].fields.first().and_then(|field|field.ty).unwrap_or(Type::Void))}
 pub(super) fn http_result(analyzer:&Analyzer,receiver:Option<Type>,member:&str,awaited:bool)->Option<Type>{
+ if !awaited && receiver.is_some_and(|ty|analyzer.is_string_observation(ty)) && let Some(binding)=crate::stdlib::regex::string_method(member){return native_result_hint(binding.result,&analyzer.program.records);}
  let Type::Record(id)=receiver? else{return None};let identity=analyzer.program.records[id].native_type;
+ if let Some(binding)=crate::stdlib::process::method(identity,member){let asynchronous=crate::stdlib::process::asynchronous(member);if asynchronous==awaited{return Some(native_type(binding.result,&analyzer.program.records));}return None;}
+ if let Some(binding)=crate::stdlib::net::method(identity,member){if crate::stdlib::net::asynchronous(member)==awaited{return Some(native_type(binding.result,&analyzer.program.records));}return None;}
+ if !awaited && let Some(binding)=crate::stdlib::regex::method(identity,member){return Some(native_type(binding.result,&analyzer.program.records));}
+ if !awaited && let Some(binding)=crate::stdlib::url::method(identity,member){return Some(native_type(binding.result,&analyzer.program.records));}
  if let Some(operation)=crate::stdlib::sql::method(identity,member){if crate::stdlib::sql::asynchronous(operation)!=awaited{return None;}let binding=crate::native_bindings::lookup("std:sql",operation).ok()?;let ty=native_type(binding.result,&analyzer.program.records);return Some(if awaited{unwrapped(analyzer,ty).unwrap_or(ty)}else{ty});}
  let operation=crate::stdlib::http::method(identity,member)?;
  if crate::stdlib::http::asynchronous(operation)!=awaited{return None;}

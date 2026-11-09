@@ -18,7 +18,8 @@ pub(super) fn cargo_home() -> io::Result<PathBuf> {
 pub(super) fn location(manifest: &str, lock: &str) -> io::Result<PathBuf> {
     let base=match std::env::var_os("TSRUST_SOURCE_PACK_DIR") {Some(path)=>PathBuf::from(path),None=>cargo_home()?.join("tsrust/source-packs")};
     let base=if base.is_absolute(){base}else{std::env::current_dir()?.join(base)};
-    Ok(base.join(digest(format!("portable-source-pack-1\nnative-dependencies-1\n{manifest}{lock}\n{LIB}\n{CONFIG}").as_bytes())))
+    let patch=tsrust_compiler::native_url_patch::source_identity(manifest)?;
+    Ok(base.join(digest(format!("portable-source-pack-1\nnative-dependencies-1\n{manifest}{lock}\n{LIB}\n{CONFIG}{patch}").as_bytes())))
 }
 fn regular(path: &Path, directory: bool) -> io::Result<()> {
     let metadata=fs::symlink_metadata(path)?;
@@ -33,6 +34,26 @@ fn files(root: &Path, directory: &Path, result: &mut Vec<PathBuf>) -> io::Result
     }
     Ok(())
 }
+// These published archives omit their repository-root license. Each supplement
+// is the exact upstream file at the commit in the archive's `.cargo_vcs_info.json`
+// (MIT, or the MIT alternative). Emit it outside vendor/; never rewrite Cargo's
+// checksums or cache.
+const SUPPLEMENTS:&[(&str,&str,&[u8],&str)]=&[
+    ("valuable-0.1.1","ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65",include_bytes!("../../../../attributions/valuable-0.1.1-MIT.txt"),"ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44"),
+    ("jni-0.22.4","5efd9a482cf3a427f00d6b35f14332adc7902ce91efb778580e180ff90fa3498",include_bytes!("../../../../attributions/jni-0.22.4-MIT.txt"),"fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960"),
+    ("jni-macros-0.22.4","a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3",include_bytes!("../../../../attributions/jni-0.22.4-MIT.txt"),"fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960"),
+    ("jni-sys-macros-0.4.1","38c0b942f458fe50cdac086d2f946512305e5631e720728f2a61aabcd47a6264",include_bytes!("../../../../attributions/jni-sys-macros-0.4.1-MIT.txt"),"1d85bd754b04ceec93e98e890edd1fa3c6a22e81bcb32135806beeccefa51cd1"),
+    ("rustls-platform-verifier-android-0.2.0","eec689c0bc40ff2458a5977b6619cb718087084a18e02a131c599b62d05e1a5f",include_bytes!("../../../../attributions/rustls-platform-verifier-android-0.2.0-MIT.txt"),"1c7cf76689c837a68ed8d704994e52a0f2940c087958f860d17f3186afbdcc0c"),
+    ("rsqlite-vfs-0.1.1","c51c9ae4df8a7fba42103df5c621fa3c37eccf3a3c650879e90fc48b11cc192c",include_bytes!("../../../../attributions/rsqlite-vfs-0.1.1-MIT.txt"),"e1c1975c3474cce31722836f101a40ffaf1cc784e4d2f38ce3e77b9712934e78"),
+];
+
+fn supplemental_notice(package:&str,checksum:&str)->io::Result<Option<&'static [u8]>> {
+    let Some(&(_,archive,bytes,notice))=SUPPLEMENTS.iter().find(|entry|entry.0==package) else {return Ok(None);};
+    if checksum!=archive {return Err(error(format!("{package} archive identity changed")));}
+    if digest(bytes)!=notice {return Err(error(format!("{package} supplemental MIT notice changed")));}
+    Ok(Some(bytes))
+}
+
 fn packages(lock: &str) -> io::Result<BTreeMap<String,String>> {
     let document=lock.parse::<toml_edit::DocumentMut>().map_err(|e|error(e.to_string()))?;
     let mut packages=BTreeMap::new();
@@ -50,7 +71,9 @@ fn packages(lock: &str) -> io::Result<BTreeMap<String,String>> {
 /// copying. Cargo remains the vendor producer; packs contain no executable hooks.
 fn visit(root: &Path, manifest: &str, lock: &str, mut copy: impl FnMut(&Path,&[u8])->io::Result<()>) -> io::Result<()> {
     regular(root,true)?;
-    for (relative,expected) in [("Cargo.toml",manifest),("Cargo.lock",lock),("src/lib.rs",LIB),(".cargo/config.toml",CONFIG)] {
+    let normalized=tsrust_compiler::native_url_patch::normalize_manifest(manifest)?;
+    tsrust_compiler::native_url_patch::visit(root,manifest,|relative,bytes|copy(relative,bytes))?;
+    for (relative,expected) in [("Cargo.toml",normalized.as_str()),("Cargo.lock",lock),("src/lib.rs",LIB),(".cargo/config.toml",CONFIG)] {
         let path=root.join(relative);regular(path.parent().unwrap(),true)?;regular(&path,false)?;
         let bytes=fs::read(path)?;if bytes!=expected.as_bytes(){return Err(error(format!("Prepared source metadata changed: {relative}")));}copy(Path::new(relative),&bytes)?;
     }
@@ -75,6 +98,9 @@ fn visit(root: &Path, manifest: &str, lock: &str, mut copy: impl FnMut(&Path,&[u
             copy(&Path::new("vendor").join(&name).join(relative),&bytes)?;
         }
         if !hashes.is_empty(){return Err(error(format!("Missing vendor files: {name}")));}
+        if let Some(notice)=supplemental_notice(&name,&checksum)? {
+            copy(&Path::new("attributions/dependencies").join(&name).join("LICENSE"),notice)?;
+        }
     }
     if !expected.is_empty(){return Err(error("Prepared source pack is incomplete"));}Ok(())
 }
@@ -99,7 +125,8 @@ pub(super) fn prepare(mut cargo: Command, offline: bool, manifest: &str, lock: &
     let staging=parent.join(format!(".preparing-{}-{stamp}",std::process::id()));fs::create_dir(&staging)?;
     let result=(|| {
         fs::create_dir(staging.join("src"))?;fs::create_dir(staging.join(".cargo"))?;
-        fs::write(staging.join("Cargo.toml"),manifest)?;fs::write(staging.join("Cargo.lock"),lock)?;fs::write(staging.join("src/lib.rs"),LIB)?;
+        fs::write(staging.join("Cargo.toml"),tsrust_compiler::native_url_patch::normalize_manifest(manifest)?)?;
+        tsrust_compiler::native_url_patch::install(&staging,manifest)?;fs::write(staging.join("Cargo.lock"),lock)?;fs::write(staging.join("src/lib.rs"),LIB)?;
         // Config is written after Cargo finishes so setup may explicitly fetch.
         cargo.args(["vendor","--locked","--versioned-dirs","--manifest-path"]).arg(staging.join("Cargo.toml")).arg(staging.join("vendor"))
             .env("CARGO_HOME",cargo_home()?).stdout(std::process::Stdio::null());
@@ -112,4 +139,18 @@ pub(super) fn prepare(mut cargo: Command, offline: bool, manifest: &str, lock: &
     })();
     // Only the exclusively created staging directory is owned by this call.
     if staging.exists(){let _=fs::remove_dir_all(&staging);}result
+}
+
+#[cfg(test)]
+mod supplemental_notice_tests {
+    use super::*;
+    #[test]
+    fn valuable_notice_is_bound_to_the_exact_archive_and_kept_outside_vendor() {
+        let bytes=supplemental_notice("valuable-0.1.1","ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65").unwrap().unwrap();
+        assert_eq!(bytes.len(),1065);assert_eq!(digest(bytes),"ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44");
+        assert!(supplemental_notice("valuable-0.1.1","changed").is_err());
+        assert!(supplemental_notice("unrelated-0.1.1","changed").unwrap().is_none());
+        assert!(supplemental_notice("valuable-0.1.2","changed").unwrap().is_none());
+        for &(package,archive,_,_) in SUPPLEMENTS {assert!(supplemental_notice(package,archive).unwrap().is_some(),"{package}");assert!(supplemental_notice(package,"changed").is_err());}
+    }
 }

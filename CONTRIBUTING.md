@@ -81,19 +81,20 @@ baseline, not every compiler integration target or a performance run.
 Promotion PRs from `stag` to `main` use the separate [release workflow](.github/workflows/release.yml)
 to build and validate macOS, Linux and Windows packages. Successful protected
 promotion can merge and publish through [promotion automation](.github/workflows/promote.yml).
-Manual async and Windows toolchain acceptance modes do not publish releases.
+CI builds the compiler once per OS and reuses that build for every runtime suite.
+Open a PR to merge finished work toward a release, not to run checks on other OSes.
 See [CI](.github/workflows/ci.yml) for the exact selected targets.
 
-Run full regressions at feature-family milestones or with the CI workflow's
-`full_regressions` dispatch input:
-
-```sh
-cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
-cargo test --offline --locked --workspace --doc
-```
-
-The second invocation is separate because offline package witnesses can replace
-shared dependency artifacts. Native GPU/OS interactions require a real desktop.
+The complete backend check is three layers, all fast enough to run locally:
+`cargo test -p tsrust-compiler -p tsrust-lsp --lib --bins` (unit, rejection and
+diagnostic-code checks in process); `python3 tools/run-suites.py target/debug/tsrust
+target/catalog-suites` after `python3 tools/generate-catalog-suites.py target/catalog-suites`
+(every `tsrust test` suite, one native build per suite directory, including one
+generated test per verified catalog example); and `python3 tools/host-tests.py`
+(CLI, signals, processes, offline export, packages, Rust adapters, LSP stdio).
+Add runtime coverage as `.test.tsr` cases in an existing family suite, not as a
+Rust test that builds its own native program. The remaining per-case Rust
+integration targets are legacy witnesses outside CI.
 Browser Wasm, VS Code Extension Host, SQL services and performance measurements
 have their own explicit runners; the default CI does not claim those checks.
 Database integration is opt-in with `node tools/check-async-sql.mjs --docker`.

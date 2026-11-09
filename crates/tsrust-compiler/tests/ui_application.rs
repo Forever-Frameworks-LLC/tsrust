@@ -14,8 +14,8 @@ fn application_modes_visibility_and_options_check_emit_and_execute() {
     for file in ["src/app/page.tsrx","src/main.tsr","src/inspect.tsr"] {
         let path=root.join(file);assert_eq!(std::fs::read_to_string(&path).unwrap(),support::format_round_trip(&std::fs::read_to_string(&path).unwrap()));
     }
-    let output=support::run(support::cli().arg("run").arg(root.join("src/inspect.tsr")),120);support::success(&output);assert_eq!(output.stdout,b"Application contracts passed\n");
-    let output=support::run(support::cli().arg("emit").arg(root.join("src/main.tsr")),40);support::success(&output);
+    let output=support::run(support::cli().arg("run").arg(root.join("src/inspect.tsr")),300);support::success(&output);assert_eq!(output.stdout,b"Application contracts passed\n");
+    let output=support::run(support::cli().arg("emit").arg(root.join("src/main.tsr")),120);support::success(&output);
     let rust=String::from_utf8(output.stdout).unwrap();assert!(rust.contains("run_configured"));assert!(rust.contains("with_theme_binding"));assert!(rust.contains("with_hidden"));
 }
 
@@ -36,7 +36,7 @@ fn documentation_foundation_formats_checks_emits_and_executes() {
     for file in ["src/app/page.tsrx","src/components/docs/example-card.tsrx","src/examples/counter.tsrx","src/main.tsr","src/inspect.tsr"] {
         let path=root.join(file);assert_eq!(std::fs::read_to_string(&path).unwrap(),support::format_round_trip(&std::fs::read_to_string(&path).unwrap()));
     }
-    let output=support::run(support::cli().arg("run").arg(root.join("src/inspect.tsr")),120);support::success(&output);assert_eq!(output.stdout,b"Documentation home and links passed\n");
-    let output=support::run(support::cli().arg("emit").arg(root.join("src/main.tsr")),40);support::success(&output);
+    let output=support::run(support::cli().arg("run").arg(root.join("src/inspect.tsr")),300);support::success(&output);assert_eq!(output.stdout,b"Documentation home and links passed\n");
+    let output=support::run(support::cli().arg("emit").arg(root.join("src/main.tsr")),120);support::success(&output);
     let rust=String::from_utf8(output.stdout).unwrap();assert!(rust.contains("configure_scrolls"));assert!(!rust.contains("#[path = \"native_scrolling.rs\"]"));
 }

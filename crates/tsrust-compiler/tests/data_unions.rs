@@ -242,3 +242,13 @@ function describe(value:ReadOnly<int|string|boolean|null>):string{
 function main(){console.log(describe(7),describe(false),describe(null),describe("text"));}
 "#, "7 false missing TEXT\n",None);
 }
+
+#[test]
+fn tagged_record_literals_select_their_declared_variant_without_optional_fields(){
+ let header="type Left={kind:'left';value:int;note?:string;};type Right={kind:'right';value:string;note?:string;};function accept(value:Left|Right):void{}";
+ let source=format!("{header}function main(){{accept({{kind:'left',value:1}});accept({{kind:'right',value:'ok',note:'kept'}});}}");
+ let source=support::format_round_trip(&source);let checked=tsrust_compiler::check(&source).unwrap();assert!(!checked.emit_rust().contains("unsafe {"));
+ for body in ["accept({kind:'left',value:'bad'});","accept({kind:'unknown',value:1});","accept({kind:'right'});"]{let source=support::format_round_trip(&format!("{header}function main(){{{body}}}"));assert!(tsrust_compiler::check(&source).is_err(),"accepted invalid tagged record: {body}");}
+ let ambiguous="type Left={value:int;};type Right={value:string;};function accept(value:Left|Right):void{}function main(){accept({value:1});}";
+ assert!(tsrust_compiler::check(&support::format_round_trip(ambiguous)).is_err(),"non-literal alternatives must remain ambiguous");
+}
