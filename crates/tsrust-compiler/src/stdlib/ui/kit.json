@@ -2036,6 +2036,38 @@
       ],
       "children": true,
       "example": "<MessageScroller className=\"h-96\"><Message author=\"Ada\"><Text>Hi</Text></Message></MessageScroller>"
+    },
+    {
+      "name": "Dock",
+      "doc": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels.",
+      "props": [
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "Stacks the panels top to bottom instead of side by side."
+        }
+      ],
+      "children": "DockPanel",
+      "example": "<Dock className=\"h-96\"><DockPanel title=\"Files\" size={240}><Tree/></DockPanel><DockPanel title=\"Editor\"><CodeEditor/></DockPanel></Dock>"
+    },
+    {
+      "name": "DockPanel",
+      "doc": "One tabbed panel in a Dock; its children are the panel content.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Tab title."
+        },
+        {
+          "name": "size",
+          "type": "number",
+          "doc": "Initial width (or height when vertical) in pixels; omitted panels share the remaining space."
+        }
+      ],
+      "children": true,
+      "item": true,
+      "example": "<DockPanel title=\"Console\" size={200}/>"
     }
   ],
   "icons": [

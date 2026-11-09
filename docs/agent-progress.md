@@ -14,8 +14,8 @@ Icon/Animate, font utilities, i18n (`t`/`tWith`/`translate`/`translateWith`,
 JSON catalogs, plurals, live locale switching, Kit strings follow), catalog
 batch 2 (Markdown … ButtonGroup) and batch 3 (InputGroup, Diff, Marker,
 Attachment/AttachmentGroup, DataTable, Settings pages/groups/items,
-MessageScroller): 102 generated components. Kit 0.9.0 has no GridLayout (docs
-are ahead of the pinned crate). Not wrapped: Dock (Panel trait per view), Plot
+MessageScroller) and Dock/DockPanel (drag, stack and split verified): 104 generated components. Kit 0.9.0 has no GridLayout (docs
+are ahead of the pinned crate). Not wrapped: Plot
 (closure drawing API; Chart covers data plots), Questionnaire, Speech (needs the
 `speech` feature and cpal), and code highlighting (syntect/tree-sitter features).
 `tsrust package` (cli/app_package_cli.rs) builds release, writes the `.app`
@@ -25,7 +25,7 @@ updater (tsrust-ui/src/update.rs; `appInfo`, `checkForUpdates`, `installUpdate`,
 `relaunch`) reads GitHub `releases/latest` through system curl, verifies the
 archive digest and macOS signing team, and swaps in place. Check verified against
 the live API; install path verified up to the missing asset; packaged `.app`
-launches. `examples/gpui-starter` is the demo (six pages, en/fr, dark mode,
+launches. `examples/gpui-starter` is the demo (seven pages, en/fr, dark mode,
 About & updates), verified with real input. Guide: docs/guides/tooling/desktop-apps.md.
 Open: Developer ID identity and notarytool profile choice, a release repository
 for the demo (owner approval before publishing), end-to-end install from a real

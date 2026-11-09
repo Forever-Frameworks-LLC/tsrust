@@ -2889,3 +2889,50 @@ export function MessageScroller(props: MessageScrollerProps): Node {
 
   return node;
 }
+
+export interface DockProps {
+  /** Stacks the panels top to bottom instead of side by side. */
+  vertical?: ReactiveValue<boolean>;
+  /** DockPanel elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. */
+export function Dock(props: DockProps): Node {
+  let node = kitNode('Dock', props.children ?? [], props.className ?? '');
+  const prop_vertical = props.vertical;
+  if (prop_vertical !== undefined) {
+    node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
+  return node;
+}
+
+export interface DockPanelProps {
+  /** Tab title. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Initial width (or height when vertical) in pixels; omitted panels share the remaining space. */
+  size?: ReactiveValue<number>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One tabbed panel in a Dock; its children are the panel content. */
+export function DockPanel(props: DockPanelProps): Node {
+  let node = kitNode('DockPanel', props.children ?? [], props.className ?? '');
+  const prop_title = props.title;
+  if (prop_title !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    node = kitNumber(node, 'size', prop_size);
+  }
+
+  return node;
+}

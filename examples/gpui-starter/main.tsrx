@@ -5,6 +5,7 @@ import {
   Markdown, Badge, Tag, Avatar, Kbd, Alert, Progress, ProgressCircle, Separator, DescriptionList, DescriptionItem,
   Checkbox, RadioGroup, Radio, Rating, Slider, NumberInput, OtpInput, DatePicker, ColorPicker, Stepper, StepperItem, Tabs, Tab,
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell, List, Tree, TreeItem, Calendar, Chart,
+  InputGroup, DataTable, Settings, SettingsPage, SettingsGroup, SettingItem, Diff, Marker, Attachment, AttachmentGroup,
   Dialog, Sheet, Popover, PopoverTrigger, PopoverContent, Tooltip, DropdownMenu, MenuItem, ContextMenu, Accordion, AccordionItem
 } from 'std:ui';
 import en from './locales/en.json';
@@ -91,6 +92,34 @@ function Data(): Node {
       </View>
       <Text>Selected file {file} · day {day}</Text>
       <Chart kind="line" labels={['Jan', 'Feb', 'Mar', 'Apr', 'May']} values={[3, 7, 4, 9, 12]} className="w-96 h-48" />
+    </View>
+  );
+}
+
+const PATCH = '--- a/main.tsrx\n+++ b/main.tsrx\n@@ -1,3 +1,3 @@\n function main() {\n-  run(App());\n+  unwrap(run(App(), \'Starter\'));\n }\n';
+
+function Workspace(): Node {
+  const query = signal('');
+  const row = signal(-1);
+  const autosave = signal(true);
+  return (
+    <View className="flex-col gap-4">
+      <InputGroup icon="search" placeholder="Filter people" value={query.get()} onChange={(text) => { query.set(clone(text)); }} />
+      <DataTable columns={['Name', 'Role', 'Joined']} rows={[['Ada', 'Engineer', '1843'], ['Grace', 'Admiral', '1944'], ['Alan', 'Mathematician', '1936'], ['Katherine', 'Analyst', '1953']]} sortable={true} onSelect={(index) => { row.set(index); }} className="h-48" />
+      <Text>Query "{query}" · selected row {row}</Text>
+      <Marker variant="separator" icon="calendar" text="Today" />
+      <AttachmentGroup>
+        <Attachment title="design.pdf" description="PDF · 1.2 MB" icon="file-text" />
+        <Attachment title="assets.zip" status="uploading" progress={65} />
+      </AttachmentGroup>
+      <Settings className="h-56">
+        <SettingsPage title="Editor">
+          <SettingsGroup title="Files">
+            <SettingItem title="Autosave" description="Save after every change."><Switch checked={autosave.get()} onChange={(on) => { autosave.set(on); }} /></SettingItem>
+          </SettingsGroup>
+        </SettingsPage>
+      </Settings>
+      <Diff patch={clone(PATCH)} className="h-40" />
     </View>
   );
 }
@@ -183,6 +212,7 @@ function App(): Node {
           <SidebarItem label={t('nav.overview')} active={page.get() === 'overview'} onClick={() => { page.set('overview'); }} />
           <SidebarItem label={t('nav.controls')} active={page.get() === 'controls'} onClick={() => { page.set('controls'); }} />
           <SidebarItem label={t('nav.data')} active={page.get() === 'data'} onClick={() => { page.set('data'); }} />
+          <SidebarItem label={t('nav.workspace')} active={page.get() === 'workspace'} onClick={() => { page.set('workspace'); }} />
           <SidebarItem label={t('nav.overlays')} active={page.get() === 'overlays'} onClick={() => { page.set('overlays'); }} />
           <SidebarItem label={t('nav.languages')} active={page.get() === 'languages'} onClick={() => { page.set('languages'); }} />
           <SidebarItem label={t('nav.about')} active={page.get() === 'about'} onClick={() => { page.set('about'); }} />
@@ -200,6 +230,7 @@ function App(): Node {
             <View hidden={page.get() !== 'overview'}><Overview /></View>
             <View hidden={page.get() !== 'controls'}><Controls /></View>
             <View hidden={page.get() !== 'data'}><Data /></View>
+            <View hidden={page.get() !== 'workspace'}><Workspace /></View>
             <View hidden={page.get() !== 'overlays'}><Overlays /></View>
             <View hidden={page.get() !== 'languages'}><Languages /></View>
             <View hidden={page.get() !== 'about'}><About /></View>

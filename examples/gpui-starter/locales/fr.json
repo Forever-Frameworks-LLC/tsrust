@@ -1,5 +1,5 @@
 {
-  "nav": {"group": "Vitrine", "overview": "Aperçu", "controls": "Contrôles", "data": "Données", "overlays": "Superpositions", "languages": "Langues", "about": "À propos et mises à jour"},
+  "nav": {"group": "Vitrine", "overview": "Aperçu", "controls": "Contrôles", "workspace": "Espace de travail", "data": "Données", "overlays": "Superpositions", "languages": "Langues", "about": "À propos et mises à jour"},
   "overview": {"title": "Application de démarrage Tsrust", "body": "Une application GPUI native écrite en .tsrx. Chaque page utilise les composants GPUI Kit via std:ui."},
   "languages": {"title": "Langues", "greeting": "Bonjour, {name} !", "files_zero": "Aucun fichier", "files_one": "{count} fichier", "files_other": "{count} fichiers", "add": "Ajouter un fichier"},
   "about": {"check": "Rechercher des mises à jour", "install": "Installer la mise à jour", "relaunch": "Redémarrer", "idle": "Les mises à jour n'ont pas encore été recherchées."}

@@ -24784,6 +24784,38 @@
       "name": "MessageScrollerProps",
       "signature": "interface MessageScrollerProps",
       "documentation": "A chat transcript that follows new messages at the bottom, keeps its place while reading history, and offers a jump-to-latest button.\n\nProps:\n- `jumpLabel`: Text of the jump-to-latest button. Defaults to Jump to latest.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<MessageScroller className=\"h-96\"><Message author=\"Ada\"><Text>Hi</Text></Message></MessageScroller>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Dock",
+      "signature": "Dock(props: DockProps): Node",
+      "parameters": [
+        {
+          "label": "props: DockProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels.\n\nProps:\n- `vertical`: Stacks the panels top to bottom instead of side by side.\n- `children`: DockPanel elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dock className=\"h-96\"><DockPanel title=\"Files\" size={240}><Tree/></DockPanel><DockPanel title=\"Editor\"><CodeEditor/></DockPanel></Dock>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DockProps",
+      "signature": "interface DockProps",
+      "documentation": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels.\n\nProps:\n- `vertical`: Stacks the panels top to bottom instead of side by side.\n- `children`: DockPanel elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dock className=\"h-96\"><DockPanel title=\"Files\" size={240}><Tree/></DockPanel><DockPanel title=\"Editor\"><CodeEditor/></DockPanel></Dock>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DockPanel",
+      "signature": "DockPanel(props: DockPanelProps): Node",
+      "parameters": [
+        {
+          "label": "props: DockPanelProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One tabbed panel in a Dock; its children are the panel content.\n\nProps:\n- `title`: Tab title.\n- `size`: Initial width (or height when vertical) in pixels; omitted panels share the remaining space.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DockPanel title=\"Console\" size={200}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DockPanelProps",
+      "signature": "interface DockPanelProps",
+      "documentation": "One tabbed panel in a Dock; its children are the panel content.\n\nProps:\n- `title`: Tab title.\n- `size`: Initial width (or height when vertical) in pixels; omitted panels share the remaining space.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DockPanel title=\"Console\" size={200}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     }
   ]
 }

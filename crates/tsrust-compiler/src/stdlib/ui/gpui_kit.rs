@@ -43,6 +43,7 @@ use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState};
 use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupInput, InputGroupText};
 use gpui_kit::component::marker::{Marker, MarkerContent, MarkerIcon, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
+use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, panel_handle};
 use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings};
 use gpui_kit::component::tag::Tag;
 use gpui_kit::component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
@@ -91,6 +92,27 @@ enum KitState {
     Diff(Entity<DiffState>, String),
     Table(Entity<TableState<Grid>>, String),
     Scroller(Entity<MessageScrollerState>, usize),
+    Dock(Entity<DockArea>),
+}
+
+/// One DockPanel: its content is the node's children, drawn through the root.
+struct DockContent {root: WeakEntity<Root>, node: u64, title: SharedString, focus: FocusHandle}
+impl EventEmitter<PanelEvent> for DockContent {}
+impl Focusable for DockContent {
+    fn focus_handle(&self, _: &App) -> FocusHandle {self.focus.clone()}
+}
+impl BasePanel for DockContent {
+    fn panel_name(&self) -> &'static str {"TsrustDockPanel"}
+}
+impl DockPanelView for DockContent {
+    fn title(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {self.title.clone()}
+}
+impl Render for DockContent {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let node = self.node;
+        let content = self.root.update(cx, |root, cx| root.content_of(node, cx)).unwrap_or_default();
+        div().size_full().p_2().children(content)
+    }
 }
 
 /// DataTable rows: text cells shown in `order`, which sorting rearranges.
@@ -226,7 +248,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "InputGroup" | "Diff" | "DataTable" | "MessageScroller") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "InputGroup" | "Diff" | "DataTable" | "MessageScroller" | "Dock") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -309,7 +331,7 @@ impl Root {
                             if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
                         }
                     }
-                    KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
+                    KitState::Dock(_) | KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
                 }
                 continue;
             }
@@ -457,6 +479,24 @@ impl Root {
                         if let TableEvent::SelectRow(row) = event && let Some(index) = state.read(cx).delegate().order.get(*row).copied() {this.emit(id, "select", index.to_string(), cx);}
                     }).detach();
                     KitState::Table(state, format!("{}\u{1}{}\u{1}{}", text("columns"), text("rows"), text("sortable")))
+                }
+                "Dock" => {
+                    // The layout is built once; afterwards the user owns the arrangement.
+                    let vertical = text("vertical") == "true";
+                    let panels = find(&self.node, id).map(|node| items(node, "DockPanel").map(|(child, item)| (child.identity.get(), item.text("title"), item.number("size"))).collect::<Vec<_>>()).unwrap_or_default();
+                    let (area, _) = DockSkin::dock_area(format!("dock-{id}"), None, window, cx);
+                    let root = cx.entity();
+                    let mut layout = if vertical {DockLayout::v_split()} else {DockLayout::h_split()};
+                    for (node, title, size) in panels {
+                        let weak = root.downgrade();
+                        let panel = cx.new(|cx| {
+                            cx.observe(&root, |_, _, cx| cx.notify()).detach();
+                            DockContent {root: weak, node, title: title.into(), focus: cx.focus_handle()}
+                        });
+                        layout = layout.child(DockLayout::tabs().panel_view(panel_handle(panel), cx), size.map(|size| px(size as f32)));
+                    }
+                    area.update(cx, |area, cx| area.set_center(layout, window, cx));
+                    KitState::Dock(area)
                 }
                 "MessageScroller" => {
                     let count = find(&self.node, id).map(|node| node.visible_children().count()).unwrap_or(0);
@@ -1094,6 +1134,10 @@ impl Root {
                 }
                 Settings::new(element_id).pages(pages).into_any_element()
             }
+            "Dock" => match self.states.get(&id) {
+                Some(KitState::Dock(area)) => div().size_full().child(area.clone()).into_any_element(),
+                _ => div().into_any_element(),
+            },
             "MessageScroller" => match self.states.get(&id) {
                 Some(KitState::Scroller(state, _)) => {
                     let root = root.clone();
