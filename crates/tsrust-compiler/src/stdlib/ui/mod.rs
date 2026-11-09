@@ -149,6 +149,8 @@ pub(crate) const KIT_VALUE:NativeBinding=NativeBinding{name:"kitValue",parameter
 
 /// Selects GPUI Kit code highlighting for programs that use CodeEditor.
 pub(crate) const HIGHLIGHT_MARKER:&str="// tsrust-ui-highlight-selected\n";
+/// Selects GPUI Kit speech recognition for programs that use SpeechButton.
+pub(crate) const SPEECH_MARKER:&str="// tsrust-ui-speech-selected\n";
 
 /// Generated programs embed the Node model from `crates/tsrust-ui` with the GPUI
 /// renderer as its `native` module; GPUI Kit comes from the separate locked

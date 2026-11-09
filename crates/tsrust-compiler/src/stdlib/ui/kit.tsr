@@ -3071,3 +3071,194 @@ export function QuestionChoice(props: QuestionChoiceProps): Node {
 
   return node;
 }
+
+export interface SpeechButtonProps {
+  /** BCP 47 language such as en-US or fr-FR. Defaults to the system language. */
+  locale?: ReactiveValue<string> | TextBinding;
+  /** Shows the input level beside the button while listening. */
+  waveform?: ReactiveValue<boolean>;
+  /** Receives the whole transcript so far while the user speaks. */
+  onPartial?: Owned<Function<void, [text: ReadOnly<string>]>>;
+  /** Receives the final transcript when the session ends; it may be empty. */
+  onFinal?: Owned<Function<void, [text: ReadOnly<string>]>>;
+  /** Receives a readable message when recognition fails, such as denied microphone access. */
+  onError?: Owned<Function<void, [message: ReadOnly<string>]>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript. */
+export function SpeechButton(props: SpeechButtonProps): Node {
+  let node = kitNode('SpeechButton', [], props.className ?? '');
+  const prop_locale = props.locale;
+  if (prop_locale !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'locale', prop_locale));
+  }
+
+  const prop_waveform = props.waveform;
+  if (prop_waveform !== undefined) {
+    node = kitFlag(node, 'waveform', prop_waveform);
+  }
+
+  const event_onPartial = props.onPartial;
+  if (event_onPartial !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'partial', event_onPartial));
+  }
+
+  const event_onFinal = props.onFinal;
+  if (event_onFinal !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'final', event_onFinal));
+  }
+
+  const event_onError = props.onError;
+  if (event_onError !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'error', event_onError));
+  }
+
+  return node;
+}
+
+export interface PlotProps {
+  /** Category labels along the x axis, one per value. */
+  labels?: string[];
+  /** Draws the x axis with labels. Defaults to false. */
+  axis?: ReactiveValue<boolean>;
+  /** Draws dashed horizontal grid lines. Defaults to false. */
+  grid?: ReactiveValue<boolean>;
+  /** PlotLine, PlotArea and PlotBars elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A custom chart over shared category labels: layer PlotLine, PlotArea and PlotBars marks on one value scale, with optional axis labels and grid. */
+export function Plot(props: PlotProps): Node {
+  let node = kitNode('Plot', props.children ?? [], props.className ?? '');
+  const prop_labels = props.labels;
+  if (prop_labels !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'labels', prop_labels.join('\n')));
+  }
+
+  const prop_axis = props.axis;
+  if (prop_axis !== undefined) {
+    node = kitFlag(node, 'axis', prop_axis);
+  }
+
+  const prop_grid = props.grid;
+  if (prop_grid !== undefined) {
+    node = kitFlag(node, 'grid', prop_grid);
+  }
+
+  return node;
+}
+
+export interface PlotLineProps {
+  /** Values, in label order. */
+  values?: number[];
+  /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Smooth (default), straight segments, or steps. */
+  curve?: ReactiveValue<'natural' | 'linear' | 'step'>;
+  /** Marks each point with a dot. */
+  dots?: ReactiveValue<boolean>;
+  /** Stroke width in pixels. Defaults to 2. */
+  width?: ReactiveValue<number>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A line through one value per Plot label. */
+export function PlotLine(props: PlotLineProps): Node {
+  let node = kitNode('PlotLine', [], props.className ?? '');
+  const prop_values = props.values;
+  if (prop_values !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_curve = props.curve;
+  if (prop_curve !== undefined) {
+    if (typeof prop_curve === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'curve', `${prop_curve}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'curve', nativeBindText(prop_curve.evaluate)));
+    }
+  }
+
+  const prop_dots = props.dots;
+  if (prop_dots !== undefined) {
+    node = kitFlag(node, 'dots', prop_dots);
+  }
+
+  const prop_width = props.width;
+  if (prop_width !== undefined) {
+    node = kitNumber(node, 'width', prop_width);
+  }
+
+  return node;
+}
+
+export interface PlotAreaProps {
+  /** Values, in label order. */
+  values?: number[];
+  /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Smooth (default), straight segments, or steps. */
+  curve?: ReactiveValue<'natural' | 'linear' | 'step'>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A filled area from the baseline up to one value per Plot label. */
+export function PlotArea(props: PlotAreaProps): Node {
+  let node = kitNode('PlotArea', [], props.className ?? '');
+  const prop_values = props.values;
+  if (prop_values !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_curve = props.curve;
+  if (prop_curve !== undefined) {
+    if (typeof prop_curve === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'curve', `${prop_curve}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'curve', nativeBindText(prop_curve.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface PlotBarsProps {
+  /** Values, in label order. */
+  values?: number[];
+  /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Vertical bars, one per Plot label; several PlotBars sit side by side. */
+export function PlotBars(props: PlotBarsProps): Node {
+  let node = kitNode('PlotBars', [], props.className ?? '');
+  const prop_values = props.values;
+  if (prop_values !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  return node;
+}

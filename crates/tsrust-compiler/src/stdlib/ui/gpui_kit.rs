@@ -55,7 +55,9 @@ use gpui_kit::component::button::{ButtonGroup, ToggleGroup};
 use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date};
 use gpui_kit::component::carousel::{Carousel, CarouselContent, CarouselEvent, CarouselItem, CarouselNext, CarouselPrevious, CarouselState};
 use gpui_kit::component::chart::{AreaChart, BarChart, CandlestickChart, LineChart, PieChart, RadarChart, SankeyChart};
-use gpui_kit::component::plot::shape::SankeyLink;
+use gpui_kit::component::plot::shape::{Area, Bar, Line, SankeyLink};
+use gpui_kit::component::plot::{AxisText, Curve, Grid as PlotGrid, Plot as KitPlot, PlotAxis, PlotElement, axis_gutter};
+use gpui_kit::component::speech::{SpeechButton, SpeechEvent, SpeechState, SpeechWaveform, SystemRecognizer};
 use gpui_kit::component::combobox::{Combobox, ComboboxEvent, ComboboxState};
 use gpui_kit::component::command::{Command as CommandPalette, CommandItem, CommandState};
 use gpui_kit::component::form::{field, h_form, v_form};
@@ -96,6 +98,72 @@ enum KitState {
     Scroller(Entity<MessageScrollerState>, usize),
     Dock(Entity<DockArea>),
     Questionnaire(Entity<QuestionnaireState>),
+    Speech(Entity<SpeechState>),
+}
+
+/// One Plot mark: a line, area or bar series over the Plot's labels.
+struct Mark {kind: &'static str, values: Vec<f64>, color: Hsla, curve: Curve, dots: bool, width: f32}
+
+/// A Plot: marks share one band x scale over the labels and one linear y scale.
+struct Marks {labels: Vec<SharedString>, marks: Vec<Mark>, axis: bool, grid: bool, border: Hsla, muted: Hsla}
+
+impl IntoElement for Marks {
+    type Element = PlotElement<Self>;
+    fn into_element(self) -> Self::Element {PlotElement::new(self)}
+}
+
+impl KitPlot for Marks {
+    fn paint(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
+        let count = self.labels.len();
+        if count == 0 {return;}
+        let width = bounds.size.width.as_f32();
+        let height = bounds.size.height.as_f32() - if self.axis {axis_gutter(px(12.))} else {0.};
+        let (low, high) = self.marks.iter().flat_map(|mark| mark.values.iter().copied()).fold((0f64, 0f64), |(low, high), value| (low.min(value), high.max(value)));
+        let span = if high > low {high - low} else {1.};
+        let y = move |value: f64| (height as f64 * (1. - (value - low) / span)) as f32;
+        let step = width / count as f32;
+        let center = move |index: usize| step * (index as f32 + 0.5);
+        if self.grid {
+            PlotGrid::new().y((0..=4).map(|level| px(height * level as f32 / 4.))).stroke(self.border).dash_array(&[px(4.), px(2.)]).paint(&bounds, window);
+        }
+        let bar_series = self.marks.iter().filter(|mark| mark.kind == "bars").count().max(1) as f32;
+        let mut bar_index = 0.;
+        for mark in &self.marks {
+            let points = (0..count.min(mark.values.len())).map(|index| (center(index), y(mark.values[index]))).collect::<Vec<_>>();
+            match mark.kind {
+                "area" => Area::new().data(points).x(|point: &(f32, f32)| Some(point.0)).y0(y(low.max(0.).min(high))).y1(|point: &(f32, f32)| Some(point.1))
+                    .fill(mark.color.opacity(0.3)).stroke(mark.color).curve(mark.curve).paint(&bounds, window),
+                "bars" => {
+                    let band = step * 0.7 / bar_series;
+                    let offset = -step * 0.35 + band * bar_index;
+                    let (base, color) = (y(0f64.max(low).min(high)), mark.color);
+                    Bar::new().data(points).band_width(band).cross(move |point: &(f32, f32)| Some(point.0 + offset)).base(move |_| base).value(|point: &(f32, f32)| Some(point.1))
+                        .fill(move |_, _, _| color).paint(&bounds, window, cx);
+                    bar_index += 1.;
+                }
+                _ => {
+                    let mut line = Line::new().data(points).x(|point: &(f32, f32)| Some(point.0)).y(|point: &(f32, f32)| Some(point.1)).stroke(mark.color).stroke_width(mark.width).curve(mark.curve);
+                    if mark.dots {line = line.dot().dot_size(8.).dot_fill(mark.color);}
+                    line.paint(&bounds, window);
+                }
+            }
+        }
+        if self.axis {
+            let labels = self.labels.iter().enumerate().map(|(index, label)| AxisText::new(label.clone(), center(index), self.muted).font_size(px(12.))).collect::<Vec<_>>();
+            PlotAxis::new().stroke(self.border).x(height).x_label(labels).paint(&bounds, window, cx);
+        }
+    }
+}
+
+/// A Plot color: a theme color name or #rrggbb, else the next chart color.
+fn plot_color(name: &str, index: usize, cx: &App) -> Hsla {
+    let theme = cx.theme();
+    let charts = [theme.chart_1, theme.chart_2, theme.chart_3, theme.chart_4, theme.chart_5];
+    match name {
+        "chart-1" => charts[0], "chart-2" => charts[1], "chart-3" => charts[2], "chart-4" => charts[3], "chart-5" => charts[4],
+        "primary" => theme.primary, "destructive" => theme.danger, "foreground" => theme.foreground, "muted-foreground" => theme.muted_foreground,
+        other => parse_hex(other).unwrap_or(charts[index % charts.len()]),
+    }
 }
 
 /// One DockPanel: its content is the node's children, drawn through the root.
@@ -251,7 +319,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "InputGroup" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "InputGroup" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -334,7 +402,7 @@ impl Root {
                             if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
                         }
                     }
-                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
+                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Speech(_) | KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
                 }
                 continue;
             }
@@ -500,6 +568,20 @@ impl Root {
                     }
                     area.update(cx, |area, cx| area.set_center(layout, window, cx));
                     KitState::Dock(area)
+                }
+                "SpeechButton" => {
+                    let locale = text("locale");
+                    let state = cx.new(|cx| {
+                        let state = SpeechState::new(cx);
+                        if locale.is_empty() {state} else {state.recognizer(SystemRecognizer::new().locale(locale))}
+                    });
+                    cx.subscribe_in(&state, window, move |this, _, event: &SpeechEvent, _, cx| match event {
+                        SpeechEvent::Partial(text) => this.emit(id, "partial", text.to_string(), cx),
+                        SpeechEvent::Final(text) => this.emit(id, "final", text.to_string(), cx),
+                        SpeechEvent::Error(error) => this.emit(id, "error", error.to_string(), cx),
+                        _ => cx.notify(),
+                    }).detach();
+                    KitState::Speech(state)
                 }
                 "Questionnaire" => {
                     // Questions are read once; answers then live in the Kit state.
@@ -1190,6 +1272,27 @@ impl Root {
                     pages.push(entry);
                 }
                 Settings::new(element_id).pages(pages).into_any_element()
+            }
+            "SpeechButton" => match self.states.get(&id) {
+                Some(KitState::Speech(state)) => {
+                    let capturing = state.read(cx).status().is_capturing();
+                    let mut row = div().flex().items_center().gap_2();
+                    if capturing && kit.flag("waveform") {row = row.child(SpeechWaveform::new(state).w(px(48.)));}
+                    row.child(SpeechButton::new(state)).into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
+            "Plot" => {
+                let marks = node.visible_children().filter_map(|child| child.kit.as_deref()).filter(|mark| matches!(mark.name.as_str(), "PlotLine" | "PlotArea" | "PlotBars")).enumerate().map(|(index, mark)| Mark {
+                    kind: match mark.name.as_str() {"PlotArea" => "area", "PlotBars" => "bars", _ => "line"},
+                    values: mark.text("values").split('\n').filter_map(|value| value.trim().parse().ok()).collect(),
+                    color: plot_color(&mark.text("color"), index, cx),
+                    curve: match mark.prop("curve") {Some("linear") => Curve::Linear, Some("step") => Curve::StepAfter, _ => Curve::Natural},
+                    dots: mark.flag("dots"),
+                    width: mark.number("width").unwrap_or(2.) as f32,
+                }).collect();
+                let labels = kit.text("labels").split('\n').filter(|label| !label.is_empty()).map(|label| SharedString::from(label.to_owned())).collect();
+                div().size_full().child(Marks {labels, marks, axis: kit.flag("axis"), grid: kit.flag("grid"), border: cx.theme().border, muted: cx.theme().muted_foreground}).into_any_element()
             }
             "Questionnaire" => match self.states.get(&id) {
                 Some(KitState::Questionnaire(state)) => {

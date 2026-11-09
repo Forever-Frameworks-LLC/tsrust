@@ -128,7 +128,13 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
   if runtime.contains("// tsrust-http-websocket-selected\n"){command.args(["--features","http-websocket"]);}
   if runtime.contains("// tsrust-http-middleware-selected\n"){command.args(["--features","http-middleware"]);}
-  if gpui{command.args(["--features",if !runtime.contains("use gpui_kit::"){"ui"}else if runtime.contains("// tsrust-ui-highlight-selected\n"){"gpui-highlight"}else{"gpui"}]);}
+  if gpui{
+   // GPUI programs add opt-in Kit features only for the components they use.
+   let mut features=vec![if runtime.contains("use gpui_kit::"){"gpui"}else{"ui"}];
+   if runtime.contains("// tsrust-ui-highlight-selected\n"){features.push("gpui-highlight");}
+   if runtime.contains("// tsrust-ui-speech-selected\n"){features.push("gpui-speech");}
+   command.args(["--features",&features.join(",")]);
+  }
 
         if runtime.contains("pub mod tsrust_native_date {") {
             command.args(["--features", "calendar"]);}

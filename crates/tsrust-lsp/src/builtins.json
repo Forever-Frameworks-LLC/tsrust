@@ -24864,6 +24864,86 @@
       "name": "QuestionChoiceProps",
       "signature": "interface QuestionChoiceProps",
       "documentation": "One answer to a Question.\n\nProps:\n- `id`: Value recorded in the answers.\n- `label`: Displayed text.\n- `description`: Secondary text under the label.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<QuestionChoice id=\"pro\" label=\"Pro\" description=\"For teams.\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SpeechButton",
+      "signature": "SpeechButton(props: SpeechButtonProps): Node",
+      "parameters": [
+        {
+          "label": "props: SpeechButtonProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript.\n\nProps:\n- `locale`: BCP 47 language such as en-US or fr-FR. Defaults to the system language.\n- `waveform`: Shows the input level beside the button while listening.\n- `onPartial`: Receives the whole transcript so far while the user speaks.\n- `onFinal`: Receives the final transcript when the session ends; it may be empty.\n- `onError`: Receives a readable message when recognition fails, such as denied microphone access.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<SpeechButton waveform={true} onFinal={(text) => { note.set(clone(text)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SpeechButtonProps",
+      "signature": "interface SpeechButtonProps",
+      "documentation": "A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript.\n\nProps:\n- `locale`: BCP 47 language such as en-US or fr-FR. Defaults to the system language.\n- `waveform`: Shows the input level beside the button while listening.\n- `onPartial`: Receives the whole transcript so far while the user speaks.\n- `onFinal`: Receives the final transcript when the session ends; it may be empty.\n- `onError`: Receives a readable message when recognition fails, such as denied microphone access.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<SpeechButton waveform={true} onFinal={(text) => { note.set(clone(text)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Plot",
+      "signature": "Plot(props: PlotProps): Node",
+      "parameters": [
+        {
+          "label": "props: PlotProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A custom chart over shared category labels: layer PlotLine, PlotArea and PlotBars marks on one value scale, with optional axis labels and grid.\n\nProps:\n- `labels`: Category labels along the x axis, one per value.\n- `axis`: Draws the x axis with labels. Defaults to false.\n- `grid`: Draws dashed horizontal grid lines. Defaults to false.\n- `children`: PlotLine, PlotArea and PlotBars elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Plot labels={['Q1', 'Q2', 'Q3', 'Q4']} axis={true} grid={true} className=\"h-64\"><PlotBars values={[4, 6, 5, 8]}/><PlotLine values={[3, 5, 6, 7]} curve=\"linear\" dots={true}/></Plot>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "PlotProps",
+      "signature": "interface PlotProps",
+      "documentation": "A custom chart over shared category labels: layer PlotLine, PlotArea and PlotBars marks on one value scale, with optional axis labels and grid.\n\nProps:\n- `labels`: Category labels along the x axis, one per value.\n- `axis`: Draws the x axis with labels. Defaults to false.\n- `grid`: Draws dashed horizontal grid lines. Defaults to false.\n- `children`: PlotLine, PlotArea and PlotBars elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Plot labels={['Q1', 'Q2', 'Q3', 'Q4']} axis={true} grid={true} className=\"h-64\"><PlotBars values={[4, 6, 5, 8]}/><PlotLine values={[3, 5, 6, 7]} curve=\"linear\" dots={true}/></Plot>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "PlotLine",
+      "signature": "PlotLine(props: PlotLineProps): Node",
+      "parameters": [
+        {
+          "label": "props: PlotLineProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A line through one value per Plot label.\n\nProps:\n- `values`: Values, in label order.\n- `color`: Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color.\n- `curve`: Smooth (default), straight segments, or steps.\n- `dots`: Marks each point with a dot.\n- `width`: Stroke width in pixels. Defaults to 2.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<PlotLine values={[1, 3, 2]} color=\"chart-2\" curve=\"step\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "PlotLineProps",
+      "signature": "interface PlotLineProps",
+      "documentation": "A line through one value per Plot label.\n\nProps:\n- `values`: Values, in label order.\n- `color`: Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color.\n- `curve`: Smooth (default), straight segments, or steps.\n- `dots`: Marks each point with a dot.\n- `width`: Stroke width in pixels. Defaults to 2.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<PlotLine values={[1, 3, 2]} color=\"chart-2\" curve=\"step\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "PlotArea",
+      "signature": "PlotArea(props: PlotAreaProps): Node",
+      "parameters": [
+        {
+          "label": "props: PlotAreaProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A filled area from the baseline up to one value per Plot label.\n\nProps:\n- `values`: Values, in label order.\n- `color`: Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color.\n- `curve`: Smooth (default), straight segments, or steps.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<PlotArea values={[2, 4, 3]} color=\"chart-3\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "PlotAreaProps",
+      "signature": "interface PlotAreaProps",
+      "documentation": "A filled area from the baseline up to one value per Plot label.\n\nProps:\n- `values`: Values, in label order.\n- `color`: Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color.\n- `curve`: Smooth (default), straight segments, or steps.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<PlotArea values={[2, 4, 3]} color=\"chart-3\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "PlotBars",
+      "signature": "PlotBars(props: PlotBarsProps): Node",
+      "parameters": [
+        {
+          "label": "props: PlotBarsProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Vertical bars, one per Plot label; several PlotBars sit side by side.\n\nProps:\n- `values`: Values, in label order.\n- `color`: Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<PlotBars values={[5, 7, 6]} color=\"primary\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "PlotBarsProps",
+      "signature": "interface PlotBarsProps",
+      "documentation": "Vertical bars, one per Plot label; several PlotBars sit side by side.\n\nProps:\n- `values`: Values, in label order.\n- `color`: Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<PlotBars values={[5, 7, 6]} color=\"primary\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     }
   ]
 }

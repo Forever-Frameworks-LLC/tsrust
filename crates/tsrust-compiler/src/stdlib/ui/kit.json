@@ -2168,6 +2168,148 @@
       ],
       "item": true,
       "example": "<QuestionChoice id=\"pro\" label=\"Pro\" description=\"For teams.\"/>"
+    },
+    {
+      "name": "SpeechButton",
+      "doc": "A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript.",
+      "props": [
+        {
+          "name": "locale",
+          "type": "string",
+          "doc": "BCP 47 language such as en-US or fr-FR. Defaults to the system language."
+        },
+        {
+          "name": "waveform",
+          "type": "boolean",
+          "doc": "Shows the input level beside the button while listening."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onPartial",
+          "value": "string",
+          "param": "text",
+          "doc": "Receives the whole transcript so far while the user speaks."
+        },
+        {
+          "prop": "onFinal",
+          "value": "string",
+          "param": "text",
+          "doc": "Receives the final transcript when the session ends; it may be empty."
+        },
+        {
+          "prop": "onError",
+          "value": "string",
+          "param": "message",
+          "doc": "Receives a readable message when recognition fails, such as denied microphone access."
+        }
+      ],
+      "example": "<SpeechButton waveform={true} onFinal={(text) => { note.set(clone(text)); }}/>"
+    },
+    {
+      "name": "Plot",
+      "doc": "A custom chart over shared category labels: layer PlotLine, PlotArea and PlotBars marks on one value scale, with optional axis labels and grid.",
+      "props": [
+        {
+          "name": "labels",
+          "type": "string[]",
+          "doc": "Category labels along the x axis, one per value."
+        },
+        {
+          "name": "axis",
+          "type": "boolean",
+          "doc": "Draws the x axis with labels. Defaults to false."
+        },
+        {
+          "name": "grid",
+          "type": "boolean",
+          "doc": "Draws dashed horizontal grid lines. Defaults to false."
+        }
+      ],
+      "children": "PlotLine, PlotArea and PlotBars",
+      "example": "<Plot labels={['Q1', 'Q2', 'Q3', 'Q4']} axis={true} grid={true} className=\"h-64\"><PlotBars values={[4, 6, 5, 8]}/><PlotLine values={[3, 5, 6, 7]} curve=\"linear\" dots={true}/></Plot>"
+    },
+    {
+      "name": "PlotLine",
+      "doc": "A line through one value per Plot label.",
+      "item": true,
+      "props": [
+        {
+          "name": "values",
+          "type": "number[]",
+          "doc": "Values, in label order."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+        },
+        {
+          "name": "curve",
+          "type": [
+            "natural",
+            "linear",
+            "step"
+          ],
+          "doc": "Smooth (default), straight segments, or steps."
+        },
+        {
+          "name": "dots",
+          "type": "boolean",
+          "doc": "Marks each point with a dot."
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "doc": "Stroke width in pixels. Defaults to 2."
+        }
+      ],
+      "example": "<PlotLine values={[1, 3, 2]} color=\"chart-2\" curve=\"step\"/>"
+    },
+    {
+      "name": "PlotArea",
+      "doc": "A filled area from the baseline up to one value per Plot label.",
+      "item": true,
+      "props": [
+        {
+          "name": "values",
+          "type": "number[]",
+          "doc": "Values, in label order."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+        },
+        {
+          "name": "curve",
+          "type": [
+            "natural",
+            "linear",
+            "step"
+          ],
+          "doc": "Smooth (default), straight segments, or steps."
+        }
+      ],
+      "example": "<PlotArea values={[2, 4, 3]} color=\"chart-3\"/>"
+    },
+    {
+      "name": "PlotBars",
+      "doc": "Vertical bars, one per Plot label; several PlotBars sit side by side.",
+      "item": true,
+      "props": [
+        {
+          "name": "values",
+          "type": "number[]",
+          "doc": "Values, in label order."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+        }
+      ],
+      "example": "<PlotBars values={[5, 7, 6]} color=\"primary\"/>"
     }
   ],
   "icons": [

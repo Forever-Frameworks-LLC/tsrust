@@ -6,6 +6,18 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Plot and Speech — 2026-11-09
+
+Owner: wrap the whole GPUI surface (low-level included) and trust GPUI behavior;
+verify our wrapper. Plot/PlotLine/PlotArea/PlotBars paint through GPUI Kit's plot
+primitives (shared band x and linear y scale, axis labels, dashed grid).
+SpeechButton (locale, waveform; onPartial/onFinal/onError) uses SpeechState with
+SystemRecognizer; `gpui-speech` (Kit `speech`: cpal and platform audio, 36 locked
+additions) is selected only when a program uses it, alongside `gpui-highlight`.
+`tsrust package` writes NSMicrophoneUsageDescription and
+NSSpeechRecognitionUsageDescription. `ui add` follows multi-item children lists.
+Plot rendering checked; dictation itself not exercised. 112 components.
+
 ### GPUI highlighting, charts and setup — 2026-11-09
 
 `gpui-highlight` feature (GPUI Kit syntect: +syntect, two-face, fancy-regex,
@@ -14,9 +26,7 @@ the emitted program uses CodeEditor (runtime marker); CodeEditor and Markdown co
 blocks highlight. Chart gains radar, candlestick (open/high/low/close) and sankey
 (links). Fixed: `setup --dependencies` fetched only the backend set, so fresh
 machines could not build std:ui apps offline; it now fetches the GPUI set too, and
-the starter's dev.sh runs setup first. Not wrapped: Plot (low-level drawing; Svg
-and Chart cover it) and Speech (cpal/objc2 speech, microphone and
-speech-recognition permission prompts, ALSA headers on Linux). Windows/Linux GPUI
+the starter's dev.sh runs setup first. Windows/Linux GPUI
 runs remain unverified here. Tests: the test harness now defaults
 CARGO_TARGET_DIR (repository target) and TSRUST_SOURCE_PACK_DIR (Cargo home packs)
 like CI; four shared_sources tests had failed on every local run without them.

@@ -57,11 +57,14 @@ fn add(args:impl Iterator<Item=String>)->Result<u8,String> {
 /// A component and the item components it contains (Settings → SettingsPage → …).
 fn family<'a>(component:&'a Component,catalog:&'a [Component])->Vec<&'a Component> {
     let mut found=vec![component];
-    let mut pending=component.children.clone().into_iter().collect::<Vec<_>>();
+    // `children` names one item component, or a list such as "PlotLine, PlotArea and PlotBars".
+    let names=|children:&Option<String>|children.iter().flat_map(|text|text.split([',',' ']).filter(|word|!word.is_empty() && *word!="and" && *word!="or").map(str::to_owned).collect::<Vec<_>>()).collect::<Vec<_>>();
+    let mut pending=names(&component.children);
+    pending.reverse();
     while let Some(name)=pending.pop() {
         if let Some(child)=catalog.iter().find(|entry|entry.name==name && entry.item) && !found.iter().any(|entry|entry.name==child.name) {
             found.push(child);
-            pending.extend(child.children.clone());
+            let mut nested=names(&child.children);nested.reverse();pending.extend(nested);
         }
     }
     found
@@ -112,6 +115,8 @@ mod tests {
         assert_eq!(exports(settings,&catalog),["Settings","SettingsPage","SettingsGroup","SettingItem"]);
         let source=tsrust_compiler::format(&wrapper(settings,&catalog)).unwrap();
         assert!(source.contains("export function SettingItem(props: SettingItemProps): Node"));
+        let plot=catalog.iter().find(|component|component.name=="Plot").unwrap();
+        assert_eq!(exports(plot,&catalog),["Plot","PlotLine","PlotArea","PlotBars"]);
         assert!(catalog.iter().filter(|component|!component.item).count()>60);
     }
 }

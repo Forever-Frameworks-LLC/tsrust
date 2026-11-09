@@ -17,7 +17,9 @@ cd notes && tsrust dev
 Run `tsrust setup --toolchain --dependencies --yes` once per machine first: builds
 run offline from the locked crate sets it downloads. `new --ui` creates a desktop
 app from the GPUI starter. Programs that use `CodeEditor` also get syntax
-highlighting (in the editor and Markdown code blocks), selected automatically. `tsrust dev` rebuilds and
+highlighting (in the editor and Markdown code blocks), selected automatically. Programs that use
+`SpeechButton` likewise get system speech recognition; packaged macOS apps carry
+the microphone and speech-recognition usage descriptions it needs. `tsrust dev` rebuilds and
 restarts the window whenever a source or locale file changes. `tsrust ui list`
 shows the GPUI Kit components; `tsrust ui add Settings DataTable` copies editable
 wrappers into `src/components/` (`--all` adds every component, `--force`

@@ -84,6 +84,9 @@ gpui = ["ui", "dep:gpui-kit", "dep:chrono"]
 # Code highlighting (syntect) for CodeEditor and Markdown code blocks; selected only
 # when a program uses CodeEditor.
 gpui-highlight = ["gpui", "gpui-kit/syntect"]
+# System speech recognition and microphone capture for SpeechButton; selected only
+# when a program uses SpeechButton. Linux builds need ALSA headers (libasound2-dev).
+gpui-speech = ["gpui", "gpui-kit/speech"]
 # Browser renderer, reserved until GPUI web follows desktop.
 gpui-web = ["ui"]
 http-websocket = ["http", "dep:futures-util", "axum/ws", "dep:tokio-tungstenite", "dep:webpki-roots"]

@@ -106,6 +106,8 @@ fn plist(options: &Options) -> String {
   <key>LSMinimumSystemVersion</key><string>12.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
+  <key>NSMicrophoneUsageDescription</key><string>{name} uses the microphone for dictation.</string>
+  <key>NSSpeechRecognitionUsageDescription</key><string>{name} turns your speech into text.</string>
 </dict>
 </plist>
 "#, name = escape(&options.name), id = escape(&options.id), version = escape(&options.version))
