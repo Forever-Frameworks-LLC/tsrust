@@ -57,7 +57,10 @@ use gpui_kit::component::carousel::{Carousel, CarouselContent, CarouselEvent, Ca
 use gpui_kit::component::chart::{AreaChart, BarChart, CandlestickChart, LineChart, PieChart, RadarChart, SankeyChart};
 use gpui_kit::component::plot::shape::{Area, Bar, Line, SankeyLink};
 use gpui_kit::component::plot::{AxisText, Curve, Grid as PlotGrid, Plot as KitPlot, PlotAxis, PlotElement, axis_gutter};
-use gpui_kit::component::speech::{SpeechButton, SpeechEvent, SpeechState, SpeechWaveform, SystemRecognizer};
+use gpui_kit::component::speech::{SpeechButton, SpeechEvent, SpeechState, SpeechWaveform};
+// The system recognizer exists only with Kit speech, selected for programs that use SpeechButton.
+#[cfg(feature = "gpui-speech")]
+use gpui_kit::component::speech::SystemRecognizer;
 use gpui_kit::component::combobox::{Combobox, ComboboxEvent, ComboboxState};
 use gpui_kit::component::command::{Command as CommandPalette, CommandItem, CommandState};
 use gpui_kit::component::form::{field, h_form, v_form};
@@ -573,7 +576,11 @@ impl Root {
                     let locale = text("locale");
                     let state = cx.new(|cx| {
                         let state = SpeechState::new(cx);
-                        if locale.is_empty() {state} else {state.recognizer(SystemRecognizer::new().locale(locale))}
+                        #[cfg(feature = "gpui-speech")]
+                        let state = if locale.is_empty() {state} else {state.recognizer(SystemRecognizer::new().locale(locale))};
+                        #[cfg(not(feature = "gpui-speech"))]
+                        let _ = locale;
+                        state
                     });
                     cx.subscribe_in(&state, window, move |this, _, event: &SpeechEvent, _, cx| match event {
                         SpeechEvent::Partial(text) => this.emit(id, "partial", text.to_string(), cx),
