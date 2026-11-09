@@ -42,6 +42,27 @@ use gpui_kit::component::tag::Tag;
 use gpui_kit::component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
 use gpui_kit::component::tooltip::Tooltip;
 use gpui_kit::component::notification::Notification;
+use gpui_kit::component::bubble::{Bubble, BubbleVariant};
+use gpui_kit::component::button::{ButtonGroup, ToggleGroup};
+use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date};
+use gpui_kit::component::carousel::{Carousel, CarouselContent, CarouselEvent, CarouselItem, CarouselNext, CarouselPrevious, CarouselState};
+use gpui_kit::component::chart::{AreaChart, BarChart, LineChart, PieChart};
+use gpui_kit::component::combobox::{Combobox, ComboboxEvent, ComboboxState};
+use gpui_kit::component::command::{Command as CommandPalette, CommandItem, CommandState};
+use gpui_kit::component::form::{field, h_form, v_form};
+use gpui_kit::component::input::{Editor, EditorState};
+use gpui_kit::component::list::ListItem;
+use gpui_kit::component::message::{Message, MessageAlignment, MessageContent, MessageHeader};
+use gpui_kit::component::scroll::ScrollableElement;
+use gpui_kit::component::searchable_list::SearchableVec;
+use gpui_kit::component::status_bar::StatusBar;
+use gpui_kit::component::text::TextView;
+use gpui_kit::component::time_field::{HourCycle, TimeField, TimeFieldEvent, TimeFieldState, TimePrecision};
+use gpui_kit::component::toolbar::Toolbar;
+use gpui_kit::component::tree::{TreeItem, TreeState, tree};
+use gpui_kit::component::{IndexPath, ThemeMode, TitleBar, VirtualListScrollHandle, v_virtual_list};
+use gpui_kit::component::Theme as KitTheme;
+use gpui_kit::component::ActiveTheme as _;
 use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, WindowExt};
 use super::commands::{self, Command};
 
@@ -52,6 +73,14 @@ enum KitState {
     Date(Entity<DatePickerState>),
     Color(Entity<ColorPickerState>),
     Slider(Entity<SliderState>),
+    Calendar(Entity<CalendarState>),
+    Time(Entity<TimeFieldState>),
+    Combobox(Entity<ComboboxState<SearchableVec<SharedString>>>),
+    Command(Entity<CommandState>),
+    Carousel(Entity<CarouselState>),
+    Editor(Entity<EditorState>),
+    Tree(Entity<TreeState>, String),
+    List(VirtualListScrollHandle),
 }
 
 /// A popover trigger wrapping arbitrary content; Kit triggers must be selectable.
@@ -118,7 +147,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -159,7 +188,20 @@ impl Root {
                             state.update(cx, |state, cx| state.set_value(color, window, cx));
                         }
                     }
-                    KitState::Date(_) | KitState::Otp(_) => {}
+                    KitState::Editor(state) => {
+                        let value = text("value");
+                        if state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));}
+                    }
+                    KitState::Tree(state, shape) => {
+                        // Rebuild the items when the TreeItem children change.
+                        let current = tree_shape(&self.node, id);
+                        if *shape != current {
+                            let items = find(&self.node, id).map(tree_items).unwrap_or_default();
+                            state.update(cx, |state, cx| state.set_items(items, cx));
+                            if let Some(KitState::Tree(_, shape)) = self.states.get_mut(&id) {*shape = current;}
+                        }
+                    }
+                    KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
                 }
                 continue;
             }
@@ -219,6 +261,74 @@ impl Root {
                     }).detach();
                     KitState::Color(state)
                 }
+                "Calendar" => {
+                    let initial = chrono::NaiveDate::parse_from_str(&text("value"), "%Y-%m-%d").ok();
+                    let state = cx.new(|cx| {
+                        let mut state = CalendarState::new(window, cx);
+                        if let Some(date) = initial {state.set_date(date, window, cx);}
+                        state
+                    });
+                    cx.subscribe_in(&state, window, move |this, _, event: &CalendarEvent, _, cx| {
+                        let CalendarEvent::Selected(date) = event;
+                        if let Date::Single(Some(date)) = date {this.emit(id, "change", date.format("%Y-%m-%d").to_string(), cx);}
+                    }).detach();
+                    KitState::Calendar(state)
+                }
+                "TimeField" => {
+                    let initial = chrono::NaiveTime::parse_from_str(&text("value"), "%H:%M:%S").or_else(|_| chrono::NaiveTime::parse_from_str(&text("value"), "%H:%M")).ok();
+                    let (seconds, twelve) = (text("seconds") == "true", text("twelveHour") == "true");
+                    let state = cx.new(|cx| {
+                        let mut state = TimeFieldState::new(window, cx);
+                        if seconds {state = state.precision(TimePrecision::Second);}
+                        if twelve {state = state.hour_cycle(HourCycle::H12);}
+                        if let Some(time) = initial {state.set_time(time, window, cx);}
+                        state
+                    });
+                    cx.subscribe_in(&state, window, move |this, _, event: &TimeFieldEvent, _, cx| {
+                        let TimeFieldEvent::Change(time) = event;
+                        this.emit(id, "change", time.format("%H:%M:%S").to_string(), cx);
+                    }).detach();
+                    KitState::Time(state)
+                }
+                "Combobox" => {
+                    let items = text("items").split('\n').filter(|item| !item.is_empty()).map(|item| SharedString::from(item.to_owned())).collect::<Vec<_>>();
+                    let selected = items.iter().position(|item| item.as_ref() == text("value")).map(IndexPath::new).into_iter().collect::<Vec<_>>();
+                    let state = cx.new(|cx| ComboboxState::new(SearchableVec::new(items), selected, window, cx).searchable(true));
+                    cx.subscribe_in(&state, window, move |this, _, event: &ComboboxEvent<SearchableVec<SharedString>>, _, cx| {
+                        if let ComboboxEvent::Confirm(values) | ComboboxEvent::Change(values) = event {this.emit(id, "change", values.first().map(ToString::to_string).unwrap_or_default(), cx);}
+                    }).detach();
+                    KitState::Combobox(state)
+                }
+                "Command" => KitState::Command(cx.new(|cx| CommandState::new(window, cx))),
+                "Carousel" => {
+                    let count = find(&self.node, id).map(|node| items(node, "CarouselSlide").count()).unwrap_or(0);
+                    let looping = text("loop") == "true";
+                    let state = cx.new(|_| CarouselState::new(count).with_looping(looping));
+                    cx.subscribe_in(&state, window, move |this, _, event: &CarouselEvent, _, cx| {
+                        let CarouselEvent::Change(index) = event;
+                        this.emit(id, "change", index.to_string(), cx);
+                    }).detach();
+                    KitState::Carousel(state)
+                }
+                "CodeEditor" => {
+                    let (language, value, read_only) = (text("language"), text("value"), text("readOnly") == "true");
+                    let state = cx.new(|cx| {
+                        let mut state = EditorState::new(window, cx).language(language);
+                        state.set_value(value, window, cx);
+                        state
+                    });
+                    let _ = read_only;
+                    cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
+                        if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); this.emit(id, "change", value, cx);}
+                    }).detach();
+                    KitState::Editor(state)
+                }
+                "Tree" => {
+                    let items = find(&self.node, id).map(tree_items).unwrap_or_default();
+                    let state = cx.new(|cx| TreeState::new(cx).items(items));
+                    KitState::Tree(state, tree_shape(&self.node, id))
+                }
+                "List" => KitState::List(VirtualListScrollHandle::new()),
                 _ => {
                     let (min, max, step) = (number("min").unwrap_or(0.), number("max").unwrap_or(100.), number("step").unwrap_or(1.));
                     let initial = number("value").unwrap_or(min);
@@ -296,6 +406,11 @@ impl Root {
                             window.push_notification(if title.is_empty() {note} else {note.title(title)}, cx);
                         }
                         "set-title" => window.set_window_title(&text("title")),
+                        "theme" => match text("mode").as_str() {
+                            "dark" => KitTheme::change(ThemeMode::Dark, Some(window), cx),
+                            "light" => KitTheme::change(ThemeMode::Light, Some(window), cx),
+                            _ => KitTheme::sync_system_appearance(Some(window), cx),
+                        },
                         "minimize" => window.minimize_window(),
                         "zoom" => window.zoom_window(),
                         "fullscreen" => window.toggle_fullscreen(),
@@ -613,8 +728,174 @@ impl Root {
                 }
                 table.into_any_element()
             }
+            "Markdown" => TextView::markdown(element_id, text("content")).into_any_element(),
+            "Html" => TextView::html(element_id, text("content")).into_any_element(),
+            "Image" => {
+                let fit = match kit.prop("fit") {Some("cover") => ObjectFit::Cover, Some("fill") => ObjectFit::Fill, Some("none") => ObjectFit::None, _ => ObjectFit::Contain};
+                let alt = text("alt");
+                let fallback = alt.clone();
+                img(text("src")).id(element_id).size_full().object_fit(fit)
+                    .with_loading(move || div().child(alt.clone()).into_any_element())
+                    .with_fallback(move || div().child(fallback.clone()).into_any_element()).into_any_element()
+            }
+            "TitleBar" => TitleBar::new().children(self.content(node, cx)).into_any_element(),
+            "StatusBar" => {
+                let mut bar = StatusBar::new();
+                for child in node.visible_children() {
+                    let element = div().flex().items_center().gap_2().children(self.content(child, cx));
+                    bar = match child.kit.as_ref().map(|kit| kit.name.as_str()) {
+                        Some("StatusBarLeft") => bar.left(element),
+                        Some("StatusBarRight") => bar.right(element),
+                        _ => {let theme = Theme::default(); bar.child(self.element(child, &theme, "light", cx))}
+                    };
+                }
+                bar.into_any_element()
+            }
+            "Toolbar" => {
+                let mut toolbar = Toolbar::new(element_id);
+                for child in self.content(node, cx) {toolbar = toolbar.content(child);}
+                toolbar.into_any_element()
+            }
+            "Form" => {
+                let form = if kit.flag("horizontal") {h_form()} else {v_form()};
+                let mut form = form.columns(kit.index("columns").unwrap_or(1).max(1));
+                for (child, item) in items(node, "Field") {
+                    let mut entry = field().label(item.text("label")).required(item.flag("required")).child(div().children(self.content(child, cx)));
+                    if let Some(description) = item.prop("description").filter(|text| !text.is_empty()) {entry = entry.description(description.to_owned());}
+                    form = form.child(entry);
+                }
+                form.into_any_element()
+            }
+            "ScrollArea" => {
+                let area = div().id(element_id).size_full().children(self.content(node, cx).into_iter().map(|child| div().flex_shrink_0().child(child)));
+                if kit.flag("horizontal") {area.flex().overflow_x_scrollbar().into_any_element()} else {area.overflow_y_scrollbar().into_any_element()}
+            }
+            "Message" => {
+                let author = text("author");
+                let bubble = Bubble::new().with_variant(if kit.prop("variant") == Some("primary") {BubbleVariant::Filled} else {BubbleVariant::Secondary}).children(self.content(node, cx));
+                let mut message = Message::new().alignment(if kit.prop("align") == Some("end") {MessageAlignment::End} else {MessageAlignment::Start});
+                if !author.is_empty() {message = message.avatar(Avatar::new().name(author.clone()).size_8()).header(MessageHeader::new().child(author).child(text("time")));}
+                message.content(MessageContent::new().bubble(bubble)).into_any_element()
+            }
+            "Chart" => {
+                let labels = kit.text("labels");
+                let values = kit.text("values");
+                let data = labels.split('\n').zip(values.split('\n')).map(|(label, value)| (SharedString::from(label.to_owned()), value.trim().parse::<f64>().unwrap_or_default())).collect::<Vec<_>>();
+                match kit.prop("kind") {
+                    Some("bar") => BarChart::new(data).band(|point: &(SharedString, f64)| point.0.clone()).value(|point: &(SharedString, f64)| point.1).into_any_element(),
+                    Some("area") => AreaChart::new(data).x(|point: &(SharedString, f64)| point.0.clone()).y(|point: &(SharedString, f64)| point.1).into_any_element(),
+                    Some("pie") => {
+                        // Each slice takes the next theme chart color.
+                        let theme = cx.theme();
+                        let palette = [theme.chart_1, theme.chart_2, theme.chart_3, theme.chart_4, theme.chart_5];
+                        let data = data.into_iter().enumerate().map(|(index, (label, value))| (label, value, palette[index % palette.len()])).collect::<Vec<_>>();
+                        PieChart::new(data).value(|point: &(SharedString, f64, Hsla)| point.1 as f32).color(|point: &(SharedString, f64, Hsla)| point.2).outer_radius(100.).into_any_element()
+                    }
+                    _ => LineChart::new(data).x(|point: &(SharedString, f64)| point.0.clone()).y(|point: &(SharedString, f64)| point.1).into_any_element(),
+                }
+            }
+            "List" => match self.states.get(&id) {
+                Some(KitState::List(handle)) => {
+                    let count = kit.text("items").split('\n').filter(|item| !item.is_empty()).count();
+                    let sizes = std::rc::Rc::new(vec![size(px(1.), px(32.)); count]);
+                    v_virtual_list(cx.entity(), element_id, sizes, move |root: &mut Root, range: std::ops::Range<usize>, _, cx| {
+                        let Some(kit) = find(&root.node, id).and_then(|node| node.kit.as_deref()) else {return Vec::new()};
+                        let rows = kit.text("items").split('\n').filter(|item| !item.is_empty()).map(str::to_owned).collect::<Vec<_>>();
+                        let selected = kit.number("selected").filter(|index| *index >= 0.).map(|index| index as usize);
+                        range.filter_map(|index| rows.get(index).map(|row| {
+                            ListItem::new(ElementId::Name(format!("{id}-row-{index}").into())).selected(selected == Some(index)).child(SharedString::from(row.clone()))
+                                .on_click(cx.listener(move |this, _, _, cx| this.emit(id, "select", index.to_string(), cx)))
+                        })).collect()
+                    }).track_scroll(handle).into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
+            "Tree" => match self.states.get(&id) {
+                Some(KitState::Tree(state, _)) => tree(state, move |index, entry, selected, _, _| {
+                    let item_id = entry.item().id.to_string();
+                    let root = root.clone();
+                    ListItem::new(index).selected(selected).pl(px(12. * entry.depth() as f32 + 8.)).child(entry.item().label.clone())
+                        .on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));})
+                }).into_any_element(),
+                _ => div().into_any_element(),
+            },
+            "Calendar" => match self.states.get(&id) {
+                Some(KitState::Calendar(state)) => Calendar::new(state).number_of_months(kit.index("months").unwrap_or(1).max(1)).into_any_element(),
+                _ => div().into_any_element(),
+            },
+            "TimeField" => match self.states.get(&id) {Some(KitState::Time(state)) => TimeField::new(state).into_any_element(), _ => div().into_any_element()},
+            "Combobox" => match self.states.get(&id) {
+                Some(KitState::Combobox(state)) => Combobox::new(state).placeholder(text("placeholder")).into_any_element(),
+                _ => div().into_any_element(),
+            },
+            "Command" => match self.states.get(&id) {
+                Some(KitState::Command(state)) => {
+                    let entries = items(node, "CommandItem").map(|(child, item)| (child.identity.get(), item.text("label"), item.flag("disabled"))).collect::<Vec<_>>();
+                    let targets = entries.iter().map(|(child, _, _)| *child).collect::<Vec<_>>();
+                    let palette = CommandPalette::new(state).placeholder(text("placeholder"))
+                        .items(entries.into_iter().map(|(_, label, disabled)| CommandItem::new().label(label).disabled(disabled)));
+                    let root = root.clone();
+                    palette.on_confirm(move |index: IndexPath, _, cx| {
+                        if let Some(target) = targets.get(index.row) {let target = *target; let _ = root.update(cx, |root, cx| root.emit(target, "select", String::new(), cx));}
+                    }).into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
+            "Carousel" => match self.states.get(&id) {
+                Some(KitState::Carousel(state)) => {
+                    let mut content = CarouselContent::new(state);
+                    for (index, (child, _)) in items(node, "CarouselSlide").enumerate() {
+                        content = content.child(CarouselItem::new(ElementId::Name(format!("{id}-slide-{index}").into()), index, state).child(div().size_full().children(self.content(child, cx))));
+                    }
+                    Carousel::new(element_id, state).child(content).child(CarouselPrevious::new(state)).child(CarouselNext::new(state)).into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
+            "CodeEditor" => match self.states.get(&id) {
+                Some(KitState::Editor(state)) => Editor::new(state).h_full().readonly(kit.flag("readOnly")).into_any_element(),
+                _ => div().into_any_element(),
+            },
+            "ToggleGroup" => {
+                let toggles = items(node, "Toggle").map(|(child, item)| (child.identity.get(), item.text("label"), item.flag("checked"), item.handles("change"))).collect::<Vec<_>>();
+                let targets = toggles.iter().map(|(child, _, checked, handles)| (*child, *checked, *handles)).collect::<Vec<_>>();
+                let mut group = ToggleGroup::new(element_id).children(toggles.into_iter().map(|(child, label, checked, _)| Toggle::new(ElementId::Integer(child)).label(label).checked(checked)));
+                if kit.flag("segmented") {group = group.segmented();}
+                group.on_click(cx.listener(move |this, states: &Vec<bool>, _, cx| {
+                    for ((target, before, handles), now) in targets.iter().zip(states) {
+                        if *handles && before != now {this.emit(*target, "change", now.to_string(), cx);}
+                    }
+                })).into_any_element()
+            }
+            "ButtonGroup" => {
+                let buttons = items(node, "GroupButton").map(|(child, item)| (child.identity.get(), item.text("label"), item.flag("selected"))).collect::<Vec<_>>();
+                let targets = buttons.iter().map(|(child, _, _)| *child).collect::<Vec<_>>();
+                let mut group = ButtonGroup::new(element_id).children(buttons.into_iter().map(|(child, label, selected)| gpui_kit::component::button::Button::new(ElementId::Integer(child)).label(label).selected(selected)));
+                if kit.flag("outline") {group = group.outline();}
+                group.on_click(cx.listener(move |this, clicked: &Vec<usize>, _, cx| {
+                    for index in clicked {if let Some(target) = targets.get(*index) {this.emit(*target, "click", String::new(), cx);}}
+                })).into_any_element()
+            }
             // Item and slot components render through their container.
             name => div().child(SharedString::from(format!("{name} must be placed inside its container component"))).into_any_element(),
         }
     }
+}
+
+/// TreeItem children as GPUI Kit tree items, recursively.
+fn tree_items(node: &Node) -> Vec<TreeItem> {
+    items(node, "TreeItem").map(|(child, item)| {
+        let mut entry = TreeItem::new(item.text("id"), item.text("label")).expanded(item.flag("expanded"));
+        for sub in tree_items(child) {entry = entry.child(sub);}
+        entry
+    }).collect()
+}
+
+/// A fingerprint of a tree's items, to rebuild the Kit state only when they change.
+fn tree_shape(root: &Node, id: u64) -> String {
+    fn walk(node: &Node, out: &mut String) {
+        for (child, item) in items(node, "TreeItem") {out.push_str(&item.text("id")); out.push('\u{1}'); out.push_str(&item.text("label")); out.push('['); walk(child, out); out.push(']');}
+    }
+    let mut out = String::new();
+    if let Some(node) = find(root, id) {walk(node, &mut out);}
+    out
 }

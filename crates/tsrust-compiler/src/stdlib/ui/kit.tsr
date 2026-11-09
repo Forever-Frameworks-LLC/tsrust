@@ -1776,3 +1776,712 @@ export function TableCell(props: TableCellProps): Node {
 
   return node;
 }
+
+export interface MarkdownProps {
+  /** Markdown source. */
+  content?: ReactiveValue<string> | TextBinding;
+  /** Scrolls when taller than its space. */
+  scrollable?: ReactiveValue<boolean>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Renders Markdown: headings, lists, emphasis, links, code blocks and tables. */
+export function Markdown(props: MarkdownProps): Node {
+  let node = kitNode('Markdown', [], props.className ?? '');
+  const prop_content = props.content;
+  if (prop_content !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'content', prop_content));
+  }
+
+  const prop_scrollable = props.scrollable;
+  if (prop_scrollable !== undefined) {
+    node = kitFlag(node, 'scrollable', prop_scrollable);
+  }
+
+  return node;
+}
+
+export interface HtmlProps {
+  /** HTML source. */
+  content?: ReactiveValue<string> | TextBinding;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Renders a safe subset of HTML as styled text (no scripts or browser behavior). */
+export function Html(props: HtmlProps): Node {
+  let node = kitNode('Html', [], props.className ?? '');
+  const prop_content = props.content;
+  if (prop_content !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'content', prop_content));
+  }
+
+  return node;
+}
+
+export interface ImageProps {
+  /** Image path or URL. */
+  src?: ReactiveValue<string> | TextBinding;
+  /** How the image fills its box. Defaults to contain. */
+  fit?: ReactiveValue<'contain' | 'cover' | 'fill' | 'none'>;
+  /** Text shown while loading or when the image cannot be loaded. */
+  alt?: ReactiveValue<string> | TextBinding;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Shows an image from a file path, asset path or https URL, with a fallback while loading or on failure. */
+export function Image(props: ImageProps): Node {
+  let node = kitNode('Image', [], props.className ?? '');
+  const prop_src = props.src;
+  if (prop_src !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'src', prop_src));
+  }
+
+  const prop_fit = props.fit;
+  if (prop_fit !== undefined) {
+    if (typeof prop_fit === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'fit', `${prop_fit}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'fit', nativeBindText(prop_fit.evaluate)));
+    }
+  }
+
+  const prop_alt = props.alt;
+  if (prop_alt !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'alt', prop_alt));
+  }
+
+  return node;
+}
+
+export interface TitleBarProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A custom window title bar holding its children. Use it with the custom titlebar window option. */
+export function TitleBar(props: TitleBarProps): Node {
+  let node = kitNode('TitleBar', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface StatusBarProps {
+  /** StatusBarLeft, StatusBarRight elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A bottom status bar. StatusBarLeft and StatusBarRight hold edge content; other children sit in the middle. */
+export function StatusBar(props: StatusBarProps): Node {
+  let node = kitNode('StatusBar', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface StatusBarLeftProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Left-aligned content of a StatusBar. */
+export function StatusBarLeft(props: StatusBarLeftProps): Node {
+  let node = kitNode('StatusBarLeft', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface StatusBarRightProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Right-aligned content of a StatusBar. */
+export function StatusBarRight(props: StatusBarRightProps): Node {
+  let node = kitNode('StatusBarRight', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface ToolbarProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A horizontal toolbar of buttons and other controls. */
+export function Toolbar(props: ToolbarProps): Node {
+  let node = kitNode('Toolbar', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface FormProps {
+  /** Number of columns. Defaults to 1. */
+  columns?: ReactiveValue<int>;
+  /** Puts labels beside their fields instead of above. */
+  horizontal?: ReactiveValue<boolean>;
+  /** Field elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Lays out Field elements with aligned labels, in one or more columns. */
+export function Form(props: FormProps): Node {
+  let node = kitNode('Form', props.children ?? [], props.className ?? '');
+  const prop_columns = props.columns;
+  if (prop_columns !== undefined) {
+    node = kitInt(node, 'columns', prop_columns);
+  }
+
+  const prop_horizontal = props.horizontal;
+  if (prop_horizontal !== undefined) {
+    node = kitFlag(node, 'horizontal', prop_horizontal);
+  }
+
+  return node;
+}
+
+export interface FieldProps {
+  /** Field label. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Help text below the control. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** Marks the field as required. */
+  required?: ReactiveValue<boolean>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One labelled field in a Form; its children are the control. */
+export function Field(props: FieldProps): Node {
+  let node = kitNode('Field', props.children ?? [], props.className ?? '');
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  const prop_required = props.required;
+  if (prop_required !== undefined) {
+    node = kitFlag(node, 'required', prop_required);
+  }
+
+  return node;
+}
+
+export interface ScrollAreaProps {
+  /** Scrolls horizontally instead of vertically. */
+  horizontal?: ReactiveValue<boolean>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Scrolls its children vertically (or horizontally) with GPUI Kit scrollbars. */
+export function ScrollArea(props: ScrollAreaProps): Node {
+  let node = kitNode('ScrollArea', props.children ?? [], props.className ?? '');
+  const prop_horizontal = props.horizontal;
+  if (prop_horizontal !== undefined) {
+    node = kitFlag(node, 'horizontal', prop_horizontal);
+  }
+
+  return node;
+}
+
+export interface MessageProps {
+  /** Sender name; its initials make the avatar. */
+  author?: ReactiveValue<string> | TextBinding;
+  /** Time shown beside the author. */
+  time?: ReactiveValue<string> | TextBinding;
+  /** start for received messages, end for sent ones. Defaults to start. */
+  align?: ReactiveValue<'start' | 'end'>;
+  /** Bubble color. Defaults to secondary. */
+  variant?: ReactiveValue<'primary' | 'secondary'>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A chat message: avatar, author and time header, and a bubble holding its children. */
+export function Message(props: MessageProps): Node {
+  let node = kitNode('Message', props.children ?? [], props.className ?? '');
+  const prop_author = props.author;
+  if (prop_author !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'author', prop_author));
+  }
+
+  const prop_time = props.time;
+  if (prop_time !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'time', prop_time));
+  }
+
+  const prop_align = props.align;
+  if (prop_align !== undefined) {
+    if (typeof prop_align === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'align', nativeBindText(prop_align.evaluate)));
+    }
+  }
+
+  const prop_variant = props.variant;
+  if (prop_variant !== undefined) {
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface ChartProps {
+  /** Chart type. Defaults to line. */
+  kind?: ReactiveValue<'line' | 'bar' | 'area' | 'pie'>;
+  /** Category labels, one per value. */
+  labels?: string[];
+  /** Data values, in label order. */
+  values?: number[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A line, bar, area or pie chart of labelled values. */
+export function Chart(props: ChartProps): Node {
+  let node = kitNode('Chart', [], props.className ?? '');
+  const prop_kind = props.kind;
+  if (prop_kind !== undefined) {
+    if (typeof prop_kind === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'kind', `${prop_kind}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'kind', nativeBindText(prop_kind.evaluate)));
+    }
+  }
+
+  const prop_labels = props.labels;
+  if (prop_labels !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'labels', prop_labels.join('\n')));
+  }
+
+  const prop_values = props.values;
+  if (prop_values !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+  }
+
+  return node;
+}
+
+export interface ListProps {
+  /** Row text, in order. */
+  items?: string[];
+  /** Index of the highlighted row, or -1 for none. */
+  selected?: ReactiveValue<int>;
+  /** Receives the clicked row's index. */
+  onSelect?: Owned<Function<void, [index: int]>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A virtualized list of text rows that stays fast with thousands of items. */
+export function List(props: ListProps): Node {
+  let node = kitNode('List', [], props.className ?? '');
+  const prop_items = props.items;
+  if (prop_items !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
+  }
+
+  const prop_selected = props.selected;
+  if (prop_selected !== undefined) {
+    node = kitInt(node, 'selected', prop_selected);
+  }
+
+  const event_onSelect = props.onSelect;
+  if (event_onSelect !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'select', event_onSelect));
+  }
+
+  return node;
+}
+
+export interface TreeProps {
+  /** Receives the clicked item's id. */
+  onSelect?: Owned<Function<void, [id: ReadOnly<string>]>>;
+  /** TreeItem elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A collapsible tree. Children are TreeItem elements, which can nest. */
+export function Tree(props: TreeProps): Node {
+  let node = kitNode('Tree', props.children ?? [], props.className ?? '');
+  const event_onSelect = props.onSelect;
+  if (event_onSelect !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'select', event_onSelect));
+  }
+
+  return node;
+}
+
+export interface TreeItemProps {
+  /** Identifier passed to onSelect. */
+  id?: ReactiveValue<string> | TextBinding;
+  /** Displayed text. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Starts expanded when it has children. */
+  expanded?: ReactiveValue<boolean>;
+  /** TreeItem elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One node in a Tree; nested TreeItem children are its sub-items. */
+export function TreeItem(props: TreeItemProps): Node {
+  let node = kitNode('TreeItem', props.children ?? [], props.className ?? '');
+  const prop_id = props.id;
+  if (prop_id !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'id', prop_id));
+  }
+
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_expanded = props.expanded;
+  if (prop_expanded !== undefined) {
+    node = kitFlag(node, 'expanded', prop_expanded);
+  }
+
+  return node;
+}
+
+export interface CalendarProps {
+  /** Selected date as YYYY-MM-DD, or empty for none. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Months shown side by side. Defaults to 1. */
+  months?: ReactiveValue<int>;
+  /** Receives the chosen date as YYYY-MM-DD. */
+  onChange?: Owned<Function<void, [date: ReadOnly<string>]>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** An inline month calendar. Dates are YYYY-MM-DD text. */
+export function Calendar(props: CalendarProps): Node {
+  let node = kitNode('Calendar', [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_months = props.months;
+  if (prop_months !== undefined) {
+    node = kitInt(node, 'months', prop_months);
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
+  return node;
+}
+
+export interface TimeFieldProps {
+  /** Time as HH:MM or HH:MM:SS. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Shows and edits seconds. */
+  seconds?: ReactiveValue<boolean>;
+  /** Displays a 12-hour clock with AM/PM. */
+  twelveHour?: ReactiveValue<boolean>;
+  /** Receives the edited time as HH:MM:SS, or empty when cleared. */
+  onChange?: Owned<Function<void, [time: ReadOnly<string>]>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A segmented time-of-day field. Times are HH:MM or HH:MM:SS text (24-hour). */
+export function TimeField(props: TimeFieldProps): Node {
+  let node = kitNode('TimeField', [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_seconds = props.seconds;
+  if (prop_seconds !== undefined) {
+    node = kitFlag(node, 'seconds', prop_seconds);
+  }
+
+  const prop_twelveHour = props.twelveHour;
+  if (prop_twelveHour !== undefined) {
+    node = kitFlag(node, 'twelveHour', prop_twelveHour);
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
+  return node;
+}
+
+export interface ComboboxProps {
+  /** Options, in order. */
+  items?: string[];
+  /** Selected option, or empty for none. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Text shown when nothing is selected. */
+  placeholder?: ReactiveValue<string> | TextBinding;
+  /** Receives the chosen option. */
+  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A searchable dropdown that picks one string from a list. */
+export function Combobox(props: ComboboxProps): Node {
+  let node = kitNode('Combobox', [], props.className ?? '');
+  const prop_items = props.items;
+  if (prop_items !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
+  }
+
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_placeholder = props.placeholder;
+  if (prop_placeholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
+  return node;
+}
+
+export interface CommandProps {
+  /** Search field placeholder. */
+  placeholder?: ReactiveValue<string> | TextBinding;
+  /** CommandItem elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A command palette: a search field over CommandItem entries. */
+export function Command(props: CommandProps): Node {
+  let node = kitNode('Command', props.children ?? [], props.className ?? '');
+  const prop_placeholder = props.placeholder;
+  if (prop_placeholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
+  }
+
+  return node;
+}
+
+export interface CommandItemProps {
+  /** Entry text; the palette filters on it. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Disabled entries cannot be chosen. */
+  disabled?: ReactiveValue<boolean>;
+  /** Called when the entry is chosen with Enter or a click. */
+  onSelect?: Owned<Function<void>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One entry in a Command palette. */
+export function CommandItem(props: CommandItemProps): Node {
+  let node = kitNode('CommandItem', [], props.className ?? '');
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const event_onSelect = props.onSelect;
+  if (event_onSelect !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'select', event_onSelect));
+  }
+
+  return node;
+}
+
+export interface CarouselProps {
+  /** Wraps from the last slide to the first. */
+  loop?: ReactiveValue<boolean>;
+  /** Receives the shown slide's index after navigation. */
+  onChange?: Owned<Function<void, [index: int]>>;
+  /** CarouselSlide elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Shows one CarouselSlide at a time with previous and next buttons. */
+export function Carousel(props: CarouselProps): Node {
+  let node = kitNode('Carousel', props.children ?? [], props.className ?? '');
+  const prop_loop = props.loop;
+  if (prop_loop !== undefined) {
+    node = kitFlag(node, 'loop', prop_loop);
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
+  }
+
+  return node;
+}
+
+export interface CarouselSlideProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One slide of a Carousel. */
+export function CarouselSlide(props: CarouselSlideProps): Node {
+  let node = kitNode('CarouselSlide', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface CodeEditorProps {
+  /** Editor text. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Language for highlighting and editing rules, such as rust, typescript or json. */
+  language?: ReactiveValue<string> | TextBinding;
+  /** Prevents edits. */
+  readOnly?: ReactiveValue<boolean>;
+  /** Receives the full text after each edit. */
+  onChange?: Owned<Function<void, [text: ReadOnly<string>]>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A source-code editor with syntax highlighting, line numbers and folding. */
+export function CodeEditor(props: CodeEditorProps): Node {
+  let node = kitNode('CodeEditor', [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_language = props.language;
+  if (prop_language !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'language', prop_language));
+  }
+
+  const prop_readOnly = props.readOnly;
+  if (prop_readOnly !== undefined) {
+    node = kitFlag(node, 'readOnly', prop_readOnly);
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
+  return node;
+}
+
+export interface ToggleGroupProps {
+  /** Draws the group as one segmented control. */
+  segmented?: ReactiveValue<boolean>;
+  /** Toggle elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A set of Toggle buttons shown as one control. */
+export function ToggleGroup(props: ToggleGroupProps): Node {
+  let node = kitNode('ToggleGroup', props.children ?? [], props.className ?? '');
+  const prop_segmented = props.segmented;
+  if (prop_segmented !== undefined) {
+    node = kitFlag(node, 'segmented', prop_segmented);
+  }
+
+  return node;
+}
+
+export interface ButtonGroupProps {
+  /** Uses outline buttons. */
+  outline?: ReactiveValue<boolean>;
+  /** GroupButton elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Buttons joined into one control. Children are GroupButton elements. */
+export function ButtonGroup(props: ButtonGroupProps): Node {
+  let node = kitNode('ButtonGroup', props.children ?? [], props.className ?? '');
+  const prop_outline = props.outline;
+  if (prop_outline !== undefined) {
+    node = kitFlag(node, 'outline', prop_outline);
+  }
+
+  return node;
+}
+
+export interface GroupButtonProps {
+  /** Button text. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Shows the button as selected. */
+  selected?: ReactiveValue<boolean>;
+  /** Called when the button is clicked. */
+  onClick?: Owned<Function<void>>;
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One button in a ButtonGroup. */
+export function GroupButton(props: GroupButtonProps): Node {
+  let node = kitNode('GroupButton', [], props.className ?? '');
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_selected = props.selected;
+  if (prop_selected !== undefined) {
+    node = kitFlag(node, 'selected', prop_selected);
+  }
+
+  const event_onClick = props.onClick;
+  if (event_onClick !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
+  }
+
+  return node;
+}

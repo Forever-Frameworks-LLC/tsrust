@@ -13,7 +13,7 @@ pub(crate) enum Command {
     Window {node: Node, title: String, options: String},
 }
 
-const PLAIN: &[&str] = &["notify", "set-title", "minimize", "zoom", "fullscreen", "close", "quit", "open-url", "write-clipboard"];
+const PLAIN: &[&str] = &["notify", "theme", "set-title", "minimize", "zoom", "fullscreen", "close", "quit", "open-url", "write-clipboard"];
 const REPLIES: &[&str] = &["read-clipboard", "pick-files", "save-file"];
 
 thread_local! {

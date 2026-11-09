@@ -1249,6 +1249,512 @@
         }
       ],
       "example": "<TableCell>ada@example.com</TableCell>"
+    },
+    {
+      "name": "Markdown",
+      "doc": "Renders Markdown: headings, lists, emphasis, links, code blocks and tables.",
+      "props": [
+        {
+          "name": "content",
+          "type": "string",
+          "doc": "Markdown source."
+        },
+        {
+          "name": "scrollable",
+          "type": "boolean",
+          "doc": "Scrolls when taller than its space."
+        }
+      ],
+      "example": "<Markdown content={'# Release notes\\n\\n- Faster builds'}/>"
+    },
+    {
+      "name": "Html",
+      "doc": "Renders a safe subset of HTML as styled text (no scripts or browser behavior).",
+      "props": [
+        {
+          "name": "content",
+          "type": "string",
+          "doc": "HTML source."
+        }
+      ],
+      "example": "<Html content=\"<strong>Saved</strong> just now\"/>"
+    },
+    {
+      "name": "Image",
+      "doc": "Shows an image from a file path, asset path or https URL, with a fallback while loading or on failure.",
+      "props": [
+        {
+          "name": "src",
+          "type": "string",
+          "doc": "Image path or URL."
+        },
+        {
+          "name": "fit",
+          "type": [
+            "contain",
+            "cover",
+            "fill",
+            "none"
+          ],
+          "doc": "How the image fills its box. Defaults to contain."
+        },
+        {
+          "name": "alt",
+          "type": "string",
+          "doc": "Text shown while loading or when the image cannot be loaded."
+        }
+      ],
+      "example": "<Image src=\"assets/logo.png\" fit=\"contain\" className=\"size-16\"/>"
+    },
+    {
+      "name": "TitleBar",
+      "doc": "A custom window title bar holding its children. Use it with the custom titlebar window option.",
+      "props": [],
+      "example": "<TitleBar><Text>My App</Text></TitleBar>",
+      "children": true
+    },
+    {
+      "name": "StatusBar",
+      "doc": "A bottom status bar. StatusBarLeft and StatusBarRight hold edge content; other children sit in the middle.",
+      "props": [],
+      "example": "<StatusBar><StatusBarLeft><Text>Ready</Text></StatusBarLeft><StatusBarRight><Text>UTF-8</Text></StatusBarRight></StatusBar>",
+      "children": "StatusBarLeft, StatusBarRight"
+    },
+    {
+      "name": "StatusBarLeft",
+      "doc": "Left-aligned content of a StatusBar.",
+      "props": [],
+      "example": "<StatusBarLeft><Text>main</Text></StatusBarLeft>",
+      "children": true,
+      "item": true
+    },
+    {
+      "name": "StatusBarRight",
+      "doc": "Right-aligned content of a StatusBar.",
+      "props": [],
+      "example": "<StatusBarRight><Text>Ln 1, Col 1</Text></StatusBarRight>",
+      "children": true,
+      "item": true
+    },
+    {
+      "name": "Toolbar",
+      "doc": "A horizontal toolbar of buttons and other controls.",
+      "props": [],
+      "example": "<Toolbar><Button>New</Button><Button>Open</Button></Toolbar>",
+      "children": true
+    },
+    {
+      "name": "Form",
+      "doc": "Lays out Field elements with aligned labels, in one or more columns.",
+      "props": [
+        {
+          "name": "columns",
+          "type": "int",
+          "doc": "Number of columns. Defaults to 1."
+        },
+        {
+          "name": "horizontal",
+          "type": "boolean",
+          "doc": "Puts labels beside their fields instead of above."
+        }
+      ],
+      "example": "<Form columns={2}><Field label=\"Name\" required={true}><Input value={name}/></Field></Form>",
+      "children": "Field"
+    },
+    {
+      "name": "Field",
+      "doc": "One labelled field in a Form; its children are the control.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Field label."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Help text below the control."
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "doc": "Marks the field as required."
+        }
+      ],
+      "example": "<Field label=\"Email\" description=\"We never share it.\"><Input value={email}/></Field>",
+      "children": true,
+      "item": true
+    },
+    {
+      "name": "ScrollArea",
+      "doc": "Scrolls its children vertically (or horizontally) with GPUI Kit scrollbars.",
+      "props": [
+        {
+          "name": "horizontal",
+          "type": "boolean",
+          "doc": "Scrolls horizontally instead of vertically."
+        }
+      ],
+      "example": "<ScrollArea className=\"h-64\"><Text>Long content</Text></ScrollArea>",
+      "children": true
+    },
+    {
+      "name": "Message",
+      "doc": "A chat message: avatar, author and time header, and a bubble holding its children.",
+      "props": [
+        {
+          "name": "author",
+          "type": "string",
+          "doc": "Sender name; its initials make the avatar."
+        },
+        {
+          "name": "time",
+          "type": "string",
+          "doc": "Time shown beside the author."
+        },
+        {
+          "name": "align",
+          "type": [
+            "start",
+            "end"
+          ],
+          "doc": "start for received messages, end for sent ones. Defaults to start."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "primary",
+            "secondary"
+          ],
+          "doc": "Bubble color. Defaults to secondary."
+        }
+      ],
+      "example": "<Message author=\"Alice\" time=\"10:24\"><Text>Can you review this?</Text></Message>",
+      "children": true
+    },
+    {
+      "name": "Chart",
+      "doc": "A line, bar, area or pie chart of labelled values.",
+      "props": [
+        {
+          "name": "kind",
+          "type": [
+            "line",
+            "bar",
+            "area",
+            "pie"
+          ],
+          "doc": "Chart type. Defaults to line."
+        },
+        {
+          "name": "labels",
+          "type": "string[]",
+          "doc": "Category labels, one per value."
+        },
+        {
+          "name": "values",
+          "type": "number[]",
+          "doc": "Data values, in label order."
+        }
+      ],
+      "example": "<Chart kind=\"bar\" labels={['Jan', 'Feb', 'Mar']} values={[100, 150, 120]} className=\"h-64\"/>"
+    },
+    {
+      "name": "List",
+      "doc": "A virtualized list of text rows that stays fast with thousands of items.",
+      "props": [
+        {
+          "name": "items",
+          "type": "string[]",
+          "doc": "Row text, in order."
+        },
+        {
+          "name": "selected",
+          "type": "int",
+          "doc": "Index of the highlighted row, or -1 for none."
+        }
+      ],
+      "example": "<List items={names} selected={picked.get()} onSelect={(index) => { picked.set(index); }} className=\"h-64\"/>",
+      "events": [
+        {
+          "prop": "onSelect",
+          "value": "int",
+          "param": "index",
+          "doc": "Receives the clicked row's index."
+        }
+      ]
+    },
+    {
+      "name": "Tree",
+      "doc": "A collapsible tree. Children are TreeItem elements, which can nest.",
+      "props": [],
+      "example": "<Tree onSelect={(id) => { open(id); }}><TreeItem id=\"src\" label=\"src\" expanded={true}><TreeItem id=\"src/main.tsr\" label=\"main.tsr\"/></TreeItem></Tree>",
+      "events": [
+        {
+          "prop": "onSelect",
+          "value": "string",
+          "param": "id",
+          "doc": "Receives the clicked item's id."
+        }
+      ],
+      "children": "TreeItem"
+    },
+    {
+      "name": "TreeItem",
+      "doc": "One node in a Tree; nested TreeItem children are its sub-items.",
+      "props": [
+        {
+          "name": "id",
+          "type": "string",
+          "doc": "Identifier passed to onSelect."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Displayed text."
+        },
+        {
+          "name": "expanded",
+          "type": "boolean",
+          "doc": "Starts expanded when it has children."
+        }
+      ],
+      "example": "<TreeItem id=\"docs\" label=\"docs\"/>",
+      "children": "TreeItem",
+      "item": true
+    },
+    {
+      "name": "Calendar",
+      "doc": "An inline month calendar. Dates are YYYY-MM-DD text.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Selected date as YYYY-MM-DD, or empty for none."
+        },
+        {
+          "name": "months",
+          "type": "int",
+          "doc": "Months shown side by side. Defaults to 1."
+        }
+      ],
+      "example": "<Calendar value={day.get()} onChange={(date) => { day.set(clone(date)); }}/>",
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "date",
+          "doc": "Receives the chosen date as YYYY-MM-DD."
+        }
+      ]
+    },
+    {
+      "name": "TimeField",
+      "doc": "A segmented time-of-day field. Times are HH:MM or HH:MM:SS text (24-hour).",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Time as HH:MM or HH:MM:SS."
+        },
+        {
+          "name": "seconds",
+          "type": "boolean",
+          "doc": "Shows and edits seconds."
+        },
+        {
+          "name": "twelveHour",
+          "type": "boolean",
+          "doc": "Displays a 12-hour clock with AM/PM."
+        }
+      ],
+      "example": "<TimeField value={time.get()} onChange={(value) => { time.set(clone(value)); }}/>",
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "time",
+          "doc": "Receives the edited time as HH:MM:SS, or empty when cleared."
+        }
+      ]
+    },
+    {
+      "name": "Combobox",
+      "doc": "A searchable dropdown that picks one string from a list.",
+      "props": [
+        {
+          "name": "items",
+          "type": "string[]",
+          "doc": "Options, in order."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Selected option, or empty for none."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Text shown when nothing is selected."
+        }
+      ],
+      "example": "<Combobox items={frameworks} value={choice.get()} placeholder=\"Select…\" onChange={(value) => { choice.set(clone(value)); }}/>",
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "value",
+          "doc": "Receives the chosen option."
+        }
+      ]
+    },
+    {
+      "name": "Command",
+      "doc": "A command palette: a search field over CommandItem entries.",
+      "props": [
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Search field placeholder."
+        }
+      ],
+      "example": "<Command placeholder=\"Type a command…\"><CommandItem label=\"New file\" onSelect={() => { create(); }}/></Command>",
+      "children": "CommandItem"
+    },
+    {
+      "name": "CommandItem",
+      "doc": "One entry in a Command palette.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Entry text; the palette filters on it."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disabled entries cannot be chosen."
+        }
+      ],
+      "example": "<CommandItem label=\"Settings\" onSelect={() => { open(); }}/>",
+      "events": [
+        {
+          "prop": "onSelect",
+          "value": "void",
+          "doc": "Called when the entry is chosen with Enter or a click."
+        }
+      ],
+      "item": true
+    },
+    {
+      "name": "Carousel",
+      "doc": "Shows one CarouselSlide at a time with previous and next buttons.",
+      "props": [
+        {
+          "name": "loop",
+          "type": "boolean",
+          "doc": "Wraps from the last slide to the first."
+        }
+      ],
+      "example": "<Carousel><CarouselSlide><Text>One</Text></CarouselSlide><CarouselSlide><Text>Two</Text></CarouselSlide></Carousel>",
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "int",
+          "param": "index",
+          "doc": "Receives the shown slide's index after navigation."
+        }
+      ],
+      "children": "CarouselSlide"
+    },
+    {
+      "name": "CarouselSlide",
+      "doc": "One slide of a Carousel.",
+      "props": [],
+      "example": "<CarouselSlide><Image src=\"photo.jpg\"/></CarouselSlide>",
+      "children": true,
+      "item": true
+    },
+    {
+      "name": "CodeEditor",
+      "doc": "A source-code editor with syntax highlighting, line numbers and folding.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Editor text."
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "doc": "Language for highlighting and editing rules, such as rust, typescript or json."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "doc": "Prevents edits."
+        }
+      ],
+      "example": "<CodeEditor language=\"rust\" value={code.get()} onChange={(text) => { code.set(clone(text)); }} className=\"h-64\"/>",
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string",
+          "param": "text",
+          "doc": "Receives the full text after each edit."
+        }
+      ]
+    },
+    {
+      "name": "ToggleGroup",
+      "doc": "A set of Toggle buttons shown as one control.",
+      "props": [
+        {
+          "name": "segmented",
+          "type": "boolean",
+          "doc": "Draws the group as one segmented control."
+        }
+      ],
+      "example": "<ToggleGroup><Toggle label=\"B\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/><Toggle label=\"I\"/></ToggleGroup>",
+      "children": "Toggle"
+    },
+    {
+      "name": "ButtonGroup",
+      "doc": "Buttons joined into one control. Children are GroupButton elements.",
+      "props": [
+        {
+          "name": "outline",
+          "type": "boolean",
+          "doc": "Uses outline buttons."
+        }
+      ],
+      "example": "<ButtonGroup><GroupButton label=\"Day\" onClick={() => { view.set('day'); }}/><GroupButton label=\"Week\"/></ButtonGroup>",
+      "children": "GroupButton"
+    },
+    {
+      "name": "GroupButton",
+      "doc": "One button in a ButtonGroup.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Button text."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "doc": "Shows the button as selected."
+        }
+      ],
+      "example": "<GroupButton label=\"Month\"/>",
+      "events": [
+        {
+          "prop": "onClick",
+          "value": "void",
+          "doc": "Called when the button is clicked."
+        }
+      ],
+      "item": true
     }
   ],
   "icons": [

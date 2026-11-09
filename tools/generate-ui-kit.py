@@ -93,8 +93,8 @@ def prop_type(prop):
     if isinstance(kind, list):
         literal = " | ".join(f"'{value}'" for value in kind)
         return f"ReactiveValue<{literal}>"
-    if kind == "string[]":
-        return "string[]"
+    if kind in ("string[]", "number[]"):
+        return kind
     return SCALAR[kind][0]
 
 
@@ -145,7 +145,7 @@ def component_source(component):
             lines.append(f"    if (typeof {local} === 'string') {{ node = unwrapNode(nativeKitSet(node, '{field}', `${{{local}}}`)); }}")
             lines.append(f"    else {{ node = unwrapNode(nativeKitBind(node, '{field}', nativeBindText({local}.evaluate))); }}")
             lines.append("  }")
-        elif kind == "string[]":
+        elif kind in ("string[]", "number[]"):
             lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode(nativeKitSet(node, '{field}', {local}.join('\\n'))); }}")
         elif kind == "string":
             lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode(nativeKitValue(node, '{field}', {local})); }}")

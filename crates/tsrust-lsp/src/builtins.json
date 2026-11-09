@@ -23097,6 +23097,17 @@
       "documentation": "The translated text with values, right now, as a plain string. Inside JSX an expression such as {translateWith('messages', { count: count.get() })} refreshes with both the state it reads and the locale. Catalogs are JSON objects, usually imported: `import fr from './locales/fr.json'`. Nested objects make dotted keys (menu.save), {name} placeholders take values, and a numeric count selects key_zero, key_one or key_other (zero falls back to other). Lookup tries the exact locale (fr-CA), its language (fr), then en, then shows the key."
     },
     {
+      "name": "setTheme",
+      "signature": "setTheme(mode: 'light' | 'dark' | 'system'): void",
+      "parameters": [
+        {
+          "label": "mode: 'light' | 'dark' | 'system'",
+          "documentation": "light or dark switches every window; system follows the operating system's appearance."
+        }
+      ],
+      "documentation": "Switches GPUI Kit's theme for every window on the next frame: components, dialogs, menus and scrollbars repaint in the new mode.\n\n```tsrx\n<Switch label=\"Dark mode\" checked={dark.get()} onChange={(on) => { dark.set(on); setTheme(on ? 'dark' : 'light'); }}/>\n```"
+    },
+    {
       "name": "Icon",
       "signature": "Icon(props: IconProps): Node",
       "parameters": [
@@ -24119,6 +24130,438 @@
       "name": "TableCellProps",
       "signature": "interface TableCellProps",
       "documentation": "A body cell.\n\nProps:\n- `colSpan`: Columns spanned. Defaults to 1.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<TableCell>ada@example.com</TableCell>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Markdown",
+      "signature": "Markdown(props: MarkdownProps): Node",
+      "parameters": [
+        {
+          "label": "props: MarkdownProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Renders Markdown: headings, lists, emphasis, links, code blocks and tables.\n\nProps:\n- `content`: Markdown source.\n- `scrollable`: Scrolls when taller than its space.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Markdown content={'# Release notes\\n\\n- Faster builds'}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MarkdownProps",
+      "signature": "interface MarkdownProps",
+      "documentation": "Renders Markdown: headings, lists, emphasis, links, code blocks and tables.\n\nProps:\n- `content`: Markdown source.\n- `scrollable`: Scrolls when taller than its space.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Markdown content={'# Release notes\\n\\n- Faster builds'}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Html",
+      "signature": "Html(props: HtmlProps): Node",
+      "parameters": [
+        {
+          "label": "props: HtmlProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Renders a safe subset of HTML as styled text (no scripts or browser behavior).\n\nProps:\n- `content`: HTML source.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Html content=\"<strong>Saved</strong> just now\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "HtmlProps",
+      "signature": "interface HtmlProps",
+      "documentation": "Renders a safe subset of HTML as styled text (no scripts or browser behavior).\n\nProps:\n- `content`: HTML source.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Html content=\"<strong>Saved</strong> just now\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Image",
+      "signature": "Image(props: ImageProps): Node",
+      "parameters": [
+        {
+          "label": "props: ImageProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Shows an image from a file path, asset path or https URL, with a fallback while loading or on failure.\n\nProps:\n- `src`: Image path or URL.\n- `fit`: How the image fills its box. Defaults to contain.\n- `alt`: Text shown while loading or when the image cannot be loaded.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Image src=\"assets/logo.png\" fit=\"contain\" className=\"size-16\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ImageProps",
+      "signature": "interface ImageProps",
+      "documentation": "Shows an image from a file path, asset path or https URL, with a fallback while loading or on failure.\n\nProps:\n- `src`: Image path or URL.\n- `fit`: How the image fills its box. Defaults to contain.\n- `alt`: Text shown while loading or when the image cannot be loaded.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Image src=\"assets/logo.png\" fit=\"contain\" className=\"size-16\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TitleBar",
+      "signature": "TitleBar(props: TitleBarProps): Node",
+      "parameters": [
+        {
+          "label": "props: TitleBarProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A custom window title bar holding its children. Use it with the custom titlebar window option.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<TitleBar><Text>My App</Text></TitleBar>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TitleBarProps",
+      "signature": "interface TitleBarProps",
+      "documentation": "A custom window title bar holding its children. Use it with the custom titlebar window option.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<TitleBar><Text>My App</Text></TitleBar>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "StatusBar",
+      "signature": "StatusBar(props: StatusBarProps): Node",
+      "parameters": [
+        {
+          "label": "props: StatusBarProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A bottom status bar. StatusBarLeft and StatusBarRight hold edge content; other children sit in the middle.\n\nProps:\n- `children`: StatusBarLeft, StatusBarRight elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StatusBar><StatusBarLeft><Text>Ready</Text></StatusBarLeft><StatusBarRight><Text>UTF-8</Text></StatusBarRight></StatusBar>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "StatusBarProps",
+      "signature": "interface StatusBarProps",
+      "documentation": "A bottom status bar. StatusBarLeft and StatusBarRight hold edge content; other children sit in the middle.\n\nProps:\n- `children`: StatusBarLeft, StatusBarRight elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StatusBar><StatusBarLeft><Text>Ready</Text></StatusBarLeft><StatusBarRight><Text>UTF-8</Text></StatusBarRight></StatusBar>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "StatusBarLeft",
+      "signature": "StatusBarLeft(props: StatusBarLeftProps): Node",
+      "parameters": [
+        {
+          "label": "props: StatusBarLeftProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Left-aligned content of a StatusBar.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StatusBarLeft><Text>main</Text></StatusBarLeft>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "StatusBarLeftProps",
+      "signature": "interface StatusBarLeftProps",
+      "documentation": "Left-aligned content of a StatusBar.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StatusBarLeft><Text>main</Text></StatusBarLeft>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "StatusBarRight",
+      "signature": "StatusBarRight(props: StatusBarRightProps): Node",
+      "parameters": [
+        {
+          "label": "props: StatusBarRightProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Right-aligned content of a StatusBar.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StatusBarRight><Text>Ln 1, Col 1</Text></StatusBarRight>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "StatusBarRightProps",
+      "signature": "interface StatusBarRightProps",
+      "documentation": "Right-aligned content of a StatusBar.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StatusBarRight><Text>Ln 1, Col 1</Text></StatusBarRight>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Toolbar",
+      "signature": "Toolbar(props: ToolbarProps): Node",
+      "parameters": [
+        {
+          "label": "props: ToolbarProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A horizontal toolbar of buttons and other controls.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Toolbar><Button>New</Button><Button>Open</Button></Toolbar>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ToolbarProps",
+      "signature": "interface ToolbarProps",
+      "documentation": "A horizontal toolbar of buttons and other controls.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Toolbar><Button>New</Button><Button>Open</Button></Toolbar>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Form",
+      "signature": "Form(props: FormProps): Node",
+      "parameters": [
+        {
+          "label": "props: FormProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Lays out Field elements with aligned labels, in one or more columns.\n\nProps:\n- `columns`: Number of columns. Defaults to 1.\n- `horizontal`: Puts labels beside their fields instead of above.\n- `children`: Field elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Form columns={2}><Field label=\"Name\" required={true}><Input value={name}/></Field></Form>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "FormProps",
+      "signature": "interface FormProps",
+      "documentation": "Lays out Field elements with aligned labels, in one or more columns.\n\nProps:\n- `columns`: Number of columns. Defaults to 1.\n- `horizontal`: Puts labels beside their fields instead of above.\n- `children`: Field elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Form columns={2}><Field label=\"Name\" required={true}><Input value={name}/></Field></Form>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Field",
+      "signature": "Field(props: FieldProps): Node",
+      "parameters": [
+        {
+          "label": "props: FieldProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One labelled field in a Form; its children are the control.\n\nProps:\n- `label`: Field label.\n- `description`: Help text below the control.\n- `required`: Marks the field as required.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Field label=\"Email\" description=\"We never share it.\"><Input value={email}/></Field>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "FieldProps",
+      "signature": "interface FieldProps",
+      "documentation": "One labelled field in a Form; its children are the control.\n\nProps:\n- `label`: Field label.\n- `description`: Help text below the control.\n- `required`: Marks the field as required.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Field label=\"Email\" description=\"We never share it.\"><Input value={email}/></Field>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ScrollArea",
+      "signature": "ScrollArea(props: ScrollAreaProps): Node",
+      "parameters": [
+        {
+          "label": "props: ScrollAreaProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Scrolls its children vertically (or horizontally) with GPUI Kit scrollbars.\n\nProps:\n- `horizontal`: Scrolls horizontally instead of vertically.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ScrollArea className=\"h-64\"><Text>Long content</Text></ScrollArea>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ScrollAreaProps",
+      "signature": "interface ScrollAreaProps",
+      "documentation": "Scrolls its children vertically (or horizontally) with GPUI Kit scrollbars.\n\nProps:\n- `horizontal`: Scrolls horizontally instead of vertically.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ScrollArea className=\"h-64\"><Text>Long content</Text></ScrollArea>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Message",
+      "signature": "Message(props: MessageProps): Node",
+      "parameters": [
+        {
+          "label": "props: MessageProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A chat message: avatar, author and time header, and a bubble holding its children.\n\nProps:\n- `author`: Sender name; its initials make the avatar.\n- `time`: Time shown beside the author.\n- `align`: start for received messages, end for sent ones. Defaults to start.\n- `variant`: Bubble color. Defaults to secondary.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Message author=\"Alice\" time=\"10:24\"><Text>Can you review this?</Text></Message>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "MessageProps",
+      "signature": "interface MessageProps",
+      "documentation": "A chat message: avatar, author and time header, and a bubble holding its children.\n\nProps:\n- `author`: Sender name; its initials make the avatar.\n- `time`: Time shown beside the author.\n- `align`: start for received messages, end for sent ones. Defaults to start.\n- `variant`: Bubble color. Defaults to secondary.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Message author=\"Alice\" time=\"10:24\"><Text>Can you review this?</Text></Message>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Chart",
+      "signature": "Chart(props: ChartProps): Node",
+      "parameters": [
+        {
+          "label": "props: ChartProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A line, bar, area or pie chart of labelled values.\n\nProps:\n- `kind`: Chart type. Defaults to line.\n- `labels`: Category labels, one per value.\n- `values`: Data values, in label order.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Chart kind=\"bar\" labels={['Jan', 'Feb', 'Mar']} values={[100, 150, 120]} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ChartProps",
+      "signature": "interface ChartProps",
+      "documentation": "A line, bar, area or pie chart of labelled values.\n\nProps:\n- `kind`: Chart type. Defaults to line.\n- `labels`: Category labels, one per value.\n- `values`: Data values, in label order.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Chart kind=\"bar\" labels={['Jan', 'Feb', 'Mar']} values={[100, 150, 120]} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "List",
+      "signature": "List(props: ListProps): Node",
+      "parameters": [
+        {
+          "label": "props: ListProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A virtualized list of text rows that stays fast with thousands of items.\n\nProps:\n- `items`: Row text, in order.\n- `selected`: Index of the highlighted row, or -1 for none.\n- `onSelect`: Receives the clicked row's index.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<List items={names} selected={picked.get()} onSelect={(index) => { picked.set(index); }} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ListProps",
+      "signature": "interface ListProps",
+      "documentation": "A virtualized list of text rows that stays fast with thousands of items.\n\nProps:\n- `items`: Row text, in order.\n- `selected`: Index of the highlighted row, or -1 for none.\n- `onSelect`: Receives the clicked row's index.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<List items={names} selected={picked.get()} onSelect={(index) => { picked.set(index); }} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Tree",
+      "signature": "Tree(props: TreeProps): Node",
+      "parameters": [
+        {
+          "label": "props: TreeProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A collapsible tree. Children are TreeItem elements, which can nest.\n\nProps:\n- `onSelect`: Receives the clicked item's id.\n- `children`: TreeItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tree onSelect={(id) => { open(id); }}><TreeItem id=\"src\" label=\"src\" expanded={true}><TreeItem id=\"src/main.tsr\" label=\"main.tsr\"/></TreeItem></Tree>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TreeProps",
+      "signature": "interface TreeProps",
+      "documentation": "A collapsible tree. Children are TreeItem elements, which can nest.\n\nProps:\n- `onSelect`: Receives the clicked item's id.\n- `children`: TreeItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tree onSelect={(id) => { open(id); }}><TreeItem id=\"src\" label=\"src\" expanded={true}><TreeItem id=\"src/main.tsr\" label=\"main.tsr\"/></TreeItem></Tree>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TreeItem",
+      "signature": "TreeItem(props: TreeItemProps): Node",
+      "parameters": [
+        {
+          "label": "props: TreeItemProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One node in a Tree; nested TreeItem children are its sub-items.\n\nProps:\n- `id`: Identifier passed to onSelect.\n- `label`: Displayed text.\n- `expanded`: Starts expanded when it has children.\n- `children`: TreeItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<TreeItem id=\"docs\" label=\"docs\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TreeItemProps",
+      "signature": "interface TreeItemProps",
+      "documentation": "One node in a Tree; nested TreeItem children are its sub-items.\n\nProps:\n- `id`: Identifier passed to onSelect.\n- `label`: Displayed text.\n- `expanded`: Starts expanded when it has children.\n- `children`: TreeItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<TreeItem id=\"docs\" label=\"docs\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Calendar",
+      "signature": "Calendar(props: CalendarProps): Node",
+      "parameters": [
+        {
+          "label": "props: CalendarProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "An inline month calendar. Dates are YYYY-MM-DD text.\n\nProps:\n- `value`: Selected date as YYYY-MM-DD, or empty for none.\n- `months`: Months shown side by side. Defaults to 1.\n- `onChange`: Receives the chosen date as YYYY-MM-DD.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Calendar value={day.get()} onChange={(date) => { day.set(clone(date)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CalendarProps",
+      "signature": "interface CalendarProps",
+      "documentation": "An inline month calendar. Dates are YYYY-MM-DD text.\n\nProps:\n- `value`: Selected date as YYYY-MM-DD, or empty for none.\n- `months`: Months shown side by side. Defaults to 1.\n- `onChange`: Receives the chosen date as YYYY-MM-DD.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Calendar value={day.get()} onChange={(date) => { day.set(clone(date)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TimeField",
+      "signature": "TimeField(props: TimeFieldProps): Node",
+      "parameters": [
+        {
+          "label": "props: TimeFieldProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A segmented time-of-day field. Times are HH:MM or HH:MM:SS text (24-hour).\n\nProps:\n- `value`: Time as HH:MM or HH:MM:SS.\n- `seconds`: Shows and edits seconds.\n- `twelveHour`: Displays a 12-hour clock with AM/PM.\n- `onChange`: Receives the edited time as HH:MM:SS, or empty when cleared.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<TimeField value={time.get()} onChange={(value) => { time.set(clone(value)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TimeFieldProps",
+      "signature": "interface TimeFieldProps",
+      "documentation": "A segmented time-of-day field. Times are HH:MM or HH:MM:SS text (24-hour).\n\nProps:\n- `value`: Time as HH:MM or HH:MM:SS.\n- `seconds`: Shows and edits seconds.\n- `twelveHour`: Displays a 12-hour clock with AM/PM.\n- `onChange`: Receives the edited time as HH:MM:SS, or empty when cleared.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<TimeField value={time.get()} onChange={(value) => { time.set(clone(value)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Combobox",
+      "signature": "Combobox(props: ComboboxProps): Node",
+      "parameters": [
+        {
+          "label": "props: ComboboxProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A searchable dropdown that picks one string from a list.\n\nProps:\n- `items`: Options, in order.\n- `value`: Selected option, or empty for none.\n- `placeholder`: Text shown when nothing is selected.\n- `onChange`: Receives the chosen option.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox items={frameworks} value={choice.get()} placeholder=\"Select…\" onChange={(value) => { choice.set(clone(value)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ComboboxProps",
+      "signature": "interface ComboboxProps",
+      "documentation": "A searchable dropdown that picks one string from a list.\n\nProps:\n- `items`: Options, in order.\n- `value`: Selected option, or empty for none.\n- `placeholder`: Text shown when nothing is selected.\n- `onChange`: Receives the chosen option.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox items={frameworks} value={choice.get()} placeholder=\"Select…\" onChange={(value) => { choice.set(clone(value)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Command",
+      "signature": "Command(props: CommandProps): Node",
+      "parameters": [
+        {
+          "label": "props: CommandProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A command palette: a search field over CommandItem entries.\n\nProps:\n- `placeholder`: Search field placeholder.\n- `children`: CommandItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Command placeholder=\"Type a command…\"><CommandItem label=\"New file\" onSelect={() => { create(); }}/></Command>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CommandProps",
+      "signature": "interface CommandProps",
+      "documentation": "A command palette: a search field over CommandItem entries.\n\nProps:\n- `placeholder`: Search field placeholder.\n- `children`: CommandItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Command placeholder=\"Type a command…\"><CommandItem label=\"New file\" onSelect={() => { create(); }}/></Command>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CommandItem",
+      "signature": "CommandItem(props: CommandItemProps): Node",
+      "parameters": [
+        {
+          "label": "props: CommandItemProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One entry in a Command palette.\n\nProps:\n- `label`: Entry text; the palette filters on it.\n- `disabled`: Disabled entries cannot be chosen.\n- `onSelect`: Called when the entry is chosen with Enter or a click.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<CommandItem label=\"Settings\" onSelect={() => { open(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CommandItemProps",
+      "signature": "interface CommandItemProps",
+      "documentation": "One entry in a Command palette.\n\nProps:\n- `label`: Entry text; the palette filters on it.\n- `disabled`: Disabled entries cannot be chosen.\n- `onSelect`: Called when the entry is chosen with Enter or a click.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<CommandItem label=\"Settings\" onSelect={() => { open(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Carousel",
+      "signature": "Carousel(props: CarouselProps): Node",
+      "parameters": [
+        {
+          "label": "props: CarouselProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Shows one CarouselSlide at a time with previous and next buttons.\n\nProps:\n- `loop`: Wraps from the last slide to the first.\n- `onChange`: Receives the shown slide's index after navigation.\n- `children`: CarouselSlide elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Carousel><CarouselSlide><Text>One</Text></CarouselSlide><CarouselSlide><Text>Two</Text></CarouselSlide></Carousel>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CarouselProps",
+      "signature": "interface CarouselProps",
+      "documentation": "Shows one CarouselSlide at a time with previous and next buttons.\n\nProps:\n- `loop`: Wraps from the last slide to the first.\n- `onChange`: Receives the shown slide's index after navigation.\n- `children`: CarouselSlide elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Carousel><CarouselSlide><Text>One</Text></CarouselSlide><CarouselSlide><Text>Two</Text></CarouselSlide></Carousel>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CarouselSlide",
+      "signature": "CarouselSlide(props: CarouselSlideProps): Node",
+      "parameters": [
+        {
+          "label": "props: CarouselSlideProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One slide of a Carousel.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<CarouselSlide><Image src=\"photo.jpg\"/></CarouselSlide>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CarouselSlideProps",
+      "signature": "interface CarouselSlideProps",
+      "documentation": "One slide of a Carousel.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<CarouselSlide><Image src=\"photo.jpg\"/></CarouselSlide>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CodeEditor",
+      "signature": "CodeEditor(props: CodeEditorProps): Node",
+      "parameters": [
+        {
+          "label": "props: CodeEditorProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A source-code editor with syntax highlighting, line numbers and folding.\n\nProps:\n- `value`: Editor text.\n- `language`: Language for highlighting and editing rules, such as rust, typescript or json.\n- `readOnly`: Prevents edits.\n- `onChange`: Receives the full text after each edit.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<CodeEditor language=\"rust\" value={code.get()} onChange={(text) => { code.set(clone(text)); }} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CodeEditorProps",
+      "signature": "interface CodeEditorProps",
+      "documentation": "A source-code editor with syntax highlighting, line numbers and folding.\n\nProps:\n- `value`: Editor text.\n- `language`: Language for highlighting and editing rules, such as rust, typescript or json.\n- `readOnly`: Prevents edits.\n- `onChange`: Receives the full text after each edit.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<CodeEditor language=\"rust\" value={code.get()} onChange={(text) => { code.set(clone(text)); }} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ToggleGroup",
+      "signature": "ToggleGroup(props: ToggleGroupProps): Node",
+      "parameters": [
+        {
+          "label": "props: ToggleGroupProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A set of Toggle buttons shown as one control.\n\nProps:\n- `segmented`: Draws the group as one segmented control.\n- `children`: Toggle elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ToggleGroup><Toggle label=\"B\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/><Toggle label=\"I\"/></ToggleGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ToggleGroupProps",
+      "signature": "interface ToggleGroupProps",
+      "documentation": "A set of Toggle buttons shown as one control.\n\nProps:\n- `segmented`: Draws the group as one segmented control.\n- `children`: Toggle elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ToggleGroup><Toggle label=\"B\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/><Toggle label=\"I\"/></ToggleGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ButtonGroup",
+      "signature": "ButtonGroup(props: ButtonGroupProps): Node",
+      "parameters": [
+        {
+          "label": "props: ButtonGroupProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Buttons joined into one control. Children are GroupButton elements.\n\nProps:\n- `outline`: Uses outline buttons.\n- `children`: GroupButton elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ButtonGroup><GroupButton label=\"Day\" onClick={() => { view.set('day'); }}/><GroupButton label=\"Week\"/></ButtonGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ButtonGroupProps",
+      "signature": "interface ButtonGroupProps",
+      "documentation": "Buttons joined into one control. Children are GroupButton elements.\n\nProps:\n- `outline`: Uses outline buttons.\n- `children`: GroupButton elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<ButtonGroup><GroupButton label=\"Day\" onClick={() => { view.set('day'); }}/><GroupButton label=\"Week\"/></ButtonGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "GroupButton",
+      "signature": "GroupButton(props: GroupButtonProps): Node",
+      "parameters": [
+        {
+          "label": "props: GroupButtonProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One button in a ButtonGroup.\n\nProps:\n- `label`: Button text.\n- `selected`: Shows the button as selected.\n- `onClick`: Called when the button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<GroupButton label=\"Month\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "GroupButtonProps",
+      "signature": "interface GroupButtonProps",
+      "documentation": "One button in a ButtonGroup.\n\nProps:\n- `label`: Button text.\n- `selected`: Shows the button as selected.\n- `onClick`: Called when the button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<GroupButton label=\"Month\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     }
   ]
 }

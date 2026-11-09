@@ -119,7 +119,8 @@ impl Root {
         if let Some(kit) = &node.kit {
             let element = self.kit_element(node, kit, cx);
             if node.class_name.is_empty() {return element;}
-            return styled(div(), &node.class_name, theme, mode, false).child(element).into_any_element();
+            // The class wrapper can shrink in flex layouts, so scroll areas inside it scroll.
+            return styled(div().min_h_0().min_w_0(), &node.class_name, theme, mode, false).child(element).into_any_element();
         }
         let children = node.visible_children().map(|child| self.element(child, theme, mode, cx)).collect::<Vec<_>>();
         if let Some(copy) = &node.copy {

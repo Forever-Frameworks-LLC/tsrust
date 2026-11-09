@@ -916,3 +916,10 @@ export function translate(key: string): string {
 export function translateWith<T>(key: string, values: T): string {
   return nativeTranslate(key, JSON.stringify(values));
 }
+
+/** Switches GPUI Kit's light or dark theme for every window, or follows the system appearance with 'system'. */
+export function setTheme(mode: 'light' | 'dark' | 'system'): void {
+  unwrap(nativeCommand('theme', JSON.stringify({
+    mode: `${mode}`
+  })));
+}
