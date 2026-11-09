@@ -52,7 +52,7 @@ function validateRun(run, snapshot, repository) {
 
 function validateArtifacts(directory, snapshot) {
   assert.match(snapshot.tag, /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
-  const targets = ['x86_64-unknown-linux-gnu', 'x86_64-pc-windows-msvc', 'aarch64-apple-darwin', 'x86_64-apple-darwin'];
+  const targets = ['x86_64-unknown-linux-gnu', 'x86_64-pc-windows-msvc', 'aarch64-apple-darwin'];
   const names = fs.readdirSync(directory).sort();
   const archives = targets.map(target => `tsrust-${snapshot.tag}-${target}.tar.gz`);
   const extensions = names.filter(name => /^tsrust-.*\.vsix$/.test(name));
