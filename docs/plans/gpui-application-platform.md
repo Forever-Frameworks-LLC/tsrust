@@ -22,6 +22,23 @@ requirements. The earlier React/Electron/Expo direction is historical.
 This is not permission to publish v0.2.0 or a later version. No new version
 number or release promise is assigned to this plan.
 
+## Owner decisions, 2026-11-09
+
+- Remove both earlier UI attempts: the ground-up renderer (`crates/tsrust-ui`,
+  `std:ui`/`ui-runtime`, vello/winit/accesskit dependencies, the `legacy-ui`
+  feature, UI tests, examples and docs) and every Electron/React/Expo/Vite/shadcn
+  template or pin. Git history keeps them. Keep only the `.tsrx` parser, JSX
+  syntax and signal semantics, retargeted to GPUI Kit.
+- Components are added shadcn-style: `tsrust ui add <component>` copies an
+  editable `.tsrx` wrapper into the project's `components/`, backed by a thin
+  compiler-owned binding to the GPUI Kit component.
+- A CLI-generated starter, `examples/gpui-starter`, imports every GPUI Kit
+  component with runnable examples in a shadcn-like gallery. It is tracked in
+  git and regenerated on major changes; it is the acceptance project for the
+  LSP, startup time and the `ui add` flow, opened in VS Code.
+- Desktop (macOS/Windows/Linux) first; WASM follows, because GPUI Kit's web path
+  is showcase-only and needs nightly.
+
 ## Research and boundaries
 
 Primary sources checked 2026-11-05:
@@ -187,22 +204,64 @@ whether generated source is committed per project, while making both policies
 reproducible. Keep locked/offline builds, portable vendored exports and shared
 Cargo caches. UI dependencies must remain absent from backend-only builds.
 
+### Workspace design (2026-11-09 proposal)
+
+A workspace is a root `tsrust.workspace.json` beside member projects that each
+keep their ordinary `tsrust.config.json` (the existing schema, including
+`build` and `api`). It works like a Cargo workspace or Turborepo: members stay
+independent, and a backend never gains UI dependencies.
+
+```json
+{
+  "schemaVersion": 1,
+  "projects": {"api": "backend", "app": "frontend"},
+  "clients": [
+    {"project": "app", "from": "api", "language": "tsrust", "output": "src/generated/api"}
+  ]
+}
+```
+
+- `projects` maps names to relative member directories. Paths must stay inside
+  the workspace; no member may contain another.
+- `clients` is the generation graph: `from` names a member whose `api`
+  configuration describes the contract, and `output` is relative to `project`.
+  Languages are `typescript`, `rust` and, with the client step below,
+  `tsrust`. Generated output is written atomically and checked for staleness by
+  the existing `tsrust api generate --check`.
+- At the root, `check`, `build`, `test` and `format` run every member in
+  dependency order (contract members first, then clients regenerated or checked,
+  then consumers); `--project NAME` selects one. Inside a member the CLI behaves
+  exactly as today.
+- `tsrust new NAME --workspace` scaffolds `backend/` (service) and `frontend/`
+  (UI app), plus one client edge. `tsrust workspace add PATH` adopts an existing
+  project without rewriting it.
+- External consumers keep using `tsrust api generate` directly; the workspace
+  only records edges and order.
+
 ## Execution checklist after v0.2.0
 
-- [ ] Reconcile retained UI/compiler/runtime behavior and freeze the first bridge
-  contracts; admit a pinned GPUI Kit graph and desktop/WASM toolchain requirements.
-- [ ] Prove a shared counter + controlled-input + conditional-child slice on
-  desktop and WASM, including disposal, accessibility and direct-GPUI comparison.
-- [ ] Add `.tsr` client generation with native/browser transport and the existing
-  contract/compatibility acceptance; complete CLI/editor/docs examples together.
-- [ ] Add shared-root setup/build/watch/codegen integration and migration tests;
-  prove stale-contract errors, atomic output and clean offline release builds.
-- [ ] Wrap the complete pinned component catalog and reproduce every inventoried
-  upstream story on desktop/web, preserving explicit unsupported-platform gaps.
-- [ ] Validate the basic applications and packaging on macOS/Windows/Linux and
-  web; review correctness, accessibility, resources and measured bridge overhead.
-- [ ] Review remaining experimental web limitations and the concrete release
-  candidate with the owner before any publication.
+Branch `codex/gpui-ui`. Push once, to merge, when the section is complete.
+
+- [ ] Workspace: `tsrust.workspace.json` members and client edges; root
+  check/build/test/format with `--project` (implementation in progress).
+- [ ] Admission: pinned `gpui-kit =0.9.0` direct-Rust reference slice (counter,
+  controlled input, conditional child) builds and runs with Rust 1.96.1.
+- [ ] Removal: delete the ground-up renderer (`crates/tsrust-ui`, `std:ui`,
+  `ui-runtime`, UI lowering in analysis/emit, `ui_project`, UI CLI, dev web/
+  frontend, `legacy-ui`, vello/winit/accesskit dependencies), UI tests, examples
+  and docs, and every Electron/React/Expo/Vite/shadcn template and pin. Keep the
+  `.tsrx` parser, formatter, JSX syntax and editor parsing. Backend layers pass.
+- [ ] Bridge: `.tsrx` function components lower to GPUI views (signals become
+  entity state plus `cx.notify`; events use `cx.listener`; intrinsic elements map
+  to GPUI elements; Kit components bind through compiler-owned wrappers). Match
+  the admission slice and compare against it.
+- [ ] CLI: `tsrust new NAME --ui` (and `--workspace`), `tsrust ui add <component>`
+  and `tsrust ui list`, with editor completion/hover for wrapper props.
+- [ ] Catalog: every GPUI Kit 0.9.0 component wrapped, with an example each.
+- [ ] Starter: `examples/gpui-starter`, generated by the CLI, a shadcn-like gallery
+  of every component; verified in VS Code (LSP diagnostics, completion, hover),
+  with measured startup time; regenerated on major changes.
+- [ ] Desktop validation on macOS, Windows and Linux; then WASM.
 
 The first executable step is admission plus the smallest shared reactive slice,
 not installing every component before validating the bridge. The complete

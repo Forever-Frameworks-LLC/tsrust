@@ -1,4 +1,5 @@
 mod dev_cli;
+mod workspace_cli;
 mod dev_web;
 mod runtime_build;
 mod native_workspace;
@@ -76,6 +77,7 @@ Usage:
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
   tsrust check [files/directories] [--json]
+  tsrust check|build|test|format [--project name]   At a tsrust.workspace.json root: every member, clients first
 
 Commands:
   add      Add a Cargo crate; validate adapters, callers and tests before applying
@@ -211,7 +213,9 @@ fn run() -> Result<u8, String> {
     if command=="setup" {return setup_cli::setup(args);}
     if command=="ui" {return ui_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
-    let (arguments,program_arguments)=split_program_arguments(&command,args.collect());
+    let args=args.collect::<Vec<_>>();
+    if let Some(result)=workspace_cli::dispatch(&command,&args) {return result;}
+    let (arguments,program_arguments)=split_program_arguments(&command,args);
     let (arguments,project_root)=project_config::defaults(&command,arguments)?;
     let mut args=arguments.into_iter();
     if !["check", "format", "emit", "build", "run", "test"].contains(&command.as_str()) {
