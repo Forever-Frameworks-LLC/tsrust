@@ -247,6 +247,11 @@ impl Root {
                         let props = gpui_kit::component::dialog::DialogButtonProps::default().ok_text(if ok.is_empty() {"OK".to_owned()} else {ok.clone()}).cancel_text(if cancel.is_empty() {"Cancel".to_owned()} else {cancel.clone()}).show_cancel(!cancel.is_empty());
                         let confirm = root.clone();
                         dialog = dialog.button_props(props).on_ok(move |_, _, cx| {let _ = confirm.update(cx, |root, cx| root.emit(id, "ok", String::new(), cx)); true});
+                        // A plain Kit dialog draws no buttons from its props; compose the footer.
+                        let mut footer = gpui_kit::component::dialog::DialogFooter::new();
+                        if !cancel.is_empty() {footer = footer.child(gpui_kit::component::dialog::DialogClose::new().child(gpui_kit::component::button::Button::new("tsrust-dialog-cancel").outline().label(cancel.clone())));}
+                        if !ok.is_empty() {footer = footer.child(gpui_kit::component::dialog::DialogAction::new().child(gpui_kit::component::button::Button::new("tsrust-dialog-ok").primary().label(ok.clone())));}
+                        dialog = dialog.footer(footer);
                     }
                     dialog
                 });
@@ -404,16 +409,19 @@ impl Root {
             }
             "Accordion" => {
                 let mut accordion = Accordion::new(element_id).multiple(kit.flag("multiple")).bordered(kit.prop("bordered") != Some("false"));
-                for (child, item) in items(node, "AccordionItem") {
+                // Without onChange the renderer keeps the open sections itself.
+                let controlled = kit.handles("change");
+                let open_sections = self.accordions.get(&id);
+                for (index, (child, item)) in items(node, "AccordionItem").enumerate() {
                     let body = self.content(child, cx);
-                    let (title, open, disabled) = (item.text("title"), item.flag("open"), item.flag("disabled"));
+                    let open = match open_sections {Some(sections) if !controlled => sections.contains(&index), _ => item.flag("open")};
+                    let (title, disabled) = (item.text("title"), item.flag("disabled"));
                     accordion = accordion.item(move |entry| entry.title(SharedString::from(title)).open(open).disabled(disabled).child(div().children(body)));
                 }
-                if kit.handles("change") {
-                    accordion = accordion.on_toggle_click(cx.listener(move |this, open: &[usize], _, cx| {
-                        this.emit(id, "change", open.iter().map(ToString::to_string).collect::<Vec<_>>().join(","), cx)
-                    }));
-                }
+                accordion = accordion.on_toggle_click(cx.listener(move |this, open: &[usize], _, cx| {
+                    if controlled {this.emit(id, "change", open.iter().map(ToString::to_string).collect::<Vec<_>>().join(","), cx);}
+                    else {this.accordions.insert(id, open.iter().copied().collect()); cx.notify();}
+                }));
                 accordion.into_any_element()
             }
             "Collapsible" => Collapsible::new().open(kit.flag("open")).content(div().children(self.content(node, cx))).into_any_element(),

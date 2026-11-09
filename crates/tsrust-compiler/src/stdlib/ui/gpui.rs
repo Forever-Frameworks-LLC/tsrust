@@ -28,7 +28,7 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
             ..Default::default()
         };
         let failure = reported.clone();
-        if let Err(error) = open_window(window, cx, move |_, cx| cx.new(|_| Root {node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, failure})) {
+        if let Err(error) = open_window(window, cx, move |_, cx| cx.new(|_| Root {node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure})) {
             *reported.borrow_mut() = Some(format!("Failed to open the window: {error}"));
             cx.quit();
         }
@@ -44,6 +44,8 @@ struct Root {
     /// The node whose dialog or sheet is open, if any.
     dialog: Option<u64>,
     sheet: Option<u64>,
+    /// Open sections of uncontrolled accordions.
+    accordions: HashMap<u64, std::collections::BTreeSet<usize>>,
     failure: std::rc::Rc<std::cell::RefCell<Option<String>>>,
 }
 
