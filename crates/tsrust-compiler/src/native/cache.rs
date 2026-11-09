@@ -63,7 +63,17 @@ impl NativeCache {
     fn lock(&self,wait:bool)->std::io::Result<std::fs::File> {
         let root=self.directory.parent().unwrap();std::fs::create_dir_all(root)?;
         let lock=std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(root.join(".cache.lock"))?;
-        if wait {lock.lock()?;} else {lock.try_lock().map_err(std::io::Error::from)?;}Ok(lock)
+        if wait {lock.lock()?;return Ok(lock);}
+        // Opportunistic callers never block on a stalled holder, but ride out the
+        // short copies and publications other processes make under this lock.
+        let deadline=std::time::Instant::now()+std::time::Duration::from_secs(2);
+        loop {
+            match lock.try_lock() {
+                Ok(())=>return Ok(lock),
+                Err(std::fs::TryLockError::WouldBlock) if std::time::Instant::now()<deadline=>std::thread::sleep(std::time::Duration::from_millis(20)),
+                Err(error)=>return Err(error.into()),
+            }
+        }
     }
     fn prune(&self)->std::io::Result<()> {
         let root=self.directory.parent().unwrap();
