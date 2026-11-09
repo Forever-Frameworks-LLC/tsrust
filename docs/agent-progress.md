@@ -6,6 +6,21 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### GPUI highlighting, charts and setup — 2026-11-09
+
+`gpui-highlight` feature (GPUI Kit syntect: +syntect, two-face, fancy-regex,
+bincode, bit-set 0.8, bit-vec 0.8; existing pins unchanged) is selected only when
+the emitted program uses CodeEditor (runtime marker); CodeEditor and Markdown code
+blocks highlight. Chart gains radar, candlestick (open/high/low/close) and sankey
+(links). Fixed: `setup --dependencies` fetched only the backend set, so fresh
+machines could not build std:ui apps offline; it now fetches the GPUI set too, and
+the starter's dev.sh runs setup first. Not wrapped: Plot (low-level drawing; Svg
+and Chart cover it) and Speech (cpal/objc2 speech, microphone and
+speech-recognition permission prompts, ALSA headers on Linux). Windows/Linux GPUI
+runs remain unverified here. Tests: the test harness now defaults
+CARGO_TARGET_DIR (repository target) and TSRUST_SOURCE_PACK_DIR (Cargo home packs)
+like CI; four shared_sources tests had failed on every local run without them.
+
 ### GPUI CLI, Questionnaire, Svg and doc rewrite — 2026-11-09
 
 Owner: no signing or published release; users run the source. The starter has

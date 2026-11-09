@@ -12,12 +12,27 @@ From the repository root:
 ./examples/gpui-starter/dev.sh
 ```
 
-The script builds this checkout's compiler, then runs `tsrust dev` here. Saving
+The script builds this checkout's compiler, installs the pinned Rust toolchain
+and downloads the locked crates if they are missing (first run only), then runs
+`tsrust dev` here. Saving
 `main.tsrx` or a locale file rebuilds and restarts the window (about 20 seconds;
 the first build prepares the GPUI runtime and takes a few minutes). Press
 Ctrl+C to stop. Add `--release` for an optimized build.
 
-With a current `tsrust` on your PATH, `tsrust dev` in this folder does the same.
+With a current `tsrust` on your PATH, `tsrust setup --toolchain --dependencies --yes`
+once and then `tsrust dev` in this folder do the same.
+
+System requirements, from GPUI Kit's setup guide:
+
+- **macOS:** Xcode command line tools.
+- **Windows 10+:** Visual Studio 2022 Build Tools with the "Desktop development
+  with C++" workload (MSVC and a Windows SDK), and CMake on `PATH`.
+- **Linux:** packages verified on Ubuntu 24.04, plus a Wayland or X11 session
+  with a working Vulkan driver:
+
+  ```bash
+  sudo apt install -y gcc g++ clang libfontconfig-dev libwayland-dev libwebkit2gtk-4.1-dev libxkbcommon-x11-dev libx11-xcb-dev libssl-dev libzstd-dev vulkan-validationlayers libvulkan1
+  ```
 
 ## Package it
 

@@ -25,8 +25,6 @@ pub(crate) fn build_root() -> Result<PathBuf, String> {
     super::absolute(&root)
 }
 
-pub(crate) fn materialize(root: &Path) -> Result<(), String> { materialize_with(root, MANIFEST, LOCK) }
-
 pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Result<(), String> {
     // Exclusive root creation: cleanup owns only this newly created directory.
     fs::create_dir(root).map_err(|e|e.to_string())?;

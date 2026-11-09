@@ -50,8 +50,23 @@ pub fn fixture_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/ownership")
 }
 
+/// The shared Cargo target: CI's CARGO_TARGET_DIR, else the repository target, so
+/// local runs share it with generated programs exactly as CI does.
+pub fn target_dir() -> std::ffi::OsString {
+    std::env::var_os("CARGO_TARGET_DIR").unwrap_or_else(|| concat!(env!("CARGO_MANIFEST_DIR"), "/../../target").into())
+}
+
 pub fn cli() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_tsrust"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_tsrust"));
+    command.env("CARGO_TARGET_DIR", target_dir());
+    // Like CI, pin the portable pack location so tests that empty CARGO_HOME
+    // still find the packs prepared by `tsrust setup --portable`.
+    if std::env::var_os("TSRUST_SOURCE_PACK_DIR").is_none() {
+        let home = std::env::var_os("CARGO_HOME").map(std::path::PathBuf::from)
+            .or_else(|| std::env::var_os(if cfg!(windows) {"USERPROFILE"} else {"HOME"}).map(|home| std::path::PathBuf::from(home).join(".cargo")));
+        if let Some(home) = home {command.env("TSRUST_SOURCE_PACK_DIR", home.join("tsrust/source-packs"));}
+    }
+    command
 }
 
 pub fn rustc() -> Command {

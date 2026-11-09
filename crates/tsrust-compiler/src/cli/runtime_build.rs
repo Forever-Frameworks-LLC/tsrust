@@ -128,7 +128,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
   if runtime.contains("// tsrust-http-websocket-selected\n"){command.args(["--features","http-websocket"]);}
   if runtime.contains("// tsrust-http-middleware-selected\n"){command.args(["--features","http-middleware"]);}
-  if gpui{command.args(["--features",if runtime.contains("use gpui_kit::"){"gpui"}else{"ui"}]);}
+  if gpui{command.args(["--features",if !runtime.contains("use gpui_kit::"){"ui"}else if runtime.contains("// tsrust-ui-highlight-selected\n"){"gpui-highlight"}else{"gpui"}]);}
 
         if runtime.contains("pub mod tsrust_native_date {") {
             command.args(["--features", "calendar"]);}

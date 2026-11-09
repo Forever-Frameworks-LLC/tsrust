@@ -79,7 +79,7 @@ fn portable_export_remains_toolchain_free_and_rebuilds_after_relocation_offline(
     let output=support::run(Command::new("rustup").args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","run","--offline","--locked"])
         .arg("--manifest-path").arg(relocated.join("Cargo.toml")).arg("--config").arg(relocated.join(".cargo/config.toml"))
         .current_dir(&directory.0).env("CARGO_HOME",&home).env("CARGO_INCREMENTAL","0")
-        .env("CARGO_TARGET_DIR",std::env::var_os("CARGO_TARGET_DIR").expect("shared Cargo target")),120);
+        .env("CARGO_TARGET_DIR",support::target_dir()),120);
     support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"7");
 }
 
@@ -116,7 +116,7 @@ fn binding_sources_are_shared_and_portable_preparation_is_explicit_and_verified(
     let output=support::run(Command::new("rustup").args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","run","--offline","--locked"])
         .arg("--manifest-path").arg(relocated.join("Cargo.toml")).arg("--config").arg(relocated.join(".cargo/config.toml"))
         .current_dir(root).env("CARGO_HOME",&empty).env("CARGO_INCREMENTAL","0")
-        .env("CARGO_TARGET_DIR",std::env::var_os("CARGO_TARGET_DIR").expect("shared Cargo target")),180);
+        .env("CARGO_TARGET_DIR",support::target_dir()),180);
     support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"true");
     let pack=fs::read_dir(&packs).unwrap().map(|entry|entry.unwrap().path()).find(|path|path.is_dir()).unwrap();
     let license=pack.join("vendor/unicode-ident-1.0.27/LICENSE-MIT");let original=fs::read(&license).unwrap();fs::write(&license,"tampered").unwrap();

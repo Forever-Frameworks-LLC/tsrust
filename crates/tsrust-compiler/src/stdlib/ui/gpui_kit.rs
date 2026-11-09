@@ -54,7 +54,8 @@ use gpui_kit::component::bubble::{Bubble, BubbleVariant};
 use gpui_kit::component::button::{ButtonGroup, ToggleGroup};
 use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date};
 use gpui_kit::component::carousel::{Carousel, CarouselContent, CarouselEvent, CarouselItem, CarouselNext, CarouselPrevious, CarouselState};
-use gpui_kit::component::chart::{AreaChart, BarChart, LineChart, PieChart};
+use gpui_kit::component::chart::{AreaChart, BarChart, CandlestickChart, LineChart, PieChart, RadarChart, SankeyChart};
+use gpui_kit::component::plot::shape::SankeyLink;
 use gpui_kit::component::combobox::{Combobox, ComboboxEvent, ComboboxState};
 use gpui_kit::component::command::{Command as CommandPalette, CommandItem, CommandState};
 use gpui_kit::component::form::{field, h_form, v_form};
@@ -1015,6 +1016,29 @@ impl Root {
                         let palette = [theme.chart_1, theme.chart_2, theme.chart_3, theme.chart_4, theme.chart_5];
                         let data = data.into_iter().enumerate().map(|(index, (label, value))| (label, value, palette[index % palette.len()])).collect::<Vec<_>>();
                         PieChart::new(data).value(|point: &(SharedString, f64, Hsla)| point.1 as f32).color(|point: &(SharedString, f64, Hsla)| point.2).outer_radius(100.).into_any_element()
+                    }
+                    Some("radar") => {
+                        let color = cx.theme().chart_1;
+                        RadarChart::new(data).label(|point: &(SharedString, f64)| point.0.clone()).value(|point: &(SharedString, f64)| point.1).stroke(color).fill(color.opacity(0.2)).dot().into_any_element()
+                    }
+                    Some("candlestick") => {
+                        let series = |name: &str| kit.text(name).split('\n').map(|value| value.trim().parse::<f64>().unwrap_or_default()).collect::<Vec<_>>();
+                        let (open, high, low, close) = (series("open"), series("high"), series("low"), series("close"));
+                        let candles = labels.split('\n').enumerate().map(|(index, label)| {
+                            let at = |values: &Vec<f64>| values.get(index).copied().unwrap_or_default();
+                            (SharedString::from(label.to_owned()), at(&open), at(&high), at(&low), at(&close))
+                        }).collect::<Vec<_>>();
+                        type Candle = (SharedString, f64, f64, f64, f64);
+                        CandlestickChart::new(candles).x(|candle: &Candle| candle.0.clone()).open(|candle: &Candle| candle.1).high(|candle: &Candle| candle.2).low(|candle: &Candle| candle.3).close(|candle: &Candle| candle.4).into_any_element()
+                    }
+                    Some("sankey") => {
+                        let nodes = labels.split('\n').filter(|label| !label.is_empty()).map(|label| SharedString::from(label.to_owned())).collect::<Vec<_>>();
+                        let index = |name: &str| nodes.iter().position(|node| node.as_ref() == name);
+                        let links = serde_json::from_str::<Vec<Vec<String>>>(&kit.text("links")).unwrap_or_default().into_iter().filter_map(|link| {
+                            let (source, target) = (index(link.first()?)?, index(link.get(1)?)?);
+                            Some(SankeyLink::new(source, target, link.get(2)?.trim().parse::<f64>().ok()?))
+                        }).collect::<Vec<_>>();
+                        SankeyChart::new(nodes, links).node_label(|node: &SharedString| node.clone()).into_any_element()
                     }
                     _ => LineChart::new(data).x(|point: &(SharedString, f64)| point.0.clone()).y(|point: &(SharedString, f64)| point.1).into_any_element(),
                 }

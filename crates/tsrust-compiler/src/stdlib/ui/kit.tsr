@@ -2052,17 +2052,27 @@ export function Message(props: MessageProps): Node {
 }
 
 export interface ChartProps {
-  /** Chart type. Defaults to line. */
-  kind?: ReactiveValue<'line' | 'bar' | 'area' | 'pie'>;
+  /** Chart type. Defaults to line. candlestick reads open/high/low/close; sankey reads labels as nodes and links as flows. */
+  kind?: ReactiveValue<'line' | 'bar' | 'area' | 'pie' | 'radar' | 'candlestick' | 'sankey'>;
   /** Category labels, one per value. */
   labels?: string[];
-  /** Data values, in label order. */
+  /** Data values, in label order (line, bar, area, pie and radar). */
   values?: number[];
+  /** Candlestick opening values, in label order. */
+  open?: number[];
+  /** Candlestick highs, in label order. */
+  high?: number[];
+  /** Candlestick lows, in label order. */
+  low?: number[];
+  /** Candlestick closing values, in label order. */
+  close?: number[];
+  /** Sankey flows as [source label, target label, value] triples. */
+  links?: string[][];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A line, bar, area or pie chart of labelled values. */
+/** A line, bar, area, pie, radar, candlestick or sankey chart of labelled values. */
 export function Chart(props: ChartProps): Node {
   let node = kitNode('Chart', [], props.className ?? '');
   const prop_kind = props.kind;
@@ -2082,6 +2092,31 @@ export function Chart(props: ChartProps): Node {
   const prop_values = props.values;
   if (prop_values !== undefined) {
     node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+  }
+
+  const prop_open = props.open;
+  if (prop_open !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'open', prop_open.join('\n')));
+  }
+
+  const prop_high = props.high;
+  if (prop_high !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'high', prop_high.join('\n')));
+  }
+
+  const prop_low = props.low;
+  if (prop_low !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'low', prop_low.join('\n')));
+  }
+
+  const prop_close = props.close;
+  if (prop_close !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'close', prop_close.join('\n')));
+  }
+
+  const prop_links = props.links;
+  if (prop_links !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'links', JSON.stringify(prop_links)));
   }
 
   return node;

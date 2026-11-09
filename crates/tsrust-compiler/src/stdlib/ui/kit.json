@@ -1434,7 +1434,7 @@
     },
     {
       "name": "Chart",
-      "doc": "A line, bar, area or pie chart of labelled values.",
+      "doc": "A line, bar, area, pie, radar, candlestick or sankey chart of labelled values.",
       "props": [
         {
           "name": "kind",
@@ -1442,9 +1442,12 @@
             "line",
             "bar",
             "area",
-            "pie"
+            "pie",
+            "radar",
+            "candlestick",
+            "sankey"
           ],
-          "doc": "Chart type. Defaults to line."
+          "doc": "Chart type. Defaults to line. candlestick reads open/high/low/close; sankey reads labels as nodes and links as flows."
         },
         {
           "name": "labels",
@@ -1454,7 +1457,32 @@
         {
           "name": "values",
           "type": "number[]",
-          "doc": "Data values, in label order."
+          "doc": "Data values, in label order (line, bar, area, pie and radar)."
+        },
+        {
+          "name": "open",
+          "type": "number[]",
+          "doc": "Candlestick opening values, in label order."
+        },
+        {
+          "name": "high",
+          "type": "number[]",
+          "doc": "Candlestick highs, in label order."
+        },
+        {
+          "name": "low",
+          "type": "number[]",
+          "doc": "Candlestick lows, in label order."
+        },
+        {
+          "name": "close",
+          "type": "number[]",
+          "doc": "Candlestick closing values, in label order."
+        },
+        {
+          "name": "links",
+          "type": "string[][]",
+          "doc": "Sankey flows as [source label, target label, value] triples."
         }
       ],
       "example": "<Chart kind=\"bar\" labels={['Jan', 'Feb', 'Mar']} values={[100, 150, 120]} className=\"h-64\"/>"
