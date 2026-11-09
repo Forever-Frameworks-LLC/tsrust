@@ -136,7 +136,7 @@ jobs:
           - {os: macos-15-intel, target: x86_64-apple-darwin}
           - {os: windows-2022, target: x86_64-pc-windows-msvc}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 180  # test execution stays under an hour; compiling on slow runners does not count
     defaults:
       run:
         shell: bash
