@@ -61,12 +61,17 @@ pub fn rustc() -> Command {
     let deps = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
     let tokio = std::fs::read_dir(&deps).unwrap().filter_map(Result::ok)
         .map(|entry| entry.path()).filter(|path| path.file_name().unwrap().to_string_lossy().starts_with("libtokio-") && path.extension().is_some_and(|extension| extension == "rlib"))
-        .filter(|path| {
+        .max_by_key(|path| {
+            // Prefer a build Cargo's fingerprint confirms has the multi-thread
+            // runtime. A restored CI cache can lack the fingerprint, so the
+            // largest (most-featured, the dev-dependency) build ranks next.
             let name=path.file_stem().unwrap().to_string_lossy();
             let fingerprint=deps.parent().unwrap().join(".fingerprint").join(name.trim_start_matches("lib")).join("lib-tokio.json");
-            std::fs::read_to_string(fingerprint).ok().and_then(|text|serde_json::from_str::<serde_json::Value>(&text).ok())
-                .is_some_and(|value|value["features"].as_str().is_some_and(|features|features.contains("rt-multi-thread")))
-        }).max_by_key(|path|std::fs::metadata(path).and_then(|metadata|metadata.modified()).ok());
+            let confirmed=std::fs::read_to_string(fingerprint).ok().and_then(|text|serde_json::from_str::<serde_json::Value>(&text).ok())
+                .is_some_and(|value|value["features"].as_str().is_some_and(|features|features.contains("rt-multi-thread")));
+            let metadata=std::fs::metadata(path).ok();
+            (confirmed,metadata.as_ref().map(|metadata|metadata.len()),metadata.and_then(|metadata|metadata.modified().ok()))
+        });
     if let Some(tokio) = tokio {
         command.arg("-L").arg(format!("dependency={}", deps.display()));
         command.arg("--extern").arg(format!("tokio={}", tokio.display()));
