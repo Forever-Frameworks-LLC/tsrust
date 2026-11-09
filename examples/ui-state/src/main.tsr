@@ -1,6 +1,0 @@
-import { run } from 'std:ui';
-import { Page } from './page';
-
-function main() {
-  unwrap(run(Page(), 'Scalar state'));
-}

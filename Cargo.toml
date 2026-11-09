@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/tsrust-compiler", "crates/tsrust-lsp", "crates/tsrust-ui"]
+members = ["crates/tsrust-compiler", "crates/tsrust-lsp"]
 default-members = ["crates/tsrust-compiler", "crates/tsrust-lsp"]
 resolver = "3"
 
