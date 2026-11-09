@@ -2465,7 +2465,9 @@ impl Emitter<'_> {
         }
         let entry=format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup);
         if Self::async_entry(function) {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_main_thread(tsrust_entry_main) }}\n")}
-        else {format!("fn main()->std::process::ExitCode{entry}")}
+        // Synchronous throwing entrypoints, including test runners, use the same
+        // 8 MiB main-thread stack as async ones: Windows gives the main thread 1 MiB.
+        else {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(tsrust_entry_main).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}\n")}
     }
 
     /// A synchronous wrapper whose body awaits drives one async runtime.

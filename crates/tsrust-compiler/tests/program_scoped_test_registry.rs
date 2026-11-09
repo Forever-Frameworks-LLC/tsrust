@@ -57,7 +57,8 @@ fn registry_does_not_admit_borrowed_inputs_or_hide_execution_conflicts() {
         assert!(!output.status.success(), "{source}");
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(stderr.contains(&format!("error[{code}]")), "{stderr}");
-        assert!(stderr.contains(path.to_str().unwrap()), "{stderr}");
+        let canonical = std::fs::canonicalize(&path).unwrap();
+        assert!(stderr.contains(&*tsrust_compiler::display_path(canonical.to_str().unwrap())), "{stderr}");
         assert!(!stderr.contains(" --> std:testing:"), "{stderr}");
     }
 }

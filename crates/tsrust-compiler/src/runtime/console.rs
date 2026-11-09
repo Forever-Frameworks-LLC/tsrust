@@ -802,9 +802,15 @@ pub struct TsrConsoleLocation(Option<std::string::String>);
 impl TsrConsoleLocation {
     pub fn new(path:&str,line:usize,column:usize)->Self {
         if !tsr_console_test_context().is_some() {return Self(None);}
-        let cwd=std::env::current_dir().unwrap_or_default();
-        let path=std::path::Path::new(path);
-        let location=format!("{}:{line}:{column}",path.strip_prefix(cwd).unwrap_or(path).display());
+        // Sources are canonical identities; compare against the canonical working
+        // directory without the Windows verbatim prefix and print portable '/'.
+        fn plain(path:&str)->&str {path.strip_prefix(r"\\?\").unwrap_or(path)}
+        let path=std::path::Path::new(plain(path));
+        let cwd=std::env::current_dir().ok().and_then(|cwd|cwd.canonicalize().ok()).map(|cwd|std::path::PathBuf::from(plain(&cwd.to_string_lossy())));
+        let location=match cwd.as_ref().and_then(|cwd|path.strip_prefix(cwd).ok()) {
+            Some(relative)=>format!("{}:{line}:{column}",relative.to_string_lossy().replace('\\',"/")),
+            None=>format!("{}:{line}:{column}",path.display()),
+        };
         Self(Some(TSR_CONSOLE_LOCATION.with(|slot|slot.replace(location))))
     }
 }

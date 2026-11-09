@@ -127,7 +127,7 @@ impl Diagnostic {
                 output,
                 " {} {}",
                 paint("-->", "1;34"),
-                paint(&format!("{path}:{line_number}:{column}"), "1")
+                paint(&format!("{}:{line_number}:{column}", display_path(path)), "1")
             );
             let _ = writeln!(output, " {} {}", " ".repeat(digits), paint("|", "34"));
             let _ = writeln!(
@@ -226,4 +226,18 @@ fn character_width(ch: char) -> usize {
 }
 fn terminal_width(text: &str) -> usize {
     text.chars().map(character_width).sum()
+}
+
+/// Windows canonical identities carry a `\\?\` verbatim prefix; users never wrote
+/// it, so diagnostics show the ordinary drive or UNC form.
+pub fn display_path(path: &str) -> std::borrow::Cow<'_, str> {
+    if let Some(share) = path.strip_prefix(r"\\?\UNC\") { return format!(r"\\{share}").into(); }
+    path.strip_prefix(r"\\?\").unwrap_or(path).into()
+}
+
+#[test]
+fn display_paths_drop_only_the_windows_verbatim_prefix() {
+    assert_eq!(display_path(r"\\?\C:\work\main.tsr"), r"C:\work\main.tsr");
+    assert_eq!(display_path(r"\\?\UNC\server\share\main.tsr"), r"\\server\share\main.tsr");
+    assert_eq!(display_path("/work/main.tsr"), "/work/main.tsr");
 }

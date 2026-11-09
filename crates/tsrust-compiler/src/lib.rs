@@ -114,7 +114,7 @@ pub use analysis::Mode;
 pub use syntax::numeric_literal_span;
 pub use syntax::{TypeAliasCatalog, TypeAliasInfo};
 pub use syntax::diagnostic_directives::DiagnosticSuppressions;
-pub use diagnostic::{Diagnostic, Span, SuggestedFix, json_string, line_column};
+pub use diagnostic::{Diagnostic, Span, SuggestedFix, display_path, json_string, line_column};
 
 /// Exact Rust backend release validated for this version of the compiler.
 /// Keep synchronized with the workspace rust-toolchain.toml (checked by tests).
