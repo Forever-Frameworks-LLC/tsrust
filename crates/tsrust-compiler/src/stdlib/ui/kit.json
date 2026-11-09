@@ -18,6 +18,16 @@
             "lg"
           ],
           "doc": "Icon size. Defaults to md; className text colors tint it."
+        },
+        {
+          "name": "rotate",
+          "type": "number",
+          "doc": "Rotation in degrees."
+        },
+        {
+          "name": "svg",
+          "type": "string",
+          "doc": "Inline SVG markup to draw instead of a named icon."
         }
       ],
       "example": "<Icon name=\"search\" size=\"sm\"/>"
@@ -77,6 +87,26 @@
           "name": "dot",
           "type": "boolean",
           "doc": "Shows a small dot instead of a count."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Shows an icon instead of a count or dot."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Badge color. A theme color name (such as primary, red or magenta) or #rrggbb."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
       "example": "<Badge count={unread.get()}><Text>Inbox</Text></Badge>"
@@ -102,6 +132,68 @@
           "name": "outline",
           "type": "boolean",
           "doc": "Draws an outline instead of a filled tag."
+        },
+        {
+          "name": "palette",
+          "type": [
+            "white",
+            "black",
+            "neutral",
+            "gray",
+            "red",
+            "orange",
+            "amber",
+            "yellow",
+            "lime",
+            "green",
+            "emerald",
+            "teal",
+            "cyan",
+            "sky",
+            "blue",
+            "indigo",
+            "violet",
+            "purple",
+            "fuchsia",
+            "pink",
+            "rose"
+          ],
+          "doc": "A named Tailwind color family for the tag."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Custom fill; set foreground and borderColor too. A theme color name (such as primary, red or magenta) or #rrggbb."
+        },
+        {
+          "name": "foreground",
+          "type": "string",
+          "doc": "Custom text color."
+        },
+        {
+          "name": "borderColor",
+          "type": "string",
+          "doc": "Custom border color."
+        },
+        {
+          "name": "rounded",
+          "type": "number",
+          "doc": "Corner radius in pixels."
+        },
+        {
+          "name": "roundedFull",
+          "type": "boolean",
+          "doc": "Fully rounded (pill) corners."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
       "example": "<Tag variant=\"success\">Shipped</Tag>"
@@ -119,6 +211,21 @@
           "name": "secondary",
           "type": "string",
           "doc": "Muted text shown after the label."
+        },
+        {
+          "name": "masked",
+          "type": "boolean",
+          "doc": "Draws the text as bullets, as for a password."
+        },
+        {
+          "name": "highlight",
+          "type": "string",
+          "doc": "Text to highlight inside the label, such as a search match."
+        },
+        {
+          "name": "highlightPrefix",
+          "type": "boolean",
+          "doc": "Highlights only a match at the start of the label."
         }
       ],
       "example": "<Label text=\"Email\" secondary=\"(required)\"/>"
@@ -136,6 +243,16 @@
           "name": "outline",
           "type": "boolean",
           "doc": "Uses the outline style."
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "doc": "Shows the keys bound to this Shortcut command instead of keys."
+        },
+        {
+          "name": "plain",
+          "type": "boolean",
+          "doc": "Draws the keys without the key-cap styling."
         }
       ],
       "example": "<Kbd keys=\"cmd-k\"/>"
@@ -161,6 +278,11 @@
           "name": "dashed",
           "type": "boolean",
           "doc": "Draws a dashed line."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Line color. A theme color name (such as primary, red or magenta) or #rrggbb."
         }
       ],
       "example": "<Separator label=\"or\"/>"
@@ -180,7 +302,38 @@
     {
       "name": "Spinner",
       "doc": "An animated loading indicator.",
-      "props": [],
+      "props": [
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon to spin. Defaults to a loader."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Spinner color. A theme color name (such as primary, red or magenta) or #rrggbb."
+        },
+        {
+          "name": "easing",
+          "type": [
+            "linear",
+            "ease-in-out",
+            "quadratic",
+            "ease-out-quint"
+          ],
+          "doc": "Rotation easing. Defaults to linear."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
+        }
+      ],
       "example": "<Spinner/>"
     },
     {
@@ -196,6 +349,26 @@
           "name": "loading",
           "type": "boolean",
           "doc": "Shows an indeterminate animation instead of the value."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Bar color. A theme color name (such as primary, red or magenta) or #rrggbb."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name read by screen readers."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
       "example": "<Progress value={percent.get()} className=\"w-64\"/>"
@@ -213,9 +386,30 @@
           "name": "loading",
           "type": "boolean",
           "doc": "Shows an indeterminate animation instead of the value."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Bar color. A theme color name (such as primary, red or magenta) or #rrggbb."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name read by screen readers."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
-      "example": "<ProgressCircle value={75}/>"
+      "example": "<ProgressCircle value={75}/>",
+      "children": true
     },
     {
       "name": "Avatar",
@@ -230,6 +424,21 @@
           "name": "src",
           "type": "string",
           "doc": "Image URL or file path."
+        },
+        {
+          "name": "placeholder",
+          "type": "icon",
+          "doc": "Icon shown when there is no image or name."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
       "example": "<Avatar name=\"Ada Lovelace\"/>"
@@ -251,17 +460,38 @@
         {
           "name": "variant",
           "type": [
+            "default",
             "info",
             "success",
             "warning",
             "error"
           ],
-          "doc": "Defaults to info."
+          "doc": "Look and icon. Defaults to info."
         },
         {
           "name": "banner",
           "type": "boolean",
           "doc": "Full-width banner layout without rounded corners."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Replaces the variant's icon."
+        },
+        {
+          "name": "visible",
+          "type": "boolean",
+          "doc": "False hides the alert. Defaults to true."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
       "events": [
@@ -281,6 +511,31 @@
           "name": "text",
           "type": "string",
           "doc": "Text to animate."
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "doc": "Milliseconds per sweep."
+        },
+        {
+          "name": "highlightColor",
+          "type": "string",
+          "doc": "Highlight color: a theme color name or #rrggbb."
+        },
+        {
+          "name": "spread",
+          "type": "number",
+          "doc": "Highlight half-width as a fraction of the text width."
+        },
+        {
+          "name": "reverse",
+          "type": "boolean",
+          "doc": "Sweeps right to left."
+        },
+        {
+          "name": "once",
+          "type": "boolean",
+          "doc": "Sweeps once instead of repeating."
         }
       ],
       "example": "<ShimmerText text=\"Thinking...\"/>"
@@ -299,19 +554,43 @@
           "name": "description",
           "type": "string",
           "doc": "Supporting text."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon in a muted frame above the title."
         }
       ],
       "example": "<Empty title=\"No projects\" description=\"Create one to get started.\"/>"
     },
     {
       "name": "GroupBox",
-      "children": true,
+      "children": "content and an optional GroupBoxFooter",
       "doc": "A titled, bordered group of related content.",
       "props": [
         {
           "name": "title",
           "type": "string",
           "doc": "Group heading."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "normal",
+            "fill",
+            "outline"
+          ],
+          "doc": "Surface style. Defaults to normal."
+        },
+        {
+          "name": "titleClassName",
+          "type": "string",
+          "doc": "Utility classes for the title."
+        },
+        {
+          "name": "contentClassName",
+          "type": "string",
+          "doc": "Utility classes for the content surface."
         }
       ],
       "example": "<GroupBox title=\"Account\"><Text>Signed in</Text></GroupBox>"
@@ -402,9 +681,42 @@
           "name": "value",
           "type": "string",
           "doc": "Text copied when clicked."
+        },
+        {
+          "name": "tooltip",
+          "type": "string",
+          "doc": "Tooltip shown on hover."
+        },
+        {
+          "name": "tooltipDelay",
+          "type": "int",
+          "doc": "Milliseconds before the tooltip appears."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name read by screen readers."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
-      "example": "<Clipboard value=\"npm install\"/>"
+      "example": "<Clipboard value=\"npm install\"/>",
+      "events": [
+        {
+          "prop": "onCopied",
+          "value": "string",
+          "param": "text",
+          "doc": "Receives the copied text."
+        }
+      ]
     },
     {
       "name": "Checkbox",
@@ -424,6 +736,51 @@
           "name": "disabled",
           "type": "boolean",
           "doc": "Disabled boxes ignore clicks."
+        },
+        {
+          "name": "tooltip",
+          "type": "string",
+          "doc": "Tooltip shown on hover."
+        },
+        {
+          "name": "tooltipDelay",
+          "type": "int",
+          "doc": "Milliseconds before the tooltip appears."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name read by screen readers when it differs from the label."
+        },
+        {
+          "name": "tabIndex",
+          "type": "int",
+          "doc": "Keyboard focus order."
+        },
+        {
+          "name": "tabStop",
+          "type": "boolean",
+          "doc": "False skips the control when tabbing. Defaults to true."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
+        },
+        {
+          "name": "role",
+          "type": [
+            "checkbox",
+            "switch",
+            "menuitemcheckbox",
+            "none"
+          ],
+          "doc": "Accessibility role. Defaults to checkbox."
         }
       ],
       "events": [
@@ -454,6 +811,46 @@
           "name": "disabled",
           "type": "boolean",
           "doc": "Disabled switches ignore clicks."
+        },
+        {
+          "name": "tooltip",
+          "type": "string",
+          "doc": "Tooltip shown on hover."
+        },
+        {
+          "name": "tooltipDelay",
+          "type": "int",
+          "doc": "Milliseconds before the tooltip appears."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name read by screen readers when it differs from the label."
+        },
+        {
+          "name": "tabIndex",
+          "type": "int",
+          "doc": "Keyboard focus order."
+        },
+        {
+          "name": "tabStop",
+          "type": "boolean",
+          "doc": "False skips the control when tabbing. Defaults to true."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Track color when on: a theme color name or #rrggbb."
         }
       ],
       "events": [
@@ -499,8 +896,7 @@
     },
     {
       "name": "Radio",
-      "item": true,
-      "doc": "One option in a RadioGroup.",
+      "doc": "One option in a RadioGroup; also usable standalone with checked and onChange.",
       "props": [
         {
           "name": "label",
@@ -508,12 +904,61 @@
           "doc": "Option text."
         },
         {
+          "name": "checked",
+          "type": "boolean",
+          "doc": "Selected state of a standalone radio. Inside a RadioGroup, the group's selected index wins."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "doc": "Disabled options cannot be chosen."
+        },
+        {
+          "name": "tooltip",
+          "type": "string",
+          "doc": "Tooltip shown on hover."
+        },
+        {
+          "name": "tooltipDelay",
+          "type": "int",
+          "doc": "Milliseconds before the tooltip appears."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name read by screen readers when it differs from the label."
+        },
+        {
+          "name": "tabIndex",
+          "type": "int",
+          "doc": "Keyboard focus order."
+        },
+        {
+          "name": "tabStop",
+          "type": "boolean",
+          "doc": "False skips the control when tabbing. Defaults to true."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
-      "example": "<Radio label=\"Monthly\"/>"
+      "example": "<Radio label=\"Monthly\"/>",
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "boolean",
+          "param": "checked",
+          "doc": "Receives true when a standalone radio is chosen."
+        }
+      ],
+      "item": true
     },
     {
       "name": "Toggle",
@@ -588,6 +1033,21 @@
           "name": "disabled",
           "type": "boolean",
           "doc": "Disabled ratings ignore clicks."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Star color: a theme color name or #rrggbb."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
         }
       ],
       "events": [
@@ -2665,6 +3125,56 @@
       "children": "MenuItem, MenuLabel, MenuSeparator and Submenu",
       "item": true,
       "example": "<Submenu label=\"Share\"><MenuItem label=\"Email\"/></Submenu>"
+    },
+    {
+      "name": "AvatarGroup",
+      "doc": "Overlapping avatars; avatars past the limit are hidden or summarized by an ellipsis.",
+      "props": [
+        {
+          "name": "limit",
+          "type": "int",
+          "doc": "Most avatars to show."
+        },
+        {
+          "name": "ellipsis",
+          "type": "boolean",
+          "doc": "Shows an ellipsis avatar when some avatars are hidden by the limit."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size. Defaults to medium."
+        }
+      ],
+      "children": "Avatar",
+      "example": "<AvatarGroup limit={3}><Avatar name=\"Ada\"/><Avatar name=\"Alan\"/><Avatar name=\"Grace\"/><Avatar name=\"Linus\"/></AvatarGroup>"
+    },
+    {
+      "name": "EmptyMedia",
+      "doc": "Custom media (an image, avatar or avatar group) above an Empty state's title.",
+      "props": [
+        {
+          "name": "framed",
+          "type": "boolean",
+          "doc": "Draws the media in a muted icon frame."
+        }
+      ],
+      "children": true,
+      "item": true,
+      "example": "<EmptyMedia><Avatar name=\"Ada\"/></EmptyMedia>"
+    },
+    {
+      "name": "GroupBoxFooter",
+      "doc": "Content placed below a GroupBox's surface.",
+      "props": [],
+      "children": true,
+      "item": true,
+      "example": "<GroupBoxFooter><Button>Save</Button></GroupBoxFooter>"
     }
   ],
   "kitTypes": [
@@ -2854,6 +3364,60 @@
     "WindowControls"
   ],
   "covers": {
+    "Alert": {
+      "new": "variant",
+      "with_variant": "variant",
+      "info": "variant",
+      "success": "variant",
+      "warning": "variant",
+      "error": "variant",
+      "icon": "icon",
+      "title": "title",
+      "banner": "banner",
+      "visible": "visible",
+      "on_close": "onClose",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "Avatar": {
+      "new": "Avatar",
+      "src": "src",
+      "name": "name",
+      "placeholder": "placeholder",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "AvatarGroup": {
+      "new": "AvatarGroup",
+      "child": "children",
+      "children": "children",
+      "limit": "limit",
+      "ellipsis": "ellipsis",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "Badge": {
+      "new": "Badge",
+      "dot": "dot",
+      "count": "count",
+      "icon": "icon",
+      "max": "max",
+      "color": "color",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
     "Button": {
       "new": "Button",
       "role": "role",
@@ -2923,6 +3487,40 @@
       "text": "variant",
       "custom": "color, foreground, hoverColor, activeColor"
     },
+    "Checkbox": {
+      "new": "Checkbox",
+      "role": "role",
+      "tooltip": "tooltip",
+      "tooltip_show_delay": "tooltipDelay",
+      "accessibility_label": "accessibilityLabel",
+      "tab_stop": "tabStop",
+      "tab_index": "tabIndex",
+      "label": "label",
+      "checked": "checked",
+      "on_click": "onChange",
+      "on_change": "onChange",
+      "disabled": "disabled",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "selected": "checked"
+    },
+    "Clipboard": {
+      "new": "Clipboard",
+      "tooltip": "tooltip",
+      "tooltip_show_delay": "tooltipDelay",
+      "accessibility_label": "accessibilityLabel",
+      "value": "value",
+      "value_fn": "value: live props recompute the copied text",
+      "on_copied": "onCopied",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
     "DropdownButton": {
       "new": "DropdownMenu",
       "button": "Button child (trigger)",
@@ -2947,6 +3545,64 @@
       "link": "variant",
       "text": "variant",
       "custom": "color, foreground, hoverColor, activeColor"
+    },
+    "Empty": {
+      "new": "Empty",
+      "header": "title,description",
+      "content": "children"
+    },
+    "EmptyHeader": {
+      "new": "Empty",
+      "media": "EmptyMedia",
+      "title": "title",
+      "description": "description"
+    },
+    "EmptyMedia": {
+      "new": "EmptyMedia",
+      "with_variant": "framed"
+    },
+    "GroupBox": {
+      "new": "GroupBox",
+      "id": "n/a: automatic",
+      "title": "title",
+      "title_style": "titleClassName",
+      "content_style": "contentClassName",
+      "footer": "GroupBoxFooter"
+    },
+    "Icon": {
+      "new": "name",
+      "path": "name",
+      "data": "svg",
+      "rotate": "rotate",
+      "transform": "rotate",
+      "empty": "svg",
+      "view": "n/a: Kit-internal entity conversion",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "Kbd": {
+      "new": "keys",
+      "appearance": "plain",
+      "outline": "outline",
+      "binding_for_action": "command",
+      "binding_for_action_in": "command",
+      "global_binding_for_action": "command",
+      "format": "n/a: keys render in the platform format automatically"
+    },
+    "Label": {
+      "new": "text",
+      "secondary": "secondary",
+      "masked": "masked",
+      "highlights": "highlight,highlightPrefix"
+    },
+    "Link": {
+      "new": "Link",
+      "href": "href",
+      "on_click": "href: activation navigates",
+      "disabled": "disabled"
     },
     "PopupMenu": {
       "build": "DropdownMenu / ContextMenu",
@@ -2978,6 +3634,146 @@
       "item": "MenuItem",
       "rebuild": "n/a: menus rebuild from their children on each open",
       "is_empty": "n/a: query for menu builders"
+    },
+    "Progress": {
+      "new": "value",
+      "loading": "loading",
+      "color": "color",
+      "value": "value",
+      "accessibility_label": "accessibilityLabel",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "ProgressCircle": {
+      "new": "value",
+      "loading": "loading",
+      "color": "color",
+      "value": "value",
+      "accessibility_label": "accessibilityLabel",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "Radio": {
+      "new": "Radio",
+      "tooltip": "tooltip",
+      "tooltip_show_delay": "tooltipDelay",
+      "accessibility_label": "accessibilityLabel",
+      "tab_stop": "tabStop",
+      "tab_index": "tabIndex",
+      "label": "label",
+      "checked": "checked",
+      "on_click": "onChange",
+      "on_change": "onChange",
+      "disabled": "disabled",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "RadioGroup": {
+      "new": "vertical",
+      "vertical": "vertical",
+      "horizontal": "vertical",
+      "layout": "vertical",
+      "on_click": "onChange",
+      "on_change": "onChange",
+      "selected_index": "selected",
+      "disabled": "disabled",
+      "child": "children",
+      "children": "children"
+    },
+    "Rating": {
+      "new": "Rating",
+      "disabled": "disabled",
+      "color": "color",
+      "value": "value",
+      "max": "max",
+      "on_click": "onChange",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "Separator": {
+      "vertical": "orientation",
+      "horizontal": "orientation",
+      "vertical_dashed": "dashed",
+      "horizontal_dashed": "dashed",
+      "dashed": "dashed",
+      "label": "label",
+      "color": "color"
+    },
+    "ShimmerText": {
+      "new": "text",
+      "id": "n/a: automatic",
+      "with_shimmer_style": "duration,highlightColor,spread,reverse",
+      "duration": "duration",
+      "highlight_color": "highlightColor",
+      "spread": "spread",
+      "reverse": "reverse",
+      "once": "once"
+    },
+    "Skeleton": {
+      "new": "Skeleton",
+      "secondary": "secondary"
+    },
+    "Spinner": {
+      "new": "Spinner",
+      "icon": "icon",
+      "color": "color",
+      "ease": "easing",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "Switch": {
+      "new": "Switch",
+      "color": "color",
+      "tooltip": "tooltip",
+      "tooltip_show_delay": "tooltipDelay",
+      "accessibility_label": "accessibilityLabel",
+      "tab_stop": "tabStop",
+      "tab_index": "tabIndex",
+      "label": "label",
+      "checked": "checked",
+      "on_click": "onChange",
+      "on_change": "onChange",
+      "disabled": "disabled",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "Tag": {
+      "new": "Tag",
+      "primary": "variant",
+      "secondary": "variant",
+      "danger": "variant",
+      "success": "variant",
+      "warning": "variant",
+      "info": "variant",
+      "with_variant": "variant",
+      "custom": "color,foreground,borderColor",
+      "color": "palette",
+      "outline": "outline",
+      "rounded": "rounded",
+      "rounded_full": "roundedFull",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
     },
     "Toggle": {
       "new": "Toggle",

@@ -186,7 +186,7 @@ impl Root {
         }
         if let Some(kit) = node.kit.as_deref().filter(|kit| !kit.name.is_empty()) {
             let element = self.kit_element(node, kit, cx);
-            if node.class_name.is_empty() {return element;}
+            if node.class_name.is_empty() || STYLED_KIT.contains(&kit.name.as_str()) {return element;}
             // The class wrapper can shrink in flex layouts, so scroll areas inside it scroll.
             return styled(div().min_h_0().min_w_0(), &node.class_name, theme, mode, false).child(element).into_any_element();
         }

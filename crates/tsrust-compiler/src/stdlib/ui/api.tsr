@@ -605,6 +605,8 @@ function buttonOptions(variant: string | undefined, size: string | undefined, ic
 interface LinkProperties<Classes, Variant> extends ElementProps<Variant> {
   /** Absolute local path with optional heading fragment, or an HTTPS URL without credentials. Local queries, escapes and traversal are rejected. */
   href: string;
+  /** True dims the link and ignores clicks. Live when it reads state. */
+  disabled?: boolean | ReactiveBoolean;
   children?: Child[];
   className?: Classes;
 }
@@ -616,7 +618,18 @@ export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<strin
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
-  return applyProperties(unwrapNode(nativeLink(props.children ?? [], classes, props.href)), metadata, className, variant);
+  let node = unwrapNode(nativeLink(props.children ?? [], classes, props.href));
+  const disabled = props.disabled;
+  if (disabled !== undefined) {
+    if (typeof disabled === 'boolean') {
+      const fixed = disabled;
+      node = unwrapNode(nativeBindDisabled(node, () => fixed));
+    } else {
+      node = unwrapNode(nativeBindDisabled(node, disabled.evaluate));
+    }
+  }
+
+  return applyProperties(node, metadata, className, variant);
 }
 /** Creates the single application location owner, initially /. Its get/set methods use checked absolute local paths. */
 export function location(): Signal<string> {

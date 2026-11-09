@@ -40,6 +40,10 @@ export interface IconProps {
   name?: ReactiveValue<IconName>;
   /** Icon size. Defaults to md; className text colors tint it. */
   size?: ReactiveValue<'xs' | 'sm' | 'md' | 'lg'>;
+  /** Rotation in degrees. */
+  rotate?: ReactiveValue<number>;
+  /** Inline SVG markup to draw instead of a named icon. */
+  svg?: ReactiveValue<string> | TextBinding;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -63,6 +67,16 @@ export function Icon(props: IconProps): Node {
     } else {
       node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
     }
+  }
+
+  const prop_rotate = props.rotate;
+  if (prop_rotate !== undefined) {
+    node = kitNumber(node, 'rotate', prop_rotate);
+  }
+
+  const prop_svg = props.svg;
+  if (prop_svg !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'svg', prop_svg));
   }
 
   return node;
@@ -120,6 +134,12 @@ export interface BadgeProps {
   max?: ReactiveValue<int>;
   /** Shows a small dot instead of a count. */
   dot?: ReactiveValue<boolean>;
+  /** Shows an icon instead of a count or dot. */
+  icon?: ReactiveValue<IconName>;
+  /** Badge color. A theme color name (such as primary, red or magenta) or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Content shown inside the component. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -144,6 +164,29 @@ export function Badge(props: BadgeProps): Node {
     node = kitFlag(node, 'dot', prop_dot);
   }
 
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   return node;
 }
 
@@ -152,6 +195,20 @@ export interface TagProps {
   variant?: ReactiveValue<'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'info'>;
   /** Draws an outline instead of a filled tag. */
   outline?: ReactiveValue<boolean>;
+  /** A named Tailwind color family for the tag. */
+  palette?: ReactiveValue<'white' | 'black' | 'neutral' | 'gray' | 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose'>;
+  /** Custom fill; set foreground and borderColor too. A theme color name (such as primary, red or magenta) or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Custom text color. */
+  foreground?: ReactiveValue<string> | TextBinding;
+  /** Custom border color. */
+  borderColor?: ReactiveValue<string> | TextBinding;
+  /** Corner radius in pixels. */
+  rounded?: ReactiveValue<number>;
+  /** Fully rounded (pill) corners. */
+  roundedFull?: ReactiveValue<boolean>;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Content shown inside the component. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -175,6 +232,49 @@ export function Tag(props: TagProps): Node {
     node = kitFlag(node, 'outline', prop_outline);
   }
 
+  const prop_palette = props.palette;
+  if (prop_palette !== undefined) {
+    if (typeof prop_palette === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'palette', `${prop_palette}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'palette', nativeBindText(prop_palette.evaluate)));
+    }
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_foreground = props.foreground;
+  if (prop_foreground !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'foreground', prop_foreground));
+  }
+
+  const prop_borderColor = props.borderColor;
+  if (prop_borderColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'borderColor', prop_borderColor));
+  }
+
+  const prop_rounded = props.rounded;
+  if (prop_rounded !== undefined) {
+    node = kitNumber(node, 'rounded', prop_rounded);
+  }
+
+  const prop_roundedFull = props.roundedFull;
+  if (prop_roundedFull !== undefined) {
+    node = kitFlag(node, 'roundedFull', prop_roundedFull);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   return node;
 }
 
@@ -183,6 +283,12 @@ export interface LabelProps {
   text?: ReactiveValue<string> | TextBinding;
   /** Muted text shown after the label. */
   secondary?: ReactiveValue<string> | TextBinding;
+  /** Draws the text as bullets, as for a password. */
+  masked?: ReactiveValue<boolean>;
+  /** Text to highlight inside the label, such as a search match. */
+  highlight?: ReactiveValue<string> | TextBinding;
+  /** Highlights only a match at the start of the label. */
+  highlightPrefix?: ReactiveValue<boolean>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -200,6 +306,21 @@ export function Label(props: LabelProps): Node {
     node = unwrapNode(nativeKitValue(node, 'secondary', prop_secondary));
   }
 
+  const prop_masked = props.masked;
+  if (prop_masked !== undefined) {
+    node = kitFlag(node, 'masked', prop_masked);
+  }
+
+  const prop_highlight = props.highlight;
+  if (prop_highlight !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'highlight', prop_highlight));
+  }
+
+  const prop_highlightPrefix = props.highlightPrefix;
+  if (prop_highlightPrefix !== undefined) {
+    node = kitFlag(node, 'highlightPrefix', prop_highlightPrefix);
+  }
+
   return node;
 }
 
@@ -208,6 +329,10 @@ export interface KbdProps {
   keys?: ReactiveValue<string> | TextBinding;
   /** Uses the outline style. */
   outline?: ReactiveValue<boolean>;
+  /** Shows the keys bound to this Shortcut command instead of keys. */
+  command?: ReactiveValue<string> | TextBinding;
+  /** Draws the keys without the key-cap styling. */
+  plain?: ReactiveValue<boolean>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -225,6 +350,16 @@ export function Kbd(props: KbdProps): Node {
     node = kitFlag(node, 'outline', prop_outline);
   }
 
+  const prop_command = props.command;
+  if (prop_command !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'command', prop_command));
+  }
+
+  const prop_plain = props.plain;
+  if (prop_plain !== undefined) {
+    node = kitFlag(node, 'plain', prop_plain);
+  }
+
   return node;
 }
 
@@ -235,6 +370,8 @@ export interface SeparatorProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Draws a dashed line. */
   dashed?: ReactiveValue<boolean>;
+  /** Line color. A theme color name (such as primary, red or magenta) or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -261,6 +398,11 @@ export function Separator(props: SeparatorProps): Node {
     node = kitFlag(node, 'dashed', prop_dashed);
   }
 
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
   return node;
 }
 
@@ -283,6 +425,14 @@ export function Skeleton(props: SkeletonProps): Node {
 }
 
 export interface SpinnerProps {
+  /** Icon to spin. Defaults to a loader. */
+  icon?: ReactiveValue<IconName>;
+  /** Spinner color. A theme color name (such as primary, red or magenta) or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Rotation easing. Defaults to linear. */
+  easing?: ReactiveValue<'linear' | 'ease-in-out' | 'quadratic' | 'ease-out-quint'>;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -290,6 +440,38 @@ export interface SpinnerProps {
 /** An animated loading indicator. */
 export function Spinner(props: SpinnerProps): Node {
   let node = kitNode('Spinner', [], props.className ?? '');
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_easing = props.easing;
+  if (prop_easing !== undefined) {
+    if (typeof prop_easing === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'easing', `${prop_easing}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'easing', nativeBindText(prop_easing.evaluate)));
+    }
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   return node;
 }
 
@@ -298,6 +480,12 @@ export interface ProgressProps {
   value?: ReactiveValue<number>;
   /** Shows an indeterminate animation instead of the value. */
   loading?: ReactiveValue<boolean>;
+  /** Bar color. A theme color name (such as primary, red or magenta) or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Name read by screen readers. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -315,6 +503,25 @@ export function Progress(props: ProgressProps): Node {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   return node;
 }
 
@@ -323,13 +530,21 @@ export interface ProgressCircleProps {
   value?: ReactiveValue<number>;
   /** Shows an indeterminate animation instead of the value. */
   loading?: ReactiveValue<boolean>;
+  /** Bar color. A theme color name (such as primary, red or magenta) or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Name read by screen readers. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Content shown inside the component. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** A circular progress indicator. */
 export function ProgressCircle(props: ProgressCircleProps): Node {
-  let node = kitNode('ProgressCircle', [], props.className ?? '');
+  let node = kitNode('ProgressCircle', props.children ?? [], props.className ?? '');
   const prop_value = props.value;
   if (prop_value !== undefined) {
     node = kitNumber(node, 'value', prop_value);
@@ -340,6 +555,25 @@ export function ProgressCircle(props: ProgressCircleProps): Node {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   return node;
 }
 
@@ -348,6 +582,10 @@ export interface AvatarProps {
   name?: ReactiveValue<string> | TextBinding;
   /** Image URL or file path. */
   src?: ReactiveValue<string> | TextBinding;
+  /** Icon shown when there is no image or name. */
+  placeholder?: ReactiveValue<IconName>;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -365,6 +603,24 @@ export function Avatar(props: AvatarProps): Node {
     node = unwrapNode(nativeKitValue(node, 'src', prop_src));
   }
 
+  const prop_placeholder = props.placeholder;
+  if (prop_placeholder !== undefined) {
+    if (typeof prop_placeholder === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'placeholder', `${prop_placeholder}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'placeholder', nativeBindText(prop_placeholder.evaluate)));
+    }
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   return node;
 }
 
@@ -373,10 +629,16 @@ export interface AlertProps {
   message?: ReactiveValue<string> | TextBinding;
   /** Bold heading above the message. */
   title?: ReactiveValue<string> | TextBinding;
-  /** Defaults to info. */
-  variant?: ReactiveValue<'info' | 'success' | 'warning' | 'error'>;
+  /** Look and icon. Defaults to info. */
+  variant?: ReactiveValue<'default' | 'info' | 'success' | 'warning' | 'error'>;
   /** Full-width banner layout without rounded corners. */
   banner?: ReactiveValue<boolean>;
+  /** Replaces the variant's icon. */
+  icon?: ReactiveValue<IconName>;
+  /** False hides the alert. Defaults to true. */
+  visible?: ReactiveValue<boolean>;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Shows a close button; called when it is clicked. */
   onClose?: Owned<Function<void>>;
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -410,6 +672,29 @@ export function Alert(props: AlertProps): Node {
     node = kitFlag(node, 'banner', prop_banner);
   }
 
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_visible = props.visible;
+  if (prop_visible !== undefined) {
+    node = kitFlag(node, 'visible', prop_visible);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   const event_onClose = props.onClose;
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
@@ -421,6 +706,16 @@ export function Alert(props: AlertProps): Node {
 export interface ShimmerTextProps {
   /** Text to animate. */
   text?: ReactiveValue<string> | TextBinding;
+  /** Milliseconds per sweep. */
+  duration?: ReactiveValue<int>;
+  /** Highlight color: a theme color name or #rrggbb. */
+  highlightColor?: ReactiveValue<string> | TextBinding;
+  /** Highlight half-width as a fraction of the text width. */
+  spread?: ReactiveValue<number>;
+  /** Sweeps right to left. */
+  reverse?: ReactiveValue<boolean>;
+  /** Sweeps once instead of repeating. */
+  once?: ReactiveValue<boolean>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -433,6 +728,31 @@ export function ShimmerText(props: ShimmerTextProps): Node {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
   }
 
+  const prop_duration = props.duration;
+  if (prop_duration !== undefined) {
+    node = kitInt(node, 'duration', prop_duration);
+  }
+
+  const prop_highlightColor = props.highlightColor;
+  if (prop_highlightColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'highlightColor', prop_highlightColor));
+  }
+
+  const prop_spread = props.spread;
+  if (prop_spread !== undefined) {
+    node = kitNumber(node, 'spread', prop_spread);
+  }
+
+  const prop_reverse = props.reverse;
+  if (prop_reverse !== undefined) {
+    node = kitFlag(node, 'reverse', prop_reverse);
+  }
+
+  const prop_once = props.once;
+  if (prop_once !== undefined) {
+    node = kitFlag(node, 'once', prop_once);
+  }
+
   return node;
 }
 
@@ -441,6 +761,8 @@ export interface EmptyProps {
   title?: ReactiveValue<string> | TextBinding;
   /** Supporting text. */
   description?: ReactiveValue<string> | TextBinding;
+  /** Icon in a muted frame above the title. */
+  icon?: ReactiveValue<IconName>;
   /** Content shown inside the component. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -460,13 +782,28 @@ export function Empty(props: EmptyProps): Node {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
   return node;
 }
 
 export interface GroupBoxProps {
   /** Group heading. */
   title?: ReactiveValue<string> | TextBinding;
-  /** Content shown inside the component. */
+  /** Surface style. Defaults to normal. */
+  variant?: ReactiveValue<'normal' | 'fill' | 'outline'>;
+  /** Utility classes for the title. */
+  titleClassName?: ReactiveValue<string> | TextBinding;
+  /** Utility classes for the content surface. */
+  contentClassName?: ReactiveValue<string> | TextBinding;
+  /** content and an optional GroupBoxFooter elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
@@ -478,6 +815,25 @@ export function GroupBox(props: GroupBoxProps): Node {
   const prop_title = props.title;
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_variant = props.variant;
+  if (prop_variant !== undefined) {
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
+  }
+
+  const prop_titleClassName = props.titleClassName;
+  if (prop_titleClassName !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'titleClassName', prop_titleClassName));
+  }
+
+  const prop_contentClassName = props.contentClassName;
+  if (prop_contentClassName !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'contentClassName', prop_contentClassName));
   }
 
   return node;
@@ -597,6 +953,16 @@ export function BreadcrumbItem(props: BreadcrumbItemProps): Node {
 export interface ClipboardProps {
   /** Text copied when clicked. */
   value?: ReactiveValue<string> | TextBinding;
+  /** Tooltip shown on hover. */
+  tooltip?: ReactiveValue<string> | TextBinding;
+  /** Milliseconds before the tooltip appears. */
+  tooltipDelay?: ReactiveValue<int>;
+  /** Name read by screen readers. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Receives the copied text. */
+  onCopied?: Owned<Function<void, [text: ReadOnly<string>]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -609,6 +975,35 @@ export function Clipboard(props: ClipboardProps): Node {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
+  const prop_tooltip = props.tooltip;
+  if (prop_tooltip !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
+  }
+
+  const prop_tooltipDelay = props.tooltipDelay;
+  if (prop_tooltipDelay !== undefined) {
+    node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const event_onCopied = props.onCopied;
+  if (event_onCopied !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'copied', event_onCopied));
+  }
+
   return node;
 }
 
@@ -619,6 +1014,20 @@ export interface CheckboxProps {
   checked?: ReactiveValue<boolean>;
   /** Disabled boxes ignore clicks. */
   disabled?: ReactiveValue<boolean>;
+  /** Tooltip shown on hover. */
+  tooltip?: ReactiveValue<string> | TextBinding;
+  /** Milliseconds before the tooltip appears. */
+  tooltipDelay?: ReactiveValue<int>;
+  /** Name read by screen readers when it differs from the label. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Keyboard focus order. */
+  tabIndex?: ReactiveValue<int>;
+  /** False skips the control when tabbing. Defaults to true. */
+  tabStop?: ReactiveValue<boolean>;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Accessibility role. Defaults to checkbox. */
+  role?: ReactiveValue<'checkbox' | 'switch' | 'menuitemcheckbox' | 'none'>;
   /** Receives the requested checked state after a click. */
   onChange?: Owned<Function<void, [checked: boolean]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -643,6 +1052,49 @@ export function Checkbox(props: CheckboxProps): Node {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
+  const prop_tooltip = props.tooltip;
+  if (prop_tooltip !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
+  }
+
+  const prop_tooltipDelay = props.tooltipDelay;
+  if (prop_tooltipDelay !== undefined) {
+    node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_tabIndex = props.tabIndex;
+  if (prop_tabIndex !== undefined) {
+    node = kitInt(node, 'tabIndex', prop_tabIndex);
+  }
+
+  const prop_tabStop = props.tabStop;
+  if (prop_tabStop !== undefined) {
+    node = kitFlag(node, 'tabStop', prop_tabStop);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const prop_role = props.role;
+  if (prop_role !== undefined) {
+    if (typeof prop_role === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'role', `${prop_role}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'role', nativeBindText(prop_role.evaluate)));
+    }
+  }
+
   const event_onChange = props.onChange;
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
@@ -658,6 +1110,20 @@ export interface SwitchProps {
   checked?: ReactiveValue<boolean>;
   /** Disabled switches ignore clicks. */
   disabled?: ReactiveValue<boolean>;
+  /** Tooltip shown on hover. */
+  tooltip?: ReactiveValue<string> | TextBinding;
+  /** Milliseconds before the tooltip appears. */
+  tooltipDelay?: ReactiveValue<int>;
+  /** Name read by screen readers when it differs from the label. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Keyboard focus order. */
+  tabIndex?: ReactiveValue<int>;
+  /** False skips the control when tabbing. Defaults to true. */
+  tabStop?: ReactiveValue<boolean>;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Track color when on: a theme color name or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
   /** Receives the requested state after a click. */
   onChange?: Owned<Function<void, [checked: boolean]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -680,6 +1146,45 @@ export function Switch(props: SwitchProps): Node {
   const prop_disabled = props.disabled;
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_tooltip = props.tooltip;
+  if (prop_tooltip !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
+  }
+
+  const prop_tooltipDelay = props.tooltipDelay;
+  if (prop_tooltipDelay !== undefined) {
+    node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_tabIndex = props.tabIndex;
+  if (prop_tabIndex !== undefined) {
+    node = kitInt(node, 'tabIndex', prop_tabIndex);
+  }
+
+  const prop_tabStop = props.tabStop;
+  if (prop_tabStop !== undefined) {
+    node = kitFlag(node, 'tabStop', prop_tabStop);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const event_onChange = props.onChange;
@@ -734,13 +1239,29 @@ export function RadioGroup(props: RadioGroupProps): Node {
 export interface RadioProps {
   /** Option text. */
   label?: ReactiveValue<string> | TextBinding;
+  /** Selected state of a standalone radio. Inside a RadioGroup, the group's selected index wins. */
+  checked?: ReactiveValue<boolean>;
   /** Disabled options cannot be chosen. */
   disabled?: ReactiveValue<boolean>;
+  /** Tooltip shown on hover. */
+  tooltip?: ReactiveValue<string> | TextBinding;
+  /** Milliseconds before the tooltip appears. */
+  tooltipDelay?: ReactiveValue<int>;
+  /** Name read by screen readers when it differs from the label. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Keyboard focus order. */
+  tabIndex?: ReactiveValue<int>;
+  /** False skips the control when tabbing. Defaults to true. */
+  tabStop?: ReactiveValue<boolean>;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Receives true when a standalone radio is chosen. */
+  onChange?: Owned<Function<void, [checked: boolean]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** One option in a RadioGroup. */
+/** One option in a RadioGroup; also usable standalone with checked and onChange. */
 export function Radio(props: RadioProps): Node {
   let node = kitNode('Radio', [], props.className ?? '');
   const prop_label = props.label;
@@ -748,9 +1269,53 @@ export function Radio(props: RadioProps): Node {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
+  const prop_checked = props.checked;
+  if (prop_checked !== undefined) {
+    node = kitFlag(node, 'checked', prop_checked);
+  }
+
   const prop_disabled = props.disabled;
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_tooltip = props.tooltip;
+  if (prop_tooltip !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
+  }
+
+  const prop_tooltipDelay = props.tooltipDelay;
+  if (prop_tooltipDelay !== undefined) {
+    node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_tabIndex = props.tabIndex;
+  if (prop_tabIndex !== undefined) {
+    node = kitInt(node, 'tabIndex', prop_tabIndex);
+  }
+
+  const prop_tabStop = props.tabStop;
+  if (prop_tabStop !== undefined) {
+    node = kitFlag(node, 'tabStop', prop_tabStop);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
   }
 
   return node;
@@ -838,6 +1403,10 @@ export interface RatingProps {
   max?: ReactiveValue<int>;
   /** Disabled ratings ignore clicks. */
   disabled?: ReactiveValue<boolean>;
+  /** Star color: a theme color name or #rrggbb. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives the clicked star count. */
   onChange?: Owned<Function<void, [value: int]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -860,6 +1429,20 @@ export function Rating(props: RatingProps): Node {
   const prop_disabled = props.disabled;
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -3724,5 +4307,76 @@ export function Submenu(props: SubmenuProps): Node {
     }
   }
 
+  return node;
+}
+
+export interface AvatarGroupProps {
+  /** Most avatars to show. */
+  limit?: ReactiveValue<int>;
+  /** Shows an ellipsis avatar when some avatars are hidden by the limit. */
+  ellipsis?: ReactiveValue<boolean>;
+  /** Size. Defaults to medium. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Avatar elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Overlapping avatars; avatars past the limit are hidden or summarized by an ellipsis. */
+export function AvatarGroup(props: AvatarGroupProps): Node {
+  let node = kitNode('AvatarGroup', props.children ?? [], props.className ?? '');
+  const prop_limit = props.limit;
+  if (prop_limit !== undefined) {
+    node = kitInt(node, 'limit', prop_limit);
+  }
+
+  const prop_ellipsis = props.ellipsis;
+  if (prop_ellipsis !== undefined) {
+    node = kitFlag(node, 'ellipsis', prop_ellipsis);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface EmptyMediaProps {
+  /** Draws the media in a muted icon frame. */
+  framed?: ReactiveValue<boolean>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Custom media (an image, avatar or avatar group) above an Empty state's title. */
+export function EmptyMedia(props: EmptyMediaProps): Node {
+  let node = kitNode('EmptyMedia', props.children ?? [], props.className ?? '');
+  const prop_framed = props.framed;
+  if (prop_framed !== undefined) {
+    node = kitFlag(node, 'framed', prop_framed);
+  }
+
+  return node;
+}
+
+export interface GroupBoxFooterProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content placed below a GroupBox's surface. */
+export function GroupBoxFooter(props: GroupBoxFooterProps): Node {
+  let node = kitNode('GroupBoxFooter', props.children ?? [], props.className ?? '');
   return node;
 }

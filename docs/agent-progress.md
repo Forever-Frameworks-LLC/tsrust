@@ -21,7 +21,19 @@ title bar (renderer now honors titlebar: 'custom'), tabbed Preview/Code cards,
 Gruvbox theme set via new registerThemes/useTheme; std:ui utility colors now
 follow the active Kit theme. Icons: all 1830 Kit catalog names (IconName is a
 string; a literal union stalled rustc); programs naming non-default icons
-register AllAssets. Next: continue coverage type by type with gallery pages.
+register AllAssets. Display batch: Badge, Tag, Label, Kbd (command prop reads
+Shortcut bindings), Separator, Skeleton, Spinner, Progress/ProgressCircle,
+Avatar/AvatarGroup, Alert, Icon (svg, rotate), ShimmerText, Empty/EmptyMedia,
+GroupBox/GroupBoxFooter, Clipboard and Link (disabled) are complete, with 15
+gallery pages. Forms batch: Checkbox, Switch, Radio (also standalone),
+RadioGroup and Rating are complete with 4 pages (coverage 374/1765). Styled Kit components in STYLED_KIT take
+className as their own style refinement instead of a wrapper. Fixed: every
+ScrollArea shared one scroll offset (Kit keys Scrollable state by call site
+without an explicit id); gallery routes now each own a scroll area; sidebar
+groups merge across the spec; utilities gained rounded-md and rounded-full.
+Utility colors are theme tokens only (no Tailwind palette such as
+text-green-500), so gallery examples use theme tokens. Next: continue
+coverage type by type with gallery pages.
 
 ### Plot and Speech — 2026-11-09
 

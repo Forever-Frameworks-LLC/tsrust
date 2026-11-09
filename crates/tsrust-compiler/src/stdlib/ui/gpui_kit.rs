@@ -4,7 +4,7 @@
 // entity per node; overlay content renders through a weak handle to the root.
 use gpui_kit::component::accordion::Accordion;
 use gpui_kit::component::alert::Alert;
-use gpui_kit::component::avatar::Avatar;
+use gpui_kit::component::avatar::{Avatar, AvatarGroup};
 use gpui_kit::component::badge::Badge;
 use gpui_kit::component::breadcrumb::{Breadcrumb, BreadcrumbItem};
 use gpui_kit::component::button::{DropdownButton, Toggle};
@@ -13,12 +13,12 @@ use gpui_kit::component::clipboard::Clipboard;
 use gpui_kit::component::collapsible::Collapsible;
 use gpui_kit::component::color_picker::{ColorPicker, ColorPickerEvent, ColorPickerState};
 use gpui_kit::component::description_list::DescriptionList;
-use gpui_kit::component::empty::{Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle};
-use gpui_kit::component::group_box::GroupBox;
+use gpui_kit::component::empty::{Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyMediaVariant, EmptyTitle};
+use gpui_kit::component::group_box::{GroupBox, GroupBoxVariant, GroupBoxVariants};
 use gpui_kit::component::hover_card::HoverCard;
 use gpui_kit::component::input::NumberInput;
 use gpui_kit::component::kbd::Kbd;
-use gpui_kit::component::label::Label;
+use gpui_kit::component::label::{HighlightsMatch, Label};
 use gpui_kit::component::menu::{ContextMenuExt, PopupMenuItem};
 use gpui_kit::component::input::{OtpEvent, OtpInput, OtpState};
 use gpui_kit::component::pagination::Pagination;
@@ -47,6 +47,7 @@ use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel
 use gpui_kit::component::questionnaire::{Questionnaire, QuestionnaireActions, QuestionnaireChoice, QuestionnaireChoiceDefinition, QuestionnaireChoices, QuestionnaireDescription, QuestionnaireError, QuestionnaireEvent, QuestionnaireItem, QuestionnaireItemDefinition, QuestionnaireNext, QuestionnairePrevious, QuestionnaireProgress, QuestionnaireSkip, QuestionnaireState, QuestionnaireSubmit, QuestionnaireTitle};
 use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings};
 use gpui_kit::component::tag::Tag;
+use gpui_kit::component::ColorName;
 use gpui_kit::component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
 use gpui_kit::component::tooltip::Tooltip;
 use gpui_kit::component::notification::Notification;
@@ -77,7 +78,7 @@ use gpui_kit::component::tree::{TreeItem, TreeState, tree};
 use gpui_kit::component::{IndexPath, ThemeMode, TitleBar, VirtualListScrollHandle, v_virtual_list};
 use gpui_kit::component::Theme as KitTheme;
 use gpui_kit::component::ActiveTheme as _;
-use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, WindowExt};
+use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, StyledExt, WindowExt};
 use super::commands::{self, Command};
 
 enum KitState {
@@ -192,11 +193,16 @@ fn utility_theme(cx: &App) -> Theme {
 struct TsrustCommand {name: String}
 
 /// Bind a Shortcut's keys once per key and command pair.
+thread_local! {
+    /// The keys most recently bound to each Shortcut command, for Kbd command lookup.
+    static COMMAND_KEYS: std::cell::RefCell<HashMap<String, String>> = std::cell::RefCell::new(HashMap::new());
+}
+
 fn bind_shortcut(keys: &str, command: &str, cx: &mut App) {
     thread_local! {static BOUND: std::cell::RefCell<std::collections::HashSet<(String, String)>> = std::cell::RefCell::new(Default::default());}
     if keys.is_empty() || command.is_empty() || !BOUND.with(|bound| bound.borrow_mut().insert((keys.to_owned(), command.to_owned()))) {return;}
     match KeyBinding::load(&platform_keys(keys), Box::new(TsrustCommand {name: command.to_owned()}), None, false, None, cx) {
-        Ok(binding) => cx.bind_keys([binding]),
+        Ok(binding) => {COMMAND_KEYS.with(|bound| bound.borrow_mut().insert(command.to_owned(), keys.to_owned())); cx.bind_keys([binding])}
         Err(error) => eprintln!("Shortcut {command}: invalid keys {keys}: {error:?}"),
     }
 }
@@ -281,6 +287,9 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
     }
     menu
 }
+
+/// Kit components whose className refines the component itself instead of a wrapper.
+pub(crate) const STYLED_KIT: &[&str] = &["Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox"];
 
 /// The size prop shared by sizable Kit components.
 fn kit_size(kit: &Kit) -> Option<KitSize> {
@@ -417,6 +426,29 @@ impl Root {
     fn emit(&mut self, id: u64, event: &str, value: String, cx: &mut Context<Self>) {
         let result = self.node.kit_event(id, event, &value);
         self.settle(result, cx);
+    }
+
+    /// The style refinement for a utility class string.
+    fn class_style(&self, classes: &str, cx: &mut Context<Self>) -> StyleRefinement {
+        if classes.is_empty() {return StyleRefinement::default();}
+        let theme = utility_theme(cx);
+        let mut surface = styled(div(), classes, &theme, mode(cx), false);
+        surface.style().clone()
+    }
+
+    /// Children of the node except the named item components.
+    fn content_except(&self, node: &Node, skip: &[&str], cx: &mut Context<Self>) -> Vec<AnyElement> {
+        let theme = utility_theme(cx);
+        node.visible_children().filter(|child| !child.kit.as_deref().is_some_and(|kit| skip.contains(&kit.name.as_str()))).map(|child| self.element(child, &theme, mode(cx), cx)).collect()
+    }
+
+    /// A Kit Avatar from an Avatar node's props.
+    fn kit_avatar(kit: &Kit) -> Avatar {
+        let mut avatar = Avatar::new().name(SharedString::from(kit.text("name")));
+        if let Some(source) = kit.prop("src").filter(|source| !source.is_empty()) {avatar = avatar.src(SharedString::from(source.to_owned()));}
+        if let Some(icon) = kit.prop("placeholder").and_then(icon_name) {avatar = avatar.placeholder(icon);}
+        if let Some(size) = kit_size(kit) {avatar = avatar.with_size(size);}
+        avatar
     }
 
     fn content(&self, node: &Node, cx: &mut Context<Self>) -> Vec<AnyElement> {
@@ -946,6 +978,8 @@ impl Root {
         let id = node.identity.get();
         let element_id = ElementId::Integer(id);
         let text = |name: &str| SharedString::from(kit.text(name));
+        // className refines Styled Kit components directly (see STYLED_KIT); others get a wrapper.
+        let style = self.class_style(&node.class_name, cx);
         let root = cx.entity().downgrade();
         // A plain event handler for Kit callbacks that run with &mut App.
         let event = |event: &'static str| {
@@ -953,13 +987,16 @@ impl Root {
             move |value: String, cx: &mut App| {let _ = root.update(cx, |root, cx| root.emit(id, event, value, cx));}
         };
         match kit.name.as_str() {
-            "Icon" => match icon_name(&kit.text("name")) {
-                Some(name) => {
-                    let size = match kit.prop("size") {Some("xs") => KitSize::XSmall, Some("sm") => KitSize::Small, Some("lg") => KitSize::Large, _ => KitSize::Medium};
-                    Icon::new(name).with_size(size).into_any_element()
-                }
-                None => div().into_any_element(),
-            },
+            "Icon" => {
+                let icon = match (kit.prop("svg").filter(|svg| !svg.is_empty()), icon_name(&kit.text("name"))) {
+                    (Some(svg), _) => Icon::empty().data(svg.as_bytes()),
+                    (None, Some(name)) => Icon::new(name),
+                    (None, None) => return div().into_any_element(),
+                };
+                let size = match kit.prop("size") {Some("xs") => KitSize::XSmall, Some("sm") => KitSize::Small, Some("lg") => KitSize::Large, _ => KitSize::Medium};
+                let icon = icon.with_size(size);
+                match kit.number("rotate") {Some(degrees) if degrees != 0. => icon.rotate(radians((degrees as f32).to_radians())).into_any_element(), _ => icon.into_any_element()}
+            }
             "Animate" => {
                 let kind = kit.text("kind");
                 let mut animation = Animation::new(std::time::Duration::from_millis(kit.index("duration").unwrap_or(300) as u64)).with_easing(ease_in_out);
@@ -980,51 +1017,132 @@ impl Root {
                 if kit.flag("dot") {badge = badge.dot();}
                 if let Some(count) = kit.index("count") {badge = badge.count(count);}
                 if let Some(max) = kit.index("max") {badge = badge.max(max);}
+                if let Some(icon) = kit.prop("icon").and_then(icon_name) {badge = badge.icon(icon);}
+                if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {badge = badge.color(color);}
+                if let Some(size) = kit_size(kit) {badge = badge.with_size(size);}
                 badge.children(self.content(node, cx)).into_any_element()
             }
             "Tag" => {
-                let tag = match kit.prop("variant") {
-                    Some("primary") => Tag::primary(), Some("danger") => Tag::danger(), Some("success") => Tag::success(),
-                    Some("warning") => Tag::warning(), Some("info") => Tag::info(), _ => Tag::secondary(),
+                let custom = kit.prop("color").and_then(|color| theme_color(color, cx));
+                let mut tag = match (custom, kit.prop("palette").and_then(|name| ColorName::try_from(name).ok())) {
+                    (Some(color), _) => {
+                        let foreground = kit.prop("foreground").and_then(|color| theme_color(color, cx)).unwrap_or(cx.theme().foreground);
+                        Tag::custom(color, foreground, kit.prop("borderColor").and_then(|color| theme_color(color, cx)).unwrap_or(color))
+                    }
+                    (None, Some(name)) => Tag::color(name),
+                    _ => match kit.prop("variant") {
+                        Some("primary") => Tag::primary(), Some("danger") => Tag::danger(), Some("success") => Tag::success(),
+                        Some("warning") => Tag::warning(), Some("info") => Tag::info(), _ => Tag::secondary(),
+                    },
                 };
-                let tag = if kit.flag("outline") {tag.outline()} else {tag};
-                tag.children(self.content(node, cx)).into_any_element()
+                if kit.flag("outline") {tag = tag.outline();}
+                if kit.flag("roundedFull") {tag = tag.rounded_full();} else if let Some(radius) = kit.number("rounded") {tag = tag.rounded(px(radius as f32));}
+                if let Some(size) = kit_size(kit) {tag = tag.with_size(size);}
+                tag.refine_style(&style).children(self.content(node, cx)).into_any_element()
             }
-            "Label" => Label::new(text("text")).secondary(text("secondary")).into_any_element(),
-            "Kbd" => match keystroke(&kit.text("keys")) {
-                Some(keys) => {let kbd = Kbd::new(keys); if kit.flag("outline") {kbd.outline().into_any_element()} else {kbd.into_any_element()}}
-                None => div().child(text("keys")).into_any_element(),
-            },
+            "Label" => {
+                let mut label = Label::new(text("text")).secondary(text("secondary")).masked(kit.flag("masked"));
+                if let Some(highlight) = kit.prop("highlight").filter(|highlight| !highlight.is_empty()) {
+                    let highlight = SharedString::from(highlight.to_owned());
+                    label = label.highlights(if kit.flag("highlightPrefix") {HighlightsMatch::Prefix(highlight)} else {HighlightsMatch::Full(highlight)});
+                }
+                label.refine_style(&style).into_any_element()
+            }
+            "Kbd" => {
+                let keys = match kit.prop("command").filter(|command| !command.is_empty()) {
+                    Some(command) => COMMAND_KEYS.with(|bound| bound.borrow().get(command).cloned()).unwrap_or_default(),
+                    None => kit.text("keys"),
+                };
+                match keystroke(&keys) {
+                    Some(keys) => {
+                        let kbd = Kbd::new(keys).appearance(!kit.flag("plain")).refine_style(&style);
+                        if kit.flag("outline") {kbd.outline().into_any_element()} else {kbd.into_any_element()}
+                    }
+                    None => div().child(SharedString::from(keys)).into_any_element(),
+                }
+            }
             "Separator" => {
                 let separator = if kit.prop("orientation") == Some("vertical") {Separator::vertical()} else {Separator::horizontal()};
-                let separator = if kit.flag("dashed") {separator.dashed()} else {separator};
+                let mut separator = (if kit.flag("dashed") {separator.dashed()} else {separator}).refine_style(&style);
+                if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {separator = separator.color(color);}
                 match kit.prop("label") {Some(label) if !label.is_empty() => separator.label(label.to_owned()).into_any_element(), _ => separator.into_any_element()}
             }
-            "Skeleton" => if kit.flag("secondary") {Skeleton::new().secondary().into_any_element()} else {Skeleton::new().into_any_element()},
-            "Spinner" => Spinner::new().into_any_element(),
-            "Progress" => Progress::new(element_id).value(kit.number("value").unwrap_or_default() as f32).loading(kit.flag("loading")).into_any_element(),
-            "ProgressCircle" => ProgressCircle::new(element_id).value(kit.number("value").unwrap_or_default() as f32).loading(kit.flag("loading")).into_any_element(),
-            "Avatar" => {
-                let mut avatar = Avatar::new().name(text("name"));
-                if let Some(source) = kit.prop("src").filter(|source| !source.is_empty()) {avatar = avatar.src(SharedString::from(source.to_owned()));}
-                avatar.into_any_element()
+            "Skeleton" => if kit.flag("secondary") {Skeleton::new().secondary().refine_style(&style).into_any_element()} else {Skeleton::new().refine_style(&style).into_any_element()},
+            "Spinner" => {
+                let mut spinner = Spinner::new();
+                if let Some(icon) = kit.prop("icon").and_then(icon_name) {spinner = spinner.icon(icon);}
+                if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {spinner = spinner.color(color);}
+                let easing: Box<dyn Fn(f32) -> f32> = match kit.prop("easing") {
+                    Some("ease-in-out") => Box::new(ease_in_out), Some("quadratic") => Box::new(quadratic),
+                    Some("ease-out-quint") => Box::new(ease_out_quint()), _ => Box::new(linear),
+                };
+                spinner = spinner.ease(easing);
+                if let Some(size) = kit_size(kit) {spinner = spinner.with_size(size);}
+                spinner.into_any_element()
+            }
+            "Progress" => {
+                let mut progress = Progress::new(element_id).value(kit.number("value").unwrap_or_default() as f32).loading(kit.flag("loading"));
+                if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {progress = progress.color(color);}
+                if let Some(label) = kit.prop("accessibilityLabel") {progress = progress.accessibility_label(label.to_owned());}
+                if let Some(size) = kit_size(kit) {progress = progress.with_size(size);}
+                progress.refine_style(&style).into_any_element()
+            }
+            "ProgressCircle" => {
+                let mut progress = ProgressCircle::new(element_id).value(kit.number("value").unwrap_or_default() as f32).loading(kit.flag("loading"));
+                if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {progress = progress.color(color);}
+                if let Some(label) = kit.prop("accessibilityLabel") {progress = progress.accessibility_label(label.to_owned());}
+                if let Some(size) = kit_size(kit) {progress = progress.with_size(size);}
+                progress.refine_style(&style).children(self.content(node, cx)).into_any_element()
+            }
+            "Avatar" => Self::kit_avatar(kit).refine_style(&style).into_any_element(),
+            "AvatarGroup" => {
+                let mut group = AvatarGroup::new().children(items(node, "Avatar").map(|(_, avatar)| Self::kit_avatar(avatar)));
+                if let Some(limit) = kit.index("limit") {group = group.limit(limit);}
+                if kit.flag("ellipsis") {group = group.ellipsis();}
+                if let Some(size) = kit_size(kit) {group = group.with_size(size);}
+                group.refine_style(&style).into_any_element()
             }
             "Alert" => {
                 let message = text("message");
                 let mut alert = match kit.prop("variant") {
+                    Some("default") => Alert::new(element_id, message),
                     Some("success") => Alert::success(element_id, message), Some("warning") => Alert::warning(element_id, message),
                     Some("error") => Alert::error(element_id, message), _ => Alert::info(element_id, message),
                 };
                 if let Some(title) = kit.prop("title").filter(|title| !title.is_empty()) {alert = alert.title(title.to_owned());}
+                if let Some(icon) = kit.prop("icon").and_then(icon_name) {alert = alert.icon(icon);}
                 if kit.flag("banner") {alert = alert.banner();}
+                if kit.prop("visible") == Some("false") {alert = alert.visible(false);}
+                if let Some(size) = kit_size(kit) {alert = alert.with_size(size);}
                 if kit.handles("close") {let close = event("close"); alert = alert.on_close(move |_, _, cx| close(String::new(), cx));}
-                alert.into_any_element()
+                alert.refine_style(&style).into_any_element()
             }
-            "ShimmerText" => ShimmerText::new(text("text")).id(element_id).into_any_element(),
-            "Empty" => Empty::new()
-                .header(EmptyHeader::new().title(EmptyTitle::new().child(text("title"))).description(EmptyDescription::new().child(text("description"))))
-                .content(EmptyContent::new().children(self.content(node, cx))).into_any_element(),
-            "GroupBox" => GroupBox::new().title(text("title")).children(self.content(node, cx)).into_any_element(),
+            "ShimmerText" => {
+                let mut shimmer = ShimmerText::new(text("text")).id(element_id).reverse(kit.flag("reverse")).once(kit.flag("once"));
+                if let Some(duration) = kit.index("duration") {shimmer = shimmer.duration(std::time::Duration::from_millis(duration as u64));}
+                if let Some(color) = kit.prop("highlightColor").and_then(|color| theme_color(color, cx)) {shimmer = shimmer.highlight_color(color);}
+                if let Some(spread) = kit.number("spread") {shimmer = shimmer.spread(spread as f32);}
+                shimmer.refine_style(&style).into_any_element()
+            }
+            "Empty" => {
+                let mut header = EmptyHeader::new().title(EmptyTitle::new().child(text("title"))).description(EmptyDescription::new().child(text("description")));
+                if let Some((media, item)) = items(node, "EmptyMedia").next() {
+                    let variant = if item.flag("framed") {EmptyMediaVariant::Icon} else {EmptyMediaVariant::Default};
+                    header = header.media(EmptyMedia::new().with_variant(variant).children(self.content(media, cx)));
+                } else if let Some(icon) = kit.prop("icon").and_then(icon_name) {
+                    header = header.media(EmptyMedia::new().with_variant(EmptyMediaVariant::Icon).child(Icon::new(icon)));
+                }
+                Empty::new().refine_style(&style).header(header).content(EmptyContent::new().children(self.content_except(node, &["EmptyMedia"], cx))).into_any_element()
+            }
+            "GroupBox" => {
+                let variant = match kit.prop("variant") {Some("fill") => GroupBoxVariant::Fill, Some("outline") => GroupBoxVariant::Outline, _ => GroupBoxVariant::Normal};
+                let mut group = GroupBox::new().id(element_id).with_variant(variant)
+                    .title_style(self.class_style(&kit.text("titleClassName"), cx)).content_style(self.class_style(&kit.text("contentClassName"), cx));
+                let title = kit.text("title");
+                if !title.is_empty() {group = group.title(SharedString::from(title));}
+                if let Some((footer, _)) = items(node, "GroupBoxFooter").next() {group = group.footer(div().flex().gap_2().children(self.content(footer, cx)));}
+                group.refine_style(&style).children(self.content_except(node, &["GroupBoxFooter"], cx)).into_any_element()
+            }
             "DescriptionList" => {
                 let list = if kit.flag("vertical") {DescriptionList::vertical()} else {DescriptionList::new()};
                 let mut list = list.columns(kit.index("columns").unwrap_or(3)).bordered(kit.flag("bordered"));
@@ -1044,24 +1162,69 @@ impl Root {
                 }
                 trail.into_any_element()
             }
-            "Clipboard" => Clipboard::new(element_id).value(text("value")).into_any_element(),
+            "Clipboard" => {
+                let mut clipboard = Clipboard::new(element_id).value(text("value"));
+                if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {clipboard = clipboard.tooltip(tooltip.to_owned());}
+                if let Some(delay) = kit.index("tooltipDelay") {clipboard = clipboard.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
+                if let Some(label) = kit.prop("accessibilityLabel") {clipboard = clipboard.accessibility_label(label.to_owned());}
+                if let Some(size) = kit_size(kit) {clipboard = clipboard.with_size(size);}
+                if kit.handles("copied") {let copied = event("copied"); clipboard = clipboard.on_copied(move |value, _, cx| copied(value.to_string(), cx));}
+                clipboard.into_any_element()
+            }
             "Checkbox" => {
                 let mut checkbox = Checkbox::new(element_id).checked(kit.flag("checked")).disabled(kit.flag("disabled"));
                 if let Some(label) = kit.prop("label") {checkbox = checkbox.label(label.to_owned());}
-                if kit.handles("change") {checkbox = checkbox.on_click(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
+                checkbox = checkbox.tab_stop(kit.prop("tabStop") != Some("false"));
+                if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {checkbox = checkbox.tooltip(tooltip.to_owned());}
+                if let Some(delay) = kit.index("tooltipDelay") {checkbox = checkbox.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
+                if let Some(label) = kit.prop("accessibilityLabel") {checkbox = checkbox.accessibility_label(label.to_owned());}
+                if let Some(index) = kit.number("tabIndex") {checkbox = checkbox.tab_index(index as isize);}
+                if let Some(size) = kit_size(kit) {checkbox = checkbox.with_size(size);}
+                match kit.prop("role") {
+                    Some("switch") => checkbox = checkbox.role(Role::Switch), Some("menuitemcheckbox") => checkbox = checkbox.role(Role::MenuItemCheckBox),
+                    Some("none") => checkbox = checkbox.role(None::<Role>), _ => {}
+                }
+                if kit.handles("change") {checkbox = checkbox.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
                 checkbox.into_any_element()
             }
             "Switch" => {
                 let mut switch = Switch::new(element_id).checked(kit.flag("checked")).disabled(kit.flag("disabled"));
                 if let Some(label) = kit.prop("label") {switch = switch.label(label.to_owned());}
-                if kit.handles("change") {switch = switch.on_click(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
+                switch = switch.tab_stop(kit.prop("tabStop") != Some("false"));
+                if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {switch = switch.tooltip(tooltip.to_owned());}
+                if let Some(delay) = kit.index("tooltipDelay") {switch = switch.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
+                if let Some(label) = kit.prop("accessibilityLabel") {switch = switch.accessibility_label(label.to_owned());}
+                if let Some(index) = kit.number("tabIndex") {switch = switch.tab_index(index as isize);}
+                if let Some(size) = kit_size(kit) {switch = switch.with_size(size);}
+                if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {switch = switch.color(color);}
+                if kit.handles("change") {switch = switch.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
                 switch.into_any_element()
+            }
+            "Radio" => {
+                let mut radio = Radio::new(element_id).label(text("label")).checked(kit.flag("checked")).disabled(kit.flag("disabled"));
+                radio = radio.tab_stop(kit.prop("tabStop") != Some("false"));
+                if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {radio = radio.tooltip(tooltip.to_owned());}
+                if let Some(delay) = kit.index("tooltipDelay") {radio = radio.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
+                if let Some(label) = kit.prop("accessibilityLabel") {radio = radio.accessibility_label(label.to_owned());}
+                if let Some(index) = kit.number("tabIndex") {radio = radio.tab_index(index as isize);}
+                if let Some(size) = kit_size(kit) {radio = radio.with_size(size);}
+                if kit.handles("change") {radio = radio.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
+                radio.into_any_element()
             }
             "RadioGroup" => {
                 let group = if kit.flag("vertical") {RadioGroup::vertical(element_id)} else {RadioGroup::horizontal(element_id)};
                 let selected = kit.number("selected").filter(|index| *index >= 0.).map(|index| index as usize);
                 let mut group = group.selected_index(selected).disabled(kit.flag("disabled"));
-                for (child, item) in items(node, "Radio") {group = group.child(Radio::new(ElementId::Integer(child.identity.get())).label(item.text("label")).disabled(item.flag("disabled")));}
+                for (child, kit) in items(node, "Radio") {
+                    let mut radio = Radio::new(ElementId::Integer(child.identity.get())).label(kit.text("label")).disabled(kit.flag("disabled"));
+                    radio = radio.tab_stop(kit.prop("tabStop") != Some("false"));
+                    if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {radio = radio.tooltip(tooltip.to_owned());}
+                    if let Some(delay) = kit.index("tooltipDelay") {radio = radio.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
+                    if let Some(label) = kit.prop("accessibilityLabel") {radio = radio.accessibility_label(label.to_owned());}
+                    if let Some(index) = kit.number("tabIndex") {radio = radio.tab_index(index as isize);}
+                    if let Some(size) = kit_size(kit) {radio = radio.with_size(size);}
+                    group = group.child(radio);
+                }
                 if kit.handles("change") {group = group.on_click(cx.listener(move |this, index: &usize, _, cx| this.emit(id, "change", index.to_string(), cx)));}
                 group.into_any_element()
             }
@@ -1077,6 +1240,8 @@ impl Root {
             }
             "Rating" => {
                 let mut rating = Rating::new(element_id).value(kit.index("value").unwrap_or(0)).max(kit.index("max").unwrap_or(5)).disabled(kit.flag("disabled"));
+                if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {rating = rating.color(color);}
+                if let Some(size) = kit_size(kit) {rating = rating.with_size(size);}
                 if kit.handles("change") {rating = rating.on_click(cx.listener(move |this, value: &usize, _, cx| this.emit(id, "change", value.to_string(), cx)));}
                 rating.into_any_element()
             }
@@ -1284,7 +1449,9 @@ impl Root {
             }
             "ScrollArea" => {
                 let area = div().id(element_id).size_full().children(self.content(node, cx).into_iter().map(|child| div().flex_shrink_0().child(child)));
-                if kit.flag("horizontal") {area.flex().overflow_x_scrollbar().into_any_element()} else {area.overflow_y_scrollbar().into_any_element()}
+                // Kit keys scroll state by call site unless given an id, so each area needs its own.
+                let scroll = ElementId::Name(format!("scroll-area-{id}").into());
+                if kit.flag("horizontal") {area.flex().overflow_x_scrollbar().id(scroll).into_any_element()} else {area.overflow_y_scrollbar().id(scroll).into_any_element()}
             }
             "Message" => {
                 let author = text("author");
