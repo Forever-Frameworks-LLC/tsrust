@@ -485,6 +485,9 @@ macro_rules! combobox_options {($root:expr, $combobox:expr, $kit:expr, $empty:ex
     combobox
 }}}
 
+/// Rendered parts of a Dialog or Sheet.
+struct OverlayParts {title: Option<Vec<AnyElement>>, description: Option<Vec<AnyElement>>, body: Vec<AnyElement>, footer: Option<Vec<AnyElement>>}
+
 /// A Select option: its label, value and disabled state.
 #[derive(Clone)]
 struct Choice {label: SharedString, value: SharedString, disabled: bool}
@@ -517,6 +520,11 @@ fn choices(node: &Node, kit: &Kit) -> (Vec<Choice>, Vec<(SharedString, Vec<Choic
         shape.push('\u{4}');
     }
     (loose, groups, shape)
+}
+
+/// The first Dialog or Sheet part with this suffix, such as Content for DialogContent or SheetContent.
+fn first_part<'a>(node: &'a Node, part: &str) -> Option<&'a Node> {
+    node.visible_children().find(|child| child.kit.as_deref().is_some_and(|kit| kit.name.strip_prefix("Dialog").or_else(|| kit.name.strip_prefix("Sheet")) == Some(part)))
 }
 
 /// The first item component of this name among a node's children.
@@ -682,8 +690,8 @@ impl Root {
             let text = |key: &str| props.get(key).cloned().unwrap_or_default();
             let number = |key: &str| props.get(key).and_then(|value| value.parse::<f32>().ok());
             match name.as_str() {
-                "Dialog" => {if props.get("open").map(String::as_str) == Some("true") {dialog = Some((id, text("title"), text("okText"), text("cancelText")));} continue}
-                "Sheet" => {if props.get("open").map(String::as_str) == Some("true") {sheet = Some((id, text("title"), text("side")));} continue}
+                "Dialog" => {if props.get("open").or(props.get("defaultOpen")).map(String::as_str) == Some("true") {dialog = Some(id);} continue}
+                "Sheet" => {if props.get("open").or(props.get("defaultOpen")).map(String::as_str) == Some("true") {sheet = Some((id, text("side")));} continue}
                 _ => {}
             }
             if let Some(state) = self.states.get(&id) {
@@ -1058,44 +1066,117 @@ impl Root {
         }
         let root = cx.entity().downgrade();
         match (dialog, self.dialog) {
-            (Some((id, title, ok, cancel)), current) if current != Some(id) => {
+            (Some(id), current) if current != Some(id) => {
                 self.dialog = Some(id);
                 let root = root.clone();
                 window.open_dialog(cx, move |dialog, _, cx| {
-                    let body = root.update(cx, |root, cx| root.content_of(id, cx)).unwrap_or_default();
-                    let mut dialog = dialog.title(title.clone()).child(div().flex().flex_col().gap_2().children(body));
+                    let Some(kit) = root.upgrade().and_then(|root| find(&root.read(cx).node, id).and_then(|node| node.kit.as_deref()).map(|kit| (kit.props.clone(), kit.handles("ok"), kit.handles("cancel")))) else {return dialog};
+                    let (props, handles_ok, handles_cancel) = kit;
+                    let text = |key: &str| props.get(key).cloned().unwrap_or_default();
+                    let number = |key: &str| props.get(key).and_then(|value| value.parse::<f32>().ok());
+                    let mut dialog = dialog.close_button(text("closeButton") != "false").overlay(text("overlay") != "false")
+                        .overlay_closable(text("overlayClosable") != "false").keyboard(text("keyboard") != "false");
+                    if let Some(width) = number("width") {dialog = dialog.width(px(width));}
+                    if let Some(width) = number("maxWidth") {dialog = dialog.max_w(px(width));}
+                    if let Some(top) = number("marginTop") {dialog = dialog.margin_top(px(top));}
+                    if text("centered") == "true" {dialog = dialog.centered();}
+                    if text("entrance") == "fade" {dialog = dialog.entrance(gpui_kit::component::dialog::DialogEntrance::Fade);}
                     let close = root.clone();
-                    dialog = dialog.on_close(move |_, _, cx| {let _ = close.update(cx, |root, cx| {root.dialog = None; root.emit(id, "close", String::new(), cx)});});
+                    dialog = dialog.on_close(move |_, _, cx| {let _ = close.update(cx, |root, cx| {root.dialog = None; root.emit(id, "close", String::new(), cx); root.emit(id, "openChange", "false".into(), cx)});});
+                    // The okText/cancelText shorthand draws Kit's own buttons.
+                    let (ok, cancel) = (text("okText"), text("cancelText"));
                     if !ok.is_empty() || !cancel.is_empty() {
                         let props = gpui_kit::component::dialog::DialogButtonProps::default().ok_text(if ok.is_empty() {"OK".to_owned()} else {ok.clone()}).cancel_text(if cancel.is_empty() {"Cancel".to_owned()} else {cancel.clone()}).show_cancel(!cancel.is_empty());
-                        let confirm = root.clone();
-                        dialog = dialog.button_props(props).on_ok(move |_, _, cx| {let _ = confirm.update(cx, |root, cx| root.emit(id, "ok", String::new(), cx)); true});
-                        // A plain Kit dialog draws no buttons from its props; compose the footer.
-                        let mut footer = gpui_kit::component::dialog::DialogFooter::new();
-                        if !cancel.is_empty() {footer = footer.child(gpui_kit::component::dialog::DialogClose::new().child(gpui_kit::component::button::Button::new("tsrust-dialog-cancel").outline().label(cancel.clone())));}
-                        if !ok.is_empty() {footer = footer.child(gpui_kit::component::dialog::DialogAction::new().child(gpui_kit::component::button::Button::new("tsrust-dialog-ok").primary().label(ok.clone())));}
-                        dialog = dialog.footer(footer);
+                        dialog = dialog.button_props(props);
+                        if handles_ok {let confirm = root.clone(); dialog = dialog.on_ok(move |_, _, cx| {let _ = confirm.update(cx, |root, cx| root.emit(id, "ok", String::new(), cx)); true});}
+                        if handles_cancel {let cancel = root.clone(); dialog = dialog.on_cancel(move |_, _, cx| {let _ = cancel.update(cx, |root, cx| root.emit(id, "cancel", String::new(), cx)); true});}
                     }
-                    dialog
+                    let parts = root.clone();
+                    let (ok, cancel) = (ok.clone(), cancel.clone());
+                    let cancelled = root.clone();
+                    dialog.content(move |content, _, cx| {
+                        let Ok(Some(parts)) = parts.update(cx, |root, cx| root.overlay_parts(id, cx)) else {return content};
+                        let OverlayParts {title, description, body, footer} = parts;
+                        let mut content = content;
+                        if title.is_some() || description.is_some() {
+                            let mut header = gpui_kit::component::dialog::DialogHeader::new();
+                            if let Some(title) = title {header = header.child(gpui_kit::component::dialog::DialogTitle::new().children(title));}
+                            if let Some(description) = description {header = header.child(gpui_kit::component::dialog::DialogDescription::new().children(description));}
+                            content = content.child(header);
+                        }
+                        content = content.child(div().flex().flex_col().gap_3().children(body));
+                        match footer {
+                            Some(footer) => content.child(gpui_kit::component::dialog::DialogFooter::new().children(footer)),
+                            // The okText/cancelText shorthand: Kit's close and action buttons.
+                            None if !ok.is_empty() || !cancel.is_empty() => {
+                                let mut footer = gpui_kit::component::dialog::DialogFooter::new();
+                                if !cancel.is_empty() {
+                                    let cancelled = cancelled.clone();
+                                    let button = gpui_kit::component::button::Button::new("tsrust-dialog-cancel").outline().label(cancel.clone())
+                                        .on_click(move |_, _, cx| {let _ = cancelled.update(cx, |root, cx| root.emit(id, "cancel", String::new(), cx));});
+                                    footer = footer.child(gpui_kit::component::dialog::DialogClose::new().child(button));
+                                }
+                                if !ok.is_empty() {footer = footer.child(gpui_kit::component::dialog::DialogAction::new().child(gpui_kit::component::button::Button::new("tsrust-dialog-ok").primary().label(ok.clone())));}
+                                content.child(footer)
+                            }
+                            None => content,
+                        }
+                    })
                 });
             }
             (None, Some(_)) => {self.dialog = None; window.close_dialog(cx);}
             _ => {}
         }
         match (sheet, self.sheet) {
-            (Some((id, title, side)), current) if current != Some(id) => {
+            (Some((id, side)), current) if current != Some(id) => {
                 self.sheet = Some(id);
                 let placement = match side.as_str() {"left" => Placement::Left, "top" => Placement::Top, "bottom" => Placement::Bottom, _ => Placement::Right};
                 window.open_sheet_at(placement, cx, move |sheet, _, cx| {
-                    let body = root.update(cx, |root, cx| root.content_of(id, cx)).unwrap_or_default();
+                    let Ok(Some(parts)) = root.update(cx, |root, cx| root.overlay_parts(id, cx)) else {return sheet};
+                    let OverlayParts {title, description, body, footer} = parts;
+                    let props = root.upgrade().and_then(|root| find(&root.read(cx).node, id).and_then(|node| node.kit.as_deref()).map(|kit| kit.props.clone())).unwrap_or_default();
+                    let number = |key: &str| props.get(key).and_then(|value| value.parse::<f32>().ok());
                     let close = root.clone();
-                    sheet.title(title.clone()).child(div().flex().flex_col().gap_2().children(body))
-                        .on_close(move |_, _, cx| {let _ = close.update(cx, |root, cx| {root.sheet = None; root.emit(id, "close", String::new(), cx)});})
+                    let mut sheet = sheet.on_close(move |_, _, cx| {let _ = close.update(cx, |root, cx| {root.sheet = None; root.emit(id, "close", String::new(), cx); root.emit(id, "openChange", "false".into(), cx)});})
+                        .overlay(props.get("overlay").map(String::as_str) != Some("false")).overlay_closable(props.get("overlayClosable").map(String::as_str) != Some("false"));
+                    if let Some(size) = number("size") {sheet = sheet.size(px(size));}
+                    if props.get("resizable").map(String::as_str) == Some("true") {sheet = sheet.resizable(true);}
+                    if let Some(title) = title {
+                        let muted = cx.theme().muted_foreground;
+                        let description = description.map(|description| div().text_sm().font_weight(FontWeight::NORMAL).text_color(muted).children(description));
+                        sheet = sheet.title(div().flex().flex_col().gap_1().children(title).children(description));
+                    }
+                    if let Some(footer) = footer {sheet = sheet.footer(div().flex().justify_end().gap_2().children(footer));}
+                    sheet.child(div().flex().flex_col().gap_3().children(body))
                 });
             }
             (None, Some(_)) => {self.sheet = None; window.close_sheet(cx);}
             _ => {}
         }
+    }
+
+    /// A Dialog or Sheet's parts: DialogContent (or the node itself) holds DialogHeader
+    /// (DialogTitle, DialogDescription), body content and DialogFooter, whose DialogClose
+    /// children close the overlay. The title prop stands in for DialogTitle.
+    fn overlay_parts(&self, id: u64, cx: &mut Context<Self>) -> Option<OverlayParts> {
+        let node = find(&self.node, id)?;
+        let kit = node.kit.as_deref()?;
+        let content = first_part(node, "Content").unwrap_or(node);
+        let header = first_part(content, "Header");
+        let title = header.and_then(|header| first_part(header, "Title")).map(|title| self.content(title, cx))
+            .or_else(|| (!kit.text("title").is_empty()).then(|| vec![SharedString::from(kit.text("title")).into_any_element()]));
+        let description = header.and_then(|header| first_part(header, "Description")).map(|description| self.content(description, cx))
+            .or_else(|| (!kit.text("description").is_empty()).then(|| vec![SharedString::from(kit.text("description")).into_any_element()]));
+        let body = self.content_except(content, &["DialogTrigger", "DialogHeader", "DialogFooter", "DialogContent", "SheetTrigger", "SheetHeader", "SheetFooter", "SheetContent"], cx);
+        let footer = first_part(content, "Footer").map(|footer| {
+            let theme = utility_theme(cx);
+            footer.visible_children().map(|child| match child.kit.as_deref().map(|kit| kit.name.as_str()) {
+                Some("DialogClose" | "SheetClose") => gpui_kit::component::dialog::DialogClose::new().children(self.content(child, cx)).into_any_element(),
+                Some("DialogAction") => gpui_kit::component::dialog::DialogAction::new().children(self.content(child, cx)).into_any_element(),
+                _ => self.element(child, &theme, mode(cx), cx),
+            }).collect::<Vec<_>>()
+        });
+        Some(OverlayParts {title, description, body, footer})
     }
 
     /// Run queued application commands; replies refresh the tree like handlers.
@@ -1582,7 +1663,9 @@ impl Root {
             },
             "Tooltip" => {
                 // Children are the trigger; a TooltipContent child is a rich tooltip, else the text prop.
-                let (tip, keys, command) = (text("text"), kit.text("keys"), kit.text("command"));
+                let (tip, mut keys, command) = (text("text"), kit.text("keys"), kit.text("command"));
+                // A command shows the keys its Shortcut bound, as Kbd does.
+                if keys.is_empty() && !command.is_empty() {keys = COMMAND_KEYS.with(|bound| bound.borrow().get(&command).cloned()).unwrap_or_default();}
                 let rich = items(node, "TooltipContent").next().map(|(child, _)| child.identity.get());
                 let style = self.class_style(&kit.text("contentClassName"), cx);
                 let root = root.clone();
@@ -1592,7 +1675,6 @@ impl Root {
                         None => Tooltip::new(tip.clone()),
                     };
                     if let Some(keys) = keystroke(&keys) {tooltip = tooltip.key_binding(Some(Kbd::new(keys)));}
-                    if !command.is_empty() {tooltip = tooltip.action(&TsrustCommand {name: command.clone()}, None);}
                     tooltip.refine_style(&style).build(window, cx)
                 }).into_any_element()
             }
@@ -1617,7 +1699,11 @@ impl Root {
                     HoverCard::new(element_id).trigger(trigger).content(move |_, _, cx| div().flex().flex_col().gap_2().children(render(cx))).into_any_element()
                 }
             }
-            "Dialog" | "Sheet" => div().into_any_element(),
+            "Dialog" | "Sheet" => match first_part(node, "Trigger") {
+                // The trigger opens the overlay; open, when set, controls it instead.
+                Some(trigger) => div().id(element_id).children(self.content(trigger, cx)).on_click(cx.listener(move |this, _, _, cx| this.emit(id, "openChange", "true".into(), cx))).into_any_element(),
+                None => div().into_any_element(),
+            },
             "DropdownMenu" | "ContextMenu" => {
                 let entries = std::rc::Rc::new(menu_entries(node));
                 let options = MenuOptions::new(kit);

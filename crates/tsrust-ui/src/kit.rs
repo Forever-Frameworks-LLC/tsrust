@@ -18,8 +18,13 @@ pub(crate) struct Kit {
 
 /// The prop a component's change event updates when the caller leaves it unset,
 /// like an uncontrolled React input; a set or bound prop stays caller-controlled.
-fn state_prop(component: &str) -> Option<&'static str> {
-    match component {"Checkbox" | "Switch" | "Radio" | "Toggle" => Some("checked"), "RadioGroup" => Some("selected"), "Rating" | "NumberInput" | "Select" | "Combobox" | "Tabs" | "Accordion" => Some("value"), _ => None}
+fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
+    match component {
+        "Checkbox" | "Switch" | "Radio" | "Toggle" => Some(("checked", "change")), "RadioGroup" => Some(("selected", "change")),
+        "Rating" | "NumberInput" | "Select" | "Combobox" | "Tabs" | "Accordion" => Some(("value", "change")),
+        "Dialog" | "Sheet" => Some(("open", "openChange")),
+        _ => None,
+    }
 }
 
 impl Kit {
@@ -120,7 +125,7 @@ impl Node {
             if node.identity.get() == target {
                 let Some(kit) = node.kit.as_deref_mut() else {return Ok(false)};
                 let mut handled = false;
-                if let Some(prop) = state_prop(&kit.name).filter(|_| event == "change") {
+                if let Some((prop, _)) = state_prop(&kit.name).filter(|(_, name)| *name == event) {
                     let controlled = kit.bindings.iter().any(|(name, _)| name == prop) || (kit.props.contains_key(prop) && !kit.local.contains(&prop));
                     if !controlled {
                         kit.props.insert(prop.to_owned(), value.to_owned());

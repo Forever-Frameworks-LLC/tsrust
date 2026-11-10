@@ -2002,58 +2002,146 @@
     },
     {
       "name": "Dialog",
-      "children": true,
-      "doc": "A modal dialog shown while open is true. Its children are the dialog body.",
+      "doc": "A modal window opened from a DialogTrigger, with DialogContent holding a header, body and footer.",
       "props": [
         {
           "name": "open",
           "type": "boolean",
-          "doc": "Opens the dialog when true and closes it when false."
+          "doc": "Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "doc": "Starts open when `open` is unset."
         },
         {
           "name": "title",
           "type": "string",
-          "doc": "Dialog heading."
+          "doc": "Title text, when there is no DialogTitle."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Description text, when there is no DialogDescription."
+        },
+        {
+          "name": "overlay",
+          "type": "boolean",
+          "doc": "false removes the dimmed backdrop. Defaults to true."
+        },
+        {
+          "name": "overlayClosable",
+          "type": "boolean",
+          "doc": "false keeps it open when the backdrop is clicked. Defaults to true."
+        },
+        {
+          "name": "closeButton",
+          "type": "boolean",
+          "doc": "false hides the corner close button."
+        },
+        {
+          "name": "keyboard",
+          "type": "boolean",
+          "doc": "false stops Escape from closing it."
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "doc": "Width in pixels."
+        },
+        {
+          "name": "maxWidth",
+          "type": "number",
+          "doc": "Largest width in pixels."
+        },
+        {
+          "name": "marginTop",
+          "type": "number",
+          "doc": "Distance from the top of the window in pixels."
+        },
+        {
+          "name": "centered",
+          "type": "boolean",
+          "doc": "Centers it vertically instead of placing it near the top."
+        },
+        {
+          "name": "entrance",
+          "type": [
+            "slide-down",
+            "fade"
+          ],
+          "doc": "Opening animation. Defaults to slide-down."
         },
         {
           "name": "okText",
           "type": "string",
-          "doc": "Shows an OK button with this text."
+          "doc": "Shorthand: draws Kit's OK button with this text; onOk runs when pressed."
         },
         {
           "name": "cancelText",
           "type": "string",
-          "doc": "Shows a Cancel button with this text."
+          "doc": "Shorthand: draws Kit's Cancel button with this text; onCancel runs when pressed."
         }
       ],
       "events": [
         {
+          "prop": "onOpenChange",
+          "value": "boolean",
+          "param": "open",
+          "doc": "Runs when the trigger opens it or a close button, Escape or the backdrop closes it."
+        },
+        {
           "prop": "onClose",
           "value": "void",
-          "doc": "Called when the user dismisses the dialog; set open to false here."
+          "doc": "Runs after it closes."
         },
         {
           "prop": "onOk",
           "value": "void",
-          "doc": "Called when the OK button is clicked."
+          "doc": "Runs when the okText button is pressed."
+        },
+        {
+          "prop": "onCancel",
+          "value": "void",
+          "doc": "Runs when the cancelText button is pressed."
         }
       ],
-      "example": "<Dialog open={editing.get()} title=\"Rename\" okText=\"Save\" onClose={() => { editing.set(false); }}><Input value={name}/></Dialog>"
+      "children": "DialogTrigger and DialogContent",
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
     },
     {
       "name": "Sheet",
-      "children": true,
-      "doc": "A panel that slides in from the window edge while open is true.",
+      "doc": "A panel that slides in from a window edge, opened from a SheetTrigger, with SheetContent holding a header, body and footer.",
       "props": [
         {
           "name": "open",
           "type": "boolean",
-          "doc": "Shows the sheet when true and hides it when false."
+          "doc": "Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "doc": "Starts open when `open` is unset."
         },
         {
           "name": "title",
           "type": "string",
-          "doc": "Sheet heading."
+          "doc": "Title text, when there is no DialogTitle."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Description text, when there is no DialogDescription."
+        },
+        {
+          "name": "overlay",
+          "type": "boolean",
+          "doc": "false removes the dimmed backdrop. Defaults to true."
+        },
+        {
+          "name": "overlayClosable",
+          "type": "boolean",
+          "doc": "false keeps it open when the backdrop is clicked. Defaults to true."
         },
         {
           "name": "side",
@@ -2063,17 +2151,154 @@
             "top",
             "bottom"
           ],
-          "doc": "Window edge. Defaults to right."
+          "doc": "The edge it slides from. Defaults to right."
+        },
+        {
+          "name": "size",
+          "type": "number",
+          "doc": "Width (left/right) or height (top/bottom) in pixels."
+        },
+        {
+          "name": "resizable",
+          "type": "boolean",
+          "doc": "Lets people drag the inner edge to resize it."
         }
       ],
       "events": [
         {
+          "prop": "onOpenChange",
+          "value": "boolean",
+          "param": "open",
+          "doc": "Runs when the trigger opens it or it is closed."
+        },
+        {
           "prop": "onClose",
           "value": "void",
-          "doc": "Called when the user dismisses the sheet; set open to false here."
+          "doc": "Runs after it closes."
         }
       ],
-      "example": "<Sheet open={details.get()} title=\"Details\" onClose={() => { details.set(false); }}><Text>Body</Text></Sheet>"
+      "children": "SheetTrigger and SheetContent",
+      "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "DialogTrigger",
+      "item": true,
+      "doc": "Content that opens the Dialog when clicked.",
+      "props": [],
+      "children": true,
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
+    },
+    {
+      "name": "DialogContent",
+      "item": true,
+      "doc": "The Dialog's contents: header, body and footer.",
+      "props": [],
+      "children": true,
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
+    },
+    {
+      "name": "DialogHeader",
+      "item": true,
+      "doc": "Holds the DialogTitle and DialogDescription.",
+      "props": [],
+      "children": true,
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
+    },
+    {
+      "name": "DialogTitle",
+      "item": true,
+      "doc": "The Dialog title.",
+      "props": [],
+      "children": true,
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
+    },
+    {
+      "name": "DialogDescription",
+      "item": true,
+      "doc": "Muted text under the Dialog title.",
+      "props": [],
+      "children": true,
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
+    },
+    {
+      "name": "DialogFooter",
+      "item": true,
+      "doc": "Action buttons along the bottom of the Dialog.",
+      "props": [],
+      "children": true,
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
+    },
+    {
+      "name": "DialogClose",
+      "item": true,
+      "doc": "Content in the DialogFooter that closes the Dialog when clicked.",
+      "props": [],
+      "children": true,
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
+    },
+    {
+      "name": "SheetTrigger",
+      "item": true,
+      "doc": "Content that opens the Sheet when clicked.",
+      "props": [],
+      "children": true,
+      "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "SheetContent",
+      "item": true,
+      "doc": "The Sheet's contents: header, body and footer.",
+      "props": [],
+      "children": true,
+      "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "SheetHeader",
+      "item": true,
+      "doc": "Holds the SheetTitle and SheetDescription.",
+      "props": [],
+      "children": true,
+      "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "SheetTitle",
+      "item": true,
+      "doc": "The Sheet title.",
+      "props": [],
+      "children": true,
+      "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "SheetDescription",
+      "item": true,
+      "doc": "Muted text under the Sheet title.",
+      "props": [],
+      "children": true,
+      "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "SheetFooter",
+      "item": true,
+      "doc": "Action buttons along the bottom of the Sheet.",
+      "props": [],
+      "children": true,
+      "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "SheetClose",
+      "item": true,
+      "doc": "Content in the SheetFooter that closes the Sheet when clicked.",
+      "props": [],
+      "children": true,
+      "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "DialogAction",
+      "item": true,
+      "doc": "Content in the DialogFooter that confirms the dialog: it runs onOk and closes unless onOk keeps it open.",
+      "props": [],
+      "children": true,
+      "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
     },
     {
       "name": "DropdownMenu",
@@ -4401,6 +4626,49 @@
       "query": "query",
       "set_query": "query"
     },
+    "Dialog": {
+      "new": "automatic",
+      "trigger": "DialogTrigger child",
+      "content": "DialogContent child",
+      "title": "DialogTitle child / title",
+      "footer": "DialogFooter child",
+      "button_props": "okText / cancelText",
+      "on_close": "onClose / onOpenChange",
+      "on_ok": "onOk",
+      "on_cancel": "onCancel",
+      "close_button": "closeButton",
+      "margin_top": "marginTop",
+      "centered": "centered",
+      "w": "width",
+      "width": "width",
+      "max_w": "maxWidth",
+      "overlay": "overlay",
+      "overlay_closable": "overlayClosable",
+      "keyboard": "keyboard",
+      "entrance": "entrance"
+    },
+    "DialogAction": {
+      "new": "automatic: the DialogAction child"
+    },
+    "DialogClose": {
+      "new": "automatic: the DialogClose child",
+      "trigger": "DialogClose children"
+    },
+    "DialogContent": {
+      "new": "automatic: the DialogContent child"
+    },
+    "DialogDescription": {
+      "new": "automatic: the DialogDescription child"
+    },
+    "DialogFooter": {
+      "new": "automatic: the DialogFooter child"
+    },
+    "DialogHeader": {
+      "new": "automatic: the DialogHeader child"
+    },
+    "DialogTitle": {
+      "new": "automatic: the DialogTitle child"
+    },
     "DropdownButton": {
       "new": "DropdownMenu",
       "button": "Button child (trigger)",
@@ -4857,6 +5125,16 @@
       "dashed": "dashed",
       "label": "label",
       "color": "color"
+    },
+    "Sheet": {
+      "new": "automatic",
+      "title": "SheetTitle child / title",
+      "footer": "SheetFooter child",
+      "size": "size",
+      "resizable": "resizable",
+      "overlay": "overlay",
+      "overlay_closable": "overlayClosable",
+      "on_close": "onClose / onOpenChange"
     },
     "ShimmerText": {
       "new": "text",

@@ -24241,12 +24241,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A modal dialog shown while open is true. Its children are the dialog body.\n\nProps:\n- `open`: Opens the dialog when true and closes it when false.\n- `title`: Dialog heading.\n- `okText`: Shows an OK button with this text.\n- `cancelText`: Shows a Cancel button with this text.\n- `onClose`: Called when the user dismisses the dialog; set open to false here.\n- `onOk`: Called when the OK button is clicked.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog open={editing.get()} title=\"Rename\" okText=\"Save\" onClose={() => { editing.set(false); }}><Input value={name}/></Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A modal window opened from a DialogTrigger, with DialogContent holding a header, body and footer.\n\nProps:\n- `open`: Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `title`: Title text, when there is no DialogTitle.\n- `description`: Description text, when there is no DialogDescription.\n- `overlay`: false removes the dimmed backdrop. Defaults to true.\n- `overlayClosable`: false keeps it open when the backdrop is clicked. Defaults to true.\n- `closeButton`: false hides the corner close button.\n- `keyboard`: false stops Escape from closing it.\n- `width`: Width in pixels.\n- `maxWidth`: Largest width in pixels.\n- `marginTop`: Distance from the top of the window in pixels.\n- `centered`: Centers it vertically instead of placing it near the top.\n- `entrance`: Opening animation. Defaults to slide-down.\n- `okText`: Shorthand: draws Kit's OK button with this text; onOk runs when pressed.\n- `cancelText`: Shorthand: draws Kit's Cancel button with this text; onCancel runs when pressed.\n- `onOpenChange`: Runs when the trigger opens it or a close button, Escape or the backdrop closes it.\n- `onClose`: Runs after it closes.\n- `onOk`: Runs when the okText button is pressed.\n- `onCancel`: Runs when the cancelText button is pressed.\n- `children`: DialogTrigger and DialogContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "DialogProps",
       "signature": "interface DialogProps",
-      "documentation": "A modal dialog shown while open is true. Its children are the dialog body.\n\nProps:\n- `open`: Opens the dialog when true and closes it when false.\n- `title`: Dialog heading.\n- `okText`: Shows an OK button with this text.\n- `cancelText`: Shows a Cancel button with this text.\n- `onClose`: Called when the user dismisses the dialog; set open to false here.\n- `onOk`: Called when the OK button is clicked.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog open={editing.get()} title=\"Rename\" okText=\"Save\" onClose={() => { editing.set(false); }}><Input value={name}/></Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A modal window opened from a DialogTrigger, with DialogContent holding a header, body and footer.\n\nProps:\n- `open`: Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `title`: Title text, when there is no DialogTitle.\n- `description`: Description text, when there is no DialogDescription.\n- `overlay`: false removes the dimmed backdrop. Defaults to true.\n- `overlayClosable`: false keeps it open when the backdrop is clicked. Defaults to true.\n- `closeButton`: false hides the corner close button.\n- `keyboard`: false stops Escape from closing it.\n- `width`: Width in pixels.\n- `maxWidth`: Largest width in pixels.\n- `marginTop`: Distance from the top of the window in pixels.\n- `centered`: Centers it vertically instead of placing it near the top.\n- `entrance`: Opening animation. Defaults to slide-down.\n- `okText`: Shorthand: draws Kit's OK button with this text; onOk runs when pressed.\n- `cancelText`: Shorthand: draws Kit's Cancel button with this text; onCancel runs when pressed.\n- `onOpenChange`: Runs when the trigger opens it or a close button, Escape or the backdrop closes it.\n- `onClose`: Runs after it closes.\n- `onOk`: Runs when the okText button is pressed.\n- `onCancel`: Runs when the cancelText button is pressed.\n- `children`: DialogTrigger and DialogContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Sheet",
@@ -24257,12 +24257,252 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A panel that slides in from the window edge while open is true.\n\nProps:\n- `open`: Shows the sheet when true and hides it when false.\n- `title`: Sheet heading.\n- `side`: Window edge. Defaults to right.\n- `onClose`: Called when the user dismisses the sheet; set open to false here.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet open={details.get()} title=\"Details\" onClose={() => { details.set(false); }}><Text>Body</Text></Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A panel that slides in from a window edge, opened from a SheetTrigger, with SheetContent holding a header, body and footer.\n\nProps:\n- `open`: Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `title`: Title text, when there is no DialogTitle.\n- `description`: Description text, when there is no DialogDescription.\n- `overlay`: false removes the dimmed backdrop. Defaults to true.\n- `overlayClosable`: false keeps it open when the backdrop is clicked. Defaults to true.\n- `side`: The edge it slides from. Defaults to right.\n- `size`: Width (left/right) or height (top/bottom) in pixels.\n- `resizable`: Lets people drag the inner edge to resize it.\n- `onOpenChange`: Runs when the trigger opens it or it is closed.\n- `onClose`: Runs after it closes.\n- `children`: SheetTrigger and SheetContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "SheetProps",
       "signature": "interface SheetProps",
-      "documentation": "A panel that slides in from the window edge while open is true.\n\nProps:\n- `open`: Shows the sheet when true and hides it when false.\n- `title`: Sheet heading.\n- `side`: Window edge. Defaults to right.\n- `onClose`: Called when the user dismisses the sheet; set open to false here.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet open={details.get()} title=\"Details\" onClose={() => { details.set(false); }}><Text>Body</Text></Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A panel that slides in from a window edge, opened from a SheetTrigger, with SheetContent holding a header, body and footer.\n\nProps:\n- `open`: Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `title`: Title text, when there is no DialogTitle.\n- `description`: Description text, when there is no DialogDescription.\n- `overlay`: false removes the dimmed backdrop. Defaults to true.\n- `overlayClosable`: false keeps it open when the backdrop is clicked. Defaults to true.\n- `side`: The edge it slides from. Defaults to right.\n- `size`: Width (left/right) or height (top/bottom) in pixels.\n- `resizable`: Lets people drag the inner edge to resize it.\n- `onOpenChange`: Runs when the trigger opens it or it is closed.\n- `onClose`: Runs after it closes.\n- `children`: SheetTrigger and SheetContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogTrigger",
+      "signature": "DialogTrigger(props: DialogTriggerProps): Node",
+      "parameters": [
+        {
+          "label": "props: DialogTriggerProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content that opens the Dialog when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogTriggerProps",
+      "signature": "interface DialogTriggerProps",
+      "documentation": "Content that opens the Dialog when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogContent",
+      "signature": "DialogContent(props: DialogContentProps): Node",
+      "parameters": [
+        {
+          "label": "props: DialogContentProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The Dialog's contents: header, body and footer.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogContentProps",
+      "signature": "interface DialogContentProps",
+      "documentation": "The Dialog's contents: header, body and footer.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogHeader",
+      "signature": "DialogHeader(props: DialogHeaderProps): Node",
+      "parameters": [
+        {
+          "label": "props: DialogHeaderProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Holds the DialogTitle and DialogDescription.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogHeaderProps",
+      "signature": "interface DialogHeaderProps",
+      "documentation": "Holds the DialogTitle and DialogDescription.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogTitle",
+      "signature": "DialogTitle(props: DialogTitleProps): Node",
+      "parameters": [
+        {
+          "label": "props: DialogTitleProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The Dialog title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogTitleProps",
+      "signature": "interface DialogTitleProps",
+      "documentation": "The Dialog title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogDescription",
+      "signature": "DialogDescription(props: DialogDescriptionProps): Node",
+      "parameters": [
+        {
+          "label": "props: DialogDescriptionProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Muted text under the Dialog title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogDescriptionProps",
+      "signature": "interface DialogDescriptionProps",
+      "documentation": "Muted text under the Dialog title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogFooter",
+      "signature": "DialogFooter(props: DialogFooterProps): Node",
+      "parameters": [
+        {
+          "label": "props: DialogFooterProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Action buttons along the bottom of the Dialog.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogFooterProps",
+      "signature": "interface DialogFooterProps",
+      "documentation": "Action buttons along the bottom of the Dialog.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogClose",
+      "signature": "DialogClose(props: DialogCloseProps): Node",
+      "parameters": [
+        {
+          "label": "props: DialogCloseProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content in the DialogFooter that closes the Dialog when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogCloseProps",
+      "signature": "interface DialogCloseProps",
+      "documentation": "Content in the DialogFooter that closes the Dialog when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetTrigger",
+      "signature": "SheetTrigger(props: SheetTriggerProps): Node",
+      "parameters": [
+        {
+          "label": "props: SheetTriggerProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content that opens the Sheet when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetTriggerProps",
+      "signature": "interface SheetTriggerProps",
+      "documentation": "Content that opens the Sheet when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetContent",
+      "signature": "SheetContent(props: SheetContentProps): Node",
+      "parameters": [
+        {
+          "label": "props: SheetContentProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The Sheet's contents: header, body and footer.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetContentProps",
+      "signature": "interface SheetContentProps",
+      "documentation": "The Sheet's contents: header, body and footer.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetHeader",
+      "signature": "SheetHeader(props: SheetHeaderProps): Node",
+      "parameters": [
+        {
+          "label": "props: SheetHeaderProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Holds the SheetTitle and SheetDescription.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetHeaderProps",
+      "signature": "interface SheetHeaderProps",
+      "documentation": "Holds the SheetTitle and SheetDescription.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetTitle",
+      "signature": "SheetTitle(props: SheetTitleProps): Node",
+      "parameters": [
+        {
+          "label": "props: SheetTitleProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The Sheet title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetTitleProps",
+      "signature": "interface SheetTitleProps",
+      "documentation": "The Sheet title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetDescription",
+      "signature": "SheetDescription(props: SheetDescriptionProps): Node",
+      "parameters": [
+        {
+          "label": "props: SheetDescriptionProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Muted text under the Sheet title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetDescriptionProps",
+      "signature": "interface SheetDescriptionProps",
+      "documentation": "Muted text under the Sheet title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetFooter",
+      "signature": "SheetFooter(props: SheetFooterProps): Node",
+      "parameters": [
+        {
+          "label": "props: SheetFooterProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Action buttons along the bottom of the Sheet.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetFooterProps",
+      "signature": "interface SheetFooterProps",
+      "documentation": "Action buttons along the bottom of the Sheet.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetClose",
+      "signature": "SheetClose(props: SheetCloseProps): Node",
+      "parameters": [
+        {
+          "label": "props: SheetCloseProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content in the SheetFooter that closes the Sheet when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SheetCloseProps",
+      "signature": "interface SheetCloseProps",
+      "documentation": "Content in the SheetFooter that closes the Sheet when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogAction",
+      "signature": "DialogAction(props: DialogActionProps): Node",
+      "parameters": [
+        {
+          "label": "props: DialogActionProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content in the DialogFooter that confirms the dialog: it runs onOk and closes unless onOk keeps it open.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DialogActionProps",
+      "signature": "interface DialogActionProps",
+      "documentation": "Content in the DialogFooter that confirms the dialog: it runs onOk and closes unless onOk keeps it open.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "DropdownMenu",

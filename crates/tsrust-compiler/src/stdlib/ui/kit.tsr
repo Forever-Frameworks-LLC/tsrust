@@ -2758,25 +2758,51 @@ export function HoverCardContent(props: HoverCardContentProps): Node {
 }
 
 export interface DialogProps {
-  /** Opens the dialog when true and closes it when false. */
+  /** Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it. */
   open?: ReactiveValue<boolean>;
-  /** Dialog heading. */
+  /** Starts open when `open` is unset. */
+  defaultOpen?: ReactiveValue<boolean>;
+  /** Title text, when there is no DialogTitle. */
   title?: ReactiveValue<string> | TextBinding;
-  /** Shows an OK button with this text. */
+  /** Description text, when there is no DialogDescription. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** false removes the dimmed backdrop. Defaults to true. */
+  overlay?: ReactiveValue<boolean>;
+  /** false keeps it open when the backdrop is clicked. Defaults to true. */
+  overlayClosable?: ReactiveValue<boolean>;
+  /** false hides the corner close button. */
+  closeButton?: ReactiveValue<boolean>;
+  /** false stops Escape from closing it. */
+  keyboard?: ReactiveValue<boolean>;
+  /** Width in pixels. */
+  width?: ReactiveValue<number>;
+  /** Largest width in pixels. */
+  maxWidth?: ReactiveValue<number>;
+  /** Distance from the top of the window in pixels. */
+  marginTop?: ReactiveValue<number>;
+  /** Centers it vertically instead of placing it near the top. */
+  centered?: ReactiveValue<boolean>;
+  /** Opening animation. Defaults to slide-down. */
+  entrance?: ReactiveValue<'slide-down' | 'fade'>;
+  /** Shorthand: draws Kit's OK button with this text; onOk runs when pressed. */
   okText?: ReactiveValue<string> | TextBinding;
-  /** Shows a Cancel button with this text. */
+  /** Shorthand: draws Kit's Cancel button with this text; onCancel runs when pressed. */
   cancelText?: ReactiveValue<string> | TextBinding;
-  /** Called when the user dismisses the dialog; set open to false here. */
+  /** Runs when the trigger opens it or a close button, Escape or the backdrop closes it. */
+  onOpenChange?: Owned<Function<void, [open: boolean]>>;
+  /** Runs after it closes. */
   onClose?: Owned<Function<void>>;
-  /** Called when the OK button is clicked. */
+  /** Runs when the okText button is pressed. */
   onOk?: Owned<Function<void>>;
-  /** Content shown inside the component. */
+  /** Runs when the cancelText button is pressed. */
+  onCancel?: Owned<Function<void>>;
+  /** DialogTrigger and DialogContent elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A modal dialog shown while open is true. Its children are the dialog body. */
+/** A modal window opened from a DialogTrigger, with DialogContent holding a header, body and footer. */
 export function Dialog(props: DialogProps): Node {
   let node = kitNode('Dialog', props.children ?? [], props.className ?? '');
   const prop_open = props.open;
@@ -2784,9 +2810,68 @@ export function Dialog(props: DialogProps): Node {
     node = kitFlag(node, 'open', prop_open);
   }
 
+  const prop_defaultOpen = props.defaultOpen;
+  if (prop_defaultOpen !== undefined) {
+    node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
+  }
+
   const prop_title = props.title;
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  const prop_overlay = props.overlay;
+  if (prop_overlay !== undefined) {
+    node = kitFlag(node, 'overlay', prop_overlay);
+  }
+
+  const prop_overlayClosable = props.overlayClosable;
+  if (prop_overlayClosable !== undefined) {
+    node = kitFlag(node, 'overlayClosable', prop_overlayClosable);
+  }
+
+  const prop_closeButton = props.closeButton;
+  if (prop_closeButton !== undefined) {
+    node = kitFlag(node, 'closeButton', prop_closeButton);
+  }
+
+  const prop_keyboard = props.keyboard;
+  if (prop_keyboard !== undefined) {
+    node = kitFlag(node, 'keyboard', prop_keyboard);
+  }
+
+  const prop_width = props.width;
+  if (prop_width !== undefined) {
+    node = kitNumber(node, 'width', prop_width);
+  }
+
+  const prop_maxWidth = props.maxWidth;
+  if (prop_maxWidth !== undefined) {
+    node = kitNumber(node, 'maxWidth', prop_maxWidth);
+  }
+
+  const prop_marginTop = props.marginTop;
+  if (prop_marginTop !== undefined) {
+    node = kitNumber(node, 'marginTop', prop_marginTop);
+  }
+
+  const prop_centered = props.centered;
+  if (prop_centered !== undefined) {
+    node = kitFlag(node, 'centered', prop_centered);
+  }
+
+  const prop_entrance = props.entrance;
+  if (prop_entrance !== undefined) {
+    if (typeof prop_entrance === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'entrance', `${prop_entrance}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'entrance', nativeBindText(prop_entrance.evaluate)));
+    }
   }
 
   const prop_okText = props.okText;
@@ -2799,6 +2884,11 @@ export function Dialog(props: DialogProps): Node {
     node = unwrapNode(nativeKitValue(node, 'cancelText', prop_cancelText));
   }
 
+  const event_onOpenChange = props.onOpenChange;
+  if (event_onOpenChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
+  }
+
   const event_onClose = props.onClose;
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
@@ -2809,25 +2899,44 @@ export function Dialog(props: DialogProps): Node {
     node = unwrapNode(nativeKitOnVoid(node, 'ok', event_onOk));
   }
 
+  const event_onCancel = props.onCancel;
+  if (event_onCancel !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'cancel', event_onCancel));
+  }
+
   return node;
 }
 
 export interface SheetProps {
-  /** Shows the sheet when true and hides it when false. */
+  /** Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it. */
   open?: ReactiveValue<boolean>;
-  /** Sheet heading. */
+  /** Starts open when `open` is unset. */
+  defaultOpen?: ReactiveValue<boolean>;
+  /** Title text, when there is no DialogTitle. */
   title?: ReactiveValue<string> | TextBinding;
-  /** Window edge. Defaults to right. */
+  /** Description text, when there is no DialogDescription. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** false removes the dimmed backdrop. Defaults to true. */
+  overlay?: ReactiveValue<boolean>;
+  /** false keeps it open when the backdrop is clicked. Defaults to true. */
+  overlayClosable?: ReactiveValue<boolean>;
+  /** The edge it slides from. Defaults to right. */
   side?: ReactiveValue<'right' | 'left' | 'top' | 'bottom'>;
-  /** Called when the user dismisses the sheet; set open to false here. */
+  /** Width (left/right) or height (top/bottom) in pixels. */
+  size?: ReactiveValue<number>;
+  /** Lets people drag the inner edge to resize it. */
+  resizable?: ReactiveValue<boolean>;
+  /** Runs when the trigger opens it or it is closed. */
+  onOpenChange?: Owned<Function<void, [open: boolean]>>;
+  /** Runs after it closes. */
   onClose?: Owned<Function<void>>;
-  /** Content shown inside the component. */
+  /** SheetTrigger and SheetContent elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A panel that slides in from the window edge while open is true. */
+/** A panel that slides in from a window edge, opened from a SheetTrigger, with SheetContent holding a header, body and footer. */
 export function Sheet(props: SheetProps): Node {
   let node = kitNode('Sheet', props.children ?? [], props.className ?? '');
   const prop_open = props.open;
@@ -2835,9 +2944,29 @@ export function Sheet(props: SheetProps): Node {
     node = kitFlag(node, 'open', prop_open);
   }
 
+  const prop_defaultOpen = props.defaultOpen;
+  if (prop_defaultOpen !== undefined) {
+    node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
+  }
+
   const prop_title = props.title;
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  const prop_overlay = props.overlay;
+  if (prop_overlay !== undefined) {
+    node = kitFlag(node, 'overlay', prop_overlay);
+  }
+
+  const prop_overlayClosable = props.overlayClosable;
+  if (prop_overlayClosable !== undefined) {
+    node = kitFlag(node, 'overlayClosable', prop_overlayClosable);
   }
 
   const prop_side = props.side;
@@ -2849,11 +2978,221 @@ export function Sheet(props: SheetProps): Node {
     }
   }
 
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    node = kitNumber(node, 'size', prop_size);
+  }
+
+  const prop_resizable = props.resizable;
+  if (prop_resizable !== undefined) {
+    node = kitFlag(node, 'resizable', prop_resizable);
+  }
+
+  const event_onOpenChange = props.onOpenChange;
+  if (event_onOpenChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
+  }
+
   const event_onClose = props.onClose;
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
   }
 
+  return node;
+}
+
+export interface DialogTriggerProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content that opens the Dialog when clicked. */
+export function DialogTrigger(props: DialogTriggerProps): Node {
+  let node = kitNode('DialogTrigger', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface DialogContentProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The Dialog's contents: header, body and footer. */
+export function DialogContent(props: DialogContentProps): Node {
+  let node = kitNode('DialogContent', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface DialogHeaderProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Holds the DialogTitle and DialogDescription. */
+export function DialogHeader(props: DialogHeaderProps): Node {
+  let node = kitNode('DialogHeader', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface DialogTitleProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The Dialog title. */
+export function DialogTitle(props: DialogTitleProps): Node {
+  let node = kitNode('DialogTitle', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface DialogDescriptionProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Muted text under the Dialog title. */
+export function DialogDescription(props: DialogDescriptionProps): Node {
+  let node = kitNode('DialogDescription', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface DialogFooterProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Action buttons along the bottom of the Dialog. */
+export function DialogFooter(props: DialogFooterProps): Node {
+  let node = kitNode('DialogFooter', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface DialogCloseProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content in the DialogFooter that closes the Dialog when clicked. */
+export function DialogClose(props: DialogCloseProps): Node {
+  let node = kitNode('DialogClose', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SheetTriggerProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content that opens the Sheet when clicked. */
+export function SheetTrigger(props: SheetTriggerProps): Node {
+  let node = kitNode('SheetTrigger', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SheetContentProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The Sheet's contents: header, body and footer. */
+export function SheetContent(props: SheetContentProps): Node {
+  let node = kitNode('SheetContent', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SheetHeaderProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Holds the SheetTitle and SheetDescription. */
+export function SheetHeader(props: SheetHeaderProps): Node {
+  let node = kitNode('SheetHeader', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SheetTitleProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The Sheet title. */
+export function SheetTitle(props: SheetTitleProps): Node {
+  let node = kitNode('SheetTitle', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SheetDescriptionProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Muted text under the Sheet title. */
+export function SheetDescription(props: SheetDescriptionProps): Node {
+  let node = kitNode('SheetDescription', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SheetFooterProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Action buttons along the bottom of the Sheet. */
+export function SheetFooter(props: SheetFooterProps): Node {
+  let node = kitNode('SheetFooter', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SheetCloseProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content in the SheetFooter that closes the Sheet when clicked. */
+export function SheetClose(props: SheetCloseProps): Node {
+  let node = kitNode('SheetClose', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface DialogActionProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content in the DialogFooter that confirms the dialog: it runs onOk and closes unless onOk keeps it open. */
+export function DialogAction(props: DialogActionProps): Node {
+  let node = kitNode('DialogAction', props.children ?? [], props.className ?? '');
   return node;
 }
 

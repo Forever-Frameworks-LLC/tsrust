@@ -46,14 +46,14 @@ impl Utility {
   Self::FontSize(v)=>format!("font-size:{v}px"),Self::Weight(v)=>format!("font-weight:{v}"),Self::DefaultLeading(v)=>format!("line-height:var(--ui-leading,{v}px)"),Self::Leading(v)=>format!("--ui-leading:{v};line-height:{v}"),Self::FontFamily(v)=>format!("font-family:{}",["system-ui,sans-serif","serif","monospace"][v as usize]),Self::Corner(c,v)=>format!("border-{}-radius:{v}px",["top-left","top-right","bottom-right","bottom-left"][c as usize]),Self::Overflow(v)=>format!("overflow:{}",["visible","hidden","auto"][v as usize]),
   Self::Background(v)=>format!("background:{}",v.css()),Self::Foreground(v)=>format!("color:{}",v.css()),
   Self::EdgeBorder(s,v)=>{let side=["top","right","bottom","left"][s as usize];format!("border-{side}-width:{v}px")},Self::BorderColor(v)=>format!("border-color:{}",v.css()),
-  Self::Align(v)=>format!("text-align:{}",["left","center","right"][v as usize]),Self::Items(v)=>format!("align-items:{}",["flex-start","center","stretch"][v as usize]),Self::Justify(v)=>format!("justify-content:{}",["flex-start","center","space-between"][v as usize]),
+  Self::Align(v)=>format!("text-align:{}",["left","center","right"][v as usize]),Self::Items(v)=>format!("align-items:{}",["flex-start","center","stretch","flex-end","baseline"][v as usize]),Self::Justify(v)=>format!("justify-content:{}",["flex-start","center","space-between","flex-end","space-around","space-evenly"][v as usize]),
   Self::Ring(v)=>format!("outline:2px solid {};outline-offset:2px",v.css()),
   Self::RingWidth(v)=>format!("--ui-shadow-ring-width:{v}px;box-shadow:0 0 0 var(--ui-shadow-ring-width) var(--ui-shadow-ring-color,var(--ui-ring))"),
   Self::RingShadowColor(v)=>format!("--ui-shadow-ring-color:{}",v.css()),
  }}
 }
 fn build_tokens()->Vec<String> {
- let mut tokens=["flex-row","flex-col","font-bold","font-normal","rounded","rounded-none","rounded-sm","rounded-lg","border","border-0","text-left","text-center","text-right","items-start","items-center","items-stretch","justify-start","justify-center","justify-between","text-base","text-xl","text-2xl","text-3xl","text-4xl","text-5xl","text-6xl","text-7xl","text-sm","text-xs","font-medium","font-semibold","leading-tight","leading-snug","leading-normal","leading-relaxed","text-sm/relaxed","font-heading","font-sans","font-serif","font-mono","rounded-xl","ring"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+ let mut tokens=["flex-row","flex-col","font-bold","font-normal","rounded","rounded-none","rounded-sm","rounded-lg","border","border-0","text-left","text-center","text-right","items-start","items-center","items-stretch","items-end","items-baseline","justify-start","justify-center","justify-between","justify-end","justify-around","justify-evenly","text-base","text-xl","text-2xl","text-3xl","text-4xl","text-5xl","text-6xl","text-7xl","text-sm","text-xs","font-medium","font-semibold","leading-tight","leading-snug","leading-normal","leading-relaxed","text-sm/relaxed","font-heading","font-sans","font-serif","font-mono","rounded-xl","ring"].into_iter().map(str::to_owned).collect::<Vec<_>>();
  tokens.extend(["opacity-0","opacity-50","opacity-100","outline-none","cursor-auto","cursor-text","cursor-not-allowed","select-none","pointer-events-none","pointer-events-auto","field-sizing-content"].map(str::to_owned));
  tokens.extend(text::tokens());tokens.extend(layout::tokens());tokens.extend(edges::tokens());
  tokens.extend(["ring-0","ring-1","ring-2","ring-3"].map(str::to_owned));
@@ -93,8 +93,8 @@ fn resolved_with_variables(classes:&str,theme:&Theme,mode:&str,variables:&std::c
    "ring"=>Utility::Ring(theme.color(mode,"ring").unwrap()),
    "ring-0"=>Utility::RingWidth(0.),"ring-1"=>Utility::RingWidth(1.),"ring-2"=>Utility::RingWidth(2.),"ring-3"=>Utility::RingWidth(3.),
    "text-left"=>Utility::Align(0),"text-center"=>Utility::Align(1),"text-right"=>Utility::Align(2),
-   "items-start"=>Utility::Items(0),"items-center"=>Utility::Items(1),"items-stretch"=>Utility::Items(2),
-   "justify-start"=>Utility::Justify(0),"justify-center"=>Utility::Justify(1),"justify-between"=>Utility::Justify(2),
+   "items-start"=>Utility::Items(0),"items-center"=>Utility::Items(1),"items-stretch"=>Utility::Items(2),"items-end"=>Utility::Items(3),"items-baseline"=>Utility::Items(4),
+   "justify-start"=>Utility::Justify(0),"justify-center"=>Utility::Justify(1),"justify-between"=>Utility::Justify(2),"justify-end"=>Utility::Justify(3),"justify-around"=>Utility::Justify(4),"justify-evenly"=>Utility::Justify(5),
    _=>{let (kind,color)=token.split_once('-').unwrap();let color=if color=="transparent"{ResolvedColor::transparent()}else if let Some(fixed)=crate::theme::fixed_color(color){fixed}else{theme.color(mode,color).expect("validated theme token")}.opacity(opacity);match kind {"bg"=>Utility::Background(color),"text"=>Utility::Foreground(color),"border"=>Utility::BorderColor(color),"ring"=>Utility::RingShadowColor(color),_=>unreachable!()}},
   }};put(value);
  }

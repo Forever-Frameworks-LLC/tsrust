@@ -34,6 +34,8 @@ import { TabsPage } from './pages/Tabs.tsrx';
 import { TooltipPage } from './pages/Tooltip.tsrx';
 import { PopoverPage } from './pages/Popover.tsrx';
 import { AccordionPage } from './pages/Accordion.tsrx';
+import { DialogPage } from './pages/Dialog.tsrx';
+import { SheetPage } from './pages/Sheet.tsrx';
 
 interface PageProps {
   children?: Child[];
@@ -74,6 +76,8 @@ function App(): Node {
           <SidebarItem label="Menu" active={path.get() === "/menu"} onClick={() => { navigate("/menu"); }} />
           <SidebarItem label="Tooltip" active={path.get() === "/tooltip"} onClick={() => { navigate("/tooltip"); }} />
           <SidebarItem label="Popover" active={path.get() === "/popover"} onClick={() => { navigate("/popover"); }} />
+          <SidebarItem label="Dialog" active={path.get() === "/dialog"} onClick={() => { navigate("/dialog"); }} />
+          <SidebarItem label="Sheet" active={path.get() === "/sheet"} onClick={() => { navigate("/sheet"); }} />
         </SidebarGroup>
         <SidebarGroup label="Data Display">
           <SidebarItem label="Badge" active={path.get() === "/badge"} onClick={() => { navigate("/badge"); }} />
@@ -145,6 +149,8 @@ function App(): Node {
         <Route path="/tooltip" render={() => <Page><TooltipPage /></Page>} />
         <Route path="/popover" render={() => <Page><PopoverPage /></Page>} />
         <Route path="/accordion" render={() => <Page><AccordionPage /></Page>} />
+        <Route path="/dialog" render={() => <Page><DialogPage /></Page>} />
+        <Route path="/sheet" render={() => <Page><SheetPage /></Page>} />
       </View>
       </View>
     </View>

@@ -2446,7 +2446,7 @@ function FormPopover(): Node {
         <PopoverContent>
           <Label>Width</Label>
           <Input value={width} onChange={(event) => { width.set(event.target.value); }} className="w-48" />
-          <Button size="small" variant="primary" onPress={() => { open.set(false); }}>Done</Button>
+          <View className="flex-row justify-end"><Button size="small" variant="primary" onPress={() => { open.set(false); }}>Done</Button></View>
         </PopoverContent>
       </Popover>
       <Text variant="muted">Width: {width}</Text>
@@ -2561,6 +2561,221 @@ function ControlledAccordion(): Node {
         <Button size="small" onPress={() => { open.set(''); }}>Close all</Button>
         <Text variant="muted">Open: {open.get().split('\n').join(', ')}</Text>
       </View>
+    </View>
+  );
+}
+=== Dialog | dialog | Overlays
+A modal window over the app: a trigger opens it; a header, body and footer fill it; close buttons, Escape or the backdrop close it.
+--- Basic Dialog
+DialogTrigger opens it; DialogClose buttons close it.
+function BasicDialog(): Node {
+  return (
+    <Dialog>
+      <DialogTrigger><Button outline={true}>Open dialog</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Account created</DialogTitle>
+          <DialogDescription>Your account has been created successfully!</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose><Button outline={true}>Cancel</Button></DialogClose>
+          <DialogClose><Button variant="primary">Continue</Button></DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+--- Form Dialog
+Inputs in the body; Save writes the values and closes.
+function FormDialog(): Node {
+  const open = signal(false);
+  const name = signal('Ada Lovelace');
+  const saved = signal('Ada Lovelace');
+  return (
+    <View className="flex-row items-center gap-3">
+      <Dialog open={open.get()} onOpenChange={(next) => { open.set(next); }}>
+        <DialogTrigger><Button>Edit profile</Button></DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit profile</DialogTitle>
+            <DialogDescription>Make changes to your profile here. Click save when you're done.</DialogDescription>
+          </DialogHeader>
+          <Label>Name</Label>
+          <Input value={name} onChange={(event) => { name.set(event.target.value); }} />
+          <DialogFooter>
+            <DialogClose><Button outline={true}>Cancel</Button></DialogClose>
+            <Button variant="primary" onPress={() => { saved.set(name.get()); open.set(false); }}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Text variant="muted">Saved name: {saved}</Text>
+    </View>
+  );
+}
+--- Dialog with Icon
+Any content in the title row.
+function IconDialog(): Node {
+  return (
+    <Dialog>
+      <DialogTrigger><Button variant="danger" icon="trash">Delete file</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle><View className="flex-row items-center gap-2"><Icon name="triangle-alert" className="text-destructive" /><Text>Delete report.pdf?</Text></View></DialogTitle>
+          <DialogDescription>This cannot be undone.</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose><Button outline={true}>Keep it</Button></DialogClose>
+          <DialogClose><Button variant="danger">Delete</Button></DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+--- Scrollable Dialog
+Long bodies scroll inside the dialog.
+function ScrollDialog(): Node {
+  return (
+    <Dialog maxWidth={480}>
+      <DialogTrigger><Button outline={true}>Terms of service</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Terms of service</DialogTitle></DialogHeader>
+        <ScrollArea className="h-[240px]">
+          <View className="flex-col gap-3 pr-3">
+            <Text>1. You agree to use the software responsibly and in line with applicable law.</Text>
+            <Text>2. The software is provided as is, without warranty of any kind.</Text>
+            <Text>3. You keep ownership of the content you create.</Text>
+            <Text>4. We may update these terms; continued use means you accept the changes.</Text>
+            <Text>5. Accounts that abuse the service may be suspended.</Text>
+            <Text>6. Questions about these terms can be sent to the support team.</Text>
+            <Text>7. These terms are governed by the laws where the company is registered.</Text>
+          </View>
+        </ScrollArea>
+        <DialogFooter><DialogClose><Button variant="primary">I agree</Button></DialogClose></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+--- Dialog Options
+Width, vertical centering, no close button, and Escape or backdrop clicks turned off.
+function OptionsDialog(): Node {
+  return (
+    <View className="flex-row gap-3">
+      <Dialog width={320} centered={true}>
+        <DialogTrigger><Button outline={true}>Narrow, centered</Button></DialogTrigger>
+        <DialogContent><DialogHeader><DialogTitle>320px wide</DialogTitle></DialogHeader><DialogFooter><DialogClose><Button>Close</Button></DialogClose></DialogFooter></DialogContent>
+      </Dialog>
+      <Dialog closeButton={false} keyboard={false} overlayClosable={false}>
+        <DialogTrigger><Button outline={true}>Must choose</Button></DialogTrigger>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Pick one to continue</DialogTitle><DialogDescription>Escape and outside clicks are ignored.</DialogDescription></DialogHeader>
+          <DialogFooter><DialogClose><Button>Option A</Button></DialogClose><DialogClose><Button variant="primary">Option B</Button></DialogClose></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </View>
+  );
+}
+--- Entrance Animation
+slide-down (default) or fade.
+function FadeDialog(): Node {
+  return (
+    <Dialog entrance="fade" title="Faded in" description="This dialog fades instead of sliding.">
+      <DialogTrigger><Button outline={true}>Fade in</Button></DialogTrigger>
+    </Dialog>
+  );
+}
+--- Action Buttons
+okText and cancelText draw Kit's own buttons; onOk and onCancel report them.
+function ActionDialog(): Node {
+  const result = signal('none');
+  return (
+    <View className="flex-row items-center gap-3">
+      <Dialog title="Publish changes?" okText="Publish" cancelText="Not yet" onOk={() => { result.set('published'); }} onCancel={() => { result.set('cancelled'); }}>
+        <DialogTrigger><Button>Publish</Button></DialogTrigger>
+        <DialogContent><Text>Your edits will be visible to everyone.</Text></DialogContent>
+      </Dialog>
+      <Text variant="muted">Result: {result}</Text>
+    </View>
+  );
+}
+--- Close Dialog Programmatically
+open follows state; a button in the body closes it from code.
+function ProgrammaticDialog(): Node {
+  const open = signal(false);
+  return (
+    <View className="flex-row gap-3">
+      <Button onPress={() => { open.set(true); }}>Open from state</Button>
+      <Dialog open={open.get()} onOpenChange={(next) => { open.set(next); }} title="Controlled dialog">
+        <DialogContent>
+          <Text>Close this from code.</Text>
+          <Button onPress={() => { open.set(false); }}>Close from code</Button>
+        </DialogContent>
+      </Dialog>
+    </View>
+  );
+}
+=== Sheet | sheet | Overlays
+A panel that slides in from a window edge for navigation, settings or details.
+--- Basic Sheet
+SheetTrigger opens it from the right.
+function BasicSheet(): Node {
+  return (
+    <Sheet>
+      <SheetTrigger><Button outline={true}>Open sheet</Button></SheetTrigger>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Edit profile</SheetTitle>
+          <SheetDescription>Make changes to your profile here.</SheetDescription>
+        </SheetHeader>
+        <Label>Name</Label>
+        <Input defaultValue="Ada Lovelace" />
+        <SheetFooter><SheetClose><Button variant="primary">Save changes</Button></SheetClose></SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+--- Sides
+left, right, top and bottom.
+function SheetSides(): Node {
+  return (
+    <View className="flex-row gap-3">
+      <Sheet side="left" title="From the left"><SheetTrigger><Button outline={true}>Left</Button></SheetTrigger><SheetContent><Text>Navigation goes here.</Text></SheetContent></Sheet>
+      <Sheet side="right" title="From the right"><SheetTrigger><Button outline={true}>Right</Button></SheetTrigger><SheetContent><Text>Details go here.</Text></SheetContent></Sheet>
+      <Sheet side="top" title="From the top" size={200}><SheetTrigger><Button outline={true}>Top</Button></SheetTrigger><SheetContent><Text>Announcements.</Text></SheetContent></Sheet>
+      <Sheet side="bottom" title="From the bottom" size={200}><SheetTrigger><Button outline={true}>Bottom</Button></SheetTrigger><SheetContent><Text>Quick actions.</Text></SheetContent></Sheet>
+    </View>
+  );
+}
+--- Size and Resizing
+size sets the width; resizable lets people drag the edge.
+function SizedSheet(): Node {
+  return (
+    <Sheet size={520} resizable={true} title="Wide and resizable">
+      <SheetTrigger><Button outline={true}>Open wide sheet</Button></SheetTrigger>
+      <SheetContent><Text>Drag the left edge to resize.</Text></SheetContent>
+    </Sheet>
+  );
+}
+--- Without Overlay
+overlay=false keeps the page bright; overlayClosable=false ignores outside clicks.
+function PlainSheet(): Node {
+  return (
+    <Sheet overlay={false} overlayClosable={false} title="No backdrop">
+      <SheetTrigger><Button outline={true}>Open without backdrop</Button></SheetTrigger>
+      <SheetContent><SheetFooter><SheetClose><Button>Close</Button></SheetClose></SheetFooter></SheetContent>
+    </Sheet>
+  );
+}
+--- Controlled
+open follows state.
+function ControlledSheet(): Node {
+  const open = signal(false);
+  return (
+    <View className="flex-row items-center gap-3">
+      <Button onPress={() => { open.set(true); }}>Open from state</Button>
+      <Sheet open={open.get()} onOpenChange={(next) => { open.set(next); }} title="Controlled sheet">
+        <SheetContent><Button onPress={() => { open.set(false); }}>Close from code</Button></SheetContent>
+      </Sheet>
+      <Text variant="muted">Open: {open.get() ? 'yes' : 'no'}</Text>
     </View>
   );
 }
