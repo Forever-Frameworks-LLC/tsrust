@@ -1,8 +1,10 @@
 # Tsrust Studio
 
-Planning draft, 2026-11-10. Owner requirements are recorded below; architecture
-choices and unmeasured acceptance targets remain proposals. This document does
-not claim implementation, model quality, platform acceptance or release approval.
+Implementation authorized, 2026-11-10. Full scope below remains required.
+Architecture choices and unmeasured acceptance targets remain proposals; source
+implementation is not model quality, platform acceptance or release approval.
+See [the bounded capability audit](tsrust-studio-audit.md) for exact source
+identities, proof contracts, current checks and unresolved prerequisites.
 
 ## Owner requirements
 
@@ -37,6 +39,11 @@ not claim implementation, model quality, platform acceptance or release approval
   should strengthen capabilities available to other editors and applications.
 - Study upstream designs and reuse suitable dependencies. Implement application
   behavior in Tsrust; do not assume wholesale embedding of Zed or Code OSS.
+- Owner clarification, November 10: model the workspace on established desktop
+  editors (VS Code, Visual Studio, Zed, IntelliJ). No nonfunctional UI, including
+  demos: no decorative app-name/filename header, pretend tabs or placeholder
+  actions. Use actual document tabs and working editor actions. Visual polish
+  must serve editing rather than website branding.
 
 ## Architecture proposal
 

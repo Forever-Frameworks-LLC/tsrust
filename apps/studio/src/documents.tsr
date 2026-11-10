@@ -1,0 +1,35 @@
+export interface Document {
+  path: string;
+  revision: int;
+  text: string;
+}
+
+export interface ProposedEdit {
+  path: string;
+  revision: int;
+  before: string;
+  after: string;
+}
+
+export function edit(document: Mutable<Document>, text: string): void {
+  if (document.text !== text) {
+    document.text = text;
+    document.revision += 1;
+  }
+}
+
+export function propose(document: ReadOnly<Document>, after: string): ProposedEdit {
+  return {
+    path: clone(document.path), revision: document.revision, before: clone(document.text), after
+  };
+}
+
+// Full-buffer proposals deliberately conflict after any intervening edit.
+export function apply(document: Mutable<Document>, proposal: ReadOnly<ProposedEdit>): boolean {
+  if (document.path !== proposal.path || document.revision !== proposal.revision || document.text !== proposal.before) {
+    return false;
+  }
+
+  edit(document, clone(proposal.after));
+  return true;
+}

@@ -1,0 +1,55 @@
+import { test, strictEqual } from 'std:testing';
+import { Document, edit, propose, apply } from '../src/documents.tsr';
+
+test('proposals remain isolated until acceptance', () => {
+  const document: Document = {
+    path: 'src/main.tsr', revision: 0, text: 'original'
+  };
+  const proposal = propose(document, 'proposed');
+  strictEqual(document.text, 'original');
+  strictEqual(document.revision, 0);
+  strictEqual(apply(document, proposal), true);
+  strictEqual(document.text, 'proposed');
+  strictEqual(document.revision, 1);
+  strictEqual(apply(document, proposal), false);
+});
+
+test('typing then reverting still invalidates a proposal', () => {
+  const document: Document = {
+    path: 'src/main.tsr', revision: 0, text: 'original'
+  };
+  const proposal = propose(document, 'proposed');
+  edit(document, 'typing');
+  edit(document, 'original');
+  strictEqual(apply(document, proposal), false);
+  strictEqual(document.text, 'original');
+  strictEqual(document.revision, 2);
+});
+
+test('wrong files and changed text with reused revisions cannot accept', () => {
+  const document: Document = {
+    path: 'a.tsr', revision: 0, text: 'a'
+  };
+  const proposal = propose(document, 'b');
+  const other: Document = {
+    path: 'b.tsr', revision: 0, text: 'a'
+  };
+  strictEqual(apply(other, proposal), false);
+  const reopened: Document = {
+    path: 'a.tsr', revision: 0, text: 'newer disk data'
+  };
+  strictEqual(apply(reopened, proposal), false);
+  strictEqual(reopened.text, 'newer disk data');
+});
+
+test('full-buffer edits preserve Unicode, combining marks and CRLF', () => {
+  const document: Document = {
+    path: '日本語.tsr', revision: 7, text: 'café e\u0301 🦀\r\n'
+  };
+  edit(document, 'café e\u0301 🦀\r\n');
+  strictEqual(document.revision, 7);
+  const proposal = propose(document, '日本語 🦀\r\n');
+  strictEqual(apply(document, proposal), true);
+  strictEqual(document.text, '日本語 🦀\r\n');
+  strictEqual(document.revision, 8);
+});

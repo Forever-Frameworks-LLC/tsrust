@@ -6,29 +6,68 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-### Tsrust Studio planning — 2026-11-10
+### Tsrust Studio active implementation — 2026-11-10
 
-Owner selected Studio inside this repo, an ordinary Tsrust project with all
-application/agent/evaluation/training orchestration in .tsr/.tsrx. Native engines
-must be Tsrust-managed dependencies exposed through bindings/stdlib, with no
-separate model-server or Python setup. Minimum complete offline target is verified
-Apple M3/8GiB; owner's future Windows reference is32GB RAM/RTX4090 (not inspected).
-Mac first, Windows next, Linux deferred. Full feature acceptance precedes signing/
-packaging; no reduced early MVP. Local specialization includes baseline research,
-fine-tuning and qualified model distribution. Cloud APIs and external agents are
-also required later. Agents always propose diffs; no competing live-workspace writes.
+Owner explicitly authorized the complete Studio goal, including necessary compiler
+prerequisites; no reduced MVP or postponement behind unrelated v0.2.0 work.
+Persistent goal is active. One writer, no delegation, no pushes/publication/signing.
+Starting source11f63fd4 was clean. Full scope: [Studio plan](plans/tsrust-studio.md).
+[Bounded audit](plans/tsrust-studio-audit.md) records exact source locations,
+model identities, resource observations, proof limits and missing acceptance.
 
-Draft plan: [Tsrust Studio](plans/tsrust-studio.md), with requirements, native-only
-worker proposal, public Tsrust capability gaps, document/task coordination,
-full feature inventory, model/training/evaluation phases and minimum-memory proof.
-Candle and mistral.rs Rust SDK are research candidates, not selected/verified
-integrations. Differentiation primitives and quantized inference do not prove a
-usable adapter-training pipeline. Exact model/backend, quality/resource thresholds
-and training budget remain research gates. No model downloads, inference/training,
-application scaffolding, source/dependency changes or releases were performed.
-This plan is for owner review; it does not start an autonomous implementation goal
-or override unrelated v0.2.0 acceptance. Next action: review the draft, then begin
-its bounded capability audit/local-AI proof when implementation is requested.
+Current section: native local-AI dependency/training admission and revision-safe
+proposal foundation. Ordinary `tsrust new apps/studio --ui` created the project
+(after making its parent apps directory); generated gallery replaced by a named
+scratch editor. `.tsr` document/proposal functions compare path, revision and
+base content; no disk or agent tool writes. UI signals reject record/array state;
+checked Rust bindings reject opaque resource/Drop owners. Both remain reusable
+capability prerequisites, not reasons to hide editor logic in Rust.
+
+Passed: project check; document native suite4/4, execution0.115208ms,
+build/setup1610.7825ms. Sandbox time wrapper subsequently denied kern.clockrate;
+its exit1 is not a test failure or resource measurement. Whole formatter4files,
+then second pass0files; both0snippets/0fingerprints. Native training proof check
+passes; exact Candle core/nn0.11.0 sources resolved with defaults disabled through
+CLI bindings. Lock checked in, compiler-owned native adapter only; Tsrust owns
+iteration. Native training suite3/3PASS, execution1.5945ms, setup/build414405.813042ms
+including shared-target wait; maxRSS665583616B is a wrapper observation, not
+whole-machine memory. One shared target/jobs1/incremental0. Training proof is scalar
+SGD/autodiff only, not adapter training, checkpoint persistence or model quality.
+
+Host confirmed Mac15,13 AppleM3/8GiB. Initial swap4864.19MiB; during single-job
+build3243.62MiB (not timing samples). Owner processes untouched. Official Qwen1.5B
+Q4_K_M and pinned tokenizer downloaded to ignored target/studio-models; official
+model size/SHA256 and tokenizer Git blobs verified. First inference suite native
+build50531.681334ms; invalid-limit controlPASS0.3185ms. Watchdog stopped actual
+model test after261.5MiB system swap growth,54.910s total; no answer/summary.
+Inference INCOMPLETE; concurrent external regression prevents attribution.
+Exact Candle Qwen dequantizes full embeddings at load, a memory-cost candidate
+requiring investigation. No unchanged retry until host/hypothesis changes.
+Native scratch preview built and independently open. CUA verified Unicode paste/undo,
+keyboard focus,100-line scrolling, zoom/restore and light/dark themes. Owner rejected
+the decorative Studio/Untitled header: removed it and the debug revision counter;
+replaced with compact actual Find/Replace/theme actions. Rebuilt/refreshed preview
+atomically; CUA proves matches, actual Hello->Hi replacement and undo, theme labels
+and paints, and closing search. One current dark preview left open. CUA complete.
+Owner rule persisted in apps/studio/AGENTS.md and plan; use actual editor references,
+no decorative headers, pretend tabs or nonfunctional controls, including demos.
+One initial search input observed tudio after typing Studio; a subsequent selected
+query typed Hello exactly. Search-focus/first-key loss and unnamed Kit search AX
+controls remain investigation gaps, not full keyboard/accessibility acceptance. Current exact CLI/model/lock hashes and stop conditions in audit.
+Next: finish/open one native Studio preview and verify keyboard/edit/theme
+behavior, record the model stop honestly, investigate embedding/device memory and
+retry only on changed host conditions or implementation. Preserve scalar training
+and document test passes. Second exact-model attempt after all other builds ended also stopped: setup/build
+7060.773708ms, invalid-limitPASS0.480042ms, total10.603s, swapdelta468.5MiB,
+sampled owned-tree RSS607256576B. No model answer/summary. Preserve both attempts;
+no more unchanged retries. Investigate native llama.cpp library bindings as a
+managed inference alternative (not a model server); Candle remains separate
+training candidate. Native CMake exists. No new alternative dependency admitted yet.
+Current inference primitive is buffered and cancellable
+between operations through existing TaskContext; no persistent streaming API yet.
+Full evaluation harness, adapters/quantization, safe isolated tools, complete editor,
+cloud/external agents and Windows remain required. No broad regression/timing or
+release claims. Update this handoff when pending operations become terminal.
 
 ### Balanced global search spacing — 2026-11-10 (accepted with this checkpoint)
 

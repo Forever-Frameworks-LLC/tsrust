@@ -1,0 +1,42 @@
+import { test, strictEqual } from 'std:testing';
+import { get } from 'std:env';
+import { spawn } from 'std:threads';
+import { qwen_generate } from '../inference.bindings.json';
+import { chatPrompt } from '../prompts.tsr';
+
+function resource(name: string): string {
+  const value = unwrap(get(name));
+  if (value === undefined) {
+    throw 'Missing verified local artifact path: ' + name;
+  }
+
+  return value;
+}
+
+test('invalid generation limits reject before reading local resources', () => {
+  for (const count of [0, -1, 33]) {
+    const worker = unwrap(spawn((task) => qwen_generate(task, '/missing/model', '/missing/tokenizer', 'test', count)));
+    let rejected = false;
+    match (unwrap(worker.join())) {
+      Ok(_) => {},
+      Err(error) => {
+        rejected = error === 'admission max_tokens must be 1..=32';
+      }
+    }
+
+    strictEqual(rejected, true);
+  }
+});
+
+test('official quantized model performs a real offline generation', () => {
+  const model = resource('STUDIO_PROOF_MODEL');
+  const tokenizer = resource('STUDIO_PROOF_TOKENIZER');
+  const prompt = chatPrompt('Reply with only the result of 2 + 3.');
+  const worker = unwrap(spawn((task) => qwen_generate(task, model, tokenizer, prompt, 32)));
+  const result = unwrap(unwrap(worker.join()));
+  strictEqual(result.text.trim(), '5');
+  strictEqual(result.input_tokens > 0, true);
+  strictEqual(result.output_tokens > 0, true);
+  strictEqual(result.output_tokens <= 32, true);
+  strictEqual(result.stop, 'eos');
+});

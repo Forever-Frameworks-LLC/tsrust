@@ -1,0 +1,18 @@
+import { args } from 'std:env';
+import { spawn } from 'std:threads';
+import { qwen_generate } from './inference.bindings.json';
+import { chatPrompt } from './prompts.tsr';
+
+function main() {
+  const arguments = unwrap(args());
+  if (arguments.length !== 2) {
+    throw 'Usage: inference MODEL.gguf tokenizer.json';
+  }
+
+  const model = clone(arguments[0]);
+  const tokenizer = clone(arguments[1]);
+  const prompt = chatPrompt('Reply with only the result of 2 + 3.');
+  const worker = unwrap(spawn((task) => qwen_generate(task, model, tokenizer, prompt, 32)));
+  const result = unwrap(unwrap(worker.join()));
+  console.log(JSON.stringify(result));
+}
