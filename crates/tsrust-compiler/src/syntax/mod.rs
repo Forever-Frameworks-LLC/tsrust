@@ -1982,6 +1982,7 @@ impl Parser<'_> {
         !matches!(
             self.peek().kind,
             TokenKind::String
+                | TokenKind::JsxText
                 | TokenKind::TemplateHead
                 | TokenKind::TemplateMiddle
                 | TokenKind::TemplateTail

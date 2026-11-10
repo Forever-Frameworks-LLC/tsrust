@@ -6,6 +6,78 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Native text, parser and packaging finish — 2026-11-10 (accepted with this checkpoint)
+
+Latest accepted checkpoints: fd803813 resolves all16 reported workspace diagnostics;
+2bdecffe preserves native behavior for utility-styled buttons. This final family:
+- Native Text uses GPUI StyledText/TextRun through a small RenderOnce adapter, reading
+  inherited window text style at layout. Nested weight/italic/family/colors/solid
+  background/underline/strike stay in one paragraph; explicit no-underline and sans
+  reset work. Root hover inheritance remains native. Text/UTF8/order preservation
+  is asserted against the existing content_text control. Rich Kit button labels use
+  the same runs while retaining an explicit accessible name; ordinary labels keep
+  the upstream label path. Unstyled href links reuse native Kit Button link behavior
+  with no padding/automatic height, replacing the mouse-only upstream Link Div.
+- Inline validation now admits italic/strike/solid background. The first desktop
+  attempt exited because the old shared whitelist rejected those paint effects;
+  corrected at that common boundary. A regression accepts the paint combination
+  and still rejects padding, positioning and flex layout inside text.
+- The new legitimate guide found raw TSRX punctuation after nested tags being read
+  as expression operators. Parser::is now excludes JsxText like String/template
+  tokens. Native punctuation suite proves exact café/punctuation/as/in/satisfies
+  output and normal postfix .length outside markup. Malformed Unicode/nested markup
+  returns valid diagnostics without panicking in the targeted project witness.
+- Styling guide/live examples and hover help now state actual GPUI limits instead
+  of claiming universal parity. Nested links inside Text still lack separate native
+  hit/focus targets; use a Link beside Text. One paragraph has one size/line height.
+  Tracking/balance/transforms/underline offsets/animations/pointer-selection helpers/
+  field-sizing/justify-self/auto-row-min/table CSS/nonuniform tracks/placeholder and
+  inline interaction-state mappings remain explicit limitations. No full CSS or
+  upstream Kit parity claim; prior catalog count1939/2147,20 incomplete is unchanged.
+- Added isolated KeyboardLinks guide example using createLocation. Native AX exposes
+  Open local docs as Link; Shift+Tab focus ring then Enter changes /links/home to
+  /links/docs, keeping the gallery on the same page and opening no other window.
+
+Acceptance (build/setup separate from test execution):
+- UI lib137/137,.04s; build2m37s including queue. Prior136 also passed before whitelist
+  repair. Compiler ui_authoring6/6,19.35s, including bounded Table replay and malformed
+  markup checks; LSP TSRX6/6,1.88s. Public punctuation suite2/2,.27ms execution,
+  compiled together once. Fixture initially had an unrelated optional-array join
+  inference error; required children fits every call and preserves exact oracles.
+- Both consumers rebuilt2m36s for the final runtime validation; parser build2m49s.
+  Native gallery build passes. Workspace/all-target1m49s and separate backend/all-
+  target3m18s pass for current Rust changes. Existing shared test-helper warnings
+  remain reviewed/unchanged; no warning suppression or new runtime timing/SQLite.
+- Desktop visual proof: bold café rose -> sky on signal update; italic monospace
+  code on amber; no-underline clears only its span; sans resets within mono; bold
+  rich button name is exposed. Stock Kit buttons intentionally avoid mouse focus:
+  after Shift+Tab gives keyboard focus, Space activates the rich button and changes
+  sky -> rose. Earlier styled Base Button click/Space/Enter/disabled proof remains.
+- Live editor final server25028 is idle (CPU0%,RSS2160KiB at33m15 after restart) and
+  CUA reports no problems. Old accessible panic message is historical: Tsrust log
+  has three project/link.rs:431 failures before the4:20:05PM restart, none after.
+  This replaces the earlier transient-cleared count. Last CUA completions: Verified
+  native inline text styling; Verified native link keyboard navigation; Verified
+  final editor diagnostics cleared. No CUA phase open.
+- Whole formatter after new fixture/code:0 files/snippets/fingerprints on final
+  pass; both generators and diff passed. This record is included in the local source checkpoint.
+
+Unsigned public packaging smoke passed: a real release build made ZIP, DMG and
+SHA256SUMS. Both hashes verified, archive plist/app.json confirm CLI name Override
+Smoke, config id dev.tsrust.smoke/version1.2.3/repo example/smoke; CLI cwd-relative
+artifacts overrides configured-artifacts (absent). No signing/notarization or
+publication. hdiutil only emitted a host deprecation notice. Temporary smoke tree
+and raw verification data/logs are disposable; do not retain as canonical records.
+
+Cleanup: removed unused target/debug/incremental4.1GB and secondary gpui-stable3.1GB
+only after verifying no active consumers. Keep original target/gpui-starter file.
+Current independent bundle /private/tmp/Tsrust Gallery.app is a regular copied
+executable, parent launchd; one preview process43849 at last inventory. Final prose-only guide rebuild97964 passed; bundle atomically replaced and
+reopened on Styling and Themes, inline example visible. CUA completion: Left the
+updated gallery open. Official native cache cleanup removed25 artifacts/8,574,772,414 bytes; temp cleanup completed
+before the local checkpoint; preserve this regular bundle and compiler/LSP bins.
+Do not restart unchanged heavy matrices or push. All latest logs are /tmp/tsrust-ui-*.log and are disposable after this record.
+
 ### Workspace diagnostics repair — 2026-11-10 (accepted fd803813)
 
 Owner screenshot disproved the transient cleared Problems pane:16 diagnostics

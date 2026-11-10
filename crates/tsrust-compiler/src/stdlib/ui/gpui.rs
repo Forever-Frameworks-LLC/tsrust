@@ -438,7 +438,11 @@ impl Root {
                 let flag = |name: &str| option(name) == "true";
                 let label = node.content_text();
                 let mut button = Button::new(ElementId::Integer(id)).disabled(node.is_disabled());
-                if !label.is_empty() {button = button.label(label);}
+                if !label.is_empty() {
+                    button=if node.visible_children().any(|child|!child.class_name.is_empty() || !child.children.is_empty()) {
+                        button.child(self.inline_text(node)).accessibility_label(label)
+                    } else {button.label(label)};
+                }
                 let variant = if option("variant").is_empty() {node.semantics.variant.as_str()} else {option("variant")};
                 button = match variant {
                     "secondary" => button.secondary(), "ghost" => button.ghost(), "danger" | "destructive" => button.danger(),
@@ -484,6 +488,25 @@ impl Root {
                 button.on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);}))
     }
 
+    fn inline_text(&self,node:&Node)->StyledInlineText {
+        fn append(root:&Root,node:&Node,inherited:&std::collections::BTreeMap<u8,Utility>,outer:bool,parts:&mut Vec<(String,Vec<Utility>)>) {
+            if node.collapsed || node.semantics.hidden || node.editable.is_some() {return;}
+            let mut rules=inherited.clone();
+            if !outer {
+                for rule in style::state_rules(root.rules(node),State::Base,false) {
+                    if matches!(rule,Utility::Weight(_)|Utility::Italic(_)|Utility::FontFamily(_)|Utility::Foreground(_)|Utility::Background(_)|Utility::Underline(_)|Utility::LineThrough(_)) {rules.insert(rule.category(),rule);}
+                }
+            }
+            let text=if node.kind==Kind::Svg {if node.semantics.role=="presentation" {""}else{&node.semantics.label}}else{&node.text};
+            if !text.is_empty() {parts.push((text.to_owned(),rules.values().copied().collect()));}
+            if node.kind!=Kind::Svg {for child in node.visible_children(){append(root,child,&rules,false,parts);}}
+        }
+        let mut parts=Vec::new();
+        append(self,node,&Default::default(),true,&mut parts);
+        debug_assert_eq!(parts.iter().map(|(text,_)|text.as_str()).collect::<String>(),node.content_text());
+        StyledInlineText {parts}
+    }
+
     fn element(&self, node: &Node, theme: &Theme, mode: &str, cx: &mut Context<Self>) -> AnyElement {
         let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
         let id = node.identity.get();
@@ -508,8 +531,7 @@ impl Root {
         }
         match node.kind {
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() && !node.semantics.href.is_empty() => {
-                gpui_kit::component::link::Link::new(ElementId::Integer(id)).disabled(node.is_disabled()).child(SharedString::from(node.content_text()))
-                    .on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);})).into_any_element()
+                self.kit_button(node,cx).link().role(Role::Link).p_0().h_auto().into_any_element()
             }
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => self.kit_button(node, cx).into_any_element(),
             Kind::Button | Kind::DisabledButton => {
@@ -541,8 +563,8 @@ impl Root {
                     None => base.into_any_element(),
                 }
             }
-            // Text is one inline run; its literal and bound parts render as one string.
-            Kind::Text => styled_rules(div(), self.rules(node), false, node.identity.get()).child(SharedString::from(node.content_text())).into_any_element(),
+            // Native runs preserve inline styling while sharing one paragraph layout.
+            Kind::Text => styled_rules(div(), self.rules(node), false, node.identity.get()).child(self.inline_text(node)).into_any_element(),
             _ if children.is_empty() => styled_rules(div(), self.rules(node), false, node.identity.get()).child(SharedString::from(node.text.clone())).into_any_element(),
             _ => {
                 // GPUI keeps scroll offsets per element id; overflow-auto views need one.
@@ -671,6 +693,42 @@ fn apply_gradient_effects(style:&mut StyleRefinement,rules:&[Utility]) {
     if let Some(angle)=angle {style.background=Some(linear_gradient(angle as f32,linear_color_stop(from,0.),linear_color_stop(to,1.)).into());}
 }
 
+#[derive(IntoElement)]
+struct StyledInlineText {parts:Vec<(String,Vec<Utility>)>}
+impl RenderOnce for StyledInlineText {
+    fn render(self,window:&mut Window,_cx:&mut App)->impl IntoElement {
+        let base=window.text_style();
+        let mut text=String::new();
+        let mut runs=Vec::new();
+        for (part,rules) in self.parts {
+            let mut style=base.clone();
+            for rule in rules {
+                match rule {
+                    Utility::Weight(value)=>style.font_weight=FontWeight(value),
+                    Utility::Italic(value)=>style.font_style=if value {FontStyle::Italic}else{FontStyle::Normal},
+                    Utility::FontFamily(value)=>style.font_family=native_font_family(value),
+                    Utility::Foreground(value)=>style.color=color(value),
+                    Utility::Background(value)=>style.background_color=Some(color(value)),
+                    Utility::Underline(value)=>style.underline=value.then(||UnderlineStyle{thickness:px(1.),..Default::default()}),
+                    Utility::LineThrough(value)=>style.strikethrough=value.then(||StrikethroughStyle{thickness:px(1.),..Default::default()}),
+                    _=>{},
+                }
+            }
+            runs.push(style.to_run(part.len()));
+            text.push_str(&part);
+        }
+        StyledText::new(text).with_runs(runs)
+    }
+}
+
+fn native_font_family(value:u8)->SharedString {
+    match value {
+        1=>if cfg!(target_os="linux") {"DejaVu Serif"}else{"Georgia"}.into(),
+        2=>if cfg!(target_os="macos") {"Menlo"}else if cfg!(windows) {"Consolas"}else{"DejaVu Sans Mono"}.into(),
+        _=>TextStyle::default().font_family,
+    }
+}
+
 fn apply(style: &mut StyleRefinement, rule: Utility) {
     let edge = |edges: &mut EdgesRefinement<DefiniteLength>, side: u8, value: f32| {
         let value = Some(px(value).into());
@@ -768,11 +826,8 @@ fn apply(style: &mut StyleRefinement, rule: Utility) {
             match side {0 => style.inset.top = value, 1 => style.inset.right = value, 2 => style.inset.bottom = value, _ => style.inset.left = value}
         }
         Utility::AspectRatio(value) => style.aspect_ratio = value,
-        // font-sans keeps the window font; serif and mono use each platform's standard families.
-        Utility::FontFamily(1) => style.text.font_family = Some(if cfg!(target_os = "linux") {"DejaVu Serif"} else {"Georgia"}.into()),
-        Utility::FontFamily(2) => style.text.font_family = Some(if cfg!(target_os = "macos") {"Menlo"} else if cfg!(windows) {"Consolas"} else {"DejaVu Sans Mono"}.into()),
-        // Text decoration, rings, cursors, tables and grids have no direct GPUI
-        // style field; the classes stay valid and render without the effect.
+        Utility::FontFamily(value) => style.text.font_family = Some(native_font_family(value)),
+        // Remaining browser/legacy-renderer utilities have no GPUI mapping; see the styling guide.
         _ => {}
     }
 }

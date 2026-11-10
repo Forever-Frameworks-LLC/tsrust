@@ -717,7 +717,15 @@ mod editable_event_tests {
 #[cfg(feature = "runtime")]
 #[cfg(test)]mod inline_content_tests{
  use super::*;
- #[test]fn rich_text_rejects_block_controls_boxes_and_keeps_reactive_children(){
+ #[test]
+fn inline_paint_styles_are_valid_without_admitting_layout_boxes() {
+  let make=|classes:&str|Node::text(vec![TextPart::Literal("café".into())],classes.into()).and_then(|child|Node::text_children(vec![Child::Node(child)],String::new()));
+  let node=make("italic line-through bg-amber-200 font-mono text-rose-600").unwrap();
+  assert!(document(&node,"Inline").contains("café"));
+  for classes in ["p-2","absolute","flex-row"] {assert!(make(classes).is_err(),"{classes}");}
+}
+
+#[test]fn rich_text_rejects_block_controls_boxes_and_keeps_reactive_children(){
   for child in [Node::view(vec![],String::new()).unwrap(),Node::button("bad".into(),String::new(),false,||Ok(())).unwrap(),Node::text(vec![TextPart::Literal("box".into())],"p-2".into()).unwrap()] {assert!(Node::text_children(vec![Child::Node(child)],String::new()).is_err());}
   let state=Signal::new(1i64);let child=Node::text(vec![TextPart::Signal(state.handle().text_binding(i64::to_string))],"font-bold".into()).unwrap().with_semantics("{\"tag\":\"strong\"}").unwrap();let mut node=Node::text_children(vec![Child::Text(TextPart::Literal("Count ".into())),Child::Node(child)],String::new()).unwrap();node.ensure_identities();let id=node.children[1].identity.get();state.set(2).unwrap();node.refresh().unwrap();assert!(document(&node,"Text").contains(">2</strong>"));assert_eq!(node.children[1].identity.get(),id);drop(state);assert!(node.refresh().unwrap_err().contains("disposed"));
  }

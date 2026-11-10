@@ -129,3 +129,22 @@ function SharedWindows(): Node {
   );
 }
 ```
+
+## Keyboard links
+
+Unstyled links use the same native focus and keyboard behavior as buttons. Tab to
+Open local docs and press Enter; the path below changes without leaving this page.
+This example owns its location so it does not change the gallery's navigation.
+
+```tsx live KeyboardLinks
+function KeyboardLinks(): Node {
+  const path = createLocation('/links/home');
+  return (
+    <View className="flex-col items-start gap-3">
+      <Text>Local path: {path.get()}</Text>
+      <Button onPress={() => { navigate('/links/home'); }}>Reset local route</Button>
+      <Link href="/links/docs">Open local docs</Link>
+    </View>
+  );
+}
+```

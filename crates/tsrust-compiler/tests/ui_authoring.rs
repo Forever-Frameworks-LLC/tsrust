@@ -78,3 +78,17 @@ fn diff_selects_highlighting_only_when_used_and_input_predicates_keep_typed_retu
  assert!(check("import {Input} from 'std:ui';function main(){const field=<Input onValidate={(value)=>value}/>;}").is_err());
  assert!(check("import {NumberInput} from 'std:ui';function main(){const field=<NumberInput stepBy={(value,increment)=>true}/>;}").is_err());
 }
+
+#[test]
+fn malformed_nested_tsrx_reports_diagnostics_without_panicking_after_unicode_text() {
+    let directory=support::TempDirectory::new();
+    let path=directory.0.join("main.tsrx");
+    for markup in ["<Text><Text>café</Text>.{1 + }</Text>","<Text><Text>café</Text>.<Other/></Text>","<Text><Text>café</Text>.</Wrong>"] {
+        let source=format!("interface Props{{children:string[];}}function Text(props:Props):string{{return props.children.join('');}}function main(){{const text={markup};}}");
+        let source=support::format_round_trip(&source);
+        std::fs::write(&path,&source).unwrap();
+        let errors=tsrust_compiler::project::check_with_diagnostics(&FileSourceProvider,path.to_str().unwrap()).err().expect("malformed or unresolved markup must reject");
+        assert!(errors.iter().any(|error|if markup.contains("Other") {error.message.contains("Other")}else{error.code=="syntax"}),"{errors:?}");
+        for error in errors {assert!(source.is_char_boundary(error.location.span.start));assert!(source.is_char_boundary(error.location.span.end));}
+    }
+}

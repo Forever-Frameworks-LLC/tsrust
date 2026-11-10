@@ -76,6 +76,40 @@ function DynamicStyles(): Node {
 }
 ```
 
+## Inline text
+
+Nested `Text` keeps font weight, italic style, generic font family, foreground,
+solid background, underline and strikethrough in one wrapped paragraph. Dynamic classes
+update those runs without changing the text value. A paragraph shares one font
+size and line height; put differently sized text in separate `Text` elements.
+Box layout and interaction utilities belong on the outer text element.
+Place interactive `Link` components beside `Text` on desktop: links nested inside
+a text paragraph do not yet have independent native pointer or keyboard targets.
+
+```tsx live InlineTypography
+function InlineTypography(): Node {
+  const alternate = signal(false);
+  return (
+    <View className="flex-col gap-3">
+      <Button onPress={() => { alternate.set(!alternate.get()); }}>Flip inline color</Button>
+      <Text>Plain <Text as="span" className={alternate.get() ? 'font-bold text-sky-600' : 'font-bold text-rose-600'}>bold café</Text> and <Text as="span" className="italic font-mono bg-amber-200">inline code</Text>.</Text>
+      <Text className="underline">Underlined <Text as="span" className="no-underline">plain span</Text> underlined.</Text>
+      <Text className="font-mono">Monospace <Text as="span" className="font-sans">system sans</Text> monospace.</Text>
+      <Button onPress={() => { alternate.set(!alternate.get()); }}><Text className="font-bold">Styled button label</Text></Button>
+      <Text>Current color: {alternate.get() ? 'sky' : 'rose'}</Text>
+    </View>
+  );
+}
+```
+
+GPUI currently leaves letter spacing, balanced wrapping, text transforms,
+underline offsets, CSS animations, pointer-event/selection utilities and
+content-sized fields, justify-self and auto-rows-min unchanged. Table CSS and nonuniform grid tracks use the
+retained browser renderer; use native `Table`/`DataTable` and uniform grids on
+desktop. Placeholder colors and inline interaction-state utilities are not mapped.
+These are renderer limits even when a utility name is recognized by the shared
+class parser.
+
 Supported class families appear in completion and hover; unsupported utility names
 fail checking. Arbitrary CSS expressions (`calc(...)`, arbitrary selectors and
 unregistered CSS variables) are not a native styling API. GPUI has its own layout
