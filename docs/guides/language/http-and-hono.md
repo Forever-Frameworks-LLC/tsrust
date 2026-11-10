@@ -66,7 +66,7 @@ Hono is attractive because its developer API is:
 * standards-oriented
 * familiar
 * portable
-* JSX-capable
+* Server-side component rendering
 The target experience might intentionally resemble:
 import { Hono } from "http";
 

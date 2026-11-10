@@ -63,7 +63,7 @@ milestone ran and no existing benchmark sample changed.
 ## Remaining coupling and next section
 
 This is feature isolation, not a separate compiler distribution. Compiler
-`ui_project` and JSX validation still depend on the frozen style/theme module.
+`ui_project` and TSRX validation still depend on the frozen style/theme module.
 The generated UI emitter still embeds source from `crates/tsrust-ui/src`. The CLI
 still carries legacy UI commands/catalog/docs integration. `build.rs` still vendors
 the complete locked `native-dependencies` source closure; the CLI embeds those

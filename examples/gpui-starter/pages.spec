@@ -3389,7 +3389,7 @@ function BasicSidebar(): Node {
       <Sidebar>
         <SidebarHeader><Text className="font-semibold">Acme Inc.</Text></SidebarHeader>
         <SidebarGroup label="Workspace">
-          <SidebarItem icon="inbox" active={page.get() === 'inbox'} onClick={() => { page.set('inbox'); }}>Inbox<SidebarItemSuffix><Badge count={4} /></SidebarItemSuffix></SidebarItem>
+          <SidebarItem icon="inbox" active={page.get() === 'inbox'} onClick={() => { page.set('inbox'); }}>Inbox<SidebarItemSuffix><View className="w-6 h-5 pr-2 pt-2"><Badge count={4} /></View></SidebarItemSuffix></SidebarItem>
           <SidebarItem icon="calendar" active={page.get() === 'calendar'} onClick={() => { page.set('calendar'); }}>Calendar</SidebarItem>
           <SidebarItem icon="folder" defaultOpen={true}>Projects
             <SidebarItem active={page.get() === 'website'} onClick={() => { page.set('website'); }}>Website</SidebarItem>
@@ -3578,7 +3578,7 @@ A bar along the bottom of a window with left and right areas.
 StatusBarLeft and StatusBarRight.
 function BasicStatusBar(): Node {
   return (
-    <View className="w-full rounded-lg border border-border">
+    <View className="w-full">
       <StatusBar>
         <StatusBarLeft><Icon name="git-branch" /><Text>main</Text><Text variant="muted">0 errors</Text></StatusBarLeft>
         <StatusBarRight><Text variant="muted">Ln 12, Col 4</Text><Text variant="muted">UTF-8</Text></StatusBarRight>
@@ -4186,6 +4186,104 @@ function LiveTranscript(): Node {
         {...lines.filter((line: int) => line < count.get()).map((line: int) => <Message align={line % 2 === 0 ? 'start' : 'end'} variant={line % 2 === 0 ? 'secondary' : 'filled'}>Message {line + 1}</Message>)}
       </MessageScroller>
       <Button onPress={() => { count.set(count.get() + 1); }}>Send message</Button>
+    </View>
+  );
+}
+
+=== Diff | diff | Data Display
+Compare changed files in a unified patch or a side-by-side split view.
+--- Unified and split
+Switch the same patch between layouts. The viewer keeps GPUI Kit's file headers and change colors.
+function PatchComparison(): Node {
+  const split = signal(false);
+  const patch = 'diff --git a/greeting.tsr b/greeting.tsr\n--- a/greeting.tsr\n+++ b/greeting.tsr\n@@ -1,3 +1,3 @@\n function greet(): string {\n-  return "Hello";\n+  return "Hello, world";\n }\n';
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Switch checked={split.get()} onChange={(value) => { split.set(value); }}>Split view</Switch>
+      <Diff patch={patch} mode={split.get() ? 'split' : 'unified'} className="h-64 w-full" />
+    </View>
+  );
+}
+
+=== Editor | editor | Forms
+Edit source code with GPUI Kit's native editor, syntax highlighting, selection and folding.
+--- Controlled source
+The change event supplies the complete source. Toggle read-only to preserve selection while preventing edits.
+function SourceEditor(): Node {
+  const code = signal('function greet(name: string): string {\n  return `Hello, ${name}`;\n}\n');
+  const locked = signal(false);
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Switch checked={locked.get()} onChange={(value) => { locked.set(value); }}>Read only</Switch>
+      <CodeEditor language="typescript" value={code.get()} onChange={(value) => { code.set(clone(value)); }} readOnly={locked.get()} className="h-64 w-full" />
+      <Text variant="muted">Characters: {code.get().length}</Text>
+    </View>
+  );
+}
+
+=== Questionnaire | questionnaire | Forms
+A survey with required questions, multiple answers, progress and backward navigation.
+--- Guided questions
+Choose a plan, then select the tools you use. Submit reports the answers as JSON.
+function GuidedQuestions(): Node {
+  const answers = signal('No answers submitted.');
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Questionnaire onSubmit={(value) => { answers.set(clone(value)); }} className="h-96 w-full">
+        <Question id="plan" title="Which plan fits?" description="Choose one to continue." required={true}>
+          <QuestionChoice id="free" label="Free" description="For personal projects." />
+          <QuestionChoice id="team" label="Team" description="For shared projects." />
+        </Question>
+        <Question id="tools" title="Which tools do you use?" multiple={true}>
+          <QuestionChoice id="editor" label="Editor" />
+          <QuestionChoice id="terminal" label="Terminal" />
+          <QuestionChoice id="browser" label="Browser" />
+        </Question>
+      </Questionnaire>
+      <Text>{answers}</Text>
+    </View>
+  );
+}
+
+=== Settings Panel | settings | Forms
+Searchable settings pages with grouped controls. Each control owns or receives its value as usual.
+--- Application preferences
+Switch pages, search by a setting title, and change the controls.
+function ApplicationPreferences(): Node {
+  const automatic = signal(true);
+  const fontSize = signal<number>(14);
+  return (
+    <Settings className="h-96 w-full">
+      <SettingsPage title="General" description="Application behavior.">
+        <SettingsGroup title="Updates" description="Choose when to check for new versions.">
+          <SettingItem title="Automatic checks" description="Check when the application starts.">
+            <Switch checked={automatic.get()} onChange={(value) => { automatic.set(value); }} />
+          </SettingItem>
+        </SettingsGroup>
+      </SettingsPage>
+      <SettingsPage title="Editor" description="Text and editing preferences.">
+        <SettingsGroup title="Typography">
+          <SettingItem title="Font size" description="Logical pixels.">
+            <NumberInput value={fontSize.get()} min={10} max={32} onChange={(value) => { fontSize.set(value); }} />
+          </SettingItem>
+        </SettingsGroup>
+      </SettingsPage>
+    </Settings>
+  );
+}
+
+=== Speech | speech | Forms
+Dictation through the system recognizer. Availability and permission depend on the host operating system.
+--- Live transcript
+Click the microphone to start, speak, then click again to finish. The first attempt may request system permission.
+function LiveTranscript(): Node {
+  const transcript = signal('Your transcript appears here.');
+  const error = signal('');
+  return (
+    <View className="flex-col gap-3 w-full">
+      <SpeechButton locale="en-US" waveform={true} onPartial={(value) => { transcript.set(clone(value)); }} onFinal={(value) => { transcript.set(clone(value)); }} onError={(message) => { error.set(clone(message)); }} />
+      <Text>{transcript}</Text>
+      <Text variant="muted">{error}</Text>
     </View>
   );
 }

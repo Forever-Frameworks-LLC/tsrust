@@ -1075,13 +1075,13 @@ impl Root {
     fn bubble(&self, node: &Node, kit: &Kit, cx: &mut Context<Self>) -> Bubble {
         let mut bubble = Bubble::new().with_variant(bubble_variant(kit)).alignment(message_alignment(kit)).refine_style(&self.class_style(&node.class_name, cx));
         let content = match first_item(node, "BubbleContent") {
-            Some(part) => BubbleContent::new().refine_style(&self.class_style(&part.class_name, cx)).children(self.content(part, cx)),
+            Some(part) => BubbleContent::new().refine_style(&self.node_style(part)).children(self.content(part, cx)),
             None => BubbleContent::new().children(self.content_except(node, &["BubbleReactions"], cx)),
         };
         bubble = bubble.content(content);
         if let Some((part, reactions)) = items(node, "BubbleReactions").next() {
             let side = if reactions.prop("side") == Some("top") {BubbleReactionSide::Top} else {BubbleReactionSide::Bottom};
-            bubble = bubble.reactions(BubbleReactions::new().side(side).alignment(message_alignment(reactions)).refine_style(&self.class_style(&part.class_name, cx)).children(self.content(part, cx)));
+            bubble = bubble.reactions(BubbleReactions::new().side(side).alignment(message_alignment(reactions)).refine_style(&self.node_style(part)).children(self.content(part, cx)));
         }
         bubble
     }
@@ -1100,7 +1100,7 @@ impl Root {
         let image_source = |source: String| -> ImageSource {if std::path::Path::new(&source).is_file() {std::path::PathBuf::from(source).into()} else {SharedString::from(source).into()}};
         let mut media = match items(node, "AttachmentMedia").next() {
             Some((part, media_kit)) => {
-                let mut media = AttachmentMedia::new().refine_style(&self.class_style(&part.class_name, cx));
+                let mut media = AttachmentMedia::new().refine_style(&self.node_style(part));
                 match media_kit.prop("src") {
                     // With an image, children draw over it; otherwise they are the media (such as an icon).
                     Some(source) => {media = media.src(image_source(source.to_owned())); let overlay = self.content(part, cx); if !overlay.is_empty() {media = media.overlay(div().size_full().children(overlay));}}
@@ -1965,7 +1965,7 @@ impl Root {
         let element_id = ElementId::Integer(id);
         let text = |name: &str| SharedString::from(kit.text(name));
         // className refines Styled Kit components directly (see STYLED_KIT); others get a wrapper.
-        let style = self.class_style(&node.class_name, cx);
+        let style = self.node_style(node);
         let root = cx.entity().downgrade();
         // A plain event handler for Kit callbacks that run with &mut App.
         let event = |event: &'static str| {
@@ -2556,15 +2556,15 @@ impl Root {
                 if let Some(label) = kit.prop("accessibilityLabel") {table = table.accessibility_label(label.to_owned());}
                 if let Some(size) = kit_size(kit) {table = table.with_size(size);}
                 for (section, part) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
-                    let section_style = self.class_style(&section.class_name, cx);
+                    let section_style = self.node_style(section);
                     if part.name == "TableCaption" {
                         table = table.child(gpui_kit::component::table::TableCaption::new().refine_style(&section_style).children(self.content(section, cx)));
                         continue;
                     }
                     let rows = items(section, "TableRow").map(|(row, _)| {
-                        let mut cells = TableRow::new().refine_style(&self.class_style(&row.class_name, cx));
+                        let mut cells = TableRow::new().refine_style(&self.node_style(row));
                         for (cell, cell_kit) in row.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
-                            let cell_style = self.class_style(&cell.class_name, cx);
+                            let cell_style = self.node_style(cell);
                             let content = self.content(cell, cx);
                             let span = cell_kit.index("colSpan").unwrap_or(1);
                             let align = cell_kit.prop("align");
@@ -2588,7 +2588,7 @@ impl Root {
                 }
                 table.into_any_element()
             }
-            "Markdown" => TextView::markdown(element_id, text("content")).into_any_element(),
+            "Markdown" => TextView::markdown(element_id, super::kit::highlighted_markdown(&kit.text("content"))).into_any_element(),
             "Html" => TextView::html(element_id, text("content")).into_any_element(),
             "Image" => {
                 let fit = match kit.prop("fit") {Some("cover") => ObjectFit::Cover, Some("fill") => ObjectFit::Fill, Some("none") => ObjectFit::None, _ => ObjectFit::Contain};
@@ -2684,7 +2684,7 @@ impl Root {
                 let mut composed = false;
                 for (part, part_kit) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))).filter(|(_, kit)| parts.contains(&kit.name.as_str())) {
                     composed = true;
-                    let part_style = self.class_style(&part.class_name, cx);
+                    let part_style = self.node_style(part);
                     message = match part_kit.name.as_str() {
                         "MessageAvatar" => message.avatar_slot(MessageAvatar::new().refine_style(&part_style).children(self.content(part, cx))),
                         "MessageHeader" => {let mut header = MessageHeader::new().refine_style(&part_style).children(self.content(part, cx)); if let Some(inset) = part_kit.prop("inset") {header = header.content_inset(inset == "true");} message.header(header)}
@@ -2874,7 +2874,7 @@ impl Root {
                     let holder = first_item(node, "CarouselContent").unwrap_or(node);
                     let mut content = CarouselContent::new(state).track_style(self.class_style(&kit.text("trackClassName"), cx)).refine_style(&self.class_style(if std::ptr::eq(holder, node) {""} else {&holder.class_name}, cx));
                     for (index, slide) in carousel_slides(holder).into_iter().enumerate() {
-                        let mut item = CarouselItem::new(ElementId::Name(format!("{id}-slide-{index}").into()), index, state).refine_style(&self.class_style(&slide.class_name, cx)).child(div().size_full().children(self.content(slide, cx)));
+                        let mut item = CarouselItem::new(ElementId::Name(format!("{id}-slide-{index}").into()), index, state).refine_style(&self.node_style(slide)).child(div().size_full().children(self.content(slide, cx)));
                         if let Some(label) = slide.kit.as_deref().and_then(|kit| kit.prop("accessibilityLabel")) {item = item.accessibility_label(label.to_owned());}
                         content = content.child(item);
                     }
@@ -2886,7 +2886,7 @@ impl Root {
                     }
                     let count = carousel_slides(holder).len();
                     for (part, control) in controls {
-                        let part_style = self.class_style(&part.class_name, cx);
+                        let part_style = self.node_style(part);
                         let label = control.prop("accessibilityLabel").map(str::to_owned);
                         let size = kit_size(control);
                         carousel = match control.name.as_str() {
@@ -3014,13 +3014,13 @@ impl Root {
                 match kit.prop("alignment") {Some("start") => marker = marker.alignment(MarkerAlignment::Start), Some("center") => marker = marker.alignment(MarkerAlignment::Center), Some("end") => marker = marker.alignment(MarkerAlignment::End), _ => {}}
                 if kit.prop("role") == Some("presentation") {marker = marker.role(gpui_kit::base::RoleOverride::Presentational);}
                 match first_item(node, "MarkerIcon") {
-                    Some(part) => marker = marker.icon(MarkerIcon::new().refine_style(&self.class_style(&part.class_name, cx)).children(self.content(part, cx))),
+                    Some(part) => marker = marker.icon(MarkerIcon::new().refine_style(&self.node_style(part)).children(self.content(part, cx))),
                     None => if let Some(icon) = icon_name(&kit.text("icon")) {marker = marker.icon(MarkerIcon::new().child(Icon::new(icon)));},
                 }
                 match first_item(node, "MarkerContent") {
                     // Plain text keeps Kit's text treatment (shimmer while loading); rich content renders as children.
-                    Some(part) if part.visible_children().all(|child| child.kind == Kind::Text && child.kit.is_none()) => marker = marker.content(MarkerContent::new().refine_style(&self.class_style(&part.class_name, cx)).text(part.content_text())),
-                    Some(part) => marker = marker.content(MarkerContent::new().refine_style(&self.class_style(&part.class_name, cx)).children(self.content(part, cx))),
+                    Some(part) if part.visible_children().all(|child| child.kind == Kind::Text && child.kit.is_none()) => marker = marker.content(MarkerContent::new().refine_style(&self.node_style(part)).text(part.content_text())),
+                    Some(part) => marker = marker.content(MarkerContent::new().refine_style(&self.node_style(part)).children(self.content(part, cx))),
                     None => if !kit.text("text").is_empty() {marker = marker.content(MarkerContent::new().text(text("text")));},
                 }
                 marker.children(self.content_except(node, &["MarkerIcon", "MarkerContent"], cx)).into_any_element()

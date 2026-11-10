@@ -40,7 +40,7 @@ silently becoming lines. Zero radii follow SVG's line behavior.
 - Source-derived editor completion/hover, two receiver agreement rows, five
   vector scenarios in four typing modes, consistency counters and the installed
   LSP witness pass. Existing condition and semantic-attribute rows also pass.
-- Incomplete JSX now materializes imported generic parameter fields. Inherited
+- Incomplete TSRX now materializes imported generic parameter fields. Inherited
   generic aliases retain complete arguments and substitute renamed parameters;
   quoted metadata fields no longer disappear while another function is invalid.
 - Documentation generation reports 163 destinations, 24 checked examples and

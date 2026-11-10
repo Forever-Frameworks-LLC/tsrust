@@ -119,7 +119,7 @@ The immediate goals are:
 6. Clearly identify which ideas are established versus which aspects of this project should intentionally differ.
 7. Establish a benchmark methodology against neighboring languages without incorporating, vendoring, or installing their source code into this project.
 8. Investigate making a Hono-compatible HTTP framework/API a core built-in part of the language’s backend experience.
-9. Investigate JSX/TSX-style native server-side HTML generation as a first-class feature.
+9. Investigate TSRX/TSX-style native server-side HTML generation as a first-class feature.
 
 <a id="web-34"></a>
 
@@ -164,7 +164,7 @@ Determine:
 * API surface worth preserving
 * behavior worth preserving
 * behavior that should intentionally differ
-* JSX feasibility
+* TSRX feasibility
 * middleware model
 * native implementation architecture
 * legal/licensing considerations

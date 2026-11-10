@@ -165,6 +165,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod structural;",&format!("mod structural {{\n{}\n}}",source!("style/structural.rs")))
         .replace("mod custom_spacing;",&format!("mod custom_spacing {{\n{}\n}}",source!("style/custom_spacing.rs")))
         .replace("mod text;",&format!("mod text {{\n{}\n}}",source!("style/text.rs")))
+        .replace("mod tailwind;",&format!("mod tailwind {{\n{}\n}}",source!("style/tailwind.rs")))
         .replace("mod edges;",&format!("mod edges {{\n{}\n}}",source!("style/edges.rs")))
         .replace("crate::theme", "super::theme");
     let theme=source!("theme.rs")

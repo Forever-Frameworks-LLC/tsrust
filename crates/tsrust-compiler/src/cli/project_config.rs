@@ -3,7 +3,7 @@ use std::{env,fs,path::{Path,PathBuf,Component}};
 use serde_json::Value;
 
 pub const FILE:&str="tsrust.config.json";
-pub struct Project {pub root:PathBuf,pub entry:PathBuf,pub output:PathBuf}
+pub struct Project {pub root:PathBuf,pub entry:PathBuf,pub output:PathBuf,pub package:super::app_package_cli::PackageConfig}
 fn object<'a>(value:&'a Value,at:&str,keys:&[&str])->Result<&'a serde_json::Map<String,Value>,String> {
     let object=value.as_object().ok_or_else(||format!("{at} must be an object"))?;
     for key in object.keys() {if !keys.contains(&key.as_str()) {return Err(format!("Unknown {at} setting: {key}"));}}
@@ -29,7 +29,7 @@ pub fn load(root:&Path)->Result<Project,String> {
 pub(crate) fn parse(root:&Path,text:&str)->Result<Project,String> {
     let path=root.join(FILE);
     let value:Value=serde_json::from_str(text).map_err(|e|format!("{}: {e}",path.display()))?;
-    let config=object(&value,FILE,&["schemaVersion","name","build","paths","ui","documentation","api"])?;
+    let config=object(&value,FILE,&["schemaVersion","name","build","paths","ui","documentation","api","package"])?;
     if config.get("schemaVersion").and_then(Value::as_u64)!=Some(1) {return Err(format!("{FILE}: schemaVersion must be 1"));}
     if !config.get("name").and_then(Value::as_str).is_some_and(valid_name) {return Err(format!("{FILE}: name must start with a letter and contain only ASCII letters, digits, '_' or '-' (maximum 100 characters)"));}
     tsrust_compiler::project_resolution::Aliases::parse(root,config.get("paths"))?;
@@ -41,7 +41,11 @@ pub(crate) fn parse(root:&Path,text:&str)->Result<Project,String> {
     if output==entry || output.extension().is_some_and(|extension|extension=="tsr" || extension=="tsrx") || output==Path::new(FILE) {
         return Err("build.output must not name a source or configuration file".into());
     }
-    Ok(Project {root:root.to_owned(),entry:root.join(entry),output:root.join(output)})
+    let mut package:super::app_package_cli::PackageConfig= config.get("package").map(|value|serde_json::from_value(value.clone()).map_err(|error|format!("package: {error}"))).transpose()?.unwrap_or_default();
+    for (name,value) in [("icon",&mut package.icon),("out",&mut package.out)] {
+        if let Some(path)=value {let checked=relative(Some(&Value::String(path.to_string_lossy().into_owned())),&format!("package.{name}"))?;*path=root.join(checked);}
+    }
+    Ok(Project {root:root.to_owned(),entry:root.join(entry),output:root.join(output),package})
 }
 pub fn discover()->Result<Option<Project>,String> {
     let cwd=env::current_dir().map_err(|e|e.to_string())?;

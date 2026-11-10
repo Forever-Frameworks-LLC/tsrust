@@ -7,6 +7,28 @@ use std::collections::BTreeMap;
 
 pub(crate) type EventHandler = Box<dyn FnMut(&str) -> Result<(), String>>;
 
+/// Highlight Tsrust fences with the corresponding Kit grammar, preserving code bytes.
+#[cfg(any(test, feature = "gpui"))]
+pub(crate) fn highlighted_markdown(source: &str) -> String {
+    let mut output=String::with_capacity(source.len());
+    for line in source.split_inclusive('\n') {
+        let replacement=[("```tsrx","```tsx"),("```tsr","```typescript"),("~~~tsrx","~~~tsx"),("~~~tsr","~~~typescript")].into_iter().find_map(|(prefix,replacement)| {
+            line.strip_prefix(prefix).filter(|tail|tail.is_empty() || tail.starts_with(char::is_whitespace)).map(|tail|(replacement,tail))
+        });
+        match replacement {Some((prefix,tail))=>{output.push_str(prefix);output.push_str(tail);},None=>output.push_str(line)}
+    }
+    output
+}
+
+#[cfg(test)]
+mod markdown_tests {
+    #[test]
+    fn tsrust_fences_use_kit_grammars_without_changing_code_or_other_languages() {
+        let source="```tsrx\r\n<Text>hello</Text>\r\n```\r\n```tsr\nconst x = 1;\n```\n```bash\ntsrust dev\n```\ninline ```tsr\n~~~tsrust\n";
+        assert_eq!(super::highlighted_markdown(source),source.replacen("```tsrx\r\n","```tsx\r\n",1).replacen("```tsr\nconst","```typescript\nconst",1));
+    }
+}
+
 pub(crate) struct Kit {
     pub(crate) name: String,
     pub(crate) props: BTreeMap<String, String>,

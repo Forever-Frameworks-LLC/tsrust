@@ -59,7 +59,7 @@ Categories:
 * HTML
 * redirects
 * streaming
-* JSX
+* TSRX
 * nested routers
 Do not blindly copy Hono’s internal source tests.
 Write independent tests describing observable public behavior.

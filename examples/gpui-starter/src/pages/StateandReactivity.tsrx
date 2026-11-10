@@ -47,7 +47,7 @@ export function StateandReactivityPage(): Node {
   return (
     <View className="flex-col gap-6">
       <Markdown content={"# State and Reactivity"} />
-      <Markdown content={"State lives in signals. Reading `signal.get()` inside JSX makes that part of\nthe tree update when the signal changes; nothing else re-renders.\n\n## Signals"} />
+      <Markdown content={"State lives in signals. Reading `signal.get()` inside TSRX markup makes that part of\nthe tree update when the signal changes; nothing else re-renders.\n\n## Signals"} />
       <LiveExample code="function Temperature(): Node {\n  const celsius = signal(21.0);\n  return (\n    <View className=\"flex-col gap-3 w-80\">\n      <Slider min={-20} max={40} value={celsius.get()} onChange={(value) => { celsius.set(value); }} />\n      <Text>{Math.round(celsius.get())} °C is {Math.round(celsius.get() * 9 / 5 + 32)} °F</Text>\n    </View>\n  );\n}"><Temperature /></LiveExample>
       <Markdown content={"`computed(() => ...)` names a derived value; it re-evaluates when read.\n\n## Controlled and uncontrolled\n\nA form control is controlled when you pass its value (`checked`, `value`,\n`selected`, `open`) and update it from the change event. Leave the value out\nand the control keeps its own state; `defaultChecked`, `defaultValue` or\n`defaultOpen` set where it starts."} />
       <LiveExample code="function ControlledSwitch(): Node {\n  const on = signal(true);\n  return (\n    <View className=\"flex-col gap-3\">\n      <Switch checked={on.get()} onChange={(next) => { on.set(next); }}>Controlled: {on.get() ? 'on' : 'off'}</Switch>\n      <Switch defaultChecked={true}>Uncontrolled</Switch>\n    </View>\n  );\n}"><ControlledSwitch /></LiveExample>

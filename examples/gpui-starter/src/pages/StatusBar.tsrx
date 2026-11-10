@@ -4,7 +4,7 @@ import { Example, PageHeader } from '../example.tsrx';
 
 function BasicStatusBar(): Node {
   return (
-    <View className="w-full rounded-lg border border-border">
+    <View className="w-full">
       <StatusBar>
         <StatusBarLeft><Icon name="git-branch" /><Text>main</Text><Text variant="muted">0 errors</Text></StatusBarLeft>
         <StatusBarRight><Text variant="muted">Ln 12, Col 4</Text><Text variant="muted">UTF-8</Text></StatusBarRight>
@@ -17,7 +17,7 @@ export function StatusBarPage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="A bar along the bottom of a window with left and right areas." slug="status-bar" />
-      <Example title="Basic Status Bar" description="StatusBarLeft and StatusBarRight." code="function BasicStatusBar(): Node {\n  return (\n    <View className=\"w-full rounded-lg border border-border\">\n      <StatusBar>\n        <StatusBarLeft><Icon name=\"git-branch\" /><Text>main</Text><Text variant=\"muted\">0 errors</Text></StatusBarLeft>\n        <StatusBarRight><Text variant=\"muted\">Ln 12, Col 4</Text><Text variant=\"muted\">UTF-8</Text></StatusBarRight>\n      </StatusBar>\n    </View>\n  );\n}"><BasicStatusBar /></Example>
+      <Example title="Basic Status Bar" description="StatusBarLeft and StatusBarRight." code="function BasicStatusBar(): Node {\n  return (\n    <View className=\"w-full\">\n      <StatusBar>\n        <StatusBarLeft><Icon name=\"git-branch\" /><Text>main</Text><Text variant=\"muted\">0 errors</Text></StatusBarLeft>\n        <StatusBarRight><Text variant=\"muted\">Ln 12, Col 4</Text><Text variant=\"muted\">UTF-8</Text></StatusBarRight>\n      </StatusBar>\n    </View>\n  );\n}"><BasicStatusBar /></Example>
     </View>
   );
 }

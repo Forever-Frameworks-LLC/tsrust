@@ -24,7 +24,7 @@ claim that broader work is done.
 Current component-library direction (2026-10-18): port current Base UI + Nova,
 including the complete component/block inventory and editable offline source.
 [Coverage](ui-component-coverage.json) distinguishes accepted primitive
-prerequisites from pending components. Exact quoted/JSX attributes and shared
+prerequisites from pending components. Exact quoted/TSRX attributes and shared
 semantic accessibility now pass focused acceptance; composition, layout/theme,
 controls and complete Nova families remain active work. This supersedes historical
 statements limiting the library to Button/Card or treating remaining UI work as optional.
@@ -41,7 +41,7 @@ sources now pass focused acceptance within their explicit partial scope. Require
 next UI work includes Field composition, complete
 remaining component/layout/block families, keyed lists and persistent routing; historical UI pause and
 resource-dependency statements below are superseded. Initial nullable children and
-stateful nullable component results now pass focused acceptance. Supported scalar JSX text
+stateful nullable component results now pass focused acceptance. Supported scalar TSRX text
 expressions and exact numeric children also pass focused compiler/runtime/editor and
 fresh browser acceptance. Local-state conditional mounting, retained editor identities,
 branch cleanup and transparent native/web layout also pass focused acceptance. Integrated CLI web

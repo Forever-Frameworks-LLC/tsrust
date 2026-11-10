@@ -11,7 +11,7 @@ nonnegative margins, balanced short text, theme-scaled maximum width, generic
 heading families and bounded SVG/direct-Link descendant styles. Native text
 measurement, painting and selection use the same settings. Native descendant
 cascade now gives local child classes precedence over ancestor defaults, including
-ancestor hover rules. Scoped theme ownership and quoted JSX ampersands are checked;
+ancestor hover rules. Scoped theme ownership and quoted TSRX ampersands are checked;
 malformed numeric entities remain errors.
 
 Four container slots preserve View replacement rendering. Title and Description

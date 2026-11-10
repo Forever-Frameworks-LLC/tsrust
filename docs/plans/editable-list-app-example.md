@@ -1,6 +1,6 @@
 # Editable-list app: concrete API design example
 
-Status: illustrative design, 2026-10-11. All imports, framework types, JSX, async handlers, config and context helpers below are proposed APIs, not implemented or compile-verified Tsrust. The example makes contracts reviewable; it is not permission to bypass compiler ownership rules. See [HTTP contract](axum-hono-http-ui-contract.md) and [UI vision](../../UI_VISION.md).
+Status: illustrative design, 2026-10-11. All imports, framework types, TSRX, async handlers, config and context helpers below are proposed APIs, not implemented or compile-verified Tsrust. The example makes contracts reviewable; it is not permission to bypass compiler ownership rules. See [HTTP contract](axum-hono-http-ui-contract.md) and [UI vision](../../UI_VISION.md).
 
 ## Example policy, not mandatory framework policy
 

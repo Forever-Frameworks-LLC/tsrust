@@ -67,7 +67,7 @@ impl Analyzer {
  pub(super) fn ui_reactive_prop_type(&self,expected:Option<Type>,span:Span)->Result<(usize,Type),Diagnostic>{
   let mut pending=expected.into_iter().collect::<Vec<_>>();let mut found=None;
   while let Some(ty)=pending.pop(){match ty{Type::Union(id)=>pending.extend(self.unions.members(id)),Type::Record(record)=>{let fields=&self.program.records[record].fields;if fields.len()==1&&fields[0].name.text=="evaluate"{if let Some((payload,_))=fields[0].ty.and_then(|ty|self.ui_computed_callback(ty)){self.ui_computed_scalar(payload,span)?;if found.is_some(){return Err(Diagnostic::new("ui-reactive-prop","Use one ReactiveValue<T> contract for a live scalar prop.",span));}found=Some((record,fields[0].ty.unwrap()));}}},_=>{}}}
-  found.ok_or_else(||Diagnostic::new("ui-reactive-prop","This JSX expression requires a declared ReactiveValue<T> scalar prop.",span))
+  found.ok_or_else(||Diagnostic::new("ui-reactive-prop","This TSRX expression requires a declared ReactiveValue<T> scalar prop.",span))
  }
  fn ui_string_binding_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};

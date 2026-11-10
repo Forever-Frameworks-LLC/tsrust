@@ -63,7 +63,7 @@ Use these as coverage targets, not claims about measured market share. Each need
 6. Data service: migrations, prepared queries, transactions, pagination, row streaming, cache invalidation and connection failure.
 7. CPU-heavy processing: safe parallel mapping/batching with thread pools alongside responsive async I/O.
 8. Testing/operations: unit/integration tests, fixture lifecycle, deterministic clocks, metrics/tracing/logging and deployment packaging.
-9. Full-stack/SSR/serverless: survey Next-style server routes/rendering and deployment boundaries, but React/JSX/browser execution, bundling and platform SDKs remain separate product decisions.
+9. Full-stack/SSR/serverless: survey Next-style server routes/rendering and deployment boundaries, but React/TSRX/browser execution, bundling and platform SDKs remain separate product decisions.
 
 ## Ecosystem capability matrix
 
@@ -84,7 +84,7 @@ Rows specify behavior worth covering; backend selection stays subject to toolcha
 | CPU parallelism | worker_threads; Piscina discovery | [Rayon](https://docs.rs/rayon/latest/rayon/), Rust threads | S12 + H23: bounded pools and safe parallel iterators, cancellation limitations and scheduling isolation |
 | TLS/security | crypto/WebCrypto; jose/bcrypt/argon2/helmet discovery | [Rustls](https://docs.rs/rustls/latest/rustls/); RustCrypto/argon2 discovery | S16/H07/H17: reviewed algorithms, password hashing, token verification and security middleware; auth providers later |
 | Regex/text/time/IDs | RegExp; lodash/date-fns/dayjs/uuid discovery | [regex](https://docs.rs/regex/latest/regex/); time/chrono/uuid discovery | H12/H24: explicit regex differences, Unicode/timezone and identifier semantics; existing array methods before utility duplication |
-| Full-stack frameworks | [Next](https://nextjs.org/docs), Nest | SSR/template engines and framework candidates unselected | Separate framework product track; cover server primitives without promising JSX/React compatibility |
+| Full-stack frameworks | [Next](https://nextjs.org/docs), Nest | SSR/template engines and framework candidates unselected | Separate framework product track; cover server primitives without promising TSRX/React compatibility |
 
 ## Supplemental gates
 

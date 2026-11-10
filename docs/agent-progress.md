@@ -6,6 +6,54 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Owner review continuation — 2026-11-10 (in progress)
+
+Active request: resolve all seven gallery/platform comments and finish missing Kit
+coverage, including the outstanding language defects. Starting source is local
+9df57e42 plus Claude's interrupted TSRX wording and Tailwind edits; preserve them.
+One writer, no push/release authorized. The latest owner test rule excludes build
+and setup from the under-one-hour execution budget, superseding older workflow prose.
+
+Checklist (acceptance pending unless explicitly recorded):
+- TSRX wording throughout documentation, diagnostics and editor help.
+- Tailwind utilities/arbitrary and reactive values; actual native rendering,
+  dark/responsive/data selectors, interaction states and documented native limits.
+- Route/path parameters/state, independent per-window state and shared opt-in state.
+- Packaging highlighting and checked config defaults with CLI precedence.
+- Status-bar edges, sidebar badge clipping, compact title-bar controls.
+- Missing Diff, Editor, Questionnaire, Settings, Speech, AppMenuBar and Plot tooltip;
+  input callbacks and honest full public-method coverage.
+- String-field ownership ergonomics, pathological Table checking, early invalid
+  control nesting diagnostics and lazy reactive-list captures.
+- Affected suites, whole-project format/token/idempotence proof, gallery interaction
+  verification, local accepted checkpoints and output cleanup.
+
+Starter reopened independently of Claude as /tmp/Tsrust Gallery.app, backed by
+examples/gpui-starter/target/gpui-starter (last committed build). Verified native
+window and controls through macOS accessibility. Sandbox-only launch fails in
+NSPasteboard; desktop launch works. Do not stop the owner's pre-existing process.
+Current changes are NOT accepted yet. Local WIP checkpoint precedes the window
+ownership repair. Compiler build passes. UI runtime: 117/119 initially passed;
+affected style suite then passed 24/25, and the repaired remaining Tailwind test
+passed separately (119 distinct tests now passed across these runs, 0.05s initial
+execution, 0.04s style run, 0.03s final witness; builds 2–3s each). Packaging config
+precedence/path/error test passes (execution <0.01s, compiler setup 2m19s).
+Whole-project formatter: 0 files, 0 snippets, 0 fingerprints changed; gallery
+--check and git diff --check pass. No performance measurements performed.
+Native gallery build is IN PROGRESS using CARGO_INCREMENTAL=0, jobs=1 and the
+repository target. It passed frontend checking and is compiling pinned GPUI/speech
+dependencies; native renderer field mappings remain unverified. Last built gallery
+remains open. Shell highlighting was visually verified; Tsrust fence aliases added
+and unit-tested. Added five gallery pages (Diff, Editor, Questionnaire, Settings,
+Speech), currently 69 component pages / 349 examples plus generated guide pages.
+New pages are not yet interaction-accepted. API coverage still 1686/2147.
+
+Next: collect native build result/repair renderer errors, then scope navigation and
+commands to their originating window. Both navigation ACTIVE and command QUEUE are
+currently application-wide. Independent component signals already work; do not
+introduce a second reactive system. Remaining styling limitations (animation,
+nonuniform grid tracks, text transform/tracking, state composition) remain open.
+
 ### Gallery as Kit docs mirror; API coverage tracking — 2026-11-09
 
 Owner: the starter must mirror GPUI Kit's component docs (left nav, every Kit
@@ -96,7 +144,7 @@ per-part className, align, colSpan, size) and List over a custom ListDelegate
 ListGroup sections, ListEmpty, search, confirmed/check icon, controlled
 selection/query, hasMore/onLoadMore) and Tree (TreeItem text children,
 icons, defaultExpanded, disabled, controlled `selected` that reveals hidden
-items, onExpand/onCollapse, TreeMenu right-click menu with onContextMenu). JSX
+items, onExpand/onCollapse, TreeMenu right-click menu with onContextMenu). TSRX
 children accept spread arrays (`{...rows.map((row) => <Row />)}`); a spread
 that reads component state lowers to a reactive list slot (runtime
 `Node::each`: transparent like branches, rebuilt on refresh, rows whose shape
@@ -267,7 +315,7 @@ Branch `codex/gpui-ui`. Both earlier UI attempts are removed: `crates/tsrust-ui`
 `std:ui`/`std:ui-runtime`, UI analysis/emit, `ui_project`, the UI CLI, dev web
 and docs app (`docs/src`, `docs/content`), the UI catalog, UI examples, tests and
 benchmarks, and the React/Electron/Expo/shadcn traces. The `.tsrx` parser,
-formatter and JSX syntax stay; JSX lowers to plain component calls. The native
+formatter and TSRX syntax stay; TSRX lowers to plain component calls. The native
 dependency manifest dropped its UI crates (571 to 326 locked packages) and native
 support always builds from the shared backend set. `tsrust ui`/`new --ui` report
 GPUI Kit support in development. Fixed in passing: LSP snapshots record
@@ -1083,10 +1131,10 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 - Documentation remains FAIL107E0308, all spread-boundary field mismatches; five
  positional call errors resolved. f858 physical-spread lookup did not fix actual
  failures and was removed, preserving canonical constructor repair. Tiny valid
- public JSX repro proves missing conversion at FIXED callback argument boundary.
+ public TSRX repro proves missing conversion at FIXED callback argument boundary.
  Reviewed replacement uses existing checked_carrier only after fixed invocation
  resolution; named/forwarded functions and methods retain physical specialization.
- Exact new uppercase JSX fixture frontend-check PASS before build.
+ Exact new uppercase TSRX fixture frontend-check PASS before build.
 - All1530 compiler/27LSP earlier library, rust_bridge8/nullish7/LSPbridge8 and5/6
  earlier docs passes retained. Actual generic fixture + new fixed-boundary guard
  and failed docs case next; complete libraries at this ownership-family milestone

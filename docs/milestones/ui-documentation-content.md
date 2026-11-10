@@ -1,6 +1,6 @@
 # Checked documentation content — 2026-10-19
 
-The content/compiler section is accepted through `522cdf9c`. Explicit JSX child
+The content/compiler section is accepted through `522cdf9c`. Explicit TSRX child
 forwarding is accepted at `a0fca44c`, with corrected focused witnesses through
 `3a049e7f`. The shared example-card application is accepted at `15b533a3`, with workload
 support repaired at `a09aa41e`. The published preview uses those accepted app
@@ -39,7 +39,7 @@ untimed. The workload uses an explicit checked String conversion because direct
 common string-member lookup on literal unions remains unsupported. Timing stays
 unmeasured; the original measurement protocol and sample counts are unchanged.
 
-JSX accepts explicit `children={values}` with ordinary checked array/record
+TSRX accepts explicit `children={values}` with ordinary checked array/record
 ownership. Attribute evaluation happens once. Duplicate child attributes and
 combining an explicit attribute with meaningful body children reject. Compiler,
 editor diagnostics/help, a four-mode typing row and scoped ViewProps agreement

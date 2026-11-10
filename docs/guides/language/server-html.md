@@ -1,4 +1,4 @@
-# Server HTML and JSX
+# Server HTML and TSRX
 
 [Documentation index](../../README.md) · [Proposed roadmap](../../roadmap.md) · [Source section map](../../plans/section-map.md)
 
@@ -8,7 +8,7 @@
 
 **Proposed phase:** Web proof.
 
-**Scope:** Scope typed HTML, JSX components, escaping, streaming, and the native web showcase.
+**Scope:** Scope typed HTML, TSRX components, escaping, streaming, and the native web showcase.
 
 **Planning deliverable:** A typed HTML prototype with dynamic escaping and component composition; streaming as a separate increment.
 
@@ -20,10 +20,10 @@ The sections below retain the original wording and examples. Their proposals and
 
 <a id="web-19"></a>
 
-## 19. JSX / TSX as a First-Class Backend Feature
+## 19. TSRX as a First-Class Backend Feature
 
 Hono provides an important second test:
-JSX-like server-rendered HTML.
+TSRX-like server-rendered HTML.
 Investigate supporting:
 function Layout(props: { children: Html }) {
     return (
@@ -49,9 +49,9 @@ rather than emulating React’s runtime.
 
 <a id="web-20"></a>
 
-## 20. JSX Compilation Strategy
+## 20. TSRX Compilation Strategy
 
-Investigate compiling JSX directly into optimized response-generation code.
+Investigate compiling TSRX directly into optimized response-generation code.
 For example:
 <h1>Hello {user.name}</h1>
 could conceptually lower to:
@@ -86,7 +86,7 @@ This could provide stronger XSS guarantees than ordinary string-based templating
 
 <a id="web-22"></a>
 
-## 22. JSX Components Without React Semantics
+## 22. TSRX Components Without React Semantics
 
 Do not automatically reproduce:
 * React state model
@@ -103,7 +103,7 @@ function UserCard(user: User): Html {
         </article>
     );
 }
-This retains React/JSX familiarity without introducing a React runtime.
+This retains React-style component familiarity without introducing a React runtime.
 
 <a id="web-23"></a>
 
@@ -123,7 +123,7 @@ This could become a powerful backend feature without recreating React Server Com
 ## 37. Core Web Vision
 
 One potential long-term differentiator deserves explicit investigation:
-The language should feel like Hono, TypeScript, and server-side JSX were designed from the beginning for native compilation rather than layered on top of JavaScript.
+The language should feel like Hono, TypeScript, and server-side TSRX were designed from the beginning for native compilation rather than layered on top of JavaScript.
 A possible experience:
 import { App } from "http";
 import { z } from "validation";

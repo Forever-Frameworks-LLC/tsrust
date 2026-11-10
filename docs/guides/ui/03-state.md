@@ -1,6 +1,6 @@
 # State and Reactivity
 
-State lives in signals. Reading `signal.get()` inside JSX makes that part of
+State lives in signals. Reading `signal.get()` inside TSRX markup makes that part of
 the tree update when the signal changes; nothing else re-renders.
 
 ## Signals

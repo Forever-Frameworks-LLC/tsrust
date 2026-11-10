@@ -30,7 +30,7 @@ number or release promise is assigned to this plan.
 - Remove both earlier UI attempts: the ground-up renderer (`crates/tsrust-ui`,
   `std:ui`/`ui-runtime`, vello/winit/accesskit dependencies, the `legacy-ui`
   feature, UI tests, examples and docs) and every Electron/React/Expo/Vite/shadcn
-  template or pin. Git history keeps them. Keep only the `.tsrx` parser, JSX
+  template or pin. Git history keeps them. Keep only the `.tsrx` parser, TSRX
   syntax and signal semantics, retargeted to GPUI Kit.
 - Components are added shadcn-style: `tsrust ui add <component>` copies an
   editable `.tsrx` wrapper into the project's `components/`, backed by a thin
@@ -79,7 +79,7 @@ illustrations are not all implemented APIs. In particular, accepted examples use
 `signal(...).get()`/`.set(...)`; an older `count.value` sketch does not override
 them.
 
-- Preserve function components, JSX children/props, typed callbacks, signals,
+- Preserve function components, TSRX children/props, typed callbacks, signals,
   derived values, live props and composition. Components construct once; signal
   updates do not rerun arbitrary component bodies as React renders.
 - Keep ordinary props' construction-time semantics distinct from live props.
@@ -247,7 +247,7 @@ independent, and a backend never gains UI dependencies.
 
 ## Bridge design (2026-11-09)
 
-The bridge keeps today's JSX lowering (`<Tag {...}/>` is a call `Tag({...})`) and
+The bridge keeps today's TSRX lowering (`<Tag {...}/>` is a call `Tag({...})`) and
 adds one bundled module, `std:gpui`, backed by a small Rust runtime over GPUI Kit.
 
 - Components run once. A function component's body executes at construction and
@@ -335,8 +335,8 @@ Next, following GPUI Kit's guides (gpui-kit.com/docs):
   self-update (reuse the CLI's verified self-update); `.app` bundles replace the
   whole signed bundle; installers and package managers own their installs.
 - i18n (done): JSON catalogs per locale (`setTranslations`), `setLocale`/`locale`
-  (system locale by default), live `t`/`tWith` text bindings for JSX children
-  and Kit string props, `translate`/`translateWith` strings (state-reading JSX
+  (system locale by default), live `t`/`tWith` text bindings for TSRX children
+  and Kit string props, `translate`/`translateWith` strings (state-reading TSRX
   expressions refresh with state and locale), dotted keys, `{name}` placeholders,
   zero/one/other plurals and language/en fallback. Kit's own strings follow the
   locale for the languages Kit ships (en, zh-CN, zh-HK, zh-TW, it). CLDR plural
@@ -361,8 +361,8 @@ Branch `codex/gpui-ui`. Push once, to merge, when the section is complete.
   `ui-runtime`, UI lowering in analysis/emit, `ui_project`, UI CLI, dev web/
   frontend, `legacy-ui`, vello/winit/accesskit dependencies), UI tests, examples
   and docs, and every Electron/React/Expo/Vite/shadcn template and pin. Keep the
-  `.tsrx` parser, formatter, JSX syntax and editor parsing. Backend layers pass.
-  JSX still lowers to plain component calls (`<Tag {...}/>` is `Tag({...})`);
+  `.tsrx` parser, formatter, TSRX syntax and editor parsing. Backend layers pass.
+  TSRX still lowers to plain component calls (`<Tag {...}/>` is `Tag({...})`);
   native support now always builds from the shared backend dependency set, whose
   UI-free native manifest dropped from 571 to 326 locked packages.
 - [ ] Bridge (first slice done; remaining: Textarea, focus/active states,

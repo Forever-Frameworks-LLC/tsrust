@@ -43,3 +43,38 @@ function main() {
 
 This gallery uses that set; the title bar switch calls
 `useTheme('Gruvbox Dark Medium')`.
+
+
+## Exact and reactive values
+
+Numeric spacing includes decimal steps (`p-13`, `gap-2.5`); theme spacing sets the
+unit. Use exact values for dimensions and spacing (`w-[350px]`, `p-[13px]`,
+`gap-[0.5rem]`), percentage dimensions (`w-[37%]`) or fractions (`w-2/5`). Values
+must be finite and nonnegative; negative margins and offsets use a leading minus.
+
+A class expression that reads a signal updates after a handler changes the signal:
+
+```tsx live DynamicStyles
+function DynamicStyles(): Node {
+  const selected = signal(false);
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Button onPress={() => { selected.set(!selected.get()); }}>Toggle style</Button>
+      <View className={selected.get() ? 'p-[13px] rounded-[10px] bg-primary text-primary-foreground w-2/5' : 'p-[13px] rounded-[10px] bg-muted w-[75%]'}>
+        <Text>Live dimensions and colors</Text>
+      </View>
+      <View className="grid grid-cols-3 gap-[6px]">
+        <Text className="italic underline">One</Text>
+        <Text className="font-black line-through">Two</Text>
+        <Text className="opacity-[0.37]">Three</Text>
+      </View>
+      <View className="hidden md:flex dark:bg-muted rounded-[10px] p-3"><Text>Visible from 768 logical pixels</Text></View>
+    </View>
+  );
+}
+```
+
+Supported class families appear in completion and hover; unsupported utility names
+fail checking. Arbitrary CSS expressions (`calc(...)`, arbitrary selectors and
+unregistered CSS variables) are not a native styling API. GPUI has its own layout
+and text engine, so browser-specific CSS needs an explicit native mapping.

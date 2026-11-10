@@ -65,7 +65,7 @@ footnotes, MDX, arbitrary HTML and extension execution are not enabled.
 Fenced code keeps CommonMark display text and original source bytes separately.
 CRLF normalization for display never overwrites copied source. Actual examples
 store the complete exact file plus SHA-256 and contiguous token ranges. Tsrust/
-TSRX highlighting uses the compiler lexer, including async syntax and closing JSX
+TSRX highlighting uses the compiler lexer, including async syntax and closing TSRX
 tags. Unknown fence languages remain readable unhighlighted text. Other-language
 highlighting and rich shared text rendering remain pending.
 

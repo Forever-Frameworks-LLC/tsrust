@@ -7,14 +7,14 @@ export type Node = NativeNode;
 /** A renderer or node-construction failure with a readable message. */
 export type UiError = NativeUiError;
 
-/** An owned live scalar text expression produced automatically by JSX. It has no public constructor or receiver methods. */
+/** An owned live scalar text expression produced automatically by TSRX markup. It has no public constructor or receiver methods. */
 export type TextBinding = NativeTextBinding;
 /** Ordered strings/numeric snapshots and live bindings; null and undefined produce no text. */
 export type TextChild = string | int | number | TextBinding | Signal<int> | Signal<number> | Signal<boolean> | Signal<string> | null | undefined;
-/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Supported JSX scalar expressions reading local component state refresh; local-state JSX ternaries lazily mount selected subtrees. Other computed values remain construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
+/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Supported TSRX scalar expressions reading local component state refresh; local-state TSRX ternaries lazily mount selected subtrees. Other computed values remain construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
 export type Child = TextChild | Node;
 
-/** A deferred child array. Nested JSX becomes this owned zero-argument factory only when the component declares it. Each call constructs fresh content; dropping it does not construct content. */
+/** A deferred child array. Nested TSRX markup becomes this owned zero-argument factory only when the component declares it. Each call constructs fresh content; dropping it does not construct content. */
 export type LazyChildren = Owned<Function<Child[]>>;
 
 /** Reserves a unique runtime-local UI identifier. Keep its owned string in component construction; every call allocates a different ID. No arguments or receiver. Throws if the counter is exhausted. */
@@ -170,7 +170,7 @@ interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
   onVisibilityChange?: Owned<Function<void, [visible: boolean]>>;
   /** 0 participates in source-order keyboard focus; -1 allows pointer/accessibility focus only. Omission is not focusable. Positive values are rejected. Name scroll regions with role=region and aria-label. */
   tabIndex?: int;
-  /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. JSX state conditions refresh after handlers. Defaults to false. */
+  /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. TSRX state conditions refresh after handlers. Defaults to false. */
   hidden?: boolean | ReactiveBoolean;
   /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. */
   windowDragRegion?: boolean;
@@ -292,15 +292,15 @@ export interface InputChangeEvent {
 }
 
 interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
-  /** Controlled text/numeric value. Direct signals and state-reading JSX expressions refresh after handlers. Omission selects uncontrolled state. */
+  /** Controlled text/numeric value. Direct signals and state-reading TSRX expressions refresh after handlers. Omission selects uncontrolled state. */
   value?: InputValue;
   /** Initial uncontrolled value only; an explicit value takes precedence, including the empty string and zero. */
   defaultValue?: string | int | number;
   /** Hint shown when empty. A visible Label or aria-label should provide the accessible name. */
   placeholder?: string;
-  /** Disabled fields cannot edit or receive focus. State-reading JSX conditions refresh after handlers. */
+  /** Disabled fields cannot edit or receive focus. State-reading TSRX conditions refresh after handlers. */
   disabled?: boolean | ReactiveBoolean;
-  /** Read-only fields retain selection/focus but cannot change text. State-reading JSX conditions refresh after handlers. */
+  /** Read-only fields retain selection/focus but cannot change text. State-reading TSRX conditions refresh after handlers. */
   readOnly?: boolean | ReactiveBoolean;
   required?: boolean;
   name?: string;
@@ -1054,7 +1054,7 @@ export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Sig
   return unwrap(nativeThemeMode(node, config, mode));
 }
 
-/** A reusable scalar expression for a component prop. JSX creates this binding automatically for state-reading expressions. */
+/** A reusable scalar expression for a component prop. TSRX creates this binding automatically for state-reading expressions. */
 export interface Reactive<T> {
   /** Zero-argument checked getter. Owns its callback and does not retain component state owners. */
   evaluate: Owned<Function<T>>;
@@ -1083,7 +1083,7 @@ export interface ReactiveInputValue {
   evaluate: Owned<Function<string | int | number>>;
 }
 
-/** A reactive list slot: JSX `{...rows.map(...)}` that reads component state lowers to this. */
+/** A reactive list slot: TSRX `{...rows.map(...)}` that reads component state lowers to this. */
 function bindEach(build: Owned<Function<Child>>): Node {
   return unwrapNode(nativeEach(build));
 }
@@ -1447,22 +1447,22 @@ export function locale(): string {
   return nativeLocale();
 }
 
-/** Live translated text for a JSX child or a component string prop; it follows setLocale. Missing keys fall back to the language, then en, then the key itself. Use tWith for placeholders. */
+/** Live translated text for a TSRX child or a component string prop; it follows setLocale. Missing keys fall back to the language, then en, then the key itself. Use tWith for placeholders. */
 export function t(key: string): TextBinding {
   return nativeTranslation(key, '{}');
 }
 
-/** Live translated text with fixed values: {name} placeholders are filled from values, and a numeric count selects key_zero, key_one or key_other. It follows setLocale; values are read once, so for values that read state write translateWith inside JSX instead. Example: tWith('greeting', { name: 'Ada' }). */
+/** Live translated text with fixed values: {name} placeholders are filled from values, and a numeric count selects key_zero, key_one or key_other. It follows setLocale; values are read once, so for values that read state write translateWith inside TSRX markup instead. Example: tWith('greeting', { name: 'Ada' }). */
 export function tWith<T>(key: string, values: T): TextBinding {
   return nativeTranslation(key, JSON.stringify(values));
 }
 
-/** The translated text right now, as a plain string, for code outside JSX such as notify(translate('saved')). */
+/** The translated text right now, as a plain string, for code outside TSRX markup such as notify(translate('saved')). */
 export function translate(key: string): string {
   return nativeTranslate(key, '{}');
 }
 
-/** The translated text right now with values filled in, as a plain string. Inside JSX, an expression such as {translateWith('items', { count: count.get() })} refreshes with both the state it reads and the locale. */
+/** The translated text right now with values filled in, as a plain string. Inside TSRX, an expression such as {translateWith('items', { count: count.get() })} refreshes with both the state it reads and the locale. */
 export function translateWith<T>(key: string, values: T): string {
   return nativeTranslate(key, JSON.stringify(values));
 }

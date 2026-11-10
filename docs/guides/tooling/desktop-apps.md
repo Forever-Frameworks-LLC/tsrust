@@ -16,8 +16,7 @@ cd notes && tsrust dev
 
 Run `tsrust setup --toolchain --dependencies --yes` once per machine first: builds
 run offline from the locked crate sets it downloads. `new --ui` creates a desktop
-app from the GPUI starter. Programs that use `CodeEditor` also get syntax
-highlighting (in the editor and Markdown code blocks), selected automatically. Programs that use
+app from the GPUI starter. Programs that use `CodeEditor` or `Markdown` get syntax highlighting automatically. Programs that use
 `SpeechButton` likewise get system speech recognition; packaged macOS apps carry
 the microphone and speech-recognition usage descriptions it needs. `tsrust dev` rebuilds and
 restarts the window whenever a source or locale file changes. `tsrust ui list`
@@ -31,6 +30,31 @@ replaces existing files).
 tsrust package main.tsrx --name "Notes" --id com.example.notes --version 1.2.0 \
   --icon icon.png --repo owner/notes --out dist
 ```
+
+Save defaults in the project's `tsrust.config.json`:
+
+```json
+{
+  "schemaVersion": 1,
+  "name": "notes",
+  "build": { "entry": "src/main.tsrx", "output": "target/notes" },
+  "package": {
+    "name": "Notes",
+    "id": "com.example.notes",
+    "version": "1.2.0",
+    "icon": "icon.png",
+    "repo": "owner/notes",
+    "out": "dist"
+  }
+}
+```
+
+Then run `tsrust package`. The entry defaults to `build.entry`. Every option below
+has a matching `package` key (`name`, `id`, `version`, `icon`, `repo`, `out`,
+`sign`, `notarize`). Explicit CLI arguments override config values. Config `icon`
+and `out` paths are relative to the project root; CLI paths are relative to the
+current directory. Keep signing credentials in the system keychain; `notarize`
+names its profile.
 
 | Option | Meaning |
 | --- | --- |

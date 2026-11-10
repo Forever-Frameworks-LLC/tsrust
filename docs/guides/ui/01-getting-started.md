@@ -1,6 +1,6 @@
 # Getting Started
 
-Tsrust compiles `.tsrx` files, TypeScript with JSX, into a native desktop
+Tsrust compiles `.tsrx` files, TypeScript with TSRX component markup, into a native desktop
 application. The window is drawn by GPUI and the components come from GPUI
 Kit, so a button, a table or a date picker is a real Rust widget, not a web
 view. You write components like React or Solid; the compiler checks

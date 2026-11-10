@@ -1,4 +1,4 @@
-import { View, Text, Node, Button, Dialog, DialogContent, Command, CommandItem, CommandEmpty, Kbd, Shortcut, signal, navigate } from 'std:ui';
+import { View, Text, Node, Button, Dialog, DialogContent, Command, CommandItem, CommandEmpty, Shortcut, signal, navigate } from 'std:ui';
 import { SearchEntry, searchEntries } from './search-index.tsr';
 
 interface Hit {
@@ -79,8 +79,7 @@ export function Search(): Node {
   return (
     <View className="flex-row items-center">
       <Shortcut command="open-search" keys="secondary-k" onTrigger={() => { open.set(true); }} />
-      <Button outline={true} size="small" icon="search" onPress={() => { open.set(true); }}>Search docs</Button>
-      <View className="pl-2"><Kbd>secondary-k</Kbd></View>
+      <Button size="small" compact={true} icon="search" tooltip="Search docs" tooltipCommand="open-search" aria-label="Search docs" onPress={() => { open.set(true); }} />
       <Dialog open={open.get()} onOpenChange={(next) => { open.set(next); }}>
         <DialogContent className="w-[560px]">
           <Command placeholder="Search components, examples and props..." filterable={false} autoFocus={true} query={query.get()} onQuery={(text) => { query.set(text); }} onSelect={(route) => { open.set(false); navigate(route); }} maxHeight={420}>

@@ -35,7 +35,7 @@ Native inline layout tests pass wrapping, styled glyph runs, link hit/accessibil
 geometry, syntax colors and focus-ring tokens. The final accessibility repair
 excludes decorative aria-hidden content from link names while preserving painted
 text. Existing text-editor, clipboard-state, theme fallback/alias/cycle and source
-lexeme checks are reused. The focused LSP protocol case passes JSX help and
+lexeme checks are reused. The focused LSP protocol case passes TSRX help and
 standalone, custom-named and inline configuration theme completion/hover.
 
 CLI checks pass nested configuration discovery, lock release, frozen web frontend

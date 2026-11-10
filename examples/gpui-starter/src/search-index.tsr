@@ -828,7 +828,27 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/message-scroller", page: "Message Scroller", section: "Live Transcript", text: "add messages; the scroller follows the end unless you scrolled up.", keywords: "button message messagescroller view align classname jumplabel onpress rowclassname variant"
   }, {
-    route: "/", page: "Getting Started", section: "", text: "tsrust compiles .tsrx files, typescript with jsx, into a native desktop\napplication. the window is drawn by gpui and the components come from gpui\nkit, so a button, a table or a date picker is a real rust widget, not a web\nview. you write components like react or solid; the compiler checks\nownership and emits rust.\n\n create an app\n\nbash\ntsrust new my-app --ui\ncd my-app\ntsrust dev\n\n\ntsrust dev builds the app, opens its window and rebuilds when you save a\nfile. the project holds src/main.tsrx, src/locales/.json for\ntranslations, icon.png and tsrust.config.json.\n\n your first component\n\na componen", keywords: "guide docs getting started"
+    route: "/diff", page: "Diff", section: "", text: "compare changed files in a unified patch or a side-by-side split view.", keywords: "diff diff switch view"
+  }, {
+    route: "/diff", page: "Diff", section: "Unified and split", text: "switch the same patch between layouts. the viewer keeps gpui kit's file headers and change colors.", keywords: "diff switch view checked classname mode onchange patch"
+  }, {
+    route: "/editor", page: "Editor", section: "", text: "edit source code with gpui kit's native editor, syntax highlighting, selection and folding.", keywords: "editor codeeditor switch text view"
+  }, {
+    route: "/editor", page: "Editor", section: "Controlled source", text: "the change event supplies the complete source. toggle read-only to preserve selection while preventing edits.", keywords: "codeeditor switch text view checked classname language onchange readonly value variant"
+  }, {
+    route: "/questionnaire", page: "Questionnaire", section: "", text: "a survey with required questions, multiple answers, progress and backward navigation.", keywords: "questionnaire question questionchoice questionnaire text view"
+  }, {
+    route: "/questionnaire", page: "Questionnaire", section: "Guided questions", text: "choose a plan, then select the tools you use. submit reports the answers as json.", keywords: "question questionchoice questionnaire text view classname description id label multiple onsubmit required title"
+  }, {
+    route: "/settings", page: "Settings Panel", section: "", text: "searchable settings pages with grouped controls. each control owns or receives its value as usual.", keywords: "settings numberinput settingitem settings settingsgroup settingspage switch"
+  }, {
+    route: "/settings", page: "Settings Panel", section: "Application preferences", text: "switch pages, search by a setting title, and change the controls.", keywords: "numberinput settingitem settings settingsgroup settingspage switch checked classname description max min onchange title value"
+  }, {
+    route: "/speech", page: "Speech", section: "", text: "dictation through the system recognizer. availability and permission depend on the host operating system.", keywords: "speech speechbutton text view"
+  }, {
+    route: "/speech", page: "Speech", section: "Live transcript", text: "click the microphone to start, speak, then click again to finish. the first attempt may request system permission.", keywords: "speechbutton text view classname locale onerror onfinal onpartial variant waveform"
+  }, {
+    route: "/", page: "Getting Started", section: "", text: "tsrust compiles .tsrx files, typescript with tsrx component markup, into a native desktop\napplication. the window is drawn by gpui and the components come from gpui\nkit, so a button, a table or a date picker is a real rust widget, not a web\nview. you write components like react or solid; the compiler checks\nownership and emits rust.\n\n create an app\n\nbash\ntsrust new my-app --ui\ncd my-app\ntsrust dev\n\n\ntsrust dev builds the app, opens its window and rebuilds when you save a\nfile. the project holds src/main.tsrx, src/locales/.json for\ntranslations, icon.png and tsrust.config.json.\n\n your first com", keywords: "guide docs getting started"
   }, {
     route: "/", page: "Getting Started", section: "Create an app", text: "", keywords: "guide docs"
   }, {
@@ -842,7 +862,7 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/components", page: "Components", section: "Text goes in children", text: "", keywords: "guide docs"
   }, {
-    route: "/state-and-reactivity", page: "State and Reactivity", section: "", text: "state lives in signals. reading signal.get() inside jsx makes that part of\nthe tree update when the signal changes; nothing else re-renders.\n\n signals computed(() => ...) names a derived value; it re-evaluates when read.\n\n controlled and uncontrolled\n\na form control is controlled when you pass its value (checked, value,\nselected, open) and update it from the change event. leave the value out\nand the control keeps its own state; defaultchecked, defaultvalue or\ndefaultopen set where it starts.  conditional content\n\na ternary that reads a signal swaps subtrees; hidden keeps a subtree but\nhides it", keywords: "guide docs state and reactivity"
+    route: "/state-and-reactivity", page: "State and Reactivity", section: "", text: "state lives in signals. reading signal.get() inside tsrx markup makes that part of\nthe tree update when the signal changes; nothing else re-renders.\n\n signals computed(() => ...) names a derived value; it re-evaluates when read.\n\n controlled and uncontrolled\n\na form control is controlled when you pass its value (checked, value,\nselected, open) and update it from the change event. leave the value out\nand the control keeps its own state; defaultchecked, defaultvalue or\ndefaultopen set where it starts.  conditional content\n\na ternary that reads a signal swaps subtrees; hidden keeps a subtree but\n", keywords: "guide docs state and reactivity"
   }, {
     route: "/state-and-reactivity", page: "State and Reactivity", section: "Signals `computed(() => ...)` names a derived value; it re-evaluates when read.", text: "", keywords: "guide docs"
   }, {
@@ -852,6 +872,8 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/styling-and-themes", page: "Styling and Themes", section: "Colors", text: "", keywords: "guide docs"
   }, {
+    route: "/styling-and-themes", page: "Styling and Themes", section: "Exact and reactive values", text: "", keywords: "guide docs"
+  }, {
     route: "/navigation-and-windows", page: "Navigation and Windows", section: "", text: " routes\n\nlocation() holds the current path and navigate(path) changes it. a\nroute renders its page on the first visit and keeps it, with its state and\nscroll position, while you are elsewhere.\n\ntsx\nfunction app(): node {\n  const path = location();\n  return (\n    <view classname=\"flex-row size-full\">\n      <sidebar>\n        <sidebargroup label=\"pages\">\n          <sidebaritem active={path.get() === '/'} onclick={() => { navigate('/'); }}>home</sidebaritem>\n          <sidebaritem active={path.get() === '/settings'} onclick={() => { navigate('/settings'); }}>settings</sidebaritem>\n        </sideba", keywords: "guide docs navigation and windows"
   }, {
     route: "/navigation-and-windows", page: "Navigation and Windows", section: "Routes", text: "", keywords: "guide docs"
@@ -860,7 +882,7 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/navigation-and-windows", page: "Navigation and Windows", section: "Notifications and shortcuts `secondary` is Cmd on macOS and Ctrl elsewhere. The clipboard, file dialogs", text: "", keywords: "guide docs"
   }, {
-    route: "/packaging", page: "Packaging", section: "", text: "tsrust package turns a std:ui entry file into downloadable artifacts for the\nhost platform. the in-app updater in std:ui installs newer versions from the\ngithub releases of the repository named at packaging time.\n\n start and run\n\nbash\ntsrust new notes --ui\n\n\nbash\ncd notes && tsrust dev\n\n\nrun tsrust setup --toolchain --dependencies --yes once per machine first: builds\nrun offline from the locked crate sets it downloads. new --ui creates a desktop\napp from the gpui starter. programs that use codeeditor also get syntax\nhighlighting (in the editor and markdown code blocks), selected automatically.", keywords: "guide docs packaging"
+    route: "/packaging", page: "Packaging", section: "", text: "tsrust package turns a std:ui entry file into downloadable artifacts for the\nhost platform. the in-app updater in std:ui installs newer versions from the\ngithub releases of the repository named at packaging time.\n\n start and run\n\nbash\ntsrust new notes --ui\n\n\nbash\ncd notes && tsrust dev\n\n\nrun tsrust setup --toolchain --dependencies --yes once per machine first: builds\nrun offline from the locked crate sets it downloads. new --ui creates a desktop\napp from the gpui starter. programs that use codeeditor or markdown get syntax highlighting automatically. programs that use\nspeechbutton likewise get", keywords: "guide docs packaging"
   }, {
     route: "/packaging", page: "Packaging", section: "Start and run", text: "", keywords: "guide docs"
   }, {

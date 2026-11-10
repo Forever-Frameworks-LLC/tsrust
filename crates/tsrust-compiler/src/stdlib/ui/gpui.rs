@@ -88,7 +88,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -228,6 +228,7 @@ macro_rules! control_input {($state:expr, $action:expr, $value:expr, $label:expr
 enum Field {Line(Entity<InputState>), Text(Entity<TextareaState>)}
 
 struct Root {
+    styles: HashMap<u64, Vec<(State, Utility)>>,
     node: Node,
     inputs: HashMap<u64, (Field, Subscription)>,
     /// Options last applied to each input's Kit state, so changed props re-apply once.
@@ -433,13 +434,13 @@ impl Root {
                 None => return div().into_any_element(),
             };
             // Like a browser input, an unsized field keeps a usable intrinsic width.
-            return styled(div().min_w(px(240.)), &node.class_name, theme, mode, node.is_disabled()).child(control).into_any_element();
+            return styled_rules(div().min_w(px(240.)), self.rules(node), node.is_disabled()).child(control).into_any_element();
         }
         if let Some(kit) = node.kit.as_deref().filter(|kit| !kit.name.is_empty()) {
             let element = self.kit_element(node, kit, cx);
             if node.class_name.is_empty() || STYLED_KIT.contains(&kit.name.as_str()) {return element;}
             // The class wrapper can shrink in flex layouts, so scroll areas inside it scroll.
-            return styled(div().min_h_0().min_w_0(), &node.class_name, theme, mode, false).child(element).into_any_element();
+            return styled_rules(div().min_h_0().min_w_0(), self.rules(node), false).child(element).into_any_element();
         }
         let children = node.visible_children().map(|child| self.element(child, theme, mode, cx)).collect::<Vec<_>>();
         if let Some(copy) = &node.copy {
@@ -452,7 +453,7 @@ impl Root {
             }
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => self.kit_button(node, cx).into_any_element(),
             Kind::Button | Kind::DisabledButton => {
-                let element = styled(div(), &node.class_name, theme, mode, node.is_disabled()).children(children).id(ElementId::Integer(id));
+                let element = styled_rules(div(), self.rules(node), node.is_disabled()).children(children).id(ElementId::Integer(id));
                 if node.is_disabled() {return element.into_any_element();}
                 element.cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
             }
@@ -460,22 +461,22 @@ impl Root {
             Kind::Svg => {
                 let (width, height) = node.svg_size().unwrap_or((24., 24.));
                 let current = style::resolved(&node.class_name, theme, mode).iter().find_map(|(_, rule)| match rule {Utility::Foreground(value) => Some(*value), _ => None}).or_else(|| theme.color(mode, "foreground").ok());
-                let base = styled(div().w(px(width as f32)).h(px(height as f32)).flex_shrink_0(), &node.class_name, theme, mode, false);
+                let base = styled_rules(div().w(px(width as f32)).h(px(height as f32)).flex_shrink_0(), self.rules(node), false);
                 match current.and_then(|current| node.svg_markup(current, theme, mode)) {
                     Some(markup) => base.child(img(std::sync::Arc::new(Image::from_bytes(ImageFormat::Svg, markup.into_bytes()))).size_full()).into_any_element(),
                     None => base.into_any_element(),
                 }
             }
             // Text is one inline run; its literal and bound parts render as one string.
-            Kind::Text => styled(div(), &node.class_name, theme, mode, false).child(SharedString::from(node.content_text())).into_any_element(),
-            _ if children.is_empty() => styled(div(), &node.class_name, theme, mode, false).child(SharedString::from(node.text.clone())).into_any_element(),
+            Kind::Text => styled_rules(div(), self.rules(node), false).child(SharedString::from(node.content_text())).into_any_element(),
+            _ if children.is_empty() => styled_rules(div(), self.rules(node), false).child(SharedString::from(node.text.clone())).into_any_element(),
             _ => {
                 // GPUI keeps scroll offsets per element id; overflow-auto views need one.
                 // Their children keep their natural size instead of shrinking to fit.
                 let scrolls = style::resolved(&node.class_name, theme, mode).iter().any(|(_, rule)| matches!(rule, Utility::Overflow(2)));
-                if !scrolls {return styled(div(), &node.class_name, theme, mode, false).children(children).into_any_element();}
+                if !scrolls {return styled_rules(div(), self.rules(node), false).children(children).into_any_element();}
                 let children = children.into_iter().map(|child| div().flex_shrink_0().child(child));
-                styled(div(), &node.class_name, theme, mode, false).children(children).id(ElementId::Integer(id)).overflow_scroll().into_any_element()
+                styled_rules(div(), self.rules(node), false).children(children).id(ElementId::Integer(id)).overflow_scroll().into_any_element()
             }
         }
     }
@@ -488,6 +489,8 @@ impl Render for Root {
         self.sync_kit(window, cx);
         self.run_commands(window, cx);
         let theme = utility_theme(cx);
+        self.styles.clear();
+        collect_styles(&self.node, &mut Vec::new(), &theme, mode(cx), &Default::default(), f32::from(window.viewport_size().width), &mut self.styles);
         let body = self.node.visible_root().map(|node| self.element(node, &theme, mode(cx), cx));
         if window.focused(cx).is_none() {self.focus.focus(window, cx);}
         div().size_full().track_focus(&self.focus).on_action(cx.listener(|this, command: &TsrustCommand, _, cx| this.run_command(&command.name, cx))).children(body)
@@ -509,18 +512,70 @@ fn length(value: Length) -> gpui_kit::Length {
 }
 
 /// Apply the resolved utility classes; hover rules become a GPUI hover style.
-fn styled(mut element: Div, classes: &str, theme: &Theme, mode: &str, disabled: bool) -> Div {
-    let rules = style::resolved(classes, theme, mode);
+fn styled(element: Div, classes: &str, theme: &Theme, mode: &str, disabled: bool) -> Div {
+    styled_rules(element, &style::resolved(classes, theme, mode), disabled)
+}
+
+fn styled_rules(mut element: Div, rules: &[(State, Utility)], disabled: bool) -> Div {
     let flex = rules.iter().any(|(_, rule)| matches!(rule, Utility::Row | Utility::Column | Utility::Display(false) | Utility::InlineFlex));
     if flex {element = element.flex();}
-    for (state, rule) in &rules {
+    for (state, rule) in rules {
         if *state == State::Base || *state == State::Disabled && disabled {apply(element.style(), *rule);}
     }
+    apply_effects(element.style(), &rules.iter().filter(|(state,_)| *state == State::Base || *state == State::Disabled && disabled).map(|(_,rule)| *rule).collect::<Vec<_>>());
     if rules.iter().any(|(state, _)| *state == State::Hover) && !disabled {
         let hover = rules.iter().filter(|(state, _)| *state == State::Hover).map(|(_, rule)| *rule).collect::<Vec<_>>();
-        element = element.hover(move |mut style| {for rule in &hover {apply(&mut style, *rule);} style});
+        element = element.hover(move |mut style| {for rule in &hover {apply(&mut style, *rule);} apply_effects(&mut style, &hover); style});
+    }
+    if !disabled {
+        let focus = rules.iter().filter(|(state, _)| *state == State::Focus).map(|(_, rule)| *rule).collect::<Vec<_>>();
+        if !focus.is_empty() {element = element.focus(move |mut style| {for rule in &focus {apply(&mut style, *rule);} apply_effects(&mut style, &focus); style});}
     }
     element
+}
+
+fn collect_styles<'a>(node: &'a Node, ancestors: &mut Vec<&'a Node>, theme: &Theme, mode: &str, inherited: &std::collections::BTreeMap<String, f32>, width: f32, output: &mut HashMap<u64, Vec<(State, Utility)>>) {
+    let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
+    let (rules, variables) = style::resolved_scoped_node_at_width(node, ancestors, theme, mode, inherited, width);
+    output.insert(node.identity.get(), rules);
+    ancestors.push(node);
+    for child in node.visible_children() {collect_styles(child, ancestors, theme, mode, &variables, width, output);}
+    ancestors.pop();
+}
+
+impl Root {
+    fn rules(&self, node: &Node) -> &[(State, Utility)] {self.styles.get(&node.identity.get()).map(Vec::as_slice).unwrap_or_default()}
+    fn node_style(&self, node: &Node) -> StyleRefinement {
+        let mut surface = styled_rules(div(), self.rules(node), node.is_disabled());
+        surface.style().clone()
+    }
+}
+
+fn apply_effects(style: &mut StyleRefinement, rules: &[Utility]) {
+    let mut ring_width = None;
+    let mut ring_color = None;
+    let mut angle = None;
+    let mut from = None;
+    let mut to = None;
+    for rule in rules {
+        match rule {
+            Utility::Ring(value) => {ring_width = Some(2.); ring_color = Some(color(*value));}
+            Utility::RingWidth(value) => ring_width = Some(*value),
+            Utility::RingShadowColor(value) => ring_color = Some(color(*value)),
+            Utility::OutlineNone => ring_width = Some(0.),
+            Utility::ShadowColor(value) => if let Some(shadows) = style.box_shadow.as_mut() {for shadow in shadows {shadow.color = color(*value);}},
+            Utility::GradientAngle(value) => angle = Some(*value),
+            Utility::GradientStop(0, value) => from = Some(color(*value)),
+            Utility::GradientStop(2, value) => to = Some(color(*value)),
+            _ => {}
+        }
+    }
+    if let Some(width) = ring_width.filter(|width| *width > 0.) {
+        style.box_shadow.get_or_insert_default().push(BoxShadow {color: ring_color.unwrap_or(hsla(0.6, 0.7, 0.5, 1.)), offset: point(px(0.), px(0.)), blur_radius: px(0.), spread_radius: px(width), inset: false});
+    }
+    if let Some(angle) = angle {
+        style.background = Some(linear_gradient(angle as f32, linear_color_stop(from.unwrap_or(hsla(0.,0.,0.,0.)),0.), linear_color_stop(to.unwrap_or(hsla(0.,0.,0.,0.)),1.)).into());
+    }
 }
 
 fn apply(style: &mut StyleRefinement, rule: Utility) {
@@ -552,12 +607,40 @@ fn apply(style: &mut StyleRefinement, rule: Utility) {
         Utility::Grow(value) => style.flex_grow = Some(value),
         Utility::Shrink(value) => style.flex_shrink = Some(value),
         Utility::BasisZero => style.flex_basis = Some(px(0.).into()),
+        Utility::Basis(value) => style.flex_basis = Some(length(value)),
+        Utility::MarginAuto(side) => {
+            let value = Some(gpui_kit::Length::Auto);
+            match side {0 => style.margin.top = value, 1 => style.margin.right = value, 2 => style.margin.bottom = value, _ => style.margin.left = value}
+        }
+        Utility::Tracks(axis, count) if count < 254 => {
+            let value = Some(GridTemplate {repeat: count as u16, min_size: GridTemplateMinSize::Zero});
+            if axis == 0 {style.grid_cols = value;} else {style.grid_rows = value;}
+        }
+        Utility::Placement(property, count) => {
+            let location = style.grid_location_mut();
+            match property {0 => location.column.start = GridPlacement::Line(count as i16), 1 => location.column.end = GridPlacement::Span(count), 2 => location.row.start = GridPlacement::Line(count as i16), _ => location.row.end = GridPlacement::Span(count)}
+        }
+        Utility::AlignContent(value) => style.align_content = Some([AlignContent::FlexStart, AlignContent::Center, AlignContent::FlexEnd, AlignContent::SpaceBetween, AlignContent::SpaceAround, AlignContent::SpaceEvenly, AlignContent::Stretch][value.min(6) as usize]),
         Utility::Wrap(wrap) => style.flex_wrap = Some(if wrap {FlexWrap::Wrap} else {FlexWrap::NoWrap}),
         Utility::Items(value) => style.align_items = Some([AlignItems::FlexStart, AlignItems::Center, AlignItems::Stretch, AlignItems::FlexEnd, AlignItems::Baseline][value.min(4) as usize]),
         Utility::Justify(value) => style.justify_content = Some([JustifyContent::FlexStart, JustifyContent::Center, JustifyContent::SpaceBetween, JustifyContent::FlexEnd, JustifyContent::SpaceAround, JustifyContent::SpaceEvenly][value.min(5) as usize]),
         Utility::SelfAlign(0, value) => style.align_self = Some([AlignSelf::FlexStart, AlignSelf::Center, AlignSelf::FlexEnd, AlignSelf::Stretch, AlignSelf::Stretch][value.min(4) as usize]),
         Utility::FontSize(value) => style.text.font_size = Some(px(value).into()),
         Utility::Weight(value) => style.text.font_weight = Some(FontWeight(value)),
+        Utility::Italic(value) => style.text.font_style = Some(if value {FontStyle::Italic} else {FontStyle::Normal}),
+        Utility::Underline(value) => style.text.underline = value.then(|| UnderlineStyle {thickness: px(1.), ..Default::default()}),
+        Utility::LineThrough(value) => style.text.strikethrough = value.then(|| StrikethroughStyle {thickness: px(1.), ..Default::default()}),
+        Utility::WhiteSpace(value) => style.text.white_space = Some(if matches!(value, style::WhiteSpace::NoWrap | style::WhiteSpace::Pre) {gpui_kit::WhiteSpace::Nowrap} else {gpui_kit::WhiteSpace::Normal}),
+        Utility::TextOverflow(value) => style.text.text_overflow = (value == 1).then(|| TextOverflow::Truncate("…".into())),
+        Utility::LineClamp(value) => style.text.line_clamp = (value > 0).then_some(value as usize),
+        Utility::Visible(value) => style.visibility = Some(if value {Visibility::Visible} else {Visibility::Hidden}),
+        Utility::BorderDashed(value) => style.border_style = Some(if value {BorderStyle::Dashed} else {BorderStyle::Solid}),
+        Utility::Cursor(value) => style.mouse_cursor = Some(match value {
+            1 => CursorStyle::IBeam, 2 => CursorStyle::OperationNotAllowed, 3 => CursorStyle::PointingHand,
+            5 => CursorStyle::OpenHand, 6 => CursorStyle::ClosedHand, 7 => CursorStyle::ClosedHand, 8 => CursorStyle::Crosshair,
+            9 => CursorStyle::ResizeColumn, 10 => CursorStyle::ResizeRow, 11 => CursorStyle::ResizeLeftRight, 12 => CursorStyle::ResizeUpDown, 13 => CursorStyle::ContextualMenu, 14 => CursorStyle::DragCopy,
+            _ => CursorStyle::Arrow,
+        }),
         Utility::Leading(value) => style.text.line_height = Some(relative(value).into()),
         Utility::DefaultLeading(value) => style.text.line_height = Some(px(value).into()),
         Utility::Align(value) => style.text.text_align = Some([TextAlign::Left, TextAlign::Center, TextAlign::Right][value.min(2) as usize]),
@@ -577,6 +660,13 @@ fn apply(style: &mut StyleRefinement, rule: Utility) {
             style.overflow.x = Some(value);
             style.overflow.y = Some(value);
         }
+        Utility::OverflowAxis(axis, value) => {
+            let value = Some([Overflow::Visible, Overflow::Hidden, Overflow::Scroll][value.min(2) as usize]);
+            if axis == 0 {style.overflow.x = value;} else {style.overflow.y = value;}
+        }
+        Utility::Shadow(index) => style.box_shadow = Some(Utility::shadow_layers(index).iter().map(|&(y, blur, spread, alpha)| BoxShadow {
+            color: hsla(0., 0., 0., alpha), offset: point(px(0.), px(y)), blur_radius: px(blur), spread_radius: px(spread), inset: false,
+        }).collect()),
         Utility::Opacity(value) => style.opacity = Some(value),
         Utility::Relative => style.position = Some(Position::Relative),
         Utility::Absolute => style.position = Some(Position::Absolute),

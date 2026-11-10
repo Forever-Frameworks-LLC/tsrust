@@ -7,7 +7,14 @@
 use sha2::{Digest, Sha256};
 use std::{fs, path::{Path, PathBuf}, process::Command};
 
-const USAGE: &str = "usage: tsrust package <entry.tsrx> [--name NAME] [--id com.example.app] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--out dist] [--sign IDENTITY] [--notarize KEYCHAIN_PROFILE]";
+const USAGE: &str = "usage: tsrust package [entry.tsrx] [--name NAME] [--id com.example.app] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--out dist] [--sign IDENTITY] [--notarize KEYCHAIN_PROFILE]. Defaults come from tsrust.config.json package; CLI options override them.";
+
+#[derive(Default,serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct PackageConfig {
+    pub name:Option<String>,pub id:Option<String>,pub version:Option<String>,pub icon:Option<PathBuf>,
+    pub repo:Option<String>,pub out:Option<PathBuf>,pub sign:Option<String>,pub notarize:Option<String>,
+}
 
 struct Options {
     entry: PathBuf, name: String, id: String, version: String, icon: Option<PathBuf>,
@@ -15,8 +22,14 @@ struct Options {
 }
 
 fn options(args: impl Iterator<Item = String>) -> Result<Options, String> {
+    options_for_project(args,super::project_config::discover()?)
+}
+
+fn options_for_project(args:impl Iterator<Item=String>, project:Option<super::project_config::Project>)->Result<Options,String> {
     let mut args = args.peekable();
-    let (mut entry, mut name, mut id, mut version, mut icon, mut repo, mut out, mut sign, mut notarize) = (None, None, None, None, None, String::new(), PathBuf::from("dist"), None, None);
+    let (mut entry, config, default_out)=match project {Some(project)=>(Some(project.entry),project.package,project.root.join("dist")),None=>(None,PackageConfig::default(),PathBuf::from("dist"))};
+    let (mut name, mut id, mut version, mut icon, mut repo, mut out, mut sign, mut notarize) = (config.name, config.id, config.version, config.icon, config.repo.unwrap_or_default(), config.out.unwrap_or(default_out), config.sign, config.notarize);
+    let mut explicit_entry=false;
     while let Some(arg) = args.next() {
         let mut value = || args.next().ok_or_else(|| format!("{arg} needs a value. {USAGE}"));
         match arg.as_str() {
@@ -30,20 +43,50 @@ fn options(args: impl Iterator<Item = String>) -> Result<Options, String> {
             "--notarize" => notarize = Some(value()?),
             "-h" | "--help" => return Err(USAGE.into()),
             flag if flag.starts_with('-') => return Err(format!("Unknown option {flag}. {USAGE}")),
-            path if entry.is_none() => entry = Some(PathBuf::from(path)),
+            path if !explicit_entry => {entry = Some(PathBuf::from(path));explicit_entry=true;},
             extra => return Err(format!("Unexpected argument {extra}. {USAGE}")),
         }
     }
     let entry = entry.ok_or_else(|| USAGE.to_owned())?;
     let stem = entry.file_stem().and_then(|stem| stem.to_str()).unwrap_or("App");
     let name = name.unwrap_or_else(|| {let mut chars = stem.chars(); chars.next().map(|first| first.to_uppercase().chain(chars).collect()).unwrap_or_else(|| "App".into())});
-    if name.is_empty() || name.contains(['/', '\\', ':']) {return Err(format!("Invalid application name {name:?}"));}
+    if name.trim().is_empty() || matches!(name.as_str(),"."|"..") || name.chars().any(char::is_control) || name.contains(['/', '\\', ':']) {return Err(format!("Invalid application name {name:?}"));}
     let id = id.unwrap_or_else(|| format!("com.example.{}", name.to_lowercase().replace(|c: char| !c.is_ascii_alphanumeric(), "")));
     let version = version.unwrap_or_else(|| "0.1.0".into());
     if version.split('.').count() != 3 || version.split('.').any(|part| part.parse::<u64>().is_err()) {return Err(format!("Version must be MAJOR.MINOR.PATCH, got {version}"));}
     if notarize.is_some() && sign.is_none() {return Err("--notarize requires --sign".into());}
     if !repo.is_empty() && repo.split('/').count() != 2 {return Err(format!("--repo must be owner/name, got {repo}"));}
     Ok(Options {entry, name, id, version, icon, repo, out, sign, notarize})
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn project()->super::super::project_config::Project {
+        super::super::project_config::parse(Path::new("/project"),r#"{"schemaVersion":1,"name":"notes","build":{"entry":"src/main.tsrx","output":"target/notes"},"package":{"name":"Notes","id":"dev.notes","version":"1.2.3","icon":"assets/icon.png","out":"artifacts","repo":"owner/notes","sign":"Developer ID","notarize":"profile"}}"#).unwrap()
+    }
+    #[test]
+    fn config_defaults_and_cli_overrides_use_their_own_path_roots() {
+        let defaults=options_for_project(std::iter::empty(),Some(project())).unwrap();
+        assert_eq!(defaults.entry,Path::new("/project/src/main.tsrx"));
+        assert_eq!((defaults.name.as_str(),defaults.id.as_str(),defaults.version.as_str(),defaults.repo.as_str()),("Notes","dev.notes","1.2.3","owner/notes"));
+        assert_eq!(defaults.icon.unwrap(),Path::new("/project/assets/icon.png"));
+        assert_eq!(defaults.out,Path::new("/project/artifacts"));
+        assert_eq!((defaults.sign.as_deref(),defaults.notarize.as_deref()),(Some("Developer ID"),Some("profile")));
+        let override_=options_for_project(["other.tsrx","--name","Other","--id","dev.other","--version","2.0.0","--icon","other.png","--out","elsewhere","--repo","owner/other","--sign","Another ID","--notarize","another-profile"].map(str::to_owned).into_iter(),Some(project())).unwrap();
+        assert_eq!(override_.entry,Path::new("other.tsrx"));
+        assert_eq!(override_.icon.unwrap(),Path::new("other.png"));
+        assert_eq!(override_.out,Path::new("elsewhere"));
+        assert_eq!((override_.name.as_str(),override_.id.as_str(),override_.version.as_str(),override_.repo.as_str()),("Other","dev.other","2.0.0","owner/other"));
+        assert_eq!((override_.sign.as_deref(),override_.notarize.as_deref()),(Some("Another ID"),Some("another-profile")));
+        for package in [r#"{"unknown":true}"#,r#"{"version":1}"#,r#"{"out":"../escape"}"#,r#"{"icon":"/absolute.png"}"#] {
+            let json=format!(r#"{{"schemaVersion":1,"name":"notes","build":{{"entry":"main.tsrx","output":"target/notes"}},"package":{package}}}"#);
+            assert!(super::super::project_config::parse(Path::new("/project"),&json).is_err(),"{package}");
+        }
+        for arguments in [vec!["main.tsrx","--name",".."],vec!["main.tsrx","--version","1.2"],vec!["main.tsrx","--notarize","profile"],vec!["main.tsrx","other.tsrx"]] {
+            assert!(options_for_project(arguments.into_iter().map(str::to_owned),None).is_err());
+        }
+    }
 }
 
 fn run_tool(command: &mut Command, what: &str) -> Result<(), String> {
