@@ -44,6 +44,12 @@ import { BreadcrumbPage } from './pages/Breadcrumb.tsrx';
 import { PaginationPage } from './pages/Pagination.tsrx';
 import { DescriptionListPage } from './pages/DescriptionList.tsrx';
 import { StepperPage } from './pages/Stepper.tsrx';
+import { SliderPage } from './pages/Slider.tsrx';
+import { OTPInputPage } from './pages/OTPInput.tsrx';
+import { TimeFieldPage } from './pages/TimeField.tsrx';
+import { CalendarPage } from './pages/Calendar.tsrx';
+import { DatePickerPage } from './pages/DatePicker.tsrx';
+import { ColorPickerPage } from './pages/ColorPicker.tsrx';
 
 interface PageProps {
   children?: Child[];
@@ -123,6 +129,12 @@ function App(): Node {
           <SidebarItem label="Input Group" active={path.get() === "/input-group"} onClick={() => { navigate("/input-group"); }} />
           <SidebarItem label="Select" active={path.get() === "/select"} onClick={() => { navigate("/select"); }} />
           <SidebarItem label="Combobox" active={path.get() === "/combobox"} onClick={() => { navigate("/combobox"); }} />
+          <SidebarItem label="Slider" active={path.get() === "/slider"} onClick={() => { navigate("/slider"); }} />
+          <SidebarItem label="OTP Input" active={path.get() === "/otp-input"} onClick={() => { navigate("/otp-input"); }} />
+          <SidebarItem label="Time Field" active={path.get() === "/time-field"} onClick={() => { navigate("/time-field"); }} />
+          <SidebarItem label="Calendar" active={path.get() === "/calendar"} onClick={() => { navigate("/calendar"); }} />
+          <SidebarItem label="Date Picker" active={path.get() === "/date-picker"} onClick={() => { navigate("/date-picker"); }} />
+          <SidebarItem label="Color Picker" active={path.get() === "/color-picker"} onClick={() => { navigate("/color-picker"); }} />
         </SidebarGroup>
         <SidebarGroup label="Navigation">
           <SidebarItem label="Tabs" active={path.get() === "/tabs"} onClick={() => { navigate("/tabs"); }} />
@@ -175,6 +187,12 @@ function App(): Node {
         <Route path="/pagination" render={() => <Page><PaginationPage /></Page>} />
         <Route path="/description-list" render={() => <Page><DescriptionListPage /></Page>} />
         <Route path="/stepper" render={() => <Page><StepperPage /></Page>} />
+        <Route path="/slider" render={() => <Page><SliderPage /></Page>} />
+        <Route path="/otp-input" render={() => <Page><OTPInputPage /></Page>} />
+        <Route path="/time-field" render={() => <Page><TimeFieldPage /></Page>} />
+        <Route path="/calendar" render={() => <Page><CalendarPage /></Page>} />
+        <Route path="/date-picker" render={() => <Page><DatePickerPage /></Page>} />
+        <Route path="/color-picker" render={() => <Page><ColorPickerPage /></Page>} />
       </View>
       </View>
     </View>

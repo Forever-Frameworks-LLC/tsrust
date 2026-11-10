@@ -3103,3 +3103,278 @@ function ControlledStepper(): Node {
     </View>
   );
 }
+=== Slider | slider | Forms
+Pick a value or a range by dragging along a track.
+--- Basic Slider
+Keeps its own value; onChange reports it while dragging.
+function BasicSlider(): Node {
+  const value = signal<number>(50);
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Slider defaultValue={50} onChange={(next) => { value.set(next); }} />
+      <Text variant="muted">Value: {value}</Text>
+    </View>
+  );
+}
+--- Range Slider
+range adds a second thumb: value is the start, endValue the end.
+function RangeSlider(): Node {
+  const start = signal<number>(20);
+  const end = signal<number>(80);
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Slider range={true} defaultValue={20} defaultEndValue={80} onChange={(next) => { start.set(next); }} onEndChange={(next) => { end.set(next); }} />
+      <Text variant="muted">{start} to {end}</Text>
+    </View>
+  );
+}
+--- Min, Max and Step
+Steps of 5 between 0 and 50; onCommit reports the value on release.
+function SteppedSlider(): Node {
+  const committed = signal<number>(25);
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Slider min={0} max={50} step={5} defaultValue={25} onCommit={(next) => { committed.set(next); }} />
+      <Text variant="muted">Released at {committed}</Text>
+    </View>
+  );
+}
+--- Logarithmic Scale
+Fine control at the low end, for volumes and frequencies.
+function LogSlider(): Node {
+  const hertz = signal<number>(440);
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Slider scale="logarithmic" min={20} max={20000} defaultValue={440} onChange={(next) => { hertz.set(Math.round(next)); }} accessibilityLabel="Frequency" />
+      <Text variant="muted">{hertz} Hz</Text>
+    </View>
+  );
+}
+--- Vertical, Reversed and Disabled
+A vertical track needs a height.
+function VerticalSliders(): Node {
+  return (
+    <View className="flex-row items-center gap-8 h-40">
+      <Slider vertical={true} defaultValue={60} className="h-full" />
+      <Slider vertical={true} reverse={true} defaultValue={30} className="h-full" />
+      <Slider disabled={true} defaultValue={40} className="w-40" />
+    </View>
+  );
+}
+--- Controlled
+value follows state.
+function ControlledSlider(): Node {
+  const volume = signal<number>(30);
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Slider value={volume.get()} onChange={(next) => { volume.set(next); }} />
+      <View className="flex-row gap-2">
+        <Button size="small" onPress={() => { volume.set(0); }}>Mute</Button>
+        <Button size="small" onPress={() => { volume.set(100); }}>Max</Button>
+        <Text variant="muted">Volume {volume}</Text>
+      </View>
+    </View>
+  );
+}
+=== OTP Input | otp-input | Forms
+One-time code entry, one character per box.
+--- Basic OTP Input
+Six boxes; onComplete fires when every box is filled.
+function BasicOtp(): Node {
+  const code = signal('');
+  const done = signal('not yet');
+  return (
+    <View className="flex-col gap-2">
+      <OtpInput onChange={(value) => { code.set(clone(value)); }} onComplete={(value) => { done.set(clone(value)); }} />
+      <Text variant="muted">Code: {code} (complete: {done})</Text>
+    </View>
+  );
+}
+--- Length, Groups and Masking
+Four characters in two groups, drawn as dots.
+function GroupedOtp(): Node {
+  return (
+    <View className="flex-col gap-3">
+      <OtpInput length={4} groups={2} />
+      <OtpInput length={6} masked={true} defaultValue="123" />
+    </View>
+  );
+}
+--- Sizes and Disabled
+small to large; disabled ignores input.
+function OtpSizes(): Node {
+  return (
+    <View className="flex-col gap-3">
+      <OtpInput length={4} size="small" />
+      <OtpInput length={4} size="large" />
+      <OtpInput length={4} disabled={true} defaultValue="42" />
+    </View>
+  );
+}
+--- Controlled
+value follows state.
+function ControlledOtp(): Node {
+  const code = signal('');
+  return (
+    <View className="flex-row items-center gap-3">
+      <OtpInput length={4} value={code.get()} onChange={(value) => { code.set(clone(value)); }} />
+      <Button size="small" onPress={() => { code.set(''); }}>Clear</Button>
+    </View>
+  );
+}
+=== Time Field | time-field | Forms
+Typed time entry by hour, minute and second segments.
+--- Basic Time Field
+Hours and minutes; arrow keys change the focused segment.
+function BasicTimeField(): Node {
+  const time = signal('09:30:00');
+  return (
+    <View className="flex-col gap-2 w-60">
+      <TimeField defaultValue="09:30" onChange={(value) => { time.set(clone(value)); }} />
+      <Text variant="muted">Time: {time}</Text>
+    </View>
+  );
+}
+--- Seconds and 12-Hour Clock
+seconds adds a segment; twelveHour adds AM/PM.
+function ClockTimeFields(): Node {
+  return (
+    <View className="flex-col gap-2 w-60">
+      <TimeField seconds={true} defaultValue="14:05:30" />
+      <TimeField twelveHour={true} defaultValue="14:05" />
+    </View>
+  );
+}
+--- States and Sizes
+invalid, disabled and sizes.
+function TimeFieldStates(): Node {
+  return (
+    <View className="flex-col gap-2 w-60">
+      <TimeField invalid={true} defaultValue="25:00" />
+      <TimeField disabled={true} defaultValue="08:00" />
+      <TimeField size="small" defaultValue="08:00" />
+      <TimeField size="large" defaultValue="08:00" />
+    </View>
+  );
+}
+=== Calendar | calendar | Forms
+A month grid for picking a day or a range.
+--- Basic Calendar
+Keeps its own selection; onChange reports the day.
+function BasicCalendar(): Node {
+  const picked = signal('2026-11-10');
+  return (
+    <View className="flex-col gap-2">
+      <Calendar defaultValue="2026-11-10" onChange={(value) => { picked.set(clone(value)); }} />
+      <Text variant="muted">Selected: {picked}</Text>
+    </View>
+  );
+}
+--- Range and Two Months
+range picks start..end across two months.
+function RangeCalendar(): Node {
+  const span = signal('');
+  return (
+    <View className="flex-col gap-2">
+      <Calendar range={true} months={2} defaultValue="2026-11-03..2026-11-12" onChange={(value) => { span.set(clone(value)); }} />
+      <Text variant="muted">Range: {span}</Text>
+    </View>
+  );
+}
+--- Disabled Days
+Past days, weekends and a holiday cannot be picked; weeks start on Monday.
+function DisabledDaysCalendar(): Node {
+  return <Calendar firstDayOfWeek="monday" disabledBefore="2026-11-05" disabledWeekdays={['sat', 'sun']} disabledDates={['2026-11-26']} defaultValue="2026-11-10" />;
+}
+--- Year Range and View
+The year view offers only 2020 to 2030.
+function YearCalendar(): Node {
+  return <Calendar view="year" yearStart={2020} yearEnd={2030} size="small" />;
+}
+=== Date Picker | date-picker | Forms
+A field that opens a calendar to pick a day, a range or a date and time.
+--- Basic Date Picker
+Keeps its own value; onChange reports YYYY-MM-DD.
+function BasicDatePicker(): Node {
+  const picked = signal('');
+  return (
+    <View className="flex-col gap-2 w-72">
+      <DatePicker placeholder="Pick a date" cleanable={true} onChange={(value) => { picked.set(clone(value)); }} />
+      <Text variant="muted">Value: {picked}</Text>
+    </View>
+  );
+}
+--- Range with Presets
+range picks start..end; presets offer quick choices.
+function RangeDatePicker(): Node {
+  return <DatePicker range={true} months={2} placeholder="Trip dates" presets={[['Thanksgiving week', '2026-11-23', '2026-11-29'], ['New Year', '2027-01-01']]} className="w-80" />;
+}
+--- Date and Time
+time adds a time; format changes the display.
+function TimedDatePicker(): Node {
+  const at = signal('');
+  return (
+    <View className="flex-col gap-2 w-80">
+      <DatePicker time="minute" twelveHour={true} defaultTime="09:00" format="%b %d, %Y" placeholder="Meeting time" onChange={(value) => { at.set(clone(value)); }} />
+      <Text variant="muted">Value: {at}</Text>
+    </View>
+  );
+}
+--- Disabled Days and States
+Only weekdays from today; disabled and bare triggers.
+function RestrictedDatePicker(): Node {
+  return (
+    <View className="flex-col gap-2 w-72">
+      <DatePicker disabledBefore="2026-11-10" disabledWeekdays={['sat', 'sun']} firstDayOfWeek="monday" placeholder="Next business day" />
+      <DatePicker disabled={true} defaultValue="2026-11-10" />
+      <DatePicker appearance={false} size="small" defaultValue="2026-11-10" />
+    </View>
+  );
+}
+=== Color Picker | color-picker | Forms
+Pick a color from swatches or the full picker, as a button or a dropdown.
+--- Basic Color Picker
+The swatch button opens the picker; onChange reports #rrggbb.
+function BasicColorPicker(): Node {
+  const color = signal('#3b82f6');
+  return (
+    <View className="flex-row items-center gap-3">
+      <ColorPicker defaultValue="#3b82f6" onChange={(value) => { color.set(clone(value)); }} />
+      <Text variant="muted">Color: {color}</Text>
+    </View>
+  );
+}
+--- Featured Colors and Label
+Swatches offered first, from palette names or hex.
+function FeaturedColorPicker(): Node {
+  return <ColorPicker label="Accent" featuredColors={['red-500', 'amber-500', 'emerald-500', 'sky-500', 'violet-500', '#111111']} defaultValue="emerald-500" />;
+}
+--- Color Select
+select draws a dropdown of swatches.
+function SelectColor(): Node {
+  return <ColorPicker select={true} placeholder="Choose a color" featuredColors={['rose-500', 'orange-500', 'lime-500', 'cyan-500', 'indigo-500']} className="w-60" />;
+}
+--- Icon, Anchor and Sizes
+An icon button opening upward, and sizes.
+function IconColorPicker(): Node {
+  return (
+    <View className="flex-row items-center gap-3">
+      <ColorPicker icon="palette" anchor="bottom-left" accessibilityLabel="Text color" />
+      <ColorPicker size="small" defaultValue="#f59e0b" />
+      <ColorPicker size="large" defaultValue="#10b981" />
+    </View>
+  );
+}
+--- Controlled
+value follows state; an empty value clears it.
+function ControlledColorPicker(): Node {
+  const color = signal('#8b5cf6');
+  return (
+    <View className="flex-row items-center gap-3">
+      <ColorPicker value={color.get()} onChange={(value) => { color.set(clone(value)); }} />
+      <Button size="small" onPress={() => { color.set('#ef4444'); }}>Red</Button>
+      <Button size="small" outline={true} onPress={() => { color.set(''); }}>Clear</Button>
+      <Text variant="muted">{color}</Text>
+    </View>
+  );
+}

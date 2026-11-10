@@ -11,7 +11,7 @@ use gpui_kit::component::button::{ButtonVariant, DropdownButton, Toggle};
 use gpui_kit::component::checkbox::Checkbox;
 use gpui_kit::component::clipboard::Clipboard;
 use gpui_kit::component::collapsible::Collapsible;
-use gpui_kit::component::color_picker::{ColorPicker, ColorPickerEvent, ColorPickerState};
+use gpui_kit::component::color_picker::{ColorPicker, ColorPickerEvent, ColorPickerState, ColorSelect};
 use gpui_kit::component::description_list::DescriptionList;
 use gpui_kit::component::empty::{Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyMediaVariant, EmptyTitle};
 use gpui_kit::component::group_box::{GroupBox, GroupBoxVariant, GroupBoxVariants};
@@ -53,7 +53,7 @@ use gpui_kit::component::tooltip::Tooltip;
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::bubble::{Bubble, BubbleVariant};
 use gpui_kit::component::button::{ButtonGroup, ToggleGroup};
-use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date};
+use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date, Matcher};
 use gpui_kit::component::carousel::{Carousel, CarouselContent, CarouselEvent, CarouselItem, CarouselNext, CarouselPrevious, CarouselState};
 use gpui_kit::component::chart::{AreaChart, BarChart, CandlestickChart, LineChart, PieChart, RadarChart, SankeyChart};
 use gpui_kit::component::plot::shape::{Area, Bar, Line, SankeyLink};
@@ -527,6 +527,60 @@ fn notification(value: &serde_json::Value, events: Option<(WeakEntity<Root>, Not
 /// Rendered parts of a Dialog or Sheet.
 struct OverlayParts {title: Option<Vec<AnyElement>>, description: Option<Vec<AnyElement>>, body: Vec<AnyElement>, footer: Option<Vec<AnyElement>>}
 
+/// A DatePicker value as text: a day (with THH:MM:SS when timed), start..end, or empty.
+fn date_time_text(value: &gpui_kit::component::date_picker::DateTime, timed: bool) -> String {
+    use gpui_kit::component::date_picker::DateTime;
+    let format = |at: &Option<chrono::NaiveDateTime>| at.map(|at| at.format(if timed {"%Y-%m-%dT%H:%M:%S"} else {"%Y-%m-%d"}).to_string()).unwrap_or_default();
+    match value {DateTime::Single(at) => format(at), DateTime::Range(None, None) => String::new(), DateTime::Range(start, end) => format!("{}..{}", format(start), format(end))}
+}
+
+/// Push a text value into a DatePicker: days, ranges, and date-times when timed.
+fn set_picker_value(state: &mut DatePickerState, value: &str, range: bool, timed: bool, window: &mut Window, cx: &mut Context<DatePickerState>) {
+    use gpui_kit::component::date_picker::DateTime;
+    let at = |text: &str| chrono::NaiveDateTime::parse_from_str(text.trim(), "%Y-%m-%dT%H:%M:%S").or_else(|_| chrono::NaiveDateTime::parse_from_str(text.trim(), "%Y-%m-%dT%H:%M")).ok();
+    if timed {
+        let value = if range {let (start, end) = value.split_once("..").unwrap_or((value, "")); DateTime::Range(at(start), at(end))} else {DateTime::Single(at(value))};
+        state.set_date_time(value, window, cx);
+    } else {
+        state.set_date(date_value(value, range), window, cx);
+    }
+}
+
+/// A YYYY-MM-DD day.
+fn day(text: &str) -> Option<chrono::NaiveDate> {chrono::NaiveDate::parse_from_str(text.trim(), "%Y-%m-%d").ok()}
+
+/// A calendar value: a day, or start..end for ranges.
+fn date_value(text: &str, range: bool) -> Date {
+    if range {let (start, end) = text.split_once("..").unwrap_or((text, "")); Date::Range(day(start), day(end))} else {Date::Single(day(text))}
+}
+
+/// A calendar value as text: a day, start..end, or empty.
+fn date_text(date: &Date) -> String {
+    let format = |day: &Option<chrono::NaiveDate>| day.map(|day| day.format("%Y-%m-%d").to_string()).unwrap_or_default();
+    match date {Date::Single(single) => format(single), Date::Range(None, None) => String::new(), Date::Range(start, end) => format!("{}..{}", format(start), format(end))}
+}
+
+/// A weekday by name or number (0 = Sunday).
+fn weekday(name: &str) -> Option<chrono::Weekday> {
+    use chrono::Weekday::*;
+    Some(match name.trim().to_lowercase().as_str() {"0" | "sun" | "sunday" => Sun, "1" | "mon" | "monday" => Mon, "2" | "tue" | "tuesday" => Tue, "3" | "wed" | "wednesday" => Wed, "4" | "thu" | "thursday" => Thu, "5" | "fri" | "friday" => Fri, "6" | "sat" | "saturday" => Sat, _ => return None})
+}
+
+/// Days a Calendar or DatePicker cannot select: before/after a day, a from..to range, listed weekdays or listed days.
+fn date_matcher(props: &std::collections::BTreeMap<String, String>) -> Option<Matcher> {
+    let text = |key: &str| props.get(key).cloned().unwrap_or_default();
+    let (before, after, from, to) = (day(&text("disabledBefore")), day(&text("disabledAfter")), day(&text("disabledFrom")), day(&text("disabledTo")));
+    let weekdays = text("disabledWeekdays").split([',', '\n']).filter_map(weekday).collect::<Vec<_>>();
+    let days = text("disabledDates").split('\n').filter_map(day).collect::<Vec<_>>();
+    if before.is_none() && after.is_none() && from.is_none() && to.is_none() && weekdays.is_empty() && days.is_empty() {return None;}
+    Some(Matcher::custom(move |date: &chrono::NaiveDate| {
+        use chrono::Datelike;
+        before.is_some_and(|limit| *date < limit) || after.is_some_and(|limit| *date > limit)
+            || ((from.is_some() || to.is_some()) && from.is_none_or(|start| *date >= start) && to.is_none_or(|end| *date <= end))
+            || weekdays.contains(&date.weekday()) || days.contains(date)
+    }))
+}
+
 /// A Select option: its label, value and disabled state.
 #[derive(Clone)]
 struct Choice {label: SharedString, value: SharedString, disabled: bool}
@@ -799,12 +853,43 @@ impl Root {
                         }
                     }
                     KitState::Slider(state) => {
-                        if let Some(value) = number("value") && state.read(cx).value() != SliderValue::Single(value) {
-                            state.update(cx, |state, cx| state.set_value(value, window, cx));
+                        let wanted = match (state.read(cx).value(), number("value"), number("endValue")) {
+                            (SliderValue::Range(start, end), value, end_value) if value.is_some() || end_value.is_some() => Some(SliderValue::Range(value.unwrap_or(start), end_value.unwrap_or(end))),
+                            (SliderValue::Single(_), Some(value), _) => Some(SliderValue::Single(value)),
+                            _ => None,
+                        };
+                        if let Some(wanted) = wanted && state.read(cx).value() != wanted {state.update(cx, |state, cx| state.set_value(wanted, window, cx));}
+                    }
+                    KitState::Otp(state) => {
+                        let masked = text("masked") == "true";
+                        if state.read(cx).is_masked() != masked {state.update(cx, |state, cx| state.set_masked(masked, window, cx));}
+                        if let Some(value) = props.get("value") && state.read(cx).value().as_ref() != value {let value = value.clone(); state.update(cx, |state, cx| state.set_value(value, window, cx));}
+                    }
+                    KitState::Date(state) => {
+                        let (range, timed) = (text("range") == "true", matches!(text("time").as_str(), "minute" | "second"));
+                        if let Some(value) = props.get("value") && date_time_text(&state.read(cx).date_time(), timed) != *value {
+                            let value = value.clone();
+                            state.update(cx, |state, cx| set_picker_value(state, &value, range, timed, window, cx));
+                        }
+                    }
+                    KitState::Calendar(state) => {
+                        let range = text("range") == "true";
+                        if let Some(value) = props.get("value") && date_text(&state.read(cx).date()) != *value {let date = date_value(value, range); state.update(cx, |state, cx| state.set_date(date, window, cx));}
+                        if let Some(months) = number("months") && state.read(cx).number_of_months() != months as usize {state.update(cx, |state, cx| state.set_number_of_months(months as usize, window, cx));}
+                        let view = match text("view").as_str() {"month" => Some(gpui_kit::base::CalendarView::Month), "year" => Some(gpui_kit::base::CalendarView::Year), "day" => Some(gpui_kit::base::CalendarView::Day), _ => None};
+                        if let Some(view) = view && state.read(cx).view() != view {state.update(cx, |state, cx| {state.set_view(view); cx.notify();});}
+                    }
+                    KitState::Time(state) => {
+                        let precision = if text("seconds") == "true" {TimePrecision::Second} else {TimePrecision::Minute};
+                        let cycle = if text("twelveHour") == "true" {HourCycle::H12} else {HourCycle::H23};
+                        state.update(cx, |state, cx| {state.set_precision(precision, window, cx); state.set_hour_cycle(cycle, window, cx);});
+                        if let Some(value) = props.get("value") && let Ok(time) = chrono::NaiveTime::parse_from_str(value, "%H:%M:%S").or_else(|_| chrono::NaiveTime::parse_from_str(value, "%H:%M")) && state.read(cx).time() != time {
+                            state.update(cx, |state, cx| state.set_time(time, window, cx));
                         }
                     }
                     KitState::Color(state) => {
-                        if let Some(color) = parse_hex(&text("value")) && state.read(cx).value().map(hex) != Some(text("value").to_lowercase()) {
+                        if props.get("value").is_some_and(|value| value.is_empty()) && state.read(cx).value().is_some() {state.update(cx, |state, cx| state.clear_value(window, cx));}
+                        if let Some(color) = theme_color(&text("value"), cx) && state.read(cx).value().map(hex) != Some(hex(color)) {
                             state.update(cx, |state, cx| state.set_value(color, window, cx));
                         }
                     }
@@ -846,7 +931,7 @@ impl Root {
                             if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
                         }
                     }
-                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Speech(_) | KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
+                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Speech(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
                 }
                 continue;
             }
@@ -889,28 +974,47 @@ impl Root {
                 }
                 "OtpInput" => {
                     let length = number("length").map_or(6, |value| value as usize);
-                    let masked = text("masked") == "true";
-                    let state = cx.new(|cx| OtpState::new(length, window, cx).masked(masked));
+                    let initial = props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default();
+                    let state = cx.new(|cx| OtpState::new(length, window, cx).masked(text("masked") == "true").default_value(initial));
                     cx.subscribe_in(&state, window, move |this, state, event: &OtpEvent, _, cx| {
-                        if matches!(event, OtpEvent::Change | OtpEvent::Complete) {let value = state.read(cx).value().to_string(); this.emit(id, "change", value, cx);}
+                        let value = state.read(cx).value().to_string();
+                        match event {
+                            OtpEvent::Change => this.emit(id, "change", value, cx),
+                            OtpEvent::Complete => {this.emit(id, "change", value.clone(), cx); this.emit(id, "complete", value, cx);}
+                            OtpEvent::Focus => this.emit(id, "focus", String::new(), cx),
+                            OtpEvent::Blur => this.emit(id, "blur", String::new(), cx),
+                        }
                     }).detach();
+                    if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
                     KitState::Otp(state)
                 }
                 "DatePicker" => {
-                    let initial = chrono::NaiveDate::parse_from_str(&text("value"), "%Y-%m-%d").ok();
+                    let range = text("range") == "true";
+                    let time = match text("time").as_str() {"minute" => Some(TimePrecision::Minute), "second" => Some(TimePrecision::Second), _ => None};
+                    let matcher = date_matcher(&props);
+                    let value = props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default();
                     let state = cx.new(|cx| {
-                        let mut state = DatePickerState::new(window, cx);
-                        if let Some(date) = initial {state.set_date(date, window, cx);}
+                        let mut state = if range {DatePickerState::range(window, cx)} else {DatePickerState::new(window, cx)};
+                        if !text("format").is_empty() {state = state.date_format(text("format"));}
+                        if let Some(time) = time {state = state.time_precision(time);}
+                        if text("twelveHour") == "true" {state = state.hour_cycle(HourCycle::H12);}
+                        if let Ok(default_time) = chrono::NaiveTime::parse_from_str(&text("defaultTime"), "%H:%M") {state = state.default_time(default_time);}
+                        if let Some(months) = number("months") {state = state.number_of_months(months as usize);}
+                        if let Some(first) = weekday(&text("firstDayOfWeek")) {state = state.first_day_of_week(first);}
+                        if let Some(matcher) = matcher {state = state.disabled_matcher(matcher);}
+                        if let (Some(start), Some(end)) = (number("yearStart"), number("yearEnd")) {state.set_year_range((start as i32, end as i32), cx);}
+                        set_picker_value(&mut state, &value, range, time.is_some(), window, cx);
                         state
                     });
+                    let timed = time.is_some();
                     cx.subscribe_in(&state, window, move |this, _, event: &DatePickerEvent, _, cx| {
                         let DatePickerEvent::Change(value) = event;
-                        this.emit(id, "change", value.format("%Y-%m-%d").map(|date| date.to_string()).unwrap_or_default(), cx);
+                        this.emit(id, "change", date_time_text(value, timed), cx);
                     }).detach();
                     KitState::Date(state)
                 }
                 "ColorPicker" => {
-                    let initial = parse_hex(&text("value"));
+                    let initial = theme_color(&props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default(), cx);
                     let state = cx.new(|cx| {
                         let state = ColorPickerState::new(window, cx);
                         match initial {Some(color) => state.default_value(color), None => state}
@@ -922,20 +1026,25 @@ impl Root {
                     KitState::Color(state)
                 }
                 "Calendar" => {
-                    let initial = chrono::NaiveDate::parse_from_str(&text("value"), "%Y-%m-%d").ok();
+                    let range = text("range") == "true";
+                    let value = props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default();
+                    let matcher = date_matcher(&props);
                     let state = cx.new(|cx| {
                         let mut state = CalendarState::new(window, cx);
-                        if let Some(date) = initial {state.set_date(date, window, cx);}
+                        if let Some(matcher) = matcher {state = state.disabled_matcher(matcher);}
+                        if let (Some(start), Some(end)) = (number("yearStart"), number("yearEnd")) {state = state.year_range((start as i32, end as i32));}
+                        state.set_date(date_value(&value, range), window, cx);
                         state
                     });
                     cx.subscribe_in(&state, window, move |this, _, event: &CalendarEvent, _, cx| {
                         let CalendarEvent::Selected(date) = event;
-                        if let Date::Single(Some(date)) = date {this.emit(id, "change", date.format("%Y-%m-%d").to_string(), cx);}
+                        this.emit(id, "change", date_text(date), cx);
                     }).detach();
                     KitState::Calendar(state)
                 }
                 "TimeField" => {
-                    let initial = chrono::NaiveTime::parse_from_str(&text("value"), "%H:%M:%S").or_else(|_| chrono::NaiveTime::parse_from_str(&text("value"), "%H:%M")).ok();
+                    let source = props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default();
+                    let initial = chrono::NaiveTime::parse_from_str(&source, "%H:%M:%S").or_else(|_| chrono::NaiveTime::parse_from_str(&source, "%H:%M")).ok();
                     let (seconds, twelve) = (text("seconds") == "true", text("twelveHour") == "true");
                     let state = cx.new(|cx| {
                         let mut state = TimeFieldState::new(window, cx);
@@ -948,6 +1057,7 @@ impl Root {
                         let TimeFieldEvent::Change(time) = event;
                         this.emit(id, "change", time.format("%H:%M:%S").to_string(), cx);
                     }).detach();
+                    if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
                     KitState::Time(state)
                 }
                 "Combobox" => {
@@ -1099,14 +1209,17 @@ impl Root {
                 "List" => KitState::List(VirtualListScrollHandle::new()),
                 _ => {
                     let (min, max, step) = (number("min").unwrap_or(0.), number("max").unwrap_or(100.), number("step").unwrap_or(1.));
-                    let initial = number("value").unwrap_or(min);
-                    let state = cx.new(|cx| {
-                        let mut state = SliderState::new().min(min).max(max).step(step);
-                        state.set_value(initial, window, cx);
-                        state
-                    });
+                    let start = number("value").or(number("defaultValue")).unwrap_or(min);
+                    // A range slider has two thumbs: value is the start, endValue the end.
+                    let initial = if text("range") == "true" {SliderValue::Range(start, number("endValue").or(number("defaultEndValue")).unwrap_or(max))} else {SliderValue::Single(start)};
+                    let scale = if text("scale") == "logarithmic" {gpui_kit::component::slider::SliderScale::Logarithmic} else {gpui_kit::component::slider::SliderScale::Linear};
+                    let state = cx.new(|_| SliderState::new().min(min).max(max).step(step).scale(scale).default_value(initial));
                     cx.subscribe_in(&state, window, move |this, _, event: &SliderEvent, _, cx| {
-                        if let SliderEvent::Change(SliderValue::Single(value)) = event {this.emit(id, "change", value.to_string(), cx);}
+                        let (name, value) = match event {SliderEvent::Change(value) => ("change", *value), SliderEvent::Release(value) => ("commit", *value)};
+                        match value {
+                            SliderValue::Single(value) => this.emit(id, name, value.to_string(), cx),
+                            SliderValue::Range(start, end) => {this.emit(id, name, start.to_string(), cx); if name == "change" {this.emit(id, "endChange", end.to_string(), cx);}}
+                        }
                     }).detach();
                     KitState::Slider(state)
                 }
@@ -1773,17 +1886,62 @@ impl Root {
                 }
                 _ => div().into_any_element(),
             },
-            "OtpInput" => match self.states.get(&id) {Some(KitState::Otp(state)) => OtpInput::new(state).into_any_element(), _ => div().into_any_element()},
+            "OtpInput" => match self.states.get(&id) {
+                Some(KitState::Otp(state)) => {
+                    let mut input = OtpInput::new(state).disabled(kit.flag("disabled"));
+                    if let Some(groups) = kit.index("groups") {input = input.groups(groups);}
+                    if let Some(size) = kit_size(kit) {input = input.with_size(size);}
+                    input.into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
             "DatePicker" => match self.states.get(&id) {
-                Some(KitState::Date(state)) => DatePicker::new(state).placeholder(text("placeholder")).into_any_element(),
+                Some(KitState::Date(state)) => {
+                    let mut picker = DatePicker::new(state).placeholder(text("placeholder")).cleanable(kit.flag("cleanable")).disabled(kit.flag("disabled"));
+                    if let Some(months) = kit.index("months") {picker = picker.number_of_months(months.max(1));}
+                    if kit.prop("appearance") == Some("false") {picker = picker.appearance(false);}
+                    if let Some(size) = kit_size(kit) {picker = picker.with_size(size);}
+                    // presets: [label, day] or [label, start, end] rows.
+                    let presets = serde_json::from_str::<Vec<Vec<String>>>(&kit.text("presets")).unwrap_or_default().into_iter().filter_map(|row| match row.as_slice() {
+                        [label, date] => day(date).map(|date| gpui_kit::component::date_picker::DateRangePreset::single(label.clone(), date)),
+                        [label, start, end] => day(start).zip(day(end)).map(|(start, end)| gpui_kit::component::date_picker::DateRangePreset::range(label.clone(), start, end)),
+                        _ => None,
+                    }).collect::<Vec<_>>();
+                    if !presets.is_empty() {picker = picker.presets(presets);}
+                    picker.into_any_element()
+                }
                 _ => div().into_any_element(),
             },
             "ColorPicker" => match self.states.get(&id) {
-                Some(KitState::Color(state)) => {let picker = ColorPicker::new(state); match kit.prop("label") {Some(label) if !label.is_empty() => picker.label(label.to_owned()).into_any_element(), _ => picker.into_any_element()}}
+                Some(KitState::Color(state)) => {
+                    let featured = kit.text("featuredColors").split('\n').filter_map(|name| theme_color(name, cx)).collect::<Vec<_>>();
+                    // select draws a dropdown of swatches; otherwise the swatch button with the full picker.
+                    if kit.flag("select") {
+                        let mut select = ColorSelect::new(state).placeholder(text("placeholder"));
+                        if !featured.is_empty() {select = select.featured_colors(featured);}
+                        if let Some(label) = kit.prop("accessibilityLabel") {select = select.accessibility_label(label.to_owned());}
+                        if let Some(size) = kit_size(kit) {select = select.with_size(size);}
+                        select.into_any_element()
+                    } else {
+                        let mut picker = ColorPicker::new(state).anchor(anchor_named(kit.prop("anchor")));
+                        if !featured.is_empty() {picker = picker.featured_colors(featured);}
+                        if let Some(label) = kit.prop("label").filter(|label| !label.is_empty()) {picker = picker.label(label.to_owned());}
+                        if let Some(icon) = icon_name(&kit.text("icon")) {picker = picker.icon(icon);}
+                        if let Some(label) = kit.prop("accessibilityLabel") {picker = picker.accessibility_label(label.to_owned());}
+                        if let Some(size) = kit_size(kit) {picker = picker.with_size(size);}
+                        picker.into_any_element()
+                    }
+                }
                 _ => div().into_any_element(),
             },
             "Slider" => match self.states.get(&id) {
-                Some(KitState::Slider(state)) => Slider::new(state).disabled(kit.flag("disabled")).into_any_element(),
+                Some(KitState::Slider(state)) => {
+                    let mut slider = Slider::new(state).disabled(kit.flag("disabled"));
+                    if kit.flag("vertical") {slider = slider.vertical();}
+                    if kit.flag("reverse") {slider = slider.reverse();}
+                    if let Some(label) = kit.prop("accessibilityLabel") {slider = slider.accessibility_label(label.to_owned());}
+                    slider.into_any_element()
+                }
                 _ => div().into_any_element(),
             },
             "Tooltip" => {
@@ -2034,10 +2192,22 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "Calendar" => match self.states.get(&id) {
-                Some(KitState::Calendar(state)) => Calendar::new(state).number_of_months(kit.index("months").unwrap_or(1).max(1)).into_any_element(),
+                Some(KitState::Calendar(state)) => {
+                    let mut calendar = Calendar::new(state).number_of_months(kit.index("months").unwrap_or(1).max(1));
+                    if let Some(first) = weekday(&kit.text("firstDayOfWeek")) {calendar = calendar.first_day_of_week(first);}
+                    if let Some(size) = kit_size(kit) {calendar = calendar.with_size(size);}
+                    calendar.into_any_element()
+                }
                 _ => div().into_any_element(),
             },
-            "TimeField" => match self.states.get(&id) {Some(KitState::Time(state)) => TimeField::new(state).into_any_element(), _ => div().into_any_element()},
+            "TimeField" => match self.states.get(&id) {
+                Some(KitState::Time(state)) => {
+                    let mut field = TimeField::new(state).invalid(kit.flag("invalid")).disabled(kit.flag("disabled"));
+                    if let Some(size) = kit_size(kit) {field = field.with_size(size);}
+                    field.into_any_element()
+                }
+                _ => div().into_any_element(),
+            },
             "Combobox" => {
                 let slot = |name: &str| items(node, name).next().map(|(child, _)| child.identity.get());
                 let (empty, trigger, footer) = (slot("SelectEmpty"), slot("ComboboxTrigger"), slot("ComboboxFooter"));

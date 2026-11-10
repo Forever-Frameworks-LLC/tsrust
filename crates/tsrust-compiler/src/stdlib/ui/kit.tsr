@@ -1651,18 +1651,38 @@ export function Pagination(props: PaginationProps): Node {
 }
 
 export interface SliderProps {
-  /** Current value. */
+  /** The value (or a range's start), controlled; set it from onChange. Without it the slider keeps its own value. */
   value?: ReactiveValue<number>;
-  /** Lowest value. Defaults to 0. */
+  /** Initial value when `value` is unset. */
+  defaultValue?: ReactiveValue<number>;
+  /** Two thumbs: value is the start and endValue the end. Read when it mounts. */
+  range?: ReactiveValue<boolean>;
+  /** A range's end, controlled; set it from onEndChange. */
+  endValue?: ReactiveValue<number>;
+  /** A range's initial end. */
+  defaultEndValue?: ReactiveValue<number>;
+  /** Smallest value. Defaults to 0. */
   min?: ReactiveValue<number>;
-  /** Highest value. Defaults to 100. */
+  /** Largest value. Defaults to 100. */
   max?: ReactiveValue<number>;
-  /** Value increment. Defaults to 1. */
+  /** Increment. Defaults to 1. */
   step?: ReactiveValue<number>;
-  /** Disabled sliders ignore input. */
+  /** Value spacing along the track; logarithmic suits volumes and frequencies. */
+  scale?: ReactiveValue<'linear' | 'logarithmic'>;
+  /** A vertical track; give it a height. */
+  vertical?: ReactiveValue<boolean>;
+  /** Runs from max to min. */
+  reverse?: ReactiveValue<boolean>;
+  /** Ignores input. */
   disabled?: ReactiveValue<boolean>;
-  /** Receives the new value while dragging. */
+  /** Names the slider for assistive technology. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Runs with the value (a range's start) while dragging. */
   onChange?: Owned<Function<void, [value: number]>>;
+  /** Runs with a range's end while dragging. */
+  onEndChange?: Owned<Function<void, [value: number]>>;
+  /** Runs with the value (a range's start) when the thumb is released. */
+  onCommit?: Owned<Function<void, [value: number]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -1673,6 +1693,26 @@ export function Slider(props: SliderProps): Node {
   const prop_value = props.value;
   if (prop_value !== undefined) {
     node = kitNumber(node, 'value', prop_value);
+  }
+
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = kitNumber(node, 'defaultValue', prop_defaultValue);
+  }
+
+  const prop_range = props.range;
+  if (prop_range !== undefined) {
+    node = kitFlag(node, 'range', prop_range);
+  }
+
+  const prop_endValue = props.endValue;
+  if (prop_endValue !== undefined) {
+    node = kitNumber(node, 'endValue', prop_endValue);
+  }
+
+  const prop_defaultEndValue = props.defaultEndValue;
+  if (prop_defaultEndValue !== undefined) {
+    node = kitNumber(node, 'defaultEndValue', prop_defaultEndValue);
   }
 
   const prop_min = props.min;
@@ -1690,14 +1730,48 @@ export function Slider(props: SliderProps): Node {
     node = kitNumber(node, 'step', prop_step);
   }
 
+  const prop_scale = props.scale;
+  if (prop_scale !== undefined) {
+    if (typeof prop_scale === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'scale', `${prop_scale}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'scale', nativeBindText(prop_scale.evaluate)));
+    }
+  }
+
+  const prop_vertical = props.vertical;
+  if (prop_vertical !== undefined) {
+    node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
+  const prop_reverse = props.reverse;
+  if (prop_reverse !== undefined) {
+    node = kitFlag(node, 'reverse', prop_reverse);
+  }
+
   const prop_disabled = props.disabled;
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
   const event_onChange = props.onChange;
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnNumber(node, 'change', event_onChange));
+  }
+
+  const event_onEndChange = props.onEndChange;
+  if (event_onEndChange !== undefined) {
+    node = unwrapNode(nativeKitOnNumber(node, 'endChange', event_onEndChange));
+  }
+
+  const event_onCommit = props.onCommit;
+  if (event_onCommit !== undefined) {
+    node = unwrapNode(nativeKitOnNumber(node, 'commit', event_onCommit));
   }
 
   return node;
@@ -2614,12 +2688,30 @@ export function NumberInput(props: NumberInputProps): Node {
 }
 
 export interface OtpInputProps {
-  /** Number of characters. Defaults to 6. */
+  /** Number of characters. Defaults to 6. Read when it mounts. */
   length?: ReactiveValue<int>;
-  /** Hides the entered characters. */
+  /** The code, controlled; set it from onChange. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Initial code when `value` is unset. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Draws characters as dots. */
   masked?: ReactiveValue<boolean>;
-  /** Receives the code as it is typed. */
-  onChange?: Owned<Function<void, [code: ReadOnly<string>]>>;
+  /** Splits the boxes into this many groups. */
+  groups?: ReactiveValue<int>;
+  /** Ignores input. */
+  disabled?: ReactiveValue<boolean>;
+  /** Focuses the first box when it mounts. */
+  autoFocus?: ReactiveValue<boolean>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with the code after each edit. */
+  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Runs with the code when every box is filled. */
+  onComplete?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Runs when it gains focus. */
+  onFocus?: Owned<Function<void>>;
+  /** Runs when it loses focus. */
+  onBlur?: Owned<Function<void>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -2632,9 +2724,43 @@ export function OtpInput(props: OtpInputProps): Node {
     node = kitInt(node, 'length', prop_length);
   }
 
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
+  }
+
   const prop_masked = props.masked;
   if (prop_masked !== undefined) {
     node = kitFlag(node, 'masked', prop_masked);
+  }
+
+  const prop_groups = props.groups;
+  if (prop_groups !== undefined) {
+    node = kitInt(node, 'groups', prop_groups);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_autoFocus = props.autoFocus;
+  if (prop_autoFocus !== undefined) {
+    node = kitFlag(node, 'autoFocus', prop_autoFocus);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -2642,16 +2768,73 @@ export function OtpInput(props: OtpInputProps): Node {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
 
+  const event_onComplete = props.onComplete;
+  if (event_onComplete !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'complete', event_onComplete));
+  }
+
+  const event_onFocus = props.onFocus;
+  if (event_onFocus !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'focus', event_onFocus));
+  }
+
+  const event_onBlur = props.onBlur;
+  if (event_onBlur !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'blur', event_onBlur));
+  }
+
   return node;
 }
 
 export interface DatePickerProps {
-  /** Selected date as YYYY-MM-DD, or empty for none. */
+  /** The selected day (YYYY-MM-DD), start..end with range, or YYYY-MM-DDTHH:MM:SS with time, controlled; set it from onChange. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Text shown when no date is selected. */
+  /** Initial selection when `value` is unset. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Picks a start..end range. Read when it mounts. */
+  range?: ReactiveValue<boolean>;
+  /** Adds a time to the date, to the minute or second. Read when it mounts. */
+  time?: ReactiveValue<'minute' | 'second'>;
+  /** Uses a 12-hour clock for the time. */
+  twelveHour?: ReactiveValue<boolean>;
+  /** The time (HH:MM) a newly picked day starts with. */
+  defaultTime?: ReactiveValue<string> | TextBinding;
+  /** Display format in strftime form, such as %d/%m/%Y. */
+  format?: ReactiveValue<string> | TextBinding;
+  /** Text while nothing is chosen. */
   placeholder?: ReactiveValue<string> | TextBinding;
-  /** Receives the chosen date as YYYY-MM-DD, or empty when cleared. */
-  onChange?: Owned<Function<void, [date: ReadOnly<string>]>>;
+  /** Shows a clear button while a date is chosen. */
+  cleanable?: ReactiveValue<boolean>;
+  /** Months shown side by side in the popup. */
+  months?: ReactiveValue<int>;
+  /** The weekday columns start on. */
+  firstDayOfWeek?: ReactiveValue<string> | TextBinding;
+  /** Quick choices beside the calendar: [label, day] or [label, start, end] rows. */
+  presets?: string[][];
+  /** false draws the bare trigger. */
+  appearance?: ReactiveValue<boolean>;
+  /** Ignores input. */
+  disabled?: ReactiveValue<boolean>;
+  /** Days before this YYYY-MM-DD day cannot be chosen. */
+  disabledBefore?: ReactiveValue<string> | TextBinding;
+  /** Days after this day cannot be chosen. */
+  disabledAfter?: ReactiveValue<string> | TextBinding;
+  /** Start of a disabled day range. */
+  disabledFrom?: ReactiveValue<string> | TextBinding;
+  /** End of a disabled day range. */
+  disabledTo?: ReactiveValue<string> | TextBinding;
+  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). */
+  disabledWeekdays?: string[];
+  /** Individual YYYY-MM-DD days that cannot be chosen. */
+  disabledDates?: string[];
+  /** First year offered in the year view. */
+  yearStart?: ReactiveValue<int>;
+  /** Last year offered in the year view. */
+  yearEnd?: ReactiveValue<int>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with the new value in the same form as value. */
+  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -2664,9 +2847,122 @@ export function DatePicker(props: DatePickerProps): Node {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
+  }
+
+  const prop_range = props.range;
+  if (prop_range !== undefined) {
+    node = kitFlag(node, 'range', prop_range);
+  }
+
+  const prop_time = props.time;
+  if (prop_time !== undefined) {
+    if (typeof prop_time === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'time', `${prop_time}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'time', nativeBindText(prop_time.evaluate)));
+    }
+  }
+
+  const prop_twelveHour = props.twelveHour;
+  if (prop_twelveHour !== undefined) {
+    node = kitFlag(node, 'twelveHour', prop_twelveHour);
+  }
+
+  const prop_defaultTime = props.defaultTime;
+  if (prop_defaultTime !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultTime', prop_defaultTime));
+  }
+
+  const prop_format = props.format;
+  if (prop_format !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'format', prop_format));
+  }
+
   const prop_placeholder = props.placeholder;
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
+  }
+
+  const prop_cleanable = props.cleanable;
+  if (prop_cleanable !== undefined) {
+    node = kitFlag(node, 'cleanable', prop_cleanable);
+  }
+
+  const prop_months = props.months;
+  if (prop_months !== undefined) {
+    node = kitInt(node, 'months', prop_months);
+  }
+
+  const prop_firstDayOfWeek = props.firstDayOfWeek;
+  if (prop_firstDayOfWeek !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'firstDayOfWeek', prop_firstDayOfWeek));
+  }
+
+  const prop_presets = props.presets;
+  if (prop_presets !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'presets', JSON.stringify(prop_presets)));
+  }
+
+  const prop_appearance = props.appearance;
+  if (prop_appearance !== undefined) {
+    node = kitFlag(node, 'appearance', prop_appearance);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_disabledBefore = props.disabledBefore;
+  if (prop_disabledBefore !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'disabledBefore', prop_disabledBefore));
+  }
+
+  const prop_disabledAfter = props.disabledAfter;
+  if (prop_disabledAfter !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'disabledAfter', prop_disabledAfter));
+  }
+
+  const prop_disabledFrom = props.disabledFrom;
+  if (prop_disabledFrom !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'disabledFrom', prop_disabledFrom));
+  }
+
+  const prop_disabledTo = props.disabledTo;
+  if (prop_disabledTo !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'disabledTo', prop_disabledTo));
+  }
+
+  const prop_disabledWeekdays = props.disabledWeekdays;
+  if (prop_disabledWeekdays !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'disabledWeekdays', prop_disabledWeekdays.join('\n')));
+  }
+
+  const prop_disabledDates = props.disabledDates;
+  if (prop_disabledDates !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'disabledDates', prop_disabledDates.join('\n')));
+  }
+
+  const prop_yearStart = props.yearStart;
+  if (prop_yearStart !== undefined) {
+    node = kitInt(node, 'yearStart', prop_yearStart);
+  }
+
+  const prop_yearEnd = props.yearEnd;
+  if (prop_yearEnd !== undefined) {
+    node = kitInt(node, 'yearEnd', prop_yearEnd);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -2678,12 +2974,28 @@ export function DatePicker(props: DatePickerProps): Node {
 }
 
 export interface ColorPickerProps {
-  /** Current color as #rrggbb. */
+  /** The color as #rrggbb, a theme color or a palette color, controlled; set it from onChange. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Text beside the swatch. */
+  /** Initial color when `value` is unset. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Swatches offered first, as hex, theme or palette colors. */
+  featuredColors?: string[];
+  /** Draws a dropdown of swatches (ColorSelect) instead of the swatch button with the full picker. */
+  select?: ReactiveValue<boolean>;
+  /** Text beside the swatch button. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Receives the chosen color as #rrggbb. */
-  onChange?: Owned<Function<void, [color: ReadOnly<string>]>>;
+  /** Text in the select while no color is chosen. */
+  placeholder?: ReactiveValue<string> | TextBinding;
+  /** Icon on the swatch button instead of the color. */
+  icon?: ReactiveValue<IconName>;
+  /** The popup corner aligned to the button. */
+  anchor?: ReactiveValue<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center' | 'left-center' | 'right-center'>;
+  /** Names the picker for assistive technology. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with the chosen color as #rrggbb, or empty when cleared. */
+  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -2696,9 +3008,61 @@ export function ColorPicker(props: ColorPickerProps): Node {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
+  }
+
+  const prop_featuredColors = props.featuredColors;
+  if (prop_featuredColors !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'featuredColors', prop_featuredColors.join('\n')));
+  }
+
+  const prop_select = props.select;
+  if (prop_select !== undefined) {
+    node = kitFlag(node, 'select', prop_select);
+  }
+
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_placeholder = props.placeholder;
+  if (prop_placeholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_anchor = props.anchor;
+  if (prop_anchor !== undefined) {
+    if (typeof prop_anchor === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'anchor', `${prop_anchor}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'anchor', nativeBindText(prop_anchor.evaluate)));
+    }
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -4577,12 +4941,38 @@ export function TreeItem(props: TreeItemProps): Node {
 }
 
 export interface CalendarProps {
-  /** Selected date as YYYY-MM-DD, or empty for none. */
+  /** The selected day (YYYY-MM-DD), or start..end with range, controlled; set it from onChange. */
   value?: ReactiveValue<string> | TextBinding;
+  /** Initial selection when `value` is unset. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Selects a start..end range. */
+  range?: ReactiveValue<boolean>;
   /** Months shown side by side. Defaults to 1. */
   months?: ReactiveValue<int>;
-  /** Receives the chosen date as YYYY-MM-DD. */
-  onChange?: Owned<Function<void, [date: ReadOnly<string>]>>;
+  /** The weekday columns start on, such as monday. Defaults to sunday. */
+  firstDayOfWeek?: ReactiveValue<string> | TextBinding;
+  /** Shows days, months or years. */
+  view?: ReactiveValue<'day' | 'month' | 'year'>;
+  /** Days before this YYYY-MM-DD day cannot be chosen. */
+  disabledBefore?: ReactiveValue<string> | TextBinding;
+  /** Days after this day cannot be chosen. */
+  disabledAfter?: ReactiveValue<string> | TextBinding;
+  /** Start of a disabled day range. */
+  disabledFrom?: ReactiveValue<string> | TextBinding;
+  /** End of a disabled day range. */
+  disabledTo?: ReactiveValue<string> | TextBinding;
+  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). */
+  disabledWeekdays?: string[];
+  /** Individual YYYY-MM-DD days that cannot be chosen. */
+  disabledDates?: string[];
+  /** First year offered in the year view. */
+  yearStart?: ReactiveValue<int>;
+  /** Last year offered in the year view. */
+  yearEnd?: ReactiveValue<int>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with the selected day, or start..end for a range. */
+  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
@@ -4595,9 +4985,82 @@ export function Calendar(props: CalendarProps): Node {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
+  }
+
+  const prop_range = props.range;
+  if (prop_range !== undefined) {
+    node = kitFlag(node, 'range', prop_range);
+  }
+
   const prop_months = props.months;
   if (prop_months !== undefined) {
     node = kitInt(node, 'months', prop_months);
+  }
+
+  const prop_firstDayOfWeek = props.firstDayOfWeek;
+  if (prop_firstDayOfWeek !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'firstDayOfWeek', prop_firstDayOfWeek));
+  }
+
+  const prop_view = props.view;
+  if (prop_view !== undefined) {
+    if (typeof prop_view === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'view', `${prop_view}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'view', nativeBindText(prop_view.evaluate)));
+    }
+  }
+
+  const prop_disabledBefore = props.disabledBefore;
+  if (prop_disabledBefore !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'disabledBefore', prop_disabledBefore));
+  }
+
+  const prop_disabledAfter = props.disabledAfter;
+  if (prop_disabledAfter !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'disabledAfter', prop_disabledAfter));
+  }
+
+  const prop_disabledFrom = props.disabledFrom;
+  if (prop_disabledFrom !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'disabledFrom', prop_disabledFrom));
+  }
+
+  const prop_disabledTo = props.disabledTo;
+  if (prop_disabledTo !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'disabledTo', prop_disabledTo));
+  }
+
+  const prop_disabledWeekdays = props.disabledWeekdays;
+  if (prop_disabledWeekdays !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'disabledWeekdays', prop_disabledWeekdays.join('\n')));
+  }
+
+  const prop_disabledDates = props.disabledDates;
+  if (prop_disabledDates !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'disabledDates', prop_disabledDates.join('\n')));
+  }
+
+  const prop_yearStart = props.yearStart;
+  if (prop_yearStart !== undefined) {
+    node = kitInt(node, 'yearStart', prop_yearStart);
+  }
+
+  const prop_yearEnd = props.yearEnd;
+  if (prop_yearEnd !== undefined) {
+    node = kitInt(node, 'yearEnd', prop_yearEnd);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -4609,12 +5072,22 @@ export function Calendar(props: CalendarProps): Node {
 }
 
 export interface TimeFieldProps {
-  /** Time as HH:MM or HH:MM:SS. */
+  /** The time as HH:MM or HH:MM:SS, controlled; set it from onChange. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Shows and edits seconds. */
+  /** Initial time when `value` is unset. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Edits seconds too. */
   seconds?: ReactiveValue<boolean>;
-  /** Displays a 12-hour clock with AM/PM. */
+  /** Uses a 12-hour clock with AM/PM. */
   twelveHour?: ReactiveValue<boolean>;
+  /** Draws the field as invalid. */
+  invalid?: ReactiveValue<boolean>;
+  /** Ignores input. */
+  disabled?: ReactiveValue<boolean>;
+  /** Focuses the hour segment when it mounts. */
+  autoFocus?: ReactiveValue<boolean>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives the edited time as HH:MM:SS, or empty when cleared. */
   onChange?: Owned<Function<void, [time: ReadOnly<string>]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -4629,6 +5102,11 @@ export function TimeField(props: TimeFieldProps): Node {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
+  }
+
   const prop_seconds = props.seconds;
   if (prop_seconds !== undefined) {
     node = kitFlag(node, 'seconds', prop_seconds);
@@ -4637,6 +5115,30 @@ export function TimeField(props: TimeFieldProps): Node {
   const prop_twelveHour = props.twelveHour;
   if (prop_twelveHour !== undefined) {
     node = kitFlag(node, 'twelveHour', prop_twelveHour);
+  }
+
+  const prop_invalid = props.invalid;
+  if (prop_invalid !== undefined) {
+    node = kitFlag(node, 'invalid', prop_invalid);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_autoFocus = props.autoFocus;
+  if (prop_autoFocus !== undefined) {
+    node = kitFlag(node, 'autoFocus', prop_autoFocus);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;

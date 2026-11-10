@@ -1215,35 +1215,87 @@
         {
           "name": "value",
           "type": "number",
-          "doc": "Current value."
+          "doc": "The value (or a range's start), controlled; set it from onChange. Without it the slider keeps its own value."
+        },
+        {
+          "name": "defaultValue",
+          "type": "number",
+          "doc": "Initial value when `value` is unset."
+        },
+        {
+          "name": "range",
+          "type": "boolean",
+          "doc": "Two thumbs: value is the start and endValue the end. Read when it mounts."
+        },
+        {
+          "name": "endValue",
+          "type": "number",
+          "doc": "A range's end, controlled; set it from onEndChange."
+        },
+        {
+          "name": "defaultEndValue",
+          "type": "number",
+          "doc": "A range's initial end."
         },
         {
           "name": "min",
           "type": "number",
-          "doc": "Lowest value. Defaults to 0."
+          "doc": "Smallest value. Defaults to 0."
         },
         {
           "name": "max",
           "type": "number",
-          "doc": "Highest value. Defaults to 100."
+          "doc": "Largest value. Defaults to 100."
         },
         {
           "name": "step",
           "type": "number",
-          "doc": "Value increment. Defaults to 1."
+          "doc": "Increment. Defaults to 1."
+        },
+        {
+          "name": "scale",
+          "type": [
+            "linear",
+            "logarithmic"
+          ],
+          "doc": "Value spacing along the track; logarithmic suits volumes and frequencies."
+        },
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "A vertical track; give it a height."
+        },
+        {
+          "name": "reverse",
+          "type": "boolean",
+          "doc": "Runs from max to min."
         },
         {
           "name": "disabled",
           "type": "boolean",
-          "doc": "Disabled sliders ignore input."
+          "doc": "Ignores input."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Names the slider for assistive technology."
         }
       ],
       "events": [
         {
           "prop": "onChange",
           "value": "number",
-          "param": "value",
-          "doc": "Receives the new value while dragging."
+          "doc": "Runs with the value (a range's start) while dragging."
+        },
+        {
+          "prop": "onEndChange",
+          "value": "number",
+          "doc": "Runs with a range's end while dragging."
+        },
+        {
+          "prop": "onCommit",
+          "value": "number",
+          "doc": "Runs with the value (a range's start) when the thumb is released."
         }
       ],
       "example": "<Slider value={volume.get()} onChange={(value) => { volume.set(value); }} className=\"w-64\"/>"
@@ -1909,20 +1961,69 @@
         {
           "name": "length",
           "type": "int",
-          "doc": "Number of characters. Defaults to 6."
+          "doc": "Number of characters. Defaults to 6. Read when it mounts."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "The code, controlled; set it from onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initial code when `value` is unset."
         },
         {
           "name": "masked",
           "type": "boolean",
-          "doc": "Hides the entered characters."
+          "doc": "Draws characters as dots."
+        },
+        {
+          "name": "groups",
+          "type": "int",
+          "doc": "Splits the boxes into this many groups."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Ignores input."
+        },
+        {
+          "name": "autoFocus",
+          "type": "boolean",
+          "doc": "Focuses the first box when it mounts."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
         {
           "prop": "onChange",
           "value": "string",
-          "param": "code",
-          "doc": "Receives the code as it is typed."
+          "doc": "Runs with the code after each edit."
+        },
+        {
+          "prop": "onComplete",
+          "value": "string",
+          "doc": "Runs with the code when every box is filled."
+        },
+        {
+          "prop": "onFocus",
+          "value": "void",
+          "doc": "Runs when it gains focus."
+        },
+        {
+          "prop": "onBlur",
+          "value": "void",
+          "doc": "Runs when it loses focus."
         }
       ],
       "example": "<OtpInput length={6} onChange={(code) => { entered.set(code); }}/>"
@@ -1934,20 +2035,132 @@
         {
           "name": "value",
           "type": "string",
-          "doc": "Selected date as YYYY-MM-DD, or empty for none."
+          "doc": "The selected day (YYYY-MM-DD), start..end with range, or YYYY-MM-DDTHH:MM:SS with time, controlled; set it from onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initial selection when `value` is unset."
+        },
+        {
+          "name": "range",
+          "type": "boolean",
+          "doc": "Picks a start..end range. Read when it mounts."
+        },
+        {
+          "name": "time",
+          "type": [
+            "minute",
+            "second"
+          ],
+          "doc": "Adds a time to the date, to the minute or second. Read when it mounts."
+        },
+        {
+          "name": "twelveHour",
+          "type": "boolean",
+          "doc": "Uses a 12-hour clock for the time."
+        },
+        {
+          "name": "defaultTime",
+          "type": "string",
+          "doc": "The time (HH:MM) a newly picked day starts with."
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "doc": "Display format in strftime form, such as %d/%m/%Y."
         },
         {
           "name": "placeholder",
           "type": "string",
-          "doc": "Text shown when no date is selected."
+          "doc": "Text while nothing is chosen."
+        },
+        {
+          "name": "cleanable",
+          "type": "boolean",
+          "doc": "Shows a clear button while a date is chosen."
+        },
+        {
+          "name": "months",
+          "type": "int",
+          "doc": "Months shown side by side in the popup."
+        },
+        {
+          "name": "firstDayOfWeek",
+          "type": "string",
+          "doc": "The weekday columns start on."
+        },
+        {
+          "name": "presets",
+          "type": "string[][]",
+          "doc": "Quick choices beside the calendar: [label, day] or [label, start, end] rows."
+        },
+        {
+          "name": "appearance",
+          "type": "boolean",
+          "doc": "false draws the bare trigger."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Ignores input."
+        },
+        {
+          "name": "disabledBefore",
+          "type": "string",
+          "doc": "Days before this YYYY-MM-DD day cannot be chosen."
+        },
+        {
+          "name": "disabledAfter",
+          "type": "string",
+          "doc": "Days after this day cannot be chosen."
+        },
+        {
+          "name": "disabledFrom",
+          "type": "string",
+          "doc": "Start of a disabled day range."
+        },
+        {
+          "name": "disabledTo",
+          "type": "string",
+          "doc": "End of a disabled day range."
+        },
+        {
+          "name": "disabledWeekdays",
+          "type": "string[]",
+          "doc": "Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday)."
+        },
+        {
+          "name": "disabledDates",
+          "type": "string[]",
+          "doc": "Individual YYYY-MM-DD days that cannot be chosen."
+        },
+        {
+          "name": "yearStart",
+          "type": "int",
+          "doc": "First year offered in the year view."
+        },
+        {
+          "name": "yearEnd",
+          "type": "int",
+          "doc": "Last year offered in the year view."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
         {
           "prop": "onChange",
           "value": "string",
-          "param": "date",
-          "doc": "Receives the chosen date as YYYY-MM-DD, or empty when cleared."
+          "doc": "Runs with the new value in the same form as value."
         }
       ],
       "example": "<DatePicker value={due.get()} onChange={(date) => { due.set(date); }}/>"
@@ -1959,20 +2172,73 @@
         {
           "name": "value",
           "type": "string",
-          "doc": "Current color as #rrggbb."
+          "doc": "The color as #rrggbb, a theme color or a palette color, controlled; set it from onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initial color when `value` is unset."
+        },
+        {
+          "name": "featuredColors",
+          "type": "string[]",
+          "doc": "Swatches offered first, as hex, theme or palette colors."
+        },
+        {
+          "name": "select",
+          "type": "boolean",
+          "doc": "Draws a dropdown of swatches (ColorSelect) instead of the swatch button with the full picker."
         },
         {
           "name": "label",
           "type": "string",
-          "doc": "Text beside the swatch."
+          "doc": "Text beside the swatch button."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Text in the select while no color is chosen."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon on the swatch button instead of the color."
+        },
+        {
+          "name": "anchor",
+          "type": [
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right",
+            "top-center",
+            "bottom-center",
+            "left-center",
+            "right-center"
+          ],
+          "doc": "The popup corner aligned to the button."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Names the picker for assistive technology."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
         {
           "prop": "onChange",
           "value": "string",
-          "param": "color",
-          "doc": "Receives the chosen color as #rrggbb."
+          "doc": "Runs with the chosen color as #rrggbb, or empty when cleared."
         }
       ],
       "example": "<ColorPicker value={accent.get()} onChange={(color) => { accent.set(color); }}/>"
@@ -3322,12 +3588,86 @@
         {
           "name": "value",
           "type": "string",
-          "doc": "Selected date as YYYY-MM-DD, or empty for none."
+          "doc": "The selected day (YYYY-MM-DD), or start..end with range, controlled; set it from onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initial selection when `value` is unset."
+        },
+        {
+          "name": "range",
+          "type": "boolean",
+          "doc": "Selects a start..end range."
         },
         {
           "name": "months",
           "type": "int",
           "doc": "Months shown side by side. Defaults to 1."
+        },
+        {
+          "name": "firstDayOfWeek",
+          "type": "string",
+          "doc": "The weekday columns start on, such as monday. Defaults to sunday."
+        },
+        {
+          "name": "view",
+          "type": [
+            "day",
+            "month",
+            "year"
+          ],
+          "doc": "Shows days, months or years."
+        },
+        {
+          "name": "disabledBefore",
+          "type": "string",
+          "doc": "Days before this YYYY-MM-DD day cannot be chosen."
+        },
+        {
+          "name": "disabledAfter",
+          "type": "string",
+          "doc": "Days after this day cannot be chosen."
+        },
+        {
+          "name": "disabledFrom",
+          "type": "string",
+          "doc": "Start of a disabled day range."
+        },
+        {
+          "name": "disabledTo",
+          "type": "string",
+          "doc": "End of a disabled day range."
+        },
+        {
+          "name": "disabledWeekdays",
+          "type": "string[]",
+          "doc": "Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday)."
+        },
+        {
+          "name": "disabledDates",
+          "type": "string[]",
+          "doc": "Individual YYYY-MM-DD days that cannot be chosen."
+        },
+        {
+          "name": "yearStart",
+          "type": "int",
+          "doc": "First year offered in the year view."
+        },
+        {
+          "name": "yearEnd",
+          "type": "int",
+          "doc": "Last year offered in the year view."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
       "example": "<Calendar value={day.get()} onChange={(date) => { day.set(clone(date)); }}/>",
@@ -3335,8 +3675,7 @@
         {
           "prop": "onChange",
           "value": "string",
-          "param": "date",
-          "doc": "Receives the chosen date as YYYY-MM-DD."
+          "doc": "Runs with the selected day, or start..end for a range."
         }
       ]
     },
@@ -3347,17 +3686,47 @@
         {
           "name": "value",
           "type": "string",
-          "doc": "Time as HH:MM or HH:MM:SS."
+          "doc": "The time as HH:MM or HH:MM:SS, controlled; set it from onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initial time when `value` is unset."
         },
         {
           "name": "seconds",
           "type": "boolean",
-          "doc": "Shows and edits seconds."
+          "doc": "Edits seconds too."
         },
         {
           "name": "twelveHour",
           "type": "boolean",
-          "doc": "Displays a 12-hour clock with AM/PM."
+          "doc": "Uses a 12-hour clock with AM/PM."
+        },
+        {
+          "name": "invalid",
+          "type": "boolean",
+          "doc": "Draws the field as invalid."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Ignores input."
+        },
+        {
+          "name": "autoFocus",
+          "type": "boolean",
+          "doc": "Focuses the hour segment when it mounts."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
       "example": "<TimeField value={time.get()} onChange={(value) => { time.set(clone(value)); }}/>",
@@ -4935,6 +5304,49 @@
       "text": "variant",
       "custom": "color, foreground, hoverColor, activeColor"
     },
+    "Calendar": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "number_of_months": "months",
+      "first_day_of_week": "firstDayOfWeek"
+    },
+    "CalendarState": {
+      "new": "automatic",
+      "disabled_matcher": "disabledBefore / disabledAfter / disabledFrom / disabledTo / disabledWeekdays / disabledDates",
+      "set_disabled_matcher": "disabled* props",
+      "set_disabled_matcher_shared": "disabled* props",
+      "disabled_matcher_ref": "n/a: read the value from onChange",
+      "set_date": "value",
+      "apply_date": "value",
+      "select_date": "value",
+      "activate_date": "value",
+      "date": "onChange",
+      "set_number_of_months": "months",
+      "number_of_months": "n/a: read the value from onChange",
+      "year_range": "yearStart / yearEnd",
+      "set_year_range": "yearStart / yearEnd",
+      "offset_year_month": "n/a: the calendar's own month and year navigation",
+      "days": "n/a: the calendar's own month and year navigation",
+      "month_days": "n/a: the calendar's own month and year navigation",
+      "has_prev_year_page": "n/a: the calendar's own month and year navigation",
+      "has_next_year_page": "n/a: the calendar's own month and year navigation",
+      "prev_year_page": "n/a: the calendar's own month and year navigation",
+      "next_year_page": "n/a: the calendar's own month and year navigation",
+      "prev_month": "n/a: the calendar's own month and year navigation",
+      "next_month": "n/a: the calendar's own month and year navigation",
+      "view": "view",
+      "set_view": "view",
+      "current_year": "n/a: the calendar's own month and year navigation",
+      "current_month": "n/a: the calendar's own month and year navigation",
+      "today": "n/a: the calendar's own month and year navigation",
+      "years_on_page": "n/a: the calendar's own month and year navigation",
+      "select_month": "n/a: the calendar's own month and year navigation",
+      "select_year": "n/a: the calendar's own month and year navigation"
+    },
     "Checkbox": {
       "new": "Checkbox",
       "role": "role",
@@ -4975,6 +5387,61 @@
       "motion_id": "automatic: the node identity",
       "content": "CollapsibleContent child"
     },
+    "ColorPicker": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "featured_colors": "featuredColors",
+      "icon": "icon",
+      "label": "label",
+      "accessibility_label": "accessibilityLabel",
+      "anchor": "anchor"
+    },
+    "ColorPickerButton": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "selected": "n/a: drawn by ColorPicker for the current swatch"
+    },
+    "ColorPickerState": {
+      "new": "automatic",
+      "default_value": "defaultValue",
+      "value": "onChange",
+      "preview": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "displayed_color": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "hex_input": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "sliders": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "set_value": "value",
+      "clear_value": "value=''",
+      "sync_pending_value": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "preview_color": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "clear_preview": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "preview_hex": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "commit_hex": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "select_color": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "update_color": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "set_open": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "toggle_open": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "is_open": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "set_active_tab": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)",
+      "active_tab": "n/a: the picker's own popup editing (preview, hex field, sliders, tabs)"
+    },
+    "ColorSelect": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "select",
+      "featured_colors": "featuredColors",
+      "placeholder": "placeholder",
+      "accessibility_label": "accessibilityLabel"
+    },
     "Combobox": {
       "xsmall": "size",
       "small": "size",
@@ -5011,6 +5478,36 @@
       "focus": "autoFocus",
       "query": "query",
       "set_query": "query"
+    },
+    "DatePicker": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "placeholder": "placeholder",
+      "cleanable": "cleanable",
+      "presets": "presets",
+      "number_of_months": "months",
+      "appearance": "appearance",
+      "disabled": "disabled"
+    },
+    "DatePickerState": {
+      "new": "automatic",
+      "range": "range",
+      "date_format": "format",
+      "time_precision": "time",
+      "hour_cycle": "twelveHour",
+      "default_time": "defaultTime",
+      "number_of_months": "months",
+      "first_day_of_week": "firstDayOfWeek",
+      "date": "onChange",
+      "date_time": "onChange",
+      "set_date": "value",
+      "set_date_time": "value with time",
+      "disabled_matcher": "disabled* props",
+      "set_year_range": "yearStart / yearEnd"
     },
     "DescriptionItem": {
       "new": "label",
@@ -5412,6 +5909,29 @@
       "accessibility_label": "accessibilityLabel",
       "disabled": "disabled"
     },
+    "OtpInput": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "groups": "groups",
+      "disabled": "disabled"
+    },
+    "OtpState": {
+      "new": "length",
+      "default_value": "defaultValue",
+      "set_value": "value",
+      "value": "onChange",
+      "len": "n/a: read the value from onChange",
+      "is_empty": "n/a: read the value from onChange",
+      "is_masked": "n/a: read the value from onChange",
+      "cursor_visible": "n/a: the component's own pointer and layout handling",
+      "masked": "masked",
+      "set_masked": "masked",
+      "focus": "autoFocus"
+    },
     "Pagination": {
       "xsmall": "size",
       "small": "size",
@@ -5615,6 +6135,32 @@
     "Skeleton": {
       "new": "Skeleton",
       "secondary": "secondary"
+    },
+    "Slider": {
+      "new": "automatic",
+      "horizontal": "vertical={false}",
+      "vertical": "vertical",
+      "disabled": "disabled",
+      "accessibility_label": "accessibilityLabel",
+      "reverse": "reverse"
+    },
+    "SliderState": {
+      "new": "automatic",
+      "min": "min",
+      "max": "max",
+      "step": "step",
+      "scale": "scale",
+      "default_value": "defaultValue / defaultEndValue",
+      "set_value": "value / endValue",
+      "value": "onChange / onEndChange",
+      "min_value": "n/a: read the value from onChange",
+      "max_value": "n/a: read the value from onChange",
+      "step_value": "n/a: read the value from onChange",
+      "update_value_by_position": "n/a: the component's own pointer and layout handling",
+      "handle_release": "onCommit",
+      "percentage": "n/a: the component's own pointer and layout handling",
+      "bounds": "n/a: the component's own pointer and layout handling",
+      "set_bounds": "n/a: the component's own pointer and layout handling"
     },
     "Spinner": {
       "new": "Spinner",
@@ -5878,6 +6424,27 @@
       "set_wrapping_indent": "wrappingIndent",
       "tab_size": "tabSize / hardTabs",
       "set_tab_size": "tabSize / hardTabs"
+    },
+    "TimeField": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "invalid": "invalid",
+      "disabled": "disabled"
+    },
+    "TimeFieldState": {
+      "new": "automatic",
+      "precision": "seconds",
+      "set_precision": "seconds",
+      "hour_cycle": "twelveHour",
+      "set_hour_cycle": "twelveHour",
+      "time": "onChange",
+      "set_time": "value",
+      "selected_segment": "n/a: the component's own pointer and layout handling",
+      "focus": "autoFocus"
     },
     "Toggle": {
       "new": "Toggle",
