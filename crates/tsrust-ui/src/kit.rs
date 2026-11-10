@@ -19,7 +19,7 @@ pub(crate) struct Kit {
 /// The prop a component's change event updates when the caller leaves it unset,
 /// like an uncontrolled React input; a set or bound prop stays caller-controlled.
 fn state_prop(component: &str) -> Option<&'static str> {
-    match component {"Checkbox" | "Switch" | "Radio" | "Toggle" => Some("checked"), "RadioGroup" => Some("selected"), "Rating" => Some("value"), _ => None}
+    match component {"Checkbox" | "Switch" | "Radio" | "Toggle" => Some("checked"), "RadioGroup" => Some("selected"), "Rating" | "NumberInput" | "Select" | "Combobox" | "Tabs" | "Accordion" => Some("value"), _ => None}
 }
 
 impl Kit {
@@ -36,11 +36,11 @@ impl Kit {
 /// Mirrors `textChildren` in stdlib/ui/kit.json; tools/generate-ui-kit.py checks they agree.
 fn text_children_prop(component: &str) -> Option<&'static str> {
     match component {
-        "Label" | "ShimmerText" | "MenuLabel" | "AlertTitle" | "AlertDescription" => Some("text"),
+        "Label" | "ShimmerText" | "MenuLabel" | "AlertTitle" | "AlertDescription" | "SelectLabel" => Some("text"),
         "Kbd" => Some("keys"),
         "Alert" => Some("message"),
         "DescriptionItem" => Some("value"),
-        "Checkbox" | "Switch" | "Radio" | "Toggle" | "Separator" | "BreadcrumbItem" | "Tab" | "StepperItem" | "SidebarItem" | "CommandItem" | "GroupButton" | "QuestionChoice" => Some("label"),
+        "Checkbox" | "Switch" | "Radio" | "Toggle" | "Separator" | "BreadcrumbItem" | "Tab" | "StepperItem" | "SidebarItem" | "CommandItem" | "GroupButton" | "QuestionChoice" | "InputGroupButton" | "SelectItem" => Some("label"),
         _ => None,
     }
 }

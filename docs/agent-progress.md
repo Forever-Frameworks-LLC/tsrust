@@ -46,7 +46,36 @@ Image). Empty Avatar names no longer hide the placeholder icon. Colors: utilitie
 and Kit color props accept the Tailwind 4.1 palette (gamut-mapped to sRGB hex)
 and arbitrary [#hex]/[oklch(...)] values. Every gallery page was exercised
 (menus, split button, context menu, checkboxes, switches, toggles, ratings,
-alerts). Next: continue coverage type by type with gallery pages.
+alerts). Inputs batch: Input and Textarea map GPUI Kit's Input/Textarea and
+InputState/TextareaState (masking, masks, number formatting, regex pattern,
+search and replace, rows/auto-grow, wrapping, tabs, focus/blur/submit events,
+inline tokens); imperative calls go through controlInput(id, action) and
+readInput(id, onRead) over the command queue. InputGroup is now shadcn-style
+composition (Input/Textarea child plus InputGroupAddon > InputGroupText /
+InputGroupButton, which opens a menu from MenuItem children); NumberInput gained
+min/max/step (default 1), affix icons, sizes and defaultValue. Four new pages,
+all exercised. tools/kit-coverage.py now matches braces lexically (its
+test-module stripper had swallowed real impls) and maps InputBaseState aliases,
+so the honest total is 701/2147. Still open on inputs: validate/step_by and
+on_paste need synchronous TS callbacks; custom context menus and custom token
+rendering. Select and Combobox are complete with pages: options are SelectItem
+children (value + text label, disabled) optionally in SelectGroup with a
+SelectLabel, or the items prop; SelectEmpty supplies empty-list text (Kit renders
+it from &App, so text only); Combobox adds multiple, query, checkIcon and
+ComboboxTrigger / ComboboxFooter slots. Language limits found: reactive props
+must be scalars (array props are static; Combobox value is newline-separated)
+and owned callbacks are callable only as parameters (kitOnList adapts
+string[] events). Tabs (Tab/TabsContent by value,
+prefix/suffix/empty-space slots, folder variant, menu), Tooltip (keys, command,
+TooltipContent), Popover (open/defaultOpen/onOpenChange, anchor, offset, arrow,
+right-click, overlayClosable) and Accordion (value/defaultValue,
+AccordionTrigger/AccordionContent, styles) are complete with pages; the
+Example card now uses value-based Tabs. Coverage 856/2147 (Tooltip's open
+methods belong to the Plot chart tooltip). Owner direction 2026-11-09: finish a
+page for every component, then add semantic search to the gallery, rebuild
+Getting Started from the real docs as the single source of truth, and add an
+animated showcase page (use the design-taste-frontend skill). Next: Dialog,
+AlertDialog, Sheet, Notification.
 
 ### Plot and Speech — 2026-11-09
 

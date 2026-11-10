@@ -6,7 +6,7 @@
 use super::{Kind, Node, kit::Kit, style::{self, Length, State, Utility}, theme::{ResolvedColor, Theme}, window::Options};
 use gpui_kit::component::Disableable;
 use gpui_kit::component::button::{Button, ButtonCustomVariant, ButtonRounded, ButtonVariants};
-use gpui_kit::component::input::{Input, InputEvent, InputState, Textarea, TextareaState};
+use gpui_kit::component::input::{Input, InputContentType, InputEvent, InputState, MaskPattern, TabSize, Textarea, TextareaState, WrappingIndent};
 use gpui_kit::*;
 use std::collections::HashMap;
 
@@ -83,9 +83,141 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {focus: cx.focus_handle(), node, inputs: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
+
+/// Mount-time input options: assistive text input settings GPUI reads when the field is created.
+macro_rules! configured {($state:expr, $options:expr) => {{
+    let options: &std::collections::BTreeMap<String, String> = $options;
+    let option = |key: &str| options.get(key).map(String::as_str);
+    let mut state = $state;
+    if let Some(action) = option("enterKeyHint") {
+        state = state.input_action(match action {"done" => TextInputAction::Done, "go" => TextInputAction::Go, "next" => TextInputAction::Next, "previous" => TextInputAction::Previous, "search" => TextInputAction::Search, "send" => TextInputAction::Send, _ => TextInputAction::Enter});
+    }
+    if let Some(correct) = option("autoCorrect") {state = state.autocorrect(correct == "true");}
+    if let Some(replace) = option("replaceable") {state = state.replaceable(replace == "true");}
+    if let Some(capitalize) = option("autoCapitalize") {
+        state = state.autocapitalize(match capitalize {"words" => Autocapitalize::Words, "sentences" => Autocapitalize::Sentences, "characters" => Autocapitalize::Characters, _ => Autocapitalize::None});
+    }
+    state
+}}}
+
+/// Options any input state re-applies when its props change.
+macro_rules! apply_input_options {($state:expr, $options:expr, $placeholder:expr, $window:expr, $cx:expr) => {{
+    let options: &std::collections::BTreeMap<String, String> = $options;
+    let option = |key: &str| options.get(key).map(String::as_str);
+    let flag = |key: &str| option(key) == Some("true");
+    $state.set_placeholder($placeholder, $window, $cx);
+    $state.set_clean_on_escape(flag("cleanOnEscape"));
+    if let Some(submit) = option("submitOnEnter") {$state.set_submit_on_enter(submit == "true", $cx);}
+    $state.set_context_menu_enabled(option("contextMenu") != Some("false"));
+    $state.set_show_whitespaces(flag("showWhitespace"), $window, $cx);
+    $state.set_text_align(match option("textAlign") {Some("center") => TextAlign::Center, Some("right") => TextAlign::Right, _ => TextAlign::Left}, $cx);
+    let lines = |key: &str| option(key).and_then(|value| value.parse::<usize>().ok());
+    $state.set_scroll_beyond_last_line(lines("scrollBeyondLastLine"), $window, $cx);
+    $state.set_cursor_surrounding_lines(lines("cursorSurroundingLines"), $window, $cx);
+    let mask = match (option("mask"), option("thousandsSeparator"), option("fractionDigits")) {
+        (Some(pattern), _, _) if !pattern.is_empty() => MaskPattern::from(pattern),
+        (_, None, None) => MaskPattern::None,
+        (_, separator, fraction) => MaskPattern::Number {separator: separator.and_then(|separator| separator.chars().next()), fraction: fraction.and_then(|digits| digits.parse().ok())},
+    };
+    $state.set_mask_pattern(mask, $window, $cx);
+}}}
+
+/// Input and Textarea element options from a field's props.
+macro_rules! input_options {($input:expr, $node:expr, $line:tt, $cx:expr) => {{
+    let node: &Node = $node;
+    let id = node.identity.get();
+    let option = |name: &str| node.option(name).unwrap_or_default();
+    let flag = |name: &str| option(name) == "true";
+    let read_only = node.editable.as_ref().is_some_and(|field| field.read_only);
+    let mut input = $input.disabled(node.is_disabled()).readonly(read_only);
+    if option("appearance") == "false" {input = input.appearance(false);}
+    if option("bordered") == "false" {input = input.bordered(false);}
+    input = match option("size") {"xsmall" => input.with_size(KitSize::XSmall), "small" => input.with_size(KitSize::Small), "large" => input.with_size(KitSize::Large), _ => input};
+    if let Ok(index) = option("tabIndex").parse::<isize>() {input = input.tab_index(index);}
+    if !node.semantics.label.is_empty() {input = input.aria_label(node.semantics.label.clone());}
+    if !node.semantics.id.is_empty() {input = input.accessibility_id(node.semantics.id.clone());}
+    input = match option("role") {"searchbox" => input.role(Role::SearchInput), "combobox" => input.role(Role::ComboBox), "spinbutton" => input.role(Role::SpinButton), "none" => input.role(None::<Role>), _ => input};
+    if let Ok(height) = option("height").parse::<f32>() {input = input.h(px(height));}
+    let root = $cx.entity().downgrade();
+    if node.kit.as_deref().is_some_and(|kit| kit.handles("tokenClick")) {
+        let root = root.clone();
+        input = input.on_token_click(move |event, _, cx| {let token = event.token().id().to_string(); let _ = root.update(cx, |root, cx| root.emit(id, "tokenClick", token, cx));});
+    }
+    if node.kit.as_deref().is_some_and(|kit| kit.handles("tokenHover")) {
+        input = input.on_token_hover(move |event, _, cx| {let token = if event.is_hovered() {event.token().id().to_string()} else {String::new()}; let _ = root.update(cx, |root, cx| root.emit(id, "tokenHover", token, cx));});
+    }
+    input_line_options!(input, $line, option, flag)
+}}}
+
+/// Options only a single-line Input has.
+macro_rules! input_line_options {($input:expr, true, $option:expr, $flag:expr) => {{
+    let (option, flag) = ($option, $flag);
+    let mut input = $input.cleanable(flag("cleanable")).selected(flag("selected"));
+    if option("focusBordered") == "false" {input = input.focus_bordered(false);}
+    if flag("maskToggle") || (option("type") == "password" && option("maskToggle") != "false") {input = input.mask_toggle();}
+    if let Some(kind) = content_type(option("type"), option("autoComplete")) {input = input.content_type(kind);}
+    if let Some(icon) = icon_name(option("prefix")) {input = input.prefix(Icon::new(icon).small());}
+    if let Some(icon) = icon_name(option("suffix")) {input = input.suffix(Icon::new(icon).small());}
+    if option("height") == "full" {input = input.h_full();}
+    input
+}}; ($input:expr, false, $option:expr, $flag:expr) => {$input}}
+
+/// Platform autofill hint for a field: its type, else its HTML autocomplete token.
+fn content_type(kind: &str, autocomplete: &str) -> Option<InputContentType> {
+    use InputContentType::*;
+    Some(match (kind, autocomplete) {
+        ("password", "new-password") | (_, "new-password") => NewPassword,
+        ("password", _) | (_, "current-password") | (_, "password") => Password,
+        ("email", _) | (_, "email") => EmailAddress, ("url", _) | (_, "url") => Url, ("tel", _) | (_, "tel") => TelephoneNumber,
+        (_, "name") => Name, (_, "honorific-prefix") => NamePrefix, (_, "given-name") => GivenName, (_, "additional-name") => MiddleName, (_, "family-name") => FamilyName,
+        (_, "honorific-suffix") => NameSuffix, (_, "nickname") => Nickname, (_, "organization-title") => JobTitle, (_, "organization") => OrganizationName,
+        (_, "street-address") => FullStreetAddress, (_, "address-level2") => AddressCity, (_, "address-level1") => AddressState, (_, "address-level3") => Sublocality,
+        (_, "country-name") => CountryName, (_, "postal-code") => PostalCode, (_, "cc-number") => CreditCardNumber, (_, "cc-name") => CreditCardName,
+        (_, "cc-given-name") => CreditCardGivenName, (_, "cc-additional-name") => CreditCardMiddleName, (_, "cc-family-name") => CreditCardFamilyName,
+        (_, "cc-csc") => CreditCardSecurityCode, (_, "cc-exp") => CreditCardExpiration, (_, "cc-exp-month") => CreditCardExpirationMonth, (_, "cc-exp-year") => CreditCardExpirationYear,
+        (_, "cc-type") => CreditCardType, (_, "username") => Username, (_, "one-time-code") => OneTimeCode, (_, "bday") => Birthdate, (_, "bday-day") => BirthdateDay,
+        (_, "bday-month") => BirthdateMonth, (_, "bday-year") => BirthdateYear, (_, "location") => Location,
+        _ => return None,
+    })
+}
+
+/// One controlInput action on any input state.
+macro_rules! control_input {($state:expr, $action:expr, $value:expr, $label:expr, $start:expr, $end:expr, $window:expr, $cx:expr) => {{
+    let length = $state.value().len();
+    let range = $start.min(length)..$end.max($start).min(length);
+    match $action.as_str() {
+        "focus" => $state.focus($window, $cx),
+        "selectAll" => $state.select_all($window, $cx),
+        "unselect" => $state.unselect($window, $cx),
+        "clear" => $state.clean($window, $cx),
+        "insert" => $state.insert($value, $window, $cx),
+        "replace" => $state.replace($value, $window, $cx),
+        "setValue" => $state.replace_all($value, $window, $cx),
+        "setCursor" => $state.set_selected_range(range.start..range.start, $cx),
+        "setSelection" => $state.set_selected_range(range, $cx),
+        "addSelection" => $state.add_selection(range, $cx),
+        "toggleMasked" => $state.toggle_masked($window, $cx),
+        "scrollTo" => $state.set_scroll_offset(point(px($start as f32), px($end as f32)), $cx),
+        "insertToken" => {
+            let label = $label;
+            let token = gpui_kit::component::input::InlineToken::new($value.clone(), $value.clone());
+            let token = if label.is_empty() {token} else {token.with_label(label)};
+            let _ = $state.replace_with_token(token, $window, $cx);
+        }
+        "openSearch" => $state.open_search(false, $cx),
+        "openReplace" => $state.open_search(true, $cx),
+        "search" => {$state.open_search(false, $cx); $state.set_search_query($value, true, $cx);}
+        "nextMatch" => {let _ = $state.next_search_match($cx);}
+        "previousMatch" => {let _ = $state.previous_search_match($cx);}
+        "replaceMatch" => {let _ = $state.replace_current_search_match(&$value, $window, $cx);}
+        "replaceAllMatches" => {let _ = $state.replace_all_search_matches(&$value, $window, $cx);}
+        "closeSearch" => $state.close_search($cx),
+        _ => {}
+    }
+}}}
 
 /// The Kit state behind a std:ui text field: one line, or a multiline textarea.
 enum Field {Line(Entity<InputState>), Text(Entity<TextareaState>)}
@@ -93,6 +225,8 @@ enum Field {Line(Entity<InputState>), Text(Entity<TextareaState>)}
 struct Root {
     node: Node,
     inputs: HashMap<u64, (Field, Subscription)>,
+    /// Options last applied to each input's Kit state, so changed props re-apply once.
+    input_options: HashMap<u64, std::collections::BTreeMap<String, String>>,
     /// Kit component state entities (select, sliders, pickers), by node.
     states: HashMap<u64, KitState>,
     /// The node whose dialog or sheet is open, if any.
@@ -117,36 +251,117 @@ impl Root {
 
     /// Keep one Kit input state per visible editable node and push controlled
     /// values into it when the Node value no longer matches the edited text.
+    /// Input options (masking, masks, rows, search...) apply at creation and whenever they change.
     fn sync_inputs(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        fn collect(node: &Node, out: &mut Vec<(u64, String, String, bool)>) {
+        type Options = std::collections::BTreeMap<String, String>;
+        fn collect(node: &Node, out: &mut Vec<(u64, String, String, bool, Options)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(field) = &node.editable {out.push((node.identity.get(), field.value.clone(), field.placeholder.clone(), field.multiline));}
+            if let Some(field) = &node.editable {
+                out.push((node.identity.get(), field.value.clone(), field.placeholder.clone(), field.multiline, node.kit.as_deref().map(|kit| kit.props.clone()).unwrap_or_default()));
+            }
             for child in &node.children {collect(child, out);}
         }
         let mut fields = Vec::new();
         collect(&self.node, &mut fields);
         self.inputs.retain(|id, _| fields.iter().any(|field| field.0 == *id));
-        for (id, value, placeholder, multiline) in fields {
+        self.input_options.retain(|id, _| fields.iter().any(|field| field.0 == *id));
+        for (id, value, placeholder, multiline, options) in fields {
+            if !self.inputs.contains_key(&id) {
+                // Edits update the Node and refresh the tree like any handler; focus, blur and Enter are events.
+                let entry = if multiline {
+                    let state = cx.new(|cx| configured!(TextareaState::new(window, cx).rows(4).placeholder(placeholder.clone()), &options));
+                    let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {let value = state.read(cx).value().to_string(); this.input_event(id, event, value, cx);});
+                    (Field::Text(state), subscription)
+                } else {
+                    let state = cx.new(|cx| configured!(InputState::new(window, cx).placeholder(placeholder.clone()), &options));
+                    let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {let value = state.read(cx).value().to_string(); this.input_event(id, event, value, cx);});
+                    (Field::Line(state), subscription)
+                };
+                self.inputs.insert(id, entry);
+            }
+            let changed = self.input_options.get(&id) != Some(&options);
             match self.inputs.get(&id) {
-                Some((Field::Line(state), _)) => {if state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));} continue}
-                Some((Field::Text(state), _)) => {if state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));} continue}
+                Some((Field::Line(state), _)) => state.update(cx, |state, cx| {
+                    if state.value().as_ref() != value {state.set_value(value, window, cx);}
+                    if changed {
+                        apply_input_options!(state, &options, placeholder, window, cx);
+                        // Masking, loading and patterns belong to single-line fields.
+                        let flag = |key: &str| options.get(key).is_some_and(|value| value == "true");
+                        state.set_masked(flag("masked") || options.get("type").is_some_and(|kind| kind == "password"), window, cx);
+                        state.set_loading(flag("loading"), window, cx);
+                        if let Some(pattern) = options.get("pattern").and_then(|pattern| regex::Regex::new(&format!("^(?:{pattern})$")).ok()) {state.set_pattern(pattern, window, cx);}
+                    }
+                }),
+                Some((Field::Text(state), _)) => state.update(cx, |state, cx| {
+                    if state.value().as_ref() != value {state.set_value(value, window, cx);}
+                    if changed {
+                        apply_input_options!(state, &options, placeholder, window, cx);
+                        let number = |key: &str| options.get(key).and_then(|value| value.parse::<usize>().ok());
+                        match (number("minRows"), number("maxRows")) {
+                            (Some(min), Some(max)) => state.set_auto_grow(min, max.max(min), cx),
+                            (Some(min), None) => state.set_auto_grow(min, usize::MAX, cx),
+                            _ => if let Some(rows) = number("rows") {state.set_rows(rows, cx);},
+                        }
+                        if let Some(wrap) = options.get("softWrap") {state.set_soft_wrap(wrap == "true", window, cx);}
+                        if let Some(searchable) = options.get("searchable") {state.set_searchable(searchable == "true", cx);}
+                        if let Some(bounce) = options.get("scrollBounce") {state.set_scroll_bounce(bounce == "true", cx);}
+                        if let Some(indent) = options.get("wrappingIndent") {state.set_wrapping_indent(if indent == "none" {WrappingIndent::None} else {WrappingIndent::Same}, window, cx);}
+                        if let Some(size) = number("tabSize") {state.set_tab_size(TabSize {tab_size: size, hard_tabs: options.get("hardTabs").is_some_and(|hard| hard == "true")}, cx);}
+                    }
+                }),
                 None => {}
             }
-            // Edits update the Node and refresh the tree like any handler.
-            let entry = if multiline {
-                let state = cx.new(|cx| {let mut state = TextareaState::new(window, cx).rows(4).placeholder(placeholder); state.set_value(value, window, cx); state});
-                let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {
-                    if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); let result = this.node.input(id, &value); this.settle(result, cx);}
-                });
-                (Field::Text(state), subscription)
-            } else {
-                let state = cx.new(|cx| {let mut state = InputState::new(window, cx).placeholder(placeholder); state.set_value(value, window, cx); state});
-                let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {
-                    if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); let result = this.node.input(id, &value); this.settle(result, cx);}
-                });
-                (Field::Line(state), subscription)
-            };
-            self.inputs.insert(id, entry);
+            if changed {self.input_options.insert(id, options);}
+        }
+    }
+
+    /// Deliver a Kit input event: edits update the field, focus, blur and Enter reach handlers.
+    fn input_event(&mut self, id: u64, event: &InputEvent, value: String, cx: &mut Context<Self>) {
+        let result = match event {
+            InputEvent::Change => self.node.input(id, &value),
+            InputEvent::Focus => self.node.kit_event(id, "focus", ""),
+            InputEvent::Blur => self.node.kit_event(id, "blur", ""),
+            InputEvent::PressEnter {secondary, ..} => self.node.kit_event(id, "submit", &secondary.to_string()),
+            _ => return,
+        };
+        self.settle(result, cx);
+    }
+
+    /// The edited field whose semantic id matches, for controlInput and readInput.
+    fn input_by_id(&self, target: &str) -> Option<u64> {
+        fn find_id(node: &Node, target: &str) -> Option<u64> {
+            let node = node.visible_root()?;
+            if node.editable.is_some() && node.semantics.id == target {return Some(node.identity.get());}
+            node.children.iter().find_map(|child| find_id(child, target))
+        }
+        find_id(&self.node, target)
+    }
+
+    /// Run one controlInput action on a field's Kit state.
+    fn control_input(&mut self, payload: &serde_json::Value, window: &mut Window, cx: &mut Context<Self>) {
+        let text = |key: &str| payload.get(key).and_then(|value| value.as_str()).unwrap_or_default().to_owned();
+        let Some(id) = self.input_by_id(&text("id")) else {return};
+        let (action, value) = (text("action"), text("value"));
+        let number = |key: &str| payload.get(key).and_then(|value| value.as_u64()).unwrap_or(0) as usize;
+        let (start, end) = (number("start"), number("end"));
+        match self.inputs.get(&id) {
+            Some((Field::Line(state), _)) => state.update(cx, |state, cx| control_input!(state, action.clone(), value.clone(), text("label"), start, end, window, cx)),
+            Some((Field::Text(state), _)) => state.update(cx, |state, cx| control_input!(state, action.clone(), value.clone(), text("label"), start, end, window, cx)),
+            None => {}
+        }
+    }
+
+    /// A field's current text, selection and scroll position as JSON, for readInput.
+    fn read_input(&self, id: &str, window: &Window, cx: &App) -> String {
+        let snapshot = |value: String, unmasked: String, selected: String, range: std::ops::Range<usize>, reversed: bool, offset: Point<Pixels>, rows: Option<std::ops::Range<usize>>, focused: bool| serde_json::json!({
+            "found": true, "value": value, "unmaskedValue": unmasked, "selectedText": selected, "selectionStart": range.start, "selectionEnd": range.end,
+            "selectionReversed": reversed, "scrollX": f32::from(offset.x), "scrollY": f32::from(offset.y),
+            "firstVisibleRow": rows.as_ref().map_or(0, |rows| rows.start), "lastVisibleRow": rows.map_or(0, |rows| rows.end), "focused": focused,
+        }).to_string();
+        match self.input_by_id(id).and_then(|id| self.inputs.get(&id)) {
+            Some((Field::Line(state), _)) => {let state = state.read(cx); snapshot(state.value().to_string(), state.unmask_value().to_string(), state.selected_text().to_string(), state.selected_range(), state.is_selection_reversed(), state.scroll_offset(), state.visible_row_range(), state.focus_handle(cx).contains_focused(window, cx))}
+            Some((Field::Text(state), _)) => {let state = state.read(cx); snapshot(state.value().to_string(), state.unmask_value().to_string(), state.selected_text().to_string(), state.selected_range(), state.is_selection_reversed(), state.scroll_offset(), state.visible_row_range(), state.focus_handle(cx).contains_focused(window, cx))}
+            None => serde_json::json!({"found": false}).to_string(),
         }
     }
 
@@ -209,8 +424,8 @@ impl Root {
         let id = node.identity.get();
         if node.editable.is_some() {
             let control = match self.inputs.get(&id) {
-                Some((Field::Line(state), _)) => Input::new(state).disabled(node.is_disabled()).into_any_element(),
-                Some((Field::Text(state), _)) => Textarea::new(state).disabled(node.is_disabled()).into_any_element(),
+                Some((Field::Line(state), _)) => input_options!(Input::new(state), node, true, cx).into_any_element(),
+                Some((Field::Text(state), _)) => input_options!(Textarea::new(state), node, false, cx).into_any_element(),
                 None => return div().into_any_element(),
             };
             // Like a browser input, an unsized field keeps a usable intrinsic width.

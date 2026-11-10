@@ -1607,3 +1607,960 @@ function MaxRating(): Node {
   const value = signal(7);
   return <Rating value={value.get()} max={10} onChange={(stars) => { value.set(stars); }} />;
 }
+=== Input | input | Forms
+A single-line text field with placeholders, masking, input masks, validation, prefix and suffix icons, sizes and states. Use Textarea for multiple lines and InputGroup for addons.
+--- Basic Input
+Uncontrolled: the field keeps its own text. onChange reports each edit.
+function BasicInput(): Node {
+  const text = signal('');
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Input onChange={(event) => { text.set(event.target.value); }} />
+      <Text variant="muted">Value: {text}</Text>
+    </View>
+  );
+}
+--- With Placeholder
+Hint text while the field is empty.
+function PlaceholderInput(): Node {
+  return <Input placeholder="Enter your name..." className="w-80" />;
+}
+--- With Default Value
+The starting text of an uncontrolled field.
+function DefaultValueInput(): Node {
+  return <Input defaultValue="John Doe" className="w-80" />;
+}
+--- Cleanable Input
+A clear button while the field has a value.
+function CleanableInput(): Node {
+  return <Input cleanable={true} defaultValue="Clear me" className="w-80" />;
+}
+--- With Prefix and Suffix
+Icons before and after the text. For buttons and text addons, use InputGroup.
+function PrefixSuffixInput(): Node {
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Input prefix="search" placeholder="Search..." />
+      <Input suffix="info" placeholder="With a suffix" />
+      <Input prefix="search" suffix="info" placeholder="Both" />
+    </View>
+  );
+}
+--- Password Input (Masked)
+type="password" masks the value and adds a reveal toggle; copy and cut are blocked while masked.
+function PasswordInput(): Node {
+  return <Input type="password" defaultValue="password123" className="w-80" />;
+}
+--- Input Sizes
+xsmall to large.
+function InputSizes(): Node {
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Input size="large" placeholder="Large" />
+      <Input placeholder="Medium" />
+      <Input size="small" placeholder="Small" />
+      <Input size="xsmall" placeholder="Extra small" />
+    </View>
+  );
+}
+--- Disabled and Read-only
+A read-only field keeps its look and can still be focused, selected and copied.
+function DisabledInput(): Node {
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Input disabled={true} defaultValue="Disabled" />
+      <Input readOnly={true} defaultValue="Read-only: select and copy me" />
+    </View>
+  );
+}
+--- Clean on ESC
+Escape clears the field.
+function EscapeInput(): Node {
+  return <Input cleanOnEscape={true} placeholder="Type, then press Escape" className="w-80" />;
+}
+--- Input Validation
+A pattern every value must match; edits that would break it are rejected.
+function ValidatedInput(): Node {
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Input pattern="[0-9]*[.]?[0-9]*" placeholder="Numbers only" />
+      <Input pattern="[a-zA-Z0-9]*" placeholder="Letters and digits only" />
+    </View>
+  );
+}
+--- Input Masking
+mask formats as you type: 9 an optional digit, # a digit, A a letter. thousandsSeparator and fractionDigits format numbers.
+function MaskedInput(): Node {
+  const amount = signal('');
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Input mask="(999)-999-9999" placeholder="Phone" />
+      <Input mask="AAA-###-AAA" placeholder="Code" />
+      <Input thousandsSeparator="," fractionDigits={2} placeholder="Amount" onChange={(event) => { amount.set(event.target.value); }} />
+      <Text variant="muted">Value: {amount}</Text>
+    </View>
+  );
+}
+--- Handle Input Events
+onFocus, onBlur and onSubmit (Enter) beside onChange.
+function InputEvents(): Node {
+  const log = signal('Nothing yet');
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Input placeholder="Focus, type and press Enter" onFocus={() => { log.set('Focused'); }} onBlur={() => { log.set('Blurred'); }} onSubmit={(secondary) => { log.set(secondary ? 'Submitted with the modifier' : 'Submitted'); }} />
+      <Text variant="muted">{log}</Text>
+    </View>
+  );
+}
+--- Custom Appearance
+appearance=false draws bare text for a custom container.
+function BareInput(): Node {
+  return (
+    <View className="w-80 border-b-2 border-border bg-secondary px-6 py-3">
+      <Input appearance={false} placeholder="Borderless" />
+    </View>
+  );
+}
+--- Context Menu
+contextMenu=false turns off the right-click edit menu.
+function NoMenuInput(): Node {
+  return <Input contextMenu={false} defaultValue="Right-click does nothing" className="w-80" />;
+}
+--- Programmatic Control
+controlInput runs actions on the field with that id; readInput reads its text and selection.
+function ControlledInput(): Node {
+  const selection = signal('Select some text, then read it');
+  return (
+    <View className="flex-col gap-2 w-96">
+      <Input id="demo-field" defaultValue="The quick brown fox" />
+      <View className="flex-row flex-wrap gap-2">
+        <Button size="small" onPress={() => { controlInput('demo-field', 'focus'); }}>Focus</Button>
+        <Button size="small" onPress={() => { controlInput('demo-field', 'selectAll'); }}>Select all</Button>
+        <Button size="small" onPress={() => { controlInput('demo-field', 'insert', { value: ' jumps' }); }}>Insert</Button>
+        <Button size="small" onPress={() => { controlInput('demo-field', 'setSelection', { start: 4, end: 9 }); }}>Select "quick"</Button>
+        <Button size="small" onPress={() => { controlInput('demo-field', 'clear'); }}>Clear</Button>
+        <Button size="small" onPress={() => { readInput('demo-field', (field) => { selection.set(`Selected: "${field.selectedText ?? ''}" (${field.selectionStart ?? 0}-${field.selectionEnd ?? 0})`); }); }}>Read selection</Button>
+      </View>
+      <Text variant="muted">{selection}</Text>
+    </View>
+  );
+}
+--- Atomic Inline Tokens
+Tokens select and delete as a whole; onTokenClick receives the token id.
+function TokenInput(): Node {
+  const clicked = signal('none');
+  return (
+    <View className="flex-col gap-2 w-96">
+      <Input id="token-field" placeholder="Message" onTokenClick={(id) => { clicked.set(id); }} />
+      <View className="flex-row gap-2">
+        <Button size="small" onPress={() => { controlInput('token-field', 'insertToken', { value: '@alice', label: 'Alice' }); }}>Mention Alice</Button>
+        <Button size="small" onPress={() => { controlInput('token-field', 'insertToken', { value: '#general', label: 'general' }); }}>Add #general</Button>
+      </View>
+      <Text variant="muted">Clicked token: {clicked}</Text>
+    </View>
+  );
+}
+=== Textarea | textarea | Forms
+A multi-line text field with fixed or auto-growing height, find and replace, and the Input's masking, events and control.
+--- Basic Usage
+Four rows by default.
+function BasicTextarea(): Node {
+  return <Textarea placeholder="Write a note..." className="w-96" />;
+}
+--- Rows
+A fixed row count.
+function RowsTextarea(): Node {
+  return <Textarea rows={8} placeholder="Eight rows" className="w-96" />;
+}
+--- Auto-grow
+Grows with its content between minRows and maxRows, then scrolls.
+function GrowingTextarea(): Node {
+  return <Textarea minRows={2} maxRows={6} placeholder="Type several lines" className="w-96" />;
+}
+--- Scroll Bounce
+Elastic overscroll at the edges.
+function BounceTextarea(): Node {
+  return <Textarea scrollBounce={true} rows={3} defaultValue={'One\nTwo\nThree\nFour\nFive\nSix\nSeven'} className="w-96" />;
+}
+--- Value and Events
+Controlled text with a character count; Enter inserts newlines.
+function ControlledTextarea(): Node {
+  const text = signal('');
+  return (
+    <View className="flex-col gap-2 w-96">
+      <Textarea value={text} onChange={(event) => { text.set(event.target.value); }} placeholder="Type here" />
+      <Text variant="muted">{text.get().length} characters</Text>
+    </View>
+  );
+}
+--- Sizes
+Size changes the text and padding together.
+function TextareaSizes(): Node {
+  return (
+    <View className="flex-col gap-2 w-96">
+      <Textarea size="small" rows={2} placeholder="Small" />
+      <Textarea rows={2} placeholder="Medium" />
+      <Textarea size="large" rows={2} placeholder="Large" />
+    </View>
+  );
+}
+--- Appearance
+Disabled, read-only and bare.
+function TextareaStates(): Node {
+  return (
+    <View className="flex-col gap-2 w-96">
+      <Textarea disabled={true} rows={2} defaultValue="Disabled" />
+      <Textarea readOnly={true} rows={2} defaultValue="Read-only text keeps the normal look." />
+      <Textarea appearance={false} rows={2} placeholder="No border or background" />
+    </View>
+  );
+}
+--- Wrapping and Whitespace
+softWrap=false scrolls long lines; showWhitespace marks spaces and tabs.
+function WrapTextarea(): Node {
+  return (
+    <View className="flex-col gap-2 w-96">
+      <Textarea softWrap={false} rows={2} defaultValue="A long line that keeps going past the edge of the field instead of wrapping onto the next row." />
+      <Textarea showWhitespace={true} tabSize={4} rows={2} defaultValue={'\tIndented with a tab\n    and with spaces'} />
+    </View>
+  );
+}
+--- Find and Replace
+searchable turns on cmd/ctrl-F; controlInput runs search actions.
+function SearchTextarea(): Node {
+  return (
+    <View className="flex-col gap-2 w-96">
+      <Textarea id="search-notes" searchable={true} rows={4} defaultValue={'apples and oranges\nmore apples\nno fruit here\napples again'} />
+      <View className="flex-row flex-wrap gap-2">
+        <Button size="small" onPress={() => { controlInput('search-notes', 'search', { value: 'apples' }); }}>Find apples</Button>
+        <Button size="small" onPress={() => { controlInput('search-notes', 'nextMatch'); }}>Next</Button>
+        <Button size="small" onPress={() => { controlInput('search-notes', 'replaceAllMatches', { value: 'pears' }); }}>Replace all</Button>
+        <Button size="small" onPress={() => { controlInput('search-notes', 'closeSearch'); }}>Close</Button>
+      </View>
+    </View>
+  );
+}
+=== Number Input | number-input | Forms
+A numeric field with increment and decrement buttons, bounds and steps.
+--- Basic Number Input
+Controlled with value and onChange.
+function BasicNumberInput(): Node {
+  const value = signal<number>(10);
+  return (
+    <View className="flex-col gap-2 w-60">
+      <NumberInput value={value.get()} onChange={(next) => { value.set(next); }} />
+      <Text variant="muted">Value: {value}</Text>
+    </View>
+  );
+}
+--- With Min/Max/Step
+Stepping clamps to the bounds; a typed value out of range is clamped on blur.
+function BoundedNumberInput(): Node {
+  return <NumberInput defaultValue={50} min={0} max={100} step={5} className="w-60" />;
+}
+--- Different Sizes
+xsmall to large.
+function NumberInputSizes(): Node {
+  return (
+    <View className="flex-col gap-2 w-60">
+      <NumberInput defaultValue={1} size="large" />
+      <NumberInput defaultValue={1} />
+      <NumberInput defaultValue={1} size="small" />
+      <NumberInput defaultValue={1} size="xsmall" />
+    </View>
+  );
+}
+--- With Prefix and Suffix
+Icons beside the number.
+function AffixNumberInput(): Node {
+  return <NumberInput defaultValue={25} prefix="dollar-sign" suffix="percent" className="w-60" />;
+}
+--- Disabled State
+Ignores typing and stepping.
+function DisabledNumberInput(): Node {
+  return <NumberInput defaultValue={3} disabled={true} className="w-60" />;
+}
+--- Accessible Name
+Names a field that has no visible label.
+function NamedNumberInput(): Node {
+  return <NumberInput defaultValue={2} accessibilityLabel="Quantity" placeholder="Quantity" className="w-60" />;
+}
+--- Without Default Styling
+appearance=false draws the bare field.
+function BareNumberInput(): Node {
+  return (
+    <View className="w-60 border-b-2 border-border px-3 py-2">
+      <NumberInput defaultValue={7} appearance={false} />
+    </View>
+  );
+}
+=== Input Group | input-group | Forms
+An Input or Textarea framed with addons: text, icons and buttons before, after, above or below.
+--- Input with a Clear Button
+An icon addon, a live character count and a clear button.
+function ClearableGroup(): Node {
+  const query = signal('');
+  return (
+    <InputGroup className="w-96">
+      <InputGroupAddon><Icon name="search" /></InputGroupAddon>
+      <Input id="group-search" placeholder="Search..." value={query} onChange={(event) => { query.set(event.target.value); }} />
+      <InputGroupAddon align="inline-end">
+        <InputGroupText>{query.get().length} characters</InputGroupText>
+        <InputGroupButton disabled={query.get().length === 0} onClick={() => { query.set(''); controlInput('group-search', 'focus'); }}>Clear</InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
+  );
+}
+--- Text Addons
+A protocol before and a domain after the text.
+function TextAddonGroup(): Node {
+  return (
+    <InputGroup className="w-96">
+      <InputGroupAddon><InputGroupText>https://</InputGroupText></InputGroupAddon>
+      <Input placeholder="example" />
+      <InputGroupAddon align="inline-end"><InputGroupText>.com</InputGroupText></InputGroupAddon>
+    </InputGroup>
+  );
+}
+--- Buttons, Icons and Menus
+Icon buttons with tooltips, variants, and a button that opens a menu.
+function ButtonAddonGroup(): Node {
+  const engine = signal('Web');
+  return (
+    <InputGroup className="w-96">
+      <Input placeholder="Search the web" />
+      <InputGroupAddon align="inline-end">
+        <InputGroupButton icon="x" accessibilityLabel="Clear search" tooltip="Clear search" />
+        <InputGroupButton caret={true}>
+          {engine}
+          <MenuItem onSelect={() => { engine.set('Web'); }}>Web</MenuItem>
+          <MenuItem onSelect={() => { engine.set('Images'); }}>Images</MenuItem>
+        </InputGroupButton>
+        <InputGroupButton variant="primary">Go</InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
+  );
+}
+--- Textarea with a Counter and Submit
+Block addons sit above and below a growing textarea.
+function ComposerGroup(): Node {
+  const draft = signal('');
+  const sent = signal('');
+  return (
+    <View className="flex-col gap-2 w-96">
+      <InputGroup>
+        <Textarea id="composer" minRows={2} maxRows={6} placeholder="Write a message" value={draft} onChange={(event) => { draft.set(event.target.value); }} />
+        <InputGroupAddon align="block-end">
+          <InputGroupText>{draft.get().length}/280</InputGroupText>
+          <View className="grow" />
+          <InputGroupButton variant="primary" disabled={draft.get().length === 0 || draft.get().length > 280} onClick={() => { sent.set(draft.get()); draft.set(''); controlInput('composer', 'focus'); }}>Send</InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
+      <Text variant="muted">Sent: {sent}</Text>
+    </View>
+  );
+}
+--- States
+Disabled, read-only and invalid groups.
+function GroupStates(): Node {
+  return (
+    <View className="flex-col gap-2 w-96">
+      <InputGroup disabled={true}><Input defaultValue="Disabled" /><InputGroupAddon align="inline-end"><InputGroupButton>Go</InputGroupButton></InputGroupAddon></InputGroup>
+      <InputGroup readOnly={true}><Input readOnly={true} defaultValue="Read-only" /></InputGroup>
+      <InputGroup invalid={true}><InputGroupAddon><Icon name="circle-alert" /></InputGroupAddon><Input defaultValue="Invalid value" /></InputGroup>
+    </View>
+  );
+}
+=== Select | select | Forms
+Choose one option from a list, with search, groups, sizes and states. For custom triggers or several choices, see Combobox.
+--- Basic Select
+SelectItem children; the select keeps its own choice, starting from defaultValue.
+function BasicSelect(): Node {
+  return (
+    <Select defaultValue="apple" className="w-60">
+      <SelectItem value="apple">Apple</SelectItem>
+      <SelectItem value="orange">Orange</SelectItem>
+      <SelectItem value="banana">Banana</SelectItem>
+    </Select>
+  );
+}
+--- Placeholder
+Shown until something is chosen.
+function PlaceholderSelect(): Node {
+  return <Select placeholder="Select a language..." items={['Rust', 'Go', 'JavaScript']} className="w-60" />;
+}
+--- Accessibility
+A name that stays the same as the selection changes.
+function NamedSelect(): Node {
+  return <Select accessibilityLabel="Programming language" placeholder="Choose a language" items={['Rust', 'TypeScript', 'Python']} className="w-60" />;
+}
+--- Searchable
+A search field filters the options.
+function SearchableSelect(): Node {
+  return <Select searchable={true} icon="search" searchPlaceholder="Search fruit" placeholder="Pick a fruit" items={['Apple', 'Orange', 'Banana', 'Grape', 'Pineapple']} className="w-60" />;
+}
+--- Values and Labels
+value is what onChange reports; the children are what people see.
+function ValueSelect(): Node {
+  const country = signal('');
+  return (
+    <View className="flex-col gap-2 w-60">
+      <Select placeholder="Country" value={country.get()} onChange={(value) => { country.set(value); }}>
+        <SelectItem value="US">United States</SelectItem>
+        <SelectItem value="CA">Canada</SelectItem>
+        <SelectItem value="MX">Mexico</SelectItem>
+        <SelectItem value="GL" disabled={true}>Greenland</SelectItem>
+      </Select>
+      <Text variant="muted">Value: {country}</Text>
+    </View>
+  );
+}
+--- Group Items
+SelectGroup with a SelectLabel title.
+function GroupedSelect(): Node {
+  return (
+    <Select placeholder="Select a country" searchable={true} className="w-60">
+      <SelectGroup>
+        <SelectLabel>A</SelectLabel>
+        <SelectItem value="AU">Australia</SelectItem>
+        <SelectItem value="AT">Austria</SelectItem>
+      </SelectGroup>
+      <SelectGroup>
+        <SelectLabel>B</SelectLabel>
+        <SelectItem value="BR">Brazil</SelectItem>
+        <SelectItem value="BE">Belgium</SelectItem>
+      </SelectGroup>
+    </Select>
+  );
+}
+--- Sizes
+xsmall to large.
+function SelectSizes(): Node {
+  return (
+    <View className="flex-col gap-2 w-60">
+      <Select size="large" placeholder="Large" items={['One', 'Two']} />
+      <Select placeholder="Medium" items={['One', 'Two']} />
+      <Select size="small" placeholder="Small" items={['One', 'Two']} />
+    </View>
+  );
+}
+--- Disabled State
+Ignores clicks and keys.
+function DisabledSelect(): Node {
+  return <Select disabled={true} defaultValue="Rust" items={['Rust', 'Go']} className="w-60" />;
+}
+--- Cleanable
+A clear button while something is selected.
+function CleanableSelect(): Node {
+  return <Select cleanable={true} defaultValue="Go" items={['Rust', 'Go', 'Zig']} className="w-60" />;
+}
+--- Custom Appearance
+A prefix before the label, a wider menu with a height limit, or a bare trigger.
+function StyledSelect(): Node {
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Select titlePrefix="Country: " menuWidth={320} menuMaxHeight={160} defaultValue="Canada" items={['Canada', 'Chile', 'China', 'Colombia', 'Croatia', 'Cuba', 'Cyprus']} />
+      <View className="border-b-2 border-border bg-secondary px-4 py-2">
+        <Select appearance={false} placeholder="Borderless" items={['One', 'Two']} />
+      </View>
+    </View>
+  );
+}
+--- Empty State
+SelectEmpty replaces the list when there is nothing to show.
+function EmptySelect(): Node {
+  return (
+    <Select placeholder="No options" className="w-60">
+      <SelectEmpty><Text variant="muted">No options available</Text></SelectEmpty>
+    </Select>
+  );
+}
+--- Controlled Selection
+The selected value follows state.
+function DynamicSelect(): Node {
+  const size = signal('M');
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Select value={size.get()} onChange={(value) => { size.set(value); }} items={['S', 'M', 'L', 'XL']} />
+      <View className="flex-row gap-2">
+        <Button size="small" onPress={() => { size.set('L'); }}>Choose L</Button>
+        <Button size="small" onPress={() => { size.set('S'); }}>Choose S</Button>
+      </View>
+      <Text variant="muted">Size: {size}</Text>
+    </View>
+  );
+}
+=== Combobox | combobox | Forms
+A searchable picker for one or several options, with groups, a custom trigger and a footer. Use Select for a plain single choice.
+--- Basic Single-Select
+Search filters the options; onChange receives the selected values.
+function BasicCombobox(): Node {
+  const framework = signal('');
+  return (
+    <View className="flex-col gap-2 w-72">
+      <Combobox placeholder="Select framework..." searchPlaceholder="Search..." onChange={(values) => { framework.set(values.length > 0 ? values[0] : ''); }}>
+        <SelectItem value="next">Next.js</SelectItem>
+        <SelectItem value="svelte">SvelteKit</SelectItem>
+        <SelectItem value="nuxt">Nuxt.js</SelectItem>
+        <SelectItem value="remix">Remix</SelectItem>
+        <SelectItem value="astro">Astro</SelectItem>
+      </Combobox>
+      <Text variant="muted">Selected: {framework}</Text>
+    </View>
+  );
+}
+--- Multi-Select
+multiple toggles each option; the list stays open.
+function MultiCombobox(): Node {
+  const count = signal(0);
+  return (
+    <View className="flex-col gap-2 w-72">
+      <Combobox multiple={true} placeholder="Select frameworks" items={['Next.js', 'SvelteKit', 'Nuxt.js', 'Remix', 'Astro']} onChange={(values) => { count.set(values.length); }} />
+      <Text variant="muted">{count} selected</Text>
+    </View>
+  );
+}
+--- Pre-selected Items
+defaultValue starts the selection.
+function PreselectedCombobox(): Node {
+  return <Combobox multiple={true} defaultValue={['Rust', 'Go']} items={['Rust', 'Go', 'Zig', 'C']} className="w-72" />;
+}
+--- Grouped Items
+SelectGroup and SelectLabel, as in Select.
+function GroupedCombobox(): Node {
+  return (
+    <Combobox placeholder="Select a timezone" className="w-72">
+      <SelectGroup>
+        <SelectLabel>Americas</SelectLabel>
+        <SelectItem value="est">Eastern Time</SelectItem>
+        <SelectItem value="pst">Pacific Time</SelectItem>
+      </SelectGroup>
+      <SelectGroup>
+        <SelectLabel>Europe</SelectLabel>
+        <SelectItem value="gmt">Greenwich Mean Time</SelectItem>
+        <SelectItem value="cet">Central European Time</SelectItem>
+      </SelectGroup>
+    </Combobox>
+  );
+}
+--- Disabled Items
+Disabled options show but cannot be chosen.
+function DisabledItemsCombobox(): Node {
+  return (
+    <Combobox placeholder="Select a plan" className="w-72">
+      <SelectItem value="free">Free</SelectItem>
+      <SelectItem value="pro">Pro</SelectItem>
+      <SelectItem value="enterprise" disabled={true}>Enterprise (contact sales)</SelectItem>
+    </Combobox>
+  );
+}
+--- Custom Check Icon
+Any icon marks selected options.
+function CheckIconCombobox(): Node {
+  return <Combobox multiple={true} checkIcon="circle-check" items={['Apple', 'Banana', 'Cherry']} placeholder="Pick fruit" className="w-72" />;
+}
+--- Footer Action
+ComboboxFooter sits under the list.
+function FooterCombobox(): Node {
+  const teams = signal(2);
+  return (
+    <Combobox placeholder="Select team" items={['Design', 'Engineering', 'Marketing']} className="w-72">
+      <ComboboxFooter><Button size="small" variant="ghost" icon="plus" onPress={() => { teams.set(teams.get() + 1); }}>New team ({teams})</Button></ComboboxFooter>
+    </Combobox>
+  );
+}
+--- Custom Trigger
+ComboboxTrigger replaces the selected labels.
+function TriggerCombobox(): Node {
+  return (
+    <Combobox items={['Ada Lovelace', 'Grace Hopper', 'Alan Turing']} className="w-72">
+      <ComboboxTrigger><Icon name="user" /><Text>Assign people</Text></ComboboxTrigger>
+    </Combobox>
+  );
+}
+--- Sizes
+small, medium and large.
+function ComboboxSizes(): Node {
+  return (
+    <View className="flex-col gap-2 w-72">
+      <Combobox size="large" placeholder="Large" items={['One', 'Two']} />
+      <Combobox placeholder="Medium" items={['One', 'Two']} />
+      <Combobox size="small" placeholder="Small" items={['One', 'Two']} />
+    </View>
+  );
+}
+--- Cleanable and Disabled
+A clear button, or no interaction at all.
+function CleanableCombobox(): Node {
+  return (
+    <View className="flex-col gap-2 w-72">
+      <Combobox cleanable={true} defaultValue={['Go']} items={['Rust', 'Go']} />
+      <Combobox disabled={true} defaultValue={['Rust']} items={['Rust', 'Go']} />
+    </View>
+  );
+}
+--- Controlled Selection
+value holds the selected values one per line; buttons change it from outside.
+function ControlledCombobox(): Node {
+  const tags = signal('bug');
+  return (
+    <View className="flex-col gap-2 w-72">
+      <Combobox multiple={true} value={tags.get()} onChange={(values) => { tags.set(values.join('\n')); }} items={['bug', 'feature', 'docs', 'question']} />
+      <View className="flex-row gap-2">
+        <Button size="small" onPress={() => { tags.set('feature\ndocs'); }}>Set two</Button>
+        <Button size="small" onPress={() => { tags.set(''); }}>Clear</Button>
+      </View>
+      <Text variant="muted">Tags: {tags.get().split('\n').join(', ')}</Text>
+    </View>
+  );
+}
+=== Tabs | tabs | Navigation
+Tab triggers that switch between content panels, in several styles, sizes and with controls before or after the tabs.
+--- Basic Tabs
+Tab and TabsContent pair by value; the tabs keep their own selection.
+function BasicTabs(): Node {
+  return (
+    <Tabs defaultValue="account" className="w-96">
+      <Tab value="account">Account</Tab>
+      <Tab value="profile">Profile</Tab>
+      <Tab value="settings">Settings</Tab>
+      <TabsContent value="account"><Text>Make changes to your account here.</Text></TabsContent>
+      <TabsContent value="profile"><Text>Update your public profile.</Text></TabsContent>
+      <TabsContent value="settings"><Text>Choose your preferences.</Text></TabsContent>
+    </Tabs>
+  );
+}
+--- Tab Variants
+tab (default), underline, pill, outline and segmented.
+function TabVariants(): Node {
+  return (
+    <View className="flex-col gap-4">
+      <Tabs><Tab>Account</Tab><Tab>Profile</Tab><Tab>Documents</Tab></Tabs>
+      <Tabs variant="underline"><Tab>Account</Tab><Tab>Profile</Tab><Tab>Documents</Tab></Tabs>
+      <Tabs variant="pill"><Tab>Account</Tab><Tab>Profile</Tab><Tab>Documents</Tab></Tabs>
+      <Tabs variant="outline"><Tab>Account</Tab><Tab>Profile</Tab><Tab>Documents</Tab></Tabs>
+      <Tabs variant="segmented"><Tab icon="bot" accessibilityLabel="Bot" /><Tab icon="calendar" accessibilityLabel="Calendar" /><Tab icon="map" accessibilityLabel="Map" /><Tab>Settings</Tab><Tab>About</Tab></Tabs>
+    </View>
+  );
+}
+--- Folder Tabs
+Browser-style tabs; the selected tab joins the content below. TabSuffix adds a close button.
+function FolderTabs(): Node {
+  return (
+    <Tabs variant="folder" className="w-96">
+      <Tab>Account<TabSuffix><Button size="xsmall" variant="ghost" icon="x" /></TabSuffix></Tab>
+      <Tab>Profile</Tab>
+      <Tab>Documents</Tab>
+    </Tabs>
+  );
+}
+--- Tab Sizes
+xsmall to large.
+function TabSizes(): Node {
+  return (
+    <View className="flex-col gap-3">
+      <Tabs size="xsmall"><Tab>Extra small</Tab><Tab>Tab</Tab></Tabs>
+      <Tabs size="small"><Tab>Small</Tab><Tab>Tab</Tab></Tabs>
+      <Tabs><Tab>Medium</Tab><Tab>Tab</Tab></Tabs>
+      <Tabs size="large"><Tab>Large</Tab><Tab>Tab</Tab></Tabs>
+    </View>
+  );
+}
+--- Tabs with Icons
+Icon-only tabs need an accessibility label.
+function IconTabs(): Node {
+  return (
+    <Tabs>
+      <Tab icon="user" accessibilityLabel="User" />
+      <Tab icon="settings" accessibilityLabel="Settings" />
+      <Tab icon="mail" accessibilityLabel="Mail" />
+    </Tabs>
+  );
+}
+--- Tabs with Prefix and Suffix
+Controls before and after the tabs.
+function AffixTabs(): Node {
+  return (
+    <Tabs className="w-full">
+      <TabsPrefix><Button size="xsmall" variant="ghost" icon="arrow-left" /><Button size="xsmall" variant="ghost" icon="arrow-right" /></TabsPrefix>
+      <Tab>Account</Tab>
+      <Tab>Profile</Tab>
+      <Tab>Settings</Tab>
+      <TabsSuffix><Button size="xsmall" variant="ghost" icon="inbox" /><Button size="xsmall" variant="ghost" icon="ellipsis" /></TabsSuffix>
+    </Tabs>
+  );
+}
+--- Disabled Tabs
+Disabled tabs cannot be selected.
+function DisabledTabs(): Node {
+  return (
+    <Tabs>
+      <Tab>Account</Tab>
+      <Tab disabled={true}>Profile</Tab>
+      <Tab>Settings</Tab>
+    </Tabs>
+  );
+}
+--- Controlled Tabs
+value follows state; menu lists every tab for crowded bars.
+function ControlledTabs(): Node {
+  const current = signal('overview');
+  return (
+    <View className="flex-col gap-2 w-96">
+      <Tabs variant="underline" menu={true} value={current.get()} onChange={(value) => { current.set(value); }}>
+        <Tab value="overview">Overview</Tab>
+        <Tab value="analytics">Analytics</Tab>
+        <Tab value="reports">Reports</Tab>
+        <Tab value="notifications">Notifications</Tab>
+      </Tabs>
+      <View className="flex-row gap-2">
+        <Button size="small" onPress={() => { current.set('reports'); }}>Show reports</Button>
+        <Text variant="muted">Selected: {current}</Text>
+      </View>
+    </View>
+  );
+}
+=== Tooltip | tooltip | Overlays
+Hints shown while the pointer rests on an element: text, a keyboard shortcut or rich content. Many controls also take a tooltip prop directly.
+--- Basic Tooltip with Text
+The children are the trigger.
+function BasicTooltip(): Node {
+  return (
+    <Tooltip text="This is a helpful tooltip">
+      <View className="rounded-md border border-border px-3 py-2"><Text>Hover me</Text></View>
+    </Tooltip>
+  );
+}
+--- Button with Tooltip
+Buttons and other controls take a tooltip prop.
+function ButtonTooltip(): Node {
+  return <Button tooltip="Save the current document">Save</Button>;
+}
+--- Tooltip with Keybinding
+keys shows a shortcut; command shows the keys bound to a Shortcut command.
+function KeyTooltips(): Node {
+  return (
+    <View className="flex-row gap-3">
+      <Shortcut command="tooltip-delete" keys="secondary-backspace" />
+      <Tooltip text="Delete item" keys="delete"><Button>Delete</Button></Tooltip>
+      <Tooltip text="Delete everything" command="tooltip-delete"><Button variant="danger">Delete all</Button></Tooltip>
+    </View>
+  );
+}
+--- Custom Element Tooltip
+TooltipContent holds icons and styled text.
+function RichTooltip(): Node {
+  return (
+    <Tooltip>
+      <View className="rounded-md border border-border px-3 py-2"><Text>Hover for rich content</Text></View>
+      <TooltipContent>
+        <View className="flex-row items-center gap-1">
+          <Icon name="info" />
+          <Text variant="muted">Muted Text</Text>
+          <Text className="text-destructive">Danger Text</Text>
+          <Icon name="arrow-up" />
+        </View>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+--- Complex Tooltip Content
+Several lines with a heading.
+function ComplexTooltip(): Node {
+  return (
+    <Tooltip>
+      <View className="rounded-md border border-border px-3 py-2"><Text>Hover for details</Text></View>
+      <TooltipContent>
+        <View className="flex-row items-center gap-1"><Icon name="user" /><Text className="text-sm font-semibold">User Information</Text></View>
+        <Text className="text-xs" variant="muted">Last login: 2 hours ago</Text>
+        <Text className="text-xs text-emerald-500">Status: Active</Text>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+--- Tooltips in Form Elements
+Switch, Checkbox and Radio take tooltips too; tooltipDelay changes the wait.
+function FormTooltips(): Node {
+  return (
+    <View className="flex-col gap-2">
+      <Switch tooltip="Toggle push notifications on/off">Enable notifications</Switch>
+      <Checkbox tooltip="Keep me logged in for 30 days" tooltipDelay={0}>Remember me</Checkbox>
+      <Radio tooltip="Select this option to enable feature X">Option 1</Radio>
+    </View>
+  );
+}
+=== Popover | popover | Overlays
+Floating content opened from a trigger: forms, menus or details, positioned against the trigger.
+--- Basic Popover
+PopoverTrigger opens PopoverContent; clicking outside closes it.
+function BasicPopover(): Node {
+  return (
+    <Popover>
+      <PopoverTrigger><Button outline={true}>Open popover</Button></PopoverTrigger>
+      <PopoverContent>
+        <Text className="font-semibold">Dimensions</Text>
+        <Text variant="muted">Set the dimensions for the layer.</Text>
+      </PopoverContent>
+    </Popover>
+  );
+}
+--- Positioning
+anchor picks the popup corner aligned to the trigger; offset adds a gap; arrow points at the trigger.
+function PositionedPopovers(): Node {
+  return (
+    <View className="flex-row gap-3">
+      <Popover anchor="top-left" offset={8}>
+        <PopoverTrigger><Button>Below left</Button></PopoverTrigger>
+        <PopoverContent><Text>Anchored top-left</Text></PopoverContent>
+      </Popover>
+      <Popover anchor="top-right" arrow={true}>
+        <PopoverTrigger><Button>Below right, arrow</Button></PopoverTrigger>
+        <PopoverContent><Text>Anchored top-right</Text></PopoverContent>
+      </Popover>
+      <Popover anchor="bottom-center">
+        <PopoverTrigger><Button>Above</Button></PopoverTrigger>
+        <PopoverContent><Text>Anchored bottom-center</Text></PopoverContent>
+      </Popover>
+    </View>
+  );
+}
+--- Right-click Trigger
+mouseButton="right" opens on a secondary click.
+function RightClickPopover(): Node {
+  return (
+    <Popover mouseButton="right">
+      <PopoverTrigger><View className="rounded-lg border border-dashed border-border p-6"><Text>Right-click here</Text></View></PopoverTrigger>
+      <PopoverContent><Text>Opened with the right button</Text></PopoverContent>
+    </Popover>
+  );
+}
+--- Form in a Popover
+Inputs work inside; overlayClosable=false keeps it open while you click elsewhere.
+function FormPopover(): Node {
+  const open = signal(false);
+  const width = signal('100%');
+  return (
+    <View className="flex-row items-center gap-3">
+      <Popover open={open.get()} onOpenChange={(next) => { open.set(next); }} overlayClosable={false}>
+        <PopoverTrigger><Button>Edit width</Button></PopoverTrigger>
+        <PopoverContent>
+          <Label>Width</Label>
+          <Input value={width} onChange={(event) => { width.set(event.target.value); }} className="w-48" />
+          <Button size="small" variant="primary" onPress={() => { open.set(false); }}>Done</Button>
+        </PopoverContent>
+      </Popover>
+      <Text variant="muted">Width: {width}</Text>
+    </View>
+  );
+}
+--- Controlled Open State
+open follows state; onOpenChange reports the popover's own requests.
+function ControlledPopover(): Node {
+  const open = signal(false);
+  return (
+    <View className="flex-row items-center gap-3">
+      <Popover open={open.get()} onOpenChange={(next) => { open.set(next); }}>
+        <PopoverTrigger><Button>Toggle</Button></PopoverTrigger>
+        <PopoverContent><Text>Open is {open.get() ? 'true' : 'false'}</Text></PopoverContent>
+      </Popover>
+      <Button outline={true} onPress={() => { open.set(!open.get()); }}>Open from outside</Button>
+    </View>
+  );
+}
+--- Without Default Styling
+appearance=false leaves the surface to your own classes.
+function BarePopover(): Node {
+  return (
+    <Popover appearance={false}>
+      <PopoverTrigger><Button>Custom surface</Button></PopoverTrigger>
+      <PopoverContent><View className="rounded-xl bg-primary p-4"><Text className="text-primary-foreground">Styled by utilities</Text></View></PopoverContent>
+    </Popover>
+  );
+}
+=== Accordion | accordion | Layout
+Stacked sections that expand and collapse, one at a time or several together.
+--- Basic Accordion
+AccordionTrigger headings with AccordionContent bodies; one item open at a time.
+function BasicAccordion(): Node {
+  return (
+    <Accordion defaultValue="item-1" className="w-full">
+      <AccordionItem value="item-1">
+        <AccordionTrigger><Text>Is it accessible?</Text></AccordionTrigger>
+        <AccordionContent><Text>Yes. It follows the WAI-ARIA disclosure pattern.</Text></AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="item-2">
+        <AccordionTrigger><Text>Is it styled?</Text></AccordionTrigger>
+        <AccordionContent><Text>Yes. It matches the active theme.</Text></AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="item-3">
+        <AccordionTrigger><Text>Is it animated?</Text></AccordionTrigger>
+        <AccordionContent><Text>Opening and closing are immediate and keyboard friendly.</Text></AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
+--- Multiple Open
+multiple keeps several items open.
+function MultipleAccordion(): Node {
+  return (
+    <Accordion multiple={true} defaultValue={'shipping\nreturns'} className="w-full">
+      <AccordionItem value="shipping" title="Shipping"><Text>Orders ship in 2-3 days.</Text></AccordionItem>
+      <AccordionItem value="returns" title="Returns"><Text>Return within 30 days.</Text></AccordionItem>
+      <AccordionItem value="warranty" title="Warranty"><Text>One year on parts and labor.</Text></AccordionItem>
+    </Accordion>
+  );
+}
+--- Icons and Disabled Items
+An icon before the heading; a disabled item cannot open.
+function IconAccordion(): Node {
+  return (
+    <Accordion className="w-full">
+      <AccordionItem icon="user" title="Profile"><Text>Name, photo and bio.</Text></AccordionItem>
+      <AccordionItem icon="bell" title="Notifications"><Text>Email and push settings.</Text></AccordionItem>
+      <AccordionItem icon="lock" title="Security (admins only)" disabled={true}><Text>Hidden</Text></AccordionItem>
+    </Accordion>
+  );
+}
+--- Sizes and Borders
+small without a border, and large.
+function AccordionSizes(): Node {
+  return (
+    <View className="flex-col gap-4 w-full">
+      <Accordion size="small" bordered={false}>
+        <AccordionItem title="Small, borderless"><Text>Compact content.</Text></AccordionItem>
+      </Accordion>
+      <Accordion size="large">
+        <AccordionItem title="Large"><Text>Roomier content.</Text></AccordionItem>
+      </Accordion>
+    </View>
+  );
+}
+--- Custom Styling
+Utility classes for the heading, body and hovered heading.
+function StyledAccordion(): Node {
+  return (
+    <Accordion className="w-full">
+      <AccordionItem title="Styled section" titleClassName="font-semibold text-primary" contentClassName="bg-muted p-4" hoverClassName="bg-accent">
+        <Text>Muted body with extra padding.</Text>
+      </AccordionItem>
+    </Accordion>
+  );
+}
+--- Controlled
+value lists the open items one per line; onChange reports each toggle.
+function ControlledAccordion(): Node {
+  const open = signal('a');
+  return (
+    <View className="flex-col gap-2 w-full">
+      <Accordion multiple={true} value={open.get()} onChange={(values) => { open.set(values.join('\n')); }}>
+        <AccordionItem value="a" title="Section A"><Text>A</Text></AccordionItem>
+        <AccordionItem value="b" title="Section B"><Text>B</Text></AccordionItem>
+      </Accordion>
+      <View className="flex-row items-center gap-2">
+        <Button size="small" onPress={() => { open.set('a\nb'); }}>Open all</Button>
+        <Button size="small" onPress={() => { open.set(''); }}>Close all</Button>
+        <Text variant="muted">Open: {open.get().split('\n').join(', ')}</Text>
+      </View>
+    </View>
+  );
+}

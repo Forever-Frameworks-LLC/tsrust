@@ -47,6 +47,13 @@ function kitNumber(node: Node, name: string, value: ReactiveValue<number>): Node
   return unwrapNode(nativeKitBind(node, name, nativeBindText(value.evaluate)));
 }
 
+// The renderer joins list values with newlines; handlers receive the array.
+function kitOnList(node: Node, name: string, handler: Owned<Function<void, [values: ReadOnly<string[]>]>>): Node {
+  return unwrapNode(nativeKitOn(node, name, (text: ReadOnly<string>): void => {
+    handler(text === '' ? [] : text.split('\\n'));
+  }));
+}
+
 function kitInt(node: Node, name: string, value: ReactiveValue<int>): Node {
   if (typeof value === 'number') {
     const constant = value;
@@ -62,7 +69,8 @@ EVENTS = {"void": ("Owned<Function<void>>", "nativeKitOnVoid", None),
           "boolean": ("Owned<Function<void, [{param}: boolean]>>", "nativeKitOnBoolean", "boolean"),
           "int": ("Owned<Function<void, [{param}: int]>>", "nativeKitOnInt", "int"),
           "number": ("Owned<Function<void, [{param}: number]>>", "nativeKitOnNumber", "number"),
-          "string": ("Owned<Function<void, [{param}: ReadOnly<string>]>>", "nativeKitOn", "string")}
+          "string": ("Owned<Function<void, [{param}: ReadOnly<string>]>>", "nativeKitOn", "string"),
+          "string[]": ("Owned<Function<void, [{param}: ReadOnly<string[]>]>>", "nativeKitOn", "string[]")}
 
 
 def event_name(prop):
@@ -184,7 +192,10 @@ def component_source(component):
         local = f"event_{field}"
         binding = EVENTS[event["value"]][1]
         lines.append(f"  const {local} = props.{field};")
-        lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode({binding}(node, '{event_name(field)}', {local})); }}")
+        if event["value"] == "string[]":
+            lines.append(f"  if ({local} !== undefined) {{ node = kitOnList(node, '{event_name(field)}', {local}); }}")
+        else:
+            lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode({binding}(node, '{event_name(field)}', {local})); }}")
     lines.append("  return node;")
     lines.append("}")
     return "\n".join(lines)

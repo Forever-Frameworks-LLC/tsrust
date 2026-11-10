@@ -13,8 +13,8 @@ pub(crate) enum Command {
     Window {node: Box<Node>, title: String, options: String},
 }
 
-const PLAIN: &[&str] = &["notify", "theme", "set-title", "minimize", "zoom", "fullscreen", "close", "quit", "open-url", "write-clipboard", "relaunch", "register-themes", "use-theme"];
-const REPLIES: &[&str] = &["read-clipboard", "pick-files", "save-file", "check-update", "install-update"];
+const PLAIN: &[&str] = &["notify", "theme", "set-title", "minimize", "zoom", "fullscreen", "close", "quit", "open-url", "write-clipboard", "relaunch", "register-themes", "use-theme", "input"];
+const REPLIES: &[&str] = &["read-clipboard", "pick-files", "save-file", "check-update", "install-update", "read-input"];
 
 thread_local! {
     static QUEUE: RefCell<Vec<Command>> = const {RefCell::new(Vec::new())};

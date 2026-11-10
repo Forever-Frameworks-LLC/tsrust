@@ -22438,7 +22438,7 @@
           "documentation": "Owned text-control options; optional fields use the documented defaults."
         }
       ],
-      "documentation": "Creates an owned editable text control. Props have documented defaults; unknown utilities/semantics and unsupported input types throw. Omit value for uncontrolled editing; supply value and onChange for application-controlled editing. IME preedit stays internal until commit. Read-only fields preserve selection; disabled fields cannot focus. Text inputs remove CR/LF; Textarea normalizes CRLF/CR to LF. Native editing supports Unicode selection, clipboard, movement and undo/redo; clipboard failures leave values unchanged and report an error. Native autocomplete and accessibility text-range navigation remain unsupported. Element references, specialized input types, form submission and resize handles are unsupported. Ownership: consumes props, the change callback and non-retaining state bindings; returned Node owns control lifetime. Example: `const field=Input({defaultValue: 'Ada', 'aria-label': 'Name'});` starts with Ada; typing changes only an uncontrolled field.\n\n```tsrx\nconst email = signal('');\n<Input placeholder=\"Email\" value={email.get()} onChange={(event) => { email.set(clone(event.target.value)); }}/>\n```"
+      "documentation": "Creates a single-line text field. Omit value for uncontrolled editing (defaultValue sets the start); supply value and onChange for application control. type=\"password\" masks the value with a reveal toggle; email, url, tel and search set the platform keyboard and autofill, as autoComplete tokens do. Options: size, cleanable, prefix and suffix icons, mask (9 optional digit, # digit, A letter) or thousandsSeparator/fractionDigits number formatting, pattern (a regular expression the whole value must match), cleanOnEscape, contextMenu, textAlign, appearance, bordered, focusBordered, loading, masked and maskToggle. Events: onChange, onFocus, onBlur, onSubmit (Enter, with the platform modifier flag), onTokenClick and onTokenHover. Give it an id to drive it with controlInput and read it with readInput. Read-only fields keep selection and copy; disabled fields cannot focus. CR/LF are removed. Not yet available: a validate callback, custom context menu entries, paste interception and custom token rendering.\n\n```tsrx\nconst email = signal('');\n<Input type=\"email\" placeholder=\"Email\" cleanable={true} value={email} onChange={(event) => { email.set(event.target.value); }} onSubmit={() => { save(); }} />\n```\n\nOwnership: consumes props, the change callback and non-retaining state bindings; the returned Node owns the field."
     },
     {
       "name": "Textarea",
@@ -22449,7 +22449,7 @@
           "documentation": "Owned text-control options; optional fields use the documented defaults."
         }
       ],
-      "documentation": "Creates an owned editable text control. Props have documented defaults; unknown utilities/semantics and unsupported input types throw. Omit value for uncontrolled editing; supply value and onChange for application-controlled editing. IME preedit stays internal until commit. Read-only fields preserve selection; disabled fields cannot focus. Text inputs remove CR/LF; Textarea normalizes CRLF/CR to LF. Native editing supports Unicode selection, clipboard, movement and undo/redo; clipboard failures leave values unchanged and report an error. Native autocomplete and accessibility text-range navigation remain unsupported. Element references, specialized input types, form submission and resize handles are unsupported. Ownership: consumes props, the change callback and non-retaining state bindings; returned Node owns control lifetime. Example: `const field=Textarea({defaultValue: 'Ada', 'aria-label': 'Name'});` starts with Ada; typing changes only an uncontrolled field.\n\n```tsrx\nconst notes = signal('');\n<Textarea placeholder=\"Notes\" value={notes.get()} onChange={(event) => { notes.set(clone(event.target.value)); }}/>\n```"
+      "documentation": "Creates a multi-line text field. rows sets a fixed height (default 4); minRows with maxRows grows with the content and then scrolls. softWrap=false scrolls long lines; searchable turns on find and replace (cmd/ctrl-F and controlInput search actions); tabSize and hardTabs control Tab; scrollBounce adds elastic overscroll; wrappingIndent chooses where wrapped lines start. Shares Input's value, defaultValue, events, size, appearance, cleanOnEscape, showWhitespace and controlInput/readInput support. Enter inserts a newline unless submitOnEnter is true. CRLF/CR normalize to LF.\n\n```tsrx\n<Textarea minRows={2} maxRows={6} placeholder=\"Write a message\" value={draft} onChange={(event) => { draft.set(event.target.value); }} />\n```\n\nOwnership: consumes props, the change callback and non-retaining state bindings; the returned Node owns the field."
     },
     {
       "name": "TextFieldProps",
@@ -23176,6 +23176,55 @@
       "documentation": "Switches GPUI Kit's theme for every window on the next frame: components, dialogs, menus and scrollbars repaint in the new mode.\n\n```tsrx\n<Switch label=\"Dark mode\" checked={dark.get()} onChange={(on) => { dark.set(on); setTheme(on ? 'dark' : 'light'); }}/>\n```"
     },
     {
+      "name": "controlInput",
+      "signature": "controlInput(id: string, action: InputAction, options?: InputActionOptions): void",
+      "parameters": [
+        {
+          "label": "id",
+          "documentation": "The id prop of the target Input or Textarea."
+        },
+        {
+          "label": "action",
+          "documentation": "What to do: focus, selectAll, unselect, clear, insert, replace, setValue, setCursor, setSelection, addSelection, toggleMasked, scrollTo, insertToken, openSearch, openReplace, search, nextMatch, previousMatch, replaceMatch, replaceAllMatches or closeSearch."
+        },
+        {
+          "label": "options",
+          "documentation": "value for text actions, label for insertToken, start/end byte offsets for selections and pixels for scrollTo."
+        }
+      ],
+      "documentation": "Runs an action on the mounted Input or Textarea whose id matches, on the next frame. insert and replace edit at the cursor or selection; setValue replaces all text; setCursor and setSelection take byte offsets clamped to the text; insertToken adds an atomic token (value is its id and text, label its display text); search actions need a searchable Textarea. Edits report through onChange like typing. Unknown ids do nothing.\n\n```tsrx\n<Input id=\"name\" defaultValue=\"Ada Lovelace\" />\n<Button onPress={() => { controlInput('name', 'setSelection', { start: 0, end: 3 }); }}>Select first name</Button>\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "readInput",
+      "signature": "readInput(id: string, onRead: Owned<Function<void, [field: ReadOnly<InputSnapshot>]>>): void",
+      "parameters": [
+        {
+          "label": "id",
+          "documentation": "The id prop of the field to read."
+        },
+        {
+          "label": "onRead",
+          "documentation": "Receives the field's text, selection, scroll position and focus."
+        }
+      ],
+      "documentation": "Reads the mounted Input or Textarea whose id matches on the next frame and passes an InputSnapshot to onRead. found is false when no field has the id. Signals set in onRead refresh the window like any handler.\n\n```tsrx\nreadInput('notes', (field) => { selection.set(field.selectedText ?? ''); });\n```\nWith notes containing \"hello world\" and world selected, selection becomes world.\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
+      "name": "InputSnapshot",
+      "signature": "interface InputSnapshot",
+      "documentation": "A field's state as read by readInput: found, value, unmaskedValue (mask literals removed, such as 5551234567 for (555)-123-4567), selectedText, selectionStart and selectionEnd (byte offsets), selectionReversed, scrollX and scrollY (pixels), firstVisibleRow and lastVisibleRow (multiline fields) and focused. Every field but found is absent when no field has the id.\n\nOwnership: an owned snapshot; later edits do not change it.\n\n```tsrx\nreadInput('notes', (field) => { status.set(`${field.selectionStart ?? 0}-${field.selectionEnd ?? 0}`); });\n```"
+    },
+    {
+      "name": "InputAction",
+      "signature": "type InputAction",
+      "documentation": "A controlInput action: 'focus' | 'selectAll' | 'unselect' | 'clear' | 'insert' | 'replace' | 'setValue' | 'setCursor' | 'setSelection' | 'addSelection' | 'toggleMasked' | 'scrollTo' | 'insertToken' | 'openSearch' | 'openReplace' | 'search' | 'nextMatch' | 'previousMatch' | 'replaceMatch' | 'replaceAllMatches' | 'closeSearch'.\n\n```tsrx\ncontrolInput('search', 'selectAll');\n```"
+    },
+    {
+      "name": "InputActionOptions",
+      "signature": "interface InputActionOptions",
+      "documentation": "Arguments for controlInput: value (text to insert, replace with or search for; the token id for insertToken), label (insertToken display text), start and end (byte offsets for setCursor, setSelection and addSelection; horizontal and vertical pixels for scrollTo). All default to empty or zero.\n\n```tsrx\ncontrolInput('editor', 'setSelection', { start: 0, end: 5 });\n```"
+    },
+    {
       "name": "Icon",
       "signature": "Icon(props: IconProps): Node",
       "parameters": [
@@ -23712,12 +23761,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A tab bar. Children are Tab elements; show the matching panel yourself from the selected index.\n\nProps:\n- `selected`: Index of the selected tab.\n- `variant`: Visual style. Defaults to the standard tab style.\n- `onChange`: Receives the clicked tab's index.\n- `children`: Tab elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs selected={tab.get()} onChange={(index) => { tab.set(index); }}><Tab label=\"Overview\"/><Tab label=\"Settings\"/></Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A row of Tab triggers that switches between TabsContent panels.\n\nProps:\n- `value`: The selected tab's value, controlled; set it from onChange. Without it the tabs keep their own selection.\n- `defaultValue`: Initially selected tab value when `value` is unset. Defaults to the first tab.\n- `variant`: Tab style: tab (default), underline, pill, outline, segmented or folder (browser-style tabs that join the content below).\n- `menu`: Adds a menu listing every tab, for bars that overflow.\n- `maxWidth`: Most width in pixels before the bar scrolls.\n- `size`: Tab size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with the clicked tab's value.\n- `children`: Tab, TabsContent, TabsPrefix, TabsSuffix and TabsEmptySpace elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "TabsProps",
       "signature": "interface TabsProps",
-      "documentation": "A tab bar. Children are Tab elements; show the matching panel yourself from the selected index.\n\nProps:\n- `selected`: Index of the selected tab.\n- `variant`: Visual style. Defaults to the standard tab style.\n- `onChange`: Receives the clicked tab's index.\n- `children`: Tab elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs selected={tab.get()} onChange={(index) => { tab.set(index); }}><Tab label=\"Overview\"/><Tab label=\"Settings\"/></Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A row of Tab triggers that switches between TabsContent panels.\n\nProps:\n- `value`: The selected tab's value, controlled; set it from onChange. Without it the tabs keep their own selection.\n- `defaultValue`: Initially selected tab value when `value` is unset. Defaults to the first tab.\n- `variant`: Tab style: tab (default), underline, pill, outline, segmented or folder (browser-style tabs that join the content below).\n- `menu`: Adds a menu listing every tab, for bars that overflow.\n- `maxWidth`: Most width in pixels before the bar scrolls.\n- `size`: Tab size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with the clicked tab's value.\n- `children`: Tab, TabsContent, TabsPrefix, TabsSuffix and TabsEmptySpace elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Tab",
@@ -23728,12 +23777,108 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "One tab in Tabs.\n\nProps:\n- `label`: Tab text.\n- `disabled`: Disabled tabs cannot be selected.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tab label=\"Activity\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One tab trigger. Text children are its label.\n\nProps:\n- `value`: Identifies the tab and its TabsContent. Defaults to the tab's index.\n- `label`: Tab text, when there are no text children.\n- `icon`: Icon before the label; an icon-only tab is square.\n- `accessibilityLabel`: Names an icon-only tab.\n- `variant`: Overrides the bar's style for this tab.\n- `disabled`: Shown but cannot be selected.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "TabProps",
       "signature": "interface TabProps",
-      "documentation": "One tab in Tabs.\n\nProps:\n- `label`: Tab text.\n- `disabled`: Disabled tabs cannot be selected.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tab label=\"Activity\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One tab trigger. Text children are its label.\n\nProps:\n- `value`: Identifies the tab and its TabsContent. Defaults to the tab's index.\n- `label`: Tab text, when there are no text children.\n- `icon`: Icon before the label; an icon-only tab is square.\n- `accessibilityLabel`: Names an icon-only tab.\n- `variant`: Overrides the bar's style for this tab.\n- `disabled`: Shown but cannot be selected.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabsContent",
+      "signature": "TabsContent(props: TabsContentProps): Node",
+      "parameters": [
+        {
+          "label": "props: TabsContentProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The panel shown while the Tab with the same value is selected.\n\nProps:\n- `value`: The Tab value this panel belongs to. Defaults to the panel's index.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabsContentProps",
+      "signature": "interface TabsContentProps",
+      "documentation": "The panel shown while the Tab with the same value is selected.\n\nProps:\n- `value`: The Tab value this panel belongs to. Defaults to the panel's index.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabsPrefix",
+      "signature": "TabsPrefix(props: TabsPrefixProps): Node",
+      "parameters": [
+        {
+          "label": "props: TabsPrefixProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content before the tabs, such as back and forward buttons.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabsPrefixProps",
+      "signature": "interface TabsPrefixProps",
+      "documentation": "Content before the tabs, such as back and forward buttons.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabsSuffix",
+      "signature": "TabsSuffix(props: TabsSuffixProps): Node",
+      "parameters": [
+        {
+          "label": "props: TabsSuffixProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content after the tabs, such as a menu button.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabsSuffixProps",
+      "signature": "interface TabsSuffixProps",
+      "documentation": "Content after the tabs, such as a menu button.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabsEmptySpace",
+      "signature": "TabsEmptySpace(props: TabsEmptySpaceProps): Node",
+      "parameters": [
+        {
+          "label": "props: TabsEmptySpaceProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content filling the empty space after the last tab.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabsEmptySpaceProps",
+      "signature": "interface TabsEmptySpaceProps",
+      "documentation": "Content filling the empty space after the last tab.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabPrefix",
+      "signature": "TabPrefix(props: TabPrefixProps): Node",
+      "parameters": [
+        {
+          "label": "props: TabPrefixProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content before a Tab's label.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabPrefixProps",
+      "signature": "interface TabPrefixProps",
+      "documentation": "Content before a Tab's label.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabSuffix",
+      "signature": "TabSuffix(props: TabSuffixProps): Node",
+      "parameters": [
+        {
+          "label": "props: TabSuffixProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content after a Tab's label, such as a close button.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TabSuffixProps",
+      "signature": "interface TabSuffixProps",
+      "documentation": "Content after a Tab's label, such as a close button.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Accordion",
@@ -23744,12 +23889,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "Collapsible sections. Children are AccordionItem elements; each item's own children are its content.\n\nProps:\n- `multiple`: Allows several sections open at once.\n- `bordered`: Draws borders around sections. Defaults to true.\n- `onChange`: Receives the open item indexes as comma-separated text, such as \"0,2\".\n- `children`: AccordionItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion><AccordionItem title=\"Shipping\" open={true}><Text>2-3 days</Text></AccordionItem></Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Stacked sections that expand and collapse. Each AccordionItem has an AccordionTrigger heading and AccordionContent.\n\nProps:\n- `value`: Open item values, one per line, controlled; set it from onChange. Without it the accordion keeps its own open items.\n- `defaultValue`: Initially open item values, one per line, when `value` is unset.\n- `multiple`: Lets several items stay open; otherwise opening one closes the others.\n- `bordered`: false removes the outer border. Defaults to true.\n- `disabled`: Disables every item.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with the open item values after each toggle.\n- `children`: AccordionItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "AccordionProps",
       "signature": "interface AccordionProps",
-      "documentation": "Collapsible sections. Children are AccordionItem elements; each item's own children are its content.\n\nProps:\n- `multiple`: Allows several sections open at once.\n- `bordered`: Draws borders around sections. Defaults to true.\n- `onChange`: Receives the open item indexes as comma-separated text, such as \"0,2\".\n- `children`: AccordionItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion><AccordionItem title=\"Shipping\" open={true}><Text>2-3 days</Text></AccordionItem></Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Stacked sections that expand and collapse. Each AccordionItem has an AccordionTrigger heading and AccordionContent.\n\nProps:\n- `value`: Open item values, one per line, controlled; set it from onChange. Without it the accordion keeps its own open items.\n- `defaultValue`: Initially open item values, one per line, when `value` is unset.\n- `multiple`: Lets several items stay open; otherwise opening one closes the others.\n- `bordered`: false removes the outer border. Defaults to true.\n- `disabled`: Disables every item.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with the open item values after each toggle.\n- `children`: AccordionItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "AccordionItem",
@@ -23760,12 +23905,44 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "One section of an Accordion; its children are the section content.\n\nProps:\n- `title`: Section heading.\n- `open`: Whether the section is expanded.\n- `disabled`: Disabled sections cannot be toggled.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AccordionItem title=\"Returns\"><Text>30 days</Text></AccordionItem>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One section: an AccordionTrigger heading and AccordionContent body (or a title prop and other children).\n\nProps:\n- `value`: Identifies the item in value and onChange. Defaults to its index.\n- `title`: Heading text, when there is no AccordionTrigger.\n- `icon`: Icon before the heading.\n- `open`: Starts open when the accordion has no value or defaultValue.\n- `disabled`: Cannot be toggled.\n- `titleClassName`: Utility classes for the heading row.\n- `contentClassName`: Utility classes for the body.\n- `hoverClassName`: Utility classes applied to the heading while hovered.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `children`: AccordionTrigger and AccordionContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "AccordionItemProps",
       "signature": "interface AccordionItemProps",
-      "documentation": "One section of an Accordion; its children are the section content.\n\nProps:\n- `title`: Section heading.\n- `open`: Whether the section is expanded.\n- `disabled`: Disabled sections cannot be toggled.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AccordionItem title=\"Returns\"><Text>30 days</Text></AccordionItem>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One section: an AccordionTrigger heading and AccordionContent body (or a title prop and other children).\n\nProps:\n- `value`: Identifies the item in value and onChange. Defaults to its index.\n- `title`: Heading text, when there is no AccordionTrigger.\n- `icon`: Icon before the heading.\n- `open`: Starts open when the accordion has no value or defaultValue.\n- `disabled`: Cannot be toggled.\n- `titleClassName`: Utility classes for the heading row.\n- `contentClassName`: Utility classes for the body.\n- `hoverClassName`: Utility classes applied to the heading while hovered.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `children`: AccordionTrigger and AccordionContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AccordionTrigger",
+      "signature": "AccordionTrigger(props: AccordionTriggerProps): Node",
+      "parameters": [
+        {
+          "label": "props: AccordionTriggerProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The heading of an AccordionItem; any content.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AccordionTriggerProps",
+      "signature": "interface AccordionTriggerProps",
+      "documentation": "The heading of an AccordionItem; any content.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AccordionContent",
+      "signature": "AccordionContent(props: AccordionContentProps): Node",
+      "parameters": [
+        {
+          "label": "props: AccordionContentProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The body shown while the AccordionItem is open.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AccordionContentProps",
+      "signature": "interface AccordionContentProps",
+      "documentation": "The body shown while the AccordionItem is open.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Collapsible",
@@ -23792,12 +23969,76 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A dropdown that picks one string from a list.\n\nProps:\n- `items`: Options, in order.\n- `value`: Selected option. An empty string selects nothing.\n- `placeholder`: Text shown when nothing is selected.\n- `disabled`: Disabled selects cannot open.\n- `onChange`: Receives the chosen option.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select items={['Red', 'Green']} value={color.get()} onChange={(value) => { color.set(value); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A button that opens a list of options and shows the chosen one. Options come from SelectItem children (optionally inside SelectGroup) or the items prop.\n\nProps:\n- `items`: Plain options whose label is also the value; SelectItem children add more.\n- `value`: The selected option's value, controlled; set it from onChange. Without it the select keeps its own selection.\n- `defaultValue`: Initially selected value when `value` is unset.\n- `placeholder`: Text shown while nothing is selected.\n- `disabled`: Ignores clicks and keys.\n- `searchable`: Adds a search field that filters the options. Read when the select mounts.\n- `searchPlaceholder`: Hint in the search field.\n- `cleanable`: Shows a clear button while an option is selected; clearing reports an empty value.\n- `icon`: Icon in place of the dropdown caret.\n- `titlePrefix`: Text before the selected label, such as \"Country: \".\n- `accessibilityLabel`: A name that stays the same as the selection changes.\n- `appearance`: false draws the bare trigger without border and background.\n- `menuWidth`: Width of the open list in pixels. Defaults to the trigger's width.\n- `menuMaxHeight`: Most height in pixels the open list takes before it scrolls.\n- `scrollBounce`: Elastic overscroll in the list. Defaults to the platform's behavior.\n- `autoFocus`: Focuses the select when it mounts.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with the chosen value, or empty when cleared.\n- `children`: SelectItem, SelectGroup and SelectEmpty elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "SelectProps",
       "signature": "interface SelectProps",
-      "documentation": "A dropdown that picks one string from a list.\n\nProps:\n- `items`: Options, in order.\n- `value`: Selected option. An empty string selects nothing.\n- `placeholder`: Text shown when nothing is selected.\n- `disabled`: Disabled selects cannot open.\n- `onChange`: Receives the chosen option.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select items={['Red', 'Green']} value={color.get()} onChange={(value) => { color.set(value); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A button that opens a list of options and shows the chosen one. Options come from SelectItem children (optionally inside SelectGroup) or the items prop.\n\nProps:\n- `items`: Plain options whose label is also the value; SelectItem children add more.\n- `value`: The selected option's value, controlled; set it from onChange. Without it the select keeps its own selection.\n- `defaultValue`: Initially selected value when `value` is unset.\n- `placeholder`: Text shown while nothing is selected.\n- `disabled`: Ignores clicks and keys.\n- `searchable`: Adds a search field that filters the options. Read when the select mounts.\n- `searchPlaceholder`: Hint in the search field.\n- `cleanable`: Shows a clear button while an option is selected; clearing reports an empty value.\n- `icon`: Icon in place of the dropdown caret.\n- `titlePrefix`: Text before the selected label, such as \"Country: \".\n- `accessibilityLabel`: A name that stays the same as the selection changes.\n- `appearance`: false draws the bare trigger without border and background.\n- `menuWidth`: Width of the open list in pixels. Defaults to the trigger's width.\n- `menuMaxHeight`: Most height in pixels the open list takes before it scrolls.\n- `scrollBounce`: Elastic overscroll in the list. Defaults to the platform's behavior.\n- `autoFocus`: Focuses the select when it mounts.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with the chosen value, or empty when cleared.\n- `children`: SelectItem, SelectGroup and SelectEmpty elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SelectItem",
+      "signature": "SelectItem(props: SelectItemProps): Node",
+      "parameters": [
+        {
+          "label": "props: SelectItemProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "One Select option. Text children are its label.\n\nProps:\n- `value`: The value reported by onChange. Defaults to the label.\n- `label`: Option text, when there are no text children.\n- `disabled`: Shown but cannot be chosen.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SelectItemProps",
+      "signature": "interface SelectItemProps",
+      "documentation": "One Select option. Text children are its label.\n\nProps:\n- `value`: The value reported by onChange. Defaults to the label.\n- `label`: Option text, when there are no text children.\n- `disabled`: Shown but cannot be chosen.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SelectGroup",
+      "signature": "SelectGroup(props: SelectGroupProps): Node",
+      "parameters": [
+        {
+          "label": "props: SelectGroupProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A titled group of SelectItem options. Groups are searched together.\n\nProps:\n- `label`: Group title, when there is no SelectLabel child.\n- `children`: SelectLabel and SelectItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SelectGroupProps",
+      "signature": "interface SelectGroupProps",
+      "documentation": "A titled group of SelectItem options. Groups are searched together.\n\nProps:\n- `label`: Group title, when there is no SelectLabel child.\n- `children`: SelectLabel and SelectItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SelectLabel",
+      "signature": "SelectLabel(props: SelectLabelProps): Node",
+      "parameters": [
+        {
+          "label": "props: SelectLabelProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The title of a SelectGroup, from its text children.\n\nProps:\n- `children`: Text content, used as `text` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SelectLabelProps",
+      "signature": "interface SelectLabelProps",
+      "documentation": "The title of a SelectGroup, from its text children.\n\nProps:\n- `children`: Text content, used as `text` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SelectEmpty",
+      "signature": "SelectEmpty(props: SelectEmptyProps): Node",
+      "parameters": [
+        {
+          "label": "props: SelectEmptyProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content shown in the open list when there are no options or no search matches.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Nothing here\">\n  <SelectEmpty><Text variant=\"muted\">No options available</Text></SelectEmpty>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "SelectEmptyProps",
+      "signature": "interface SelectEmptyProps",
+      "documentation": "Content shown in the open list when there are no options or no search matches.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Select placeholder=\"Nothing here\">\n  <SelectEmpty><Text variant=\"muted\">No options available</Text></SelectEmpty>\n</Select>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "NumberInput",
@@ -23808,12 +24049,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A numeric text field with increment and decrement buttons.\n\nProps:\n- `value`: Current value.\n- `placeholder`: Text shown while empty.\n- `step`: Change per button press. Defaults to 1.\n- `onChange`: Receives each valid edited value.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A numeric text field with increment and decrement buttons.\n\nProps:\n- `value`: Controlled value; set it from onChange. Without it the field keeps its own value.\n- `defaultValue`: Initial value when `value` is unset; the field then keeps its own value.\n- `placeholder`: Text shown while empty.\n- `step`: Amount the buttons and arrow keys add or subtract. Defaults to 1.\n- `min`: Smallest value; stepping and blur clamp to it.\n- `max`: Largest value; stepping and blur clamp to it.\n- `prefix`: Icon before the number.\n- `suffix`: Icon after the number.\n- `appearance`: false draws the bare field without border and background.\n- `disabled`: Ignores input and stepping.\n- `accessibilityLabel`: Names the field for assistive technology.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `onChange`: Receives each valid edited value.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "NumberInputProps",
       "signature": "interface NumberInputProps",
-      "documentation": "A numeric text field with increment and decrement buttons.\n\nProps:\n- `value`: Current value.\n- `placeholder`: Text shown while empty.\n- `step`: Change per button press. Defaults to 1.\n- `onChange`: Receives each valid edited value.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A numeric text field with increment and decrement buttons.\n\nProps:\n- `value`: Controlled value; set it from onChange. Without it the field keeps its own value.\n- `defaultValue`: Initial value when `value` is unset; the field then keeps its own value.\n- `placeholder`: Text shown while empty.\n- `step`: Amount the buttons and arrow keys add or subtract. Defaults to 1.\n- `min`: Smallest value; stepping and blur clamp to it.\n- `max`: Largest value; stepping and blur clamp to it.\n- `prefix`: Icon before the number.\n- `suffix`: Icon after the number.\n- `appearance`: false draws the bare field without border and background.\n- `disabled`: Ignores input and stepping.\n- `accessibilityLabel`: Names the field for assistive technology.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `onChange`: Receives each valid edited value.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "OtpInput",
@@ -23872,12 +24113,28 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "Shows text when the pointer rests on its children.\n\nProps:\n- `text`: Tooltip text.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tooltip text=\"Copy link\"><Button>Share</Button></Tooltip>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Shows a hint while the pointer rests on its children: text, a keyboard shortcut, or rich TooltipContent.\n\nProps:\n- `text`: Tooltip text, when there is no TooltipContent child.\n- `keys`: A keyboard shortcut shown beside the text, in GPUI keystroke syntax such as secondary-s.\n- `command`: A Shortcut command whose bound keys are shown beside the text.\n- `contentClassName`: Utility classes for the tooltip surface.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tooltip text=\"Save the current document\" keys=\"secondary-s\">\n  <Button>Save</Button>\n</Tooltip>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "TooltipProps",
       "signature": "interface TooltipProps",
-      "documentation": "Shows text when the pointer rests on its children.\n\nProps:\n- `text`: Tooltip text.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tooltip text=\"Copy link\"><Button>Share</Button></Tooltip>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Shows a hint while the pointer rests on its children: text, a keyboard shortcut, or rich TooltipContent.\n\nProps:\n- `text`: Tooltip text, when there is no TooltipContent child.\n- `keys`: A keyboard shortcut shown beside the text, in GPUI keystroke syntax such as secondary-s.\n- `command`: A Shortcut command whose bound keys are shown beside the text.\n- `contentClassName`: Utility classes for the tooltip surface.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tooltip text=\"Save the current document\" keys=\"secondary-s\">\n  <Button>Save</Button>\n</Tooltip>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TooltipContent",
+      "signature": "TooltipContent(props: TooltipContentProps): Node",
+      "parameters": [
+        {
+          "label": "props: TooltipContentProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Rich content for a Tooltip: icons, styled text and layout.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tooltip>\n  <Text>Hover for details</Text>\n  <TooltipContent>\n    <Text className=\"font-semibold\">User Information</Text>\n    <Text variant=\"muted\">Last login: 2 hours ago</Text>\n  </TooltipContent>\n</Tooltip>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TooltipContentProps",
+      "signature": "interface TooltipContentProps",
+      "documentation": "Rich content for a Tooltip: icons, styled text and layout.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Tooltip>\n  <Text>Hover for details</Text>\n  <TooltipContent>\n    <Text className=\"font-semibold\">User Information</Text>\n    <Text variant=\"muted\">Last login: 2 hours ago</Text>\n  </TooltipContent>\n</Tooltip>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Popover",
@@ -23888,12 +24145,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A floating panel opened by clicking its trigger. Children are one PopoverTrigger and one PopoverContent.\n\nProps:\n- `children`: PopoverTrigger, PopoverContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Options</Text></PopoverContent></Popover>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A floating panel opened by clicking its trigger. Children are one PopoverTrigger and one PopoverContent.\n\nProps:\n- `open`: Whether the popover is open, controlled; set it from onOpenChange. Without it the popover opens and closes itself.\n- `defaultOpen`: Starts open when `open` is unset.\n- `anchor`: The popup corner aligned to the trigger. Defaults to top-left (the popup opens below, left-aligned).\n- `offset`: Gap in pixels between the trigger and the popup.\n- `arrow`: Draws an arrow pointing at the trigger.\n- `mouseButton`: The button that opens the popover. Defaults to left.\n- `overlayClosable`: false keeps the popover open when clicking outside it.\n- `appearance`: false removes the popup's surface styling.\n- `triggerClassName`: Utility classes for the trigger container, such as w-full.\n- `onOpenChange`: Runs when the popover opens or closes.\n- `children`: PopoverTrigger, PopoverContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Options</Text></PopoverContent></Popover>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "PopoverProps",
       "signature": "interface PopoverProps",
-      "documentation": "A floating panel opened by clicking its trigger. Children are one PopoverTrigger and one PopoverContent.\n\nProps:\n- `children`: PopoverTrigger, PopoverContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Options</Text></PopoverContent></Popover>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A floating panel opened by clicking its trigger. Children are one PopoverTrigger and one PopoverContent.\n\nProps:\n- `open`: Whether the popover is open, controlled; set it from onOpenChange. Without it the popover opens and closes itself.\n- `defaultOpen`: Starts open when `open` is unset.\n- `anchor`: The popup corner aligned to the trigger. Defaults to top-left (the popup opens below, left-aligned).\n- `offset`: Gap in pixels between the trigger and the popup.\n- `arrow`: Draws an arrow pointing at the trigger.\n- `mouseButton`: The button that opens the popover. Defaults to left.\n- `overlayClosable`: false keeps the popover open when clicking outside it.\n- `appearance`: false removes the popup's surface styling.\n- `triggerClassName`: Utility classes for the trigger container, such as w-full.\n- `onOpenChange`: Runs when the popover opens or closes.\n- `children`: PopoverTrigger, PopoverContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Options</Text></PopoverContent></Popover>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "PopoverTrigger",
@@ -24528,12 +24785,44 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A searchable dropdown that picks one string from a list.\n\nProps:\n- `items`: Options, in order.\n- `value`: Selected option, or empty for none.\n- `placeholder`: Text shown when nothing is selected.\n- `onChange`: Receives the chosen option.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox items={frameworks} value={choice.get()} placeholder=\"Select…\" onChange={(value) => { choice.set(clone(value)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A searchable picker for one or several options, with optional custom trigger and footer. Options are SelectItem children (optionally in SelectGroup) or the items prop.\n\nProps:\n- `items`: Plain options whose label is also the value; SelectItem children add more.\n- `value`: Selected values, controlled, one per line (a single value for single-select); set it from onChange. Without it the combobox keeps its own selection.\n- `defaultValue`: Initially selected values when `value` is unset.\n- `multiple`: Allows several selections; each click toggles an option. Read when it mounts.\n- `searchable`: false hides the search field. Defaults to true. Read when it mounts.\n- `query`: Search text, controlled.\n- `placeholder`: Trigger text while nothing is selected.\n- `searchPlaceholder`: Hint in the search field.\n- `cleanable`: Shows a clear button while something is selected.\n- `disabled`: Ignores clicks and keys.\n- `icon`: Icon in place of the dropdown caret.\n- `checkIcon`: Icon marking selected options. Defaults to a check.\n- `appearance`: false draws the bare trigger.\n- `menuWidth`: Width of the open list in pixels.\n- `menuMaxHeight`: Most height in pixels the open list takes before it scrolls.\n- `autoFocus`: Focuses the combobox when it mounts.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with every selected value after each toggle.\n- `children`: SelectItem, SelectGroup, SelectEmpty, ComboboxTrigger and ComboboxFooter elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox multiple={true} placeholder=\"Select frameworks\" value={frameworks.get()} onChange={(values) => { frameworks.set(values); }}>\n  <SelectItem value=\"next\">Next.js</SelectItem>\n  <SelectItem value=\"astro\">Astro</SelectItem>\n</Combobox>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "ComboboxProps",
       "signature": "interface ComboboxProps",
-      "documentation": "A searchable dropdown that picks one string from a list.\n\nProps:\n- `items`: Options, in order.\n- `value`: Selected option, or empty for none.\n- `placeholder`: Text shown when nothing is selected.\n- `onChange`: Receives the chosen option.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox items={frameworks} value={choice.get()} placeholder=\"Select…\" onChange={(value) => { choice.set(clone(value)); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A searchable picker for one or several options, with optional custom trigger and footer. Options are SelectItem children (optionally in SelectGroup) or the items prop.\n\nProps:\n- `items`: Plain options whose label is also the value; SelectItem children add more.\n- `value`: Selected values, controlled, one per line (a single value for single-select); set it from onChange. Without it the combobox keeps its own selection.\n- `defaultValue`: Initially selected values when `value` is unset.\n- `multiple`: Allows several selections; each click toggles an option. Read when it mounts.\n- `searchable`: false hides the search field. Defaults to true. Read when it mounts.\n- `query`: Search text, controlled.\n- `placeholder`: Trigger text while nothing is selected.\n- `searchPlaceholder`: Hint in the search field.\n- `cleanable`: Shows a clear button while something is selected.\n- `disabled`: Ignores clicks and keys.\n- `icon`: Icon in place of the dropdown caret.\n- `checkIcon`: Icon marking selected options. Defaults to a check.\n- `appearance`: false draws the bare trigger.\n- `menuWidth`: Width of the open list in pixels.\n- `menuMaxHeight`: Most height in pixels the open list takes before it scrolls.\n- `autoFocus`: Focuses the combobox when it mounts.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with every selected value after each toggle.\n- `children`: SelectItem, SelectGroup, SelectEmpty, ComboboxTrigger and ComboboxFooter elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox multiple={true} placeholder=\"Select frameworks\" value={frameworks.get()} onChange={(values) => { frameworks.set(values); }}>\n  <SelectItem value=\"next\">Next.js</SelectItem>\n  <SelectItem value=\"astro\">Astro</SelectItem>\n</Combobox>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ComboboxTrigger",
+      "signature": "ComboboxTrigger(props: ComboboxTriggerProps): Node",
+      "parameters": [
+        {
+          "label": "props: ComboboxTriggerProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Custom content for the Combobox trigger in place of the selected labels.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox items={['Ada', 'Grace']}>\n  <ComboboxTrigger><Icon name=\"user\" /><Text>Assign</Text></ComboboxTrigger>\n</Combobox>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ComboboxTriggerProps",
+      "signature": "interface ComboboxTriggerProps",
+      "documentation": "Custom content for the Combobox trigger in place of the selected labels.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox items={['Ada', 'Grace']}>\n  <ComboboxTrigger><Icon name=\"user\" /><Text>Assign</Text></ComboboxTrigger>\n</Combobox>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ComboboxFooter",
+      "signature": "ComboboxFooter(props: ComboboxFooterProps): Node",
+      "parameters": [
+        {
+          "label": "props: ComboboxFooterProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content below a separator at the bottom of the open Combobox list, such as a create button.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox items={['Design', 'Engineering']}>\n  <ComboboxFooter><Button size=\"small\" variant=\"ghost\" icon=\"plus\">New team</Button></ComboboxFooter>\n</Combobox>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "ComboboxFooterProps",
+      "signature": "interface ComboboxFooterProps",
+      "documentation": "Content below a separator at the bottom of the open Combobox list, such as a create button.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Combobox items={['Design', 'Engineering']}>\n  <ComboboxFooter><Button size=\"small\" variant=\"ghost\" icon=\"plus\">New team</Button></ComboboxFooter>\n</Combobox>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Command",
@@ -24672,12 +24961,60 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A text field framed together with an icon, leading and trailing text, and an optional action button.\n\nProps:\n- `value`: Current text.\n- `placeholder`: Hint shown when empty.\n- `icon`: Icon at the start.\n- `prefix`: Text before the field, such as https://.\n- `suffix`: Text after the field, such as .com.\n- `buttonLabel`: Label of a trailing button; no button when omitted.\n- `disabled`: Prevents editing.\n- `onChange`: Receives the text after each edit.\n- `onButton`: Called when the trailing button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup icon=\"search\" placeholder=\"Search\" buttonLabel=\"Go\" value={query.get()} onChange={(text) => { query.set(clone(text)); }} onButton={() => { search(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "An Input or Textarea framed together with addons: text, icons and buttons on either side, above or below.\n\nProps:\n- `disabled`: Disables the field and every addon button.\n- `readOnly`: The field keeps focus and selection but rejects edits.\n- `invalid`: Draws the frame in the destructive color.\n- `accessibilityLabel`: Names the group for assistive technology.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `children`: One Input or Textarea and InputGroupAddon elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup>\n  <InputGroupAddon><Icon name=\"search\" /></InputGroupAddon>\n  <Input placeholder=\"Search...\" />\n  <InputGroupAddon align=\"inline-end\">\n    <InputGroupButton>Search</InputGroupButton>\n  </InputGroupAddon>\n</InputGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "InputGroupProps",
       "signature": "interface InputGroupProps",
-      "documentation": "A text field framed together with an icon, leading and trailing text, and an optional action button.\n\nProps:\n- `value`: Current text.\n- `placeholder`: Hint shown when empty.\n- `icon`: Icon at the start.\n- `prefix`: Text before the field, such as https://.\n- `suffix`: Text after the field, such as .com.\n- `buttonLabel`: Label of a trailing button; no button when omitted.\n- `disabled`: Prevents editing.\n- `onChange`: Receives the text after each edit.\n- `onButton`: Called when the trailing button is clicked.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup icon=\"search\" placeholder=\"Search\" buttonLabel=\"Go\" value={query.get()} onChange={(text) => { query.set(clone(text)); }} onButton={() => { search(); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "An Input or Textarea framed together with addons: text, icons and buttons on either side, above or below.\n\nProps:\n- `disabled`: Disables the field and every addon button.\n- `readOnly`: The field keeps focus and selection but rejects edits.\n- `invalid`: Draws the frame in the destructive color.\n- `accessibilityLabel`: Names the group for assistive technology.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `children`: One Input or Textarea and InputGroupAddon elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup>\n  <InputGroupAddon><Icon name=\"search\" /></InputGroupAddon>\n  <Input placeholder=\"Search...\" />\n  <InputGroupAddon align=\"inline-end\">\n    <InputGroupButton>Search</InputGroupButton>\n  </InputGroupAddon>\n</InputGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "InputGroupAddon",
+      "signature": "InputGroupAddon(props: InputGroupAddonProps): Node",
+      "parameters": [
+        {
+          "label": "props: InputGroupAddonProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A row of InputGroupText, InputGroupButton, icons or other content on one side of an InputGroup. Clicking its empty space focuses the field.\n\nProps:\n- `align`: Where the addon sits: before (inline-start, the default) or after (inline-end) the text, or above (block-start) or below (block-end) it.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup>\n  <InputGroupAddon><Icon name=\"search\" /></InputGroupAddon>\n  <Input placeholder=\"Search...\" />\n  <InputGroupAddon align=\"inline-end\">\n    <InputGroupButton>Search</InputGroupButton>\n  </InputGroupAddon>\n</InputGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "InputGroupAddonProps",
+      "signature": "interface InputGroupAddonProps",
+      "documentation": "A row of InputGroupText, InputGroupButton, icons or other content on one side of an InputGroup. Clicking its empty space focuses the field.\n\nProps:\n- `align`: Where the addon sits: before (inline-start, the default) or after (inline-end) the text, or above (block-start) or below (block-end) it.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup>\n  <InputGroupAddon><Icon name=\"search\" /></InputGroupAddon>\n  <Input placeholder=\"Search...\" />\n  <InputGroupAddon align=\"inline-end\">\n    <InputGroupButton>Search</InputGroupButton>\n  </InputGroupAddon>\n</InputGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "InputGroupText",
+      "signature": "InputGroupText(props: InputGroupTextProps): Node",
+      "parameters": [
+        {
+          "label": "props: InputGroupTextProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Muted text inside an InputGroupAddon, such as https:// or a character count.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup>\n  <InputGroupAddon><InputGroupText>https://</InputGroupText></InputGroupAddon>\n  <Input placeholder=\"example\" />\n  <InputGroupAddon align=\"inline-end\"><InputGroupText>.com</InputGroupText></InputGroupAddon>\n</InputGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "InputGroupTextProps",
+      "signature": "interface InputGroupTextProps",
+      "documentation": "Muted text inside an InputGroupAddon, such as https:// or a character count.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroup>\n  <InputGroupAddon><InputGroupText>https://</InputGroupText></InputGroupAddon>\n  <Input placeholder=\"example\" />\n  <InputGroupAddon align=\"inline-end\"><InputGroupText>.com</InputGroupText></InputGroupAddon>\n</InputGroup>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "InputGroupButton",
+      "signature": "InputGroupButton(props: InputGroupButtonProps): Node",
+      "parameters": [
+        {
+          "label": "props: InputGroupButtonProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A compact ghost button inside an InputGroupAddon. Text children are its label; MenuItem children make it open a menu.\n\nProps:\n- `label`: Button text.\n- `icon`: Icon; an icon-only button is square.\n- `variant`: Visual style. Defaults to ghost.\n- `outline`: Draws an outline variant.\n- `disabled`: Ignores clicks.\n- `selected`: Draws the button as selected.\n- `loading`: Shows a spinner and blocks clicks.\n- `loadingIcon`: Icon shown while loading instead of the spinner.\n- `tooltip`: Hint on hover.\n- `tooltipDelay`: Milliseconds before the tooltip shows.\n- `accessibilityLabel`: Names an icon-only button.\n- `tabIndex`: Keyboard focus order.\n- `caret`: Draws a dropdown caret after the label.\n- `color`: Custom fill: a theme color, palette color such as blue-500, or hex.\n- `foreground`: Custom text color, with color.\n- `hoverColor`: Custom hover fill, with color.\n- `activeColor`: Custom pressed fill, with color.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `onClick`: Runs when the button is clicked. Focus stays where it was.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroupAddon align=\"inline-end\">\n  <InputGroupButton icon=\"x\" accessibilityLabel=\"Clear\" onClick={() => { controlInput('query', 'clear'); }} />\n</InputGroupAddon>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "InputGroupButtonProps",
+      "signature": "interface InputGroupButtonProps",
+      "documentation": "A compact ghost button inside an InputGroupAddon. Text children are its label; MenuItem children make it open a menu.\n\nProps:\n- `label`: Button text.\n- `icon`: Icon; an icon-only button is square.\n- `variant`: Visual style. Defaults to ghost.\n- `outline`: Draws an outline variant.\n- `disabled`: Ignores clicks.\n- `selected`: Draws the button as selected.\n- `loading`: Shows a spinner and blocks clicks.\n- `loadingIcon`: Icon shown while loading instead of the spinner.\n- `tooltip`: Hint on hover.\n- `tooltipDelay`: Milliseconds before the tooltip shows.\n- `accessibilityLabel`: Names an icon-only button.\n- `tabIndex`: Keyboard focus order.\n- `caret`: Draws a dropdown caret after the label.\n- `color`: Custom fill: a theme color, palette color such as blue-500, or hex.\n- `foreground`: Custom text color, with color.\n- `hoverColor`: Custom hover fill, with color.\n- `activeColor`: Custom pressed fill, with color.\n- `size`: Control size: xsmall, small, medium (default) or large.\n- `onClick`: Runs when the button is clicked. Focus stays where it was.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<InputGroupAddon align=\"inline-end\">\n  <InputGroupButton icon=\"x\" accessibilityLabel=\"Clear\" onClick={() => { controlInput('query', 'clear'); }} />\n</InputGroupAddon>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Diff",

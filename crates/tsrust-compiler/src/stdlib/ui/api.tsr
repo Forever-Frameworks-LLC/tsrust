@@ -308,26 +308,241 @@ interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
   className?: Classes;
   /** Receives a borrowed value snapshot; edit logic stays in application code. String state.set copies the new text. */
   onChange?: Owned<Function<void, [event: ReadOnly<InputChangeEvent>]>>;
+  /** xsmall, small, medium (default) or large. */
+  size?: 'xsmall' | 'small' | 'medium' | 'large';
+  /** false draws the bare text without the field's border and background, for custom containers. Defaults to true. */
+  appearance?: boolean;
+  /** false removes the border but keeps the background. Defaults to true. */
+  bordered?: boolean;
+  /** Keyboard focus order; positive values come first in ascending order. */
+  tabIndex?: int;
+  /** Accessibility role: searchbox, combobox, spinbutton, or none for presentational. Defaults to a text field. */
+  role?: 'searchbox' | 'combobox' | 'spinbutton' | 'none';
+  /** Fixed height in pixels; on Input, 'full' fills the parent's height. */
+  height?: int | 'full';
+  /** Input only: draws the value as bullets and keeps it out of copy and cut. type="password" masks too. */
+  masked?: ReactiveValue<boolean>;
+  /** Escape clears the field. */
+  cleanOnEscape?: boolean;
+  /** Whether Enter submits (onSubmit) instead of inserting a newline. Input submits by default; Textarea inserts newlines unless this is true. */
+  submitOnEnter?: boolean;
+  /** false turns off the right-click edit menu. Defaults to true. */
+  contextMenu?: boolean;
+  /** Input only: shows a spinner while true. */
+  loading?: ReactiveValue<boolean>;
+  /** Draws spaces and tabs as visible marks. */
+  showWhitespace?: boolean;
+  /** Horizontal text alignment of a single-line field. Defaults to left. */
+  textAlign?: 'left' | 'center' | 'right';
+  /** Extra rows the view can scroll past the last line. */
+  scrollBeyondLastLine?: int;
+  /** Lines kept visible around the cursor while scrolling. */
+  cursorSurroundingLines?: int;
+  /** Formats typing as it happens: 9 is an optional digit, # a digit, A a letter, others are literal, as in "(999)-999-9999". */
+  mask?: string;
+  /** Groups the integer part with this character, such as ",", turning on number formatting. */
+  thousandsSeparator?: string;
+  /** Number formatting with at most this many decimal places. */
+  fractionDigits?: int;
+  /** Input only: a regular expression the whole value must match; edits that would break it are rejected. */
+  pattern?: string;
+  /** The Enter key's label on touch keyboards. Read when the field mounts. */
+  enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
+  /** Platform autocorrection. Read when the field mounts. */
+  autoCorrect?: boolean;
+  /** Platform automatic capitalization. Read when the field mounts. */
+  autoCapitalize?: 'none' | 'words' | 'sentences' | 'characters';
+  /** Runs when the field gains keyboard focus. */
+  onFocus?: Owned<Function<void>>;
+  /** Runs when the field loses keyboard focus. */
+  onBlur?: Owned<Function<void>>;
+  /** Runs on Enter; secondary is true with the platform modifier (cmd on macOS, ctrl elsewhere). */
+  onSubmit?: Owned<Function<void, [secondary: boolean]>>;
+  /** Runs when an inline token (inserted with controlInput 'insertToken') is clicked, with its id. */
+  onTokenClick?: Owned<Function<void, [id: ReadOnly<string>]>>;
+  /** Runs when the pointer enters an inline token (its id) or leaves it (empty). */
+  onTokenHover?: Owned<Function<void, [id: ReadOnly<string>]>>;
 }
 
 export type TextFieldProps<Classes = string, Variant = string> = TextFieldProperties<Classes, Variant>;
 
 interface InputProperties<Classes, Variant> extends TextFieldProps<Classes, Variant> {
-  /** This portable slice supports text. Password, file and other specialized input types fail explicitly. */
-  type?: 'text';
+  /** password masks the value with a reveal toggle; email, url, tel and search set the platform keyboard and autofill. Defaults to text. */
+  type?: 'text' | 'password' | 'email' | 'url' | 'tel' | 'search';
+  /** Shows a clear button while the field has a value. */
+  cleanable?: boolean;
+  /** Shows the eye button that reveals a masked value. Defaults to true for type="password". */
+  maskToggle?: boolean;
+  /** false keeps the normal border while focused. Defaults to true. */
+  focusBordered?: boolean;
+  /** Icon before the text. For buttons and text addons use InputGroup. */
+  prefix?: IconName;
+  /** Icon after the text. */
+  suffix?: IconName;
+  /** Draws the field as selected. */
+  selected?: boolean;
 }
 
 export type InputProps<Classes = string, Variant = string> = InputProperties<Classes, Variant>;
 
-export type TextareaProps<Classes = string, Variant = string> = TextFieldProps<Classes, Variant>;
+interface TextareaProperties<Classes, Variant> extends TextFieldProps<Classes, Variant> {
+  /** Visible rows. Defaults to 4. */
+  rows?: int;
+  /** With maxRows, grows with its content between these row counts. */
+  minRows?: int;
+  /** The most rows an auto-growing textarea shows before it scrolls. */
+  maxRows?: int;
+  /** false scrolls long lines horizontally instead of wrapping. Defaults to true. */
+  softWrap?: boolean;
+  /** Turns on find (cmd/ctrl-F) and the search actions of controlInput. */
+  searchable?: boolean;
+  /** false keeps find from offering replace. Read when the field mounts. */
+  replaceable?: boolean;
+  /** Elastic overscroll at the edges. */
+  scrollBounce?: boolean;
+  /** Wrapped lines start at the line's indent (same, the default) or at column zero (none). */
+  wrappingIndent?: 'same' | 'none';
+  /** Spaces per Tab. */
+  tabSize?: int;
+  /** Tab inserts a tab character instead of spaces. */
+  hardTabs?: boolean;
+}
+
+export type TextareaProps<Classes = string, Variant = string> = TextareaProperties<Classes, Variant>;
+
+function fieldOption(node: Node, name: string, value: string | undefined): Node {
+  if (value === undefined) {
+    return node;
+  }
+
+  return unwrapNode(nativeKitSet(node, name, value));
+}
+
+function fieldFlag(node: Node, name: string, value: boolean | undefined): Node {
+  if (value === undefined) {
+    return node;
+  }
+
+  return unwrapNode(nativeKitSet(node, name, value ? 'true' : 'false'));
+}
+
+function fieldNumber(node: Node, name: string, value: int | undefined): Node {
+  if (value === undefined) {
+    return node;
+  }
+
+  return unwrapNode(nativeKitSet(node, name, `${value}`));
+}
+
+function fieldLive(node: Node, name: string, value: ReactiveValue<boolean> | undefined): Node {
+  if (value === undefined) {
+    return node;
+  }
+
+  return kitFlag(node, name, value);
+}
 
 /** Creates a single-line field. CR/LF are removed like HTML text inputs; values otherwise remain exact Unicode strings. */
 export function Input(props: InputProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
-  return <TextField {...props} multiline={false}/>;
+  const kind = props.type !== undefined ? clone(props.type) : undefined;
+  const cleanable = props.cleanable;
+  const maskToggle = props.maskToggle;
+  const focusBordered = props.focusBordered;
+  const prefix = props.prefix !== undefined ? clone(props.prefix) : undefined;
+  const suffix = props.suffix !== undefined ? clone(props.suffix) : undefined;
+  const selected = props.selected;
+  let node = <TextField {...props} multiline={false}/>;
+  node = fieldOption(node, 'type', kind === undefined ? undefined : `${kind}`);
+  node = fieldFlag(node, 'cleanable', cleanable);
+  node = fieldFlag(node, 'maskToggle', maskToggle);
+  node = fieldFlag(node, 'focusBordered', focusBordered);
+  node = fieldOption(node, 'prefix', prefix);
+  node = fieldOption(node, 'suffix', suffix);
+  return fieldFlag(node, 'selected', selected);
 }
 /** Creates a multiline field. CRLF/CR values normalize to LF; no numeric conversion occurs. */
 export function Textarea(props: TextareaProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
-  return <TextField {...props} multiline={true}/>;
+  const rows = props.rows;
+  const minRows = props.minRows;
+  const maxRows = props.maxRows;
+  const softWrap = props.softWrap;
+  const searchable = props.searchable;
+  const replaceable = props.replaceable;
+  const scrollBounce = props.scrollBounce;
+  const wrappingIndent = props.wrappingIndent !== undefined ? clone(props.wrappingIndent) : undefined;
+  const tabSize = props.tabSize;
+  const hardTabs = props.hardTabs;
+  let node = <TextField {...props} multiline={true}/>;
+  node = fieldNumber(node, 'rows', rows);
+  node = fieldNumber(node, 'minRows', minRows);
+  node = fieldNumber(node, 'maxRows', maxRows);
+  node = fieldFlag(node, 'softWrap', softWrap);
+  node = fieldFlag(node, 'searchable', searchable);
+  node = fieldFlag(node, 'replaceable', replaceable);
+  node = fieldFlag(node, 'scrollBounce', scrollBounce);
+  node = fieldOption(node, 'wrappingIndent', wrappingIndent === undefined ? undefined : `${wrappingIndent}`);
+  node = fieldNumber(node, 'tabSize', tabSize);
+  return fieldFlag(node, 'hardTabs', hardTabs);
+}
+
+/** A controlInput action. */
+export type InputAction = 'focus' | 'selectAll' | 'unselect' | 'clear' | 'insert' | 'replace' | 'setValue' | 'setCursor' | 'setSelection' | 'addSelection' | 'toggleMasked' | 'scrollTo' | 'insertToken' | 'openSearch' | 'openReplace' | 'search' | 'nextMatch' | 'previousMatch' | 'replaceMatch' | 'replaceAllMatches' | 'closeSearch';
+
+/** Arguments for controlInput actions that take them. */
+export interface InputActionOptions {
+  /** Text to insert, replace with or search for; for insertToken, the token id and text. */
+  value?: string;
+  /** For insertToken, the text shown in place of value. */
+  label?: string;
+  /** Byte offset for setCursor and the start of setSelection/addSelection; horizontal pixels for scrollTo. */
+  start?: int;
+  /** Byte offset of the selection end; vertical pixels for scrollTo. */
+  end?: int;
+}
+
+/** Runs an action on the Input or Textarea whose id matches, on the next frame. insert and replace edit at the cursor or selection; setValue replaces all text; search actions need searchable. Example: controlInput('name', 'focus'). Unknown ids do nothing. */
+export function controlInput(id: string, action: InputAction, options?: InputActionOptions): void {
+  const extra = options ?? {};
+  unwrap(nativeCommand('input', JSON.stringify({
+    id: id, action: `${action}`, value: extra.value ?? '', label: extra.label ?? '', start: extra.start ?? 0, end: extra.end ?? 0
+  })));
+}
+
+/** A field's text, selection and scroll position, read by readInput. */
+export interface InputSnapshot {
+  /** False when no mounted field has the id; the other fields are then absent. */
+  found: boolean;
+  /** The current text. */
+  value?: string;
+  /** The text without mask literals, such as 5551234567 for (555)-123-4567. */
+  unmaskedValue?: string;
+  /** The selected text, or empty. */
+  selectedText?: string;
+  /** Selection start as a byte offset; equals selectionEnd when only the cursor is placed. */
+  selectionStart?: int;
+  /** Selection end as a byte offset. */
+  selectionEnd?: int;
+  /** True when the selection was made backwards. */
+  selectionReversed?: boolean;
+  /** Horizontal scroll offset in pixels. */
+  scrollX?: number;
+  /** Vertical scroll offset in pixels. */
+  scrollY?: number;
+  /** First visible row of a multiline field. */
+  firstVisibleRow?: int;
+  /** Row after the last visible row of a multiline field. */
+  lastVisibleRow?: int;
+  /** True while the field has keyboard focus. */
+  focused?: boolean;
+}
+
+/** Reads the Input or Textarea whose id matches on the next frame, then calls onRead. Example: readInput('notes', (field) => { selection.set(field.selectedText ?? ''); }). */
+export function readInput(id: string, onRead: Owned<Function<void, [field: ReadOnly<InputSnapshot>]>>): void {
+  unwrap(nativeCommandReply('read-input', JSON.stringify({
+    id: id
+  }), (text: ReadOnly<string>): void => {
+    onRead(JSON.parse<InputSnapshot>(text));
+  }));
 }
 
 interface InputOptions {
@@ -375,11 +590,63 @@ function TextField(props: TextFieldOptions): Node {
   };
   const config = JSON.stringify(options);
   const handler = props.onChange;
-  if (handler !== undefined) {
-    return applyProperties(inputFlags(unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)), disabled, readOnly), metadata, className, variant);
+  const created = handler !== undefined ? unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)) : unwrapNode(nativeInput(props.value, props.defaultValue, config, classes));
+  let node = applyProperties(inputFlags(created, disabled, readOnly), metadata, className, variant);
+  const size = props.size;
+  const role = props.role;
+  const height = props.height;
+  const textAlign = props.textAlign;
+  const enterKeyHint = props.enterKeyHint;
+  const autoCapitalize = props.autoCapitalize;
+  node = fieldOption(node, 'size', size === undefined ? undefined : `${size}`);
+  node = fieldFlag(node, 'appearance', props.appearance);
+  node = fieldFlag(node, 'bordered', props.bordered);
+  node = fieldNumber(node, 'tabIndex', props.tabIndex);
+  node = fieldOption(node, 'role', role === undefined ? undefined : `${role}`);
+  node = fieldOption(node, 'height', height === undefined ? undefined : `${height}`);
+  node = fieldLive(node, 'masked', props.masked);
+  node = fieldFlag(node, 'cleanOnEscape', props.cleanOnEscape);
+  node = fieldFlag(node, 'submitOnEnter', props.submitOnEnter);
+  node = fieldFlag(node, 'contextMenu', props.contextMenu);
+  node = fieldLive(node, 'loading', props.loading);
+  node = fieldFlag(node, 'showWhitespace', props.showWhitespace);
+  node = fieldOption(node, 'textAlign', textAlign === undefined ? undefined : `${textAlign}`);
+  node = fieldNumber(node, 'scrollBeyondLastLine', props.scrollBeyondLastLine);
+  node = fieldNumber(node, 'cursorSurroundingLines', props.cursorSurroundingLines);
+  node = fieldOption(node, 'mask', props.mask);
+  node = fieldOption(node, 'thousandsSeparator', props.thousandsSeparator);
+  node = fieldNumber(node, 'fractionDigits', props.fractionDigits);
+  node = fieldOption(node, 'pattern', props.pattern);
+  node = fieldOption(node, 'enterKeyHint', enterKeyHint === undefined ? undefined : `${enterKeyHint}`);
+  node = fieldFlag(node, 'autoCorrect', props.autoCorrect);
+  node = fieldOption(node, 'autoCapitalize', autoCapitalize === undefined ? undefined : `${autoCapitalize}`);
+  node = options.autoComplete === '' ? node : fieldOption(node, 'autoComplete', clone(options.autoComplete));
+  const onFocus = props.onFocus;
+  if (onFocus !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'focus', onFocus));
   }
 
-  return applyProperties(inputFlags(unwrapNode(nativeInput(props.value, props.defaultValue, config, classes)), disabled, readOnly), metadata, className, variant);
+  const onBlur = props.onBlur;
+  if (onBlur !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'blur', onBlur));
+  }
+
+  const onSubmit = props.onSubmit;
+  if (onSubmit !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'submit', onSubmit));
+  }
+
+  const onTokenClick = props.onTokenClick;
+  if (onTokenClick !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'tokenClick', onTokenClick));
+  }
+
+  const onTokenHover = props.onTokenHover;
+  if (onTokenHover !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'tokenHover', onTokenHover));
+  }
+
+  return node;
 }
 
 /** A platform clipboard control. It reports completion only after the platform write settles. */

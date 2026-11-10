@@ -1240,104 +1240,287 @@
     },
     {
       "name": "Tabs",
-      "children": "Tab",
-      "doc": "A tab bar. Children are Tab elements; show the matching panel yourself from the selected index.",
+      "doc": "A row of Tab triggers that switches between TabsContent panels.",
       "props": [
         {
-          "name": "selected",
-          "type": "int",
-          "doc": "Index of the selected tab."
+          "name": "value",
+          "type": "string",
+          "doc": "The selected tab's value, controlled; set it from onChange. Without it the tabs keep their own selection."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initially selected tab value when `value` is unset. Defaults to the first tab."
         },
         {
           "name": "variant",
           "type": [
+            "tab",
             "underline",
             "pill",
             "outline",
-            "segmented"
+            "segmented",
+            "folder"
           ],
-          "doc": "Visual style. Defaults to the standard tab style."
-        }
-      ],
-      "events": [
-        {
-          "prop": "onChange",
-          "value": "int",
-          "param": "index",
-          "doc": "Receives the clicked tab's index."
-        }
-      ],
-      "example": "<Tabs selected={tab.get()} onChange={(index) => { tab.set(index); }}><Tab label=\"Overview\"/><Tab label=\"Settings\"/></Tabs>"
-    },
-    {
-      "name": "Tab",
-      "item": true,
-      "doc": "One tab in Tabs.",
-      "props": [
-        {
-          "name": "label",
-          "type": "string",
-          "doc": "Tab text."
+          "doc": "Tab style: tab (default), underline, pill, outline, segmented or folder (browser-style tabs that join the content below)."
         },
         {
-          "name": "disabled",
+          "name": "menu",
           "type": "boolean",
-          "doc": "Disabled tabs cannot be selected."
-        }
-      ],
-      "example": "<Tab label=\"Activity\"/>",
-      "children": "Text",
-      "textChildren": "label"
-    },
-    {
-      "name": "Accordion",
-      "children": "AccordionItem",
-      "doc": "Collapsible sections. Children are AccordionItem elements; each item's own children are its content.",
-      "props": [
-        {
-          "name": "multiple",
-          "type": "boolean",
-          "doc": "Allows several sections open at once."
+          "doc": "Adds a menu listing every tab, for bars that overflow."
         },
         {
-          "name": "bordered",
-          "type": "boolean",
-          "doc": "Draws borders around sections. Defaults to true."
+          "name": "maxWidth",
+          "type": "number",
+          "doc": "Most width in pixels before the bar scrolls."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Tab size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
         {
           "prop": "onChange",
           "value": "string",
-          "param": "open",
-          "doc": "Receives the open item indexes as comma-separated text, such as \"0,2\"."
+          "doc": "Runs with the clicked tab's value."
         }
       ],
-      "example": "<Accordion><AccordionItem title=\"Shipping\" open={true}><Text>2-3 days</Text></AccordionItem></Accordion>"
+      "children": "Tab, TabsContent, TabsPrefix, TabsSuffix and TabsEmptySpace",
+      "example": "<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>"
     },
     {
-      "name": "AccordionItem",
+      "name": "Tab",
       "item": true,
-      "children": true,
-      "doc": "One section of an Accordion; its children are the section content.",
+      "doc": "One tab trigger. Text children are its label.",
       "props": [
         {
-          "name": "title",
+          "name": "value",
           "type": "string",
-          "doc": "Section heading."
+          "doc": "Identifies the tab and its TabsContent. Defaults to the tab's index."
         },
         {
-          "name": "open",
-          "type": "boolean",
-          "doc": "Whether the section is expanded."
+          "name": "label",
+          "type": "string",
+          "doc": "Tab text, when there are no text children."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon before the label; an icon-only tab is square."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Names an icon-only tab."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "tab",
+            "underline",
+            "pill",
+            "outline",
+            "segmented",
+            "folder"
+          ],
+          "doc": "Overrides the bar's style for this tab."
         },
         {
           "name": "disabled",
           "type": "boolean",
-          "doc": "Disabled sections cannot be toggled."
+          "doc": "Shown but cannot be selected."
         }
       ],
-      "example": "<AccordionItem title=\"Returns\"><Text>30 days</Text></AccordionItem>"
+      "children": "Text, TabPrefix and TabSuffix",
+      "textChildren": "label",
+      "example": "<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>"
+    },
+    {
+      "name": "TabsContent",
+      "item": true,
+      "doc": "The panel shown while the Tab with the same value is selected.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "The Tab value this panel belongs to. Defaults to the panel's index."
+        }
+      ],
+      "children": true,
+      "example": "<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>"
+    },
+    {
+      "name": "TabsPrefix",
+      "item": true,
+      "doc": "Content before the tabs, such as back and forward buttons.",
+      "props": [],
+      "children": true,
+      "example": "<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>"
+    },
+    {
+      "name": "TabsSuffix",
+      "item": true,
+      "doc": "Content after the tabs, such as a menu button.",
+      "props": [],
+      "children": true,
+      "example": "<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>"
+    },
+    {
+      "name": "TabsEmptySpace",
+      "item": true,
+      "doc": "Content filling the empty space after the last tab.",
+      "props": [],
+      "children": true,
+      "example": "<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>"
+    },
+    {
+      "name": "TabPrefix",
+      "item": true,
+      "doc": "Content before a Tab's label.",
+      "props": [],
+      "children": true,
+      "example": "<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>"
+    },
+    {
+      "name": "TabSuffix",
+      "item": true,
+      "doc": "Content after a Tab's label, such as a close button.",
+      "props": [],
+      "children": true,
+      "example": "<Tabs defaultValue=\"account\">\n  <Tab value=\"account\">Account</Tab>\n  <Tab value=\"password\">Password</Tab>\n  <TabsContent value=\"account\"><Text>Make changes to your account here.</Text></TabsContent>\n  <TabsContent value=\"password\"><Text>Change your password here.</Text></TabsContent>\n</Tabs>"
+    },
+    {
+      "name": "Accordion",
+      "doc": "Stacked sections that expand and collapse. Each AccordionItem has an AccordionTrigger heading and AccordionContent.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Open item values, one per line, controlled; set it from onChange. Without it the accordion keeps its own open items."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initially open item values, one per line, when `value` is unset."
+        },
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "doc": "Lets several items stay open; otherwise opening one closes the others."
+        },
+        {
+          "name": "bordered",
+          "type": "boolean",
+          "doc": "false removes the outer border. Defaults to true."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables every item."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "string[]",
+          "param": "values",
+          "doc": "Runs with the open item values after each toggle."
+        }
+      ],
+      "children": "AccordionItem",
+      "example": "<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>"
+    },
+    {
+      "name": "AccordionItem",
+      "item": true,
+      "doc": "One section: an AccordionTrigger heading and AccordionContent body (or a title prop and other children).",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Identifies the item in value and onChange. Defaults to its index."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Heading text, when there is no AccordionTrigger."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon before the heading."
+        },
+        {
+          "name": "open",
+          "type": "boolean",
+          "doc": "Starts open when the accordion has no value or defaultValue."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Cannot be toggled."
+        },
+        {
+          "name": "titleClassName",
+          "type": "string",
+          "doc": "Utility classes for the heading row."
+        },
+        {
+          "name": "contentClassName",
+          "type": "string",
+          "doc": "Utility classes for the body."
+        },
+        {
+          "name": "hoverClassName",
+          "type": "string",
+          "doc": "Utility classes applied to the heading while hovered."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
+        }
+      ],
+      "children": "AccordionTrigger and AccordionContent",
+      "example": "<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>"
+    },
+    {
+      "name": "AccordionTrigger",
+      "item": true,
+      "doc": "The heading of an AccordionItem; any content.",
+      "props": [],
+      "children": true,
+      "example": "<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>"
+    },
+    {
+      "name": "AccordionContent",
+      "item": true,
+      "doc": "The body shown while the AccordionItem is open.",
+      "props": [],
+      "children": true,
+      "example": "<Accordion defaultValue=\"item-1\">\n  <AccordionItem value=\"item-1\">\n    <AccordionTrigger>Is it accessible?</AccordionTrigger>\n    <AccordionContent><Text>Yes. It adheres to the WAI-ARIA design pattern.</Text></AccordionContent>\n  </AccordionItem>\n</Accordion>"
     },
     {
       "name": "Collapsible",
@@ -1354,27 +1537,97 @@
     },
     {
       "name": "Select",
-      "doc": "A dropdown that picks one string from a list.",
+      "doc": "A button that opens a list of options and shows the chosen one. Options come from SelectItem children (optionally inside SelectGroup) or the items prop.",
       "props": [
         {
           "name": "items",
           "type": "string[]",
-          "doc": "Options, in order."
+          "doc": "Plain options whose label is also the value; SelectItem children add more."
         },
         {
           "name": "value",
           "type": "string",
-          "doc": "Selected option. An empty string selects nothing."
+          "doc": "The selected option's value, controlled; set it from onChange. Without it the select keeps its own selection."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initially selected value when `value` is unset."
         },
         {
           "name": "placeholder",
           "type": "string",
-          "doc": "Text shown when nothing is selected."
+          "doc": "Text shown while nothing is selected."
         },
         {
           "name": "disabled",
           "type": "boolean",
-          "doc": "Disabled selects cannot open."
+          "doc": "Ignores clicks and keys."
+        },
+        {
+          "name": "searchable",
+          "type": "boolean",
+          "doc": "Adds a search field that filters the options. Read when the select mounts."
+        },
+        {
+          "name": "searchPlaceholder",
+          "type": "string",
+          "doc": "Hint in the search field."
+        },
+        {
+          "name": "cleanable",
+          "type": "boolean",
+          "doc": "Shows a clear button while an option is selected; clearing reports an empty value."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon in place of the dropdown caret."
+        },
+        {
+          "name": "titlePrefix",
+          "type": "string",
+          "doc": "Text before the selected label, such as \"Country: \"."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "A name that stays the same as the selection changes."
+        },
+        {
+          "name": "appearance",
+          "type": "boolean",
+          "doc": "false draws the bare trigger without border and background."
+        },
+        {
+          "name": "menuWidth",
+          "type": "number",
+          "doc": "Width of the open list in pixels. Defaults to the trigger's width."
+        },
+        {
+          "name": "menuMaxHeight",
+          "type": "number",
+          "doc": "Most height in pixels the open list takes before it scrolls."
+        },
+        {
+          "name": "scrollBounce",
+          "type": "boolean",
+          "doc": "Elastic overscroll in the list. Defaults to the platform's behavior."
+        },
+        {
+          "name": "autoFocus",
+          "type": "boolean",
+          "doc": "Focuses the select when it mounts."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Control size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
@@ -1382,10 +1635,67 @@
           "prop": "onChange",
           "value": "string",
           "param": "value",
-          "doc": "Receives the chosen option."
+          "doc": "Runs with the chosen value, or empty when cleared."
         }
       ],
-      "example": "<Select items={['Red', 'Green']} value={color.get()} onChange={(value) => { color.set(value); }}/>"
+      "children": "SelectItem, SelectGroup and SelectEmpty",
+      "example": "<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>"
+    },
+    {
+      "name": "SelectItem",
+      "item": true,
+      "doc": "One Select option. Text children are its label.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "The value reported by onChange. Defaults to the label."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Option text, when there are no text children."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Shown but cannot be chosen."
+        }
+      ],
+      "children": "Text",
+      "textChildren": "label",
+      "example": "<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>"
+    },
+    {
+      "name": "SelectGroup",
+      "item": true,
+      "doc": "A titled group of SelectItem options. Groups are searched together.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Group title, when there is no SelectLabel child."
+        }
+      ],
+      "children": "SelectLabel and SelectItem",
+      "example": "<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>"
+    },
+    {
+      "name": "SelectLabel",
+      "item": true,
+      "doc": "The title of a SelectGroup, from its text children.",
+      "props": [],
+      "children": "Text",
+      "textChildren": "text",
+      "example": "<Select placeholder=\"Select a fruit\" value={fruit} onChange={(value) => { fruit.set(value); }}>\n  <SelectGroup>\n    <SelectLabel>Fruits</SelectLabel>\n    <SelectItem value=\"apple\">Apple</SelectItem>\n    <SelectItem value=\"banana\">Banana</SelectItem>\n  </SelectGroup>\n</Select>"
+    },
+    {
+      "name": "SelectEmpty",
+      "item": true,
+      "doc": "Content shown in the open list when there are no options or no search matches.",
+      "props": [],
+      "children": true,
+      "example": "<Select placeholder=\"Nothing here\">\n  <SelectEmpty><Text variant=\"muted\">No options available</Text></SelectEmpty>\n</Select>"
     },
     {
       "name": "NumberInput",
@@ -1394,7 +1704,12 @@
         {
           "name": "value",
           "type": "number",
-          "doc": "Current value."
+          "doc": "Controlled value; set it from onChange. Without it the field keeps its own value."
+        },
+        {
+          "name": "defaultValue",
+          "type": "number",
+          "doc": "Initial value when `value` is unset; the field then keeps its own value."
         },
         {
           "name": "placeholder",
@@ -1404,7 +1719,52 @@
         {
           "name": "step",
           "type": "number",
-          "doc": "Change per button press. Defaults to 1."
+          "doc": "Amount the buttons and arrow keys add or subtract. Defaults to 1."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "doc": "Smallest value; stepping and blur clamp to it."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "doc": "Largest value; stepping and blur clamp to it."
+        },
+        {
+          "name": "prefix",
+          "type": "icon",
+          "doc": "Icon before the number."
+        },
+        {
+          "name": "suffix",
+          "type": "icon",
+          "doc": "Icon after the number."
+        },
+        {
+          "name": "appearance",
+          "type": "boolean",
+          "doc": "false draws the bare field without border and background."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Ignores input and stepping."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Names the field for assistive technology."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Control size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
@@ -1494,23 +1854,112 @@
     },
     {
       "name": "Tooltip",
-      "children": true,
-      "doc": "Shows text when the pointer rests on its children.",
+      "doc": "Shows a hint while the pointer rests on its children: text, a keyboard shortcut, or rich TooltipContent.",
       "props": [
         {
           "name": "text",
           "type": "string",
-          "doc": "Tooltip text."
+          "doc": "Tooltip text, when there is no TooltipContent child."
+        },
+        {
+          "name": "keys",
+          "type": "string",
+          "doc": "A keyboard shortcut shown beside the text, in GPUI keystroke syntax such as secondary-s."
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "doc": "A Shortcut command whose bound keys are shown beside the text."
+        },
+        {
+          "name": "contentClassName",
+          "type": "string",
+          "doc": "Utility classes for the tooltip surface."
         }
       ],
-      "example": "<Tooltip text=\"Copy link\"><Button>Share</Button></Tooltip>"
+      "children": true,
+      "example": "<Tooltip text=\"Save the current document\" keys=\"secondary-s\">\n  <Button>Save</Button>\n</Tooltip>"
+    },
+    {
+      "name": "TooltipContent",
+      "item": true,
+      "doc": "Rich content for a Tooltip: icons, styled text and layout.",
+      "props": [],
+      "children": true,
+      "example": "<Tooltip>\n  <Text>Hover for details</Text>\n  <TooltipContent>\n    <Text className=\"font-semibold\">User Information</Text>\n    <Text variant=\"muted\">Last login: 2 hours ago</Text>\n  </TooltipContent>\n</Tooltip>"
     },
     {
       "name": "Popover",
       "children": "PopoverTrigger, PopoverContent",
       "doc": "A floating panel opened by clicking its trigger. Children are one PopoverTrigger and one PopoverContent.",
-      "props": [],
-      "example": "<Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Options</Text></PopoverContent></Popover>"
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "doc": "Whether the popover is open, controlled; set it from onOpenChange. Without it the popover opens and closes itself."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "doc": "Starts open when `open` is unset."
+        },
+        {
+          "name": "anchor",
+          "type": [
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right",
+            "top-center",
+            "bottom-center",
+            "left-center",
+            "right-center"
+          ],
+          "doc": "The popup corner aligned to the trigger. Defaults to top-left (the popup opens below, left-aligned)."
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "doc": "Gap in pixels between the trigger and the popup."
+        },
+        {
+          "name": "arrow",
+          "type": "boolean",
+          "doc": "Draws an arrow pointing at the trigger."
+        },
+        {
+          "name": "mouseButton",
+          "type": [
+            "left",
+            "right"
+          ],
+          "doc": "The button that opens the popover. Defaults to left."
+        },
+        {
+          "name": "overlayClosable",
+          "type": "boolean",
+          "doc": "false keeps the popover open when clicking outside it."
+        },
+        {
+          "name": "appearance",
+          "type": "boolean",
+          "doc": "false removes the popup's surface styling."
+        },
+        {
+          "name": "triggerClassName",
+          "type": "string",
+          "doc": "Utility classes for the trigger container, such as w-full."
+        }
+      ],
+      "example": "<Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Options</Text></PopoverContent></Popover>",
+      "events": [
+        {
+          "prop": "onOpenChange",
+          "value": "boolean",
+          "param": "open",
+          "doc": "Runs when the popover opens or closes."
+        }
+      ]
     },
     {
       "name": "PopoverTrigger",
@@ -2354,33 +2803,125 @@
     },
     {
       "name": "Combobox",
-      "doc": "A searchable dropdown that picks one string from a list.",
+      "doc": "A searchable picker for one or several options, with optional custom trigger and footer. Options are SelectItem children (optionally in SelectGroup) or the items prop.",
       "props": [
         {
           "name": "items",
           "type": "string[]",
-          "doc": "Options, in order."
+          "doc": "Plain options whose label is also the value; SelectItem children add more."
         },
         {
           "name": "value",
           "type": "string",
-          "doc": "Selected option, or empty for none."
+          "doc": "Selected values, controlled, one per line (a single value for single-select); set it from onChange. Without it the combobox keeps its own selection."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string[]",
+          "doc": "Initially selected values when `value` is unset."
+        },
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "doc": "Allows several selections; each click toggles an option. Read when it mounts."
+        },
+        {
+          "name": "searchable",
+          "type": "boolean",
+          "doc": "false hides the search field. Defaults to true. Read when it mounts."
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "doc": "Search text, controlled."
         },
         {
           "name": "placeholder",
           "type": "string",
-          "doc": "Text shown when nothing is selected."
+          "doc": "Trigger text while nothing is selected."
+        },
+        {
+          "name": "searchPlaceholder",
+          "type": "string",
+          "doc": "Hint in the search field."
+        },
+        {
+          "name": "cleanable",
+          "type": "boolean",
+          "doc": "Shows a clear button while something is selected."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Ignores clicks and keys."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon in place of the dropdown caret."
+        },
+        {
+          "name": "checkIcon",
+          "type": "icon",
+          "doc": "Icon marking selected options. Defaults to a check."
+        },
+        {
+          "name": "appearance",
+          "type": "boolean",
+          "doc": "false draws the bare trigger."
+        },
+        {
+          "name": "menuWidth",
+          "type": "number",
+          "doc": "Width of the open list in pixels."
+        },
+        {
+          "name": "menuMaxHeight",
+          "type": "number",
+          "doc": "Most height in pixels the open list takes before it scrolls."
+        },
+        {
+          "name": "autoFocus",
+          "type": "boolean",
+          "doc": "Focuses the combobox when it mounts."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Control size: xsmall, small, medium (default) or large."
         }
       ],
-      "example": "<Combobox items={frameworks} value={choice.get()} placeholder=\"Select…\" onChange={(value) => { choice.set(clone(value)); }}/>",
       "events": [
         {
           "prop": "onChange",
-          "value": "string",
-          "param": "value",
-          "doc": "Receives the chosen option."
+          "value": "string[]",
+          "param": "values",
+          "doc": "Runs with every selected value after each toggle."
         }
-      ]
+      ],
+      "children": "SelectItem, SelectGroup, SelectEmpty, ComboboxTrigger and ComboboxFooter",
+      "example": "<Combobox multiple={true} placeholder=\"Select frameworks\" value={frameworks.get()} onChange={(values) => { frameworks.set(values); }}>\n  <SelectItem value=\"next\">Next.js</SelectItem>\n  <SelectItem value=\"astro\">Astro</SelectItem>\n</Combobox>"
+    },
+    {
+      "name": "ComboboxTrigger",
+      "item": true,
+      "doc": "Custom content for the Combobox trigger in place of the selected labels.",
+      "props": [],
+      "children": true,
+      "example": "<Combobox items={['Ada', 'Grace']}>\n  <ComboboxTrigger><Icon name=\"user\" /><Text>Assign</Text></ComboboxTrigger>\n</Combobox>"
+    },
+    {
+      "name": "ComboboxFooter",
+      "item": true,
+      "doc": "Content below a separator at the bottom of the open Combobox list, such as a create button.",
+      "props": [],
+      "children": true,
+      "example": "<Combobox items={['Design', 'Engineering']}>\n  <ComboboxFooter><Button size=\"small\" variant=\"ghost\" icon=\"plus\">New team</Button></ComboboxFooter>\n</Combobox>"
     },
     {
       "name": "Command",
@@ -2635,58 +3176,190 @@
     },
     {
       "name": "InputGroup",
-      "doc": "A text field framed together with an icon, leading and trailing text, and an optional action button.",
+      "doc": "An Input or Textarea framed together with addons: text, icons and buttons on either side, above or below.",
       "props": [
         {
-          "name": "value",
-          "type": "string",
-          "doc": "Current text."
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables the field and every addon button."
         },
         {
-          "name": "placeholder",
+          "name": "readOnly",
+          "type": "boolean",
+          "doc": "The field keeps focus and selection but rejects edits."
+        },
+        {
+          "name": "invalid",
+          "type": "boolean",
+          "doc": "Draws the frame in the destructive color."
+        },
+        {
+          "name": "accessibilityLabel",
           "type": "string",
-          "doc": "Hint shown when empty."
+          "doc": "Names the group for assistive technology."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Control size: xsmall, small, medium (default) or large."
+        }
+      ],
+      "children": "One Input or Textarea and InputGroupAddon",
+      "example": "<InputGroup>\n  <InputGroupAddon><Icon name=\"search\" /></InputGroupAddon>\n  <Input placeholder=\"Search...\" />\n  <InputGroupAddon align=\"inline-end\">\n    <InputGroupButton>Search</InputGroupButton>\n  </InputGroupAddon>\n</InputGroup>"
+    },
+    {
+      "name": "InputGroupAddon",
+      "item": true,
+      "doc": "A row of InputGroupText, InputGroupButton, icons or other content on one side of an InputGroup. Clicking its empty space focuses the field.",
+      "props": [
+        {
+          "name": "align",
+          "type": [
+            "inline-start",
+            "inline-end",
+            "block-start",
+            "block-end"
+          ],
+          "doc": "Where the addon sits: before (inline-start, the default) or after (inline-end) the text, or above (block-start) or below (block-end) it."
+        }
+      ],
+      "children": true,
+      "example": "<InputGroup>\n  <InputGroupAddon><Icon name=\"search\" /></InputGroupAddon>\n  <Input placeholder=\"Search...\" />\n  <InputGroupAddon align=\"inline-end\">\n    <InputGroupButton>Search</InputGroupButton>\n  </InputGroupAddon>\n</InputGroup>"
+    },
+    {
+      "name": "InputGroupText",
+      "item": true,
+      "doc": "Muted text inside an InputGroupAddon, such as https:// or a character count.",
+      "props": [],
+      "children": true,
+      "example": "<InputGroup>\n  <InputGroupAddon><InputGroupText>https://</InputGroupText></InputGroupAddon>\n  <Input placeholder=\"example\" />\n  <InputGroupAddon align=\"inline-end\"><InputGroupText>.com</InputGroupText></InputGroupAddon>\n</InputGroup>"
+    },
+    {
+      "name": "InputGroupButton",
+      "item": true,
+      "doc": "A compact ghost button inside an InputGroupAddon. Text children are its label; MenuItem children make it open a menu.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Button text."
         },
         {
           "name": "icon",
           "type": "icon",
-          "doc": "Icon at the start."
+          "doc": "Icon; an icon-only button is square."
         },
         {
-          "name": "prefix",
-          "type": "string",
-          "doc": "Text before the field, such as https://."
+          "name": "variant",
+          "type": [
+            "ghost",
+            "primary",
+            "secondary",
+            "danger",
+            "warning",
+            "success",
+            "info",
+            "link",
+            "text"
+          ],
+          "doc": "Visual style. Defaults to ghost."
         },
         {
-          "name": "suffix",
-          "type": "string",
-          "doc": "Text after the field, such as .com."
-        },
-        {
-          "name": "buttonLabel",
-          "type": "string",
-          "doc": "Label of a trailing button; no button when omitted."
+          "name": "outline",
+          "type": "boolean",
+          "doc": "Draws an outline variant."
         },
         {
           "name": "disabled",
           "type": "boolean",
-          "doc": "Prevents editing."
+          "doc": "Ignores clicks."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "doc": "Draws the button as selected."
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "doc": "Shows a spinner and blocks clicks."
+        },
+        {
+          "name": "loadingIcon",
+          "type": "icon",
+          "doc": "Icon shown while loading instead of the spinner."
+        },
+        {
+          "name": "tooltip",
+          "type": "string",
+          "doc": "Hint on hover."
+        },
+        {
+          "name": "tooltipDelay",
+          "type": "int",
+          "doc": "Milliseconds before the tooltip shows."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Names an icon-only button."
+        },
+        {
+          "name": "tabIndex",
+          "type": "int",
+          "doc": "Keyboard focus order."
+        },
+        {
+          "name": "caret",
+          "type": "boolean",
+          "doc": "Draws a dropdown caret after the label."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Custom fill: a theme color, palette color such as blue-500, or hex."
+        },
+        {
+          "name": "foreground",
+          "type": "string",
+          "doc": "Custom text color, with color."
+        },
+        {
+          "name": "hoverColor",
+          "type": "string",
+          "doc": "Custom hover fill, with color."
+        },
+        {
+          "name": "activeColor",
+          "type": "string",
+          "doc": "Custom pressed fill, with color."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Control size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
         {
-          "prop": "onChange",
-          "value": "string",
-          "param": "value",
-          "doc": "Receives the text after each edit."
-        },
-        {
-          "prop": "onButton",
+          "prop": "onClick",
           "value": "void",
-          "doc": "Called when the trailing button is clicked."
+          "doc": "Runs when the button is clicked. Focus stays where it was."
         }
       ],
-      "example": "<InputGroup icon=\"search\" placeholder=\"Search\" buttonLabel=\"Go\" value={query.get()} onChange={(text) => { query.set(clone(text)); }} onButton={() => { search(); }}/>"
+      "children": "Text",
+      "textChildren": "label",
+      "example": "<InputGroupAddon align=\"inline-end\">\n  <InputGroupButton icon=\"x\" accessibilityLabel=\"Clear\" onClick={() => { controlInput('query', 'clear'); }} />\n</InputGroupAddon>"
     },
     {
       "name": "Diff",
@@ -3490,6 +4163,7 @@
     "TableState",
     "Tag",
     "Textarea",
+    "TextareaState",
     "TimeField",
     "TimeFieldState",
     "TitleBar",
@@ -3505,6 +4179,34 @@
     "WindowControls"
   ],
   "covers": {
+    "Accordion": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "multiple": "multiple",
+      "bordered": "bordered",
+      "disabled": "disabled",
+      "item": "AccordionItem children",
+      "on_toggle_click": "onChange"
+    },
+    "AccordionItem": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "icon": "icon",
+      "title": "AccordionTrigger child / title",
+      "open": "value / defaultValue / open",
+      "disabled": "disabled",
+      "title_style": "titleClassName",
+      "hover": "hoverClassName",
+      "content_style": "contentClassName"
+    },
     "Alert": {
       "new": "variant",
       "with_variant": "variant",
@@ -3662,6 +4364,43 @@
       "large": "size",
       "with_size": "size"
     },
+    "Combobox": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "menu_width": "menuWidth",
+      "menu_max_h": "menuMaxHeight",
+      "placeholder": "placeholder",
+      "icon": "icon",
+      "check_icon": "checkIcon",
+      "search_placeholder": "searchPlaceholder",
+      "cleanable": "cleanable",
+      "disabled": "disabled",
+      "empty": "SelectEmpty child",
+      "appearance": "appearance",
+      "render_trigger": "ComboboxTrigger child",
+      "footer": "ComboboxFooter child"
+    },
+    "ComboboxState": {
+      "new": "automatic: one state per mounted Combobox",
+      "multiple": "multiple",
+      "searchable": "searchable",
+      "selected_values": "onChange values",
+      "selected_value": "onChange values",
+      "selection": "onChange values",
+      "set_selected_values": "value",
+      "set_selected_indices": "value",
+      "add_selected_index": "value",
+      "remove_selected_index": "value",
+      "clear_selection": "value={[]} / cleanable",
+      "set_items": "items / SelectItem children",
+      "focus": "autoFocus",
+      "query": "query",
+      "set_query": "query"
+    },
     "DropdownButton": {
       "new": "DropdownMenu",
       "button": "Button child (trigger)",
@@ -3724,6 +4463,200 @@
       "large": "size",
       "with_size": "size"
     },
+    "Input": {
+      "new": "automatic",
+      "disabled": "disabled",
+      "readonly": "readOnly",
+      "tab_index": "tabIndex",
+      "role": "role",
+      "accessibility_id": "id",
+      "aria_label": "aria-label",
+      "appearance": "appearance",
+      "bordered": "bordered",
+      "h": "height",
+      "on_token_click": "onTokenClick",
+      "on_token_hover": "onTokenHover",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "id": "automatic: the field's node identity",
+      "prefix": "prefix",
+      "suffix": "suffix",
+      "h_full": "height='full'",
+      "focus_bordered": "focusBordered",
+      "cleanable": "cleanable",
+      "mask_toggle": "maskToggle",
+      "content_type": "type / autoComplete",
+      "selected": "selected"
+    },
+    "InputGroup": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "input": "Input or Textarea child",
+      "addon": "InputGroupAddon children",
+      "disabled": "disabled",
+      "readonly": "readOnly",
+      "invalid": "invalid",
+      "aria_label": "accessibilityLabel"
+    },
+    "InputGroupAddon": {
+      "new": "automatic",
+      "align": "align"
+    },
+    "InputGroupButton": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "label": "label / text children",
+      "icon": "icon",
+      "accessibility_label": "accessibilityLabel",
+      "tooltip": "tooltip",
+      "tooltip_show_delay": "tooltipDelay",
+      "loading": "loading",
+      "loading_icon": "loadingIcon",
+      "outline": "outline",
+      "tab_index": "tabIndex",
+      "dropdown_caret": "caret",
+      "on_click": "onClick",
+      "disabled": "disabled",
+      "selected": "selected",
+      "primary": "variant",
+      "secondary": "variant",
+      "danger": "variant",
+      "warning": "variant",
+      "success": "variant",
+      "info": "variant",
+      "ghost": "variant",
+      "link": "variant",
+      "text": "variant",
+      "custom": "color / foreground / hoverColor / activeColor"
+    },
+    "InputGroupText": {
+      "new": "automatic: its children"
+    },
+    "InputState": {
+      "new": "automatic: one state per mounted field",
+      "placeholder": "placeholder",
+      "set_placeholder": "placeholder",
+      "masked": "masked",
+      "set_masked": "masked",
+      "toggle_masked": "controlInput toggleMasked",
+      "pattern": "pattern",
+      "set_pattern": "pattern",
+      "set_loading": "loading",
+      "set_value": "value",
+      "replace_all": "controlInput setValue",
+      "insert": "controlInput insert",
+      "replace": "controlInput replace",
+      "set_disabled": "disabled",
+      "set_readonly": "readOnly",
+      "clean_on_escape": "cleanOnEscape",
+      "set_clean_on_escape": "cleanOnEscape",
+      "submit_on_enter": "submitOnEnter",
+      "set_submit_on_enter": "submitOnEnter",
+      "input_action": "enterKeyHint",
+      "autocorrect": "autoCorrect",
+      "autocapitalize": "autoCapitalize",
+      "text_input_configuration": "n/a: derived from type, autoCorrect, autoCapitalize and enterKeyHint",
+      "show_whitespaces": "showWhitespace",
+      "set_show_whitespaces": "showWhitespace",
+      "scroll_beyond_last_line": "scrollBeyondLastLine",
+      "set_scroll_beyond_last_line": "scrollBeyondLastLine",
+      "cursor_surrounding_lines": "cursorSurroundingLines",
+      "set_cursor_surrounding_lines": "cursorSurroundingLines",
+      "default_value": "defaultValue",
+      "value": "onChange / readInput value",
+      "text": "readInput value",
+      "selected_value": "readInput selectedText",
+      "selected_text": "readInput selectedText",
+      "unmask_value": "readInput unmaskedValue",
+      "cursor": "readInput selectionStart",
+      "cursor_position": "readInput selectionStart",
+      "set_cursor_position": "controlInput setCursor",
+      "focus": "controlInput focus",
+      "clean": "controlInput clear",
+      "scroll_offset": "readInput scrollX/scrollY",
+      "set_scroll_offset": "controlInput scrollTo",
+      "visible_row_range": "readInput firstVisibleRow/lastVisibleRow",
+      "selected_range": "readInput selectionStart/selectionEnd",
+      "is_selection_reversed": "readInput selectionReversed",
+      "select_all": "controlInput selectAll",
+      "set_selected_range": "controlInput setSelection",
+      "set_selected_range_with_direction": "controlInput setSelection",
+      "add_selection": "controlInput addSelection",
+      "unselect": "controlInput unselect",
+      "mask_pattern": "mask / thousandsSeparator / fractionDigits",
+      "set_mask_pattern": "mask / thousandsSeparator / fractionDigits",
+      "ensure_number_mask": "thousandsSeparator / fractionDigits",
+      "set_text_align": "textAlign",
+      "context_menu": "contextMenu",
+      "set_context_menu_enabled": "contextMenu",
+      "replaceable": "replaceable",
+      "is_replaceable": "n/a: reports configuration the program set through props",
+      "set_accessibility": "aria-label and id",
+      "open_search": "controlInput openSearch / openReplace",
+      "set_search_query": "controlInput search",
+      "next_search_match": "controlInput nextMatch",
+      "previous_search_match": "controlInput previousMatch",
+      "replace_current_search_match": "controlInput replaceMatch",
+      "replace_all_search_matches": "controlInput replaceAllMatches",
+      "close_search": "controlInput closeSearch",
+      "set_search_replace_mode": "controlInput openReplace",
+      "is_multi_line": "n/a: reports configuration the program set through props",
+      "is_single_line": "n/a: reports configuration the program set through props",
+      "is_code_editor": "n/a: reports configuration the program set through props",
+      "is_copyable": "n/a: reports configuration the program set through props",
+      "is_editable": "n/a: reports configuration the program set through props",
+      "context_menu_capabilities": "n/a: reports configuration the program set through props",
+      "install_token_presentation": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "install_token_hover_presentation": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "cursor_layout": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "prepaint_caret_geometry": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "input_bounds": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "text_bounds": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "display_map": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "prewrap": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "diagnostic_popover": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "presentation": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "set_selection_focus": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "has_selection_focus": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "prepare": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "refresh": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "line_height": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "range_to_bounds": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "touch_selection": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "close_edit_menu": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "select_all_from_edit_menu": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "begin_edge_drag": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "update_edge_drag": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "end_edge_drag": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "search_session": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "search_activation_revision": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "set_highlighter": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "set_highlighter_factory": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "ensure_highlighter_factory": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "set_editor_style": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "set_editor_paddings": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "set_scrollbar_renderer": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "apply_highlighter_fold_candidates": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "diagnostics": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "diagnostics_mut": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "step": "NumberInput step",
+      "set_step": "NumberInput step",
+      "min": "NumberInput min",
+      "set_min": "NumberInput min",
+      "max": "NumberInput max",
+      "set_max": "NumberInput max"
+    },
     "Kbd": {
       "new": "keys",
       "appearance": "plain",
@@ -3744,6 +4677,48 @@
       "href": "href",
       "on_click": "href: activation navigates",
       "disabled": "disabled"
+    },
+    "NumberInput": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "placeholder": "placeholder",
+      "prefix": "prefix",
+      "suffix": "suffix",
+      "appearance": "appearance",
+      "accessibility_label": "accessibilityLabel",
+      "disabled": "disabled"
+    },
+    "Popover": {
+      "new": "automatic",
+      "anchor": "anchor",
+      "offset": "offset",
+      "arrow": "arrow",
+      "mouse_button": "mouseButton",
+      "trigger": "PopoverTrigger child",
+      "default_open": "defaultOpen",
+      "open": "open",
+      "on_open_change": "onOpenChange",
+      "trigger_style": "triggerClassName",
+      "overlay_closable": "overlayClosable",
+      "content": "PopoverContent child",
+      "appearance": "appearance",
+      "track_focus": "n/a: the popover tracks its own content focus"
+    },
+    "PopoverState": {
+      "new": "automatic",
+      "is_open": "onOpenChange",
+      "dismiss": "open={false}",
+      "show": "open={true}",
+      "set_open": "open",
+      "sync_open": "open",
+      "toggle_open": "open",
+      "track_focus": "n/a: the popover tracks its own content focus",
+      "set_on_open_change": "onOpenChange",
+      "on_action_cancel": "overlayClosable / Escape closes"
     },
     "PopupMenu": {
       "build": "DropdownMenu / ContextMenu",
@@ -3843,6 +4818,37 @@
       "large": "size",
       "with_size": "size"
     },
+    "Select": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "id": "automatic: the node identity",
+      "menu_width": "menuWidth",
+      "menu_max_h": "menuMaxHeight",
+      "placeholder": "placeholder",
+      "accessibility_label": "accessibilityLabel",
+      "icon": "icon",
+      "title_prefix": "titlePrefix",
+      "cleanable": "cleanable",
+      "search_placeholder": "searchPlaceholder",
+      "scroll_bounce": "scrollBounce",
+      "disabled": "disabled",
+      "empty": "SelectEmpty child",
+      "appearance": "appearance"
+    },
+    "SelectState": {
+      "new": "automatic: one state per mounted Select",
+      "searchable": "searchable",
+      "set_selected_index": "value",
+      "set_selected_value": "value",
+      "set_items": "items / SelectItem children",
+      "selected_index": "onChange value",
+      "selected_value": "onChange value",
+      "focus": "autoFocus"
+    },
     "Separator": {
       "vertical": "orientation",
       "horizontal": "orientation",
@@ -3896,6 +4902,52 @@
       "large": "size",
       "with_size": "size"
     },
+    "Tab": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "label": "label / text children",
+      "aria_label": "accessibilityLabel",
+      "icon": "icon",
+      "with_variant": "variant",
+      "pill": "variant",
+      "outline": "variant",
+      "segmented": "variant",
+      "underline": "variant",
+      "folder": "variant",
+      "prefix": "TabPrefix child",
+      "suffix": "TabSuffix child",
+      "disabled": "disabled",
+      "on_click": "Tabs onChange",
+      "selected": "Tabs value"
+    },
+    "TabBar": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "with_variant": "variant",
+      "pill": "variant",
+      "outline": "variant",
+      "segmented": "variant",
+      "underline": "variant",
+      "folder": "variant",
+      "menu": "menu",
+      "max_width": "maxWidth",
+      "track_scroll": "n/a: the bar keeps its own scroll handle",
+      "prefix": "TabsPrefix child",
+      "suffix": "TabsSuffix child",
+      "children": "Tab children",
+      "child": "Tab children",
+      "selected_index": "value / defaultValue",
+      "last_empty_space": "TabsEmptySpace child",
+      "on_click": "onChange"
+    },
     "Tag": {
       "new": "Tag",
       "primary": "variant",
@@ -3915,6 +4967,147 @@
       "medium": "size",
       "large": "size",
       "with_size": "size"
+    },
+    "Textarea": {
+      "new": "automatic",
+      "disabled": "disabled",
+      "readonly": "readOnly",
+      "tab_index": "tabIndex",
+      "role": "role",
+      "accessibility_id": "id",
+      "aria_label": "aria-label",
+      "appearance": "appearance",
+      "bordered": "bordered",
+      "h": "height",
+      "on_token_click": "onTokenClick",
+      "on_token_hover": "onTokenHover",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "TextareaState": {
+      "new": "automatic: one state per mounted field",
+      "placeholder": "placeholder",
+      "set_placeholder": "placeholder",
+      "masked": "masked",
+      "set_masked": "masked",
+      "toggle_masked": "controlInput toggleMasked",
+      "pattern": "pattern",
+      "set_pattern": "pattern",
+      "set_loading": "loading",
+      "set_value": "value",
+      "replace_all": "controlInput setValue",
+      "insert": "controlInput insert",
+      "replace": "controlInput replace",
+      "set_disabled": "disabled",
+      "set_readonly": "readOnly",
+      "clean_on_escape": "cleanOnEscape",
+      "set_clean_on_escape": "cleanOnEscape",
+      "submit_on_enter": "submitOnEnter",
+      "set_submit_on_enter": "submitOnEnter",
+      "input_action": "enterKeyHint",
+      "autocorrect": "autoCorrect",
+      "autocapitalize": "autoCapitalize",
+      "text_input_configuration": "n/a: derived from type, autoCorrect, autoCapitalize and enterKeyHint",
+      "show_whitespaces": "showWhitespace",
+      "set_show_whitespaces": "showWhitespace",
+      "scroll_beyond_last_line": "scrollBeyondLastLine",
+      "set_scroll_beyond_last_line": "scrollBeyondLastLine",
+      "cursor_surrounding_lines": "cursorSurroundingLines",
+      "set_cursor_surrounding_lines": "cursorSurroundingLines",
+      "default_value": "defaultValue",
+      "value": "onChange / readInput value",
+      "text": "readInput value",
+      "selected_value": "readInput selectedText",
+      "selected_text": "readInput selectedText",
+      "unmask_value": "readInput unmaskedValue",
+      "cursor": "readInput selectionStart",
+      "cursor_position": "readInput selectionStart",
+      "set_cursor_position": "controlInput setCursor",
+      "focus": "controlInput focus",
+      "clean": "controlInput clear",
+      "scroll_offset": "readInput scrollX/scrollY",
+      "set_scroll_offset": "controlInput scrollTo",
+      "visible_row_range": "readInput firstVisibleRow/lastVisibleRow",
+      "selected_range": "readInput selectionStart/selectionEnd",
+      "is_selection_reversed": "readInput selectionReversed",
+      "select_all": "controlInput selectAll",
+      "set_selected_range": "controlInput setSelection",
+      "set_selected_range_with_direction": "controlInput setSelection",
+      "add_selection": "controlInput addSelection",
+      "unselect": "controlInput unselect",
+      "mask_pattern": "mask / thousandsSeparator / fractionDigits",
+      "set_mask_pattern": "mask / thousandsSeparator / fractionDigits",
+      "ensure_number_mask": "thousandsSeparator / fractionDigits",
+      "set_text_align": "textAlign",
+      "context_menu": "contextMenu",
+      "set_context_menu_enabled": "contextMenu",
+      "replaceable": "replaceable",
+      "is_replaceable": "n/a: reports configuration the program set through props",
+      "set_accessibility": "aria-label and id",
+      "open_search": "controlInput openSearch / openReplace",
+      "set_search_query": "controlInput search",
+      "next_search_match": "controlInput nextMatch",
+      "previous_search_match": "controlInput previousMatch",
+      "replace_current_search_match": "controlInput replaceMatch",
+      "replace_all_search_matches": "controlInput replaceAllMatches",
+      "close_search": "controlInput closeSearch",
+      "set_search_replace_mode": "controlInput openReplace",
+      "is_multi_line": "n/a: reports configuration the program set through props",
+      "is_single_line": "n/a: reports configuration the program set through props",
+      "is_code_editor": "n/a: reports configuration the program set through props",
+      "is_copyable": "n/a: reports configuration the program set through props",
+      "is_editable": "n/a: reports configuration the program set through props",
+      "context_menu_capabilities": "n/a: reports configuration the program set through props",
+      "install_token_presentation": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "install_token_hover_presentation": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "cursor_layout": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "prepaint_caret_geometry": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "input_bounds": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "text_bounds": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "display_map": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "prewrap": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "diagnostic_popover": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "presentation": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "set_selection_focus": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "has_selection_focus": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "prepare": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "refresh": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "line_height": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "range_to_bounds": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "touch_selection": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "close_edit_menu": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "select_all_from_edit_menu": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "begin_edge_drag": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "update_edge_drag": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "end_edge_drag": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "search_session": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "search_activation_revision": "n/a: called by GPUI Kit's own input element during layout, paint or gestures",
+      "set_highlighter": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "set_highlighter_factory": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "ensure_highlighter_factory": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "set_editor_style": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "set_editor_paddings": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "set_scrollbar_renderer": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "apply_highlighter_fold_candidates": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "diagnostics": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "diagnostics_mut": "n/a: code-editor highlighting and styling; CodeEditor wraps it",
+      "rows": "rows",
+      "set_rows": "rows",
+      "auto_grow": "minRows / maxRows",
+      "set_auto_grow": "minRows / maxRows",
+      "scroll_bounce": "scrollBounce",
+      "set_scroll_bounce": "scrollBounce",
+      "searchable": "searchable",
+      "set_searchable": "searchable",
+      "soft_wrap": "softWrap",
+      "set_soft_wrap": "softWrap",
+      "wrapping_indent": "wrappingIndent",
+      "set_wrapping_indent": "wrappingIndent",
+      "tab_size": "tabSize / hardTabs",
+      "set_tab_size": "tabSize / hardTabs"
     },
     "Toggle": {
       "new": "Toggle",
@@ -3943,6 +5136,13 @@
       "large": "size",
       "with_size": "size",
       "disabled": "disabled"
+    },
+    "Tooltip": {
+      "new": "text",
+      "element": "TooltipContent child",
+      "action": "command",
+      "key_binding": "keys",
+      "build": "automatic"
     }
   }
 }

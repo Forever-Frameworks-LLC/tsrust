@@ -27,7 +27,7 @@ use gpui_kit::component::progress::{Progress, ProgressCircle};
 use gpui_kit::component::radio::{Radio, RadioGroup};
 use gpui_kit::component::rating::Rating;
 use gpui_kit::component::resizable::{h_resizable, resizable_panel, v_resizable};
-use gpui_kit::component::select::{Select, SelectEvent, SelectState};
+use gpui_kit::component::select::{Select, SelectEvent, SelectGroup, SelectItem, SelectState};
 use gpui_kit::component::separator::Separator;
 use gpui_kit::component::shimmer::ShimmerText;
 use gpui_kit::component::sidebar::{Sidebar, SidebarGroup, SidebarMenu, SidebarMenuItem};
@@ -36,11 +36,11 @@ use gpui_kit::component::slider::{Slider, SliderEvent, SliderState, SliderValue}
 use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::stepper::{Stepper, StepperItem};
 use gpui_kit::component::switch::Switch;
-use gpui_kit::component::tab::{Tab, TabBar};
+use gpui_kit::component::tab::{Tab, TabBar, TabVariant};
 use gpui_kit::component::table::{Column, ColumnSort, DataTable, Table, TableBody, TableCell, TableDelegate, TableEvent, TableHead, TableHeader, TableRow, TableState};
 use gpui_kit::component::attachment::{Attachment, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentStatus, AttachmentTitle};
 use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState};
-use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupInput, InputGroupText};
+use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupText};
 use gpui_kit::component::marker::{Marker, MarkerContent, MarkerIcon, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
 use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, panel_handle};
@@ -82,7 +82,9 @@ use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize,
 use super::commands::{self, Command};
 
 enum KitState {
-    Select(Entity<SelectState<Vec<SharedString>>>),
+    /// A Select's state and the option shape it was built from; grouped options use SelectGroups.
+    Select(Entity<SelectState<SearchableVec<Choice>>>, String),
+    SelectGroups(Entity<SelectState<SearchableVec<SelectGroup<Choice>>>>, String),
     Number(Entity<InputState>),
     Otp(Entity<OtpState>),
     Date(Entity<DatePickerState>),
@@ -90,13 +92,14 @@ enum KitState {
     Slider(Entity<SliderState>),
     Calendar(Entity<CalendarState>),
     Time(Entity<TimeFieldState>),
-    Combobox(Entity<ComboboxState<SearchableVec<SharedString>>>),
+    /// A Combobox's state and option shape; grouped options use ComboboxGroups.
+    Combobox(Entity<ComboboxState<SearchableVec<Choice>>>, String),
+    ComboboxGroups(Entity<ComboboxState<SearchableVec<SelectGroup<Choice>>>>, String),
     Command(Entity<CommandState>),
     Carousel(Entity<CarouselState>),
     Editor(Entity<EditorState>),
     Tree(Entity<TreeState>, String),
     List(VirtualListScrollHandle),
-    Field(Entity<InputState>),
     Diff(Entity<DiffState>, String),
     Table(Entity<TableState<Grid>>, String),
     Scroller(Entity<MessageScrollerState>, usize),
@@ -300,6 +303,11 @@ pub(crate) const STYLED_KIT: &[&str] = &["Tag", "Label", "Kbd", "Separator", "Sk
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
 fn checked(kit: &Kit) -> bool {kit.prop("checked").map_or(kit.flag("defaultChecked"), |value| value == "true")}
 
+/// A popup anchor corner by name; top-left by default.
+fn anchor_named(name: Option<&str>) -> gpui_kit::Anchor {
+    match name {Some("top-right") => gpui_kit::Anchor::TopRight, Some("bottom-left") => gpui_kit::Anchor::BottomLeft, Some("bottom-right") => gpui_kit::Anchor::BottomRight, Some("top-center") => gpui_kit::Anchor::TopCenter, Some("bottom-center") => gpui_kit::Anchor::BottomCenter, Some("left-center") => gpui_kit::Anchor::LeftCenter, Some("right-center") => gpui_kit::Anchor::RightCenter, _ => gpui_kit::Anchor::TopLeft}
+}
+
 /// DropdownMenu's button options on its trigger, whether a plain or split button.
 fn menu_button<T: ButtonVariants + Sizable + Selectable + Disableable>(button: T, kit: &Kit, cx: &App) -> T {
     let mut button = if kit.prop("disabled").is_some() {button.disabled(kit.flag("disabled"))} else {button};
@@ -430,6 +438,90 @@ fn items<'a>(node: &'a Node, name: &'a str) -> impl Iterator<Item = (&'a Node, &
     node.visible_children().filter_map(move |child| child.kit.as_deref().filter(|kit| kit.name == name).map(|kit| (child, kit)))
 }
 
+/// Select element options from its props; a SelectEmpty child replaces the empty list.
+macro_rules! select_options {($root:expr, $select:expr, $kit:expr, $empty:expr, $cx:expr) => {{
+    let kit: &Kit = $kit;
+    let mut select = $select.placeholder(kit.text("placeholder")).disabled(kit.flag("disabled")).cleanable(kit.flag("cleanable"));
+    if let Some(label) = kit.prop("accessibilityLabel") {select = select.accessibility_label(label.to_owned());}
+    if let Some(icon) = icon_name(&kit.text("icon")) {select = select.icon(icon);}
+    if let Some(prefix) = kit.prop("titlePrefix") {select = select.title_prefix(prefix.to_owned());}
+    if let Some(placeholder) = kit.prop("searchPlaceholder") {select = select.search_placeholder(placeholder.to_owned());}
+    if let Some(bounce) = kit.prop("scrollBounce") {select = select.scroll_bounce(bounce == "true");}
+    if kit.prop("appearance") == Some("false") {select = select.appearance(false);}
+    if let Some(width) = kit.number("menuWidth") {select = select.menu_width(px(width as f32));}
+    if let Some(height) = kit.number("menuMaxHeight") {select = select.menu_max_h(px(height as f32));}
+    if let Some(size) = kit_size(kit) {select = select.with_size(size);}
+    // Kit renders the empty state from &App, so a SelectEmpty child contributes its text.
+    if let Some(empty) = $empty {
+        let message = SharedString::from(find(&$root.node, empty).map(|node| node.content_text()).unwrap_or_default());
+        select = select.empty(move |_, cx| div().flex().justify_center().p_4().text_color(cx.theme().muted_foreground).child(message.clone()));
+    }
+    select
+}}}
+
+/// Combobox element options; ComboboxTrigger and ComboboxFooter children render as its trigger and footer.
+macro_rules! combobox_options {($root:expr, $combobox:expr, $kit:expr, $empty:expr, $trigger:expr, $footer:expr, $weak:expr, $cx:expr) => {{
+    let kit: &Kit = $kit;
+    let mut combobox = $combobox.placeholder(kit.text("placeholder")).disabled(kit.flag("disabled")).cleanable(kit.flag("cleanable"));
+    if let Some(icon) = icon_name(&kit.text("icon")) {combobox = combobox.icon(icon);}
+    if let Some(icon) = icon_name(&kit.text("checkIcon")) {combobox = combobox.check_icon(icon);}
+    if let Some(placeholder) = kit.prop("searchPlaceholder") {combobox = combobox.search_placeholder(placeholder.to_owned());}
+    if kit.prop("appearance") == Some("false") {combobox = combobox.appearance(false);}
+    if let Some(width) = kit.number("menuWidth") {combobox = combobox.menu_width(px(width as f32));}
+    if let Some(height) = kit.number("menuMaxHeight") {combobox = combobox.menu_max_h(px(height as f32));}
+    if let Some(size) = kit_size(kit) {combobox = combobox.with_size(size);}
+    if let Some(empty) = $empty {
+        let message = SharedString::from(find(&$root.node, empty).map(|node| node.content_text()).unwrap_or_default());
+        combobox = combobox.empty(move |_, cx| div().flex().justify_center().p_4().text_color(cx.theme().muted_foreground).child(message.clone()));
+    }
+    if let Some(trigger) = $trigger {
+        let root = $weak.clone();
+        combobox = combobox.render_trigger(move |_, _, cx| div().flex().items_center().gap_2().children(root.update(cx, |root, cx| root.content_of(trigger, cx)).unwrap_or_default()));
+    }
+    if let Some(footer) = $footer {
+        let root = $weak.clone();
+        combobox = combobox.footer(move |_, cx| div().flex().items_center().gap_2().p_1().children(root.update(cx, |root, cx| root.content_of(footer, cx)).unwrap_or_default()));
+    }
+    combobox
+}}}
+
+/// A Select option: its label, value and disabled state.
+#[derive(Clone)]
+struct Choice {label: SharedString, value: SharedString, disabled: bool}
+
+impl SelectItem for Choice {
+    type Value = SharedString;
+    fn title(&self) -> SharedString {self.label.clone()}
+    fn value(&self) -> &SharedString {&self.value}
+    fn disabled(&self) -> bool {self.disabled}
+}
+
+/// A Select's options: the `items` prop and SelectItem children, then SelectGroup children
+/// (each titled by its label prop or SelectLabel child). The shape string detects changes.
+fn choices(node: &Node, kit: &Kit) -> (Vec<Choice>, Vec<(SharedString, Vec<Choice>)>, String) {
+    fn choice(item: &Kit) -> Choice {
+        let label = item.text("label");
+        let value = item.prop("value").map_or_else(|| label.clone(), str::to_owned);
+        Choice {label: label.into(), value: value.into(), disabled: item.flag("disabled")}
+    }
+    let mut loose = kit.text("items").split('\n').filter(|item| !item.is_empty()).map(|item| Choice {label: item.to_owned().into(), value: item.to_owned().into(), disabled: false}).collect::<Vec<_>>();
+    loose.extend(items(node, "SelectItem").map(|(_, item)| choice(item)));
+    let groups = items(node, "SelectGroup").map(|(group, kit)| {
+        let title = items(group, "SelectLabel").next().map_or_else(|| kit.text("label"), |(_, label)| label.text("text"));
+        (SharedString::from(title), items(group, "SelectItem").map(|(_, item)| choice(item)).collect::<Vec<_>>())
+    }).collect::<Vec<_>>();
+    let mut shape = String::new();
+    for (title, options) in std::iter::once((&SharedString::default(), &loose)).chain(groups.iter().map(|(title, options)| (title, options))) {
+        shape.push_str(title);
+        for option in options {shape.push_str(&format!("\u{1}{}\u{2}{}\u{3}{}", option.label, option.value, option.disabled));}
+        shape.push('\u{4}');
+    }
+    (loose, groups, shape)
+}
+
+/// The first item component of this name among a node's children.
+fn first_item<'a>(node: &'a Node, name: &'a str) -> Option<&'a Node> {items(node, name).next().map(|(child, _)| child)}
+
 fn hex(color: Hsla) -> String {
     let rgba = color.to_rgb();
     let channel = |value: f32| (value.clamp(0., 1.) * 255.).round() as u8;
@@ -468,6 +560,31 @@ impl Root {
     fn content_except(&self, node: &Node, skip: &[&str], cx: &mut Context<Self>) -> Vec<AnyElement> {
         let theme = utility_theme(cx);
         node.visible_children().filter(|child| !child.kit.as_deref().is_some_and(|kit| skip.contains(&kit.name.as_str()))).map(|child| self.element(child, &theme, mode(cx), cx)).collect()
+    }
+
+    /// An InputGroupButton; MenuItem children make it open a dropdown menu.
+    fn input_group_button(&self, node: &Node, cx: &mut Context<Self>) -> AnyElement {
+        let id = node.identity.get();
+        let kit = node.kit.as_deref().expect("InputGroupButton");
+        let mut button = menu_button(InputGroupButton::new(ElementId::Integer(id)), kit, cx);
+        if !kit.text("label").is_empty() {button = button.label(kit.text("label"));}
+        if let Some(icon) = icon_name(&kit.text("icon")) {button = button.icon(icon);}
+        if let Some(label) = kit.prop("accessibilityLabel") {button = button.accessibility_label(label.to_owned());}
+        if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {button = button.tooltip(tooltip.to_owned());}
+        if let Some(delay) = kit.index("tooltipDelay") {button = button.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
+        if kit.flag("loading") {button = button.loading(true);}
+        if let Some(icon) = icon_name(&kit.text("loadingIcon")) {button = button.loading_icon(icon);}
+        if kit.flag("outline") {button = button.outline();}
+        if let Some(index) = kit.number("tabIndex") {button = button.tab_index(index as isize);}
+        if kit.flag("caret") {button = button.dropdown_caret(true);}
+        let root = cx.entity().downgrade();
+        if kit.handles("click") {
+            let root = root.clone();
+            button = button.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "click", String::new(), cx));});
+        }
+        let entries = std::rc::Rc::new(menu_entries(node));
+        if entries.is_empty() {return button.into_any_element();}
+        button.dropdown_menu(move |menu, window, cx| build_menu(menu, &entries, &root, window, cx)).into_any_element()
     }
 
     /// A Kit Avatar from an Avatar node's props.
@@ -543,7 +660,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "InputGroup" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -571,13 +688,55 @@ impl Root {
             }
             if let Some(state) = self.states.get(&id) {
                 match state {
-                    KitState::Select(state) => {
-                        let value = text("value");
-                        if state.read(cx).selected_value().map(|current| current.as_ref() != value).unwrap_or(!value.is_empty()) {
-                            state.update(cx, |state, cx| state.set_selected_value(&SharedString::from(value), window, cx));
+                    KitState::Select(..) | KitState::SelectGroups(..) => {
+                        let Some(node) = find(&self.node, id) else {continue};
+                        let (loose, groups, shape) = choices(node, node.kit.as_deref().expect("Select"));
+                        let value = props.get("value").cloned();
+                        match self.states.get_mut(&id) {
+                            Some(KitState::Select(state, current)) => {
+                                if *current != shape && groups.is_empty() {*current = shape; state.update(cx, |state, cx| state.set_items(SearchableVec::new(loose), window, cx));}
+                                if let Some(value) = value && state.read(cx).selected_value().map(|current| current.as_ref() != value).unwrap_or(!value.is_empty()) {
+                                    state.update(cx, |state, cx| state.set_selected_value(&SharedString::from(value), window, cx));
+                                }
+                            }
+                            Some(KitState::SelectGroups(state, current)) => {
+                                if *current != shape {
+                                    *current = shape;
+                                    let mut data = SearchableVec::new(Vec::new());
+                                    for (title, options) in groups {data.push(SelectGroup::new(title).items(options));}
+                                    state.update(cx, |state, cx| state.set_items(data, window, cx));
+                                }
+                                if let Some(value) = value && state.read(cx).selected_value().map(|current| current.as_ref() != value).unwrap_or(!value.is_empty()) {
+                                    state.update(cx, |state, cx| state.set_selected_value(&SharedString::from(value), window, cx));
+                                }
+                            }
+                            _ => {}
                         }
+                        continue;
+                    }
+                    KitState::Combobox(..) | KitState::ComboboxGroups(..) => {
+                        let Some(node) = find(&self.node, id) else {continue};
+                        let (loose, groups, shape) = choices(node, node.kit.as_deref().expect("Combobox"));
+                        let values = props.get("value").map(|value| value.split('\n').filter(|value| !value.is_empty()).map(SharedString::from).map(|value| SharedString::from(value.to_string())).collect::<Vec<_>>());
+                        let query = props.get("query").cloned();
+                        macro_rules! sync_combobox {($state:expr, $current:expr, $data:expr) => {{
+                            if *$current != shape {*$current = shape; let data = $data; $state.update(cx, |state, cx| state.set_items(data, window, cx));}
+                            if let Some(values) = values && $state.read(cx).selected_values() != values {$state.update(cx, |state, cx| state.set_selected_values(&values, window, cx));}
+                            if let Some(query) = query && $state.read(cx).query(cx).as_ref() != query {$state.update(cx, |state, cx| state.set_query(query, window, cx));}
+                        }}}
+                        match self.states.get_mut(&id) {
+                            Some(KitState::Combobox(state, current)) => if groups.is_empty() {sync_combobox!(state, current, SearchableVec::new(loose))},
+                            Some(KitState::ComboboxGroups(state, current)) => sync_combobox!(state, current, {let mut data = SearchableVec::new(Vec::new()); for (title, options) in groups {data.push(SelectGroup::new(title).items(options));} data}),
+                            _ => {}
+                        }
+                        continue;
                     }
                     KitState::Number(state) => {
+                        state.update(cx, |state, cx| {
+                            state.set_step(Some(gpui_kit::component::input::NumberStep::Fixed(number("step").map_or(1., f64::from))), window, cx);
+                            state.set_min(number("min").map(f64::from), window, cx);
+                            state.set_max(number("max").map(f64::from), window, cx);
+                        });
                         if let Some(value) = number("value") && state.read(cx).value().parse::<f32>().ok() != Some(value) {
                             state.update(cx, |state, cx| state.set_value(value.to_string(), window, cx));
                         }
@@ -605,10 +764,6 @@ impl Root {
                             if let Some(KitState::Tree(_, shape)) = self.states.get_mut(&id) {*shape = current;}
                         }
                     }
-                    KitState::Field(state) => {
-                        let value = text("value");
-                        if props.contains_key("value") && state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));}
-                    }
                     KitState::Diff(state, patch) => {
                         let mode = if text("mode") == "split" {DiffMode::Split} else {DiffMode::Unified};
                         if *patch != text("patch") {
@@ -634,25 +789,40 @@ impl Root {
                             if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
                         }
                     }
-                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Speech(_) | KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Combobox(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
+                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Speech(_) | KitState::Date(_) | KitState::Otp(_) | KitState::Calendar(_) | KitState::Time(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
                 }
                 continue;
             }
             let state = match name.as_str() {
                 "Select" => {
-                    let items = text("items").split('\n').filter(|item| !item.is_empty()).map(|item| SharedString::from(item.to_owned())).collect::<Vec<_>>();
-                    let selected = items.iter().position(|item| item.as_ref() == text("value"));
-                    let state = cx.new(|cx| SelectState::new(items, selected.map(gpui_kit::component::IndexPath::new), window, cx));
-                    cx.subscribe_in(&state, window, move |this, _, event: &SelectEvent<Vec<SharedString>>, _, cx| {
-                        let SelectEvent::Confirm(value) = event;
-                        this.emit(id, "change", value.as_ref().map(ToString::to_string).unwrap_or_default(), cx);
-                    }).detach();
-                    KitState::Select(state)
+                    let Some(node) = find(&self.node, id) else {continue};
+                    let (loose, groups, shape) = choices(node, node.kit.as_deref().expect("Select"));
+                    let value = props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default();
+                    let searchable = text("searchable") == "true";
+                    let report = move |this: &mut Root, value: &Option<SharedString>, cx: &mut Context<Root>| this.emit(id, "change", value.as_ref().map(ToString::to_string).unwrap_or_default(), cx);
+                    if groups.is_empty() {
+                        let selected = loose.iter().position(|option| option.value.as_ref() == value).map(IndexPath::new);
+                        let state = cx.new(|cx| SelectState::new(SearchableVec::new(loose), selected, window, cx).searchable(searchable));
+                        cx.subscribe_in(&state, window, move |this, _, event: &SelectEvent<SearchableVec<Choice>>, _, cx| {let SelectEvent::Confirm(value) = event; report(this, value, cx);}).detach();
+                        if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
+                        KitState::Select(state, shape)
+                    } else {
+                        let selected = groups.iter().enumerate().find_map(|(section, (_, options))| options.iter().position(|option| option.value.as_ref() == value).map(|row| IndexPath::new(row).section(section)));
+                        let mut data = SearchableVec::new(Vec::new());
+                        for (title, options) in groups {data.push(SelectGroup::new(title).items(options));}
+                        let state = cx.new(|cx| SelectState::new(data, selected, window, cx).searchable(searchable));
+                        cx.subscribe_in(&state, window, move |this, _, event: &SelectEvent<SearchableVec<SelectGroup<Choice>>>, _, cx| {let SelectEvent::Confirm(value) = event; report(this, value, cx);}).detach();
+                        if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
+                        KitState::SelectGroups(state, shape)
+                    }
                 }
                 "NumberInput" => {
                     let state = cx.new(|cx| {
                         let mut state = InputState::new(window, cx).placeholder(text("placeholder"));
-                        if let Some(value) = number("value") {state.set_value(value.to_string(), window, cx);}
+                        state = state.step(number("step").map_or(1., f64::from));
+                        if let Some(min) = number("min") {state = state.min(min as f64);}
+                        if let Some(max) = number("max") {state = state.max(max as f64);}
+                        if let Some(value) = number("value").or(number("defaultValue")) {state.set_value(value.to_string(), window, cx);}
                         state
                     });
                     cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
@@ -724,13 +894,35 @@ impl Root {
                     KitState::Time(state)
                 }
                 "Combobox" => {
-                    let items = text("items").split('\n').filter(|item| !item.is_empty()).map(|item| SharedString::from(item.to_owned())).collect::<Vec<_>>();
-                    let selected = items.iter().position(|item| item.as_ref() == text("value")).map(IndexPath::new).into_iter().collect::<Vec<_>>();
-                    let state = cx.new(|cx| ComboboxState::new(SearchableVec::new(items), selected, window, cx).searchable(true));
-                    cx.subscribe_in(&state, window, move |this, _, event: &ComboboxEvent<SearchableVec<SharedString>>, _, cx| {
-                        if let ComboboxEvent::Confirm(values) | ComboboxEvent::Change(values) = event {this.emit(id, "change", values.first().map(ToString::to_string).unwrap_or_default(), cx);}
-                    }).detach();
-                    KitState::Combobox(state)
+                    let Some(node) = find(&self.node, id) else {continue};
+                    let (loose, groups, shape) = choices(node, node.kit.as_deref().expect("Combobox"));
+                    // Selected values arrive one per line.
+                    let chosen = props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default();
+                    let chosen = chosen.split('\n').filter(|value| !value.is_empty()).map(str::to_owned).collect::<Vec<_>>();
+                    let (multiple, searchable) = (text("multiple") == "true", text("searchable") != "false");
+                    let report = move |this: &mut Root, values: &Vec<SharedString>, cx: &mut Context<Root>| this.emit(id, "change", values.iter().map(ToString::to_string).collect::<Vec<_>>().join("\n"), cx);
+                    if groups.is_empty() {
+                        let selected = loose.iter().enumerate().filter(|(_, option)| chosen.iter().any(|value| option.value.as_ref() == value)).map(|(row, _)| IndexPath::new(row)).collect::<Vec<_>>();
+                        let state = cx.new(|cx| ComboboxState::new(SearchableVec::new(loose), selected, window, cx).multiple(multiple).searchable(searchable));
+                        cx.subscribe_in(&state, window, move |this, _, event: &ComboboxEvent<SearchableVec<Choice>>, _, cx| {
+                            if let ComboboxEvent::Change(values) = event {report(this, values, cx);}
+                        }).detach();
+                        if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
+                        KitState::Combobox(state, shape)
+                    } else {
+                        let mut selected = Vec::new();
+                        for (section, (_, options)) in groups.iter().enumerate() {
+                            for (row, option) in options.iter().enumerate() {if chosen.iter().any(|value| option.value.as_ref() == value) {selected.push(IndexPath::new(row).section(section));}}
+                        }
+                        let mut data = SearchableVec::new(Vec::new());
+                        for (title, options) in groups {data.push(SelectGroup::new(title).items(options));}
+                        let state = cx.new(|cx| ComboboxState::new(data, selected, window, cx).multiple(multiple).searchable(searchable));
+                        cx.subscribe_in(&state, window, move |this, _, event: &ComboboxEvent<SearchableVec<SelectGroup<Choice>>>, _, cx| {
+                            if let ComboboxEvent::Change(values) = event {report(this, values, cx);}
+                        }).detach();
+                        if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
+                        KitState::ComboboxGroups(state, shape)
+                    }
                 }
                 "Command" => KitState::Command(cx.new(|cx| CommandState::new(window, cx))),
                 "Carousel" => {
@@ -755,18 +947,6 @@ impl Root {
                         if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); this.emit(id, "change", value, cx);}
                     }).detach();
                     KitState::Editor(state)
-                }
-                "InputGroup" => {
-                    let (placeholder, value) = (text("placeholder"), text("value"));
-                    let state = cx.new(|cx| {
-                        let mut state = InputState::new(window, cx).placeholder(placeholder);
-                        state.set_value(value, window, cx);
-                        state
-                    });
-                    cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
-                        if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); this.emit(id, "change", value, cx);}
-                    }).detach();
-                    KitState::Field(state)
                 }
                 "Diff" => {
                     let files = DiffFile::parse(&text("patch")).unwrap_or_default();
@@ -959,6 +1139,7 @@ impl Root {
                         "close" => window.remove_window(),
                         "quit" => cx.quit(),
                         "open-url" => cx.open_url(&text("url")),
+                        "input" => self.control_input(&value, window, cx),
                         "relaunch" => match super::update::relaunch() {Ok(()) => cx.quit(), Err(error) => window.push_notification(Notification::error(error), cx)},
                         _ => cx.write_to_clipboard(ClipboardItem::new_string(text("text"))),
                     }
@@ -966,6 +1147,12 @@ impl Root {
                 Command::Reply {name, payload, reply} => {
                     let value: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
                     let flag = |key: &str| value.get(key).and_then(|value| value.as_bool()).unwrap_or(false);
+                    if name == "read-input" {
+                        let snapshot = self.read_input(value.get("id").and_then(|id| id.as_str()).unwrap_or_default(), window, cx);
+                        let result = reply(&snapshot);
+                        self.settle(result.map(|_| true), cx);
+                        continue;
+                    }
                     if name == "read-clipboard" {
                         let text = cx.read_from_clipboard().and_then(|item| item.text()).unwrap_or_default();
                         let result = reply(&text);
@@ -1303,39 +1490,81 @@ impl Root {
                 stepper.items(items(node, "StepperItem").map(|(_, item)| StepperItem::new().disabled(item.flag("disabled")).child(SharedString::from(item.text("label"))))).into_any_element()
             }
             "Tabs" => {
-                let mut bar = TabBar::new(element_id).selected_index(kit.index("selected").unwrap_or(0));
-                bar = match kit.prop("variant") {Some("underline") => bar.underline(), Some("pill") => bar.pill(), Some("outline") => bar.outline(), Some("segmented") => bar.segmented(), _ => bar};
-                for (index, (_, item)) in items(node, "Tab").enumerate() {
-                    let mut tab = Tab::new().label(item.text("label")).disabled(item.flag("disabled"));
-                    if kit.handles("change") {tab = tab.on_click(cx.listener(move |this, _, _, cx| this.emit(id, "change", index.to_string(), cx)));}
+                // shadcn composition: Tab triggers (by value, defaulting to their index) and TabsContent panels.
+                let tabs = items(node, "Tab").enumerate().map(|(index, (child, item))| (child, item, item.prop("value").map_or_else(|| index.to_string(), str::to_owned))).collect::<Vec<_>>();
+                let by_value = |value: &str| tabs.iter().position(|(_, _, tab)| tab == value);
+                let selected = kit.prop("value").and_then(by_value).or(kit.index("selected")).or(kit.prop("defaultValue").and_then(by_value)).unwrap_or(0);
+                let variant = |name: Option<&str>| match name {Some("underline") => Some(TabVariant::Underline), Some("pill") => Some(TabVariant::Pill), Some("outline") => Some(TabVariant::Outline), Some("segmented") => Some(TabVariant::Segmented), Some("folder") => Some(TabVariant::Folder), Some("tab") => Some(TabVariant::Tab), _ => None};
+                let mut bar = TabBar::new(element_id).selected_index(selected).menu(kit.flag("menu"));
+                if let Some(variant) = variant(kit.prop("variant")) {bar = bar.with_variant(variant);}
+                if let Some(width) = kit.number("maxWidth") {bar = bar.max_width(px(width as f32));}
+                if let Some(size) = kit_size(kit) {bar = bar.with_size(size);}
+                if let Some(prefix) = first_item(node, "TabsPrefix") {bar = bar.prefix(div().flex().items_center().gap_1().children(self.content(prefix, cx)));}
+                if let Some(suffix) = first_item(node, "TabsSuffix") {bar = bar.suffix(div().flex().items_center().gap_1().children(self.content(suffix, cx)));}
+                if let Some(space) = first_item(node, "TabsEmptySpace") {bar = bar.last_empty_space(div().flex().items_center().size_full().children(self.content(space, cx)));}
+                for (child, item, _) in &tabs {
+                    let mut tab = Tab::new().disabled(item.flag("disabled"));
+                    if !item.text("label").is_empty() {tab = tab.label(item.text("label"));}
+                    if let Some(label) = item.prop("accessibilityLabel") {tab = tab.aria_label(label.to_owned());}
+                    if let Some(icon) = icon_name(&item.text("icon")) {tab = tab.icon(icon);}
+                    if let Some(variant) = variant(item.prop("variant")) {tab = tab.with_variant(variant);}
+                    if let Some(prefix) = first_item(child, "TabPrefix") {tab = tab.prefix(div().flex().items_center().gap_1().children(self.content(prefix, cx)));}
+                    if let Some(suffix) = first_item(child, "TabSuffix") {tab = tab.suffix(div().flex().items_center().gap_1().children(self.content(suffix, cx)));}
                     bar = bar.child(tab);
                 }
-                bar.into_any_element()
+                let values = tabs.iter().map(|(_, _, value)| value.clone()).collect::<Vec<_>>();
+                bar = bar.on_click(cx.listener(move |this, index: &usize, _, cx| if let Some(value) = values.get(*index) {this.emit(id, "change", value.clone(), cx);}));
+                let current = tabs.get(selected).map(|(_, _, value)| value.clone()).unwrap_or_default();
+                let panel = items(node, "TabsContent").enumerate().find(|(index, (_, item))| item.prop("value").map_or_else(|| index.to_string(), str::to_owned) == current).map(|(_, (panel, _))| self.content(panel, cx)).unwrap_or_default();
+                if panel.is_empty() {bar.into_any_element()} else {div().flex().flex_col().gap_3().child(bar).children(panel).into_any_element()}
             }
             "Accordion" => {
-                let mut accordion = Accordion::new(element_id).multiple(kit.flag("multiple")).bordered(kit.prop("bordered") != Some("false"));
-                // Without onChange the renderer keeps the open sections itself.
-                let controlled = kit.handles("change");
-                let open_sections = self.accordions.get(&id);
-                for (index, (child, item)) in items(node, "AccordionItem").enumerate() {
-                    let body = self.content(child, cx);
-                    let open = match open_sections {Some(sections) if !controlled => sections.contains(&index), _ => item.flag("open")};
-                    let (title, disabled) = (item.text("title"), item.flag("disabled"));
-                    accordion = accordion.item(move |entry| entry.title(SharedString::from(title)).open(open).disabled(disabled).child(div().children(body)));
+                // shadcn composition: AccordionItem (value, defaulting to its index) with AccordionTrigger and AccordionContent.
+                // value lists the open items one per line; without it the accordion keeps its own open items.
+                let entries = items(node, "AccordionItem").enumerate().map(|(index, (child, item))| (child, item, item.prop("value").map_or_else(|| index.to_string(), str::to_owned))).collect::<Vec<_>>();
+                let listed = kit.prop("value").or(kit.prop("defaultValue")).map(|value| value.split('\n').map(str::to_owned).collect::<Vec<_>>());
+                let mut accordion = Accordion::new(element_id).multiple(kit.flag("multiple")).bordered(kit.prop("bordered") != Some("false")).disabled(kit.flag("disabled"));
+                if let Some(size) = kit_size(kit) {accordion = accordion.with_size(size);}
+                for (child, item, value) in &entries {
+                    let open = match &listed {Some(values) => values.contains(value), None => item.flag("open")};
+                    let trigger = items(child, "AccordionTrigger").next().map(|(trigger, _)| self.content(trigger, cx));
+                    let body = match items(child, "AccordionContent").next() {Some((content, _)) => self.content(content, cx), None => self.content_except(child, &["AccordionTrigger"], cx)};
+                    let (title, disabled, icon) = (item.text("title"), item.flag("disabled"), icon_name(&item.text("icon")));
+                    let (title_style, content_style) = (self.class_style(&item.text("titleClassName"), cx), self.class_style(&item.text("contentClassName"), cx));
+                    let hover = self.class_style(&item.text("hoverClassName"), cx);
+                    let size = kit_size(item);
+                    accordion = accordion.item(move |mut entry| {
+                        entry = match trigger {Some(trigger) => entry.title(div().flex().items_center().gap_2().children(trigger)), None => entry.title(SharedString::from(title))};
+                        if let Some(icon) = icon {entry = entry.icon(icon);}
+                        if let Some(size) = size {entry = entry.with_size(size);}
+                        entry.open(open).disabled(disabled).title_style(title_style).content_style(content_style).hover(move |_| hover).child(div().children(body))
+                    });
                 }
+                let values = entries.iter().map(|(_, _, value)| value.clone()).collect::<Vec<_>>();
                 accordion = accordion.on_toggle_click(cx.listener(move |this, open: &[usize], _, cx| {
-                    if controlled {this.emit(id, "change", open.iter().map(ToString::to_string).collect::<Vec<_>>().join(","), cx);}
-                    else {this.accordions.insert(id, open.iter().copied().collect()); cx.notify();}
+                    this.emit(id, "change", open.iter().filter_map(|index| values.get(*index).cloned()).collect::<Vec<_>>().join("\n"), cx);
                 }));
                 accordion.into_any_element()
             }
             "Collapsible" => Collapsible::new().open(kit.flag("open")).content(div().children(self.content(node, cx))).into_any_element(),
-            "Select" => match self.states.get(&id) {
-                Some(KitState::Select(state)) => Select::new(state).placeholder(text("placeholder")).disabled(kit.flag("disabled")).into_any_element(),
-                _ => div().into_any_element(),
-            },
+            "Select" => {
+                let empty = items(node, "SelectEmpty").next().map(|(empty, _)| empty.identity.get());
+                match self.states.get(&id) {
+                    Some(KitState::Select(state, _)) => select_options!(self, Select::new(state), kit, empty, cx).into_any_element(),
+                    Some(KitState::SelectGroups(state, _)) => select_options!(self, Select::new(state), kit, empty, cx).into_any_element(),
+                    _ => div().into_any_element(),
+                }
+            }
             "NumberInput" => match self.states.get(&id) {
-                Some(KitState::Number(state)) => NumberInput::new(state).placeholder(text("placeholder")).into_any_element(),
+                Some(KitState::Number(state)) => {
+                    let mut input = NumberInput::new(state).placeholder(text("placeholder")).disabled(kit.flag("disabled"));
+                    if let Some(icon) = icon_name(&kit.text("prefix")) {input = input.prefix(Icon::new(icon).small());}
+                    if let Some(icon) = icon_name(&kit.text("suffix")) {input = input.suffix(Icon::new(icon).small());}
+                    if kit.prop("appearance") == Some("false") {input = input.appearance(false);}
+                    if let Some(label) = kit.prop("accessibilityLabel") {input = input.accessibility_label(label.to_owned());}
+                    if let Some(size) = kit_size(kit) {input = input.with_size(size);}
+                    input.into_any_element()
+                }
                 _ => div().into_any_element(),
             },
             "OtpInput" => match self.states.get(&id) {Some(KitState::Otp(state)) => OtpInput::new(state).into_any_element(), _ => div().into_any_element()},
@@ -1352,8 +1581,20 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "Tooltip" => {
-                let tip = text("text");
-                div().id(element_id).children(self.content(node, cx)).tooltip(move |window, cx| Tooltip::new(tip.clone()).build(window, cx)).into_any_element()
+                // Children are the trigger; a TooltipContent child is a rich tooltip, else the text prop.
+                let (tip, keys, command) = (text("text"), kit.text("keys"), kit.text("command"));
+                let rich = items(node, "TooltipContent").next().map(|(child, _)| child.identity.get());
+                let style = self.class_style(&kit.text("contentClassName"), cx);
+                let root = root.clone();
+                div().id(element_id).children(self.content_except(node, &["TooltipContent"], cx)).tooltip(move |window, cx| {
+                    let mut tooltip = match rich {
+                        Some(body) => {let root = root.clone(); Tooltip::element(move |_, cx| div().flex().flex_col().gap_1().children(root.update(cx, |root, cx| root.content_of(body, cx)).unwrap_or_default()))}
+                        None => Tooltip::new(tip.clone()),
+                    };
+                    if let Some(keys) = keystroke(&keys) {tooltip = tooltip.key_binding(Some(Kbd::new(keys)));}
+                    if !command.is_empty() {tooltip = tooltip.action(&TsrustCommand {name: command.clone()}, None);}
+                    tooltip.refine_style(&style).build(window, cx)
+                }).into_any_element()
             }
             "Popover" | "HoverCard" => {
                 let slot = |name: &'static str| items(node, name).next().map(|(child, _)| child);
@@ -1362,7 +1603,16 @@ impl Root {
                 let render = move |cx: &mut App| match body {Some(body) => root.update(cx, |root, cx| root.content_of(body, cx)).unwrap_or_default(), None => Vec::new()};
                 let trigger = div().children(trigger);
                 if kit.name == "Popover" {
-                    Popover::new(element_id).trigger(Trigger {element: trigger.into_any_element(), selected: false}).content(move |_, _, cx| div().flex().flex_col().gap_2().children(render(cx))).into_any_element()
+                    let mut popover = Popover::new(element_id).trigger(Trigger {element: trigger.into_any_element(), selected: false})
+                        .anchor(anchor_named(kit.prop("anchor"))).arrow(kit.flag("arrow")).overlay_closable(kit.prop("overlayClosable") != Some("false"))
+                        .trigger_style(self.class_style(&kit.text("triggerClassName"), cx));
+                    if let Some(offset) = kit.number("offset") {popover = popover.offset(px(offset as f32));}
+                    if kit.prop("mouseButton") == Some("right") {popover = popover.mouse_button(MouseButton::Right);}
+                    if kit.prop("appearance") == Some("false") {popover = popover.appearance(false);}
+                    // open controls the popover; defaultOpen only starts it open.
+                    popover = match kit.prop("open") {Some(open) => popover.open(open == "true"), None => popover.default_open(kit.flag("defaultOpen"))};
+                    if kit.handles("openChange") {popover = popover.on_open_change(cx.listener(move |this, open: &bool, _, cx| this.emit(id, "openChange", open.to_string(), cx)));}
+                    popover.content(move |_, _, cx| div().flex().flex_col().gap_2().children(render(cx))).into_any_element()
                 } else {
                     HoverCard::new(element_id).trigger(trigger).content(move |_, _, cx| div().flex().flex_col().gap_2().children(render(cx))).into_any_element()
                 }
@@ -1572,10 +1822,15 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "TimeField" => match self.states.get(&id) {Some(KitState::Time(state)) => TimeField::new(state).into_any_element(), _ => div().into_any_element()},
-            "Combobox" => match self.states.get(&id) {
-                Some(KitState::Combobox(state)) => Combobox::new(state).placeholder(text("placeholder")).into_any_element(),
-                _ => div().into_any_element(),
-            },
+            "Combobox" => {
+                let slot = |name: &str| items(node, name).next().map(|(child, _)| child.identity.get());
+                let (empty, trigger, footer) = (slot("SelectEmpty"), slot("ComboboxTrigger"), slot("ComboboxFooter"));
+                match self.states.get(&id) {
+                    Some(KitState::Combobox(state, _)) => combobox_options!(self, Combobox::new(state), kit, empty, trigger, footer, root, cx).into_any_element(),
+                    Some(KitState::ComboboxGroups(state, _)) => combobox_options!(self, Combobox::new(state), kit, empty, trigger, footer, root, cx).into_any_element(),
+                    _ => div().into_any_element(),
+                }
+            }
             "Command" => match self.states.get(&id) {
                 Some(KitState::Command(state)) => {
                     let entries = items(node, "CommandItem").map(|(child, item)| (child.identity.get(), item.text("label"), item.flag("disabled"))).collect::<Vec<_>>();
@@ -1664,29 +1919,34 @@ impl Root {
                     this.emit(id, "click", selected.iter().map(ToString::to_string).collect::<Vec<_>>().join(","), cx);
                 })).into_any_element()
             }
-            "InputGroup" => match self.states.get(&id) {
-                Some(KitState::Field(state)) => {
-                    let mut group = InputGroup::new(element_id).input(InputGroupInput::new(state)).disabled(kit.flag("disabled"));
-                    let (icon, prefix, suffix, button) = (icon_name(&kit.text("icon")), kit.text("prefix"), kit.text("suffix"), kit.text("buttonLabel"));
-                    if icon.is_some() || !prefix.is_empty() {
-                        let mut start = InputGroupAddon::new(ElementId::Name(format!("{id}-start").into()));
-                        if let Some(icon) = icon {start = start.child(Icon::new(icon));}
-                        if !prefix.is_empty() {start = start.child(InputGroupText::new().child(prefix));}
-                        group = group.addon(start);
-                    }
-                    if !suffix.is_empty() || !button.is_empty() {
-                        let mut end = InputGroupAddon::new(ElementId::Name(format!("{id}-end").into())).align(InputGroupAddonAlignment::InlineEnd);
-                        if !suffix.is_empty() {end = end.child(InputGroupText::new().child(suffix));}
-                        if !button.is_empty() {
-                            let root = root.clone();
-                            end = end.child(InputGroupButton::new(ElementId::Name(format!("{id}-button").into())).label(button).on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "button", String::new(), cx));}));
+            "InputGroup" => {
+                // shadcn composition: one Input or Textarea child and InputGroupAddon children.
+                let mut group = InputGroup::new(element_id).disabled(kit.flag("disabled")).readonly(kit.flag("readOnly")).invalid(kit.flag("invalid"));
+                if let Some(size) = kit_size(kit) {group = group.with_size(size);}
+                if let Some(label) = kit.prop("accessibilityLabel") {group = group.aria_label(label.to_owned());}
+                for child in node.visible_children() {
+                    if child.editable.is_some() {
+                        match self.inputs.get(&child.identity.get()) {
+                            Some((Field::Line(state), _)) => group = group.input(input_options!(Input::new(state), child, true, cx)),
+                            Some((Field::Text(state), _)) => group = group.input(input_options!(Textarea::new(state), child, false, cx)),
+                            None => {}
                         }
-                        group = group.addon(end);
+                        continue;
                     }
-                    group.into_any_element()
+                    let Some(part) = child.kit.as_deref().filter(|part| part.name == "InputGroupAddon") else {continue};
+                    let align = match part.prop("align") {Some("inline-end") => InputGroupAddonAlignment::InlineEnd, Some("block-start") => InputGroupAddonAlignment::BlockStart, Some("block-end") => InputGroupAddonAlignment::BlockEnd, _ => InputGroupAddonAlignment::InlineStart};
+                    let mut addon = InputGroupAddon::new(ElementId::Integer(child.identity.get())).align(align);
+                    for item in child.visible_children() {
+                        addon = match item.kit.as_deref().map(|kit| kit.name.as_str()) {
+                            Some("InputGroupText") => addon.child(InputGroupText::new().children(self.content(item, cx))),
+                            Some("InputGroupButton") => addon.child(self.input_group_button(item, cx)),
+                            _ => {let theme = utility_theme(cx); addon.child(self.element(item, &theme, mode(cx), cx))}
+                        };
+                    }
+                    group = group.addon(addon);
                 }
-                _ => div().into_any_element(),
-            },
+                group.into_any_element()
+            }
             "Diff" => match self.states.get(&id) {
                 Some(KitState::Diff(state, _)) => Diff::new(state).size_full().into_any_element(),
                 _ => div().into_any_element(),

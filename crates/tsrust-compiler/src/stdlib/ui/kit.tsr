@@ -23,6 +23,13 @@ function kitNumber(node: Node, name: string, value: ReactiveValue<number>): Node
   return unwrapNode(nativeKitBind(node, name, nativeBindText(value.evaluate)));
 }
 
+// The renderer joins list values with newlines; handlers receive the array.
+function kitOnList(node: Node, name: string, handler: Owned<Function<void, [values: ReadOnly<string[]>]>>): Node {
+  return unwrapNode(nativeKitOn(node, name, (text: ReadOnly<string>): void => {
+    handler(text === '' ? [] : text.split('\n'));
+  }));
+}
+
 function kitInt(node: Node, name: string, value: ReactiveValue<int>): Node {
   if (typeof value === 'number') {
     const constant = value;
@@ -1690,24 +1697,37 @@ export function StepperItem(props: StepperItemProps): Node {
 }
 
 export interface TabsProps {
-  /** Index of the selected tab. */
-  selected?: ReactiveValue<int>;
-  /** Visual style. Defaults to the standard tab style. */
-  variant?: ReactiveValue<'underline' | 'pill' | 'outline' | 'segmented'>;
-  /** Receives the clicked tab's index. */
-  onChange?: Owned<Function<void, [index: int]>>;
-  /** Tab elements. */
+  /** The selected tab's value, controlled; set it from onChange. Without it the tabs keep their own selection. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Initially selected tab value when `value` is unset. Defaults to the first tab. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Tab style: tab (default), underline, pill, outline, segmented or folder (browser-style tabs that join the content below). */
+  variant?: ReactiveValue<'tab' | 'underline' | 'pill' | 'outline' | 'segmented' | 'folder'>;
+  /** Adds a menu listing every tab, for bars that overflow. */
+  menu?: ReactiveValue<boolean>;
+  /** Most width in pixels before the bar scrolls. */
+  maxWidth?: ReactiveValue<number>;
+  /** Tab size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with the clicked tab's value. */
+  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Tab, TabsContent, TabsPrefix, TabsSuffix and TabsEmptySpace elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A tab bar. Children are Tab elements; show the matching panel yourself from the selected index. */
+/** A row of Tab triggers that switches between TabsContent panels. */
 export function Tabs(props: TabsProps): Node {
   let node = kitNode('Tabs', props.children ?? [], props.className ?? '');
-  const prop_selected = props.selected;
-  if (prop_selected !== undefined) {
-    node = kitInt(node, 'selected', prop_selected);
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_variant = props.variant;
@@ -1719,65 +1739,23 @@ export function Tabs(props: TabsProps): Node {
     }
   }
 
-  const event_onChange = props.onChange;
-  if (event_onChange !== undefined) {
-    node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
+  const prop_menu = props.menu;
+  if (prop_menu !== undefined) {
+    node = kitFlag(node, 'menu', prop_menu);
   }
 
-  return node;
-}
-
-export interface TabProps {
-  /** Tab text. */
-  label?: ReactiveValue<string> | TextBinding;
-  /** Disabled tabs cannot be selected. */
-  disabled?: ReactiveValue<boolean>;
-  /** Text content, used as `label` when that prop is unset. */
-  children?: Child[];
-  /** Shared utility classes applied around the component, such as width or margin. */
-  className?: string;
-}
-
-/** One tab in Tabs. */
-export function Tab(props: TabProps): Node {
-  let node = kitNode('Tab', props.children ?? [], props.className ?? '');
-  const prop_label = props.label;
-  if (prop_label !== undefined) {
-    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  const prop_maxWidth = props.maxWidth;
+  if (prop_maxWidth !== undefined) {
+    node = kitNumber(node, 'maxWidth', prop_maxWidth);
   }
 
-  const prop_disabled = props.disabled;
-  if (prop_disabled !== undefined) {
-    node = kitFlag(node, 'disabled', prop_disabled);
-  }
-
-  return node;
-}
-
-export interface AccordionProps {
-  /** Allows several sections open at once. */
-  multiple?: ReactiveValue<boolean>;
-  /** Draws borders around sections. Defaults to true. */
-  bordered?: ReactiveValue<boolean>;
-  /** Receives the open item indexes as comma-separated text, such as "0,2". */
-  onChange?: Owned<Function<void, [open: ReadOnly<string>]>>;
-  /** AccordionItem elements. */
-  children?: Child[];
-  /** Shared utility classes applied around the component, such as width or margin. */
-  className?: string;
-}
-
-/** Collapsible sections. Children are AccordionItem elements; each item's own children are its content. */
-export function Accordion(props: AccordionProps): Node {
-  let node = kitNode('Accordion', props.children ?? [], props.className ?? '');
-  const prop_multiple = props.multiple;
-  if (prop_multiple !== undefined) {
-    node = kitFlag(node, 'multiple', prop_multiple);
-  }
-
-  const prop_bordered = props.bordered;
-  if (prop_bordered !== undefined) {
-    node = kitFlag(node, 'bordered', prop_bordered);
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -1788,25 +1766,265 @@ export function Accordion(props: AccordionProps): Node {
   return node;
 }
 
-export interface AccordionItemProps {
-  /** Section heading. */
-  title?: ReactiveValue<string> | TextBinding;
-  /** Whether the section is expanded. */
-  open?: ReactiveValue<boolean>;
-  /** Disabled sections cannot be toggled. */
+export interface TabProps {
+  /** Identifies the tab and its TabsContent. Defaults to the tab's index. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Tab text, when there are no text children. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Icon before the label; an icon-only tab is square. */
+  icon?: ReactiveValue<IconName>;
+  /** Names an icon-only tab. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Overrides the bar's style for this tab. */
+  variant?: ReactiveValue<'tab' | 'underline' | 'pill' | 'outline' | 'segmented' | 'folder'>;
+  /** Shown but cannot be selected. */
   disabled?: ReactiveValue<boolean>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One tab trigger. Text children are its label. */
+export function Tab(props: TabProps): Node {
+  let node = kitNode('Tab', props.children ?? [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_variant = props.variant;
+  if (prop_variant !== undefined) {
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  return node;
+}
+
+export interface TabsContentProps {
+  /** The Tab value this panel belongs to. Defaults to the panel's index. */
+  value?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** One section of an Accordion; its children are the section content. */
+/** The panel shown while the Tab with the same value is selected. */
+export function TabsContent(props: TabsContentProps): Node {
+  let node = kitNode('TabsContent', props.children ?? [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  return node;
+}
+
+export interface TabsPrefixProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content before the tabs, such as back and forward buttons. */
+export function TabsPrefix(props: TabsPrefixProps): Node {
+  let node = kitNode('TabsPrefix', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface TabsSuffixProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content after the tabs, such as a menu button. */
+export function TabsSuffix(props: TabsSuffixProps): Node {
+  let node = kitNode('TabsSuffix', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface TabsEmptySpaceProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content filling the empty space after the last tab. */
+export function TabsEmptySpace(props: TabsEmptySpaceProps): Node {
+  let node = kitNode('TabsEmptySpace', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface TabPrefixProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content before a Tab's label. */
+export function TabPrefix(props: TabPrefixProps): Node {
+  let node = kitNode('TabPrefix', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface TabSuffixProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content after a Tab's label, such as a close button. */
+export function TabSuffix(props: TabSuffixProps): Node {
+  let node = kitNode('TabSuffix', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface AccordionProps {
+  /** Open item values, one per line, controlled; set it from onChange. Without it the accordion keeps its own open items. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Initially open item values, one per line, when `value` is unset. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Lets several items stay open; otherwise opening one closes the others. */
+  multiple?: ReactiveValue<boolean>;
+  /** false removes the outer border. Defaults to true. */
+  bordered?: ReactiveValue<boolean>;
+  /** Disables every item. */
+  disabled?: ReactiveValue<boolean>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with the open item values after each toggle. */
+  onChange?: Owned<Function<void, [values: ReadOnly<string[]>]>>;
+  /** AccordionItem elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Stacked sections that expand and collapse. Each AccordionItem has an AccordionTrigger heading and AccordionContent. */
+export function Accordion(props: AccordionProps): Node {
+  let node = kitNode('Accordion', props.children ?? [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
+  }
+
+  const prop_multiple = props.multiple;
+  if (prop_multiple !== undefined) {
+    node = kitFlag(node, 'multiple', prop_multiple);
+  }
+
+  const prop_bordered = props.bordered;
+  if (prop_bordered !== undefined) {
+    node = kitFlag(node, 'bordered', prop_bordered);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = kitOnList(node, 'change', event_onChange);
+  }
+
+  return node;
+}
+
+export interface AccordionItemProps {
+  /** Identifies the item in value and onChange. Defaults to its index. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Heading text, when there is no AccordionTrigger. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Icon before the heading. */
+  icon?: ReactiveValue<IconName>;
+  /** Starts open when the accordion has no value or defaultValue. */
+  open?: ReactiveValue<boolean>;
+  /** Cannot be toggled. */
+  disabled?: ReactiveValue<boolean>;
+  /** Utility classes for the heading row. */
+  titleClassName?: ReactiveValue<string> | TextBinding;
+  /** Utility classes for the body. */
+  contentClassName?: ReactiveValue<string> | TextBinding;
+  /** Utility classes applied to the heading while hovered. */
+  hoverClassName?: ReactiveValue<string> | TextBinding;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** AccordionTrigger and AccordionContent elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One section: an AccordionTrigger heading and AccordionContent body (or a title prop and other children). */
 export function AccordionItem(props: AccordionItemProps): Node {
   let node = kitNode('AccordionItem', props.children ?? [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
   const prop_title = props.title;
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
   }
 
   const prop_open = props.open;
@@ -1819,6 +2037,56 @@ export function AccordionItem(props: AccordionItemProps): Node {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
+  const prop_titleClassName = props.titleClassName;
+  if (prop_titleClassName !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'titleClassName', prop_titleClassName));
+  }
+
+  const prop_contentClassName = props.contentClassName;
+  if (prop_contentClassName !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'contentClassName', prop_contentClassName));
+  }
+
+  const prop_hoverClassName = props.hoverClassName;
+  if (prop_hoverClassName !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'hoverClassName', prop_hoverClassName));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface AccordionTriggerProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The heading of an AccordionItem; any content. */
+export function AccordionTrigger(props: AccordionTriggerProps): Node {
+  let node = kitNode('AccordionTrigger', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface AccordionContentProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The body shown while the AccordionItem is open. */
+export function AccordionContent(props: AccordionContentProps): Node {
+  let node = kitNode('AccordionContent', props.children ?? [], props.className ?? '');
   return node;
 }
 
@@ -1843,23 +2111,51 @@ export function Collapsible(props: CollapsibleProps): Node {
 }
 
 export interface SelectProps {
-  /** Options, in order. */
+  /** Plain options whose label is also the value; SelectItem children add more. */
   items?: string[];
-  /** Selected option. An empty string selects nothing. */
+  /** The selected option's value, controlled; set it from onChange. Without it the select keeps its own selection. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Text shown when nothing is selected. */
+  /** Initially selected value when `value` is unset. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Text shown while nothing is selected. */
   placeholder?: ReactiveValue<string> | TextBinding;
-  /** Disabled selects cannot open. */
+  /** Ignores clicks and keys. */
   disabled?: ReactiveValue<boolean>;
-  /** Receives the chosen option. */
+  /** Adds a search field that filters the options. Read when the select mounts. */
+  searchable?: ReactiveValue<boolean>;
+  /** Hint in the search field. */
+  searchPlaceholder?: ReactiveValue<string> | TextBinding;
+  /** Shows a clear button while an option is selected; clearing reports an empty value. */
+  cleanable?: ReactiveValue<boolean>;
+  /** Icon in place of the dropdown caret. */
+  icon?: ReactiveValue<IconName>;
+  /** Text before the selected label, such as "Country: ". */
+  titlePrefix?: ReactiveValue<string> | TextBinding;
+  /** A name that stays the same as the selection changes. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** false draws the bare trigger without border and background. */
+  appearance?: ReactiveValue<boolean>;
+  /** Width of the open list in pixels. Defaults to the trigger's width. */
+  menuWidth?: ReactiveValue<number>;
+  /** Most height in pixels the open list takes before it scrolls. */
+  menuMaxHeight?: ReactiveValue<number>;
+  /** Elastic overscroll in the list. Defaults to the platform's behavior. */
+  scrollBounce?: ReactiveValue<boolean>;
+  /** Focuses the select when it mounts. */
+  autoFocus?: ReactiveValue<boolean>;
+  /** Control size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with the chosen value, or empty when cleared. */
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** SelectItem, SelectGroup and SelectEmpty elements. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A dropdown that picks one string from a list. */
+/** A button that opens a list of options and shows the chosen one. Options come from SelectItem children (optionally inside SelectGroup) or the items prop. */
 export function Select(props: SelectProps): Node {
-  let node = kitNode('Select', [], props.className ?? '');
+  let node = kitNode('Select', props.children ?? [], props.className ?? '');
   const prop_items = props.items;
   if (prop_items !== undefined) {
     node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
@@ -1868,6 +2164,11 @@ export function Select(props: SelectProps): Node {
   const prop_value = props.value;
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_placeholder = props.placeholder;
@@ -1880,6 +2181,74 @@ export function Select(props: SelectProps): Node {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
+  const prop_searchable = props.searchable;
+  if (prop_searchable !== undefined) {
+    node = kitFlag(node, 'searchable', prop_searchable);
+  }
+
+  const prop_searchPlaceholder = props.searchPlaceholder;
+  if (prop_searchPlaceholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'searchPlaceholder', prop_searchPlaceholder));
+  }
+
+  const prop_cleanable = props.cleanable;
+  if (prop_cleanable !== undefined) {
+    node = kitFlag(node, 'cleanable', prop_cleanable);
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_titlePrefix = props.titlePrefix;
+  if (prop_titlePrefix !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'titlePrefix', prop_titlePrefix));
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_appearance = props.appearance;
+  if (prop_appearance !== undefined) {
+    node = kitFlag(node, 'appearance', prop_appearance);
+  }
+
+  const prop_menuWidth = props.menuWidth;
+  if (prop_menuWidth !== undefined) {
+    node = kitNumber(node, 'menuWidth', prop_menuWidth);
+  }
+
+  const prop_menuMaxHeight = props.menuMaxHeight;
+  if (prop_menuMaxHeight !== undefined) {
+    node = kitNumber(node, 'menuMaxHeight', prop_menuMaxHeight);
+  }
+
+  const prop_scrollBounce = props.scrollBounce;
+  if (prop_scrollBounce !== undefined) {
+    node = kitFlag(node, 'scrollBounce', prop_scrollBounce);
+  }
+
+  const prop_autoFocus = props.autoFocus;
+  if (prop_autoFocus !== undefined) {
+    node = kitFlag(node, 'autoFocus', prop_autoFocus);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   const event_onChange = props.onChange;
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
@@ -1888,13 +2257,111 @@ export function Select(props: SelectProps): Node {
   return node;
 }
 
+export interface SelectItemProps {
+  /** The value reported by onChange. Defaults to the label. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Option text, when there are no text children. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Shown but cannot be chosen. */
+  disabled?: ReactiveValue<boolean>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** One Select option. Text children are its label. */
+export function SelectItem(props: SelectItemProps): Node {
+  let node = kitNode('SelectItem', props.children ?? [], props.className ?? '');
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  return node;
+}
+
+export interface SelectGroupProps {
+  /** Group title, when there is no SelectLabel child. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** SelectLabel and SelectItem elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A titled group of SelectItem options. Groups are searched together. */
+export function SelectGroup(props: SelectGroupProps): Node {
+  let node = kitNode('SelectGroup', props.children ?? [], props.className ?? '');
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  return node;
+}
+
+export interface SelectLabelProps {
+  /** Text content, used as `text` when that prop is unset. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The title of a SelectGroup, from its text children. */
+export function SelectLabel(props: SelectLabelProps): Node {
+  let node = kitNode('SelectLabel', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface SelectEmptyProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content shown in the open list when there are no options or no search matches. */
+export function SelectEmpty(props: SelectEmptyProps): Node {
+  let node = kitNode('SelectEmpty', props.children ?? [], props.className ?? '');
+  return node;
+}
+
 export interface NumberInputProps {
-  /** Current value. */
+  /** Controlled value; set it from onChange. Without it the field keeps its own value. */
   value?: ReactiveValue<number>;
+  /** Initial value when `value` is unset; the field then keeps its own value. */
+  defaultValue?: ReactiveValue<number>;
   /** Text shown while empty. */
   placeholder?: ReactiveValue<string> | TextBinding;
-  /** Change per button press. Defaults to 1. */
+  /** Amount the buttons and arrow keys add or subtract. Defaults to 1. */
   step?: ReactiveValue<number>;
+  /** Smallest value; stepping and blur clamp to it. */
+  min?: ReactiveValue<number>;
+  /** Largest value; stepping and blur clamp to it. */
+  max?: ReactiveValue<number>;
+  /** Icon before the number. */
+  prefix?: ReactiveValue<IconName>;
+  /** Icon after the number. */
+  suffix?: ReactiveValue<IconName>;
+  /** false draws the bare field without border and background. */
+  appearance?: ReactiveValue<boolean>;
+  /** Ignores input and stepping. */
+  disabled?: ReactiveValue<boolean>;
+  /** Names the field for assistive technology. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Control size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives each valid edited value. */
   onChange?: Owned<Function<void, [value: number]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -1909,6 +2376,11 @@ export function NumberInput(props: NumberInputProps): Node {
     node = kitNumber(node, 'value', prop_value);
   }
 
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = kitNumber(node, 'defaultValue', prop_defaultValue);
+  }
+
   const prop_placeholder = props.placeholder;
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
@@ -1917,6 +2389,58 @@ export function NumberInput(props: NumberInputProps): Node {
   const prop_step = props.step;
   if (prop_step !== undefined) {
     node = kitNumber(node, 'step', prop_step);
+  }
+
+  const prop_min = props.min;
+  if (prop_min !== undefined) {
+    node = kitNumber(node, 'min', prop_min);
+  }
+
+  const prop_max = props.max;
+  if (prop_max !== undefined) {
+    node = kitNumber(node, 'max', prop_max);
+  }
+
+  const prop_prefix = props.prefix;
+  if (prop_prefix !== undefined) {
+    if (typeof prop_prefix === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'prefix', `${prop_prefix}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'prefix', nativeBindText(prop_prefix.evaluate)));
+    }
+  }
+
+  const prop_suffix = props.suffix;
+  if (prop_suffix !== undefined) {
+    if (typeof prop_suffix === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'suffix', `${prop_suffix}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'suffix', nativeBindText(prop_suffix.evaluate)));
+    }
+  }
+
+  const prop_appearance = props.appearance;
+  if (prop_appearance !== undefined) {
+    node = kitFlag(node, 'appearance', prop_appearance);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -2024,15 +2548,21 @@ export function ColorPicker(props: ColorPickerProps): Node {
 }
 
 export interface TooltipProps {
-  /** Tooltip text. */
+  /** Tooltip text, when there is no TooltipContent child. */
   text?: ReactiveValue<string> | TextBinding;
+  /** A keyboard shortcut shown beside the text, in GPUI keystroke syntax such as secondary-s. */
+  keys?: ReactiveValue<string> | TextBinding;
+  /** A Shortcut command whose bound keys are shown beside the text. */
+  command?: ReactiveValue<string> | TextBinding;
+  /** Utility classes for the tooltip surface. */
+  contentClassName?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** Shows text when the pointer rests on its children. */
+/** Shows a hint while the pointer rests on its children: text, a keyboard shortcut, or rich TooltipContent. */
 export function Tooltip(props: TooltipProps): Node {
   let node = kitNode('Tooltip', props.children ?? [], props.className ?? '');
   const prop_text = props.text;
@@ -2040,10 +2570,58 @@ export function Tooltip(props: TooltipProps): Node {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
   }
 
+  const prop_keys = props.keys;
+  if (prop_keys !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'keys', prop_keys));
+  }
+
+  const prop_command = props.command;
+  if (prop_command !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'command', prop_command));
+  }
+
+  const prop_contentClassName = props.contentClassName;
+  if (prop_contentClassName !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'contentClassName', prop_contentClassName));
+  }
+
+  return node;
+}
+
+export interface TooltipContentProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Rich content for a Tooltip: icons, styled text and layout. */
+export function TooltipContent(props: TooltipContentProps): Node {
+  let node = kitNode('TooltipContent', props.children ?? [], props.className ?? '');
   return node;
 }
 
 export interface PopoverProps {
+  /** Whether the popover is open, controlled; set it from onOpenChange. Without it the popover opens and closes itself. */
+  open?: ReactiveValue<boolean>;
+  /** Starts open when `open` is unset. */
+  defaultOpen?: ReactiveValue<boolean>;
+  /** The popup corner aligned to the trigger. Defaults to top-left (the popup opens below, left-aligned). */
+  anchor?: ReactiveValue<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center' | 'left-center' | 'right-center'>;
+  /** Gap in pixels between the trigger and the popup. */
+  offset?: ReactiveValue<number>;
+  /** Draws an arrow pointing at the trigger. */
+  arrow?: ReactiveValue<boolean>;
+  /** The button that opens the popover. Defaults to left. */
+  mouseButton?: ReactiveValue<'left' | 'right'>;
+  /** false keeps the popover open when clicking outside it. */
+  overlayClosable?: ReactiveValue<boolean>;
+  /** false removes the popup's surface styling. */
+  appearance?: ReactiveValue<boolean>;
+  /** Utility classes for the trigger container, such as w-full. */
+  triggerClassName?: ReactiveValue<string> | TextBinding;
+  /** Runs when the popover opens or closes. */
+  onOpenChange?: Owned<Function<void, [open: boolean]>>;
   /** PopoverTrigger, PopoverContent elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -2053,6 +2631,64 @@ export interface PopoverProps {
 /** A floating panel opened by clicking its trigger. Children are one PopoverTrigger and one PopoverContent. */
 export function Popover(props: PopoverProps): Node {
   let node = kitNode('Popover', props.children ?? [], props.className ?? '');
+  const prop_open = props.open;
+  if (prop_open !== undefined) {
+    node = kitFlag(node, 'open', prop_open);
+  }
+
+  const prop_defaultOpen = props.defaultOpen;
+  if (prop_defaultOpen !== undefined) {
+    node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
+  }
+
+  const prop_anchor = props.anchor;
+  if (prop_anchor !== undefined) {
+    if (typeof prop_anchor === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'anchor', `${prop_anchor}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'anchor', nativeBindText(prop_anchor.evaluate)));
+    }
+  }
+
+  const prop_offset = props.offset;
+  if (prop_offset !== undefined) {
+    node = kitNumber(node, 'offset', prop_offset);
+  }
+
+  const prop_arrow = props.arrow;
+  if (prop_arrow !== undefined) {
+    node = kitFlag(node, 'arrow', prop_arrow);
+  }
+
+  const prop_mouseButton = props.mouseButton;
+  if (prop_mouseButton !== undefined) {
+    if (typeof prop_mouseButton === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'mouseButton', `${prop_mouseButton}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'mouseButton', nativeBindText(prop_mouseButton.evaluate)));
+    }
+  }
+
+  const prop_overlayClosable = props.overlayClosable;
+  if (prop_overlayClosable !== undefined) {
+    node = kitFlag(node, 'overlayClosable', prop_overlayClosable);
+  }
+
+  const prop_appearance = props.appearance;
+  if (prop_appearance !== undefined) {
+    node = kitFlag(node, 'appearance', prop_appearance);
+  }
+
+  const prop_triggerClassName = props.triggerClassName;
+  if (prop_triggerClassName !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'triggerClassName', prop_triggerClassName));
+  }
+
+  const event_onOpenChange = props.onOpenChange;
+  if (event_onOpenChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
+  }
+
   return node;
 }
 
@@ -3231,21 +3867,51 @@ export function TimeField(props: TimeFieldProps): Node {
 }
 
 export interface ComboboxProps {
-  /** Options, in order. */
+  /** Plain options whose label is also the value; SelectItem children add more. */
   items?: string[];
-  /** Selected option, or empty for none. */
+  /** Selected values, controlled, one per line (a single value for single-select); set it from onChange. Without it the combobox keeps its own selection. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Text shown when nothing is selected. */
+  /** Initially selected values when `value` is unset. */
+  defaultValue?: string[];
+  /** Allows several selections; each click toggles an option. Read when it mounts. */
+  multiple?: ReactiveValue<boolean>;
+  /** false hides the search field. Defaults to true. Read when it mounts. */
+  searchable?: ReactiveValue<boolean>;
+  /** Search text, controlled. */
+  query?: ReactiveValue<string> | TextBinding;
+  /** Trigger text while nothing is selected. */
   placeholder?: ReactiveValue<string> | TextBinding;
-  /** Receives the chosen option. */
-  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Hint in the search field. */
+  searchPlaceholder?: ReactiveValue<string> | TextBinding;
+  /** Shows a clear button while something is selected. */
+  cleanable?: ReactiveValue<boolean>;
+  /** Ignores clicks and keys. */
+  disabled?: ReactiveValue<boolean>;
+  /** Icon in place of the dropdown caret. */
+  icon?: ReactiveValue<IconName>;
+  /** Icon marking selected options. Defaults to a check. */
+  checkIcon?: ReactiveValue<IconName>;
+  /** false draws the bare trigger. */
+  appearance?: ReactiveValue<boolean>;
+  /** Width of the open list in pixels. */
+  menuWidth?: ReactiveValue<number>;
+  /** Most height in pixels the open list takes before it scrolls. */
+  menuMaxHeight?: ReactiveValue<number>;
+  /** Focuses the combobox when it mounts. */
+  autoFocus?: ReactiveValue<boolean>;
+  /** Control size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with every selected value after each toggle. */
+  onChange?: Owned<Function<void, [values: ReadOnly<string[]>]>>;
+  /** SelectItem, SelectGroup, SelectEmpty, ComboboxTrigger and ComboboxFooter elements. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A searchable dropdown that picks one string from a list. */
+/** A searchable picker for one or several options, with optional custom trigger and footer. Options are SelectItem children (optionally in SelectGroup) or the items prop. */
 export function Combobox(props: ComboboxProps): Node {
-  let node = kitNode('Combobox', [], props.className ?? '');
+  let node = kitNode('Combobox', props.children ?? [], props.className ?? '');
   const prop_items = props.items;
   if (prop_items !== undefined) {
     node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
@@ -3256,16 +3922,124 @@ export function Combobox(props: ComboboxProps): Node {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitSet(node, 'defaultValue', prop_defaultValue.join('\n')));
+  }
+
+  const prop_multiple = props.multiple;
+  if (prop_multiple !== undefined) {
+    node = kitFlag(node, 'multiple', prop_multiple);
+  }
+
+  const prop_searchable = props.searchable;
+  if (prop_searchable !== undefined) {
+    node = kitFlag(node, 'searchable', prop_searchable);
+  }
+
+  const prop_query = props.query;
+  if (prop_query !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'query', prop_query));
+  }
+
   const prop_placeholder = props.placeholder;
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
-  const event_onChange = props.onChange;
-  if (event_onChange !== undefined) {
-    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  const prop_searchPlaceholder = props.searchPlaceholder;
+  if (prop_searchPlaceholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'searchPlaceholder', prop_searchPlaceholder));
   }
 
+  const prop_cleanable = props.cleanable;
+  if (prop_cleanable !== undefined) {
+    node = kitFlag(node, 'cleanable', prop_cleanable);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_checkIcon = props.checkIcon;
+  if (prop_checkIcon !== undefined) {
+    if (typeof prop_checkIcon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'checkIcon', `${prop_checkIcon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'checkIcon', nativeBindText(prop_checkIcon.evaluate)));
+    }
+  }
+
+  const prop_appearance = props.appearance;
+  if (prop_appearance !== undefined) {
+    node = kitFlag(node, 'appearance', prop_appearance);
+  }
+
+  const prop_menuWidth = props.menuWidth;
+  if (prop_menuWidth !== undefined) {
+    node = kitNumber(node, 'menuWidth', prop_menuWidth);
+  }
+
+  const prop_menuMaxHeight = props.menuMaxHeight;
+  if (prop_menuMaxHeight !== undefined) {
+    node = kitNumber(node, 'menuMaxHeight', prop_menuMaxHeight);
+  }
+
+  const prop_autoFocus = props.autoFocus;
+  if (prop_autoFocus !== undefined) {
+    node = kitFlag(node, 'autoFocus', prop_autoFocus);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = kitOnList(node, 'change', event_onChange);
+  }
+
+  return node;
+}
+
+export interface ComboboxTriggerProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Custom content for the Combobox trigger in place of the selected labels. */
+export function ComboboxTrigger(props: ComboboxTriggerProps): Node {
+  let node = kitNode('ComboboxTrigger', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface ComboboxFooterProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content below a separator at the bottom of the open Combobox list, such as a create button. */
+export function ComboboxFooter(props: ComboboxFooterProps): Node {
+  let node = kitNode('ComboboxFooter', props.children ?? [], props.className ?? '');
   return node;
 }
 
@@ -3598,39 +4372,145 @@ export function GroupButton(props: GroupButtonProps): Node {
 }
 
 export interface InputGroupProps {
-  /** Current text. */
-  value?: ReactiveValue<string> | TextBinding;
-  /** Hint shown when empty. */
-  placeholder?: ReactiveValue<string> | TextBinding;
-  /** Icon at the start. */
-  icon?: ReactiveValue<IconName>;
-  /** Text before the field, such as https://. */
-  prefix?: ReactiveValue<string> | TextBinding;
-  /** Text after the field, such as .com. */
-  suffix?: ReactiveValue<string> | TextBinding;
-  /** Label of a trailing button; no button when omitted. */
-  buttonLabel?: ReactiveValue<string> | TextBinding;
-  /** Prevents editing. */
+  /** Disables the field and every addon button. */
   disabled?: ReactiveValue<boolean>;
-  /** Receives the text after each edit. */
-  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
-  /** Called when the trailing button is clicked. */
-  onButton?: Owned<Function<void>>;
+  /** The field keeps focus and selection but rejects edits. */
+  readOnly?: ReactiveValue<boolean>;
+  /** Draws the frame in the destructive color. */
+  invalid?: ReactiveValue<boolean>;
+  /** Names the group for assistive technology. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Control size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** One Input or Textarea and InputGroupAddon elements. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A text field framed together with an icon, leading and trailing text, and an optional action button. */
+/** An Input or Textarea framed together with addons: text, icons and buttons on either side, above or below. */
 export function InputGroup(props: InputGroupProps): Node {
-  let node = kitNode('InputGroup', [], props.className ?? '');
-  const prop_value = props.value;
-  if (prop_value !== undefined) {
-    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  let node = kitNode('InputGroup', props.children ?? [], props.className ?? '');
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
   }
 
-  const prop_placeholder = props.placeholder;
-  if (prop_placeholder !== undefined) {
-    node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
+  const prop_readOnly = props.readOnly;
+  if (prop_readOnly !== undefined) {
+    node = kitFlag(node, 'readOnly', prop_readOnly);
+  }
+
+  const prop_invalid = props.invalid;
+  if (prop_invalid !== undefined) {
+    node = kitFlag(node, 'invalid', prop_invalid);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface InputGroupAddonProps {
+  /** Where the addon sits: before (inline-start, the default) or after (inline-end) the text, or above (block-start) or below (block-end) it. */
+  align?: ReactiveValue<'inline-start' | 'inline-end' | 'block-start' | 'block-end'>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A row of InputGroupText, InputGroupButton, icons or other content on one side of an InputGroup. Clicking its empty space focuses the field. */
+export function InputGroupAddon(props: InputGroupAddonProps): Node {
+  let node = kitNode('InputGroupAddon', props.children ?? [], props.className ?? '');
+  const prop_align = props.align;
+  if (prop_align !== undefined) {
+    if (typeof prop_align === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'align', nativeBindText(prop_align.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface InputGroupTextProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Muted text inside an InputGroupAddon, such as https:// or a character count. */
+export function InputGroupText(props: InputGroupTextProps): Node {
+  let node = kitNode('InputGroupText', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface InputGroupButtonProps {
+  /** Button text. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Icon; an icon-only button is square. */
+  icon?: ReactiveValue<IconName>;
+  /** Visual style. Defaults to ghost. */
+  variant?: ReactiveValue<'ghost' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'link' | 'text'>;
+  /** Draws an outline variant. */
+  outline?: ReactiveValue<boolean>;
+  /** Ignores clicks. */
+  disabled?: ReactiveValue<boolean>;
+  /** Draws the button as selected. */
+  selected?: ReactiveValue<boolean>;
+  /** Shows a spinner and blocks clicks. */
+  loading?: ReactiveValue<boolean>;
+  /** Icon shown while loading instead of the spinner. */
+  loadingIcon?: ReactiveValue<IconName>;
+  /** Hint on hover. */
+  tooltip?: ReactiveValue<string> | TextBinding;
+  /** Milliseconds before the tooltip shows. */
+  tooltipDelay?: ReactiveValue<int>;
+  /** Names an icon-only button. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Keyboard focus order. */
+  tabIndex?: ReactiveValue<int>;
+  /** Draws a dropdown caret after the label. */
+  caret?: ReactiveValue<boolean>;
+  /** Custom fill: a theme color, palette color such as blue-500, or hex. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Custom text color, with color. */
+  foreground?: ReactiveValue<string> | TextBinding;
+  /** Custom hover fill, with color. */
+  hoverColor?: ReactiveValue<string> | TextBinding;
+  /** Custom pressed fill, with color. */
+  activeColor?: ReactiveValue<string> | TextBinding;
+  /** Control size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs when the button is clicked. Focus stays where it was. */
+  onClick?: Owned<Function<void>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A compact ghost button inside an InputGroupAddon. Text children are its label; MenuItem children make it open a menu. */
+export function InputGroupButton(props: InputGroupButtonProps): Node {
+  let node = kitNode('InputGroupButton', props.children ?? [], props.className ?? '');
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
@@ -3642,19 +4522,18 @@ export function InputGroup(props: InputGroupProps): Node {
     }
   }
 
-  const prop_prefix = props.prefix;
-  if (prop_prefix !== undefined) {
-    node = unwrapNode(nativeKitValue(node, 'prefix', prop_prefix));
+  const prop_variant = props.variant;
+  if (prop_variant !== undefined) {
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
   }
 
-  const prop_suffix = props.suffix;
-  if (prop_suffix !== undefined) {
-    node = unwrapNode(nativeKitValue(node, 'suffix', prop_suffix));
-  }
-
-  const prop_buttonLabel = props.buttonLabel;
-  if (prop_buttonLabel !== undefined) {
-    node = unwrapNode(nativeKitValue(node, 'buttonLabel', prop_buttonLabel));
+  const prop_outline = props.outline;
+  if (prop_outline !== undefined) {
+    node = kitFlag(node, 'outline', prop_outline);
   }
 
   const prop_disabled = props.disabled;
@@ -3662,14 +4541,82 @@ export function InputGroup(props: InputGroupProps): Node {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
-  const event_onChange = props.onChange;
-  if (event_onChange !== undefined) {
-    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  const prop_selected = props.selected;
+  if (prop_selected !== undefined) {
+    node = kitFlag(node, 'selected', prop_selected);
   }
 
-  const event_onButton = props.onButton;
-  if (event_onButton !== undefined) {
-    node = unwrapNode(nativeKitOnVoid(node, 'button', event_onButton));
+  const prop_loading = props.loading;
+  if (prop_loading !== undefined) {
+    node = kitFlag(node, 'loading', prop_loading);
+  }
+
+  const prop_loadingIcon = props.loadingIcon;
+  if (prop_loadingIcon !== undefined) {
+    if (typeof prop_loadingIcon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'loadingIcon', `${prop_loadingIcon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'loadingIcon', nativeBindText(prop_loadingIcon.evaluate)));
+    }
+  }
+
+  const prop_tooltip = props.tooltip;
+  if (prop_tooltip !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
+  }
+
+  const prop_tooltipDelay = props.tooltipDelay;
+  if (prop_tooltipDelay !== undefined) {
+    node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_tabIndex = props.tabIndex;
+  if (prop_tabIndex !== undefined) {
+    node = kitInt(node, 'tabIndex', prop_tabIndex);
+  }
+
+  const prop_caret = props.caret;
+  if (prop_caret !== undefined) {
+    node = kitFlag(node, 'caret', prop_caret);
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_foreground = props.foreground;
+  if (prop_foreground !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'foreground', prop_foreground));
+  }
+
+  const prop_hoverColor = props.hoverColor;
+  if (prop_hoverColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'hoverColor', prop_hoverColor));
+  }
+
+  const prop_activeColor = props.activeColor;
+  if (prop_activeColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'activeColor', prop_activeColor));
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const event_onClick = props.onClick;
+  if (event_onClick !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
 
   return node;

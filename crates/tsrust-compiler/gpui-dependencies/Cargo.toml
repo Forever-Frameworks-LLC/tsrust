@@ -80,7 +80,7 @@ sys-locale = { version = "=0.3.2", optional = true }
 [features]
 # std:gpui only: the Node model (crates/tsrust-ui) and the GPUI Kit renderer.
 ui = ["dep:url", "dep:kurbo", "dep:svgtypes", "dep:color", "dep:sys-locale", "dep:sha2"]
-gpui = ["ui", "dep:gpui-kit", "dep:chrono"]
+gpui = ["ui", "dep:gpui-kit", "dep:chrono", "dep:regex"]
 # Code highlighting (syntect) for CodeEditor and Markdown code blocks; selected only
 # when a program uses CodeEditor.
 gpui-highlight = ["gpui", "gpui-kit/syntect"]

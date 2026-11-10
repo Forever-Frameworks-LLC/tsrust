@@ -33,24 +33,53 @@ def crate(name):
     return matches[-1] / "src"
 
 
+def block_end(text, index):
+    """Index just past the brace block whose opening brace precedes `index`, skipping
+    braces inside comments, string, raw string and char literals."""
+    depth = 1
+    length = len(text)
+    while depth and index < length:
+        char = text[index]
+        if text.startswith("//", index):
+            index = text.find("\n", index)
+            index = length if index < 0 else index
+            continue
+        if text.startswith("/*", index):
+            index = text.find("*/", index + 2)
+            index = length if index < 0 else index + 2
+            continue
+        raw = re.match(r'b?r(#*)"', text[index:index + 12]) if char in "rb" and not (text[index - 1].isalnum() or text[index - 1] == "_") else None
+        if raw:
+            close = '"' + raw.group(1)
+            index = text.find(close, index + raw.end())
+            index = length if index < 0 else index + len(close)
+            continue
+        if char == '"':
+            index += 1
+            while index < length and text[index] != '"':
+                index += 2 if text[index] == "\\" else 1
+            index += 1
+            continue
+        if char == "'":
+            literal = re.match(r"'(?:\\(?:u\{[0-9a-fA-F]+\}|x[0-9a-fA-F]{2}|.)|[^\\'])'", text[index:index + 12])
+            if literal:
+                index += literal.end()
+                continue
+        depth += {"{": 1, "}": -1}.get(char, 0)
+        index += 1
+    return index
+
+
 def impls(text):
     """Yield (header, body) for every impl block, matching braces."""
     for match in re.finditer(r"^impl\b[^{;]*\{", text, re.M):
-        depth, index = 1, match.end()
-        while depth and index < len(text):
-            depth += {"{": 1, "}": -1}.get(text[index], 0)
-            index += 1
-        yield match.group(0)[:-1], text[match.end():index]
+        yield match.group(0)[:-1], text[match.end():block_end(text, match.end())]
 
 
 def without_tests(text):
     """Drop `#[cfg(test)] mod name { ... }` blocks, matching braces."""
     while (match := re.search(r"#\[cfg\(test\)\]\s*mod \w+\s*\{", text)):
-        depth, index = 1, match.end()
-        while depth and index < len(text):
-            depth += {"{": 1, "}": -1}.get(text[index], 0)
-            index += 1
-        text = text[:match.start()] + text[index:]
+        text = text[:match.start()] + text[block_end(text, match.end()):]
     return text
 
 
@@ -87,6 +116,11 @@ def inventory():
                 # A gpui-component type shadows a gpui-base type of the same name.
                 if source.parent.name.startswith("gpui-base") and any(f.startswith("gpui-component") for f in types.get(ty, {}).get("files", ())):
                     continue
+                # Mode-specific impls of the generic input state belong to their aliases.
+                if ty == "InputBaseState" and "MultiLineMode" in header:
+                    ty = "InputBaseState:multi"
+                elif ty == "InputBaseState" and (mode := re.search(r"InputBaseState<(?:crate::input::)?(Input|Textarea|Editor)Mode>", header)):
+                    ty = mode.group(1) + "State"
                 entry = types.setdefault(ty, {"methods": [], "traits": set(), "files": set()})
                 entry["files"].add(str(path.relative_to(source.parent.parent)))
                 if trait:
@@ -95,6 +129,16 @@ def inventory():
                     for method in re.findall(r"^\s{4}pub fn (\w+)", body, re.M):
                         if method not in entry["methods"]:
                             entry["methods"].append(method)
+    # Aliases such as `pub type InputState = InputBaseState<InputMode>` expose the base type's methods.
+    for source in [crate("gpui-component-0.9.0"), crate("gpui-base-0.9.0")]:
+        for path in source.rglob("*.rs"):
+            for alias, base in re.findall(r"^pub type (\w+) = (\w+)<", path.read_text(), re.M):
+                if base not in types:
+                    continue
+                entry = types.setdefault(alias, {"methods": [], "traits": set(), "files": set()})
+                inherited = types[base]["methods"] + (types.get(base + ":multi", {}).get("methods", []) if alias in ("TextareaState", "EditorState") else [])
+                entry["methods"] += [method for method in inherited if method not in entry["methods"]]
+                entry["traits"] |= types[base]["traits"]
     for entry in types.values():
         for trait, methods in TRAITS.items():
             if trait in entry["traits"]:

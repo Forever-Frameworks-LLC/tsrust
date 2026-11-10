@@ -24,6 +24,16 @@ import { CheckboxPage } from './pages/Checkbox.tsrx';
 import { SwitchPage } from './pages/Switch.tsrx';
 import { RadioPage } from './pages/Radio.tsrx';
 import { RatingPage } from './pages/Rating.tsrx';
+import { InputPage } from './pages/Input.tsrx';
+import { TextareaPage } from './pages/Textarea.tsrx';
+import { NumberInputPage } from './pages/NumberInput.tsrx';
+import { InputGroupPage } from './pages/InputGroup.tsrx';
+import { SelectPage } from './pages/Select.tsrx';
+import { ComboboxPage } from './pages/Combobox.tsrx';
+import { TabsPage } from './pages/Tabs.tsrx';
+import { TooltipPage } from './pages/Tooltip.tsrx';
+import { PopoverPage } from './pages/Popover.tsrx';
+import { AccordionPage } from './pages/Accordion.tsrx';
 
 interface PageProps {
   children?: Child[];
@@ -62,6 +72,8 @@ function App(): Node {
         </SidebarGroup>
         <SidebarGroup label="Overlays">
           <SidebarItem label="Menu" active={path.get() === "/menu"} onClick={() => { navigate("/menu"); }} />
+          <SidebarItem label="Tooltip" active={path.get() === "/tooltip"} onClick={() => { navigate("/tooltip"); }} />
+          <SidebarItem label="Popover" active={path.get() === "/popover"} onClick={() => { navigate("/popover"); }} />
         </SidebarGroup>
         <SidebarGroup label="Data Display">
           <SidebarItem label="Badge" active={path.get() === "/badge"} onClick={() => { navigate("/badge"); }} />
@@ -81,12 +93,22 @@ function App(): Node {
         </SidebarGroup>
         <SidebarGroup label="Layout">
           <SidebarItem label="GroupBox" active={path.get() === "/group-box"} onClick={() => { navigate("/group-box"); }} />
+          <SidebarItem label="Accordion" active={path.get() === "/accordion"} onClick={() => { navigate("/accordion"); }} />
         </SidebarGroup>
         <SidebarGroup label="Forms">
           <SidebarItem label="Checkbox" active={path.get() === "/checkbox"} onClick={() => { navigate("/checkbox"); }} />
           <SidebarItem label="Switch" active={path.get() === "/switch"} onClick={() => { navigate("/switch"); }} />
           <SidebarItem label="Radio" active={path.get() === "/radio"} onClick={() => { navigate("/radio"); }} />
           <SidebarItem label="Rating" active={path.get() === "/rating"} onClick={() => { navigate("/rating"); }} />
+          <SidebarItem label="Input" active={path.get() === "/input"} onClick={() => { navigate("/input"); }} />
+          <SidebarItem label="Textarea" active={path.get() === "/textarea"} onClick={() => { navigate("/textarea"); }} />
+          <SidebarItem label="Number Input" active={path.get() === "/number-input"} onClick={() => { navigate("/number-input"); }} />
+          <SidebarItem label="Input Group" active={path.get() === "/input-group"} onClick={() => { navigate("/input-group"); }} />
+          <SidebarItem label="Select" active={path.get() === "/select"} onClick={() => { navigate("/select"); }} />
+          <SidebarItem label="Combobox" active={path.get() === "/combobox"} onClick={() => { navigate("/combobox"); }} />
+        </SidebarGroup>
+        <SidebarGroup label="Navigation">
+          <SidebarItem label="Tabs" active={path.get() === "/tabs"} onClick={() => { navigate("/tabs"); }} />
         </SidebarGroup>
       </Sidebar>
       <View className="flex-col grow min-w-0">
@@ -113,6 +135,16 @@ function App(): Node {
         <Route path="/switch" render={() => <Page><SwitchPage /></Page>} />
         <Route path="/radio" render={() => <Page><RadioPage /></Page>} />
         <Route path="/rating" render={() => <Page><RatingPage /></Page>} />
+        <Route path="/input" render={() => <Page><InputPage /></Page>} />
+        <Route path="/textarea" render={() => <Page><TextareaPage /></Page>} />
+        <Route path="/number-input" render={() => <Page><NumberInputPage /></Page>} />
+        <Route path="/input-group" render={() => <Page><InputGroupPage /></Page>} />
+        <Route path="/select" render={() => <Page><SelectPage /></Page>} />
+        <Route path="/combobox" render={() => <Page><ComboboxPage /></Page>} />
+        <Route path="/tabs" render={() => <Page><TabsPage /></Page>} />
+        <Route path="/tooltip" render={() => <Page><TooltipPage /></Page>} />
+        <Route path="/popover" render={() => <Page><PopoverPage /></Page>} />
+        <Route path="/accordion" render={() => <Page><AccordionPage /></Page>} />
       </View>
       </View>
     </View>
