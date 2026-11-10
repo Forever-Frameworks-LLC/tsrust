@@ -209,6 +209,19 @@ tooltip, Diff and remaining Kit API families plus string-field ergonomics. Full 
 API coverage and ownership ergonomics remain open. No performance measurements,
 remote runs, pushes or releases. Gallery is open on Styling and Themes, live styles off and Switch locally on.
 
+### Hover example highlighting — 2026-11-10 (accepted)
+
+Plot/live-array/menu section checkpoint is 4e766220 (local, not pushed).
+Owner reported plain white TSRX hover examples. Builtin docs already carry fenced
+Markdown; VS Code only registered the tsrust language name. Added tsr/tsrx aliases
+to that same grammar; no documentation rewrite or alternate syntax engine.
+Extension compile, executable tests 4/4 and real TextMate tests 2/2 pass (0.29s
+combined test execution). Packaged local 0.2.1 VSIX, installed over local 0.2.0,
+reloaded the owner's VS Code window, and visually verified Route hover: keywords,
+component tags, attributes and strings are colored. Source and open documents
+unchanged. Gallery remains open independently. The broad catalog retry below is
+still running and making progress through stdlib native example compilation.
+
 ### Plot tooltip and live array props — 2026-11-10 (final checks running)
 
 Latest accepted checkpoint is caa69ba1 (reactive Kit classes/native viewport styles),
