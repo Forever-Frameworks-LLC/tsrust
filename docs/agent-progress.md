@@ -6,6 +6,30 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Tsrust Studio planning — 2026-11-10
+
+Owner selected Studio inside this repo, an ordinary Tsrust project with all
+application/agent/evaluation/training orchestration in .tsr/.tsrx. Native engines
+must be Tsrust-managed dependencies exposed through bindings/stdlib, with no
+separate model-server or Python setup. Minimum complete offline target is verified
+Apple M3/8GiB; owner's future Windows reference is32GB RAM/RTX4090 (not inspected).
+Mac first, Windows next, Linux deferred. Full feature acceptance precedes signing/
+packaging; no reduced early MVP. Local specialization includes baseline research,
+fine-tuning and qualified model distribution. Cloud APIs and external agents are
+also required later. Agents always propose diffs; no competing live-workspace writes.
+
+Draft plan: [Tsrust Studio](plans/tsrust-studio.md), with requirements, native-only
+worker proposal, public Tsrust capability gaps, document/task coordination,
+full feature inventory, model/training/evaluation phases and minimum-memory proof.
+Candle and mistral.rs Rust SDK are research candidates, not selected/verified
+integrations. Differentiation primitives and quantized inference do not prove a
+usable adapter-training pipeline. Exact model/backend, quality/resource thresholds
+and training budget remain research gates. No model downloads, inference/training,
+application scaffolding, source/dependency changes or releases were performed.
+This plan is for owner review; it does not start an autonomous implementation goal
+or override unrelated v0.2.0 acceptance. Next action: review the draft, then begin
+its bounded capability audit/local-AI proof when implementation is requested.
+
 ### Balanced global search spacing — 2026-11-10 (accepted with this checkpoint)
 
 Owner reported the close button overlapping the command panel. Final change is a
