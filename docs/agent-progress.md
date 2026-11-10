@@ -14,7 +14,10 @@ Release-only managed worktree: /Users/seancotter/.codex/worktrees/toolchain-rele
 branch codex/release-0.2.0 from11f63fd4; release checkpoint includes this record. Original checkout is actively implementing
 Studio in a separate chat; do not edit, stage, reset or switch it. No authorization
 was given to send that chat messages. Shared Cargo target remains the original
-checkout's target, incremental off/jobs1. No release push has occurred yet.
+checkout's target, incremental off/jobs1. No release push has occurred yet. Candidate checkpoint3fbfad83 passed clean
+v0.2.0 preflight. Final CI setup audit found the newly selected GPUI closure was
+not fetched before offline suites, and Linux speech builds lacked ALSA headers;
+added the exact GPUI manifest fetch and libasound2-dev before the first push.
 
 Live remote: v0.1.2 latest, compiler0.1.2/LSP0.2.2/extension0.2.1. Promotion PR#17
 stag->main is open at9bcbfa1c; prior Release42654579465 passed Linux/Windows/editor,
