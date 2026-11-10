@@ -7,6 +7,7 @@ fn bundled_ui_props_have_completion_and_behavioral_hover_before_project_analysis
         ("PlotTooltip","Tip","crossL","crossLine","\"both\"","Defaults to vertical"),
         ("PlotLine","Line","val","values","[1,2]","NaN and infinities throw"),
         ("Diff","Compare","contextL","contextLines","-1","Cannot recover lines omitted from the patch"),
+        ("SpeechButton","Mic","stopT","stopTimeout","1500","Nonnegative milliseconds"),
         ("Input","Field","onVal","onValidate","(value)=>value.length<5","empty string is always allowed"),
         ("CodeEditor","Source","onPas","onPaste","(payload)=>false","Return true to consume"),
     ] {

@@ -1762,10 +1762,12 @@ impl Root {
                 }
                 "SpeechButton" => {
                     let locale = text("locale");
+                    let fallback=props.get("systemFallback").map(String::as_str)!=Some("false");
+                    let timeout=props.get("stopTimeout").and_then(|value|value.parse::<u64>().ok()).unwrap_or(3000);
                     let state = cx.new(|cx| {
-                        let state = SpeechState::new(cx);
+                        let state = SpeechState::new(cx).system_fallback(fallback).stop_timeout(std::time::Duration::from_millis(timeout));
                         #[cfg(feature = "gpui-speech")]
-                        let state = if locale.is_empty() {state} else {state.recognizer(SystemRecognizer::new().locale(locale))};
+                        let state = if !fallback || locale.is_empty() {state} else {state.recognizer(SystemRecognizer::new().locale(locale))};
                         #[cfg(not(feature = "gpui-speech"))]
                         let _ = locale;
                         state
@@ -1774,7 +1776,8 @@ impl Root {
                         SpeechEvent::Partial(text) => this.emit(id, "partial", text.to_string(), cx),
                         SpeechEvent::Final(text) => this.emit(id, "final", text.to_string(), cx),
                         SpeechEvent::Error(error) => this.emit(id, "error", error.to_string(), cx),
-                        _ => cx.notify(),
+                        SpeechEvent::Started => this.emit(id,"started",String::new(),cx),
+                        SpeechEvent::Cancelled => this.emit(id,"cancelled",String::new(),cx),
                     }).detach();
                     KitState::Speech(state)
                 }
@@ -3280,8 +3283,15 @@ impl Root {
                 Some(KitState::Speech(state)) => {
                     let capturing = state.read(cx).status().is_capturing();
                     let mut row = div().flex().items_center().gap_2();
-                    if capturing && kit.flag("waveform") {row = row.child(SpeechWaveform::new(state).w(px(48.)));}
-                    row.child(SpeechButton::new(state)).into_any_element()
+                    if capturing && kit.flag("waveform") {
+                        let mut waveform=SpeechWaveform::new(state).w(px(48.));
+                        if kit.prop("waveformStyle")==Some("liquid") {waveform=waveform.liquid();}
+                        if let Some(size)=kit_size(kit) {waveform=waveform.with_size(size);}
+                        row=row.child(waveform);
+                    }
+                    let mut button=SpeechButton::new(state).disabled(kit.flag("disabled")).show_when_unsupported(kit.flag("showWhenUnsupported"));
+                    if let Some(size)=kit_size(kit) {button=button.with_size(size);}
+                    row.child(button).into_any_element()
                 }
                 _ => div().into_any_element(),
             },

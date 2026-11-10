@@ -1,5 +1,5 @@
 import { test, strictEqual } from 'std:testing';
-import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, Input, Textarea, NumberInput, signal, document } from 'std:ui';
+import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, Input, Textarea, NumberInput, SpeechButton, signal, document } from 'std:ui';
 
 interface DeferredProps {
   children?: LazyChildren;
@@ -145,6 +145,20 @@ test('synchronous input callbacks compile with retained signal captures and nume
   let rejected = false;
   try {
     const field = <NumberInput step={-1} />;
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+});
+
+test('speech options compile and reject negative timeout without microphone access', () => {
+  const node = <SpeechButton locale="en-US" systemFallback={false} showWhenUnsupported={true} disabled={true} size="small" waveform={true} waveformStyle="liquid" stopTimeout={0} onStarted={() => {}} onCancelled={() => {}} />;
+  const html = document(node, 'Speech options');
+  strictEqual(html.includes('Speech options'), true);
+  let rejected = false;
+  try {
+    const invalid = <SpeechButton stopTimeout={-1} />;
   } catch {
     rejected = true;
   }

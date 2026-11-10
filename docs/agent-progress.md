@@ -6,6 +6,30 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Forms continuation — 2026-11-10 (native acceptance pending)
+
+Local accepted input/replay checkpoint is f5673ab7. Current Speech section adds
+size/disabled/showWhenUnsupported, mount-time systemFallback/stopTimeout, waveform
+bars/liquid and started/cancelled callbacks. systemFallback=false takes precedence
+over an explicit locale, leaving no system recognizer. stopTimeout rejects invalid
+durations before mount and finishes with the transcript so far (onFinal), matching
+Kit; it does not emit Cancelled. New gallery availability preview never starts
+capture. Button/Waveform public builder coverage is complete; SpeechState input
+injection and cancellation remain unmapped. No full API parity claim.
+
+Compiler/LSP binary build passed 2m59s. UI runtime 134/134 passed, 0.04s; LSP TSRX
+6/6 passed, 2.98s. Public navigation+composition compiled together once: 9/9 passed,
+2.34ms execution. Whole formatter changed one public suite, zero snippets and
+fingerprints; generators/diff check pass. Native compilation and visual proof are
+pending and will be batched with Questionnaire/Settings form changes. Microphone
+capture, OS permissions and platform recognition remain unverified; do not start
+recording or accept permission prompts silently. Keep detached gallery open.
+
+Next implementation: Questionnaire freeform inputs, sizes, defaults/disabled,
+shortcut/navigation/events and practical Settings sizing/sidebar/layout/reset/slots;
+custom input menu via existing ContextMenu composition. Then rebuild both consumers,
+focused checks, one native gallery build and desktop proof before acceptance.
+
 ### Latest accepted section — 2026-11-10
 
 This entry supersedes the older in-progress input/Table notes below. Local WIP

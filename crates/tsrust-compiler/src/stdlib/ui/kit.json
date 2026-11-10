@@ -6549,7 +6549,7 @@
     },
     {
       "name": "SpeechButton",
-      "doc": "A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript.",
+      "doc": "A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript. Locale, systemFallback and stopTimeout are read once when mounted; disabled, size and waveform presentation can change without restarting the recognizer. Unsupported hosts hide the button unless showWhenUnsupported is true. Each mounted button owns its recognizer and releases capture when disposed.",
       "props": [
         {
           "name": "locale",
@@ -6560,6 +6560,44 @@
           "name": "waveform",
           "type": "boolean",
           "doc": "Shows the input level beside the button while listening."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Button and waveform size; medium by default."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables button interaction; false by default. Does not stop an already running session."
+        },
+        {
+          "name": "showWhenUnsupported",
+          "type": "boolean",
+          "doc": "Shows a disabled microphone when no recognizer is available, instead of hiding it. Defaults to false."
+        },
+        {
+          "name": "systemFallback",
+          "type": "boolean",
+          "doc": "Whether to use the system recognizer. Defaults to true. false leaves this button unsupported, even with locale set. Read once at mount."
+        },
+        {
+          "name": "stopTimeout",
+          "type": "int",
+          "doc": "Nonnegative milliseconds to wait for a final transcript after stopping, then finish with the transcript so far. Defaults to 3000. Read once at mount; negative values throw before mounting."
+        },
+        {
+          "name": "waveformStyle",
+          "type": [
+            "bars",
+            "liquid"
+          ],
+          "doc": "Waveform appearance while capturing; bars by default. Requires waveform=true."
         }
       ],
       "events": [
@@ -6580,6 +6618,16 @@
           "value": "string",
           "param": "message",
           "doc": "Receives a readable message when recognition fails, such as denied microphone access."
+        },
+        {
+          "prop": "onStarted",
+          "value": "void",
+          "doc": "Called when a session starts capturing audio."
+        },
+        {
+          "prop": "onCancelled",
+          "value": "void",
+          "doc": "Called if the recognizer session is explicitly cancelled and its transcript discarded. Stopping normally, including its timeout, calls onFinal instead."
         }
       ],
       "example": "<SpeechButton waveform={true} onFinal={(text) => { note.set(clone(text)); }}/>"
@@ -9331,6 +9379,39 @@
       "with_syntax_max_line_length": "syntaxMaxLineLength",
       "set_syntax_max_line_length": "syntaxMaxLineLength",
       "set_files": "patch"
+    },
+    "SpeechButton": {
+      "new": "mounted SpeechButton",
+      "show_when_unsupported": "showWhenUnsupported",
+      "with_size": "size",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "disabled": "disabled"
+    },
+    "SpeechWaveform": {
+      "new": "waveform=true while capturing",
+      "liquid": "waveformStyle=liquid",
+      "with_size": "size",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size"
+    },
+    "SpeechState": {
+      "new": "one owned state per mounted SpeechButton",
+      "recognizer": "locale selects system recognizer",
+      "system_fallback": "systemFallback",
+      "stop_timeout": "stopTimeout",
+      "has_recognizer": "unsupported button visibility",
+      "is_available": "automatic button disabled state",
+      "status": "button indicator and waveform visibility",
+      "toggle": "microphone button",
+      "start": "microphone button",
+      "stop": "microphone button",
+      "transcript": "onPartial/onFinal",
+      "levels": "waveform"
     }
   }
 }

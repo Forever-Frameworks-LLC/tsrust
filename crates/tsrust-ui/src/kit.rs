@@ -69,6 +69,7 @@ fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
 impl Kit {
     fn validate_prop(&self,name:&str,value:&str)->Result<(),String> {
         if matches!(self.name.as_str(),"DiffAnnotation"|"DiffDecoration"|"DiffGutterMarker") && matches!(name,"line"|"start"|"end") && !value.parse::<usize>().is_ok_and(|value|value>=1) {return Err(format!("{} {name} requires a one-based integer >= 1",self.name));}
+        if self.name=="SpeechButton" && name=="stopTimeout" && value.parse::<u64>().is_err() {return Err("SpeechButton stopTimeout requires nonnegative integer milliseconds".into());}
         if self.name=="NumberInput" && matches!(name,"value"|"defaultValue"|"step"|"min"|"max") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (name!="step" || value>=0.)) {return Err(format!("NumberInput {name} requires a finite {}number",if name=="step"{"nonnegative "}else{""}));}
         if self.name=="Diff" {
             if name=="contextLines" && !value.parse::<i64>().is_ok_and(|value|value>=-1) {return Err("Diff contextLines requires -1 or a nonnegative integer".into());}
@@ -369,5 +370,15 @@ mod plot_geometry_tests {
   assert_eq!(plot_y(0.,-1e308,1e308,100.),50.);
   assert_eq!(plot_y(1e308,-1e308,1e308,100.),0.);
   assert_eq!(plot_y(0.,0.,0.,100.),100.);
+ }
+}
+
+#[cfg(test)]
+mod speech_value_tests {
+ use super::*;
+ #[test]
+ fn speech_timeout_rejects_invalid_duration_before_mounting() {
+  for value in ["-1","0.5","NaN","inf","18446744073709551616"] {assert!(Node::kit("SpeechButton",vec![],String::new()).unwrap().with_kit_prop("stopTimeout",value).is_err());}
+  for value in ["0","3000","9223372036854775807"] {assert!(Node::kit("SpeechButton",vec![],String::new()).unwrap().with_kit_prop("stopTimeout",value).is_ok());}
  }
 }

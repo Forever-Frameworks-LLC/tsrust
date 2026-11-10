@@ -4374,6 +4374,21 @@ function LiveTranscript(): Node {
     </View>
   );
 }
+--- Availability and disabled controls
+These previews never request microphone access: the first disables system fallback, and the others disable interaction. Presentation changes do not recreate speech state.
+function SpeechAvailability(): Node {
+  const large = signal(false);
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Switch checked={large.get()} onChange={(value) => { large.set(value); }}>Large microphone</Switch>
+      <View className="flex-row gap-3 items-center">
+        <SpeechButton locale="en-US" systemFallback={false} showWhenUnsupported={true} size={large.get() ? 'large' : 'small'} />
+        <SpeechButton disabled={true} showWhenUnsupported={true} size={large.get() ? 'large' : 'small'} stopTimeout={1500} />
+        <Text>Unavailable and disabled microphones</Text>
+      </View>
+    </View>
+  );
+}
 === Plot | plot | Data
 Layer line, area and bar series on a shared category scale. Add PlotTooltip for Kit hover motion, crosshairs and series values.
 --- Hover values and live data

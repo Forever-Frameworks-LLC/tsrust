@@ -854,9 +854,11 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/settings", page: "Settings Panel", section: "Application preferences", text: "switch pages, search by a setting title, and change the controls.", keywords: "numberinput settingitem settings settingsgroup settingspage switch checked classname description max min onchange title value"
   }, {
-    route: "/speech", page: "Speech", section: "", text: "dictation through the system recognizer. availability and permission depend on the host operating system.", keywords: "speech speechbutton text view"
+    route: "/speech", page: "Speech", section: "", text: "dictation through the system recognizer. availability and permission depend on the host operating system.", keywords: "speech speechbutton switch text view"
   }, {
     route: "/speech", page: "Speech", section: "Live transcript", text: "click the microphone to start, speak, then click again to finish. the first attempt may request system permission.", keywords: "speechbutton text view classname locale onerror onfinal onpartial variant waveform"
+  }, {
+    route: "/speech", page: "Speech", section: "Availability and disabled controls", text: "these previews never request microphone access: the first disables system fallback, and the others disable interaction. presentation changes do not recreate speech state.", keywords: "speechbutton switch text view checked classname disabled locale onchange showwhenunsupported size stoptimeout systemfallback"
   }, {
     route: "/plot", page: "Plot", section: "", text: "layer line, area and bar series on a shared category scale. add plottooltip for kit hover motion, crosshairs and series values.", keywords: "plot button plot plotarea plotline plottooltip plottooltiprow switch view"
   }, {

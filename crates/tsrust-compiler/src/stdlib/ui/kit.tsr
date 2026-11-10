@@ -9117,17 +9117,33 @@ export interface SpeechButtonProps {
   locale?: ReactiveValue<string> | TextBinding;
   /** Shows the input level beside the button while listening. */
   waveform?: ReactiveValue<boolean>;
+  /** Button and waveform size; medium by default. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Disables button interaction; false by default. Does not stop an already running session. */
+  disabled?: ReactiveValue<boolean>;
+  /** Shows a disabled microphone when no recognizer is available, instead of hiding it. Defaults to false. */
+  showWhenUnsupported?: ReactiveValue<boolean>;
+  /** Whether to use the system recognizer. Defaults to true. false leaves this button unsupported, even with locale set. Read once at mount. */
+  systemFallback?: ReactiveValue<boolean>;
+  /** Nonnegative milliseconds to wait for a final transcript after stopping, then finish with the transcript so far. Defaults to 3000. Read once at mount; negative values throw before mounting. */
+  stopTimeout?: ReactiveValue<int>;
+  /** Waveform appearance while capturing; bars by default. Requires waveform=true. */
+  waveformStyle?: ReactiveValue<'bars' | 'liquid'>;
   /** Receives the whole transcript so far while the user speaks. */
   onPartial?: Owned<Function<void, [text: ReadOnly<string>]>>;
   /** Receives the final transcript when the session ends; it may be empty. */
   onFinal?: Owned<Function<void, [text: ReadOnly<string>]>>;
   /** Receives a readable message when recognition fails, such as denied microphone access. */
   onError?: Owned<Function<void, [message: ReadOnly<string>]>>;
+  /** Called when a session starts capturing audio. */
+  onStarted?: Owned<Function<void>>;
+  /** Called if the recognizer session is explicitly cancelled and its transcript discarded. Stopping normally, including its timeout, calls onFinal instead. */
+  onCancelled?: Owned<Function<void>>;
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
 
-/** A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript. */
+/** A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript. Locale, systemFallback and stopTimeout are read once when mounted; disabled, size and waveform presentation can change without restarting the recognizer. Unsupported hosts hide the button unless showWhenUnsupported is true. Each mounted button owns its recognizer and releases capture when disposed. */
 export function SpeechButton(props: SpeechButtonProps): Node {
   let node = kitNode('SpeechButton', [], props.className);
   const prop_locale = props.locale;
@@ -9138,6 +9154,44 @@ export function SpeechButton(props: SpeechButtonProps): Node {
   const prop_waveform = props.waveform;
   if (prop_waveform !== undefined) {
     node = kitFlag(node, 'waveform', prop_waveform);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_showWhenUnsupported = props.showWhenUnsupported;
+  if (prop_showWhenUnsupported !== undefined) {
+    node = kitFlag(node, 'showWhenUnsupported', prop_showWhenUnsupported);
+  }
+
+  const prop_systemFallback = props.systemFallback;
+  if (prop_systemFallback !== undefined) {
+    node = kitFlag(node, 'systemFallback', prop_systemFallback);
+  }
+
+  const prop_stopTimeout = props.stopTimeout;
+  if (prop_stopTimeout !== undefined) {
+    node = kitInt(node, 'stopTimeout', prop_stopTimeout);
+  }
+
+  const prop_waveformStyle = props.waveformStyle;
+  if (prop_waveformStyle !== undefined) {
+    if (typeof prop_waveformStyle === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'waveformStyle', `${prop_waveformStyle}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'waveformStyle', nativeBindText(prop_waveformStyle.evaluate)));
+    }
   }
 
   const event_onPartial = props.onPartial;
@@ -9153,6 +9207,16 @@ export function SpeechButton(props: SpeechButtonProps): Node {
   const event_onError = props.onError;
   if (event_onError !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'error', event_onError));
+  }
+
+  const event_onStarted = props.onStarted;
+  if (event_onStarted !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'started', event_onStarted));
+  }
+
+  const event_onCancelled = props.onCancelled;
+  if (event_onCancelled !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'cancelled', event_onCancelled));
   }
 
   return node;
