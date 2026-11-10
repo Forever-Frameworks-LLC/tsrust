@@ -7676,13 +7676,49 @@ export interface DiffProps {
   patch?: ReactiveValue<string> | TextBinding;
   /** One column, or old and new side by side. Defaults to unified. */
   mode?: ReactiveValue<'unified' | 'split'>;
+  /** Shows original and modified source line numbers. Defaults to true. */
+  lineNumbers?: ReactiveValue<boolean>;
+  /** Colors recognized source languages. Defaults to true; unknown languages remain plain text. */
+  syntaxHighlight?: ReactiveValue<boolean>;
+  /** Shows each file header and its collapse control. Defaults to true. */
+  headerVisible?: ReactiveValue<boolean>;
+  /** Emphasizes the hovered code row, number gutter or both. Defaults to none. */
+  hoverHighlight?: ReactiveValue<'none' | 'line' | 'line-number' | 'both'>;
+  /** Displays the Git hunk header (default), omitted-line count or a thin divider. */
+  hunkSeparator?: ReactiveValue<'metadata' | 'line-info' | 'simple'>;
+  /** Marks changed rows with plus/minus signs (default), colored bars or no gutter mark. */
+  changeIndicator?: ReactiveValue<'signs' | 'bars' | 'none'>;
+  /** Tints added and removed row backgrounds. Defaults to true. */
+  changeBackground?: ReactiveValue<boolean>;
+  /** Wraps long source lines within the view. Defaults to false; horizontal scrolling preserves source lines. */
+  softWrap?: ReactiveValue<boolean>;
+  /** Unchanged lines shown around changes. Defaults to 3; -1 shows all available context. Other negative values throw. Cannot recover lines omitted from the patch. */
+  contextLines?: ReactiveValue<int>;
+  /** Lines revealed by one unchanged-section disclosure. Defaults to 20; requires an integer >= 1. */
+  expansionLines?: ReactiveValue<int>;
+  /** Minimum unchanged run kept collapsed. Defaults to 2; requires an integer >= 1. */
+  minCollapsedLines?: ReactiveValue<int>;
+  /** Emphasizes changed words (default), Unicode characters, or whole lines only. */
+  inlineUnit?: ReactiveValue<'word' | 'character' | 'none'>;
+  /** Maximum source-line byte length for inline comparison. Defaults to 1000; requires an integer >= 1. Longer lines retain whole-line coloring. */
+  inlineMaxLineLength?: ReactiveValue<int>;
+  /** Maximum source-line byte length for syntax coloring. Defaults to 1000; requires an integer >= 1. Longer lines remain plain text. */
+  syntaxMaxLineLength?: ReactiveValue<int>;
+  /** Receives a JSON position {path, side, line} when source code is clicked outside a selection drag. side is original or modified; line is one-based. The snapshot can be parsed with JSON.parse. */
+  onLineClick?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Receives the same JSON position as onLineClick while hovering, or JSON null on leaving a line. */
+  onLineHover?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Shows the add-annotation affordance. Receives a JSON inclusive range {path, side, start, endSide, end}. It spans the selected lines when applicable; all line numbers are one-based. */
+  onAddAnnotation?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** DiffAnnotation, DiffDecoration, DiffGutterMarker and DiffHeader elements. */
+  children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
 
-/** A read-only view of a unified or Git patch, with one section per changed file. */
+/** A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode="split" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners. */
 export function Diff(props: DiffProps): Node {
-  let node = kitNode('Diff', [], props.className);
+  let node = kitNode('Diff', props.children ?? [], props.className);
   const prop_patch = props.patch;
   if (prop_patch !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'patch', prop_patch));
@@ -7694,6 +7730,268 @@ export function Diff(props: DiffProps): Node {
       node = unwrapNode(nativeKitSet(node, 'mode', `${prop_mode}`));
     } else {
       node = unwrapNode(nativeKitBind(node, 'mode', nativeBindText(prop_mode.evaluate)));
+    }
+  }
+
+  const prop_lineNumbers = props.lineNumbers;
+  if (prop_lineNumbers !== undefined) {
+    node = kitFlag(node, 'lineNumbers', prop_lineNumbers);
+  }
+
+  const prop_syntaxHighlight = props.syntaxHighlight;
+  if (prop_syntaxHighlight !== undefined) {
+    node = kitFlag(node, 'syntaxHighlight', prop_syntaxHighlight);
+  }
+
+  const prop_headerVisible = props.headerVisible;
+  if (prop_headerVisible !== undefined) {
+    node = kitFlag(node, 'headerVisible', prop_headerVisible);
+  }
+
+  const prop_hoverHighlight = props.hoverHighlight;
+  if (prop_hoverHighlight !== undefined) {
+    if (typeof prop_hoverHighlight === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'hoverHighlight', `${prop_hoverHighlight}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'hoverHighlight', nativeBindText(prop_hoverHighlight.evaluate)));
+    }
+  }
+
+  const prop_hunkSeparator = props.hunkSeparator;
+  if (prop_hunkSeparator !== undefined) {
+    if (typeof prop_hunkSeparator === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'hunkSeparator', `${prop_hunkSeparator}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'hunkSeparator', nativeBindText(prop_hunkSeparator.evaluate)));
+    }
+  }
+
+  const prop_changeIndicator = props.changeIndicator;
+  if (prop_changeIndicator !== undefined) {
+    if (typeof prop_changeIndicator === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'changeIndicator', `${prop_changeIndicator}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'changeIndicator', nativeBindText(prop_changeIndicator.evaluate)));
+    }
+  }
+
+  const prop_changeBackground = props.changeBackground;
+  if (prop_changeBackground !== undefined) {
+    node = kitFlag(node, 'changeBackground', prop_changeBackground);
+  }
+
+  const prop_softWrap = props.softWrap;
+  if (prop_softWrap !== undefined) {
+    node = kitFlag(node, 'softWrap', prop_softWrap);
+  }
+
+  const prop_contextLines = props.contextLines;
+  if (prop_contextLines !== undefined) {
+    node = kitInt(node, 'contextLines', prop_contextLines);
+  }
+
+  const prop_expansionLines = props.expansionLines;
+  if (prop_expansionLines !== undefined) {
+    node = kitInt(node, 'expansionLines', prop_expansionLines);
+  }
+
+  const prop_minCollapsedLines = props.minCollapsedLines;
+  if (prop_minCollapsedLines !== undefined) {
+    node = kitInt(node, 'minCollapsedLines', prop_minCollapsedLines);
+  }
+
+  const prop_inlineUnit = props.inlineUnit;
+  if (prop_inlineUnit !== undefined) {
+    if (typeof prop_inlineUnit === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'inlineUnit', `${prop_inlineUnit}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'inlineUnit', nativeBindText(prop_inlineUnit.evaluate)));
+    }
+  }
+
+  const prop_inlineMaxLineLength = props.inlineMaxLineLength;
+  if (prop_inlineMaxLineLength !== undefined) {
+    node = kitInt(node, 'inlineMaxLineLength', prop_inlineMaxLineLength);
+  }
+
+  const prop_syntaxMaxLineLength = props.syntaxMaxLineLength;
+  if (prop_syntaxMaxLineLength !== undefined) {
+    node = kitInt(node, 'syntaxMaxLineLength', prop_syntaxMaxLineLength);
+  }
+
+  const event_onLineClick = props.onLineClick;
+  if (event_onLineClick !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'lineClick', event_onLineClick));
+  }
+
+  const event_onLineHover = props.onLineHover;
+  if (event_onLineHover !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'lineHover', event_onLineHover));
+  }
+
+  const event_onAddAnnotation = props.onAddAnnotation;
+  if (event_onAddAnnotation !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'addAnnotation', event_onAddAnnotation));
+  }
+
+  return node;
+}
+
+export interface DiffAnnotationProps {
+  /** Exact file path reported by the patch, after a/ or b/ removal. Required; an absent path renders nothing. */
+  path?: ReactiveValue<string> | TextBinding;
+  /** Source side. Defaults to modified. */
+  side?: ReactiveValue<'original' | 'modified'>;
+  /** One-based source line, independent of split/unified layout. Requires an integer >= 1. */
+  line?: ReactiveValue<int>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** Content attached below a Diff source line, or below a file header when line is omitted. Hidden with its target; multiple annotations keep supplied order. For example, <DiffAnnotation path="greeting.tsr" line={2}><Text>Review wording</Text></DiffAnnotation>. Ownership: content remains owned by its parent Diff. */
+export function DiffAnnotation(props: DiffAnnotationProps): Node {
+  let node = kitNode('DiffAnnotation', props.children ?? [], props.className);
+  const prop_path = props.path;
+  if (prop_path !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'path', prop_path));
+  }
+
+  const prop_side = props.side;
+  if (prop_side !== undefined) {
+    if (typeof prop_side === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'side', nativeBindText(prop_side.evaluate)));
+    }
+  }
+
+  const prop_line = props.line;
+  if (prop_line !== undefined) {
+    node = kitInt(node, 'line', prop_line);
+  }
+
+  return node;
+}
+
+export interface DiffDecorationProps {
+  /** Exact file path reported by the patch, after a/ or b/ removal. Required; an absent path renders nothing. */
+  path?: ReactiveValue<string> | TextBinding;
+  /** Source side. Defaults to modified. */
+  side?: ReactiveValue<'original' | 'modified'>;
+  /** First one-based source line; required, integer >= 1. */
+  start?: ReactiveValue<int>;
+  /** Last inclusive one-based source line; defaults to start, integer >= 1. */
+  end?: ReactiveValue<int>;
+  /** Side of end. Defaults to side; a cross-side range follows patch order. */
+  endSide?: ReactiveValue<'original' | 'modified'>;
+  /** Theme color or CSS hex color. Omission uses Kit translucent warning color. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** A background over an inclusive source-line range, without changing selection, copying or layout. Last decoration wins where ranges overlap. Ownership: parent Diff retains the range. */
+export function DiffDecoration(props: DiffDecorationProps): Node {
+  let node = kitNode('DiffDecoration', [], props.className);
+  const prop_path = props.path;
+  if (prop_path !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'path', prop_path));
+  }
+
+  const prop_side = props.side;
+  if (prop_side !== undefined) {
+    if (typeof prop_side === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'side', nativeBindText(prop_side.evaluate)));
+    }
+  }
+
+  const prop_start = props.start;
+  if (prop_start !== undefined) {
+    node = kitInt(node, 'start', prop_start);
+  }
+
+  const prop_end = props.end;
+  if (prop_end !== undefined) {
+    node = kitInt(node, 'end', prop_end);
+  }
+
+  const prop_endSide = props.endSide;
+  if (prop_endSide !== undefined) {
+    if (typeof prop_endSide === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'endSide', `${prop_endSide}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'endSide', nativeBindText(prop_endSide.evaluate)));
+    }
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  return node;
+}
+
+export interface DiffGutterMarkerProps {
+  /** Exact file path reported by the patch, after a/ or b/ removal. Required; an absent path renders nothing. */
+  path?: ReactiveValue<string> | TextBinding;
+  /** Source side. Defaults to modified. */
+  side?: ReactiveValue<'original' | 'modified'>;
+  /** One-based source line, independent of split/unified layout. Requires an integer >= 1. */
+  line?: ReactiveValue<int>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** Interactive content beside one Diff source line. First supplied marker wins for the same target. Put an accessible small Button inside; its actions remain independent of text selection. Ownership: parent Diff retains content. */
+export function DiffGutterMarker(props: DiffGutterMarkerProps): Node {
+  let node = kitNode('DiffGutterMarker', props.children ?? [], props.className);
+  const prop_path = props.path;
+  if (prop_path !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'path', prop_path));
+  }
+
+  const prop_side = props.side;
+  if (prop_side !== undefined) {
+    if (typeof prop_side === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'side', nativeBindText(prop_side.evaluate)));
+    }
+  }
+
+  const prop_line = props.line;
+  if (prop_line !== undefined) {
+    node = kitInt(node, 'line', prop_line);
+  }
+
+  return node;
+}
+
+export interface DiffHeaderProps {
+  /** Header slot. Defaults to content, replacing the default path/statistics. prefix precedes the path; title-suffix follows it; suffix trails the statistics. */
+  part?: ReactiveValue<'content' | 'prefix' | 'title-suffix' | 'suffix'>;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** Custom content for every Diff file header, preserving the outer shell and collapse control. Use part to replace the title content or insert before/after it. The first child for each part wins. For multi-file patches use read-only content: the same retained children appear in each header. Per-file interactive content requires separate Diff nodes. Ownership: parent Diff retains this content. */
+export function DiffHeader(props: DiffHeaderProps): Node {
+  let node = kitNode('DiffHeader', props.children ?? [], props.className);
+  const prop_part = props.part;
+  if (prop_part !== undefined) {
+    if (typeof prop_part === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'part', `${prop_part}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'part', nativeBindText(prop_part.evaluate)));
     }
   }
 

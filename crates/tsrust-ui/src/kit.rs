@@ -52,6 +52,11 @@ fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
 
 impl Kit {
     fn validate_prop(&self,name:&str,value:&str)->Result<(),String> {
+        if matches!(self.name.as_str(),"DiffAnnotation"|"DiffDecoration"|"DiffGutterMarker") && matches!(name,"line"|"start"|"end") && !value.parse::<usize>().is_ok_and(|value|value>=1) {return Err(format!("{} {name} requires a one-based integer >= 1",self.name));}
+        if self.name=="Diff" {
+            if name=="contextLines" && !value.parse::<i64>().is_ok_and(|value|value>=-1) {return Err("Diff contextLines requires -1 or a nonnegative integer".into());}
+            if matches!(name,"expansionLines"|"minCollapsedLines"|"inlineMaxLineLength"|"syntaxMaxLineLength") && !value.parse::<usize>().is_ok_and(|value|value>=1) {return Err(format!("Diff {name} requires an integer >= 1"));}
+        }
         if self.name=="CodeEditor" && matches!(name,"tabSize"|"scrollBeyondLastLine"|"cursorSurroundingLines") {
             let minimum=usize::from(name=="tabSize");
             if !value.parse::<usize>().is_ok_and(|value|value>=minimum) {return Err(format!("CodeEditor {name} requires an integer >= {minimum}"));}
@@ -253,6 +258,24 @@ mod plot_value_tests {
    for invalid in ["-1","NaN","inf","1e100"] {assert!(Node::kit(component,vec![],String::new()).unwrap().with_kit_prop(prop,invalid).is_err());}
   }
   assert!(Node::kit("PlotTooltip",vec![],String::new()).unwrap().with_kit_prop("progress","-1").is_ok());
+ }
+}
+
+#[cfg(test)]
+mod diff_value_tests {
+ use super::*;
+ #[test]
+ fn diff_counts_reject_invalid_geometry_before_mounting() {
+  for prop in ["expansionLines","minCollapsedLines","inlineMaxLineLength","syntaxMaxLineLength"] {
+   for invalid in ["-1","0","1.5","NaN","18446744073709551616"] {assert!(Node::kit("Diff",vec![],String::new()).unwrap().with_kit_prop(prop,invalid).is_err(),"{prop} {invalid}");}
+   assert!(Node::kit("Diff",vec![],String::new()).unwrap().with_kit_prop(prop,"1").is_ok());
+  }
+  for (component,prop) in [("DiffAnnotation","line"),("DiffDecoration","start"),("DiffDecoration","end"),("DiffGutterMarker","line")] {
+   assert!(Node::kit(component,vec![],String::new()).unwrap().with_kit_prop(prop,"0").is_err());
+   assert!(Node::kit(component,vec![],String::new()).unwrap().with_kit_prop(prop,"1").is_ok());
+  }
+  for valid in ["-1","0","3"] {assert!(Node::kit("Diff",vec![],String::new()).unwrap().with_kit_prop("contextLines",valid).is_ok());}
+  for invalid in ["-2","NaN","1.5"] {assert!(Node::kit("Diff",vec![],String::new()).unwrap().with_kit_prop("contextLines",invalid).is_err());}
  }
 }
 

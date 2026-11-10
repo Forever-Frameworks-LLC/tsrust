@@ -6,6 +6,7 @@ fn bundled_ui_props_have_completion_and_behavioral_hover_before_project_analysis
         ("CodeEditor","Editor","lineN","lineNumbers","false","Defaults to true"),
         ("PlotTooltip","Tip","crossL","crossLine","\"both\"","Defaults to vertical"),
         ("PlotLine","Line","val","values","[1,2]","NaN and infinities throw"),
+        ("Diff","Compare","contextL","contextLines","-1","Cannot recover lines omitted from the patch"),
     ] {
         let prefix=format!("import {{{component} as {alias}}} from 'std:ui';function main(){{const node=<{alias} ");
         let source=format!("{prefix}{partial}");

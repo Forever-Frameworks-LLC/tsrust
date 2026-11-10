@@ -5514,7 +5514,7 @@
     },
     {
       "name": "Diff",
-      "doc": "A read-only view of a unified or Git patch, with one section per changed file.",
+      "doc": "A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode=\"split\" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners.",
       "props": [
         {
           "name": "patch",
@@ -5528,9 +5528,231 @@
             "split"
           ],
           "doc": "One column, or old and new side by side. Defaults to unified."
+        },
+        {
+          "name": "lineNumbers",
+          "type": "boolean",
+          "doc": "Shows original and modified source line numbers. Defaults to true."
+        },
+        {
+          "name": "syntaxHighlight",
+          "type": "boolean",
+          "doc": "Colors recognized source languages. Defaults to true; unknown languages remain plain text."
+        },
+        {
+          "name": "headerVisible",
+          "type": "boolean",
+          "doc": "Shows each file header and its collapse control. Defaults to true."
+        },
+        {
+          "name": "hoverHighlight",
+          "type": [
+            "none",
+            "line",
+            "line-number",
+            "both"
+          ],
+          "doc": "Emphasizes the hovered code row, number gutter or both. Defaults to none."
+        },
+        {
+          "name": "hunkSeparator",
+          "type": [
+            "metadata",
+            "line-info",
+            "simple"
+          ],
+          "doc": "Displays the Git hunk header (default), omitted-line count or a thin divider."
+        },
+        {
+          "name": "changeIndicator",
+          "type": [
+            "signs",
+            "bars",
+            "none"
+          ],
+          "doc": "Marks changed rows with plus/minus signs (default), colored bars or no gutter mark."
+        },
+        {
+          "name": "changeBackground",
+          "type": "boolean",
+          "doc": "Tints added and removed row backgrounds. Defaults to true."
+        },
+        {
+          "name": "softWrap",
+          "type": "boolean",
+          "doc": "Wraps long source lines within the view. Defaults to false; horizontal scrolling preserves source lines."
+        },
+        {
+          "name": "contextLines",
+          "type": "int",
+          "doc": "Unchanged lines shown around changes. Defaults to 3; -1 shows all available context. Other negative values throw. Cannot recover lines omitted from the patch."
+        },
+        {
+          "name": "expansionLines",
+          "type": "int",
+          "doc": "Lines revealed by one unchanged-section disclosure. Defaults to 20; requires an integer >= 1."
+        },
+        {
+          "name": "minCollapsedLines",
+          "type": "int",
+          "doc": "Minimum unchanged run kept collapsed. Defaults to 2; requires an integer >= 1."
+        },
+        {
+          "name": "inlineUnit",
+          "type": [
+            "word",
+            "character",
+            "none"
+          ],
+          "doc": "Emphasizes changed words (default), Unicode characters, or whole lines only."
+        },
+        {
+          "name": "inlineMaxLineLength",
+          "type": "int",
+          "doc": "Maximum source-line byte length for inline comparison. Defaults to 1000; requires an integer >= 1. Longer lines retain whole-line coloring."
+        },
+        {
+          "name": "syntaxMaxLineLength",
+          "type": "int",
+          "doc": "Maximum source-line byte length for syntax coloring. Defaults to 1000; requires an integer >= 1. Longer lines remain plain text."
         }
       ],
-      "example": "<Diff patch={patch} mode=\"split\" className=\"h-96\"/>"
+      "example": "<Diff patch={patch} mode=\"split\" className=\"h-96\"/>",
+      "events": [
+        {
+          "prop": "onLineClick",
+          "value": "string",
+          "doc": "Receives a JSON position {path, side, line} when source code is clicked outside a selection drag. side is original or modified; line is one-based. The snapshot can be parsed with JSON.parse."
+        },
+        {
+          "prop": "onLineHover",
+          "value": "string",
+          "doc": "Receives the same JSON position as onLineClick while hovering, or JSON null on leaving a line."
+        },
+        {
+          "prop": "onAddAnnotation",
+          "value": "string",
+          "doc": "Shows the add-annotation affordance. Receives a JSON inclusive range {path, side, start, endSide, end}. It spans the selected lines when applicable; all line numbers are one-based."
+        }
+      ],
+      "children": "DiffAnnotation, DiffDecoration, DiffGutterMarker and DiffHeader"
+    },
+    {
+      "name": "DiffAnnotation",
+      "item": true,
+      "children": true,
+      "doc": "Content attached below a Diff source line, or below a file header when line is omitted. Hidden with its target; multiple annotations keep supplied order. For example, <DiffAnnotation path=\"greeting.tsr\" line={2}><Text>Review wording</Text></DiffAnnotation>. Ownership: content remains owned by its parent Diff.",
+      "props": [
+        {
+          "name": "path",
+          "type": "string",
+          "doc": "Exact file path reported by the patch, after a/ or b/ removal. Required; an absent path renders nothing."
+        },
+        {
+          "name": "side",
+          "type": [
+            "original",
+            "modified"
+          ],
+          "doc": "Source side. Defaults to modified."
+        },
+        {
+          "name": "line",
+          "type": "int",
+          "doc": "One-based source line, independent of split/unified layout. Requires an integer >= 1."
+        }
+      ],
+      "example": "<DiffAnnotation path=\"greeting.tsr\" line={2}><Text>Review wording</Text></DiffAnnotation>"
+    },
+    {
+      "name": "DiffDecoration",
+      "item": true,
+      "doc": "A background over an inclusive source-line range, without changing selection, copying or layout. Last decoration wins where ranges overlap. Ownership: parent Diff retains the range.",
+      "props": [
+        {
+          "name": "path",
+          "type": "string",
+          "doc": "Exact file path reported by the patch, after a/ or b/ removal. Required; an absent path renders nothing."
+        },
+        {
+          "name": "side",
+          "type": [
+            "original",
+            "modified"
+          ],
+          "doc": "Source side. Defaults to modified."
+        },
+        {
+          "name": "start",
+          "type": "int",
+          "doc": "First one-based source line; required, integer >= 1."
+        },
+        {
+          "name": "end",
+          "type": "int",
+          "doc": "Last inclusive one-based source line; defaults to start, integer >= 1."
+        },
+        {
+          "name": "endSide",
+          "type": [
+            "original",
+            "modified"
+          ],
+          "doc": "Side of end. Defaults to side; a cross-side range follows patch order."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Theme color or CSS hex color. Omission uses Kit translucent warning color."
+        }
+      ],
+      "example": "<DiffDecoration path=\"greeting.tsr\" start={2} end={3} color=\"#ffd16655\"/>"
+    },
+    {
+      "name": "DiffGutterMarker",
+      "item": true,
+      "children": true,
+      "doc": "Interactive content beside one Diff source line. First supplied marker wins for the same target. Put an accessible small Button inside; its actions remain independent of text selection. Ownership: parent Diff retains content.",
+      "props": [
+        {
+          "name": "path",
+          "type": "string",
+          "doc": "Exact file path reported by the patch, after a/ or b/ removal. Required; an absent path renders nothing."
+        },
+        {
+          "name": "side",
+          "type": [
+            "original",
+            "modified"
+          ],
+          "doc": "Source side. Defaults to modified."
+        },
+        {
+          "name": "line",
+          "type": "int",
+          "doc": "One-based source line, independent of split/unified layout. Requires an integer >= 1."
+        }
+      ],
+      "example": "<DiffGutterMarker path=\"greeting.tsr\" line={2}><Button compact={true} icon=\"message-square\" aria-label=\"Comment\"/></DiffGutterMarker>"
+    },
+    {
+      "name": "DiffHeader",
+      "item": true,
+      "children": true,
+      "doc": "Custom content for every Diff file header, preserving the outer shell and collapse control. Use part to replace the title content or insert before/after it. The first child for each part wins. For multi-file patches use read-only content: the same retained children appear in each header. Per-file interactive content requires separate Diff nodes. Ownership: parent Diff retains this content.",
+      "props": [
+        {
+          "name": "part",
+          "type": [
+            "content",
+            "prefix",
+            "title-suffix",
+            "suffix"
+          ],
+          "doc": "Header slot. Defaults to content, replacing the default path/statistics. prefix precedes the path; title-suffix follows it; suffix trails the statistics."
+        }
+      ],
+      "example": "<DiffHeader part=\"suffix\"><Text>Reviewed</Text></DiffHeader>"
     },
     {
       "name": "Marker",
@@ -9032,6 +9254,60 @@
       "set_smart_indent": "smartIndent",
       "indent_guides": "indentGuides",
       "set_indent_guides": "indentGuides"
+    },
+    "Diff": {
+      "new": "Diff",
+      "line_number": "lineNumbers",
+      "syntax_highlight": "syntaxHighlight",
+      "header_visible": "headerVisible",
+      "hover_highlight": "hoverHighlight",
+      "hunk_separator": "hunkSeparator",
+      "change_indicator": "changeIndicator",
+      "change_background": "changeBackground",
+      "soft_wrap": "softWrap",
+      "on_line_click": "onLineClick",
+      "on_line_hover": "onLineHover",
+      "on_add_annotation": "onAddAnnotation",
+      "annotations": "DiffAnnotation",
+      "render_annotation": "DiffAnnotation.children",
+      "annotation_content": "DiffAnnotation.children",
+      "decorations": "DiffDecoration",
+      "gutter_markers": "DiffGutterMarker",
+      "render_gutter_marker": "DiffGutterMarker.children",
+      "header": "DiffHeader part=content",
+      "render_header": "DiffHeader part=content",
+      "header_prefix": "DiffHeader part=prefix",
+      "render_header_prefix": "DiffHeader part=prefix",
+      "header_title_suffix": "DiffHeader part=title-suffix",
+      "render_header_title_suffix": "DiffHeader part=title-suffix",
+      "header_suffix": "DiffHeader part=suffix",
+      "render_header_suffix": "DiffHeader part=suffix"
+    },
+    "DiffState": {
+      "new": "Diff: mounted retained state",
+      "files": "patch",
+      "mode": "mode",
+      "with_mode": "mode",
+      "set_mode": "mode",
+      "context_lines": "contextLines",
+      "with_context_lines": "contextLines",
+      "set_context_lines": "contextLines",
+      "expansion_lines": "expansionLines",
+      "with_expansion_lines": "expansionLines",
+      "set_expansion_lines": "expansionLines",
+      "min_collapsed_lines": "minCollapsedLines",
+      "with_min_collapsed_lines": "minCollapsedLines",
+      "set_min_collapsed_lines": "minCollapsedLines",
+      "inline_unit": "inlineUnit",
+      "with_inline_unit": "inlineUnit",
+      "set_inline_unit": "inlineUnit",
+      "inline_max_line_length": "inlineMaxLineLength",
+      "with_inline_max_line_length": "inlineMaxLineLength",
+      "set_inline_max_line_length": "inlineMaxLineLength",
+      "syntax_max_line_length": "syntaxMaxLineLength",
+      "with_syntax_max_line_length": "syntaxMaxLineLength",
+      "set_syntax_max_line_length": "syntaxMaxLineLength",
+      "set_files": "patch"
     }
   }
 }

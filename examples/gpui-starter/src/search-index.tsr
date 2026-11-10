@@ -832,9 +832,9 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/message-scroller", page: "Message Scroller", section: "Live Transcript", text: "add messages; the scroller follows the end unless you scrolled up.", keywords: "button message messagescroller view align classname jumplabel onpress rowclassname variant"
   }, {
-    route: "/diff", page: "Diff", section: "", text: "compare changed files in a unified patch or a side-by-side split view.", keywords: "diff diff switch view"
+    route: "/diff", page: "Diff", section: "", text: "compare changed files in a unified patch or a side-by-side split view.", keywords: "diff button diff diffannotation diffdecoration diffguttermarker diffheader switch text view"
   }, {
-    route: "/diff", page: "Diff", section: "Unified and split", text: "switch the same patch between layouts. the viewer keeps gpui kit's file headers and change colors.", keywords: "diff switch view checked classname mode onchange patch"
+    route: "/diff", page: "Diff", section: "Unified and split", text: "switch the same patch between layouts. the viewer keeps gpui kit's file headers and change colors.", keywords: "button diff diffannotation diffdecoration diffguttermarker diffheader switch text view changebackground changeindicator checked classname color compact contextlines hoverhighlight hunkseparator icon inlineunit label line linenumbers mode onaddannotation onchange onlineclick onpress part patch path size softwrap start variant"
   }, {
     route: "/editor", page: "Editor", section: "", text: "edit source code with gpui kit's native editor, syntax highlighting, selection and folding.", keywords: "editor button codeeditor switch text view"
   }, {

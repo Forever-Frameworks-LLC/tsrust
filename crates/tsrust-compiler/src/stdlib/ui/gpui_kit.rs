@@ -39,7 +39,7 @@ use gpui_kit::component::switch::Switch;
 use gpui_kit::component::tab::{Tab, TabBar, TabVariant};
 use gpui_kit::component::table::{Column, ColumnSort, DataTable, Table, TableBody, TableCell, TableDelegate, TableEvent, TableHead, TableHeader, TableRow, TableState};
 use gpui_kit::component::attachment::{Attachment, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentStatus, AttachmentTitle};
-use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState};
+use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState, DiffHoverHighlight, DiffHunkSeparator, DiffChangeIndicator, DiffInlineUnit, DiffLinePosition, DiffLineRange, DiffSide, DiffAnnotation, DiffDecoration, DiffGutterMarker};
 use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupText};
 use gpui_kit::component::marker::{Marker, MarkerAlignment, MarkerContent, MarkerIcon, MarkerLoadingStyle, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
@@ -927,6 +927,27 @@ fn date_matcher(props: &std::collections::BTreeMap<String, String>) -> Option<Ma
     }))
 }
 
+/// State setters preserve selection/scroll and skip unchanged values in Kit.
+fn configure_diff(state: &mut DiffState, props: &std::collections::BTreeMap<String,String>, cx: &mut Context<DiffState>) {
+    let text=|key:&str|props.get(key).map(String::as_str);
+    let count=|key:&str,default:usize|text(key).and_then(|value|value.parse().ok()).unwrap_or(default);
+    state.set_mode(if text("mode")==Some("split") {DiffMode::Split}else{DiffMode::Unified},cx);
+    let context=match text("contextLines") {Some("-1")=>None,Some(value)=>value.parse().ok(),None=>Some(3)};
+    state.set_context_lines(context,cx);
+    state.set_expansion_lines(count("expansionLines",20),cx);
+    state.set_min_collapsed_lines(count("minCollapsedLines",2),cx);
+    state.set_inline_unit(match text("inlineUnit") {Some("none")=>None,Some("character")=>Some(DiffInlineUnit::Character),_=>Some(DiffInlineUnit::Word)},cx);
+    state.set_inline_max_line_length(count("inlineMaxLineLength",1000),cx);
+    state.set_syntax_max_line_length(count("syntaxMaxLineLength",1000),cx);
+}
+fn diff_side(side:DiffSide)->&'static str {match side {DiffSide::Original=>"original",DiffSide::Modified=>"modified"}}
+fn diff_position(position:&DiffLinePosition)->String {
+    serde_json::json!({"path":position.path().as_ref(),"side":diff_side(position.side()),"line":position.line()}).to_string()
+}
+fn diff_range(range:&DiffLineRange)->String {
+    serde_json::json!({"path":range.path().as_ref(),"side":diff_side(range.side()),"start":range.start(),"endSide":diff_side(range.end_side()),"end":range.end()}).to_string()
+}
+
 /// A Select option: its label, value and disabled state.
 #[derive(Clone)]
 struct Choice {label: SharedString, value: SharedString, disabled: bool}
@@ -1142,6 +1163,13 @@ impl Root {
     /// Children of the node with this identity, for overlay content built later.
     fn content_of(&self, id: u64, cx: &mut Context<Self>) -> Vec<AnyElement> {
         match find(&self.node, id) {Some(node) => self.content(node, cx), None => Vec::new()}
+    }
+
+    fn slot_of(&self,id:u64,cx:&mut Context<Self>)->AnyElement {
+        match find(&self.node,id) {
+            Some(node)=>div().refine_style(&self.node_style(node)).children(self.content(node,cx)).into_any_element(),
+            None=>div().into_any_element(),
+        }
     }
 
     /// Run every mounted Shortcut bound to this command.
@@ -1428,13 +1456,12 @@ impl Root {
                         }
                     }
                     KitState::Diff(state, patch) => {
-                        let mode = if text("mode") == "split" {DiffMode::Split} else {DiffMode::Unified};
                         if *patch != text("patch") {
-                            let files = DiffFile::parse(&text("patch")).unwrap_or_default();
+                            let files = DiffFile::parse(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
                             state.update(cx, |state, cx| state.set_files(files, cx));
                             if let Some(KitState::Diff(_, patch)) = self.states.get_mut(&id) {*patch = text("patch");}
                         }
-                        if let Some(KitState::Diff(state, _)) = self.states.get(&id) && state.read(cx).mode() != mode {state.update(cx, |state, cx| state.set_mode(mode, cx));}
+                        if let Some(KitState::Diff(state, _)) = self.states.get(&id) {state.update(cx, |state,cx|configure_diff(state,&props,cx));}
                     }
                     KitState::Table(state, shape) => {
                         let Some(node) = find(&self.node, id) else {continue};
@@ -1667,9 +1694,8 @@ impl Root {
                     KitState::Editor(state,props.clone())
                 }
                 "Diff" => {
-                    let files = DiffFile::parse(&text("patch")).unwrap_or_default();
-                    let mode = if text("mode") == "split" {DiffMode::Split} else {DiffMode::Unified};
-                    let state = cx.new(|cx| {let mut state = DiffState::new(files, cx); state.set_mode(mode, cx); state});
+                    let files = DiffFile::parse(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
+                    let state = cx.new(|cx| {let mut state = DiffState::new(files, cx); configure_diff(&mut state,&props,cx); state});
                     KitState::Diff(state, text("patch"))
                 }
                 "DataTable" => {
@@ -3127,7 +3153,50 @@ impl Root {
                 group.into_any_element()
             }
             "Diff" => match self.states.get(&id) {
-                Some(KitState::Diff(state, _)) => Diff::new(state).size_full().into_any_element(),
+                Some(KitState::Diff(state, _)) => {
+                    let mut diff=Diff::new(state).size_full()
+                        .line_number(kit.prop("lineNumbers")!=Some("false"))
+                        .syntax_highlight(kit.prop("syntaxHighlight")!=Some("false"))
+                        .header_visible(kit.prop("headerVisible")!=Some("false"))
+                        .change_background(kit.prop("changeBackground")!=Some("false"))
+                        .soft_wrap(kit.flag("softWrap"))
+                        .hover_highlight(match kit.prop("hoverHighlight") {Some("line")=>DiffHoverHighlight::Line,Some("line-number")=>DiffHoverHighlight::LineNumber,Some("both")=>DiffHoverHighlight::Both,_=>DiffHoverHighlight::None})
+                        .hunk_separator(match kit.prop("hunkSeparator") {Some("line-info")=>DiffHunkSeparator::LineInfo,Some("simple")=>DiffHunkSeparator::Simple,_=>DiffHunkSeparator::Metadata})
+                        .change_indicator(match kit.prop("changeIndicator") {Some("bars")=>DiffChangeIndicator::Bars,Some("none")=>DiffChangeIndicator::None,_=>DiffChangeIndicator::Signs});
+                    if kit.handles("lineClick") {let root=cx.entity().downgrade();diff=diff.on_line_click(move |position,_,_,cx| {let value=diff_position(position);let _=root.update(cx,|root,cx|root.emit(id,"lineClick",value,cx));});}
+                    if kit.handles("lineHover") {let root=cx.entity().downgrade();diff=diff.on_line_hover(move |position,_,cx| {let value=position.map_or_else(||"null".into(),diff_position);let _=root.update(cx,|root,cx|root.emit(id,"lineHover",value,cx));});}
+                    if kit.handles("addAnnotation") {let root=cx.entity().downgrade();diff=diff.on_add_annotation(move |range,_,cx| {let value=diff_range(range);let _=root.update(cx,|root,cx|root.emit(id,"addAnnotation",value,cx));});}
+                    let position=|item:&Kit|DiffLinePosition::new(item.text("path"),if item.prop("side")==Some("original"){DiffSide::Original}else{DiffSide::Modified},item.index("line").unwrap_or(1));
+                    let mut annotations=Vec::new();let mut annotation_nodes=HashMap::new();
+                    for (child,item) in items(node,"DiffAnnotation") {
+                        let key=ElementId::Integer(child.identity.get());annotation_nodes.insert(key.clone(),child.identity.get());
+                        annotations.push(if item.prop("line").is_some(){DiffAnnotation::line(key,position(item))}else{DiffAnnotation::file(key,item.text("path"))});
+                    }
+                    if !annotations.is_empty() {let root=cx.entity().downgrade();diff=diff.annotations(annotations).render_annotation(move |annotation,_,cx| {
+                        root.update(cx,|root,cx|annotation_nodes.get(annotation.id()).map_or_else(||div().into_any_element(),|id|root.slot_of(*id,cx))).unwrap_or_else(|_|div().into_any_element())
+                    });}
+                    let decorations=items(node,"DiffDecoration").map(|(_,item)| {
+                        let side=if item.prop("side")==Some("original"){DiffSide::Original}else{DiffSide::Modified};
+                        let end_side=match item.prop("endSide") {Some("original")=>DiffSide::Original,Some("modified")=>DiffSide::Modified,_=>side};
+                        let start=item.index("start").unwrap_or(1);
+                        let mut decoration=DiffDecoration::new(DiffLineRange::new(item.text("path"),side,start,item.index("end").unwrap_or(start)).with_end_side(end_side));
+                        if let Some(color)=theme_color(&item.text("color"),cx) {decoration=decoration.with_background(color);}
+                        decoration
+                    }).collect::<Vec<_>>();
+                    diff=diff.decorations(decorations);
+                    let mut markers=Vec::new();let mut marker_nodes=HashMap::new();
+                    for (child,item) in items(node,"DiffGutterMarker") {let key=ElementId::Integer(child.identity.get());marker_nodes.insert(key.clone(),child.identity.get());markers.push(DiffGutterMarker::new(key,position(item)));}
+                    if !markers.is_empty() {let root=cx.entity().downgrade();diff=diff.gutter_markers(markers).render_gutter_marker(move |marker,_,cx| {
+                        root.update(cx,|root,cx|marker_nodes.get(marker.id()).map_or_else(||div().into_any_element(),|id|root.slot_of(*id,cx))).unwrap_or_else(|_|div().into_any_element())
+                    });}
+                    for part in ["content","prefix","title-suffix","suffix"] {
+                        let Some((slot,_))=items(node,"DiffHeader").find(|(_,item)|item.prop("part").unwrap_or("content")==part) else {continue};
+                        let target=slot.identity.get();let root=cx.entity().downgrade();
+                        let render=move |_:&DiffFile,_:&mut Window,cx:&mut App|root.update(cx,|root,cx|root.slot_of(target,cx)).unwrap_or_else(|_|div().into_any_element());
+                        diff=match part {"prefix"=>diff.render_header_prefix(render),"title-suffix"=>diff.render_header_title_suffix(render),"suffix"=>diff.render_header_suffix(render),_=>diff.render_header(render)};
+                    }
+                    diff.into_any_element()
+                },
                 _ => div().into_any_element(),
             },
             "Marker" => {

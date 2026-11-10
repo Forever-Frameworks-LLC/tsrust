@@ -4226,11 +4226,20 @@ Compare changed files in a unified patch or a side-by-side split view.
 Switch the same patch between layouts. The viewer keeps GPUI Kit's file headers and change colors.
 function PatchComparison(): Node {
   const split = signal(false);
+  const details = signal(true);
+  const event = signal('Click a line or its annotation button.');
   const patch = 'diff --git a/greeting.tsr b/greeting.tsr\n--- a/greeting.tsr\n+++ b/greeting.tsr\n@@ -1,3 +1,3 @@\n function greet(): string {\n-  return "Hello";\n+  return "Hello, world";\n }\n';
   return (
     <View className="flex-col gap-3 w-full">
       <Switch checked={split.get()} onChange={(value) => { split.set(value); }}>Split view</Switch>
-      <Diff patch={patch} mode={split.get() ? 'split' : 'unified'} className="h-64 w-full" />
+      <Switch checked={details.get()} onChange={(value) => { details.set(value); }}>Line numbers and change backgrounds</Switch>
+      <Diff patch={patch} mode={split.get() ? 'split' : 'unified'} lineNumbers={details.get()} changeBackground={details.get()} hoverHighlight="both" changeIndicator="bars" hunkSeparator="line-info" softWrap={true} contextLines={-1} inlineUnit="character" onLineClick={(position) => { event.set(position); }} onAddAnnotation={(range) => { event.set(range); }} className="h-64 w-full">
+        <DiffHeader part="suffix"><Text variant="muted">Review example</Text></DiffHeader>
+        <DiffAnnotation path="greeting.tsr" line={2}><Text className="p-2 text-primary">Keep the greeting friendly.</Text></DiffAnnotation>
+        <DiffDecoration path="greeting.tsr" start={2} color="#ffd16655" />
+        <DiffGutterMarker path="greeting.tsr" line={2}><Button compact={true} size="small" icon="message-square" aria-label="Review comment" onPress={() => { event.set('Comment opened'); }} /></DiffGutterMarker>
+      </Diff>
+      <Text>{event.get()}</Text>
     </View>
   );
 }

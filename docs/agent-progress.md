@@ -209,6 +209,43 @@ tooltip, Diff and remaining Kit API families plus string-field ergonomics. Full 
 API coverage and ownership ergonomics remain open. No performance measurements,
 remote runs, pushes or releases. Gallery is open on Styling and Themes, live styles off and Switch locally on.
 
+### Diff display and review surface — 2026-11-10 (accepted, checkpoint pending)
+
+Hover fence fix checkpoint is 00a44a19, local/not pushed. The installed local
+VS Code extension is 0.2.1 with tsr/tsrx aliases, visually verified and loaded.
+Current dirty section expands Diff with line numbers, syntax toggle, file headers,
+hover/highlight/marker/wrapping choices, context/expansion/inline comparison limits,
+line click/hover and add-annotation JSON callbacks, plus DiffAnnotation,
+DiffDecoration, DiffGutterMarker and DiffHeader child slots. Counts and positions
+validate at the runtime boundary. Malformed patches now report parse errors instead
+of silently becoming empty. Retained state setters skip unchanged values. Header
+slots repeat read-only content per file; per-file interactive headers require
+separate Diff nodes. State command/query APIs remain incomplete. No full Kit claim.
+
+222 wrappers, 71 component pages / 352 examples, mapping 1837/2147, 27 incomplete
+types. Native compile passed and the detached gallery binary was atomically
+updated/reopened. UI count boundary test 1/1 passes (<0.01s; setup/build 1m16s),
+LSP TSRX 6/6 passes (2.31s execution). Compiler rebuild passed (2m50s final); native
+gallery build passed. One-second sample during the build showed Command::output
+waiting on native Cargo, not semantic replay; remove disposable sample later.
+Whole-project formatter 0 files/snippets/fingerprints; both generators --check and
+diff --check pass. Original broad catalog retry remains active (62502) and has
+progressed into UI example native compilation; retain earlier passes below.
+
+Desktop proof: annotation text, custom header suffix and translucent range render;
+marker click reports Comment opened. Switching split/unified preserves annotation
+and state. Line numbers/change backgrounds turn off while explicit range coloring
+remains. Clicking modified source line 2 reports {path:greeting.tsr,side:modified,
+line:2}; annotation button reports inclusive modified 2..2. Gallery left on Diff,
+split on, details off. Pinned Kit does not infer .tsr syntax highlighting in Diff;
+source grammar alias registration should be fixed in the next native/editor slice.
+
+Next: input synchronous callbacks and remaining practical Questionnaire/Settings/
+Speech options, native style/accessibility gaps and packaging smoke; then final
+acceptance/cleanup. Borrowed row string clone is still the accepted interim
+workaround; dynamically retained strings need an owned copy with current Cow
+storage. No new performance claims or remote validation.
+
 ### Hover example highlighting — 2026-11-10 (accepted)
 
 Plot/live-array/menu section checkpoint is 4e766220 (local, not pushed).
