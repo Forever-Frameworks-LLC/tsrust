@@ -6,6 +6,40 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Latest accepted section — 2026-11-10
+
+This entry supersedes the older in-progress input/Table notes below. Local WIP
+945a0ae9 contains synchronous Input/Textarea/CodeEditor paste decisions, validation,
+NumberInput stepping and source grammar aliases. The follow-up avoids replaying
+successfully checked diagnostic roots; the real borrowed Table regression still
+reports ownership and independent return errors within its unchanged 20s bound.
+The shared replay observer uses Arc/Mutex to preserve Program's Send property.
+Unsized NumberInput now retains a usable 240px input width; constrained controls
+fill their allocated width.
+
+Acceptance: compiler/LSP binaries rebuilt (2m45s); compiler recovery groups 37/37
+passed (14 recovery, 6 suppression, 10 project, 2 terminal, 5 UI authoring), with
+execution 0.85/0.06/2.71/0.04/23.82s respectively and setup/build 2m44s. LSP TSRX
+6/6 passed in 3.00s. Public navigation+composition suites compiled together once:
+8/8 passed, 2.31ms execution. Runtime UI 133 active passes across retained runs.
+Final native gallery build passed, bundle replaced atomically and reopened.
+Whole formatter changed zero files/snippets/fingerprints; generators and diff check
+passed. Earlier full compiler/LSP milestone passes remain valid evidence; final
+all-target compilation after the shared Program change remains pending.
+
+Desktop proof: validation rejects the ninth character, permits clearing; paste
+reports text/path/image-count metadata; consume=true prevents insertion while
+updating callback state. Custom stepping gives .5 -> .6 -> .5 -> 0 (clamped).
+The final stepper width displays its value. Diff highlights .tsr keywords/strings.
+VS Code restarted onto the refreshed server and shows No Problems. The separately
+accepted hover fence alias fix remains installed and visually verified. Gallery
+is running independently of Claude. No pushes, remote checks or measurements.
+
+Next: finish practical Questionnaire/Settings/Speech options and custom input menu
+composition, native style/accessibility gaps, unsigned packaging archive smoke,
+final affected checks and output cleanup. Full upstream API parity remains open;
+1843/2147 methods mapped, 27 types incomplete. Do not describe this as complete.
+
 ### Owner review continuation — 2026-11-10 (in progress)
 
 Active request: resolve all seven gallery/platform comments and finish missing Kit

@@ -2697,6 +2697,7 @@ impl Analyzer {
     }
 
     fn run(mut self) -> Result<CheckedProgram, Diagnostic> {
+        if let Some(completed)=&self.program.diagnostic_completed {completed.lock().expect("diagnostic progress lock").clear();}
         if let Some(&main) = self.function_names.get("main") {
             if !self.signatures[main].params.is_empty() || self.signatures[main].result != Type::Void {
                 return Err(Diagnostic::new(
@@ -2750,6 +2751,9 @@ impl Analyzer {
                     // its catch again; without new work, preserve the unresolved diagnostic.
                     || retrying && sequence == self.program.functions.len()
                 {
+                    if let Some(completed)=&self.program.diagnostic_completed {
+                        *completed.lock().expect("diagnostic progress lock")=self.checked.iter().enumerate().filter_map(|(index,function)|function.as_ref().filter(|function|!function.template).map(|_|self.program.functions[index].name.span)).collect();
+                    }
                     return Err(error);
                 }
                 for (unchecked, retained) in sources.iter().copied().enumerate() {

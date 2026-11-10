@@ -2518,6 +2518,8 @@ impl Root {
             "NumberInput" => match self.states.get(&id) {
                 Some(KitState::Number(state)) => {
                     let mut input = NumberInput::new(state).placeholder(text("placeholder")).disabled(kit.flag("disabled"));
+                    let constrained=self.rules(node).iter().any(|(_,rule)|match rule {Utility::Dimension(0|2|4,Length::Auto|Length::None|Length::Fit)=>false,Utility::Dimension(0|2|4,_)=>true,Utility::Grow(value)=>*value>0.,_=>false});
+                    input=if constrained {input.w_full()}else{input.w(px(240.))};
                     if let Some(icon) = icon_name(&kit.text("prefix")) {input = input.prefix(Icon::new(icon).small());}
                     if let Some(icon) = icon_name(&kit.text("suffix")) {input = input.suffix(Icon::new(icon).small());}
                     if kit.prop("appearance") == Some("false") {input = input.appearance(false);}

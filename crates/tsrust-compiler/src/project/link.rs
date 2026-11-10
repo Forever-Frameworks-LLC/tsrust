@@ -389,7 +389,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         programs.insert(id.clone(), program);
     }
     let mut linked = Program {
-        diagnostic_first: None,
+        diagnostic_first: None, diagnostic_completed: None,
         diagnostic_skips: Default::default(), generated_continuations: Default::default(),
         diagnostic_contracts: Default::default(),
         unresolved_local_function: None,

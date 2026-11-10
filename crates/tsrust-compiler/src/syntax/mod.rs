@@ -1785,6 +1785,8 @@ pub struct FunctionApplication {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub(crate) diagnostic_first: Option<Span>,
+    /// Successful bodies in the last failed replay, shared across recursive-mode retries.
+    pub(crate) diagnostic_completed: Option<std::sync::Arc<std::sync::Mutex<std::collections::HashSet<Span>>>>,
     pub(crate) diagnostic_skips: std::collections::HashSet<usize>,
     /// Compiler-generated continuation statements may be omitted after definite exit.
     pub(crate) generated_continuations: std::collections::HashSet<usize>,
@@ -2316,6 +2318,7 @@ impl Parser<'_> {
         let mut registration = Vec::new();
         let mut program = Program {
             diagnostic_first: None,
+            diagnostic_completed: None,
             diagnostic_skips: Default::default(),
             generated_continuations: Default::default(),
             diagnostic_contracts: Default::default(),
