@@ -4,7 +4,7 @@ import {
   Sidebar, SidebarGroup, SidebarItem, Toolbar, ScrollArea, StatusBar, StatusBarLeft, StatusBarRight, Switch, Select,
   Markdown, Badge, Tag, Avatar, Kbd, Alert, Progress, ProgressCircle, Separator, DescriptionList, DescriptionItem,
   Checkbox, RadioGroup, Radio, Rating, Slider, NumberInput, OtpInput, DatePicker, ColorPicker, Stepper, StepperItem, Tabs, Tab,
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, List, Tree, TreeItem, Calendar, Chart,
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, List, ListItem, Tree, TreeItem, Calendar, Chart, Icon, InputGroupAddon, DataTableColumn, AccordionTrigger, AccordionContent,
   InputGroup, DataTable, Settings, SettingsPage, SettingsGroup, SettingItem, Diff, Marker, Attachment, AttachmentGroup,
   Dialog, Sheet, Popover, PopoverTrigger, PopoverContent, Tooltip, DropdownMenu, MenuItem, ContextMenu, Accordion, AccordionItem
 } from 'std:ui';
@@ -20,7 +20,7 @@ function Overview(): Node {
         <Avatar name="Ada Lovelace" />
         <Badge count={3}><Text>Inbox</Text></Badge>
         <Tag variant="success">Native</Tag>
-        <Kbd keys="cmd-k" />
+        <Kbd>secondary-k</Kbd>
         <ProgressCircle value={72} />
       </View>
       <Alert variant="info" title="Edit and see it live" message="Run tsrust dev in this folder; saving main.tsrx rebuilds and restarts the app." />
@@ -42,13 +42,13 @@ function Controls(): Node {
   const color = signal('Green');
   const due = signal('2026-11-09');
   const accent = signal('#f97316');
-  const tab = signal(0);
+  const tab = signal('general');
   return (
     <View className="flex-col gap-4">
-      <Tabs selected={tab.get()} onChange={(index) => { tab.set(index); }}><Tab label="General" /><Tab label="Advanced" /></Tabs>
+      <Tabs value={tab.get()} onChange={(value) => { tab.set(clone(value)); }}><Tab value="general">General</Tab><Tab value="advanced">Advanced</Tab></Tabs>
       <View className="flex-row gap-4 items-center">
-        <Checkbox label="Accept terms" checked={accepted.get()} onChange={(checked) => { accepted.set(checked); }} />
-        <RadioGroup selected={size.get()} onChange={(index) => { size.set(index); }}><Radio label="Small" /><Radio label="Large" /></RadioGroup>
+        <Checkbox checked={accepted.get()} onChange={(checked) => { accepted.set(checked); }}>Accept terms</Checkbox>
+        <RadioGroup selected={size.get()} onChange={(index) => { size.set(index); }}><Radio>Small</Radio><Radio>Large</Radio></RadioGroup>
       </View>
       <Rating value={stars.get()} onChange={(value) => { stars.set(value); }} />
       <Slider value={volume.get()} onChange={(value) => { volume.set(value); }} className="w-72" />
@@ -63,14 +63,14 @@ function Controls(): Node {
         <OtpInput length={6} />
         <Input placeholder="Search" />
       </View>
-      <Stepper selected={1}><StepperItem label="Account" /><StepperItem label="Billing" /><StepperItem label="Confirm" /></Stepper>
+      <Stepper defaultSelected={1}><StepperItem>Account</StepperItem><StepperItem>Billing</StepperItem><StepperItem>Confirm</StepperItem></Stepper>
       <Text>Color {color} · due {due} · accent {accent} · {stars} stars</Text>
     </View>
   );
 }
 
 function Data(): Node {
-  const picked = signal(0);
+  const picked = signal('0');
   const day = signal('2026-11-09');
   const file = signal('none');
   return (
@@ -83,10 +83,10 @@ function Data(): Node {
         </TableBody>
       </Table>
       <View className="flex-row gap-4">
-        <List items={['Inbox', 'Drafts', 'Sent', 'Archive', 'Spam']} selected={picked.get()} onSelect={(index) => { picked.set(index); }} className="w-48 h-48" />
+        <List onConfirm={(value) => { picked.set(clone(value)); }} className="w-48 h-48"><ListItem>Inbox</ListItem><ListItem>Drafts</ListItem><ListItem>Sent</ListItem><ListItem>Archive</ListItem><ListItem>Spam</ListItem></List>
         <Tree onSelect={(id) => { file.set(clone(id)); }} className="w-56 h-48">
-          <TreeItem id="src" label="src" expanded={true}><TreeItem id="src/main.tsrx" label="main.tsrx" /><TreeItem id="src/api.tsr" label="api.tsr" /></TreeItem>
-          <TreeItem id="locales" label="locales" />
+          <TreeItem id="src" defaultExpanded={true}>src<TreeItem id="src/main.tsrx">main.tsrx</TreeItem><TreeItem id="src/api.tsr">api.tsr</TreeItem></TreeItem>
+          <TreeItem id="locales">locales</TreeItem>
         </Tree>
         <Calendar value={day.get()} onChange={(date) => { day.set(clone(date)); }} />
       </View>
@@ -96,6 +96,8 @@ function Data(): Node {
   );
 }
 
+const PEOPLE: string[][] = [['Ada', 'Engineer', '1843'], ['Grace', 'Admiral', '1944'], ['Alan', 'Mathematician', '1936'], ['Katherine', 'Analyst', '1953']];
+
 const PATCH = '--- a/main.tsrx\n+++ b/main.tsrx\n@@ -1,3 +1,3 @@\n function main() {\n-  run(App());\n+  unwrap(run(App(), \'Starter\'));\n }\n';
 
 function Workspace(): Node {
@@ -104,8 +106,8 @@ function Workspace(): Node {
   const autosave = signal(true);
   return (
     <View className="flex-col gap-4">
-      <InputGroup icon="search" placeholder="Filter people" value={query.get()} onChange={(text) => { query.set(clone(text)); }} />
-      <DataTable columns={['Name', 'Role', 'Joined']} rows={[['Ada', 'Engineer', '1843'], ['Grace', 'Admiral', '1944'], ['Alan', 'Mathematician', '1936'], ['Katherine', 'Analyst', '1953']]} sortable={true} onSelect={(index) => { row.set(index); }} className="h-48" />
+      <InputGroup><InputGroupAddon><Icon name="search" /></InputGroupAddon><Input placeholder="Filter people" value={query.get()} onChange={(event) => { query.set(event.target.value); }} /></InputGroup>
+      <DataTable rows={JSON.stringify(PEOPLE)} onSelect={(index) => { row.set(index); }} className="h-48"><DataTableColumn>Name</DataTableColumn><DataTableColumn sortable={true}>Role</DataTableColumn><DataTableColumn sortable={true}>Joined</DataTableColumn></DataTable>
       <Text>Query "{query}" · selected row {row}</Text>
       <Marker variant="separator" icon="calendar" text="Today" />
       <AttachmentGroup>
@@ -136,11 +138,11 @@ function Overlays(): Node {
         <Button onPress={() => { notify('Saved', { title: 'Done', variant: 'success' }); }}>Notify</Button>
         <Tooltip text="Copies a link"><Button onPress={() => { writeClipboard('https://github.com/Forever-Frameworks-LLC/tsrust'); notify('Link copied', { variant: 'success' }); }}>Share</Button></Tooltip>
         <Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Filter options</Text></PopoverContent></Popover>
-        <DropdownMenu label="Actions"><MenuItem label="Duplicate" onSelect={() => { last.set('duplicate'); }} /><MenuItem label="Archive" onSelect={() => { last.set('archive'); }} /></DropdownMenu>
+        <DropdownMenu label="Actions"><MenuItem onSelect={() => { last.set('duplicate'); }}>Duplicate</MenuItem><MenuItem onSelect={() => { last.set('archive'); }}>Archive</MenuItem></DropdownMenu>
       </View>
-      <ContextMenu><Text>Right-click here</Text><MenuItem label="Copy" onSelect={() => { last.set('copy'); }} /></ContextMenu>
+      <ContextMenu><Text>Right-click here</Text><MenuItem onSelect={() => { last.set('copy'); }}>Copy</MenuItem></ContextMenu>
       <Text>Last action {last}</Text>
-      <Accordion><AccordionItem title="Shipping" open={true}><Text>Two to three days.</Text></AccordionItem><AccordionItem title="Returns"><Text>Thirty days.</Text></AccordionItem></Accordion>
+      <Accordion defaultValue="shipping"><AccordionItem value="shipping"><AccordionTrigger>Shipping</AccordionTrigger><AccordionContent><Text>Two to three days.</Text></AccordionContent></AccordionItem><AccordionItem value="returns"><AccordionTrigger>Returns</AccordionTrigger><AccordionContent><Text>Thirty days.</Text></AccordionContent></AccordionItem></Accordion>
       <Dialog open={dialog.get()} title="Rename" okText="Save" cancelText="Cancel" onClose={() => { dialog.set(false); }}><Input placeholder="Name" /></Dialog>
       <Sheet open={sheet.get()} title="Details" onClose={() => { sheet.set(false); }}><Text>Sheet content</Text></Sheet>
     </View>
@@ -223,7 +225,7 @@ function App(): Node {
           <Text className="font-semibold">Tsrust Starter</Text>
           <View className="grow" />
           <Select items={['en', 'fr']} value={language.get()} onChange={(value) => { language.set(clone(value)); setLocale(value); }} className="w-24" />
-          <Switch label="Dark" checked={dark.get()} onChange={(on) => { dark.set(on); setTheme(on ? 'dark' : 'light'); }} />
+          <Switch checked={dark.get()} onChange={(on) => { dark.set(on); setTheme(on ? 'dark' : 'light'); }}>Dark</Switch>
         </Toolbar>
         <ScrollArea className="grow">
           <View className="flex-col p-6">

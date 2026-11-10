@@ -74,8 +74,73 @@ Example card now uses value-based Tabs. Coverage 856/2147 (Tooltip's open
 methods belong to the Plot chart tooltip). Owner direction 2026-11-09: finish a
 page for every component, then add semantic search to the gallery, rebuild
 Getting Started from the real docs as the single source of truth, and add an
-animated showcase page (use the design-taste-frontend skill). Next: Dialog,
-AlertDialog, Sheet, Notification.
+animated showcase page (use the design-taste-frontend skill). Since then: Dialog and Sheet
+(Trigger/Content/Header/Title/Description/Footer/Close parts), AlertDialog,
+notify options and events, HoverCard, Collapsible, Breadcrumb, Pagination,
+Stepper, DescriptionList, Slider, OTP, TimeField, Calendar, DatePicker,
+ColorPicker, and a layout batch (Sidebar with nested items and item menus,
+SidebarToggleButton, Resizable, Toolbar groups, Form/Field, StatusBar,
+TitleBar close, WindowBorder) — each with exercised pages. Utilities gained
+justify-end/around/evenly and items-end/baseline. Coverage 1300/2147. Remaining
+types: Table/DataTable/List/Tree states, Command, Carousel, Diff, Editor,
+Attachment, Bubble/Message/MessageScroller, Marker, Questionnaire, Settings,
+Speech, AppMenuBar, the Plot tooltip, and input sync callbacks (validate,
+onPaste, step_by) plus custom input context menus and token rendering. Then
+semantic search, Getting Started from real docs, and the showcase page.
+Next batch (2026-11-10): Command palette (groups, separators, shortcuts,
+header/footer/empty, controlled query, loading, highlight vs select events),
+Carousel (CarouselContent/CarouselItem/Previous/Next/Pagination, loop,
+vertical, controlled `selected`), composable Table (header/body/footer/caption,
+per-part className, align, colSpan, size) and List over a custom ListDelegate
+(ListItem rows render their own children, ListItemSuffix, ListSeparator,
+ListGroup sections, ListEmpty, search, confirmed/check icon, controlled
+selection/query, hasMore/onLoadMore) and Tree (TreeItem text children,
+icons, defaultExpanded, disabled, controlled `selected` that reveals hidden
+items, onExpand/onCollapse, TreeMenu right-click menu with onContextMenu). JSX
+children accept spread arrays (`{...rows.map((row) => <Row />)}`); a spread
+that reads component state lowers to a reactive list slot (runtime
+`Node::each`: transparent like branches, rebuilt on refresh, rows whose shape
+is unchanged keep their identity and state; `visible_children` flattens
+slots). Spec sections may define interfaces before the example function, and
+generate-ui-gallery.py rejects unknown icon names (a typo rendered nothing).
+Fixed while exercising: List section headers overlapped rows (Kit measures
+header height from section 0), disabled List rows still reported, confirmed
+rows drew no check (Kit needs an explicit check icon), Tree `selected` could not
+reveal collapsed items, Carousel parts ignored className, Sidebar header/footer
+`collapsed` needed Kit's Collapsible trait in scope. Open defect: in the gallery Table page, consuming a
+read-only callback parameter's string field twice (`name={person.name}` and
+`{person.name}` inside nested cells) made `tsrust check` run for minutes in
+analyze_recursive_with_proofs instead of reporting callback-access; small
+repros report the error in under a second, so the pages use clone() for now.
+Reading a string field in a consuming position should copy rather than
+require clone().
+Second batch (2026-11-10): DataTable is composable (DataTableColumn children
+with key/width/min/max/sortable/defaultSort/align/fixed/resizable/movable/
+selectable/padding; rows as JSON; row, column or cell selection; sort, column
+move/resize, right-click and DataTableMenu, empty/loading/load-more events;
+controlled selectedRow). Chat family: Message parts (MessageAvatar/Header/
+Content/Footer, MessageGroup, a Bubble inside follows the message side),
+Bubble variants/BubbleContent/BubbleReactions/BubbleGroup, Marker parts,
+loading style and shimmer, Attachment parts (AttachmentMedia src or icon,
+AttachmentContent/Title/Description, AttachmentActions, tooltip, vertical,
+size), AttachmentGroup edge fade, MessageScroller styling props. New Ticker
+component (GPUI timer, onTick(frame), interval, running) drives animation.
+Command gained CommandItem `value` and a Command-level onSelect(value).
+Gallery: Getting Started pages are generated from docs/guides/ui/*.md and
+docs/guides/tooling/desktop-apps.md (single source; ```tsx live Name``` blocks
+compile into the gallery as live examples); title-bar search (⌘K) ranks
+pages and examples over a generated index with concept synonyms ("modal"
+finds Dialog); an animated Showcase page (60 Hz plot, 160-cell wave field,
+spectrum, orbits, auto carousel). Fixes: `tsrust new --ui` template did not
+compile against the current API (now checked by a scaffold test); runtime UI
+errors exited silently with status 0 because GPUI exits inside its run loop
+(now printed as Uncaught and exit 1); Plot colors ignored palette names;
+arbitrary pixel offsets (left-[150px]) are supported. Coverage 1686/2147.
+Remaining Kit types: Diff, Editor, Questionnaire, Settings, Speech,
+AppMenuBar, Plot tooltip, SearchableListItemElement, input sync callbacks.
+Known limits found: Kbd/controls inside Text or Button are rejected only at
+runtime; lazy part children (DialogContent) cannot own a reactive list's
+captures, so build rows in a helper function.
 
 ### Plot and Speech — 2026-11-09
 

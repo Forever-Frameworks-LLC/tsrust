@@ -37,6 +37,23 @@ mod tests {
         drop(root);assert_eq!(*released.borrow(),2);assert!(control.get().is_err());
     }
     #[test]
+    fn list_slots_flatten_rows_and_keep_unchanged_rows_across_rebuilds() {
+        let count=Signal::new(2i64);let read=count.handle();let control=count.handle();
+        let slot=Node::each(move||{
+            let rows=(0..read.get()?).map(|row|Ok(Child::Node(Node::text_children(vec![Child::Text(TextPart::Literal(format!("row {row}")))],String::new())?))).collect::<Result<Vec<_>,String>>()?;
+            Ok(Some(Node::view(rows,String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(Node::text_children(vec![Child::Text(TextPart::Literal("head".into()))],String::new()).unwrap()),Child::Node(slot)],"flex-col".into()).unwrap().own_state(count).unwrap();root.refresh().unwrap();
+        let texts=|root:&Node|root.visible_children().map(Node::content_text).collect::<Vec<_>>();
+        assert_eq!(texts(&root),["head","row 0","row 1"]);
+        let first=root.visible_children().nth(1).unwrap().identity.get();
+        assert_eq!(root.refresh().unwrap(),0);
+        control.set(4).unwrap();assert!(root.refresh().unwrap()>0);
+        assert_eq!(texts(&root),["head","row 0","row 1","row 2","row 3"]);
+        assert_eq!(root.visible_children().nth(1).unwrap().identity.get(),first);
+        control.set(1).unwrap();root.refresh().unwrap();assert_eq!(texts(&root),["head","row 0"]);
+    }
+    #[test]
     fn root_slots_are_transparent_and_failed_replacements_drop_the_previous_branch() {
         let show=Signal::new(true);let select=show.handle();let control=show.handle();let released=Rc::new(RefCell::new(0));let drops=released.clone();
         let mut root=Node::branch(move||select.get(),move||{let probe=Probe(drops.clone());Ok(Some(Node::button_children(vec![],String::new(),false,Some(Box::new(move||{let _=&probe;Ok(())})))?))},||Err("Branch construction failed".into())).unwrap().own_state(show).unwrap();
@@ -72,6 +89,42 @@ impl Node {
         let mut node=Self::new(Kind::View,String::new(),String::new(),vec![])?;
         node.children=child.into_iter().collect();node.depth=node.children.first().map_or(0,|child|child.depth);for child in &node.children{child.reset_identities();}
         node.branch=Some(Branch{selected,retained:false,initialized:selected,predicate:Box::new(predicate),present:Box::new(present),absent:Box::new(absent)});Ok(node)
+    }
+    /// A reactive list slot (`{...rows.map(...)}` that reads state). `build` returns a wrapper whose children are
+    /// the rows; the slot adds no layout node and each refresh keeps the rows whose shape did not change.
+    pub fn each(mut build:impl FnMut()->Result<Option<Node>,String>+'static)->Result<Self,String> {
+        let mut node=Self::new(Kind::View,String::new(),String::new(),vec![])?;
+        node.children=build()?.map(|wrapper|wrapper.children).unwrap_or_default();
+        for child in &node.children{child.reset_identities();}
+        node.depth=node.children.iter().map(|child|child.depth).max().unwrap_or(0);
+        node.each=Some(Box::new(build));Ok(node)
+    }
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
+    pub(crate) fn refresh_each(&mut self)->Result<usize,String> {
+        let Some(build)=&mut self.each else{return Ok(0)};
+        let mut fresh=build()?.map(|wrapper|wrapper.children).unwrap_or_default();
+        for row in &mut fresh{row.refresh_inner()?;}
+        let previous=std::mem::take(&mut self.children);let removed=previous.len().saturating_sub(fresh.len());
+        let mut previous=previous.into_iter();let mut changed=usize::from(removed>0);
+        for row in fresh {
+            match previous.next() {
+                Some(kept) if kept.shape()==row.shape()=>self.children.push(kept),
+                _=>{row.reset_identities();self.children.push(row);changed+=1;}
+            }
+        }
+        Ok(changed)
+    }
+    /// A structural fingerprint: kind, classes, text and component props, ignoring state the node keeps itself.
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
+    fn shape(&self)->String {
+        fn write(node:&Node,out:&mut String){
+            use std::fmt::Write;
+            let _=write!(out,"{:?}|{}|",node.kind,node.class_name);
+            if node.editable.is_none(){out.push_str(&node.text);}
+            if let Some(kit)=&node.kit{let _=write!(out,"|{}",kit.name);for (key,value) in &kit.props{if !kit.is_local(key){let _=write!(out,";{key}={value}");}}}
+            out.push('[');for child in &node.children{write(child,out);}out.push(']');
+        }
+        let mut out=String::new();write(self,&mut out);out
     }
     /// A location match constructs content once and retains it while inactive.
     pub fn route(path:&str,exact:bool,present:impl FnMut()->Result<Option<Node>,String>+'static)->Result<Self,String> {
@@ -116,7 +169,15 @@ impl Node {
         }
         visit(self,false,false,&contains).unwrap_or(false)
     }
-    pub(crate) fn visible_children(&self)->impl Iterator<Item=&Node> {self.children.iter().filter_map(Self::visible_root)}
+    /// Visible children, with reactive list slots flattened in place.
+    pub(crate) fn visible_children(&self)->impl Iterator<Item=&Node> {
+        fn push<'a>(node:&'a Node,out:&mut Vec<&'a Node>){
+            for child in &node.children {
+                if child.each.is_some() {if !child.collapsed {push(child,out);}} else if let Some(visible)=child.visible_root() {out.push(visible);}
+            }
+        }
+        let mut out=Vec::new();push(self,&mut out);out.into_iter()
+    }
     pub(crate) fn reset_identities(&self) {
         self.identity.set(0);self.next_identity.set(0);for child in &self.children{child.reset_identities();}
     }

@@ -3378,3 +3378,814 @@ function ControlledColorPicker(): Node {
     </View>
   );
 }
+=== Sidebar | sidebar | Navigation
+App navigation with a header, footer, groups and nested items that collapse to icons.
+--- Basic Sidebar
+Groups of items; the active item marks the current page.
+function BasicSidebar(): Node {
+  const page = signal('inbox');
+  return (
+    <View className="flex-row h-[360px] w-full rounded-lg border border-border">
+      <Sidebar>
+        <SidebarHeader><Text className="font-semibold">Acme Inc.</Text></SidebarHeader>
+        <SidebarGroup label="Workspace">
+          <SidebarItem icon="inbox" active={page.get() === 'inbox'} onClick={() => { page.set('inbox'); }}>Inbox<SidebarItemSuffix><Badge count={4} /></SidebarItemSuffix></SidebarItem>
+          <SidebarItem icon="calendar" active={page.get() === 'calendar'} onClick={() => { page.set('calendar'); }}>Calendar</SidebarItem>
+          <SidebarItem icon="folder" defaultOpen={true}>Projects
+            <SidebarItem active={page.get() === 'website'} onClick={() => { page.set('website'); }}>Website</SidebarItem>
+            <SidebarItem active={page.get() === 'mobile'} onClick={() => { page.set('mobile'); }}>Mobile app</SidebarItem>
+          </SidebarItem>
+        </SidebarGroup>
+        <SidebarFooter><View className="flex-row items-center gap-2"><Avatar name="Ada Lovelace" size="small" /><Text>Ada Lovelace</Text></View></SidebarFooter>
+      </Sidebar>
+      <View className="grow p-6"><Text>Page: {page}</Text></View>
+    </View>
+  );
+}
+--- Collapsible
+SidebarToggleButton collapses the sidebar to icons.
+function CollapsibleSidebar(): Node {
+  const collapsed = signal(false);
+  return (
+    <View className="flex-row h-[300px] w-full rounded-lg border border-border">
+      <Sidebar collapsed={collapsed.get()}>
+        <SidebarGroup label="Main">
+          <SidebarItem icon="house" accessibilityLabel="Home" active={true}>Home</SidebarItem>
+          <SidebarItem icon="search" accessibilityLabel="Search">Search</SidebarItem>
+          <SidebarItem icon="settings" accessibilityLabel="Settings">Settings</SidebarItem>
+        </SidebarGroup>
+      </Sidebar>
+      <View className="grow p-4"><SidebarToggleButton collapsed={collapsed.get()} onClick={() => { collapsed.set(!collapsed.get()); }} /></View>
+    </View>
+  );
+}
+--- Right Side and Item Menus
+side="right"; MenuItem children give an item a right-click menu.
+function RightSidebar(): Node {
+  const action = signal('none');
+  return (
+    <View className="flex-row h-[260px] w-full rounded-lg border border-border">
+      <View className="grow p-6"><Text>Right-click a file (last: {action})</Text></View>
+      <Sidebar side="right" collapsible="none">
+        <SidebarGroup label="Files">
+          <SidebarItem icon="file">report.pdf
+            <MenuItem onSelect={() => { action.set('rename report'); }}>Rename</MenuItem>
+            <MenuItem onSelect={() => { action.set('delete report'); }}>Delete</MenuItem>
+          </SidebarItem>
+          <SidebarItem icon="file" disabled={true}>locked.txt</SidebarItem>
+        </SidebarGroup>
+      </Sidebar>
+    </View>
+  );
+}
+=== Resizable | resizable | Layout
+Panels split by draggable handles, horizontally or vertically.
+--- Horizontal Panels
+Drag the handle; onResize reports the sizes.
+function HorizontalResizable(): Node {
+  const sizes = signal('');
+  return (
+    <View className="flex-col gap-2 w-full">
+      <View className="h-[200px] w-full rounded-lg border border-border">
+        <Resizable onResize={(values) => { sizes.set(values.join(' / ')); }}>
+          <ResizablePanel size={200} minSize={120}><View className="p-4"><Text>Sidebar</Text></View></ResizablePanel>
+          <ResizablePanel><View className="p-4"><Text>Content</Text></View></ResizablePanel>
+        </Resizable>
+      </View>
+      <Text variant="muted">Sizes: {sizes}</Text>
+    </View>
+  );
+}
+--- Vertical and Nested
+A vertical split inside a horizontal one; a fixed panel keeps its size.
+function NestedResizable(): Node {
+  return (
+    <View className="h-[260px] w-full rounded-lg border border-border">
+      <Resizable>
+        <ResizablePanel size={180} fixed={true}><View className="p-4"><Text>Fixed</Text></View></ResizablePanel>
+        <ResizablePanel>
+          <Resizable vertical={true}>
+            <ResizablePanel size={120}><View className="p-4"><Text>Top</Text></View></ResizablePanel>
+            <ResizablePanel><View className="p-4"><Text>Bottom</Text></View></ResizablePanel>
+          </Resizable>
+        </ResizablePanel>
+      </Resizable>
+    </View>
+  );
+}
+--- Hidden Panels
+visible=false hides a panel; the others take its space.
+function ToggleResizable(): Node {
+  const show = signal(true);
+  return (
+    <View className="flex-col gap-2 w-full">
+      <Switch checked={show.get()} onChange={(on) => { show.set(on); }}>Show inspector</Switch>
+      <View className="h-[160px] w-full rounded-lg border border-border">
+        <Resizable>
+          <ResizablePanel><View className="p-4"><Text>Editor</Text></View></ResizablePanel>
+          <ResizablePanel size={220} visible={show.get()}><View className="p-4"><Text>Inspector</Text></View></ResizablePanel>
+        </Resizable>
+      </View>
+    </View>
+  );
+}
+=== Toolbar | toolbar | Actions
+A row of controls sized together, optionally in labelled groups.
+--- Basic Toolbar
+Toggles and buttons in groups.
+function BasicToolbar(): Node {
+  return (
+    <Toolbar>
+      <ToolbarGroup label="Format">
+        <Toggle icon="bold" />
+        <Toggle icon="italic" />
+        <Toggle icon="underline" />
+      </ToolbarGroup>
+      <ToolbarGroup label="Align">
+        <Button variant="ghost" icon="text-align-start" />
+        <Button variant="ghost" icon="text-align-center" />
+        <Button variant="ghost" icon="text-align-end" />
+      </ToolbarGroup>
+    </Toolbar>
+  );
+}
+--- Sizes and Disabled
+The toolbar size applies to its controls; disabled turns them all off.
+function ToolbarSizes(): Node {
+  return (
+    <View className="flex-col gap-3">
+      <Toolbar size="small"><Button variant="ghost" icon="undo" /><Button variant="ghost" icon="redo" /></Toolbar>
+      <Toolbar size="large"><Button variant="ghost" icon="undo" /><Button variant="ghost" icon="redo" /></Toolbar>
+      <Toolbar disabled={true}><Button variant="ghost" icon="undo" /><Button variant="ghost" icon="redo" /></Toolbar>
+    </View>
+  );
+}
+=== Form | form | Forms
+Labelled fields in columns with descriptions, required marks and a footer.
+--- Basic Form
+Labels above fields, a description and a footer.
+function BasicForm(): Node {
+  return (
+    <Form className="w-96">
+      <Field label="Email" required={true} description="We never share your email."><Input placeholder="you@example.com" /></Field>
+      <Field label="Password" required={true}><Input type="password" /></Field>
+      <FormFooter><Button variant="primary">Sign in</Button></FormFooter>
+    </Form>
+  );
+}
+--- Columns and Spans
+Two columns; the address spans both.
+function ColumnForm(): Node {
+  return (
+    <Form columns={2} className="w-full">
+      <Field label="First name"><Input /></Field>
+      <Field label="Last name"><Input /></Field>
+      <Field label="Address" colSpan={2}><Input /></Field>
+      <Field label="City"><Input /></Field>
+      <Field label="Postal code"><Input /></Field>
+    </Form>
+  );
+}
+--- Horizontal Labels
+Labels beside fields at a fixed width.
+function HorizontalForm(): Node {
+  return (
+    <Form labelLayout="horizontal" labelWidth={120} className="w-[480px]">
+      <Field label="Display name"><Input defaultValue="Ada" /></Field>
+      <Field label="Notifications" align="center"><Switch defaultChecked={true} /></Field>
+    </Form>
+  );
+}
+--- Rich Labels and Hidden Fields
+FieldLabel and FieldDescription children; visible=false hides a field.
+function RichForm(): Node {
+  const advanced = signal(false);
+  return (
+    <Form className="w-96">
+      <Field>
+        <FieldLabel><View className="flex-row items-center gap-1"><Icon name="key" /><Text>API key</Text></View></FieldLabel>
+        <Input type="password" defaultValue="sk-123" />
+        <FieldDescription><Text variant="muted">Rotate it from the <Text className="text-primary">settings</Text> page.</Text></FieldDescription>
+      </Field>
+      <Field label="Show advanced"><Switch checked={advanced.get()} onChange={(on) => { advanced.set(on); }} /></Field>
+      <Field label="Timeout (seconds)" visible={advanced.get()}><NumberInput defaultValue={30} /></Field>
+    </Form>
+  );
+}
+=== Status Bar | status-bar | Layout
+A bar along the bottom of a window with left and right areas.
+--- Basic Status Bar
+StatusBarLeft and StatusBarRight.
+function BasicStatusBar(): Node {
+  return (
+    <View className="w-full rounded-lg border border-border">
+      <StatusBar>
+        <StatusBarLeft><Icon name="git-branch" /><Text>main</Text><Text variant="muted">0 errors</Text></StatusBarLeft>
+        <StatusBarRight><Text variant="muted">Ln 12, Col 4</Text><Text variant="muted">UTF-8</Text></StatusBarRight>
+      </StatusBar>
+    </View>
+  );
+}
+=== Command | command | Navigation
+A search field over a filtered list of commands, in groups with separators, shortcuts, an empty state, header and footer.
+--- Basic Command
+Type to filter; arrow keys move the highlight and Enter selects. A command shows its Shortcut keys.
+function BasicCommand(): Node {
+  const picked = signal('Nothing selected');
+  return (
+    <View className="flex-col gap-3 w-96">
+      <Shortcut command="open-profile" keys="secondary-p" onTrigger={() => { picked.set('Profile'); }} />
+      <Shortcut command="open-settings" keys="secondary-," onTrigger={() => { picked.set('Settings'); }} />
+      <Command placeholder="Type a command or search..." maxHeight={280}>
+        <CommandGroup heading="Suggestions">
+          <CommandItem icon="calendar" onSelect={() => { picked.set('Calendar'); }}>Calendar</CommandItem>
+          <CommandItem icon="face-slightly-smiling" keywords={['emoji', 'face']} onSelect={() => { picked.set('Search Emoji'); }}>Search Emoji</CommandItem>
+          <CommandItem icon="calculator" disabled={true}>Calculator</CommandItem>
+        </CommandGroup>
+        <CommandSeparator />
+        <CommandGroup heading="Settings">
+          <CommandItem icon="user" command="open-profile" onSelect={() => { picked.set('Profile'); }}>Profile</CommandItem>
+          <CommandItem icon="settings" command="open-settings" onSelect={() => { picked.set('Settings'); }}>Settings</CommandItem>
+        </CommandGroup>
+        <CommandEmpty><Text variant="muted">No results found.</Text></CommandEmpty>
+      </Command>
+      <Text variant="muted">{picked.get()}</Text>
+    </View>
+  );
+}
+--- Header, Footer and Highlight
+CommandHeader and CommandFooter frame the list; onHighlight follows the keyboard.
+function FramedCommand(): Node {
+  const highlighted = signal('');
+  return (
+    <View className="w-96">
+      <Command placeholder="Jump to file..." maxHeight={220}>
+        <CommandHeader><Text variant="muted" className="px-3 py-2">Recent files</Text></CommandHeader>
+        <CommandItem icon="file" onHighlight={() => { highlighted.set('main.tsrx'); }}>main.tsrx</CommandItem>
+        <CommandItem icon="file" onHighlight={() => { highlighted.set('example.tsrx'); }}>example.tsrx</CommandItem>
+        <CommandItem icon="file" onHighlight={() => { highlighted.set('pages.spec'); }}>pages.spec</CommandItem>
+        <CommandFooter><Text variant="muted" className="px-3 py-2">Highlighted: {highlighted.get()}</Text></CommandFooter>
+      </Command>
+    </View>
+  );
+}
+--- Controlled Query and Loading
+query and onQuery control the search text; loading shows a spinner; filterable=false keeps every item.
+function QueryCommand(): Node {
+  const query = signal('');
+  return (
+    <View className="flex-col gap-3 w-96">
+      <Command query={query.get()} onQuery={(text) => { query.set(text); }} loading={query.get().length > 0} filterable={false} bordered={false}>
+        <CommandItem icon="search">Search the web for "{query.get()}"</CommandItem>
+        <CommandItem icon="book-open">Search the docs for "{query.get()}"</CommandItem>
+      </Command>
+      <Button outline={true} onPress={() => { query.set(''); }}>Clear</Button>
+    </View>
+  );
+}
+=== Carousel | carousel | Data Display
+Shows one slide at a time with previous, next and dot controls.
+--- Basic Carousel
+CarouselContent holds CarouselItem slides; CarouselPrevious and CarouselNext move between them.
+function BasicCarousel(): Node {
+  return (
+    <View className="w-80">
+      <Carousel>
+        <CarouselContent>
+          <CarouselItem><View className="flex-col h-40 items-center justify-center rounded-lg border border-border"><Text className="text-4xl font-semibold">1</Text></View></CarouselItem>
+          <CarouselItem><View className="flex-col h-40 items-center justify-center rounded-lg border border-border"><Text className="text-4xl font-semibold">2</Text></View></CarouselItem>
+          <CarouselItem><View className="flex-col h-40 items-center justify-center rounded-lg border border-border"><Text className="text-4xl font-semibold">3</Text></View></CarouselItem>
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
+    </View>
+  );
+}
+--- Looping with Dots
+loop wraps around; CarouselPagination shows a dot per slide; onChange reports the slide.
+function DotsCarousel(): Node {
+  const slide = signal(0);
+  return (
+    <View className="flex-col gap-3 w-80">
+      <Carousel loop={true} onChange={(index) => { slide.set(index); }}>
+        <CarouselContent>
+          <CarouselItem accessibilityLabel="Sunrise"><View className="h-40 rounded-lg bg-amber-300" /></CarouselItem>
+          <CarouselItem accessibilityLabel="Ocean"><View className="h-40 rounded-lg bg-sky-400" /></CarouselItem>
+          <CarouselItem accessibilityLabel="Forest"><View className="h-40 rounded-lg bg-emerald-500" /></CarouselItem>
+        </CarouselContent>
+        <CarouselPrevious size="small" />
+        <CarouselNext size="small" />
+        <CarouselPagination size="small" />
+      </Carousel>
+      <Text variant="muted">Slide {slide.get() + 1} of 3</Text>
+    </View>
+  );
+}
+--- Controlled and Vertical
+selected controls the slide from outside; vertical slides up and down.
+function ControlledCarousel(): Node {
+  const slide = signal(1);
+  return (
+    <View className="flex-row gap-6 items-center">
+      <View className="w-64">
+        <Carousel vertical={true} selected={slide.get()} onChange={(index) => { slide.set(index); }}>
+          <CarouselContent className="h-36">
+            <CarouselItem><View className="flex-col h-32 items-center justify-center rounded-lg border border-border"><Text>First</Text></View></CarouselItem>
+            <CarouselItem><View className="flex-col h-32 items-center justify-center rounded-lg border border-border"><Text>Second</Text></View></CarouselItem>
+            <CarouselItem><View className="flex-col h-32 items-center justify-center rounded-lg border border-border"><Text>Third</Text></View></CarouselItem>
+          </CarouselContent>
+          <CarouselPagination />
+        </Carousel>
+      </View>
+      <View className="flex-col gap-2">
+        <Button outline={true} onPress={() => { slide.set(0); }}>First</Button>
+        <Button outline={true} onPress={() => { slide.set(2); }}>Last</Button>
+      </View>
+    </View>
+  );
+}
+=== Table | table | Data Display
+A responsive table built from header, body, footer and caption parts.
+--- Basic Table
+Header, body, footer totals and a caption; align="right" lines up amounts.
+function InvoiceTable(): Node {
+  return (
+    <Table accessibilityLabel="Recent invoices">
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[100px]">Invoice</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Method</TableHead>
+          <TableHead align="right">Amount</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell className="font-medium">INV001</TableCell>
+          <TableCell><Tag variant="success">Paid</Tag></TableCell>
+          <TableCell>Credit Card</TableCell>
+          <TableCell align="right">$250.00</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell className="font-medium">INV002</TableCell>
+          <TableCell><Tag variant="warning">Pending</Tag></TableCell>
+          <TableCell>PayPal</TableCell>
+          <TableCell align="right">$150.00</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell className="font-medium">INV003</TableCell>
+          <TableCell><Tag variant="danger">Unpaid</Tag></TableCell>
+          <TableCell>Bank Transfer</TableCell>
+          <TableCell align="right">$350.00</TableCell>
+        </TableRow>
+      </TableBody>
+      <TableFooter>
+        <TableRow>
+          <TableCell colSpan={3}>Total</TableCell>
+          <TableCell align="right">$750.00</TableCell>
+        </TableRow>
+      </TableFooter>
+      <TableCaption>A list of your recent invoices.</TableCaption>
+    </Table>
+  );
+}
+--- Sizes
+size sets every cell's padding and text size.
+function SmallTable(): Node {
+  return (
+    <View className="flex-col gap-6">
+      <Table size="xsmall">
+        <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Role</TableHead></TableRow></TableHeader>
+        <TableBody>
+          <TableRow><TableCell>Ada</TableCell><TableCell>Engineer</TableCell></TableRow>
+          <TableRow><TableCell>Grace</TableCell><TableCell>Admiral</TableCell></TableRow>
+        </TableBody>
+      </Table>
+      <Table size="large">
+        <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Role</TableHead></TableRow></TableHeader>
+        <TableBody>
+          <TableRow><TableCell>Ada</TableCell><TableCell>Engineer</TableCell></TableRow>
+        </TableBody>
+      </Table>
+    </View>
+  );
+}
+--- Rows from Data
+Map an array to TableRow children; cells hold any content.
+interface Person {
+  name: string;
+  email: string;
+  active: boolean;
+}
+
+function DataRows(): Node {
+  const people: Person[] = [
+    { name: 'Ada Lovelace', email: 'ada@example.com', active: true },
+    { name: 'Alan Turing', email: 'alan@example.com', active: false },
+    { name: 'Grace Hopper', email: 'grace@example.com', active: true },
+  ];
+  return (
+    <Table>
+      <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead align="center">Active</TableHead></TableRow></TableHeader>
+      <TableBody>
+        {...people.map((person) => (
+          <TableRow>
+            <TableCell><View className="flex-row items-center gap-2"><Avatar name={clone(person.name)} size="xsmall" /><Text>{clone(person.name)}</Text></View></TableCell>
+            <TableCell><Text variant="muted">{clone(person.email)}</Text></TableCell>
+            <TableCell align="center"><Checkbox defaultChecked={person.active} /></TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+=== List | list | Data Display
+A virtualized, keyboard-navigable list with groups, search, suffixes and incremental loading.
+--- Basic List
+Click a row or use the arrow keys and Enter; onConfirm reports the row's value.
+function BasicList(): Node {
+  const chosen = signal('none');
+  return (
+    <View className="flex-col gap-3 w-72">
+      <View className="h-48 rounded-lg border border-border">
+        <List className="size-full" onConfirm={(value) => { chosen.set(value); }}>
+          <ListItem value="inbox"><Icon name="inbox" /><Text>Inbox</Text><ListItemSuffix><Text variant="muted">12</Text></ListItemSuffix></ListItem>
+          <ListItem value="drafts"><Icon name="file" /><Text>Drafts</Text></ListItem>
+          <ListItem value="sent"><Icon name="send" /><Text>Sent</Text></ListItem>
+          <ListSeparator />
+          <ListItem value="trash" disabled={true}><Icon name="trash" /><Text>Trash</Text></ListItem>
+        </List>
+      </View>
+      <Text variant="muted">Confirmed: {chosen.get()}</Text>
+    </View>
+  );
+}
+--- Searchable Groups
+searchable adds a filter field; ListGroup sections and ListEmpty for no matches.
+function SearchList(): Node {
+  return (
+    <View className="h-72 w-72 rounded-lg border border-border">
+      <List className="size-full" searchable={true} placeholder="Search produce...">
+        <ListGroup heading="Fruits">
+          <ListItem value="apple">Apple</ListItem>
+          <ListItem value="banana" keywords={['yellow']}>Banana</ListItem>
+          <ListItem value="cherry">Cherry</ListItem>
+        </ListGroup>
+        <ListGroup heading="Vegetables">
+          <ListItem value="carrot">Carrot</ListItem>
+          <ListItem value="leek">Leek</ListItem>
+        </ListGroup>
+        <ListEmpty><Text variant="muted">No produce matches.</Text></ListEmpty>
+      </List>
+    </View>
+  );
+}
+--- Confirmed Rows
+confirmed shows the check icon; toggle it from onClick.
+function CheckList(): Node {
+  const wifi = signal(true);
+  const bluetooth = signal(false);
+  return (
+    <View className="h-28 w-72 rounded-lg border border-border">
+      <List className="size-full" selectable={false}>
+        <ListItem confirmed={wifi.get()} onClick={() => { wifi.set(!wifi.get()); }}><Text>Wi-Fi</Text></ListItem>
+        <ListItem confirmed={bluetooth.get()} checkIcon="circle-check" onClick={() => { bluetooth.set(!bluetooth.get()); }}><Text>Bluetooth</Text></ListItem>
+      </List>
+    </View>
+  );
+}
+--- Load More
+hasMore and onLoadMore append rows as you scroll toward the end.
+function LongList(): Node {
+  const count = signal(30);
+  const rows: int[] = [];
+  for (let index = 0; index < 200; index += 1) {
+    rows.push(index);
+  }
+  return (
+    <View className="flex-col gap-3 w-72">
+      <View className="h-64 rounded-lg border border-border">
+        <List className="size-full" hasMore={count.get() < 200} loadMoreThreshold={5} onLoadMore={() => { count.set(count.get() + 30 > 200 ? 200 : count.get() + 30); }}>
+          {...rows.filter((row: int) => row < count.get()).map((row: int) => <ListItem><Text>Row {row + 1}</Text></ListItem>)}
+        </List>
+      </View>
+      <Text variant="muted">Loaded {count.get()} rows</Text>
+    </View>
+  );
+}
+=== Tree | tree | Data Display
+A keyboard-navigable tree of nested items with folder icons, selection and a right-click menu.
+--- Basic Tree
+Nested TreeItem children make folders; click to select, arrow keys move and expand.
+function FileTree(): Node {
+  const selected = signal('main.tsrx');
+  return (
+    <View className="flex-col gap-3 w-72">
+      <View className="h-64 rounded-lg border border-border">
+        <Tree className="size-full" defaultSelected="main.tsrx" onSelect={(id) => { selected.set(id); }}>
+          <TreeItem id="src" defaultExpanded={true}>
+            src
+            <TreeItem id="main.tsrx">main.tsrx</TreeItem>
+            <TreeItem id="pages">
+              pages
+              <TreeItem id="Button.tsrx">Button.tsrx</TreeItem>
+              <TreeItem id="Tree.tsrx">Tree.tsrx</TreeItem>
+            </TreeItem>
+          </TreeItem>
+          <TreeItem id="icon" icon="image">icon.png</TreeItem>
+          <TreeItem id="readme" icon="book-open">README.md</TreeItem>
+          <TreeItem id="lock" disabled={true}>tsrust.lock</TreeItem>
+        </Tree>
+      </View>
+      <Text variant="muted">Selected: {selected.get()}</Text>
+    </View>
+  );
+}
+--- Expand Events and Controlled Selection
+selected drives the highlight and reveals hidden items; onExpand and onCollapse report folders.
+function ControlledTree(): Node {
+  const selected = signal('');
+  const log = signal('');
+  return (
+    <View className="flex-row gap-6">
+      <View className="h-56 w-64 rounded-lg border border-border">
+        <Tree className="size-full" selected={selected.get()} onSelect={(id) => { selected.set(id); }} onExpand={(id) => { log.set(`Opened ${id}`); }} onCollapse={(id) => { log.set(`Closed ${id}`); }}>
+          <TreeItem id="docs">
+            docs
+            <TreeItem id="guide">
+              guide
+              <TreeItem id="install.md">install.md</TreeItem>
+            </TreeItem>
+          </TreeItem>
+          <TreeItem id="tests">tests</TreeItem>
+        </Tree>
+      </View>
+      <View className="flex-col gap-2">
+        <Button outline={true} onPress={() => { selected.set('install.md'); }}>Reveal install.md</Button>
+        <Text variant="muted">{log.get()}</Text>
+      </View>
+    </View>
+  );
+}
+--- Context Menu
+TreeMenu items open on right click; onContextMenu says which row.
+function MenuTree(): Node {
+  const target = signal('');
+  const action = signal('');
+  return (
+    <View className="flex-col gap-3 w-72">
+      <View className="h-36 rounded-lg border border-border">
+        <Tree className="size-full" onContextMenu={(id) => { target.set(id); }}>
+          <TreeItem id="a.txt">a.txt</TreeItem>
+          <TreeItem id="b.txt">b.txt</TreeItem>
+          <TreeMenu>
+            <MenuItem icon="pencil" onSelect={() => { action.set(`Rename ${target.get()}`); }}>Rename</MenuItem>
+            <MenuItem icon="trash" onSelect={() => { action.set(`Delete ${target.get()}`); }}>Delete</MenuItem>
+          </TreeMenu>
+        </Tree>
+      </View>
+      <Text variant="muted">{action.get()}</Text>
+    </View>
+  );
+}
+=== Data Table | data-table | Data Display
+A virtualized table for large data: sortable, resizable and movable columns, fixed columns, selection modes and a row menu.
+--- Basic Data Table
+Rows are JSON cell arrays; DataTableColumn children define the headers. Click a sort icon to sort; right-click a row for its DataTableMenu.
+interface Employee {
+  name: string;
+  role: string;
+  city: string;
+  salary: int;
+}
+
+function EmployeeTable(): Node {
+  const people: Employee[] = [
+    { name: 'Ada Lovelace', role: 'Engineer', city: 'London', salary: 128000 },
+    { name: 'Alan Turing', role: 'Researcher', city: 'Manchester', salary: 117000 },
+    { name: 'Grace Hopper', role: 'Admiral', city: 'Arlington', salary: 142000 },
+    { name: 'Katherine Johnson', role: 'Mathematician', city: 'Hampton', salary: 109000 },
+    { name: 'Linus Torvalds', role: 'Maintainer', city: 'Portland', salary: 131000 },
+  ];
+  const rows: string[][] = people.map((person: Employee) => [clone(person.name), clone(person.role), clone(person.city), `${person.salary}`]);
+  const selected = signal(-1);
+  const action = signal('');
+  return (
+    <View className="flex-col gap-3 w-full">
+      <DataTable className="h-64" rows={JSON.stringify(rows)} stripe={true} onSelect={(row) => { selected.set(row); }} onContextMenu={(row) => { action.set(`Menu opened on row ${row}`); }}>
+        <DataTableColumn key="0" width={200}>Name</DataTableColumn>
+        <DataTableColumn key="1" sortable={true}>Role</DataTableColumn>
+        <DataTableColumn key="2" sortable={true}>City</DataTableColumn>
+        <DataTableColumn key="3" sortable={true} align="right">Salary</DataTableColumn>
+        <DataTableMenu>
+          <MenuItem icon="copy">Copy row</MenuItem>
+          <MenuItem icon="trash">Delete row</MenuItem>
+        </DataTableMenu>
+      </DataTable>
+      <Text variant="muted">Selected row: {selected.get()} {action.get()}</Text>
+    </View>
+  );
+}
+--- Many Rows and Fixed Columns
+Only visible rows render; fixed="left" keeps a column while scrolling sideways.
+function LargeTable(): Node {
+  const rows: string[][] = [];
+  for (let index = 0; index < 5000; index += 1) {
+    rows.push([`Item ${index + 1}`, `${(index * 37) % 1000}`, `${(index * 13) % 97}%`, index % 3 === 0 ? 'Active' : 'Idle', `Region ${index % 12}`, `${index * 3}`]);
+  }
+  return (
+    <DataTable className="h-72 w-full" rows={JSON.stringify(rows)} fixedColumnsBorder={true} size="small">
+      <DataTableColumn key="0" fixed="left" width={140}>Item</DataTableColumn>
+      <DataTableColumn key="1" sortable={true} align="right" width={160}>Units</DataTableColumn>
+      <DataTableColumn key="2" sortable={true} align="right" width={160}>Margin</DataTableColumn>
+      <DataTableColumn key="3" sortable={true} width={160}>Status</DataTableColumn>
+      <DataTableColumn key="4" width={200}>Region</DataTableColumn>
+      <DataTableColumn key="5" sortable={true} align="right" width={160}>Score</DataTableColumn>
+    </DataTable>
+  );
+}
+--- Cell Selection and Empty State
+cellSelectable selects cells (the leading column selects rows); DataTableEmpty shows when there are no rows.
+function CellTable(): Node {
+  const cell = signal('none');
+  const empty = signal(false);
+  const rows: string[][] = [['A1', 'B1', 'C1'], ['A2', 'B2', 'C2'], ['A3', 'B3', 'C3']];
+  const none: string[][] = [];
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Switch checked={empty.get()} onChange={(on) => { empty.set(on); }}>Empty</Switch>
+      <DataTable className="h-48" rows={empty.get() ? JSON.stringify(none) : JSON.stringify(rows)} cellSelectable={true} onSelectCell={(at) => { cell.set(at.join(', ')); }}>
+        <DataTableColumn key="0">A</DataTableColumn>
+        <DataTableColumn key="1">B</DataTableColumn>
+        <DataTableColumn key="2">C</DataTableColumn>
+        <DataTableEmpty><Text variant="muted">Nothing here yet.</Text></DataTableEmpty>
+      </DataTable>
+      <Text variant="muted">Cell (row, column): {cell.get()}</Text>
+    </View>
+  );
+}
+=== Message | message | Chat
+Chat messages composed from an avatar, header, content bubble and footer, in groups.
+--- Conversation
+MessageAvatar, MessageHeader, MessageContent and MessageFooter; align="end" for sent messages.
+function Conversation(): Node {
+  return (
+    <MessageGroup className="w-[520px]">
+      <Message>
+        <MessageAvatar><Avatar name="Grace Hopper" /></MessageAvatar>
+        <MessageHeader><Text className="font-medium">Grace</Text><Text variant="muted">9:40</Text></MessageHeader>
+        <MessageContent>
+          <Bubble variant="secondary"><BubbleContent>Did the nightly build pass?</BubbleContent></Bubble>
+        </MessageContent>
+      </Message>
+      <Message align="end">
+        <MessageHeader><Text variant="muted">9:41</Text></MessageHeader>
+        <MessageContent>
+          <Bubble><BubbleContent>Green across all three platforms.</BubbleContent></Bubble>
+        </MessageContent>
+        <MessageFooter><Text variant="muted">Read</Text></MessageFooter>
+      </Message>
+    </MessageGroup>
+  );
+}
+--- Rich Content and Short Form
+MessageContent holds any content; without parts, author and time props make the header and the children a bubble.
+function RichMessage(): Node {
+  return (
+    <View className="flex-col gap-4 w-[520px]">
+      <Message>
+        <MessageAvatar><Avatar name="Build Bot" /></MessageAvatar>
+        <MessageContent>
+          <View className="flex-col gap-2 rounded-lg border border-border p-3">
+            <Text className="font-medium">Release 0.2.0</Text>
+            <Progress value={72} />
+            <Text variant="muted">72% of artifacts uploaded</Text>
+          </View>
+        </MessageContent>
+      </Message>
+      <Message author="Ada Lovelace" time="10:02">See you at the review.</Message>
+    </View>
+  );
+}
+=== Bubble | bubble | Chat
+Chat bubbles in seven styles, with reactions and groups.
+--- Variants
+variant sets the bubble style.
+function BubbleVariants(): Node {
+  return (
+    <View className="flex-col gap-2 w-[420px]">
+      <Bubble>Filled (default)</Bubble>
+      <Bubble variant="secondary">Secondary</Bubble>
+      <Bubble variant="muted">Muted</Bubble>
+      <Bubble variant="tinted">Tinted</Bubble>
+      <Bubble variant="outline">Outline</Bubble>
+      <Bubble variant="ghost">Ghost</Bubble>
+      <Bubble variant="destructive">Destructive</Bubble>
+    </View>
+  );
+}
+--- Reactions and Groups
+BubbleReactions attach buttons to an edge; BubbleGroup stacks one sender's bubbles.
+function ReactionBubbles(): Node {
+  const likes = signal(2);
+  return (
+    <View className="flex-col gap-6 w-[420px]">
+      <Bubble variant="secondary">
+        <BubbleContent>Shipping tonight?</BubbleContent>
+        <BubbleReactions><Button size="xsmall" variant="ghost" onPress={() => { likes.set(likes.get() + 1); }}>👍 {likes.get()}</Button></BubbleReactions>
+      </Bubble>
+      <BubbleGroup>
+        <Bubble align="end">On it.</Bubble>
+        <Bubble align="end">Tagging the release now.</Bubble>
+      </BubbleGroup>
+    </View>
+  );
+}
+=== Marker | marker | Chat
+Status rows in a transcript: plain, separator lines or bordered notes, with loading spinners or shimmer.
+--- Variants
+MarkerIcon and MarkerContent, drawn plain, as a separator or bordered.
+function MarkerVariants(): Node {
+  return (
+    <View className="flex-col gap-4 w-[480px]">
+      <Marker><MarkerIcon><Icon name="info" /></MarkerIcon><MarkerContent>Conversation started</MarkerContent></Marker>
+      <Marker variant="separator"><MarkerContent>Yesterday</MarkerContent></Marker>
+      <Marker variant="border"><MarkerIcon><Icon name="lock" /></MarkerIcon><MarkerContent>Messages are end-to-end encrypted</MarkerContent></Marker>
+    </View>
+  );
+}
+--- Loading
+loading shows a spinner, or a shimmer over the text with loadingStyle="shimmer".
+function LoadingMarkers(): Node {
+  const busy = signal(true);
+  return (
+    <View className="flex-col gap-4 w-[480px]">
+      <Switch checked={busy.get()} onChange={(on) => { busy.set(on); }}>Loading</Switch>
+      <Marker loading={busy.get()}><MarkerContent>Searching the docs</MarkerContent></Marker>
+      <Marker loading={busy.get()} loadingStyle="shimmer" shimmerDuration={1600}><MarkerIcon><Icon name="sparkles" /></MarkerIcon><MarkerContent>Thinking</MarkerContent></Marker>
+    </View>
+  );
+}
+=== Attachment | attachment | Chat
+Files and media with upload status, progress and actions.
+--- Upload States
+status and progress; onRemove and onRetry add buttons.
+function UploadStates(): Node {
+  const removed = signal('');
+  return (
+    <View className="flex-col gap-3 w-[420px]">
+      <Attachment status="uploading" progress={42} onRemove={() => { removed.set('slides.key'); }}>
+        <AttachmentMedia><Icon name="presentation" /></AttachmentMedia>
+        <AttachmentContent><AttachmentTitle>slides.key</AttachmentTitle><AttachmentDescription>Keynote · 18 MB</AttachmentDescription></AttachmentContent>
+      </Attachment>
+      <Attachment status="failed" onRetry={() => { removed.set('Retrying data.csv'); }}>
+        <AttachmentMedia><Icon name="file-spreadsheet" /></AttachmentMedia>
+        <AttachmentContent><AttachmentTitle>data.csv</AttachmentTitle><AttachmentDescription>CSV · 2 MB</AttachmentDescription></AttachmentContent>
+      </Attachment>
+      <Attachment title="report.pdf" description="PDF · 2.4 MB" icon="file-text" tooltip="Open report">
+        <AttachmentActions><Button size="xsmall" variant="ghost" icon="download" /></AttachmentActions>
+      </Attachment>
+      <Text variant="muted">{removed.get()}</Text>
+    </View>
+  );
+}
+--- Images, Cards and Groups
+AttachmentMedia src shows an image; vertical makes a card; AttachmentGroup scrolls a row.
+function ImageAttachments(): Node {
+  return (
+    <AttachmentGroup className="w-[520px]">
+      <Attachment vertical={true}>
+        <AttachmentMedia src="https://picsum.photos/id/1015/320/240" />
+        <AttachmentContent><AttachmentTitle>river.jpg</AttachmentTitle></AttachmentContent>
+      </Attachment>
+      <Attachment vertical={true}>
+        <AttachmentMedia src="https://picsum.photos/id/1025/320/240" />
+        <AttachmentContent><AttachmentTitle>dog.jpg</AttachmentTitle></AttachmentContent>
+      </Attachment>
+      <Attachment vertical={true} status="processing">
+        <AttachmentMedia src="https://picsum.photos/id/1043/320/240" />
+        <AttachmentContent><AttachmentTitle>city.jpg</AttachmentTitle></AttachmentContent>
+      </Attachment>
+    </AttachmentGroup>
+  );
+}
+=== Message Scroller | message-scroller | Chat
+A transcript that follows new messages, keeps its place while you read history and offers a jump button.
+--- Live Transcript
+Add messages; the scroller follows the end unless you scrolled up.
+function LiveTranscript(): Node {
+  const count = signal(6);
+  const lines: int[] = [];
+  for (let index = 0; index < 200; index += 1) {
+    lines.push(index);
+  }
+  return (
+    <View className="flex-col gap-3 w-[520px]">
+      <MessageScroller className="h-72 rounded-lg border border-border" jumpLabel="Latest" rowClassName="px-3 py-1">
+        {...lines.filter((line: int) => line < count.get()).map((line: int) => <Message align={line % 2 === 0 ? 'start' : 'end'} variant={line % 2 === 0 ? 'secondary' : 'filled'}>Message {line + 1}</Message>)}
+      </MessageScroller>
+      <Button onPress={() => { count.set(count.get() + 1); }}>Send message</Button>
+    </View>
+  );
+}

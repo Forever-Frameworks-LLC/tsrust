@@ -29,8 +29,8 @@ use gpui_kit::component::rating::Rating;
 use gpui_kit::component::resizable::{h_resizable, resizable_panel, v_resizable};
 use gpui_kit::component::select::{Select, SelectEvent, SelectGroup, SelectItem, SelectState};
 use gpui_kit::component::separator::Separator;
-use gpui_kit::component::shimmer::ShimmerText;
-use gpui_kit::component::sidebar::{Sidebar, SidebarGroup, SidebarMenu, SidebarMenuItem};
+use gpui_kit::component::shimmer::{ShimmerStyle, ShimmerText};
+use gpui_kit::component::sidebar::{Sidebar, SidebarCollapsible, SidebarFooter, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarToggleButton};
 use gpui_kit::component::skeleton::Skeleton;
 use gpui_kit::component::slider::{Slider, SliderEvent, SliderState, SliderValue};
 use gpui_kit::component::spinner::Spinner;
@@ -38,10 +38,10 @@ use gpui_kit::component::stepper::{Stepper, StepperItem};
 use gpui_kit::component::switch::Switch;
 use gpui_kit::component::tab::{Tab, TabBar, TabVariant};
 use gpui_kit::component::table::{Column, ColumnSort, DataTable, Table, TableBody, TableCell, TableDelegate, TableEvent, TableHead, TableHeader, TableRow, TableState};
-use gpui_kit::component::attachment::{Attachment, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentStatus, AttachmentTitle};
+use gpui_kit::component::attachment::{Attachment, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentStatus, AttachmentTitle};
 use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState};
 use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupText};
-use gpui_kit::component::marker::{Marker, MarkerContent, MarkerIcon, MarkerVariant};
+use gpui_kit::component::marker::{Marker, MarkerAlignment, MarkerContent, MarkerIcon, MarkerLoadingStyle, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
 use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, panel_handle};
 use gpui_kit::component::questionnaire::{Questionnaire, QuestionnaireActions, QuestionnaireChoice, QuestionnaireChoiceDefinition, QuestionnaireChoices, QuestionnaireDescription, QuestionnaireError, QuestionnaireEvent, QuestionnaireItem, QuestionnaireItemDefinition, QuestionnaireNext, QuestionnairePrevious, QuestionnaireProgress, QuestionnaireSkip, QuestionnaireState, QuestionnaireSubmit, QuestionnaireTitle};
@@ -51,7 +51,7 @@ use gpui_kit::component::ColorName;
 use gpui_kit::component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
 use gpui_kit::component::tooltip::Tooltip;
 use gpui_kit::component::notification::Notification;
-use gpui_kit::component::bubble::{Bubble, BubbleVariant};
+use gpui_kit::component::bubble::{Bubble, BubbleContent, BubbleGroup, BubbleReactionSide, BubbleReactions, BubbleVariant};
 use gpui_kit::component::button::{ButtonGroup, ToggleGroup};
 use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date, Matcher};
 use gpui_kit::component::carousel::{Carousel, CarouselContent, CarouselEvent, CarouselItem, CarouselNext, CarouselPrevious, CarouselState};
@@ -63,23 +63,139 @@ use gpui_kit::component::speech::{SpeechButton, SpeechEvent, SpeechState, Speech
 #[cfg(feature = "gpui-speech")]
 use gpui_kit::component::speech::SystemRecognizer;
 use gpui_kit::component::combobox::{Combobox, ComboboxEvent, ComboboxState};
-use gpui_kit::component::command::{Command as CommandPalette, CommandItem, CommandState};
+use gpui_kit::component::command::{Command as CommandPalette, CommandGroup, CommandItem, CommandState};
 use gpui_kit::component::form::{field, h_form, v_form};
 use gpui_kit::component::input::{Editor, EditorState};
-use gpui_kit::component::list::ListItem;
-use gpui_kit::component::message::{Message, MessageAlignment, MessageContent, MessageHeader};
+use gpui_kit::component::list::{List, ListDelegate, ListEvent, ListItem, ListState};
+use gpui_kit::component::message::{Message, MessageAlignment, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader};
 use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::searchable_list::SearchableVec;
 use gpui_kit::component::status_bar::StatusBar;
 use gpui_kit::component::text::TextView;
 use gpui_kit::component::time_field::{HourCycle, TimeField, TimeFieldEvent, TimeFieldState, TimePrecision};
-use gpui_kit::component::toolbar::Toolbar;
-use gpui_kit::component::tree::{TreeItem, TreeState, tree};
-use gpui_kit::component::{IndexPath, ThemeMode, TitleBar, VirtualListScrollHandle, v_virtual_list};
+use gpui_kit::component::toolbar::{Toolbar, ToolbarGroup};
+use gpui_kit::component::tree::{TreeEvent, TreeItem, TreeState, tree};
+use gpui_kit::component::{IndexPath, ThemeMode, TitleBar};
+use gpui_kit::base::component_traits::Collapsible as _;
 use gpui_kit::component::Theme as KitTheme;
 use gpui_kit::component::ActiveTheme as _;
 use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, StyledExt, WindowExt};
 use super::commands::{self, Command};
+
+/// One List row: a ListItem (or ListSeparator) node with its searchable text.
+#[derive(Clone)]
+struct ListRow {id: u64, text: String, separator: bool, disabled: bool}
+
+/// A List's delegate: rows come from ListItem children, sections from ListGroup children. Root syncs the rows;
+/// each row renders its own children through Root.
+struct TsrustList {
+    root: WeakEntity<Root>,
+    list: u64,
+    sections: Vec<(String, Vec<ListRow>)>,
+    query: String,
+    empty: Option<u64>,
+    loading: bool,
+    has_more: bool,
+    threshold: usize,
+    selected: Option<IndexPath>,
+    values: HashMap<u64, String>,
+}
+
+impl TsrustList {
+    /// The rows in a section that match the search query (separators hide while searching).
+    fn visible(&self, section: usize) -> Vec<&ListRow> {
+        let query = self.query.to_lowercase();
+        self.sections.get(section).map(|(_, rows)| rows.iter().filter(|row| if query.is_empty() {true} else {!row.separator && row.text.to_lowercase().contains(&query)}).collect()).unwrap_or_default()
+    }
+    fn row(&self, index: IndexPath) -> Option<ListRow> {self.visible(index.section).get(index.row).map(|row| (*row).clone())}
+}
+
+/// A List node's sections: loose rows first, then one per ListGroup (heading, rows).
+fn list_sections(node: &Node) -> Vec<(String, Vec<ListRow>)> {
+    let row = |child: &Node, kit: &Kit| {
+        let keywords = kit.text("keywords").replace('\n', " ");
+        ListRow {id: child.identity.get(), text: format!("{} {} {keywords}", child.content_text(), kit.text("value")), separator: kit.name == "ListSeparator", disabled: kit.flag("disabled")}
+    };
+    let mut sections = vec![(String::new(), Vec::new())];
+    for (child, kit) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
+        match kit.name.as_str() {
+            "ListItem" | "ListSeparator" => sections[0].1.push(row(child, kit)),
+            "ListGroup" => sections.push((kit.text("heading"), child.visible_children().filter_map(|item| item.kit.as_deref().filter(|kit| matches!(kit.name.as_str(), "ListItem" | "ListSeparator")).map(|kit| row(item, kit))).collect())),
+            _ => {}
+        }
+    }
+    // Kit measures one header height from section 0, so loose rows only form a section when present.
+    if sections.len() > 1 && sections[0].1.is_empty() {sections.remove(0);}
+    sections
+}
+
+/// Row `value` props by row identity.
+fn list_values(node: &Node) -> HashMap<u64, String> {
+    let mut values = HashMap::new();
+    fn walk(node: &Node, values: &mut HashMap<u64, String>) {
+        for child in node.visible_children() {
+            match child.kit.as_deref() {
+                Some(kit) if kit.name == "ListItem" => {if let Some(value) = kit.prop("value") {values.insert(child.identity.get(), value.to_owned());}}
+                Some(kit) if kit.name == "ListGroup" => walk(child, values),
+                _ => {}
+            }
+        }
+    }
+    walk(node, &mut values);
+    values
+}
+
+/// The IndexPath of the flat row index (counting every section's rows in order).
+fn list_path(sections: &[(String, Vec<ListRow>)], mut index: usize) -> Option<IndexPath> {
+    for (section, (_, rows)) in sections.iter().enumerate() {
+        if index < rows.len() {return Some(IndexPath::new(index).section(section));}
+        index -= rows.len();
+    }
+    None
+}
+
+/// What List events report for a row: its `value` prop, else its flat index.
+fn list_value(list: &TsrustList, index: IndexPath) -> String {
+    let Some(row) = list.row(index) else {return String::new()};
+    let flat = list.sections.iter().take(index.section).map(|(_, rows)| rows.len()).sum::<usize>() + list.sections[index.section].1.iter().position(|other| other.id == row.id).unwrap_or(0);
+    list.values.get(&row.id).cloned().unwrap_or_else(|| flat.to_string())
+}
+
+impl ListDelegate for TsrustList {
+    type Item = ListItem;
+    fn perform_search(&mut self, query: &str, _: &mut Window, cx: &mut Context<ListState<Self>>) -> Task<()> {
+        self.query = query.to_owned();
+        cx.notify();
+        Task::ready(())
+    }
+    fn sections_count(&self, _: &App) -> usize {self.sections.len().max(1)}
+    fn items_count(&self, section: usize, _: &App) -> usize {self.visible(section).len()}
+    fn render_item(&mut self, index: IndexPath, _: &mut Window, cx: &mut Context<ListState<Self>>) -> Option<ListItem> {
+        let row = self.row(index)?;
+        self.root.update(cx, |root, cx| root.list_item(row.id, cx)).ok().flatten()
+    }
+    fn render_section_header(&mut self, section: usize, _: &mut Window, cx: &mut Context<ListState<Self>>) -> Option<impl IntoElement> {
+        // Kit sizes every header like section 0's, so all sections get one once any group has a heading.
+        if self.sections.iter().all(|(heading, _)| heading.is_empty()) {return None;}
+        let heading = self.sections.get(section).map(|(heading, _)| heading.clone()).filter(|heading| !heading.is_empty()).unwrap_or_else(|| "\u{a0}".into());
+        Some(div().px_3().pt_2().pb_1().text_xs().font_weight(FontWeight::MEDIUM).text_color(cx.theme().muted_foreground).child(heading))
+    }
+    fn render_empty(&mut self, _: &mut Window, cx: &mut Context<ListState<Self>>) -> impl IntoElement {
+        match self.empty {
+            Some(empty) => div().size_full().flex().items_center().justify_center().children(self.root.update(cx, |root, cx| root.content_of(empty, cx)).unwrap_or_default()).into_any_element(),
+            None => div().size_full().flex().items_center().justify_center().text_color(cx.theme().muted_foreground.opacity(0.6)).child(Icon::new(IconName::Inbox).size_12()).into_any_element(),
+        }
+    }
+    fn loading(&self, _: &App) -> bool {self.loading}
+    fn set_selected_index(&mut self, index: Option<IndexPath>, _: &mut Window, cx: &mut Context<ListState<Self>>) {self.selected = index; cx.notify();}
+    fn has_more(&self, _: &App) -> bool {self.has_more}
+    fn load_more_threshold(&self) -> usize {self.threshold}
+    fn load_more(&mut self, _: &mut Window, cx: &mut Context<ListState<Self>>) {
+        // Deferred: load_more runs inside the List's render, so Root is reached after it.
+        let (root, list) = (self.root.clone(), self.list);
+        cx.defer(move |cx| {let _ = root.update(cx, |root, cx| root.emit(list, "loadMore", String::new(), cx));});
+    }
+}
 
 enum KitState {
     /// A Select's state and the option shape it was built from; grouped options use SelectGroups.
@@ -99,13 +215,15 @@ enum KitState {
     Carousel(Entity<CarouselState>),
     Editor(Entity<EditorState>),
     Tree(Entity<TreeState>, String),
-    List(VirtualListScrollHandle),
+    List(Entity<ListState<TsrustList>>),
     Diff(Entity<DiffState>, String),
     Table(Entity<TableState<Grid>>, String),
     Scroller(Entity<MessageScrollerState>, usize),
     Dock(Entity<DockArea>),
     Questionnaire(Entity<QuestionnaireState>),
     Speech(Entity<SpeechState>),
+    /// A running Ticker's timer task (dropping it stops the ticks) and the props it was started with.
+    Ticker(Option<Task<()>>, String),
 }
 
 /// One Plot mark: a line, area or bar series over the Plot's labels.
@@ -195,7 +313,7 @@ fn utility_theme(cx: &App) -> Theme {
 #[action(namespace = tsrust, no_json)]
 struct TsrustCommand {name: String}
 
-/// Bind a Shortcut's keys once per key and command pair.
+// Bind a Shortcut's keys once per key and command pair.
 thread_local! {
     /// The keys most recently bound to each Shortcut command, for Kbd command lookup.
     static COMMAND_KEYS: std::cell::RefCell<HashMap<String, String>> = std::cell::RefCell::new(HashMap::new());
@@ -264,6 +382,24 @@ impl MenuOptions {
     }
 }
 
+/// A menu built without a menu context: submenus flatten into labelled sections.
+fn flat_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEntry], root: &WeakEntity<Root>) -> gpui_kit::component::menu::PopupMenu {
+    for entry in entries {
+        menu = match entry.clone() {
+            MenuEntry::Separator => menu.separator(),
+            MenuEntry::Label(text) => menu.label(text),
+            MenuEntry::Submenu {label, entries, ..} => flat_menu(menu.separator().label(label), &entries, root),
+            MenuEntry::Item {id, label, icon, disabled, checked, handles, ..} => {
+                let mut item = PopupMenuItem::new(label).disabled(disabled).checked(checked);
+                if let Some(icon) = icon {item = item.icon(icon);}
+                if handles {let root = root.clone(); item = item.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", String::new(), cx));});}
+                menu.item(item)
+            }
+        };
+    }
+    menu
+}
+
 fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEntry], root: &WeakEntity<Root>, window: &mut Window, cx: &mut Context<gpui_kit::component::menu::PopupMenu>) -> gpui_kit::component::menu::PopupMenu {
     for entry in entries {
         menu = match entry.clone() {
@@ -297,7 +433,7 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 }
 
 /// Kit components whose className refines the component itself instead of a wrapper.
-pub(crate) const STYLED_KIT: &[&str] = &["Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox"];
+pub(crate) const STYLED_KIT: &[&str] = &["Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
 
 /// The size prop shared by sizable Kit components.
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
@@ -327,6 +463,44 @@ fn menu_button<T: ButtonVariants + Sizable + Selectable + Disableable>(button: T
     button
 }
 
+/// The props that restart a Ticker.
+fn ticker_shape(props: &std::collections::BTreeMap<String, String>) -> String {format!("{}\u{1}{}", props.get("interval").map_or("", String::as_str), props.get("running").map_or("", String::as_str))}
+
+/// Starts a Ticker's timer: every `interval` ms (default 16, about 60 per second) it reports the frame count.
+fn ticker(id: u64, props: &std::collections::BTreeMap<String, String>, cx: &mut Context<Root>) -> Option<Task<()>> {
+    if props.get("running").map(String::as_str) == Some("false") {return None;}
+    let interval = std::time::Duration::from_millis(props.get("interval").and_then(|value| value.parse::<f64>().ok()).map_or(16, |ms| ms.max(1.) as u64));
+    Some(cx.spawn(async move |this, cx| {
+        let mut frame: u64 = 0;
+        loop {
+            cx.background_executor().timer(interval).await;
+            frame += 1;
+            if this.update(cx, |root, cx| root.emit(id, "tick", frame.to_string(), cx)).is_err() {break;}
+        }
+    }))
+}
+
+/// A chat part's alignment: `align="end"` puts it at the trailing edge.
+fn message_alignment(kit: &Kit) -> MessageAlignment {if kit.prop("align") == Some("end") {MessageAlignment::End} else {MessageAlignment::Start}}
+
+/// A Bubble's look from its `variant` prop.
+fn bubble_variant(kit: &Kit) -> BubbleVariant {
+    match kit.prop("variant") {
+        Some("secondary") => BubbleVariant::Secondary, Some("muted") => BubbleVariant::Muted, Some("tinted") => BubbleVariant::Tinted,
+        Some("outline") => BubbleVariant::Outline, Some("ghost") => BubbleVariant::Ghost, Some("destructive") => BubbleVariant::Destructive, _ => BubbleVariant::Filled,
+    }
+}
+
+/// Shimmer timing and color from `shimmerDuration` (ms) and `shimmerColor`.
+fn shimmer_style(kit: &Kit, cx: &App) -> Option<ShimmerStyle> {
+    let (duration, color) = (kit.index("shimmerDuration"), kit.prop("shimmerColor").and_then(|color| theme_color(color, cx)));
+    if duration.is_none() && color.is_none() {return None;}
+    let mut style = ShimmerStyle::new();
+    if let Some(duration) = duration {style = style.duration(std::time::Duration::from_millis(duration as u64));}
+    if let Some(color) = color {style = style.highlight_color(color);}
+    Some(style)
+}
+
 fn kit_size(kit: &Kit) -> Option<KitSize> {
     match kit.prop("size") {Some("xsmall") => Some(KitSize::XSmall), Some("small") => Some(KitSize::Small), Some("large") => Some(KitSize::Large), Some("medium") => Some(KitSize::Medium), _ => None}
 }
@@ -353,11 +527,8 @@ fn theme_color(name: &str, cx: &App) -> Option<Hsla> {
 fn plot_color(name: &str, index: usize, cx: &App) -> Hsla {
     let theme = cx.theme();
     let charts = [theme.chart_1, theme.chart_2, theme.chart_3, theme.chart_4, theme.chart_5];
-    match name {
-        "chart-1" => charts[0], "chart-2" => charts[1], "chart-3" => charts[2], "chart-4" => charts[3], "chart-5" => charts[4],
-        "primary" => theme.primary, "destructive" => theme.danger, "foreground" => theme.foreground, "muted-foreground" => theme.muted_foreground,
-        other => parse_hex(other).unwrap_or(charts[index % charts.len()]),
-    }
+    // Any theme, palette or literal color a color prop accepts; unset cycles through the chart colors.
+    theme_color(name, cx).unwrap_or(charts[index % charts.len()])
 }
 
 /// One DockPanel: its content is the node's children, drawn through the root.
@@ -381,37 +552,124 @@ impl Render for DockContent {
 }
 
 /// DataTable rows: text cells shown in `order`, which sorting rearranges.
-struct Grid {columns: Vec<SharedString>, rows: Vec<Vec<SharedString>>, order: Vec<usize>, sortable: bool}
+/// What rebuilds a DataTable's delegate: its rows, columns, parts and load state.
+fn grid_shape(node: &Node) -> String {
+    let kit = node.kit.as_deref().expect("DataTable");
+    let mut out = ["rows", "columns", "sortable", "loading", "hasMore", "loadMoreThreshold"].map(|key| kit.text(key)).join("\u{1}");
+    for (child, part) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
+        out.push('\u{2}'); out.push_str(&part.name);
+        for (key, value) in &part.props {out.push_str(key); out.push('='); out.push_str(value); out.push(';');}
+        out.push_str(&child.identity.get().to_string());
+    }
+    out
+}
+
+/// One DataTable column from a DataTableColumn child.
+#[derive(Clone, PartialEq)]
+struct GridColumn {
+    key: SharedString, label: SharedString, width: Option<f32>, min: Option<f32>, max: Option<f32>, sortable: bool, sort: String,
+    align: String, fixed: bool, resizable: bool, movable: bool, selectable: bool, padding: Option<f32>,
+}
+
+/// A DataTable's delegate: string cells from the `rows` JSON, columns from DataTableColumn children (in display
+/// order), a sort order over the rows, and the table's empty, loading, load-more and menu parts.
+struct Grid {
+    columns: Vec<GridColumn>, rows: Vec<Vec<SharedString>>, order: Vec<usize>,
+    root: WeakEntity<Root>, table: u64, empty: Option<u64>, menu: Vec<MenuEntry>, loading: bool, has_more: bool, threshold: usize,
+}
 
 impl Grid {
-    fn new(columns: &str, rows: &str, sortable: bool) -> Self {
-        let columns = columns.split('\n').filter(|column| !column.is_empty()).map(|column| SharedString::from(column.to_owned())).collect();
-        let rows = serde_json::from_str::<Vec<Vec<String>>>(rows).unwrap_or_default().into_iter().map(|row| row.into_iter().map(SharedString::from).collect()).collect::<Vec<Vec<_>>>();
-        Self {order: (0..rows.len()).collect(), columns, rows, sortable}
+    fn new(node: &Node, root: WeakEntity<Root>) -> Self {
+        let kit = node.kit.as_deref().expect("DataTable");
+        let mut columns = items(node, "DataTableColumn").enumerate().map(|(index, (_, column))| {
+            let label = column.text("label");
+            GridColumn {
+                key: column.prop("key").map_or_else(|| index.to_string(), str::to_owned).into(), label: label.into(),
+                width: column.number("width").map(|value| value as f32), min: column.number("minWidth").map(|value| value as f32), max: column.number("maxWidth").map(|value| value as f32),
+                sortable: column.flag("sortable"), sort: column.text("defaultSort"), align: column.text("align"), fixed: column.text("fixed") == "left",
+                resizable: column.prop("resizable") != Some("false"), movable: column.prop("movable") != Some("false"), selectable: column.prop("selectable") != Some("false"),
+                padding: column.number("padding").map(|value| value as f32),
+            }
+        }).collect::<Vec<_>>();
+        // Without DataTableColumn children, the `columns` prop names the columns.
+        if columns.is_empty() {
+            columns = kit.text("columns").split('\n').filter(|name| !name.is_empty()).enumerate().map(|(index, name)| GridColumn {
+                key: index.to_string().into(), label: name.to_owned().into(), width: None, min: None, max: None, sortable: kit.flag("sortable"), sort: String::new(),
+                align: String::new(), fixed: false, resizable: true, movable: true, selectable: true, padding: None,
+            }).collect();
+        }
+        let rows = serde_json::from_str::<Vec<Vec<serde_json::Value>>>(&kit.text("rows")).unwrap_or_default().into_iter()
+            .map(|row| row.into_iter().map(|cell| SharedString::from(match cell {serde_json::Value::String(text) => text, serde_json::Value::Null => String::new(), other => other.to_string()})).collect()).collect::<Vec<Vec<_>>>();
+        Self {
+            order: (0..rows.len()).collect(), columns, rows, root, table: node.identity.get(),
+            empty: first_item(node, "DataTableEmpty").map(|empty| empty.identity.get()), menu: first_item(node, "DataTableMenu").map(menu_entries).unwrap_or_default(),
+            loading: kit.flag("loading"), has_more: kit.flag("hasMore"), threshold: kit.index("loadMoreThreshold").unwrap_or(20),
+        }
     }
-    fn cell(&self, row: usize, column: usize) -> SharedString {self.order.get(row).and_then(|row| self.rows[*row].get(column)).cloned().unwrap_or_default()}
+    /// The column index into each row for a display column.
+    fn source(&self, column: usize) -> usize {
+        let key = &self.columns[column].key;
+        key.parse::<usize>().ok().filter(|index| *index < self.rows.first().map_or(usize::MAX, Vec::len)).unwrap_or(column)
+    }
+    fn cell(&self, row: usize, column: usize) -> SharedString {self.order.get(row).and_then(|row| self.rows[*row].get(self.source(column))).cloned().unwrap_or_default()}
+    fn emit(&self, event: &'static str, value: String, cx: &mut App) {
+        let (root, table) = (self.root.clone(), self.table);
+        cx.defer(move |cx| {let _ = root.update(cx, |root, cx| root.emit(table, event, value, cx));});
+    }
 }
 
 impl TableDelegate for Grid {
     fn columns_count(&self, _: &App) -> usize {self.columns.len()}
     fn rows_count(&self, _: &App) -> usize {self.rows.len()}
     fn column(&self, column: usize, _: &App) -> Column {
-        let entry = Column::new(SharedString::from(format!("column-{column}")), self.columns[column].clone());
-        if self.sortable {entry.sortable()} else {entry}
+        let spec = &self.columns[column];
+        let mut entry = Column::new(spec.key.clone(), spec.label.clone()).resizable(spec.resizable).movable(spec.movable).selectable(spec.selectable);
+        if spec.sortable {entry = entry.sortable();}
+        match spec.sort.as_str() {"ascending" => entry = entry.ascending(), "descending" => entry = entry.descending(), _ => {}}
+        match spec.align.as_str() {"center" => entry = entry.text_center(), "right" => entry = entry.text_right(), _ => {}}
+        if let Some(width) = spec.width {entry = entry.width(px(width));}
+        if let Some(width) = spec.min {entry = entry.min_width(px(width));}
+        if let Some(width) = spec.max {entry = entry.max_width(px(width));}
+        if spec.fixed {entry = entry.fixed_left();}
+        match spec.padding {Some(padding) if padding == 0. => entry = entry.p_0(), Some(padding) => entry = entry.paddings(px(padding)), None => {}}
+        entry
     }
-    fn perform_sort(&mut self, column: usize, sort: ColumnSort, _: &mut Window, _: &mut Context<TableState<Self>>) {
+    fn perform_sort(&mut self, column: usize, sort: ColumnSort, _: &mut Window, cx: &mut Context<TableState<Self>>) {
         self.order = (0..self.rows.len()).collect();
-        if matches!(sort, ColumnSort::Default) {return;}
-        let rows = &self.rows;
+        let direction = match sort {ColumnSort::Ascending => "ascending", ColumnSort::Descending => "descending", _ => ""};
+        self.emit("sort", format!("{}\n{direction}", self.columns[column].key), cx);
+        if direction.is_empty() {return;}
+        let (rows, source) = (&self.rows, self.source(column));
         // Numbers compare numerically; anything else compares as text.
         self.order.sort_by(|left, right| {
-            let (left, right) = (rows[*left].get(column).map(|cell| cell.as_ref()).unwrap_or(""), rows[*right].get(column).map(|cell| cell.as_ref()).unwrap_or(""));
+            let (left, right) = (rows[*left].get(source).map(|cell| cell.as_ref()).unwrap_or(""), rows[*right].get(source).map(|cell| cell.as_ref()).unwrap_or(""));
             match (left.trim().parse::<f64>(), right.trim().parse::<f64>()) {(Ok(left), Ok(right)) => left.total_cmp(&right), _ => left.cmp(right)}
         });
         if matches!(sort, ColumnSort::Descending) {self.order.reverse();}
     }
+    fn context_menu(&mut self, row: usize, menu: gpui_kit::component::menu::PopupMenu, _: &mut Window, cx: &mut Context<TableState<Self>>) -> gpui_kit::component::menu::PopupMenu {
+        if self.menu.is_empty() {return menu;}
+        if let Some(index) = self.order.get(row) {self.emit("contextMenu", index.to_string(), cx);}
+        flat_menu(menu, &self.menu, &self.root)
+    }
     fn render_td(&mut self, row: usize, column: usize, _: &mut Window, _: &mut Context<TableState<Self>>) -> impl IntoElement {self.cell(row, column)}
     fn cell_label(&self, row: usize, column: usize, _: &App) -> Option<SharedString> {Some(self.cell(row, column))}
+    fn move_column(&mut self, from: usize, to: usize, _: &mut Window, cx: &mut Context<TableState<Self>>) {
+        let column = self.columns.remove(from);
+        self.columns.insert(to, column);
+        self.emit("columnsChange", self.columns.iter().map(|column| column.key.to_string()).collect::<Vec<_>>().join("\n"), cx);
+    }
+    fn render_empty(&mut self, _: &mut Window, cx: &mut Context<TableState<Self>>) -> impl IntoElement {
+        let content = self.empty.and_then(|empty| self.root.update(cx, |root, cx| root.content_of(empty, cx)).ok());
+        match content {
+            Some(content) => div().size_full().flex().items_center().justify_center().children(content).into_any_element(),
+            None => div().size_full().flex().items_center().justify_center().text_color(cx.theme().muted_foreground.opacity(0.6)).child(Icon::new(IconName::Inbox).size_12()).into_any_element(),
+        }
+    }
+    fn loading(&self, _: &App) -> bool {self.loading}
+    fn has_more(&self, _: &App) -> bool {self.has_more}
+    fn load_more_threshold(&self) -> usize {self.threshold}
+    fn load_more(&mut self, _: &mut Window, cx: &mut Context<TableState<Self>>) {self.emit("loadMore", String::new(), cx);}
 }
 
 /// A popover trigger wrapping arbitrary content; Kit triggers must be selectable.
@@ -630,6 +888,11 @@ fn ancestor_named(root: &Node, target: u64, name: &str) -> Option<(u64, bool)> {
     walk(root, target, name, None).flatten()
 }
 
+/// A carousel's slides: CarouselItem (or CarouselSlide) children.
+fn carousel_slides(node: &Node) -> Vec<&Node> {
+    node.visible_children().filter(|child| child.kit.as_deref().is_some_and(|kit| kit.name == "CarouselItem" || kit.name == "CarouselSlide")).collect()
+}
+
 /// The first item component of this name among a node's children.
 fn first_item<'a>(node: &'a Node, name: &'a str) -> Option<&'a Node> {items(node, name).next().map(|(child, _)| child)}
 
@@ -673,6 +936,46 @@ impl Root {
         node.visible_children().filter(|child| !child.kit.as_deref().is_some_and(|kit| skip.contains(&kit.name.as_str()))).map(|child| self.element(child, &theme, mode(cx), cx)).collect()
     }
 
+    /// A CommandItem: label, icon, keywords, a Shortcut command's keys, check and custom content.
+    fn command_item(&self, node: &Node, cx: &mut Context<Self>) -> CommandItem {
+        let item = node.kit.as_deref().expect("CommandItem");
+        let mut entry = CommandItem::new().label(item.text("label")).disabled(item.flag("disabled")).checked(item.flag("checked"));
+        if let Some(icon) = icon_name(&item.text("icon")) {entry = entry.icon(icon);}
+        let keywords = item.text("keywords").split('\n').filter(|word| !word.is_empty()).map(str::to_owned).collect::<Vec<_>>();
+        if !keywords.is_empty() {entry = entry.keywords(keywords);}
+        if !item.text("command").is_empty() {entry = entry.action(Box::new(TsrustCommand {name: item.text("command")}));}
+        // Rich children (beyond text) replace the row's content.
+        if node.visible_children().any(|part| part.kind != Kind::Text) {
+            let (part, root) = (node.identity.get(), cx.entity().downgrade());
+            entry = entry.child(move |_, cx| div().flex().items_center().gap_2().children(root.update(cx, |root, cx| root.content_of(part, cx)).unwrap_or_default()));
+        }
+        entry
+    }
+
+    /// A SidebarItem with its nested items, suffix and right-click menu.
+    fn sidebar_item(&self, node: &Node, item: &Kit, collapsed: bool, cx: &mut Context<Self>) -> SidebarMenuItem {
+        let id = node.identity.get();
+        let mut entry = SidebarMenuItem::new(item.text("label")).active(item.flag("active")).collapsed(collapsed).disable(item.flag("disabled"))
+            .default_open(item.flag("defaultOpen")).click_to_open(item.flag("clickToOpen")).click_to_toggle(item.flag("clickToToggle"))
+            .label_style(self.class_style(&item.text("labelClassName"), cx));
+        if let Some(icon) = icon_name(&item.text("icon")) {entry = entry.icon(icon);}
+        if let Some(label) = item.prop("accessibilityLabel") {entry = entry.accessibility_label(label.to_owned());}
+        let children = items(node, "SidebarItem").map(|(child, nested)| self.sidebar_item(child, nested, collapsed, cx)).collect::<Vec<_>>();
+        if !children.is_empty() {entry = entry.children(children);}
+        let root = cx.entity().downgrade();
+        if let Some(suffix) = first_item(node, "SidebarItemSuffix") {
+            let (suffix, root) = (suffix.identity.get(), root.clone());
+            entry = entry.suffix(move |_, cx| div().flex().items_center().gap_1().children(root.update(cx, |root, cx| root.content_of(suffix, cx)).unwrap_or_default()));
+        }
+        let entries = std::rc::Rc::new(menu_entries(node));
+        if !entries.is_empty() {
+            let root = root.clone();
+            entry = entry.context_menu(move |menu, _, _| flat_menu(menu, &entries, &root));
+        }
+        if item.handles("click") {entry = entry.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "click", String::new(), cx));});}
+        entry
+    }
+
     /// An InputGroupButton; MenuItem children make it open a dropdown menu.
     fn input_group_button(&self, node: &Node, cx: &mut Context<Self>) -> AnyElement {
         let id = node.identity.get();
@@ -714,6 +1017,37 @@ impl Root {
         node.visible_children().map(|child| self.element(child, &theme, mode(cx), cx)).collect()
     }
 
+    /// One List row from its ListItem (or ListSeparator) node: content, ListItemSuffix, check icon and events.
+    fn list_item(&self, row: u64, cx: &mut Context<Self>) -> Option<ListItem> {
+        let node = find(&self.node, row)?;
+        let kit = node.kit.as_deref()?;
+        let mut item = ListItem::new(ElementId::Name(format!("list-item-{row}").into()));
+        if kit.name == "ListSeparator" {return Some(item.separator());}
+        item = item.disabled(kit.flag("disabled")).confirmed(kit.flag("confirmed"));
+        if let Some(label) = kit.prop("accessibilityLabel") {item = item.accessibility_label(label.to_owned());}
+        // Kit draws the confirmed mark only when a check icon is set; default to a check.
+        item = item.check_icon(icon_name(&kit.text("checkIcon")).unwrap_or(IconName::Check));
+        let theme = utility_theme(cx);
+        let mut suffix = None;
+        let mut content = Vec::new();
+        for child in node.visible_children() {
+            if child.kit.as_deref().is_some_and(|kit| kit.name == "ListItemSuffix") {suffix = Some(child.identity.get()); continue;}
+            content.push(self.element(child, &theme, mode(cx), cx));
+        }
+        item = item.child(div().flex().items_center().gap_2().min_w_0().children(content));
+        let root = cx.entity().downgrade();
+        if let Some(part) = suffix {
+            let root = root.clone();
+            item = item.suffix(move |_, cx| div().flex().items_center().gap_1().children(root.update(cx, |root, cx| root.content_of(part, cx)).unwrap_or_default()));
+        }
+        let emit = move |event: &'static str| {
+            let root = root.clone();
+            move |cx: &mut App| {let _ = root.update(cx, |root, cx| root.emit(row, event, String::new(), cx));}
+        };
+        let (click, down, enter) = (emit("click"), emit("mouseDown"), emit("hover"));
+        Some(item.on_click(move |_, _, cx| click(cx)).on_mouse_down(MouseButton::Left, move |_, _, cx| down(cx)).on_mouse_enter(move |_, _, cx| enter(cx)))
+    }
+
     /// Children of the node with this identity, for overlay content built later.
     fn content_of(&self, id: u64, cx: &mut Context<Self>) -> Vec<AnyElement> {
         match find(&self.node, id) {Some(node) => self.content(node, cx), None => Vec::new()}
@@ -737,6 +1071,22 @@ impl Root {
         match find(&self.node, id).and_then(|node| node.visible_children().nth(index)) {Some(child) => self.element(child, &theme, mode(cx), cx), None => div().into_any_element()}
     }
 
+    /// A Bubble: BubbleContent (or its loose children) and an optional BubbleReactions row.
+    fn bubble(&self, node: &Node, kit: &Kit, cx: &mut Context<Self>) -> Bubble {
+        let mut bubble = Bubble::new().with_variant(bubble_variant(kit)).alignment(message_alignment(kit)).refine_style(&self.class_style(&node.class_name, cx));
+        let content = match first_item(node, "BubbleContent") {
+            Some(part) => BubbleContent::new().refine_style(&self.class_style(&part.class_name, cx)).children(self.content(part, cx)),
+            None => BubbleContent::new().children(self.content_except(node, &["BubbleReactions"], cx)),
+        };
+        bubble = bubble.content(content);
+        if let Some((part, reactions)) = items(node, "BubbleReactions").next() {
+            let side = if reactions.prop("side") == Some("top") {BubbleReactionSide::Top} else {BubbleReactionSide::Bottom};
+            bubble = bubble.reactions(BubbleReactions::new().side(side).alignment(message_alignment(reactions)).refine_style(&self.class_style(&part.class_name, cx)).children(self.content(part, cx)));
+        }
+        bubble
+    }
+
+    /// An Attachment from its props (short form) or AttachmentMedia / AttachmentContent / AttachmentActions parts.
     fn attachment(&self, node: &Node, kit: &Kit, cx: &mut Context<Self>) -> Attachment {
         let id = node.identity.get();
         let status = match kit.prop("status") {
@@ -746,16 +1096,42 @@ impl Root {
             Some("failed") => AttachmentStatus::Failed,
             _ => AttachmentStatus::Complete,
         };
-        let image = kit.text("image");
-        let media = if image.is_empty() {
-            AttachmentMedia::new().child(Icon::new(icon_name(&kit.text("icon")).unwrap_or(IconName::File)))
-        } else {
-            AttachmentMedia::new().src(std::path::PathBuf::from(image))
+        let size = kit_size(kit);
+        let image_source = |source: String| -> ImageSource {if std::path::Path::new(&source).is_file() {std::path::PathBuf::from(source).into()} else {SharedString::from(source).into()}};
+        let mut media = match items(node, "AttachmentMedia").next() {
+            Some((part, media_kit)) => {
+                let mut media = AttachmentMedia::new().refine_style(&self.class_style(&part.class_name, cx));
+                match media_kit.prop("src") {
+                    // With an image, children draw over it; otherwise they are the media (such as an icon).
+                    Some(source) => {media = media.src(image_source(source.to_owned())); let overlay = self.content(part, cx); if !overlay.is_empty() {media = media.overlay(div().size_full().children(overlay));}}
+                    None => media = media.children(self.content(part, cx)),
+                }
+                media
+            }
+            None => match kit.prop("image") {
+                Some(source) => AttachmentMedia::new().src(image_source(source.to_owned())),
+                None => AttachmentMedia::new().child(Icon::new(icon_name(&kit.text("icon")).unwrap_or(IconName::File))),
+            },
         };
-        let mut content = AttachmentContent::new().title(AttachmentTitle::new(kit.text("title")));
-        if !kit.text("description").is_empty() {content = content.description(AttachmentDescription::new(kit.text("description")));}
-        let mut attachment = Attachment::new().id(ElementId::Integer(id)).status(status).media(media).content(content);
+        if let Some(size) = size {media = media.with_size(size);}
+        let (title_kit, title_text, description_text) = match items(node, "AttachmentContent").next() {
+            Some((part, _)) => {
+                let title = items(part, "AttachmentTitle").next();
+                let description = first_item(part, "AttachmentDescription");
+                (title.map(|(_, kit)| kit), title.map(|(node, _)| node.content_text()).unwrap_or_default(), description.map(Node::content_text).unwrap_or_default())
+            }
+            None => (None, kit.text("title"), kit.text("description")),
+        };
+        let mut title = AttachmentTitle::new(title_text).status(status);
+        if let Some(style) = title_kit.and_then(|kit| shimmer_style(kit, cx)).or_else(|| shimmer_style(kit, cx)) {title = title.with_shimmer_style(style);}
+        let mut content = AttachmentContent::new().title(title);
+        if !description_text.is_empty() {content = content.description(AttachmentDescription::new(description_text).status(status));}
+        let mut attachment = Attachment::new().id(ElementId::Integer(id)).status(status).media(media).content(content).refine_style(&self.class_style(&node.class_name, cx));
+        if let Some(part) = first_item(node, "AttachmentActions") {attachment = attachment.actions(AttachmentActions::new().children(self.content(part, cx)));}
         if let Some(progress) = kit.number("progress") {attachment = attachment.progress(progress as f32);}
+        if let Some(tooltip) = kit.prop("tooltip") {attachment = attachment.tooltip(tooltip.to_owned());}
+        if kit.flag("vertical") {attachment = attachment.axis(Axis::Vertical);}
+        if let Some(size) = size {attachment = attachment.with_size(size);}
         let root = cx.entity().downgrade();
         for (event, handled) in [("click", kit.handles("click")), ("remove", kit.handles("remove")), ("retry", kit.handles("retry"))] {
             if !handled {continue;}
@@ -771,7 +1147,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -860,6 +1236,39 @@ impl Root {
                         };
                         if let Some(wanted) = wanted && state.read(cx).value() != wanted {state.update(cx, |state, cx| state.set_value(wanted, window, cx));}
                     }
+                    KitState::List(state) => {
+                        let Some(node) = find(&self.node, id) else {continue};
+                        if let Some(query) = props.get("query") && state.read(cx).delegate().query != *query {let query = query.clone(); state.update(cx, |state, cx| state.set_query(&query, window, cx));}
+                        let (sections, values, empty) = (list_sections(node), list_values(node), first_item(node, "ListEmpty").map(|empty| empty.identity.get()));
+                        let (loading, has_more) = (text("loading") == "true", text("hasMore") == "true");
+                        let threshold = number("loadMoreThreshold").map_or(20, |rows| rows as usize);
+                        let (searchable, selectable) = (text("searchable") == "true", text("selectable") != "false");
+                        state.update(cx, |state, cx| {
+                            let list = state.delegate_mut();
+                            (list.sections, list.values, list.empty, list.loading, list.has_more, list.threshold) = (sections, values, empty, loading, has_more, threshold);
+                            state.set_searchable(searchable, cx);
+                            state.set_selectable(selectable, cx);
+                            cx.notify();
+                        });
+                        if let Some(index) = number("selected").filter(|index| *index >= 0.).map(|index| index as usize).and_then(|index| list_path(&state.read(cx).delegate().sections, index))
+                            && state.read(cx).selected_index() != Some(index) {
+                            state.update(cx, |state, cx| {state.set_selected_index(Some(index), window, cx); state.scroll_to_selected_item(window, cx);});
+                        }
+                    }
+                    KitState::Carousel(state) => {
+                        let count = find(&self.node, id).map(|node| carousel_slides(first_item(node, "CarouselContent").unwrap_or(node)).len()).unwrap_or(0);
+                        if state.read(cx).item_count() != count {state.update(cx, |state, cx| state.set_item_count(count, cx));}
+                        let looping = text("loop") == "true";
+                        if state.read(cx).is_looping() != looping {state.update(cx, |state, cx| state.set_looping(looping, cx));}
+                        let axis = if text("vertical") == "true" {Axis::Vertical} else {Axis::Horizontal};
+                        if state.read(cx).axis() != axis {state.update(cx, |state, cx| state.set_axis(axis, cx));}
+                        if let Some(selected) = number("selected").map(|index| index as usize) && state.read(cx).selected_index() != Some(selected) {state.update(cx, |state, cx| state.set_selected_index(selected, cx));}
+                    }
+                    KitState::Command(state) => {
+                        if let Some(query) = props.get("query") && state.read(cx).query(cx).as_ref() != query {let query = query.clone(); state.update(cx, |state, cx| state.set_query(query, window, cx));}
+                        let loading = text("loading") == "true";
+                        if state.read(cx).is_loading() != loading {state.update(cx, |state, cx| state.set_loading(loading, window, cx));}
+                    }
                     KitState::Otp(state) => {
                         let masked = text("masked") == "true";
                         if state.read(cx).is_masked() != masked {state.update(cx, |state, cx| state.set_masked(masked, window, cx));}
@@ -905,6 +1314,12 @@ impl Root {
                             state.update(cx, |state, cx| state.set_items(items, cx));
                             if let Some(KitState::Tree(_, shape)) = self.states.get_mut(&id) {*shape = current;}
                         }
+                        if let Some(KitState::Tree(state, _)) = self.states.get(&id) && let Some(selected) = props.get("selected") {
+                            let selected: SharedString = selected.clone().into();
+                            if state.read(cx).selected_item().map(|item| &item.id) != Some(&selected) {
+                                state.update(cx, |state, cx| tree_select(state, &selected, cx));
+                            }
+                        }
                     }
                     KitState::Diff(state, patch) => {
                         let mode = if text("mode") == "split" {DiffMode::Split} else {DiffMode::Unified};
@@ -916,11 +1331,17 @@ impl Root {
                         if let Some(KitState::Diff(state, _)) = self.states.get(&id) && state.read(cx).mode() != mode {state.update(cx, |state, cx| state.set_mode(mode, cx));}
                     }
                     KitState::Table(state, shape) => {
-                        let current = format!("{}\u{1}{}\u{1}{}", text("columns"), text("rows"), text("sortable"));
+                        let Some(node) = find(&self.node, id) else {continue};
+                        let current = grid_shape(node);
                         if *shape != current {
-                            let grid = Grid::new(&text("columns"), &text("rows"), text("sortable") == "true");
-                            state.update(cx, |state, cx| {*state.delegate_mut() = grid; state.refresh(cx);});
+                            // Rows and columns changed: keep the sort direction by re-sorting the new rows.
+                            let grid = Grid::new(node, cx.entity().downgrade());
+                            state.update(cx, |state, cx| {*state.delegate_mut() = grid; state.refresh(cx); state.refresh_header_layout(cx);});
                             if let Some(KitState::Table(_, shape)) = self.states.get_mut(&id) {*shape = current;}
+                        }
+                        if let Some(KitState::Table(state, _)) = self.states.get(&id) && let Some(selected) = number("selectedRow").map(|row| row as usize) {
+                            let display = state.read(cx).delegate().order.iter().position(|row| *row == selected);
+                            if let Some(display) = display && state.read(cx).selected_row() != Some(display) {state.update(cx, |state, cx| {state.set_selected_row(display, cx); state.scroll_to_row(display, cx);});}
                         }
                     }
                     KitState::Scroller(state, count) => {
@@ -931,7 +1352,14 @@ impl Root {
                             if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
                         }
                     }
-                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Speech(_) | KitState::Command(_) | KitState::Carousel(_) | KitState::List(_) => {}
+                    KitState::Ticker(_, shape) => {
+                        // A changed interval or running flag restarts the timer.
+                        if *shape != ticker_shape(&props) {
+                            let task = ticker(id, &props, cx);
+                            if let Some(KitState::Ticker(running, shape)) = self.states.get_mut(&id) {*running = task; *shape = ticker_shape(&props);}
+                        }
+                    }
+                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Speech(_) => {}
                 }
                 continue;
             }
@@ -1091,11 +1519,17 @@ impl Root {
                         KitState::ComboboxGroups(state, shape)
                     }
                 }
-                "Command" => KitState::Command(cx.new(|cx| CommandState::new(window, cx))),
+                "Command" => {
+                    let state = cx.new(|cx| CommandState::new(window, cx));
+                    if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
+                    KitState::Command(state)
+                }
                 "Carousel" => {
-                    let count = find(&self.node, id).map(|node| items(node, "CarouselSlide").count()).unwrap_or(0);
+                    let count = find(&self.node, id).map(|node| carousel_slides(first_item(node, "CarouselContent").unwrap_or(node)).len()).unwrap_or(0);
                     let looping = text("loop") == "true";
-                    let state = cx.new(|_| CarouselState::new(count).with_looping(looping));
+                    let axis = if text("vertical") == "true" {Axis::Vertical} else {Axis::Horizontal};
+                    let selected = number("selected").or(number("defaultSelected")).map_or(0, |index| index as usize);
+                    let state = cx.new(|_| CarouselState::new(count).with_looping(looping).with_axis(axis).with_selected_index(selected));
                     cx.subscribe_in(&state, window, move |this, _, event: &CarouselEvent, _, cx| {
                         let CarouselEvent::Change(index) = event;
                         this.emit(id, "change", index.to_string(), cx);
@@ -1122,13 +1556,32 @@ impl Root {
                     KitState::Diff(state, text("patch"))
                 }
                 "DataTable" => {
-                    let sortable = text("sortable") == "true";
-                    let grid = Grid::new(&text("columns"), &text("rows"), sortable);
-                    let state = cx.new(|cx| TableState::new(grid, window, cx).sortable(sortable).row_selectable(true));
+                    let Some(node) = find(&self.node, id) else {continue};
+                    let grid = Grid::new(node, cx.entity().downgrade());
+                    let flag = |key: &str, default: bool| props.get(key).map_or(default, |value| value == "true");
+                    let state = cx.new(|cx| TableState::new(grid, window, cx).sortable(flag("sortable", true)).row_selectable(flag("rowSelectable", true))
+                        .loop_selection(flag("loopSelection", true)).col_movable(flag("columnMovable", true)).col_resizable(flag("columnResizable", true))
+                        .select_on_modifier_click(flag("selectOnModifierClick", false)).col_selectable(flag("columnSelectable", false))
+                        .cell_selectable(flag("cellSelectable", false)).row_header(flag("rowHeader", true)));
+                    // Rows report their index in `rows`, whatever the sort; columns report their key.
                     cx.subscribe_in(&state, window, move |this, state, event: &TableEvent, _, cx| {
-                        if let TableEvent::SelectRow(row) = event && let Some(index) = state.read(cx).delegate().order.get(*row).copied() {this.emit(id, "select", index.to_string(), cx);}
+                        let grid = state.read(cx).delegate();
+                        let row = |display: usize| grid.order.get(display).map_or(String::new(), usize::to_string);
+                        let key = |column: usize| grid.columns.get(column).map_or(String::new(), |column| column.key.to_string());
+                        let (event, value) = match event {
+                            TableEvent::SelectRow(display) => ("select", row(*display)),
+                            TableEvent::DoubleClickedRow(display) => ("activate", row(*display)),
+                            TableEvent::SelectColumn(column) => ("selectColumn", key(*column)),
+                            TableEvent::SelectCell(display, column) => ("selectCell", format!("{}\n{}", row(*display), key(*column))),
+                            TableEvent::DoubleClickedCell(display, column) => ("activateCell", format!("{}\n{}", row(*display), key(*column))),
+                            TableEvent::ColumnWidthsChanged(widths) => ("columnWidthsChange", widths.iter().map(|width| f32::from(*width).round().to_string()).collect::<Vec<_>>().join("\n")),
+                            TableEvent::RightClickedRow(Some(display)) | TableEvent::RightClickedCell(display, _) => ("rightClick", row(*display)),
+                            TableEvent::ClearSelection => ("clearSelection", String::new()),
+                            _ => return,
+                        };
+                        this.emit(id, event, value, cx);
                     }).detach();
-                    KitState::Table(state, format!("{}\u{1}{}\u{1}{}", text("columns"), text("rows"), text("sortable")))
+                    KitState::Table(state, grid_shape(node))
                 }
                 "Dock" => {
                     // The layout is built once; afterwards the user owns the arrangement.
@@ -1147,6 +1600,10 @@ impl Root {
                     }
                     area.update(cx, |area, cx| area.set_center(layout, window, cx));
                     KitState::Dock(area)
+                }
+                "Ticker" => {
+                    let task = ticker(id, &props, cx);
+                    KitState::Ticker(task, ticker_shape(&props))
                 }
                 "SpeechButton" => {
                     let locale = text("locale");
@@ -1184,9 +1641,7 @@ impl Root {
                         questions.push(definition);
                     }
                     if let Some(duplicate) = duplicate {
-                        *self.failure.borrow_mut() = Some(format!("Questionnaire ids must be unique; {duplicate} repeats"));
-                        cx.quit();
-                        continue;
+                        fail(&self.failure, format!("Questionnaire ids must be unique; {duplicate} repeats"));
                     }
                     let state = cx.new(|cx| QuestionnaireState::new(questions, cx).expect("question and choice ids are unique"));
                     cx.subscribe_in(&state, window, move |this, _, event: &QuestionnaireEvent, _, cx| {
@@ -1204,9 +1659,41 @@ impl Root {
                 "Tree" => {
                     let items = find(&self.node, id).map(tree_items).unwrap_or_default();
                     let state = cx.new(|cx| TreeState::new(cx).items(items));
+                    if let Some(selected) = props.get("selected").or(props.get("defaultSelected")).cloned() {
+                        state.update(cx, |state, cx| tree_select(state, &selected.into(), cx));
+                    }
+                    cx.subscribe_in(&state, window, move |this, _, event: &TreeEvent, _, cx| match event {
+                        TreeEvent::Expanded(item) => this.emit(id, "expand", item.to_string(), cx),
+                        TreeEvent::Collapsed(item) => this.emit(id, "collapse", item.to_string(), cx),
+                    }).detach();
+                    if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
                     KitState::Tree(state, tree_shape(&self.node, id))
                 }
-                "List" => KitState::List(VirtualListScrollHandle::new()),
+                "List" => {
+                    let Some(node) = find(&self.node, id) else {continue};
+                    let delegate = TsrustList {
+                        root: cx.entity().downgrade(), list: id, sections: list_sections(node), query: String::new(),
+                        empty: first_item(node, "ListEmpty").map(|empty| empty.identity.get()), loading: text("loading") == "true",
+                        has_more: text("hasMore") == "true", threshold: number("loadMoreThreshold").map_or(20, |rows| rows as usize), selected: None, values: list_values(node),
+                    };
+                    let state = cx.new(|cx| ListState::new(delegate, window, cx).searchable(text("searchable") == "true").selectable(text("selectable") != "false"));
+                    let selected = number("selected").or(number("defaultSelected")).filter(|index| *index >= 0.).map(|index| index as usize);
+                    if let Some(index) = selected.and_then(|index| list_path(&state.read(cx).delegate().sections, index)) {state.update(cx, |state, cx| state.set_selected_index(Some(index), window, cx));}
+                    // Select follows the highlight (arrow keys, hover); Confirm is a click or Enter; Cancel is Escape.
+                    cx.subscribe_in(&state, window, move |this, state, event: &ListEvent, _, cx| {
+                        let report = |index: &IndexPath, cx: &App| list_value(state.read(cx).delegate(), *index);
+                        // Disabled and separator rows never report.
+                        let inert = |index: &IndexPath, cx: &App| state.read(cx).delegate().row(*index).is_none_or(|row| row.disabled || row.separator);
+                        match event {
+                            ListEvent::Select(index) | ListEvent::Confirm(index) if inert(index, cx) => {}
+                            ListEvent::Select(index) => {let value = report(index, cx); this.emit(id, "select", value, cx);}
+                            ListEvent::Confirm(index) => {let value = report(index, cx); this.emit(id, "confirm", value, cx);}
+                            ListEvent::Cancel => this.emit(id, "cancel", String::new(), cx),
+                        }
+                    }).detach();
+                    if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
+                    KitState::List(state)
+                }
                 _ => {
                     let (min, max, step) = (number("min").unwrap_or(0.), number("max").unwrap_or(100.), number("step").unwrap_or(1.));
                     let start = number("value").or(number("defaultValue")).unwrap_or(min);
@@ -1467,7 +1954,7 @@ impl Root {
                 }
                 Command::Window {mut node, title, options} => {
                     let result = node.refresh().and_then(|_| {node.ensure_identities(); Options::parse(&options)}).and_then(|options| open(*node, title, options, self.failure.clone(), cx));
-                    if let Err(error) = result {*self.failure.borrow_mut() = Some(error); cx.quit();}
+                    if let Err(error) = result {fail(&self.failure, error);}
                 }
             }
         }
@@ -2025,50 +2512,79 @@ impl Root {
                 }
             }
             "Sidebar" => {
-                let mut sidebar = Sidebar::new(element_id).collapsed(kit.flag("collapsed"));
+                let collapsed = kit.flag("collapsed");
+                let side = if kit.prop("side") == Some("right") {gpui_kit::component::Side::Right} else {gpui_kit::component::Side::Left};
+                let collapsible = match kit.prop("collapsible") {Some("offcanvas") => SidebarCollapsible::Offcanvas, Some("none") => SidebarCollapsible::None, _ => SidebarCollapsible::Icon};
+                let mut sidebar = Sidebar::new(element_id).collapsed(collapsed).side(side).collapsible(collapsible);
+                if let Some((header, item)) = items(node, "SidebarHeader").next() {sidebar = sidebar.header(SidebarHeader::new().selected(item.flag("selected")).collapsed(collapsed).children(self.content(header, cx)));}
+                if let Some((footer, item)) = items(node, "SidebarFooter").next() {sidebar = sidebar.footer(SidebarFooter::new().selected(item.flag("selected")).collapsed(collapsed).children(self.content(footer, cx)));}
                 for (group_node, group) in items(node, "SidebarGroup") {
-                    let entries = items(group_node, "SidebarItem").map(|(child, item)| {
-                        let mut entry = SidebarMenuItem::new(item.text("label")).active(item.flag("active"));
-                        if item.handles("click") {
-                            let (child, root) = (child.identity.get(), root.clone());
-                            entry = entry.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(child, "click", String::new(), cx));});
-                        }
-                        entry
-                    }).collect::<Vec<_>>();
+                    let entries = items(group_node, "SidebarItem").map(|(child, item)| self.sidebar_item(child, item, collapsed, cx)).collect::<Vec<_>>();
                     sidebar = sidebar.child(SidebarGroup::new(group.text("label")).child(SidebarMenu::new().children(entries)));
                 }
                 sidebar.into_any_element()
             }
+            "SidebarToggleButton" => {
+                let side = if kit.prop("side") == Some("right") {gpui_kit::component::Side::Right} else {gpui_kit::component::Side::Left};
+                let mut button = SidebarToggleButton::new().side(side).collapsed(kit.flag("collapsed"));
+                if let Some(label) = kit.prop("accessibilityLabel") {button = button.accessibility_label(label.to_owned());}
+                button.on_click(cx.listener(move |this, _, _, cx| this.emit(id, "click", String::new(), cx))).into_any_element()
+            }
             "Resizable" => {
                 let mut group = if kit.flag("vertical") {v_resizable(element_id)} else {h_resizable(element_id)};
+                if let Some(size) = kit.number("size") {group = group.size(px(size as f32));}
                 for (child, panel) in items(node, "ResizablePanel") {
-                    let mut entry = resizable_panel().child(div().size_full().children(self.content(child, cx)));
+                    let mut entry = resizable_panel().child(div().size_full().children(self.content(child, cx))).visible(panel.prop("visible") != Some("false"));
                     if let Some(size) = panel.number("size") {entry = entry.size(px(size as f32));}
+                    if panel.number("minSize").is_some() || panel.number("maxSize").is_some() {entry = entry.size_range(px(panel.number("minSize").unwrap_or(0.) as f32)..px(panel.number("maxSize").unwrap_or(100_000.) as f32));}
+                    if panel.flag("fixed") {entry = entry.fixed();}
                     group = group.child(entry);
+                }
+                if kit.handles("resize") {
+                    let root = root.clone();
+                    group = group.on_resize(move |state, _, cx| {
+                        let sizes = state.read(cx).sizes().iter().map(|size| f32::from(*size).round().to_string()).collect::<Vec<_>>().join("\n");
+                        let _ = root.update(cx, |root, cx| root.emit(id, "resize", sizes, cx));
+                    });
                 }
                 group.into_any_element()
             }
             "Table" => {
-                let mut table = Table::new();
-                for (section, kit) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
+                // shadcn composition: TableHeader / TableBody / TableFooter hold TableRow; rows hold TableHead / TableCell;
+                // TableCaption sits below. Each part takes its own className; size propagates from the Table.
+                let mut table = Table::new().refine_style(&style);
+                if let Some(label) = kit.prop("accessibilityLabel") {table = table.accessibility_label(label.to_owned());}
+                if let Some(size) = kit_size(kit) {table = table.with_size(size);}
+                for (section, part) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
+                    let section_style = self.class_style(&section.class_name, cx);
+                    if part.name == "TableCaption" {
+                        table = table.child(gpui_kit::component::table::TableCaption::new().refine_style(&section_style).children(self.content(section, cx)));
+                        continue;
+                    }
                     let rows = items(section, "TableRow").map(|(row, _)| {
-                        let mut cells = TableRow::new();
+                        let mut cells = TableRow::new().refine_style(&self.class_style(&row.class_name, cx));
                         for (cell, cell_kit) in row.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
-                            let content = div().children(self.content(cell, cx));
+                            let cell_style = self.class_style(&cell.class_name, cx);
+                            let content = self.content(cell, cx);
                             let span = cell_kit.index("colSpan").unwrap_or(1);
-                            cells = if cell_kit.name == "TableHead" {cells.child(TableHead::new().col_span(span).child(content))} else {cells.child(TableCell::new().col_span(span).child(content))};
+                            let align = cell_kit.prop("align");
+                            cells = if cell_kit.name == "TableHead" {
+                                let mut head = TableHead::new().col_span(span).refine_style(&cell_style).children(content);
+                                match align {Some("center") => head = head.text_center(), Some("right") => head = head.text_right(), _ => {}}
+                                cells.child(head)
+                            } else {
+                                let mut body = TableCell::new().col_span(span).refine_style(&cell_style).children(content);
+                                match align {Some("center") => body = body.text_center(), Some("right") => body = body.text_right(), _ => {}}
+                                cells.child(body)
+                            };
                         }
                         cells
                     }).collect::<Vec<_>>();
-                    if kit.name == "TableHeader" {
-                        let mut header = TableHeader::new();
-                        for row in rows {header = header.child(row);}
-                        table = table.child(header);
-                    } else {
-                        let mut body = TableBody::new();
-                        for row in rows {body = body.child(row);}
-                        table = table.child(body);
-                    }
+                    table = match part.name.as_str() {
+                        "TableHeader" => table.child(TableHeader::new().refine_style(&section_style).children(rows)),
+                        "TableFooter" => table.child(gpui_kit::component::table::TableFooter::new().refine_style(&section_style).children(rows)),
+                        _ => table.child(TableBody::new().refine_style(&section_style).children(rows)),
+                    };
                 }
                 table.into_any_element()
             }
@@ -2085,7 +2601,17 @@ impl Root {
                     .with_loading(move || div().child(alt.clone()).into_any_element())
                     .with_fallback(move || div().child(fallback.clone()).into_any_element()).into_any_element()
             }
-            "TitleBar" => TitleBar::new().children(self.content(node, cx)).into_any_element(),
+            "TitleBar" => {
+                let mut bar = TitleBar::new().children(self.content(node, cx));
+                if kit.handles("closeWindow") {bar = bar.on_close_window(cx.listener(move |this, _, _, cx| this.emit(id, "closeWindow", String::new(), cx)));}
+                bar.into_any_element()
+            }
+            "WindowBorder" => {
+                let mut border = gpui_kit::component::WindowBorder::new().children(self.content(node, cx));
+                if let Some(size) = kit.number("shadowSize") {border = border.shadow_size(px(size as f32));}
+                if let Some(size) = kit.number("resizeHitSize") {border = border.resize_hit_size(px(size as f32));}
+                border.into_any_element()
+            }
             "StatusBar" => {
                 let mut bar = StatusBar::new();
                 for child in node.visible_children() {
@@ -2099,18 +2625,48 @@ impl Root {
                 bar.into_any_element()
             }
             "Toolbar" => {
-                let mut toolbar = Toolbar::new(element_id);
-                for child in self.content(node, cx) {toolbar = toolbar.content(child);}
+                let mut toolbar = Toolbar::new(element_id).disabled(kit.flag("disabled"));
+                if let Some(size) = kit_size(kit) {toolbar = toolbar.with_size(size);}
+                let theme = utility_theme(cx);
+                for child in node.visible_children() {
+                    match child.kit.as_deref().filter(|item| item.name == "ToolbarGroup") {
+                        Some(item) => {
+                            let mut group = ToolbarGroup::new(ElementId::Integer(child.identity.get()));
+                            if !item.text("label").is_empty() {group = group.label(item.text("label"));}
+                            if let Some(size) = kit_size(item) {group = group.with_size(size);}
+                            for part in self.content(child, cx) {group = group.content(part);}
+                            toolbar = toolbar.content(group);
+                        }
+                        None => toolbar = toolbar.content(self.element(child, &theme, mode(cx), cx)),
+                    }
+                }
                 toolbar.into_any_element()
             }
             "Form" => {
                 let form = if kit.flag("horizontal") {h_form()} else {v_form()};
                 let mut form = form.columns(kit.index("columns").unwrap_or(1).max(1));
+                match kit.prop("labelLayout") {Some("horizontal") => form = form.label_layout(Axis::Horizontal), Some("vertical") => form = form.label_layout(Axis::Vertical), _ => {}}
+                if let Some(width) = kit.number("labelWidth") {form = form.label_width(px(width as f32));}
+                if let Some(size) = kit.number("labelTextSize") {form = form.label_text_size(rems(size as f32));}
+                if let Some(size) = kit_size(kit) {form = form.with_size(size);}
                 for (child, item) in items(node, "Field") {
-                    let mut entry = field().label(item.text("label")).required(item.flag("required")).child(div().children(self.content(child, cx)));
-                    if let Some(description) = item.prop("description").filter(|text| !text.is_empty()) {entry = entry.description(description.to_owned());}
-                    form = form.child(entry);
+                    let mut entry = field().required(item.flag("required")).label_indent(item.prop("labelIndent") != Some("false")).visible(item.prop("visible") != Some("false"));
+                    // FieldLabel and FieldDescription children are rich alternatives to the label and description props.
+                    entry = match first_item(child, "FieldLabel") {
+                        Some(label) => {let (label, root) = (label.identity.get(), root.clone()); entry.label_fn(move |_, cx| div().children(root.update(cx, |root, cx| root.content_of(label, cx)).unwrap_or_default()))}
+                        None => entry.label(item.text("label")),
+                    };
+                    match first_item(child, "FieldDescription") {
+                        Some(description) => {let (description, root) = (description.identity.get(), root.clone()); entry = entry.description_fn(move |_, cx| div().children(root.update(cx, |root, cx| root.content_of(description, cx)).unwrap_or_default()));}
+                        None => if let Some(description) = item.prop("description").filter(|text| !text.is_empty()) {entry = entry.description(description.to_owned());},
+                    }
+                    entry = match item.prop("align") {Some("start") => entry.items_start(), Some("end") => entry.items_end(), Some("center") => entry.items_center(), _ => entry};
+                    if let Some(span) = item.index("colSpan") {entry = entry.col_span(span as u16);}
+                    if let Some(start) = item.number("colStart") {entry = entry.col_start(start as i16);}
+                    if let Some(end) = item.number("colEnd") {entry = entry.col_end(end as i16);}
+                    form = form.child(entry.child(div().children(self.content_except(child, &["FieldLabel", "FieldDescription"], cx))));
                 }
+                if let Some(footer) = first_item(node, "FormFooter") {form = form.footer(div().flex().gap_2().children(self.content(footer, cx)));}
                 form.into_any_element()
             }
             "ScrollArea" => {
@@ -2120,12 +2676,43 @@ impl Root {
                 if kit.flag("horizontal") {area.flex().overflow_x_scrollbar().id(scroll).into_any_element()} else {area.overflow_y_scrollbar().id(scroll).into_any_element()}
             }
             "Message" => {
-                let author = text("author");
-                let bubble = Bubble::new().with_variant(if kit.prop("variant") == Some("primary") {BubbleVariant::Filled} else {BubbleVariant::Secondary}).children(self.content(node, cx));
-                let mut message = Message::new().alignment(if kit.prop("align") == Some("end") {MessageAlignment::End} else {MessageAlignment::Start});
-                if !author.is_empty() {message = message.avatar(Avatar::new().name(author.clone()).size_8()).header(MessageHeader::new().child(author).child(text("time")));}
-                message.content(MessageContent::new().bubble(bubble)).into_any_element()
+                // shadcn composition: MessageAvatar, MessageHeader, MessageContent (text or a Bubble) and MessageFooter.
+                // Without parts, author/time/variant props wrap the children in a bubble.
+                let mut message = Message::new().id(element_id).alignment(message_alignment(kit)).with_stack_style(self.class_style(&kit.text("stackClassName"), cx)).refine_style(&style);
+                if kit.prop("role") == Some("presentation") {message = message.role(gpui_kit::base::RoleOverride::Presentational);}
+                let parts = ["MessageAvatar", "MessageHeader", "MessageContent", "MessageFooter"];
+                let mut composed = false;
+                for (part, part_kit) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))).filter(|(_, kit)| parts.contains(&kit.name.as_str())) {
+                    composed = true;
+                    let part_style = self.class_style(&part.class_name, cx);
+                    message = match part_kit.name.as_str() {
+                        "MessageAvatar" => message.avatar_slot(MessageAvatar::new().refine_style(&part_style).children(self.content(part, cx))),
+                        "MessageHeader" => {let mut header = MessageHeader::new().refine_style(&part_style).children(self.content(part, cx)); if let Some(inset) = part_kit.prop("inset") {header = header.content_inset(inset == "true");} message.header(header)}
+                        "MessageFooter" => {let mut footer = MessageFooter::new().refine_style(&part_style).children(self.content(part, cx)); if let Some(inset) = part_kit.prop("inset") {footer = footer.content_inset(inset == "true");} message.footer(footer)}
+                        _ => {
+                            let mut content = MessageContent::new().refine_style(&part_style);
+                            let only_bubble = part.visible_children().count() == 1 && items(part, "Bubble").count() == 1;
+                            content = match items(part, "Bubble").next() {Some((bubble, bubble_kit)) if only_bubble => {
+                                    // A bubble follows its message's side unless it sets its own.
+                                    let mut message_bubble = self.bubble(bubble, bubble_kit, cx);
+                                    if bubble_kit.prop("align").is_none() {message_bubble = message_bubble.alignment(message_alignment(kit));}
+                                    content.bubble(message_bubble)
+                                } _ => content.children(self.content(part, cx))};
+                            message.content(content)
+                        }
+                    };
+                }
+                if !composed {
+                    let author = text("author");
+                    let bubble = Bubble::new().with_variant(if kit.prop("variant") == Some("primary") {BubbleVariant::Filled} else {bubble_variant(kit)}).alignment(message_alignment(kit)).children(self.content(node, cx));
+                    if !author.is_empty() {message = message.avatar(Avatar::new().name(author.clone()).size_8()).header(MessageHeader::new().child(author).child(text("time")));}
+                    message = message.content(MessageContent::new().bubble(bubble));
+                }
+                message.into_any_element()
             }
+            "MessageGroup" => MessageGroup::new().refine_style(&style).children(self.content(node, cx)).into_any_element(),
+            "Bubble" => self.bubble(node, kit, cx).into_any_element(),
+            "BubbleGroup" => BubbleGroup::new().refine_style(&style).children(self.content(node, cx)).into_any_element(),
             "Chart" => {
                 let labels = kit.text("labels");
                 let values = kit.text("values");
@@ -2167,28 +2754,41 @@ impl Root {
                 }
             }
             "List" => match self.states.get(&id) {
-                Some(KitState::List(handle)) => {
-                    let count = kit.text("items").split('\n').filter(|item| !item.is_empty()).count();
-                    let sizes = std::rc::Rc::new(vec![size(px(1.), px(32.)); count]);
-                    v_virtual_list(cx.entity(), element_id, sizes, move |root: &mut Root, range: std::ops::Range<usize>, _, cx| {
-                        let Some(kit) = find(&root.node, id).and_then(|node| node.kit.as_deref()) else {return Vec::new()};
-                        let rows = kit.text("items").split('\n').filter(|item| !item.is_empty()).map(str::to_owned).collect::<Vec<_>>();
-                        let selected = kit.number("selected").or(kit.number("defaultSelected")).filter(|index| *index >= 0.).map(|index| index as usize);
-                        range.filter_map(|index| rows.get(index).map(|row| {
-                            ListItem::new(ElementId::Name(format!("{id}-row-{index}").into())).selected(selected == Some(index)).child(SharedString::from(row.clone()))
-                                .on_click(cx.listener(move |this, _, _, cx| this.emit(id, "select", index.to_string(), cx)))
-                        })).collect()
-                    }).track_scroll(handle).into_any_element()
+                Some(KitState::List(state)) => {
+                    let mut list = List::new(state).scrollbar_visible(kit.prop("scrollbarVisible") != Some("false")).refine_style(&style);
+                    if let Some(bounce) = kit.prop("scrollBounce") {list = list.scroll_bounce(bounce == "true");}
+                    if let Some(placeholder) = kit.prop("placeholder") {list = list.search_placeholder(placeholder.to_owned());}
+                    if let Some(size) = kit_size(kit) {list = list.with_size(size);}
+                    list.into_any_element()
                 }
                 _ => div().into_any_element(),
             },
             "Tree" => match self.states.get(&id) {
-                Some(KitState::Tree(state, _)) => tree(state, move |index, entry, selected, _, _| {
-                    let item_id = entry.item().id.to_string();
-                    let root = root.clone();
-                    ListItem::new(index).selected(selected).pl(px(12. * entry.depth() as f32 + 8.)).child(entry.item().label.clone())
-                        .on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));})
-                }).into_any_element(),
+                Some(KitState::Tree(state, _)) => {
+                    let mut icons = HashMap::new();
+                    tree_icons(node, &mut icons);
+                    let row = root.clone();
+                    let mut view = tree(state, move |index, entry, selected, _, _| {
+                        let item = entry.item();
+                        let item_id = item.id.to_string();
+                        let icon = icons.get(&item_id).and_then(|icon| icon_name(icon)).unwrap_or(if entry.is_folder() {if entry.is_expanded() {IconName::FolderOpen} else {IconName::Folder}} else {IconName::File});
+                        let root = row.clone();
+                        let mut line = ListItem::new(index).selected(selected).disabled(entry.is_disabled()).pl(px(12. * entry.depth() as f32 + 8.))
+                            .child(div().flex().items_center().gap_2().child(Icon::new(icon).size_4()).child(item.label.clone()));
+                        line.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));})
+                    }).refine_style(&style);
+                    if let Some(bounce) = kit.prop("scrollBounce") {view = view.scroll_bounce(bounce == "true");}
+                    if let Some(menu) = first_item(node, "TreeMenu") {
+                        let (entries, root) = (menu_entries(menu), root.clone());
+                        view = view.context_menu(move |_, entry, menu, _, cx| {
+                            let item = entry.item().id.to_string();
+                            let target = root.clone();
+                            cx.defer(move |cx| {let _ = target.update(cx, |root, cx| root.emit(id, "contextMenu", item, cx));});
+                            flat_menu(menu, &entries, &root)
+                        });
+                    }
+                    view.into_any_element()
+                }
                 _ => div().into_any_element(),
             },
             "Calendar" => match self.states.get(&id) {
@@ -2219,24 +2819,92 @@ impl Root {
             }
             "Command" => match self.states.get(&id) {
                 Some(KitState::Command(state)) => {
-                    let entries = items(node, "CommandItem").map(|(child, item)| (child.identity.get(), item.text("label"), item.flag("disabled"))).collect::<Vec<_>>();
-                    let targets = entries.iter().map(|(child, _, _)| *child).collect::<Vec<_>>();
-                    let palette = CommandPalette::new(state).placeholder(text("placeholder"))
-                        .items(entries.into_iter().map(|(_, label, disabled)| CommandItem::new().label(label).disabled(disabled)));
-                    let root = root.clone();
-                    palette.on_confirm(move |index: IndexPath, _, cx| {
-                        if let Some(target) = targets.get(index.row) {let target = *target; let _ = root.update(cx, |root, cx| root.emit(target, "select", String::new(), cx));}
-                    }).into_any_element()
+                    // Ungrouped CommandItems are section 0 (when present); each CommandGroup is the next section.
+                    let mut palette = CommandPalette::new(state).searchable(kit.prop("searchable") != Some("false")).filterable(kit.prop("filterable") != Some("false"))
+                        .bordered(kit.prop("bordered") != Some("false"));
+                    if !kit.text("placeholder").is_empty() {palette = palette.placeholder(text("placeholder"));}
+                    if let Some(height) = kit.number("maxHeight") {palette = palette.max_h(px(height as f32));}
+                    if let Some(bounce) = kit.prop("scrollBounce") {palette = palette.scroll_bounce(bounce == "true");}
+                    let mut loose = Vec::new();
+                    let mut sections = Vec::new();
+                    for child in node.visible_children() {
+                        match child.kit.as_deref().map(|kit| kit.name.as_str()) {
+                            Some("CommandItem") => {let item = self.command_item(child, cx); loose.push(child.identity.get()); palette = palette.item(item);}
+                            Some("CommandGroup") => {
+                                let group_kit = child.kit.as_deref().expect("group");
+                                let mut group = CommandGroup::new();
+                                if !group_kit.text("heading").is_empty() {group = group.label(group_kit.text("heading"));}
+                                let mut ids = Vec::new();
+                                for (item_node, _) in items(child, "CommandItem") {ids.push(item_node.identity.get()); group = group.item(self.command_item(item_node, cx));}
+                                sections.push(ids);
+                                palette = palette.group(group);
+                            }
+                            Some("CommandSeparator") => palette = palette.separator(),
+                            _ => {}
+                        }
+                    }
+                    if !loose.is_empty() {sections.insert(0, loose);}
+                    let sections = std::rc::Rc::new(sections);
+                    let target = {let sections = sections.clone(); move |index: IndexPath| sections.get(index.section).and_then(|section| section.get(index.row)).copied()};
+                    for (slot, event) in [("CommandEmpty", 0), ("CommandHeader", 1), ("CommandFooter", 2)] {
+                        let Some(part) = first_item(node, slot) else {continue};
+                        let (part, root) = (part.identity.get(), root.clone());
+                        let render = move |cx: &mut App| div().flex().flex_col().gap_1().children(root.update(cx, |root, cx| root.content_of(part, cx)).unwrap_or_default());
+                        palette = match event {0 => palette.empty(move |_, _, cx| render(cx)), 1 => palette.header(move |_, _, cx| render(cx)), _ => palette.footer(move |_, _, cx| render(cx))};
+                    }
+                    let (confirm_root, confirm_target) = (root.clone(), target.clone());
+                    // The item's own onSelect runs, then the Command's onSelect with the item's value (or label).
+                    palette = palette.on_confirm(move |index: IndexPath, _, cx| {if let Some(item) = confirm_target(index) {let _ = confirm_root.update(cx, |root, cx| {
+                        let value = find(&root.node, item).and_then(|node| node.kit.as_deref()).map(|kit| kit.prop("value").map_or_else(|| kit.text("label"), str::to_owned)).unwrap_or_default();
+                        root.emit(item, "select", String::new(), cx);
+                        root.emit(id, "select", value, cx);
+                    });}});
+                    let (select_root, select_target) = (root.clone(), target);
+                    palette = palette.on_select(move |index: IndexPath, _, cx| {if let Some(item) = select_target(index) {let _ = select_root.update(cx, |root, cx| root.emit(item, "highlight", String::new(), cx));}});
+                    if kit.handles("query") {let root = root.clone(); palette = palette.on_query(move |query, _, cx| {let query = query.to_owned(); let _ = root.update(cx, |root, cx| root.emit(id, "query", query, cx));});}
+                    if kit.handles("cancel") {let root = root.clone(); palette = palette.on_cancel(move |_, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "cancel", String::new(), cx));});}
+                    palette.into_any_element()
                 }
                 _ => div().into_any_element(),
             },
             "Carousel" => match self.states.get(&id) {
                 Some(KitState::Carousel(state)) => {
-                    let mut content = CarouselContent::new(state);
-                    for (index, (child, _)) in items(node, "CarouselSlide").enumerate() {
-                        content = content.child(CarouselItem::new(ElementId::Name(format!("{id}-slide-{index}").into()), index, state).child(div().size_full().children(self.content(child, cx))));
+                    // shadcn composition: CarouselContent holds CarouselItem slides; CarouselPrevious, CarouselNext and
+                    // CarouselPagination place the controls (prev/next by default).
+                    let holder = first_item(node, "CarouselContent").unwrap_or(node);
+                    let mut content = CarouselContent::new(state).track_style(self.class_style(&kit.text("trackClassName"), cx)).refine_style(&self.class_style(if std::ptr::eq(holder, node) {""} else {&holder.class_name}, cx));
+                    for (index, slide) in carousel_slides(holder).into_iter().enumerate() {
+                        let mut item = CarouselItem::new(ElementId::Name(format!("{id}-slide-{index}").into()), index, state).refine_style(&self.class_style(&slide.class_name, cx)).child(div().size_full().children(self.content(slide, cx)));
+                        if let Some(label) = slide.kit.as_deref().and_then(|kit| kit.prop("accessibilityLabel")) {item = item.accessibility_label(label.to_owned());}
+                        content = content.child(item);
                     }
-                    Carousel::new(element_id, state).child(content).child(CarouselPrevious::new(state)).child(CarouselNext::new(state)).into_any_element()
+                    let mut carousel = Carousel::new(element_id, state).refine_style(&style).child(content);
+                    if let Some(label) = kit.prop("accessibilityLabel") {carousel = carousel.accessibility_label(label.to_owned());}
+                    let controls = node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))).filter(|(_, kit)| matches!(kit.name.as_str(), "CarouselPrevious" | "CarouselNext" | "CarouselPagination")).collect::<Vec<_>>();
+                    if controls.is_empty() {
+                        carousel = carousel.child(CarouselPrevious::new(state)).child(CarouselNext::new(state));
+                    }
+                    let count = carousel_slides(holder).len();
+                    for (part, control) in controls {
+                        let part_style = self.class_style(&part.class_name, cx);
+                        let label = control.prop("accessibilityLabel").map(str::to_owned);
+                        let size = kit_size(control);
+                        carousel = match control.name.as_str() {
+                            "CarouselPrevious" => {let mut button = CarouselPrevious::new(state).refine_style(&part_style); if let Some(label) = label {button = button.accessibility_label(label);} if let Some(size) = size {button = button.with_size(size);} carousel.child(button)}
+                            "CarouselNext" => {let mut button = CarouselNext::new(state).refine_style(&part_style); if let Some(label) = label {button = button.accessibility_label(label);} if let Some(size) = size {button = button.with_size(size);} carousel.child(button)}
+                            _ => {
+                                let mut dots = gpui_kit::component::carousel::CarouselPagination::new().refine_style(&part_style);
+                                if let Some(label) = label {dots = dots.accessibility_label(label);}
+                                for index in 0..count {
+                                    let mut dot = gpui_kit::component::carousel::CarouselPaginationItem::new(ElementId::Name(format!("{id}-dot-{index}").into()), index, state);
+                                    if let Some(size) = size {dot = dot.with_size(size);}
+                                    dots = dots.child(dot);
+                                }
+                                carousel.child(dots)
+                            }
+                        };
+                    }
+                    carousel.into_any_element()
                 }
                 _ => div().into_any_element(),
             },
@@ -2338,19 +3006,42 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "Marker" => {
+                // MarkerIcon and MarkerContent children, or the icon and text props.
                 let variant = match kit.prop("variant") {Some("separator") => MarkerVariant::Separator, Some("border") => MarkerVariant::Border, _ => MarkerVariant::Plain};
-                let mut marker = Marker::new().with_variant(variant).loading(kit.flag("loading"));
-                if let Some(icon) = icon_name(&kit.text("icon")) {marker = marker.icon(MarkerIcon::new().child(Icon::new(icon)));}
-                if !kit.text("text").is_empty() {marker = marker.content(MarkerContent::new().text(text("text")));}
-                marker.children(self.content(node, cx)).into_any_element()
+                let mut marker = Marker::new().id(element_id).with_variant(variant).loading(kit.flag("loading")).separator_style(self.class_style(&kit.text("separatorClassName"), cx)).refine_style(&style);
+                if kit.prop("loadingStyle") == Some("shimmer") {marker = marker.with_loading_style(MarkerLoadingStyle::Shimmer);}
+                if let Some(style) = shimmer_style(kit, cx) {marker = marker.with_shimmer_style(style);}
+                match kit.prop("alignment") {Some("start") => marker = marker.alignment(MarkerAlignment::Start), Some("center") => marker = marker.alignment(MarkerAlignment::Center), Some("end") => marker = marker.alignment(MarkerAlignment::End), _ => {}}
+                if kit.prop("role") == Some("presentation") {marker = marker.role(gpui_kit::base::RoleOverride::Presentational);}
+                match first_item(node, "MarkerIcon") {
+                    Some(part) => marker = marker.icon(MarkerIcon::new().refine_style(&self.class_style(&part.class_name, cx)).children(self.content(part, cx))),
+                    None => if let Some(icon) = icon_name(&kit.text("icon")) {marker = marker.icon(MarkerIcon::new().child(Icon::new(icon)));},
+                }
+                match first_item(node, "MarkerContent") {
+                    // Plain text keeps Kit's text treatment (shimmer while loading); rich content renders as children.
+                    Some(part) if part.visible_children().all(|child| child.kind == Kind::Text && child.kit.is_none()) => marker = marker.content(MarkerContent::new().refine_style(&self.class_style(&part.class_name, cx)).text(part.content_text())),
+                    Some(part) => marker = marker.content(MarkerContent::new().refine_style(&self.class_style(&part.class_name, cx)).children(self.content(part, cx))),
+                    None => if !kit.text("text").is_empty() {marker = marker.content(MarkerContent::new().text(text("text")));},
+                }
+                marker.children(self.content_except(node, &["MarkerIcon", "MarkerContent"], cx)).into_any_element()
             }
             "Attachment" => self.attachment(node, kit, cx).into_any_element(),
             "AttachmentGroup" => {
                 let attachments = items(node, "Attachment").map(|(child, item)| self.attachment(child, item, cx)).collect::<Vec<_>>();
-                AttachmentGroup::new(element_id).children(attachments).into_any_element()
+                let mut group = AttachmentGroup::new(element_id).refine_style(&style).children(attachments);
+                if let Some(color) = kit.prop("edgeFade").and_then(|color| theme_color(color, cx)) {group = group.with_edge_fade(color);}
+                group.into_any_element()
             }
             "DataTable" => match self.states.get(&id) {
-                Some(KitState::Table(state, _)) => DataTable::new(state).into_any_element(),
+                Some(KitState::Table(state, _)) => {
+                    let mut table = DataTable::new(state).stripe(kit.flag("stripe")).bordered(kit.prop("bordered") != Some("false")).fixed_cols_border(kit.flag("fixedColumnsBorder"))
+                        .scrollbar_visible(kit.prop("scrollbarVisible") != Some("false"), kit.prop("horizontalScrollbarVisible") != Some("false"));
+                    if let Some(label) = kit.prop("accessibilityLabel") {table = table.accessibility_label(label.to_owned());}
+                    if let Some(bounce) = kit.prop("scrollBounce") {table = table.scroll_bounce(bounce == "true");}
+                    if let Some(height) = kit.number("headerRowHeight") {table = table.header_row_height(px(height as f32));}
+                    if let Some(size) = kit_size(kit) {table = table.with_size(size);}
+                    table.into_any_element()
+                }
                 _ => div().into_any_element(),
             },
             "Settings" => {
@@ -2427,11 +3118,20 @@ impl Root {
                         root.update(cx, |root, cx| root.child_of(id, index, cx)).unwrap_or_else(|_| div().into_any_element())
                     }).size_full();
                     if !kit.text("jumpLabel").is_empty() {scroller = scroller.with_jump_button_label(kit.text("jumpLabel"));}
+                    if let Some(visible) = kit.prop("scrollbar") {scroller = scroller.scrollbar(visible == "true");}
+                    if let Some(visible) = kit.prop("jumpButton") {scroller = scroller.jump_button(visible == "true");}
+                    if let Some(duration) = kit.index("jumpButtonTransition") {scroller = scroller.with_jump_button_transition(std::time::Duration::from_millis(duration as u64));}
+                    if let Some(color) = kit.prop("bottomFade").and_then(|color| theme_color(color, cx)) {scroller = scroller.with_bottom_fade(color);}
+                    for (key, apply) in [("contentClassName", 0), ("listClassName", 1), ("rowClassName", 2), ("jumpButtonClassName", 3)] {
+                        let Some(classes) = kit.prop(key) else {continue};
+                        let part = self.class_style(classes, cx);
+                        scroller = match apply {0 => scroller.with_content_style(part), 1 => scroller.with_list_style(part), 2 => scroller.with_row_style(part), _ => scroller.with_jump_button_style(part)};
+                    }
                     scroller.into_any_element()
                 }
                 _ => div().into_any_element(),
             },
-            "Shortcut" => div().into_any_element(),
+            "Shortcut" | "Ticker" => div().into_any_element(),
             // Item and slot components render through their container.
             // A trigger nested inside other content toggles its nearest Collapsible.
             "CollapsibleTrigger" => match ancestor_named(&self.node, id, "Collapsible") {
@@ -2446,16 +3146,35 @@ impl Root {
 /// TreeItem children as GPUI Kit tree items, recursively.
 fn tree_items(node: &Node) -> Vec<TreeItem> {
     items(node, "TreeItem").map(|(child, item)| {
-        let mut entry = TreeItem::new(item.text("id"), item.text("label")).expanded(item.flag("expanded"));
-        for sub in tree_items(child) {entry = entry.child(sub);}
-        entry
+        // A TreeItem's id defaults to its label; expanded/defaultExpanded opens a folder.
+        let label = item.text("label");
+        let id = item.prop("id").map_or_else(|| label.clone(), str::to_owned);
+        TreeItem::new(id, label).expanded(item.prop("expanded").map_or(item.flag("defaultExpanded"), |open| open == "true")).disabled(item.flag("disabled")).children(tree_items(child))
     }).collect()
+}
+
+/// Select a tree item by id, expanding its ancestors first so hidden items can be revealed.
+fn tree_select(state: &mut TreeState, id: &SharedString, cx: &mut Context<TreeState>) {
+    state.reveal_item(id, gpui::ScrollStrategy::Center, cx);
+    if let Some(index) = state.index_of(id) {state.set_selected_index(Some(index), cx);}
+}
+
+/// Icons per tree item id (TreeItem `icon`), else folder/file by shape.
+fn tree_icons(node: &Node, out: &mut HashMap<String, String>) {
+    for (child, item) in items(node, "TreeItem") {
+        let label = item.text("label");
+        if let Some(icon) = item.prop("icon") {out.insert(item.prop("id").map_or(label, str::to_owned), icon.to_owned());}
+        tree_icons(child, out);
+    }
 }
 
 /// A fingerprint of a tree's items, to rebuild the Kit state only when they change.
 fn tree_shape(root: &Node, id: u64) -> String {
     fn walk(node: &Node, out: &mut String) {
-        for (child, item) in items(node, "TreeItem") {out.push_str(&item.text("id")); out.push('\u{1}'); out.push_str(&item.text("label")); out.push('['); walk(child, out); out.push(']');}
+        for (child, item) in items(node, "TreeItem") {
+            for key in ["id", "label", "icon", "expanded", "disabled"] {out.push_str(&item.text(key)); out.push('\u{1}');}
+            out.push('['); walk(child, out); out.push(']');
+        }
     }
     let mut out = String::new();
     if let Some(node) = find(root, id) {walk(node, &mut out);}

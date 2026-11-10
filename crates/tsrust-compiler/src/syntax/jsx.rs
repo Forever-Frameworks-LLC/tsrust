@@ -122,13 +122,16 @@ impl Parser<'_> {
                     if !value.is_empty() { frame.children.push(Expr::new(ExprKind::String(value),text.span)); }
                     machine.work.push(Work::JsxChildren(frame));
                 } else if self.accept("{") {
-                    machine.request(Work::JsxChild(frame,true),Work::Parse(0));
+                    // {...items} spreads an array of children in place.
+                    let spread=self.accept("...").then(|| self.tokens[self.i-1].span);
+                    machine.request(Work::JsxChild(frame,true,spread),Work::Parse(0));
                 } else if self.peek().kind==TokenKind::JsxOpen {
-                    machine.request(Work::JsxChild(frame,false),Work::Parse(0));
+                    machine.request(Work::JsxChild(frame,false,None),Work::Parse(0));
                 } else { return Err(Diagnostic::new("syntax","Expected JSX child or closing tag.",self.peek().span)); }
             }
-            Work::JsxChild(mut frame,braced) => {
-                let value=machine.value(); if braced { self.expect("}")?; }
+            Work::JsxChild(mut frame,braced,spread) => {
+                let mut value=machine.value(); if braced { self.expect("}")?; }
+                if let Some(operator)=spread { value=Self::spread_expression(operator,value); }
                 frame.children.push(value); machine.work.push(Work::JsxChildren(frame));
             }
             _=>unreachable!("JSX work"),

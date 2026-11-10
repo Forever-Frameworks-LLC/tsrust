@@ -18,6 +18,7 @@ impl Analyzer {
   if let Some(result)=self.ui_visibility_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_route_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_branch_call(context,expression,loans,expected)? {return Ok(Some(result));}
+  if let Some(result)=self.ui_each_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_text_binding_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_input_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_kit_value_call(context,expression,loans,expected)? {return Ok(Some(result));}
@@ -136,6 +137,18 @@ impl Analyzer {
   let child=self.resolve_callback(&callback)?;let predicate=self.native_parameter_type(crate::native_bindings::NativeType::OwnedBooleanCallback)?;
   let contract=|ty|ArgumentContract{ty,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false};
   self.check_call_arguments(context,args,&[contract(predicate),contract(child),contract(child)],loans)?;
+  let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+ }
+ /// `each(build)`: a reactive list slot whose getter returns the wrapper holding the current rows.
+ fn ui_each_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
+  let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&binding.name=="each") else{return Ok(None)};
+  Self::arity(args.len(),1,expression.span)?;
+  let result=self.native_parameter_type(crate::native_bindings::NativeType::Structured(&crate::stdlib::ui::CHILD_VALUE))?;
+  let result=self.checked_value_annotation(result,expression.span)?;
+  let callback=crate::syntax::CallbackAnnotation{kind:crate::syntax::CallbackKind::Owned,params:vec![],result:Box::new(crate::syntax::ResultAnnotation::Named(Box::new(result))),span:expression.span};
+  let child=self.resolve_callback(&callback)?;
+  self.check_call_arguments(context,args,&[ArgumentContract{ty:child,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false}],loans)?;
   let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }
  fn ui_text_binding_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {

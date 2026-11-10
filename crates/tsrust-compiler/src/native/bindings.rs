@@ -495,7 +495,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::SVG,crate::stdlib::ui::PATH,crate::stdlib::ui::PATH_BINDING,crate::stdlib::ui::VALIDATE_ROOT,
     crate::stdlib::ui::USE_ID,crate::stdlib::ui::SEMANTIC_BINDING,crate::stdlib::ui::CLASS_BINDING,crate::stdlib::ui::VARIANT_BINDING,crate::stdlib::ui::HIDDEN_BINDING,
     crate::stdlib::ui::TEXT_BINDING,
-    crate::stdlib::ui::BRANCH,crate::stdlib::ui::ROUTE,
+    crate::stdlib::ui::BRANCH,crate::stdlib::ui::EACH,crate::stdlib::ui::ROUTE,
     crate::stdlib::ui::INPUT,crate::stdlib::ui::INPUT_CHANGE,
     crate::stdlib::ui::TEXT,crate::stdlib::ui::COPY_BUTTON,
     crate::stdlib::ui::VIEW,crate::stdlib::ui::VISIBILITY,

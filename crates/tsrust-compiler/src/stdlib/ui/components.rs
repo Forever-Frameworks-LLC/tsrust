@@ -6,7 +6,7 @@ type Scope=BTreeMap<String,String>;
 fn name(value:&str,span:Span)->Expr {Expr::new(ExprKind::Name(value.into()),span)}
 fn call(target:&str,args:Vec<Expr>,span:Span)->Expr {Expr::new(ExprKind::Call(Box::new(name(target,span)),args),span)}
 fn statement(kind:StmtKind,span:Span)->Stmt {Stmt{kind,span,labels:vec![],control_target:None}}
-struct Lower<'a> {lazy_children:BTreeMap<(usize,usize),crate::syntax::ResultAnnotation>,computed:Option<&'a String>,prop:Option<&'a String>,branch:&'a str,child_result:crate::type_syntax::ValueAnnotation,scalar_functions:std::collections::BTreeSet<String>,shadowed:std::collections::BTreeSet<String>,text_binding:&'a str,reactive_types:BTreeMap<(usize,usize,String),crate::type_syntax::ValueAnnotation>,reactive_props:std::collections::BTreeMap<(usize,usize),std::collections::BTreeSet<String>>,condition:&'a str,value_binding:&'a str,next_closure:usize,signal:&'a str,location:Option<&'a String>,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
+struct Lower<'a> {each:Option<(&'a str,&'a str)>,lazy_children:BTreeMap<(usize,usize),crate::syntax::ResultAnnotation>,computed:Option<&'a String>,prop:Option<&'a String>,branch:&'a str,child_result:crate::type_syntax::ValueAnnotation,scalar_functions:std::collections::BTreeSet<String>,shadowed:std::collections::BTreeSet<String>,text_binding:&'a str,reactive_types:BTreeMap<(usize,usize,String),crate::type_syntax::ValueAnnotation>,reactive_props:std::collections::BTreeMap<(usize,usize),std::collections::BTreeSet<String>>,condition:&'a str,value_binding:&'a str,next_closure:usize,signal:&'a str,location:Option<&'a String>,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
 fn scalar_annotation(value:&crate::type_syntax::ValueAnnotation)->bool {
  use crate::type_syntax::ValueAnnotationKind as K;
  match &value.kind {K::Named(name)=>matches!(name.text.as_str(),"string"|"int"|"number"|"boolean"|"null"|"undefined"),K::Literal(_)=>true,K::Group(value)=>scalar_annotation(value),K::Union(values)=>values.iter().all(scalar_annotation),_=>false}
@@ -48,6 +48,17 @@ impl Lower<'_> {
         }
         *value=call(self.branch,getters,at);Ok(true)
     }
+    /// `{...rows}` reading component state becomes a reactive list slot: `bindEach(() => eachRows([...rows]))`.
+    fn each_expression(&mut self,child:&mut Expr,scope:&Scope)->Result<bool,Diagnostic> {
+        let Some((each,rows))=self.each else{return Ok(false)};
+        let ExprKind::Unary{op:crate::syntax::UnaryOp::Spread,value,..}=&child.kind else{return Ok(false)};
+        let mut reactive=false;let mut probe=(**value).clone();crate::source_walk::expression(&mut probe,&mut |expression|{if let ExprKind::Name(name)=&expression.kind{reactive|=scope.contains_key(name);}Ok(())})?;
+        if !reactive{return Ok(false);}
+        let at=child.span;let original=std::mem::replace(child,Expr::new(ExprKind::Undefined,at));
+        let wrapper=call(rows,vec![Expr::new(ExprKind::Array(vec![original]),at)],at);
+        let getter=Expr::new(ExprKind::Closure{id:self.next_closure,params:vec![],result:crate::syntax::ResultAnnotation::Named(Box::new(self.child_result.clone())),body:vec![statement(StmtKind::Return(Some(wrapper)),at)]},at);self.next_closure+=1;
+        *child=call(each,vec![getter],at);Ok(true)
+    }
     fn expression(&mut self,value:&mut Expr,scope:&Scope)->Result<(),Diagnostic> {
         crate::source_walk::expression_pruned(value,&mut |value| {
             let span=value.span;
@@ -55,6 +66,7 @@ impl Lower<'_> {
                 for (key,value) in fields {
                     if key.text=="children" && key.span==value.span && self.reactive_props.get(&(span.start,span.end)).is_some_and(|props|props.contains("children")) {
                         if let ExprKind::Array(children)=&mut value.kind {for child in children {
+                            if self.each_expression(child,scope)? {continue;}
                             if self.reactive_props.get(&(span.start,span.end)).is_some_and(|props|props.contains("branch")) && self.branch_expression(child,scope)?{continue;}
                             if matches!(&child.kind,ExprKind::Name(name) if scope.contains_key(name)) || !scalar_text(child,scope,&self.scalar_functions,&self.shadowed){continue;}
                             let mut reactive=false;crate::source_walk::expression(child,&mut |expression|{if let ExprKind::Name(name)=&expression.kind{reactive|=scope.contains_key(name);}Ok(())})?;
@@ -217,7 +229,7 @@ pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)-
     let scalar_functions=program.functions.iter().filter(|function|matches!(&function.result,Some(crate::syntax::ResultAnnotation::Named(value)) if scalar_annotation(value))).map(|function|function.name.text.clone()).chain(["String","Number","Boolean","parseInt","parseFloat","isNaN","isFinite"].into_iter().map(str::to_owned)).collect();
     let child_result=crate::native_type_resolution::project(&mut program.records,&super::CHILD_VALUE,Span::default())?;
     let bind="@native:std:ui-runtime#handle";
-    let mut lower=Lower{lazy_children,computed:names.get("computed"),prop:names.get("useProp"),branch,child_result,scalar_functions,shadowed:Default::default(),text_binding,reactive_types,reactive_props,condition,value_binding,next_closure,signal,location:names.get("location"),bind,retain,next:0,constructors:vec![]};
+    let mut lower=Lower{each:names.get("bindEach").zip(names.get("eachRows")).map(|(each,rows)|(each.as_str(),rows.as_str())),lazy_children,computed:names.get("computed"),prop:names.get("useProp"),branch,child_result,scalar_functions,shadowed:Default::default(),text_binding,reactive_types,reactive_props,condition,value_binding,next_closure,signal,location:names.get("location"),bind,retain,next:0,constructors:vec![]};
     for function in &mut program.functions {
         if names.values().any(|name|name==&function.name.text) {continue;}
         fn locals(body:&[Stmt],names:&mut std::collections::BTreeSet<String>) {

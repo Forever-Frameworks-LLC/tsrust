@@ -3142,16 +3142,61 @@
     },
     {
       "name": "Sidebar",
-      "children": "SidebarGroup",
-      "doc": "An application sidebar. Children are SidebarGroup elements.",
+      "children": "SidebarHeader, SidebarFooter and SidebarGroup",
+      "doc": "A navigation column with a header, footer and groups of items that can nest and collapse to icons.",
       "props": [
         {
           "name": "collapsed",
           "type": "boolean",
-          "doc": "Shows icons only."
+          "doc": "Collapses to icons (or hides, with collapsible=\"offcanvas\")."
+        },
+        {
+          "name": "side",
+          "type": [
+            "left",
+            "right"
+          ],
+          "doc": "The window edge it sits on. Defaults to left."
+        },
+        {
+          "name": "collapsible",
+          "type": [
+            "icon",
+            "offcanvas",
+            "none"
+          ],
+          "doc": "How it collapses: to icons (default), off screen, or not at all."
         }
       ],
-      "example": "<Sidebar><SidebarGroup label=\"Workspace\"><SidebarItem label=\"Inbox\" active={true}/></SidebarGroup></Sidebar>"
+      "example": "<Sidebar>\n  <SidebarHeader><Text className=\"font-semibold\">Acme</Text></SidebarHeader>\n  <SidebarGroup label=\"Workspace\">\n    <SidebarItem icon=\"inbox\" active={true}>Inbox</SidebarItem>\n    <SidebarItem icon=\"folder\">Projects\n      <SidebarItem>Website</SidebarItem>\n    </SidebarItem>\n  </SidebarGroup>\n</Sidebar>"
+    },
+    {
+      "name": "SidebarHeader",
+      "item": true,
+      "doc": "Content at the top of the Sidebar, such as the app name or a workspace switcher.",
+      "props": [
+        {
+          "name": "selected",
+          "type": "boolean",
+          "doc": "Draws the header as selected."
+        }
+      ],
+      "children": true,
+      "example": "<Sidebar>\n  <SidebarHeader><Text className=\"font-semibold\">Acme</Text></SidebarHeader>\n  <SidebarGroup label=\"Workspace\">\n    <SidebarItem icon=\"inbox\" active={true}>Inbox</SidebarItem>\n    <SidebarItem icon=\"folder\">Projects\n      <SidebarItem>Website</SidebarItem>\n    </SidebarItem>\n  </SidebarGroup>\n</Sidebar>"
+    },
+    {
+      "name": "SidebarFooter",
+      "item": true,
+      "doc": "Content at the bottom of the Sidebar, such as the signed-in user.",
+      "props": [
+        {
+          "name": "selected",
+          "type": "boolean",
+          "doc": "Draws the footer as selected."
+        }
+      ],
+      "children": true,
+      "example": "<Sidebar>\n  <SidebarHeader><Text className=\"font-semibold\">Acme</Text></SidebarHeader>\n  <SidebarGroup label=\"Workspace\">\n    <SidebarItem icon=\"inbox\" active={true}>Inbox</SidebarItem>\n    <SidebarItem icon=\"folder\">Projects\n      <SidebarItem>Website</SidebarItem>\n    </SidebarItem>\n  </SidebarGroup>\n</Sidebar>"
     },
     {
       "name": "SidebarGroup",
@@ -3170,17 +3215,52 @@
     {
       "name": "SidebarItem",
       "item": true,
-      "doc": "One navigation entry in a SidebarGroup.",
+      "doc": "A Sidebar entry. Text children are its label; SidebarItem children nest under it; MenuItem children form its right-click menu.",
       "props": [
         {
           "name": "label",
           "type": "string",
-          "doc": "Entry text."
+          "doc": "Item text, when there are no text children."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon before the label; shown alone when collapsed."
         },
         {
           "name": "active",
           "type": "boolean",
-          "doc": "Highlights the current entry."
+          "doc": "Marks the current page."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Cannot be clicked."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "doc": "Starts with its nested items shown."
+        },
+        {
+          "name": "clickToOpen",
+          "type": "boolean",
+          "doc": "Clicking opens its nested items."
+        },
+        {
+          "name": "clickToToggle",
+          "type": "boolean",
+          "doc": "Clicking toggles its nested items."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Names the item when collapsed to an icon."
+        },
+        {
+          "name": "labelClassName",
+          "type": "string",
+          "doc": "Utility classes for the label."
         }
       ],
       "events": [
@@ -3191,21 +3271,75 @@
         }
       ],
       "example": "<SidebarItem label=\"Settings\" onClick={() => { page.set('settings'); }}/>",
-      "children": "Text",
+      "children": "Text, SidebarItem, SidebarItemSuffix and MenuItem",
       "textChildren": "label"
+    },
+    {
+      "name": "SidebarItemSuffix",
+      "item": true,
+      "doc": "Content at the end of a SidebarItem row, such as a count badge.",
+      "props": [],
+      "children": true,
+      "example": "<SidebarItem icon=\"inbox\">Inbox<SidebarItemSuffix><Badge count={4} /></SidebarItemSuffix></SidebarItem>"
+    },
+    {
+      "name": "SidebarToggleButton",
+      "doc": "The button that collapses and expands a Sidebar.",
+      "props": [
+        {
+          "name": "side",
+          "type": [
+            "left",
+            "right"
+          ],
+          "doc": "The Sidebar's side, which sets the arrow direction."
+        },
+        {
+          "name": "collapsed",
+          "type": "boolean",
+          "doc": "Whether the Sidebar is collapsed."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Names the button."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onClick",
+          "value": "void",
+          "doc": "Runs when clicked; toggle the Sidebar's collapsed state here."
+        }
+      ],
+      "children": null,
+      "example": "<SidebarToggleButton collapsed={collapsed.get()} onClick={() => { collapsed.set(!collapsed.get()); }} />"
     },
     {
       "name": "Resizable",
       "children": "ResizablePanel",
-      "doc": "Panels separated by draggable handles. Children are ResizablePanel elements.",
+      "doc": "Panels separated by draggable handles.",
       "props": [
         {
           "name": "vertical",
           "type": "boolean",
-          "doc": "Stacks panels vertically. Defaults to side by side."
+          "doc": "Stacks panels vertically."
+        },
+        {
+          "name": "size",
+          "type": "number",
+          "doc": "The group's size in pixels along its axis."
         }
       ],
-      "example": "<Resizable><ResizablePanel size={240}><Text>Files</Text></ResizablePanel><ResizablePanel><Text>Editor</Text></ResizablePanel></Resizable>"
+      "example": "<Resizable><ResizablePanel size={240}><Text>Files</Text></ResizablePanel><ResizablePanel><Text>Editor</Text></ResizablePanel></Resizable>",
+      "events": [
+        {
+          "prop": "onResize",
+          "value": "string[]",
+          "param": "sizes",
+          "doc": "Runs with each panel's size in pixels after a drag."
+        }
+      ]
     },
     {
       "name": "ResizablePanel",
@@ -3216,17 +3350,53 @@
         {
           "name": "size",
           "type": "number",
-          "doc": "Initial size in pixels. Omit to share the remaining space."
+          "doc": "Initial size in pixels."
+        },
+        {
+          "name": "minSize",
+          "type": "number",
+          "doc": "Smallest size in pixels."
+        },
+        {
+          "name": "maxSize",
+          "type": "number",
+          "doc": "Largest size in pixels."
+        },
+        {
+          "name": "fixed",
+          "type": "boolean",
+          "doc": "Keeps its size when the window resizes."
+        },
+        {
+          "name": "visible",
+          "type": "boolean",
+          "doc": "false hides the panel. Defaults to true."
         }
       ],
       "example": "<ResizablePanel size={320}><Text>Preview</Text></ResizablePanel>"
     },
     {
       "name": "Table",
-      "children": "TableHeader, TableBody",
-      "doc": "A static table. Children are TableHeader and TableBody, which contain TableRow elements.",
-      "props": [],
-      "example": "<Table><TableHeader><TableRow><TableHead>Name</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell>Ada</TableCell></TableRow></TableBody></Table>"
+      "children": "TableHeader, TableBody, TableFooter and TableCaption",
+      "doc": "A static, composable table. Children are TableHeader, TableBody, TableFooter and TableCaption; each part and row takes its own className.",
+      "props": [
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name screen readers announce for the table."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size of every cell: xsmall, small, medium (default) or large."
+        }
+      ],
+      "example": "<Table>\n  <TableCaption>A list of your recent invoices.</TableCaption>\n  <TableHeader>\n    <TableRow>\n      <TableHead>Invoice</TableHead>\n      <TableHead align=\"right\">Amount</TableHead>\n    </TableRow>\n  </TableHeader>\n  <TableBody>\n    <TableRow>\n      <TableCell>INV001</TableCell>\n      <TableCell align=\"right\">$250.00</TableCell>\n    </TableRow>\n  </TableBody>\n</Table>"
     },
     {
       "name": "TableHeader",
@@ -3243,6 +3413,22 @@
       "doc": "The body rows of a Table.",
       "props": [],
       "example": "<TableBody><TableRow><TableCell>Ada</TableCell></TableRow></TableBody>"
+    },
+    {
+      "name": "TableFooter",
+      "item": true,
+      "children": "TableRow",
+      "doc": "Summary rows below a Table's body, such as totals.",
+      "props": [],
+      "example": "<TableFooter><TableRow><TableCell>Total</TableCell><TableCell align=\"right\">$2,500.00</TableCell></TableRow></TableFooter>"
+    },
+    {
+      "name": "TableCaption",
+      "item": true,
+      "children": true,
+      "doc": "A muted caption below a Table.",
+      "props": [],
+      "example": "<TableCaption>A list of your recent invoices.</TableCaption>"
     },
     {
       "name": "TableRow",
@@ -3262,6 +3448,15 @@
           "name": "colSpan",
           "type": "int",
           "doc": "Columns spanned. Defaults to 1."
+        },
+        {
+          "name": "align",
+          "type": [
+            "left",
+            "center",
+            "right"
+          ],
+          "doc": "Content alignment: left (default), center or right."
         }
       ],
       "example": "<TableHead>Email</TableHead>"
@@ -3276,6 +3471,15 @@
           "name": "colSpan",
           "type": "int",
           "doc": "Columns spanned. Defaults to 1."
+        },
+        {
+          "name": "align",
+          "type": [
+            "left",
+            "center",
+            "right"
+          ],
+          "doc": "Content alignment: left (default), center or right."
         }
       ],
       "example": "<TableCell>ada@example.com</TableCell>"
@@ -3341,7 +3545,32 @@
       "doc": "A custom window title bar holding its children. Use it with the custom titlebar window option.",
       "props": [],
       "example": "<TitleBar><Text>My App</Text></TitleBar>",
-      "children": true
+      "children": true,
+      "events": [
+        {
+          "prop": "onCloseWindow",
+          "value": "void",
+          "doc": "Runs when the title bar's own close button is pressed (Linux and Windows custom title bars)."
+        }
+      ]
+    },
+    {
+      "name": "WindowBorder",
+      "doc": "The resizable border and shadow around a window with a custom title bar on Linux.",
+      "props": [
+        {
+          "name": "shadowSize",
+          "type": "number",
+          "doc": "Shadow width in pixels."
+        },
+        {
+          "name": "resizeHitSize",
+          "type": "number",
+          "doc": "Width in pixels of the edge that resizes the window."
+        }
+      ],
+      "children": true,
+      "example": "<WindowBorder>\n  <TitleBar><Text>My app</Text></TitleBar>\n</WindowBorder>"
     },
     {
       "name": "StatusBar",
@@ -3368,52 +3597,178 @@
     },
     {
       "name": "Toolbar",
-      "doc": "A horizontal toolbar of buttons and other controls.",
-      "props": [],
-      "example": "<Toolbar><Button>New</Button><Button>Open</Button></Toolbar>",
-      "children": true
-    },
-    {
-      "name": "Form",
-      "doc": "Lays out Field elements with aligned labels, in one or more columns.",
+      "doc": "A row of controls, optionally in labelled ToolbarGroup sections, that sizes its children together.",
       "props": [
         {
-          "name": "columns",
-          "type": "int",
-          "doc": "Number of columns. Defaults to 1."
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables every control."
         },
         {
-          "name": "horizontal",
-          "type": "boolean",
-          "doc": "Puts labels beside their fields instead of above."
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
-      "example": "<Form columns={2}><Field label=\"Name\" required={true}><Input value={name}/></Field></Form>",
-      "children": "Field"
+      "example": "<Toolbar>\n  <ToolbarGroup label=\"Format\">\n    <Toggle icon=\"bold\" />\n    <Toggle icon=\"italic\" />\n  </ToolbarGroup>\n</Toolbar>",
+      "children": "ToolbarGroup and controls"
     },
     {
-      "name": "Field",
-      "doc": "One labelled field in a Form; its children are the control.",
+      "name": "ToolbarGroup",
+      "item": true,
+      "doc": "A labelled section of a Toolbar.",
       "props": [
         {
           "name": "label",
           "type": "string",
-          "doc": "Field label."
+          "doc": "Group label."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
+        }
+      ],
+      "children": true,
+      "example": "<Toolbar>\n  <ToolbarGroup label=\"Format\">\n    <Toggle icon=\"bold\" />\n    <Toggle icon=\"italic\" />\n  </ToolbarGroup>\n</Toolbar>"
+    },
+    {
+      "name": "Form",
+      "doc": "Labelled fields in one or more columns, with an optional footer.",
+      "props": [
+        {
+          "name": "columns",
+          "type": "int",
+          "doc": "Columns of fields. Defaults to 1."
+        },
+        {
+          "name": "horizontal",
+          "type": "boolean",
+          "doc": "Lays fields out in a row."
+        },
+        {
+          "name": "labelLayout",
+          "type": [
+            "horizontal",
+            "vertical"
+          ],
+          "doc": "Puts labels beside or above their fields."
+        },
+        {
+          "name": "labelWidth",
+          "type": "number",
+          "doc": "Label width in pixels when labels sit beside fields."
+        },
+        {
+          "name": "labelTextSize",
+          "type": "number",
+          "doc": "Label text size in rem."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
+        }
+      ],
+      "example": "<Form columns={2}>\n  <Field label=\"First name\" required={true}><Input /></Field>\n  <Field label=\"Last name\"><Input /></Field>\n  <FormFooter><Button variant=\"primary\">Save</Button></FormFooter>\n</Form>",
+      "children": "Field and FormFooter"
+    },
+    {
+      "name": "Field",
+      "doc": "A labelled control in a Form. FieldLabel and FieldDescription children are rich alternatives to the label and description props.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Label text."
         },
         {
           "name": "description",
           "type": "string",
-          "doc": "Help text below the control."
+          "doc": "Help text under the control."
         },
         {
           "name": "required",
           "type": "boolean",
           "doc": "Marks the field as required."
+        },
+        {
+          "name": "labelIndent",
+          "type": "boolean",
+          "doc": "false removes the label's indent. Defaults to true."
+        },
+        {
+          "name": "visible",
+          "type": "boolean",
+          "doc": "false hides the field. Defaults to true."
+        },
+        {
+          "name": "align",
+          "type": [
+            "start",
+            "center",
+            "end"
+          ],
+          "doc": "Cross-axis alignment of the control."
+        },
+        {
+          "name": "colSpan",
+          "type": "int",
+          "doc": "Columns the field spans."
+        },
+        {
+          "name": "colStart",
+          "type": "int",
+          "doc": "Starting column (1-based)."
+        },
+        {
+          "name": "colEnd",
+          "type": "int",
+          "doc": "Ending column."
         }
       ],
-      "example": "<Field label=\"Email\" description=\"We never share it.\"><Input value={email}/></Field>",
-      "children": true,
+      "example": "<Form columns={2}>\n  <Field label=\"First name\" required={true}><Input /></Field>\n  <Field label=\"Last name\"><Input /></Field>\n  <FormFooter><Button variant=\"primary\">Save</Button></FormFooter>\n</Form>",
+      "children": "FieldLabel, FieldDescription and the control",
       "item": true
+    },
+    {
+      "name": "FormFooter",
+      "item": true,
+      "doc": "Buttons or other content under the Form's fields.",
+      "props": [],
+      "children": true,
+      "example": "<Form columns={2}>\n  <Field label=\"First name\" required={true}><Input /></Field>\n  <Field label=\"Last name\"><Input /></Field>\n  <FormFooter><Button variant=\"primary\">Save</Button></FormFooter>\n</Form>"
+    },
+    {
+      "name": "FieldDescription",
+      "item": true,
+      "doc": "Rich help text under a Field's control.",
+      "props": [],
+      "children": true,
+      "example": "<Form columns={2}>\n  <Field label=\"First name\" required={true}><Input /></Field>\n  <Field label=\"Last name\"><Input /></Field>\n  <FormFooter><Button variant=\"primary\">Save</Button></FormFooter>\n</Form>"
+    },
+    {
+      "name": "FieldLabel",
+      "item": true,
+      "doc": "A rich label for a Field.",
+      "props": [],
+      "children": true,
+      "example": "<Form columns={2}>\n  <Field label=\"First name\" required={true}><Input /></Field>\n  <Field label=\"Last name\"><Input /></Field>\n  <FormFooter><Button variant=\"primary\">Save</Button></FormFooter>\n</Form>"
     },
     {
       "name": "ScrollArea",
@@ -3430,7 +3785,7 @@
     },
     {
       "name": "Message",
-      "doc": "A chat message: avatar, author and time header, and a bubble holding its children.",
+      "doc": "A chat message. Compose MessageAvatar, MessageHeader, MessageContent (text or a Bubble) and MessageFooter; without parts, author/time props and the children make a bubble.",
       "props": [
         {
           "name": "author",
@@ -3454,13 +3809,151 @@
           "name": "variant",
           "type": [
             "primary",
-            "secondary"
+            "filled",
+            "secondary",
+            "muted",
+            "tinted",
+            "outline",
+            "ghost",
+            "destructive"
           ],
-          "doc": "Bubble color. Defaults to secondary."
+          "doc": "Short form only: the bubble style. Defaults to filled."
+        },
+        {
+          "name": "stackClassName",
+          "type": "string",
+          "doc": "Utility classes for the column holding header, content and footer."
+        },
+        {
+          "name": "role",
+          "type": [
+            "presentation"
+          ],
+          "doc": "presentation hides the message's article role from screen readers."
         }
       ],
-      "example": "<Message author=\"Alice\" time=\"10:24\"><Text>Can you review this?</Text></Message>",
-      "children": true
+      "example": "<Message align=\"end\">\n  <MessageAvatar><Avatar name=\"Ada Lovelace\" /></MessageAvatar>\n  <MessageHeader><Text>Ada</Text><Text variant=\"muted\">9:41</Text></MessageHeader>\n  <MessageContent>\n    <Bubble><BubbleContent>Shipped the fix.</BubbleContent></Bubble>\n  </MessageContent>\n  <MessageFooter><Text variant=\"muted\">Read</Text></MessageFooter>\n</Message>",
+      "children": "MessageAvatar, MessageHeader, MessageContent and MessageFooter"
+    },
+    {
+      "name": "MessageGroup",
+      "children": "Message",
+      "doc": "Consecutive messages stacked with the Kit's message spacing.",
+      "props": [],
+      "example": "<MessageGroup><Message>Hi</Message><Message>There</Message></MessageGroup>"
+    },
+    {
+      "name": "MessageAvatar",
+      "item": true,
+      "children": true,
+      "doc": "The avatar column of a Message.",
+      "props": [],
+      "example": "<MessageAvatar><Avatar name=\"Ada\" /></MessageAvatar>"
+    },
+    {
+      "name": "MessageHeader",
+      "item": true,
+      "children": true,
+      "doc": "Name and time above a Message's content.",
+      "props": [
+        {
+          "name": "inset",
+          "type": "boolean",
+          "doc": "Lines the header up with the bubble's text instead of its edge."
+        }
+      ],
+      "example": "<MessageHeader><Text>Ada</Text></MessageHeader>"
+    },
+    {
+      "name": "MessageContent",
+      "item": true,
+      "children": true,
+      "doc": "A Message's body: a single Bubble child becomes the message bubble; other children render as they are.",
+      "props": [],
+      "example": "<MessageContent><Bubble>Hi</Bubble></MessageContent>"
+    },
+    {
+      "name": "MessageFooter",
+      "item": true,
+      "children": true,
+      "doc": "Status or actions below a Message's content.",
+      "props": [
+        {
+          "name": "inset",
+          "type": "boolean",
+          "doc": "Lines the footer up with the bubble's text."
+        }
+      ],
+      "example": "<MessageFooter><Text variant=\"muted\">Delivered</Text></MessageFooter>"
+    },
+    {
+      "name": "Bubble",
+      "children": "BubbleContent, BubbleReactions or any content",
+      "doc": "A chat bubble. Its children (or a BubbleContent child) are the body; a BubbleReactions child adds a reaction row.",
+      "props": [
+        {
+          "name": "variant",
+          "type": [
+            "filled",
+            "secondary",
+            "muted",
+            "tinted",
+            "outline",
+            "ghost",
+            "destructive"
+          ],
+          "doc": "filled (default), secondary, muted, tinted, outline, ghost or destructive."
+        },
+        {
+          "name": "align",
+          "type": [
+            "start",
+            "end"
+          ],
+          "doc": "start for received messages, end for sent ones. Defaults to start."
+        }
+      ],
+      "example": "<Bubble variant=\"secondary\">See you at 3.</Bubble>"
+    },
+    {
+      "name": "BubbleContent",
+      "item": true,
+      "children": true,
+      "doc": "The body of a Bubble.",
+      "props": [],
+      "example": "<BubbleContent>Hello</BubbleContent>"
+    },
+    {
+      "name": "BubbleReactions",
+      "item": true,
+      "children": true,
+      "doc": "Reaction buttons attached to a Bubble's edge.",
+      "props": [
+        {
+          "name": "side",
+          "type": [
+            "top",
+            "bottom"
+          ],
+          "doc": "Edge the row attaches to. Defaults to bottom."
+        },
+        {
+          "name": "align",
+          "type": [
+            "start",
+            "end"
+          ],
+          "doc": "Horizontal placement along that edge."
+        }
+      ],
+      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">👍 2</Button></BubbleReactions>"
+    },
+    {
+      "name": "BubbleGroup",
+      "children": "Bubble",
+      "doc": "Consecutive bubbles from one sender, tightly spaced.",
+      "props": [],
+      "example": "<BubbleGroup><Bubble>One</Bubble><Bubble>Two</Bubble></BubbleGroup>"
     },
     {
       "name": "Chart",
@@ -3519,67 +4012,300 @@
     },
     {
       "name": "List",
-      "doc": "A virtualized list of text rows that stays fast with thousands of items.",
+      "doc": "A virtualized, keyboard-navigable list of ListItem rows, optionally in ListGroup sections with a search field. Give it a height with className.",
       "props": [
         {
-          "name": "items",
-          "type": "string[]",
-          "doc": "Row text, in order."
+          "name": "searchable",
+          "type": "boolean",
+          "doc": "Shows a search field that filters rows by their text, value and keywords."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Hint in the search field."
+        },
+        {
+          "name": "selectable",
+          "type": "boolean",
+          "doc": "false turns off row highlighting and keyboard selection. Defaults to true."
         },
         {
           "name": "selected",
           "type": "int",
-          "doc": "Index of the highlighted row, or -1 for none."
+          "doc": "Highlighted row (0-based across all groups), controlled."
+        },
+        {
+          "name": "defaultSelected",
+          "type": "int",
+          "doc": "Initially highlighted row when `selected` is unset."
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "doc": "Shows skeleton rows instead of the items."
+        },
+        {
+          "name": "hasMore",
+          "type": "boolean",
+          "doc": "More rows can load; scrolling near the end fires onLoadMore."
+        },
+        {
+          "name": "loadMoreThreshold",
+          "type": "int",
+          "doc": "Rows from the end at which onLoadMore fires. Defaults to 20."
+        },
+        {
+          "name": "scrollbarVisible",
+          "type": "boolean",
+          "doc": "false hides the scrollbar. Defaults to true."
+        },
+        {
+          "name": "scrollBounce",
+          "type": "boolean",
+          "doc": "Elastic overscroll at the ends."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Row size: xsmall, small, medium (default) or large."
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "doc": "The search text, controlled."
+        },
+        {
+          "name": "autoFocus",
+          "type": "boolean",
+          "doc": "Focuses the list (or its search field) when it mounts."
         }
       ],
-      "example": "<List items={names} selected={picked.get()} onSelect={(index) => { picked.set(index); }} className=\"h-64\"/>",
       "events": [
         {
           "prop": "onSelect",
-          "value": "int",
-          "param": "index",
-          "doc": "Receives the clicked row's index."
+          "value": "string",
+          "param": "value",
+          "doc": "Receives the highlighted row's value (or its index) as the highlight moves."
+        },
+        {
+          "prop": "onConfirm",
+          "value": "string",
+          "param": "value",
+          "doc": "Receives the row's value (or its index) on click or Enter."
+        },
+        {
+          "prop": "onCancel",
+          "value": "void",
+          "doc": "Runs when Escape clears the highlight."
+        },
+        {
+          "prop": "onLoadMore",
+          "value": "void",
+          "doc": "Runs when scrolling nears the end while hasMore is true; append rows and clear hasMore when done."
         }
-      ]
+      ],
+      "example": "<List className=\"h-64\" searchable={true} onConfirm={(value) => { console.log(value); }}>\n  <ListGroup heading=\"Fruits\">\n    <ListItem value=\"apple\">Apple</ListItem>\n    <ListItem value=\"banana\">Banana</ListItem>\n  </ListGroup>\n  <ListGroup heading=\"Vegetables\">\n    <ListItem value=\"carrot\">Carrot</ListItem>\n  </ListGroup>\n  <ListEmpty><Text variant=\"muted\">No matches.</Text></ListEmpty>\n</List>",
+      "children": "ListItem, ListSeparator, ListGroup and ListEmpty"
+    },
+    {
+      "name": "ListItem",
+      "item": true,
+      "children": true,
+      "doc": "One List row. Children are its content; a ListItemSuffix child sits at the trailing edge. Rows should share one height.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Value List events report for this row; defaults to the row index."
+        },
+        {
+          "name": "keywords",
+          "type": "string[]",
+          "doc": "Extra words the search matches."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Dims the row and ignores clicks."
+        },
+        {
+          "name": "confirmed",
+          "type": "boolean",
+          "doc": "Shows the check icon, marking the row as chosen."
+        },
+        {
+          "name": "checkIcon",
+          "type": "icon",
+          "doc": "Icon shown when confirmed. Defaults to a check mark."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name screen readers announce for the row."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onClick",
+          "value": "void",
+          "doc": "Runs when the row is clicked."
+        },
+        {
+          "prop": "onMouseDown",
+          "value": "void",
+          "doc": "Runs when the left button presses on the row."
+        },
+        {
+          "prop": "onHover",
+          "value": "void",
+          "doc": "Runs when the pointer enters the row."
+        }
+      ],
+      "example": "<ListItem value=\"inbox\"><Icon name=\"inbox\" /><Text>Inbox</Text><ListItemSuffix><Text variant=\"muted\">12</Text></ListItemSuffix></ListItem>"
+    },
+    {
+      "name": "ListItemSuffix",
+      "item": true,
+      "children": true,
+      "doc": "Trailing content of a ListItem, such as a count or shortcut.",
+      "props": [],
+      "example": "<ListItemSuffix><Kbd>⌘K</Kbd></ListItemSuffix>"
+    },
+    {
+      "name": "ListSeparator",
+      "item": true,
+      "doc": "A divider row in a List; hidden while searching.",
+      "props": [],
+      "example": "<ListSeparator />"
+    },
+    {
+      "name": "ListGroup",
+      "item": true,
+      "children": "ListItem, ListSeparator",
+      "doc": "A List section with a heading.",
+      "props": [
+        {
+          "name": "heading",
+          "type": "string",
+          "doc": "Muted heading above the section."
+        }
+      ],
+      "example": "<ListGroup heading=\"Fruits\"><ListItem>Apple</ListItem></ListGroup>"
+    },
+    {
+      "name": "ListEmpty",
+      "item": true,
+      "children": true,
+      "doc": "Content a List shows when no row matches.",
+      "props": [],
+      "example": "<ListEmpty><Text variant=\"muted\">No results.</Text></ListEmpty>"
     },
     {
       "name": "Tree",
-      "doc": "A collapsible tree. Children are TreeItem elements, which can nest.",
-      "props": [],
-      "example": "<Tree onSelect={(id) => { open(id); }}><TreeItem id=\"src\" label=\"src\" expanded={true}><TreeItem id=\"src/main.tsr\" label=\"main.tsr\"/></TreeItem></Tree>",
+      "doc": "A keyboard-navigable tree of nested TreeItem rows: arrow keys move and expand, Enter selects. Give it a height with className.",
+      "props": [
+        {
+          "name": "selected",
+          "type": "string",
+          "doc": "Selected item id, controlled; the tree expands to reveal it."
+        },
+        {
+          "name": "defaultSelected",
+          "type": "string",
+          "doc": "Initially selected item id when `selected` is unset."
+        },
+        {
+          "name": "scrollBounce",
+          "type": "boolean",
+          "doc": "Elastic overscroll at the ends."
+        },
+        {
+          "name": "autoFocus",
+          "type": "boolean",
+          "doc": "Focuses the tree for keyboard navigation when it mounts."
+        }
+      ],
+      "example": "<Tree className=\"h-64\" defaultSelected=\"main.tsrx\" onSelect={(id) => { console.log(id); }}>\n  <TreeItem id=\"src\" defaultExpanded={true}>\n    src\n    <TreeItem id=\"main.tsrx\">main.tsrx</TreeItem>\n    <TreeItem id=\"pages\" icon=\"folder-code\">pages</TreeItem>\n  </TreeItem>\n  <TreeItem id=\"readme\">README.md</TreeItem>\n</Tree>",
       "events": [
         {
           "prop": "onSelect",
           "value": "string",
           "param": "id",
           "doc": "Receives the clicked item's id."
+        },
+        {
+          "prop": "onExpand",
+          "value": "string",
+          "param": "id",
+          "doc": "Receives a folder's id when it opens."
+        },
+        {
+          "prop": "onCollapse",
+          "value": "string",
+          "param": "id",
+          "doc": "Receives a folder's id when it closes."
+        },
+        {
+          "prop": "onContextMenu",
+          "value": "string",
+          "param": "id",
+          "doc": "Receives the right-clicked item's id as its TreeMenu opens."
         }
       ],
-      "children": "TreeItem"
+      "children": "TreeItem and TreeMenu"
     },
     {
       "name": "TreeItem",
-      "doc": "One node in a Tree; nested TreeItem children are its sub-items.",
+      "doc": "One tree row; its text is the label and nested TreeItem children make it a folder.",
       "props": [
         {
           "name": "id",
           "type": "string",
-          "doc": "Identifier passed to onSelect."
+          "doc": "Identity the Tree reports; defaults to the label."
         },
         {
           "name": "label",
           "type": "string",
-          "doc": "Displayed text."
+          "doc": "Row text; usually given as the text children."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Row icon. Defaults to a folder (open or closed) or file icon."
         },
         {
           "name": "expanded",
           "type": "boolean",
-          "doc": "Starts expanded when it has children."
+          "doc": "Opens the folder; rebuilds the tree when it changes."
+        },
+        {
+          "name": "defaultExpanded",
+          "type": "boolean",
+          "doc": "Opens the folder initially."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Dims the row and skips it."
         }
       ],
-      "example": "<TreeItem id=\"docs\" label=\"docs\"/>",
-      "children": "TreeItem",
-      "item": true
+      "example": "<TreeItem id=\"src\" defaultExpanded={true}>src<TreeItem>main.tsrx</TreeItem></TreeItem>",
+      "children": "text and TreeItem",
+      "item": true,
+      "textChildren": "label"
+    },
+    {
+      "name": "TreeMenu",
+      "item": true,
+      "children": "MenuItem, MenuSeparator and MenuLabel",
+      "doc": "The right-click menu for every Tree row; onContextMenu on the Tree tells which row opened it.",
+      "props": [],
+      "example": "<TreeMenu><MenuItem>Rename</MenuItem><MenuItem>Delete</MenuItem></TreeMenu>"
     },
     {
       "name": "Calendar",
@@ -3863,30 +4589,114 @@
     },
     {
       "name": "Command",
-      "doc": "A command palette: a search field over CommandItem entries.",
+      "doc": "A search field over a filtered list of commands, in groups with separators, header, footer and an empty state.",
       "props": [
         {
           "name": "placeholder",
           "type": "string",
-          "doc": "Search field placeholder."
+          "doc": "Hint in the search field."
+        },
+        {
+          "name": "searchable",
+          "type": "boolean",
+          "doc": "false hides the search field. Defaults to true."
+        },
+        {
+          "name": "filterable",
+          "type": "boolean",
+          "doc": "false keeps every item when typing (filter in onQuery yourself). Defaults to true."
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "doc": "The search text, controlled."
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "doc": "Shows a spinner in the search field."
+        },
+        {
+          "name": "maxHeight",
+          "type": "number",
+          "doc": "Most height in pixels the list takes before it scrolls."
+        },
+        {
+          "name": "scrollBounce",
+          "type": "boolean",
+          "doc": "Elastic overscroll in the list."
+        },
+        {
+          "name": "bordered",
+          "type": "boolean",
+          "doc": "false removes the outer border. Defaults to true."
+        },
+        {
+          "name": "autoFocus",
+          "type": "boolean",
+          "doc": "Focuses the search field when it mounts."
         }
       ],
-      "example": "<Command placeholder=\"Type a command…\"><CommandItem label=\"New file\" onSelect={() => { create(); }}/></Command>",
-      "children": "CommandItem"
+      "example": "<Command placeholder=\"Type a command or search...\">\n  <CommandGroup heading=\"Suggestions\">\n    <CommandItem icon=\"calendar\">Calendar</CommandItem>\n    <CommandItem icon=\"smile\" keywords={['emoji']}>Search Emoji</CommandItem>\n  </CommandGroup>\n  <CommandSeparator />\n  <CommandEmpty><Text>No results found.</Text></CommandEmpty>\n</Command>",
+      "children": "CommandItem, CommandGroup, CommandSeparator, CommandEmpty, CommandHeader and CommandFooter",
+      "events": [
+        {
+          "prop": "onQuery",
+          "value": "string",
+          "param": "query",
+          "doc": "Runs with the search text as it changes."
+        },
+        {
+          "prop": "onCancel",
+          "value": "void",
+          "doc": "Runs when Escape is pressed."
+        },
+        {
+          "prop": "onSelect",
+          "value": "string",
+          "param": "value",
+          "doc": "Receives the chosen item's value (or its label) on click or Enter, after the item's own onSelect."
+        }
+      ]
     },
     {
       "name": "CommandItem",
-      "doc": "One entry in a Command palette.",
+      "doc": "One command. Text children are its label; other children replace the row's content.",
       "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "What the Command's onSelect receives for this item. Defaults to the label."
+        },
         {
           "name": "label",
           "type": "string",
-          "doc": "Entry text; the palette filters on it."
+          "doc": "Command text, when there are no text children."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon before the label."
+        },
+        {
+          "name": "keywords",
+          "type": "string[]",
+          "doc": "Extra words the search matches."
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "doc": "A Shortcut command: its keys show at the end of the row."
+        },
+        {
+          "name": "checked",
+          "type": "boolean",
+          "doc": "Draws a check at the end of the row."
         },
         {
           "name": "disabled",
           "type": "boolean",
-          "doc": "Disabled entries cannot be chosen."
+          "doc": "Shown but cannot be chosen."
         }
       ],
       "example": "<CommandItem label=\"Settings\" onSelect={() => { open(); }}/>",
@@ -3894,24 +4704,94 @@
         {
           "prop": "onSelect",
           "value": "void",
-          "doc": "Called when the entry is chosen with Enter or a click."
+          "doc": "Runs when the item is chosen with Enter or a click."
+        },
+        {
+          "prop": "onHighlight",
+          "value": "void",
+          "doc": "Runs when the item becomes highlighted by the keyboard or pointer."
         }
       ],
       "item": true,
-      "children": "Text",
+      "children": true,
       "textChildren": "label"
     },
     {
+      "name": "CommandFooter",
+      "item": true,
+      "doc": "Content below the list, such as keyboard hints.",
+      "props": [],
+      "children": true,
+      "example": "<Command placeholder=\"Type a command or search...\">\n  <CommandGroup heading=\"Suggestions\">\n    <CommandItem icon=\"calendar\">Calendar</CommandItem>\n    <CommandItem icon=\"smile\" keywords={['emoji']}>Search Emoji</CommandItem>\n  </CommandGroup>\n  <CommandSeparator />\n  <CommandEmpty><Text>No results found.</Text></CommandEmpty>\n</Command>"
+    },
+    {
+      "name": "CommandHeader",
+      "item": true,
+      "doc": "Content above the list, such as filters.",
+      "props": [],
+      "children": true,
+      "example": "<Command placeholder=\"Type a command or search...\">\n  <CommandGroup heading=\"Suggestions\">\n    <CommandItem icon=\"calendar\">Calendar</CommandItem>\n    <CommandItem icon=\"smile\" keywords={['emoji']}>Search Emoji</CommandItem>\n  </CommandGroup>\n  <CommandSeparator />\n  <CommandEmpty><Text>No results found.</Text></CommandEmpty>\n</Command>"
+    },
+    {
+      "name": "CommandEmpty",
+      "item": true,
+      "doc": "Content shown when no command matches.",
+      "props": [],
+      "children": true,
+      "example": "<Command placeholder=\"Type a command or search...\">\n  <CommandGroup heading=\"Suggestions\">\n    <CommandItem icon=\"calendar\">Calendar</CommandItem>\n    <CommandItem icon=\"smile\" keywords={['emoji']}>Search Emoji</CommandItem>\n  </CommandGroup>\n  <CommandSeparator />\n  <CommandEmpty><Text>No results found.</Text></CommandEmpty>\n</Command>"
+    },
+    {
+      "name": "CommandSeparator",
+      "item": true,
+      "doc": "A divider between command entries.",
+      "props": [],
+      "children": null,
+      "example": "<Command placeholder=\"Type a command or search...\">\n  <CommandGroup heading=\"Suggestions\">\n    <CommandItem icon=\"calendar\">Calendar</CommandItem>\n    <CommandItem icon=\"smile\" keywords={['emoji']}>Search Emoji</CommandItem>\n  </CommandGroup>\n  <CommandSeparator />\n  <CommandEmpty><Text>No results found.</Text></CommandEmpty>\n</Command>"
+    },
+    {
+      "name": "CommandGroup",
+      "item": true,
+      "doc": "A titled group of CommandItems.",
+      "props": [
+        {
+          "name": "heading",
+          "type": "string",
+          "doc": "Group title."
+        }
+      ],
+      "children": "CommandItem",
+      "example": "<Command placeholder=\"Type a command or search...\">\n  <CommandGroup heading=\"Suggestions\">\n    <CommandItem icon=\"calendar\">Calendar</CommandItem>\n    <CommandItem icon=\"smile\" keywords={['emoji']}>Search Emoji</CommandItem>\n  </CommandGroup>\n  <CommandSeparator />\n  <CommandEmpty><Text>No results found.</Text></CommandEmpty>\n</Command>"
+    },
+    {
       "name": "Carousel",
-      "doc": "Shows one CarouselSlide at a time with previous and next buttons.",
+      "doc": "Shows one slide at a time. Compose CarouselContent with CarouselItem slides, then CarouselPrevious, CarouselNext and CarouselPagination controls; without controls it shows previous and next buttons.",
       "props": [
         {
           "name": "loop",
           "type": "boolean",
           "doc": "Wraps from the last slide to the first."
+        },
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "Slides move vertically."
+        },
+        {
+          "name": "selected",
+          "type": "int",
+          "doc": "Shown slide index (0-based), controlled; set it from onChange. Without it the carousel keeps its own slide."
+        },
+        {
+          "name": "defaultSelected",
+          "type": "int",
+          "doc": "Initial slide index when `selected` is unset. Defaults to 0."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name screen readers announce for the carousel."
         }
       ],
-      "example": "<Carousel><CarouselSlide><Text>One</Text></CarouselSlide><CarouselSlide><Text>Two</Text></CarouselSlide></Carousel>",
       "events": [
         {
           "prop": "onChange",
@@ -3920,15 +4800,113 @@
           "doc": "Receives the shown slide's index after navigation."
         }
       ],
-      "children": "CarouselSlide"
+      "example": "<Carousel>\n  <CarouselContent>\n    <CarouselItem><Card><Text>1</Text></Card></CarouselItem>\n    <CarouselItem><Card><Text>2</Text></Card></CarouselItem>\n  </CarouselContent>\n  <CarouselPrevious />\n  <CarouselNext />\n</Carousel>",
+      "children": "CarouselContent, CarouselItem, CarouselPrevious, CarouselNext and CarouselPagination"
     },
     {
       "name": "CarouselSlide",
-      "doc": "One slide of a Carousel.",
+      "doc": "One slide of a Carousel; same as CarouselItem.",
       "props": [],
       "example": "<CarouselSlide><Image src=\"photo.jpg\"/></CarouselSlide>",
       "children": true,
       "item": true
+    },
+    {
+      "name": "CarouselContent",
+      "item": true,
+      "doc": "The sliding track that holds a Carousel's CarouselItem slides.",
+      "props": [
+        {
+          "name": "trackClassName",
+          "type": "string",
+          "doc": "Utility classes for the track, such as gap or padding."
+        }
+      ],
+      "children": "CarouselItem",
+      "example": "<Carousel>\n  <CarouselContent>\n    <CarouselItem><Card><Text>1</Text></Card></CarouselItem>\n    <CarouselItem><Card><Text>2</Text></Card></CarouselItem>\n  </CarouselContent>\n  <CarouselPrevious />\n  <CarouselNext />\n</Carousel>"
+    },
+    {
+      "name": "CarouselItem",
+      "item": true,
+      "doc": "One slide of a Carousel.",
+      "props": [
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name screen readers announce for this slide."
+        }
+      ],
+      "children": true,
+      "example": "<CarouselItem><Image src=\"photo.jpg\" /></CarouselItem>"
+    },
+    {
+      "name": "CarouselPrevious",
+      "item": true,
+      "doc": "Button that shows the previous slide; disabled on the first slide unless the carousel loops.",
+      "props": [
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name screen readers announce for the button."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
+        }
+      ],
+      "example": "<CarouselPrevious size=\"small\" />"
+    },
+    {
+      "name": "CarouselNext",
+      "item": true,
+      "doc": "Button that shows the next slide; disabled on the last slide unless the carousel loops.",
+      "props": [
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name screen readers announce for the button."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
+        }
+      ],
+      "example": "<CarouselNext size=\"small\" />"
+    },
+    {
+      "name": "CarouselPagination",
+      "item": true,
+      "doc": "One dot per slide; clicking a dot shows that slide.",
+      "props": [
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name screen readers announce for the dots."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
+        }
+      ],
+      "example": "<CarouselPagination />"
     },
     {
       "name": "CodeEditor",
@@ -4321,7 +5299,7 @@
     },
     {
       "name": "Marker",
-      "doc": "A status row: an icon and text, optionally drawn as a separator line or bordered note, with a loading spinner.",
+      "doc": "A status row: a MarkerIcon and MarkerContent (or the icon and text props), drawn plain, as a separator line or a bordered note, with an optional spinner or shimmer while loading.",
       "props": [
         {
           "name": "text",
@@ -4346,14 +5324,69 @@
           "name": "loading",
           "type": "boolean",
           "doc": "Shows a spinner instead of the icon."
+        },
+        {
+          "name": "loadingStyle",
+          "type": [
+            "spinner",
+            "shimmer"
+          ],
+          "doc": "While loading: a spinner (default) or a shimmer over the text."
+        },
+        {
+          "name": "alignment",
+          "type": [
+            "start",
+            "center",
+            "end"
+          ],
+          "doc": "Content placement along the row."
+        },
+        {
+          "name": "separatorClassName",
+          "type": "string",
+          "doc": "Utility classes for the separator lines."
+        },
+        {
+          "name": "role",
+          "type": [
+            "presentation"
+          ],
+          "doc": "presentation hides the marker from screen readers."
+        },
+        {
+          "name": "shimmerDuration",
+          "type": "int",
+          "doc": "Shimmer sweep time in milliseconds."
+        },
+        {
+          "name": "shimmerColor",
+          "type": "string",
+          "doc": "Shimmer highlight color."
         }
       ],
+      "children": "MarkerIcon, MarkerContent or any content",
+      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking…</MarkerContent>\n</Marker>"
+    },
+    {
+      "name": "MarkerIcon",
+      "item": true,
       "children": true,
-      "example": "<Marker variant=\"separator\" icon=\"calendar\" text=\"Yesterday\"/>"
+      "doc": "A Marker's leading icon.",
+      "props": [],
+      "example": "<MarkerIcon><Icon name=\"info\" /></MarkerIcon>"
+    },
+    {
+      "name": "MarkerContent",
+      "item": true,
+      "children": true,
+      "doc": "A Marker's text; plain text shimmers while loading.",
+      "props": [],
+      "example": "<MarkerContent>Saved</MarkerContent>"
     },
     {
       "name": "Attachment",
-      "doc": "One file or media item with a title, description, upload status and remove/retry controls.",
+      "doc": "One file or media item. Compose AttachmentMedia, AttachmentContent (AttachmentTitle, AttachmentDescription) and AttachmentActions, or use the title/description/icon/image props.",
       "props": [
         {
           "name": "title",
@@ -4390,6 +5423,36 @@
           "name": "progress",
           "type": "number",
           "doc": "Upload progress, 0–100, while uploading."
+        },
+        {
+          "name": "tooltip",
+          "type": "string",
+          "doc": "Text shown on hover."
+        },
+        {
+          "name": "vertical",
+          "type": "boolean",
+          "doc": "Stacks media above the text, as a card."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
+        },
+        {
+          "name": "shimmerDuration",
+          "type": "int",
+          "doc": "Shimmer sweep time in milliseconds."
+        },
+        {
+          "name": "shimmerColor",
+          "type": "string",
+          "doc": "Shimmer highlight color."
         }
       ],
       "events": [
@@ -4409,33 +5472,207 @@
           "doc": "Shows a retry button on failure; called when it is clicked."
         }
       ],
-      "example": "<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>"
+      "example": "<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
+      "children": "AttachmentMedia, AttachmentContent and AttachmentActions"
+    },
+    {
+      "name": "AttachmentActions",
+      "item": true,
+      "children": true,
+      "doc": "Extra buttons on an Attachment.",
+      "props": [],
+      "example": "<AttachmentActions><Button size=\"xsmall\" variant=\"ghost\" icon=\"download\" /></AttachmentActions>"
+    },
+    {
+      "name": "AttachmentDescription",
+      "item": true,
+      "children": true,
+      "doc": "An Attachment's secondary text; it shows the status while in progress or failed.",
+      "props": [],
+      "example": "<AttachmentDescription>PDF · 2.4 MB</AttachmentDescription>"
+    },
+    {
+      "name": "AttachmentTitle",
+      "item": true,
+      "children": true,
+      "doc": "An Attachment's name; it shimmers while uploading or processing.",
+      "props": [
+        {
+          "name": "shimmerDuration",
+          "type": "int",
+          "doc": "Shimmer sweep time in milliseconds."
+        },
+        {
+          "name": "shimmerColor",
+          "type": "string",
+          "doc": "Shimmer highlight color."
+        }
+      ],
+      "example": "<AttachmentTitle>report.pdf</AttachmentTitle>"
+    },
+    {
+      "name": "AttachmentContent",
+      "item": true,
+      "children": "AttachmentTitle, AttachmentDescription",
+      "doc": "An Attachment's text.",
+      "props": [],
+      "example": "<AttachmentContent><AttachmentTitle>report.pdf</AttachmentTitle><AttachmentDescription>2.4 MB</AttachmentDescription></AttachmentContent>"
+    },
+    {
+      "name": "AttachmentMedia",
+      "item": true,
+      "children": true,
+      "doc": "An Attachment's preview: an image `src` (children draw over it) or children such as an icon.",
+      "props": [
+        {
+          "name": "src",
+          "type": "string",
+          "doc": "Image file path or URL."
+        }
+      ],
+      "example": "<AttachmentMedia src=\"photo.jpg\" />"
     },
     {
       "name": "AttachmentGroup",
       "doc": "A horizontally scrolling row of Attachment elements.",
-      "props": [],
+      "props": [
+        {
+          "name": "edgeFade",
+          "type": "string",
+          "doc": "Background color the row fades into at its scrolling edges."
+        }
+      ],
       "children": "Attachment",
       "example": "<AttachmentGroup><Attachment title=\"a.png\"/><Attachment title=\"b.pdf\"/></AttachmentGroup>"
     },
     {
       "name": "DataTable",
-      "doc": "A virtualized table of text rows with sortable, resizable columns and row selection.",
+      "doc": "A virtualized table over many rows: sortable, resizable and movable columns, fixed columns, row, column or cell selection, a right-click menu and incremental loading. Columns come from DataTableColumn children; give it a height with className.",
       "props": [
+        {
+          "name": "rows",
+          "type": "string",
+          "doc": "The cells as JSON: an array of rows, each an array of cell values (`JSON.stringify(rows)`). Non-string values show as JSON text."
+        },
         {
           "name": "columns",
           "type": "string[]",
-          "doc": "Column headings."
+          "doc": "Column titles, when there are no DataTableColumn children."
         },
         {
-          "name": "rows",
-          "type": "string[][]",
-          "doc": "Rows of cell text, in column order."
+          "name": "stripe",
+          "type": "boolean",
+          "doc": "Alternates row backgrounds."
+        },
+        {
+          "name": "bordered",
+          "type": "boolean",
+          "doc": "false removes the outer border. Defaults to true."
         },
         {
           "name": "sortable",
           "type": "boolean",
-          "doc": "Lets the user sort by clicking a heading. Numbers sort numerically."
+          "doc": "false turns off sorting for every column. Defaults to true; each column opts in with `sortable`."
+        },
+        {
+          "name": "rowSelectable",
+          "type": "boolean",
+          "doc": "false turns off row selection. Defaults to true."
+        },
+        {
+          "name": "columnSelectable",
+          "type": "boolean",
+          "doc": "Clicking a header selects the column."
+        },
+        {
+          "name": "cellSelectable",
+          "type": "boolean",
+          "doc": "Selects single cells instead of rows; arrow keys move between cells."
+        },
+        {
+          "name": "selectOnModifierClick",
+          "type": "boolean",
+          "doc": "Selects only on Cmd/Ctrl-click, so plain clicks leave the selection."
+        },
+        {
+          "name": "loopSelection",
+          "type": "boolean",
+          "doc": "false stops arrow keys at the first and last row. Defaults to true."
+        },
+        {
+          "name": "columnMovable",
+          "type": "boolean",
+          "doc": "false stops dragging headers to reorder columns. Defaults to true."
+        },
+        {
+          "name": "columnResizable",
+          "type": "boolean",
+          "doc": "false stops dragging header edges to resize columns. Defaults to true."
+        },
+        {
+          "name": "rowHeader",
+          "type": "boolean",
+          "doc": "With cellSelectable, the leading column that selects whole rows; false hides it (clicking a selected cell again then selects its row). Defaults to true."
+        },
+        {
+          "name": "fixedColumnsBorder",
+          "type": "boolean",
+          "doc": "Draws a border after the fixed columns."
+        },
+        {
+          "name": "scrollbarVisible",
+          "type": "boolean",
+          "doc": "false hides the vertical scrollbar. Defaults to true."
+        },
+        {
+          "name": "horizontalScrollbarVisible",
+          "type": "boolean",
+          "doc": "false hides the horizontal scrollbar. Defaults to true."
+        },
+        {
+          "name": "scrollBounce",
+          "type": "boolean",
+          "doc": "Elastic overscroll at the edges."
+        },
+        {
+          "name": "headerRowHeight",
+          "type": "number",
+          "doc": "Header row height in pixels."
+        },
+        {
+          "name": "selectedRow",
+          "type": "int",
+          "doc": "Selected row by its index in `rows`, controlled; the table scrolls to it."
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "doc": "Shows skeleton rows instead of the data."
+        },
+        {
+          "name": "hasMore",
+          "type": "boolean",
+          "doc": "More rows can load; scrolling near the end fires onLoadMore."
+        },
+        {
+          "name": "loadMoreThreshold",
+          "type": "int",
+          "doc": "Rows from the end at which onLoadMore fires. Defaults to 20."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Name screen readers announce for the table."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Row size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
@@ -4443,10 +5680,175 @@
           "prop": "onSelect",
           "value": "int",
           "param": "row",
-          "doc": "Receives the selected row's index in rows."
+          "doc": "Receives the selected row's index in `rows` (sorting does not change it)."
+        },
+        {
+          "prop": "onActivate",
+          "value": "int",
+          "param": "row",
+          "doc": "Receives a double-clicked row's index."
+        },
+        {
+          "prop": "onSelectColumn",
+          "value": "string",
+          "param": "key",
+          "doc": "Receives the selected column's key."
+        },
+        {
+          "prop": "onSelectCell",
+          "value": "string[]",
+          "param": "cell",
+          "doc": "Receives the selected cell as [row index, column key]."
+        },
+        {
+          "prop": "onActivateCell",
+          "value": "string[]",
+          "param": "cell",
+          "doc": "Receives a double-clicked cell as [row index, column key]."
+        },
+        {
+          "prop": "onSort",
+          "value": "string[]",
+          "param": "sort",
+          "doc": "Receives [column key, direction] after a header click; direction is ascending, descending or empty for the original order."
+        },
+        {
+          "prop": "onColumnsChange",
+          "value": "string[]",
+          "param": "keys",
+          "doc": "Receives the column keys in their new order after a drag."
+        },
+        {
+          "prop": "onColumnWidthsChange",
+          "value": "string[]",
+          "param": "widths",
+          "doc": "Receives every column width in pixels after a resize."
+        },
+        {
+          "prop": "onRightClick",
+          "value": "int",
+          "param": "row",
+          "doc": "Receives a right-clicked row's index."
+        },
+        {
+          "prop": "onContextMenu",
+          "value": "int",
+          "param": "row",
+          "doc": "Receives the row index as its DataTableMenu opens."
+        },
+        {
+          "prop": "onClearSelection",
+          "value": "void",
+          "doc": "Runs when Escape clears the selection."
+        },
+        {
+          "prop": "onLoadMore",
+          "value": "void",
+          "doc": "Runs when scrolling nears the end while hasMore is true."
         }
       ],
-      "example": "<DataTable columns={['Name', 'Age']} rows={[['Ada', '36'], ['Alan', '41']]} sortable={true} onSelect={(row) => { picked.set(row); }} className=\"h-64\"/>"
+      "example": "<DataTable className=\"h-72\" rows={JSON.stringify(rows)} stripe={true} onSelect={(row) => { selected.set(row); }}>\n  <DataTableColumn key=\"0\" width={160} fixed=\"left\">Name</DataTableColumn>\n  <DataTableColumn key=\"1\" sortable={true}>Role</DataTableColumn>\n  <DataTableColumn key=\"2\" sortable={true} align=\"right\">Salary</DataTableColumn>\n  <DataTableEmpty><Text variant=\"muted\">No people.</Text></DataTableEmpty>\n</DataTable>",
+      "children": "DataTableColumn, DataTableEmpty and DataTableMenu"
+    },
+    {
+      "name": "DataTableColumn",
+      "item": true,
+      "children": true,
+      "textChildren": "label",
+      "doc": "One DataTable column; its text is the header.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Header text; usually given as the text children."
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "doc": "Column identity events report. A number picks that cell of each row; defaults to the column's position."
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "doc": "Width in pixels."
+        },
+        {
+          "name": "minWidth",
+          "type": "number",
+          "doc": "Narrowest width a resize allows."
+        },
+        {
+          "name": "maxWidth",
+          "type": "number",
+          "doc": "Widest width a resize allows."
+        },
+        {
+          "name": "sortable",
+          "type": "boolean",
+          "doc": "A header click cycles ascending, descending and original order. Numbers sort numerically."
+        },
+        {
+          "name": "defaultSort",
+          "type": [
+            "ascending",
+            "descending"
+          ],
+          "doc": "Sort indicator shown at first."
+        },
+        {
+          "name": "align",
+          "type": [
+            "left",
+            "center",
+            "right"
+          ],
+          "doc": "Cell alignment: left (default), center or right."
+        },
+        {
+          "name": "fixed",
+          "type": [
+            "left"
+          ],
+          "doc": "left keeps the column in place while scrolling sideways."
+        },
+        {
+          "name": "resizable",
+          "type": "boolean",
+          "doc": "false stops resizing this column. Defaults to true."
+        },
+        {
+          "name": "movable",
+          "type": "boolean",
+          "doc": "false stops moving this column. Defaults to true."
+        },
+        {
+          "name": "selectable",
+          "type": "boolean",
+          "doc": "false stops selecting this column. Defaults to true."
+        },
+        {
+          "name": "padding",
+          "type": "number",
+          "doc": "Cell padding in pixels; 0 removes it."
+        }
+      ],
+      "example": "<DataTableColumn key=\"2\" sortable={true} align=\"right\" width={120}>Salary</DataTableColumn>"
+    },
+    {
+      "name": "DataTableEmpty",
+      "item": true,
+      "children": true,
+      "doc": "What a DataTable shows with no rows.",
+      "props": [],
+      "example": "<DataTableEmpty><Text variant=\"muted\">No results.</Text></DataTableEmpty>"
+    },
+    {
+      "name": "DataTableMenu",
+      "item": true,
+      "children": "MenuItem, MenuSeparator and MenuLabel",
+      "doc": "The right-click menu of every DataTable row; onContextMenu tells which row opened it.",
+      "props": [],
+      "example": "<DataTableMenu><MenuItem>Copy</MenuItem></DataTableMenu>"
     },
     {
       "name": "Settings",
@@ -4520,6 +5922,46 @@
           "name": "jumpLabel",
           "type": "string",
           "doc": "Text of the jump-to-latest button. Defaults to Jump to latest."
+        },
+        {
+          "name": "scrollbar",
+          "type": "boolean",
+          "doc": "false hides the scrollbar."
+        },
+        {
+          "name": "jumpButton",
+          "type": "boolean",
+          "doc": "false hides the jump-to-latest button."
+        },
+        {
+          "name": "jumpButtonTransition",
+          "type": "int",
+          "doc": "Jump button fade time in milliseconds."
+        },
+        {
+          "name": "bottomFade",
+          "type": "string",
+          "doc": "Background color the transcript fades into at the bottom."
+        },
+        {
+          "name": "contentClassName",
+          "type": "string",
+          "doc": "Utility classes for the scrolling content."
+        },
+        {
+          "name": "listClassName",
+          "type": "string",
+          "doc": "Utility classes for the message list."
+        },
+        {
+          "name": "rowClassName",
+          "type": "string",
+          "doc": "Utility classes applied to every message row."
+        },
+        {
+          "name": "jumpButtonClassName",
+          "type": "string",
+          "doc": "Utility classes for the jump button."
         }
       ],
       "children": true,
@@ -4796,6 +6238,31 @@
         }
       ],
       "example": "<Shortcut command=\"save\" keys=\"secondary-s\" onTrigger={() => { save(); }}/>"
+    },
+    {
+      "name": "Ticker",
+      "doc": "An invisible timer for animation: it calls onTick on a fixed interval while running. Update signals in onTick to move things; it stops when unmounted.",
+      "props": [
+        {
+          "name": "interval",
+          "type": "number",
+          "doc": "Milliseconds between ticks. Defaults to 16 (about 60 per second)."
+        },
+        {
+          "name": "running",
+          "type": "boolean",
+          "doc": "false pauses the ticks. Defaults to true."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onTick",
+          "value": "int",
+          "param": "frame",
+          "doc": "Receives the tick count since the timer started (1, 2, 3 and so on)."
+        }
+      ],
+      "example": "<Ticker interval={16} onTick={(frame) => { angle.set(frame % 360); }} />"
     },
     {
       "name": "MenuLabel",
@@ -5479,6 +6946,54 @@
       "query": "query",
       "set_query": "query"
     },
+    "Command": {
+      "new": "automatic",
+      "item": "CommandItem children",
+      "items": "CommandItem children",
+      "group": "CommandGroup children",
+      "separator": "CommandSeparator child",
+      "searchable": "searchable",
+      "filterable": "filterable",
+      "on_query": "onQuery",
+      "on_select": "CommandItem onHighlight",
+      "on_confirm": "CommandItem onSelect",
+      "on_cancel": "onCancel",
+      "placeholder": "placeholder",
+      "empty": "CommandEmpty child",
+      "max_h": "maxHeight",
+      "scroll_bounce": "scrollBounce",
+      "bordered": "bordered",
+      "header": "CommandHeader child",
+      "footer": "CommandFooter child"
+    },
+    "CommandGroup": {
+      "new": "automatic",
+      "label": "heading",
+      "item": "CommandItem children",
+      "items": "CommandItem children",
+      "heading": "heading"
+    },
+    "CommandItem": {
+      "new": "automatic",
+      "label": "label / text children",
+      "icon": "icon",
+      "action": "command",
+      "checked": "checked",
+      "keywords": "keywords",
+      "child": "rich children",
+      "disabled": "disabled"
+    },
+    "CommandState": {
+      "new": "automatic",
+      "query": "onQuery",
+      "set_query": "query",
+      "selected_index": "CommandItem onHighlight",
+      "set_selected_index": "n/a: highlight follows the keyboard and pointer",
+      "matched_count": "n/a: render CommandEmpty for no matches",
+      "focus": "autoFocus",
+      "set_loading": "loading",
+      "is_loading": "loading"
+    },
     "DatePicker": {
       "xsmall": "size",
       "small": "size",
@@ -5605,6 +7120,12 @@
       "header": "title,description",
       "content": "children"
     },
+    "EmptyContent": {
+      "new": "automatic: the EmptyContent child"
+    },
+    "EmptyDescription": {
+      "new": "automatic: the EmptyDescription child"
+    },
     "EmptyHeader": {
       "new": "Empty",
       "media": "EmptyMedia",
@@ -5614,6 +7135,43 @@
     "EmptyMedia": {
       "new": "EmptyMedia",
       "with_variant": "framed"
+    },
+    "EmptyTitle": {
+      "new": "automatic: the EmptyTitle child"
+    },
+    "Field": {
+      "new": "automatic",
+      "label": "label",
+      "label_indent": "labelIndent",
+      "label_fn": "FieldLabel child",
+      "description": "description",
+      "description_fn": "FieldDescription child",
+      "visible": "visible",
+      "required": "required",
+      "items_start": "align",
+      "items_end": "align",
+      "items_center": "align",
+      "col_span": "colSpan",
+      "col_start": "colStart",
+      "col_end": "colEnd"
+    },
+    "Form": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "horizontal": "horizontal",
+      "vertical": "horizontal={false}",
+      "layout": "horizontal",
+      "label_layout": "labelLayout",
+      "label_width": "labelWidth",
+      "label_text_size": "labelTextSize",
+      "child": "Field children",
+      "children": "Field children",
+      "footer": "FormFooter child",
+      "columns": "columns"
     },
     "GroupBox": {
       "new": "GroupBox",
@@ -6072,6 +7630,22 @@
       "large": "size",
       "with_size": "size"
     },
+    "ResizablePanel": {
+      "visible": "visible",
+      "size": "size",
+      "size_range": "minSize / maxSize",
+      "fixed": "fixed"
+    },
+    "ResizablePanelGroup": {
+      "new": "automatic",
+      "with_handle_appearance": "n/a: handles follow the theme",
+      "with_state": "n/a: each group keeps its own resize state; onResize reports sizes",
+      "axis": "vertical",
+      "child": "ResizablePanel children",
+      "children": "ResizablePanel children",
+      "size": "size",
+      "on_resize": "onResize"
+    },
     "Select": {
       "xsmall": "size",
       "small": "size",
@@ -6132,6 +7706,61 @@
       "reverse": "reverse",
       "once": "once"
     },
+    "Sidebar": {
+      "new": "automatic",
+      "side": "side",
+      "collapsible": "collapsible",
+      "collapsed": "collapsed",
+      "header": "SidebarHeader child",
+      "footer": "SidebarFooter child",
+      "child": "SidebarGroup children",
+      "children": "SidebarGroup children"
+    },
+    "SidebarFooter": {
+      "new": "automatic",
+      "selected": "selected",
+      "collapsed": "Sidebar collapsed"
+    },
+    "SidebarGroup": {
+      "new": "label",
+      "child": "SidebarItem children",
+      "children": "SidebarItem children",
+      "collapsed": "Sidebar collapsed"
+    },
+    "SidebarHeader": {
+      "new": "automatic",
+      "selected": "selected",
+      "collapsed": "Sidebar collapsed"
+    },
+    "SidebarMenu": {
+      "new": "automatic",
+      "child": "SidebarItem children",
+      "children": "SidebarItem children",
+      "collapsed": "Sidebar collapsed"
+    },
+    "SidebarMenuItem": {
+      "new": "label / text children",
+      "icon": "icon",
+      "label_style": "labelClassName",
+      "accessibility_label": "accessibilityLabel",
+      "active": "active",
+      "on_click": "onClick",
+      "collapsed": "Sidebar collapsed",
+      "default_open": "defaultOpen",
+      "click_to_open": "clickToOpen",
+      "click_to_toggle": "clickToToggle",
+      "children": "SidebarItem children",
+      "suffix": "SidebarItemSuffix child",
+      "disable": "disabled",
+      "context_menu": "MenuItem children"
+    },
+    "SidebarToggleButton": {
+      "new": "automatic",
+      "side": "side",
+      "collapsed": "collapsed",
+      "accessibility_label": "accessibilityLabel",
+      "on_click": "onClick"
+    },
     "Skeleton": {
       "new": "Skeleton",
       "secondary": "secondary"
@@ -6172,6 +7801,11 @@
       "medium": "size",
       "large": "size",
       "with_size": "size"
+    },
+    "StatusBar": {
+      "new": "automatic",
+      "left": "StatusBarLeft child",
+      "right": "StatusBarRight child"
     },
     "Stepper": {
       "xsmall": "size",
@@ -6446,6 +8080,12 @@
       "selected_segment": "n/a: the component's own pointer and layout handling",
       "focus": "autoFocus"
     },
+    "TitleBar": {
+      "new": "automatic",
+      "title_bar_options": "n/a: run(..., { titlebar: 'custom' }) applies these window options",
+      "window_options": "n/a: run(..., { titlebar: 'custom' }) applies these window options",
+      "on_close_window": "onCloseWindow"
+    },
     "Toggle": {
       "new": "Toggle",
       "tooltip": "tooltip",
@@ -6474,12 +8114,484 @@
       "with_size": "size",
       "disabled": "disabled"
     },
+    "Toolbar": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "disabled": "disabled",
+      "child": "children",
+      "children": "children",
+      "content": "children",
+      "contents": "children"
+    },
+    "ToolbarGroup": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "label": "label",
+      "child": "children",
+      "children": "children",
+      "content": "children"
+    },
     "Tooltip": {
       "new": "text",
       "element": "TooltipContent child",
       "action": "command",
       "key_binding": "keys",
       "build": "automatic"
+    },
+    "WindowBorder": {
+      "new": "automatic",
+      "shadow_size": "shadowSize",
+      "resize_hit_size": "resizeHitSize"
+    },
+    "Carousel": {
+      "new": "automatic",
+      "accessibility_label": "accessibilityLabel"
+    },
+    "CarouselContent": {
+      "new": "CarouselContent child",
+      "track_style": "trackClassName"
+    },
+    "CarouselItem": {
+      "new": "CarouselItem children",
+      "accessibility_label": "accessibilityLabel"
+    },
+    "CarouselPrevious": {
+      "new": "CarouselPrevious child",
+      "accessibility_label": "accessibilityLabel",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "CarouselNext": {
+      "new": "CarouselNext child",
+      "accessibility_label": "accessibilityLabel",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "CarouselPagination": {
+      "new": "CarouselPagination child",
+      "accessibility_label": "accessibilityLabel"
+    },
+    "CarouselPaginationItem": {
+      "new": "one per slide",
+      "accessibility_label": "CarouselPagination accessibilityLabel",
+      "xsmall": "CarouselPagination size",
+      "small": "CarouselPagination size",
+      "medium": "CarouselPagination size",
+      "large": "CarouselPagination size",
+      "with_size": "CarouselPagination size"
+    },
+    "CarouselState": {
+      "new": "automatic",
+      "with_selected_index": "defaultSelected",
+      "with_axis": "vertical",
+      "with_looping": "loop",
+      "item_count": "slide sync",
+      "selected_index": "selected",
+      "axis": "vertical",
+      "is_looping": "loop",
+      "has_previous": "CarouselPrevious",
+      "has_next": "CarouselNext",
+      "set_selected_index": "selected",
+      "set_item_count": "slide sync",
+      "set_axis": "vertical",
+      "set_looping": "loop",
+      "select_index": "CarouselPagination",
+      "select_previous": "CarouselPrevious",
+      "select_next": "CarouselNext",
+      "select_first": "Kit keyboard",
+      "select_last": "Kit keyboard"
+    },
+    "Table": {
+      "new": "automatic",
+      "accessibility_label": "accessibilityLabel",
+      "child": "part children",
+      "children": "part children",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "TableHeader": {
+      "new": "TableHeader child",
+      "child": "TableRow children",
+      "children": "TableRow children",
+      "xsmall": "Table size",
+      "small": "Table size",
+      "medium": "Table size",
+      "large": "Table size",
+      "with_size": "Table size"
+    },
+    "TableBody": {
+      "new": "TableBody child",
+      "child": "TableRow children",
+      "children": "TableRow children",
+      "xsmall": "Table size",
+      "small": "Table size",
+      "medium": "Table size",
+      "large": "Table size",
+      "with_size": "Table size"
+    },
+    "TableFooter": {
+      "new": "TableFooter child",
+      "child": "TableRow children",
+      "children": "TableRow children",
+      "xsmall": "Table size",
+      "small": "Table size",
+      "medium": "Table size",
+      "large": "Table size",
+      "with_size": "Table size"
+    },
+    "TableRow": {
+      "new": "TableRow children",
+      "child": "cell children",
+      "children": "cell children",
+      "xsmall": "Table size",
+      "small": "Table size",
+      "medium": "Table size",
+      "large": "Table size",
+      "with_size": "Table size"
+    },
+    "TableHead": {
+      "new": "TableHead children",
+      "col_span": "colSpan",
+      "text_center": "align=center",
+      "text_right": "align=right",
+      "xsmall": "Table size",
+      "small": "Table size",
+      "medium": "Table size",
+      "large": "Table size",
+      "with_size": "Table size"
+    },
+    "TableCell": {
+      "new": "TableCell children",
+      "col_span": "colSpan",
+      "text_center": "align=center",
+      "text_right": "align=right",
+      "xsmall": "Table size",
+      "small": "Table size",
+      "medium": "Table size",
+      "large": "Table size",
+      "with_size": "Table size"
+    },
+    "TableCaption": {
+      "new": "TableCaption child",
+      "xsmall": "Table size",
+      "small": "Table size",
+      "medium": "Table size",
+      "large": "Table size",
+      "with_size": "Table size"
+    },
+    "List": {
+      "new": "automatic",
+      "scrollbar_visible": "scrollbarVisible",
+      "scroll_bounce": "scrollBounce",
+      "search_placeholder": "placeholder",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "ListItem": {
+      "new": "ListItem children",
+      "separator": "ListSeparator",
+      "check_icon": "checkIcon",
+      "selected": "List highlight",
+      "confirmed": "confirmed",
+      "accessibility_label": "accessibilityLabel",
+      "disabled": "disabled",
+      "suffix": "ListItemSuffix child",
+      "on_click": "onClick",
+      "on_mouse_down": "onMouseDown",
+      "on_mouse_enter": "onHover"
+    },
+    "ListSeparatorItem": {
+      "new": "ListSeparator (a separator ListItem row)",
+      "selected": "never highlighted"
+    },
+    "ListState": {
+      "new": "automatic",
+      "searchable": "searchable",
+      "set_searchable": "searchable",
+      "selectable": "selectable",
+      "set_selectable": "selectable",
+      "delegate": "ListItem children",
+      "delegate_mut": "ListItem children",
+      "focus": "autoFocus",
+      "set_selected_index": "selected",
+      "selected_index": "selected",
+      "set_right_clicked_index": "Kit right click",
+      "right_clicked_index": "Kit right click",
+      "set_query": "query",
+      "set_item_to_measure_index": "Kit measuring",
+      "scroll_to_item": "selected",
+      "scroll_handle": "Kit scrolling",
+      "scroll_to_selected_item": "selected"
+    },
+    "Tree": {
+      "new": "automatic",
+      "context_menu": "TreeMenu child",
+      "scroll_bounce": "scrollBounce"
+    },
+    "TreeItem": {
+      "new": "TreeItem children",
+      "child": "nested TreeItem",
+      "children": "nested TreeItem",
+      "expanded": "expanded / defaultExpanded",
+      "disabled": "disabled",
+      "is_folder": "folder icon",
+      "is_disabled": "disabled",
+      "is_expanded": "open folder icon",
+      "ancestors": "selected (reveal)"
+    },
+    "TreeState": {
+      "new": "automatic",
+      "items": "TreeItem children",
+      "set_items": "TreeItem children",
+      "selected_index": "selected",
+      "set_selected_index": "selected",
+      "set_selected_item": "selected",
+      "selected_item": "selected",
+      "selected_entry": "selected",
+      "entry": "row rendering",
+      "scroll_handle": "Kit scrolling",
+      "scroll_to_item": "selected",
+      "index_of": "selected",
+      "reveal_item": "selected",
+      "focus": "autoFocus"
+    },
+    "DataTable": {
+      "new": "automatic",
+      "accessibility_label": "accessibilityLabel",
+      "stripe": "stripe",
+      "scroll_bounce": "scrollBounce",
+      "bordered": "bordered",
+      "header_row_height": "headerRowHeight",
+      "fixed_cols_border": "fixedColumnsBorder",
+      "scrollbar_visible": "scrollbarVisible / horizontalScrollbarVisible",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "Column": {
+      "new": "DataTableColumn children",
+      "sort": "defaultSort",
+      "sortable": "sortable",
+      "ascending": "defaultSort",
+      "descending": "defaultSort",
+      "text_center": "align",
+      "text_right": "align",
+      "paddings": "padding",
+      "p_0": "padding={0}",
+      "width": "width",
+      "fixed": "fixed",
+      "fixed_left": "fixed=\"left\"",
+      "resizable": "resizable",
+      "movable": "movable",
+      "selectable": "selectable",
+      "min_width": "minWidth",
+      "max_width": "maxWidth"
+    },
+    "TableState": {
+      "new": "automatic",
+      "delegate": "rows / columns",
+      "delegate_mut": "rows / columns",
+      "loop_selection": "loopSelection",
+      "col_movable": "columnMovable",
+      "col_resizable": "columnResizable",
+      "sortable": "sortable",
+      "row_selectable": "rowSelectable",
+      "select_on_modifier_click": "selectOnModifierClick",
+      "col_selectable": "columnSelectable",
+      "cell_selectable": "cellSelectable",
+      "row_header": "rowHeader",
+      "refresh": "rows sync",
+      "scroll_to_row": "selectedRow",
+      "scroll_to_col": "Kit keyboard",
+      "selection": "onSelect*",
+      "selected_row": "selectedRow",
+      "set_selected_row": "selectedRow",
+      "right_clicked_row": "onRightClick",
+      "right_clicked_cell": "onRightClick",
+      "set_right_clicked_row": "Kit right click",
+      "selected_col": "onSelectColumn",
+      "set_selected_col": "Kit header click",
+      "selected_cell": "onSelectCell",
+      "set_selected_cell": "Kit cell click",
+      "set_selection": "Kit selection",
+      "clear_selection": "onClearSelection",
+      "visible_range": "Kit virtualization",
+      "headers": "DataTableColumn labels",
+      "dump": "rows",
+      "dump_range": "rows",
+      "refresh_header_layout": "columns sync",
+      "col_width": "onColumnWidthsChange",
+      "fit_col": "Kit double-click resize"
+    },
+    "Message": {
+      "new": "automatic",
+      "alignment": "align",
+      "id": "automatic",
+      "role": "role",
+      "with_stack_style": "stackClassName",
+      "avatar": "author (short form)",
+      "avatar_slot": "MessageAvatar child",
+      "header": "MessageHeader child",
+      "content": "MessageContent child",
+      "footer": "MessageFooter child"
+    },
+    "MessageAvatar": {
+      "new": "MessageAvatar child"
+    },
+    "MessageContent": {
+      "new": "MessageContent child",
+      "bubble": "single Bubble child"
+    },
+    "MessageFooter": {
+      "new": "MessageFooter child",
+      "content_inset": "inset"
+    },
+    "MessageGroup": {
+      "new": "automatic"
+    },
+    "MessageHeader": {
+      "new": "MessageHeader child",
+      "content_inset": "inset"
+    },
+    "Bubble": {
+      "new": "automatic",
+      "alignment": "align",
+      "with_variant": "variant",
+      "content": "BubbleContent child",
+      "reactions": "BubbleReactions child"
+    },
+    "BubbleContent": {
+      "new": "BubbleContent child or loose children"
+    },
+    "BubbleGroup": {
+      "new": "automatic"
+    },
+    "BubbleReactions": {
+      "new": "BubbleReactions child",
+      "side": "side",
+      "alignment": "align",
+      "action": "Button children"
+    },
+    "Marker": {
+      "new": "automatic",
+      "id": "automatic",
+      "role": "role",
+      "with_variant": "variant",
+      "alignment": "alignment",
+      "loading": "loading",
+      "with_loading_style": "loadingStyle",
+      "with_shimmer_style": "shimmerDuration / shimmerColor",
+      "separator_style": "separatorClassName",
+      "icon": "MarkerIcon child / icon",
+      "content": "MarkerContent child / text"
+    },
+    "MarkerContent": {
+      "new": "MarkerContent child",
+      "text": "plain text children"
+    },
+    "MarkerIcon": {
+      "new": "MarkerIcon child"
+    },
+    "Attachment": {
+      "new": "automatic",
+      "id": "automatic",
+      "on_click": "onClick",
+      "on_remove": "onRemove",
+      "on_retry": "onRetry",
+      "progress": "progress",
+      "tooltip": "tooltip",
+      "status": "status",
+      "axis": "vertical",
+      "media": "AttachmentMedia child / icon / image",
+      "content": "AttachmentContent child / title",
+      "actions": "AttachmentActions child",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "AttachmentActions": {
+      "new": "AttachmentActions child"
+    },
+    "AttachmentContent": {
+      "new": "AttachmentContent child",
+      "title": "AttachmentTitle",
+      "description": "AttachmentDescription"
+    },
+    "AttachmentDescription": {
+      "new": "AttachmentDescription child",
+      "status": "Attachment status"
+    },
+    "AttachmentGroup": {
+      "new": "automatic",
+      "track_scroll": "Kit scrolling",
+      "with_edge_fade": "edgeFade"
+    },
+    "AttachmentMedia": {
+      "new": "AttachmentMedia child",
+      "src": "src / image",
+      "overlay": "children over src",
+      "xsmall": "Attachment size",
+      "small": "Attachment size",
+      "medium": "Attachment size",
+      "large": "Attachment size",
+      "with_size": "Attachment size"
+    },
+    "AttachmentTitle": {
+      "new": "AttachmentTitle child",
+      "status": "Attachment status",
+      "with_shimmer_style": "shimmerDuration / shimmerColor"
+    },
+    "MessageScroller": {
+      "new": "automatic",
+      "scrollbar": "scrollbar",
+      "jump_button": "jumpButton",
+      "with_jump_button_label": "jumpLabel",
+      "with_content_style": "contentClassName",
+      "with_list_style": "listClassName",
+      "with_row_style": "rowClassName",
+      "with_jump_button_style": "jumpButtonClassName",
+      "with_jump_button_renderer": "Kit default button",
+      "with_jump_button_transition": "jumpButtonTransition",
+      "with_bottom_fade": "bottomFade"
+    },
+    "MessageScrollerState": {
+      "new": "automatic",
+      "item_count": "children",
+      "is_scrolled_up": "jump button",
+      "is_following_tail": "follows new children",
+      "logical_scroll_top": "Kit scrolling",
+      "reset": "children removed",
+      "splice": "children sync",
+      "append": "children added",
+      "prepend": "children sync",
+      "remeasure": "Kit layout",
+      "remeasure_items": "Kit layout",
+      "scroll_to_item": "Kit scrolling",
+      "scroll_to_end": "jump button"
     }
   }
 }

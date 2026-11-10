@@ -12,6 +12,14 @@ use std::collections::HashMap;
 
 pub fn run(node: Node, title: String) -> Result<(), String> {run_configured(node, title, "{}")}
 
+/// Ends the application on an unhandled UI error. GPUI's run loop exits the process when it quits instead of
+/// returning, so the error is printed and the process exits with status 1 here, as an uncaught error would.
+fn fail(failure: &Failure, error: String) -> ! {
+    eprintln!("Uncaught {error}");
+    *failure.borrow_mut() = Some(error);
+    std::process::exit(1)
+}
+
 pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<(), String> {
     let options = Options::parse(options)?;
     node.refresh()?;
@@ -25,10 +33,7 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
         gpui_kit::component::set_locale(&super::i18n::locale());
         // The application ends with its last window, as a single-window app does.
         cx.on_window_closed(|cx, _| if cx.windows().is_empty() {cx.quit();}).detach();
-        if let Err(error) = open(node, title, options, reported.clone(), cx) {
-            *reported.borrow_mut() = Some(error);
-            cx.quit();
-        }
+        if let Err(error) = open(node, title, options, reported.clone(), cx) {fail(&reported, error);}
     });
     match failure.take() {Some(error) => Err(error), None => Ok(())}
 }
@@ -245,7 +250,7 @@ impl Root {
     fn settle(&mut self, result: Result<bool, String>, cx: &mut Context<Self>) {
         match result.and_then(|_| self.node.refresh()) {
             Ok(_) => cx.notify(),
-            Err(error) => {*self.failure.borrow_mut() = Some(error); cx.quit();}
+            Err(error) => fail(&self.failure, error),
         }
     }
 
@@ -322,7 +327,6 @@ impl Root {
             InputEvent::Focus => self.node.kit_event(id, "focus", ""),
             InputEvent::Blur => self.node.kit_event(id, "blur", ""),
             InputEvent::PressEnter {secondary, ..} => self.node.kit_event(id, "submit", &secondary.to_string()),
-            _ => return,
         };
         self.settle(result, cx);
     }

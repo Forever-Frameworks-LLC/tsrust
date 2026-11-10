@@ -5,7 +5,7 @@ const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string:
 impl Emitter<'_> {
  pub(super) fn ui_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];
-  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return None;}
+  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"each"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
   let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
@@ -46,6 +46,10 @@ impl Emitter<'_> {
      format!("{{let mut registered_callback={};move||{{{output}}}}}",self.expr(fun,arg,Mode::Consume))
     }).collect::<Vec<_>>();
     format!("{{let predicate={};let present={};let absent={};tsrust_native_ui::Node::branch(predicate,present,absent)}}",adapters[0],adapters[1],adapters[2])
+   },
+   "each"=>{
+    let callback=args[0].ty.unwrap();let result=self.ui_getter_result(callback);let invoke=self.ui_callback(callback,expr.span,&self.native_type(result));
+    format!("{{let mut registered_callback={};tsrust_native_ui::Node::each(move||({invoke}).and_then(|value|{}))}}",self.expr(fun,&args[0],Mode::Consume),self.ui_branch_child(result,"value"))
    },
    "bindText"=>{
     let callback=args[0].ty.unwrap();let result=self.ui_getter_result(callback);

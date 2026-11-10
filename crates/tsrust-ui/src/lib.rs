@@ -133,6 +133,8 @@ pub struct Node {
     collapsed:bool,
     hidden:Option<Box<dyn FnMut()->Result<bool,String>>>,
     branch:Option<branch::Branch>,
+    /// A reactive list slot: rebuilt on refresh, keeping rows whose shape is unchanged.
+    each:Option<Box<dyn FnMut()->Result<Option<Node>,String>>>,
     class_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     variant_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     semantic_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
@@ -365,9 +367,10 @@ impl Node {
             let text=Self::text_value(&self.parts)?;
             if text!=self.text {self.text=text;changed+=1;}
         }
+        changed+=self.refresh_each()?;
         for child in &mut self.children {changed+=child.refresh_inner()?;}
         changed+=self.refresh_text_children();
-        self.depth=usize::from(self.branch.is_none())+self.children.iter().map(|child|child.depth).max().unwrap_or(0);
+        self.depth=usize::from(self.branch.is_none()&&self.each.is_none())+self.children.iter().map(|child|child.depth).max().unwrap_or(0);
         if self.depth>128{return Err("UI nesting exceeds 128 nodes".into());}
         self.validate_structure()?;
         Ok(changed)
@@ -446,7 +449,7 @@ impl Node {
         for child in &children{child.reset_identities();}
         let node=Self {
             depth,
-            identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,
+            identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,each:None,
             theme: None,theme_mode:None,theme_inherited:false,
             semantics: Semantics::default(),
             kind,
