@@ -34,9 +34,10 @@ when rebuilding, then close/reopen this app through CUA. Do not stop the owner's
 pre-existing ./target/gpui-starter process (historically PID 53885). Desktop launch
 works; sandbox-only launch fails in NSPasteboard. Gallery remains open for inspection.
 
-Source checkpoint: 36149186 is a local WIP preserving Claude's interrupted edits
-and the first review batch. Later navigation, command ownership, source-function
-editor fallback and language-diagnostic changes are currently uncommitted.
+Source checkpoints: 36149186 preserves Claude's interrupted edits and the first
+review batch; ccfae53b accepts navigation/window ownership and diagnostic recovery;
+e981bfbc preserves the compiled application-menu/editor section. All are local.
+Current uncommitted section is reactive Kit classes and native viewport/styles.
 
 Implemented since the WIP:
 - createLocation(initial) gives each window an independent navigation/history owner;
@@ -156,21 +157,57 @@ Section validation so far:
   Compiler rebuild passed (2m22s); the repaired native gallery retry passed.
 - Workspace/all-target check passed (1m30s); separate backend/all-target check
   passed (2m53s). Both report the existing test/runtime-helper warning set.
-- Updated binary copied atomically into /tmp/Tsrust Gallery.app. CUA restart
-  attempts were held repeatedly because the owner was actively inspecting the
-  gallery (Table, Showcase, then Packaging). Do not fight the owner for the UI.
-  CUA kernel reset after one timed-out close/reopen attempt; latest connection
-  still shows the old gallery (no Application Menu navigation item). Manual menu
-  and Editor acceptance remains pending. Preserve all passed checks above.
+- Local WIP checkpoint e981bfbc preserves this section. Gallery restarted successfully
+  from its independent app bundle. macOS File > Save example updates the page;
+  View > Show guides toggles state; Disable Save reloads its menu definition.
+  Navigating to Editor removes the installed File/View menus.
+- Desktop Editor proof: replacing the local buffer with `fn edited() { println!("Kept"); }`
+  and toggling line numbers preserves the text. Read editor state reports language
+  rust and current selection/buffer. Find fn opens the search field with fn.
+  Disabled-menu click rejection/checkmark appearance still needs direct verification;
+  AX omits their disabled/checked attributes. Other desktop platforms remain pending.
 
-Next: make a local WIP checkpoint preserving this compiled/tested section with
-manual acceptance explicitly pending, then continue dynamic Kit className support
-while the owner inspects. Return to CUA after input settles: restart once, verify
-menu command/check/disable/removal and editor edits/settings/find/read. Current CUA
-binding is gallery; call rewriteDocumentation after compaction before further use.
-No need to rerun unchanged public or editor suites after renderer-only token/import
-repair. Other platforms and full Kit coverage remain open. No pushes, releases or
-performance measurements.
+### Reactive Kit styles and native utility rendering — 2026-11-10 (in progress)
+
+Working tree adds ReactiveValue<string> className to all generated Kit wrappers,
+using existing nativeBindClass. Style refresh retains control identity, local state,
+handlers and weak ownership. Kit disabled props now participate in disabled utility
+styles. Guide/gallery and public composition witnesses cover the new behavior.
+Native viewport lengths use actual window viewport pixels; Kit internal raw class
+surfaces now filter dark/responsive predicates and custom spacing. New runtime
+witnesses cover viewport resolution and reactive Kit lifecycle (124/124 passed,
+0.04s; compiler rebuild passed 2m28s).
+
+Further renderer fixes: stable identities for styled surfaces and active styles;
+preserve axis overflow and scoped SVG color; compose hover/focus ring/shadow/gradient
+inputs over base styles (including clearing a ring without losing the base shadow).
+Shared interaction-merge regression passes. Text child bridge moves an owned Cow
+string with into_owned rather than copying it again; explicit borrowed-field clones
+still remain.
+
+Validation so far:
+- UI runtime 125/125, 0.04s execution; setup/build 1m52s including compiler lock.
+- Generated helper initially failed compound negative-guard narrowing. Replaced it
+  with separate undefined/string branches; compiler rebuild passed 2m31s.
+- Public navigation+composition suites 5/5, one runner for both files. Execution
+  1.64ms; setup/build 18474.9ms (check 2066.2ms, emit 334.7ms, backend 54.2ms,
+  native/link 15721.7ms). Reactive Kit className and disabled state pass.
+- LSP lib 25/25 (0.14s), editor_consistency 30/30 (29.93s), TSRX editor 6/6
+  (0.99s), setup/build 9.30s. Whole-project formatting changed zero files/snippets/
+  fingerprints; both generators --check and diff --check pass.
+- Native gallery build passed. Bundle replaced atomically and reopened. Desktop
+  proof: Tag padding/background/foreground change live; Switch disabled opacity
+  paints, and its local on value survives disabling/re-enabling and class changes.
+  The runner used its default example-local shared native Cargo target rather
+  than the repository target because CARGO_TARGET_DIR was omitted. Future native
+  and host invocations must explicitly set CARGO_TARGET_DIR to the repository
+  target. Prune redundant example-local native outputs after active builds end.
+  Example target is about 45GB, repository target about 156GB (logical du sizes).
+
+Next: local checkpoint this accepted section. Continue text-transform/unsupported-native diagnostics, Plot
+tooltip, Diff and remaining Kit API families plus string-field ergonomics. Full Kit
+API coverage and ownership ergonomics remain open. No performance measurements,
+remote runs, pushes or releases. Gallery is open on Styling and Themes, live styles off and Switch locally on.
 
 ### Gallery as Kit docs mirror; API coverage tracking — 2026-11-09
 

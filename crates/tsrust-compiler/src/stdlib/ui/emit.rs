@@ -36,7 +36,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
                 "button"=>{parameters.push_str(",disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,Some(Box::new(handler)))"},
                 _=>unreachable!(),
             };
-            (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}{scalars}Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned())),{bindings}Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
+            (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}{scalars}Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.into_owned())),{bindings}Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
         },
         "path"=>("data:&String,class_name:&String,options:&String".into(),"tsrust_native_ui::Node::svg_path(data.as_ref(),class_name.as_ref().to_owned(),options.as_ref())".into()),
         "validateRoot"=>(format!("node:&Record{node}"),"node.validate_root()".into()),

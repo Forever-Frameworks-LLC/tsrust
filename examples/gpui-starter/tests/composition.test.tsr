@@ -1,5 +1,5 @@
 import { test, strictEqual } from 'std:testing';
-import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, signal, document } from 'std:ui';
+import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, signal, document } from 'std:ui';
 
 interface DeferredProps {
   children?: LazyChildren;
@@ -34,6 +34,18 @@ test('deferred component children own reactive list captures', () => {
   strictEqual(html.includes('Row 1'), true);
   strictEqual(html.includes('Row 2'), true);
   strictEqual(html.includes('Row 3'), false);
+});
+
+function KitStyleRoot(): Node {
+  const selected = signal(true);
+  return <Switch disabled={selected.get()} className={selected.get() ? 'p-[13px] disabled:opacity-50' : 'p-2'}>Styled Kit control</Switch>;
+}
+
+test('Kit components retain reactive class expressions and disabled utility state', () => {
+  const node = KitStyleRoot();
+  const html = document(node, 'Kit classes');
+  strictEqual(html.includes('p-[13px]'), true);
+  strictEqual(html.includes(' disabled'), true);
 });
 
 test('code editor rejects invalid indentation and scrolling counts', () => {

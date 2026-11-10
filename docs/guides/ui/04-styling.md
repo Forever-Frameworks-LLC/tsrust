@@ -63,6 +63,8 @@ function DynamicStyles(): Node {
       <View className={selected.get() ? 'p-[13px] rounded-[10px] bg-primary text-primary-foreground w-2/5' : 'p-[13px] rounded-[10px] bg-muted w-[75%]'}>
         <Text>Live dimensions and colors</Text>
       </View>
+      <Tag className={selected.get() ? 'p-4 bg-primary text-primary-foreground' : 'p-2 bg-muted'}>Kit classes update too</Tag>
+      <Switch disabled={selected.get()} className="disabled:opacity-50">Disabled utility state</Switch>
       <View className="grid grid-cols-3 gap-[6px]">
         <Text className="italic underline">One</Text>
         <Text className="font-black line-through">Two</Text>

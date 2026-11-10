@@ -972,8 +972,10 @@ impl Root {
     /// The style refinement for a utility class string.
     fn class_style(&self, classes: &str, cx: &mut Context<Self>) -> StyleRefinement {
         if classes.is_empty() {return StyleRefinement::default();}
+        if let Err(error)=style::validate(classes) {fail(&self.failure,error);}
         let theme = utility_theme(cx);
-        let mut surface = styled(div(), classes, &theme, mode(cx), false);
+        let rules=style::resolved_surface_at_width(classes,&theme,mode(cx),self.viewport.0).into_iter().map(|(state,rule)|(state,rule.in_viewport(self.viewport.0,self.viewport.1))).collect::<Vec<_>>();
+        let mut surface = styled_rules(div(), &rules, false, 0);
         surface.style().clone()
     }
 

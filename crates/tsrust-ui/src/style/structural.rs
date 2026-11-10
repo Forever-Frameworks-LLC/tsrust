@@ -79,6 +79,18 @@ pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
  Ok(Parts{state,token,placeholder,descendant,predicates})
 }
 pub(super) fn marker(token:&str)->bool {token.strip_prefix("group/").is_some_and(name)}
+/// Internal Kit style surfaces have no authored node metadata or descendants.
+#[cfg(any(all(test, feature="runtime"),feature="gpui"))]
+pub(crate) fn surface_at_width(classes:&str,theme:&Theme,mode:&str,width:f32)->Vec<(State,Utility)> {
+ let mut variables=std::collections::BTreeMap::new();let mut filtered=Vec::new();
+ for class in classes.split_whitespace() {
+  let parsed=parts(class).expect("validated utility");
+  if parsed.descendant.is_some() || !parsed.predicates.iter().all(|predicate|match predicate {Predicate::Dark=>mode=="dark",Predicate::MinWidth(min)=>width>=*min as f32,_=>false}) {continue;}
+  if let Some((name,scale))=super::custom_spacing::declaration(parsed.token){variables.insert(name.into(),super::layout::spacing(scale,theme));}
+  filtered.push(class);
+ }
+ super::resolved_with_variables(&filtered.join(" "),theme,mode,&variables)
+}
 #[cfg(all(test, feature = "runtime"))]
 pub(crate) fn resolved(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str)->Vec<(State,Utility)> {
  scoped(node,ancestors,theme,mode,&std::collections::BTreeMap::new()).0

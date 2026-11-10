@@ -88,7 +88,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -232,6 +232,7 @@ macro_rules! control_input {
 enum Field {Line(Entity<InputState>), Text(Entity<TextareaState>)}
 
 struct Root {
+    viewport: (f32,f32),
     revision: u64,
     command_owner: commands::Owner,
     styles: HashMap<u64, Vec<(State, Utility)>>,
@@ -469,13 +470,13 @@ impl Root {
                 None => return div().into_any_element(),
             };
             // Like a browser input, an unsized field keeps a usable intrinsic width.
-            return styled_rules(div().min_w(px(240.)), self.rules(node), node.is_disabled()).child(control).into_any_element();
+            return styled_rules(div().min_w(px(240.)), self.rules(node), node.is_disabled(), node.identity.get()).child(control).into_any_element();
         }
         if let Some(kit) = node.kit.as_deref().filter(|kit| !kit.name.is_empty()) {
             let element = self.kit_element(node, kit, cx);
             if node.class_name.is_empty() || STYLED_KIT.contains(&kit.name.as_str()) {return element;}
             // The class wrapper can shrink in flex layouts, so scroll areas inside it scroll.
-            return styled_rules(div().min_h_0().min_w_0(), self.rules(node), false).child(element).into_any_element();
+            return styled_rules(div().min_h_0().min_w_0(), self.rules(node), node.is_disabled(), node.identity.get()).child(element).into_any_element();
         }
         let children = node.visible_children().map(|child| self.element(child, theme, mode, cx)).collect::<Vec<_>>();
         if let Some(copy) = &node.copy {
@@ -488,30 +489,30 @@ impl Root {
             }
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => self.kit_button(node, cx).into_any_element(),
             Kind::Button | Kind::DisabledButton => {
-                let element = styled_rules(div(), self.rules(node), node.is_disabled()).children(children).id(ElementId::Integer(id));
+                let element = styled_rules(div(), self.rules(node), node.is_disabled(), node.identity.get()).children(children);
                 if node.is_disabled() {return element.into_any_element();}
                 element.cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);})).into_any_element()
             }
             // Vector art draws as an SVG image with colors resolved for this theme.
             Kind::Svg => {
                 let (width, height) = node.svg_size().unwrap_or((24., 24.));
-                let current = style::resolved(&node.class_name, theme, mode).iter().find_map(|(_, rule)| match rule {Utility::Foreground(value) => Some(*value), _ => None}).or_else(|| theme.color(mode, "foreground").ok());
-                let base = styled_rules(div().w(px(width as f32)).h(px(height as f32)).flex_shrink_0(), self.rules(node), false);
+                let current = style::state_rules(self.rules(node), State::Base, false).iter().find_map(|rule| match rule {Utility::Foreground(value) => Some(*value), _ => None}).or_else(|| theme.color(mode, "foreground").ok());
+                let base = styled_rules(div().w(px(width as f32)).h(px(height as f32)).flex_shrink_0(), self.rules(node), false, node.identity.get());
                 match current.and_then(|current| node.svg_markup(current, theme, mode)) {
                     Some(markup) => base.child(img(std::sync::Arc::new(Image::from_bytes(ImageFormat::Svg, markup.into_bytes()))).size_full()).into_any_element(),
                     None => base.into_any_element(),
                 }
             }
             // Text is one inline run; its literal and bound parts render as one string.
-            Kind::Text => styled_rules(div(), self.rules(node), false).child(SharedString::from(node.content_text())).into_any_element(),
-            _ if children.is_empty() => styled_rules(div(), self.rules(node), false).child(SharedString::from(node.text.clone())).into_any_element(),
+            Kind::Text => styled_rules(div(), self.rules(node), false, node.identity.get()).child(SharedString::from(node.content_text())).into_any_element(),
+            _ if children.is_empty() => styled_rules(div(), self.rules(node), false, node.identity.get()).child(SharedString::from(node.text.clone())).into_any_element(),
             _ => {
                 // GPUI keeps scroll offsets per element id; overflow-auto views need one.
                 // Their children keep their natural size instead of shrinking to fit.
-                let scrolls = style::resolved(&node.class_name, theme, mode).iter().any(|(_, rule)| matches!(rule, Utility::Overflow(2)));
-                if !scrolls {return styled_rules(div(), self.rules(node), false).children(children).into_any_element();}
+                let scrolls = style::state_rules(self.rules(node), State::Base, false).iter().any(|rule| matches!(rule, Utility::Overflow(2) | Utility::OverflowAxis(_,2)));
+                if !scrolls {return styled_rules(div(), self.rules(node), false, node.identity.get()).children(children).into_any_element();}
                 let children = children.into_iter().map(|child| div().flex_shrink_0().child(child));
-                styled_rules(div(), self.rules(node), false).children(children).id(ElementId::Integer(id)).overflow_scroll().into_any_element()
+                styled_rules(div(), self.rules(node), false, node.identity.get()).children(children).into_any_element()
             }
         }
     }
@@ -520,6 +521,7 @@ impl Root {
 impl Render for Root {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let _scope=self.scope();
+        self.viewport=(f32::from(window.viewport_size().width),f32::from(window.viewport_size().height));
         let revision=super::state::revision();
         if self.revision != revision {
             if let Err(error)=self.node.refresh() {fail(&self.failure,error);}
@@ -531,7 +533,7 @@ impl Render for Root {
         self.run_commands(window, cx);
         let theme = utility_theme(cx);
         self.styles.clear();
-        collect_styles(&self.node, &mut Vec::new(), &theme, mode(cx), &Default::default(), f32::from(window.viewport_size().width), &mut self.styles);
+        collect_styles(&self.node, &mut Vec::new(), &theme, mode(cx), &Default::default(), self.viewport, &mut self.styles);
         let body = self.node.visible_root().map(|node| self.element(node, &theme, mode(cx), cx));
         if window.focused(cx).is_none() {self.focus.focus(window, cx);}
         div().size_full().track_focus(&self.focus).on_action(cx.listener(|this, command: &TsrustCommand, _, cx| this.run_command(&command.name, cx))).children(body)
@@ -552,71 +554,80 @@ fn length(value: Length) -> gpui_kit::Length {
     }
 }
 
-/// Apply the resolved utility classes; hover rules become a GPUI hover style.
-fn styled(element: Div, classes: &str, theme: &Theme, mode: &str, disabled: bool) -> Div {
-    styled_rules(element, &style::resolved(classes, theme, mode), disabled)
-}
-
-fn styled_rules(mut element: Div, rules: &[(State, Utility)], disabled: bool) -> Div {
+fn styled_rules(mut element: Div, rules: &[(State, Utility)], disabled: bool, id:u64) -> Stateful<Div> {
     let flex = rules.iter().any(|(_, rule)| matches!(rule, Utility::Row | Utility::Column | Utility::Display(false) | Utility::InlineFlex));
     if flex {element = element.flex();}
     for (state, rule) in rules {
         if *state == State::Base || *state == State::Disabled && disabled {apply(element.style(), *rule);}
     }
-    apply_effects(element.style(), &rules.iter().filter(|(state,_)| *state == State::Base || *state == State::Disabled && disabled).map(|(_,rule)| *rule).collect::<Vec<_>>());
-    if rules.iter().any(|(state, _)| *state == State::Hover) && !disabled {
-        let hover = rules.iter().filter(|(state, _)| *state == State::Hover).map(|(_, rule)| *rule).collect::<Vec<_>>();
-        element = element.hover(move |mut style| {for rule in &hover {apply(&mut style, *rule);} apply_effects(&mut style, &hover); style});
-    }
+    apply_effects(element.style(), &style::state_rules(rules,State::Base,disabled));
+    let mut element=element.id(ElementId::Integer(id));
     if !disabled {
-        let focus = rules.iter().filter(|(state, _)| *state == State::Focus).map(|(_, rule)| *rule).collect::<Vec<_>>();
-        if !focus.is_empty() {element = element.focus(move |mut style| {for rule in &focus {apply(&mut style, *rule);} apply_effects(&mut style, &focus); style});}
+        for state in [State::Hover,State::Focus,State::Active] {
+            let local=rules.iter().filter(|(current,_)|*current==state).map(|(_,rule)|*rule).collect::<Vec<_>>();
+            if local.is_empty() {continue;}
+            let effects=style::state_rules(rules,state,false);
+            let refinement=move |mut style:StyleRefinement| {
+                for rule in &local {apply(&mut style,*rule);}
+                if local.iter().any(|rule|matches!(rule,Utility::Ring(_) | Utility::RingWidth(_) | Utility::RingShadowColor(_) | Utility::OutlineNone | Utility::Shadow(_) | Utility::ShadowColor(_))) {
+                    apply_shadow_effects(&mut style,&effects);
+                }
+                if local.iter().any(|rule|matches!(rule,Utility::GradientAngle(_) | Utility::GradientStop(_,_))) {apply_gradient_effects(&mut style,&effects);}
+                style
+            };
+            element=match state {State::Hover=>element.hover(refinement),State::Focus=>element.focus(refinement),State::Active=>element.active(refinement),_=>unreachable!()};
+        }
     }
     element
 }
 
-fn collect_styles<'a>(node: &'a Node, ancestors: &mut Vec<&'a Node>, theme: &Theme, mode: &str, inherited: &std::collections::BTreeMap<String, f32>, width: f32, output: &mut HashMap<u64, Vec<(State, Utility)>>) {
+fn collect_styles<'a>(node: &'a Node, ancestors: &mut Vec<&'a Node>, theme: &Theme, mode: &str, inherited: &std::collections::BTreeMap<String, f32>, viewport: (f32,f32), output: &mut HashMap<u64, Vec<(State, Utility)>>) {
     let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
-    let (rules, variables) = style::resolved_scoped_node_at_width(node, ancestors, theme, mode, inherited, width);
-    output.insert(node.identity.get(), rules);
+    let (rules, variables) = style::resolved_scoped_node_at_width(node, ancestors, theme, mode, inherited, viewport.0);
+    output.insert(node.identity.get(), rules.into_iter().map(|(state,rule)|(state,rule.in_viewport(viewport.0,viewport.1))).collect());
     ancestors.push(node);
-    for child in node.visible_children() {collect_styles(child, ancestors, theme, mode, &variables, width, output);}
+    for child in node.visible_children() {collect_styles(child, ancestors, theme, mode, &variables, viewport, output);}
     ancestors.pop();
 }
 
 impl Root {
     fn rules(&self, node: &Node) -> &[(State, Utility)] {self.styles.get(&node.identity.get()).map(Vec::as_slice).unwrap_or_default()}
     fn node_style(&self, node: &Node) -> StyleRefinement {
-        let mut surface = styled_rules(div(), self.rules(node), node.is_disabled());
+        let mut surface = styled_rules(div(), self.rules(node), node.is_disabled(), node.identity.get());
         surface.style().clone()
     }
 }
 
 fn apply_effects(style: &mut StyleRefinement, rules: &[Utility]) {
-    let mut ring_width = None;
-    let mut ring_color = None;
-    let mut angle = None;
-    let mut from = None;
-    let mut to = None;
+    apply_shadow_effects(style,rules);
+    apply_gradient_effects(style,rules);
+}
+
+fn apply_shadow_effects(style:&mut StyleRefinement,rules:&[Utility]) {
+    if !rules.iter().any(|rule|matches!(rule,Utility::Ring(_) | Utility::RingWidth(_) | Utility::RingShadowColor(_) | Utility::OutlineNone | Utility::Shadow(_) | Utility::ShadowColor(_))) {return;}
+    style.box_shadow=Some(Vec::new());
+    for rule in rules {if matches!(rule,Utility::Shadow(_)) {apply(style,*rule);}}
+    let mut ring_width=0.;
+    let mut ring_color=hsla(0.6,0.7,0.5,1.);
     for rule in rules {
         match rule {
-            Utility::Ring(value) => {ring_width = Some(2.); ring_color = Some(color(*value));}
-            Utility::RingWidth(value) => ring_width = Some(*value),
-            Utility::RingShadowColor(value) => ring_color = Some(color(*value)),
-            Utility::OutlineNone => ring_width = Some(0.),
-            Utility::ShadowColor(value) => if let Some(shadows) = style.box_shadow.as_mut() {for shadow in shadows {shadow.color = color(*value);}},
-            Utility::GradientAngle(value) => angle = Some(*value),
-            Utility::GradientStop(0, value) => from = Some(color(*value)),
-            Utility::GradientStop(2, value) => to = Some(color(*value)),
-            _ => {}
+            Utility::Ring(value)=>{ring_width=2.;ring_color=color(*value);}
+            Utility::RingWidth(value)=>ring_width=*value,
+            Utility::RingShadowColor(value)=>ring_color=color(*value),
+            Utility::OutlineNone=>ring_width=0.,
+            Utility::ShadowColor(value)=>{for shadow in style.box_shadow.as_mut().unwrap() {shadow.color=color(*value);}},
+            _=>{}
         }
     }
-    if let Some(width) = ring_width.filter(|width| *width > 0.) {
-        style.box_shadow.get_or_insert_default().push(BoxShadow {color: ring_color.unwrap_or(hsla(0.6, 0.7, 0.5, 1.)), offset: point(px(0.), px(0.)), blur_radius: px(0.), spread_radius: px(width), inset: false});
-    }
-    if let Some(angle) = angle {
-        style.background = Some(linear_gradient(angle as f32, linear_color_stop(from.unwrap_or(hsla(0.,0.,0.,0.)),0.), linear_color_stop(to.unwrap_or(hsla(0.,0.,0.,0.)),1.)).into());
-    }
+    if ring_width>0. {style.box_shadow.as_mut().unwrap().push(BoxShadow {color:ring_color,offset:point(px(0.),px(0.)),blur_radius:px(0.),spread_radius:px(ring_width),inset:false});}
+}
+
+fn apply_gradient_effects(style:&mut StyleRefinement,rules:&[Utility]) {
+    let mut angle=None;
+    let mut from=hsla(0.,0.,0.,0.);
+    let mut to=from;
+    for rule in rules {match rule {Utility::GradientAngle(value)=>angle=Some(*value),Utility::GradientStop(0,value)=>from=color(*value),Utility::GradientStop(2,value)=>to=color(*value),_=>{}}}
+    if let Some(angle)=angle {style.background=Some(linear_gradient(angle as f32,linear_color_stop(from,0.),linear_color_stop(to,1.)).into());}
 }
 
 fn apply(style: &mut StyleRefinement, rule: Utility) {

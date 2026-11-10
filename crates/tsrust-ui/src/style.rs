@@ -9,11 +9,22 @@ mod tailwind;
 pub use text::WhiteSpace;
 #[cfg(feature="gpui")]
 pub(crate) use structural::scoped_at_width as resolved_scoped_node_at_width;
+#[cfg(any(all(test, feature="runtime"),feature="gpui"))]
+pub(crate) use structural::surface_at_width as resolved_surface_at_width;
 #[cfg(all(test, feature = "runtime"))]
 pub(crate) use structural::resolved as resolved_node;
 pub use layout::Length;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum State { Base, Hover, Focus, Active, Disabled }
+/// Resolve one interaction over its base styles; disabled controls ignore live states.
+#[cfg(any(all(test,feature="runtime"),feature="gpui"))]
+pub(crate) fn state_rules(rules:&[(State,Utility)],state:State,disabled:bool)->Vec<Utility> {
+ let mut merged=std::collections::BTreeMap::new();
+ for selected in [State::Base,if disabled {State::Disabled}else{state}] {
+  for (current,rule) in rules {if *current==selected {merged.insert(rule.category(),*rule);}}
+ }
+ merged.into_values().collect()
+}
 #[derive(Debug, Clone, Copy)]
 pub enum Utility {
  BasisZero, Tracking(f32), Balance(bool), BorderDashed(bool), Margin(u8,f32), WhiteSpace(WhiteSpace), Underline(bool), UnderlineOffset(Option<f32>),
@@ -25,6 +36,11 @@ pub enum Utility {
  Italic(bool),TextTransform(u8),LineThrough(bool),TextOverflow(u8),LineClamp(u8),Visible(bool),OverflowAxis(u8,u8),AlignContent(u8),Basis(Length),Shadow(u8),ShadowColor(ResolvedColor),GradientAngle(u16),GradientStop(u8,ResolvedColor),Animation(u8),MarginAuto(u8),
 }
 impl Utility {
+ #[cfg(any(all(test,feature="runtime"),feature="gpui"))]
+ pub(crate) fn in_viewport(self,width:f32,height:f32)->Self {
+  let length=|value|match value {Length::Viewport(0)=>Length::Pixels(width),Length::Viewport(_)=>Length::Pixels(height),value=>value};
+  match self {Self::Dimension(property,value)=>Self::Dimension(property,length(value)),Self::Basis(value)=>Self::Basis(length(value)),Self::Inset(side,value)=>Self::Inset(side,length(value)),value=>value}
+ }
  pub fn category(self)->u8 {match self {Self::TableDisplay(_)=>30,Self::CaptionBottom(_)=>81,Self::VerticalAlign(_)=>82,Self::BasisZero=>80,Self::Tracking(_)=>73,Self::Balance(_)=>74,Self::BorderDashed(_)=>75,Self::Margin(side,_)=>76+side,Self::WhiteSpace(_)=>70,Self::Underline(_)=>71,Self::UnderlineOffset(_)=>72,Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)|Self::Hidden|Self::InlineFlex=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Weight(_)=>5,Self::DefaultLeading(_)=>45,Self::Leading(_)=>46,Self::FontFamily(_)=>47,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Corner(corner,_)=>48+corner,Self::EdgeBorder(side,_)=>52+side,Self::Overflow(_)=>56,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44,Self::Placeholder(_)=>57,Self::Opacity(_)=>58,Self::OutlineNone=>14,Self::Cursor(_)=>60,Self::SelectNone=>61,Self::PointerEvents(_)=>62,Self::FieldSizingContent=>63,Self::AspectRatio(_)=>64,Self::Relative|Self::Absolute=>65,Self::Inset(side,_)=>66+side,Self::Italic(_)=>83,Self::TextTransform(_)=>84,Self::LineThrough(_)=>85,Self::TextOverflow(_)=>86,Self::LineClamp(_)=>87,Self::Visible(_)=>88,Self::OverflowAxis(axis,_)=>89+axis,Self::AlignContent(_)=>91,Self::Basis(_)=>80,Self::Shadow(_)=>92,Self::ShadowColor(_)=>93,Self::GradientAngle(_)=>94,Self::GradientStop(stop,_)=>95+stop,Self::Animation(_)=>98,Self::MarginAuto(side)=>76+side}}
  pub(crate) fn css(self)->String {match self {
   Self::BasisZero=>"flex-basis:0%".into(),Self::Tracking(v)=>format!("letter-spacing:{v}em"),Self::Balance(v)=>format!("text-wrap-style:{}",if v{"balance"}else{"auto"}),Self::BorderDashed(v)=>format!("border-style:{}",if v{"dashed"}else{"solid"}),Self::Margin(side,v)=>format!("margin-{}:{v}px",["top","right","bottom","left"][side as usize]),
@@ -370,5 +386,48 @@ pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
   assert_eq!(resolved("hidden flex",&Theme::default(),"light").last().unwrap().1.css(),"display:flex");
   assert!(documentation("hidden").contains("does not dispose handlers"));
   assert!(css("hidden lg:flex",&Theme::default(),"light",1,"").contains("display:none"));
+ }
+}
+
+#[cfg(all(test,feature="runtime"))]
+mod viewport_surface_tests {
+ use super::*;
+ #[test]
+ fn viewport_dimensions_and_internal_surfaces_follow_window_size_and_theme() {
+  let theme=Theme::default();
+  let classes="w-screen h-dvh min-h-screen max-w-screen p-2 md:p-4 bg-white dark:bg-black data-[state=open]:p-8 [&>a]:text-red-500";
+  validate(classes).unwrap();
+  let small=resolved_surface_at_width(classes,&theme,"light",640.);
+  let wide=resolved_surface_at_width(classes,&theme,"dark",1024.);
+  assert_eq!(small.iter().filter(|(_,rule)|matches!(rule,Utility::Padding(_,8.))).count(),4);
+  assert_eq!(wide.iter().filter(|(_,rule)|matches!(rule,Utility::Padding(_,16.))).count(),4);
+  assert!(!wide.iter().any(|(_,rule)|matches!(rule,Utility::Padding(_,32.)|Utility::Foreground(_))));
+  for (property,expected) in [(0,640.),(1,480.),(3,480.),(4,640.)] {
+   assert!(small.iter().map(|(_,rule)|rule.in_viewport(640.,480.)).any(|rule|matches!(rule,Utility::Dimension(key,Length::Pixels(value)) if key==property && value==expected)));
+  }
+  assert!(wide.iter().map(|(_,rule)|rule.in_viewport(1024.,768.)).any(|rule|matches!(rule,Utility::Dimension(0,Length::Pixels(1024.)))));
+  let scoped=resolved_surface_at_width("[--panel:--spacing(4)] p-(--panel)",&theme,"light",1024.);
+  assert_eq!(scoped.iter().filter(|(_,rule)|matches!(rule,Utility::Padding(_,16.))).count(),4);
+  assert_ne!(small.iter().find_map(|(_,rule)|if let Utility::Background(color)=rule{Some(color.components())}else{None}),wide.iter().find_map(|(_,rule)|if let Utility::Background(color)=rule{Some(color.components())}else{None}));
+ }
+}
+
+#[cfg(all(test,feature="runtime"))]
+mod interaction_merge_tests {
+ use super::*;
+ #[test]
+ fn states_keep_effect_inputs_and_disabled_overrides_without_leaking_other_states() {
+  let theme=Theme::default();
+  let rules=resolved("shadow-md shadow-black/50 ring-2 ring-red-500 hover:ring-0 hover:shadow-lg focus:ring-blue-500 disabled:opacity-50 bg-linear-to-r from-red-500 to-blue-500 hover:from-white",&theme,"light");
+  let hover=state_rules(&rules,State::Hover,false);
+  assert!(hover.iter().any(|v|matches!(v,Utility::RingWidth(0.))));
+  assert!(hover.iter().any(|v|matches!(v,Utility::Shadow(6))));
+  assert!(hover.iter().any(|v|matches!(v,Utility::ShadowColor(_))));
+  assert!(hover.iter().any(|v|matches!(v,Utility::GradientAngle(90))));
+  assert_eq!(hover.iter().filter(|v|matches!(v,Utility::GradientStop(_,_))).count(),2);
+  let disabled=state_rules(&rules,State::Hover,true);
+  assert!(disabled.iter().any(|v|matches!(v,Utility::RingWidth(2.))));
+  assert!(disabled.iter().any(|v|matches!(v,Utility::Opacity(0.5))));
+  assert!(disabled.iter().any(|v|matches!(v,Utility::Shadow(5))));
  }
 }

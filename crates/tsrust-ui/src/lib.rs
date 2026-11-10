@@ -214,7 +214,7 @@ impl Node {
     }
     fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
     pub(crate) fn enabled_control(&self)->bool {(matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) || self.kind==Kind::View && self.semantics.tab_index.is_some()) && !self.is_disabled()}
-    pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.copy.as_ref().is_some_and(|copy|copy.pending) || self.editable.as_ref().is_some_and(|field|field.disabled)}
+    pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.copy.as_ref().is_some_and(|copy|copy.pending) || self.editable.as_ref().is_some_and(|field|field.disabled) || self.kit.as_deref().is_some_and(|kit|kit.flag("disabled"))}
     fn apply_disabled(&mut self,next:bool)->bool {
         if let Some(field)=&mut self.editable {let changed=field.disabled!=next;field.disabled=next;changed}
         else {let kind=if next{Kind::DisabledButton}else{Kind::Button};let changed=self.kind!=kind;self.kind=kind;changed}
