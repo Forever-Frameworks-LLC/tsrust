@@ -2,9 +2,68 @@
 
 This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full goal remains active;
-v0.2.0 merge/publication is not approved. v0.1.2 is released.
+Owner authorized PR preparation, new-version promotion to main/publication, deployment
+and local installation/update verification on2026-11-10. Candidate compiler0.2.0,
+LSP0.3.0, extension0.2.2; v0.1.2 remains public until promotion completes.
 
 ## Current continuation — 2026-11-08
+
+### Active release preparation — 2026-11-10
+
+Release-only managed worktree: /Users/seancotter/.codex/worktrees/toolchain-release/tsrust,
+branch codex/release-0.2.0 from11f63fd4; release checkpoint includes this record. Original checkout is actively implementing
+Studio in a separate chat; do not edit, stage, reset or switch it. No authorization
+was given to send that chat messages. Shared Cargo target remains the original
+checkout's target, incremental off/jobs1. No release push has occurred yet.
+
+Live remote: v0.1.2 latest, compiler0.1.2/LSP0.2.2/extension0.2.1. Promotion PR#17
+stag->main is open at9bcbfa1c; prior Release42654579465 passed Linux/Windows/editor,
+macOS was cancelled/abandoned, gate failed. CI42617834174 oncf7dfbae passed.
+Stag9bcbfa1c is a squash with EXACT tree5033211af1ffa04e7891a8cf29112367fb884b8b,
+identical to ancestorcf7dfbae. Ordinary merge causes false historical conflicts;
+aborted that merge, verified tree equality, then merge -s ours --no-commit origin/stag
+preserves all staging content plus accepted UI work. The release checkpoint records both parents after proving this exact equivalence.
+
+Release changes: extension0.2.2 in package and lock; release notes include GPUI,
+new versions/Rust1.99.1/three prebuilt targets and explicit UI limitations. Public
+reference generator had stale UiComputed/UiSignal exclusions and hid std:ui;
+repaired mapping and added UI reference, overview link and accurate status scope.
+Generator comments/test title now reflect current UI/three-host behavior.
+
+Passed local checks: release/distribution tooling24/24 (2.34s); extension discovery4
+and grammar2, compile and VSIX0.2.2 package; site79pages/129HTML outputs, Python3/3,
+rendered links/anchors/assets129pages. Both UI generators --check and diff pass.
+Whole formatter0files/snippets/fingerprints after installing unchanged dependencies.
+Initial worktree setup lacked benchmark TypeScript and cached yazl; dependencies
+now prepared. Native milestone passes: compiler library1541/1549 active registrations,8existing
+ignores,255.02s execution and6m09 build/setup. CLI48/49 initially passed; the one
+failure was a stale Settings wrapper export list. Updated its exact expected6
+exports and asserted both new formatted wrapper functions; focused rerun1/1 passed
+in0.01s (8.58s build), preserving the48 earlier passes. LSP library26/26,.17s and
+binary6/6,.02s pass. Exact CI correctness lint passes (2m14); existing style warnings
+remain and no warning suppression was added. New headless UI catalog suite8/8
+passes through public tsrust test,1.85ms execution,2m49 setup/build including queue. Preserve prior accepted full backend133
+suites/21host evidence and latest UI/byte-view regressions instead of rerunning them.
+
+IMPORTANT publisher compatibility: main8efaaee2 still requires four archives,
+while accepted stag/candidate intentionally dropped Intel macOS and requires3.
+Do not weaken artifact validation or restore unsupported Intel builds. After the
+new PR->stag CI and promotion Release gate pass, normal main merge of the tested
+promotion can update the trusted publisher. Resume publication against that new
+trusted main using the existing successful Release artifacts (rerun only its gate
+if necessary to emit a new workflow_run event), checking exact tree/source/asset
+provenance. No tag/release before checks. Record any recovery result precisely.
+
+Raw active logs /tmp/tsrust-release-*.log are disposable. Sessions at this record:
+all previous local sessions completed. Compiler CLI repair18343 and lint94150
+completed successfully. Baseline managed installation completed via65802; first
+attempt only needed its missing parent directory created. The baseline install
+uses the existing0.1.2 CLI into new ~/.local/share/tsrust/toolchain, preserving
+~/.cargo/bin. Baseline commands report compiler0.1.2/LSP0.2.2 and public check
+returns managed=true/updateAvailable=false/latestStableVersion=0.1.2. After
+public0.2.0, exercise actual check/update, verify installed pair,
+VSIX and editor behavior, docs deployment and hashes. Do not call this complete
+until main/tag/assets/deployment/local installed update all pass.
 
 ### Tsrust Studio planning — 2026-11-10
 

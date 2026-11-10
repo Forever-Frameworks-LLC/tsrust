@@ -12,13 +12,13 @@ const catalogPath = join(website, '..', 'crates', 'tsrust-lsp', 'src', 'builtins
 const outputRoot = join(website, 'src', 'content', 'docs', 'reference');
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
 
-// Groups that are not part of the backend public surface. std:ui belongs to the
-// frozen UI product; the testing runtime is compiler-internal.
-const excluded = new Set(['std:ui', 'UiComputed', 'UiSignal', 'std:testing-runtime', 'HttpContextNext']);
+// Compiler-internal groups are not public reference modules.
+const excluded = new Set(['std:testing-runtime', 'HttpContextNext']);
 
 // Public modules in reading order. `members` maps a public type name to the
 // catalog group holding its methods and properties.
 const modules = [
+  { module: 'std:ui', summary: 'Experimental native desktop components, signals, navigation and windows backed by GPUI Kit. Browser and complete upstream API parity are not verified.' },
   { module: 'std:net', summary: 'Parse and format IP/socket addresses; own TCP and UDP endpoints.', members: { TcpListener: 'TcpListener', TcpStream: 'TcpStream', UdpSocket: 'UdpSocket' } },
   { module: 'std:dns', summary: 'Resolve hostnames with the system resolver.' },
   { module: 'std:env', summary: 'Read command-line arguments and environment variables.' },

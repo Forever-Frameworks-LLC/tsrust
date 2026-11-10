@@ -95,7 +95,7 @@ async function artifacts(body) {
   } finally { fs.rmSync(root, {recursive: true, force: true}); }
 }
 
-test('four platform archives and the extension produce checksums of their original bytes', () => artifacts(({dist}) => {
+test('three platform archives and the extension produce checksums of their original bytes', () => artifacts(({dist}) => {
   const files = validateArtifacts(dist, snapshot);
   assert.equal(files.length, 5);
   const sums = fs.readFileSync(path.join(dist, 'SHA256SUMS'), 'utf8').trim().split('\n');

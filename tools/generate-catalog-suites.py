@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate `tsrust test` suites from the editor catalog's verified examples.
 
-Each non-UI catalog group becomes one directory, which `tsrust test` compiles into
+Each verified catalog group becomes one directory, which `tsrust test` compiles into
 one native program. Every example becomes a test that asserts its recorded
 standard output through std:testing startOutputCapture/finishOutputCapture.
 
