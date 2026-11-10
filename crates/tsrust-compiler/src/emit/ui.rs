@@ -5,7 +5,7 @@ const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string:
 impl Emitter<'_> {
  pub(super) fn ui_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];
-  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"each"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return None;}
+  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"each"|"route"|"kitPredicate"|"kitStep"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
   let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
@@ -18,6 +18,14 @@ impl Emitter<'_> {
    "commandReply"=>{
     let callback=args[2].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"()","(&value,)");
     format!("{{let name={};let payload={};let mut registered_callback={};tsrust_native_ui::command_reply(name.as_ref(),payload.as_ref(),move |value:&str|{{let value=String::Owned(value.to_owned());{invoke}}})}}",read(&args[0]),read(&args[1]),self.expr(fun,&args[2],Mode::Consume))
+   },
+   "kitPredicate"=>{
+    let callback=args[2].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"bool","(&value,)");
+    format!("{{let node={};let event={};let mut registered_callback={};node.with_kit_predicate(event.as_ref(),move |value:&str|{{let value=String::Owned(value.to_owned());{invoke}}})}}",self.expr(fun,&args[0],Mode::Consume),read(&args[1]),self.expr(fun,&args[2],Mode::Consume))
+   },
+   "kitStep"=>{
+    let callback=args[2].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"f64","(value,increment)");
+    format!("{{let node={};let _event={};let mut registered_callback={};node.with_kit_step(move |value:f64,increment:bool|{{{invoke}}})}}",self.expr(fun,&args[0],Mode::Consume),read(&args[1]),self.expr(fun,&args[2],Mode::Consume))
    },
    "kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"=>{
     // Component events arrive as text; typed handlers receive the parsed value.

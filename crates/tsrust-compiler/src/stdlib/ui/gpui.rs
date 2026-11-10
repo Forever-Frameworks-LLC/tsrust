@@ -130,8 +130,26 @@ macro_rules! apply_input_options {($state:expr, $options:expr, $placeholder:expr
     $state.set_mask_pattern(mask, $window, $cx);
 }}}
 
+/// Paste decisions run before Kit inserts text; redraw after the synchronous decision.
+macro_rules! paste_options {($view:expr,$node:expr,$this:expr,$cx:expr)=>{{
+    let mut view=$view;
+    if let Some(predicate)=$node.kit.as_deref().and_then(|kit|kit.predicates.get("paste")).cloned() {
+        let failure=$this.failure.clone();let scope=$this.command_owner.context();let root=$cx.entity().downgrade();
+        view=view.on_paste(move|clipboard,_,cx| {
+            let _scope=scope();
+            let paths=clipboard.entries().iter().filter_map(|entry|if let ClipboardEntry::ExternalPaths(paths)=entry {Some(&paths.0)}else{None}).flatten().map(|path|path.to_string_lossy().into_owned()).collect::<Vec<_>>();
+            let image_count=clipboard.entries().iter().filter(|entry|matches!(entry,ClipboardEntry::Image(_))).count();
+            let payload=serde_json::json!({"text":clipboard.text(),"paths":paths,"imageCount":image_count}).to_string();
+            let consumed=super::kit::predicate(&predicate,&payload).unwrap_or_else(|error|fail(&failure,error));
+            let root=root.clone();cx.defer(move|cx|{let _=root.update(cx,|root,cx|root.settle(Ok(true),cx));});
+            consumed
+        });
+    }
+    view
+}}}
+
 /// Input and Textarea element options from a field's props.
-macro_rules! input_options {($input:expr, $node:expr, $line:tt, $cx:expr) => {{
+macro_rules! input_options {($input:expr, $node:expr, $line:tt, $this:expr, $cx:expr) => {{
     let node: &Node = $node;
     let id = node.identity.get();
     let option = |name: &str| node.option(name).unwrap_or_default();
@@ -154,6 +172,7 @@ macro_rules! input_options {($input:expr, $node:expr, $line:tt, $cx:expr) => {{
     if node.kit.as_deref().is_some_and(|kit| kit.handles("tokenHover")) {
         input = input.on_token_hover(move |event, _, cx| {let token = if event.is_hovered() {event.token().id().to_string()} else {String::new()}; let _ = root.update(cx, |root, cx| root.emit(id, "tokenHover", token, cx));});
     }
+    input=paste_options!(input,node,$this,$cx);
     input_line_options!(input, $line, option, flag)
 }}}
 
@@ -303,7 +322,12 @@ impl Root {
                     let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {let value = state.read(cx).value().to_string(); this.input_event(id, event, value, cx);});
                     (Field::Text(state), subscription)
                 } else {
-                    let state = cx.new(|cx| configured!(InputState::new(window, cx).placeholder(placeholder.clone()), &options));
+                    let validator=find(&self.node,id).and_then(|node|node.kit.as_deref()).and_then(|kit|kit.predicates.get("validate")).cloned();
+                    let failure=self.failure.clone();let scope=self.command_owner.context();
+                    let state = cx.new(|cx| {
+                        let state=configured!(InputState::new(window,cx).placeholder(placeholder.clone()),&options);
+                        match validator {Some(predicate)=>state.validate(move|value,_| {let _scope=scope();super::kit::predicate(&predicate,value).unwrap_or_else(|error|fail(&failure,error))}),None=>state}
+                    });
                     let subscription = cx.subscribe_in(&state, window, move |this, state, event, _, cx| {let value = state.read(cx).value().to_string(); this.input_event(id, event, value, cx);});
                     (Field::Line(state), subscription)
                 };
@@ -465,8 +489,8 @@ impl Root {
         let id = node.identity.get();
         if node.editable.is_some() {
             let control = match self.inputs.get(&id) {
-                Some((Field::Line(state), _)) => input_options!(Input::new(state), node, true, cx).into_any_element(),
-                Some((Field::Text(state), _)) => input_options!(Textarea::new(state), node, false, cx).into_any_element(),
+                Some((Field::Line(state), _)) => input_options!(Input::new(state), node, true, self, cx).into_any_element(),
+                Some((Field::Text(state), _)) => input_options!(Textarea::new(state), node, false, self, cx).into_any_element(),
                 None => return div().into_any_element(),
             };
             // Like a browser input, an unsized field keeps a usable intrinsic width.

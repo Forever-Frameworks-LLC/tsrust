@@ -39,7 +39,7 @@ use gpui_kit::component::switch::Switch;
 use gpui_kit::component::tab::{Tab, TabBar, TabVariant};
 use gpui_kit::component::table::{Column, ColumnSort, DataTable, Table, TableBody, TableCell, TableDelegate, TableEvent, TableHead, TableHeader, TableRow, TableState};
 use gpui_kit::component::attachment::{Attachment, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentStatus, AttachmentTitle};
-use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState, DiffHoverHighlight, DiffHunkSeparator, DiffChangeIndicator, DiffInlineUnit, DiffLinePosition, DiffLineRange, DiffSide, DiffAnnotation, DiffDecoration, DiffGutterMarker};
+use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState, DiffHoverHighlight, DiffHunkSeparator, DiffChangeIndicator, DiffInlineUnit, DiffLinePosition, DiffLineRange, DiffSide, DiffParseError, DiffAnnotation, DiffDecoration, DiffGutterMarker};
 use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupText};
 use gpui_kit::component::marker::{Marker, MarkerAlignment, MarkerContent, MarkerIcon, MarkerLoadingStyle, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
@@ -927,6 +927,13 @@ fn date_matcher(props: &std::collections::BTreeMap<String, String>) -> Option<Ma
     }))
 }
 
+fn parse_diff(source:&str)->Result<Vec<DiffFile>,DiffParseError> {
+    Ok(DiffFile::parse(source)?.into_iter().map(|file| {
+        let extension=std::path::Path::new(file.path().as_ref()).extension().and_then(|extension|extension.to_str());
+        let language=extension.map(super::kit::source_language).filter(|language|Some(*language)!=extension).map(str::to_owned);
+        match language {Some(language)=>file.with_language(language),None=>file}
+    }).collect())
+}
 /// State setters preserve selection/scroll and skip unchanged values in Kit.
 fn configure_diff(state: &mut DiffState, props: &std::collections::BTreeMap<String,String>, cx: &mut Context<DiffState>) {
     let text=|key:&str|props.get(key).map(String::as_str);
@@ -1350,14 +1357,13 @@ impl Root {
                         continue;
                     }
                     KitState::Number(state) => {
-                        state.update(cx, |state, cx| {
-                            state.set_step(Some(gpui_kit::component::input::NumberStep::Fixed(number("step").map_or(1., f64::from))), window, cx);
-                            state.set_min(number("min").map(f64::from), window, cx);
-                            state.set_max(number("max").map(f64::from), window, cx);
+                        let number=|key:&str|props.get(key).and_then(|value|value.parse::<f64>().ok());
+                        let custom_step=find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.number_step.is_some());
+                        state.update(cx,|state,cx| {
+                            if !custom_step {state.set_step(Some(gpui_kit::component::input::NumberStep::Fixed(number("step").unwrap_or(1.))),window,cx);}
+                            state.set_min(number("min"),window,cx);state.set_max(number("max"),window,cx);
                         });
-                        if let Some(value) = number("value") && state.read(cx).value().parse::<f32>().ok() != Some(value) {
-                            state.update(cx, |state, cx| state.set_value(value.to_string(), window, cx));
-                        }
+                        if let Some(value)=number("value") && state.read(cx).value().parse::<f64>().ok()!=Some(value) {state.update(cx,|state,cx|state.set_value(value.to_string(),window,cx));}
                     }
                     KitState::Slider(state) => {
                         let wanted = match (state.read(cx).value(), number("value"), number("endValue")) {
@@ -1457,7 +1463,7 @@ impl Root {
                     }
                     KitState::Diff(state, patch) => {
                         if *patch != text("patch") {
-                            let files = DiffFile::parse(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
+                            let files = parse_diff(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
                             state.update(cx, |state, cx| state.set_files(files, cx));
                             if let Some(KitState::Diff(_, patch)) = self.states.get_mut(&id) {*patch = text("patch");}
                         }
@@ -1520,11 +1526,17 @@ impl Root {
                     }
                 }
                 "NumberInput" => {
+                    let number=|key:&str|props.get(key).and_then(|value|value.parse::<f64>().ok());
+                    let kit=find(&self.node,id).and_then(|node|node.kit.as_deref()).expect("NumberInput");
+                    let validator=kit.predicates.get("validate").cloned();let step=kit.number_step.clone();
+                    let failure=self.failure.clone();let scope=self.command_owner.context();
                     let state = cx.new(|cx| {
                         let mut state = InputState::new(window, cx).placeholder(text("placeholder"));
-                        state = state.step(number("step").map_or(1., f64::from));
-                        if let Some(min) = number("min") {state = state.min(min as f64);}
-                        if let Some(max) = number("max") {state = state.max(max as f64);}
+                        state = state.step(number("step").unwrap_or(1.));
+                        if let Some(predicate)=validator {let failure=failure.clone();let scope=scope.clone();state=state.validate(move|value,_| {let _scope=scope();super::kit::predicate(&predicate,value).unwrap_or_else(|error|fail(&failure,error))});}
+                        if let Some(step)=step {state=state.step_by(move|value,action,_| {let _scope=scope();let result=step.try_borrow_mut().map_err(|_|"NumberInput stepBy cannot reenter itself".to_owned()).and_then(|mut step|step(value,matches!(action,gpui_kit::component::input::StepAction::Increment)));result.unwrap_or_else(|error|fail(&failure,error))});}
+                        if let Some(min) = number("min") {state = state.min(min);}
+                        if let Some(max) = number("max") {state = state.max(max);}
                         if let Some(value) = number("value").or(number("defaultValue")) {state.set_value(value.to_string(), window, cx);}
                         state
                     });
@@ -1677,7 +1689,7 @@ impl Root {
                 "CodeEditor" => {
                     let (language,value)=(text("language"),props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default());
                     let state = cx.new(|cx| {
-                        let mut state = configured!(EditorState::new(window, cx).language(language),&props);
+                        let mut state = configured!(EditorState::new(window, cx).language(super::kit::source_language(&language).to_owned()),&props);
                         editor_options(&mut state,&props,window,cx);
                         state.set_value(value, window, cx);
                         if text("autoFocus")=="true" {state.focus(window,cx);}
@@ -1694,7 +1706,7 @@ impl Root {
                     KitState::Editor(state,props.clone())
                 }
                 "Diff" => {
-                    let files = DiffFile::parse(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
+                    let files = parse_diff(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
                     let state = cx.new(|cx| {let mut state = DiffState::new(files, cx); configure_diff(&mut state,&props,cx); state});
                     KitState::Diff(state, text("patch"))
                 }
@@ -3059,7 +3071,7 @@ impl Root {
                     if let Some(value)=kit.prop("accessibilityLabel") {editor=editor.aria_label(value.to_owned());}
                     editor=match kit.prop("role") {Some("searchbox")=>editor.role(Role::SearchInput),Some("combobox")=>editor.role(Role::ComboBox),Some("spinbutton")=>editor.role(Role::SpinButton),Some("none")=>editor.role(None::<Role>),_=>editor};
                     if let Some(size)=kit_size(kit) {editor=editor.with_size(size);}
-                    editor.into_any_element()
+                    paste_options!(editor,node,self,cx).into_any_element()
                 }
                 _ => div().into_any_element(),
             },
@@ -3132,8 +3144,8 @@ impl Root {
                 for child in node.visible_children() {
                     if child.editable.is_some() {
                         match self.inputs.get(&child.identity.get()) {
-                            Some((Field::Line(state), _)) => group = group.input(input_options!(Input::new(state), child, true, cx)),
-                            Some((Field::Text(state), _)) => group = group.input(input_options!(Textarea::new(state), child, false, cx)),
+                            Some((Field::Line(state), _)) => group = group.input(input_options!(Input::new(state), child, true, self, cx)),
+                            Some((Field::Text(state), _)) => group = group.input(input_options!(Textarea::new(state), child, false, self, cx)),
                             None => {}
                         }
                         continue;

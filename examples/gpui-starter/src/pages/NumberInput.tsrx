@@ -47,6 +47,16 @@ function BareNumberInput(): Node {
   );
 }
 
+function DynamicNumberStep(): Node {
+  const value = signal(0.5);
+  return (
+    <View className="flex-col gap-3">
+      <NumberInput value={value.get()} min={0} max={10} stepBy={(current, increment) => increment && current < 1 ? 0.1 : 0.5} onChange={(next) => { value.set(next); }} />
+      <Text>Value: {value.get()}</Text>
+    </View>
+  );
+}
+
 export function NumberInputPage(): Node {
   return (
     <View className="flex-col gap-10">
@@ -58,6 +68,7 @@ export function NumberInputPage(): Node {
       <Example title="Disabled State" description="Ignores typing and stepping." code="function DisabledNumberInput(): Node {\n  return <NumberInput defaultValue={3} disabled={true} className=\"w-60\" />;\n}"><DisabledNumberInput /></Example>
       <Example title="Accessible Name" description="Names a field that has no visible label." code="function NamedNumberInput(): Node {\n  return <NumberInput defaultValue={2} accessibilityLabel=\"Quantity\" placeholder=\"Quantity\" className=\"w-60\" />;\n}"><NamedNumberInput /></Example>
       <Example title="Without Default Styling" description="appearance=false draws the bare field." code="function BareNumberInput(): Node {\n  return (\n    <View className=\"w-60 border-b-2 border-border px-3 py-2\">\n      <NumberInput defaultValue={7} appearance={false} />\n    </View>\n  );\n}"><BareNumberInput /></Example>
+      <Example title="Value-dependent stepping" description="The callback returns a step amount, not the next value. Its direction flag is true for increasing; bounds still clamp results." code="function DynamicNumberStep(): Node {\n  const value = signal(0.5);\n  return (\n    <View className=\"flex-col gap-3\">\n      <NumberInput value={value.get()} min={0} max={10} stepBy={(current, increment) => increment && current < 1 ? 0.1 : 0.5} onChange={(next) => { value.set(next); }} />\n      <Text>Value: {value.get()}</Text>\n    </View>\n  );\n}"><DynamicNumberStep /></Example>
     </View>
   );
 }

@@ -1950,6 +1950,17 @@
           "value": "number",
           "param": "value",
           "doc": "Receives each valid edited value."
+        },
+        {
+          "prop": "onValidate",
+          "value": "predicate",
+          "param": "candidate",
+          "doc": "Synchronous pure predicate for nonempty candidate text. Return false to reject an edit; the empty string always remains valid so the field can be cleared. Runs in addition to the mask and pattern. Reads captured signals live; do not issue UI commands or mutate state during validation."
+        },
+        {
+          "prop": "stepBy",
+          "value": "step",
+          "doc": "Returns the step amount for the current numeric value and increment flag (true for increase, false for decrease). Takes precedence over step. Must return a finite nonnegative number; zero prevents movement. min/max still clamp the resulting value. Keep this synchronous callback pure; errors stop the application."
         }
       ],
       "example": "<NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }}/>"
@@ -4944,7 +4955,7 @@
         {
           "name": "language",
           "type": "string",
-          "doc": "Highlighting language, such as rust, typescript or json. Read when the editor mounts; omitted language displays plain text. readInput reports the selected name."
+          "doc": "Highlighting language, such as rust, typescript or json. tsr/tsrust select the TypeScript grammar; tsrx selects TSX. Read when the editor mounts; omission displays plain text. readInput reports the canonical grammar name."
         },
         {
           "name": "readOnly",
@@ -5170,6 +5181,12 @@
           "value": "boolean",
           "param": "secondary",
           "doc": "Runs on Enter submission; secondary reports Cmd on macOS or Ctrl elsewhere."
+        },
+        {
+          "prop": "onPaste",
+          "value": "predicate",
+          "param": "payload",
+          "doc": "Synchronously inspects a JSON clipboard snapshot {text, paths, imageCount}. text is string or null; paths is a file-path array; imageCount counts images without exposing their bytes. Return true to consume the paste without default insertion, or false to insert normal text. Errors stop the application. Web platforms without synchronous clipboard access skip this handler. Ownership: snapshot is borrowed only for the call; clone text to retain it."
         }
       ]
     },
@@ -7790,7 +7807,8 @@
       "cleanable": "cleanable",
       "mask_toggle": "maskToggle",
       "content_type": "type / autoComplete",
-      "selected": "selected"
+      "selected": "selected",
+      "on_paste": "onPaste: synchronous JSON clipboard decision"
     },
     "InputGroup": {
       "xsmall": "size",
@@ -7956,7 +7974,10 @@
       "min": "NumberInput min",
       "set_min": "NumberInput min",
       "max": "NumberInput max",
-      "set_max": "NumberInput max"
+      "set_max": "NumberInput max",
+      "validate": "Input/NumberInput.onValidate",
+      "set_validator": "Input/NumberInput.onValidate",
+      "step_by": "NumberInput.stepBy"
     },
     "Kbd": {
       "new": "keys",
@@ -8490,7 +8511,8 @@
       "small": "size",
       "medium": "size",
       "large": "size",
-      "with_size": "size"
+      "with_size": "size",
+      "on_paste": "onPaste: synchronous JSON clipboard decision"
     },
     "TextareaState": {
       "new": "automatic: one state per mounted field",
@@ -9177,7 +9199,8 @@
       "small": "size",
       "medium": "size",
       "large": "size",
-      "with_size": "size"
+      "with_size": "size",
+      "on_paste": "onPaste: synchronous JSON clipboard decision"
     },
     "EditorState": {
       "new": "one state per mounted CodeEditor",

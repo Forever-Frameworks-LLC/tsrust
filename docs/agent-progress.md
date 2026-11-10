@@ -209,7 +209,88 @@ tooltip, Diff and remaining Kit API families plus string-field ergonomics. Full 
 API coverage and ownership ergonomics remain open. No performance measurements,
 remote runs, pushes or releases. Gallery is open on Styling and Themes, live styles off and Switch locally on.
 
-### Diff display and review surface — 2026-11-10 (accepted, checkpoint pending)
+### Table diagnostic repair follow-up — 2026-11-10 (active)
+
+Input callback native gallery build PASSED (/tmp/tsrust-ui-input-native.log); it
+has not yet been copied/reopened or manually verified. Final validation script
+12403 stopped at ui_authoring: 4/5 passed, only the existing bounded Table error
+case hit 20s. Preserve the four passes. LSP/public steps did not run. Compiler
+final rebuild passed 2m48s; added alias unit 1/1 passed (<0.01s), so runtime total
+133 active tests passes across retained runs. No source implementation changed
+after that build; only the public suite gained nonfinite NumberInput/negative step
+witnesses (suite step still unrun).
+
+A standalone exact Table-shaped retry (14406, CLI 69870) also exceeded 20s and
+was killed, so this is not merely parallel-test contention. One-second sample
+/tmp/tsrust-ui-table-check.sample shows semantic_diagnostics::collect ->
+analyze_recursive_with_proofs; RSS is bounded, but replay is real. Current
+semantic_diagnostics.rs still has the earlier bundled-root exclusion. Investigate
+which skipped diagnostic/root triggers recursive inference/repeated replay; do
+not raise the timeout or weaken ownership/independent-error coverage. Preserve the
+valid native callback build while repairing this compiler regression. A WIP
+checkpoint of callbacks is appropriate before changing diagnostic recovery; whole
+formatter currently session 22925, log /tmp/tsrust-ui-input-wip-format.log.
+Next: finish format/generator checks and local WIP checkpoint, add bounded/failure
+trace if needed, diagnose/fix replay, rerun only this failing test and affected
+compiler recovery tests, resume unrun LSP/public checks. Then manual Input/paste/
+step/Diff grammar checks and accepted checkpoint. No pushes/agents.
+
+### Synchronous input decisions — 2026-11-10 (implementation, checks running)
+
+Latest local source checkpoint 701a74dc accepts expanded Diff display/review slots.
+Current dirty section adds reusable synchronous predicates to Kit, Input.onValidate,
+Input/Textarea/CodeEditor.onPaste (borrowed JSON {text,paths,imageCount}, no image
+bytes), NumberInput.onValidate and stepBy(value, increment). Callbacks preserve
+errors; paste consumes when true and redraws after the decision. Pure validation
+keeps Kit's empty-string allowance. Numeric steps reject negative/nonfinite output.
+Weak captured command contexts target the originating window without retaining it;
+Node predicates enter their weak navigation context. NumberInput no longer resets
+custom stepping during sync and numeric options retain f64 precision. Boundary
+validation rejects nonfinite NumberInput options and negative fixed steps.
+
+Also fixes source grammar aliases: tsr/tsrust -> typescript, tsrx -> tsx in editor
+and Diff. Diff selects the native highlighting feature even without an editor or
+Markdown. New parse_diff helper sets per-file grammar overrides without changing
+file names. Full API help, generated wrappers and LSP fields updated; gallery adds
+Input validation/paste and value-dependent NumberInput stepping (71 pages /354
+examples). Mapping 1843/2147, 27 types incomplete; no completeness claim.
+
+Completed: runtime 132/132 in 0.04s before the last source-alias unit was added;
+includes callback errors, released state, invalid steps and weak window-context
+routing. Input and NumberInput actual gallery pages check with zero diagnostics.
+Initial compiler rebuild passed 2m49s. Current final coherent validation script
+session 12403, set -e, explicit CARGO_INCREMENTAL=0/CARGO_BUILD_JOBS=1/repo target:
+1. compiler CLI rebuild /tmp/tsrust-ui-input-build-final.log;
+2. added alias unit /tmp/tsrust-ui-input-alias.log;
+3. ui_authoring 5 tests /tmp/tsrust-ui-input-authoring.log;
+4. LSP TSRX 6 tests /tmp/tsrust-ui-input-lsp.log;
+5. public navigation+composition suites compiled once (8 tests expected),
+   /tmp/tsrust-ui-input-public.log.
+At last observation step 1 was still compiling. Preserve terminal passes; on a
+failure repair/rerun affected checks and resume unrun steps. Native GPUI gallery
+compile + desktop proof still required for the new macros/closures, then formatter,
+generator checks, checkpoint. Do not modify source mid-build absent a real repair.
+
+Original broad catalog retry 62502 FINISHED PASS: 1/1, 1492.20s harness including
+many native setup/builds. Earlier 477 LSP tests and remaining 61 targets passed;
+full LSP milestone is now complete. Compiler library milestone remains 1541 active
+pass, 8 unchanged ignored; workspace/backend checks passed. No need to restart
+these full passes for wrapper-only edits. Current callback bridge needs its focused
+checks and native proof. Retain owner test execution <1h, setup/build separately.
+
+Gallery /tmp/Tsrust Gallery.app currently runs 701a74dc, on Diff split/details off;
+code in the working tree is newer and not desktop-accepted yet. VS Code hover fix
+00a44a19 remains installed/loaded. Do not close the owner's other starter process.
+Next after acceptance: custom input menus/practical Questionnaire, Settings, Speech
+options; native style/accessibility limits; packaging archive smoke and cleanup.
+Research already localized: native menu builder is gpui_base input/base/native.rs,
+NativeMenu.menu/menu_with_disabled/separator; existing TsrustCommand + Shortcut can
+reuse application commands. Questionnaire base supports optional InputState answers,
+disabled/default-selected choices, sizes and change/completed events; existing
+wrapper only choices. Settings builder options and Speech size/disabled/fallback/
+timeout/waveform are still mostly absent. Read pinned sources before implementing.
+
+### Diff display and review surface — 2026-11-10 (accepted: 701a74dc)
 
 Hover fence fix checkpoint is 00a44a19, local/not pushed. The installed local
 VS Code extension is 0.2.1 with tsr/tsrx aliases, visually verified and loaded.

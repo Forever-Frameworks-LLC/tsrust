@@ -352,6 +352,8 @@ interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
   autoCorrect?: boolean;
   /** Platform automatic capitalization. Read when the field mounts. */
   autoCapitalize?: 'none' | 'words' | 'sentences' | 'characters';
+  /** Synchronously inspects JSON {text, paths, imageCount} before paste. text is string or null; paths contains file paths, imageCount counts images (no image bytes). Return true to consume it, false for normal text insertion. Errors stop the app. A web platform without synchronous clipboard access skips the handler. The snapshot is borrowed for this call. */
+  onPaste?: Owned<Function<boolean, [payload: ReadOnly<string>]>>;
   /** Runs when the field gains keyboard focus. */
   onFocus?: Owned<Function<void>>;
   /** Runs when the field loses keyboard focus. */
@@ -367,6 +369,8 @@ interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
 export type TextFieldProps<Classes = string, Variant = string> = TextFieldProperties<Classes, Variant>;
 
 interface InputProperties<Classes, Variant> extends TextFieldProps<Classes, Variant> {
+  /** Pure synchronous predicate for nonempty candidate text. false rejects edits; the empty string is always allowed. Runs alongside mask/pattern checks. Reads captured signals live; do not mutate state or issue UI commands during validation. */
+  onValidate?: Owned<Function<boolean, [candidate: ReadOnly<string>]>>;
   /** password masks the value with a reveal toggle; email, url, tel and search set the platform keyboard and autofill. Defaults to text. */
   type?: 'text' | 'password' | 'email' | 'url' | 'tel' | 'search';
   /** Shows a clear button while the field has a value. */
@@ -444,6 +448,8 @@ function fieldLive(node: Node, name: string, value: ReactiveValue<boolean> | und
 
 /** Creates a single-line field. CR/LF are removed like HTML text inputs; values otherwise remain exact Unicode strings. */
 export function Input(props: InputProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const validate = props.onValidate;
+  props.onValidate = undefined;
   const kind = props.type !== undefined ? clone(props.type) : undefined;
   const cleanable = props.cleanable;
   const maskToggle = props.maskToggle;
@@ -452,6 +458,10 @@ export function Input(props: InputProps<ReactiveValue<string>, ReactiveValue<str
   const suffix = props.suffix !== undefined ? clone(props.suffix) : undefined;
   const selected = props.selected;
   let node = <TextField {...props} multiline={false}/>;
+  if (validate !== undefined) {
+    node = unwrapNode(nativeKitPredicate(node, 'validate', validate));
+  }
+
   node = fieldOption(node, 'type', kind === undefined ? undefined : `${kind}`);
   node = fieldFlag(node, 'cleanable', cleanable);
   node = fieldFlag(node, 'maskToggle', maskToggle);
@@ -623,6 +633,11 @@ function TextField(props: TextFieldOptions): Node {
   node = fieldFlag(node, 'autoCorrect', props.autoCorrect);
   node = fieldOption(node, 'autoCapitalize', autoCapitalize === undefined ? undefined : `${autoCapitalize}`);
   node = options.autoComplete === '' ? node : fieldOption(node, 'autoComplete', clone(options.autoComplete));
+  const paste = props.onPaste;
+  if (paste !== undefined) {
+    node = unwrapNode(nativeKitPredicate(node, 'paste', paste));
+  }
+
   const onFocus = props.onFocus;
   if (onFocus !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'focus', onFocus));

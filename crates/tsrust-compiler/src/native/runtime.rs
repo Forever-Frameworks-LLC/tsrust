@@ -81,8 +81,8 @@ pub fn separate(source:&str)->Units {
     let mut application=source.to_owned();let mut runtime=if source.contains(crate::stdlib::http::MIDDLEWARE_MARKER){crate::stdlib::http::MIDDLEWARE_MARKER.to_owned()}else{String::new()};
     if source.contains(crate::stdlib::http::WEBSOCKET_MARKER){runtime.push_str(crate::stdlib::http::WEBSOCKET_MARKER);}
     // Unused Kit wrappers are pruned, so the component name appears only when used.
-    // CodeEditor and Markdown code blocks highlight through GPUI Kit syntect.
-    if ["CodeEditor","Markdown"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HIGHLIGHT_MARKER);}
+    // Editors, diffs and Markdown code blocks use the selected Kit grammars.
+    if ["CodeEditor","Markdown","Diff"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HIGHLIGHT_MARKER);}
     if source.contains("String::Borrowed(\"SpeechButton\")"){runtime.push_str(crate::stdlib::ui::SPEECH_MARKER);}
     if ["Avatar","Image"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HTTP_MARKER);}
     // GPUI Kit embeds only its default icons; a program naming any other catalog

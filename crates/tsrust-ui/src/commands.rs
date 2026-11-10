@@ -9,6 +9,10 @@ pub(crate) struct Owner(Rc<()>);
 pub(crate) struct Scope(Option<Weak<()>>);
 impl Owner {
     pub(crate) fn new()->Self {Self(Rc::new(()))}
+    pub(crate) fn context(&self)->impl Fn()->Scope+Clone+'static {
+        let owner=Rc::downgrade(&self.0);
+        move||Scope(ACTIVE.with(|active|active.replace(Some(owner.clone()))))
+    }
     pub(crate) fn enter(&self)->Scope {Scope(ACTIVE.with(|active|active.replace(Some(Rc::downgrade(&self.0)))))}
 }
 impl Drop for Owner {
@@ -99,6 +103,15 @@ mod tests {
         {let _scope=first.enter();let probe=Probe(drops.clone());command_reply("read-clipboard","{}",move |_|{let _=&probe;Ok(())}).unwrap();}
         drop(first);assert_eq!(drops.get(),1);assert!(take(&second).is_empty());
         command("notify","startup").unwrap();assert_eq!(names(take(&second)),["notify:startup"]);
+    }
+    #[test]
+    fn captured_context_targets_the_origin_without_retaining_a_closed_window() {
+        let first=Owner::new();let second=Owner::new();let context=first.context();
+        {let _other=second.enter();{let _origin=context();command("close","origin").unwrap();}command("notify","other").unwrap();}
+        assert!(matches!(&take(&first)[0],Command::Plain{name,..} if name=="close"));
+        assert!(matches!(&take(&second)[0],Command::Plain{name,..} if name=="notify"));
+        drop(first);{let _origin=context();command("close","closed").unwrap();}
+        assert!(take(&second).is_empty());
     }
     #[test]
     fn commands_queue_in_order_and_reject_unknown_names() {

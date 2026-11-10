@@ -127,6 +127,8 @@ pub(crate) const KIT:NativeBinding=NativeBinding{name:"kit",parameters:&[paramet
 pub(crate) const KIT_SET:NativeBinding=NativeBinding{name:"kitSet",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("value",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_set"},..TEXT};
 pub(crate) const KIT_BIND:NativeBinding=NativeBinding{name:"kitBind",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("binding",NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_bind"},..TEXT};
 pub(crate) const KIT_ON:NativeBinding=NativeBinding{name:"kitOn",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on"},..TEXT};
+pub(crate) const KIT_PREDICATE:NativeBinding=NativeBinding{name:"kitPredicate",backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_predicate"},..KIT_ON};
+pub(crate) const KIT_STEP:NativeBinding=NativeBinding{name:"kitStep",backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_step"},..KIT_ON};
 pub(crate) const KIT_ON_BOOLEAN:NativeBinding=NativeBinding{name:"kitOnBoolean",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_boolean"},..TEXT};
 pub(crate) const KIT_ON_INT:NativeBinding=NativeBinding{name:"kitOnInt",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_int"},..TEXT};
 pub(crate) const KIT_ON_NUMBER:NativeBinding=NativeBinding{name:"kitOnNumber",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_number"},..TEXT};
@@ -150,7 +152,7 @@ pub(crate) const TRANSLATE:NativeBinding=NativeBinding{name:"translate",paramete
 pub(crate) const TRANSLATION:NativeBinding=NativeBinding{name:"translation",parameters:&[parameter("key",NativeType::String,Mode::Read),parameter("values",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_translation"},..TEXT};
 pub(crate) const KIT_VALUE:NativeBinding=NativeBinding{name:"kitValue",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("value",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_value"},..TEXT};
 
-/// Selects GPUI Kit code highlighting for programs that use CodeEditor or Markdown.
+/// Selects GPUI Kit code highlighting for programs that use CodeEditor, Diff or Markdown.
 pub(crate) const HIGHLIGHT_MARKER:&str="// tsrust-ui-highlight-selected\n";
 /// Selects GPUI Kit speech recognition for programs that use SpeechButton.
 pub(crate) const SPEECH_MARKER:&str="// tsrust-ui-speech-selected\n";

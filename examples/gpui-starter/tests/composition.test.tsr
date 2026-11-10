@@ -1,5 +1,5 @@
 import { test, strictEqual } from 'std:testing';
-import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, signal, document } from 'std:ui';
+import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, Input, Textarea, NumberInput, signal, document } from 'std:ui';
 
 interface DeferredProps {
   children?: LazyChildren;
@@ -121,4 +121,33 @@ test('an unused array-getter branch keeps a concrete absent callback capture', (
   strictEqual(DeferredArray(Array.of (3, 4)), '3,4');
   const numbers: number[] = [5, 6];
   strictEqual(DeferredArray([...numbers]), '5,6');
+});
+
+function SynchronousFields(): Node {
+  const limit = signal(8);
+  return <View><Input onValidate={(value) => value.length <= limit.get()} onPaste={(payload) => payload.length === 0}/><Textarea onPaste={(payload) => false}/><CodeEditor onPaste={(payload) => false}/><NumberInput stepBy={(value, increment) => increment && value < 1 ? 0.1 : 0.5} onValidate={(value) => !value.includes('e')}/></View>;
+}
+
+test('synchronous input callbacks compile with retained signal captures and numeric results', () => {
+  const node = SynchronousFields();
+  strictEqual(document(node, 'Synchronous fields').includes('Synchronous fields'), true);
+  for (const value of [Number.NaN, Number.POSITIVE_INFINITY]) {
+    let rejected = false;
+    try {
+      const field = <NumberInput value={value} />;
+    } catch {
+      rejected = true;
+    }
+
+    strictEqual(rejected, true);
+  }
+
+  let rejected = false;
+  try {
+    const field = <NumberInput step={-1} />;
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
 });

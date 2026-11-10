@@ -64,3 +64,17 @@ fn live_array_props_allow_scalar_arrays_without_weakening_record_or_computed_own
  let error=check("import {computed,Computed} from 'std:ui';function main(){const values:Computed<int[]> = computed(()=>[1,2]);}").err().unwrap();
  assert_eq!(error.code,"ui-computed-type","{}",error.message);
 }
+
+#[test]
+fn diff_selects_highlighting_only_when_used_and_input_predicates_keep_typed_returns() {
+ let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
+ let check=|source:&str| {std::fs::write(&path,source).unwrap();check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap())};
+ for (element,highlight) in [("<Diff patch=\"\"/>",true),("<View/>",false)] {
+  let source=format!("import {{Diff,View}} from 'std:ui';function main(){{const node={element};}}");
+  let rust=check(&source).unwrap().emit_rust();let units=tsrust_compiler::native_runtime::separate(&rust);
+  assert_eq!(units.runtime.unwrap_or_default().contains("// tsrust-ui-highlight-selected"),highlight);
+ }
+ check("import {Input,NumberInput} from 'std:ui';function main(){const field=<Input onValidate={(value)=>value.length<4} onPaste={(value)=>false}/>;const number=<NumberInput stepBy={(value,increment)=>increment?0.1:0.5}/>;}").unwrap();
+ assert!(check("import {Input} from 'std:ui';function main(){const field=<Input onValidate={(value)=>value}/>;}").is_err());
+ assert!(check("import {NumberInput} from 'std:ui';function main(){const field=<NumberInput stepBy={(value,increment)=>true}/>;}").is_err());
+}

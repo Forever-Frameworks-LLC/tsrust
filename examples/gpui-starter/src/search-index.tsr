@@ -366,7 +366,7 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/rating", page: "Rating", section: "Custom Maximum", text: "any number of stars.", keywords: "rating max onchange value"
   }, {
-    route: "/input", page: "Input", section: "", text: "a single-line text field with placeholders, masking, input masks, validation, prefix and suffix icons, sizes and states. use textarea for multiple lines and inputgroup for addons.", keywords: "input text field form entry type password email button input text view"
+    route: "/input", page: "Input", section: "", text: "a single-line text field with placeholders, masking, input masks, validation, prefix and suffix icons, sizes and states. use textarea for multiple lines and inputgroup for addons.", keywords: "input text field form entry type password email button input switch text view"
   }, {
     route: "/input", page: "Input", section: "Basic Input", text: "uncontrolled: the field keeps its own text. onchange reports each edit.", keywords: "input text view classname onchange variant"
   }, {
@@ -399,6 +399,8 @@ export function searchEntries(): SearchEntry[] {
     route: "/input", page: "Input", section: "Programmatic Control", text: "controlinput runs actions on the field with that id; readinput reads its text and selection.", keywords: "button input text view classname defaultvalue id onpress size variant"
   }, {
     route: "/input", page: "Input", section: "Atomic Inline Tokens", text: "tokens select and delete as a whole; ontokenclick receives the token id.", keywords: "button input text view classname id onpress ontokenclick placeholder size variant"
+  }, {
+    route: "/input", page: "Input", section: "Validation and paste decisions", text: "validation rejects nonempty edits over eight bytes but still allows clearing. paste can be observed or consumed before insertion.", keywords: "button input switch text view checked classname id onchange onpaste onpress onvalidate placeholder size"
   }, {
     route: "/textarea", page: "Textarea", section: "", text: "a multi-line text field with fixed or auto-growing height, find and replace, and the input's masking, events and control.", keywords: "textarea text field form entry type password email button text textarea view"
   }, {
@@ -435,6 +437,8 @@ export function searchEntries(): SearchEntry[] {
     route: "/number-input", page: "Number Input", section: "Accessible Name", text: "names a field that has no visible label.", keywords: "numberinput accessibilitylabel classname defaultvalue placeholder"
   }, {
     route: "/number-input", page: "Number Input", section: "Without Default Styling", text: "appearance=false draws the bare field.", keywords: "numberinput view appearance classname defaultvalue"
+  }, {
+    route: "/number-input", page: "Number Input", section: "Value-dependent stepping", text: "the callback returns a step amount, not the next value. its direction flag is true for increasing; bounds still clamp results.", keywords: "numberinput text view classname max min onchange stepby value"
   }, {
     route: "/input-group", page: "Input Group", section: "", text: "an input or textarea framed with addons: text, icons and buttons before, after, above or below.", keywords: "input group text field form entry type password email icon input inputgroup inputgroupaddon inputgroupbutton inputgrouptext menuitem text textarea view"
   }, {

@@ -5,8 +5,17 @@
 use super::{Child, Node, TextBinding};
 use std::collections::BTreeMap;
 
+pub(crate) type Predicate = std::rc::Rc<std::cell::RefCell<Box<dyn FnMut(&str)->Result<bool,String>>>>;
+pub(crate) type NumberStep = std::rc::Rc<std::cell::RefCell<Box<dyn FnMut(f64,bool)->Result<f64,String>>>>;
+pub(crate) fn predicate(handler:&Predicate,value:&str)->Result<bool,String> {
+    handler.try_borrow_mut().map_err(|_|"Input predicate cannot reenter itself".to_owned())?(value)
+}
 pub(crate) type EventHandler = Box<dyn FnMut(&str) -> Result<(), String>>;
 
+#[cfg(any(test,feature="gpui"))]
+pub(crate) fn source_language(name:&str)->&str {
+    if name.eq_ignore_ascii_case("tsr") || name.eq_ignore_ascii_case("tsrust") {"typescript"}else if name.eq_ignore_ascii_case("tsrx"){"tsx"}else{name}
+}
 /// Highlight Tsrust fences with the corresponding Kit grammar, preserving code bytes.
 #[cfg(any(test, feature = "gpui"))]
 pub(crate) fn highlighted_markdown(source: &str) -> String {
@@ -23,6 +32,11 @@ pub(crate) fn highlighted_markdown(source: &str) -> String {
 #[cfg(test)]
 mod markdown_tests {
     #[test]
+    fn source_names_select_existing_grammars_without_renaming_other_languages() {
+        for name in ["tsr","TSR","tsrust"] {assert_eq!(super::source_language(name),"typescript");}
+        assert_eq!(super::source_language("tsrx"),"tsx");assert_eq!(super::source_language("rust"),"rust");
+    }
+    #[test]
     fn tsrust_fences_use_kit_grammars_without_changing_code_or_other_languages() {
         let source="```tsrx\r\n<Text>hello</Text>\r\n```\r\n```tsr\nconst x = 1;\n```\n```bash\ntsrust dev\n```\ninline ```tsr\n~~~tsrust\n";
         assert_eq!(super::highlighted_markdown(source),source.replacen("```tsrx\r\n","```tsx\r\n",1).replacen("```tsr\nconst","```typescript\nconst",1));
@@ -34,6 +48,8 @@ pub(crate) struct Kit {
     pub(crate) props: BTreeMap<String, String>,
     bindings: Vec<(String, TextBinding)>,
     pub(crate) events: Vec<(String, EventHandler)>,
+    pub(crate) predicates: BTreeMap<String,Predicate>,
+    pub(crate) number_step: Option<NumberStep>,
     /// State props the component keeps itself because the caller left them unset.
     local: Vec<&'static str>,
 }
@@ -53,6 +69,7 @@ fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
 impl Kit {
     fn validate_prop(&self,name:&str,value:&str)->Result<(),String> {
         if matches!(self.name.as_str(),"DiffAnnotation"|"DiffDecoration"|"DiffGutterMarker") && matches!(name,"line"|"start"|"end") && !value.parse::<usize>().is_ok_and(|value|value>=1) {return Err(format!("{} {name} requires a one-based integer >= 1",self.name));}
+        if self.name=="NumberInput" && matches!(name,"value"|"defaultValue"|"step"|"min"|"max") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (name!="step" || value>=0.)) {return Err(format!("NumberInput {name} requires a finite {}number",if name=="step"{"nonnegative "}else{""}));}
         if self.name=="Diff" {
             if name=="contextLines" && !value.parse::<i64>().is_ok_and(|value|value>=-1) {return Err("Diff contextLines requires -1 or a nonnegative integer".into());}
             if matches!(name,"expansionLines"|"minCollapsedLines"|"inlineMaxLineLength"|"syntaxMaxLineLength") && !value.parse::<usize>().is_ok_and(|value|value>=1) {return Err(format!("Diff {name} requires an integer >= 1"));}
@@ -126,12 +143,12 @@ impl Node {
     /// item/slot components.
     pub fn kit(name: &str, children: Vec<Child>, class_name: String) -> Result<Self, String> {
         let mut node = Self::view(children, class_name)?;
-        node.kit = Some(Box::new(Kit {name: name.to_owned(), props: BTreeMap::new(), bindings: Vec::new(), events: Vec::new(), local: Vec::new()}));
+        node.kit = Some(Box::new(Kit {name: name.to_owned(), props: BTreeMap::new(), bindings: Vec::new(), events: Vec::new(), predicates:BTreeMap::new(), number_step:None, local: Vec::new()}));
         Ok(node)
     }
     /// Kit props on a core node (such as Button options) live in an unnamed Kit record.
     fn kit_mut(&mut self) -> Result<&mut Kit, String> {
-        Ok(self.kit.get_or_insert_with(|| Box::new(Kit {name: String::new(), props: BTreeMap::new(), bindings: Vec::new(), events: Vec::new(), local: Vec::new()})))
+        Ok(self.kit.get_or_insert_with(|| Box::new(Kit {name: String::new(), props: BTreeMap::new(), bindings: Vec::new(), events: Vec::new(), predicates:BTreeMap::new(), number_step:None, local: Vec::new()})))
     }
     /// A Kit-style option set on this node, if any.
     pub(crate) fn option(&self, name: &str) -> Option<&str> {self.kit.as_deref().and_then(|kit| kit.prop(name))}
@@ -156,6 +173,20 @@ impl Node {
     }
     pub fn with_kit_event(mut self, event: &str, handler: impl FnMut(&str) -> Result<(), String> + 'static) -> Result<Self, String> {
         self.kit_mut()?.events.push((event.to_owned(), Box::new(handler)));
+        Ok(self)
+    }
+    /// Synchronous decision callbacks retain their own weak navigation context.
+    pub fn with_kit_predicate(mut self,event:&str,mut handler:impl FnMut(&str)->Result<bool,String>+'static)->Result<Self,String> {
+        let navigation=self.navigation.clone();
+        self.kit_mut()?.predicates.insert(event.into(),std::rc::Rc::new(std::cell::RefCell::new(Box::new(move|value| {let _scope=navigation.enter();handler(value)}))));
+        Ok(self)
+    }
+    pub fn with_kit_step(mut self,mut handler:impl FnMut(f64,bool)->Result<f64,String>+'static)->Result<Self,String> {
+        let navigation=self.navigation.clone();
+        self.kit_mut()?.number_step=Some(std::rc::Rc::new(std::cell::RefCell::new(Box::new(move|value,increment| {
+            let _scope=navigation.enter();let step=handler(value,increment)?;
+            if !step.is_finite() || step<0. {return Err("NumberInput stepBy must return a finite nonnegative step".into());}Ok(step)
+        }))));
         Ok(self)
     }
     pub(crate) fn refresh_kit(&mut self) -> Result<usize, String> {
@@ -276,6 +307,36 @@ mod diff_value_tests {
   }
   for valid in ["-1","0","3"] {assert!(Node::kit("Diff",vec![],String::new()).unwrap().with_kit_prop("contextLines",valid).is_ok());}
   for invalid in ["-2","NaN","1.5"] {assert!(Node::kit("Diff",vec![],String::new()).unwrap().with_kit_prop("contextLines",invalid).is_err());}
+ }
+}
+
+#[cfg(test)]
+mod callback_tests {
+ use super::*;
+ use crate::Signal;
+ #[test]
+ fn synchronous_predicates_keep_errors_and_release_owned_state() {
+  let policy=Signal::new(3_i64);let read=policy.handle();let write=policy.handle();
+  let node=Node::kit("Input",vec![],String::new()).unwrap().with_kit_predicate("validate",move|value|Ok(value.len() as i64<=read.get()?)).unwrap().own_state(policy).unwrap();
+  let callback=node.kit.as_ref().unwrap().predicates["validate"].clone();
+  assert!(predicate(&callback,"abc").unwrap());assert!(!predicate(&callback,"abcd").unwrap());
+  write.set(4).unwrap();assert!(predicate(&callback,"abcd").unwrap());
+  {let _borrow=callback.borrow_mut();assert!(predicate(&callback,"x").unwrap_err().contains("reenter"));}
+  drop(node);assert!(predicate(&callback,"x").is_err());
+  let node=Node::kit("Input",vec![],String::new()).unwrap().with_kit_predicate("paste",|_|Err("paste failed".into())).unwrap();
+  assert_eq!(predicate(&node.kit.as_ref().unwrap().predicates["paste"],"text").unwrap_err(),"paste failed");
+ }
+ #[test]
+ fn numeric_steps_keep_both_directions_and_reject_invalid_results() {
+  let node=Node::kit("NumberInput",vec![],String::new()).unwrap().with_kit_step(|value,increment|Ok(if increment && value<1. {0.1}else{0.5})).unwrap();
+  let callback=node.kit.as_ref().unwrap().number_step.as_ref().unwrap();
+  assert_eq!(callback.borrow_mut()(0.5,true).unwrap(),0.1);assert_eq!(callback.borrow_mut()(1.,false).unwrap(),0.5);
+  for step in [f64::NAN,f64::INFINITY,-1.] {
+   let node=Node::kit("NumberInput",vec![],String::new()).unwrap().with_kit_step(move|_,_|Ok(step)).unwrap();
+   assert!(node.kit.as_ref().unwrap().number_step.as_ref().unwrap().borrow_mut()(0.,true).is_err());
+  }
+  let node=Node::kit("NumberInput",vec![],String::new()).unwrap().with_kit_step(|_,_|Ok(0.)).unwrap();
+  assert_eq!(node.kit.as_ref().unwrap().number_step.as_ref().unwrap().borrow_mut()(1.,true).unwrap(),0.);
  }
 }
 

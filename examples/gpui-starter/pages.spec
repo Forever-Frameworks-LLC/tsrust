@@ -1790,6 +1790,21 @@ function TokenInput(): Node {
     </View>
   );
 }
+--- Validation and paste decisions
+Validation rejects nonempty edits over eight bytes but still allows clearing. Paste can be observed or consumed before insertion.
+function SynchronousInput(): Node {
+  const consume = signal(false);
+  const paste = signal('Paste into this field to inspect the clipboard snapshot.');
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Input id="validated-input" placeholder="Up to eight bytes" onValidate={(value) => value.length <= 8} onPaste={(payload) => { paste.set(payload); return consume.get(); }} />
+      <Switch checked={consume.get()} onChange={(value) => { consume.set(value); }}>Consume paste without inserting</Switch>
+      <Button size="small" onPress={() => { writeClipboard('Pasted'); }}>Copy test text</Button>
+      <Text>{paste.get()}</Text>
+    </View>
+  );
+}
+
 === Textarea | textarea | Forms
 A multi-line text field with fixed or auto-growing height, find and replace, and the Input's masking, events and control.
 --- Basic Usage
@@ -1924,6 +1939,18 @@ function BareNumberInput(): Node {
     </View>
   );
 }
+--- Value-dependent stepping
+The callback returns a step amount, not the next value. Its direction flag is true for increasing; bounds still clamp results.
+function DynamicNumberStep(): Node {
+  const value = signal(0.5);
+  return (
+    <View className="flex-col gap-3">
+      <NumberInput value={value.get()} min={0} max={10} stepBy={(current, increment) => increment && current < 1 ? 0.1 : 0.5} onChange={(next) => { value.set(next); }} />
+      <Text>Value: {value.get()}</Text>
+    </View>
+  );
+}
+
 === Input Group | input-group | Forms
 An Input or Textarea framed with addons: text, icons and buttons before, after, above or below.
 --- Input with a Clear Button
