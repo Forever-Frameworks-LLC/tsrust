@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-### Workspace diagnostics repair — 2026-11-10 (validated, checkpoint pending)
+### Workspace diagnostics repair — 2026-11-10 (accepted fd803813)
 
 Owner screenshot disproved the transient cleared Problems pane:16 diagnostics
 remained after the prior scan. All are now resolved without diagnostic exclusions.
@@ -60,8 +60,9 @@ rather than implicit toggles. CUA does not expose the final page controls in its
 AX dump; manual keyboard/visual proof plus upstream Base Button role contract,
 not a claim of a separate AX audit. Last native CUA completion: Verified native
 styled button behavior. Current preview remains open on that example, enabled,
-count5. Styled changes still need their separate source checkpoint and style-limit
-review. No CUA phase open now.
+count5. Styled changes are validated for their separate source checkpoint. Remaining
+style work: audit unsupported native utility effects and inline text styling; do
+not claim browser CSS parity. No CUA phase open now.
 
 Remaining sessions: unsigned local macOS package smoke94211 (release GPUI build).
 Other checks completed; collect remaining sessions as needed. Logs in /tmp are

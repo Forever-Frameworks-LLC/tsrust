@@ -176,6 +176,20 @@ A custom fill, text, hover and pressed color, from theme color names or hex.
 function CustomVariant(): Node {
   return <Button color="magenta" foreground="primary-foreground" hoverColor="magenta-light" activeColor="magenta">Custom Button</Button>;
 }
+--- Styled keyboard button
+Custom utilities own the appearance while the native button retains focus, Enter/Space activation and disabled behavior. Click once, then press Space or Enter; disabling preserves the count.
+function StyledKeyboardButton(): Node {
+  const count = signal(0);
+  const disabled = signal(false);
+  return (
+    <View className="flex-col gap-3">
+      <Switch checked={disabled.get()} onChange={(value) => { disabled.set(value); }}>Disable styled button</Switch>
+      <Button id="styled-keyboard-button" aria-label="Increment styled count" disabled={disabled.get()} className="bg-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700 focus:ring-2 ring-indigo-300 disabled:opacity-50 rounded-lg px-4 py-3" onPress={() => { count.set(count.get() + 1); }}>Increment styled count</Button>
+      <Text>Styled count: {count}</Text>
+    </View>
+  );
+}
+
 === Toggle | toggle | Actions
 A button that stays pressed while on. Toggles can be grouped, optionally as one segmented control.
 --- Basic Toggle

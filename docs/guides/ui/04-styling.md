@@ -80,3 +80,7 @@ Supported class families appear in completion and hover; unsupported utility nam
 fail checking. Arbitrary CSS expressions (`calc(...)`, arbitrary selectors and
 unregistered CSS variables) are not a native styling API. GPUI has its own layout
 and text engine, so browser-specific CSS needs an explicit native mapping.
+
+Custom `Button` utilities own its appearance while GPUI Kit retains native focus,
+Enter/Space activation, disabled behavior and accessibility roles. Use `aria-label`
+when an icon or custom content does not supply a clear control name.

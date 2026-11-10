@@ -12,7 +12,7 @@ export interface SearchEntry {
 /** Every page and example the gallery search ranks. */
 export function searchEntries(): SearchEntry[] {
   return [{
-    route: "/button", page: "Button", section: "", text: "a button with variants, sizes, icons and states. buttons can be grouped, and a group can act as a toggle.", keywords: "button actions buttons cta click button buttongroup groupbutton shortcut text view"
+    route: "/button", page: "Button", section: "", text: "a button with variants, sizes, icons and states. buttons can be grouped, and a group can act as a toggle.", keywords: "button actions buttons cta click button buttongroup groupbutton shortcut switch text view"
   }, {
     route: "/button", page: "Button", section: "Basic Button", text: "a labelled button that runs a handler when clicked.", keywords: "button text view classname onpress variant"
   }, {
@@ -45,6 +45,8 @@ export function searchEntries(): SearchEntry[] {
     route: "/button", page: "Button", section: "Vertical Group", text: "groups can stack vertically and take any size.", keywords: "button buttongroup compact icon size vertical"
   }, {
     route: "/button", page: "Button", section: "Custom Variant", text: "a custom fill, text, hover and pressed color, from theme color names or hex.", keywords: "button activecolor color foreground hovercolor"
+  }, {
+    route: "/button", page: "Button", section: "Styled keyboard button", text: "custom utilities own the appearance while the native button retains focus, enter/space activation and disabled behavior. click once, then press space or enter; disabling preserves the count.", keywords: "button switch text view checked classname disabled id label onchange onpress"
   }, {
     route: "/toggle", page: "Toggle", section: "", text: "a button that stays pressed while on. toggles can be grouped, optionally as one segmented control.", keywords: "toggle toggle onoff boolean actions buttons cta click toggle togglegroup view"
   }, {

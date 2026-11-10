@@ -1,8 +1,8 @@
 //! GPUI Kit renderer for the retained Node model. One root view owns the tree.
 //! Every event updates Node state, refreshes its live bindings and notifies the
 //! view; `render` turns the current tree into GPUI elements. Buttons without
-//! classes and text inputs use GPUI Kit components; classed views and buttons use
-//! the shared utility classes, resolved against the active Tsrust theme.
+//! classes and text inputs use GPUI Kit components; classed buttons use Kit's
+//! unstyled native button behavior. Utilities resolve against the active theme.
 use super::{Kind, Node, kit::Kit, style::{self, Length, State, Utility}, theme::{ResolvedColor, Theme}, window::Options};
 use gpui_kit::component::Disableable;
 use gpui_kit::component::button::{Button, ButtonCustomVariant, ButtonRounded, ButtonVariants};
@@ -460,7 +460,7 @@ impl Root {
                 if let Some(icon) = icon_name(option("loadingIcon")) {button = button.loading_icon(icon);}
                 if flag("spinner") {button = button.icon(gpui_kit::component::spinner::Spinner::new());}
                 if let Ok(value) = option("progress").parse::<f32>() {button = button.icon(gpui_kit::component::progress::ProgressCircle::new(ElementId::Name(format!("{id}-progress").into())).value(value));}
-                button = button.toggled(flag("toggled"));
+                if !option("toggled").is_empty() {button = button.toggled(flag("toggled"));}
                 button = match option("role") {
                     "link" => button.role(Role::Link), "menuitem" => button.role(Role::MenuItem), "tab" => button.role(Role::Tab),
                     "checkbox" => button.role(Role::CheckBox), "switch" => button.role(Role::Switch), "none" => button.role(None::<Role>), _ => button,
@@ -513,9 +513,23 @@ impl Root {
             }
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => self.kit_button(node, cx).into_any_element(),
             Kind::Button | Kind::DisabledButton => {
-                let element = styled_rules(div(), self.rules(node), node.is_disabled(), node.identity.get()).children(children);
-                if node.is_disabled() {return element.into_any_element();}
-                element.cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);})).into_any_element()
+                let option=|name:&str|node.option(name).unwrap_or_default();
+                let mut button=gpui_kit::base::Button::new(ElementId::Integer(id)).cursor_pointer().disabled(node.is_disabled()).selected(option("selected")=="true");
+                let label=if node.semantics.label.is_empty(){node.content_text()}else{node.semantics.label.clone()};
+                if !label.is_empty() {button=button.accessibility_label(label);}
+                if !node.semantics.id.is_empty() {button=button.accessibility_id(node.semantics.id.clone());}
+                button=match option("role") {"link"=>button.role(Role::Link),"menuitem"=>button.role(Role::MenuItem),"tab"=>button.role(Role::Tab),"checkbox"=>button.role(Role::CheckBox),"switch"=>button.role(Role::Switch),"none"=>button.role(None::<Role>),_ if !node.semantics.href.is_empty()=>button.role(Role::Link),_=>button};
+                if let Ok(index)=option("tabIndex").parse::<isize>() {button=button.tab_index(index);}
+                if option("tabStop")=="false" {button=button.tab_stop(false);}
+                if !option("toggled").is_empty() {button=button.aria_toggled(if option("toggled")=="true" {gpui_kit::accesskit::Toggled::True}else{gpui_kit::accesskit::Toggled::False});}
+                if let Some(icon)=icon_name(option("icon")) {button=button.child(Icon::new(icon));}
+                if !option("tooltip").is_empty() {let text=option("tooltip").to_owned();button=button.tooltip(move|window,cx|gpui_kit::component::tooltip::Tooltip::new(text.clone()).build(window,cx));}
+                if node.kit.as_deref().is_some_and(|kit|kit.handles("hover")) {
+                    let root=cx.entity().downgrade();button=button.on_hover(move|hovered,_,cx|{let value=hovered.to_string();let _=root.update(cx,|root,cx|root.emit(id,"hover",value,cx));});
+                }
+                let loading=option("loading")=="true";
+                styled_control(button,self.rules(node),node.is_disabled()).children(children)
+                    .on_click(cx.listener(move|this,_,_,cx|{if !loading {this.activate(id,cx);}})).into_any_element()
             }
             // Vector art draws as an SVG image with colors resolved for this theme.
             Kind::Svg => {
@@ -578,14 +592,17 @@ fn length(value: Length) -> gpui_kit::Length {
     }
 }
 
-fn styled_rules(mut element: Div, rules: &[(State, Utility)], disabled: bool, id:u64) -> Stateful<Div> {
+fn styled_rules(element: Div, rules: &[(State, Utility)], disabled: bool, id:u64) -> Stateful<Div> {
+    styled_control(element.id(ElementId::Integer(id)),rules,disabled)
+}
+
+fn styled_control<T:Styled+StatefulInteractiveElement>(mut element:T,rules:&[(State,Utility)],disabled:bool)->T {
     let flex = rules.iter().any(|(_, rule)| matches!(rule, Utility::Row | Utility::Column | Utility::Display(false) | Utility::InlineFlex));
     if flex {element = element.flex();}
     for (state, rule) in rules {
         if *state == State::Base || *state == State::Disabled && disabled {apply(element.style(), *rule);}
     }
     apply_effects(element.style(), &style::state_rules(rules,State::Base,disabled));
-    let mut element=element.id(ElementId::Integer(id));
     if !disabled {
         for state in [State::Hover,State::Focus,State::Active] {
             let local=rules.iter().filter(|(current,_)|*current==state).map(|(_,rule)|*rule).collect::<Vec<_>>();
