@@ -36,6 +36,14 @@ import { PopoverPage } from './pages/Popover.tsrx';
 import { AccordionPage } from './pages/Accordion.tsrx';
 import { DialogPage } from './pages/Dialog.tsrx';
 import { SheetPage } from './pages/Sheet.tsrx';
+import { AlertDialogPage } from './pages/AlertDialog.tsrx';
+import { NotificationPage } from './pages/Notification.tsrx';
+import { HoverCardPage } from './pages/HoverCard.tsrx';
+import { CollapsiblePage } from './pages/Collapsible.tsrx';
+import { BreadcrumbPage } from './pages/Breadcrumb.tsrx';
+import { PaginationPage } from './pages/Pagination.tsrx';
+import { DescriptionListPage } from './pages/DescriptionList.tsrx';
+import { StepperPage } from './pages/Stepper.tsrx';
 
 interface PageProps {
   children?: Child[];
@@ -78,6 +86,8 @@ function App(): Node {
           <SidebarItem label="Popover" active={path.get() === "/popover"} onClick={() => { navigate("/popover"); }} />
           <SidebarItem label="Dialog" active={path.get() === "/dialog"} onClick={() => { navigate("/dialog"); }} />
           <SidebarItem label="Sheet" active={path.get() === "/sheet"} onClick={() => { navigate("/sheet"); }} />
+          <SidebarItem label="Alert Dialog" active={path.get() === "/alert-dialog"} onClick={() => { navigate("/alert-dialog"); }} />
+          <SidebarItem label="Hover Card" active={path.get() === "/hover-card"} onClick={() => { navigate("/hover-card"); }} />
         </SidebarGroup>
         <SidebarGroup label="Data Display">
           <SidebarItem label="Badge" active={path.get() === "/badge"} onClick={() => { navigate("/badge"); }} />
@@ -86,6 +96,7 @@ function App(): Node {
           <SidebarItem label="Kbd" active={path.get() === "/kbd"} onClick={() => { navigate("/kbd"); }} />
           <SidebarItem label="Avatar" active={path.get() === "/avatar"} onClick={() => { navigate("/avatar"); }} />
           <SidebarItem label="Icon" active={path.get() === "/icon"} onClick={() => { navigate("/icon"); }} />
+          <SidebarItem label="Description List" active={path.get() === "/description-list"} onClick={() => { navigate("/description-list"); }} />
         </SidebarGroup>
         <SidebarGroup label="Feedback">
           <SidebarItem label="Skeleton" active={path.get() === "/skeleton"} onClick={() => { navigate("/skeleton"); }} />
@@ -94,10 +105,12 @@ function App(): Node {
           <SidebarItem label="Alert" active={path.get() === "/alert"} onClick={() => { navigate("/alert"); }} />
           <SidebarItem label="Shimmer" active={path.get() === "/shimmer"} onClick={() => { navigate("/shimmer"); }} />
           <SidebarItem label="Empty" active={path.get() === "/empty"} onClick={() => { navigate("/empty"); }} />
+          <SidebarItem label="Notification" active={path.get() === "/notification"} onClick={() => { navigate("/notification"); }} />
         </SidebarGroup>
         <SidebarGroup label="Layout">
           <SidebarItem label="GroupBox" active={path.get() === "/group-box"} onClick={() => { navigate("/group-box"); }} />
           <SidebarItem label="Accordion" active={path.get() === "/accordion"} onClick={() => { navigate("/accordion"); }} />
+          <SidebarItem label="Collapsible" active={path.get() === "/collapsible"} onClick={() => { navigate("/collapsible"); }} />
         </SidebarGroup>
         <SidebarGroup label="Forms">
           <SidebarItem label="Checkbox" active={path.get() === "/checkbox"} onClick={() => { navigate("/checkbox"); }} />
@@ -113,6 +126,9 @@ function App(): Node {
         </SidebarGroup>
         <SidebarGroup label="Navigation">
           <SidebarItem label="Tabs" active={path.get() === "/tabs"} onClick={() => { navigate("/tabs"); }} />
+          <SidebarItem label="Breadcrumb" active={path.get() === "/breadcrumb"} onClick={() => { navigate("/breadcrumb"); }} />
+          <SidebarItem label="Pagination" active={path.get() === "/pagination"} onClick={() => { navigate("/pagination"); }} />
+          <SidebarItem label="Stepper" active={path.get() === "/stepper"} onClick={() => { navigate("/stepper"); }} />
         </SidebarGroup>
       </Sidebar>
       <View className="flex-col grow min-w-0">
@@ -151,6 +167,14 @@ function App(): Node {
         <Route path="/accordion" render={() => <Page><AccordionPage /></Page>} />
         <Route path="/dialog" render={() => <Page><DialogPage /></Page>} />
         <Route path="/sheet" render={() => <Page><SheetPage /></Page>} />
+        <Route path="/alert-dialog" render={() => <Page><AlertDialogPage /></Page>} />
+        <Route path="/notification" render={() => <Page><NotificationPage /></Page>} />
+        <Route path="/hover-card" render={() => <Page><HoverCardPage /></Page>} />
+        <Route path="/collapsible" render={() => <Page><CollapsiblePage /></Page>} />
+        <Route path="/breadcrumb" render={() => <Page><BreadcrumbPage /></Page>} />
+        <Route path="/pagination" render={() => <Page><PaginationPage /></Page>} />
+        <Route path="/description-list" render={() => <Page><DescriptionListPage /></Page>} />
+        <Route path="/stepper" render={() => <Page><StepperPage /></Page>} />
       </View>
       </View>
     </View>

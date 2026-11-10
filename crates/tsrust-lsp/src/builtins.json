@@ -22897,13 +22897,13 @@
           "documentation": "Title, variant (info, success, warning, error) and delivery (app, system, both)."
         }
       ],
-      "documentation": "Shows a notification. By default it is a toast in the active window that hides after a few seconds; delivery: 'system' posts to the operating system's notification center and 'both' does both.\n\n```tsrx\n<Button onPress={() => { notify('Saved', { title: 'Done', variant: 'success' }); }}>Save</Button>\n```\n\nThe toast appears on the next frame. System delivery needs a bundled app and can be disabled or delayed by the OS, so keep important state in the window too. Ownership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+      "documentation": "Shows a toast in the active window. Options: title, variant (info, success, warning or error), delivery (app, system or both), id (a later notify with the same id replaces it; dismissNotification(id) removes it), icon, placement (the corner toasts stack in), autohide (defaults to true unless there is an action), action (a button label) and onEvent, which runs once with the first of 'action', 'click' or 'close'.\n\n```tsrx\nnotify('File deleted', { variant: 'warning', id: 'delete', action: 'Undo', onEvent: (event) => { if (event === 'action') { restore(); } } });\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
     },
     {
       "name": "NotifyOptions",
       "signature": "interface NotifyOptions",
       "parameters": [],
-      "documentation": "Options for notify: title (bold heading), variant ('info' | 'success' | 'warning' | 'error', default info) and delivery ('app' | 'system' | 'both', default app).\n\n```tsrx\nnotify('Upload failed', { title: 'Error', variant: 'error', delivery: 'both' });\n```"
+      "documentation": "Options for notify: title, variant, delivery, id, icon, placement, autohide, action and onEvent.\n\n```tsrx\nnotify('Saved', { variant: 'success', placement: 'bottom-right' });\n```"
     },
     {
       "name": "setWindowTitle",
@@ -23225,6 +23225,22 @@
       "documentation": "Arguments for controlInput: value (text to insert, replace with or search for; the token id for insertToken), label (insertToken display text), start and end (byte offsets for setCursor, setSelection and addSelection; horizontal and vertical pixels for scrollTo). All default to empty or zero.\n\n```tsrx\ncontrolInput('editor', 'setSelection', { start: 0, end: 5 });\n```"
     },
     {
+      "name": "dismissNotification",
+      "signature": "dismissNotification(id: string): void",
+      "documentation": "Removes the notification shown with this id; nothing happens when none is showing.\n\n```tsrx\nnotify('Uploading...', { id: 'upload', autohide: false });\ndismissNotification('upload');\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once.",
+      "parameters": [
+        {
+          "label": "id",
+          "documentation": "The id given to notify."
+        }
+      ]
+    },
+    {
+      "name": "clearNotifications",
+      "signature": "clearNotifications(): void",
+      "documentation": "Removes every notification in the active window.\n\n```tsrx\nclearNotifications();\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
       "name": "Icon",
       "signature": "Icon(props: IconProps): Node",
       "parameters": [
@@ -23521,12 +23537,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "Label and value pairs in a grid. Children are DescriptionItem elements.\n\nProps:\n- `columns`: Number of columns. Defaults to 3.\n- `bordered`: Draws cell borders.\n- `vertical`: Puts each label above its value.\n- `children`: DescriptionItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionList columns={2}><DescriptionItem label=\"Plan\" value=\"Pro\"/></DescriptionList>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Label and value pairs in a grid. Children are DescriptionItem elements.\n\nProps:\n- `columns`: Items per row. Defaults to 3.\n- `bordered`: Draws a table-like border.\n- `vertical`: Puts each label above its value instead of beside it.\n- `labelWidth`: Label column width in pixels (horizontal layout).\n- `size`: Size: xsmall, small, medium (default) or large.\n- `children`: DescriptionItem and DescriptionSeparator elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionList columns={2}><DescriptionItem label=\"Plan\" value=\"Pro\"/></DescriptionList>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "DescriptionListProps",
       "signature": "interface DescriptionListProps",
-      "documentation": "Label and value pairs in a grid. Children are DescriptionItem elements.\n\nProps:\n- `columns`: Number of columns. Defaults to 3.\n- `bordered`: Draws cell borders.\n- `vertical`: Puts each label above its value.\n- `children`: DescriptionItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionList columns={2}><DescriptionItem label=\"Plan\" value=\"Pro\"/></DescriptionList>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Label and value pairs in a grid. Children are DescriptionItem elements.\n\nProps:\n- `columns`: Items per row. Defaults to 3.\n- `bordered`: Draws a table-like border.\n- `vertical`: Puts each label above its value instead of beside it.\n- `labelWidth`: Label column width in pixels (horizontal layout).\n- `size`: Size: xsmall, small, medium (default) or large.\n- `children`: DescriptionItem and DescriptionSeparator elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionList columns={2}><DescriptionItem label=\"Plan\" value=\"Pro\"/></DescriptionList>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "DescriptionItem",
@@ -23537,12 +23553,28 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "One label and value inside a DescriptionList.\n\nProps:\n- `label`: Label text.\n- `value`: Value text.\n- `span`: Number of columns the item spans. Defaults to 1.\n- `children`: Text content, used as `value` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionItem label=\"Region\" value=\"us-east\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One label and value. Text children are the value; other children render as a rich value.\n\nProps:\n- `label`: The label.\n- `value`: The value, when there are no children.\n- `span`: Columns this item spans. Defaults to 1.\n- `children`: Text content, used as `value` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionItem label=\"Region\" value=\"us-east\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "DescriptionItemProps",
       "signature": "interface DescriptionItemProps",
-      "documentation": "One label and value inside a DescriptionList.\n\nProps:\n- `label`: Label text.\n- `value`: Value text.\n- `span`: Number of columns the item spans. Defaults to 1.\n- `children`: Text content, used as `value` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionItem label=\"Region\" value=\"us-east\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One label and value. Text children are the value; other children render as a rich value.\n\nProps:\n- `label`: The label.\n- `value`: The value, when there are no children.\n- `span`: Columns this item spans. Defaults to 1.\n- `children`: Text content, used as `value` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionItem label=\"Region\" value=\"us-east\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DescriptionSeparator",
+      "signature": "DescriptionSeparator(props: DescriptionSeparatorProps): Node",
+      "parameters": [
+        {
+          "label": "props: DescriptionSeparatorProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A full-width divider between DescriptionList rows.\n\nProps:\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionList>\n  <DescriptionItem label=\"Name\">Ada</DescriptionItem>\n  <DescriptionSeparator />\n  <DescriptionItem label=\"Role\">Engineer</DescriptionItem>\n</DescriptionList>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "DescriptionSeparatorProps",
+      "signature": "interface DescriptionSeparatorProps",
+      "documentation": "A full-width divider between DescriptionList rows.\n\nProps:\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<DescriptionList>\n  <DescriptionItem label=\"Name\">Ada</DescriptionItem>\n  <DescriptionSeparator />\n  <DescriptionItem label=\"Role\">Engineer</DescriptionItem>\n</DescriptionList>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Breadcrumb",
@@ -23697,12 +23729,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "Page navigation buttons. Pages are numbered from 1.\n\nProps:\n- `page`: Current page.\n- `total`: Number of pages.\n- `compact`: Shows only previous and next buttons.\n- `onChange`: Receives the requested page.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Pagination page={page.get()} total={10} onChange={(next) => { page.set(next); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Page navigation buttons. Pages are numbered from 1.\n\nProps:\n- `page`: Current page (1-based), controlled; set it from onChange. Without it the pagination keeps its own page.\n- `defaultPage`: Initial page when `page` is unset. Defaults to 1.\n- `total`: Number of pages.\n- `compact`: Shows only previous and next buttons with the page count.\n- `visiblePages`: Most page buttons shown before ellipses.\n- `disabled`: Ignores clicks.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `onChange`: Receives the requested page.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Pagination page={page.get()} total={10} onChange={(next) => { page.set(next); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "PaginationProps",
       "signature": "interface PaginationProps",
-      "documentation": "Page navigation buttons. Pages are numbered from 1.\n\nProps:\n- `page`: Current page.\n- `total`: Number of pages.\n- `compact`: Shows only previous and next buttons.\n- `onChange`: Receives the requested page.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Pagination page={page.get()} total={10} onChange={(next) => { page.set(next); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Page navigation buttons. Pages are numbered from 1.\n\nProps:\n- `page`: Current page (1-based), controlled; set it from onChange. Without it the pagination keeps its own page.\n- `defaultPage`: Initial page when `page` is unset. Defaults to 1.\n- `total`: Number of pages.\n- `compact`: Shows only previous and next buttons with the page count.\n- `visiblePages`: Most page buttons shown before ellipses.\n- `disabled`: Ignores clicks.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `onChange`: Receives the requested page.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Pagination page={page.get()} total={10} onChange={(next) => { page.set(next); }}/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Slider",
@@ -23729,12 +23761,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "Progress through numbered steps. Children are StepperItem elements.\n\nProps:\n- `selected`: Index of the current step.\n- `vertical`: Stacks steps vertically.\n- `children`: StepperItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Stepper selected={1}><StepperItem label=\"Account\"/><StepperItem label=\"Billing\"/></Stepper>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Progress through numbered steps. Children are StepperItem elements.\n\nProps:\n- `selected`: The current step index, controlled; set it from onChange. Without it the stepper keeps its own step.\n- `defaultSelected`: Initial step when `selected` is unset.\n- `vertical`: Stacks the steps vertically.\n- `textCenter`: Centers labels under their markers.\n- `disabled`: Disables every step.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with the clicked step's index.\n- `children`: StepperItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Stepper selected={1}><StepperItem label=\"Account\"/><StepperItem label=\"Billing\"/></Stepper>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "StepperProps",
       "signature": "interface StepperProps",
-      "documentation": "Progress through numbered steps. Children are StepperItem elements.\n\nProps:\n- `selected`: Index of the current step.\n- `vertical`: Stacks steps vertically.\n- `children`: StepperItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Stepper selected={1}><StepperItem label=\"Account\"/><StepperItem label=\"Billing\"/></Stepper>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Progress through numbered steps. Children are StepperItem elements.\n\nProps:\n- `selected`: The current step index, controlled; set it from onChange. Without it the stepper keeps its own step.\n- `defaultSelected`: Initial step when `selected` is unset.\n- `vertical`: Stacks the steps vertically.\n- `textCenter`: Centers labels under their markers.\n- `disabled`: Disables every step.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `onChange`: Runs with the clicked step's index.\n- `children`: StepperItem elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Stepper selected={1}><StepperItem label=\"Account\"/><StepperItem label=\"Billing\"/></Stepper>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "StepperItem",
@@ -23745,12 +23777,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "One step in a Stepper.\n\nProps:\n- `label`: Step title.\n- `disabled`: Greys the step out.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StepperItem label=\"Confirm\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One step in a Stepper.\n\nProps:\n- `label`: Step text, when there are no text children.\n- `icon`: Icon in the step marker instead of its number.\n- `disabled`: Cannot be selected.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StepperItem label=\"Confirm\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "StepperItemProps",
       "signature": "interface StepperItemProps",
-      "documentation": "One step in a Stepper.\n\nProps:\n- `label`: Step title.\n- `disabled`: Greys the step out.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StepperItem label=\"Confirm\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "One step in a Stepper.\n\nProps:\n- `label`: Step text, when there are no text children.\n- `icon`: Icon in the step marker instead of its number.\n- `disabled`: Cannot be selected.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `children`: Text content, used as `label` when that prop is unset.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<StepperItem label=\"Confirm\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Tabs",
@@ -23953,12 +23985,44 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "Shows its children only while open.\n\nProps:\n- `open`: Whether the content is visible.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Collapsible open={expanded.get()}><Text>More detail</Text></Collapsible>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Shows and hides CollapsibleContent with an animation; a CollapsibleTrigger toggles it. Other children always show.\n\nProps:\n- `open`: Whether the content shows, controlled; set it from onOpenChange. Without it the trigger toggles it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `onOpenChange`: Runs when the trigger is clicked.\n- `children`: CollapsibleTrigger, CollapsibleContent and other content elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "CollapsibleProps",
       "signature": "interface CollapsibleProps",
-      "documentation": "Shows its children only while open.\n\nProps:\n- `open`: Whether the content is visible.\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Collapsible open={expanded.get()}><Text>More detail</Text></Collapsible>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "Shows and hides CollapsibleContent with an animation; a CollapsibleTrigger toggles it. Other children always show.\n\nProps:\n- `open`: Whether the content shows, controlled; set it from onOpenChange. Without it the trigger toggles it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `onOpenChange`: Runs when the trigger is clicked.\n- `children`: CollapsibleTrigger, CollapsibleContent and other content elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CollapsibleTrigger",
+      "signature": "CollapsibleTrigger(props: CollapsibleTriggerProps): Node",
+      "parameters": [
+        {
+          "label": "props: CollapsibleTriggerProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content that toggles the Collapsible when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CollapsibleTriggerProps",
+      "signature": "interface CollapsibleTriggerProps",
+      "documentation": "Content that toggles the Collapsible when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CollapsibleContent",
+      "signature": "CollapsibleContent(props: CollapsibleContentProps): Node",
+      "parameters": [
+        {
+          "label": "props: CollapsibleContentProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content shown while the Collapsible is open.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "CollapsibleContentProps",
+      "signature": "interface CollapsibleContentProps",
+      "documentation": "Content shown while the Collapsible is open.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Select",
@@ -24193,12 +24257,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A floating card shown while the pointer rests on its trigger.\n\nProps:\n- `children`: HoverCardTrigger, HoverCardContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<HoverCard><HoverCardTrigger><Text>@ada</Text></HoverCardTrigger><HoverCardContent><Text>Mathematician</Text></HoverCardContent></HoverCard>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A floating card shown while the pointer rests on its trigger.\n\nProps:\n- `anchor`: The card corner aligned to the trigger.\n- `openDelay`: Milliseconds the pointer rests before it opens.\n- `closeDelay`: Milliseconds before it closes after the pointer leaves.\n- `appearance`: false removes the card surface styling.\n- `triggerClassName`: Utility classes for the trigger container.\n- `onOpenChange`: Runs when the card opens or closes.\n- `children`: HoverCardTrigger, HoverCardContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<HoverCard><HoverCardTrigger><Text>@ada</Text></HoverCardTrigger><HoverCardContent><Text>Mathematician</Text></HoverCardContent></HoverCard>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "HoverCardProps",
       "signature": "interface HoverCardProps",
-      "documentation": "A floating card shown while the pointer rests on its trigger.\n\nProps:\n- `children`: HoverCardTrigger, HoverCardContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<HoverCard><HoverCardTrigger><Text>@ada</Text></HoverCardTrigger><HoverCardContent><Text>Mathematician</Text></HoverCardContent></HoverCard>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A floating card shown while the pointer rests on its trigger.\n\nProps:\n- `anchor`: The card corner aligned to the trigger.\n- `openDelay`: Milliseconds the pointer rests before it opens.\n- `closeDelay`: Milliseconds before it closes after the pointer leaves.\n- `appearance`: false removes the card surface styling.\n- `triggerClassName`: Utility classes for the trigger container.\n- `onOpenChange`: Runs when the card opens or closes.\n- `children`: HoverCardTrigger, HoverCardContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<HoverCard><HoverCardTrigger><Text>@ada</Text></HoverCardTrigger><HoverCardContent><Text>Mathematician</Text></HoverCardContent></HoverCard>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "HoverCardTrigger",
@@ -24263,6 +24327,102 @@
       "name": "SheetProps",
       "signature": "interface SheetProps",
       "documentation": "A panel that slides in from a window edge, opened from a SheetTrigger, with SheetContent holding a header, body and footer.\n\nProps:\n- `open`: Whether it is open, controlled; set it from onOpenChange. Without it the trigger and close buttons open and close it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `title`: Title text, when there is no DialogTitle.\n- `description`: Description text, when there is no DialogDescription.\n- `overlay`: false removes the dimmed backdrop. Defaults to true.\n- `overlayClosable`: false keeps it open when the backdrop is clicked. Defaults to true.\n- `side`: The edge it slides from. Defaults to right.\n- `size`: Width (left/right) or height (top/bottom) in pixels.\n- `resizable`: Lets people drag the inner edge to resize it.\n- `onOpenChange`: Runs when the trigger opens it or it is closed.\n- `onClose`: Runs after it closes.\n- `children`: SheetTrigger and SheetContent elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialog",
+      "signature": "AlertDialog(props: AlertDialogProps): Node",
+      "parameters": [
+        {
+          "label": "props: AlertDialogProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A dialog that asks people to confirm or acknowledge: an icon, title, description and OK/Cancel buttons.\n\nProps:\n- `open`: Whether it is open, controlled; set it from onOpenChange. Without it the trigger and buttons open and close it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `title`: Title text, when there is no AlertDialogTitle.\n- `description`: Description text, when there is no AlertDialogDescription.\n- `icon`: Icon beside the title.\n- `okText`: OK button text. Defaults to OK.\n- `okVariant`: OK button style, such as danger for destructive actions.\n- `cancelText`: Shows a Cancel button with this text.\n- `cancelVariant`: Cancel button style.\n- `confirm`: Shows both OK and Cancel with their default texts.\n- `closeButton`: Shows the corner close button. Defaults to false.\n- `keyboard`: false stops Escape from closing it.\n- `width`: Width in pixels.\n- `marginTop`: Distance from the top of the window in pixels.\n- `centered`: Centers it vertically.\n- `entrance`: Opening animation.\n- `onOpenChange`: Runs when the trigger opens it or a button, Escape or the backdrop closes it.\n- `onOk`: Runs when OK is pressed.\n- `onCancel`: Runs when Cancel is pressed.\n- `onClose`: Runs after it closes.\n- `children`: AlertDialogTrigger, AlertDialogTitle, AlertDialogDescription and body content elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogProps",
+      "signature": "interface AlertDialogProps",
+      "documentation": "A dialog that asks people to confirm or acknowledge: an icon, title, description and OK/Cancel buttons.\n\nProps:\n- `open`: Whether it is open, controlled; set it from onOpenChange. Without it the trigger and buttons open and close it.\n- `defaultOpen`: Starts open when `open` is unset.\n- `title`: Title text, when there is no AlertDialogTitle.\n- `description`: Description text, when there is no AlertDialogDescription.\n- `icon`: Icon beside the title.\n- `okText`: OK button text. Defaults to OK.\n- `okVariant`: OK button style, such as danger for destructive actions.\n- `cancelText`: Shows a Cancel button with this text.\n- `cancelVariant`: Cancel button style.\n- `confirm`: Shows both OK and Cancel with their default texts.\n- `closeButton`: Shows the corner close button. Defaults to false.\n- `keyboard`: false stops Escape from closing it.\n- `width`: Width in pixels.\n- `marginTop`: Distance from the top of the window in pixels.\n- `centered`: Centers it vertically.\n- `entrance`: Opening animation.\n- `onOpenChange`: Runs when the trigger opens it or a button, Escape or the backdrop closes it.\n- `onOk`: Runs when OK is pressed.\n- `onCancel`: Runs when Cancel is pressed.\n- `onClose`: Runs after it closes.\n- `children`: AlertDialogTrigger, AlertDialogTitle, AlertDialogDescription and body content elements.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogContent",
+      "signature": "AlertDialogContent(props: AlertDialogContentProps): Node",
+      "parameters": [
+        {
+          "label": "props: AlertDialogContentProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Extra content shown under the description.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogContentProps",
+      "signature": "interface AlertDialogContentProps",
+      "documentation": "Extra content shown under the description.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogDescription",
+      "signature": "AlertDialogDescription(props: AlertDialogDescriptionProps): Node",
+      "parameters": [
+        {
+          "label": "props: AlertDialogDescriptionProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Muted text under the AlertDialog title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogDescriptionProps",
+      "signature": "interface AlertDialogDescriptionProps",
+      "documentation": "Muted text under the AlertDialog title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogTitle",
+      "signature": "AlertDialogTitle(props: AlertDialogTitleProps): Node",
+      "parameters": [
+        {
+          "label": "props: AlertDialogTitleProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The AlertDialog title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogTitleProps",
+      "signature": "interface AlertDialogTitleProps",
+      "documentation": "The AlertDialog title.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogHeader",
+      "signature": "AlertDialogHeader(props: AlertDialogHeaderProps): Node",
+      "parameters": [
+        {
+          "label": "props: AlertDialogHeaderProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Holds the AlertDialogTitle and AlertDialogDescription.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogHeaderProps",
+      "signature": "interface AlertDialogHeaderProps",
+      "documentation": "Holds the AlertDialogTitle and AlertDialogDescription.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogTrigger",
+      "signature": "AlertDialogTrigger(props: AlertDialogTriggerProps): Node",
+      "parameters": [
+        {
+          "label": "props: AlertDialogTriggerProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "Content that opens the AlertDialog when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "AlertDialogTriggerProps",
+      "signature": "interface AlertDialogTriggerProps",
+      "documentation": "Content that opens the AlertDialog when clicked.\n\nProps:\n- `children`: Content shown inside the component.\n- `className`: shared utility classes applied around the component.\n\n```tsrx\n<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "DialogTrigger",

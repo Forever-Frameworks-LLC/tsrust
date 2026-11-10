@@ -2779,3 +2779,327 @@ function ControlledSheet(): Node {
     </View>
   );
 }
+=== Alert Dialog | alert-dialog | Overlays
+A dialog that interrupts to confirm or acknowledge something, with OK and Cancel buttons.
+--- Basic Alert Dialog
+An acknowledgement with one OK button.
+function BasicAlertDialog(): Node {
+  return (
+    <AlertDialog title="Update available" description="Version 2.0 is ready to install.">
+      <AlertDialogTrigger><Button outline={true}>Show alert</Button></AlertDialogTrigger>
+    </AlertDialog>
+  );
+}
+--- Confirm Dialog
+cancelText adds Cancel; onOk and onCancel report the choice.
+function ConfirmAlertDialog(): Node {
+  const result = signal('none');
+  return (
+    <View className="flex-row items-center gap-3">
+      <AlertDialog title="Are you absolutely sure?" description="This permanently deletes your account and removes your data." okText="Delete account" okVariant="danger" cancelText="Cancel" onOk={() => { result.set('deleted'); }} onCancel={() => { result.set('kept'); }}>
+        <AlertDialogTrigger><Button variant="danger">Delete account</Button></AlertDialogTrigger>
+      </AlertDialog>
+      <Text variant="muted">Result: {result}</Text>
+    </View>
+  );
+}
+--- With Icon and Content
+An icon beside the title and extra content under the description.
+function IconAlertDialog(): Node {
+  return (
+    <AlertDialog icon="triangle-alert" confirm={true}>
+      <AlertDialogTrigger><Button outline={true}>Leave page</Button></AlertDialogTrigger>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+        <AlertDialogDescription>You have edits that have not been saved.</AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogContent><Text variant="muted">3 files changed</Text></AlertDialogContent>
+    </AlertDialog>
+  );
+}
+--- Controlled
+open follows state, centered and fading in.
+function ControlledAlertDialog(): Node {
+  const open = signal(false);
+  return (
+    <View className="flex-row gap-3">
+      <Button onPress={() => { open.set(true); }}>Open from state</Button>
+      <AlertDialog open={open.get()} onOpenChange={(next) => { open.set(next); }} centered={true} entrance="fade" title="Session expiring" description="You will be signed out in 2 minutes." okText="Stay signed in" />
+    </View>
+  );
+}
+=== Notification | notification | Feedback
+Toasts that report what happened, with variants, titles, icons, placement, actions and dismissal.
+--- Notification Types
+info, success, warning and error.
+function NotificationTypes(): Node {
+  return (
+    <View className="flex-row flex-wrap gap-2">
+      <Button onPress={() => { notify('This is an info message.'); }}>Info</Button>
+      <Button onPress={() => { notify('Your changes have been saved.', { variant: 'success' }); }}>Success</Button>
+      <Button onPress={() => { notify('Your session will expire soon.', { variant: 'warning' }); }}>Warning</Button>
+      <Button onPress={() => { notify('Something went wrong.', { variant: 'error' }); }}>Error</Button>
+    </View>
+  );
+}
+--- Title and Icon
+A heading and a custom icon.
+function TitledNotification(): Node {
+  return <Button onPress={() => { notify('Ada mentioned you in #general.', { title: 'New mention', icon: 'at-sign' }); }}>Show mention</Button>;
+}
+--- Placement
+The corner toasts stack in.
+function PlacedNotifications(): Node {
+  return (
+    <View className="flex-row flex-wrap gap-2">
+      <Button onPress={() => { notify('Top left', { placement: 'top-left' }); }}>Top left</Button>
+      <Button onPress={() => { notify('Top center', { placement: 'top-center' }); }}>Top center</Button>
+      <Button onPress={() => { notify('Bottom right', { placement: 'bottom-right' }); }}>Bottom right</Button>
+    </View>
+  );
+}
+--- Action and Events
+An action button keeps the toast open; onEvent reports the first action, click or close.
+function ActionNotification(): Node {
+  const last = signal('none');
+  return (
+    <View className="flex-row items-center gap-3">
+      <Button onPress={() => { notify('File moved to trash.', { title: 'Deleted', action: 'Undo', onEvent: (event) => { last.set(clone(event)); } }); }}>Delete file</Button>
+      <Text variant="muted">Last event: {last}</Text>
+    </View>
+  );
+}
+--- Persistent and Dismiss
+autohide=false keeps a toast until closed; the same id replaces it; dismissNotification removes it.
+function PersistentNotification(): Node {
+  const count = signal(0);
+  return (
+    <View className="flex-row flex-wrap gap-2">
+      <Button onPress={() => { count.set(count.get() + 1); notify(`Uploading file ${count.get()}...`, { id: 'upload', autohide: false }); }}>Upload</Button>
+      <Button outline={true} onPress={() => { dismissNotification('upload'); }}>Dismiss upload</Button>
+      <Button outline={true} onPress={() => { clearNotifications(); }}>Clear all</Button>
+    </View>
+  );
+}
+=== Hover Card | hover-card | Overlays
+A card that previews content while the pointer rests on a trigger.
+--- Basic Hover Card
+HoverCardTrigger and HoverCardContent.
+function BasicHoverCard(): Node {
+  return (
+    <HoverCard>
+      <HoverCardTrigger><Link href="https://github.com/gpui-kit">@gpui-kit</Link></HoverCardTrigger>
+      <HoverCardContent>
+        <View className="flex-row gap-3">
+          <Avatar name="GPUI Kit" />
+          <View className="flex-col gap-1">
+            <Text className="font-semibold">GPUI Kit</Text>
+            <Text variant="muted">Rust UI components for GPUI.</Text>
+          </View>
+        </View>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+--- Delays and Anchor
+openDelay and closeDelay in milliseconds; anchor picks the card corner.
+function DelayedHoverCard(): Node {
+  const open = signal(false);
+  return (
+    <View className="flex-row items-center gap-3">
+      <HoverCard openDelay={100} closeDelay={600} anchor="top-right" onOpenChange={(next) => { open.set(next); }}>
+        <HoverCardTrigger><Button outline={true}>Hover quickly</Button></HoverCardTrigger>
+        <HoverCardContent><Text>Opens fast, lingers longer.</Text></HoverCardContent>
+      </HoverCard>
+      <Text variant="muted">Open: {open.get() ? 'yes' : 'no'}</Text>
+    </View>
+  );
+}
+=== Collapsible | collapsible | Layout
+Shows and hides a section with an animation.
+--- Basic Collapsible
+CollapsibleTrigger toggles CollapsibleContent; the header stays visible.
+function BasicCollapsible(): Node {
+  return (
+    <Collapsible className="w-80">
+      <View className="flex-row items-center justify-between">
+        <Text className="font-semibold">@peduarte starred 3 repositories</Text>
+        <CollapsibleTrigger><Button size="small" variant="ghost" icon="chevrons-up-down" /></CollapsibleTrigger>
+      </View>
+      <View className="rounded-md border border-border px-4 py-2"><Text>@radix-ui/primitives</Text></View>
+      <CollapsibleContent>
+        <View className="rounded-md border border-border px-4 py-2"><Text>@radix-ui/colors</Text></View>
+        <View className="rounded-md border border-border px-4 py-2"><Text>@stitches/react</Text></View>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+--- Controlled
+open follows state.
+function ControlledCollapsible(): Node {
+  const open = signal(true);
+  return (
+    <View className="flex-col gap-2 w-80">
+      <Switch checked={open.get()} onChange={(on) => { open.set(on); }}>Show details</Switch>
+      <Collapsible open={open.get()} onOpenChange={(next) => { open.set(next); }}>
+        <CollapsibleContent><Text variant="muted">Details appear and disappear with the switch.</Text></CollapsibleContent>
+      </Collapsible>
+    </View>
+  );
+}
+=== Breadcrumb | breadcrumb | Navigation
+The path to the current page, with clickable ancestors.
+--- Basic Breadcrumb
+Clickable items; the last is the current page.
+function BasicBreadcrumb(): Node {
+  const last = signal('none');
+  return (
+    <View className="flex-col gap-2">
+      <Breadcrumb>
+        <BreadcrumbItem onClick={() => { last.set('Home'); }}>Home</BreadcrumbItem>
+        <BreadcrumbItem onClick={() => { last.set('Components'); }}>Components</BreadcrumbItem>
+        <BreadcrumbItem>Breadcrumb</BreadcrumbItem>
+      </Breadcrumb>
+      <Text variant="muted">Clicked: {last}</Text>
+    </View>
+  );
+}
+--- Disabled Items
+Disabled items are not clickable.
+function DisabledBreadcrumb(): Node {
+  return (
+    <Breadcrumb>
+      <BreadcrumbItem>Home</BreadcrumbItem>
+      <BreadcrumbItem disabled={true}>Archive</BreadcrumbItem>
+      <BreadcrumbItem>2024</BreadcrumbItem>
+    </Breadcrumb>
+  );
+}
+=== Pagination | pagination | Navigation
+Page navigation with numbered buttons or a compact previous/next form.
+--- Basic Pagination
+Keeps its own page; onChange reports it.
+function BasicPagination(): Node {
+  const page = signal(1);
+  return (
+    <View className="flex-col gap-2">
+      <Pagination total={10} onChange={(next) => { page.set(next); }} />
+      <Text variant="muted">Page {page}</Text>
+    </View>
+  );
+}
+--- Many Pages
+visiblePages limits the numbered buttons; ellipses stand in for the rest.
+function ManyPages(): Node {
+  return <Pagination defaultPage={25} total={50} visiblePages={7} />;
+}
+--- Compact and Sizes
+Previous and next only, in several sizes.
+function CompactPagination(): Node {
+  return (
+    <View className="flex-col items-start gap-3">
+      <Pagination total={8} compact={true} />
+      <Pagination total={8} size="small" />
+      <Pagination total={8} size="large" />
+    </View>
+  );
+}
+--- Controlled and Disabled
+page follows state; disabled ignores clicks.
+function ControlledPagination(): Node {
+  const page = signal(3);
+  return (
+    <View className="flex-col items-start gap-3">
+      <Pagination page={page.get()} total={6} onChange={(next) => { page.set(next); }} />
+      <Button size="small" onPress={() => { page.set(1); }}>First page</Button>
+      <Pagination defaultPage={2} total={6} disabled={true} />
+    </View>
+  );
+}
+=== Description List | description-list | Data Display
+Labelled values in a grid, horizontal or vertical, optionally bordered.
+--- Basic Description List
+Labels beside values, three per row.
+function BasicDescriptionList(): Node {
+  return (
+    <DescriptionList className="w-full">
+      <DescriptionItem label="Name">Ada Lovelace</DescriptionItem>
+      <DescriptionItem label="Role">Mathematician</DescriptionItem>
+      <DescriptionItem label="Born">1815</DescriptionItem>
+      <DescriptionItem label="Known for" span={3}>The first published computer program, for the Analytical Engine.</DescriptionItem>
+    </DescriptionList>
+  );
+}
+--- Bordered and Vertical
+A table-like border, labels above values.
+function BorderedDescriptionList(): Node {
+  return (
+    <DescriptionList bordered={true} vertical={true} columns={2} className="w-full">
+      <DescriptionItem label="Product">Cloud Database</DescriptionItem>
+      <DescriptionItem label="Billing">Prepaid</DescriptionItem>
+      <DescriptionItem label="Region">East US</DescriptionItem>
+      <DescriptionItem label="Status"><Badge dot={true} color="success"><Text>Running</Text></Badge></DescriptionItem>
+    </DescriptionList>
+  );
+}
+--- Separators, Label Width and Size
+A divider between groups, a fixed label column and a smaller size.
+function SeparatedDescriptionList(): Node {
+  return (
+    <DescriptionList bordered={true} columns={1} labelWidth={140} size="small" className="w-96">
+      <DescriptionItem label="Order">#1024</DescriptionItem>
+      <DescriptionItem label="Placed">Nov 9, 2026</DescriptionItem>
+      <DescriptionSeparator />
+      <DescriptionItem label="Total"><Text className="font-semibold">$249.00</Text></DescriptionItem>
+    </DescriptionList>
+  );
+}
+=== Stepper | stepper | Navigation
+Progress through numbered steps, horizontal or vertical.
+--- Basic Stepper
+Click a step to select it.
+function BasicStepper(): Node {
+  return (
+    <Stepper className="w-full">
+      <StepperItem>Account</StepperItem>
+      <StepperItem>Profile</StepperItem>
+      <StepperItem>Confirm</StepperItem>
+    </Stepper>
+  );
+}
+--- Icons, Vertical and Centered Text
+Icons in the markers, a vertical layout, or labels centered under markers.
+function IconStepper(): Node {
+  return (
+    <View className="flex-row gap-12">
+      <Stepper vertical={true} defaultSelected={1}>
+        <StepperItem icon="user">Sign up</StepperItem>
+        <StepperItem icon="mail">Verify email</StepperItem>
+        <StepperItem icon="check">Done</StepperItem>
+      </Stepper>
+      <Stepper textCenter={true} size="small" className="w-80">
+        <StepperItem>Cart</StepperItem>
+        <StepperItem>Shipping</StepperItem>
+        <StepperItem disabled={true}>Payment</StepperItem>
+      </Stepper>
+    </View>
+  );
+}
+--- Controlled
+selected follows state with Back and Next buttons.
+function ControlledStepper(): Node {
+  const step = signal(0);
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Stepper selected={step.get()} onChange={(index) => { step.set(index); }}>
+        <StepperItem>Details</StepperItem>
+        <StepperItem>Review</StepperItem>
+        <StepperItem>Publish</StepperItem>
+      </Stepper>
+      <View className="flex-row gap-2">
+        <Button size="small" disabled={step.get() === 0} onPress={() => { step.set(step.get() - 1); }}>Back</Button>
+        <Button size="small" variant="primary" disabled={step.get() === 2} onPress={() => { step.set(step.get() + 1); }}>Next</Button>
+      </View>
+    </View>
+  );
+}

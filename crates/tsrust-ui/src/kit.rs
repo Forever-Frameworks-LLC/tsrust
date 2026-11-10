@@ -22,7 +22,8 @@ fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
     match component {
         "Checkbox" | "Switch" | "Radio" | "Toggle" => Some(("checked", "change")), "RadioGroup" => Some(("selected", "change")),
         "Rating" | "NumberInput" | "Select" | "Combobox" | "Tabs" | "Accordion" => Some(("value", "change")),
-        "Dialog" | "Sheet" => Some(("open", "openChange")),
+        "Dialog" | "Sheet" | "AlertDialog" | "Collapsible" => Some(("open", "openChange")),
+        "Pagination" => Some(("page", "change")), "Stepper" => Some(("selected", "change")),
         _ => None,
     }
 }

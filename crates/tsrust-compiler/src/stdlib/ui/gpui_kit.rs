@@ -7,7 +7,7 @@ use gpui_kit::component::alert::Alert;
 use gpui_kit::component::avatar::{Avatar, AvatarGroup};
 use gpui_kit::component::badge::Badge;
 use gpui_kit::component::breadcrumb::{Breadcrumb, BreadcrumbItem};
-use gpui_kit::component::button::{DropdownButton, Toggle};
+use gpui_kit::component::button::{ButtonVariant, DropdownButton, Toggle};
 use gpui_kit::component::checkbox::Checkbox;
 use gpui_kit::component::clipboard::Clipboard;
 use gpui_kit::component::collapsible::Collapsible;
@@ -485,6 +485,45 @@ macro_rules! combobox_options {($root:expr, $combobox:expr, $kit:expr, $empty:ex
     combobox
 }}}
 
+/// Marks notifications pushed with an id, so a later notify or dismissNotification with the same id finds them.
+struct TsrustNote;
+
+type NoteReply = std::rc::Rc<std::cell::RefCell<Option<commands::Reply>>>;
+
+/// A Kit notification from a notify payload; with a reply, its action, click and close report back once.
+fn notification(value: &serde_json::Value, events: Option<(WeakEntity<Root>, NoteReply)>) -> Notification {
+    let text = |key: &str| value.get(key).and_then(|value| value.as_str()).unwrap_or_default().to_owned();
+    let message = text("message");
+    // Kit draws a custom icon only on an untyped notification; the variant's icon wins otherwise.
+    let custom_icon = icon_name(&text("icon"));
+    let mut note = match (text("variant").as_str(), custom_icon.is_some()) {
+        (_, true) => Notification::new().message(message),
+        ("success", _) => Notification::success(message), ("warning", _) => Notification::warning(message), ("error", _) => Notification::error(message), _ => Notification::info(message),
+    };
+    note = match text("delivery").as_str() {"system" => note.system(), "both" => note.in_app_and_system(), _ => note};
+    if !text("title").is_empty() {note = note.title(text("title"));}
+    if !text("id").is_empty() {note = note.id1::<TsrustNote>(ElementId::Name(text("id").into()));}
+    if let Some(icon) = custom_icon {note = note.icon(icon);}
+    if !text("placement").is_empty() {note = note.placement(anchor_named(Some(&text("placement"))));}
+    if !text("autohide").is_empty() {note = note.autohide(text("autohide") == "true");}
+    let Some((root, reply)) = events else {return note};
+    let deliver = move |root: &WeakEntity<Root>, reply: &NoteReply, event: &str, cx: &mut App| {
+        if let Some(reply) = reply.borrow_mut().take() {let event = event.to_owned(); let _ = root.update(cx, |root, cx| {let result = reply(&event); root.settle(result.map(|_| true), cx);});}
+    };
+    let (click_root, click_reply) = (root.clone(), reply.clone());
+    note = note.on_click(move |_, _, cx| deliver(&click_root, &click_reply, "click", cx));
+    let (close_root, close_reply) = (root.clone(), reply.clone());
+    note = note.on_close(move |_, cx| deliver(&close_root, &close_reply, "close", cx));
+    let action = text("action");
+    if !action.is_empty() {
+        note = note.action(move |_, _, _| {
+            let (root, reply) = (root.clone(), reply.clone());
+            gpui_kit::component::button::Button::new("tsrust-note-action").small().primary().label(action.clone()).on_click(move |_, _, cx| deliver(&root, &reply, "action", cx))
+        });
+    }
+    note
+}
+
 /// Rendered parts of a Dialog or Sheet.
 struct OverlayParts {title: Option<Vec<AnyElement>>, description: Option<Vec<AnyElement>>, body: Vec<AnyElement>, footer: Option<Vec<AnyElement>>}
 
@@ -524,7 +563,17 @@ fn choices(node: &Node, kit: &Kit) -> (Vec<Choice>, Vec<(SharedString, Vec<Choic
 
 /// The first Dialog or Sheet part with this suffix, such as Content for DialogContent or SheetContent.
 fn first_part<'a>(node: &'a Node, part: &str) -> Option<&'a Node> {
-    node.visible_children().find(|child| child.kit.as_deref().is_some_and(|kit| kit.name.strip_prefix("Dialog").or_else(|| kit.name.strip_prefix("Sheet")) == Some(part)))
+    node.visible_children().find(|child| child.kit.as_deref().is_some_and(|kit| kit.name.strip_prefix("AlertDialog").or_else(|| kit.name.strip_prefix("Dialog")).or_else(|| kit.name.strip_prefix("Sheet")) == Some(part)))
+}
+
+/// The nearest ancestor Kit component of this name above a node, with whether it is open.
+fn ancestor_named(root: &Node, target: u64, name: &str) -> Option<(u64, bool)> {
+    fn walk(node: &Node, target: u64, name: &str, nearest: Option<(u64, bool)>) -> Option<Option<(u64, bool)>> {
+        if node.identity.get() == target {return Some(nearest);}
+        let here = node.kit.as_deref().filter(|kit| kit.name == name).map(|kit| (node.identity.get(), kit.prop("open").or(kit.prop("defaultOpen")) == Some("true"))).or(nearest);
+        node.children.iter().find_map(|child| walk(child, target, name, here))
+    }
+    walk(root, target, name, None).flatten()
 }
 
 /// The first item component of this name among a node's children.
@@ -668,7 +717,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -690,7 +739,7 @@ impl Root {
             let text = |key: &str| props.get(key).cloned().unwrap_or_default();
             let number = |key: &str| props.get(key).and_then(|value| value.parse::<f32>().ok());
             match name.as_str() {
-                "Dialog" => {if props.get("open").or(props.get("defaultOpen")).map(String::as_str) == Some("true") {dialog = Some(id);} continue}
+                "Dialog" | "AlertDialog" => {if props.get("open").or(props.get("defaultOpen")).map(String::as_str) == Some("true") {dialog = Some(id);} continue}
                 "Sheet" => {if props.get("open").or(props.get("defaultOpen")).map(String::as_str) == Some("true") {sheet = Some((id, text("side")));} continue}
                 _ => {}
             }
@@ -1066,6 +1115,42 @@ impl Root {
         }
         let root = cx.entity().downgrade();
         match (dialog, self.dialog) {
+            (Some(id), current) if current != Some(id) && find(&self.node, id).and_then(|node| node.kit.as_deref()).is_some_and(|kit| kit.name == "AlertDialog") => {
+                self.dialog = Some(id);
+                let root = root.clone();
+                window.open_alert_dialog(cx, move |alert, _, cx| {
+                    let Some((props, handles_ok, handles_cancel)) = root.upgrade().and_then(|root| find(&root.read(cx).node, id).and_then(|node| node.kit.as_deref()).map(|kit| (kit.props.clone(), kit.handles("ok"), kit.handles("cancel")))) else {return alert};
+                    let text = |key: &str| props.get(key).cloned().unwrap_or_default();
+                    let number = |key: &str| props.get(key).and_then(|value| value.parse::<f32>().ok());
+                    let variant = |key: &str| match text(key).as_str() {
+                        "primary" => Some(ButtonVariant::Primary), "secondary" => Some(ButtonVariant::Secondary), "danger" => Some(ButtonVariant::Danger), "info" => Some(ButtonVariant::Info),
+                        "success" => Some(ButtonVariant::Success), "warning" => Some(ButtonVariant::Warning), "ghost" => Some(ButtonVariant::Ghost), "link" => Some(ButtonVariant::Link), "text" => Some(ButtonVariant::Text), "default" => Some(ButtonVariant::Default), _ => None,
+                    };
+                    let mut alert = alert.close_button(text("closeButton") == "true").keyboard(text("keyboard") != "false");
+                    if !text("okText").is_empty() {alert = alert.ok_text(text("okText"));}
+                    if !text("cancelText").is_empty() {alert = alert.cancel_text(text("cancelText")).show_cancel(true);}
+                    if text("confirm") == "true" {alert = alert.confirm();}
+                    if let Some(variant) = variant("okVariant") {alert = alert.ok_variant(variant);}
+                    if let Some(variant) = variant("cancelVariant") {alert = alert.cancel_variant(variant);}
+                    if let Some(width) = number("width") {alert = alert.width(px(width));}
+                    if let Some(top) = number("marginTop") {alert = alert.margin_top(px(top));}
+                    if text("centered") == "true" {alert = alert.centered();}
+                    if text("entrance") == "fade" {alert = alert.entrance(gpui_kit::component::dialog::DialogEntrance::Fade);}
+                    if let Some(icon) = icon_name(&text("icon")) {alert = alert.icon(Icon::new(icon).size_6());}
+                    if let Ok(Some(parts)) = root.update(cx, |root, cx| root.overlay_parts(id, cx)) {
+                        let OverlayParts {title, description, body, ..} = parts;
+                        if let Some(title) = title {alert = alert.title(div().children(title));}
+                        if let Some(description) = description {alert = alert.description(div().children(description));}
+                        if !body.is_empty() {alert = alert.child(div().flex().flex_col().gap_2().children(body));}
+                    }
+                    let close = root.clone();
+                    alert = alert.on_close(move |_, _, cx| {let _ = close.update(cx, |root, cx| {root.dialog = None; root.emit(id, "close", String::new(), cx); root.emit(id, "openChange", "false".into(), cx)});});
+                    let confirm = root.clone();
+                    alert = alert.on_ok(move |_, _, cx| {if handles_ok {let _ = confirm.update(cx, |root, cx| root.emit(id, "ok", String::new(), cx));} true});
+                    let cancel = root.clone();
+                    alert.on_cancel(move |_, _, cx| {if handles_cancel {let _ = cancel.update(cx, |root, cx| root.emit(id, "cancel", String::new(), cx));} true})
+                });
+            }
             (Some(id), current) if current != Some(id) => {
                 self.dialog = Some(id);
                 let root = root.clone();
@@ -1162,12 +1247,12 @@ impl Root {
         let node = find(&self.node, id)?;
         let kit = node.kit.as_deref()?;
         let content = first_part(node, "Content").unwrap_or(node);
-        let header = first_part(content, "Header");
+        let header = first_part(content, "Header").or_else(|| first_part(node, "Header"));
         let title = header.and_then(|header| first_part(header, "Title")).map(|title| self.content(title, cx))
             .or_else(|| (!kit.text("title").is_empty()).then(|| vec![SharedString::from(kit.text("title")).into_any_element()]));
         let description = header.and_then(|header| first_part(header, "Description")).map(|description| self.content(description, cx))
             .or_else(|| (!kit.text("description").is_empty()).then(|| vec![SharedString::from(kit.text("description")).into_any_element()]));
-        let body = self.content_except(content, &["DialogTrigger", "DialogHeader", "DialogFooter", "DialogContent", "SheetTrigger", "SheetHeader", "SheetFooter", "SheetContent"], cx);
+        let body = self.content_except(content, &["DialogTrigger", "DialogHeader", "DialogFooter", "DialogContent", "SheetTrigger", "SheetHeader", "SheetFooter", "SheetContent", "AlertDialogTrigger", "AlertDialogHeader", "AlertDialogContent"], cx);
         let footer = first_part(content, "Footer").map(|footer| {
             let theme = utility_theme(cx);
             footer.visible_children().map(|child| match child.kit.as_deref().map(|kit| kit.name.as_str()) {
@@ -1190,13 +1275,9 @@ impl Root {
                     let value: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
                     let text = |key: &str| value.get(key).and_then(|value| value.as_str()).unwrap_or_default().to_owned();
                     match name.as_str() {
-                        "notify" => {
-                            let message = text("message");
-                            let note = match text("variant").as_str() {"success" => Notification::success(message), "warning" => Notification::warning(message), "error" => Notification::error(message), _ => Notification::info(message)};
-                            let note = match text("delivery").as_str() {"system" => note.system(), "both" => note.in_app_and_system(), _ => note};
-                            let title = text("title");
-                            window.push_notification(if title.is_empty() {note} else {note.title(title)}, cx);
-                        }
+                        "notify" => {let note = notification(&value, None); window.push_notification(note, cx);}
+                        "dismiss-notification" => window.remove_notification1::<TsrustNote>(ElementId::Name(text("id").into()), cx),
+                        "clear-notifications" => window.clear_notifications(cx),
                         "set-title" => window.set_window_title(&text("title")),
                         "register-themes" => if let Err(error) = gpui_kit::component::ThemeRegistry::global_mut(cx).load_themes_from_str(&text("json")) {
                             window.push_notification(Notification::error(format!("Invalid themes: {error}")), cx);
@@ -1228,6 +1309,13 @@ impl Root {
                 Command::Reply {name, payload, reply} => {
                     let value: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
                     let flag = |key: &str| value.get(key).and_then(|value| value.as_bool()).unwrap_or(false);
+                    if name == "notify-events" {
+                        // The first of the action button, a click or the close reaches the reply.
+                        let reply = std::rc::Rc::new(std::cell::RefCell::new(Some(reply)));
+                        let note = notification(&value, Some((cx.entity().downgrade(), reply)));
+                        window.push_notification(note, cx);
+                        continue;
+                    }
                     if name == "read-input" {
                         let snapshot = self.read_input(value.get("id").and_then(|id| id.as_str()).unwrap_or_default(), window, cx);
                         let result = reply(&snapshot);
@@ -1458,9 +1546,23 @@ impl Root {
                 group.refine_style(&style).children(self.content_except(node, &["GroupBoxFooter"], cx)).into_any_element()
             }
             "DescriptionList" => {
-                let list = if kit.flag("vertical") {DescriptionList::vertical()} else {DescriptionList::new()};
-                let mut list = list.columns(kit.index("columns").unwrap_or(3)).bordered(kit.flag("bordered"));
-                for (_, item) in items(node, "DescriptionItem") {list = list.item(item.text("label"), item.text("value"), item.index("span").unwrap_or(1));}
+                let mut list = if kit.flag("vertical") {DescriptionList::vertical()} else {DescriptionList::horizontal()};
+                list = list.columns(kit.index("columns").unwrap_or(3)).bordered(kit.flag("bordered"));
+                if let Some(width) = kit.number("labelWidth") {list = list.label_width(px(width as f32));}
+                if let Some(size) = kit_size(kit) {list = list.with_size(size);}
+                for child in node.visible_children() {
+                    match child.kit.as_deref().map(|kit| kit.name.as_str()) {
+                        Some("DescriptionSeparator") => list = list.separator(),
+                        Some("DescriptionItem") => {
+                            let item = child.kit.as_deref().expect("item");
+                            // Rich children (anything beyond text) render as the value.
+                            let rich = child.visible_children().any(|part| part.kind != Kind::Text);
+                            let value: gpui_kit::component::description_list::DescriptionText = if rich {div().flex().items_center().gap_2().children(self.content(child, cx)).into_any_element().into()} else {SharedString::from(item.text("value")).into()};
+                            list = list.child(gpui_kit::component::description_list::DescriptionItem::new(SharedString::from(item.text("label"))).value(value).span(item.index("span").unwrap_or(1)));
+                        }
+                        _ => {}
+                    }
+                }
                 list.into_any_element()
             }
             "Breadcrumb" => {
@@ -1560,15 +1662,26 @@ impl Root {
                 rating.into_any_element()
             }
             "Pagination" => {
-                let mut pages = Pagination::new(element_id).current_page(kit.index("page").unwrap_or(1)).total_pages(kit.index("total").unwrap_or(1));
+                // page is controlled; without it the pagination keeps its own page (from defaultPage).
+                let page = kit.index("page").or(kit.index("defaultPage")).unwrap_or(1);
+                let mut pages = Pagination::new(element_id).current_page(page).total_pages(kit.index("total").unwrap_or(1)).disabled(kit.flag("disabled"));
                 if kit.flag("compact") {pages = pages.compact();}
-                if kit.handles("change") {pages = pages.on_click(cx.listener(move |this, page: &usize, _, cx| this.emit(id, "change", page.to_string(), cx)));}
-                pages.into_any_element()
+                if let Some(visible) = kit.index("visiblePages") {pages = pages.visible_pages(visible);}
+                if let Some(size) = kit_size(kit) {pages = pages.with_size(size);}
+                pages.on_click(cx.listener(move |this, page: &usize, _, cx| this.emit(id, "change", page.to_string(), cx))).into_any_element()
             }
             "Stepper" => {
-                let mut stepper = Stepper::new(element_id).selected_index(kit.index("selected").unwrap_or(0));
+                let selected = kit.index("selected").or(kit.index("defaultSelected")).unwrap_or(0);
+                let mut stepper = Stepper::new(element_id).selected_index(selected).disabled(kit.flag("disabled")).text_center(kit.flag("textCenter"));
                 if kit.flag("vertical") {stepper = stepper.vertical();}
-                stepper.items(items(node, "StepperItem").map(|(_, item)| StepperItem::new().disabled(item.flag("disabled")).child(SharedString::from(item.text("label"))))).into_any_element()
+                if let Some(size) = kit_size(kit) {stepper = stepper.with_size(size);}
+                let steps = items(node, "StepperItem").map(|(_, item)| {
+                    let mut step = StepperItem::new().disabled(item.flag("disabled"));
+                    if let Some(icon) = icon_name(&item.text("icon")) {step = step.icon(icon);}
+                    if let Some(size) = kit_size(item) {step = step.with_size(size);}
+                    step.child(SharedString::from(item.text("label")))
+                }).collect::<Vec<_>>();
+                stepper.items(steps).on_click(cx.listener(move |this, index: &usize, _, cx| this.emit(id, "change", index.to_string(), cx))).into_any_element()
             }
             "Tabs" => {
                 // shadcn composition: Tab triggers (by value, defaulting to their index) and TabsContent panels.
@@ -1627,7 +1740,19 @@ impl Root {
                 }));
                 accordion.into_any_element()
             }
-            "Collapsible" => Collapsible::new().open(kit.flag("open")).content(div().children(self.content(node, cx))).into_any_element(),
+            "Collapsible" => {
+                // shadcn composition: CollapsibleTrigger toggles CollapsibleContent; other children always show.
+                let open = kit.prop("open").or(kit.prop("defaultOpen")) == Some("true");
+                let mut collapsible = Collapsible::new().open(open).motion_id(ElementId::Name(format!("{id}-motion").into()));
+                for child in node.visible_children() {
+                    match child.kit.as_deref().map(|kit| kit.name.as_str()) {
+                        Some("CollapsibleTrigger") => collapsible = collapsible.child(div().id(ElementId::Integer(child.identity.get())).children(self.content(child, cx)).on_click(cx.listener(move |this, _, _, cx| this.emit(id, "openChange", (!open).to_string(), cx)))),
+                        Some("CollapsibleContent") => collapsible = collapsible.content(div().w_full().flex().flex_col().items_stretch().gap_2().children(self.content(child, cx))),
+                        _ => {let theme = utility_theme(cx); collapsible = collapsible.child(self.element(child, &theme, mode(cx), cx));}
+                    }
+                }
+                collapsible.into_any_element()
+            }
             "Select" => {
                 let empty = items(node, "SelectEmpty").next().map(|(empty, _)| empty.identity.get());
                 match self.states.get(&id) {
@@ -1696,10 +1821,15 @@ impl Root {
                     if kit.handles("openChange") {popover = popover.on_open_change(cx.listener(move |this, open: &bool, _, cx| this.emit(id, "openChange", open.to_string(), cx)));}
                     popover.content(move |_, _, cx| div().flex().flex_col().gap_2().children(render(cx))).into_any_element()
                 } else {
-                    HoverCard::new(element_id).trigger(trigger).content(move |_, _, cx| div().flex().flex_col().gap_2().children(render(cx))).into_any_element()
+                    let mut card = HoverCard::new(element_id).trigger(trigger).anchor(anchor_named(kit.prop("anchor"))).trigger_style(self.class_style(&kit.text("triggerClassName"), cx));
+                    if let Some(delay) = kit.index("openDelay") {card = card.open_delay(std::time::Duration::from_millis(delay as u64));}
+                    if let Some(delay) = kit.index("closeDelay") {card = card.close_delay(std::time::Duration::from_millis(delay as u64));}
+                    if kit.prop("appearance") == Some("false") {card = card.appearance(false);}
+                    if kit.handles("openChange") {card = card.on_open_change(cx.listener(move |this, open: &bool, _, cx| this.emit(id, "openChange", open.to_string(), cx)));}
+                    card.content(move |_, _, cx| div().flex().flex_col().gap_2().children(render(cx))).into_any_element()
                 }
             }
-            "Dialog" | "Sheet" => match first_part(node, "Trigger") {
+            "Dialog" | "Sheet" | "AlertDialog" => match first_part(node, "Trigger") {
                 // The trigger opens the overlay; open, when set, controls it instead.
                 Some(trigger) => div().id(element_id).children(self.content(trigger, cx)).on_click(cx.listener(move |this, _, _, cx| this.emit(id, "openChange", "true".into(), cx))).into_any_element(),
                 None => div().into_any_element(),
@@ -2133,6 +2263,11 @@ impl Root {
             },
             "Shortcut" => div().into_any_element(),
             // Item and slot components render through their container.
+            // A trigger nested inside other content toggles its nearest Collapsible.
+            "CollapsibleTrigger" => match ancestor_named(&self.node, id, "Collapsible") {
+                Some((owner, open)) => div().id(element_id).children(self.content(node, cx)).on_click(cx.listener(move |this, _, _, cx| this.emit(owner, "openChange", (!open).to_string(), cx))).into_any_element(),
+                None => div().children(self.content(node, cx)).into_any_element(),
+            },
             name => div().child(SharedString::from(format!("{name} must be placed inside its container component"))).into_any_element(),
         }
     }

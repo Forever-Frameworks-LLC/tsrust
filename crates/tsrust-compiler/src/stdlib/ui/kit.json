@@ -625,23 +625,38 @@
     },
     {
       "name": "DescriptionList",
-      "children": "DescriptionItem",
+      "children": "DescriptionItem and DescriptionSeparator",
       "doc": "Label and value pairs in a grid. Children are DescriptionItem elements.",
       "props": [
         {
           "name": "columns",
           "type": "int",
-          "doc": "Number of columns. Defaults to 3."
+          "doc": "Items per row. Defaults to 3."
         },
         {
           "name": "bordered",
           "type": "boolean",
-          "doc": "Draws cell borders."
+          "doc": "Draws a table-like border."
         },
         {
           "name": "vertical",
           "type": "boolean",
-          "doc": "Puts each label above its value."
+          "doc": "Puts each label above its value instead of beside it."
+        },
+        {
+          "name": "labelWidth",
+          "type": "number",
+          "doc": "Label column width in pixels (horizontal layout)."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
       "example": "<DescriptionList columns={2}><DescriptionItem label=\"Plan\" value=\"Pro\"/></DescriptionList>"
@@ -649,27 +664,35 @@
     {
       "name": "DescriptionItem",
       "item": true,
-      "doc": "One label and value inside a DescriptionList.",
+      "doc": "One label and value. Text children are the value; other children render as a rich value.",
       "props": [
         {
           "name": "label",
           "type": "string",
-          "doc": "Label text."
+          "doc": "The label."
         },
         {
           "name": "value",
           "type": "string",
-          "doc": "Value text."
+          "doc": "The value, when there are no children."
         },
         {
           "name": "span",
           "type": "int",
-          "doc": "Number of columns the item spans. Defaults to 1."
+          "doc": "Columns this item spans. Defaults to 1."
         }
       ],
       "example": "<DescriptionItem label=\"Region\" value=\"us-east\"/>",
-      "children": "Text",
+      "children": true,
       "textChildren": "value"
+    },
+    {
+      "name": "DescriptionSeparator",
+      "item": true,
+      "doc": "A full-width divider between DescriptionList rows.",
+      "props": [],
+      "children": null,
+      "example": "<DescriptionList>\n  <DescriptionItem label=\"Name\">Ada</DescriptionItem>\n  <DescriptionSeparator />\n  <DescriptionItem label=\"Role\">Engineer</DescriptionItem>\n</DescriptionList>"
     },
     {
       "name": "Breadcrumb",
@@ -1137,7 +1160,12 @@
         {
           "name": "page",
           "type": "int",
-          "doc": "Current page."
+          "doc": "Current page (1-based), controlled; set it from onChange. Without it the pagination keeps its own page."
+        },
+        {
+          "name": "defaultPage",
+          "type": "int",
+          "doc": "Initial page when `page` is unset. Defaults to 1."
         },
         {
           "name": "total",
@@ -1147,7 +1175,27 @@
         {
           "name": "compact",
           "type": "boolean",
-          "doc": "Shows only previous and next buttons."
+          "doc": "Shows only previous and next buttons with the page count."
+        },
+        {
+          "name": "visiblePages",
+          "type": "int",
+          "doc": "Most page buttons shown before ellipses."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Ignores clicks."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
       "events": [
@@ -1208,15 +1256,48 @@
         {
           "name": "selected",
           "type": "int",
-          "doc": "Index of the current step."
+          "doc": "The current step index, controlled; set it from onChange. Without it the stepper keeps its own step."
+        },
+        {
+          "name": "defaultSelected",
+          "type": "int",
+          "doc": "Initial step when `selected` is unset."
         },
         {
           "name": "vertical",
           "type": "boolean",
-          "doc": "Stacks steps vertically."
+          "doc": "Stacks the steps vertically."
+        },
+        {
+          "name": "textCenter",
+          "type": "boolean",
+          "doc": "Centers labels under their markers."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables every step."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
-      "example": "<Stepper selected={1}><StepperItem label=\"Account\"/><StepperItem label=\"Billing\"/></Stepper>"
+      "example": "<Stepper selected={1}><StepperItem label=\"Account\"/><StepperItem label=\"Billing\"/></Stepper>",
+      "events": [
+        {
+          "prop": "onChange",
+          "value": "int",
+          "param": "index",
+          "doc": "Runs with the clicked step's index."
+        }
+      ]
     },
     {
       "name": "StepperItem",
@@ -1226,12 +1307,27 @@
         {
           "name": "label",
           "type": "string",
-          "doc": "Step title."
+          "doc": "Step text, when there are no text children."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon in the step marker instead of its number."
         },
         {
           "name": "disabled",
           "type": "boolean",
-          "doc": "Greys the step out."
+          "doc": "Cannot be selected."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size: xsmall, small, medium (default) or large."
         }
       ],
       "example": "<StepperItem label=\"Confirm\"/>",
@@ -1524,16 +1620,45 @@
     },
     {
       "name": "Collapsible",
-      "children": true,
-      "doc": "Shows its children only while open.",
+      "children": "CollapsibleTrigger, CollapsibleContent and other content",
+      "doc": "Shows and hides CollapsibleContent with an animation; a CollapsibleTrigger toggles it. Other children always show.",
       "props": [
         {
           "name": "open",
           "type": "boolean",
-          "doc": "Whether the content is visible."
+          "doc": "Whether the content shows, controlled; set it from onOpenChange. Without it the trigger toggles it."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "doc": "Starts open when `open` is unset."
         }
       ],
-      "example": "<Collapsible open={expanded.get()}><Text>More detail</Text></Collapsible>"
+      "example": "<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>",
+      "events": [
+        {
+          "prop": "onOpenChange",
+          "value": "boolean",
+          "param": "open",
+          "doc": "Runs when the trigger is clicked."
+        }
+      ]
+    },
+    {
+      "name": "CollapsibleTrigger",
+      "item": true,
+      "doc": "Content that toggles the Collapsible when clicked.",
+      "props": [],
+      "children": true,
+      "example": "<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>"
+    },
+    {
+      "name": "CollapsibleContent",
+      "item": true,
+      "doc": "Content shown while the Collapsible is open.",
+      "props": [],
+      "children": true,
+      "example": "<Collapsible>\n  <CollapsibleTrigger><Button variant=\"ghost\" icon=\"chevrons-up-down\">Show more</Button></CollapsibleTrigger>\n  <CollapsibleContent><Text>Hidden until opened.</Text></CollapsibleContent>\n</Collapsible>"
     },
     {
       "name": "Select",
@@ -1981,8 +2106,51 @@
       "name": "HoverCard",
       "children": "HoverCardTrigger, HoverCardContent",
       "doc": "A floating card shown while the pointer rests on its trigger.",
-      "props": [],
-      "example": "<HoverCard><HoverCardTrigger><Text>@ada</Text></HoverCardTrigger><HoverCardContent><Text>Mathematician</Text></HoverCardContent></HoverCard>"
+      "props": [
+        {
+          "name": "anchor",
+          "type": [
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right",
+            "top-center",
+            "bottom-center",
+            "left-center",
+            "right-center"
+          ],
+          "doc": "The card corner aligned to the trigger."
+        },
+        {
+          "name": "openDelay",
+          "type": "int",
+          "doc": "Milliseconds the pointer rests before it opens."
+        },
+        {
+          "name": "closeDelay",
+          "type": "int",
+          "doc": "Milliseconds before it closes after the pointer leaves."
+        },
+        {
+          "name": "appearance",
+          "type": "boolean",
+          "doc": "false removes the card surface styling."
+        },
+        {
+          "name": "triggerClassName",
+          "type": "string",
+          "doc": "Utility classes for the trigger container."
+        }
+      ],
+      "example": "<HoverCard><HoverCardTrigger><Text>@ada</Text></HoverCardTrigger><HoverCardContent><Text>Mathematician</Text></HoverCardContent></HoverCard>",
+      "events": [
+        {
+          "prop": "onOpenChange",
+          "value": "boolean",
+          "param": "open",
+          "doc": "Runs when the card opens or closes."
+        }
+      ]
     },
     {
       "name": "HoverCardTrigger",
@@ -2179,6 +2347,182 @@
       ],
       "children": "SheetTrigger and SheetContent",
       "example": "<Sheet side=\"right\">\n  <SheetTrigger><Button outline={true}>Edit profile</Button></SheetTrigger>\n  <SheetContent>\n    <SheetHeader>\n      <SheetTitle>Edit profile</SheetTitle>\n      <SheetDescription>Make changes to your profile here.</SheetDescription>\n    </SheetHeader>\n    <Input placeholder=\"Name\" />\n    <SheetFooter>\n      <SheetClose><Button outline={true}>Cancel</Button></SheetClose>\n      <Button variant=\"primary\">Save</Button>\n    </SheetFooter>\n  </SheetContent>\n</Sheet>"
+    },
+    {
+      "name": "AlertDialog",
+      "doc": "A dialog that asks people to confirm or acknowledge: an icon, title, description and OK/Cancel buttons.",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "doc": "Whether it is open, controlled; set it from onOpenChange. Without it the trigger and buttons open and close it."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "doc": "Starts open when `open` is unset."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Title text, when there is no AlertDialogTitle."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "doc": "Description text, when there is no AlertDialogDescription."
+        },
+        {
+          "name": "icon",
+          "type": "icon",
+          "doc": "Icon beside the title."
+        },
+        {
+          "name": "okText",
+          "type": "string",
+          "doc": "OK button text. Defaults to OK."
+        },
+        {
+          "name": "okVariant",
+          "type": [
+            "default",
+            "primary",
+            "secondary",
+            "danger",
+            "warning",
+            "success",
+            "info",
+            "ghost",
+            "link",
+            "text"
+          ],
+          "doc": "OK button style, such as danger for destructive actions."
+        },
+        {
+          "name": "cancelText",
+          "type": "string",
+          "doc": "Shows a Cancel button with this text."
+        },
+        {
+          "name": "cancelVariant",
+          "type": [
+            "default",
+            "primary",
+            "secondary",
+            "danger",
+            "warning",
+            "success",
+            "info",
+            "ghost",
+            "link",
+            "text"
+          ],
+          "doc": "Cancel button style."
+        },
+        {
+          "name": "confirm",
+          "type": "boolean",
+          "doc": "Shows both OK and Cancel with their default texts."
+        },
+        {
+          "name": "closeButton",
+          "type": "boolean",
+          "doc": "Shows the corner close button. Defaults to false."
+        },
+        {
+          "name": "keyboard",
+          "type": "boolean",
+          "doc": "false stops Escape from closing it."
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "doc": "Width in pixels."
+        },
+        {
+          "name": "marginTop",
+          "type": "number",
+          "doc": "Distance from the top of the window in pixels."
+        },
+        {
+          "name": "centered",
+          "type": "boolean",
+          "doc": "Centers it vertically."
+        },
+        {
+          "name": "entrance",
+          "type": [
+            "slide-down",
+            "fade"
+          ],
+          "doc": "Opening animation."
+        }
+      ],
+      "events": [
+        {
+          "prop": "onOpenChange",
+          "value": "boolean",
+          "param": "open",
+          "doc": "Runs when the trigger opens it or a button, Escape or the backdrop closes it."
+        },
+        {
+          "prop": "onOk",
+          "value": "void",
+          "doc": "Runs when OK is pressed."
+        },
+        {
+          "prop": "onCancel",
+          "value": "void",
+          "doc": "Runs when Cancel is pressed."
+        },
+        {
+          "prop": "onClose",
+          "value": "void",
+          "doc": "Runs after it closes."
+        }
+      ],
+      "children": "AlertDialogTrigger, AlertDialogTitle, AlertDialogDescription and body content",
+      "example": "<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>"
+    },
+    {
+      "name": "AlertDialogContent",
+      "item": true,
+      "doc": "Extra content shown under the description.",
+      "props": [],
+      "children": true,
+      "example": "<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>"
+    },
+    {
+      "name": "AlertDialogDescription",
+      "item": true,
+      "doc": "Muted text under the AlertDialog title.",
+      "props": [],
+      "children": true,
+      "example": "<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>"
+    },
+    {
+      "name": "AlertDialogTitle",
+      "item": true,
+      "doc": "The AlertDialog title.",
+      "props": [],
+      "children": true,
+      "example": "<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>"
+    },
+    {
+      "name": "AlertDialogHeader",
+      "item": true,
+      "doc": "Holds the AlertDialogTitle and AlertDialogDescription.",
+      "props": [],
+      "children": true,
+      "example": "<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>"
+    },
+    {
+      "name": "AlertDialogTrigger",
+      "item": true,
+      "doc": "Content that opens the AlertDialog when clicked.",
+      "props": [],
+      "children": true,
+      "example": "<AlertDialog title=\"Delete this project?\" description=\"This cannot be undone.\" okText=\"Delete\" okVariant=\"danger\" cancelText=\"Cancel\" onOk={() => { remove(); }}>\n  <AlertDialogTrigger><Button variant=\"danger\">Delete project</Button></AlertDialogTrigger>\n</AlertDialog>"
     },
     {
       "name": "DialogTrigger",
@@ -4450,6 +4794,32 @@
       "large": "size",
       "with_size": "size"
     },
+    "AlertDialog": {
+      "new": "automatic",
+      "confirm": "confirm",
+      "trigger": "AlertDialogTrigger child",
+      "content": "AlertDialogContent child",
+      "footer": "n/a: AlertDialog draws its own OK/Cancel footer; use Dialog for custom footers",
+      "icon": "icon",
+      "title": "AlertDialogTitle child / title",
+      "description": "AlertDialogDescription child / description",
+      "button_props": "okText / cancelText / variants",
+      "ok_text": "okText",
+      "ok_variant": "okVariant",
+      "cancel_text": "cancelText",
+      "cancel_variant": "cancelVariant",
+      "width": "width",
+      "show_cancel": "cancelText / confirm",
+      "overlay_closable": "n/a: Kit ignores it for alert dialogs",
+      "close_button": "closeButton",
+      "keyboard": "keyboard",
+      "margin_top": "marginTop",
+      "centered": "centered",
+      "entrance": "entrance",
+      "on_close": "onClose / onOpenChange",
+      "on_ok": "onOk",
+      "on_cancel": "onCancel"
+    },
     "Avatar": {
       "new": "Avatar",
       "src": "src",
@@ -4485,6 +4855,16 @@
       "medium": "size",
       "large": "size",
       "with_size": "size"
+    },
+    "Breadcrumb": {
+      "new": "automatic",
+      "child": "BreadcrumbItem children",
+      "children": "BreadcrumbItem children"
+    },
+    "BreadcrumbItem": {
+      "new": "label / text children",
+      "disabled": "disabled",
+      "on_click": "onClick"
     },
     "Button": {
       "new": "Button",
@@ -4589,6 +4969,12 @@
       "large": "size",
       "with_size": "size"
     },
+    "Collapsible": {
+      "new": "automatic",
+      "open": "open / defaultOpen",
+      "motion_id": "automatic: the node identity",
+      "content": "CollapsibleContent child"
+    },
     "Combobox": {
       "xsmall": "size",
       "small": "size",
@@ -4625,6 +5011,29 @@
       "focus": "autoFocus",
       "query": "query",
       "set_query": "query"
+    },
+    "DescriptionItem": {
+      "new": "label",
+      "value": "value / children",
+      "span": "span"
+    },
+    "DescriptionList": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "vertical": "vertical",
+      "horizontal": "vertical={false}",
+      "label_width": "labelWidth",
+      "layout": "vertical",
+      "bordered": "bordered",
+      "columns": "columns",
+      "item": "DescriptionItem children",
+      "child": "DescriptionItem children",
+      "children": "DescriptionItem children",
+      "separator": "DescriptionSeparator child"
     },
     "Dialog": {
       "new": "automatic",
@@ -4716,6 +5125,20 @@
       "title_style": "titleClassName",
       "content_style": "contentClassName",
       "footer": "GroupBoxFooter"
+    },
+    "HoverCard": {
+      "new": "automatic",
+      "anchor": "anchor",
+      "trigger": "HoverCardTrigger child",
+      "trigger_style": "triggerClassName",
+      "content": "HoverCardContent child",
+      "open_delay": "openDelay",
+      "close_delay": "closeDelay",
+      "appearance": "appearance",
+      "on_open_change": "onOpenChange"
+    },
+    "HoverCardState": {
+      "is_open": "onOpenChange"
     },
     "Icon": {
       "new": "name",
@@ -4946,6 +5369,35 @@
       "on_click": "href: activation navigates",
       "disabled": "disabled"
     },
+    "Notification": {
+      "new": "notify",
+      "message": "notify message",
+      "info": "variant",
+      "success": "variant",
+      "warning": "variant",
+      "error": "variant",
+      "id": "id",
+      "id1": "id",
+      "title": "title",
+      "icon": "icon",
+      "with_type": "variant",
+      "placement": "placement",
+      "delivery": "delivery",
+      "system": "delivery",
+      "in_app_and_system": "delivery",
+      "autohide": "autohide",
+      "on_click": "onEvent('click')",
+      "on_close": "onEvent('close')",
+      "action": "action / onEvent('action')",
+      "dismiss": "dismissNotification",
+      "content": "n/a: toasts render from text options; a custom element needs a node outside the tree"
+    },
+    "NotificationList": {
+      "new": "automatic: the window's notification list",
+      "push": "notify",
+      "clear": "clearNotifications",
+      "notifications": "n/a: notifications are fire-and-forget; track ids in state"
+    },
     "NumberInput": {
       "xsmall": "size",
       "small": "size",
@@ -4958,6 +5410,20 @@
       "suffix": "suffix",
       "appearance": "appearance",
       "accessibility_label": "accessibilityLabel",
+      "disabled": "disabled"
+    },
+    "Pagination": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "current_page": "page / defaultPage",
+      "total_pages": "total",
+      "on_click": "onChange",
+      "compact": "compact",
+      "visible_pages": "visiblePages",
       "disabled": "disabled"
     },
     "Popover": {
@@ -5160,6 +5626,32 @@
       "medium": "size",
       "large": "size",
       "with_size": "size"
+    },
+    "Stepper": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "text_center": "textCenter",
+      "layout": "vertical",
+      "vertical": "vertical",
+      "selected_index": "selected / defaultSelected",
+      "item": "StepperItem children",
+      "items": "StepperItem children",
+      "disabled": "disabled",
+      "on_click": "onChange"
+    },
+    "StepperItem": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "automatic",
+      "icon": "icon",
+      "disabled": "disabled"
     },
     "Switch": {
       "new": "Switch",

@@ -883,13 +883,17 @@ export function GroupBox(props: GroupBoxProps): Node {
 }
 
 export interface DescriptionListProps {
-  /** Number of columns. Defaults to 3. */
+  /** Items per row. Defaults to 3. */
   columns?: ReactiveValue<int>;
-  /** Draws cell borders. */
+  /** Draws a table-like border. */
   bordered?: ReactiveValue<boolean>;
-  /** Puts each label above its value. */
+  /** Puts each label above its value instead of beside it. */
   vertical?: ReactiveValue<boolean>;
-  /** DescriptionItem elements. */
+  /** Label column width in pixels (horizontal layout). */
+  labelWidth?: ReactiveValue<number>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** DescriptionItem and DescriptionSeparator elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
@@ -913,15 +917,29 @@ export function DescriptionList(props: DescriptionListProps): Node {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
+  const prop_labelWidth = props.labelWidth;
+  if (prop_labelWidth !== undefined) {
+    node = kitNumber(node, 'labelWidth', prop_labelWidth);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
   return node;
 }
 
 export interface DescriptionItemProps {
-  /** Label text. */
+  /** The label. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Value text. */
+  /** The value, when there are no children. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Number of columns the item spans. Defaults to 1. */
+  /** Columns this item spans. Defaults to 1. */
   span?: ReactiveValue<int>;
   /** Text content, used as `value` when that prop is unset. */
   children?: Child[];
@@ -929,7 +947,7 @@ export interface DescriptionItemProps {
   className?: string;
 }
 
-/** One label and value inside a DescriptionList. */
+/** One label and value. Text children are the value; other children render as a rich value. */
 export function DescriptionItem(props: DescriptionItemProps): Node {
   let node = kitNode('DescriptionItem', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
@@ -947,6 +965,17 @@ export function DescriptionItem(props: DescriptionItemProps): Node {
     node = kitInt(node, 'span', prop_span);
   }
 
+  return node;
+}
+
+export interface DescriptionSeparatorProps {
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A full-width divider between DescriptionList rows. */
+export function DescriptionSeparator(props: DescriptionSeparatorProps): Node {
+  let node = kitNode('DescriptionSeparator', [], props.className ?? '');
   return node;
 }
 
@@ -1551,12 +1580,20 @@ export function Rating(props: RatingProps): Node {
 }
 
 export interface PaginationProps {
-  /** Current page. */
+  /** Current page (1-based), controlled; set it from onChange. Without it the pagination keeps its own page. */
   page?: ReactiveValue<int>;
+  /** Initial page when `page` is unset. Defaults to 1. */
+  defaultPage?: ReactiveValue<int>;
   /** Number of pages. */
   total?: ReactiveValue<int>;
-  /** Shows only previous and next buttons. */
+  /** Shows only previous and next buttons with the page count. */
   compact?: ReactiveValue<boolean>;
+  /** Most page buttons shown before ellipses. */
+  visiblePages?: ReactiveValue<int>;
+  /** Ignores clicks. */
+  disabled?: ReactiveValue<boolean>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives the requested page. */
   onChange?: Owned<Function<void, [page: int]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -1571,6 +1608,11 @@ export function Pagination(props: PaginationProps): Node {
     node = kitInt(node, 'page', prop_page);
   }
 
+  const prop_defaultPage = props.defaultPage;
+  if (prop_defaultPage !== undefined) {
+    node = kitInt(node, 'defaultPage', prop_defaultPage);
+  }
+
   const prop_total = props.total;
   if (prop_total !== undefined) {
     node = kitInt(node, 'total', prop_total);
@@ -1579,6 +1621,25 @@ export function Pagination(props: PaginationProps): Node {
   const prop_compact = props.compact;
   if (prop_compact !== undefined) {
     node = kitFlag(node, 'compact', prop_compact);
+  }
+
+  const prop_visiblePages = props.visiblePages;
+  if (prop_visiblePages !== undefined) {
+    node = kitInt(node, 'visiblePages', prop_visiblePages);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   const event_onChange = props.onChange;
@@ -1643,10 +1704,20 @@ export function Slider(props: SliderProps): Node {
 }
 
 export interface StepperProps {
-  /** Index of the current step. */
+  /** The current step index, controlled; set it from onChange. Without it the stepper keeps its own step. */
   selected?: ReactiveValue<int>;
-  /** Stacks steps vertically. */
+  /** Initial step when `selected` is unset. */
+  defaultSelected?: ReactiveValue<int>;
+  /** Stacks the steps vertically. */
   vertical?: ReactiveValue<boolean>;
+  /** Centers labels under their markers. */
+  textCenter?: ReactiveValue<boolean>;
+  /** Disables every step. */
+  disabled?: ReactiveValue<boolean>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Runs with the clicked step's index. */
+  onChange?: Owned<Function<void, [index: int]>>;
   /** StepperItem elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -1661,19 +1732,52 @@ export function Stepper(props: StepperProps): Node {
     node = kitInt(node, 'selected', prop_selected);
   }
 
+  const prop_defaultSelected = props.defaultSelected;
+  if (prop_defaultSelected !== undefined) {
+    node = kitInt(node, 'defaultSelected', prop_defaultSelected);
+  }
+
   const prop_vertical = props.vertical;
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
+  const prop_textCenter = props.textCenter;
+  if (prop_textCenter !== undefined) {
+    node = kitFlag(node, 'textCenter', prop_textCenter);
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
   }
 
   return node;
 }
 
 export interface StepperItemProps {
-  /** Step title. */
+  /** Step text, when there are no text children. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Greys the step out. */
+  /** Icon in the step marker instead of its number. */
+  icon?: ReactiveValue<IconName>;
+  /** Cannot be selected. */
   disabled?: ReactiveValue<boolean>;
+  /** Size: xsmall, small, medium (default) or large. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -1688,9 +1792,27 @@ export function StepperItem(props: StepperItemProps): Node {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
   const prop_disabled = props.disabled;
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
   }
 
   return node;
@@ -2091,15 +2213,19 @@ export function AccordionContent(props: AccordionContentProps): Node {
 }
 
 export interface CollapsibleProps {
-  /** Whether the content is visible. */
+  /** Whether the content shows, controlled; set it from onOpenChange. Without it the trigger toggles it. */
   open?: ReactiveValue<boolean>;
-  /** Content shown inside the component. */
+  /** Starts open when `open` is unset. */
+  defaultOpen?: ReactiveValue<boolean>;
+  /** Runs when the trigger is clicked. */
+  onOpenChange?: Owned<Function<void, [open: boolean]>>;
+  /** CollapsibleTrigger, CollapsibleContent and other content elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** Shows its children only while open. */
+/** Shows and hides CollapsibleContent with an animation; a CollapsibleTrigger toggles it. Other children always show. */
 export function Collapsible(props: CollapsibleProps): Node {
   let node = kitNode('Collapsible', props.children ?? [], props.className ?? '');
   const prop_open = props.open;
@@ -2107,6 +2233,42 @@ export function Collapsible(props: CollapsibleProps): Node {
     node = kitFlag(node, 'open', prop_open);
   }
 
+  const prop_defaultOpen = props.defaultOpen;
+  if (prop_defaultOpen !== undefined) {
+    node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
+  }
+
+  const event_onOpenChange = props.onOpenChange;
+  if (event_onOpenChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
+  }
+
+  return node;
+}
+
+export interface CollapsibleTriggerProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content that toggles the Collapsible when clicked. */
+export function CollapsibleTrigger(props: CollapsibleTriggerProps): Node {
+  let node = kitNode('CollapsibleTrigger', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface CollapsibleContentProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content shown while the Collapsible is open. */
+export function CollapsibleContent(props: CollapsibleContentProps): Node {
+  let node = kitNode('CollapsibleContent', props.children ?? [], props.className ?? '');
   return node;
 }
 
@@ -2719,6 +2881,18 @@ export function PopoverContent(props: PopoverContentProps): Node {
 }
 
 export interface HoverCardProps {
+  /** The card corner aligned to the trigger. */
+  anchor?: ReactiveValue<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center' | 'left-center' | 'right-center'>;
+  /** Milliseconds the pointer rests before it opens. */
+  openDelay?: ReactiveValue<int>;
+  /** Milliseconds before it closes after the pointer leaves. */
+  closeDelay?: ReactiveValue<int>;
+  /** false removes the card surface styling. */
+  appearance?: ReactiveValue<boolean>;
+  /** Utility classes for the trigger container. */
+  triggerClassName?: ReactiveValue<string> | TextBinding;
+  /** Runs when the card opens or closes. */
+  onOpenChange?: Owned<Function<void, [open: boolean]>>;
   /** HoverCardTrigger, HoverCardContent elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -2728,6 +2902,40 @@ export interface HoverCardProps {
 /** A floating card shown while the pointer rests on its trigger. */
 export function HoverCard(props: HoverCardProps): Node {
   let node = kitNode('HoverCard', props.children ?? [], props.className ?? '');
+  const prop_anchor = props.anchor;
+  if (prop_anchor !== undefined) {
+    if (typeof prop_anchor === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'anchor', `${prop_anchor}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'anchor', nativeBindText(prop_anchor.evaluate)));
+    }
+  }
+
+  const prop_openDelay = props.openDelay;
+  if (prop_openDelay !== undefined) {
+    node = kitInt(node, 'openDelay', prop_openDelay);
+  }
+
+  const prop_closeDelay = props.closeDelay;
+  if (prop_closeDelay !== undefined) {
+    node = kitInt(node, 'closeDelay', prop_closeDelay);
+  }
+
+  const prop_appearance = props.appearance;
+  if (prop_appearance !== undefined) {
+    node = kitFlag(node, 'appearance', prop_appearance);
+  }
+
+  const prop_triggerClassName = props.triggerClassName;
+  if (prop_triggerClassName !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'triggerClassName', prop_triggerClassName));
+  }
+
+  const event_onOpenChange = props.onOpenChange;
+  if (event_onOpenChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
+  }
+
   return node;
 }
 
@@ -2998,6 +3206,240 @@ export function Sheet(props: SheetProps): Node {
     node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
   }
 
+  return node;
+}
+
+export interface AlertDialogProps {
+  /** Whether it is open, controlled; set it from onOpenChange. Without it the trigger and buttons open and close it. */
+  open?: ReactiveValue<boolean>;
+  /** Starts open when `open` is unset. */
+  defaultOpen?: ReactiveValue<boolean>;
+  /** Title text, when there is no AlertDialogTitle. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Description text, when there is no AlertDialogDescription. */
+  description?: ReactiveValue<string> | TextBinding;
+  /** Icon beside the title. */
+  icon?: ReactiveValue<IconName>;
+  /** OK button text. Defaults to OK. */
+  okText?: ReactiveValue<string> | TextBinding;
+  /** OK button style, such as danger for destructive actions. */
+  okVariant?: ReactiveValue<'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text'>;
+  /** Shows a Cancel button with this text. */
+  cancelText?: ReactiveValue<string> | TextBinding;
+  /** Cancel button style. */
+  cancelVariant?: ReactiveValue<'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text'>;
+  /** Shows both OK and Cancel with their default texts. */
+  confirm?: ReactiveValue<boolean>;
+  /** Shows the corner close button. Defaults to false. */
+  closeButton?: ReactiveValue<boolean>;
+  /** false stops Escape from closing it. */
+  keyboard?: ReactiveValue<boolean>;
+  /** Width in pixels. */
+  width?: ReactiveValue<number>;
+  /** Distance from the top of the window in pixels. */
+  marginTop?: ReactiveValue<number>;
+  /** Centers it vertically. */
+  centered?: ReactiveValue<boolean>;
+  /** Opening animation. */
+  entrance?: ReactiveValue<'slide-down' | 'fade'>;
+  /** Runs when the trigger opens it or a button, Escape or the backdrop closes it. */
+  onOpenChange?: Owned<Function<void, [open: boolean]>>;
+  /** Runs when OK is pressed. */
+  onOk?: Owned<Function<void>>;
+  /** Runs when Cancel is pressed. */
+  onCancel?: Owned<Function<void>>;
+  /** Runs after it closes. */
+  onClose?: Owned<Function<void>>;
+  /** AlertDialogTrigger, AlertDialogTitle, AlertDialogDescription and body content elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A dialog that asks people to confirm or acknowledge: an icon, title, description and OK/Cancel buttons. */
+export function AlertDialog(props: AlertDialogProps): Node {
+  let node = kitNode('AlertDialog', props.children ?? [], props.className ?? '');
+  const prop_open = props.open;
+  if (prop_open !== undefined) {
+    node = kitFlag(node, 'open', prop_open);
+  }
+
+  const prop_defaultOpen = props.defaultOpen;
+  if (prop_defaultOpen !== undefined) {
+    node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
+  }
+
+  const prop_title = props.title;
+  if (prop_title !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_description = props.description;
+  if (prop_description !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'description', prop_description));
+  }
+
+  const prop_icon = props.icon;
+  if (prop_icon !== undefined) {
+    if (typeof prop_icon === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
+    }
+  }
+
+  const prop_okText = props.okText;
+  if (prop_okText !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'okText', prop_okText));
+  }
+
+  const prop_okVariant = props.okVariant;
+  if (prop_okVariant !== undefined) {
+    if (typeof prop_okVariant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'okVariant', `${prop_okVariant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'okVariant', nativeBindText(prop_okVariant.evaluate)));
+    }
+  }
+
+  const prop_cancelText = props.cancelText;
+  if (prop_cancelText !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'cancelText', prop_cancelText));
+  }
+
+  const prop_cancelVariant = props.cancelVariant;
+  if (prop_cancelVariant !== undefined) {
+    if (typeof prop_cancelVariant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'cancelVariant', `${prop_cancelVariant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'cancelVariant', nativeBindText(prop_cancelVariant.evaluate)));
+    }
+  }
+
+  const prop_confirm = props.confirm;
+  if (prop_confirm !== undefined) {
+    node = kitFlag(node, 'confirm', prop_confirm);
+  }
+
+  const prop_closeButton = props.closeButton;
+  if (prop_closeButton !== undefined) {
+    node = kitFlag(node, 'closeButton', prop_closeButton);
+  }
+
+  const prop_keyboard = props.keyboard;
+  if (prop_keyboard !== undefined) {
+    node = kitFlag(node, 'keyboard', prop_keyboard);
+  }
+
+  const prop_width = props.width;
+  if (prop_width !== undefined) {
+    node = kitNumber(node, 'width', prop_width);
+  }
+
+  const prop_marginTop = props.marginTop;
+  if (prop_marginTop !== undefined) {
+    node = kitNumber(node, 'marginTop', prop_marginTop);
+  }
+
+  const prop_centered = props.centered;
+  if (prop_centered !== undefined) {
+    node = kitFlag(node, 'centered', prop_centered);
+  }
+
+  const prop_entrance = props.entrance;
+  if (prop_entrance !== undefined) {
+    if (typeof prop_entrance === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'entrance', `${prop_entrance}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'entrance', nativeBindText(prop_entrance.evaluate)));
+    }
+  }
+
+  const event_onOpenChange = props.onOpenChange;
+  if (event_onOpenChange !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
+  }
+
+  const event_onOk = props.onOk;
+  if (event_onOk !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'ok', event_onOk));
+  }
+
+  const event_onCancel = props.onCancel;
+  if (event_onCancel !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'cancel', event_onCancel));
+  }
+
+  const event_onClose = props.onClose;
+  if (event_onClose !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
+  }
+
+  return node;
+}
+
+export interface AlertDialogContentProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Extra content shown under the description. */
+export function AlertDialogContent(props: AlertDialogContentProps): Node {
+  let node = kitNode('AlertDialogContent', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface AlertDialogDescriptionProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Muted text under the AlertDialog title. */
+export function AlertDialogDescription(props: AlertDialogDescriptionProps): Node {
+  let node = kitNode('AlertDialogDescription', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface AlertDialogTitleProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The AlertDialog title. */
+export function AlertDialogTitle(props: AlertDialogTitleProps): Node {
+  let node = kitNode('AlertDialogTitle', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface AlertDialogHeaderProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Holds the AlertDialogTitle and AlertDialogDescription. */
+export function AlertDialogHeader(props: AlertDialogHeaderProps): Node {
+  let node = kitNode('AlertDialogHeader', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface AlertDialogTriggerProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Content that opens the AlertDialog when clicked. */
+export function AlertDialogTrigger(props: AlertDialogTriggerProps): Node {
+  let node = kitNode('AlertDialogTrigger', props.children ?? [], props.className ?? '');
   return node;
 }
 

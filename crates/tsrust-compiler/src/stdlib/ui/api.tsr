@@ -1225,34 +1225,68 @@ export interface NotifyOptions {
   variant?: 'info' | 'success' | 'warning' | 'error';
   /** Where it appears: app (an in-window toast, the default), system (the OS notification center) or both. System delivery needs a bundled app and may be disabled by the user. */
   delivery?: 'app' | 'system' | 'both';
+  /** Identifies the notification: another notify with the same id replaces it, and dismissNotification(id) removes it. */
+  id?: string;
+  /** A custom icon; the toast then uses neutral colors instead of the variant's. */
+  icon?: IconName;
+  /** The window corner toasts stack in, such as top-right (the default) or bottom-center. */
+  placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
+  /** false keeps it until closed. Defaults to true, or false when it has an action. */
+  autohide?: boolean;
+  /** Label of an action button in the toast. */
+  action?: string;
+  /** Runs once with the first of 'action' (the action button), 'click' (the toast) or 'close'. */
+  onEvent?: Owned<Function<void, [event: ReadOnly<string>]>>;
 }
 
 /** Shows a toast notification in the active window. It hides itself after a few seconds. Example: notify('Saved', { variant: 'success' }). */
 export function notify(message: string, options?: NotifyOptions): void {
-  let title = '';
-  let variant = 'info';
-  let delivery = 'app';
-  if (options !== undefined) {
-    const choice = clone(options);
-    const heading = choice.title;
-    if (heading !== undefined) {
-      title = heading;
-    }
+  notifyWith(message, options ?? {});
+}
 
-    const target = choice.delivery;
-    if (target !== undefined) {
-      delivery = `${target}`;
-    }
-
-    const chosen = options.variant;
-    if (chosen !== undefined) {
-      variant = `${chosen}`;
-    }
+function notifyWith(message: string, options: NotifyOptions): void {
+  const handler = options.onEvent;
+  const autohide = options.autohide;
+  const body: NotifyPayload = {
+    message: message, title: options.title ?? '', variant: `${options.variant ?? 'info'}`, delivery: `${options.delivery ?? 'app'}`, id: options.id ?? '', icon: options.icon ?? '', placement: `${options.placement ?? ''}`, autohide: autohide === undefined ? '' : (autohide ? 'true' : 'false'), action: options.action ?? ''
+  };
+  const payload: string = JSON.stringify(body);
+  if (handler !== undefined) {
+    notifyWithEvents(payload, handler);
+    return;
   }
 
-  unwrap(nativeCommand('notify', JSON.stringify({
-    message: message, title: title, variant: variant, delivery: delivery
+  unwrap(nativeCommand('notify', payload));
+}
+
+interface NotifyPayload {
+  message: string;
+  title: string;
+  variant: string;
+  delivery: string;
+  id: string;
+  icon: string;
+  placement: string;
+  autohide: string;
+  action: string;
+}
+
+function notifyWithEvents(payload: string, onEvent: Owned<Function<void, [event: ReadOnly<string>]>>): void {
+  unwrap(nativeCommandReply('notify-events', payload, (event: ReadOnly<string>): void => {
+    onEvent(event);
+  }));
+}
+
+/** Removes the notification shown with this id. */
+export function dismissNotification(id: string): void {
+  unwrap(nativeCommand('dismiss-notification', JSON.stringify({
+    id: id
   })));
+}
+
+/** Removes every notification in the active window. */
+export function clearNotifications(): void {
+  unwrap(nativeCommand('clear-notifications', '{}'));
 }
 
 /** Sets the active window's title. */
