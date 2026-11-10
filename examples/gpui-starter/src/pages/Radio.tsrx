@@ -4,16 +4,16 @@ import { Example, PageHeader } from '../example.tsrx';
 
 function BasicRadio(): Node {
   const checked = signal(false);
-  return <Radio label="Option 1" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;
+  return <Radio checked={checked.get()} onChange={(on) => { checked.set(on); }}>Option 1</Radio>;
 }
 
 function BasicRadioGroup(): Node {
   const selected = signal(0);
   return (
     <RadioGroup selected={selected.get()} onChange={(index) => { selected.set(index); }}>
-      <Radio label="Option 1" />
-      <Radio label="Option 2" />
-      <Radio label="Option 3" />
+      <Radio>Option 1</Radio>
+      <Radio>Option 2</Radio>
+      <Radio>Option 3</Radio>
     </RadioGroup>
   );
 }
@@ -21,9 +21,10 @@ function BasicRadioGroup(): Node {
 function RadioSizes(): Node {
   return (
     <View className="flex-col gap-2">
-      <Radio label="Small" size="xsmall" />
-      <Radio label="Medium" />
-      <Radio label="Large" size="large" />
+      <Radio size="xsmall">Extra small</Radio>
+      <Radio size="small">Small</Radio>
+      <Radio>Medium</Radio>
+      <Radio size="large">Large</Radio>
     </View>
   );
 }
@@ -31,8 +32,8 @@ function RadioSizes(): Node {
 function DisabledRadio(): Node {
   return (
     <View className="flex-col gap-2">
-      <Radio label="Disabled" disabled={true} />
-      <Radio label="Disabled checked" checked={true} disabled={true} />
+      <Radio disabled={true}>Disabled</Radio>
+      <Radio checked={true} disabled={true}>Disabled checked</Radio>
     </View>
   );
 }
@@ -40,8 +41,8 @@ function DisabledRadio(): Node {
 function TooltipRadio(): Node {
   return (
     <View className="flex-col gap-2">
-      <Radio label="Express" tooltip="Arrives tomorrow" tabIndex={1} />
-      <Radio label="Standard" accessibilityLabel="Standard shipping" tabStop={false} />
+      <Radio tooltip="Arrives tomorrow" tabIndex={1}>Express</Radio>
+      <Radio accessibilityLabel="Standard shipping" tabStop={false}>Standard</Radio>
     </View>
   );
 }
@@ -50,9 +51,9 @@ function VerticalRadioGroup(): Node {
   const selected = signal(1);
   return (
     <RadioGroup vertical={true} selected={selected.get()} onChange={(index) => { selected.set(index); }}>
-      <Radio label="Small" />
-      <Radio label="Medium" />
-      <Radio label="Large" />
+      <Radio>Small</Radio>
+      <Radio>Medium</Radio>
+      <Radio>Large</Radio>
     </RadioGroup>
   );
 }
@@ -60,8 +61,8 @@ function VerticalRadioGroup(): Node {
 function DisabledRadioGroup(): Node {
   return (
     <RadioGroup vertical={true} selected={0} disabled={true}>
-      <Radio label="Option 1" />
-      <Radio label="Option 2" />
+      <Radio>Option 1</Radio>
+      <Radio>Option 2</Radio>
     </RadioGroup>
   );
 }
@@ -70,13 +71,13 @@ export function RadioPage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="One choice from a set, alone or in a RadioGroup." slug="radio" />
-      <Example title="Basic Radio Button" description="A standalone radio." code="function BasicRadio(): Node {\n  const checked = signal(false);\n  return <Radio label=\"Option 1\" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;\n}"><BasicRadio /></Example>
-      <Example title="Radio Group" description="The group tracks the selected index." code="function BasicRadioGroup(): Node {\n  const selected = signal(0);\n  return (\n    <RadioGroup selected={selected.get()} onChange={(index) => { selected.set(index); }}>\n      <Radio label=\"Option 1\" />\n      <Radio label=\"Option 2\" />\n      <Radio label=\"Option 3\" />\n    </RadioGroup>\n  );\n}"><BasicRadioGroup /></Example>
-      <Example title="Different Sizes" description="xsmall to large." code="function RadioSizes(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Radio label=\"Small\" size=\"xsmall\" />\n      <Radio label=\"Medium\" />\n      <Radio label=\"Large\" size=\"large\" />\n    </View>\n  );\n}"><RadioSizes /></Example>
-      <Example title="Disabled State" description="Disabled radios ignore input." code="function DisabledRadio(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Radio label=\"Disabled\" disabled={true} />\n      <Radio label=\"Disabled checked\" checked={true} disabled={true} />\n    </View>\n  );\n}"><DisabledRadio /></Example>
-      <Example title="Tooltip and Tab Order" description="Tooltips, accessibility names and focus order." code="function TooltipRadio(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Radio label=\"Express\" tooltip=\"Arrives tomorrow\" tabIndex={1} />\n      <Radio label=\"Standard\" accessibilityLabel=\"Standard shipping\" tabStop={false} />\n    </View>\n  );\n}"><TooltipRadio /></Example>
-      <Example title="Vertical Layout" description="Options stacked vertically." code="function VerticalRadioGroup(): Node {\n  const selected = signal(1);\n  return (\n    <RadioGroup vertical={true} selected={selected.get()} onChange={(index) => { selected.set(index); }}>\n      <Radio label=\"Small\" />\n      <Radio label=\"Medium\" />\n      <Radio label=\"Large\" />\n    </RadioGroup>\n  );\n}"><VerticalRadioGroup /></Example>
-      <Example title="Disabled Radio Group" description="A disabled group disables every option." code="function DisabledRadioGroup(): Node {\n  return (\n    <RadioGroup vertical={true} selected={0} disabled={true}>\n      <Radio label=\"Option 1\" />\n      <Radio label=\"Option 2\" />\n    </RadioGroup>\n  );\n}"><DisabledRadioGroup /></Example>
+      <Example title="Basic Radio Button" description="A standalone radio." code="function BasicRadio(): Node {\n  const checked = signal(false);\n  return <Radio checked={checked.get()} onChange={(on) => { checked.set(on); }}>Option 1</Radio>;\n}"><BasicRadio /></Example>
+      <Example title="Radio Group" description="The group tracks the selected index." code="function BasicRadioGroup(): Node {\n  const selected = signal(0);\n  return (\n    <RadioGroup selected={selected.get()} onChange={(index) => { selected.set(index); }}>\n      <Radio>Option 1</Radio>\n      <Radio>Option 2</Radio>\n      <Radio>Option 3</Radio>\n    </RadioGroup>\n  );\n}"><BasicRadioGroup /></Example>
+      <Example title="Different Sizes" description="xsmall to large." code="function RadioSizes(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Radio size=\"xsmall\">Extra small</Radio>\n      <Radio size=\"small\">Small</Radio>\n      <Radio>Medium</Radio>\n      <Radio size=\"large\">Large</Radio>\n    </View>\n  );\n}"><RadioSizes /></Example>
+      <Example title="Disabled State" description="Disabled radios ignore input." code="function DisabledRadio(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Radio disabled={true}>Disabled</Radio>\n      <Radio checked={true} disabled={true}>Disabled checked</Radio>\n    </View>\n  );\n}"><DisabledRadio /></Example>
+      <Example title="Tooltip and Tab Order" description="Tooltips, accessibility names and focus order." code="function TooltipRadio(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Radio tooltip=\"Arrives tomorrow\" tabIndex={1}>Express</Radio>\n      <Radio accessibilityLabel=\"Standard shipping\" tabStop={false}>Standard</Radio>\n    </View>\n  );\n}"><TooltipRadio /></Example>
+      <Example title="Vertical Layout" description="Options stacked vertically." code="function VerticalRadioGroup(): Node {\n  const selected = signal(1);\n  return (\n    <RadioGroup vertical={true} selected={selected.get()} onChange={(index) => { selected.set(index); }}>\n      <Radio>Small</Radio>\n      <Radio>Medium</Radio>\n      <Radio>Large</Radio>\n    </RadioGroup>\n  );\n}"><VerticalRadioGroup /></Example>
+      <Example title="Disabled Radio Group" description="A disabled group disables every option." code="function DisabledRadioGroup(): Node {\n  return (\n    <RadioGroup vertical={true} selected={0} disabled={true}>\n      <Radio>Option 1</Radio>\n      <Radio>Option 2</Radio>\n    </RadioGroup>\n  );\n}"><DisabledRadioGroup /></Example>
     </View>
   );
 }

@@ -3,27 +3,27 @@ import { Node, ShimmerText, Text, View } from 'std:ui';
 import { Example, PageHeader } from '../example.tsrx';
 
 function BasicShimmer(): Node {
-  return <ShimmerText text="Thinking..." />;
+  return <ShimmerText>Thinking...</ShimmerText>;
 }
 
 function ShimmerDuration(): Node {
   return (
     <View className="flex-col gap-2">
-      <ShimmerText text="Fast shimmer" duration={800} />
-      <ShimmerText text="Slow shimmer" duration={3000} />
+      <ShimmerText duration={800}>Fast shimmer</ShimmerText>
+      <ShimmerText duration={3000}>Slow shimmer</ShimmerText>
     </View>
   );
 }
 
 function ShimmerColor(): Node {
-  return <ShimmerText text="Generating response" highlightColor="blue" />;
+  return <ShimmerText highlightColor="blue">Generating response</ShimmerText>;
 }
 
 function ShimmerSpread(): Node {
   return (
     <View className="flex-col gap-2">
-      <ShimmerText text="Narrow highlight" spread={0.1} />
-      <ShimmerText text="Wide highlight" spread={0.5} />
+      <ShimmerText spread={0.1}>Narrow highlight</ShimmerText>
+      <ShimmerText spread={0.5}>Wide highlight</ShimmerText>
     </View>
   );
 }
@@ -31,26 +31,26 @@ function ShimmerSpread(): Node {
 function ShimmerDirection(): Node {
   return (
     <View className="flex-col gap-2">
-      <ShimmerText text="Right to left" reverse={true} />
-      <ShimmerText text="Plays once" once={true} />
+      <ShimmerText reverse={true}>Right to left</ShimmerText>
+      <ShimmerText once={true}>Plays once</ShimmerText>
     </View>
   );
 }
 
 function StyledShimmer(): Node {
-  return <ShimmerText text="Searching the web" className="text-xl font-semibold" />;
+  return <ShimmerText className="text-xl font-semibold">Searching the web</ShimmerText>;
 }
 
 export function ShimmerPage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="Text with a moving highlight, for work in progress." slug="shimmer" />
-      <Example title="Basic Usage" description="A repeating sweep." code="function BasicShimmer(): Node {\n  return <ShimmerText text=\"Thinking...\" />;\n}"><BasicShimmer /></Example>
-      <Example title="Duration" description="Milliseconds per sweep." code="function ShimmerDuration(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <ShimmerText text=\"Fast shimmer\" duration={800} />\n      <ShimmerText text=\"Slow shimmer\" duration={3000} />\n    </View>\n  );\n}"><ShimmerDuration /></Example>
-      <Example title="Highlight Color" description="Any theme color or hex." code="function ShimmerColor(): Node {\n  return <ShimmerText text=\"Generating response\" highlightColor=\"blue\" />;\n}"><ShimmerColor /></Example>
-      <Example title="Spread" description="Highlight half-width as a fraction of the text." code="function ShimmerSpread(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <ShimmerText text=\"Narrow highlight\" spread={0.1} />\n      <ShimmerText text=\"Wide highlight\" spread={0.5} />\n    </View>\n  );\n}"><ShimmerSpread /></Example>
-      <Example title="Direction and Play-once" description="Reverse the sweep or play it once." code="function ShimmerDirection(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <ShimmerText text=\"Right to left\" reverse={true} />\n      <ShimmerText text=\"Plays once\" once={true} />\n    </View>\n  );\n}"><ShimmerDirection /></Example>
-      <Example title="Styling" description="Text utilities style the shimmer." code="function StyledShimmer(): Node {\n  return <ShimmerText text=\"Searching the web\" className=\"text-xl font-semibold\" />;\n}"><StyledShimmer /></Example>
+      <Example title="Basic Usage" description="A repeating sweep." code="function BasicShimmer(): Node {\n  return <ShimmerText>Thinking...</ShimmerText>;\n}"><BasicShimmer /></Example>
+      <Example title="Duration" description="Milliseconds per sweep." code="function ShimmerDuration(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <ShimmerText duration={800}>Fast shimmer</ShimmerText>\n      <ShimmerText duration={3000}>Slow shimmer</ShimmerText>\n    </View>\n  );\n}"><ShimmerDuration /></Example>
+      <Example title="Highlight Color" description="Any theme color or hex." code="function ShimmerColor(): Node {\n  return <ShimmerText highlightColor=\"blue\">Generating response</ShimmerText>;\n}"><ShimmerColor /></Example>
+      <Example title="Spread" description="Highlight half-width as a fraction of the text." code="function ShimmerSpread(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <ShimmerText spread={0.1}>Narrow highlight</ShimmerText>\n      <ShimmerText spread={0.5}>Wide highlight</ShimmerText>\n    </View>\n  );\n}"><ShimmerSpread /></Example>
+      <Example title="Direction and Play-once" description="Reverse the sweep or play it once." code="function ShimmerDirection(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <ShimmerText reverse={true}>Right to left</ShimmerText>\n      <ShimmerText once={true}>Plays once</ShimmerText>\n    </View>\n  );\n}"><ShimmerDirection /></Example>
+      <Example title="Styling" description="Text utilities style the shimmer." code="function StyledShimmer(): Node {\n  return <ShimmerText className=\"text-xl font-semibold\">Searching the web</ShimmerText>;\n}"><StyledShimmer /></Example>
     </View>
   );
 }

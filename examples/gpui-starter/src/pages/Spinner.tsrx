@@ -9,8 +9,9 @@ function BasicSpinner(): Node {
 function ColoredSpinners(): Node {
   return (
     <View className="flex-row gap-4">
-      <Spinner color="blue" />
-      <Spinner color="green" />
+      <Spinner color="primary" />
+      <Spinner color="blue-500" />
+      <Spinner color="emerald-500" />
       <Spinner color="#e8590c" />
     </View>
   );
@@ -62,7 +63,7 @@ export function SpinnerPage(): Node {
     <View className="flex-col gap-10">
       <PageHeader summary="A spinning icon for indeterminate loading." slug="spinner" />
       <Example title="Basic" description="The default loader icon." code="function BasicSpinner(): Node {\n  return <Spinner />;\n}"><BasicSpinner /></Example>
-      <Example title="Spinner with Custom Color" description="Theme color names or hex." code="function ColoredSpinners(): Node {\n  return (\n    <View className=\"flex-row gap-4\">\n      <Spinner color=\"blue\" />\n      <Spinner color=\"green\" />\n      <Spinner color=\"#e8590c\" />\n    </View>\n  );\n}"><ColoredSpinners /></Example>
+      <Example title="Spinner with Custom Color" description="A theme color, a palette color such as blue-500, or hex." code="function ColoredSpinners(): Node {\n  return (\n    <View className=\"flex-row gap-4\">\n      <Spinner color=\"primary\" />\n      <Spinner color=\"blue-500\" />\n      <Spinner color=\"emerald-500\" />\n      <Spinner color=\"#e8590c\" />\n    </View>\n  );\n}"><ColoredSpinners /></Example>
       <Example title="Spinner Sizes" description="xsmall to large." code="function SpinnerSizes(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Spinner size=\"xsmall\" />\n      <Spinner size=\"small\" />\n      <Spinner />\n      <Spinner size=\"large\" />\n    </View>\n  );\n}"><SpinnerSizes /></Example>
       <Example title="Spinner with Custom Icon" description="Any icon can spin." code="function IconSpinners(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Spinner icon=\"loader-circle\" />\n      <Spinner icon=\"loader-circle\" size=\"large\" color=\"blue\" />\n      <Spinner icon=\"refresh-cw\" />\n    </View>\n  );\n}"><IconSpinners /></Example>
       <Example title="Easing" description="The rotation easing curve." code="function SpinnerEasing(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Spinner easing=\"linear\" />\n      <Spinner easing=\"ease-in-out\" />\n      <Spinner easing=\"quadratic\" />\n      <Spinner easing=\"ease-out-quint\" />\n    </View>\n  );\n}"><SpinnerEasing /></Example>

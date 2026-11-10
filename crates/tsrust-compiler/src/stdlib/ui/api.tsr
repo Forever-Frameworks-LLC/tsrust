@@ -157,6 +157,8 @@ interface TextProperties<Classes, Variant> extends SemanticProps<Variant> {
   as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd' | 'strong' | 'em' | 'del';
   /** Ordered text content. Pass between tags or with children={values}; combining both is rejected. */
   children?: Child[];
+  /** Text tone. default and inherit keep the inherited color; secondary and muted use muted-foreground. Inside a Kit component with text children, such as Label, secondary text fills its secondary slot. */
+  variant?: 'default' | 'inherit' | 'secondary' | 'muted';
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
   className?: Classes;
 }
@@ -402,12 +404,16 @@ export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, Reactiv
 export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const className = props.className;
   const variant = props['data-variant'];
-  const classes = typeof className === 'string' ? clone(className) : '';
+  const tone = String(props.variant ?? 'default');
+  const muted = tone === 'secondary' || tone === 'muted';
+  const given: string = typeof className === 'string' ? clone(className) : '';
+  const classes = muted ? `text-muted-foreground ${given}` : given;
   const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid']);
   const result = text(props.children ?? [], classes);
   match (result) {
     Ok(value) => {
-      return applyProperties(value, metadata, className, variant);
+      const toned = muted ? unwrapNode(nativeKitSet(value, 'variant', 'secondary')) : value;
+      return applyProperties(toned, metadata, className, variant);
     },
     Err(error) => {
       throw error.message;

@@ -4,16 +4,16 @@ import { Example, PageHeader } from '../example.tsrx';
 
 function BasicCheckbox(): Node {
   const checked = signal(false);
-  return <Checkbox label="Accept terms and conditions" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;
+  return <Checkbox checked={checked.get()} onChange={(on) => { checked.set(on); }}>Accept terms and conditions</Checkbox>;
 }
 
 function CheckboxSizes(): Node {
   return (
     <View className="flex-col gap-2">
-      <Checkbox label="Extra Small" size="xsmall" />
-      <Checkbox label="Small" size="small" />
-      <Checkbox label="Medium" />
-      <Checkbox label="Large" size="large" />
+      <Checkbox size="xsmall">Extra Small</Checkbox>
+      <Checkbox size="small">Small</Checkbox>
+      <Checkbox>Medium</Checkbox>
+      <Checkbox size="large">Large</Checkbox>
     </View>
   );
 }
@@ -21,8 +21,8 @@ function CheckboxSizes(): Node {
 function DisabledCheckbox(): Node {
   return (
     <View className="flex-col gap-2">
-      <Checkbox label="Disabled checkbox" disabled={true} />
-      <Checkbox label="Disabled checked" checked={true} disabled={true} />
+      <Checkbox disabled={true}>Disabled checkbox</Checkbox>
+      <Checkbox checked={true} disabled={true}>Disabled checked</Checkbox>
     </View>
   );
 }
@@ -35,8 +35,8 @@ function BareCheckbox(): Node {
 function TooltipCheckbox(): Node {
   return (
     <View className="flex-col gap-2">
-      <Checkbox label="Sync" tooltip="Sync across devices" tooltipDelay={300} />
-      <Checkbox label="Dark mode" role="switch" />
+      <Checkbox tooltip="Sync across devices" tooltipDelay={300}>Sync</Checkbox>
+      <Checkbox role="switch">Dark mode</Checkbox>
     </View>
   );
 }
@@ -44,9 +44,9 @@ function TooltipCheckbox(): Node {
 function TabOrderCheckbox(): Node {
   return (
     <View className="flex-col gap-2">
-      <Checkbox label="Second" tabIndex={2} />
-      <Checkbox label="First" tabIndex={1} />
-      <Checkbox label="Skipped" tabStop={false} />
+      <Checkbox tabIndex={2}>Second</Checkbox>
+      <Checkbox tabIndex={1}>First</Checkbox>
+      <Checkbox tabStop={false}>Skipped</Checkbox>
     </View>
   );
 }
@@ -55,12 +55,12 @@ export function CheckboxPage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="A checked or unchecked choice with an optional label." slug="checkbox" />
-      <Example title="Basic Checkbox" description="Controlled: onChange receives the requested state." code="function BasicCheckbox(): Node {\n  const checked = signal(false);\n  return <Checkbox label=\"Accept terms and conditions\" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;\n}"><BasicCheckbox /></Example>
-      <Example title="Different Sizes" description="xsmall to large." code="function CheckboxSizes(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Checkbox label=\"Extra Small\" size=\"xsmall\" />\n      <Checkbox label=\"Small\" size=\"small\" />\n      <Checkbox label=\"Medium\" />\n      <Checkbox label=\"Large\" size=\"large\" />\n    </View>\n  );\n}"><CheckboxSizes /></Example>
-      <Example title="Disabled State" description="Disabled checkboxes ignore input." code="function DisabledCheckbox(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Checkbox label=\"Disabled checkbox\" disabled={true} />\n      <Checkbox label=\"Disabled checked\" checked={true} disabled={true} />\n    </View>\n  );\n}"><DisabledCheckbox /></Example>
+      <Example title="Basic Checkbox" description="Controlled with checked and onChange. Without checked a checkbox keeps its own state; defaultChecked sets where it starts." code="function BasicCheckbox(): Node {\n  const checked = signal(false);\n  return <Checkbox checked={checked.get()} onChange={(on) => { checked.set(on); }}>Accept terms and conditions</Checkbox>;\n}"><BasicCheckbox /></Example>
+      <Example title="Different Sizes" description="xsmall to large." code="function CheckboxSizes(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Checkbox size=\"xsmall\">Extra Small</Checkbox>\n      <Checkbox size=\"small\">Small</Checkbox>\n      <Checkbox>Medium</Checkbox>\n      <Checkbox size=\"large\">Large</Checkbox>\n    </View>\n  );\n}"><CheckboxSizes /></Example>
+      <Example title="Disabled State" description="Disabled checkboxes ignore input." code="function DisabledCheckbox(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Checkbox disabled={true}>Disabled checkbox</Checkbox>\n      <Checkbox checked={true} disabled={true}>Disabled checked</Checkbox>\n    </View>\n  );\n}"><DisabledCheckbox /></Example>
       <Example title="Without Label" description="An accessibility label names a bare checkbox." code="function BareCheckbox(): Node {\n  const checked = signal(true);\n  return <Checkbox accessibilityLabel=\"Remember me\" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;\n}"><BareCheckbox /></Example>
-      <Example title="Tooltip and Role" description="A tooltip, or the switch role for on/off settings." code="function TooltipCheckbox(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Checkbox label=\"Sync\" tooltip=\"Sync across devices\" tooltipDelay={300} />\n      <Checkbox label=\"Dark mode\" role=\"switch\" />\n    </View>\n  );\n}"><TooltipCheckbox /></Example>
-      <Example title="Custom Tab Order" description="tabIndex orders focus; tabStop skips a control." code="function TabOrderCheckbox(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Checkbox label=\"Second\" tabIndex={2} />\n      <Checkbox label=\"First\" tabIndex={1} />\n      <Checkbox label=\"Skipped\" tabStop={false} />\n    </View>\n  );\n}"><TabOrderCheckbox /></Example>
+      <Example title="Tooltip and Role" description="A tooltip, or the switch role for on/off settings." code="function TooltipCheckbox(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Checkbox tooltip=\"Sync across devices\" tooltipDelay={300}>Sync</Checkbox>\n      <Checkbox role=\"switch\">Dark mode</Checkbox>\n    </View>\n  );\n}"><TooltipCheckbox /></Example>
+      <Example title="Custom Tab Order" description="tabIndex orders focus; tabStop skips a control." code="function TabOrderCheckbox(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Checkbox tabIndex={2}>Second</Checkbox>\n      <Checkbox tabIndex={1}>First</Checkbox>\n      <Checkbox tabStop={false}>Skipped</Checkbox>\n    </View>\n  );\n}"><TabOrderCheckbox /></Example>
     </View>
   );
 }

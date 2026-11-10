@@ -153,9 +153,9 @@ function ToggleButtonGroup(): Node {
   return (
     <View className="flex-col gap-3">
       <ButtonGroup outline={true} multiple={true} onClick={(indexes) => { selected.set(clone(indexes)); }}>
-        <GroupButton label="Option 1" selected={selected.get().includes('0')} />
-        <GroupButton label="Option 2" selected={selected.get().includes('1')} />
-        <GroupButton label="Option 3" selected={selected.get().includes('2')} />
+        <GroupButton selected={selected.get().includes('0')}>Option 1</GroupButton>
+        <GroupButton selected={selected.get().includes('1')}>Option 2</GroupButton>
+        <GroupButton selected={selected.get().includes('2')}>Option 3</GroupButton>
       </ButtonGroup>
       <Text>Selected: {selected}</Text>
     </View>
@@ -179,10 +179,10 @@ function CustomVariant(): Node {
 === Toggle | toggle | Actions
 A button that stays pressed while on. Toggles can be grouped, optionally as one segmented control.
 --- Basic Toggle
-A labelled toggle.
+A toggle with text content.
 function BasicToggle(): Node {
   const on = signal(false);
-  return <Toggle label="Bold" checked={on.get()} onChange={(checked) => { on.set(checked); }} />;
+  return <Toggle checked={on.get()} onChange={(checked) => { on.set(checked); }}>Bold</Toggle>;
 }
 --- Icon Toggle
 A toggle can show an icon instead of text.
@@ -195,10 +195,10 @@ xsmall, small, medium and large.
 function ToggleSizes(): Node {
   return (
     <View className="flex-row items-center gap-3">
-      <Toggle label="XS" size="xsmall" />
-      <Toggle label="Small" size="small" />
-      <Toggle label="Medium" />
-      <Toggle label="Large" size="large" />
+      <Toggle size="xsmall">XS</Toggle>
+      <Toggle size="small">Small</Toggle>
+      <Toggle>Medium</Toggle>
+      <Toggle size="large">Large</Toggle>
     </View>
   );
 }
@@ -207,8 +207,8 @@ A disabled toggle keeps its state but cannot change.
 function DisabledToggle(): Node {
   return (
     <View className="flex-row gap-3">
-      <Toggle label="Off" disabled={true} />
-      <Toggle label="On" checked={true} disabled={true} />
+      <Toggle disabled={true}>Off</Toggle>
+      <Toggle checked={true} disabled={true}>On</Toggle>
     </View>
   );
 }
@@ -233,12 +233,12 @@ function SegmentedGroup(): Node {
   return (
     <View className="flex-row gap-6">
       <ToggleGroup segmented={true}>
-        <Toggle label="List" checked={view.get() === 0} onChange={(on) => { if (on) { view.set(0); } }} />
-        <Toggle label="Grid" checked={view.get() === 1} onChange={(on) => { if (on) { view.set(1); } }} />
+        <Toggle checked={view.get() === 0} onChange={(on) => { if (on) { view.set(0); } }}>List</Toggle>
+        <Toggle checked={view.get() === 1} onChange={(on) => { if (on) { view.set(1); } }}>Grid</Toggle>
       </ToggleGroup>
       <ToggleGroup segmented={true} size="small">
-        <Toggle label="Top" />
-        <Toggle label="Bottom" />
+        <Toggle>Top</Toggle>
+        <Toggle>Bottom</Toggle>
       </ToggleGroup>
     </View>
   );
@@ -252,7 +252,7 @@ function BasicShortcut(): Node {
   return (
     <View className="flex-row items-center gap-3">
       <Shortcut command="increment" keys="secondary-k" onTrigger={() => { count.set(count.get() + 1); }} />
-      <Kbd keys="secondary-k" />
+      <Kbd>secondary-k</Kbd>
       <Text>Pressed {count} times</Text>
     </View>
   );
@@ -266,9 +266,9 @@ function BasicDropdown(): Node {
   return (
     <View className="flex-row items-center gap-3">
       <DropdownMenu label="Actions">
-        <MenuItem label="Copy" onSelect={() => { last.set('copy'); }} />
-        <MenuItem label="Paste" onSelect={() => { last.set('paste'); }} />
-        <MenuItem label="Delete" onSelect={() => { last.set('delete'); }} />
+        <MenuItem onSelect={() => { last.set('copy'); }}>Copy</MenuItem>
+        <MenuItem onSelect={() => { last.set('paste'); }}>Paste</MenuItem>
+        <MenuItem onSelect={() => { last.set('delete'); }}>Delete</MenuItem>
       </DropdownMenu>
       <Text>Last action: {last}</Text>
     </View>
@@ -281,9 +281,23 @@ function BasicContextMenu(): Node {
   return (
     <ContextMenu>
       <View className="rounded-lg border border-border p-8"><Text>Right-click here (last: {last})</Text></View>
-      <MenuItem label="Rename" onSelect={() => { last.set('rename'); }} />
-      <MenuItem label="Duplicate" onSelect={() => { last.set('duplicate'); }} />
+      <MenuItem onSelect={() => { last.set('rename'); }}>Rename</MenuItem>
+      <MenuItem onSelect={() => { last.set('duplicate'); }}>Duplicate</MenuItem>
     </ContextMenu>
+  );
+}
+--- Split Button
+With onClick the button runs its own action and only the arrow opens the menu.
+function SplitDropdown(): Node {
+  const runs = signal(0);
+  return (
+    <View className="flex-row items-center gap-3">
+      <DropdownMenu label="Run" variant="primary" onClick={() => { runs.set(runs.get() + 1); }}>
+        <MenuItem>Run tests</MenuItem>
+        <MenuItem>Run benchmarks</MenuItem>
+      </DropdownMenu>
+      <Text>Ran {runs} times</Text>
+    </View>
   );
 }
 --- Custom Trigger and Anchor
@@ -292,8 +306,8 @@ function TriggerAndAnchor(): Node {
   return (
     <DropdownMenu anchor="top-right" menuLabel="More actions">
       <Button icon="ellipsis" variant="ghost" />
-      <MenuItem label="Settings" icon="settings" />
-      <MenuItem label="Sign out" icon="log-out" />
+      <MenuItem icon="settings">Settings</MenuItem>
+      <MenuItem icon="log-out">Sign out</MenuItem>
     </DropdownMenu>
   );
 }
@@ -304,11 +318,11 @@ function EntryStates(): Node {
   return (
     <View className="flex-row gap-3">
       <DropdownMenu label="View">
-        <MenuItem label="Word wrap" checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }} />
-        <MenuItem label="Minimap" icon="map" disabled={true} />
+        <MenuItem checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }}>Word wrap</MenuItem>
+        <MenuItem icon="map" disabled={true}>Minimap</MenuItem>
       </DropdownMenu>
       <DropdownMenu label="Checks on the right" checkSide="right">
-        <MenuItem label="Word wrap" checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }} />
+        <MenuItem checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }}>Word wrap</MenuItem>
       </DropdownMenu>
     </View>
   );
@@ -318,22 +332,22 @@ Labels head groups of entries; separators divide them; a link entry opens a URL.
 function LabelsAndLinks(): Node {
   return (
     <DropdownMenu label="Help">
-      <MenuLabel text="Documentation" />
-      <MenuItem label="GPUI Kit" href="https://gpui-kit.com" />
-      <MenuItem label="Tsrust" href="https://github.com/Forever-Frameworks-LLC/tsrust" />
+      <MenuLabel>Documentation</MenuLabel>
+      <MenuItem href="https://gpui-kit.com">GPUI Kit</MenuItem>
+      <MenuItem href="https://github.com/Forever-Frameworks-LLC/tsrust">Tsrust</MenuItem>
       <MenuSeparator />
-      <MenuItem label="About" icon="info" />
+      <MenuItem icon="info">About</MenuItem>
     </DropdownMenu>
   );
 }
 --- Custom Element
-A MenuItem with children shows them instead of a label.
+Text children are the item label; other children draw a custom row.
 function CustomEntry(): Node {
   return (
     <DropdownMenu label="Account">
       <MenuItem><View className="flex-col"><Text className="font-semibold">Ada Lovelace</Text><Text className="text-muted-foreground">ada@example.com</Text></View></MenuItem>
       <MenuSeparator />
-      <MenuItem label="Profile" icon="user" />
+      <MenuItem icon="user">Profile</MenuItem>
     </DropdownMenu>
   );
 }
@@ -345,7 +359,7 @@ function ShortcutEntries(): Node {
     <View className="flex-row items-center gap-3">
       <Shortcut command="menu-save" keys="secondary-shift-s" onTrigger={() => { saved.set(saved.get() + 1); }} />
       <DropdownMenu label="File">
-        <MenuItem label="Save all" command="menu-save" />
+        <MenuItem command="menu-save">Save all</MenuItem>
       </DropdownMenu>
       <Text>Saved {saved} times</Text>
     </View>
@@ -356,12 +370,12 @@ Submenus nest, with icons.
 function NestedMenus(): Node {
   return (
     <DropdownMenu label="Share">
-      <MenuItem label="Copy link" icon="link" />
+      <MenuItem icon="link">Copy link</MenuItem>
       <Submenu label="Send to" icon="send">
-        <MenuItem label="Email" />
+        <MenuItem>Email</MenuItem>
         <Submenu label="Chat">
-          <MenuItem label="Team" />
-          <MenuItem label="Direct message" />
+          <MenuItem>Team</MenuItem>
+          <MenuItem>Direct message</MenuItem>
         </Submenu>
       </Submenu>
     </DropdownMenu>
@@ -372,14 +386,14 @@ Long menus scroll within a maximum height; widths can be bounded.
 function LongMenu(): Node {
   return (
     <DropdownMenu label="Font" scrollable={true} maxHeight={200} minWidth={180}>
-      <MenuItem label="Inter" />
-      <MenuItem label="Roboto" />
-      <MenuItem label="Source Sans" />
-      <MenuItem label="Fira Sans" />
-      <MenuItem label="IBM Plex Sans" />
-      <MenuItem label="Noto Sans" />
-      <MenuItem label="Open Sans" />
-      <MenuItem label="Lato" />
+      <MenuItem>Inter</MenuItem>
+      <MenuItem>Roboto</MenuItem>
+      <MenuItem>Source Sans</MenuItem>
+      <MenuItem>Fira Sans</MenuItem>
+      <MenuItem>IBM Plex Sans</MenuItem>
+      <MenuItem>Noto Sans</MenuItem>
+      <MenuItem>Open Sans</MenuItem>
+      <MenuItem>Lato</MenuItem>
     </DropdownMenu>
   );
 }
@@ -413,13 +427,13 @@ function BadgeSizes(): Node {
   );
 }
 --- Badge Colors
-Any theme color name or hex value.
+A theme color, a palette color such as violet-500, or hex.
 function BadgeColors(): Node {
   return (
     <View className="flex-row items-center gap-6">
       <Badge count={3} color="blue"><Avatar name="Ada" /></Badge>
       <Badge icon="star" color="yellow"><Avatar name="Grace" /></Badge>
-      <Badge dot={true} color="green"><Icon name="bell" size="lg" /></Badge>
+      <Badge dot={true} color="violet-500"><Icon name="bell" size="lg" /></Badge>
     </View>
   );
 }
@@ -504,9 +518,14 @@ function PaletteTags(): Node {
   );
 }
 --- Custom Fill Colors
-Exact fill, text and border colors.
+Exact fill, text and border colors: hex or palette names such as sky-100.
 function CustomTag(): Node {
-  return <Tag color="#1f6feb" foreground="#ffffff" borderColor="#1a5fc8">Custom Color</Tag>;
+  return (
+    <View className="flex-row gap-2">
+      <Tag color="#1f6feb" foreground="#ffffff" borderColor="#1a5fc8">Custom Color</Tag>
+      <Tag color="sky-100" foreground="sky-800" borderColor="sky-300">Palette Color</Tag>
+    </View>
+  );
 }
 --- Rounded Corners
 Pill shape or a radius in pixels.
@@ -534,17 +553,23 @@ function CombinedTags(): Node {
 === Label | label | Data Display
 Text with optional secondary text, highlighting and masking.
 --- Basic Label
-Plain label text.
+Text content is the label.
 function BasicLabel(): Node {
-  return <Label text="This is a label" />;
+  return <Label>This is a label</Label>;
 }
 --- Label with Secondary Text
-Muted text after the label.
+A Text child with variant="secondary" fills the muted secondary text.
 function SecondaryLabels(): Node {
   return (
     <View className="flex-col gap-2">
-      <Label text="Company Address" secondary="(optional)" />
-      <Label text="Email Address" secondary="(required)" />
+      <Label>
+        Company Address
+        <Text variant="secondary">(optional)</Text>
+      </Label>
+      <Label>
+        <Text variant="inherit">Email Address</Text>
+        <Text variant="secondary">(required)</Text>
+      </Label>
     </View>
   );
 }
@@ -553,9 +578,9 @@ Alignment utilities on a full-width label.
 function AlignedLabels(): Node {
   return (
     <View className="flex-col gap-2 w-80">
-      <Label text="Text align left" className="w-full" />
-      <Label text="Text align center" className="w-full text-center" />
-      <Label text="Text align right" className="w-full text-right" />
+      <Label className="w-full">Text align left</Label>
+      <Label className="w-full text-center">Text align center</Label>
+      <Label className="w-full text-right">Text align right</Label>
     </View>
   );
 }
@@ -564,9 +589,12 @@ Highlights every match, or only a match at the start.
 function HighlightedLabels(): Node {
   return (
     <View className="flex-col gap-2">
-      <Label text="Hello World Hello" highlight="Hello" />
-      <Label text="Hello World" highlight="Hello" highlightPrefix={true} />
-      <Label text="Company Name" secondary="(optional)" highlight="Company" />
+      <Label highlight="Hello">Hello World Hello</Label>
+      <Label highlight="Hello" highlightPrefix={true}>Hello World</Label>
+      <Label highlight="Company">
+        Company Name
+        <Text variant="secondary">(optional)</Text>
+      </Label>
     </View>
   );
 }
@@ -575,8 +603,9 @@ Text utilities style the label.
 function StyledLabels(): Node {
   return (
     <View className="flex-col gap-2">
-      <Label text="Color Label" className="text-primary" />
-      <Label text="Font Size Label" className="text-xl font-semibold" />
+      <Label className="text-primary">Color Label</Label>
+      <Label className="text-rose-500">Palette Color Label</Label>
+      <Label className="text-xl font-semibold">Font Size Label</Label>
     </View>
   );
 }
@@ -586,7 +615,7 @@ function MaskedLabel(): Node {
   const masked = signal(true);
   return (
     <View className="flex-row items-center gap-3">
-      <Label text="9,182.1 USD" masked={masked.get()} className="text-2xl" />
+      <Label masked={masked.get()} className="text-2xl">9,182.1 USD</Label>
       <Button size="small" onPress={() => { masked.set(!masked.get()); }}>{masked.get() ? 'Show' : 'Hide'}</Button>
     </View>
   );
@@ -594,18 +623,18 @@ function MaskedLabel(): Node {
 --- Multi-line Text
 Labels wrap inside a narrow width.
 function WrappedLabel(): Node {
-  return <Label text="Label should support text wrap in default, if the text is too long, it should wrap to the next line." className="w-[200px]" />;
+  return <Label className="w-[200px]">Label should support text wrap in default, if the text is too long, it should wrap to the next line.</Label>;
 }
 --- Different Sizes
 Text size utilities.
 function LabelSizes(): Node {
   return (
     <View className="flex-col gap-1">
-      <Label text="Extra Large" className="text-2xl" />
-      <Label text="Large" className="text-xl" />
-      <Label text="Medium" />
-      <Label text="Small" className="text-sm" />
-      <Label text="Extra Small" className="text-xs" />
+      <Label className="text-2xl">Extra Large</Label>
+      <Label className="text-xl">Large</Label>
+      <Label>Medium</Label>
+      <Label className="text-sm">Small</Label>
+      <Label className="text-xs">Extra Small</Label>
     </View>
   );
 }
@@ -616,11 +645,11 @@ Keys use GPUI keystroke syntax; secondary is cmd on macOS and ctrl elsewhere.
 function CommonShortcuts(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
-      <Kbd keys="cmd-shift-p" />
-      <Kbd keys="cmd-t" />
-      <Kbd keys="escape" />
-      <Kbd keys="enter" />
-      <Kbd keys="backspace" />
+      <Kbd>cmd-shift-p</Kbd>
+      <Kbd>cmd-t</Kbd>
+      <Kbd>escape</Kbd>
+      <Kbd>enter</Kbd>
+      <Kbd>backspace</Kbd>
     </View>
   );
 }
@@ -629,9 +658,9 @@ Complex combinations.
 function ModifierKeys(): Node {
   return (
     <View className="flex-row gap-2">
-      <Kbd keys="cmd-ctrl-shift-a" />
-      <Kbd keys="cmd-alt-backspace" />
-      <Kbd keys="ctrl-alt-shift-a" />
+      <Kbd>cmd-ctrl-shift-a</Kbd>
+      <Kbd>cmd-alt-backspace</Kbd>
+      <Kbd>ctrl-alt-shift-a</Kbd>
     </View>
   );
 }
@@ -640,21 +669,21 @@ Named keys.
 function NamedKeys(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
-      <Kbd keys="left" />
-      <Kbd keys="right" />
-      <Kbd keys="up" />
-      <Kbd keys="down" />
-      <Kbd keys="f12" />
-      <Kbd keys="secondary-f12" />
-      <Kbd keys="pageup" />
-      <Kbd keys="pagedown" />
+      <Kbd>left</Kbd>
+      <Kbd>right</Kbd>
+      <Kbd>up</Kbd>
+      <Kbd>down</Kbd>
+      <Kbd>f12</Kbd>
+      <Kbd>secondary-f12</Kbd>
+      <Kbd>pageup</Kbd>
+      <Kbd>pagedown</Kbd>
     </View>
   );
 }
 --- Without Visual Styling
 Plain draws only the key text.
 function PlainKbd(): Node {
-  return <Kbd keys="cmd-s" plain={true} />;
+  return <Kbd plain={true}>cmd-s</Kbd>;
 }
 --- From Command Bindings
 Shows the keys bound to a Shortcut command.
@@ -672,9 +701,9 @@ Shortcuts beside descriptions.
 function ShortcutHelp(): Node {
   return (
     <View className="flex-col gap-2">
-      <View className="flex-row items-center gap-2"><Text>Open command palette:</Text><Kbd keys="cmd-shift-p" /></View>
-      <View className="flex-row items-center gap-2"><Text>Save file:</Text><Kbd keys="cmd-s" /></View>
-      <View className="flex-row items-center gap-2"><Text>Find in files:</Text><Kbd keys="cmd-shift-f" /></View>
+      <View className="flex-row items-center gap-2"><Text>Open command palette:</Text><Kbd>cmd-shift-p</Kbd></View>
+      <View className="flex-row items-center gap-2"><Text>Save file:</Text><Kbd>cmd-s</Kbd></View>
+      <View className="flex-row items-center gap-2"><Text>Find in files:</Text><Kbd>cmd-shift-f</Kbd></View>
     </View>
   );
 }
@@ -683,14 +712,14 @@ Keys inside a sentence.
 function InlineKbd(): Node {
   return (
     <View className="flex-row items-center gap-1">
-      <Text>Press</Text><Kbd keys="escape" /><Text>to cancel or</Text><Kbd keys="enter" /><Text>to confirm.</Text>
+      <Text>Press</Text><Kbd>escape</Kbd><Text>to cancel or</Text><Kbd>enter</Kbd><Text>to confirm.</Text>
     </View>
   );
 }
 --- Custom Styling
 Utility classes restyle the key cap.
 function StyledKbd(): Node {
-  return <Kbd keys="cmd-k" className="text-primary border-primary bg-primary/10" />;
+  return <Kbd className="text-primary border-primary bg-primary/10">cmd-k</Kbd>;
 }
 === Skeleton | skeleton | Feedback
 Animated placeholders while content loads.
@@ -756,7 +785,7 @@ function ConditionalSkeleton(): Node {
   const loading = signal(true);
   return (
     <View className="flex-col gap-3 w-80">
-      <Switch label="Loading" checked={loading.get()} onChange={(on) => { loading.set(on); }} />
+      <Switch checked={loading.get()} onChange={(on) => { loading.set(on); }}>Loading</Switch>
       {loading.get() ? <Skeleton className="w-full h-4" /> : <Text>Content loaded</Text>}
     </View>
   );
@@ -769,12 +798,13 @@ function BasicSpinner(): Node {
   return <Spinner />;
 }
 --- Spinner with Custom Color
-Theme color names or hex.
+A theme color, a palette color such as blue-500, or hex.
 function ColoredSpinners(): Node {
   return (
     <View className="flex-row gap-4">
-      <Spinner color="blue" />
-      <Spinner color="green" />
+      <Spinner color="primary" />
+      <Spinner color="blue-500" />
+      <Spinner color="emerald-500" />
       <Spinner color="#e8590c" />
     </View>
   );
@@ -996,23 +1026,28 @@ Inline messages with a variant icon, optional title and close button.
 --- Basic Alert
 An info alert.
 function BasicAlert(): Node {
-  return <Alert message="This is a simple alert message." />;
+  return <Alert>This is a simple alert message.</Alert>;
 }
 --- Alert with Title
-A title above the message.
+AlertTitle and AlertDescription children, as in shadcn/ui. Plain text children are the description.
 function TitledAlert(): Node {
-  return <Alert title="Heads up!" message="You can add components to your app using the cli." />;
+  return (
+    <Alert>
+      <AlertTitle>Heads up!</AlertTitle>
+      <AlertDescription>You can add components to your app using the cli.</AlertDescription>
+    </Alert>
+  );
 }
 --- Alert Variants
 Default, info, success, warning and error.
 function AlertVariants(): Node {
   return (
     <View className="flex-col gap-3 w-full">
-      <Alert variant="default" message="This is a default alert." />
-      <Alert variant="info" message="This is an info alert." />
-      <Alert variant="success" message="Your changes have been saved." />
-      <Alert variant="warning" message="Please review your settings." />
-      <Alert variant="error" message="Something went wrong." />
+      <Alert variant="default">This is a default alert.</Alert>
+      <Alert variant="info">This is an info alert.</Alert>
+      <Alert variant="success">Your changes have been saved.</Alert>
+      <Alert variant="warning">Please review your settings.</Alert>
+      <Alert variant="error">Something went wrong.</Alert>
     </View>
   );
 }
@@ -1021,10 +1056,10 @@ xsmall to large.
 function AlertSizes(): Node {
   return (
     <View className="flex-col gap-3 w-full">
-      <Alert size="xsmall" message="Extra small alert" />
-      <Alert size="small" message="Small alert" />
-      <Alert message="Medium alert" />
-      <Alert size="large" message="Large alert" />
+      <Alert size="xsmall">Extra small alert</Alert>
+      <Alert size="small">Small alert</Alert>
+      <Alert>Medium alert</Alert>
+      <Alert size="large">Large alert</Alert>
     </View>
   );
 }
@@ -1033,8 +1068,8 @@ onClose shows a close button.
 function ClosableAlert(): Node {
   const open = signal(true);
   return (
-    <View className="flex-col gap-3 w-full">
-      <Alert variant="info" message="This alert can be closed." visible={open.get()} onClose={() => { open.set(false); }} />
+    <View className="flex-col items-start gap-3 w-full">
+      <Alert variant="info" visible={open.get()} onClose={() => { open.set(false); }} className="w-full">This alert can be closed.</Alert>
       <Button size="small" onPress={() => { open.set(true); }}>Reset</Button>
     </View>
   );
@@ -1042,12 +1077,12 @@ function ClosableAlert(): Node {
 --- Banner Mode
 Full width, without rounding.
 function BannerAlert(): Node {
-  return <Alert variant="info" banner={true} message="This is a banner alert that spans the full width." />;
+  return <Alert variant="info" banner={true}>This is a banner alert that spans the full width.</Alert>;
 }
 --- Custom Icons
 Replace the variant icon.
 function IconAlert(): Node {
-  return <Alert variant="info" icon="bell" message="You have new notifications." />;
+  return <Alert variant="info" icon="bell">You have new notifications.</Alert>;
 }
 --- Conditional Visibility
 visible hides the alert without removing it.
@@ -1055,8 +1090,8 @@ function ConditionalAlert(): Node {
   const show = signal(true);
   return (
     <View className="flex-col gap-3 w-full">
-      <Switch label="Show alert" checked={show.get()} onChange={(on) => { show.set(on); }} />
-      <Alert variant="warning" message="Shown while the switch is on." visible={show.get()} />
+      <Switch checked={show.get()} onChange={(on) => { show.set(on); }}>Show alert</Switch>
+      <Alert variant="warning" visible={show.get()}>Shown while the switch is on.</Alert>
     </View>
   );
 }
@@ -1080,13 +1115,14 @@ function IconSizes(): Node {
   );
 }
 --- Icon with Custom Color
-Text color utilities tint the icon.
+Text color utilities tint the icon: theme tokens, the Tailwind palette or any [#hex] value.
 function ColoredIcons(): Node {
   return (
     <View className="flex-row gap-3">
       <Icon name="heart" className="text-destructive" />
-      <Icon name="circle-check" className="text-primary" />
-      <Icon name="info" className="text-muted-foreground" />
+      <Icon name="circle-check" className="text-emerald-500" />
+      <Icon name="star" className="text-amber-400" />
+      <Icon name="info" className="text-[#1f6feb]" />
     </View>
   );
 }
@@ -1124,30 +1160,30 @@ Text with a moving highlight, for work in progress.
 --- Basic Usage
 A repeating sweep.
 function BasicShimmer(): Node {
-  return <ShimmerText text="Thinking..." />;
+  return <ShimmerText>Thinking...</ShimmerText>;
 }
 --- Duration
 Milliseconds per sweep.
 function ShimmerDuration(): Node {
   return (
     <View className="flex-col gap-2">
-      <ShimmerText text="Fast shimmer" duration={800} />
-      <ShimmerText text="Slow shimmer" duration={3000} />
+      <ShimmerText duration={800}>Fast shimmer</ShimmerText>
+      <ShimmerText duration={3000}>Slow shimmer</ShimmerText>
     </View>
   );
 }
 --- Highlight Color
 Any theme color or hex.
 function ShimmerColor(): Node {
-  return <ShimmerText text="Generating response" highlightColor="blue" />;
+  return <ShimmerText highlightColor="blue">Generating response</ShimmerText>;
 }
 --- Spread
 Highlight half-width as a fraction of the text.
 function ShimmerSpread(): Node {
   return (
     <View className="flex-col gap-2">
-      <ShimmerText text="Narrow highlight" spread={0.1} />
-      <ShimmerText text="Wide highlight" spread={0.5} />
+      <ShimmerText spread={0.1}>Narrow highlight</ShimmerText>
+      <ShimmerText spread={0.5}>Wide highlight</ShimmerText>
     </View>
   );
 }
@@ -1156,27 +1192,34 @@ Reverse the sweep or play it once.
 function ShimmerDirection(): Node {
   return (
     <View className="flex-col gap-2">
-      <ShimmerText text="Right to left" reverse={true} />
-      <ShimmerText text="Plays once" once={true} />
+      <ShimmerText reverse={true}>Right to left</ShimmerText>
+      <ShimmerText once={true}>Plays once</ShimmerText>
     </View>
   );
 }
 --- Styling
 Text utilities style the shimmer.
 function StyledShimmer(): Node {
-  return <ShimmerText text="Searching the web" className="text-xl font-semibold" />;
+  return <ShimmerText className="text-xl font-semibold">Searching the web</ShimmerText>;
 }
 === Empty | empty | Feedback
 Empty states with media, a title, a description and actions.
 --- Basic Usage
-An icon, title, description and actions.
+EmptyHeader holds the media, title and description; EmptyContent holds actions. The icon, title and description props are a shorthand.
 function BasicEmpty(): Node {
   return (
-    <Empty icon="folder" title="No projects yet" description="Create your first project to get started.">
-      <View className="flex-row gap-2">
-        <Button variant="primary">Create project</Button>
-        <Button outline={true}>Import</Button>
-      </View>
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon"><Icon name="folder" /></EmptyMedia>
+        <EmptyTitle>No projects yet</EmptyTitle>
+        <EmptyDescription>Create your first project to get started.</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <View className="flex-row gap-2">
+          <Button variant="primary">Create project</Button>
+          <Button outline={true}>Import</Button>
+        </View>
+      </EmptyContent>
     </Empty>
   );
 }
@@ -1250,8 +1293,8 @@ A GroupBoxFooter child sits below the surface.
 function FooterGroupBox(): Node {
   return (
     <GroupBox title="Notifications" variant="fill">
-      <Switch label="Email" checked={true} />
-      <Switch label="Push" />
+      <Switch defaultChecked={true}>Email</Switch>
+      <Switch>Push</Switch>
       <GroupBoxFooter><Button variant="primary" size="small">Save</Button></GroupBoxFooter>
     </GroupBox>
   );
@@ -1282,7 +1325,7 @@ function FormGroupBox(): Node {
     <GroupBox title="Profile" variant="fill">
       <Input placeholder="Name" />
       <Input placeholder="Email" />
-      <Checkbox label="Subscribe to updates" />
+      <Checkbox>Subscribe to updates</Checkbox>
     </GroupBox>
   );
 }
@@ -1335,20 +1378,20 @@ function ClipboardSizes(): Node {
 === Checkbox | checkbox | Forms
 A checked or unchecked choice with an optional label.
 --- Basic Checkbox
-Controlled: onChange receives the requested state.
+Controlled with checked and onChange. Without checked a checkbox keeps its own state; defaultChecked sets where it starts.
 function BasicCheckbox(): Node {
   const checked = signal(false);
-  return <Checkbox label="Accept terms and conditions" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;
+  return <Checkbox checked={checked.get()} onChange={(on) => { checked.set(on); }}>Accept terms and conditions</Checkbox>;
 }
 --- Different Sizes
 xsmall to large.
 function CheckboxSizes(): Node {
   return (
     <View className="flex-col gap-2">
-      <Checkbox label="Extra Small" size="xsmall" />
-      <Checkbox label="Small" size="small" />
-      <Checkbox label="Medium" />
-      <Checkbox label="Large" size="large" />
+      <Checkbox size="xsmall">Extra Small</Checkbox>
+      <Checkbox size="small">Small</Checkbox>
+      <Checkbox>Medium</Checkbox>
+      <Checkbox size="large">Large</Checkbox>
     </View>
   );
 }
@@ -1357,8 +1400,8 @@ Disabled checkboxes ignore input.
 function DisabledCheckbox(): Node {
   return (
     <View className="flex-col gap-2">
-      <Checkbox label="Disabled checkbox" disabled={true} />
-      <Checkbox label="Disabled checked" checked={true} disabled={true} />
+      <Checkbox disabled={true}>Disabled checkbox</Checkbox>
+      <Checkbox checked={true} disabled={true}>Disabled checked</Checkbox>
     </View>
   );
 }
@@ -1373,8 +1416,8 @@ A tooltip, or the switch role for on/off settings.
 function TooltipCheckbox(): Node {
   return (
     <View className="flex-col gap-2">
-      <Checkbox label="Sync" tooltip="Sync across devices" tooltipDelay={300} />
-      <Checkbox label="Dark mode" role="switch" />
+      <Checkbox tooltip="Sync across devices" tooltipDelay={300}>Sync</Checkbox>
+      <Checkbox role="switch">Dark mode</Checkbox>
     </View>
   );
 }
@@ -1383,9 +1426,9 @@ tabIndex orders focus; tabStop skips a control.
 function TabOrderCheckbox(): Node {
   return (
     <View className="flex-col gap-2">
-      <Checkbox label="Second" tabIndex={2} />
-      <Checkbox label="First" tabIndex={1} />
-      <Checkbox label="Skipped" tabStop={false} />
+      <Checkbox tabIndex={2}>Second</Checkbox>
+      <Checkbox tabIndex={1}>First</Checkbox>
+      <Checkbox tabStop={false}>Skipped</Checkbox>
     </View>
   );
 }
@@ -1401,7 +1444,7 @@ function BasicSwitch(): Node {
 A label beside the switch.
 function LabeledSwitch(): Node {
   const on = signal(true);
-  return <Switch label="Enable notifications" checked={on.get()} onChange={(value) => { on.set(value); }} />;
+  return <Switch checked={on.get()} onChange={(value) => { on.set(value); }}>Enable notifications</Switch>;
 }
 --- Without Label
 An accessibility label names a bare switch.
@@ -1413,8 +1456,8 @@ small and medium.
 function SwitchSizes(): Node {
   return (
     <View className="flex-row items-center gap-4">
-      <Switch size="small" checked={true} />
-      <Switch checked={true} />
+      <Switch size="small" defaultChecked={true} />
+      <Switch defaultChecked={true} />
     </View>
   );
 }
@@ -1423,8 +1466,8 @@ Disabled switches keep their state.
 function DisabledSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">
-      <Switch label="Disabled off" disabled={true} />
-      <Switch label="Disabled on" checked={true} disabled={true} />
+      <Switch disabled={true}>Disabled off</Switch>
+      <Switch checked={true} disabled={true}>Disabled on</Switch>
     </View>
   );
 }
@@ -1433,8 +1476,8 @@ The track color when on; disabled draws it at half opacity.
 function ColoredSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">
-      <Switch checked={true} color="success" />
-      <Switch checked={true} color="danger" />
+      <Switch defaultChecked={true} color="success" />
+      <Switch defaultChecked={true} color="danger" />
       <Switch checked={true} color="success" disabled={true} />
     </View>
   );
@@ -1442,15 +1485,15 @@ function ColoredSwitch(): Node {
 --- With Tooltip
 A tooltip on hover.
 function TooltipSwitch(): Node {
-  return <Switch label="Auto-save" tooltip="Save changes automatically" />;
+  return <Switch tooltip="Save changes automatically">Auto-save</Switch>;
 }
 --- Keyboard Focus
 tabIndex orders focus; tabStop skips it.
 function FocusSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">
-      <Switch label="Focusable" tabIndex={1} />
-      <Switch label="Skipped" tabStop={false} />
+      <Switch tabIndex={1}>Focusable</Switch>
+      <Switch tabStop={false}>Skipped</Switch>
     </View>
   );
 }
@@ -1460,7 +1503,7 @@ One choice from a set, alone or in a RadioGroup.
 A standalone radio.
 function BasicRadio(): Node {
   const checked = signal(false);
-  return <Radio label="Option 1" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;
+  return <Radio checked={checked.get()} onChange={(on) => { checked.set(on); }}>Option 1</Radio>;
 }
 --- Radio Group
 The group tracks the selected index.
@@ -1468,9 +1511,9 @@ function BasicRadioGroup(): Node {
   const selected = signal(0);
   return (
     <RadioGroup selected={selected.get()} onChange={(index) => { selected.set(index); }}>
-      <Radio label="Option 1" />
-      <Radio label="Option 2" />
-      <Radio label="Option 3" />
+      <Radio>Option 1</Radio>
+      <Radio>Option 2</Radio>
+      <Radio>Option 3</Radio>
     </RadioGroup>
   );
 }
@@ -1479,9 +1522,10 @@ xsmall to large.
 function RadioSizes(): Node {
   return (
     <View className="flex-col gap-2">
-      <Radio label="Small" size="xsmall" />
-      <Radio label="Medium" />
-      <Radio label="Large" size="large" />
+      <Radio size="xsmall">Extra small</Radio>
+      <Radio size="small">Small</Radio>
+      <Radio>Medium</Radio>
+      <Radio size="large">Large</Radio>
     </View>
   );
 }
@@ -1490,8 +1534,8 @@ Disabled radios ignore input.
 function DisabledRadio(): Node {
   return (
     <View className="flex-col gap-2">
-      <Radio label="Disabled" disabled={true} />
-      <Radio label="Disabled checked" checked={true} disabled={true} />
+      <Radio disabled={true}>Disabled</Radio>
+      <Radio checked={true} disabled={true}>Disabled checked</Radio>
     </View>
   );
 }
@@ -1500,8 +1544,8 @@ Tooltips, accessibility names and focus order.
 function TooltipRadio(): Node {
   return (
     <View className="flex-col gap-2">
-      <Radio label="Express" tooltip="Arrives tomorrow" tabIndex={1} />
-      <Radio label="Standard" accessibilityLabel="Standard shipping" tabStop={false} />
+      <Radio tooltip="Arrives tomorrow" tabIndex={1}>Express</Radio>
+      <Radio accessibilityLabel="Standard shipping" tabStop={false}>Standard</Radio>
     </View>
   );
 }
@@ -1511,9 +1555,9 @@ function VerticalRadioGroup(): Node {
   const selected = signal(1);
   return (
     <RadioGroup vertical={true} selected={selected.get()} onChange={(index) => { selected.set(index); }}>
-      <Radio label="Small" />
-      <Radio label="Medium" />
-      <Radio label="Large" />
+      <Radio>Small</Radio>
+      <Radio>Medium</Radio>
+      <Radio>Large</Radio>
     </RadioGroup>
   );
 }
@@ -1522,8 +1566,8 @@ A disabled group disables every option.
 function DisabledRadioGroup(): Node {
   return (
     <RadioGroup vertical={true} selected={0} disabled={true}>
-      <Radio label="Option 1" />
-      <Radio label="Option 2" />
+      <Radio>Option 1</Radio>
+      <Radio>Option 2</Radio>
     </RadioGroup>
   );
 }
@@ -1540,17 +1584,17 @@ xsmall to large.
 function RatingSizes(): Node {
   return (
     <View className="flex-col gap-2">
-      <Rating size="xsmall" value={3} />
-      <Rating size="small" value={3} />
-      <Rating value={3} />
-      <Rating size="large" value={3} />
+      <Rating size="xsmall" defaultValue={3} />
+      <Rating size="small" defaultValue={3} />
+      <Rating defaultValue={3} />
+      <Rating size="large" defaultValue={3} />
     </View>
   );
 }
 --- Custom Color
-Any theme color or hex.
+A theme color, palette color or hex.
 function ColoredRating(): Node {
-  return <Rating value={4} color="danger" />;
+  return <Rating defaultValue={4} color="danger" />;
 }
 --- Disabled State
 A read-only display.

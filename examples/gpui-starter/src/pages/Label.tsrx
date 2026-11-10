@@ -3,14 +3,20 @@ import { Button, Label, Node, Text, View, signal } from 'std:ui';
 import { Example, PageHeader } from '../example.tsrx';
 
 function BasicLabel(): Node {
-  return <Label text="This is a label" />;
+  return <Label>This is a label</Label>;
 }
 
 function SecondaryLabels(): Node {
   return (
     <View className="flex-col gap-2">
-      <Label text="Company Address" secondary="(optional)" />
-      <Label text="Email Address" secondary="(required)" />
+      <Label>
+        Company Address
+        <Text variant="secondary">(optional)</Text>
+      </Label>
+      <Label>
+        <Text variant="inherit">Email Address</Text>
+        <Text variant="secondary">(required)</Text>
+      </Label>
     </View>
   );
 }
@@ -18,9 +24,9 @@ function SecondaryLabels(): Node {
 function AlignedLabels(): Node {
   return (
     <View className="flex-col gap-2 w-80">
-      <Label text="Text align left" className="w-full" />
-      <Label text="Text align center" className="w-full text-center" />
-      <Label text="Text align right" className="w-full text-right" />
+      <Label className="w-full">Text align left</Label>
+      <Label className="w-full text-center">Text align center</Label>
+      <Label className="w-full text-right">Text align right</Label>
     </View>
   );
 }
@@ -28,9 +34,12 @@ function AlignedLabels(): Node {
 function HighlightedLabels(): Node {
   return (
     <View className="flex-col gap-2">
-      <Label text="Hello World Hello" highlight="Hello" />
-      <Label text="Hello World" highlight="Hello" highlightPrefix={true} />
-      <Label text="Company Name" secondary="(optional)" highlight="Company" />
+      <Label highlight="Hello">Hello World Hello</Label>
+      <Label highlight="Hello" highlightPrefix={true}>Hello World</Label>
+      <Label highlight="Company">
+        Company Name
+        <Text variant="secondary">(optional)</Text>
+      </Label>
     </View>
   );
 }
@@ -38,8 +47,9 @@ function HighlightedLabels(): Node {
 function StyledLabels(): Node {
   return (
     <View className="flex-col gap-2">
-      <Label text="Color Label" className="text-primary" />
-      <Label text="Font Size Label" className="text-xl font-semibold" />
+      <Label className="text-primary">Color Label</Label>
+      <Label className="text-rose-500">Palette Color Label</Label>
+      <Label className="text-xl font-semibold">Font Size Label</Label>
     </View>
   );
 }
@@ -48,24 +58,24 @@ function MaskedLabel(): Node {
   const masked = signal(true);
   return (
     <View className="flex-row items-center gap-3">
-      <Label text="9,182.1 USD" masked={masked.get()} className="text-2xl" />
+      <Label masked={masked.get()} className="text-2xl">9,182.1 USD</Label>
       <Button size="small" onPress={() => { masked.set(!masked.get()); }}>{masked.get() ? 'Show' : 'Hide'}</Button>
     </View>
   );
 }
 
 function WrappedLabel(): Node {
-  return <Label text="Label should support text wrap in default, if the text is too long, it should wrap to the next line." className="w-[200px]" />;
+  return <Label className="w-[200px]">Label should support text wrap in default, if the text is too long, it should wrap to the next line.</Label>;
 }
 
 function LabelSizes(): Node {
   return (
     <View className="flex-col gap-1">
-      <Label text="Extra Large" className="text-2xl" />
-      <Label text="Large" className="text-xl" />
-      <Label text="Medium" />
-      <Label text="Small" className="text-sm" />
-      <Label text="Extra Small" className="text-xs" />
+      <Label className="text-2xl">Extra Large</Label>
+      <Label className="text-xl">Large</Label>
+      <Label>Medium</Label>
+      <Label className="text-sm">Small</Label>
+      <Label className="text-xs">Extra Small</Label>
     </View>
   );
 }
@@ -74,14 +84,14 @@ export function LabelPage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="Text with optional secondary text, highlighting and masking." slug="label" />
-      <Example title="Basic Label" description="Plain label text." code="function BasicLabel(): Node {\n  return <Label text=\"This is a label\" />;\n}"><BasicLabel /></Example>
-      <Example title="Label with Secondary Text" description="Muted text after the label." code="function SecondaryLabels(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Label text=\"Company Address\" secondary=\"(optional)\" />\n      <Label text=\"Email Address\" secondary=\"(required)\" />\n    </View>\n  );\n}"><SecondaryLabels /></Example>
-      <Example title="Text Alignment" description="Alignment utilities on a full-width label." code="function AlignedLabels(): Node {\n  return (\n    <View className=\"flex-col gap-2 w-80\">\n      <Label text=\"Text align left\" className=\"w-full\" />\n      <Label text=\"Text align center\" className=\"w-full text-center\" />\n      <Label text=\"Text align right\" className=\"w-full text-right\" />\n    </View>\n  );\n}"><AlignedLabels /></Example>
-      <Example title="Text Highlighting" description="Highlights every match, or only a match at the start." code="function HighlightedLabels(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Label text=\"Hello World Hello\" highlight=\"Hello\" />\n      <Label text=\"Hello World\" highlight=\"Hello\" highlightPrefix={true} />\n      <Label text=\"Company Name\" secondary=\"(optional)\" highlight=\"Company\" />\n    </View>\n  );\n}"><HighlightedLabels /></Example>
-      <Example title="Color and Styling" description="Text utilities style the label." code="function StyledLabels(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Label text=\"Color Label\" className=\"text-primary\" />\n      <Label text=\"Font Size Label\" className=\"text-xl font-semibold\" />\n    </View>\n  );\n}"><StyledLabels /></Example>
-      <Example title="Masked Labels" description="Masked text draws as bullets." code="function MaskedLabel(): Node {\n  const masked = signal(true);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Label text=\"9,182.1 USD\" masked={masked.get()} className=\"text-2xl\" />\n      <Button size=\"small\" onPress={() => { masked.set(!masked.get()); }}>{masked.get() ? 'Show' : 'Hide'}</Button>\n    </View>\n  );\n}"><MaskedLabel /></Example>
-      <Example title="Multi-line Text" description="Labels wrap inside a narrow width." code="function WrappedLabel(): Node {\n  return <Label text=\"Label should support text wrap in default, if the text is too long, it should wrap to the next line.\" className=\"w-[200px]\" />;\n}"><WrappedLabel /></Example>
-      <Example title="Different Sizes" description="Text size utilities." code="function LabelSizes(): Node {\n  return (\n    <View className=\"flex-col gap-1\">\n      <Label text=\"Extra Large\" className=\"text-2xl\" />\n      <Label text=\"Large\" className=\"text-xl\" />\n      <Label text=\"Medium\" />\n      <Label text=\"Small\" className=\"text-sm\" />\n      <Label text=\"Extra Small\" className=\"text-xs\" />\n    </View>\n  );\n}"><LabelSizes /></Example>
+      <Example title="Basic Label" description="Text content is the label." code="function BasicLabel(): Node {\n  return <Label>This is a label</Label>;\n}"><BasicLabel /></Example>
+      <Example title="Label with Secondary Text" description="A Text child with variant=\"secondary\" fills the muted secondary text." code="function SecondaryLabels(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Label>\n        Company Address\n        <Text variant=\"secondary\">(optional)</Text>\n      </Label>\n      <Label>\n        <Text variant=\"inherit\">Email Address</Text>\n        <Text variant=\"secondary\">(required)</Text>\n      </Label>\n    </View>\n  );\n}"><SecondaryLabels /></Example>
+      <Example title="Text Alignment" description="Alignment utilities on a full-width label." code="function AlignedLabels(): Node {\n  return (\n    <View className=\"flex-col gap-2 w-80\">\n      <Label className=\"w-full\">Text align left</Label>\n      <Label className=\"w-full text-center\">Text align center</Label>\n      <Label className=\"w-full text-right\">Text align right</Label>\n    </View>\n  );\n}"><AlignedLabels /></Example>
+      <Example title="Text Highlighting" description="Highlights every match, or only a match at the start." code="function HighlightedLabels(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Label highlight=\"Hello\">Hello World Hello</Label>\n      <Label highlight=\"Hello\" highlightPrefix={true}>Hello World</Label>\n      <Label highlight=\"Company\">\n        Company Name\n        <Text variant=\"secondary\">(optional)</Text>\n      </Label>\n    </View>\n  );\n}"><HighlightedLabels /></Example>
+      <Example title="Color and Styling" description="Text utilities style the label." code="function StyledLabels(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Label className=\"text-primary\">Color Label</Label>\n      <Label className=\"text-rose-500\">Palette Color Label</Label>\n      <Label className=\"text-xl font-semibold\">Font Size Label</Label>\n    </View>\n  );\n}"><StyledLabels /></Example>
+      <Example title="Masked Labels" description="Masked text draws as bullets." code="function MaskedLabel(): Node {\n  const masked = signal(true);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Label masked={masked.get()} className=\"text-2xl\">9,182.1 USD</Label>\n      <Button size=\"small\" onPress={() => { masked.set(!masked.get()); }}>{masked.get() ? 'Show' : 'Hide'}</Button>\n    </View>\n  );\n}"><MaskedLabel /></Example>
+      <Example title="Multi-line Text" description="Labels wrap inside a narrow width." code="function WrappedLabel(): Node {\n  return <Label className=\"w-[200px]\">Label should support text wrap in default, if the text is too long, it should wrap to the next line.</Label>;\n}"><WrappedLabel /></Example>
+      <Example title="Different Sizes" description="Text size utilities." code="function LabelSizes(): Node {\n  return (\n    <View className=\"flex-col gap-1\">\n      <Label className=\"text-2xl\">Extra Large</Label>\n      <Label className=\"text-xl\">Large</Label>\n      <Label>Medium</Label>\n      <Label className=\"text-sm\">Small</Label>\n      <Label className=\"text-xs\">Extra Small</Label>\n    </View>\n  );\n}"><LabelSizes /></Example>
     </View>
   );
 }

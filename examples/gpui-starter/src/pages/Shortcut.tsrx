@@ -7,7 +7,7 @@ function BasicShortcut(): Node {
   return (
     <View className="flex-row items-center gap-3">
       <Shortcut command="increment" keys="secondary-k" onTrigger={() => { count.set(count.get() + 1); }} />
-      <Kbd keys="secondary-k" />
+      <Kbd>secondary-k</Kbd>
       <Text>Pressed {count} times</Text>
     </View>
   );
@@ -17,7 +17,7 @@ export function ShortcutPage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="Binds keystrokes to a named command while it is mounted. Tooltips and menus that name the command show its keys." slug="shortcut" />
-      <Example title="Basic Shortcut" description="Press the keys anywhere in the window. secondary means cmd on macOS and ctrl elsewhere." code="function BasicShortcut(): Node {\n  const count = signal(0);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Shortcut command=\"increment\" keys=\"secondary-k\" onTrigger={() => { count.set(count.get() + 1); }} />\n      <Kbd keys=\"secondary-k\" />\n      <Text>Pressed {count} times</Text>\n    </View>\n  );\n}"><BasicShortcut /></Example>
+      <Example title="Basic Shortcut" description="Press the keys anywhere in the window. secondary means cmd on macOS and ctrl elsewhere." code="function BasicShortcut(): Node {\n  const count = signal(0);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Shortcut command=\"increment\" keys=\"secondary-k\" onTrigger={() => { count.set(count.get() + 1); }} />\n      <Kbd>secondary-k</Kbd>\n      <Text>Pressed {count} times</Text>\n    </View>\n  );\n}"><BasicShortcut /></Example>
     </View>
   );
 }

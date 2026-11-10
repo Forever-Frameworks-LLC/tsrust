@@ -4,7 +4,7 @@ import { Example, PageHeader } from '../example.tsrx';
 
 function BasicToggle(): Node {
   const on = signal(false);
-  return <Toggle label="Bold" checked={on.get()} onChange={(checked) => { on.set(checked); }} />;
+  return <Toggle checked={on.get()} onChange={(checked) => { on.set(checked); }}>Bold</Toggle>;
 }
 
 function IconToggle(): Node {
@@ -15,10 +15,10 @@ function IconToggle(): Node {
 function ToggleSizes(): Node {
   return (
     <View className="flex-row items-center gap-3">
-      <Toggle label="XS" size="xsmall" />
-      <Toggle label="Small" size="small" />
-      <Toggle label="Medium" />
-      <Toggle label="Large" size="large" />
+      <Toggle size="xsmall">XS</Toggle>
+      <Toggle size="small">Small</Toggle>
+      <Toggle>Medium</Toggle>
+      <Toggle size="large">Large</Toggle>
     </View>
   );
 }
@@ -26,8 +26,8 @@ function ToggleSizes(): Node {
 function DisabledToggle(): Node {
   return (
     <View className="flex-row gap-3">
-      <Toggle label="Off" disabled={true} />
-      <Toggle label="On" checked={true} disabled={true} />
+      <Toggle disabled={true}>Off</Toggle>
+      <Toggle checked={true} disabled={true}>On</Toggle>
     </View>
   );
 }
@@ -50,12 +50,12 @@ function SegmentedGroup(): Node {
   return (
     <View className="flex-row gap-6">
       <ToggleGroup segmented={true}>
-        <Toggle label="List" checked={view.get() === 0} onChange={(on) => { if (on) { view.set(0); } }} />
-        <Toggle label="Grid" checked={view.get() === 1} onChange={(on) => { if (on) { view.set(1); } }} />
+        <Toggle checked={view.get() === 0} onChange={(on) => { if (on) { view.set(0); } }}>List</Toggle>
+        <Toggle checked={view.get() === 1} onChange={(on) => { if (on) { view.set(1); } }}>Grid</Toggle>
       </ToggleGroup>
       <ToggleGroup segmented={true} size="small">
-        <Toggle label="Top" />
-        <Toggle label="Bottom" />
+        <Toggle>Top</Toggle>
+        <Toggle>Bottom</Toggle>
       </ToggleGroup>
     </View>
   );
@@ -65,12 +65,12 @@ export function TogglePage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="A button that stays pressed while on. Toggles can be grouped, optionally as one segmented control." slug="toggle" />
-      <Example title="Basic Toggle" description="A labelled toggle." code="function BasicToggle(): Node {\n  const on = signal(false);\n  return <Toggle label=\"Bold\" checked={on.get()} onChange={(checked) => { on.set(checked); }} />;\n}"><BasicToggle /></Example>
+      <Example title="Basic Toggle" description="A toggle with text content." code="function BasicToggle(): Node {\n  const on = signal(false);\n  return <Toggle checked={on.get()} onChange={(checked) => { on.set(checked); }}>Bold</Toggle>;\n}"><BasicToggle /></Example>
       <Example title="Icon Toggle" description="A toggle can show an icon instead of text." code="function IconToggle(): Node {\n  const on = signal(true);\n  return <Toggle icon=\"eye\" tooltip=\"Show preview\" checked={on.get()} onChange={(checked) => { on.set(checked); }} />;\n}"><IconToggle /></Example>
-      <Example title="Sizes" description="xsmall, small, medium and large." code="function ToggleSizes(): Node {\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Toggle label=\"XS\" size=\"xsmall\" />\n      <Toggle label=\"Small\" size=\"small\" />\n      <Toggle label=\"Medium\" />\n      <Toggle label=\"Large\" size=\"large\" />\n    </View>\n  );\n}"><ToggleSizes /></Example>
-      <Example title="Disabled State" description="A disabled toggle keeps its state but cannot change." code="function DisabledToggle(): Node {\n  return (\n    <View className=\"flex-row gap-3\">\n      <Toggle label=\"Off\" disabled={true} />\n      <Toggle label=\"On\" checked={true} disabled={true} />\n    </View>\n  );\n}"><DisabledToggle /></Example>
+      <Example title="Sizes" description="xsmall, small, medium and large." code="function ToggleSizes(): Node {\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Toggle size=\"xsmall\">XS</Toggle>\n      <Toggle size=\"small\">Small</Toggle>\n      <Toggle>Medium</Toggle>\n      <Toggle size=\"large\">Large</Toggle>\n    </View>\n  );\n}"><ToggleSizes /></Example>
+      <Example title="Disabled State" description="A disabled toggle keeps its state but cannot change." code="function DisabledToggle(): Node {\n  return (\n    <View className=\"flex-row gap-3\">\n      <Toggle disabled={true}>Off</Toggle>\n      <Toggle checked={true} disabled={true}>On</Toggle>\n    </View>\n  );\n}"><DisabledToggle /></Example>
       <Example title="Toggle Group" description="Toggles in a row; each reports its own change." code="function TextFormatting(): Node {\n  const bold = signal(true);\n  const italic = signal(false);\n  const underline = signal(false);\n  return (\n    <ToggleGroup>\n      <Toggle icon=\"bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }} />\n      <Toggle icon=\"italic\" checked={italic.get()} onChange={(on) => { italic.set(on); }} />\n      <Toggle icon=\"underline\" checked={underline.get()} onChange={(on) => { underline.set(on); }} />\n    </ToggleGroup>\n  );\n}"><TextFormatting /></Example>
-      <Example title="Segmented Group" description="A segmented group draws as one control, in any size." code="function SegmentedGroup(): Node {\n  const view = signal(0);\n  return (\n    <View className=\"flex-row gap-6\">\n      <ToggleGroup segmented={true}>\n        <Toggle label=\"List\" checked={view.get() === 0} onChange={(on) => { if (on) { view.set(0); } }} />\n        <Toggle label=\"Grid\" checked={view.get() === 1} onChange={(on) => { if (on) { view.set(1); } }} />\n      </ToggleGroup>\n      <ToggleGroup segmented={true} size=\"small\">\n        <Toggle label=\"Top\" />\n        <Toggle label=\"Bottom\" />\n      </ToggleGroup>\n    </View>\n  );\n}"><SegmentedGroup /></Example>
+      <Example title="Segmented Group" description="A segmented group draws as one control, in any size." code="function SegmentedGroup(): Node {\n  const view = signal(0);\n  return (\n    <View className=\"flex-row gap-6\">\n      <ToggleGroup segmented={true}>\n        <Toggle checked={view.get() === 0} onChange={(on) => { if (on) { view.set(0); } }}>List</Toggle>\n        <Toggle checked={view.get() === 1} onChange={(on) => { if (on) { view.set(1); } }}>Grid</Toggle>\n      </ToggleGroup>\n      <ToggleGroup segmented={true} size=\"small\">\n        <Toggle>Top</Toggle>\n        <Toggle>Bottom</Toggle>\n      </ToggleGroup>\n    </View>\n  );\n}"><SegmentedGroup /></Example>
     </View>
   );
 }

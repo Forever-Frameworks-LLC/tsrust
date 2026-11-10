@@ -228,7 +228,9 @@
           "doc": "Highlights only a match at the start of the label."
         }
       ],
-      "example": "<Label text=\"Email\" secondary=\"(required)\"/>"
+      "example": "<Label text=\"Email\" secondary=\"(required)\"/>",
+      "children": "Text",
+      "textChildren": "text"
     },
     {
       "name": "Kbd",
@@ -255,7 +257,9 @@
           "doc": "Draws the keys without the key-cap styling."
         }
       ],
-      "example": "<Kbd keys=\"cmd-k\"/>"
+      "example": "<Kbd keys=\"cmd-k\"/>",
+      "children": "Text",
+      "textChildren": "keys"
     },
     {
       "name": "Separator",
@@ -285,7 +289,9 @@
           "doc": "Line color. A theme color name (such as primary, red or magenta) or #rrggbb."
         }
       ],
-      "example": "<Separator label=\"or\"/>"
+      "example": "<Separator label=\"or\"/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Skeleton",
@@ -501,7 +507,27 @@
           "doc": "Shows a close button; called when it is clicked."
         }
       ],
-      "example": "<Alert variant=\"warning\" title=\"Heads up\" message=\"Unsaved changes.\"/>"
+      "example": "<Alert variant=\"warning\" title=\"Heads up\" message=\"Unsaved changes.\"/>",
+      "children": "Text",
+      "textChildren": "message"
+    },
+    {
+      "name": "AlertTitle",
+      "doc": "The bold title of an Alert, from its text children.",
+      "item": true,
+      "props": [],
+      "example": "<Alert>\n  <AlertTitle>Heads up!</AlertTitle>\n  <AlertDescription>You can add components to your app using the cli.</AlertDescription>\n</Alert>",
+      "children": "Text",
+      "textChildren": "text"
+    },
+    {
+      "name": "AlertDescription",
+      "doc": "The message of an Alert, from its text children.",
+      "item": true,
+      "props": [],
+      "example": "<Alert>\n  <AlertTitle>Heads up!</AlertTitle>\n  <AlertDescription>You can add components to your app using the cli.</AlertDescription>\n</Alert>",
+      "children": "Text",
+      "textChildren": "text"
     },
     {
       "name": "ShimmerText",
@@ -538,7 +564,9 @@
           "doc": "Sweeps once instead of repeating."
         }
       ],
-      "example": "<ShimmerText text=\"Thinking...\"/>"
+      "example": "<ShimmerText text=\"Thinking...\"/>",
+      "children": "Text",
+      "textChildren": "text"
     },
     {
       "name": "Empty",
@@ -639,7 +667,9 @@
           "doc": "Number of columns the item spans. Defaults to 1."
         }
       ],
-      "example": "<DescriptionItem label=\"Region\" value=\"us-east\"/>"
+      "example": "<DescriptionItem label=\"Region\" value=\"us-east\"/>",
+      "children": "Text",
+      "textChildren": "value"
     },
     {
       "name": "Breadcrumb",
@@ -671,7 +701,9 @@
           "doc": "Called when the entry is clicked."
         }
       ],
-      "example": "<BreadcrumbItem label=\"Docs\"/>"
+      "example": "<BreadcrumbItem label=\"Docs\"/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Clipboard",
@@ -733,6 +765,11 @@
           "doc": "Whether the box is checked."
         },
         {
+          "name": "defaultChecked",
+          "type": "boolean",
+          "doc": "Initial state when `checked` is unset; the control then keeps its own state, like an uncontrolled React input."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "doc": "Disabled boxes ignore clicks."
@@ -791,7 +828,9 @@
           "doc": "Receives the requested checked state after a click."
         }
       ],
-      "example": "<Checkbox label=\"Accept terms\" checked={accepted.get()} onChange={(checked) => { accepted.set(checked); }}/>"
+      "example": "<Checkbox label=\"Accept terms\" checked={accepted.get()} onChange={(checked) => { accepted.set(checked); }}/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Switch",
@@ -806,6 +845,11 @@
           "name": "checked",
           "type": "boolean",
           "doc": "Whether the switch is on."
+        },
+        {
+          "name": "defaultChecked",
+          "type": "boolean",
+          "doc": "Initial state when `checked` is unset; the control then keeps its own state, like an uncontrolled React input."
         },
         {
           "name": "disabled",
@@ -861,7 +905,9 @@
           "doc": "Receives the requested state after a click."
         }
       ],
-      "example": "<Switch label=\"Dark mode\" checked={dark.get()} onChange={(on) => { dark.set(on); }}/>"
+      "example": "<Switch label=\"Dark mode\" checked={dark.get()} onChange={(on) => { dark.set(on); }}/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "RadioGroup",
@@ -872,6 +918,11 @@
           "name": "selected",
           "type": "int",
           "doc": "Index of the selected Radio, or -1 for none."
+        },
+        {
+          "name": "defaultSelected",
+          "type": "int",
+          "doc": "Initial selected index when `selected` is unset; the group then keeps its own selection."
         },
         {
           "name": "vertical",
@@ -907,6 +958,11 @@
           "name": "checked",
           "type": "boolean",
           "doc": "Selected state of a standalone radio. Inside a RadioGroup, the group's selected index wins."
+        },
+        {
+          "name": "defaultChecked",
+          "type": "boolean",
+          "doc": "Initial state when `checked` is unset; the control then keeps its own state, like an uncontrolled React input."
         },
         {
           "name": "disabled",
@@ -958,7 +1014,9 @@
           "doc": "Receives true when a standalone radio is chosen."
         }
       ],
-      "item": true
+      "item": true,
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Toggle",
@@ -978,6 +1036,11 @@
           "name": "checked",
           "type": "boolean",
           "doc": "Pressed (on) state."
+        },
+        {
+          "name": "defaultChecked",
+          "type": "boolean",
+          "doc": "Initial state when `checked` is unset; the control then keeps its own state, like an uncontrolled React input."
         },
         {
           "name": "disabled",
@@ -1013,7 +1076,9 @@
           "doc": "Receives the new pressed state."
         }
       ],
-      "example": "<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>"
+      "example": "<Toggle label=\"Bold\" checked={bold.get()} onChange={(on) => { bold.set(on); }}/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Rating",
@@ -1023,6 +1088,11 @@
           "name": "value",
           "type": "int",
           "doc": "Number of filled stars."
+        },
+        {
+          "name": "defaultValue",
+          "type": "int",
+          "doc": "Initial rating when `value` is unset; the rating then keeps its own value."
         },
         {
           "name": "max",
@@ -1164,7 +1234,9 @@
           "doc": "Greys the step out."
         }
       ],
-      "example": "<StepperItem label=\"Confirm\"/>"
+      "example": "<StepperItem label=\"Confirm\"/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Tabs",
@@ -1213,7 +1285,9 @@
           "doc": "Disabled tabs cannot be selected."
         }
       ],
-      "example": "<Tab label=\"Activity\"/>"
+      "example": "<Tab label=\"Activity\"/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Accordion",
@@ -1563,6 +1637,16 @@
           "doc": "Trigger text when no Button child is given."
         },
         {
+          "name": "split",
+          "type": "boolean",
+          "doc": "Show a split button: the main button runs onClick and the arrow opens the menu. Implied by onClick."
+        },
+        {
+          "name": "caret",
+          "type": "boolean",
+          "doc": "Show the dropdown caret on a custom trigger button. A label trigger always shows it."
+        },
+        {
           "name": "variant",
           "type": [
             "default",
@@ -1676,7 +1760,14 @@
           "doc": "Shows an external-link icon on link items. Defaults to true."
         }
       ],
-      "example": "<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>"
+      "example": "<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>",
+      "events": [
+        {
+          "prop": "onClick",
+          "value": "void",
+          "doc": "Runs when the main part of a split button is clicked; makes the button split."
+        }
+      ]
     },
     {
       "name": "MenuItem",
@@ -1815,7 +1906,9 @@
           "doc": "Called when the entry is clicked."
         }
       ],
-      "example": "<SidebarItem label=\"Settings\" onClick={() => { page.set('settings'); }}/>"
+      "example": "<SidebarItem label=\"Settings\" onClick={() => { page.set('settings'); }}/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Resizable",
@@ -2325,7 +2418,9 @@
           "doc": "Called when the entry is chosen with Enter or a click."
         }
       ],
-      "item": true
+      "item": true,
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "Carousel",
@@ -2534,7 +2629,9 @@
           "doc": "Called when the button is clicked."
         }
       ],
-      "item": true
+      "item": true,
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "InputGroup",
@@ -2919,7 +3016,9 @@
         }
       ],
       "item": true,
-      "example": "<QuestionChoice id=\"pro\" label=\"Pro\" description=\"For teams.\"/>"
+      "example": "<QuestionChoice id=\"pro\" label=\"Pro\" description=\"For teams.\"/>",
+      "children": "Text",
+      "textChildren": "label"
     },
     {
       "name": "SpeechButton",
@@ -3098,7 +3197,9 @@
         }
       ],
       "item": true,
-      "example": "<MenuLabel text=\"Recent\"/>"
+      "example": "<MenuLabel text=\"Recent\"/>",
+      "children": "Text",
+      "textChildren": "text"
     },
     {
       "name": "MenuSeparator",
@@ -3162,11 +3263,51 @@
           "name": "framed",
           "type": "boolean",
           "doc": "Draws the media in a muted icon frame."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "default",
+            "icon"
+          ],
+          "doc": "icon frames the media in a muted square, as framed does."
         }
       ],
       "children": true,
       "item": true,
       "example": "<EmptyMedia><Avatar name=\"Ada\"/></EmptyMedia>"
+    },
+    {
+      "name": "EmptyHeader",
+      "doc": "Groups an Empty's EmptyMedia, EmptyTitle and EmptyDescription.",
+      "item": true,
+      "props": [],
+      "example": "<Empty>\n  <EmptyHeader>\n    <EmptyMedia variant=\"icon\"><Icon name=\"folder\" /></EmptyMedia>\n    <EmptyTitle>No projects yet</EmptyTitle>\n    <EmptyDescription>Create your first project to get started.</EmptyDescription>\n  </EmptyHeader>\n  <EmptyContent><Button>Create project</Button></EmptyContent>\n</Empty>",
+      "children": true
+    },
+    {
+      "name": "EmptyTitle",
+      "doc": "The title of an Empty state.",
+      "item": true,
+      "props": [],
+      "example": "<Empty>\n  <EmptyHeader>\n    <EmptyMedia variant=\"icon\"><Icon name=\"folder\" /></EmptyMedia>\n    <EmptyTitle>No projects yet</EmptyTitle>\n    <EmptyDescription>Create your first project to get started.</EmptyDescription>\n  </EmptyHeader>\n  <EmptyContent><Button>Create project</Button></EmptyContent>\n</Empty>",
+      "children": true
+    },
+    {
+      "name": "EmptyDescription",
+      "doc": "The description of an Empty state.",
+      "item": true,
+      "props": [],
+      "example": "<Empty>\n  <EmptyHeader>\n    <EmptyMedia variant=\"icon\"><Icon name=\"folder\" /></EmptyMedia>\n    <EmptyTitle>No projects yet</EmptyTitle>\n    <EmptyDescription>Create your first project to get started.</EmptyDescription>\n  </EmptyHeader>\n  <EmptyContent><Button>Create project</Button></EmptyContent>\n</Empty>",
+      "children": true
+    },
+    {
+      "name": "EmptyContent",
+      "doc": "Actions or other content below an Empty's header.",
+      "item": true,
+      "props": [],
+      "example": "<Empty>\n  <EmptyHeader>\n    <EmptyMedia variant=\"icon\"><Icon name=\"folder\" /></EmptyMedia>\n    <EmptyTitle>No projects yet</EmptyTitle>\n    <EmptyDescription>Create your first project to get started.</EmptyDescription>\n  </EmptyHeader>\n  <EmptyContent><Button>Create project</Button></EmptyContent>\n</Empty>",
+      "children": true
     },
     {
       "name": "GroupBoxFooter",

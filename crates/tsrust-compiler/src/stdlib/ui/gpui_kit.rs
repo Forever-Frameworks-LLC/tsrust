@@ -19,7 +19,7 @@ use gpui_kit::component::hover_card::HoverCard;
 use gpui_kit::component::input::NumberInput;
 use gpui_kit::component::kbd::Kbd;
 use gpui_kit::component::label::{HighlightsMatch, Label};
-use gpui_kit::component::menu::{ContextMenuExt, PopupMenuItem};
+use gpui_kit::component::menu::{ContextMenuExt, DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::input::{OtpEvent, OtpInput, OtpState};
 use gpui_kit::component::pagination::Pagination;
 use gpui_kit::component::popover::Popover;
@@ -229,8 +229,13 @@ fn menu_entries(node: &Node) -> Vec<MenuEntry> {
     node.visible_children().filter_map(|child| {
         let kit = child.kit.as_deref()?;
         Some(match kit.name.as_str() {
-            "MenuItem" => MenuEntry::Item {id: child.identity.get(), label: kit.text("label"), icon: icon_name(&kit.text("icon")), disabled: kit.flag("disabled"), checked: kit.flag("checked"),
-                command: kit.text("command"), href: kit.text("href"), custom: child.visible_children().next().is_some(), handles: kit.handles("select")},
+            "MenuItem" => {
+                // Text-only children are the label (<MenuItem>Copy</MenuItem>); other children draw a custom row.
+                let plain = child.visible_children().all(|part| part.kind == Kind::Text && part.kit.as_deref().is_none_or(|kit| kit.name.is_empty()));
+                let label = if plain && kit.text("label").is_empty() {child.content_text().trim().to_owned()} else {kit.text("label")};
+                MenuEntry::Item {id: child.identity.get(), label, icon: icon_name(&kit.text("icon")), disabled: kit.flag("disabled"), checked: kit.flag("checked"),
+                    command: kit.text("command"), href: kit.text("href"), custom: !plain, handles: kit.handles("select")}
+            }
             "MenuLabel" => MenuEntry::Label(kit.text("text")),
             "MenuSeparator" => MenuEntry::Separator,
             "Submenu" => MenuEntry::Submenu {label: kit.text("label"), icon: icon_name(&kit.text("icon")), entries: menu_entries(child)},
@@ -292,6 +297,28 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 pub(crate) const STYLED_KIT: &[&str] = &["Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox"];
 
 /// The size prop shared by sizable Kit components.
+/// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
+fn checked(kit: &Kit) -> bool {kit.prop("checked").map_or(kit.flag("defaultChecked"), |value| value == "true")}
+
+/// DropdownMenu's button options on its trigger, whether a plain or split button.
+fn menu_button<T: ButtonVariants + Sizable + Selectable + Disableable>(button: T, kit: &Kit, cx: &App) -> T {
+    let mut button = if kit.prop("disabled").is_some() {button.disabled(kit.flag("disabled"))} else {button};
+    if kit.prop("selected").is_some() {button = button.selected(kit.flag("selected"));}
+    if let Some(size) = kit_size(kit) {button = button.with_size(size);}
+    button = match kit.prop("variant") {
+        Some("primary") => button.primary(), Some("secondary") => button.secondary(), Some("danger") => button.danger(), Some("warning") => button.warning(),
+        Some("success") => button.success(), Some("info") => button.info(), Some("ghost") => button.ghost(), Some("link") => button.link(), Some("text") => button.text(), _ => button,
+    };
+    if let Some(color) = theme_color(&kit.text("color"), cx) {
+        let custom = gpui_kit::component::button::ButtonCustomVariant::new(cx).color(color);
+        let custom = match theme_color(&kit.text("foreground"), cx) {Some(color) => custom.foreground(color), None => custom};
+        let custom = match theme_color(&kit.text("hoverColor"), cx) {Some(color) => custom.hover(color), None => custom};
+        let custom = match theme_color(&kit.text("activeColor"), cx) {Some(color) => custom.active(color), None => custom};
+        button = button.custom(custom);
+    }
+    button
+}
+
 fn kit_size(kit: &Kit) -> Option<KitSize> {
     match kit.prop("size") {Some("xsmall") => Some(KitSize::XSmall), Some("small") => Some(KitSize::Small), Some("large") => Some(KitSize::Large), Some("medium") => Some(KitSize::Medium), _ => None}
 }
@@ -309,7 +336,8 @@ fn theme_color(name: &str, cx: &App) -> Option<Hsla> {
         "red" => theme.red, "red_light" => theme.red_light, "green" => theme.green, "green_light" => theme.green_light, "blue" => theme.blue, "blue_light" => theme.blue_light,
         "yellow" => theme.yellow, "yellow_light" => theme.yellow_light, "magenta" => theme.magenta, "magenta_light" => theme.magenta_light, "cyan" => theme.cyan, "cyan_light" => theme.cyan_light,
         "chart_1" => theme.chart_1, "chart_2" => theme.chart_2, "chart_3" => theme.chart_3, "chart_4" => theme.chart_4, "chart_5" => theme.chart_5,
-        other => return parse_hex(other),
+        // Palette names (blue-500) and literal colors (#ff6600, oklch(...)) work as in utility classes.
+        other => return parse_hex(other).or_else(|| super::theme::fixed_color(name).or_else(|| super::theme::fixed_color(&format!("[{name}]"))).map(color)),
     })
 }
 
@@ -444,7 +472,9 @@ impl Root {
 
     /// A Kit Avatar from an Avatar node's props.
     fn kit_avatar(kit: &Kit) -> Avatar {
-        let mut avatar = Avatar::new().name(SharedString::from(kit.text("name")));
+        // An empty name would draw empty initials instead of the placeholder icon.
+        let mut avatar = Avatar::new();
+        if let Some(name) = kit.prop("name").filter(|name| !name.is_empty()) {avatar = avatar.name(SharedString::from(name.to_owned()));}
         if let Some(source) = kit.prop("src").filter(|source| !source.is_empty()) {avatar = avatar.src(SharedString::from(source.to_owned()));}
         if let Some(icon) = kit.prop("placeholder").and_then(icon_name) {avatar = avatar.placeholder(icon);}
         if let Some(size) = kit_size(kit) {avatar = avatar.with_size(size);}
@@ -1103,13 +1133,15 @@ impl Root {
                 group.refine_style(&style).into_any_element()
             }
             "Alert" => {
-                let message = text("message");
+                // shadcn-style AlertTitle and AlertDescription children win over the title and message props.
+                let part = |name: &str| items(node, name).next().map(|(_, item)| item.text("text"));
+                let message = SharedString::from(part("AlertDescription").unwrap_or_else(|| kit.text("message")));
                 let mut alert = match kit.prop("variant") {
                     Some("default") => Alert::new(element_id, message),
                     Some("success") => Alert::success(element_id, message), Some("warning") => Alert::warning(element_id, message),
                     Some("error") => Alert::error(element_id, message), _ => Alert::info(element_id, message),
                 };
-                if let Some(title) = kit.prop("title").filter(|title| !title.is_empty()) {alert = alert.title(title.to_owned());}
+                if let Some(title) = part("AlertTitle").or_else(|| kit.prop("title").map(str::to_owned)).filter(|title| !title.is_empty()) {alert = alert.title(title);}
                 if let Some(icon) = kit.prop("icon").and_then(icon_name) {alert = alert.icon(icon);}
                 if kit.flag("banner") {alert = alert.banner();}
                 if kit.prop("visible") == Some("false") {alert = alert.visible(false);}
@@ -1125,14 +1157,28 @@ impl Root {
                 shimmer.refine_style(&style).into_any_element()
             }
             "Empty" => {
-                let mut header = EmptyHeader::new().title(EmptyTitle::new().child(text("title"))).description(EmptyDescription::new().child(text("description")));
-                if let Some((media, item)) = items(node, "EmptyMedia").next() {
-                    let variant = if item.flag("framed") {EmptyMediaVariant::Icon} else {EmptyMediaVariant::Default};
+                // shadcn composition: EmptyHeader holds EmptyMedia, EmptyTitle and EmptyDescription; EmptyContent holds actions.
+                // The title, description and icon props cover the short form.
+                let parts = items(node, "EmptyHeader").next().map_or(node, |(header, _)| header);
+                let mut header = EmptyHeader::new();
+                match items(parts, "EmptyTitle").next() {
+                    Some((title, _)) => header = header.title(EmptyTitle::new().children(self.content(title, cx))),
+                    None if !kit.text("title").is_empty() => header = header.title(EmptyTitle::new().child(text("title"))),
+                    None => {}
+                }
+                match items(parts, "EmptyDescription").next() {
+                    Some((description, _)) => header = header.description(EmptyDescription::new().children(self.content(description, cx))),
+                    None if !kit.text("description").is_empty() => header = header.description(EmptyDescription::new().child(text("description"))),
+                    None => {}
+                }
+                if let Some((media, item)) = items(parts, "EmptyMedia").next() {
+                    let variant = if item.flag("framed") || item.prop("variant") == Some("icon") {EmptyMediaVariant::Icon} else {EmptyMediaVariant::Default};
                     header = header.media(EmptyMedia::new().with_variant(variant).children(self.content(media, cx)));
                 } else if let Some(icon) = kit.prop("icon").and_then(icon_name) {
                     header = header.media(EmptyMedia::new().with_variant(EmptyMediaVariant::Icon).child(Icon::new(icon)));
                 }
-                Empty::new().refine_style(&style).header(header).content(EmptyContent::new().children(self.content_except(node, &["EmptyMedia"], cx))).into_any_element()
+                let content = match items(node, "EmptyContent").next() {Some((content, _)) => self.content(content, cx), None => self.content_except(node, &["EmptyMedia", "EmptyHeader", "EmptyContent"], cx)};
+                Empty::new().refine_style(&style).header(header).content(EmptyContent::new().children(content)).into_any_element()
             }
             "GroupBox" => {
                 let variant = match kit.prop("variant") {Some("fill") => GroupBoxVariant::Fill, Some("outline") => GroupBoxVariant::Outline, _ => GroupBoxVariant::Normal};
@@ -1172,7 +1218,7 @@ impl Root {
                 clipboard.into_any_element()
             }
             "Checkbox" => {
-                let mut checkbox = Checkbox::new(element_id).checked(kit.flag("checked")).disabled(kit.flag("disabled"));
+                let mut checkbox = Checkbox::new(element_id).checked(checked(kit)).disabled(kit.flag("disabled"));
                 if let Some(label) = kit.prop("label") {checkbox = checkbox.label(label.to_owned());}
                 checkbox = checkbox.tab_stop(kit.prop("tabStop") != Some("false"));
                 if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {checkbox = checkbox.tooltip(tooltip.to_owned());}
@@ -1184,11 +1230,11 @@ impl Root {
                     Some("switch") => checkbox = checkbox.role(Role::Switch), Some("menuitemcheckbox") => checkbox = checkbox.role(Role::MenuItemCheckBox),
                     Some("none") => checkbox = checkbox.role(None::<Role>), _ => {}
                 }
-                if kit.handles("change") {checkbox = checkbox.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
+                {checkbox = checkbox.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
                 checkbox.into_any_element()
             }
             "Switch" => {
-                let mut switch = Switch::new(element_id).checked(kit.flag("checked")).disabled(kit.flag("disabled"));
+                let mut switch = Switch::new(element_id).checked(checked(kit)).disabled(kit.flag("disabled"));
                 if let Some(label) = kit.prop("label") {switch = switch.label(label.to_owned());}
                 switch = switch.tab_stop(kit.prop("tabStop") != Some("false"));
                 if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {switch = switch.tooltip(tooltip.to_owned());}
@@ -1197,23 +1243,23 @@ impl Root {
                 if let Some(index) = kit.number("tabIndex") {switch = switch.tab_index(index as isize);}
                 if let Some(size) = kit_size(kit) {switch = switch.with_size(size);}
                 if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {switch = switch.color(color);}
-                if kit.handles("change") {switch = switch.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
+                {switch = switch.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
                 switch.into_any_element()
             }
             "Radio" => {
-                let mut radio = Radio::new(element_id).label(text("label")).checked(kit.flag("checked")).disabled(kit.flag("disabled"));
+                let mut radio = Radio::new(element_id).label(text("label")).checked(checked(kit)).disabled(kit.flag("disabled"));
                 radio = radio.tab_stop(kit.prop("tabStop") != Some("false"));
                 if let Some(tooltip) = kit.prop("tooltip").filter(|tooltip| !tooltip.is_empty()) {radio = radio.tooltip(tooltip.to_owned());}
                 if let Some(delay) = kit.index("tooltipDelay") {radio = radio.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
                 if let Some(label) = kit.prop("accessibilityLabel") {radio = radio.accessibility_label(label.to_owned());}
                 if let Some(index) = kit.number("tabIndex") {radio = radio.tab_index(index as isize);}
                 if let Some(size) = kit_size(kit) {radio = radio.with_size(size);}
-                if kit.handles("change") {radio = radio.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
+                {radio = radio.on_change(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
                 radio.into_any_element()
             }
             "RadioGroup" => {
                 let group = if kit.flag("vertical") {RadioGroup::vertical(element_id)} else {RadioGroup::horizontal(element_id)};
-                let selected = kit.number("selected").filter(|index| *index >= 0.).map(|index| index as usize);
+                let selected = kit.number("selected").or(kit.number("defaultSelected")).filter(|index| *index >= 0.).map(|index| index as usize);
                 let mut group = group.selected_index(selected).disabled(kit.flag("disabled"));
                 for (child, kit) in items(node, "Radio") {
                     let mut radio = Radio::new(ElementId::Integer(child.identity.get())).label(kit.text("label")).disabled(kit.flag("disabled"));
@@ -1225,24 +1271,24 @@ impl Root {
                     if let Some(size) = kit_size(kit) {radio = radio.with_size(size);}
                     group = group.child(radio);
                 }
-                if kit.handles("change") {group = group.on_click(cx.listener(move |this, index: &usize, _, cx| this.emit(id, "change", index.to_string(), cx)));}
+                {group = group.on_click(cx.listener(move |this, index: &usize, _, cx| this.emit(id, "change", index.to_string(), cx)));}
                 group.into_any_element()
             }
             "Toggle" => {
-                let mut toggle = Toggle::new(element_id).checked(kit.flag("checked")).disabled(kit.flag("disabled"));
+                let mut toggle = Toggle::new(element_id).checked(checked(kit)).disabled(kit.flag("disabled"));
                 if !kit.text("label").is_empty() {toggle = toggle.label(text("label"));}
                 if let Some(icon) = icon_name(&kit.text("icon")) {toggle = toggle.icon(icon);}
                 if !kit.text("tooltip").is_empty() {toggle = toggle.tooltip(text("tooltip"));}
                 if let Some(delay) = kit.number("tooltipDelay") {toggle = toggle.tooltip_show_delay(std::time::Duration::from_millis(delay as u64));}
                 if let Some(size) = kit_size(kit) {toggle = toggle.with_size(size);}
-                if kit.handles("change") {toggle = toggle.on_click(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
+                {toggle = toggle.on_click(cx.listener(move |this, checked: &bool, _, cx| this.emit(id, "change", checked.to_string(), cx)));}
                 toggle.into_any_element()
             }
             "Rating" => {
-                let mut rating = Rating::new(element_id).value(kit.index("value").unwrap_or(0)).max(kit.index("max").unwrap_or(5)).disabled(kit.flag("disabled"));
+                let mut rating = Rating::new(element_id).value(kit.index("value").or(kit.index("defaultValue")).unwrap_or(0)).max(kit.index("max").unwrap_or(5)).disabled(kit.flag("disabled"));
                 if let Some(color) = kit.prop("color").and_then(|color| theme_color(color, cx)) {rating = rating.color(color);}
                 if let Some(size) = kit_size(kit) {rating = rating.with_size(size);}
-                if kit.handles("change") {rating = rating.on_click(cx.listener(move |this, value: &usize, _, cx| this.emit(id, "change", value.to_string(), cx)));}
+                {rating = rating.on_click(cx.listener(move |this, value: &usize, _, cx| this.emit(id, "change", value.to_string(), cx)));}
                 rating.into_any_element()
             }
             "Pagination" => {
@@ -1331,27 +1377,23 @@ impl Root {
                 };
                 if kit.name == "DropdownMenu" {
                     let trigger = node.visible_children().find(|child| child.kit.as_deref().is_none_or(|kit| kit.name.is_empty()) && matches!(child.kind, Kind::Button | Kind::DisabledButton));
-                    let button = match trigger {
+                    let mut button = match trigger {
                         Some(child) => self.kit_button(child, cx),
                         None => gpui_kit::component::button::Button::new(ElementId::Name(format!("{id}-button").into())).label(text("label")),
                     };
-                    let mut dropdown = DropdownButton::new(element_id).button(button).disabled(kit.flag("disabled")).selected(kit.flag("selected"));
-                    if kit.flag("outline") {dropdown = dropdown.outline();}
-                    if let Some(size) = kit_size(kit) {dropdown = dropdown.with_size(size);}
-                    dropdown = match kit.prop("variant") {
-                        Some("primary") => dropdown.primary(), Some("secondary") => dropdown.secondary(), Some("danger") => dropdown.danger(), Some("warning") => dropdown.warning(),
-                        Some("success") => dropdown.success(), Some("info") => dropdown.info(), Some("ghost") => dropdown.ghost(), Some("link") => dropdown.link(), Some("text") => dropdown.text(), _ => dropdown,
-                    };
-                    if let Some(color) = theme_color(&kit.text("color"), cx) {
-                        let custom = gpui_kit::component::button::ButtonCustomVariant::new(cx).color(color);
-                        let custom = match theme_color(&kit.text("foreground"), cx) {Some(color) => custom.foreground(color), None => custom};
-                        let custom = match theme_color(&kit.text("hoverColor"), cx) {Some(color) => custom.hover(color), None => custom};
-                        let custom = match theme_color(&kit.text("activeColor"), cx) {Some(color) => custom.active(color), None => custom};
-                        dropdown = dropdown.custom(custom);
-                    }
-                    if !kit.text("menuLabel").is_empty() {dropdown = dropdown.menu_accessibility_label(text("menuLabel"));}
                     let anchor = match kit.prop("anchor") {Some("top-right") => gpui_kit::Anchor::TopRight, Some("bottom-left") => gpui_kit::Anchor::BottomLeft, Some("bottom-right") => gpui_kit::Anchor::BottomRight, Some("top-center") => gpui_kit::Anchor::TopCenter, Some("bottom-center") => gpui_kit::Anchor::BottomCenter, Some("left-center") => gpui_kit::Anchor::LeftCenter, Some("right-center") => gpui_kit::Anchor::RightCenter, _ => gpui_kit::Anchor::TopLeft};
-                    dropdown.dropdown_menu_with_anchor(anchor, move |menu, window, cx| build(menu, window, cx)).into_any_element()
+                    // A split button runs its own action and opens the menu from its arrow; otherwise the whole button opens the menu.
+                    if kit.flag("split") || kit.handles("click") {
+                        if kit.handles("click") {let click = event("click"); button = button.on_click(move |_, _, cx| click(String::new(), cx));}
+                        let mut dropdown = menu_button(DropdownButton::new(element_id).button(button), kit, cx);
+                        if kit.flag("outline") {dropdown = dropdown.outline();}
+                        if !kit.text("menuLabel").is_empty() {dropdown = dropdown.menu_accessibility_label(text("menuLabel"));}
+                        dropdown.dropdown_menu_with_anchor(anchor, move |menu, window, cx| build(menu, window, cx)).into_any_element()
+                    } else {
+                        let mut button = menu_button(button, kit, cx).dropdown_caret(trigger.is_none() || kit.flag("caret"));
+                        if kit.flag("outline") {button = button.outline();}
+                        button.dropdown_menu_with_anchor(anchor, move |menu, window, cx| build(menu, window, cx)).into_any_element()
+                    }
                 } else {
                     let theme = utility_theme(cx);
                     let content = node.visible_children().filter(|child| child.kit.as_deref().is_none_or(|kit| !MENU_PARTS.contains(&kit.name.as_str()))).map(|child| self.element(child, &theme, mode(cx), cx)).collect::<Vec<_>>();
@@ -1507,7 +1549,7 @@ impl Root {
                     v_virtual_list(cx.entity(), element_id, sizes, move |root: &mut Root, range: std::ops::Range<usize>, _, cx| {
                         let Some(kit) = find(&root.node, id).and_then(|node| node.kit.as_deref()) else {return Vec::new()};
                         let rows = kit.text("items").split('\n').filter(|item| !item.is_empty()).map(str::to_owned).collect::<Vec<_>>();
-                        let selected = kit.number("selected").filter(|index| *index >= 0.).map(|index| index as usize);
+                        let selected = kit.number("selected").or(kit.number("defaultSelected")).filter(|index| *index >= 0.).map(|index| index as usize);
                         range.filter_map(|index| rows.get(index).map(|row| {
                             ListItem::new(ElementId::Name(format!("{id}-row-{index}").into())).selected(selected == Some(index)).child(SharedString::from(row.clone()))
                                 .on_click(cx.listener(move |this, _, _, cx| this.emit(id, "select", index.to_string(), cx)))
@@ -1563,19 +1605,20 @@ impl Root {
             },
             "ToggleGroup" => {
                 let toggles = items(node, "Toggle").map(|(child, item)| {
-                    let mut toggle = Toggle::new(ElementId::Integer(child.identity.get())).checked(item.flag("checked")).disabled(item.flag("disabled"));
+                    let mut toggle = Toggle::new(ElementId::Integer(child.identity.get())).checked(checked(item)).disabled(item.flag("disabled"));
                     if !item.text("label").is_empty() {toggle = toggle.label(item.text("label"));}
                     if let Some(icon) = icon_name(&item.text("icon")) {toggle = toggle.icon(icon);}
                     if !item.text("tooltip").is_empty() {toggle = toggle.tooltip(item.text("tooltip"));}
-                    (child.identity.get(), item.flag("checked"), item.handles("change"), toggle)
+                    (child.identity.get(), checked(item), toggle)
                 }).collect::<Vec<_>>();
-                let targets = toggles.iter().map(|(child, checked, handles, _)| (*child, *checked, *handles)).collect::<Vec<_>>();
-                let mut group = ToggleGroup::new(element_id).children(toggles.into_iter().map(|(_, _, _, toggle)| toggle)).disabled(kit.flag("disabled"));
+                let targets = toggles.iter().map(|(child, checked, _)| (*child, *checked)).collect::<Vec<_>>();
+                let mut group = ToggleGroup::new(element_id).children(toggles.into_iter().map(|(_, _, toggle)| toggle)).disabled(kit.flag("disabled"));
                 if kit.flag("segmented") {group = group.segmented();}
                 if let Some(size) = kit_size(kit) {group = group.with_size(size);}
                 group.on_click(cx.listener(move |this, states: &Vec<bool>, _, cx| {
-                    for ((target, before, handles), now) in targets.iter().zip(states) {
-                        if *handles && before != now {this.emit(*target, "change", now.to_string(), cx);}
+                    // Every toggle hears its change, so uncontrolled toggles keep their own state.
+                    for ((target, before), now) in targets.iter().zip(states) {
+                        if before != now {this.emit(*target, "change", now.to_string(), cx);}
                     }
                 })).into_any_element()
             }

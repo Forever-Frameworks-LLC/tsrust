@@ -289,13 +289,15 @@ export interface LabelProps {
   highlight?: ReactiveValue<string> | TextBinding;
   /** Highlights only a match at the start of the label. */
   highlightPrefix?: ReactiveValue<boolean>;
+  /** Text content, used as `text` when that prop is unset. Text children with variant="secondary" fill `secondary`. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** A text label with optional secondary text. */
 export function Label(props: LabelProps): Node {
-  let node = kitNode('Label', [], props.className ?? '');
+  let node = kitNode('Label', props.children ?? [], props.className ?? '');
   const prop_text = props.text;
   if (prop_text !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
@@ -333,13 +335,15 @@ export interface KbdProps {
   command?: ReactiveValue<string> | TextBinding;
   /** Draws the keys without the key-cap styling. */
   plain?: ReactiveValue<boolean>;
+  /** Text content, used as `keys` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** Renders a keyboard shortcut as key caps. */
 export function Kbd(props: KbdProps): Node {
-  let node = kitNode('Kbd', [], props.className ?? '');
+  let node = kitNode('Kbd', props.children ?? [], props.className ?? '');
   const prop_keys = props.keys;
   if (prop_keys !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'keys', prop_keys));
@@ -372,13 +376,15 @@ export interface SeparatorProps {
   dashed?: ReactiveValue<boolean>;
   /** Line color. A theme color name (such as primary, red or magenta) or #rrggbb. */
   color?: ReactiveValue<string> | TextBinding;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** A horizontal or vertical divider, optionally labelled. */
 export function Separator(props: SeparatorProps): Node {
-  let node = kitNode('Separator', [], props.className ?? '');
+  let node = kitNode('Separator', props.children ?? [], props.className ?? '');
   const prop_orientation = props.orientation;
   if (prop_orientation !== undefined) {
     if (typeof prop_orientation === 'string') {
@@ -641,13 +647,15 @@ export interface AlertProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Shows a close button; called when it is clicked. */
   onClose?: Owned<Function<void>>;
+  /** Text content, used as `message` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** A callout message with a variant color and optional title. */
 export function Alert(props: AlertProps): Node {
-  let node = kitNode('Alert', [], props.className ?? '');
+  let node = kitNode('Alert', props.children ?? [], props.className ?? '');
   const prop_message = props.message;
   if (prop_message !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'message', prop_message));
@@ -703,6 +711,32 @@ export function Alert(props: AlertProps): Node {
   return node;
 }
 
+export interface AlertTitleProps {
+  /** Text content, used as `text` when that prop is unset. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The bold title of an Alert, from its text children. */
+export function AlertTitle(props: AlertTitleProps): Node {
+  let node = kitNode('AlertTitle', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface AlertDescriptionProps {
+  /** Text content, used as `text` when that prop is unset. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The message of an Alert, from its text children. */
+export function AlertDescription(props: AlertDescriptionProps): Node {
+  let node = kitNode('AlertDescription', props.children ?? [], props.className ?? '');
+  return node;
+}
+
 export interface ShimmerTextProps {
   /** Text to animate. */
   text?: ReactiveValue<string> | TextBinding;
@@ -716,13 +750,15 @@ export interface ShimmerTextProps {
   reverse?: ReactiveValue<boolean>;
   /** Sweeps once instead of repeating. */
   once?: ReactiveValue<boolean>;
+  /** Text content, used as `text` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** Text with an animated shimmer, for pending or generated content. */
 export function ShimmerText(props: ShimmerTextProps): Node {
-  let node = kitNode('ShimmerText', [], props.className ?? '');
+  let node = kitNode('ShimmerText', props.children ?? [], props.className ?? '');
   const prop_text = props.text;
   if (prop_text !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
@@ -880,13 +916,15 @@ export interface DescriptionItemProps {
   value?: ReactiveValue<string> | TextBinding;
   /** Number of columns the item spans. Defaults to 1. */
   span?: ReactiveValue<int>;
+  /** Text content, used as `value` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One label and value inside a DescriptionList. */
 export function DescriptionItem(props: DescriptionItemProps): Node {
-  let node = kitNode('DescriptionItem', [], props.className ?? '');
+  let node = kitNode('DescriptionItem', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -925,13 +963,15 @@ export interface BreadcrumbItemProps {
   disabled?: ReactiveValue<boolean>;
   /** Called when the entry is clicked. */
   onClick?: Owned<Function<void>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One entry in a Breadcrumb. */
 export function BreadcrumbItem(props: BreadcrumbItemProps): Node {
-  let node = kitNode('BreadcrumbItem', [], props.className ?? '');
+  let node = kitNode('BreadcrumbItem', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -1012,6 +1052,8 @@ export interface CheckboxProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Whether the box is checked. */
   checked?: ReactiveValue<boolean>;
+  /** Initial state when `checked` is unset; the control then keeps its own state, like an uncontrolled React input. */
+  defaultChecked?: ReactiveValue<boolean>;
   /** Disabled boxes ignore clicks. */
   disabled?: ReactiveValue<boolean>;
   /** Tooltip shown on hover. */
@@ -1030,13 +1072,15 @@ export interface CheckboxProps {
   role?: ReactiveValue<'checkbox' | 'switch' | 'menuitemcheckbox' | 'none'>;
   /** Receives the requested checked state after a click. */
   onChange?: Owned<Function<void, [checked: boolean]>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** A checkbox with an optional label. Pair checked with onChange to control it. */
 export function Checkbox(props: CheckboxProps): Node {
-  let node = kitNode('Checkbox', [], props.className ?? '');
+  let node = kitNode('Checkbox', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -1045,6 +1089,11 @@ export function Checkbox(props: CheckboxProps): Node {
   const prop_checked = props.checked;
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
+  }
+
+  const prop_defaultChecked = props.defaultChecked;
+  if (prop_defaultChecked !== undefined) {
+    node = kitFlag(node, 'defaultChecked', prop_defaultChecked);
   }
 
   const prop_disabled = props.disabled;
@@ -1108,6 +1157,8 @@ export interface SwitchProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Whether the switch is on. */
   checked?: ReactiveValue<boolean>;
+  /** Initial state when `checked` is unset; the control then keeps its own state, like an uncontrolled React input. */
+  defaultChecked?: ReactiveValue<boolean>;
   /** Disabled switches ignore clicks. */
   disabled?: ReactiveValue<boolean>;
   /** Tooltip shown on hover. */
@@ -1126,13 +1177,15 @@ export interface SwitchProps {
   color?: ReactiveValue<string> | TextBinding;
   /** Receives the requested state after a click. */
   onChange?: Owned<Function<void, [checked: boolean]>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** An on/off switch with an optional label. Pair checked with onChange to control it. */
 export function Switch(props: SwitchProps): Node {
-  let node = kitNode('Switch', [], props.className ?? '');
+  let node = kitNode('Switch', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -1141,6 +1194,11 @@ export function Switch(props: SwitchProps): Node {
   const prop_checked = props.checked;
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
+  }
+
+  const prop_defaultChecked = props.defaultChecked;
+  if (prop_defaultChecked !== undefined) {
+    node = kitFlag(node, 'defaultChecked', prop_defaultChecked);
   }
 
   const prop_disabled = props.disabled;
@@ -1198,6 +1256,8 @@ export function Switch(props: SwitchProps): Node {
 export interface RadioGroupProps {
   /** Index of the selected Radio, or -1 for none. */
   selected?: ReactiveValue<int>;
+  /** Initial selected index when `selected` is unset; the group then keeps its own selection. */
+  defaultSelected?: ReactiveValue<int>;
   /** Stacks options vertically. Defaults to horizontal. */
   vertical?: ReactiveValue<boolean>;
   /** Disables every option. */
@@ -1216,6 +1276,11 @@ export function RadioGroup(props: RadioGroupProps): Node {
   const prop_selected = props.selected;
   if (prop_selected !== undefined) {
     node = kitInt(node, 'selected', prop_selected);
+  }
+
+  const prop_defaultSelected = props.defaultSelected;
+  if (prop_defaultSelected !== undefined) {
+    node = kitInt(node, 'defaultSelected', prop_defaultSelected);
   }
 
   const prop_vertical = props.vertical;
@@ -1241,6 +1306,8 @@ export interface RadioProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Selected state of a standalone radio. Inside a RadioGroup, the group's selected index wins. */
   checked?: ReactiveValue<boolean>;
+  /** Initial state when `checked` is unset; the control then keeps its own state, like an uncontrolled React input. */
+  defaultChecked?: ReactiveValue<boolean>;
   /** Disabled options cannot be chosen. */
   disabled?: ReactiveValue<boolean>;
   /** Tooltip shown on hover. */
@@ -1257,13 +1324,15 @@ export interface RadioProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives true when a standalone radio is chosen. */
   onChange?: Owned<Function<void, [checked: boolean]>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One option in a RadioGroup; also usable standalone with checked and onChange. */
 export function Radio(props: RadioProps): Node {
-  let node = kitNode('Radio', [], props.className ?? '');
+  let node = kitNode('Radio', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -1272,6 +1341,11 @@ export function Radio(props: RadioProps): Node {
   const prop_checked = props.checked;
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
+  }
+
+  const prop_defaultChecked = props.defaultChecked;
+  if (prop_defaultChecked !== undefined) {
+    node = kitFlag(node, 'defaultChecked', prop_defaultChecked);
   }
 
   const prop_disabled = props.disabled;
@@ -1328,6 +1402,8 @@ export interface ToggleProps {
   icon?: ReactiveValue<IconName>;
   /** Pressed (on) state. */
   checked?: ReactiveValue<boolean>;
+  /** Initial state when `checked` is unset; the control then keeps its own state, like an uncontrolled React input. */
+  defaultChecked?: ReactiveValue<boolean>;
   /** Prevents toggling. */
   disabled?: ReactiveValue<boolean>;
   /** Tooltip shown on hover. */
@@ -1338,13 +1414,15 @@ export interface ToggleProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives the new pressed state. */
   onChange?: Owned<Function<void, [checked: boolean]>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** A button that stays pressed while on. Use a label, an icon or both. */
 export function Toggle(props: ToggleProps): Node {
-  let node = kitNode('Toggle', [], props.className ?? '');
+  let node = kitNode('Toggle', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -1362,6 +1440,11 @@ export function Toggle(props: ToggleProps): Node {
   const prop_checked = props.checked;
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
+  }
+
+  const prop_defaultChecked = props.defaultChecked;
+  if (prop_defaultChecked !== undefined) {
+    node = kitFlag(node, 'defaultChecked', prop_defaultChecked);
   }
 
   const prop_disabled = props.disabled;
@@ -1399,6 +1482,8 @@ export function Toggle(props: ToggleProps): Node {
 export interface RatingProps {
   /** Number of filled stars. */
   value?: ReactiveValue<int>;
+  /** Initial rating when `value` is unset; the rating then keeps its own value. */
+  defaultValue?: ReactiveValue<int>;
   /** Total stars. Defaults to 5. */
   max?: ReactiveValue<int>;
   /** Disabled ratings ignore clicks. */
@@ -1419,6 +1504,11 @@ export function Rating(props: RatingProps): Node {
   const prop_value = props.value;
   if (prop_value !== undefined) {
     node = kitInt(node, 'value', prop_value);
+  }
+
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = kitInt(node, 'defaultValue', prop_defaultValue);
   }
 
   const prop_max = props.max;
@@ -1577,13 +1667,15 @@ export interface StepperItemProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Greys the step out. */
   disabled?: ReactiveValue<boolean>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One step in a Stepper. */
 export function StepperItem(props: StepperItemProps): Node {
-  let node = kitNode('StepperItem', [], props.className ?? '');
+  let node = kitNode('StepperItem', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -1640,13 +1732,15 @@ export interface TabProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Disabled tabs cannot be selected. */
   disabled?: ReactiveValue<boolean>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One tab in Tabs. */
 export function Tab(props: TabProps): Node {
-  let node = kitNode('Tab', [], props.className ?? '');
+  let node = kitNode('Tab', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -2130,6 +2224,10 @@ export function Sheet(props: SheetProps): Node {
 export interface DropdownMenuProps {
   /** Trigger text when no Button child is given. */
   label?: ReactiveValue<string> | TextBinding;
+  /** Show a split button: the main button runs onClick and the arrow opens the menu. Implied by onClick. */
+  split?: ReactiveValue<boolean>;
+  /** Show the dropdown caret on a custom trigger button. A label trigger always shows it. */
+  caret?: ReactiveValue<boolean>;
   /** Trigger look. */
   variant?: ReactiveValue<'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text'>;
   /** Outline trigger. */
@@ -2164,6 +2262,8 @@ export interface DropdownMenuProps {
   checkSide?: ReactiveValue<'left' | 'right'>;
   /** Shows an external-link icon on link items. Defaults to true. */
   externalLinkIcon?: ReactiveValue<boolean>;
+  /** Runs when the main part of a split button is clicked; makes the button split. */
+  onClick?: Owned<Function<void>>;
   /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -2176,6 +2276,16 @@ export function DropdownMenu(props: DropdownMenuProps): Node {
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_split = props.split;
+  if (prop_split !== undefined) {
+    node = kitFlag(node, 'split', prop_split);
+  }
+
+  const prop_caret = props.caret;
+  if (prop_caret !== undefined) {
+    node = kitFlag(node, 'caret', prop_caret);
   }
 
   const prop_variant = props.variant;
@@ -2277,6 +2387,11 @@ export function DropdownMenu(props: DropdownMenuProps): Node {
   const prop_externalLinkIcon = props.externalLinkIcon;
   if (prop_externalLinkIcon !== undefined) {
     node = kitFlag(node, 'externalLinkIcon', prop_externalLinkIcon);
+  }
+
+  const event_onClick = props.onClick;
+  if (event_onClick !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
 
   return node;
@@ -2454,13 +2569,15 @@ export interface SidebarItemProps {
   active?: ReactiveValue<boolean>;
   /** Called when the entry is clicked. */
   onClick?: Owned<Function<void>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One navigation entry in a SidebarGroup. */
 export function SidebarItem(props: SidebarItemProps): Node {
-  let node = kitNode('SidebarItem', [], props.className ?? '');
+  let node = kitNode('SidebarItem', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -3179,13 +3296,15 @@ export interface CommandItemProps {
   disabled?: ReactiveValue<boolean>;
   /** Called when the entry is chosen with Enter or a click. */
   onSelect?: Owned<Function<void>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One entry in a Command palette. */
 export function CommandItem(props: CommandItemProps): Node {
-  let node = kitNode('CommandItem', [], props.className ?? '');
+  let node = kitNode('CommandItem', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -3437,13 +3556,15 @@ export interface GroupButtonProps {
   disabled?: ReactiveValue<boolean>;
   /** Called when the button is clicked. */
   onClick?: Owned<Function<void>>;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One button in a ButtonGroup. */
 export function GroupButton(props: GroupButtonProps): Node {
-  let node = kitNode('GroupButton', [], props.className ?? '');
+  let node = kitNode('GroupButton', props.children ?? [], props.className ?? '');
   const prop_label = props.label;
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
@@ -4002,13 +4123,15 @@ export interface QuestionChoiceProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Secondary text under the label. */
   description?: ReactiveValue<string> | TextBinding;
+  /** Text content, used as `label` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** One answer to a Question. */
 export function QuestionChoice(props: QuestionChoiceProps): Node {
-  let node = kitNode('QuestionChoice', [], props.className ?? '');
+  let node = kitNode('QuestionChoice', props.children ?? [], props.className ?? '');
   const prop_id = props.id;
   if (prop_id !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'id', prop_id));
@@ -4253,13 +4376,15 @@ export function Shortcut(props: ShortcutProps): Node {
 export interface MenuLabelProps {
   /** Heading text. */
   text?: ReactiveValue<string> | TextBinding;
+  /** Text content, used as `text` when that prop is unset. */
+  children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
 /** A non-interactive heading inside a menu. */
 export function MenuLabel(props: MenuLabelProps): Node {
-  let node = kitNode('MenuLabel', [], props.className ?? '');
+  let node = kitNode('MenuLabel', props.children ?? [], props.className ?? '');
   const prop_text = props.text;
   if (prop_text !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
@@ -4351,6 +4476,8 @@ export function AvatarGroup(props: AvatarGroupProps): Node {
 export interface EmptyMediaProps {
   /** Draws the media in a muted icon frame. */
   framed?: ReactiveValue<boolean>;
+  /** icon frames the media in a muted square, as framed does. */
+  variant?: ReactiveValue<'default' | 'icon'>;
   /** Content shown inside the component. */
   children?: Child[];
   /** Shared utility classes applied around the component, such as width or margin. */
@@ -4365,6 +4492,67 @@ export function EmptyMedia(props: EmptyMediaProps): Node {
     node = kitFlag(node, 'framed', prop_framed);
   }
 
+  const prop_variant = props.variant;
+  if (prop_variant !== undefined) {
+    if (typeof prop_variant === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'variant', nativeBindText(prop_variant.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface EmptyHeaderProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Groups an Empty's EmptyMedia, EmptyTitle and EmptyDescription. */
+export function EmptyHeader(props: EmptyHeaderProps): Node {
+  let node = kitNode('EmptyHeader', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface EmptyTitleProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The title of an Empty state. */
+export function EmptyTitle(props: EmptyTitleProps): Node {
+  let node = kitNode('EmptyTitle', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface EmptyDescriptionProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** The description of an Empty state. */
+export function EmptyDescription(props: EmptyDescriptionProps): Node {
+  let node = kitNode('EmptyDescription', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface EmptyContentProps {
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Actions or other content below an Empty's header. */
+export function EmptyContent(props: EmptyContentProps): Node {
+  let node = kitNode('EmptyContent', props.children ?? [], props.className ?? '');
   return node;
 }
 

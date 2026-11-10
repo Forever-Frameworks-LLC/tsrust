@@ -7,9 +7,9 @@ function BasicDropdown(): Node {
   return (
     <View className="flex-row items-center gap-3">
       <DropdownMenu label="Actions">
-        <MenuItem label="Copy" onSelect={() => { last.set('copy'); }} />
-        <MenuItem label="Paste" onSelect={() => { last.set('paste'); }} />
-        <MenuItem label="Delete" onSelect={() => { last.set('delete'); }} />
+        <MenuItem onSelect={() => { last.set('copy'); }}>Copy</MenuItem>
+        <MenuItem onSelect={() => { last.set('paste'); }}>Paste</MenuItem>
+        <MenuItem onSelect={() => { last.set('delete'); }}>Delete</MenuItem>
       </DropdownMenu>
       <Text>Last action: {last}</Text>
     </View>
@@ -21,9 +21,22 @@ function BasicContextMenu(): Node {
   return (
     <ContextMenu>
       <View className="rounded-lg border border-border p-8"><Text>Right-click here (last: {last})</Text></View>
-      <MenuItem label="Rename" onSelect={() => { last.set('rename'); }} />
-      <MenuItem label="Duplicate" onSelect={() => { last.set('duplicate'); }} />
+      <MenuItem onSelect={() => { last.set('rename'); }}>Rename</MenuItem>
+      <MenuItem onSelect={() => { last.set('duplicate'); }}>Duplicate</MenuItem>
     </ContextMenu>
+  );
+}
+
+function SplitDropdown(): Node {
+  const runs = signal(0);
+  return (
+    <View className="flex-row items-center gap-3">
+      <DropdownMenu label="Run" variant="primary" onClick={() => { runs.set(runs.get() + 1); }}>
+        <MenuItem>Run tests</MenuItem>
+        <MenuItem>Run benchmarks</MenuItem>
+      </DropdownMenu>
+      <Text>Ran {runs} times</Text>
+    </View>
   );
 }
 
@@ -31,8 +44,8 @@ function TriggerAndAnchor(): Node {
   return (
     <DropdownMenu anchor="top-right" menuLabel="More actions">
       <Button icon="ellipsis" variant="ghost" />
-      <MenuItem label="Settings" icon="settings" />
-      <MenuItem label="Sign out" icon="log-out" />
+      <MenuItem icon="settings">Settings</MenuItem>
+      <MenuItem icon="log-out">Sign out</MenuItem>
     </DropdownMenu>
   );
 }
@@ -42,11 +55,11 @@ function EntryStates(): Node {
   return (
     <View className="flex-row gap-3">
       <DropdownMenu label="View">
-        <MenuItem label="Word wrap" checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }} />
-        <MenuItem label="Minimap" icon="map" disabled={true} />
+        <MenuItem checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }}>Word wrap</MenuItem>
+        <MenuItem icon="map" disabled={true}>Minimap</MenuItem>
       </DropdownMenu>
       <DropdownMenu label="Checks on the right" checkSide="right">
-        <MenuItem label="Word wrap" checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }} />
+        <MenuItem checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }}>Word wrap</MenuItem>
       </DropdownMenu>
     </View>
   );
@@ -55,11 +68,11 @@ function EntryStates(): Node {
 function LabelsAndLinks(): Node {
   return (
     <DropdownMenu label="Help">
-      <MenuLabel text="Documentation" />
-      <MenuItem label="GPUI Kit" href="https://gpui-kit.com" />
-      <MenuItem label="Tsrust" href="https://github.com/Forever-Frameworks-LLC/tsrust" />
+      <MenuLabel>Documentation</MenuLabel>
+      <MenuItem href="https://gpui-kit.com">GPUI Kit</MenuItem>
+      <MenuItem href="https://github.com/Forever-Frameworks-LLC/tsrust">Tsrust</MenuItem>
       <MenuSeparator />
-      <MenuItem label="About" icon="info" />
+      <MenuItem icon="info">About</MenuItem>
     </DropdownMenu>
   );
 }
@@ -69,7 +82,7 @@ function CustomEntry(): Node {
     <DropdownMenu label="Account">
       <MenuItem><View className="flex-col"><Text className="font-semibold">Ada Lovelace</Text><Text className="text-muted-foreground">ada@example.com</Text></View></MenuItem>
       <MenuSeparator />
-      <MenuItem label="Profile" icon="user" />
+      <MenuItem icon="user">Profile</MenuItem>
     </DropdownMenu>
   );
 }
@@ -80,7 +93,7 @@ function ShortcutEntries(): Node {
     <View className="flex-row items-center gap-3">
       <Shortcut command="menu-save" keys="secondary-shift-s" onTrigger={() => { saved.set(saved.get() + 1); }} />
       <DropdownMenu label="File">
-        <MenuItem label="Save all" command="menu-save" />
+        <MenuItem command="menu-save">Save all</MenuItem>
       </DropdownMenu>
       <Text>Saved {saved} times</Text>
     </View>
@@ -90,12 +103,12 @@ function ShortcutEntries(): Node {
 function NestedMenus(): Node {
   return (
     <DropdownMenu label="Share">
-      <MenuItem label="Copy link" icon="link" />
+      <MenuItem icon="link">Copy link</MenuItem>
       <Submenu label="Send to" icon="send">
-        <MenuItem label="Email" />
+        <MenuItem>Email</MenuItem>
         <Submenu label="Chat">
-          <MenuItem label="Team" />
-          <MenuItem label="Direct message" />
+          <MenuItem>Team</MenuItem>
+          <MenuItem>Direct message</MenuItem>
         </Submenu>
       </Submenu>
     </DropdownMenu>
@@ -105,14 +118,14 @@ function NestedMenus(): Node {
 function LongMenu(): Node {
   return (
     <DropdownMenu label="Font" scrollable={true} maxHeight={200} minWidth={180}>
-      <MenuItem label="Inter" />
-      <MenuItem label="Roboto" />
-      <MenuItem label="Source Sans" />
-      <MenuItem label="Fira Sans" />
-      <MenuItem label="IBM Plex Sans" />
-      <MenuItem label="Noto Sans" />
-      <MenuItem label="Open Sans" />
-      <MenuItem label="Lato" />
+      <MenuItem>Inter</MenuItem>
+      <MenuItem>Roboto</MenuItem>
+      <MenuItem>Source Sans</MenuItem>
+      <MenuItem>Fira Sans</MenuItem>
+      <MenuItem>IBM Plex Sans</MenuItem>
+      <MenuItem>Noto Sans</MenuItem>
+      <MenuItem>Open Sans</MenuItem>
+      <MenuItem>Lato</MenuItem>
     </DropdownMenu>
   );
 }
@@ -121,15 +134,16 @@ export function MenuPage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="Dropdown and context menus with icons, check marks, labels, separators, links, custom rows, keyboard shortcuts and nested submenus." slug="menu" />
-      <Example title="Dropdown Menu" description="A button that opens a menu." code="function BasicDropdown(): Node {\n  const last = signal('none');\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <DropdownMenu label=\"Actions\">\n        <MenuItem label=\"Copy\" onSelect={() => { last.set('copy'); }} />\n        <MenuItem label=\"Paste\" onSelect={() => { last.set('paste'); }} />\n        <MenuItem label=\"Delete\" onSelect={() => { last.set('delete'); }} />\n      </DropdownMenu>\n      <Text>Last action: {last}</Text>\n    </View>\n  );\n}"><BasicDropdown /></Example>
-      <Example title="Context Menu" description="Right-click the area to open its menu." code="function BasicContextMenu(): Node {\n  const last = signal('none');\n  return (\n    <ContextMenu>\n      <View className=\"rounded-lg border border-border p-8\"><Text>Right-click here (last: {last})</Text></View>\n      <MenuItem label=\"Rename\" onSelect={() => { last.set('rename'); }} />\n      <MenuItem label=\"Duplicate\" onSelect={() => { last.set('duplicate'); }} />\n    </ContextMenu>\n  );\n}"><BasicContextMenu /></Example>
-      <Example title="Custom Trigger and Anchor" description="A Button child is the trigger with all its options; anchor picks the menu corner aligned to it." code="function TriggerAndAnchor(): Node {\n  return (\n    <DropdownMenu anchor=\"top-right\" menuLabel=\"More actions\">\n      <Button icon=\"ellipsis\" variant=\"ghost\" />\n      <MenuItem label=\"Settings\" icon=\"settings\" />\n      <MenuItem label=\"Sign out\" icon=\"log-out\" />\n    </DropdownMenu>\n  );\n}"><TriggerAndAnchor /></Example>
-      <Example title="Icons, Disabled and Check State" description="Entries can carry an icon, be disabled or show a check mark on either side." code="function EntryStates(): Node {\n  const wrap = signal(true);\n  return (\n    <View className=\"flex-row gap-3\">\n      <DropdownMenu label=\"View\">\n        <MenuItem label=\"Word wrap\" checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }} />\n        <MenuItem label=\"Minimap\" icon=\"map\" disabled={true} />\n      </DropdownMenu>\n      <DropdownMenu label=\"Checks on the right\" checkSide=\"right\">\n        <MenuItem label=\"Word wrap\" checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }} />\n      </DropdownMenu>\n    </View>\n  );\n}"><EntryStates /></Example>
-      <Example title="Labels, Separators and Links" description="Labels head groups of entries; separators divide them; a link entry opens a URL." code="function LabelsAndLinks(): Node {\n  return (\n    <DropdownMenu label=\"Help\">\n      <MenuLabel text=\"Documentation\" />\n      <MenuItem label=\"GPUI Kit\" href=\"https://gpui-kit.com\" />\n      <MenuItem label=\"Tsrust\" href=\"https://github.com/Forever-Frameworks-LLC/tsrust\" />\n      <MenuSeparator />\n      <MenuItem label=\"About\" icon=\"info\" />\n    </DropdownMenu>\n  );\n}"><LabelsAndLinks /></Example>
-      <Example title="Custom Element" description="A MenuItem with children shows them instead of a label." code="function CustomEntry(): Node {\n  return (\n    <DropdownMenu label=\"Account\">\n      <MenuItem><View className=\"flex-col\"><Text className=\"font-semibold\">Ada Lovelace</Text><Text className=\"text-muted-foreground\">ada@example.com</Text></View></MenuItem>\n      <MenuSeparator />\n      <MenuItem label=\"Profile\" icon=\"user\" />\n    </DropdownMenu>\n  );\n}"><CustomEntry /></Example>
-      <Example title="Keyboard Shortcuts" description="A MenuItem naming a Shortcut command shows its keys and runs it." code="function ShortcutEntries(): Node {\n  const saved = signal(0);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Shortcut command=\"menu-save\" keys=\"secondary-shift-s\" onTrigger={() => { saved.set(saved.get() + 1); }} />\n      <DropdownMenu label=\"File\">\n        <MenuItem label=\"Save all\" command=\"menu-save\" />\n      </DropdownMenu>\n      <Text>Saved {saved} times</Text>\n    </View>\n  );\n}"><ShortcutEntries /></Example>
-      <Example title="Submenus" description="Submenus nest, with icons." code="function NestedMenus(): Node {\n  return (\n    <DropdownMenu label=\"Share\">\n      <MenuItem label=\"Copy link\" icon=\"link\" />\n      <Submenu label=\"Send to\" icon=\"send\">\n        <MenuItem label=\"Email\" />\n        <Submenu label=\"Chat\">\n          <MenuItem label=\"Team\" />\n          <MenuItem label=\"Direct message\" />\n        </Submenu>\n      </Submenu>\n    </DropdownMenu>\n  );\n}"><NestedMenus /></Example>
-      <Example title="Scrollable Menus and Sizing" description="Long menus scroll within a maximum height; widths can be bounded." code="function LongMenu(): Node {\n  return (\n    <DropdownMenu label=\"Font\" scrollable={true} maxHeight={200} minWidth={180}>\n      <MenuItem label=\"Inter\" />\n      <MenuItem label=\"Roboto\" />\n      <MenuItem label=\"Source Sans\" />\n      <MenuItem label=\"Fira Sans\" />\n      <MenuItem label=\"IBM Plex Sans\" />\n      <MenuItem label=\"Noto Sans\" />\n      <MenuItem label=\"Open Sans\" />\n      <MenuItem label=\"Lato\" />\n    </DropdownMenu>\n  );\n}"><LongMenu /></Example>
+      <Example title="Dropdown Menu" description="A button that opens a menu." code="function BasicDropdown(): Node {\n  const last = signal('none');\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <DropdownMenu label=\"Actions\">\n        <MenuItem onSelect={() => { last.set('copy'); }}>Copy</MenuItem>\n        <MenuItem onSelect={() => { last.set('paste'); }}>Paste</MenuItem>\n        <MenuItem onSelect={() => { last.set('delete'); }}>Delete</MenuItem>\n      </DropdownMenu>\n      <Text>Last action: {last}</Text>\n    </View>\n  );\n}"><BasicDropdown /></Example>
+      <Example title="Context Menu" description="Right-click the area to open its menu." code="function BasicContextMenu(): Node {\n  const last = signal('none');\n  return (\n    <ContextMenu>\n      <View className=\"rounded-lg border border-border p-8\"><Text>Right-click here (last: {last})</Text></View>\n      <MenuItem onSelect={() => { last.set('rename'); }}>Rename</MenuItem>\n      <MenuItem onSelect={() => { last.set('duplicate'); }}>Duplicate</MenuItem>\n    </ContextMenu>\n  );\n}"><BasicContextMenu /></Example>
+      <Example title="Split Button" description="With onClick the button runs its own action and only the arrow opens the menu." code="function SplitDropdown(): Node {\n  const runs = signal(0);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <DropdownMenu label=\"Run\" variant=\"primary\" onClick={() => { runs.set(runs.get() + 1); }}>\n        <MenuItem>Run tests</MenuItem>\n        <MenuItem>Run benchmarks</MenuItem>\n      </DropdownMenu>\n      <Text>Ran {runs} times</Text>\n    </View>\n  );\n}"><SplitDropdown /></Example>
+      <Example title="Custom Trigger and Anchor" description="A Button child is the trigger with all its options; anchor picks the menu corner aligned to it." code="function TriggerAndAnchor(): Node {\n  return (\n    <DropdownMenu anchor=\"top-right\" menuLabel=\"More actions\">\n      <Button icon=\"ellipsis\" variant=\"ghost\" />\n      <MenuItem icon=\"settings\">Settings</MenuItem>\n      <MenuItem icon=\"log-out\">Sign out</MenuItem>\n    </DropdownMenu>\n  );\n}"><TriggerAndAnchor /></Example>
+      <Example title="Icons, Disabled and Check State" description="Entries can carry an icon, be disabled or show a check mark on either side." code="function EntryStates(): Node {\n  const wrap = signal(true);\n  return (\n    <View className=\"flex-row gap-3\">\n      <DropdownMenu label=\"View\">\n        <MenuItem checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }}>Word wrap</MenuItem>\n        <MenuItem icon=\"map\" disabled={true}>Minimap</MenuItem>\n      </DropdownMenu>\n      <DropdownMenu label=\"Checks on the right\" checkSide=\"right\">\n        <MenuItem checked={wrap.get()} onSelect={() => { wrap.set(!wrap.get()); }}>Word wrap</MenuItem>\n      </DropdownMenu>\n    </View>\n  );\n}"><EntryStates /></Example>
+      <Example title="Labels, Separators and Links" description="Labels head groups of entries; separators divide them; a link entry opens a URL." code="function LabelsAndLinks(): Node {\n  return (\n    <DropdownMenu label=\"Help\">\n      <MenuLabel>Documentation</MenuLabel>\n      <MenuItem href=\"https://gpui-kit.com\">GPUI Kit</MenuItem>\n      <MenuItem href=\"https://github.com/Forever-Frameworks-LLC/tsrust\">Tsrust</MenuItem>\n      <MenuSeparator />\n      <MenuItem icon=\"info\">About</MenuItem>\n    </DropdownMenu>\n  );\n}"><LabelsAndLinks /></Example>
+      <Example title="Custom Element" description="Text children are the item label; other children draw a custom row." code="function CustomEntry(): Node {\n  return (\n    <DropdownMenu label=\"Account\">\n      <MenuItem><View className=\"flex-col\"><Text className=\"font-semibold\">Ada Lovelace</Text><Text className=\"text-muted-foreground\">ada@example.com</Text></View></MenuItem>\n      <MenuSeparator />\n      <MenuItem icon=\"user\">Profile</MenuItem>\n    </DropdownMenu>\n  );\n}"><CustomEntry /></Example>
+      <Example title="Keyboard Shortcuts" description="A MenuItem naming a Shortcut command shows its keys and runs it." code="function ShortcutEntries(): Node {\n  const saved = signal(0);\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Shortcut command=\"menu-save\" keys=\"secondary-shift-s\" onTrigger={() => { saved.set(saved.get() + 1); }} />\n      <DropdownMenu label=\"File\">\n        <MenuItem command=\"menu-save\">Save all</MenuItem>\n      </DropdownMenu>\n      <Text>Saved {saved} times</Text>\n    </View>\n  );\n}"><ShortcutEntries /></Example>
+      <Example title="Submenus" description="Submenus nest, with icons." code="function NestedMenus(): Node {\n  return (\n    <DropdownMenu label=\"Share\">\n      <MenuItem icon=\"link\">Copy link</MenuItem>\n      <Submenu label=\"Send to\" icon=\"send\">\n        <MenuItem>Email</MenuItem>\n        <Submenu label=\"Chat\">\n          <MenuItem>Team</MenuItem>\n          <MenuItem>Direct message</MenuItem>\n        </Submenu>\n      </Submenu>\n    </DropdownMenu>\n  );\n}"><NestedMenus /></Example>
+      <Example title="Scrollable Menus and Sizing" description="Long menus scroll within a maximum height; widths can be bounded." code="function LongMenu(): Node {\n  return (\n    <DropdownMenu label=\"Font\" scrollable={true} maxHeight={200} minWidth={180}>\n      <MenuItem>Inter</MenuItem>\n      <MenuItem>Roboto</MenuItem>\n      <MenuItem>Source Sans</MenuItem>\n      <MenuItem>Fira Sans</MenuItem>\n      <MenuItem>IBM Plex Sans</MenuItem>\n      <MenuItem>Noto Sans</MenuItem>\n      <MenuItem>Open Sans</MenuItem>\n      <MenuItem>Lato</MenuItem>\n    </DropdownMenu>\n  );\n}"><LongMenu /></Example>
     </View>
   );
 }

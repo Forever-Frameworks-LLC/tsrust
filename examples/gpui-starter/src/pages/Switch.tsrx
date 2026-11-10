@@ -9,7 +9,7 @@ function BasicSwitch(): Node {
 
 function LabeledSwitch(): Node {
   const on = signal(true);
-  return <Switch label="Enable notifications" checked={on.get()} onChange={(value) => { on.set(value); }} />;
+  return <Switch checked={on.get()} onChange={(value) => { on.set(value); }}>Enable notifications</Switch>;
 }
 
 function BareSwitch(): Node {
@@ -19,8 +19,8 @@ function BareSwitch(): Node {
 function SwitchSizes(): Node {
   return (
     <View className="flex-row items-center gap-4">
-      <Switch size="small" checked={true} />
-      <Switch checked={true} />
+      <Switch size="small" defaultChecked={true} />
+      <Switch defaultChecked={true} />
     </View>
   );
 }
@@ -28,8 +28,8 @@ function SwitchSizes(): Node {
 function DisabledSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">
-      <Switch label="Disabled off" disabled={true} />
-      <Switch label="Disabled on" checked={true} disabled={true} />
+      <Switch disabled={true}>Disabled off</Switch>
+      <Switch checked={true} disabled={true}>Disabled on</Switch>
     </View>
   );
 }
@@ -37,22 +37,22 @@ function DisabledSwitch(): Node {
 function ColoredSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">
-      <Switch checked={true} color="success" />
-      <Switch checked={true} color="danger" />
+      <Switch defaultChecked={true} color="success" />
+      <Switch defaultChecked={true} color="danger" />
       <Switch checked={true} color="success" disabled={true} />
     </View>
   );
 }
 
 function TooltipSwitch(): Node {
-  return <Switch label="Auto-save" tooltip="Save changes automatically" />;
+  return <Switch tooltip="Save changes automatically">Auto-save</Switch>;
 }
 
 function FocusSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">
-      <Switch label="Focusable" tabIndex={1} />
-      <Switch label="Skipped" tabStop={false} />
+      <Switch tabIndex={1}>Focusable</Switch>
+      <Switch tabStop={false}>Skipped</Switch>
     </View>
   );
 }
@@ -62,13 +62,13 @@ export function SwitchPage(): Node {
     <View className="flex-col gap-10">
       <PageHeader summary="An on/off toggle for settings that apply immediately." slug="switch" />
       <Example title="Basic Switch" description="Controlled with checked and onChange." code="function BasicSwitch(): Node {\n  const on = signal(false);\n  return <Switch checked={on.get()} onChange={(value) => { on.set(value); }} />;\n}"><BasicSwitch /></Example>
-      <Example title="With Label" description="A label beside the switch." code="function LabeledSwitch(): Node {\n  const on = signal(true);\n  return <Switch label=\"Enable notifications\" checked={on.get()} onChange={(value) => { on.set(value); }} />;\n}"><LabeledSwitch /></Example>
+      <Example title="With Label" description="A label beside the switch." code="function LabeledSwitch(): Node {\n  const on = signal(true);\n  return <Switch checked={on.get()} onChange={(value) => { on.set(value); }}>Enable notifications</Switch>;\n}"><LabeledSwitch /></Example>
       <Example title="Without Label" description="An accessibility label names a bare switch." code="function BareSwitch(): Node {\n  return <Switch accessibilityLabel=\"Airplane mode\" />;\n}"><BareSwitch /></Example>
-      <Example title="Different Sizes" description="small and medium." code="function SwitchSizes(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Switch size=\"small\" checked={true} />\n      <Switch checked={true} />\n    </View>\n  );\n}"><SwitchSizes /></Example>
-      <Example title="Disabled State" description="Disabled switches keep their state." code="function DisabledSwitch(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Switch label=\"Disabled off\" disabled={true} />\n      <Switch label=\"Disabled on\" checked={true} disabled={true} />\n    </View>\n  );\n}"><DisabledSwitch /></Example>
-      <Example title="Custom Color" description="The track color when on; disabled draws it at half opacity." code="function ColoredSwitch(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Switch checked={true} color=\"success\" />\n      <Switch checked={true} color=\"danger\" />\n      <Switch checked={true} color=\"success\" disabled={true} />\n    </View>\n  );\n}"><ColoredSwitch /></Example>
-      <Example title="With Tooltip" description="A tooltip on hover." code="function TooltipSwitch(): Node {\n  return <Switch label=\"Auto-save\" tooltip=\"Save changes automatically\" />;\n}"><TooltipSwitch /></Example>
-      <Example title="Keyboard Focus" description="tabIndex orders focus; tabStop skips it." code="function FocusSwitch(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Switch label=\"Focusable\" tabIndex={1} />\n      <Switch label=\"Skipped\" tabStop={false} />\n    </View>\n  );\n}"><FocusSwitch /></Example>
+      <Example title="Different Sizes" description="small and medium." code="function SwitchSizes(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Switch size=\"small\" defaultChecked={true} />\n      <Switch defaultChecked={true} />\n    </View>\n  );\n}"><SwitchSizes /></Example>
+      <Example title="Disabled State" description="Disabled switches keep their state." code="function DisabledSwitch(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Switch disabled={true}>Disabled off</Switch>\n      <Switch checked={true} disabled={true}>Disabled on</Switch>\n    </View>\n  );\n}"><DisabledSwitch /></Example>
+      <Example title="Custom Color" description="The track color when on; disabled draws it at half opacity." code="function ColoredSwitch(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Switch defaultChecked={true} color=\"success\" />\n      <Switch defaultChecked={true} color=\"danger\" />\n      <Switch checked={true} color=\"success\" disabled={true} />\n    </View>\n  );\n}"><ColoredSwitch /></Example>
+      <Example title="With Tooltip" description="A tooltip on hover." code="function TooltipSwitch(): Node {\n  return <Switch tooltip=\"Save changes automatically\">Auto-save</Switch>;\n}"><TooltipSwitch /></Example>
+      <Example title="Keyboard Focus" description="tabIndex orders focus; tabStop skips it." code="function FocusSwitch(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Switch tabIndex={1}>Focusable</Switch>\n      <Switch tabStop={false}>Skipped</Switch>\n    </View>\n  );\n}"><FocusSwitch /></Example>
     </View>
   );
 }

@@ -52,7 +52,12 @@ function PaletteTags(): Node {
 }
 
 function CustomTag(): Node {
-  return <Tag color="#1f6feb" foreground="#ffffff" borderColor="#1a5fc8">Custom Color</Tag>;
+  return (
+    <View className="flex-row gap-2">
+      <Tag color="#1f6feb" foreground="#ffffff" borderColor="#1a5fc8">Custom Color</Tag>
+      <Tag color="sky-100" foreground="sky-800" borderColor="sky-300">Palette Color</Tag>
+    </View>
+  );
 }
 
 function RoundedTags(): Node {
@@ -84,7 +89,7 @@ export function TagPage(): Node {
       <Example title="Outline Tags" description="Outline draws only the border and text." code="function OutlineTags(): Node {\n  return (\n    <View className=\"flex-row flex-wrap gap-2\">\n      <Tag variant=\"primary\" outline={true}>Primary Outline</Tag>\n      <Tag variant=\"secondary\" outline={true}>Secondary Outline</Tag>\n      <Tag variant=\"danger\" outline={true}>Error Outline</Tag>\n      <Tag variant=\"success\" outline={true}>Success Outline</Tag>\n      <Tag variant=\"warning\" outline={true}>Warning Outline</Tag>\n      <Tag variant=\"info\" outline={true}>Info Outline</Tag>\n    </View>\n  );\n}"><OutlineTags /></Example>
       <Example title="Tag Sizes" description="small and medium." code="function TagSizes(): Node {\n  return (\n    <View className=\"flex-row items-center gap-2\">\n      <Tag variant=\"primary\" size=\"small\">Small Tag</Tag>\n      <Tag variant=\"primary\">Medium Tag</Tag>\n    </View>\n  );\n}"><TagSizes /></Example>
       <Example title="Custom Colors" description="Named color families." code="function PaletteTags(): Node {\n  return (\n    <View className=\"flex-row flex-wrap gap-2\">\n      <Tag palette=\"blue\">Blue Tag</Tag>\n      <Tag palette=\"green\">Green Tag</Tag>\n      <Tag palette=\"purple\">Purple Tag</Tag>\n      <Tag palette=\"pink\">Pink Tag</Tag>\n      <Tag palette=\"indigo\">Indigo Tag</Tag>\n      <Tag palette=\"yellow\">Yellow Tag</Tag>\n      <Tag palette=\"red\">Red Tag</Tag>\n    </View>\n  );\n}"><PaletteTags /></Example>
-      <Example title="Custom Fill Colors" description="Exact fill, text and border colors." code="function CustomTag(): Node {\n  return <Tag color=\"#1f6feb\" foreground=\"#ffffff\" borderColor=\"#1a5fc8\">Custom Color</Tag>;\n}"><CustomTag /></Example>
+      <Example title="Custom Fill Colors" description="Exact fill, text and border colors: hex or palette names such as sky-100." code="function CustomTag(): Node {\n  return (\n    <View className=\"flex-row gap-2\">\n      <Tag color=\"#1f6feb\" foreground=\"#ffffff\" borderColor=\"#1a5fc8\">Custom Color</Tag>\n      <Tag color=\"sky-100\" foreground=\"sky-800\" borderColor=\"sky-300\">Palette Color</Tag>\n    </View>\n  );\n}"><CustomTag /></Example>
       <Example title="Rounded Corners" description="Pill shape or a radius in pixels." code="function RoundedTags(): Node {\n  return (\n    <View className=\"flex-row gap-2\">\n      <Tag variant=\"primary\" roundedFull={true}>Rounded Full</Tag>\n      <Tag variant=\"primary\" rounded={4}>Custom Radius</Tag>\n      <Tag variant=\"primary\" rounded={0}>Square Tag</Tag>\n    </View>\n  );\n}"><RoundedTags /></Example>
       <Example title="Combined Styles" description="Options combine." code="function CombinedTags(): Node {\n  return (\n    <View className=\"flex-row flex-wrap gap-2\">\n      <Tag variant=\"primary\" size=\"small\" roundedFull={true}>Small Pill</Tag>\n      <Tag variant=\"success\" size=\"small\" roundedFull={true}>Success Pill</Tag>\n      <Tag variant=\"warning\" outline={true} rounded={2}>Custom Outline</Tag>\n      <Tag palette=\"purple\" outline={true}>Purple Outline</Tag>\n    </View>\n  );\n}"><CombinedTags /></Example>
     </View>

@@ -87,6 +87,8 @@ gpui-highlight = ["gpui", "gpui-kit/syntect"]
 # System speech recognition and microphone capture for SpeechButton; selected only
 # when a program uses SpeechButton. Linux builds need ALSA headers (libasound2-dev).
 gpui-speech = ["gpui", "gpui-kit/speech"]
+# Remote image sources (Avatar, Image) load over reqwest.
+gpui-http = ["gpui", "dep:reqwest", "async"]
 # Browser renderer, reserved until GPUI web follows desktop.
 gpui-web = ["ui"]
 http-websocket = ["http", "dep:futures-util", "axum/ws", "dep:tokio-tungstenite", "dep:webpki-roots"]

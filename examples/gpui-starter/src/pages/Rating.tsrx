@@ -10,16 +10,16 @@ function BasicRating(): Node {
 function RatingSizes(): Node {
   return (
     <View className="flex-col gap-2">
-      <Rating size="xsmall" value={3} />
-      <Rating size="small" value={3} />
-      <Rating value={3} />
-      <Rating size="large" value={3} />
+      <Rating size="xsmall" defaultValue={3} />
+      <Rating size="small" defaultValue={3} />
+      <Rating defaultValue={3} />
+      <Rating size="large" defaultValue={3} />
     </View>
   );
 }
 
 function ColoredRating(): Node {
-  return <Rating value={4} color="danger" />;
+  return <Rating defaultValue={4} color="danger" />;
 }
 
 function DisabledRating(): Node {
@@ -36,8 +36,8 @@ export function RatingPage(): Node {
     <View className="flex-col gap-10">
       <PageHeader summary="A star rating input." slug="rating" />
       <Example title="Basic Rating" description="Controlled with value and onChange." code="function BasicRating(): Node {\n  const value = signal(3);\n  return <Rating value={value.get()} onChange={(stars) => { value.set(stars); }} />;\n}"><BasicRating /></Example>
-      <Example title="Different Sizes" description="xsmall to large." code="function RatingSizes(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Rating size=\"xsmall\" value={3} />\n      <Rating size=\"small\" value={3} />\n      <Rating value={3} />\n      <Rating size=\"large\" value={3} />\n    </View>\n  );\n}"><RatingSizes /></Example>
-      <Example title="Custom Color" description="Any theme color or hex." code="function ColoredRating(): Node {\n  return <Rating value={4} color=\"danger\" />;\n}"><ColoredRating /></Example>
+      <Example title="Different Sizes" description="xsmall to large." code="function RatingSizes(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <Rating size=\"xsmall\" defaultValue={3} />\n      <Rating size=\"small\" defaultValue={3} />\n      <Rating defaultValue={3} />\n      <Rating size=\"large\" defaultValue={3} />\n    </View>\n  );\n}"><RatingSizes /></Example>
+      <Example title="Custom Color" description="A theme color, palette color or hex." code="function ColoredRating(): Node {\n  return <Rating defaultValue={4} color=\"danger\" />;\n}"><ColoredRating /></Example>
       <Example title="Disabled State" description="A read-only display." code="function DisabledRating(): Node {\n  return <Rating value={2} disabled={true} />;\n}"><DisabledRating /></Example>
       <Example title="Custom Maximum" description="Any number of stars." code="function MaxRating(): Node {\n  const value = signal(7);\n  return <Rating value={value.get()} max={10} onChange={(stars) => { value.set(stars); }} />;\n}"><MaxRating /></Example>
     </View>

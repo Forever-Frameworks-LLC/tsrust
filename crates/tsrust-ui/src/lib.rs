@@ -366,6 +366,7 @@ impl Node {
             if text!=self.text {self.text=text;changed+=1;}
         }
         for child in &mut self.children {changed+=child.refresh_inner()?;}
+        changed+=self.refresh_text_children();
         self.depth=usize::from(self.branch.is_none())+self.children.iter().map(|child|child.depth).max().unwrap_or(0);
         if self.depth>128{return Err("UI nesting exceeds 128 nodes".into());}
         self.validate_structure()?;

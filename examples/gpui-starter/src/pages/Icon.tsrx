@@ -21,8 +21,9 @@ function ColoredIcons(): Node {
   return (
     <View className="flex-row gap-3">
       <Icon name="heart" className="text-destructive" />
-      <Icon name="circle-check" className="text-primary" />
-      <Icon name="info" className="text-muted-foreground" />
+      <Icon name="circle-check" className="text-emerald-500" />
+      <Icon name="star" className="text-amber-400" />
+      <Icon name="info" className="text-[#1f6feb]" />
     </View>
   );
 }
@@ -59,7 +60,7 @@ export function IconPage(): Node {
       <PageHeader summary="Any of the bundled Lucide icons, or inline SVG." slug="icon" />
       <Example title="Basic Icon" description="An icon by name." code="function BasicIcon(): Node {\n  return <Icon name=\"heart\" />;\n}"><BasicIcon /></Example>
       <Example title="Icon with Custom Size" description="xs, sm, md and lg." code="function IconSizes(): Node {\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Icon name=\"heart\" size=\"xs\" />\n      <Icon name=\"heart\" size=\"sm\" />\n      <Icon name=\"heart\" />\n      <Icon name=\"heart\" size=\"lg\" />\n    </View>\n  );\n}"><IconSizes /></Example>
-      <Example title="Icon with Custom Color" description="Text color utilities tint the icon." code="function ColoredIcons(): Node {\n  return (\n    <View className=\"flex-row gap-3\">\n      <Icon name=\"heart\" className=\"text-destructive\" />\n      <Icon name=\"circle-check\" className=\"text-primary\" />\n      <Icon name=\"info\" className=\"text-muted-foreground\" />\n    </View>\n  );\n}"><ColoredIcons /></Example>
+      <Example title="Icon with Custom Color" description="Text color utilities tint the icon: theme tokens, the Tailwind palette or any [#hex] value." code="function ColoredIcons(): Node {\n  return (\n    <View className=\"flex-row gap-3\">\n      <Icon name=\"heart\" className=\"text-destructive\" />\n      <Icon name=\"circle-check\" className=\"text-emerald-500\" />\n      <Icon name=\"star\" className=\"text-amber-400\" />\n      <Icon name=\"info\" className=\"text-[#1f6feb]\" />\n    </View>\n  );\n}"><ColoredIcons /></Example>
       <Example title="Rotated Icons" description="Rotation in degrees." code="function RotatedIcons(): Node {\n  return (\n    <View className=\"flex-row gap-3\">\n      <Icon name=\"arrow-up\" />\n      <Icon name=\"arrow-up\" rotate={90} />\n      <Icon name=\"arrow-up\" rotate={180} />\n      <Icon name=\"arrow-up\" rotate={270} />\n    </View>\n  );\n}"><RotatedIcons /></Example>
       <Example title="SVG Bytes" description="Inline SVG markup draws as an icon." code="function SvgIcon(): Node {\n  return <Icon svg=\"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='9' fill='none' stroke='black' stroke-width='2'/><path d='M8 12l3 3 5-6' fill='none' stroke='black' stroke-width='2'/></svg>\" size=\"lg\" />;\n}"><SvgIcon /></Example>
       <Example title="Status Icons" description="Common status icons." code="function StatusIcons(): Node {\n  return (\n    <View className=\"flex-row gap-3\">\n      <Icon name=\"circle-check\" className=\"text-primary\" />\n      <Icon name=\"circle-x\" className=\"text-destructive\" />\n      <Icon name=\"triangle-alert\" className=\"text-muted-foreground\" />\n      <Icon name=\"info\" className=\"text-foreground\" />\n    </View>\n  );\n}"><StatusIcons /></Example>

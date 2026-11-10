@@ -56,7 +56,7 @@ function ConditionalSkeleton(): Node {
   const loading = signal(true);
   return (
     <View className="flex-col gap-3 w-80">
-      <Switch label="Loading" checked={loading.get()} onChange={(on) => { loading.set(on); }} />
+      <Switch checked={loading.get()} onChange={(on) => { loading.set(on); }}>Loading</Switch>
       {loading.get() ? <Skeleton className="w-full h-4" /> : <Text>Content loaded</Text>}
     </View>
   );
@@ -72,7 +72,7 @@ export function SkeletonPage(): Node {
       <Example title="Different Shapes" description="Sizes and radii come from utilities." code="function SkeletonShapes(): Node {\n  return (\n    <View className=\"flex-col gap-3 w-96\">\n      <Skeleton className=\"w-[200px] h-4 rounded-sm\" />\n      <Skeleton className=\"size-20 rounded\" />\n      <Skeleton className=\"w-full h-[120px] rounded-lg\" />\n      <Skeleton className=\"size-6 rounded\" />\n    </View>\n  );\n}"><SkeletonShapes /></Example>
       <Example title="Secondary Variant" description="A subtler fill." code="function SecondarySkeleton(): Node {\n  return <Skeleton secondary={true} className=\"w-80\" />;\n}"><SecondarySkeleton /></Example>
       <Example title="Loading Profile Card" description="Shapes compose into a layout." code="function ProfileSkeleton(): Node {\n  return (\n    <View className=\"flex-row items-center gap-4\">\n      <Skeleton className=\"size-12 rounded-full\" />\n      <View className=\"flex-col gap-2\">\n        <Skeleton className=\"w-[150px] h-4\" />\n        <Skeleton className=\"w-[100px] h-3\" />\n      </View>\n    </View>\n  );\n}"><ProfileSkeleton /></Example>
-      <Example title="Conditional Loading" description="Swap the skeleton for content when loaded." code="function ConditionalSkeleton(): Node {\n  const loading = signal(true);\n  return (\n    <View className=\"flex-col gap-3 w-80\">\n      <Switch label=\"Loading\" checked={loading.get()} onChange={(on) => { loading.set(on); }} />\n      {loading.get() ? <Skeleton className=\"w-full h-4\" /> : <Text>Content loaded</Text>}\n    </View>\n  );\n}"><ConditionalSkeleton /></Example>
+      <Example title="Conditional Loading" description="Swap the skeleton for content when loaded." code="function ConditionalSkeleton(): Node {\n  const loading = signal(true);\n  return (\n    <View className=\"flex-col gap-3 w-80\">\n      <Switch checked={loading.get()} onChange={(on) => { loading.set(on); }}>Loading</Switch>\n      {loading.get() ? <Skeleton className=\"w-full h-4\" /> : <Text>Content loaded</Text>}\n    </View>\n  );\n}"><ConditionalSkeleton /></Example>
     </View>
   );
 }

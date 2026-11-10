@@ -25,8 +25,8 @@ function GroupBoxVariants(): Node {
 function FooterGroupBox(): Node {
   return (
     <GroupBox title="Notifications" variant="fill">
-      <Switch label="Email" checked={true} />
-      <Switch label="Push" />
+      <Switch defaultChecked={true}>Email</Switch>
+      <Switch>Push</Switch>
       <GroupBoxFooter><Button variant="primary" size="small">Save</Button></GroupBoxFooter>
     </GroupBox>
   );
@@ -54,7 +54,7 @@ function FormGroupBox(): Node {
     <GroupBox title="Profile" variant="fill">
       <Input placeholder="Name" />
       <Input placeholder="Email" />
-      <Checkbox label="Subscribe to updates" />
+      <Checkbox>Subscribe to updates</Checkbox>
     </GroupBox>
   );
 }
@@ -65,10 +65,10 @@ export function GroupBoxPage(): Node {
       <PageHeader summary="A titled surface grouping related content, with an optional footer." slug="group-box" />
       <Example title="Basic GroupBox" description="Content on a surface." code="function BasicGroupBox(): Node {\n  return (\n    <GroupBox>\n      <Text>One</Text>\n      <Text>Two</Text>\n      <Text>Three</Text>\n    </GroupBox>\n  );\n}"><BasicGroupBox /></Example>
       <Example title="GroupBox Variants" description="Normal, fill and outline." code="function GroupBoxVariants(): Node {\n  return (\n    <View className=\"flex-col gap-4 w-full\">\n      <GroupBox title=\"Normal\"><Text>Default surface</Text></GroupBox>\n      <GroupBox title=\"Fill\" variant=\"fill\"><Text>Filled surface</Text></GroupBox>\n      <GroupBox title=\"Outline\" variant=\"outline\"><Text>Outlined surface</Text></GroupBox>\n    </View>\n  );\n}"><GroupBoxVariants /></Example>
-      <Example title="Footer Outside the Surface" description="A GroupBoxFooter child sits below the surface." code="function FooterGroupBox(): Node {\n  return (\n    <GroupBox title=\"Notifications\" variant=\"fill\">\n      <Switch label=\"Email\" checked={true} />\n      <Switch label=\"Push\" />\n      <GroupBoxFooter><Button variant=\"primary\" size=\"small\">Save</Button></GroupBoxFooter>\n    </GroupBox>\n  );\n}"><FooterGroupBox /></Example>
+      <Example title="Footer Outside the Surface" description="A GroupBoxFooter child sits below the surface." code="function FooterGroupBox(): Node {\n  return (\n    <GroupBox title=\"Notifications\" variant=\"fill\">\n      <Switch defaultChecked={true}>Email</Switch>\n      <Switch>Push</Switch>\n      <GroupBoxFooter><Button variant=\"primary\" size=\"small\">Save</Button></GroupBoxFooter>\n    </GroupBox>\n  );\n}"><FooterGroupBox /></Example>
       <Example title="Custom Title Styling" description="Utility classes for the title." code="function TitleStyledGroupBox(): Node {\n  return (\n    <GroupBox title=\"Account\" titleClassName=\"text-xl font-semibold text-primary\">\n      <Text>Signed in as ada@example.com</Text>\n    </GroupBox>\n  );\n}"><TitleStyledGroupBox /></Example>
       <Example title="Custom Content Styling" description="Utility classes for the content surface." code="function ContentStyledGroupBox(): Node {\n  return (\n    <GroupBox title=\"Spacing\" variant=\"outline\" contentClassName=\"gap-4 p-6 rounded-xl\">\n      <Text>Roomier content</Text>\n      <Text>with larger gaps</Text>\n    </GroupBox>\n  );\n}"><ContentStyledGroupBox /></Example>
-      <Example title="Form Section" description="Fields grouped under a heading." code="function FormGroupBox(): Node {\n  return (\n    <GroupBox title=\"Profile\" variant=\"fill\">\n      <Input placeholder=\"Name\" />\n      <Input placeholder=\"Email\" />\n      <Checkbox label=\"Subscribe to updates\" />\n    </GroupBox>\n  );\n}"><FormGroupBox /></Example>
+      <Example title="Form Section" description="Fields grouped under a heading." code="function FormGroupBox(): Node {\n  return (\n    <GroupBox title=\"Profile\" variant=\"fill\">\n      <Input placeholder=\"Name\" />\n      <Input placeholder=\"Email\" />\n      <Checkbox>Subscribe to updates</Checkbox>\n    </GroupBox>\n  );\n}"><FormGroupBox /></Example>
     </View>
   );
 }

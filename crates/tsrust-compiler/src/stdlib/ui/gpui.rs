@@ -20,6 +20,8 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
     let reported = failure.clone();
     application().with_assets(assets::Assets).run(move |cx| {
         init(cx);
+        #[cfg(feature = "gpui-http")]
+        cx.set_http_client(std::sync::Arc::new(RemoteImages::new()));
         gpui_kit::component::set_locale(&super::i18n::locale());
         // The application ends with its last window, as a single-window app does.
         cx.on_window_closed(|cx, _| if cx.windows().is_empty() {cx.quit();}).detach();
@@ -29,6 +31,36 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
         }
     });
     match failure.take() {Some(error) => Err(error), None => Ok(())}
+}
+
+/// GPUI fetches remote image sources through the application's HTTP client.
+#[cfg(feature = "gpui-http")]
+struct RemoteImages {client: reqwest::Client, runtime: tokio::runtime::Runtime}
+
+#[cfg(feature = "gpui-http")]
+impl RemoteImages {
+    fn new() -> Self {
+        let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().expect("HTTP runtime");
+        Self {client: reqwest::Client::new(), runtime}
+    }
+}
+
+#[cfg(feature = "gpui-http")]
+impl http_client::HttpClient for RemoteImages {
+    fn user_agent(&self) -> Option<&http_client::http::HeaderValue> {None}
+    fn proxy(&self) -> Option<&http_client::Url> {None}
+    fn send(&self, request: http_client::Request<http_client::AsyncBody>) -> std::pin::Pin<Box<dyn std::future::Future<Output = http_client::Result<http_client::Response<http_client::AsyncBody>>> + Send>> {
+        let mut outgoing = self.client.request(reqwest::Method::from_bytes(request.method().as_str().as_bytes()).unwrap_or(reqwest::Method::GET), request.uri().to_string());
+        for (name, value) in request.headers() {outgoing = outgoing.header(name.as_str(), value.as_bytes());}
+        let task = self.runtime.spawn(async move {
+            let response = outgoing.send().await?;
+            let mut builder = http_client::http::Response::builder().status(response.status().as_u16());
+            for (name, value) in response.headers() {builder = builder.header(name.as_str(), value.as_bytes());}
+            let bytes = response.bytes().await?;
+            http_client::Result::Ok(builder.body(http_client::AsyncBody::from(bytes.to_vec()))?)
+        });
+        Box::pin(async move {task.await.map_err(|error| http_client::anyhow!(error.to_string()))?})
+    }
 }
 
 type Failure = std::rc::Rc<std::cell::RefCell<Option<String>>>;

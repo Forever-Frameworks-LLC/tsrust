@@ -135,6 +135,7 @@ impl Prepared {
    let mut features=vec![if runtime.contains("use gpui_kit::"){"gpui"}else{"ui"}];
    if runtime.contains("// tsrust-ui-highlight-selected\n"){features.push("gpui-highlight");}
    if runtime.contains("// tsrust-ui-speech-selected\n"){features.push("gpui-speech");}
+   if runtime.contains("// tsrust-ui-http-selected\n"){features.push("gpui-http");}
    command.args(["--features",&features.join(",")]);
   }
 

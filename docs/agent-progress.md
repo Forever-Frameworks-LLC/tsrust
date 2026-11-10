@@ -31,9 +31,22 @@ className as their own style refinement instead of a wrapper. Fixed: every
 ScrollArea shared one scroll offset (Kit keys Scrollable state by call site
 without an explicit id); gallery routes now each own a scroll area; sidebar
 groups merge across the spec; utilities gained rounded-md and rounded-full.
-Utility colors are theme tokens only (no Tailwind palette such as
-text-green-500), so gallery examples use theme tokens. Next: continue
-coverage type by type with gallery pages.
+Owner review fixes (examples must work when exercised and read like shadcn):
+Kit text content comes from children (`<Label>Name <Text variant="secondary">
+(optional)</Text></Label>`, `<Checkbox>Accept</Checkbox>`, `<MenuItem>Copy
+</MenuItem>`); kit.json `textChildren` mirrors kit.rs `text_children_prop`
+(generate-ui-kit.py checks agreement). Text gained `variant`. Alert takes
+AlertTitle/AlertDescription; Empty takes EmptyHeader/EmptyTitle/
+EmptyDescription/EmptyContent and EmptyMedia variant="icon". Form controls are
+uncontrolled when `checked`/`value`/`selected` is unset (defaultChecked,
+defaultValue, defaultSelected set the start). DropdownMenu is a plain button
+that opens the menu; onClick or split makes a split button. Remote image src
+loads through a reqwest HTTP client (gpui-http feature, selected for Avatar and
+Image). Empty Avatar names no longer hide the placeholder icon. Colors: utilities
+and Kit color props accept the Tailwind 4.1 palette (gamut-mapped to sRGB hex)
+and arbitrary [#hex]/[oklch(...)] values. Every gallery page was exercised
+(menus, split button, context menu, checkboxes, switches, toggles, ratings,
+alerts). Next: continue coverage type by type with gallery pages.
 
 ### Plot and Speech — 2026-11-09
 

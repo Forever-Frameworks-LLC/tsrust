@@ -57,7 +57,7 @@ fn build_tokens()->Vec<String> {
  tokens.extend(["opacity-0","opacity-50","opacity-100","outline-none","cursor-auto","cursor-text","cursor-not-allowed","select-none","pointer-events-none","pointer-events-auto","field-sizing-content"].map(str::to_owned));
  tokens.extend(text::tokens());tokens.extend(layout::tokens());tokens.extend(edges::tokens());
  tokens.extend(["ring-0","ring-1","ring-2","ring-3"].map(str::to_owned));
- for color in COLORS.iter().copied().chain(["transparent"]) {for prefix in ["bg","text","border","ring"] {tokens.push(format!("{prefix}-{color}"));}}
+ for color in COLORS.iter().copied().chain(["transparent"]).chain(crate::theme::palette_names()) {for prefix in ["bg","text","border","ring"] {tokens.push(format!("{prefix}-{color}"));}}
  tokens
 }
 fn split(token:&str)->Result<(State,&str),String> {let parts=structural::parts(token)?;Ok((parts.state,parts.token))}
@@ -68,9 +68,9 @@ fn known_tokens()->&'static std::collections::BTreeSet<String> {
 pub fn tokens()->Vec<String> {known_tokens().iter().cloned().collect()}
 pub fn validate(classes:&str)->Result<(),String> {
  if classes.split_whitespace().any(|class|split(class).is_ok_and(|(_,token)|token=="table-cell")) && classes.split_whitespace().any(|class|split(class).is_ok_and(|(_,token)|["w-full","w-1/2","w-1/3","w-2/3","w-1/4","w-3/4","min-w-full","max-w-full","min-w-1/2","min-w-1/3","min-w-2/3","min-w-1/4","min-w-3/4","max-w-1/2","max-w-1/3","max-w-2/3","max-w-1/4","max-w-3/4"].contains(&token))){return Err("Percentage table-cell widths are unsupported; use intrinsic or pixel widths".into());}
- let known=known_tokens(); for class in classes.split_whitespace() {let parsed=structural::parts(class)?;let (state,token)=(parsed.state,parsed.token);if parsed.placeholder && !token.strip_prefix("text-").is_some_and(|color|color=="transparent"||COLORS.contains(&color)||opacity_token(token).is_some()){return Err("Placeholder variants require a text color".into());}
+ let known=known_tokens(); for class in classes.split_whitespace() {let parsed=structural::parts(class)?;let (state,token)=(parsed.state,parsed.token);if parsed.placeholder && !(token.starts_with("text-") && (color_token(token)||opacity_token(token).is_some())){return Err("Placeholder variants require a text color".into());}
  if custom_spacing::declaration(token).is_some() && state!=State::Base{return Err("Spacing variable declarations cannot use interaction states".into());}
- if !known.contains(token) && opacity_token(token).is_none() && layout::aspect(token).is_none() && !layout::pixel_dimension(token) && !structural::marker(token) && custom_spacing::declaration(token).is_none() && custom_spacing::reference(token).is_none() {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
+ if !known.contains(token) && !color_token(token) && opacity_token(token).is_none() && layout::aspect(token).is_none() && !layout::pixel_dimension(token) && !structural::marker(token) && custom_spacing::declaration(token).is_none() && custom_spacing::reference(token).is_none() {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
 }
 pub(crate) fn resolved(classes:&str,theme:&Theme,mode:&str)->Vec<(State,Utility)> {
  resolved_with_variables(classes,theme,mode,&std::collections::BTreeMap::new())
@@ -95,7 +95,7 @@ fn resolved_with_variables(classes:&str,theme:&Theme,mode:&str,variables:&std::c
    "text-left"=>Utility::Align(0),"text-center"=>Utility::Align(1),"text-right"=>Utility::Align(2),
    "items-start"=>Utility::Items(0),"items-center"=>Utility::Items(1),"items-stretch"=>Utility::Items(2),
    "justify-start"=>Utility::Justify(0),"justify-center"=>Utility::Justify(1),"justify-between"=>Utility::Justify(2),
-   _=>{let (kind,color)=token.split_once('-').unwrap();let color=if color=="transparent"{ResolvedColor::transparent()}else{theme.color(mode,color).expect("validated theme token")}.opacity(opacity);match kind {"bg"=>Utility::Background(color),"text"=>Utility::Foreground(color),"border"=>Utility::BorderColor(color),"ring"=>Utility::RingShadowColor(color),_=>unreachable!()}},
+   _=>{let (kind,color)=token.split_once('-').unwrap();let color=if color=="transparent"{ResolvedColor::transparent()}else if let Some(fixed)=crate::theme::fixed_color(color){fixed}else{theme.color(mode,color).expect("validated theme token")}.opacity(opacity);match kind {"bg"=>Utility::Background(color),"text"=>Utility::Foreground(color),"border"=>Utility::BorderColor(color),"ring"=>Utility::RingShadowColor(color),_=>unreachable!()}},
   }};put(value);
  }
  rules.into_iter().map(|((state,_),value)|(state,value)).collect()
@@ -114,6 +114,14 @@ pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
   assert!(values.iter().any(|(s,v)|*s==State::Base && matches!(v,Utility::Padding(0,v) if *v==16.)));
   assert_eq!(values.iter().filter(|(s,v)|*s==State::Base && matches!(v,Utility::Background(_))).count(),1);
   assert!(validate("hover:unknown").is_err());assert!(validate("sm:p-2").is_ok());
+ }
+ #[test] fn palette_and_arbitrary_colors_resolve() {
+  let theme=Theme::default();
+  for class in ["text-blue-500","bg-emerald-100/50","border-[#ff6600]","hover:bg-white","text-[oklch(60%_0.1_30)]","placeholder:text-zinc-400"] {assert!(validate(class).is_ok(),"{class}");}
+  for class in ["text-blue-550","bg-[nope]","text-[#ff66]"] {assert!(validate(class).is_err(),"{class}");}
+  let values=resolved("border-[#ff6600] bg-black/50",&theme,"light");
+  assert!(values.iter().any(|(_,v)|matches!(v,Utility::BorderColor(color) if color.css()=="#ff6600")));
+  assert!(values.iter().any(|(_,v)|matches!(v,Utility::Background(color) if (color.alpha()-0.5).abs()<1e-6)));
  }
 }
 
@@ -174,7 +182,7 @@ pub fn documentation(class:&str)->String {
  }else if matches!(token,"ring-0"|"ring-1"|"ring-2"|"ring-3") {
   ("Sets an outer surface ring width of 0â€“3 logical pixels without changing layout. ring-COLOR selects its color and defaults to the theme ring token. This surface ring is independent of the button's keyboard focus outline.",format!("<View className=\"{class} ring-foreground/10\" />"))
  }else if color_token(opacity_token(token).map_or(token,|(base,_)|base)) {
-  ("Sets a semantic theme color. Optional /N multiplies its alpha by an integer percentage 0â€“100; fractional, negative and out-of-range percentages fail. placeholder:text-COLOR applies that color only to empty editable hints with full token opacity. transparent is zero-alpha black. Ring colors need a ring-0/1/2/3 width to paint a surface ring. Color changes do not hide semantic content from accessibility. Native output has an 8-bit sRGB paint boundary; theme strings remain unchanged.",format!("<View className=\"{class}\" />"))
+  ("Sets a semantic theme color, a Tailwind palette color such as blue-500, white or black, or an arbitrary [#rrggbb], [#rrggbbaa] or [oklch(L_C_H)] value (underscores for spaces). Optional /N multiplies its alpha by an integer percentage 0â€“100; fractional, negative and out-of-range percentages fail. placeholder:text-COLOR applies that color only to empty editable hints with full token opacity. transparent is zero-alpha black. Ring colors need a ring-0/1/2/3 width to paint a surface ring. Color changes do not hide semantic content from accessibility. Native output has an 8-bit sRGB paint boundary; theme strings remain unchanged.",format!("<View className=\"{class}\" />"))
  }else if token.starts_with("grid-cols-") || token.starts_with("grid-rows-") {
   ("Sets explicit grid tracks. Numeric counts 1â€“12 divide available space equally with zero minimum; none removes explicit tracks. The two written track lists preserve their auto/fraction sizing. Requires a grid container.",format!("<View className=\"grid {class}\" />"))
  }else if token.starts_with("col-") || token.starts_with("row-") {
@@ -258,7 +266,7 @@ pub fn requires_container(classes:&str)->bool {
 }
 
 fn color_token(token:&str)->bool {
- ["bg-","text-","border-","ring-"].iter().any(|prefix|token.strip_prefix(prefix).is_some_and(|name|name=="transparent" || COLORS.contains(&name)))
+ ["bg-","text-","border-","ring-"].iter().any(|prefix|token.strip_prefix(prefix).is_some_and(|name|name=="transparent" || COLORS.contains(&name) || crate::theme::fixed_color(name).is_some()))
 }
 fn opacity_token(token:&str)->Option<(&str,f32)> {
  let (base,percentage)=token.rsplit_once('/')?;

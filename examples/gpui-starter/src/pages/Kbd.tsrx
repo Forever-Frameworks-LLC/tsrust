@@ -5,11 +5,11 @@ import { Example, PageHeader } from '../example.tsrx';
 function CommonShortcuts(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
-      <Kbd keys="cmd-shift-p" />
-      <Kbd keys="cmd-t" />
-      <Kbd keys="escape" />
-      <Kbd keys="enter" />
-      <Kbd keys="backspace" />
+      <Kbd>cmd-shift-p</Kbd>
+      <Kbd>cmd-t</Kbd>
+      <Kbd>escape</Kbd>
+      <Kbd>enter</Kbd>
+      <Kbd>backspace</Kbd>
     </View>
   );
 }
@@ -17,9 +17,9 @@ function CommonShortcuts(): Node {
 function ModifierKeys(): Node {
   return (
     <View className="flex-row gap-2">
-      <Kbd keys="cmd-ctrl-shift-a" />
-      <Kbd keys="cmd-alt-backspace" />
-      <Kbd keys="ctrl-alt-shift-a" />
+      <Kbd>cmd-ctrl-shift-a</Kbd>
+      <Kbd>cmd-alt-backspace</Kbd>
+      <Kbd>ctrl-alt-shift-a</Kbd>
     </View>
   );
 }
@@ -27,20 +27,20 @@ function ModifierKeys(): Node {
 function NamedKeys(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
-      <Kbd keys="left" />
-      <Kbd keys="right" />
-      <Kbd keys="up" />
-      <Kbd keys="down" />
-      <Kbd keys="f12" />
-      <Kbd keys="secondary-f12" />
-      <Kbd keys="pageup" />
-      <Kbd keys="pagedown" />
+      <Kbd>left</Kbd>
+      <Kbd>right</Kbd>
+      <Kbd>up</Kbd>
+      <Kbd>down</Kbd>
+      <Kbd>f12</Kbd>
+      <Kbd>secondary-f12</Kbd>
+      <Kbd>pageup</Kbd>
+      <Kbd>pagedown</Kbd>
     </View>
   );
 }
 
 function PlainKbd(): Node {
-  return <Kbd keys="cmd-s" plain={true} />;
+  return <Kbd plain={true}>cmd-s</Kbd>;
 }
 
 function CommandKbd(): Node {
@@ -56,9 +56,9 @@ function CommandKbd(): Node {
 function ShortcutHelp(): Node {
   return (
     <View className="flex-col gap-2">
-      <View className="flex-row items-center gap-2"><Text>Open command palette:</Text><Kbd keys="cmd-shift-p" /></View>
-      <View className="flex-row items-center gap-2"><Text>Save file:</Text><Kbd keys="cmd-s" /></View>
-      <View className="flex-row items-center gap-2"><Text>Find in files:</Text><Kbd keys="cmd-shift-f" /></View>
+      <View className="flex-row items-center gap-2"><Text>Open command palette:</Text><Kbd>cmd-shift-p</Kbd></View>
+      <View className="flex-row items-center gap-2"><Text>Save file:</Text><Kbd>cmd-s</Kbd></View>
+      <View className="flex-row items-center gap-2"><Text>Find in files:</Text><Kbd>cmd-shift-f</Kbd></View>
     </View>
   );
 }
@@ -66,27 +66,27 @@ function ShortcutHelp(): Node {
 function InlineKbd(): Node {
   return (
     <View className="flex-row items-center gap-1">
-      <Text>Press</Text><Kbd keys="escape" /><Text>to cancel or</Text><Kbd keys="enter" /><Text>to confirm.</Text>
+      <Text>Press</Text><Kbd>escape</Kbd><Text>to cancel or</Text><Kbd>enter</Kbd><Text>to confirm.</Text>
     </View>
   );
 }
 
 function StyledKbd(): Node {
-  return <Kbd keys="cmd-k" className="text-primary border-primary bg-primary/10" />;
+  return <Kbd className="text-primary border-primary bg-primary/10">cmd-k</Kbd>;
 }
 
 export function KbdPage(): Node {
   return (
     <View className="flex-col gap-10">
       <PageHeader summary="Keyboard shortcuts formatted for the current platform." slug="kbd" />
-      <Example title="Common Shortcuts" description="Keys use GPUI keystroke syntax; secondary is cmd on macOS and ctrl elsewhere." code="function CommonShortcuts(): Node {\n  return (\n    <View className=\"flex-row flex-wrap gap-2\">\n      <Kbd keys=\"cmd-shift-p\" />\n      <Kbd keys=\"cmd-t\" />\n      <Kbd keys=\"escape\" />\n      <Kbd keys=\"enter\" />\n      <Kbd keys=\"backspace\" />\n    </View>\n  );\n}"><CommonShortcuts /></Example>
-      <Example title="Multiple Modifiers" description="Complex combinations." code="function ModifierKeys(): Node {\n  return (\n    <View className=\"flex-row gap-2\">\n      <Kbd keys=\"cmd-ctrl-shift-a\" />\n      <Kbd keys=\"cmd-alt-backspace\" />\n      <Kbd keys=\"ctrl-alt-shift-a\" />\n    </View>\n  );\n}"><ModifierKeys /></Example>
-      <Example title="Arrow Keys and Function Keys" description="Named keys." code="function NamedKeys(): Node {\n  return (\n    <View className=\"flex-row flex-wrap gap-2\">\n      <Kbd keys=\"left\" />\n      <Kbd keys=\"right\" />\n      <Kbd keys=\"up\" />\n      <Kbd keys=\"down\" />\n      <Kbd keys=\"f12\" />\n      <Kbd keys=\"secondary-f12\" />\n      <Kbd keys=\"pageup\" />\n      <Kbd keys=\"pagedown\" />\n    </View>\n  );\n}"><NamedKeys /></Example>
-      <Example title="Without Visual Styling" description="Plain draws only the key text." code="function PlainKbd(): Node {\n  return <Kbd keys=\"cmd-s\" plain={true} />;\n}"><PlainKbd /></Example>
+      <Example title="Common Shortcuts" description="Keys use GPUI keystroke syntax; secondary is cmd on macOS and ctrl elsewhere." code="function CommonShortcuts(): Node {\n  return (\n    <View className=\"flex-row flex-wrap gap-2\">\n      <Kbd>cmd-shift-p</Kbd>\n      <Kbd>cmd-t</Kbd>\n      <Kbd>escape</Kbd>\n      <Kbd>enter</Kbd>\n      <Kbd>backspace</Kbd>\n    </View>\n  );\n}"><CommonShortcuts /></Example>
+      <Example title="Multiple Modifiers" description="Complex combinations." code="function ModifierKeys(): Node {\n  return (\n    <View className=\"flex-row gap-2\">\n      <Kbd>cmd-ctrl-shift-a</Kbd>\n      <Kbd>cmd-alt-backspace</Kbd>\n      <Kbd>ctrl-alt-shift-a</Kbd>\n    </View>\n  );\n}"><ModifierKeys /></Example>
+      <Example title="Arrow Keys and Function Keys" description="Named keys." code="function NamedKeys(): Node {\n  return (\n    <View className=\"flex-row flex-wrap gap-2\">\n      <Kbd>left</Kbd>\n      <Kbd>right</Kbd>\n      <Kbd>up</Kbd>\n      <Kbd>down</Kbd>\n      <Kbd>f12</Kbd>\n      <Kbd>secondary-f12</Kbd>\n      <Kbd>pageup</Kbd>\n      <Kbd>pagedown</Kbd>\n    </View>\n  );\n}"><NamedKeys /></Example>
+      <Example title="Without Visual Styling" description="Plain draws only the key text." code="function PlainKbd(): Node {\n  return <Kbd plain={true}>cmd-s</Kbd>;\n}"><PlainKbd /></Example>
       <Example title="From Command Bindings" description="Shows the keys bound to a Shortcut command." code="function CommandKbd(): Node {\n  return (\n    <View className=\"flex-row items-center gap-3\">\n      <Shortcut command=\"open-palette\" keys=\"secondary-shift-o\" />\n      <Text>Open palette:</Text>\n      <Kbd command=\"open-palette\" />\n    </View>\n  );\n}"><CommandKbd /></Example>
-      <Example title="Keyboard Shortcut Help" description="Shortcuts beside descriptions." code="function ShortcutHelp(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <View className=\"flex-row items-center gap-2\"><Text>Open command palette:</Text><Kbd keys=\"cmd-shift-p\" /></View>\n      <View className=\"flex-row items-center gap-2\"><Text>Save file:</Text><Kbd keys=\"cmd-s\" /></View>\n      <View className=\"flex-row items-center gap-2\"><Text>Find in files:</Text><Kbd keys=\"cmd-shift-f\" /></View>\n    </View>\n  );\n}"><ShortcutHelp /></Example>
-      <Example title="Inline Documentation" description="Keys inside a sentence." code="function InlineKbd(): Node {\n  return (\n    <View className=\"flex-row items-center gap-1\">\n      <Text>Press</Text><Kbd keys=\"escape\" /><Text>to cancel or</Text><Kbd keys=\"enter\" /><Text>to confirm.</Text>\n    </View>\n  );\n}"><InlineKbd /></Example>
-      <Example title="Custom Styling" description="Utility classes restyle the key cap." code="function StyledKbd(): Node {\n  return <Kbd keys=\"cmd-k\" className=\"text-primary border-primary bg-primary/10\" />;\n}"><StyledKbd /></Example>
+      <Example title="Keyboard Shortcut Help" description="Shortcuts beside descriptions." code="function ShortcutHelp(): Node {\n  return (\n    <View className=\"flex-col gap-2\">\n      <View className=\"flex-row items-center gap-2\"><Text>Open command palette:</Text><Kbd>cmd-shift-p</Kbd></View>\n      <View className=\"flex-row items-center gap-2\"><Text>Save file:</Text><Kbd>cmd-s</Kbd></View>\n      <View className=\"flex-row items-center gap-2\"><Text>Find in files:</Text><Kbd>cmd-shift-f</Kbd></View>\n    </View>\n  );\n}"><ShortcutHelp /></Example>
+      <Example title="Inline Documentation" description="Keys inside a sentence." code="function InlineKbd(): Node {\n  return (\n    <View className=\"flex-row items-center gap-1\">\n      <Text>Press</Text><Kbd>escape</Kbd><Text>to cancel or</Text><Kbd>enter</Kbd><Text>to confirm.</Text>\n    </View>\n  );\n}"><InlineKbd /></Example>
+      <Example title="Custom Styling" description="Utility classes restyle the key cap." code="function StyledKbd(): Node {\n  return <Kbd className=\"text-primary border-primary bg-primary/10\">cmd-k</Kbd>;\n}"><StyledKbd /></Example>
     </View>
   );
 }

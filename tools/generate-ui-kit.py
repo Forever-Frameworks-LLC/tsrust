@@ -131,6 +131,9 @@ def has_children(component):
 
 def children_doc(component):
     children = component.get("children")
+    if component.get("textChildren"):
+        secondary = ' Text children with variant="secondary" fill `secondary`.' if component["name"] == "Label" else ""
+        return f"Text content, used as `{component['textChildren']}` when that prop is unset.{secondary}"
     if children is True:
         return "Content shown inside the component."
     if isinstance(children, str):
@@ -222,10 +225,22 @@ def formatted(source):
         return path.read_text()
 
 
+def check_text_children(components):
+    """kit.json textChildren must match the hand-written map in crates/tsrust-ui/src/kit.rs."""
+    source = (ROOT / "crates/tsrust-ui/src/kit.rs").read_text()
+    body = source[source.index("fn text_children_prop"):]
+    body = body[:body.index("\n}\n")]
+    native = {name: prop for names, prop in re.findall(r'((?:"\w+"(?: \| )?)+) => Some\("(\w+)"\)', body) for name in re.findall(r'"(\w+)"', names)}
+    declared = {component["name"]: component["textChildren"] for component in components if component.get("textChildren")}
+    if native != declared:
+        sys.exit(f"textChildren differs between kit.json and kit.rs: {sorted(set(native.items()) ^ set(declared.items()))}")
+
+
 def main():
     check = "--check" in sys.argv[1:]
     spec = json.loads(SPEC.read_text())
     components = spec["components"]
+    check_text_children(components)
     icons = bundled_icons()
     # A literal union of every icon would make each use site generate a large Rust enum.
     icon_type = f"/** A GPUI Kit (Lucide) icon name in kebab case, such as arrow-up or circle-check: any of the {len(icons)} icons at https://lucide.dev/icons. Unknown names draw nothing. */\nexport type IconName = string;\n"
