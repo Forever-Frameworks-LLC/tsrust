@@ -44,8 +44,8 @@ use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAli
 use gpui_kit::component::marker::{Marker, MarkerAlignment, MarkerContent, MarkerIcon, MarkerLoadingStyle, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
 use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, panel_handle};
-use gpui_kit::component::questionnaire::{Questionnaire, QuestionnaireActions, QuestionnaireChoice, QuestionnaireChoiceDefinition, QuestionnaireChoices, QuestionnaireDescription, QuestionnaireError, QuestionnaireEvent, QuestionnaireItem, QuestionnaireItemDefinition, QuestionnaireNext, QuestionnairePrevious, QuestionnaireProgress, QuestionnaireSkip, QuestionnaireState, QuestionnaireSubmit, QuestionnaireTitle};
-use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings};
+use gpui_kit::component::questionnaire::{Questionnaire, QuestionnaireActions, QuestionnaireChoice, QuestionnaireChoiceDefinition, QuestionnaireChoices, QuestionnaireDescription, QuestionnaireError, QuestionnaireEvent, QuestionnaireItem, QuestionnaireItemDefinition, QuestionnaireInput, QuestionnaireInputDefinition, QuestionnaireShortcutMode, QuestionnaireItemStatus, QuestionnaireNext, QuestionnairePrevious, QuestionnaireProgress, QuestionnaireSkip, QuestionnaireState, QuestionnaireSubmit, QuestionnaireTitle};
+use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings, SelectIndex};
 use gpui_kit::component::tag::Tag;
 use gpui_kit::component::ColorName;
 use gpui_kit::component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
@@ -1498,7 +1498,19 @@ impl Root {
                             if let Some(KitState::Ticker(running, shape)) = self.states.get_mut(&id) {*running = task; *shape = ticker_shape(&props);}
                         }
                     }
-                    KitState::Dock(_) | KitState::Questionnaire(_) | KitState::Speech(_) => {}
+                    KitState::Questionnaire(state) => {
+                        if let Some(node)=find(&self.node,id) {
+                            for (child,question) in items(node,"Question") {
+                                let result=state.update(cx,|state,cx|state.set_item_disabled(&question.text("id"),question.flag("disabled"),window,cx));
+                                if let Err(error)=result {fail(&self.failure,error.to_string());}
+                                for (_,choice) in items(child,"QuestionChoice") {
+                                    let result=state.update(cx,|state,cx|state.set_choice_disabled(&question.text("id"),&choice.text("id"),choice.flag("disabled"),cx));
+                                    if let Err(error)=result {fail(&self.failure,error.to_string());}
+                                }
+                            }
+                        }
+                    }
+                    KitState::Dock(_) | KitState::Speech(_) => {}
                 }
                 continue;
             }
@@ -1790,22 +1802,45 @@ impl Root {
                         let mut values = std::collections::HashSet::new();
                         let choices = items(child, "QuestionChoice").map(|(_, choice)| {
                             if !values.insert(choice.text("id")) {duplicate = Some(format!("{}/{}", question.text("id"), choice.text("id")));}
-                            let definition = QuestionnaireChoiceDefinition::new(choice.text("id"), choice.text("label"));
+                            let definition = QuestionnaireChoiceDefinition::new(choice.text("id"), choice.text("label")).with_disabled(choice.flag("disabled")).with_default_selected(choice.flag("defaultSelected"));
                             if choice.text("description").is_empty() {definition} else {definition.with_description(choice.text("description"))}
                         }).collect::<Vec<_>>();
                         let mut definition = QuestionnaireItemDefinition::new(question.text("id"), question.text("title"))
-                            .with_required(question.flag("required")).with_multiple(question.flag("multiple")).with_choices(choices);
+                            .with_required(question.flag("required")).with_multiple(question.flag("multiple")).with_disabled(question.flag("disabled")).with_choices(choices);
                         if !question.text("description").is_empty() {definition = definition.with_description(question.text("description"));}
+                        if let Some(input)=first_item(child,"QuestionInput").and_then(|node|node.kit.as_deref()) {
+                            let input_state=cx.new(|cx|InputState::new(window,cx).placeholder(input.text("placeholder")).default_value(input.text("defaultValue")));
+                            let label=input.prop("accessibilityLabel").map(str::to_owned).unwrap_or_else(||question.text("title"));
+                            definition=definition.with_input(QuestionnaireInputDefinition::new(input_state,label).with_disabled(input.flag("disabled")));
+                        }
                         questions.push(definition);
                     }
                     if let Some(duplicate) = duplicate {
                         fail(&self.failure, format!("Questionnaire ids must be unique; {duplicate} repeats"));
                     }
-                    let state = cx.new(|cx| QuestionnaireState::new(questions, cx).expect("question and choice ids are unique"));
+                    let state = cx.new(|cx| {
+                        let mut state=QuestionnaireState::new(questions,cx).unwrap_or_else(|error|fail(&self.failure,error.to_string()));
+                        if !text("defaultCurrent").is_empty() {state=state.with_current_item(text("defaultCurrent")).unwrap_or_else(|error|fail(&self.failure,error.to_string()));}
+                        match text("shortcuts").as_str() {"letters"=>state=state.with_shortcuts(QuestionnaireShortcutMode::Letters),"numbers"=>state=state.with_shortcuts(QuestionnaireShortcutMode::Numbers),_=>{}}
+                        state
+                    });
                     cx.subscribe_in(&state, window, move |this, _, event: &QuestionnaireEvent, _, cx| {
-                        if let QuestionnaireEvent::Submit(submission) = event {
-                            let answers = submission.items().iter().map(|item| (item.name().to_string(), serde_json::Value::from(item.answer().choices().iter().map(ToString::to_string).collect::<Vec<_>>()))).collect::<serde_json::Map<_, _>>();
-                            this.emit(id, "submit", serde_json::Value::Object(answers).to_string(), cx);
+                        let status=|value|match value {QuestionnaireItemStatus::Unanswered=>"unanswered",QuestionnaireItemStatus::Answered=>"answered",QuestionnaireItemStatus::Skipped=>"skipped"};
+                        let answer=|value:&gpui_kit::component::questionnaire::QuestionnaireAnswer,state|serde_json::json!({"choices":value.choices().iter().map(ToString::to_string).collect::<Vec<_>>(),"freeform":value.freeform().map(ToString::to_string),"status":status(state)});
+                        match event {
+                            QuestionnaireEvent::CurrentItemChanged {current,..}=>this.emit(id,"currentChange",current.as_ref().map(ToString::to_string).unwrap_or_default(),cx),
+                            QuestionnaireEvent::AnswerChanged(change)=>{
+                                let mut value=answer(change.answer(),change.status());value["id"]=change.item().to_string().into();this.emit(id,"change",value.to_string(),cx);
+                            }
+                            QuestionnaireEvent::Completed(submission)|QuestionnaireEvent::Submit(submission)=>{
+                                let details=submission.items().iter().map(|item|(item.name().to_string(),answer(item.answer(),item.status()))).collect::<serde_json::Map<_,_>>();
+                                if matches!(event,QuestionnaireEvent::Submit(_)) {
+                                    let choices=submission.items().iter().map(|item|(item.name().to_string(),serde_json::Value::from(item.answer().choices().iter().map(ToString::to_string).collect::<Vec<_>>()))).collect::<serde_json::Map<_,_>>();
+                                    this.emit(id,"submit",serde_json::Value::Object(choices).to_string(),cx);
+                                    this.emit(id,"submitDetails",serde_json::Value::Object(details).to_string(),cx);
+                                }else{this.emit(id,"complete",serde_json::Value::Object(details).to_string(),cx);}
+                            }
+                            _=>{}
                         }
                     }).detach();
                     KitState::Questionnaire(state)
@@ -3256,28 +3291,50 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "Settings" => {
+                let group_variant=|value:&str|match value {"fill"=>GroupBoxVariant::Fill,"outline"=>GroupBoxVariant::Outline,_=>GroupBoxVariant::Normal};
                 let mut pages = Vec::new();
                 for (page_node, page) in items(node, "SettingsPage") {
-                    let mut entry = SettingPage::new(page.text("title"));
+                    let mut entry = SettingPage::new(page.text("title")).default_open(page.flag("defaultOpen")).resettable(page.prop("resettable")!=Some("false"));
+                    if let Some(icon)=icon_name(&page.text("icon")) {entry=entry.icon(icon);}
                     if !page.text("description").is_empty() {entry = entry.description(page.text("description"));}
+                    if let Some(classes)=page.prop("headerClassName") {entry=entry.header_style(&self.class_style(classes,cx));}
+                    if let Some(suffix)=first_item(page_node,"SettingsTitleSuffix") {
+                        let (part,root)=(suffix.identity.get(),root.clone());
+                        entry=entry.title_suffix(move|_,cx|root.update(cx,|root,cx|root.slot_of(part,cx)).unwrap_or_else(|_|div().into_any_element()));
+                    }
                     for (group_node, group) in items(page_node, "SettingsGroup") {
-                        let mut set = SettingGroup::new().title(group.text("title"));
+                        let mut set = SettingGroup::new().title(group.text("title")).refine_style(&self.node_style(group_node));
                         if !group.text("description").is_empty() {set = set.description(group.text("description"));}
+                        if let Some(variant)=group.prop("variant") {set=set.variant(group_variant(variant));}
+                        if let Some(footer)=first_item(group_node,"SettingsFooter") {
+                            let (part,root)=(footer.identity.get(),root.clone());
+                            set=set.footer(move|_,cx|root.update(cx,|root,cx|root.slot_of(part,cx)).unwrap_or_else(|_|div().into_any_element()));
+                        }
                         for (item_node, item) in items(group_node, "SettingItem") {
-                            // The control renders later, inside Settings, through the root.
-                            let (child, root) = (item_node.identity.get(), root.clone());
-                            let field = SettingField::<SharedString>::render(move |_: &RenderOptions, _: &mut Window, cx: &mut App| {
-                                root.update(cx, |root, cx| div().flex().items_center().children(root.content_of(child, cx))).unwrap_or_else(|_| div())
+                            // Custom child controls own their sizing and disabled state.
+                            let (child,render_root) = (item_node.identity.get(), root.clone());
+                            let mut field = SettingField::<SharedString>::render(move |_: &RenderOptions, _: &mut Window, cx: &mut App| {
+                                render_root.update(cx, |root, cx| div().flex().items_center().children(root.content_of(child, cx))).unwrap_or_else(|_| div())
                             });
-                            let mut row = SettingItem::new(item.text("title"), field);
+                            if item.handles("reset") {
+                                let (dirty,reset)=(root.clone(),root.clone());
+                                field=field.on_reset(move|cx|dirty.upgrade().is_some_and(|root|find(&root.read(cx).node,child).and_then(|node|node.kit.as_deref()).is_some_and(|item|item.flag("dirty"))),move|_,cx|{let _=reset.update(cx,|root,cx|root.emit(child,"reset",String::new(),cx));});
+                            }
+                            let mut row = SettingItem::new(item.text("title"), field).layout(if item.prop("layout")==Some("vertical") {Axis::Vertical}else{Axis::Horizontal});
                             if !item.text("description").is_empty() {row = row.description(item.text("description"));}
+                            row=row.keywords(item.text("keywords").split('\n').filter(|word|!word.is_empty()).map(str::to_owned).collect::<Vec<_>>());
                             set = set.item(row);
                         }
                         entry = entry.group(set);
                     }
                     pages.push(entry);
                 }
-                Settings::new(element_id).pages(pages).into_any_element()
+                let (width,min,max)=kit.settings_sidebar().unwrap_or_else(|error|fail(&self.failure,error));
+                let mut settings=Settings::new(element_id).pages(pages).sidebar_width(px(width)).sidebar_size_range(px(min)..px(max)).with_group_variant(group_variant(&kit.text("groupVariant"))).default_selected_index(SelectIndex {page_ix:kit.index("defaultPage").unwrap_or(0),group_ix:kit.index("defaultGroup")});
+                if let Some(size)=kit_size(kit) {settings=settings.with_size(size);}
+                if let Some(classes)=kit.prop("sidebarClassName") {settings=settings.sidebar_style(&self.class_style(classes,cx));}
+                if let Some(classes)=kit.prop("headerClassName") {settings=settings.header_style(&self.class_style(classes,cx));}
+                settings.into_any_element()
             }
             "SpeechButton" => match self.states.get(&id) {
                 Some(KitState::Speech(state)) => {
@@ -3316,13 +3373,15 @@ impl Root {
             "Questionnaire" => match self.states.get(&id) {
                 Some(KitState::Questionnaire(state)) => {
                     let mut survey = Questionnaire::new(state).child(QuestionnaireProgress::new(state));
+                    if let Some(size)=kit_size(kit) {survey=survey.with_size(size);}
                     for (child, question) in items(node, "Question") {
                         let name = question.text("id");
                         let choices = items(child, "QuestionChoice").fold(QuestionnaireChoices::new(state, name.clone()), |list, (_, choice)| list.child(QuestionnaireChoice::new(state, name.clone(), choice.text("id"))));
                         let mut item = QuestionnaireItem::new(state, name.clone()).child(QuestionnaireTitle::new(state, name.clone()));
                         if !question.text("description").is_empty() {item = item.child(QuestionnaireDescription::new(state, name.clone()));}
+                        item=item.child(choices);
+                        if first_item(child,"QuestionInput").is_some() {item=item.child(QuestionnaireInput::new(state,name.clone()));}
                         survey = survey.child(item
-                            .child(choices)
                             .child(QuestionnaireError::new(state, name)));
                     }
                     survey.child(QuestionnaireActions::new(state)

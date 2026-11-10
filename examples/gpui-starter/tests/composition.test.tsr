@@ -1,5 +1,5 @@
 import { test, strictEqual } from 'std:testing';
-import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, Input, Textarea, NumberInput, SpeechButton, signal, document } from 'std:ui';
+import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, Input, Textarea, NumberInput, SpeechButton, Questionnaire, Question, QuestionChoice, QuestionInput, Settings, SettingsPage, SettingsGroup, SettingItem, SettingsFooter, SettingsTitleSuffix, signal, document } from 'std:ui';
 
 interface DeferredProps {
   children?: LazyChildren;
@@ -159,6 +159,43 @@ test('speech options compile and reject negative timeout without microphone acce
   let rejected = false;
   try {
     const invalid = <SpeechButton stopTimeout={-1} />;
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+});
+
+function FormOptions(): Node {
+  const value = signal(true);
+  return <View>
+    <Questionnaire shortcuts="letters" defaultCurrent="plan" size="small" onChange={(answer) => {}} onComplete={(answers) => {}} onSubmitDetails={(answers) => {}}>
+      <Question id="plan" title="Plan" required={true}>
+        <QuestionChoice id="free" label="Free" defaultSelected={true} disabled={!value.get()} />
+        <QuestionInput placeholder="Other" defaultValue="Custom" />
+      </Question>
+    </Questionnaire>
+    <Settings sidebarWidth={200} sidebarMinWidth={100} sidebarMaxWidth={300} defaultPage={0} defaultGroup={0} groupVariant="outline" size="small">
+      <SettingsPage title="General" defaultOpen={true} icon="settings">
+        <SettingsTitleSuffix><Text>Live</Text></SettingsTitleSuffix>
+        <SettingsGroup title="Updates" variant="fill">
+          <SettingItem title="Automatic" dirty={!value.get()} keywords={['startup']} layout="vertical" onReset={() => { value.set(true); }}>
+            <Switch checked={value.get()} onChange={(next) => { value.set(next); }} />
+          </SettingItem>
+          <SettingsFooter><Text>Immediate changes</Text></SettingsFooter>
+        </SettingsGroup>
+      </SettingsPage>
+    </Settings>
+  </View>;
+}
+
+test('questionnaire freeform and settings reset props compose and validate schemas', () => {
+  const node = FormOptions();
+  const html = document(node, 'Form options');
+  strictEqual(html.includes('Form options'), true);
+  let rejected = false;
+  try {
+    const invalid = <Questionnaire><Question id="a" title="A"><QuestionInput /><QuestionInput /></Question></Questionnaire>;
   } catch {
     rejected = true;
   }

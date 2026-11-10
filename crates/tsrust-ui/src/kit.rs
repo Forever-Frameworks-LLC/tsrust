@@ -69,6 +69,10 @@ fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
 impl Kit {
     fn validate_prop(&self,name:&str,value:&str)->Result<(),String> {
         if matches!(self.name.as_str(),"DiffAnnotation"|"DiffDecoration"|"DiffGutterMarker") && matches!(name,"line"|"start"|"end") && !value.parse::<usize>().is_ok_and(|value|value>=1) {return Err(format!("{} {name} requires a one-based integer >= 1",self.name));}
+        if self.name=="Settings" {
+            if matches!(name,"defaultPage"|"defaultGroup") && value.parse::<usize>().is_err() {return Err(format!("Settings {name} requires a nonnegative integer"));}
+            if matches!(name,"sidebarWidth"|"sidebarMinWidth"|"sidebarMaxWidth") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && value>=0. && value<=f32::MAX as f64) {return Err(format!("Settings {name} requires finite nonnegative native pixels"));}
+        }
         if self.name=="SpeechButton" && name=="stopTimeout" && value.parse::<u64>().is_err() {return Err("SpeechButton stopTimeout requires nonnegative integer milliseconds".into());}
         if self.name=="NumberInput" && matches!(name,"value"|"defaultValue"|"step"|"min"|"max") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (name!="step" || value>=0.)) {return Err(format!("NumberInput {name} requires a finite {}number",if name=="step"{"nonnegative "}else{""}));}
         if self.name=="Diff" {
@@ -87,6 +91,12 @@ impl Kit {
             if !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (name=="progress" || value>=0. && value<=f32::MAX as f64)) {return Err(format!("{} {name} requires a finite {}number within native pixel range",self.name,if name=="progress" {""}else{"nonnegative "}));}
         }
         Ok(())
+    }
+    #[cfg(any(test,feature="gpui"))]
+    pub(crate) fn settings_sidebar(&self)->Result<(f32,f32,f32),String> {
+        let (width,min,max)=(self.number("sidebarWidth").unwrap_or(250.),self.number("sidebarMinWidth").unwrap_or(160.),self.number("sidebarMaxWidth").unwrap_or(360.));
+        if min>max {return Err("Settings sidebarMinWidth must not exceed sidebarMaxWidth".into());}
+        Ok((width.clamp(min,max) as f32,min as f32,max as f32))
     }
     pub(crate) fn prop(&self, name: &str) -> Option<&str> {self.props.get(name).map(String::as_str)}
     pub(crate) fn text(&self, name: &str) -> String {self.prop(name).unwrap_or_default().to_owned()}
@@ -144,6 +154,22 @@ impl Node {
     /// item/slot components.
     pub fn kit(name: &str, children: Vec<Child>, class_name: String) -> Result<Self, String> {
         let mut node = Self::view(children, class_name)?;
+        if name=="Questionnaire" {
+            let mut ids=std::collections::HashSet::new();
+            for question in node.visible_children().filter(|node|node.kit.as_deref().is_some_and(|kit|kit.name=="Question")) {
+                let props=question.kit.as_deref().expect("Question");let id=props.text("id");
+                if !ids.insert(id.clone()) {return Err(format!("Questionnaire question id {id:?} repeats"));}
+                let (mut choices,mut defaults,mut inputs)=(std::collections::HashSet::new(),0,0);
+                for child in question.visible_children().filter_map(|node|node.kit.as_deref()) {
+                    if child.name=="QuestionChoice" {
+                        if !choices.insert(child.text("id")) {return Err(format!("Questionnaire choice id {:?} repeats in {id:?}",child.text("id")));}
+                        defaults+=usize::from(child.flag("defaultSelected"));
+                    }else if child.name=="QuestionInput" {inputs+=1;}
+                }
+                if defaults>1 && !props.flag("multiple") {return Err(format!("Questionnaire question {id:?} permits only one default choice"));}
+                if inputs>1 {return Err(format!("Questionnaire question {id:?} permits only one QuestionInput"));}
+            }
+        }
         node.kit = Some(Box::new(Kit {name: name.to_owned(), props: BTreeMap::new(), bindings: Vec::new(), events: Vec::new(), predicates:BTreeMap::new(), number_step:None, local: Vec::new()}));
         Ok(node)
     }
@@ -380,5 +406,37 @@ mod speech_value_tests {
  fn speech_timeout_rejects_invalid_duration_before_mounting() {
   for value in ["-1","0.5","NaN","inf","18446744073709551616"] {assert!(Node::kit("SpeechButton",vec![],String::new()).unwrap().with_kit_prop("stopTimeout",value).is_err());}
   for value in ["0","3000","9223372036854775807"] {assert!(Node::kit("SpeechButton",vec![],String::new()).unwrap().with_kit_prop("stopTimeout",value).is_ok());}
+ }
+}
+
+#[cfg(test)]
+mod questionnaire_schema_tests {
+ use super::*;
+ fn choice(id:&str)->Node {Node::kit("QuestionChoice",vec![],String::new()).unwrap().with_kit_prop("id",id).unwrap().with_kit_prop("defaultSelected","true").unwrap()}
+ fn question(children:Vec<Child>,multiple:bool)->Node {Node::kit("Question",children,String::new()).unwrap().with_kit_prop("id","plan").unwrap().with_kit_prop("multiple",if multiple {"true"}else{"false"}).unwrap()}
+ fn survey(children:Vec<Child>)->Result<Node,String> {Node::kit("Questionnaire",children,String::new())}
+ #[test]
+ fn schema_rejects_duplicate_ids_multiple_single_defaults_and_multiple_inputs() {
+  assert!(survey(vec![Child::Node(question(vec![],false)),Child::Node(question(vec![],false))]).err().unwrap().contains("repeats"));
+  assert!(survey(vec![Child::Node(question(vec![Child::Node(choice("a")),Child::Node(choice("a"))],true))]).err().unwrap().contains("repeats"));
+  assert!(survey(vec![Child::Node(question(vec![Child::Node(choice("a")),Child::Node(choice("b"))],false))]).err().unwrap().contains("one default"));
+  assert!(survey(vec![Child::Node(question(vec![Child::Node(choice("a")),Child::Node(choice("b"))],true))]).is_ok());
+  let input=||Child::Node(Node::kit("QuestionInput",vec![],String::new()).unwrap());
+  assert!(survey(vec![Child::Node(question(vec![input(),input()],false))]).err().unwrap().contains("one QuestionInput"));
+  assert!(survey(vec![Child::Node(question(vec![input()],false))]).is_ok());
+ }
+}
+
+#[cfg(test)]
+mod settings_value_tests {
+ use super::*;
+ #[test]
+ fn sidebar_bounds_validate_and_clamp_without_losing_fractional_pixels() {
+  for prop in ["sidebarWidth","sidebarMinWidth","sidebarMaxWidth"] {for value in ["-1","NaN","inf","1e100"] {assert!(Node::kit("Settings",vec![],String::new()).unwrap().with_kit_prop(prop,value).is_err());}}
+  for prop in ["defaultPage","defaultGroup"] {for value in ["-1","0.5"] {assert!(Node::kit("Settings",vec![],String::new()).unwrap().with_kit_prop(prop,value).is_err());}}
+  let node=Node::kit("Settings",vec![],String::new()).unwrap().with_kit_prop("sidebarWidth","100.5").unwrap().with_kit_prop("sidebarMinWidth","120.5").unwrap();
+  assert_eq!(node.kit.as_deref().unwrap().settings_sidebar().unwrap(),(120.5,120.5,360.));
+  let node=node.with_kit_prop("sidebarMaxWidth","100").unwrap();
+  assert!(node.kit.as_deref().unwrap().settings_sidebar().is_err());
  }
 }

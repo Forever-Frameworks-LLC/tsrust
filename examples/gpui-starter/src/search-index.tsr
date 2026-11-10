@@ -366,7 +366,7 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/rating", page: "Rating", section: "Custom Maximum", text: "any number of stars.", keywords: "rating max onchange value"
   }, {
-    route: "/input", page: "Input", section: "", text: "a single-line text field with placeholders, masking, input masks, validation, prefix and suffix icons, sizes and states. use textarea for multiple lines and inputgroup for addons.", keywords: "input text field form entry type password email button input switch text view"
+    route: "/input", page: "Input", section: "", text: "a single-line text field with placeholders, masking, input masks, validation, prefix and suffix icons, sizes and states. use textarea for multiple lines and inputgroup for addons.", keywords: "input text field form entry type password email button contextmenu input menuitem switch text view"
   }, {
     route: "/input", page: "Input", section: "Basic Input", text: "uncontrolled: the field keeps its own text. onchange reports each edit.", keywords: "input text view classname onchange variant"
   }, {
@@ -395,6 +395,8 @@ export function searchEntries(): SearchEntry[] {
     route: "/input", page: "Input", section: "Custom Appearance", text: "appearance=false draws bare text for a custom container.", keywords: "input view appearance classname placeholder"
   }, {
     route: "/input", page: "Input", section: "Context Menu", text: "contextmenu=false turns off the right-click edit menu.", keywords: "input classname contextmenu defaultvalue"
+  }, {
+    route: "/input", page: "Input", section: "Custom input menu", text: "compose contextmenu around input with contextmenu=false. menu actions use the same field state through controlinput; no separate field implementation is needed.", keywords: "contextmenu input menuitem classname contextmenu defaultvalue id onselect"
   }, {
     route: "/input", page: "Input", section: "Programmatic Control", text: "controlinput runs actions on the field with that id; readinput reads its text and selection.", keywords: "button input text view classname defaultvalue id onpress size variant"
   }, {
@@ -846,13 +848,15 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/editor", page: "Editor", section: "Editor tools and local text", text: "the editor owns its buffer when value is omitted. toggle line numbers after typing to verify that settings preserve edits. read editor state reports the live buffer, selection and highlighting language.", keywords: "button codeeditor switch text view accessibilitylabel checked classname defaultvalue id indentguides language linenumbers onchange onpress searchable softwrap tabsize"
   }, {
-    route: "/questionnaire", page: "Questionnaire", section: "", text: "a survey with required questions, multiple answers, progress and backward navigation.", keywords: "questionnaire question questionchoice questionnaire text view"
+    route: "/questionnaire", page: "Questionnaire", section: "", text: "a survey with required questions, multiple answers, progress and backward navigation.", keywords: "questionnaire question questionchoice questioninput questionnaire switch text view"
   }, {
     route: "/questionnaire", page: "Questionnaire", section: "Guided questions", text: "choose a plan, then select the tools you use. submit reports the answers as json.", keywords: "question questionchoice questionnaire text view classname description id label multiple onsubmit required title"
   }, {
-    route: "/settings", page: "Settings Panel", section: "", text: "searchable settings pages with grouped controls. each control owns or receives its value as usual.", keywords: "settings numberinput settingitem settings settingsgroup settingspage switch"
+    route: "/questionnaire", page: "Questionnaire", section: "Freeform answers and defaults", text: "defaults initialize answers once. disable team live without rebuilding the questionnaire; text is a draft until next or submit. detailed submission preserves choices, freeform text and skipped status.", keywords: "question questionchoice questioninput questionnaire switch text view accessibilitylabel checked classname defaultcurrent defaultselected disabled id label onchange oncurrentchange onsubmitdetails placeholder required shortcuts size title"
   }, {
-    route: "/settings", page: "Settings Panel", section: "Application preferences", text: "switch pages, search by a setting title, and change the controls.", keywords: "numberinput settingitem settings settingsgroup settingspage switch checked classname description max min onchange title value"
+    route: "/settings", page: "Settings Panel", section: "", text: "searchable settings pages with grouped controls. each control owns or receives its value as usual.", keywords: "settings numberinput settingitem settings settingsfooter settingsgroup settingspage settingstitlesuffix switch text"
+  }, {
+    route: "/settings", page: "Settings Panel", section: "Application preferences", text: "switch pages, search by title or the extra keyword startup, then change a control. reset appears only while that page differs from its defaults.", keywords: "numberinput settingitem settings settingsfooter settingsgroup settingspage settingstitlesuffix switch text checked classname defaultopen description dirty groupvariant headerclassname icon keywords layout max min onchange onreset sidebarclassname sidebarmaxwidth sidebarminwidth sidebarwidth size title value variant"
   }, {
     route: "/speech", page: "Speech", section: "", text: "dictation through the system recognizer. availability and permission depend on the host operating system.", keywords: "speech speechbutton switch text view"
   }, {

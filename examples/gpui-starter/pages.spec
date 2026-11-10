@@ -1756,6 +1756,18 @@ contextMenu=false turns off the right-click edit menu.
 function NoMenuInput(): Node {
   return <Input contextMenu={false} defaultValue="Right-click does nothing" className="w-80" />;
 }
+--- Custom input menu
+Compose ContextMenu around Input with contextMenu=false. Menu actions use the same field state through controlInput; no separate field implementation is needed.
+function CustomInputMenu(): Node {
+  return (
+    <ContextMenu>
+      <Input id="custom-menu-field" contextMenu={false} defaultValue="Right-click for custom actions" className="w-96" />
+      <MenuItem onSelect={() => { controlInput('custom-menu-field', 'selectAll'); }}>Select all text</MenuItem>
+      <MenuItem onSelect={() => { controlInput('custom-menu-field', 'setValue', { value: 'Hello from the menu' }); }}>Replace with greeting</MenuItem>
+      <MenuItem onSelect={() => { controlInput('custom-menu-field', 'clear'); }}>Clear field</MenuItem>
+    </ContextMenu>
+  );
+}
 --- Programmatic Control
 controlInput runs actions on the field with that id; readInput reads its text and selection.
 function ControlledInput(): Node {
@@ -4332,25 +4344,58 @@ function GuidedQuestions(): Node {
   );
 }
 
+--- Freeform answers and defaults
+Defaults initialize answers once. Disable Team live without rebuilding the questionnaire; text is a draft until Next or Submit. Detailed submission preserves choices, freeform text and skipped status.
+function FreeformQuestions(): Node {
+  const disabled = signal(true);
+  const large = signal(false);
+  const result = signal('No detailed submission.');
+  const current = signal('plan');
+  return (
+    <View className="flex-col gap-3 w-full">
+      <View className="flex-row gap-3">
+        <Switch checked={disabled.get()} onChange={(value) => { disabled.set(value); }}>Disable Team</Switch>
+        <Switch checked={large.get()} onChange={(value) => { large.set(value); }}>Large questions</Switch>
+      </View>
+      <Questionnaire defaultCurrent="plan" shortcuts="numbers" size={large.get() ? 'large' : 'small'} onCurrentChange={(id) => { current.set(clone(id)); }} onSubmitDetails={(value) => { result.set(clone(value)); }} className="h-96 w-full">
+        <Question id="plan" title="Choose a plan" required={true}>
+          <QuestionChoice id="free" label="Free" defaultSelected={true} />
+          <QuestionChoice id="team" label="Team" disabled={disabled.get()} />
+        </Question>
+        <Question id="notes" title="What are you building?" required={true}>
+          <QuestionInput placeholder="Describe your project" accessibilityLabel="Project description" />
+        </Question>
+        <Question id="later" title="Unavailable question" disabled={true}>
+          <QuestionChoice id="later" label="Later" />
+        </Question>
+      </Questionnaire>
+      <Text>Current question: {current}</Text>
+      <Text>{result}</Text>
+    </View>
+  );
+}
+
 === Settings Panel | settings | Forms
 Searchable settings pages with grouped controls. Each control owns or receives its value as usual.
 --- Application preferences
-Switch pages, search by a setting title, and change the controls.
+Switch pages, search by title or the extra keyword startup, then change a control. Reset appears only while that page differs from its defaults.
 function ApplicationPreferences(): Node {
   const automatic = signal(true);
   const fontSize = signal<number>(14);
   return (
-    <Settings className="h-96 w-full">
-      <SettingsPage title="General" description="Application behavior.">
+    <Settings className="h-96 w-full" size="small" sidebarWidth={200} sidebarMinWidth={160} sidebarMaxWidth={280} groupVariant="outline" sidebarClassName="bg-secondary" headerClassName="p-2">
+      <SettingsPage title="General" icon="settings" description="Application behavior." defaultOpen={true}>
+        <SettingsTitleSuffix><Text variant="muted">Live preferences</Text></SettingsTitleSuffix>
         <SettingsGroup title="Updates" description="Choose when to check for new versions.">
-          <SettingItem title="Automatic checks" description="Check when the application starts.">
+          <SettingItem title="Automatic checks" description="Check when the application starts." keywords={['startup', 'updates']} dirty={!automatic.get()} onReset={() => { automatic.set(true); }}>
             <Switch checked={automatic.get()} onChange={(value) => { automatic.set(value); }} />
           </SettingItem>
+          <SettingsFooter><Text>Changes apply immediately. Reset restores automatic checks.</Text></SettingsFooter>
         </SettingsGroup>
       </SettingsPage>
       <SettingsPage title="Editor" description="Text and editing preferences.">
         <SettingsGroup title="Typography">
-          <SettingItem title="Font size" description="Logical pixels.">
+          <SettingItem title="Font size" description="Logical pixels." layout="vertical" keywords={['typography', 'text size']} dirty={fontSize.get() !== 14} onReset={() => { fontSize.set(14); }}>
             <NumberInput value={fontSize.get()} min={10} max={32} onChange={(value) => { fontSize.set(value); }} />
           </SettingItem>
         </SettingsGroup>

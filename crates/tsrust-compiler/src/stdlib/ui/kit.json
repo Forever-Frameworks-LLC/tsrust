@@ -6326,8 +6326,63 @@
     },
     {
       "name": "Settings",
-      "doc": "A searchable settings window: a sidebar of SettingsPage entries, each with grouped SettingItem rows.",
-      "props": [],
+      "doc": "A searchable settings window: a sidebar of SettingsPage entries, each with grouped SettingItem rows. Custom child controls own their values, disabled state and size; Settings.size scales its surrounding layout and labels. Sidebar widths clamp to the specified range. Search and selected page survive reactive option changes. Ownership: the Settings parent retains its page, group, item and slot children.",
+      "props": [
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Settings layout and label size; medium by default. Set child control sizes separately."
+        },
+        {
+          "name": "sidebarWidth",
+          "type": "number",
+          "doc": "Initial sidebar width in logical pixels; 250 by default. Finite nonnegative native pixel range. User resizing is retained."
+        },
+        {
+          "name": "sidebarMinWidth",
+          "type": "number",
+          "doc": "Minimum sidebar width in logical pixels; 160 by default. Must not exceed sidebarMaxWidth."
+        },
+        {
+          "name": "sidebarMaxWidth",
+          "type": "number",
+          "doc": "Maximum sidebar width in logical pixels; 360 by default. Must be at least sidebarMinWidth."
+        },
+        {
+          "name": "defaultPage",
+          "type": "int",
+          "doc": "Zero-based initial page index, 0 by default. Read at mount. An unavailable index falls back to the first visible page."
+        },
+        {
+          "name": "defaultGroup",
+          "type": "int",
+          "doc": "Optional zero-based initial group index within defaultPage; absent selects the page heading. Read at mount."
+        },
+        {
+          "name": "groupVariant",
+          "type": [
+            "normal",
+            "fill",
+            "outline"
+          ],
+          "doc": "Default group surface; normal by default. SettingsGroup.variant overrides it."
+        },
+        {
+          "name": "sidebarClassName",
+          "type": "string",
+          "doc": "Utility styles applied to the sidebar surface."
+        },
+        {
+          "name": "headerClassName",
+          "type": "string",
+          "doc": "Utility styles applied to the sidebar search header. SettingsPage.headerClassName styles each content page heading separately."
+        }
+      ],
       "children": "SettingsPage",
       "example": "<Settings className=\"h-96\"><SettingsPage title=\"General\"><SettingsGroup title=\"Appearance\"><SettingItem title=\"Dark mode\"><Switch checked={dark.get()} onChange={(on) => { dark.set(on); }}/></SettingItem></SettingsGroup></SettingsPage></Settings>"
     },
@@ -6344,9 +6399,29 @@
           "name": "description",
           "type": "string",
           "doc": "Text under the heading."
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "doc": "Named icon beside the sidebar page title; absent by default."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "doc": "Whether this sidebar page initially expands its group links; false by default."
+        },
+        {
+          "name": "resettable",
+          "type": "boolean",
+          "doc": "Shows a page reset action while at least one item is dirty; true by default. Reset calls each matching item onReset."
+        },
+        {
+          "name": "headerClassName",
+          "type": "string",
+          "doc": "Overrides the default Settings header utility styles for this page."
         }
       ],
-      "children": "SettingsGroup",
+      "children": "SettingsGroup and optional SettingsTitleSuffix",
       "item": true,
       "example": "<SettingsPage title=\"Editor\"/>"
     },
@@ -6363,15 +6438,24 @@
           "name": "description",
           "type": "string",
           "doc": "Text under the heading."
+        },
+        {
+          "name": "variant",
+          "type": [
+            "normal",
+            "fill",
+            "outline"
+          ],
+          "doc": "Group surface override. Defaults to Settings.groupVariant."
         }
       ],
-      "children": "SettingItem",
+      "children": "SettingItem and optional SettingsFooter",
       "item": true,
       "example": "<SettingsGroup title=\"Fonts\"/>"
     },
     {
       "name": "SettingItem",
-      "doc": "One setting: a title and description beside its control (the children).",
+      "doc": "One setting: a title and description beside its control (the children). Its children own their control size and disabled state. Supply dirty and onReset together for page reset; no value is inferred or mutated automatically.",
       "props": [
         {
           "name": "title",
@@ -6382,11 +6466,36 @@
           "name": "description",
           "type": "string",
           "doc": "Explanation under the title."
+        },
+        {
+          "name": "keywords",
+          "type": "string[]",
+          "doc": "Additional search terms; none by default. Text in custom controls is not searched automatically."
+        },
+        {
+          "name": "layout",
+          "type": [
+            "horizontal",
+            "vertical"
+          ],
+          "doc": "Control beside the label or below it; horizontal by default."
+        },
+        {
+          "name": "dirty",
+          "type": "boolean",
+          "doc": "Whether this item differs from its default; false by default. With onReset, true enables the parent page reset action."
         }
       ],
       "children": true,
       "item": true,
-      "example": "<SettingItem title=\"Font size\" description=\"In points.\"><NumberInput value={size.get()}/></SettingItem>"
+      "example": "<SettingItem title=\"Font size\" description=\"In points.\"><NumberInput value={size.get()}/></SettingItem>",
+      "events": [
+        {
+          "prop": "onReset",
+          "value": "void",
+          "doc": "Called by the page reset action while dirty is true. Restore the child control values in this handler; resetting does not change them automatically."
+        }
+      ]
     },
     {
       "name": "MessageScroller",
@@ -6475,8 +6584,32 @@
     },
     {
       "name": "Questionnaire",
-      "doc": "A step-by-step survey of Question elements with progress, Back/Skip/Next/Submit and required-answer validation. Choosing an answer moves to the next question.",
-      "props": [],
+      "doc": "A step-by-step survey of Question elements with progress, Back/Skip/Next/Submit and required-answer validation. Choosing an answer moves to the next question. Question ids, labels, required/multiple flags, defaults and freeform input definitions are read once at mount. Changing size or Question/QuestionChoice.disabled preserves answers. Duplicate ids, more than one default choice for a single-answer question, and multiple inputs in one question throw. Ownership: the questionnaire owns its answer and input state until disposal.",
+      "props": [
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Size shared by progress, questions, choices, input and actions; medium by default."
+        },
+        {
+          "name": "defaultCurrent",
+          "type": "string",
+          "doc": "Initial enabled question id. Defaults to the first enabled question. Unknown ids report a UI error at mount."
+        },
+        {
+          "name": "shortcuts",
+          "type": [
+            "letters",
+            "numbers"
+          ],
+          "doc": "Keyboard choice shortcuts; disabled by default. Read once at mount."
+        }
+      ],
       "children": "Question",
       "events": [
         {
@@ -6484,13 +6617,33 @@
           "value": "string",
           "param": "answers",
           "doc": "Receives the answers as JSON: an object from question id to the array of chosen choice ids."
+        },
+        {
+          "prop": "onChange",
+          "value": "string",
+          "doc": "Receives JSON {id,choices,freeform,status} when a committed answer changes. choices is an array of choice ids; freeform is a string or null; status is unanswered, answered or skipped. Typing alone is a draft until confirmed."
+        },
+        {
+          "prop": "onCurrentChange",
+          "value": "string",
+          "doc": "Receives the current question id after navigation, or an empty string when none is current."
+        },
+        {
+          "prop": "onComplete",
+          "value": "string",
+          "doc": "Receives JSON mapping each enabled question id to {choices,freeform,status} when the questionnaire becomes complete, before explicit submission."
+        },
+        {
+          "prop": "onSubmitDetails",
+          "value": "string",
+          "doc": "Receives JSON mapping each enabled question id to {choices,freeform,status} on submission. Use this instead of onSubmit when freeform text or skipped status is needed. onSubmit retains its choice-array format."
         }
       ],
       "example": "<Questionnaire onSubmit={(answers) => { saved.set(clone(answers)); }}><Question id=\"plan\" title=\"Which plan?\" required={true}><QuestionChoice id=\"free\" label=\"Free\"/><QuestionChoice id=\"pro\" label=\"Pro\"/></Question></Questionnaire>"
     },
     {
       "name": "Question",
-      "doc": "One question in a Questionnaire; its QuestionChoice children are the answers.",
+      "doc": "One question in a Questionnaire; QuestionChoice children offer choices and an optional QuestionInput accepts freeform text. Required single-answer questions accept a choice or nonempty confirmed freeform answer. Multiple-answer questions retain both choices and text. Schema and defaults are read once at mount.",
       "props": [
         {
           "name": "id",
@@ -6516,9 +6669,14 @@
           "name": "multiple",
           "type": "boolean",
           "doc": "Allows several choices; Next continues."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Skips this question while disabled; false by default. Live changes preserve its answer and move away if it is current."
         }
       ],
-      "children": "QuestionChoice",
+      "children": "QuestionChoice and at most one QuestionInput",
       "item": true,
       "example": "<Question id=\"tools\" title=\"Which tools?\" multiple={true}/>"
     },
@@ -6540,12 +6698,50 @@
           "name": "description",
           "type": "string",
           "doc": "Secondary text under the label."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables selection; false by default. Can change live without rebuilding questionnaire state."
+        },
+        {
+          "name": "defaultSelected",
+          "type": "boolean",
+          "doc": "Selects this enabled choice at mount. Defaults to false. A single-answer question permits at most one defaultSelected choice; multiple=true permits several."
         }
       ],
       "item": true,
       "example": "<QuestionChoice id=\"pro\" label=\"Pro\" description=\"For teams.\"/>",
       "children": "Text",
       "textChildren": "label"
+    },
+    {
+      "name": "QuestionInput",
+      "item": true,
+      "doc": "One optional freeform answer field inside a Question. Its text remains a draft until the user confirms it. Defaults and disabled are read once when the parent questionnaire mounts; the parent owns the field state. A Question accepts at most one input.",
+      "props": [
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Hint shown while the draft is empty; empty by default."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initial text, empty by default. Nonblank text also initializes the confirmed answer. In a single-answer question, nonblank initial text replaces any default-selected choice."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Names the field; defaults to its question title."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables freeform entry at mount; false by default. Disabling the parent Question also disables this field."
+        }
+      ],
+      "example": "<Question id=\"notes\" title=\"Anything else?\"><QuestionInput placeholder=\"Optional notes\" /></Question>"
     },
     {
       "name": "SpeechButton",
@@ -7014,6 +7210,22 @@
       "children": true,
       "item": true,
       "example": "<GroupBoxFooter><Button>Save</Button></GroupBoxFooter>"
+    },
+    {
+      "name": "SettingsTitleSuffix",
+      "item": true,
+      "children": true,
+      "props": [],
+      "doc": "Content after its SettingsPage heading, such as a help button. The first suffix wins. The page retains its children.",
+      "example": "<SettingsTitleSuffix><Text>Preview</Text></SettingsTitleSuffix>"
+    },
+    {
+      "name": "SettingsFooter",
+      "item": true,
+      "children": true,
+      "props": [],
+      "doc": "Supporting content below its SettingsGroup surface. Follows group search visibility; the group still needs at least one SettingItem. The first footer wins.",
+      "example": "<SettingsFooter><Text>Changes save automatically.</Text></SettingsFooter>"
     }
   ],
   "kitTypes": [
@@ -9412,6 +9624,109 @@
       "stop": "microphone button",
       "transcript": "onPartial/onFinal",
       "levels": "waveform"
+    },
+    "Questionnaire": {
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size",
+      "new": "Questionnaire with automatic progress and actions"
+    },
+    "QuestionnaireState": {
+      "new": "owned mounted questionnaire state",
+      "with_current_item": "defaultCurrent",
+      "with_shortcuts": "shortcuts",
+      "set_item_disabled": "Question.disabled",
+      "set_choice_disabled": "QuestionChoice.disabled",
+      "answers": "onSubmitDetails/onComplete",
+      "answer": "onChange",
+      "current_item": "onCurrentChange",
+      "is_complete": "onComplete",
+      "go_previous": "Back button",
+      "go_next": "Next button",
+      "skip_current": "Skip button",
+      "submit": "Submit button",
+      "confirm_current": "Next and choice activation",
+      "activate_choice": "QuestionChoice activation",
+      "input_state": "QuestionInput",
+      "choice_state": "choice rendering",
+      "item_state": "question rendering",
+      "navigation_state": "action enabled state",
+      "progress": "progress display",
+      "shortcut_for_choice": "shortcut label",
+      "activate_shortcut": "keyboard shortcut handling"
+    },
+    "QuestionnaireItemDefinition": {
+      "new": "Question",
+      "with_description": "description",
+      "with_required": "required",
+      "with_multiple": "multiple",
+      "with_disabled": "disabled",
+      "with_choices": "QuestionChoice children",
+      "with_choice": "QuestionChoice child",
+      "with_input": "QuestionInput child"
+    },
+    "QuestionnaireChoiceDefinition": {
+      "new": "QuestionChoice",
+      "with_description": "description",
+      "with_disabled": "disabled",
+      "with_default_selected": "defaultSelected"
+    },
+    "QuestionnaireInputDefinition": {
+      "new": "QuestionInput",
+      "with_disabled": "disabled"
+    },
+    "QuestionnaireInput": {
+      "new": "QuestionInput",
+      "xsmall": "Questionnaire.size",
+      "small": "Questionnaire.size",
+      "medium": "Questionnaire.size",
+      "large": "Questionnaire.size",
+      "with_size": "Questionnaire.size"
+    },
+    "Settings": {
+      "new": "Settings",
+      "sidebar_width": "sidebarWidth",
+      "sidebar_size_range": "sidebarMinWidth/sidebarMaxWidth",
+      "page": "SettingsPage child",
+      "pages": "SettingsPage children",
+      "with_group_variant": "groupVariant",
+      "sidebar_style": "sidebarClassName",
+      "default_selected_index": "defaultPage/defaultGroup",
+      "header_style": "headerClassName",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "SettingPage": {
+      "new": "SettingsPage",
+      "title": "title",
+      "title_suffix": "SettingsTitleSuffix",
+      "icon": "icon",
+      "description": "description",
+      "default_open": "defaultOpen",
+      "resettable": "resettable",
+      "group": "SettingsGroup",
+      "groups": "SettingsGroup children",
+      "header_style": "headerClassName"
+    },
+    "SettingGroup": {
+      "new": "SettingsGroup",
+      "title": "title",
+      "description": "description",
+      "variant": "variant",
+      "footer": "SettingsFooter",
+      "item": "SettingItem",
+      "items": "SettingItem children"
+    },
+    "SettingItem": {
+      "new": "SettingItem custom child field",
+      "description": "description",
+      "keywords": "keywords",
+      "layout": "layout"
     }
   }
 }

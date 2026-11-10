@@ -6,6 +6,56 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Forms desktop acceptance — 2026-11-10
+
+Speech checkpoint 84c64577 is local. Current Questionnaire/Settings section adds
+QuestionInput freeform answers, initial selected choices, live disabled questions
+and choices, root sizes/shortcuts/default question and committed/full submit events.
+Legacy onSubmit remains a map to choice arrays; detailed events include confirmed
+freeform and status for enabled questions only. Schema rejects duplicates, multiple
+single-answer defaults and multiple freeform inputs. Definition changes are mount
+semantics, not a live schema editor.
+
+Settings adds sizing, sidebar width/range, initial page/group, group variants,
+sidebar/search-header and page-heading styles, page icons/default expansion,
+search keywords, vertical rows, dirty/onReset, title suffix and group footer slots.
+Reset reuses SettingField.on_reset, retaining weak root references. Arbitrary child
+controls keep their own size/disabled/value semantics. Input custom menus compose
+existing ContextMenu around contextMenu=false and reuse controlInput actions.
+225 wrappers, 71 pages/357 examples. Mapping 1939/2147 across 185 Kit types;
+20 types remain incomplete. This is substantial coverage, not full API parity.
+
+Acceptance: UI runtime 136/136, 0.04s (build/setup 4.33s); compiler/LSP binary
+build passed 3m06s; TSRX LSP 6/6, 3.26s. Public suites compiled together once:
+10/10, 2.65ms. The initial new fixture incorrectly created state inside its test
+callback; moved construction into a normal component per the state-owner contract,
+then reran the affected public suites. Native gallery build passed and its detached
+bundle was atomically replaced/reopened. Whole formatter: one public fixture first,
+then zero files/snippets/fingerprints on the final run; generators and diff clean.
+
+Desktop proof: Free default survives size/disabled updates; Team becomes enabled,
+selection advances to the input; blank required text blocks submit with an error;
+confirmed notes plus Team appear in detailed JSON. Settings startup keyword keeps
+its row visible; dirty Switch exposes Reset All, reset restores on; numeric 14 ->15
+then reset ->14. Icon, sidebar, footer/title slots and vertical layout render.
+Speech unsupported/disabled buttons expose disabled accessibility states, and size
+changes render without capture. Actual recording/OS permissions remain unverified.
+Input right-click shows custom actions; Replace with greeting updates the same field.
+Gallery currently open on Input, custom menu field='Hello from the menu'.
+
+New issue found while verifying the editor: existing server PID84953 remained busy
+for >22min. Bounded one-second sample /tmp/tsrust-ui-forms-lsp.sample shows
+ProjectIndex::checked -> apply_project_checked_facts -> project_type_spelling,
+not compiler diagnostics. Physical footprint 809MB, peak809MB; RSS15MB reflects
+compression, not real footprint. No memory-limit workaround applied. Inspect
+project_generic_intelligence.rs Named spelling (repeated LineIndex/symbol searches)
+and global fact application before refreshing server; transient No Problems did
+not prove settled analysis. Fix this narrow performance defect next, with a real
+gallery project witness and existing editor agreement tests. Preserve all form
+passes; no need to repeat native acceptance for an LSP-only repair. Still pending:
+classed-button accessibility/native text/style limits, unsigned packaging smoke,
+final all-target checks and obsolete output cleanup. No pushes/agents/measurements.
+
 ### Forms continuation — 2026-11-10 (native acceptance pending)
 
 Local accepted input/replay checkpoint is f5673ab7. Current Speech section adds
