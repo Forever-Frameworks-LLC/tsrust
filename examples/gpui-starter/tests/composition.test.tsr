@@ -1,4 +1,5 @@
 import { test, strictEqual } from 'std:testing';
+import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview, ExampleCode } from '../src/example.tsrx';
 import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, Input, Textarea, NumberInput, SpeechButton, Questionnaire, Question, QuestionChoice, QuestionInput, Settings, SettingsPage, SettingsGroup, SettingItem, SettingsFooter, SettingsTitleSuffix, signal, document } from 'std:ui';
 
 interface DeferredProps {
@@ -201,4 +202,25 @@ test('questionnaire freeform and settings reset props compose and validate schem
   }
 
   strictEqual(rejected, true);
+});
+
+
+test('composed gallery examples keep headings preview and copy control', () => {
+  const node = (
+    <Example>
+      <ExampleTitle>Composed café example</ExampleTitle>
+      <ExampleDescription>Readable description</ExampleDescription>
+      <ExampleTabs>
+        <ExamplePreview><Text>Live preview</Text></ExamplePreview>
+        <ExampleCode>{`const name = 'café';
+const message = \`hello \${name}\`;
+const newline = '\\n';`}</ExampleCode>
+      </ExampleTabs>
+    </Example>
+  );
+  const html = document(node, 'Composition');
+  strictEqual(html.includes('Composed café example'), true, 'Missing Composed café example');
+  strictEqual(html.includes('Readable description'), true, 'Missing Readable description');
+  strictEqual(html.includes('Live preview'), true, 'Missing Live preview');
+  strictEqual(html.includes('Copy'), true, 'Missing Copy');
 });

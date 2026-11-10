@@ -6,6 +6,44 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Composed gallery examples — 2026-11-10 (accepted with this checkpoint)
+
+Owner requested readable shadcn-style example composition instead of giant title,
+description and escaped code props. `src/example.tsrx` now exports ExampleTitle,
+ExampleDescription, ExampleTabs, ExamplePreview and ExampleCode alongside Example.
+Example only lays out children. ExampleTabs reuses native Tabs/Tab/TabsContent
+selection and retained child nodes; no separate signal/context API. ExampleCode
+accepts string children, displays Markdown source and owns the Copy control inside
+the code panel. Guide live examples use the same tabs/preview/code composition;
+the duplicate LiveExample implementation is removed. The gallery generator emits
+readable text children and multiline template children, escaping backslashes,
+backticks and interpolation openers without changing displayed source. Regenerated
+all71 component pages/358 examples and guide live blocks; README explains sources.
+
+Completed: full gallery project check; both generators --check; whole formatter
+0files/snippets/fingerprints; diff check; bounded Table authoring regression1/1,
+18.75s execution,4m40 build/setup including shared-target queue. Existing composition
+cases8/8 passed,2.69ms entire initial run. New native composition witness initially
+asserted Markdown source was in document HTML, but Kit props are omitted by that
+serializer; a labeled rerun confirmed precisely this unsupported assertion. The
+source assertions were removed; headings, preview and Copy remain asserted. Final
+focused rerun1/1 passed,1.51ms execution; setup/build3m40 including queue. This
+preserves the existing8/8 evidence instead of rerunning unchanged cases. Independent
+Node VM evaluation of all373 generated template literals matches original spec/guide
+code byte for byte. Native gallery build passed; regular app-bundle executable was
+atomically replaced, old preview terminated, and one independent preview reopened.
+Desktop proof: Basic Accordion initially expands first item; second item remains
+expanded after Code -> Preview switching. Code panel shows highlighted source;
+Copy pastes the complete expected18-line BasicAccordion function into a disposable
+unsaved Code buffer, which was closed without saving. Gallery left on Accordion
+preview. CUA completion: Verified composed example tabs and copy. No CUA phase open.
+VS Code full rescan settled
+idle and CUA reports no workspace problems. No compiler/runtime/LSP source changes,
+new dependency, performance measurement, push or remote validation. Web interaction
+was not rerun for this example-only refactor; native/structural proof is above.
+Pruned four superseded failed-test cache entries; kept final native cache entries,
+shared runtime build support, shared Cargo dependencies and independent app bundle.
+
 ### Native text, parser and packaging finish — 2026-11-10 (accepted with this checkpoint)
 
 Latest accepted checkpoints: fd803813 resolves all16 reported workspace diagnostics;

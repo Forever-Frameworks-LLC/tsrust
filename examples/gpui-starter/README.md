@@ -1,8 +1,13 @@
 # GPUI starter
 
-A native desktop app in one `.tsrx` file: a sidebar gallery of GPUI Kit
-components (display, inputs, data, workspace, overlays), live English/French
-switching, light and dark themes, and an About page with in-app updates.
+A native desktop gallery of GPUI Kit components and live guides, with search
+and light and dark themes.
+
+Example cards compose `ExampleTitle`, `ExampleDescription`, `ExampleTabs`,
+`ExamplePreview` and `ExampleCode` from `src/example.tsrx`. Code is a multiline
+text child; the Code panel includes its Copy button. Component pages are generated
+from `pages.spec`, and guide pages from `docs/guides/ui`. Edit those sources, then
+run `python3 tools/generate-ui-gallery.py` from the repository root.
 
 ## Run it with live reload
 
@@ -15,7 +20,7 @@ From the repository root:
 The script builds this checkout's compiler, installs the pinned Rust toolchain
 and downloads the locked crates if they are missing (first run only), then runs
 `tsrust dev` here. Saving
-`main.tsrx` or a locale file rebuilds and restarts the window (about 20 seconds;
+`src/main.tsrx` or an imported source file rebuilds and restarts the window (about 20 seconds;
 the first build prepares the GPUI runtime and takes a few minutes). Press
 Ctrl+C to stop. Add `--release` for an optimized build.
 

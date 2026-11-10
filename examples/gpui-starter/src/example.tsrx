@@ -1,4 +1,4 @@
-import { View, Text, Node, Child, Link, Markdown, CopyButton, Separator, Tabs, Tab, signal } from 'std:ui';
+import { View, Text, Node, Child, Link, Markdown, CopyButton, Separator, Tabs, Tab, TabsContent } from 'std:ui';
 
 interface PageHeaderProps {
   summary: string;
@@ -17,51 +17,53 @@ export function PageHeader(props: PageHeaderProps): Node {
 }
 
 interface ExampleProps {
-  title: string;
-  description: string;
-  code: string;
   children?: Child[];
 }
 
-/** One documented example: a heading, then a card that switches between the live preview and its source, with copy in the card header. */
+interface ExampleCodeProps {
+  children: string[];
+}
+
+/** A documented example composed from its heading and tabbed content. */
 export function Example(props: ExampleProps): Node {
-  const tab = signal('preview');
-  const code = props.code;
+  return <View className="flex-col gap-3" children={props.children ?? []} />;
+}
+
+export function ExampleTitle(props: ExampleProps): Node {
+  return <Text className="text-xl font-semibold" children={props.children ?? []} />;
+}
+
+export function ExampleDescription(props: ExampleProps): Node {
+  return <Text className="text-muted-foreground" children={props.children ?? []} />;
+}
+
+/** Native tabs own selection and retain both panels while switching. */
+export function ExampleTabs(props: ExampleProps): Node {
   return (
-    <View className="flex-col gap-3">
-      <Text className="text-xl font-semibold">{props.title}</Text>
-      <Text className="text-muted-foreground">{props.description}</Text>
-      <View className="flex-col rounded-lg border border-border">
-        <View className="flex-row items-center px-2 py-1 border-b border-border">
-          <Tabs variant="segmented" value={tab.get()} onChange={(value) => { tab.set(value); }}><Tab value="preview">Preview</Tab><Tab value="code">Code</Tab></Tabs>
-          <View className="grow" />
-          <CopyButton value={clone(code)} />
-        </View>
-        <View hidden={tab.get() !== 'preview'} className="flex-row flex-wrap items-center gap-4 p-8 min-h-[120px]" children={props.children ?? []} />
-        <View hidden={tab.get() !== 'code'} className="p-2"><Markdown content={`\`\`\`tsx\n${code}\n\`\`\``} /></View>
-      </View>
-    </View>
+    <Tabs variant="segmented" defaultValue="preview" className="rounded-lg border border-border">
+      <Tab value="preview">Preview</Tab>
+      <Tab value="code">Code</Tab>
+      {...props.children ?? []}
+    </Tabs>
   );
 }
 
-interface LiveExampleProps {
-  code: string;
-  children?: Child[];
+export function ExamplePreview(props: ExampleProps): Node {
+  return (
+    <TabsContent value="preview">
+      <View className="flex-row flex-wrap items-center gap-4 p-8 min-h-[120px]" children={props.children ?? []} />
+    </TabsContent>
+  );
 }
 
-/** A guide's live example: the running result above its source, switchable like Example but without a heading. */
-export function LiveExample(props: LiveExampleProps): Node {
-  const tab = signal('preview');
-  const code = props.code;
+export function ExampleCode(props: ExampleCodeProps): Node {
+  const code = props.children.join('');
   return (
-    <View className="flex-col rounded-lg border border-border">
-      <View className="flex-row items-center px-2 py-1 border-b border-border">
-        <Tabs variant="segmented" value={tab.get()} onChange={(value) => { tab.set(value); }}><Tab value="preview">Preview</Tab><Tab value="code">Code</Tab></Tabs>
-        <View className="grow" />
-        <CopyButton value={clone(code)} />
+    <TabsContent value="code">
+      <View className="flex-col gap-2 p-2">
+        <View className="flex-row justify-end"><CopyButton value={clone(code)} /></View>
+        <Markdown content={`\`\`\`tsx\n${code}\n\`\`\``} />
       </View>
-      <View hidden={tab.get() !== 'preview'} className="flex-row flex-wrap items-center gap-4 p-8 min-h-[100px]" children={props.children ?? []} />
-      <View hidden={tab.get() !== 'code'} className="p-2"><Markdown content={`\`\`\`tsx\n${code}\n\`\`\``} /></View>
-    </View>
+    </TabsContent>
   );
 }
