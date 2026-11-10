@@ -7,7 +7,7 @@ impl Analyzer {
   let ExprKind::Name(name)=&callee.kind else{return;};
   if context.names.contains_key(name)||context.pending_names.contains(name){return;}
   let Some(&function)=self.function_names.get(name)else{return;};
-  // JSX's empty props record shares the complete element span; ordinary {} arguments do not.
+  // TSRX's empty props record shares the complete element span; ordinary {} arguments do not.
   if self.program.functions[function].params.is_empty() && args.len()==1 && args[0].span==expression.span && matches!(&args[0].kind,ExprKind::Record(fields) if fields.is_empty()){args.clear();}
  }
 
@@ -66,8 +66,17 @@ impl Analyzer {
  }
  pub(super) fn ui_reactive_prop_type(&self,expected:Option<Type>,span:Span)->Result<(usize,Type),Diagnostic>{
   let mut pending=expected.into_iter().collect::<Vec<_>>();let mut found=None;
-  while let Some(ty)=pending.pop(){match ty{Type::Union(id)=>pending.extend(self.unions.members(id)),Type::Record(record)=>{let fields=&self.program.records[record].fields;if fields.len()==1&&fields[0].name.text=="evaluate"{if let Some((payload,_))=fields[0].ty.and_then(|ty|self.ui_computed_callback(ty)){self.ui_computed_scalar(payload,span)?;if found.is_some(){return Err(Diagnostic::new("ui-reactive-prop","Use one ReactiveValue<T> contract for a live scalar prop.",span));}found=Some((record,fields[0].ty.unwrap()));}}},_=>{}}}
-  found.ok_or_else(||Diagnostic::new("ui-reactive-prop","This TSRX expression requires a declared ReactiveValue<T> scalar prop.",span))
+  while let Some(ty)=pending.pop(){match ty{Type::Union(id)=>pending.extend(self.unions.members(id)),Type::Record(record)=>{let fields=&self.program.records[record].fields;if fields.len()==1&&fields[0].name.text=="evaluate"{if let Some((payload,_))=fields[0].ty.and_then(|ty|self.ui_computed_callback(ty)){self.ui_reactive_prop_value(payload,span)?;if found.is_some(){return Err(Diagnostic::new("ui-reactive-prop","Use one ReactiveValue<T> contract for a live component prop.",span));}found=Some((record,fields[0].ty.unwrap()));}}},_=>{}}}
+  found.ok_or_else(||Diagnostic::new("ui-reactive-prop","This TSRX expression requires a declared ReactiveValue<T> component prop.",span))
+ }
+ fn ui_reactive_prop_value(&self,ty:Type,span:Span)->Result<(),Diagnostic> {
+  let mut pending=vec![ty];
+  while let Some(value)=pending.pop() {match value {
+   Type::Array(element)=>pending.push(element.ty()),
+   Type::Union(id)=>pending.extend(self.unions.members(id)),
+   value=>self.ui_computed_scalar(value,span).map_err(|_|Diagnostic::new("ui-reactive-prop","Live component props support scalars and arrays of scalars; records, resources and callbacks require explicit application ownership.",span))?,
+  }}
+  Ok(())
  }
  fn ui_string_binding_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};

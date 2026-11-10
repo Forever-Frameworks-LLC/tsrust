@@ -131,7 +131,7 @@ def prop_type(prop):
         literal = " | ".join(f"'{value}'" for value in kind)
         return f"ReactiveValue<{literal}>"
     if kind in ("string[]", "number[]", "string[][]"):
-        return kind
+        return f"ReactiveValue<{kind}>"
     return SCALAR[kind][0]
 
 
@@ -155,11 +155,18 @@ def children_doc(component):
     return None
 
 
+def prop_doc(prop):
+    doc = prop["doc"]
+    if prop["type"] in ("string[]", "number[]", "string[][]"):
+        doc += " Expressions reading component signals update live; plain arrays are read at construction."
+    return doc
+
+
 def component_source(component):
     name = component["name"]
     lines = [f"export interface {name}Props {{"]
     for prop in component.get("props", []):
-        lines.append(f"  /** {prop['doc']} */")
+        lines.append(f"  /** {prop_doc(prop)} */")
         lines.append(f"  {prop['name']}?: {prop_type(prop)};")
     for event in component.get("events", []):
         lines.append(f"  /** {event['doc']} */")
@@ -185,10 +192,14 @@ def component_source(component):
             lines.append(f"    if (typeof {local} === 'string') {{ node = unwrapNode(nativeKitSet(node, '{field}', `${{{local}}}`)); }}")
             lines.append(f"    else {{ node = unwrapNode(nativeKitBind(node, '{field}', nativeBindText({local}.evaluate))); }}")
             lines.append("  }")
-        elif kind == "string[][]":
-            lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode(nativeKitSet(node, '{field}', JSON.stringify({local}))); }}")
-        elif kind in ("string[]", "number[]"):
-            lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode(nativeKitSet(node, '{field}', {local}.join('\\n'))); }}")
+        elif kind in ("string[]", "number[]", "string[][]"):
+            json_array = kind == "string[][]" or prop.get("json", False)
+            render = f"JSON.stringify({local})" if json_array else f"{local}.join('\\n')"
+            evaluate = "JSON.stringify(evaluate())" if json_array else "evaluate().join('\\n')"
+            lines.append(f"  if ({local} !== undefined) {{")
+            lines.append(f"    if (Array.isArray({local})) {{ node = unwrapNode(nativeKitSet(node, '{field}', {render})); }}")
+            lines.append(f"    else {{ const evaluate = {local}.evaluate; node = unwrapNode(nativeKitBind(node, '{field}', nativeBindText(() => {evaluate}))); }}")
+            lines.append("  }")
         elif kind == "string":
             lines.append(f"  if ({local} !== undefined) {{ node = unwrapNode(nativeKitValue(node, '{field}', {local})); }}")
         else:
@@ -209,7 +220,7 @@ def component_source(component):
 
 def documentation(component):
     parts = [component["doc"]]
-    props = [f"- `{prop['name']}`: {prop['doc']}" for prop in component.get("props", [])]
+    props = [f"- `{prop['name']}`: {prop_doc(prop)}" for prop in component.get("props", [])]
     props += [f"- `{event['prop']}`: {event['doc']}" for event in component.get("events", [])]
     if has_children(component):
         props.append(f"- `children`: {children_doc(component)}")

@@ -56,6 +56,13 @@ impl Kit {
             let minimum=usize::from(name=="tabSize");
             if !value.parse::<usize>().is_ok_and(|value|value>=minimum) {return Err(format!("CodeEditor {name} requires an integer >= {minimum}"));}
         }
+        if self.name=="Plot" && name=="labels" && serde_json::from_str::<Vec<String>>(value).is_err() {return Err("Plot labels require an array of strings".into());}
+        if matches!(self.name.as_str(),"PlotLine"|"PlotArea"|"PlotBars") && name=="values" {
+            if !value.is_empty() && value.split('\n').any(|value|!value.parse::<f64>().is_ok_and(f64::is_finite)) {return Err(format!("{} values must all be finite numbers",self.name));}
+        }
+        if (self.name=="PlotLine" && name=="width") || (self.name=="PlotTooltip" && matches!(name,"gap"|"progress")) {
+            if !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (name=="progress" || value>=0. && value<=f32::MAX as f64)) {return Err(format!("{} {name} requires a finite {}number within native pixel range",self.name,if name=="progress" {""}else{"nonnegative "}));}
+        }
         Ok(())
     }
     pub(crate) fn prop(&self, name: &str) -> Option<&str> {self.props.get(name).map(String::as_str)}
@@ -67,7 +74,7 @@ impl Kit {
 }
 
 /// The prop a component's text children fill, so `<Label>Name <Text variant="secondary">(optional)</Text></Label>`
-/// composes like JSX. Secondary-toned Text children fill `secondary`. An explicitly set prop wins.
+/// composes as TSRX. Secondary-toned Text children fill `secondary`. An explicitly set prop wins.
 /// Mirrors `textChildren` in stdlib/ui/kit.json; tools/generate-ui-kit.py checks they agree.
 fn text_children_prop(component: &str) -> Option<&'static str> {
     match component {
@@ -231,4 +238,52 @@ mod tests {
         assert_eq!(root.children[0].kit.as_ref().unwrap().prop("checked"), Some("false"));
         assert_eq!(root.children[1].kit.as_ref().unwrap().prop("checked"), Some("false"));
     }
+}
+
+#[cfg(test)]
+mod plot_value_tests {
+ use super::*;
+ #[test]
+ fn plot_values_and_tooltip_geometry_reject_nonfinite_or_negative_inputs() {
+  for component in ["PlotLine","PlotArea","PlotBars"] {
+   for invalid in ["NaN","inf","1\n-inf","1\nno"] {assert!(Node::kit(component,vec![],String::new()).unwrap().with_kit_prop("values",invalid).is_err());}
+   assert!(Node::kit(component,vec![],String::new()).unwrap().with_kit_prop("values","-2\n0\n3.5").is_ok());
+  }
+  for (component,prop) in [("PlotLine","width"),("PlotTooltip","gap")] {
+   for invalid in ["-1","NaN","inf","1e100"] {assert!(Node::kit(component,vec![],String::new()).unwrap().with_kit_prop(prop,invalid).is_err());}
+  }
+  assert!(Node::kit("PlotTooltip",vec![],String::new()).unwrap().with_kit_prop("progress","-1").is_ok());
+ }
+}
+
+// Shared normalization keeps painting and hover dots on the same finite scale.
+#[cfg(any(test,feature="gpui"))]
+pub(crate) fn plot_y(value:f64,low:f64,high:f64,height:f32)->f32 {
+ let scale=low.abs().max(high.abs()).max(1.);
+ let span=high/scale-low/scale;
+ if span>0. {(height as f64*(1.-(value/scale-low/scale)/span)) as f32}else{height}
+}
+#[cfg(any(test,feature="gpui"))]
+pub(crate) fn plot_index(position:f32,width:f32,count:usize)->Option<usize> {
+ if count==0 || width<=0. || !width.is_finite() || !position.is_finite() {return None;}
+ Some(((position.max(0.)/width*count as f32) as usize).min(count-1))
+}
+#[cfg(any(test,feature="gpui"))]
+pub(crate) fn plot_bar_x(center:f32,step:f32,index:usize,count:usize)->f32 {
+ center-step*0.35+step*0.7/count.max(1) as f32*(index as f32+0.5)
+}
+#[cfg(test)]
+mod plot_geometry_tests {
+ use super::*;
+ #[test]
+ fn hover_edges_missing_categories_and_extreme_values_stay_bounded() {
+  assert_eq!(plot_index(0.,100.,4),Some(0));assert_eq!(plot_index(50.,100.,4),Some(2));
+  assert_eq!(plot_index(100.,100.,4),Some(3));assert_eq!(plot_index(-1.,100.,4),Some(0));
+  for (width,count) in [(0.,4),(100.,0)] {assert_eq!(plot_index(10.,width,count),None);}
+  assert_eq!(plot_bar_x(50.,100.,0,2),32.5);assert_eq!(plot_bar_x(50.,100.,1,2),67.5);
+  assert_eq!(plot_y(-1e308,-1e308,1e308,100.),100.);
+  assert_eq!(plot_y(0.,-1e308,1e308,100.),50.);
+  assert_eq!(plot_y(1e308,-1e308,1e308,100.),0.);
+  assert_eq!(plot_y(0.,0.,0.,100.),100.);
+ }
 }

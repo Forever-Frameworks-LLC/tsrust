@@ -79,6 +79,7 @@ import { EditorPage } from './pages/Editor.tsrx';
 import { QuestionnairePage } from './pages/Questionnaire.tsrx';
 import { SettingsPanelPage } from './pages/SettingsPanel.tsrx';
 import { SpeechPage } from './pages/Speech.tsrx';
+import { PlotPage } from './pages/Plot.tsrx';
 
 interface PageProps {
   children?: Child[];
@@ -202,6 +203,9 @@ function App(): Node {
           <SidebarItem label="Attachment" active={path.get() === "/attachment"} onClick={() => { navigate("/attachment"); }} />
           <SidebarItem label="Message Scroller" active={path.get() === "/message-scroller"} onClick={() => { navigate("/message-scroller"); }} />
         </SidebarGroup>
+        <SidebarGroup label="Data">
+          <SidebarItem label="Plot" active={path.get() === "/plot"} onClick={() => { navigate("/plot"); }} />
+        </SidebarGroup>
       </Sidebar>
       <View className="flex-col grow min-w-0">
         <Route path="/" render={() => <Page><GettingStartedPage /></Page>} />
@@ -281,6 +285,7 @@ function App(): Node {
         <Route path="/questionnaire" render={() => <Page><QuestionnairePage /></Page>} />
         <Route path="/settings" render={() => <Page><SettingsPanelPage /></Page>} />
         <Route path="/speech" render={() => <Page><SpeechPage /></Page>} />
+        <Route path="/plot" render={() => <Page><PlotPage /></Page>} />
       </View>
       </View>
     </View>

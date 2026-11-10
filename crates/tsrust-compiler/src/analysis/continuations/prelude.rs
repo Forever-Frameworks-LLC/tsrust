@@ -208,6 +208,7 @@ impl Analyzer{
         };
         let member_hint = match &expr.kind {
             ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:ui-runtime#reactive") => Some(Type::Record(self.ui_reactive_prop_type(Some(expected),expr.span)?.0)),
+            ExprKind::Array(_) | ExprKind::ArrayOf(_,_) if member_hint.is_none() => self.array_literal_context(Some(expected)).map(Type::Array),
             ExprKind::Record(fields) if member_hint.is_none() => {
                 self.record_alternative(union, fields, expr.span)?
             }

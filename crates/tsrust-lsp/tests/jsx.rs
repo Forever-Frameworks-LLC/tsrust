@@ -1,18 +1,24 @@
 use serde_json::json;
 use tsrust_lsp::intelligence::SourceIndex;
 #[test]
-fn bundled_editor_props_have_completion_and_behavioral_hover_before_project_analysis() {
-    let prefix="import {CodeEditor as Editor} from 'std:ui';function main(){const editor=<Editor ";
-    let source=format!("{prefix}lineN");
-    let index=SourceIndex::new(&source);
-    let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":source.len()}}),"file:///editor.tsrx").unwrap();
-    assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="lineNumbers"),"{items}");
-    let source=format!("{prefix}lineNumbers={{false}} />;}}");
-    let index=SourceIndex::new(&source);let at=source.find("lineNumbers").unwrap();
-    let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":at+3}}),"file:///editor.tsrx").unwrap();
-    assert!(hover.to_string().contains("Defaults to true"),"{hover}");
-    let definition=index.request("textDocument/definition",&json!({"position":{"line":0,"character":at+3}}),"file:///editor.tsrx").unwrap();
-    assert_eq!(definition["uri"],"tsrust-stdlib:///std:ui");
+fn bundled_ui_props_have_completion_and_behavioral_hover_before_project_analysis() {
+    for (component,alias,partial,property,value,documentation) in [
+        ("CodeEditor","Editor","lineN","lineNumbers","false","Defaults to true"),
+        ("PlotTooltip","Tip","crossL","crossLine","\"both\"","Defaults to vertical"),
+        ("PlotLine","Line","val","values","[1,2]","NaN and infinities throw"),
+    ] {
+        let prefix=format!("import {{{component} as {alias}}} from 'std:ui';function main(){{const node=<{alias} ");
+        let source=format!("{prefix}{partial}");
+        let index=SourceIndex::new(&source);
+        let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":source.len()}}),"file:///props.tsrx").unwrap();
+        assert!(items.as_array().unwrap().iter().any(|item|item["label"]==property),"{component}: {items}");
+        let source=format!("{prefix}{property}={{{value}}} />;}}");
+        let index=SourceIndex::new(&source);let at=source.find(property).unwrap();
+        let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":at+3}}),"file:///props.tsrx").unwrap();
+        assert!(hover.to_string().contains(documentation),"{component}: {hover}");
+        let definition=index.request("textDocument/definition",&json!({"position":{"line":0,"character":at+3}}),"file:///props.tsrx").unwrap();
+        assert_eq!(definition["uri"],"tsrust-stdlib:///std:ui","{component}");
+    }
 }
 #[test]
 fn bundled_ui_functions_keep_help_without_a_project_and_respect_shadowing() {

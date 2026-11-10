@@ -50,3 +50,17 @@ fn table_ownership_errors_do_not_replay_every_bundled_function_or_hide_other_err
     assert!(diagnostics.iter().any(|error|error["message"].as_str().is_some_and(|message|message.contains("boolean"))),"{result}");
     assert!(diagnostics.iter().any(|error|error["location"]["start"].as_u64().is_some_and(|start|start < source.find("function independent").unwrap() as u64)),"the original table ownership error must remain visible: {result}");
 }
+
+#[test]
+fn live_array_props_allow_scalar_arrays_without_weakening_record_or_computed_ownership() {
+ let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
+ let check=|source:&str| {std::fs::write(&path,source).unwrap();check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap())};
+ let checked=check("import {Node,Plot,PlotLine,signal} from 'std:ui';function Chart():Node{const count=signal(1);return <Plot labels={['A',`${count.get()}`]}><PlotLine values={[Number(count.get()),2]}/></Plot>;}function main(){const node=Chart();}").unwrap();
+ assert!(!checked.emit_rust().is_empty());
+ check("interface Other{value:int;}function accept(values:number[]|Other){}function main(){accept([1,2]);accept([]);accept(Array.of());accept(Array.of(3,4));const values:number[]=[1,2];accept([...values]);}").unwrap();
+ assert!(check("interface Other{value:int;}function accept(values:number[]|Other){}function main(){const values:int[]=[1,2];accept(values);}").is_err());
+ let error=check("import {Node,View,ReactiveValue,signal} from 'std:ui';interface Row{value:int;}interface Props{rows:ReactiveValue<Row[]>;}function Custom(props:Props):Node{return <View/>;}function main(){const count=signal(1);const node=<Custom rows={[{value:count.get()}]}/>;}").err().unwrap();
+ assert_eq!(error.code,"ui-reactive-prop","{}",error.message);
+ let error=check("import {computed,Computed} from 'std:ui';function main(){const values:Computed<int[]> = computed(()=>[1,2]);}").err().unwrap();
+ assert_eq!(error.code,"ui-computed-type","{}",error.message);
+}

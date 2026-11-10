@@ -6877,6 +6877,18 @@ impl Analyzer {
     }
 
     #[inline(never)]
+    /// A literal can use the sole array alternative without coercing an existing array binding.
+    fn array_literal_context(&self,expected:Option<Type>)->Option<ArrayElement> {
+        let members=match expected? {Type::Union(id)=>self.unions.members(id),value=>vec![value]};
+        let mut found=None;
+        for member in members {match member {
+            Type::Array(element)=>{if found.is_some_and(|previous|previous!=element) {return None;}found=Some(element);},
+            Type::Record(id) if self.program.records[id].is_tuple()=>return None,
+            _=>{},
+        }}
+        found
+    }
+
     fn array_literal_element_hint(
         &mut self,
         context: &mut Context,
@@ -6889,8 +6901,8 @@ impl Analyzer {
         } else {
             None
         };
-        let mut element = match expected {
-            Some(Type::Array(element)) => Some(element),
+        let mut element = match self.array_literal_context(expected) {
+            Some(element) => Some(element),
             _ if mixed.is_some() => mixed,
             _ => values
                 .iter()

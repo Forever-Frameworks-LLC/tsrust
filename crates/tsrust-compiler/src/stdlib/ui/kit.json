@@ -3970,7 +3970,7 @@
           "doc": "Horizontal placement along that edge."
         }
       ],
-      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">\ud83d\udc4d 2</Button></BubbleReactions>"
+      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">👍 2</Button></BubbleReactions>"
     },
     {
       "name": "BubbleGroup",
@@ -4198,7 +4198,7 @@
       "children": true,
       "doc": "Trailing content of a ListItem, such as a count or shortcut.",
       "props": [],
-      "example": "<ListItemSuffix><Kbd>\u2318K</Kbd></ListItemSuffix>"
+      "example": "<ListItemSuffix><Kbd>⌘K</Kbd></ListItemSuffix>"
     },
     {
       "name": "ListSeparator",
@@ -5601,7 +5601,7 @@
         }
       ],
       "children": "MarkerIcon, MarkerContent or any content",
-      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking\u2026</MarkerContent>\n</Marker>"
+      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking…</MarkerContent>\n</Marker>"
     },
     {
       "name": "MarkerIcon",
@@ -5631,7 +5631,7 @@
         {
           "name": "description",
           "type": "string",
-          "doc": "Secondary text, such as PDF \u00b7 2.4 MB."
+          "doc": "Secondary text, such as PDF · 2.4 MB."
         },
         {
           "name": "icon",
@@ -5657,7 +5657,7 @@
         {
           "name": "progress",
           "type": "number",
-          "doc": "Upload progress, 0\u2013100, while uploading."
+          "doc": "Upload progress, 0–100, while uploading."
         },
         {
           "name": "tooltip",
@@ -5707,7 +5707,7 @@
           "doc": "Shows a retry button on failure; called when it is clicked."
         }
       ],
-      "example": "<Attachment title=\"report.pdf\" description=\"PDF \u00b7 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
+      "example": "<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
       "children": "AttachmentMedia, AttachmentContent and AttachmentActions"
     },
     {
@@ -5724,7 +5724,7 @@
       "children": true,
       "doc": "An Attachment's secondary text; it shows the status while in progress or failed.",
       "props": [],
-      "example": "<AttachmentDescription>PDF \u00b7 2.4 MB</AttachmentDescription>"
+      "example": "<AttachmentDescription>PDF · 2.4 MB</AttachmentDescription>"
     },
     {
       "name": "AttachmentTitle",
@@ -6352,7 +6352,8 @@
         {
           "name": "labels",
           "type": "string[]",
-          "doc": "Category labels along the x axis, one per value."
+          "doc": "Category labels along the x axis, one per value.",
+          "json": true
         },
         {
           "name": "axis",
@@ -6365,8 +6366,90 @@
           "doc": "Draws dashed horizontal grid lines. Defaults to false."
         }
       ],
-      "children": "PlotLine, PlotArea and PlotBars",
+      "children": "PlotLine, PlotArea, PlotBars and an optional PlotTooltip",
       "example": "<Plot labels={['Q1', 'Q2', 'Q3', 'Q4']} axis={true} grid={true} className=\"h-64\"><PlotBars values={[4, 6, 5, 8]}/><PlotLine values={[3, 5, 6, 7]} curve=\"linear\" dots={true}/></Plot>"
+    },
+    {
+      "name": "PlotTooltip",
+      "doc": "A hover overlay for its parent Plot. The pointer chooses the nearest category band; automatic rows show each available series value. Uses the plot’s stable identity and releases hover state with the plot. No tooltip is shown for an empty plot or over axis labels.",
+      "item": true,
+      "children": "PlotTooltipRow",
+      "props": [
+        {
+          "name": "glide",
+          "type": "boolean",
+          "doc": "Glides crosshair and dots between categories. Defaults to true; false snaps to the category."
+        },
+        {
+          "name": "progress",
+          "type": "number",
+          "doc": "Optional overlay opacity, clamped to 0–1. Must be finite. Omit to use Kit’s hover fade."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "doc": "Overrides the category label shown as the title. Omit to show the hovered label; an empty string hides the title."
+        },
+        {
+          "name": "showSeries",
+          "type": "boolean",
+          "doc": "Includes a colored row for each series value at the hovered category. Defaults to true. Short series omit missing values."
+        },
+        {
+          "name": "gap",
+          "type": "number",
+          "doc": "Nonnegative finite spacing in logical pixels between the pointer and tooltip box, at most the native float maximum. Defaults to 8; invalid values throw a UI error."
+        },
+        {
+          "name": "crossLine",
+          "type": [
+            "none",
+            "vertical",
+            "horizontal",
+            "both"
+          ],
+          "doc": "Crosshair direction. Defaults to vertical. Its data coordinate follows the category center and pointer height."
+        },
+        {
+          "name": "dots",
+          "type": "boolean",
+          "doc": "Draws a colored dot at each available series value. Defaults to true."
+        },
+        {
+          "name": "appearance",
+          "type": "boolean",
+          "doc": "Shows the tooltip box background, border and shadow. Defaults to true. Crosshair and dots remain when false."
+        }
+      ],
+      "example": "<Plot labels={['Mon', 'Tue']} className=\"h-48\"><PlotLine values={[2, 5]} label=\"Requests\"/><PlotTooltip crossLine=\"both\"/></Plot>"
+    },
+    {
+      "name": "PlotTooltipRow",
+      "doc": "An extra row in PlotTooltip, after automatic series rows. Values are application supplied; a row without color aligns with series rows without drawing a swatch.",
+      "item": true,
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Row label, empty by default."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Displayed value, empty by default. Signal expressions update live."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "doc": "Optional swatch color: a theme or Tailwind palette color, or #rrggbb. Omit for a plain row."
+        },
+        {
+          "name": "valueColor",
+          "type": "string",
+          "doc": "Optional text color for this row’s value. Uses the same color names as Plot marks; omit to inherit tooltip text color."
+        }
+      ],
+      "example": "<PlotTooltipRow label=\"Target\" value=\"100\" valueColor=\"green-500\"/>"
     },
     {
       "name": "PlotLine",
@@ -6376,12 +6459,12 @@
         {
           "name": "values",
           "type": "number[]",
-          "doc": "Values, in label order."
+          "doc": "Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn."
         },
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "curve",
@@ -6400,7 +6483,12 @@
         {
           "name": "width",
           "type": "number",
-          "doc": "Stroke width in pixels. Defaults to 2."
+          "doc": "Nonnegative finite stroke width in logical pixels, at most the native float maximum. Defaults to 2; invalid values throw a UI error."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order."
         }
       ],
       "example": "<PlotLine values={[1, 3, 2]} color=\"chart-2\" curve=\"step\"/>"
@@ -6413,12 +6501,12 @@
         {
           "name": "values",
           "type": "number[]",
-          "doc": "Values, in label order."
+          "doc": "Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn."
         },
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "curve",
@@ -6428,6 +6516,11 @@
             "step"
           ],
           "doc": "Smooth (default), straight segments, or steps."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order."
         }
       ],
       "example": "<PlotArea values={[2, 4, 3]} color=\"chart-3\"/>"
@@ -6440,12 +6533,17 @@
         {
           "name": "values",
           "type": "number[]",
-          "doc": "Values, in label order."
+          "doc": "Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn."
         },
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order."
         }
       ],
       "example": "<PlotBars values={[5, 7, 6]} color=\"primary\"/>"
@@ -8375,11 +8473,22 @@
       "content": "children"
     },
     "Tooltip": {
-      "new": "text",
+      "new": "Tooltip trigger and PlotTooltip child of Plot",
       "element": "TooltipContent child",
       "action": "command",
       "key_binding": "keys",
-      "build": "automatic"
+      "build": "automatic",
+      "glide": "PlotTooltip.glide",
+      "progress": "PlotTooltip.progress",
+      "focus": "PlotTooltip.progress (deprecated upstream alias)",
+      "title": "PlotTooltip.title",
+      "row": "automatic series rows or PlotTooltipRow.color",
+      "plain_row": "PlotTooltipRow without color",
+      "value_color": "PlotTooltipRow.valueColor",
+      "gap": "PlotTooltip.gap",
+      "cross_line": "PlotTooltip.crossLine",
+      "dots": "PlotTooltip.dots",
+      "appearance": "PlotTooltip.appearance"
     },
     "WindowBorder": {
       "new": "automatic",

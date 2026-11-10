@@ -2355,8 +2355,8 @@ export function CollapsibleContent(props: CollapsibleContentProps): Node {
 }
 
 export interface SelectProps {
-  /** Plain options whose label is also the value; SelectItem children add more. */
-  items?: string[];
+  /** Plain options whose label is also the value; SelectItem children add more. Expressions reading component signals update live; plain arrays are read at construction. */
+  items?: ReactiveValue<string[]>;
   /** The selected option's value, controlled; set it from onChange. Without it the select keeps its own selection. */
   value?: ReactiveValue<string> | TextBinding;
   /** Initially selected value when `value` is unset. */
@@ -2402,7 +2402,12 @@ export function Select(props: SelectProps): Node {
   let node = kitNode('Select', props.children ?? [], props.className);
   const prop_items = props.items;
   if (prop_items !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
+    if (Array.isArray(prop_items)) {
+      node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
+    } else {
+      const evaluate = prop_items.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'items', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_value = props.value;
@@ -2817,8 +2822,8 @@ export interface DatePickerProps {
   months?: ReactiveValue<int>;
   /** The weekday columns start on. */
   firstDayOfWeek?: ReactiveValue<string> | TextBinding;
-  /** Quick choices beside the calendar: [label, day] or [label, start, end] rows. */
-  presets?: string[][];
+  /** Quick choices beside the calendar: [label, day] or [label, start, end] rows. Expressions reading component signals update live; plain arrays are read at construction. */
+  presets?: ReactiveValue<string[][]>;
   /** false draws the bare trigger. */
   appearance?: ReactiveValue<boolean>;
   /** Ignores input. */
@@ -2831,10 +2836,10 @@ export interface DatePickerProps {
   disabledFrom?: ReactiveValue<string> | TextBinding;
   /** End of a disabled day range. */
   disabledTo?: ReactiveValue<string> | TextBinding;
-  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). */
-  disabledWeekdays?: string[];
-  /** Individual YYYY-MM-DD days that cannot be chosen. */
-  disabledDates?: string[];
+  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). Expressions reading component signals update live; plain arrays are read at construction. */
+  disabledWeekdays?: ReactiveValue<string[]>;
+  /** Individual YYYY-MM-DD days that cannot be chosen. Expressions reading component signals update live; plain arrays are read at construction. */
+  disabledDates?: ReactiveValue<string[]>;
   /** First year offered in the year view. */
   yearStart?: ReactiveValue<int>;
   /** Last year offered in the year view. */
@@ -2911,7 +2916,12 @@ export function DatePicker(props: DatePickerProps): Node {
 
   const prop_presets = props.presets;
   if (prop_presets !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'presets', JSON.stringify(prop_presets)));
+    if (Array.isArray(prop_presets)) {
+      node = unwrapNode(nativeKitSet(node, 'presets', JSON.stringify(prop_presets)));
+    } else {
+      const evaluate = prop_presets.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'presets', nativeBindText(() => JSON.stringify(evaluate()))));
+    }
   }
 
   const prop_appearance = props.appearance;
@@ -2946,12 +2956,22 @@ export function DatePicker(props: DatePickerProps): Node {
 
   const prop_disabledWeekdays = props.disabledWeekdays;
   if (prop_disabledWeekdays !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'disabledWeekdays', prop_disabledWeekdays.join('\n')));
+    if (Array.isArray(prop_disabledWeekdays)) {
+      node = unwrapNode(nativeKitSet(node, 'disabledWeekdays', prop_disabledWeekdays.join('\n')));
+    } else {
+      const evaluate = prop_disabledWeekdays.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'disabledWeekdays', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_disabledDates = props.disabledDates;
   if (prop_disabledDates !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'disabledDates', prop_disabledDates.join('\n')));
+    if (Array.isArray(prop_disabledDates)) {
+      node = unwrapNode(nativeKitSet(node, 'disabledDates', prop_disabledDates.join('\n')));
+    } else {
+      const evaluate = prop_disabledDates.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'disabledDates', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_yearStart = props.yearStart;
@@ -2986,8 +3006,8 @@ export interface ColorPickerProps {
   value?: ReactiveValue<string> | TextBinding;
   /** Initial color when `value` is unset. */
   defaultValue?: ReactiveValue<string> | TextBinding;
-  /** Swatches offered first, as hex, theme or palette colors. */
-  featuredColors?: string[];
+  /** Swatches offered first, as hex, theme or palette colors. Expressions reading component signals update live; plain arrays are read at construction. */
+  featuredColors?: ReactiveValue<string[]>;
   /** Draws a dropdown of swatches (ColorSelect) instead of the swatch button with the full picker. */
   select?: ReactiveValue<boolean>;
   /** Text beside the swatch button. */
@@ -3023,7 +3043,12 @@ export function ColorPicker(props: ColorPickerProps): Node {
 
   const prop_featuredColors = props.featuredColors;
   if (prop_featuredColors !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'featuredColors', prop_featuredColors.join('\n')));
+    if (Array.isArray(prop_featuredColors)) {
+      node = unwrapNode(nativeKitSet(node, 'featuredColors', prop_featuredColors.join('\n')));
+    } else {
+      const evaluate = prop_featuredColors.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'featuredColors', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_select = props.select;
@@ -5510,20 +5535,20 @@ export function BubbleGroup(props: BubbleGroupProps): Node {
 export interface ChartProps {
   /** Chart type. Defaults to line. candlestick reads open/high/low/close; sankey reads labels as nodes and links as flows. */
   kind?: ReactiveValue<'line' | 'bar' | 'area' | 'pie' | 'radar' | 'candlestick' | 'sankey'>;
-  /** Category labels, one per value. */
-  labels?: string[];
-  /** Data values, in label order (line, bar, area, pie and radar). */
-  values?: number[];
-  /** Candlestick opening values, in label order. */
-  open?: number[];
-  /** Candlestick highs, in label order. */
-  high?: number[];
-  /** Candlestick lows, in label order. */
-  low?: number[];
-  /** Candlestick closing values, in label order. */
-  close?: number[];
-  /** Sankey flows as [source label, target label, value] triples. */
-  links?: string[][];
+  /** Category labels, one per value. Expressions reading component signals update live; plain arrays are read at construction. */
+  labels?: ReactiveValue<string[]>;
+  /** Data values, in label order (line, bar, area, pie and radar). Expressions reading component signals update live; plain arrays are read at construction. */
+  values?: ReactiveValue<number[]>;
+  /** Candlestick opening values, in label order. Expressions reading component signals update live; plain arrays are read at construction. */
+  open?: ReactiveValue<number[]>;
+  /** Candlestick highs, in label order. Expressions reading component signals update live; plain arrays are read at construction. */
+  high?: ReactiveValue<number[]>;
+  /** Candlestick lows, in label order. Expressions reading component signals update live; plain arrays are read at construction. */
+  low?: ReactiveValue<number[]>;
+  /** Candlestick closing values, in label order. Expressions reading component signals update live; plain arrays are read at construction. */
+  close?: ReactiveValue<number[]>;
+  /** Sankey flows as [source label, target label, value] triples. Expressions reading component signals update live; plain arrays are read at construction. */
+  links?: ReactiveValue<string[][]>;
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
@@ -5542,37 +5567,72 @@ export function Chart(props: ChartProps): Node {
 
   const prop_labels = props.labels;
   if (prop_labels !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'labels', prop_labels.join('\n')));
+    if (Array.isArray(prop_labels)) {
+      node = unwrapNode(nativeKitSet(node, 'labels', prop_labels.join('\n')));
+    } else {
+      const evaluate = prop_labels.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'labels', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_values = props.values;
   if (prop_values !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+    if (Array.isArray(prop_values)) {
+      node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+    } else {
+      const evaluate = prop_values.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'values', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_open = props.open;
   if (prop_open !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'open', prop_open.join('\n')));
+    if (Array.isArray(prop_open)) {
+      node = unwrapNode(nativeKitSet(node, 'open', prop_open.join('\n')));
+    } else {
+      const evaluate = prop_open.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'open', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_high = props.high;
   if (prop_high !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'high', prop_high.join('\n')));
+    if (Array.isArray(prop_high)) {
+      node = unwrapNode(nativeKitSet(node, 'high', prop_high.join('\n')));
+    } else {
+      const evaluate = prop_high.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'high', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_low = props.low;
   if (prop_low !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'low', prop_low.join('\n')));
+    if (Array.isArray(prop_low)) {
+      node = unwrapNode(nativeKitSet(node, 'low', prop_low.join('\n')));
+    } else {
+      const evaluate = prop_low.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'low', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_close = props.close;
   if (prop_close !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'close', prop_close.join('\n')));
+    if (Array.isArray(prop_close)) {
+      node = unwrapNode(nativeKitSet(node, 'close', prop_close.join('\n')));
+    } else {
+      const evaluate = prop_close.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'close', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_links = props.links;
   if (prop_links !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'links', JSON.stringify(prop_links)));
+    if (Array.isArray(prop_links)) {
+      node = unwrapNode(nativeKitSet(node, 'links', JSON.stringify(prop_links)));
+    } else {
+      const evaluate = prop_links.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'links', nativeBindText(() => JSON.stringify(evaluate()))));
+    }
   }
 
   return node;
@@ -5717,8 +5777,8 @@ export function List(props: ListProps): Node {
 export interface ListItemProps {
   /** Value List events report for this row; defaults to the row index. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Extra words the search matches. */
-  keywords?: string[];
+  /** Extra words the search matches. Expressions reading component signals update live; plain arrays are read at construction. */
+  keywords?: ReactiveValue<string[]>;
   /** Dims the row and ignores clicks. */
   disabled?: ReactiveValue<boolean>;
   /** Shows the check icon, marking the row as chosen. */
@@ -5749,7 +5809,12 @@ export function ListItem(props: ListItemProps): Node {
 
   const prop_keywords = props.keywords;
   if (prop_keywords !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'keywords', prop_keywords.join('\n')));
+    if (Array.isArray(prop_keywords)) {
+      node = unwrapNode(nativeKitSet(node, 'keywords', prop_keywords.join('\n')));
+    } else {
+      const evaluate = prop_keywords.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'keywords', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_disabled = props.disabled;
@@ -6013,10 +6078,10 @@ export interface CalendarProps {
   disabledFrom?: ReactiveValue<string> | TextBinding;
   /** End of a disabled day range. */
   disabledTo?: ReactiveValue<string> | TextBinding;
-  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). */
-  disabledWeekdays?: string[];
-  /** Individual YYYY-MM-DD days that cannot be chosen. */
-  disabledDates?: string[];
+  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). Expressions reading component signals update live; plain arrays are read at construction. */
+  disabledWeekdays?: ReactiveValue<string[]>;
+  /** Individual YYYY-MM-DD days that cannot be chosen. Expressions reading component signals update live; plain arrays are read at construction. */
+  disabledDates?: ReactiveValue<string[]>;
   /** First year offered in the year view. */
   yearStart?: ReactiveValue<int>;
   /** Last year offered in the year view. */
@@ -6088,12 +6153,22 @@ export function Calendar(props: CalendarProps): Node {
 
   const prop_disabledWeekdays = props.disabledWeekdays;
   if (prop_disabledWeekdays !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'disabledWeekdays', prop_disabledWeekdays.join('\n')));
+    if (Array.isArray(prop_disabledWeekdays)) {
+      node = unwrapNode(nativeKitSet(node, 'disabledWeekdays', prop_disabledWeekdays.join('\n')));
+    } else {
+      const evaluate = prop_disabledWeekdays.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'disabledWeekdays', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_disabledDates = props.disabledDates;
   if (prop_disabledDates !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'disabledDates', prop_disabledDates.join('\n')));
+    if (Array.isArray(prop_disabledDates)) {
+      node = unwrapNode(nativeKitSet(node, 'disabledDates', prop_disabledDates.join('\n')));
+    } else {
+      const evaluate = prop_disabledDates.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'disabledDates', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_yearStart = props.yearStart;
@@ -6202,12 +6277,12 @@ export function TimeField(props: TimeFieldProps): Node {
 }
 
 export interface ComboboxProps {
-  /** Plain options whose label is also the value; SelectItem children add more. */
-  items?: string[];
+  /** Plain options whose label is also the value; SelectItem children add more. Expressions reading component signals update live; plain arrays are read at construction. */
+  items?: ReactiveValue<string[]>;
   /** Selected values, controlled, one per line (a single value for single-select); set it from onChange. Without it the combobox keeps its own selection. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Initially selected values when `value` is unset. */
-  defaultValue?: string[];
+  /** Initially selected values when `value` is unset. Expressions reading component signals update live; plain arrays are read at construction. */
+  defaultValue?: ReactiveValue<string[]>;
   /** Allows several selections; each click toggles an option. Read when it mounts. */
   multiple?: ReactiveValue<boolean>;
   /** false hides the search field. Defaults to true. Read when it mounts. */
@@ -6249,7 +6324,12 @@ export function Combobox(props: ComboboxProps): Node {
   let node = kitNode('Combobox', props.children ?? [], props.className);
   const prop_items = props.items;
   if (prop_items !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
+    if (Array.isArray(prop_items)) {
+      node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
+    } else {
+      const evaluate = prop_items.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'items', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_value = props.value;
@@ -6259,7 +6339,12 @@ export function Combobox(props: ComboboxProps): Node {
 
   const prop_defaultValue = props.defaultValue;
   if (prop_defaultValue !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'defaultValue', prop_defaultValue.join('\n')));
+    if (Array.isArray(prop_defaultValue)) {
+      node = unwrapNode(nativeKitSet(node, 'defaultValue', prop_defaultValue.join('\n')));
+    } else {
+      const evaluate = prop_defaultValue.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'defaultValue', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_multiple = props.multiple;
@@ -6482,8 +6567,8 @@ export interface CommandItemProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Icon before the label. */
   icon?: ReactiveValue<IconName>;
-  /** Extra words the search matches. */
-  keywords?: string[];
+  /** Extra words the search matches. Expressions reading component signals update live; plain arrays are read at construction. */
+  keywords?: ReactiveValue<string[]>;
   /** A Shortcut command: its keys show at the end of the row. */
   command?: ReactiveValue<string> | TextBinding;
   /** Draws a check at the end of the row. */
@@ -6524,7 +6609,12 @@ export function CommandItem(props: CommandItemProps): Node {
 
   const prop_keywords = props.keywords;
   if (prop_keywords !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'keywords', prop_keywords.join('\n')));
+    if (Array.isArray(prop_keywords)) {
+      node = unwrapNode(nativeKitSet(node, 'keywords', prop_keywords.join('\n')));
+    } else {
+      const evaluate = prop_keywords.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'keywords', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_command = props.command;
@@ -7971,8 +8061,8 @@ export function AttachmentGroup(props: AttachmentGroupProps): Node {
 export interface DataTableProps {
   /** The cells as JSON: an array of rows, each an array of cell values (`JSON.stringify(rows)`). Non-string values show as JSON text. */
   rows?: ReactiveValue<string> | TextBinding;
-  /** Column titles, when there are no DataTableColumn children. */
-  columns?: string[];
+  /** Column titles, when there are no DataTableColumn children. Expressions reading component signals update live; plain arrays are read at construction. */
+  columns?: ReactiveValue<string[]>;
   /** Alternates row backgrounds. */
   stripe?: ReactiveValue<boolean>;
   /** false removes the outer border. Defaults to true. */
@@ -8057,7 +8147,12 @@ export function DataTable(props: DataTableProps): Node {
 
   const prop_columns = props.columns;
   if (prop_columns !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'columns', prop_columns.join('\n')));
+    if (Array.isArray(prop_columns)) {
+      node = unwrapNode(nativeKitSet(node, 'columns', prop_columns.join('\n')));
+    } else {
+      const evaluate = prop_columns.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'columns', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_stripe = props.stripe;
@@ -8745,13 +8840,13 @@ export function SpeechButton(props: SpeechButtonProps): Node {
 }
 
 export interface PlotProps {
-  /** Category labels along the x axis, one per value. */
-  labels?: string[];
+  /** Category labels along the x axis, one per value. Expressions reading component signals update live; plain arrays are read at construction. */
+  labels?: ReactiveValue<string[]>;
   /** Draws the x axis with labels. Defaults to false. */
   axis?: ReactiveValue<boolean>;
   /** Draws dashed horizontal grid lines. Defaults to false. */
   grid?: ReactiveValue<boolean>;
-  /** PlotLine, PlotArea and PlotBars elements. */
+  /** PlotLine, PlotArea, PlotBars and an optional PlotTooltip elements. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
@@ -8762,7 +8857,12 @@ export function Plot(props: PlotProps): Node {
   let node = kitNode('Plot', props.children ?? [], props.className);
   const prop_labels = props.labels;
   if (prop_labels !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'labels', prop_labels.join('\n')));
+    if (Array.isArray(prop_labels)) {
+      node = unwrapNode(nativeKitSet(node, 'labels', JSON.stringify(prop_labels)));
+    } else {
+      const evaluate = prop_labels.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'labels', nativeBindText(() => JSON.stringify(evaluate()))));
+    }
   }
 
   const prop_axis = props.axis;
@@ -8778,17 +8878,131 @@ export function Plot(props: PlotProps): Node {
   return node;
 }
 
+export interface PlotTooltipProps {
+  /** Glides crosshair and dots between categories. Defaults to true; false snaps to the category. */
+  glide?: ReactiveValue<boolean>;
+  /** Optional overlay opacity, clamped to 0–1. Must be finite. Omit to use Kit’s hover fade. */
+  progress?: ReactiveValue<number>;
+  /** Overrides the category label shown as the title. Omit to show the hovered label; an empty string hides the title. */
+  title?: ReactiveValue<string> | TextBinding;
+  /** Includes a colored row for each series value at the hovered category. Defaults to true. Short series omit missing values. */
+  showSeries?: ReactiveValue<boolean>;
+  /** Nonnegative finite spacing in logical pixels between the pointer and tooltip box, at most the native float maximum. Defaults to 8; invalid values throw a UI error. */
+  gap?: ReactiveValue<number>;
+  /** Crosshair direction. Defaults to vertical. Its data coordinate follows the category center and pointer height. */
+  crossLine?: ReactiveValue<'none' | 'vertical' | 'horizontal' | 'both'>;
+  /** Draws a colored dot at each available series value. Defaults to true. */
+  dots?: ReactiveValue<boolean>;
+  /** Shows the tooltip box background, border and shadow. Defaults to true. Crosshair and dots remain when false. */
+  appearance?: ReactiveValue<boolean>;
+  /** PlotTooltipRow elements. */
+  children?: Child[];
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** A hover overlay for its parent Plot. The pointer chooses the nearest category band; automatic rows show each available series value. Uses the plot’s stable identity and releases hover state with the plot. No tooltip is shown for an empty plot or over axis labels. */
+export function PlotTooltip(props: PlotTooltipProps): Node {
+  let node = kitNode('PlotTooltip', props.children ?? [], props.className);
+  const prop_glide = props.glide;
+  if (prop_glide !== undefined) {
+    node = kitFlag(node, 'glide', prop_glide);
+  }
+
+  const prop_progress = props.progress;
+  if (prop_progress !== undefined) {
+    node = kitNumber(node, 'progress', prop_progress);
+  }
+
+  const prop_title = props.title;
+  if (prop_title !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'title', prop_title));
+  }
+
+  const prop_showSeries = props.showSeries;
+  if (prop_showSeries !== undefined) {
+    node = kitFlag(node, 'showSeries', prop_showSeries);
+  }
+
+  const prop_gap = props.gap;
+  if (prop_gap !== undefined) {
+    node = kitNumber(node, 'gap', prop_gap);
+  }
+
+  const prop_crossLine = props.crossLine;
+  if (prop_crossLine !== undefined) {
+    if (typeof prop_crossLine === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'crossLine', `${prop_crossLine}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'crossLine', nativeBindText(prop_crossLine.evaluate)));
+    }
+  }
+
+  const prop_dots = props.dots;
+  if (prop_dots !== undefined) {
+    node = kitFlag(node, 'dots', prop_dots);
+  }
+
+  const prop_appearance = props.appearance;
+  if (prop_appearance !== undefined) {
+    node = kitFlag(node, 'appearance', prop_appearance);
+  }
+
+  return node;
+}
+
+export interface PlotTooltipRowProps {
+  /** Row label, empty by default. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Displayed value, empty by default. Signal expressions update live. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Optional swatch color: a theme or Tailwind palette color, or #rrggbb. Omit for a plain row. */
+  color?: ReactiveValue<string> | TextBinding;
+  /** Optional text color for this row’s value. Uses the same color names as Plot marks; omit to inherit tooltip text color. */
+  valueColor?: ReactiveValue<string> | TextBinding;
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** An extra row in PlotTooltip, after automatic series rows. Values are application supplied; a row without color aligns with series rows without drawing a swatch. */
+export function PlotTooltipRow(props: PlotTooltipRowProps): Node {
+  let node = kitNode('PlotTooltipRow', [], props.className);
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_color = props.color;
+  if (prop_color !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_valueColor = props.valueColor;
+  if (prop_valueColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'valueColor', prop_valueColor));
+  }
+
+  return node;
+}
+
 export interface PlotLineProps {
-  /** Values, in label order. */
-  values?: number[];
+  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. Expressions reading component signals update live; plain arrays are read at construction. */
+  values?: ReactiveValue<number[]>;
   /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
   color?: ReactiveValue<string> | TextBinding;
   /** Smooth (default), straight segments, or steps. */
   curve?: ReactiveValue<'natural' | 'linear' | 'step'>;
   /** Marks each point with a dot. */
   dots?: ReactiveValue<boolean>;
-  /** Stroke width in pixels. Defaults to 2. */
+  /** Nonnegative finite stroke width in logical pixels, at most the native float maximum. Defaults to 2; invalid values throw a UI error. */
   width?: ReactiveValue<number>;
+  /** Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order. */
+  label?: ReactiveValue<string> | TextBinding;
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
@@ -8798,7 +9012,12 @@ export function PlotLine(props: PlotLineProps): Node {
   let node = kitNode('PlotLine', [], props.className);
   const prop_values = props.values;
   if (prop_values !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+    if (Array.isArray(prop_values)) {
+      node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+    } else {
+      const evaluate = prop_values.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'values', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_color = props.color;
@@ -8825,16 +9044,23 @@ export function PlotLine(props: PlotLineProps): Node {
     node = kitNumber(node, 'width', prop_width);
   }
 
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
   return node;
 }
 
 export interface PlotAreaProps {
-  /** Values, in label order. */
-  values?: number[];
+  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. Expressions reading component signals update live; plain arrays are read at construction. */
+  values?: ReactiveValue<number[]>;
   /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
   color?: ReactiveValue<string> | TextBinding;
   /** Smooth (default), straight segments, or steps. */
   curve?: ReactiveValue<'natural' | 'linear' | 'step'>;
+  /** Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order. */
+  label?: ReactiveValue<string> | TextBinding;
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
@@ -8844,7 +9070,12 @@ export function PlotArea(props: PlotAreaProps): Node {
   let node = kitNode('PlotArea', [], props.className);
   const prop_values = props.values;
   if (prop_values !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+    if (Array.isArray(prop_values)) {
+      node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+    } else {
+      const evaluate = prop_values.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'values', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_color = props.color;
@@ -8861,14 +9092,21 @@ export function PlotArea(props: PlotAreaProps): Node {
     }
   }
 
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
   return node;
 }
 
 export interface PlotBarsProps {
-  /** Values, in label order. */
-  values?: number[];
+  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. Expressions reading component signals update live; plain arrays are read at construction. */
+  values?: ReactiveValue<number[]>;
   /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
   color?: ReactiveValue<string> | TextBinding;
+  /** Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order. */
+  label?: ReactiveValue<string> | TextBinding;
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
@@ -8878,12 +9116,22 @@ export function PlotBars(props: PlotBarsProps): Node {
   let node = kitNode('PlotBars', [], props.className);
   const prop_values = props.values;
   if (prop_values !== undefined) {
-    node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+    if (Array.isArray(prop_values)) {
+      node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
+    } else {
+      const evaluate = prop_values.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'values', nativeBindText(() => evaluate().join('\n'))));
+    }
   }
 
   const prop_color = props.color;
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
+  }
+
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   return node;

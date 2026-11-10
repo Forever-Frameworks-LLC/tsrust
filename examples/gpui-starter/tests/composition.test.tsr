@@ -1,5 +1,5 @@
 import { test, strictEqual } from 'std:testing';
-import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, signal, document } from 'std:ui';
+import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, signal, document } from 'std:ui';
 
 interface DeferredProps {
   children?: LazyChildren;
@@ -68,4 +68,57 @@ test('code editor rejects invalid indentation and scrolling counts', () => {
   }
 
   strictEqual(rejected, true);
+});
+
+function LivePlot(): Node {
+  const value = signal(2);
+  return <Plot labels={['A', `${value.get()}`]}><PlotLine values={[Number(value.get()), 3]} /><PlotTooltip /></Plot>;
+}
+
+test('live Plot array props compile and reject nonfinite values at construction', () => {
+  const plot = LivePlot();
+  const html = document(plot, 'Live Plot');
+  strictEqual(html.includes('Live Plot'), true);
+  for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+    let rejected = false;
+    try {
+      const node = <PlotLine values={[1, value]} />;
+    } catch {
+      rejected = true;
+    }
+
+    strictEqual(rejected, true);
+  }
+
+  let rejected = false;
+  try {
+    const node = <PlotTooltip gap={-1} />;
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+});
+
+interface ArrayGetter {
+  evaluate: Owned<Function<number[]>>;
+}
+
+function DeferredArray(source: number[] | ArrayGetter): string {
+  if (Array.isArray(source)) {
+    return source.join(',');
+  }
+
+  const evaluate = source.evaluate;
+  const read = () => evaluate().join(',');
+  const first = read();
+  return `${first}|${read()}`;
+}
+
+test('an unused array-getter branch keeps a concrete absent callback capture', () => {
+  strictEqual(DeferredArray([1, 2]), '1,2');
+  strictEqual(DeferredArray(Array.of ()), '');
+  strictEqual(DeferredArray(Array.of (3, 4)), '3,4');
+  const numbers: number[] = [5, 6];
+  strictEqual(DeferredArray([...numbers]), '5,6');
 });

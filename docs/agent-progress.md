@@ -204,10 +204,100 @@ Validation so far:
   target. Prune redundant example-local native outputs after active builds end.
   Example target is about 45GB, repository target about 156GB (logical du sizes).
 
-Next: local checkpoint this accepted section. Continue text-transform/unsupported-native diagnostics, Plot
+This section was checkpointed as caa69ba1. Continue text-transform/unsupported-native diagnostics, Plot
 tooltip, Diff and remaining Kit API families plus string-field ergonomics. Full Kit
 API coverage and ownership ergonomics remain open. No performance measurements,
 remote runs, pushes or releases. Gallery is open on Styling and Themes, live styles off and Switch locally on.
+
+### Plot tooltip and live array props — 2026-11-10 (final checks running)
+
+Latest accepted checkpoint is caa69ba1 (reactive Kit classes/native viewport styles),
+local and not pushed. Current working section is uncommitted. /tmp/Tsrust Gallery.app
+now runs this working section’s successfully compiled binary, copied atomically
+and reopened through CUA. It is on Plot, offset 1, glide off. One writer; no pushes,
+releases or performance measurements.
+
+Implementation:
+- PlotTooltip/PlotTooltipRow use GPUI Kit’s Plot hover state and overlay: title,
+  automatic colored series rows, explicit plain/colored/value-colored rows,
+  crosshairs, dots, glide/fade, progress, gap and appearance. Marks add label.
+  Missing trailing series values are omitted; no hover work without a tooltip.
+- Plot labels use internal JSON to preserve empty/newline labels. Mark values
+  reject NaN/infinity; stroke/gap reject invalid geometry. Painting and hover
+  share normalization for finite extreme ranges and grouped-bar coordinates.
+- All generated Kit array props accept ReactiveValue<array>, retain evaluated
+  getters for state expressions, and keep the constant path for plain arrays.
+  Live props admit scalar arrays/nested arrays; Computed/useProp stay scalar-only;
+  record/resource arrays still reject. Ordinary array bindings remain invariant.
+- Array literal/Array.of/spread contexts retain a sole array alternative through
+  union injection, without selecting an ambiguous array or tuple alternative.
+- Native empty callback captures use their concrete uninhabited type, without
+  unused generic bounds. Empty/live callback calls share the existing receiver
+  logic, preserving captured mutable reborrows. Public regressions exercise both.
+- Fixed disabled native application menus: GPUI macOS validation follows action
+  availability. Disabled entries/labels now use NoAction, matching the pinned
+  upstream set_menus example; parent disabled state propagates to children.
+- Complete generated help and a new Plot gallery page. 218 wrappers; 71 component
+  pages / 352 examples. Mapping count 1787/2147, 28 types incomplete. Tooltip’s two
+  upstream type names share one inventory row; no full Kit coverage claim.
+
+Completed validation (setup/build separate from observed execution):
+- UI runtime 128/128, 0.05s; setup/build 41.18s including lock wait.
+- Public navigation+composition, one shared runner: 7/7 in 1.80ms. Individual
+  cases ~0.09/0.91/0.15/0.06/0.04/0.05/0.01ms. Build/setup 77226.2ms
+  (check 2478.8ms, emit 422.5ms, backend 66.2ms, native/link 73896.7ms).
+- Full compiler library: 1541 active tests passed; 8 unchanged opt-ins ignored.
+  Initial sandbox run: 1511 pass, 30 permissions failures, 256.22s harness time;
+  only those 30 rerun with local listener/filesystem permissions, all pass 0.57s.
+  Cargo setup/build 6m13s. No code failure in the library run.
+- CLI 49/49: 48 passed in the initial 3.22s run; the one outdated Plot wrapper
+  export expectation was extended for the two new item wrappers and passes 0.01s.
+- ui_authoring 4/4, 21.96s (setup/build 18.79s), including the new array contexts,
+  invariant existing arrays, record/computed rejection and original bounded Table
+  diagnostic recovery. Earlier accepted routing/nesting/shared-signal witnesses retained.
+- Whole-project formatter last changed one public-suite file; zero documentation
+  snippets/fingerprints. Both generators --check and diff --check passed.
+- Native gallery build passed using the explicit repository Cargo target.
+- Desktop CUA: disabled Save is marked disabled, stays inert and preserves its
+  original message; re-enabling restores Save. Navigating away clears File/View.
+  Plot Mon shows Requests 2/Completed 1/Updates 0; Wed shows Requests 4 only plus
+  Updates 0. Update data changes Tue to Requests 8/Completed 7/Updates 1 and Mon
+  Requests 3. Disabling glide preserves values. Crosshairs, colored hover dots,
+  plain row/value color and tooltip edge flipping visibly work.
+
+Running / pending:
+- Full LSP initial run: 477 tests passed before the intelligence target’s catalog
+  example test hit sandbox-blocked HttpApp.listen. Other 331 intelligence tests
+  passed. Preserve these passes. Setup/build 49.31s. Resume only that catalog
+  test with TSRUST_CATALOG_RESUME_FROM=HttpApp and local permissions: session
+  62502, /tmp/tsrust-ui-lsp-catalog-retry.log.
+- Remaining 61 LSP targets after intelligence: all passed (exit 0), including
+  the expanded TSRX completion/hover/definition regression.
+  /tmp/tsrust-ui-lsp-remaining.log. Initial tail run accidentally lacked resource
+  variables; stopped its own Cargo/children before any tests ran and restarted
+  with explicit limits. Prune the aborted target/debug/incremental outputs later.
+- Workspace/all-target and separate backend/all-target checks both passed;
+  /tmp/tsrust-ui-workspace-check.log and /tmp/tsrust-ui-backend-check.log.
+- Whole-project format rerun: 0 files/snippets/fingerprints; both generators
+  --check and git diff --check passed. Catalog retry still running at checkpoint.
+  Do not rerun already passed groups unless changed inputs justify it.
+
+Resource hygiene: official cache clean removed 2092 root artifacts (105371441251
+bytes) and 99 example artifacts (49078328212 bytes), preserving running private
+copies and the repository Cargo target. Every future command explicitly sets
+CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target,
+CARGO_INCREMENTAL=0 and CARGO_BUILD_JOBS=1. Raw /tmp logs are disposable: summarize
+terminal results here, then delete them before handoff; no imported raw receipts.
+
+Next: collect the three running sessions, repair only affected failures and
+checkpoint this section. Continue Diff, remaining input/editor callbacks,
+Questionnaire/Settings/Speech APIs, borrowed string-field ergonomics, and feasible
+native typography/interaction styling. Native style gaps remain: text case,
+tracking/balance, animations, nonuniform grids and flattened nested text; do not
+claim full Tailwind rendering. Core classed-button focus/keyboard behavior also
+needs review: raw classed Div buttons may lack a focus handle. No changes for
+those gaps have been implemented yet. Other desktop platforms/web and signing/
+archive packaging are unverified. Keep the gallery available for owner inspection.
 
 ### Gallery as Kit docs mirror; API coverage tracking — 2026-11-09
 

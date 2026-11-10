@@ -228,10 +228,12 @@ enum KitState {
 }
 
 /// One Plot mark: a line, area or bar series over the Plot's labels.
-struct Mark {kind: &'static str, values: Vec<f64>, color: Hsla, curve: Curve, dots: bool, width: f32}
+struct Mark {label: String, kind: &'static str, values: Vec<f64>, color: Hsla, curve: Curve, dots: bool, width: f32}
 
 /// A Plot: marks share one band x scale over the labels and one linear y scale.
-struct Marks {labels: Vec<SharedString>, marks: Vec<Mark>, axis: bool, grid: bool, border: Hsla, muted: Hsla}
+struct PlotTipRow {label:String,value:String,color:Option<Hsla>,value_color:Option<Hsla>}
+struct PlotTip {glide:bool,progress:Option<f32>,title:Option<String>,series:bool,gap:f32,cross:String,dots:bool,appearance:bool,rows:Vec<PlotTipRow>,style:StyleRefinement}
+struct Marks {id:u64,tooltip:Option<PlotTip>,labels: Vec<SharedString>, marks: Vec<Mark>, axis: bool, grid: bool, border: Hsla, muted: Hsla}
 
 impl IntoElement for Marks {
     type Element = PlotElement<Self>;
@@ -239,33 +241,70 @@ impl IntoElement for Marks {
 }
 
 impl KitPlot for Marks {
+    fn id(&self)->Option<ElementId> {self.tooltip.as_ref().map(|_|ElementId::Name(format!("plot-{}",self.id).into()))}
+    fn tooltip_state(&self,position:Point<Pixels>,bounds:Bounds<Pixels>,_:&App)->Option<gpui_kit::component::plot::TooltipState> {
+        let count=self.labels.len();
+        let width=bounds.size.width.as_f32();
+        let height=(bounds.size.height.as_f32()-if self.axis {axis_gutter(px(12.))}else{0.}).max(0.);
+        if count==0 || width<=0. || height<=0. || position.y.as_f32()>=height {return None;}
+        let step=width/count as f32;
+        let index=super::kit::plot_index(position.x.as_f32(),width,count)?;
+        let x=step*(index as f32+0.5);
+        let (low,high)=self.marks.iter().flat_map(|mark|mark.values.iter().copied()).fold((0f64,0f64),|(low,high),value|(low.min(value),high.max(value)));
+        let bar_count=self.marks.iter().filter(|mark|mark.kind=="bars").count();
+        let mut bar_index=0;
+        let dots=self.marks.iter().filter_map(|mark| {
+            let x=if mark.kind=="bars" {let x=super::kit::plot_bar_x(x,step,bar_index,bar_count);bar_index+=1;x}else{x};
+            mark.values.get(index).map(|value|point(px(x),px(super::kit::plot_y(*value,low,high,height))))
+        }).collect();
+        Some(gpui_kit::component::plot::TooltipState::new(index,point(px(x),position.y),dots))
+    }
+    fn tooltip(&self,state:&gpui_kit::component::plot::TooltipState,cursor:Point<Pixels>,bounds:Bounds<Pixels>,_:&mut Window,_:&mut App)->Option<AnyElement> {
+        use gpui_kit::component::plot::tooltip::{Tooltip as PlotTooltip,CrossLine,Dot};
+        let options=self.tooltip.as_ref()?;
+        let mut tooltip=PlotTooltip::new(cursor,bounds.size).glide(options.glide).gap(px(options.gap)).appearance(options.appearance).refine_style(&options.style);
+        if let Some(progress)=options.progress {tooltip=tooltip.progress(progress);}
+        let title=options.title.as_ref().map(String::as_str).unwrap_or_else(||self.labels.get(state.index).map_or("",SharedString::as_ref));
+        if !title.is_empty() {tooltip=tooltip.title(title.to_owned());}
+        if options.series {for mark in &self.marks {if let Some(value)=mark.values.get(state.index) {tooltip=tooltip.row(mark.color,mark.label.clone(),value.to_string());}}}
+        for row in &options.rows {
+            tooltip=match row.color {Some(color)=>tooltip.row(color,row.label.clone(),row.value.clone()),None=>tooltip.plain_row(row.label.clone(),row.value.clone())};
+            if let Some(color)=row.value_color {tooltip=tooltip.value_color(color);}
+        }
+        let cross=CrossLine::new(state.cross_line);
+        tooltip=match options.cross.as_str() {"none"=>tooltip,"horizontal"=>tooltip.cross_line(cross.horizontal()),"both"=>tooltip.cross_line(cross.both()),_=>tooltip.cross_line(cross)};
+        if options.dots {
+            let colors=self.marks.iter().filter(|mark|mark.values.get(state.index).is_some()).map(|mark|mark.color);
+            tooltip=tooltip.dots(state.dots.iter().zip(colors).map(|(point,color)|Dot::new(*point).fill(color).stroke(color)));
+        }
+        Some(tooltip.into_any_element())
+    }
     fn paint(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         let count = self.labels.len();
         if count == 0 {return;}
         let width = bounds.size.width.as_f32();
-        let height = bounds.size.height.as_f32() - if self.axis {axis_gutter(px(12.))} else {0.};
+        let height = (bounds.size.height.as_f32() - if self.axis {axis_gutter(px(12.))} else {0.}).max(0.);
         let (low, high) = self.marks.iter().flat_map(|mark| mark.values.iter().copied()).fold((0f64, 0f64), |(low, high), value| (low.min(value), high.max(value)));
-        let span = if high > low {high - low} else {1.};
-        let y = move |value: f64| (height as f64 * (1. - (value - low) / span)) as f32;
+        let y = move |value: f64| super::kit::plot_y(value,low,high,height);
         let step = width / count as f32;
         let center = move |index: usize| step * (index as f32 + 0.5);
         if self.grid {
             PlotGrid::new().y((0..=4).map(|level| px(height * level as f32 / 4.))).stroke(self.border).dash_array(&[px(4.), px(2.)]).paint(&bounds, window);
         }
-        let bar_series = self.marks.iter().filter(|mark| mark.kind == "bars").count().max(1) as f32;
-        let mut bar_index = 0.;
+        let bar_series = self.marks.iter().filter(|mark| mark.kind == "bars").count().max(1);
+        let mut bar_index = 0;
         for mark in &self.marks {
             let points = (0..count.min(mark.values.len())).map(|index| (center(index), y(mark.values[index]))).collect::<Vec<_>>();
             match mark.kind {
                 "area" => Area::new().data(points).x(|point: &(f32, f32)| Some(point.0)).y0(y(low.max(0.).min(high))).y1(|point: &(f32, f32)| Some(point.1))
                     .fill(mark.color.opacity(0.3)).stroke(mark.color).curve(mark.curve).paint(&bounds, window),
                 "bars" => {
-                    let band = step * 0.7 / bar_series;
-                    let offset = -step * 0.35 + band * bar_index;
+                    let band = step * 0.7 / bar_series as f32;
+                    let offset = super::kit::plot_bar_x(0.,step,bar_index,bar_series)-band/2.;
                     let (base, color) = (y(0f64.max(low).min(high)), mark.color);
                     Bar::new().data(points).band_width(band).cross(move |point: &(f32, f32)| Some(point.0 + offset)).base(move |_| base).value(|point: &(f32, f32)| Some(point.1))
                         .fill(move |_, _, _| color).paint(&bounds, window, cx);
-                    bar_index += 1.;
+                    bar_index += 1;
                 }
                 _ => {
                     let mut line = Line::new().data(points).x(|point: &(f32, f32)| Some(point.0)).y(|point: &(f32, f32)| Some(point.1)).stroke(mark.color).stroke_width(mark.width).curve(mark.curve);
@@ -373,20 +412,23 @@ fn application_menus(node: &Node) -> Vec<ApplicationMenu> {
 }
 
 fn install_application_menus(menus: &[ApplicationMenu], cx: &mut App) -> Result<(), String> {
-    fn entries(values: &[MenuEntry]) -> Result<Vec<gpui_kit::MenuItem>, String> {
+    fn entries(values: &[MenuEntry], parent_disabled:bool) -> Result<Vec<gpui_kit::MenuItem>, String> {
         values.iter().map(|entry| Ok(match entry {
             MenuEntry::Separator => gpui_kit::MenuItem::separator(),
-            MenuEntry::Label(label) => gpui_kit::MenuItem::action(label.clone(), TsrustCommand {name: String::new()}).disabled(true),
-            MenuEntry::Submenu {label, entries: children, ..} => gpui_kit::MenuItem::submenu(gpui_kit::Menu::new(label.clone()).items(entries(children)?)),
+            MenuEntry::Label(label) => gpui_kit::MenuItem::action(label.clone(), NoAction).disabled(true),
+            MenuEntry::Submenu {label, entries: children, ..} => gpui_kit::MenuItem::submenu(gpui_kit::Menu::new(label.clone()).items(entries(children,parent_disabled)?)),
             MenuEntry::Item {label, disabled, checked, command, custom, handles, href, ..} => {
                 if *custom || *handles || !href.is_empty() {
                     return Err("AppMenuBar items require text and a Shortcut command; custom rows, onSelect and href belong in popup menus".into());
                 }
-                gpui_kit::MenuItem::action(label.clone(), TsrustCommand {name: command.clone()}).checked(*checked).disabled(*disabled || command.is_empty())
+                // Native menu validation uses action availability; NoAction keeps disabled rows inert.
+                let disabled=parent_disabled || *disabled || command.is_empty();
+                let item=if disabled {gpui_kit::MenuItem::action(label.clone(),NoAction)}else{gpui_kit::MenuItem::action(label.clone(),TsrustCommand {name:command.clone()})};
+                item.checked(*checked).disabled(disabled)
             }
         })).collect()
     }
-    let menus=menus.iter().map(|menu| Ok(gpui_kit::Menu::new(menu.label.clone()).disabled(menu.disabled).items(entries(&menu.entries)?))).collect::<Result<Vec<_>, String>>()?;
+    let menus=menus.iter().map(|menu| Ok(gpui_kit::Menu::new(menu.label.clone()).disabled(menu.disabled).items(entries(&menu.entries,menu.disabled)?))).collect::<Result<Vec<_>, String>>()?;
     if cfg!(target_os="macos") {cx.set_menus(menus);}
     else {gpui_kit::base::GlobalState::global_mut(cx).set_app_menus(menus.into_iter().map(gpui_kit::Menu::owned).collect());}
     Ok(())
@@ -3162,6 +3204,7 @@ impl Root {
             },
             "Plot" => {
                 let marks = node.visible_children().filter_map(|child| child.kit.as_deref()).filter(|mark| matches!(mark.name.as_str(), "PlotLine" | "PlotArea" | "PlotBars")).enumerate().map(|(index, mark)| Mark {
+                    label:mark.prop("label").map_or_else(||format!("Series {}",index+1),str::to_owned),
                     kind: match mark.name.as_str() {"PlotArea" => "area", "PlotBars" => "bars", _ => "line"},
                     values: mark.text("values").split('\n').filter_map(|value| value.trim().parse().ok()).collect(),
                     color: plot_color(&mark.text("color"), index, cx),
@@ -3169,8 +3212,13 @@ impl Root {
                     dots: mark.flag("dots"),
                     width: mark.number("width").unwrap_or(2.) as f32,
                 }).collect();
-                let labels = kit.text("labels").split('\n').filter(|label| !label.is_empty()).map(|label| SharedString::from(label.to_owned())).collect();
-                div().size_full().child(Marks {labels, marks, axis: kit.flag("axis"), grid: kit.flag("grid"), border: cx.theme().border, muted: cx.theme().muted_foreground}).into_any_element()
+                let labels=serde_json::from_str::<Vec<String>>(kit.prop("labels").unwrap_or("[]")).unwrap_or_default().into_iter().map(SharedString::from).collect();
+                let tooltip=first_item(node,"PlotTooltip").and_then(|tip|tip.kit.as_ref().map(|kit| {
+                    let flag=|name:&str,default|kit.prop(name).map_or(default,|value|value=="true");
+                    let rows=items(tip,"PlotTooltipRow").map(|(_,row)|PlotTipRow {label:row.text("label"),value:row.text("value"),color:row.prop("color").map(|value|plot_color(value,0,cx)),value_color:row.prop("valueColor").map(|value|plot_color(value,0,cx))}).collect();
+                    PlotTip {glide:flag("glide",true),progress:kit.number("progress").map(|value|value as f32),title:kit.prop("title").map(str::to_owned),series:flag("showSeries",true),gap:kit.number("gap").unwrap_or(8.) as f32,cross:kit.text("crossLine"),dots:flag("dots",true),appearance:flag("appearance",true),rows,style:self.node_style(tip)}
+                }));
+                div().size_full().child(Marks {id,tooltip,labels, marks, axis: kit.flag("axis"), grid: kit.flag("grid"), border: cx.theme().border, muted: cx.theme().muted_foreground}).into_any_element()
             }
             "Questionnaire" => match self.states.get(&id) {
                 Some(KitState::Questionnaire(state)) => {

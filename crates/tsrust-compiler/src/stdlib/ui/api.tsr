@@ -1064,12 +1064,12 @@ export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Sig
   return unwrap(nativeThemeMode(node, config, mode));
 }
 
-/** A reusable scalar expression for a component prop. TSRX creates this binding automatically for state-reading expressions. */
+/** A reusable scalar or scalar-array expression for a component prop. TSRX creates this binding automatically for state-reading expressions. Kit array props consume array getters directly; useProp remains scalar-only. */
 export interface Reactive<T> {
   /** Zero-argument checked getter. Owns its callback and does not retain component state owners. */
   evaluate: Owned<Function<T>>;
 }
-/** A constant or live scalar component prop. Reactivity requires a declared ReactiveValue prop and useProp() in the component that reads it. */
+/** A constant or live component prop. Scalars use useProp() in the receiving component. Kit array props also accept live expressions producing arrays of scalars; useProp() does not adapt arrays. */
 export type ReactiveValue<T> = Reactive<T> | T;
 /** A component-owned read-only expression. get() evaluates its latest scalar value; there is no setter. */
 export type Computed<T> = NativeComputed<T>;

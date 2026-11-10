@@ -116,7 +116,7 @@ mod tests {
         let source=tsrust_compiler::format(&wrapper(settings,&catalog)).unwrap();
         assert!(source.contains("export function SettingItem(props: SettingItemProps): Node"));
         let plot=catalog.iter().find(|component|component.name=="Plot").unwrap();
-        assert_eq!(exports(plot,&catalog),["Plot","PlotLine","PlotArea","PlotBars"]);
+        assert_eq!(exports(plot,&catalog),["Plot","PlotLine","PlotArea","PlotBars","PlotTooltip","PlotTooltipRow"]);
         assert!(catalog.iter().filter(|component|!component.item).count()>60);
     }
 }

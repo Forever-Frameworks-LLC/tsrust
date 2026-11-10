@@ -71,6 +71,8 @@ impl Emitter<'_> {
     }
 
     fn callback_capture_bounds(&self, id: usize, parameter: &str) -> Vec<String> {
+        // Empty callback families have a concrete uninhabited representation, not a generic capture.
+        if self.program.absent_callback_payloads.contains(&id) {return Vec::new();}
         let contract = &self.program.callback_contracts[id];
         let (args, lifetimes) = self.native_argument_tuple(&contract.params);
         let args = args.replace("'p", "'capture_p");

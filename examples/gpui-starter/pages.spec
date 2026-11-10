@@ -4338,3 +4338,26 @@ function LiveTranscript(): Node {
     </View>
   );
 }
+=== Plot | plot | Data
+Layer line, area and bar series on a shared category scale. Add PlotTooltip for Kit hover motion, crosshairs and series values.
+--- Hover values and live data
+Move across the plot to inspect categories. Update data changes values without replacing the plot; the last series intentionally omits its final value. Plain tooltip rows can show application state alongside series values.
+function PlotHoverValues(): Node {
+  const offset = signal(0);
+  const glide = signal(true);
+  return (
+    <View className="flex-col gap-3 w-full">
+      <View className="flex-row items-center gap-3">
+        <Button onPress={() => { offset.set(offset.get() + 1); }}>Update data</Button>
+        <Switch checked={glide.get()} onChange={(value) => { glide.set(value); }}>Glide crosshair</Switch>
+      </View>
+      <Plot labels={['Mon', 'Tue', 'Wed']} axis={true} grid={true} className="h-64 w-full">
+        <PlotArea label="Requests" values={[2 + Number(offset.get()), 8, 4]} color="sky-500" />
+        <PlotLine label="Completed" values={[1, 6 + Number(offset.get())]} color="orange-500" dots={true} />
+        <PlotTooltip glide={glide.get()} crossLine="both" gap={12}>
+          <PlotTooltipRow label="Updates" value={`${offset.get()}`} valueColor="green-500" />
+        </PlotTooltip>
+      </Plot>
+    </View>
+  );
+}

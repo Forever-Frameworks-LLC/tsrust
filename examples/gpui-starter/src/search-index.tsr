@@ -854,6 +854,10 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/speech", page: "Speech", section: "Live transcript", text: "click the microphone to start, speak, then click again to finish. the first attempt may request system permission.", keywords: "speechbutton text view classname locale onerror onfinal onpartial variant waveform"
   }, {
+    route: "/plot", page: "Plot", section: "", text: "layer line, area and bar series on a shared category scale. add plottooltip for kit hover motion, crosshairs and series values.", keywords: "plot button plot plotarea plotline plottooltip plottooltiprow switch view"
+  }, {
+    route: "/plot", page: "Plot", section: "Hover values and live data", text: "move across the plot to inspect categories. update data changes values without replacing the plot; the last series intentionally omits its final value. plain tooltip rows can show application state alongside series values.", keywords: "button plot plotarea plotline plottooltip plottooltiprow switch view axis checked classname color crossline dots gap glide grid label labels onchange onpress value valuecolor values"
+  }, {
     route: "/", page: "Getting Started", section: "", text: "tsrust compiles .tsrx files, typescript with tsrx component markup, into a native desktop\napplication. the window is drawn by gpui and the components come from gpui\nkit, so a button, a table or a date picker is a real rust widget, not a web\nview. you write components like react or solid; the compiler checks\nownership and emits rust.\n\n create an app\n\nbash\ntsrust new my-app --ui\ncd my-app\ntsrust dev\n\n\ntsrust dev builds the app, opens its window and rebuilds when you save a\nfile. the project holds src/main.tsrx, src/locales/.json for\ntranslations, icon.png and tsrust.config.json.\n\n your first com", keywords: "guide docs getting started"
   }, {
     route: "/", page: "Getting Started", section: "Create an app", text: "", keywords: "guide docs"
