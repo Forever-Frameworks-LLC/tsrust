@@ -114,10 +114,10 @@ impl ProjectIndex {
             let started = std::time::Instant::now();
             let module = &graph.modules[id];
             let text_asset=module.data.is_some()&&std::path::Path::new(&id.0).extension().is_some_and(|value|value=="txt");
-            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::with_entry_help(&module.declaration_source,false),SourceIndex::with_entry_help(module.checked_source(),id==&graph.entry))};
+            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::for_project(&module.declaration_source,false),SourceIndex::for_project(module.checked_source(),id==&graph.entry))};
             if let Some(data) = &module.data && !text_asset {
                 let schema = data.schema();
-                declaration = SourceIndex::with_entry_help(&module.source.text, false);
+                declaration = SourceIndex::for_project(&module.source.text, false);
                 declaration.add_data_schema(&schema);
                 index.add_data_schema(&schema);
             }

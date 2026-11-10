@@ -6,6 +6,77 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Gallery LSP index repair — 2026-11-10 (validated, checkpoint pending)
+
+Latest accepted local source da2b668b contains Questionnaire/Settings/custom menus;
+84c64577 contains Speech. Current LSP changes validated as follows:
+- Real header gallery index/request: 1/1,8.33s total including90.43ms header setup.
+- Real checked gallery index/request: 1/1,58.29s harness including48.198s compiler
+  graph setup. Header build5.996s, facts77ms, application1.686s, references2.179s.
+  Both retain Route hover and its bundled source definition. Index deadline stays
+  30s after setup; compiler setup has a separate180s watchdog. No benchmark claim.
+- LSP lib25/25 (.19s), checker agreement5/5 (295.91s), typing matrix3/3 (226.18s),
+  editor consistency30/30 (84.17s), intelligence331 relevant tests passed, TSRX6/6
+  (.77s). 400 ordinary editor tests plus the two real gallery tests pass.
+- The native backend catalog also ran because the initial skip named its helper,
+  not its #[test] wrapper backend_catalog_examples_match_native_output. It failed
+  at HttpApp.listen under the known sandbox restriction (147.38s harness including
+  native builds). This runtime-only gate is unaffected by LSP changes. Every
+  catalog key outside std:ui is byte-equivalent as parsed JSON to 4e766220, whose
+  retained full native catalog passed (including resumed HttpApp onward1492.20s).
+  Reuse that completed evidence; do not rerun the unchanged heavy runtime catalog.
+- Both consumers rebuilt successfully (15.64s); whole formatter zero files/snippets/
+  fingerprints, generators and diff check pass. No new runtime measurements or CI.
+
+Root causes/fixes: importing each prop field rescanned duplicate record owners and
+remapped every record in its dependency. Unique record names are collected once,
+field identifiers once, and only referenced types are remapped/imported. Successful
+nominal declaration spellings cache per SourceIndex revision/source/span; generic
+arguments still resolve separately. Declaration/field/native docs borrow one raw
+catalog entry instead of cloning the module. Generic receiver substitution stays
+in builtins_for. Project source indices consume the project graph's checked facts
+and skip redundant standalone compiler checks; ordinary single-file construction
+is unchanged. Checked fields apply only in their owning module, with foreign
+shapes imported on demand; copying all std:ui fields into each importer cost~4.3s
+per module. Structural fields filter by their own source; named inherited fields
+follow the owner declaration. No artificial size caps or weaker type coverage.
+
+Evidence: old live server84953 stayed99% CPU >30min, footprint/peak809MB. Its sample
+was ProjectIndex.checked -> apply_project_checked_facts -> project_type_spelling.
+Separate samples localized duplicate standalone checks and per-page record imports.
+New tests/gallery_index.rs use the actual84-module gallery once per case, separate
+setup from a bounded index/request phase, and run no separate native programs.
+
+Live refresh: VS Code restarted onto the repaired binary (new PID20030, old84953
+exited). Input.onValidate shows current behavioral help and No Problems. Inspection
+keystrokes briefly typed into a selected attribute; all were undone, unsaved flag
+cleared, original onValidate restored and git diff confirms Input.tsrx unchanged.
+Last CUA completion: Verified refreshed TSRX editor help. A subsequent live sample
+of20030 showed workspace_scan.Cache.check_cancellable -> compiler analysis, not
+indexing. Whole-workspace compiler checking is still active; do not claim idle or
+use transient No Problems as proof it settled. Monitor later; no CUA phase open.
+
+Owner noticed two previews. Confirmed processes: original53885 ./target/gpui-starter
+(~7h old) and current1217 /private/tmp/Tsrust Gallery.app/Contents/MacOS/gpui-starter.
+Explained that the original was preserved and Tsrust Gallery has current changes.
+Do not close the original unless the owner asks. Current gallery remains open on
+Input, custom menu field='Hello from the menu', independently of Claude.
+
+Next: finish formatter/local checkpoint for this LSP section, then native classed
+Button keyboard/focus/a11y and native text/style limits, unsigned packaging smoke,
+final all-target checks and obsolete output cleanup. Existing full compiler/LSP
+milestones remain evidence. No push/release/agent work authorized or needed.
+Research: gpui-base-0.9.0/src/button.rs provides an unstyled native Button that owns
+keyboard/focus/a11y and implements Styled, InteractiveElement and
+StatefulInteractiveElement. Use it for the raw-Div classed core Button path, sharing
+utility rule application with styled_rules. Styled Kit Button installs its own
+hover and debug-asserts if a second one is supplied. Preserve href/labels/ids,
+disabled/tab settings, press handlers and rich children. kit_button also calls
+.toggled(false) even when toggled is absent: guard on presence to restore normal
+button accessibility semantics. No UI renderer source changes for this next slice
+yet. Microphone capture, other OS targets and signing remain unverified; full Kit
+coverage remains1939/2147,20 types incomplete, not complete parity.
+
 ### Forms desktop acceptance — 2026-11-10
 
 Speech checkpoint 84c64577 is local. Current Questionnaire/Settings section adds

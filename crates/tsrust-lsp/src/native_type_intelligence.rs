@@ -246,7 +246,7 @@ impl SourceIndex {
             self.generic_aliases.get_or_insert_with(Default::default).import_as(catalog,&declaration.name,local,|name|mappings.get(name).cloned().unwrap_or_else(||name.into()));
             if let Some(parameters)=dependency.generic_parameters.get(&declaration.name){self.generic_parameters.insert(local.into(),parameters.clone());}
             let mut symbol=declaration.clone();symbol.name=local.into();symbol.ty=local.into();symbol.signature=symbol.signature.replacen(&format!("type {}",declaration.name),&format!("type {local}"),1);symbol.span=span;symbol.extent=span;
-            if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") && let Some(entry)=builtins_for(module).into_iter().find(|entry|entry["name"]==declaration.name) && let Some(documentation)=entry["documentation"].as_str(){symbol.docs=documentation.to_owned();}
+            if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") && let Some(entry)=builtin_entry(module,declaration.name.as_str()) && let Some(documentation)=entry["documentation"].as_str(){symbol.docs=documentation.to_owned();}
             self.foreign_definitions.insert(self.symbols.len(),json!({"uri":uri,"range":dependency.range(declaration.span)}));self.symbols.push(symbol);return true;
         }
         let Some(ty) = remap_imported_type(&dependency.written_type(&declaration.ty), &mappings) else { return false; };
@@ -280,7 +280,7 @@ impl SourceIndex {
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpClient { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpClientOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
         let catalog_module = if declaration.module == "std:log-runtime" { "std:log" } else if declaration.module == "std:testing-runtime" { "std:testing" } else { declaration.module };
-        let Some(catalog) = builtins_for(catalog_module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
+        let Some(catalog) = builtin_entry(catalog_module,declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);
         if !declaration.type_parameters.is_empty() {
             self.generic_parameters.insert(local.into(), declaration.type_parameters.iter().map(|name| (*name).to_owned()).collect());
@@ -321,7 +321,7 @@ impl SourceIndex {
                 let ty=getter.result.signature().render(|id|Some(self.native_type_spelling(id).into())).expect("URL property signature").into_owned();
                 let write=setter.map(|setter|setter.parameters[1].ty.signature().render(|id|Some(self.native_type_spelling(id).into())).expect("URL write signature").into_owned());
                 let signature=format!("(property) {local}.{member}: {ty}{}",write.map_or_else(||" (read-only)".into(),|input|format!("; assign {input}; throws UrlError")));
-                let docs=builtins_for("Url").into_iter().find(|entry|entry["name"]==member).and_then(|entry|entry["documentation"].as_str().map(str::to_owned)).unwrap_or_default();
+                let docs=builtin_entry("Url",member).and_then(|entry|entry["documentation"].as_str().map(str::to_owned)).unwrap_or_default();
                 self.symbols.push(Symbol{name:member.into(),kind:8,span,extent:span,scope:0,ty,signature,docs,parameters:Vec::new(),owner:Some(local.into())});
             }
         }
