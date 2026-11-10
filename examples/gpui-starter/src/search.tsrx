@@ -82,10 +82,12 @@ export function Search(): Node {
       <Button size="small" compact={true} icon="search" tooltip="Search docs" tooltipCommand="open-search" aria-label="Search docs" onPress={() => { open.set(true); }} />
       <Dialog open={open.get()} onOpenChange={(next) => { open.set(next); }}>
         <DialogContent className="w-[560px]">
-          <Command placeholder="Search components, examples and props..." filterable={false} autoFocus={true} query={query.get()} onQuery={(text) => { query.set(text); }} onSelect={(route) => { open.set(false); navigate(route); }} maxHeight={420}>
-            {...results(query.get())}
-            <CommandEmpty><Text variant="muted">{query.get().length === 0 ? 'Type to search, such as "modal", "spreadsheet" or "loading".' : 'No matches.'}</Text></CommandEmpty>
-          </Command>
+          <View className="p-4">
+            <Command placeholder="Search components, examples and props..." filterable={false} autoFocus={true} query={query.get()} onQuery={(text) => { query.set(text); }} onSelect={(route) => { open.set(false); navigate(route); }} maxHeight={420}>
+              {...results(query.get())}
+              <CommandEmpty><Text variant="muted">{query.get().length === 0 ? 'Type to search, such as "modal", "spreadsheet" or "loading".' : 'No matches.'}</Text></CommandEmpty>
+            </Command>
+          </View>
         </DialogContent>
       </Dialog>
     </View>

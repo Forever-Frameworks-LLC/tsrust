@@ -6,6 +6,25 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
+### Balanced global search spacing — 2026-11-10 (accepted with this checkpoint)
+
+Owner reported the close button overlapping the command panel. Final change is a
+single p-4 View around the gallery search Command in src/search.tsrx, adding equal
+padding on all four sides while retaining Kit's original rounded border/background.
+The first local attempt used top-only padding and bordered=false; owner rejected
+the squared panel and unbalanced gap, so both were corrected before checkpoint.
+No renderer, public API, search ranking, generated files or new dependencies change.
+
+Final native gallery build passes. Whole formatter0files/snippets/fingerprints and
+diff check pass. Native CUA verifies equal inset on all four sides, rounded panel,
+and unobstructed Close in light/dark themes with the exact Custom input menu query.
+Close works and reopening retains the query. Prior intermediate Enter navigation
+also opened Input; handlers are unchanged. Independent app bundle atomically
+refreshed and one preview left open on dark search for inspection. Completion:
+Verified balanced rounded search spacing. No CUA phase open. No broad regression,
+web interaction, performance measurement, push or remote validation for this
+reversible gallery-only layout change.
+
 ### Composed gallery examples — 2026-11-10 (accepted with this checkpoint)
 
 Owner requested readable shadcn-style example composition instead of giant title,
