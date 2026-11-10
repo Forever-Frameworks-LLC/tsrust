@@ -16,7 +16,7 @@ function Gallery(): Node {
   const stars = signal(3);
   const page = signal(2);
   const volume = signal(40.0);
-  const tab = signal(0);
+  const tab = signal('0');
   const color = signal('Green');
   const quantity = signal(2.0);
   const code = signal('');
@@ -36,7 +36,7 @@ function Gallery(): Node {
       </Sidebar>
       <View className="flex-col gap-4 p-6 grow overflow-auto">
         <Breadcrumb><BreadcrumbItem label="Home" /><BreadcrumbItem label="Components" /></Breadcrumb>
-        <Tabs selected={tab.get()} onChange={(index) => { tab.set(index); }}><Tab label="Display" /><Tab label="Inputs" /></Tabs>
+        <Tabs value={tab.get()} onChange={(value) => { tab.set(clone(value)); }}><Tab label="Display" /><Tab label="Inputs" /></Tabs>
         <View className="flex-row gap-3 items-center">
           <Badge count={stars.get()}><Text>Inbox</Text></Badge>
           <Tag variant="success">Shipped</Tag>

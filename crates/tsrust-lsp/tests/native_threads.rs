@@ -4,7 +4,6 @@ use tsrust_lsp::{intelligence::SourceIndex, workspace::Workspace, project_diagno
 
 /// Unix virtual paths stay as written; Windows gains a drive so both are absolute.
 fn host_uri(path:&str)->String{format!("file://{}{path}",if cfg!(windows){"/C:"}else{""})}
-fn host_id(path:&str)->tsrust_compiler::project::SourceId{tsrust_lsp::project_diagnostics::source_id(&host_uri(path)).unwrap()}
 
 fn request(source:&str,needle:&str,method:&str)->Value {
     let offset=source.find(needle).unwrap()+needle.len()-usize::from(method=="textDocument/hover");

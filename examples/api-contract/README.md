@@ -7,6 +7,7 @@ The extra exported `serverOnly` function is deliberately absent from the API.
 ```sh
 tsrust api generate --config tsrust.api.json
 tsrust api generate --config tsrust.api.json --check
+tsrust api generate --config tsrust.server.api.json
 tsrust run
 ```
 

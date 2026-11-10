@@ -227,7 +227,9 @@ impl SourceProvider for WorkspaceSnapshot {
         if let Some(result) = self.resolved.borrow().get(&key) {
             return result.clone();
         }
-        let result = self.resolve_path(importer, path);
+        let result = self.resolve_path(importer, path).map(|id| {
+            if importer.is_none() {tsrust_compiler::project::bundled_entry(self,&id).unwrap_or(id)} else {id}
+        });
         self.resolved.borrow_mut().insert(key, result.clone());
         result
     }
@@ -322,6 +324,23 @@ impl WorkspaceSnapshot {
 #[cfg(test)]
 mod scan_input_tests {
     use super::*;
+    #[test]
+    fn compiler_facade_parts_use_bundled_context_only_when_all_parts_match() {
+        let root=Path::new(env!("CARGO_MANIFEST_DIR")).join("../tsrust-compiler/src/stdlib");
+        let mut workspace=Workspace::default();
+        for (relative,module) in [("ui/api.tsr","std:ui"),("ui/kit.tsr","std:ui"),("logging/source.tsr","std:log")] {
+            let path=root.join(relative).canonicalize().unwrap();
+            assert_eq!(workspace.snapshot().resolve(None,path.to_str().unwrap()).unwrap(),SourceId(module.into()));
+            let id=SourceId(path.to_str().unwrap().into());
+            assert_eq!(workspace.snapshot().resolve(Some(&id),&format!("./{}",path.file_name().unwrap().to_str().unwrap())).unwrap(),id);
+        }
+        let kit=root.join("ui/kit.tsr").canonicalize().unwrap();
+        workspace.open(SourceId(kit.to_str().unwrap().into()),1,"import {kit} from 'std:ui-runtime';".into());
+        for relative in ["ui/api.tsr","ui/kit.tsr"] {
+            let path=root.join(relative).canonicalize().unwrap();
+            assert_eq!(workspace.snapshot().resolve(None,path.to_str().unwrap()).unwrap(),SourceId(path.to_str().unwrap().into()));
+        }
+    }
     #[test]
     fn retained_analysis_releases_unrelated_revisions_without_losing_dependency_guards() {
         let root = std::env::temp_dir();

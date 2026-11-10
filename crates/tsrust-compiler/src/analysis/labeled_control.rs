@@ -41,10 +41,9 @@ impl Analyzer {
         let slot=if continuing {&mut frame.continue_flow}else{&mut frame.break_flow};
         *slot=Some(slot.as_ref().map_or_else(||flow.clone(),|before|crate::flow::join(before,&flow)));
         if continuing {
-            if frame.defer_continue {
-                let states=frame.entry.iter().map(|(id,_)|Availability::of(&context.bindings[*id])).collect::<Vec<_>>();
-                frame.continues=Some(match frame.continues.take(){Some(before)=>before.into_iter().zip(states).map(|(a,b)|a.join(b)).collect(),None=>states});
-            }else{Self::check_loop_back_at(context,index)?;}
+            let states=frame.entry.iter().map(|(id,_)|Availability::of(&context.bindings[*id])).collect::<Vec<_>>();
+            frame.continues=Some(match frame.continues.take(){Some(before)=>before.into_iter().zip(states).map(|(a,b)|a.join(b)).collect(),None=>states});
+            if !context.loops[index].defer_continue {Self::check_loop_back_at(context,index)?;}
         }else{
             frame.break_seen=true;
             for ((id,_),state) in frame.entry.iter().zip(&mut frame.breaks){*state=state.clone().join(Availability::of(&context.bindings[*id]));}

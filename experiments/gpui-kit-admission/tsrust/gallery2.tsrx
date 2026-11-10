@@ -1,13 +1,12 @@
 import {
   View, Text, Button, Node, signal, run, setTheme,
   Markdown, Html, Image, TitleBar, StatusBar, StatusBarLeft, StatusBarRight, Toolbar, Form, Field, ScrollArea, Message,
-  Chart, List, Tree, TreeItem, Calendar, TimeField, Combobox, Command, CommandItem, Carousel, CarouselSlide, CodeEditor,
+  Chart, List, ListItem, Tree, TreeItem, Calendar, TimeField, Combobox, Command, CommandItem, Carousel, CarouselSlide, CodeEditor,
   ToggleGroup, Toggle, ButtonGroup, GroupButton, Input, Switch
 } from 'std:ui';
 
 function Gallery(): Node {
   const dark = signal(false);
-  const picked = signal(1);
   const day = signal('2026-11-09');
   const time = signal('09:30:00');
   const framework = signal('Svelte');
@@ -27,7 +26,7 @@ function Gallery(): Node {
             <Chart kind="pie" labels={['A', 'B', 'C']} values={[50, 30, 20]} className="w-64 h-48" />
           </View>
           <View className="flex-row gap-4">
-            <List items={['Inbox', 'Drafts', 'Sent', 'Archive', 'Spam', 'Trash']} selected={picked.get()} onSelect={(index) => { picked.set(index); }} className="w-48 h-48" />
+            <List defaultSelected={1} onSelect={(value) => { last.set(clone(value)); }} className="w-48 h-48"><ListItem value="Inbox">Inbox</ListItem><ListItem value="Drafts">Drafts</ListItem><ListItem value="Sent">Sent</ListItem><ListItem value="Archive">Archive</ListItem><ListItem value="Spam">Spam</ListItem><ListItem value="Trash">Trash</ListItem></List>
             <Tree onSelect={(id) => { last.set(clone(id)); }} className="w-56 h-48">
               <TreeItem id="src" label="src" expanded={true}><TreeItem id="src/main.tsr" label="main.tsr" /><TreeItem id="src/ui.tsrx" label="ui.tsrx" /></TreeItem>
               <TreeItem id="README.md" label="README.md" />
@@ -37,7 +36,7 @@ function Gallery(): Node {
           <Text>Day {day} · time {time} · framework {framework} · last {last}</Text>
           <View className="flex-row gap-4 items-center">
             <TimeField value={time.get()} onChange={(value) => { time.set(clone(value)); }} />
-            <Combobox items={['React', 'Svelte', 'Solid', 'Vue']} value={framework.get()} placeholder="Framework" onChange={(value) => { framework.set(clone(value)); }} className="w-56" />
+            <Combobox items={['React', 'Svelte', 'Solid', 'Vue']} value={framework.get()} placeholder="Framework" onChange={(value) => { framework.set(value.length > 0 ? value[0] : ''); }} className="w-56" />
             <ToggleGroup><Toggle label="B" checked={bold.get()} onChange={(on) => { bold.set(on); }} /><Toggle label="I" /></ToggleGroup>
             <ButtonGroup><GroupButton label="Day" onClick={() => { last.set('day'); }} /><GroupButton label="Week" onClick={() => { last.set('week'); }} /></ButtonGroup>
           </View>

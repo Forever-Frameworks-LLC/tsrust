@@ -6,7 +6,70 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-### Gallery LSP index repair — 2026-11-10 (validated, checkpoint pending)
+### Workspace diagnostics repair — 2026-11-10 (validated, checkpoint pending)
+
+Owner screenshot disproved the transient cleared Problems pane:16 diagnostics
+remained after the prior scan. All are now resolved without diagnostic exclusions.
+- Generated both private server SDKs with their checked API configs; resolved the
+  rust-owned-words binding lock offline. API-contract README includes its server
+  config. Ignored generated SDKs are local setup; the dependency lock is retained.
+- Updated dock/gallery/gallery2/gallery3 to current ListItem, string-valued Tabs,
+  InputGroup composition, InputChangeEvent.target.value, Combobox array events and
+  JSON DataTable rows. List retains initial Drafts selection and reports the row.
+  All four check. Realtime SSE handler is async, allowing its runtime-driven
+  producer start; it checks, along with both server witnesses and words/main.
+- Removed unreachable return after an unconditional returning loop from both
+  scoped composition counterparts; explicitly reviewed/updated source hashes.
+  Prior timing remains historical; this run makes no new performance claim.
+- Loop completion now retains newly stored native-view loans on fallthrough and
+  continue without propagating back-edge moves. Recursive view record stores use
+  their already-checked whole-body carrier rather than unrelated nullable join
+  restrictions. All four failing byte-view workloads check and execute correctly.
+- Extended exact-path/exact-byte bundled_entry mapping to split UI facade parts
+  and logging; observes all parts before trusting either UI fragment. LSP uses it
+  only for entries, never imports. Unsaved changes revoke the mapping. All three
+  compiler-owned files check. No private-binding access granted to user modules.
+
+Acceptance:
+- New public loop-provenance suite2/2 native tests,0.74ms execution. Whole formatter
+  proves stable formatted source. All30 std_bytes host tests pass (49.84s), including
+  owner-mutation/short-lifetime rejection on fallthrough and continue and existing
+  native runtime family at both required profiles. Host build3m49s incl queue.
+- Five affected workloads pass native and Node-after-tsc correctness-only checks,
+  five input cases each, matching independent oracles. All12 Node source/oracle
+  registration guards pass (57.21s). No timing or SQLite row added.
+- Full compiler lib1541 passed,0 failed,8 existing ignores,147.55s execution;
+  build7m43s incl queue. LSP lib26/26 (.16s); first run25/26 failed only because the
+  new fixture used a forbidden absolute import; corrected to a relative import.
+- LSP workspace6/6 (.01s) and workspace_scan8/8 (.02s) pass; build4m49s incl queue. Both workspace/all-target and backend/all-target
+  compile. Existing unused members in shared runtime/test controls still warn;
+  all warning sources outside the removed unused native_threads host_id helper
+  are unchanged. No blanket warning suppression. Affected native_threads check
+  rerun passes with no warnings (59.69s incl queue).
+- Both consumers rebuilt7m09s incl queue. Live VS Code restarted onto PID89997;
+  after the entire scan settled (CPU0%, RSS6048KiB at10m39s after restart), Problems
+  pane reports no problems. CUA completion: Verified a clean workspace scan.
+  This is settled verification, replacing the earlier transient cleared count.
+- Whole formatter0 files/snippets/fingerprints; both UI generators and diff pass.
+
+Styled Button WIP also has a successful native gallery build. Bundle atomically
+replaced and reopened, retaining launchd ownership. Desktop proof: click count1;
+click+Space+Enter count4; disabled click remains4 with50% opacity; re-enable,Tab,
+Enter reaches5 with native focus ring. Ordinary buttons now expose button roles
+rather than implicit toggles. CUA does not expose the final page controls in its
+AX dump; manual keyboard/visual proof plus upstream Base Button role contract,
+not a claim of a separate AX audit. Last native CUA completion: Verified native
+styled button behavior. Current preview remains open on that example, enabled,
+count5. Styled changes still need their separate source checkpoint and style-limit
+review. No CUA phase open now.
+
+Remaining sessions: unsigned local macOS package smoke94211 (release GPUI build).
+Other checks completed; collect remaining sessions as needed. Logs in /tmp are
+disposable after this evidence. Package source/config in /tmp/tsrust-package-smoke;
+config defaults id dev.tsrust.smoke/version1.2.3/repo example/smoke, CLI overrides
+name to Override Smoke and output to cwd-relative artifacts. No signing/publishing.
+
+### Gallery LSP index repair — 2026-11-10 (accepted8a3c74a8)
 
 Latest accepted local source da2b668b contains Questionnaire/Settings/custom menus;
 84c64577 contains Speech. Current LSP changes validated as follows:

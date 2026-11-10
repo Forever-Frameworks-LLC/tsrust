@@ -91,6 +91,8 @@ impl Analyzer {
         for write in record_storage_writes::collect(body) {
             if self.sticky_nullable(context,write.binding) {continue;}
             let binding=&context.bindings[write.binding];
+            // Recursive view records already use one checked whole-body carrier.
+            if matches!(binding.ty,Type::Record(record) if self.native_recursive_shapes().recursive.access(record).is_some()) {continue;}
             if write.path.is_empty() {
                 // Elements of a local array join through the array's carrier type.
                 if write.array_element && !binding.parameter && !binding.capture_reference {continue;}

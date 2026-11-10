@@ -1919,8 +1919,6 @@ function noBackedgeEntryReturn(value: int): int {
     returnNoBackFirst[0] += 1;
     return returnNoBackFirst[0];
   }
-
-  return 0;
 }
 
 function phaseJoinFailure(fail: boolean): void {

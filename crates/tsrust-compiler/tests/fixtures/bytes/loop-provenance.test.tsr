@@ -1,0 +1,80 @@
+import { test, strictEqual } from 'std:testing';
+import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+
+type Chunk = {
+  read?: Once<Function<ByteView>>;
+  next?: Chunk;
+};
+
+function byteWindow(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function node(owner: ReadOnly<Bytes>): Chunk {
+  const captured = byteWindow(owner);
+  return {
+    read: () => captured
+  };
+}
+
+function alternate(owner: ReadOnly<Bytes>): Chunk {
+  const captured = byteWindow(owner);
+  return {
+    read: () => captured
+  };
+}
+
+function first(data: ByteView): int {
+  match (at(data, 0)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function empty(): Chunk {
+  return {};
+}
+
+function take(chunk: Chunk) {
+  return chunk.read;
+}
+
+
+function observe(continuing: boolean): int {
+  const owner = unwrap(fromArray([7, 255]));
+  let root = empty();
+  let depth = 0;
+  while (depth < 4) {
+    const parent = depth % 2 === 0 ? node(owner) : alternate(owner);
+    parent.next = root;
+    root = parent;
+    depth++;
+    if (continuing) continue;
+  }
+
+  let total = 0;
+  while (root.next !== undefined) {
+    total += first(root.read!());
+    root = root.next!;
+  }
+
+  return total;
+}
+
+test('loop fallthrough retains newly stored callback view owners', () => {
+  strictEqual(observe(false), 28);
+});
+test('continue retains newly stored callback view owners', () => {
+  strictEqual(observe(true), 28);
+});
