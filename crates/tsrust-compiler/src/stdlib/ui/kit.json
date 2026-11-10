@@ -2911,6 +2911,30 @@
       "example": "<Dialog>\n  <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Edit profile</DialogTitle>\n      <DialogDescription>Make changes to your profile here.</DialogDescription>\n    </DialogHeader>\n    <Input placeholder=\"Name\" />\n    <DialogFooter>\n      <DialogClose><Button outline={true}>Cancel</Button></DialogClose>\n      <Button variant=\"primary\">Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
     },
     {
+      "name": "AppMenuBar",
+      "children": "AppMenu",
+      "doc": "Installs the application menus. macOS displays them in the system menu bar; Windows and Linux render the Kit menu bar here. Declare one in the main window. Changed labels, checked/disabled flags and children reload automatically. Hiding or removing the owning menu bar removes its installed menus. MenuItem entries require text and a Shortcut command; the active window handles that command. Missing commands disable an item. Custom rows, href and onSelect throw; use a Shortcut handler for application actions. Ownership: retains menu labels and action names; Shortcut callbacks stay with their window.",
+      "example": "<AppMenuBar><AppMenu label=\"File\"><MenuItem command=\"save\">Save</MenuItem></AppMenu></AppMenuBar>"
+    },
+    {
+      "name": "AppMenu",
+      "children": "MenuItem, MenuLabel, MenuSeparator and Submenu",
+      "doc": "A named top-level application menu inside AppMenuBar. Menu items dispatch Shortcut commands in the active window. Ownership: transfers its entries to the application menu definition.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "doc": "Menu heading. Defaults to an empty heading; provide a short name such as File or View."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Disables the whole menu. Defaults to false; changes reload the installed menu."
+        }
+      ],
+      "example": "<AppMenu label=\"File\"><MenuItem command=\"save\">Save</MenuItem><MenuSeparator /><MenuItem command=\"close\">Close window</MenuItem></AppMenu>"
+    },
+    {
       "name": "DropdownMenu",
       "children": "MenuItem, MenuLabel, MenuSeparator and Submenu",
       "doc": "A button that opens a menu of MenuItem, MenuLabel, MenuSeparator and Submenu children. A Button child, if present, is the trigger with all its options.",
@@ -3946,7 +3970,7 @@
           "doc": "Horizontal placement along that edge."
         }
       ],
-      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">👍 2</Button></BubbleReactions>"
+      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">\ud83d\udc4d 2</Button></BubbleReactions>"
     },
     {
       "name": "BubbleGroup",
@@ -4174,7 +4198,7 @@
       "children": true,
       "doc": "Trailing content of a ListItem, such as a count or shortcut.",
       "props": [],
-      "example": "<ListItemSuffix><Kbd>⌘K</Kbd></ListItemSuffix>"
+      "example": "<ListItemSuffix><Kbd>\u2318K</Kbd></ListItemSuffix>"
     },
     {
       "name": "ListSeparator",
@@ -4910,22 +4934,217 @@
     },
     {
       "name": "CodeEditor",
-      "doc": "A source-code editor with syntax highlighting, line numbers and folding.",
+      "doc": "A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles.",
       "props": [
         {
           "name": "value",
           "type": "string",
-          "doc": "Editor text."
+          "doc": "Controlled full text. Omission preserves local edits; a changed value replaces the buffer. Pair with onChange to retain user edits."
         },
         {
           "name": "language",
           "type": "string",
-          "doc": "Language for highlighting and editing rules, such as rust, typescript or json."
+          "doc": "Highlighting language, such as rust, typescript or json. Read when the editor mounts; omitted language displays plain text. readInput reports the selected name."
         },
         {
           "name": "readOnly",
           "type": "boolean",
           "doc": "Prevents edits."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "doc": "Identifier for controlInput and readInput. Use a unique, nonempty name in this window."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "doc": "Initial text when value is omitted. Read once at mount; later changes do not replace edits."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "doc": "Hint shown while the buffer is empty. Defaults to empty."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "doc": "Prevents editing and focus. Defaults to false."
+        },
+        {
+          "name": "appearance",
+          "type": "boolean",
+          "doc": "false removes the field background and border. Defaults to true."
+        },
+        {
+          "name": "bordered",
+          "type": "boolean",
+          "doc": "false removes the border while preserving the background. Defaults to true."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Accessible editor name, such as Source code."
+        },
+        {
+          "name": "tabIndex",
+          "type": "int",
+          "doc": "Keyboard focus order. Defaults to zero."
+        },
+        {
+          "name": "role",
+          "type": [
+            "searchbox",
+            "combobox",
+            "spinbutton",
+            "none"
+          ],
+          "doc": "Optional accessibility role override. Omission keeps the editor text-field role."
+        },
+        {
+          "name": "size",
+          "type": [
+            "xsmall",
+            "small",
+            "medium",
+            "large"
+          ],
+          "doc": "Padding density. Defaults to medium; className controls code font size."
+        },
+        {
+          "name": "autoFocus",
+          "type": "boolean",
+          "doc": "Focuses this editor when it mounts. Defaults to false."
+        },
+        {
+          "name": "lineNumbers",
+          "type": "boolean",
+          "doc": "Shows source line numbers. Defaults to true."
+        },
+        {
+          "name": "folding",
+          "type": "boolean",
+          "doc": "Enables gutter folding. Defaults to true; disabling unfolds existing ranges."
+        },
+        {
+          "name": "autoClose",
+          "type": "boolean",
+          "doc": "Automatically closes matching brackets and quotes. Defaults to true."
+        },
+        {
+          "name": "smartIndent",
+          "type": "boolean",
+          "doc": "Uses language-aware indentation when typing. Defaults to true."
+        },
+        {
+          "name": "indentGuides",
+          "type": "boolean",
+          "doc": "Shows indentation guides. Defaults to true."
+        },
+        {
+          "name": "cleanOnEscape",
+          "type": "boolean",
+          "doc": "Escape clears the editor when true. Defaults to false."
+        },
+        {
+          "name": "submitOnEnter",
+          "type": "boolean",
+          "doc": "true emits onSubmit on Enter instead of inserting a newline. Defaults to false."
+        },
+        {
+          "name": "contextMenu",
+          "type": "boolean",
+          "doc": "false disables the built-in right-click edit menu. Defaults to true."
+        },
+        {
+          "name": "showWhitespace",
+          "type": "boolean",
+          "doc": "Shows spaces and tabs as visible marks. Defaults to false."
+        },
+        {
+          "name": "textAlign",
+          "type": [
+            "left",
+            "center",
+            "right"
+          ],
+          "doc": "Text alignment. Defaults to left."
+        },
+        {
+          "name": "scrollBeyondLastLine",
+          "type": "int",
+          "doc": "Extra rows scrollable past the final line. Nonnegative; omission keeps the Kit default."
+        },
+        {
+          "name": "cursorSurroundingLines",
+          "type": "int",
+          "doc": "Rows kept visible around the cursor. Nonnegative; omission keeps the Kit default."
+        },
+        {
+          "name": "enterKeyHint",
+          "type": [
+            "enter",
+            "done",
+            "go",
+            "next",
+            "previous",
+            "search",
+            "send"
+          ],
+          "doc": "Touch keyboard Enter label. Read at mount; defaults to enter."
+        },
+        {
+          "name": "autoCorrect",
+          "type": "boolean",
+          "doc": "Platform autocorrection. Read at mount; omission keeps the platform default."
+        },
+        {
+          "name": "autoCapitalize",
+          "type": [
+            "none",
+            "words",
+            "sentences",
+            "characters"
+          ],
+          "doc": "Platform capitalization. Read at mount; omission keeps the platform default."
+        },
+        {
+          "name": "replaceable",
+          "type": "boolean",
+          "doc": "Allows find/replace rather than find alone. Read at mount; defaults to true."
+        },
+        {
+          "name": "softWrap",
+          "type": "boolean",
+          "doc": "Wraps long source lines. Omission keeps the Kit editor default."
+        },
+        {
+          "name": "searchable",
+          "type": "boolean",
+          "doc": "Enables find and the search actions of controlInput. Defaults to true."
+        },
+        {
+          "name": "scrollBounce",
+          "type": "boolean",
+          "doc": "Enables elastic overscroll. Omission keeps the Kit default."
+        },
+        {
+          "name": "wrappingIndent",
+          "type": [
+            "same",
+            "none"
+          ],
+          "doc": "Wrapped-line indentation. Omission keeps the Kit default."
+        },
+        {
+          "name": "tabSize",
+          "type": "int",
+          "doc": "Spaces per indentation level. Positive integer; defaults to two."
+        },
+        {
+          "name": "hardTabs",
+          "type": "boolean",
+          "doc": "Uses a tab character with tabSize rather than spaces. Defaults to false."
         }
       ],
       "example": "<CodeEditor language=\"rust\" value={code.get()} onChange={(text) => { code.set(clone(text)); }} className=\"h-64\"/>",
@@ -4935,6 +5154,22 @@
           "value": "string",
           "param": "text",
           "doc": "Receives the full text after each edit."
+        },
+        {
+          "prop": "onFocus",
+          "value": "void",
+          "doc": "Runs when the editor gains keyboard focus."
+        },
+        {
+          "prop": "onBlur",
+          "value": "void",
+          "doc": "Runs when the editor loses keyboard focus."
+        },
+        {
+          "prop": "onSubmit",
+          "value": "boolean",
+          "param": "secondary",
+          "doc": "Runs on Enter submission; secondary reports Cmd on macOS or Ctrl elsewhere."
         }
       ]
     },
@@ -5366,7 +5601,7 @@
         }
       ],
       "children": "MarkerIcon, MarkerContent or any content",
-      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking…</MarkerContent>\n</Marker>"
+      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking\u2026</MarkerContent>\n</Marker>"
     },
     {
       "name": "MarkerIcon",
@@ -5396,7 +5631,7 @@
         {
           "name": "description",
           "type": "string",
-          "doc": "Secondary text, such as PDF · 2.4 MB."
+          "doc": "Secondary text, such as PDF \u00b7 2.4 MB."
         },
         {
           "name": "icon",
@@ -5422,7 +5657,7 @@
         {
           "name": "progress",
           "type": "number",
-          "doc": "Upload progress, 0–100, while uploading."
+          "doc": "Upload progress, 0\u2013100, while uploading."
         },
         {
           "name": "tooltip",
@@ -5472,7 +5707,7 @@
           "doc": "Shows a retry button on failure; called when it is clicked."
         }
       ],
-      "example": "<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
+      "example": "<Attachment title=\"report.pdf\" description=\"PDF \u00b7 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
       "children": "AttachmentMedia, AttachmentContent and AttachmentActions"
     },
     {
@@ -5489,7 +5724,7 @@
       "children": true,
       "doc": "An Attachment's secondary text; it shows the status while in progress or failed.",
       "props": [],
-      "example": "<AttachmentDescription>PDF · 2.4 MB</AttachmentDescription>"
+      "example": "<AttachmentDescription>PDF \u00b7 2.4 MB</AttachmentDescription>"
     },
     {
       "name": "AttachmentTitle",
@@ -6146,7 +6381,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "curve",
@@ -6183,7 +6418,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "curve",
@@ -6210,7 +6445,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         }
       ],
       "example": "<PlotBars values={[5, 7, 6]} color=\"primary\"/>"
@@ -8592,6 +8827,102 @@
       "remeasure_items": "Kit layout",
       "scroll_to_item": "Kit scrolling",
       "scroll_to_end": "jump button"
+    },
+    "AppMenuBar": {
+      "new": "AppMenuBar; native system menu on macOS, Kit entity elsewhere",
+      "reload": "reactive AppMenu headings and entry changes reload the menu definition"
+    },
+    "Editor": {
+      "new": "automatic",
+      "disabled": "disabled",
+      "readonly": "readOnly",
+      "tab_index": "tabIndex",
+      "role": "role",
+      "aria_label": "accessibilityLabel",
+      "appearance": "appearance",
+      "bordered": "bordered",
+      "h": "className height",
+      "xsmall": "size",
+      "small": "size",
+      "medium": "size",
+      "large": "size",
+      "with_size": "size"
+    },
+    "EditorState": {
+      "new": "one state per mounted CodeEditor",
+      "placeholder": "placeholder",
+      "set_placeholder": "placeholder",
+      "set_value": "value",
+      "replace_all": "controlInput setValue",
+      "insert": "controlInput insert",
+      "replace": "controlInput replace",
+      "set_disabled": "disabled",
+      "set_readonly": "readOnly",
+      "clean_on_escape": "cleanOnEscape",
+      "set_clean_on_escape": "cleanOnEscape",
+      "submit_on_enter": "submitOnEnter",
+      "set_submit_on_enter": "submitOnEnter",
+      "input_action": "enterKeyHint",
+      "autocorrect": "autoCorrect",
+      "autocapitalize": "autoCapitalize",
+      "show_whitespaces": "showWhitespace",
+      "set_show_whitespaces": "showWhitespace",
+      "scroll_beyond_last_line": "scrollBeyondLastLine",
+      "set_scroll_beyond_last_line": "scrollBeyondLastLine",
+      "cursor_surrounding_lines": "cursorSurroundingLines",
+      "set_cursor_surrounding_lines": "cursorSurroundingLines",
+      "default_value": "defaultValue",
+      "value": "onChange / readInput value",
+      "text": "readInput value",
+      "selected_value": "readInput selectedText",
+      "selected_text": "readInput selectedText",
+      "unmask_value": "readInput unmaskedValue",
+      "cursor": "readInput selectionStart",
+      "focus": "controlInput focus",
+      "clean": "controlInput clear",
+      "scroll_offset": "readInput scrollX/scrollY",
+      "set_scroll_offset": "controlInput scrollTo",
+      "visible_row_range": "readInput firstVisibleRow/lastVisibleRow",
+      "selected_range": "readInput selectionStart/selectionEnd",
+      "is_selection_reversed": "readInput selectionReversed",
+      "select_all": "controlInput selectAll",
+      "set_selected_range": "controlInput setSelection",
+      "add_selection": "controlInput addSelection",
+      "unselect": "controlInput unselect",
+      "set_text_align": "textAlign",
+      "context_menu": "contextMenu",
+      "set_context_menu_enabled": "contextMenu",
+      "replaceable": "replaceable",
+      "open_search": "controlInput openSearch / openReplace",
+      "set_search_query": "controlInput search",
+      "next_search_match": "controlInput nextMatch",
+      "previous_search_match": "controlInput previousMatch",
+      "replace_current_search_match": "controlInput replaceMatch",
+      "replace_all_search_matches": "controlInput replaceAllMatches",
+      "close_search": "controlInput closeSearch",
+      "set_search_replace_mode": "controlInput openReplace",
+      "scroll_bounce": "scrollBounce",
+      "set_scroll_bounce": "scrollBounce",
+      "searchable": "searchable",
+      "set_searchable": "searchable",
+      "soft_wrap": "softWrap",
+      "set_soft_wrap": "softWrap",
+      "wrapping_indent": "wrappingIndent",
+      "set_wrapping_indent": "wrappingIndent",
+      "tab_size": "tabSize / hardTabs",
+      "set_tab_size": "tabSize / hardTabs",
+      "language": "language (at mount)",
+      "language_name": "readInput language",
+      "line_number": "lineNumbers",
+      "set_line_number": "lineNumbers",
+      "folding": "folding",
+      "set_folding": "folding",
+      "auto_close": "autoClose",
+      "set_auto_close": "autoClose",
+      "smart_indent": "smartIndent",
+      "set_smart_indent": "smartIndent",
+      "indent_guides": "indentGuides",
+      "set_indent_guides": "indentGuides"
     }
   }
 }

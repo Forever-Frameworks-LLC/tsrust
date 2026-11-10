@@ -1,5 +1,5 @@
 import { test, strictEqual } from 'std:testing';
-import { Node, View, Text, Child, LazyChildren, Dialog, DialogContent, Button, signal, document } from 'std:ui';
+import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, signal, document } from 'std:ui';
 
 interface DeferredProps {
   children?: LazyChildren;
@@ -34,4 +34,26 @@ test('deferred component children own reactive list captures', () => {
   strictEqual(html.includes('Row 1'), true);
   strictEqual(html.includes('Row 2'), true);
   strictEqual(html.includes('Row 3'), false);
+});
+
+test('code editor rejects invalid indentation and scrolling counts', () => {
+  for (const value of [0, -1]) {
+    let rejected = false;
+    try {
+      const node = <CodeEditor tabSize={value} />;
+    } catch {
+      rejected = true;
+    }
+
+    strictEqual(rejected, true);
+  }
+
+  let rejected = false;
+  try {
+    const node = <CodeEditor cursorSurroundingLines={-1} />;
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
 });

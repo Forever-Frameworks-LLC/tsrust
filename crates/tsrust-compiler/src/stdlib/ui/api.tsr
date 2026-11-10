@@ -500,7 +500,7 @@ export interface InputActionOptions {
   end?: int;
 }
 
-/** Runs an action on the Input or Textarea whose id matches, on the next frame. insert and replace edit at the cursor or selection; setValue replaces all text; search actions need searchable. Example: controlInput('name', 'focus'). Unknown ids do nothing. */
+/** Runs an action on the Input, Textarea or CodeEditor whose id matches, on the next frame. insert and replace edit at the cursor or selection; setValue replaces all text; search actions need searchable. Example: controlInput('name', 'focus'). Unknown ids do nothing. CodeEditor rejects insertToken; use Input or Textarea for inline tokens. */
 export function controlInput(id: string, action: InputAction, options?: InputActionOptions): void {
   const extra = options ?? {};
   unwrap(nativeCommand('input', JSON.stringify({
@@ -534,9 +534,11 @@ export interface InputSnapshot {
   lastVisibleRow?: int;
   /** True while the field has keyboard focus. */
   focused?: boolean;
+  /** CodeEditor highlighting language. Absent for Input and Textarea. */
+  language?: string;
 }
 
-/** Reads the Input or Textarea whose id matches on the next frame, then calls onRead. Example: readInput('notes', (field) => { selection.set(field.selectedText ?? ''); }). */
+/** Reads the Input, Textarea or CodeEditor whose id matches on the next frame, then calls onRead. Example: readInput('notes', (field) => { selection.set(field.selectedText ?? ''); }). CodeEditor also reports its language. */
 export function readInput(id: string, onRead: Owned<Function<void, [field: ReadOnly<InputSnapshot>]>>): void {
   unwrap(nativeCommandReply('read-input', JSON.stringify({
     id: id

@@ -257,6 +257,36 @@ function BasicShortcut(): Node {
     </View>
   );
 }
+=== Application Menu | app-menu-bar | Actions
+Application menus use the system menu bar on macOS and GPUI Kit's bar on Windows and Linux. Shortcut commands run in the active window; changing the definition reloads the installed menus.
+--- Application commands
+Open File or View in the application menu bar. Save updates the message, and Show guides toggles its checkmark. Disable Save updates the installed menu immediately.
+function ApplicationCommands(): Node {
+  const message = signal('Choose File > Save example');
+  const guides = signal(false);
+  const disabled = signal(false);
+  return (
+    <View className="flex-col gap-4 w-full">
+      <Shortcut command="gallery-menu-save" keys="secondary-shift-s" onTrigger={() => { message.set('Saved from the application menu'); }} />
+      <Shortcut command="gallery-menu-guides" keys="secondary-shift-g" onTrigger={() => { guides.set(!guides.get()); }} />
+      <AppMenuBar>
+        <AppMenu label="Tsrust">
+          <MenuLabel>Application menu example</MenuLabel>
+        </AppMenu>
+        <AppMenu label="File">
+          <MenuItem command="gallery-menu-save" disabled={disabled.get()}>Save example</MenuItem>
+          <MenuSeparator />
+          <Submenu label="Recent"><MenuItem command="gallery-menu-save">Sample document</MenuItem></Submenu>
+        </AppMenu>
+        <AppMenu label="View"><MenuItem command="gallery-menu-guides" checked={guides.get()}>Show guides</MenuItem></AppMenu>
+      </AppMenuBar>
+      <Text>{message.get()}</Text>
+      <Checkbox checked={disabled.get()} onChange={(checked) => { disabled.set(checked); }}>Disable Save</Checkbox>
+      <Text>Guides: {guides.get() ? 'shown' : 'hidden'}</Text>
+    </View>
+  );
+}
+
 === Menu | menu | Overlays
 Dropdown and context menus with icons, check marks, labels, separators, links, custom rows, keyboard shortcuts and nested submenus.
 --- Dropdown Menu
@@ -4217,6 +4247,27 @@ function SourceEditor(): Node {
       <Switch checked={locked.get()} onChange={(value) => { locked.set(value); }}>Read only</Switch>
       <CodeEditor language="typescript" value={code.get()} onChange={(value) => { code.set(clone(value)); }} readOnly={locked.get()} className="h-64 w-full" />
       <Text variant="muted">Characters: {code.get().length}</Text>
+    </View>
+  );
+}
+
+--- Editor tools and local text
+The editor owns its buffer when value is omitted. Toggle line numbers after typing to verify that settings preserve edits. Read editor state reports the live buffer, selection and highlighting language.
+function EditorTools(): Node {
+  const numbers = signal(true);
+  const status = signal('Read editor state to inspect the buffer.');
+  return (
+    <View className="flex-col gap-3 w-full">
+      <Switch checked={numbers.get()} onChange={(value) => { numbers.set(value); }}>Line numbers</Switch>
+      <View className="flex-row flex-wrap gap-2">
+        <Button onPress={() => { controlInput('source-tools', 'focus'); }}>Focus editor</Button>
+        <Button onPress={() => { controlInput('source-tools', 'selectAll'); }}>Select source</Button>
+        <Button onPress={() => { controlInput('source-tools', 'search', { value: 'fn' }); }}>Find fn</Button>
+        <Button onPress={() => { controlInput('source-tools', 'openReplace'); }}>Find and replace</Button>
+        <Button onPress={() => { readInput('source-tools', (field) => { status.set(`${field.language ?? 'text'} | selection ${field.selectionStart ?? 0}-${field.selectionEnd ?? 0} | ${field.value ?? ''}`); }); }}>Read editor state</Button>
+      </View>
+      <CodeEditor id="source-tools" accessibilityLabel="Editable Rust source" language="rust" defaultValue={'fn main() {\n  println!("Hello");\n}\n'} lineNumbers={numbers.get()} indentGuides={true} tabSize={2} searchable={true} softWrap={true} className="h-64 w-full" />
+      <Text>{status.get()}</Text>
     </View>
   );
 }

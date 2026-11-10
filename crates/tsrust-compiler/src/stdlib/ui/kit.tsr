@@ -4002,6 +4002,46 @@ export function DialogAction(props: DialogActionProps): Node {
   return node;
 }
 
+export interface AppMenuBarProps {
+  /** AppMenu elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** Installs the application menus. macOS displays them in the system menu bar; Windows and Linux render the Kit menu bar here. Declare one in the main window. Changed labels, checked/disabled flags and children reload automatically. Hiding or removing the owning menu bar removes its installed menus. MenuItem entries require text and a Shortcut command; the active window handles that command. Missing commands disable an item. Custom rows, href and onSelect throw; use a Shortcut handler for application actions. Ownership: retains menu labels and action names; Shortcut callbacks stay with their window. */
+export function AppMenuBar(props: AppMenuBarProps): Node {
+  let node = kitNode('AppMenuBar', props.children ?? [], props.className ?? '');
+  return node;
+}
+
+export interface AppMenuProps {
+  /** Menu heading. Defaults to an empty heading; provide a short name such as File or View. */
+  label?: ReactiveValue<string> | TextBinding;
+  /** Disables the whole menu. Defaults to false; changes reload the installed menu. */
+  disabled?: ReactiveValue<boolean>;
+  /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
+  children?: Child[];
+  /** Shared utility classes applied around the component, such as width or margin. */
+  className?: string;
+}
+
+/** A named top-level application menu inside AppMenuBar. Menu items dispatch Shortcut commands in the active window. Ownership: transfers its entries to the application menu definition. */
+export function AppMenu(props: AppMenuProps): Node {
+  let node = kitNode('AppMenu', props.children ?? [], props.className ?? '');
+  const prop_label = props.label;
+  if (prop_label !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'label', prop_label));
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  return node;
+}
+
 export interface DropdownMenuProps {
   /** Trigger text when no Button child is given. */
   label?: ReactiveValue<string> | TextBinding;
@@ -6773,19 +6813,91 @@ export function CarouselPagination(props: CarouselPaginationProps): Node {
 }
 
 export interface CodeEditorProps {
-  /** Editor text. */
+  /** Controlled full text. Omission preserves local edits; a changed value replaces the buffer. Pair with onChange to retain user edits. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Language for highlighting and editing rules, such as rust, typescript or json. */
+  /** Highlighting language, such as rust, typescript or json. Read when the editor mounts; omitted language displays plain text. readInput reports the selected name. */
   language?: ReactiveValue<string> | TextBinding;
   /** Prevents edits. */
   readOnly?: ReactiveValue<boolean>;
+  /** Identifier for controlInput and readInput. Use a unique, nonempty name in this window. */
+  id?: ReactiveValue<string> | TextBinding;
+  /** Initial text when value is omitted. Read once at mount; later changes do not replace edits. */
+  defaultValue?: ReactiveValue<string> | TextBinding;
+  /** Hint shown while the buffer is empty. Defaults to empty. */
+  placeholder?: ReactiveValue<string> | TextBinding;
+  /** Prevents editing and focus. Defaults to false. */
+  disabled?: ReactiveValue<boolean>;
+  /** false removes the field background and border. Defaults to true. */
+  appearance?: ReactiveValue<boolean>;
+  /** false removes the border while preserving the background. Defaults to true. */
+  bordered?: ReactiveValue<boolean>;
+  /** Accessible editor name, such as Source code. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Keyboard focus order. Defaults to zero. */
+  tabIndex?: ReactiveValue<int>;
+  /** Optional accessibility role override. Omission keeps the editor text-field role. */
+  role?: ReactiveValue<'searchbox' | 'combobox' | 'spinbutton' | 'none'>;
+  /** Padding density. Defaults to medium; className controls code font size. */
+  size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Focuses this editor when it mounts. Defaults to false. */
+  autoFocus?: ReactiveValue<boolean>;
+  /** Shows source line numbers. Defaults to true. */
+  lineNumbers?: ReactiveValue<boolean>;
+  /** Enables gutter folding. Defaults to true; disabling unfolds existing ranges. */
+  folding?: ReactiveValue<boolean>;
+  /** Automatically closes matching brackets and quotes. Defaults to true. */
+  autoClose?: ReactiveValue<boolean>;
+  /** Uses language-aware indentation when typing. Defaults to true. */
+  smartIndent?: ReactiveValue<boolean>;
+  /** Shows indentation guides. Defaults to true. */
+  indentGuides?: ReactiveValue<boolean>;
+  /** Escape clears the editor when true. Defaults to false. */
+  cleanOnEscape?: ReactiveValue<boolean>;
+  /** true emits onSubmit on Enter instead of inserting a newline. Defaults to false. */
+  submitOnEnter?: ReactiveValue<boolean>;
+  /** false disables the built-in right-click edit menu. Defaults to true. */
+  contextMenu?: ReactiveValue<boolean>;
+  /** Shows spaces and tabs as visible marks. Defaults to false. */
+  showWhitespace?: ReactiveValue<boolean>;
+  /** Text alignment. Defaults to left. */
+  textAlign?: ReactiveValue<'left' | 'center' | 'right'>;
+  /** Extra rows scrollable past the final line. Nonnegative; omission keeps the Kit default. */
+  scrollBeyondLastLine?: ReactiveValue<int>;
+  /** Rows kept visible around the cursor. Nonnegative; omission keeps the Kit default. */
+  cursorSurroundingLines?: ReactiveValue<int>;
+  /** Touch keyboard Enter label. Read at mount; defaults to enter. */
+  enterKeyHint?: ReactiveValue<'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send'>;
+  /** Platform autocorrection. Read at mount; omission keeps the platform default. */
+  autoCorrect?: ReactiveValue<boolean>;
+  /** Platform capitalization. Read at mount; omission keeps the platform default. */
+  autoCapitalize?: ReactiveValue<'none' | 'words' | 'sentences' | 'characters'>;
+  /** Allows find/replace rather than find alone. Read at mount; defaults to true. */
+  replaceable?: ReactiveValue<boolean>;
+  /** Wraps long source lines. Omission keeps the Kit editor default. */
+  softWrap?: ReactiveValue<boolean>;
+  /** Enables find and the search actions of controlInput. Defaults to true. */
+  searchable?: ReactiveValue<boolean>;
+  /** Enables elastic overscroll. Omission keeps the Kit default. */
+  scrollBounce?: ReactiveValue<boolean>;
+  /** Wrapped-line indentation. Omission keeps the Kit default. */
+  wrappingIndent?: ReactiveValue<'same' | 'none'>;
+  /** Spaces per indentation level. Positive integer; defaults to two. */
+  tabSize?: ReactiveValue<int>;
+  /** Uses a tab character with tabSize rather than spaces. Defaults to false. */
+  hardTabs?: ReactiveValue<boolean>;
   /** Receives the full text after each edit. */
   onChange?: Owned<Function<void, [text: ReadOnly<string>]>>;
+  /** Runs when the editor gains keyboard focus. */
+  onFocus?: Owned<Function<void>>;
+  /** Runs when the editor loses keyboard focus. */
+  onBlur?: Owned<Function<void>>;
+  /** Runs on Enter submission; secondary reports Cmd on macOS or Ctrl elsewhere. */
+  onSubmit?: Owned<Function<void, [secondary: boolean]>>;
   /** Shared utility classes applied around the component, such as width or margin. */
   className?: string;
 }
 
-/** A source-code editor with syntax highlighting, line numbers and folding. */
+/** A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles. */
 export function CodeEditor(props: CodeEditorProps): Node {
   let node = kitNode('CodeEditor', [], props.className ?? '');
   const prop_value = props.value;
@@ -6803,9 +6915,213 @@ export function CodeEditor(props: CodeEditorProps): Node {
     node = kitFlag(node, 'readOnly', prop_readOnly);
   }
 
+  const prop_id = props.id;
+  if (prop_id !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'id', prop_id));
+  }
+
+  const prop_defaultValue = props.defaultValue;
+  if (prop_defaultValue !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
+  }
+
+  const prop_placeholder = props.placeholder;
+  if (prop_placeholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
+  }
+
+  const prop_disabled = props.disabled;
+  if (prop_disabled !== undefined) {
+    node = kitFlag(node, 'disabled', prop_disabled);
+  }
+
+  const prop_appearance = props.appearance;
+  if (prop_appearance !== undefined) {
+    node = kitFlag(node, 'appearance', prop_appearance);
+  }
+
+  const prop_bordered = props.bordered;
+  if (prop_bordered !== undefined) {
+    node = kitFlag(node, 'bordered', prop_bordered);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const prop_tabIndex = props.tabIndex;
+  if (prop_tabIndex !== undefined) {
+    node = kitInt(node, 'tabIndex', prop_tabIndex);
+  }
+
+  const prop_role = props.role;
+  if (prop_role !== undefined) {
+    if (typeof prop_role === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'role', `${prop_role}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'role', nativeBindText(prop_role.evaluate)));
+    }
+  }
+
+  const prop_size = props.size;
+  if (prop_size !== undefined) {
+    if (typeof prop_size === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'size', nativeBindText(prop_size.evaluate)));
+    }
+  }
+
+  const prop_autoFocus = props.autoFocus;
+  if (prop_autoFocus !== undefined) {
+    node = kitFlag(node, 'autoFocus', prop_autoFocus);
+  }
+
+  const prop_lineNumbers = props.lineNumbers;
+  if (prop_lineNumbers !== undefined) {
+    node = kitFlag(node, 'lineNumbers', prop_lineNumbers);
+  }
+
+  const prop_folding = props.folding;
+  if (prop_folding !== undefined) {
+    node = kitFlag(node, 'folding', prop_folding);
+  }
+
+  const prop_autoClose = props.autoClose;
+  if (prop_autoClose !== undefined) {
+    node = kitFlag(node, 'autoClose', prop_autoClose);
+  }
+
+  const prop_smartIndent = props.smartIndent;
+  if (prop_smartIndent !== undefined) {
+    node = kitFlag(node, 'smartIndent', prop_smartIndent);
+  }
+
+  const prop_indentGuides = props.indentGuides;
+  if (prop_indentGuides !== undefined) {
+    node = kitFlag(node, 'indentGuides', prop_indentGuides);
+  }
+
+  const prop_cleanOnEscape = props.cleanOnEscape;
+  if (prop_cleanOnEscape !== undefined) {
+    node = kitFlag(node, 'cleanOnEscape', prop_cleanOnEscape);
+  }
+
+  const prop_submitOnEnter = props.submitOnEnter;
+  if (prop_submitOnEnter !== undefined) {
+    node = kitFlag(node, 'submitOnEnter', prop_submitOnEnter);
+  }
+
+  const prop_contextMenu = props.contextMenu;
+  if (prop_contextMenu !== undefined) {
+    node = kitFlag(node, 'contextMenu', prop_contextMenu);
+  }
+
+  const prop_showWhitespace = props.showWhitespace;
+  if (prop_showWhitespace !== undefined) {
+    node = kitFlag(node, 'showWhitespace', prop_showWhitespace);
+  }
+
+  const prop_textAlign = props.textAlign;
+  if (prop_textAlign !== undefined) {
+    if (typeof prop_textAlign === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'textAlign', `${prop_textAlign}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'textAlign', nativeBindText(prop_textAlign.evaluate)));
+    }
+  }
+
+  const prop_scrollBeyondLastLine = props.scrollBeyondLastLine;
+  if (prop_scrollBeyondLastLine !== undefined) {
+    node = kitInt(node, 'scrollBeyondLastLine', prop_scrollBeyondLastLine);
+  }
+
+  const prop_cursorSurroundingLines = props.cursorSurroundingLines;
+  if (prop_cursorSurroundingLines !== undefined) {
+    node = kitInt(node, 'cursorSurroundingLines', prop_cursorSurroundingLines);
+  }
+
+  const prop_enterKeyHint = props.enterKeyHint;
+  if (prop_enterKeyHint !== undefined) {
+    if (typeof prop_enterKeyHint === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'enterKeyHint', `${prop_enterKeyHint}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'enterKeyHint', nativeBindText(prop_enterKeyHint.evaluate)));
+    }
+  }
+
+  const prop_autoCorrect = props.autoCorrect;
+  if (prop_autoCorrect !== undefined) {
+    node = kitFlag(node, 'autoCorrect', prop_autoCorrect);
+  }
+
+  const prop_autoCapitalize = props.autoCapitalize;
+  if (prop_autoCapitalize !== undefined) {
+    if (typeof prop_autoCapitalize === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'autoCapitalize', `${prop_autoCapitalize}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'autoCapitalize', nativeBindText(prop_autoCapitalize.evaluate)));
+    }
+  }
+
+  const prop_replaceable = props.replaceable;
+  if (prop_replaceable !== undefined) {
+    node = kitFlag(node, 'replaceable', prop_replaceable);
+  }
+
+  const prop_softWrap = props.softWrap;
+  if (prop_softWrap !== undefined) {
+    node = kitFlag(node, 'softWrap', prop_softWrap);
+  }
+
+  const prop_searchable = props.searchable;
+  if (prop_searchable !== undefined) {
+    node = kitFlag(node, 'searchable', prop_searchable);
+  }
+
+  const prop_scrollBounce = props.scrollBounce;
+  if (prop_scrollBounce !== undefined) {
+    node = kitFlag(node, 'scrollBounce', prop_scrollBounce);
+  }
+
+  const prop_wrappingIndent = props.wrappingIndent;
+  if (prop_wrappingIndent !== undefined) {
+    if (typeof prop_wrappingIndent === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'wrappingIndent', `${prop_wrappingIndent}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'wrappingIndent', nativeBindText(prop_wrappingIndent.evaluate)));
+    }
+  }
+
+  const prop_tabSize = props.tabSize;
+  if (prop_tabSize !== undefined) {
+    node = kitInt(node, 'tabSize', prop_tabSize);
+  }
+
+  const prop_hardTabs = props.hardTabs;
+  if (prop_hardTabs !== undefined) {
+    node = kitFlag(node, 'hardTabs', prop_hardTabs);
+  }
+
   const event_onChange = props.onChange;
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
+  const event_onFocus = props.onFocus;
+  if (event_onFocus !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'focus', event_onFocus));
+  }
+
+  const event_onBlur = props.onBlur;
+  if (event_onBlur !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'blur', event_onBlur));
+  }
+
+  const event_onSubmit = props.onSubmit;
+  if (event_onSubmit !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'submit', event_onSubmit));
   }
 
   return node;

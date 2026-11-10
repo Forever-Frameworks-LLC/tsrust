@@ -19,7 +19,7 @@ use gpui_kit::component::hover_card::HoverCard;
 use gpui_kit::component::input::NumberInput;
 use gpui_kit::component::kbd::Kbd;
 use gpui_kit::component::label::{HighlightsMatch, Label};
-use gpui_kit::component::menu::{ContextMenuExt, DropdownMenu as _, PopupMenuItem};
+use gpui_kit::component::menu::{AppMenuBar, ContextMenuExt, DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::input::{OtpEvent, OtpInput, OtpState};
 use gpui_kit::component::pagination::Pagination;
 use gpui_kit::component::popover::Popover;
@@ -212,8 +212,9 @@ enum KitState {
     Combobox(Entity<ComboboxState<SearchableVec<Choice>>>, String),
     ComboboxGroups(Entity<ComboboxState<SearchableVec<SelectGroup<Choice>>>>, String),
     Command(Entity<CommandState>),
+    AppMenuBar(Entity<AppMenuBar>, Vec<ApplicationMenu>),
     Carousel(Entity<CarouselState>),
-    Editor(Entity<EditorState>),
+    Editor(Entity<EditorState>, std::collections::BTreeMap<String,String>),
     Tree(Entity<TreeState>, String),
     List(Entity<ListState<TsrustList>>),
     Diff(Entity<DiffState>, String),
@@ -338,12 +339,57 @@ const MENU_PARTS: &[&str] = &["MenuItem", "MenuLabel", "MenuSeparator", "Submenu
 
 /// A menu entry captured from MenuItem, MenuLabel, MenuSeparator and Submenu nodes,
 /// so menu builders (which run later, per open) need no access to the tree.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum MenuEntry {
     Item {id: u64, label: String, icon: Option<IconName>, disabled: bool, checked: bool, command: String, href: String, custom: bool, handles: bool},
     Label(String),
     Separator,
     Submenu {label: String, icon: Option<IconName>, entries: Vec<MenuEntry>},
+}
+
+#[derive(Clone, PartialEq)]
+struct ApplicationMenu {label: String, disabled: bool, entries: Vec<MenuEntry>}
+
+fn editor_options(state:&mut EditorState, options:&std::collections::BTreeMap<String,String>, window:&mut Window, cx:&mut Context<EditorState>) {
+    let text=|key:&str|options.get(key).cloned().unwrap_or_default();
+    let flag=|key:&str,default:bool|options.get(key).map_or(default,|value|value=="true");
+    apply_input_options!(state,options,text("placeholder"),window,cx);
+    state.set_disabled(flag("disabled",false),cx);
+    state.set_readonly(flag("readOnly",false),cx);
+    state.set_line_number(flag("lineNumbers",true),window,cx);
+    state.set_folding(flag("folding",true),window,cx);
+    state.set_auto_close(flag("autoClose",true),window,cx);
+    state.set_smart_indent(flag("smartIndent",true),window,cx);
+    state.set_indent_guides(flag("indentGuides",true),window,cx);
+    if let Some(value)=options.get("softWrap") {state.set_soft_wrap(value=="true",window,cx);}
+    if let Some(value)=options.get("searchable") {state.set_searchable(value=="true",cx);}
+    if let Some(value)=options.get("scrollBounce") {state.set_scroll_bounce(value=="true",cx);}
+    if let Some(value)=options.get("wrappingIndent") {state.set_wrapping_indent(if value=="none" {WrappingIndent::None}else{WrappingIndent::Same},window,cx);}
+    if options.contains_key("tabSize") || options.contains_key("hardTabs") {state.set_tab_size(TabSize{tab_size:options.get("tabSize").and_then(|value|value.parse::<usize>().ok()).unwrap_or(2),hard_tabs:flag("hardTabs",false)},cx);}
+}
+
+fn application_menus(node: &Node) -> Vec<ApplicationMenu> {
+    items(node, "AppMenu").map(|(child, kit)| ApplicationMenu {label: kit.text("label"), disabled: kit.flag("disabled"), entries: menu_entries(child)}).collect()
+}
+
+fn install_application_menus(menus: &[ApplicationMenu], cx: &mut App) -> Result<(), String> {
+    fn entries(values: &[MenuEntry]) -> Result<Vec<gpui_kit::MenuItem>, String> {
+        values.iter().map(|entry| Ok(match entry {
+            MenuEntry::Separator => gpui_kit::MenuItem::separator(),
+            MenuEntry::Label(label) => gpui_kit::MenuItem::action(label.clone(), TsrustCommand {name: String::new()}).disabled(true),
+            MenuEntry::Submenu {label, entries: children, ..} => gpui_kit::MenuItem::submenu(gpui_kit::Menu::new(label.clone()).items(entries(children)?)),
+            MenuEntry::Item {label, disabled, checked, command, custom, handles, href, ..} => {
+                if *custom || *handles || !href.is_empty() {
+                    return Err("AppMenuBar items require text and a Shortcut command; custom rows, onSelect and href belong in popup menus".into());
+                }
+                gpui_kit::MenuItem::action(label.clone(), TsrustCommand {name: command.clone()}).checked(*checked).disabled(*disabled || command.is_empty())
+            }
+        })).collect()
+    }
+    let menus=menus.iter().map(|menu| Ok(gpui_kit::Menu::new(menu.label.clone()).disabled(menu.disabled).items(entries(&menu.entries)?))).collect::<Result<Vec<_>, String>>()?;
+    if cfg!(target_os="macos") {cx.set_menus(menus);}
+    else {gpui_kit::base::GlobalState::global_mut(cx).set_app_menus(menus.into_iter().map(gpui_kit::Menu::owned).collect());}
+    Ok(())
 }
 
 fn menu_entries(node: &Node) -> Vec<MenuEntry> {
@@ -433,7 +479,7 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 }
 
 /// Kit components whose className refines the component itself instead of a wrapper.
-pub(crate) const STYLED_KIT: &[&str] = &["Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
+pub(crate) const STYLED_KIT: &[&str] = &["CodeEditor", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
 
 /// The size prop shared by sizable Kit components.
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
@@ -1148,13 +1194,16 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AppMenuBar" | "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
         }
         let mut found = Vec::new();
         collect(&self.node, &mut found);
+        if self.states.values().any(|state|matches!(state,KitState::AppMenuBar(..))) && !found.iter().any(|(_,name,_)|name=="AppMenuBar") {
+            if let Err(error)=install_application_menus(&[],cx) {fail(&self.failure,error);}
+        }
         fn shortcuts(node: &Node, out: &mut Vec<(String, String)>) {
             let Some(node) = node.visible_root() else {return};
             if let Some(kit) = node.kit.as_deref().filter(|kit| kit.name == "Shortcut") {out.push((kit.text("keys"), kit.text("command")));}
@@ -1176,6 +1225,15 @@ impl Root {
             }
             if let Some(state) = self.states.get(&id) {
                 match state {
+                    KitState::AppMenuBar(bar, current) => {
+                        let Some(node)=find(&self.node,id) else {continue};
+                        let menus=application_menus(node);
+                        if *current != menus {
+                            if let Err(error)=install_application_menus(&menus,cx) {fail(&self.failure,error);}
+                            bar.update(cx, |bar,cx|bar.reload(cx));
+                            if let Some(KitState::AppMenuBar(_,current))=self.states.get_mut(&id) {*current=menus;}
+                        }
+                    }
                     KitState::Select(..) | KitState::SelectGroups(..) => {
                         let Some(node) = find(&self.node, id) else {continue};
                         let (loose, groups, shape) = choices(node, node.kit.as_deref().expect("Select"));
@@ -1303,9 +1361,12 @@ impl Root {
                             state.update(cx, |state, cx| state.set_value(color, window, cx));
                         }
                     }
-                    KitState::Editor(state) => {
-                        let value = text("value");
-                        if state.read(cx).value().as_ref() != value {state.update(cx, |state, cx| state.set_value(value, window, cx));}
+                    KitState::Editor(state, current) => {
+                        if let Some(value)=props.get("value") && state.read(cx).value().as_ref()!=value {state.update(cx,|state,cx|state.set_value(value.clone(),window,cx));}
+                        if *current != props {
+                            state.update(cx,|state,cx|editor_options(state,&props,window,cx));
+                            if let Some(KitState::Editor(_,current))=self.states.get_mut(&id) {*current=props.clone();}
+                        }
                     }
                     KitState::Tree(state, shape) => {
                         // Rebuild the items when the TreeItem children change.
@@ -1537,18 +1598,29 @@ impl Root {
                     }).detach();
                     KitState::Carousel(state)
                 }
+                "AppMenuBar" => {
+                    let menus=find(&self.node,id).map(application_menus).unwrap_or_default();
+                    if let Err(error)=install_application_menus(&menus,cx) {fail(&self.failure,error);}
+                    KitState::AppMenuBar(AppMenuBar::new(cx),menus)
+                }
                 "CodeEditor" => {
-                    let (language, value, read_only) = (text("language"), text("value"), text("readOnly") == "true");
+                    let (language,value)=(text("language"),props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default());
                     let state = cx.new(|cx| {
-                        let mut state = EditorState::new(window, cx).language(language);
+                        let mut state = configured!(EditorState::new(window, cx).language(language),&props);
+                        editor_options(&mut state,&props,window,cx);
                         state.set_value(value, window, cx);
+                        if text("autoFocus")=="true" {state.focus(window,cx);}
                         state
                     });
-                    let _ = read_only;
                     cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
-                        if matches!(event, InputEvent::Change) {let value = state.read(cx).value().to_string(); this.emit(id, "change", value, cx);}
+                        match event {
+                            InputEvent::Change => this.emit(id,"change",state.read(cx).value().to_string(),cx),
+                            InputEvent::Focus => this.emit(id,"focus",String::new(),cx),
+                            InputEvent::Blur => this.emit(id,"blur",String::new(),cx),
+                            InputEvent::PressEnter{secondary,..} => this.emit(id,"submit",secondary.to_string(),cx),
+                        }
                     }).detach();
-                    KitState::Editor(state)
+                    KitState::Editor(state,props.clone())
                 }
                 "Diff" => {
                     let files = DiffFile::parse(&text("patch")).unwrap_or_default();
@@ -2909,7 +2981,16 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "CodeEditor" => match self.states.get(&id) {
-                Some(KitState::Editor(state)) => Editor::new(state).h_full().readonly(kit.flag("readOnly")).into_any_element(),
+                Some(KitState::Editor(state,_)) => {
+                    let mut editor=Editor::new(state).h_full().readonly(kit.flag("readOnly")).disabled(kit.flag("disabled")).refine_style(&self.node_style(node));
+                    if let Some(value)=kit.prop("appearance") {editor=editor.appearance(value=="true");}
+                    if let Some(value)=kit.prop("bordered") {editor=editor.bordered(value=="true");}
+                    if let Some(value)=kit.prop("tabIndex").and_then(|value|value.parse::<isize>().ok()) {editor=editor.tab_index(value);}
+                    if let Some(value)=kit.prop("accessibilityLabel") {editor=editor.aria_label(value.to_owned());}
+                    editor=match kit.prop("role") {Some("searchbox")=>editor.role(Role::SearchInput),Some("combobox")=>editor.role(Role::ComboBox),Some("spinbutton")=>editor.role(Role::SpinButton),Some("none")=>editor.role(None::<Role>),_=>editor};
+                    if let Some(size)=kit_size(kit) {editor=editor.with_size(size);}
+                    editor.into_any_element()
+                }
                 _ => div().into_any_element(),
             },
             "ToggleGroup" => {
@@ -3129,6 +3210,10 @@ impl Root {
                     }
                     scroller.into_any_element()
                 }
+                _ => div().into_any_element(),
+            },
+            "AppMenuBar" => match self.states.get(&id) {
+                Some(KitState::AppMenuBar(bar,_)) if !cfg!(target_os="macos") => div().child(bar.clone()).into_any_element(),
                 _ => div().into_any_element(),
             },
             "Shortcut" | "Ticker" => div().into_any_element(),

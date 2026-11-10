@@ -30,7 +30,7 @@ Five compiler witnesses pass, including generated native execution and a configu
 unsaved imported `.tsrx` component invalidates and rechecks its caller. The matched
 TypeScript/native TSRX witness passes its independent text oracle. Initial template
 lexer failure and TypeScript reference typing failure are retained with repaired
-results in SQLite under `tsrust-jsx-*`. No full regression, SQL or timing run.
+results in SQLite. No full regression, SQL or timing run.
 
 The child contract always supplies an array, including a single child. The
 TypeScript reference admits a scalar or array for TypeScript TSRX checking, while

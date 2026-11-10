@@ -12,6 +12,7 @@ import { PackagingPage } from './pages/Packaging.tsrx';
 import { ButtonPage } from './pages/Button.tsrx';
 import { TogglePage } from './pages/Toggle.tsrx';
 import { ShortcutPage } from './pages/Shortcut.tsrx';
+import { ApplicationMenuPage } from './pages/ApplicationMenu.tsrx';
 import { MenuPage } from './pages/Menu.tsrx';
 import { BadgePage } from './pages/Badge.tsrx';
 import { TagPage } from './pages/Tag.tsrx';
@@ -119,6 +120,7 @@ function App(): Node {
           <SidebarItem label="Button" active={path.get() === "/button"} onClick={() => { navigate("/button"); }} />
           <SidebarItem label="Toggle" active={path.get() === "/toggle"} onClick={() => { navigate("/toggle"); }} />
           <SidebarItem label="Shortcut" active={path.get() === "/shortcut"} onClick={() => { navigate("/shortcut"); }} />
+          <SidebarItem label="Application Menu" active={path.get() === "/app-menu-bar"} onClick={() => { navigate("/app-menu-bar"); }} />
           <SidebarItem label="Clipboard" active={path.get() === "/clipboard"} onClick={() => { navigate("/clipboard"); }} />
           <SidebarItem label="Toolbar" active={path.get() === "/toolbar"} onClick={() => { navigate("/toolbar"); }} />
         </SidebarGroup>
@@ -212,6 +214,7 @@ function App(): Node {
         <Route path="/button" render={() => <Page><ButtonPage /></Page>} />
         <Route path="/toggle" render={() => <Page><TogglePage /></Page>} />
         <Route path="/shortcut" render={() => <Page><ShortcutPage /></Page>} />
+        <Route path="/app-menu-bar" render={() => <Page><ApplicationMenuPage /></Page>} />
         <Route path="/menu" render={() => <Page><MenuPage /></Page>} />
         <Route path="/badge" render={() => <Page><BadgePage /></Page>} />
         <Route path="/tag" render={() => <Page><TagPage /></Page>} />

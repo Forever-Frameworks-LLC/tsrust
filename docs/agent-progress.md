@@ -112,6 +112,66 @@ literal Cow clones retain static borrows. Do not hide an allocation with a globa
 string representation redesign. Original string clones remain an accepted interim
 workaround, not a claimed ergonomic fix. No benchmark measurements or remote runs.
 
+### Application menu and editor section — 2026-11-10 (implementation, acceptance pending)
+
+Accepted routing/editor-recovery checkpoint is ccfae53b (local, not pushed), after
+36149186 WIP. Working tree now implements the next section:
+- AppMenuBar/AppMenu typed wrappers and a new Application Menu gallery page.
+  macOS uses GPUI system menus; Windows/Linux use Kit AppMenuBar. Existing
+  MenuItem/Submenu entries dispatch named Shortcut commands in the active window;
+  checked/disabled changes reload menus. Popup-only custom rows/onSelect/href
+  reject explicitly. Hiding the owning bar clears installed menus. Native state
+  and renderer mappings are not compiled yet; no desktop acceptance claimed.
+- CodeEditor supports uncontrolled defaultValue without resetting edits on render,
+  controlled value, editing/display/folding/indent/search props, focus/blur/submit
+  events and shared controlInput/readInput routing by id. Snapshots add language.
+  Native shared input macros are reused; no second editor implementation.
+- Editor byte counts/tab sizes validate at the Kit prop/binding boundary, including
+  binding refresh. Added public composition test for invalid counts. Gallery adds
+  a local-buffer editor with focus/select/find/read actions and a line-number toggle.
+- Catalog/typed wrappers generated; currently 216 components and gallery 70 pages,
+  351 examples. Covers entries record real newly wired methods only; substantial
+  Editor low-level APIs and all remaining Diff/Settings/etc gaps stay open.
+- Before-project-analysis property completion needed real bundled parameter record
+  fields. The source-function fallback now shares one immutable source index per
+  bundled module, rather than synthesizing signatures without their records. Uses
+  existing import_declaration field/definition/help logic. Regression added for
+  CodeEditor alias completion, behavioral hover and source definition. Not yet run.
+
+Section validation so far:
+- UI runtime 122/122 passed (0.04s execution, build/setup 2.36s).
+- Public navigation+composition suite 4/4 passed, two files compiled once. Total
+  execution 1.369ms; cases 0.056/0.890/0.110/0.039ms. Build/setup 189567.5ms,
+  check 1974.1ms, native/link 186963.6ms including shared-target contention.
+- TSRX editor integration 6/6 passed (0.97s, cold immutable bundled index included;
+  build/setup 2m13s). Full affected LSP lib 25/25 (0.13s) and
+  editor_consistency 30/30 (29.35s) also passed; build/setup 1m04s.
+- Generator checks pass. Whole-project formatter changed 0 files/snippets/
+  fingerprints. API coverage implementation count is 1776/2147, not accepted yet.
+- Native gallery build initially failed at two bridges: private GlobalState module
+  access, and EditorMode does not implement inline-token insertion. Corrected the
+  import to the public GlobalState re-export and specialized the shared input
+  command macro's token operation; CodeEditor reports an explicit UI error for
+  insertToken, as now documented. Other shared input commands still use one macro.
+  Compiler rebuild passed (2m22s); the repaired native gallery retry passed.
+- Workspace/all-target check passed (1m30s); separate backend/all-target check
+  passed (2m53s). Both report the existing test/runtime-helper warning set.
+- Updated binary copied atomically into /tmp/Tsrust Gallery.app. CUA restart
+  attempts were held repeatedly because the owner was actively inspecting the
+  gallery (Table, Showcase, then Packaging). Do not fight the owner for the UI.
+  CUA kernel reset after one timed-out close/reopen attempt; latest connection
+  still shows the old gallery (no Application Menu navigation item). Manual menu
+  and Editor acceptance remains pending. Preserve all passed checks above.
+
+Next: make a local WIP checkpoint preserving this compiled/tested section with
+manual acceptance explicitly pending, then continue dynamic Kit className support
+while the owner inspects. Return to CUA after input settles: restart once, verify
+menu command/check/disable/removal and editor edits/settings/find/read. Current CUA
+binding is gallery; call rewriteDocumentation after compaction before further use.
+No need to rerun unchanged public or editor suites after renderer-only token/import
+repair. Other platforms and full Kit coverage remain open. No pushes, releases or
+performance measurements.
+
 ### Gallery as Kit docs mirror; API coverage tracking — 2026-11-09
 
 Owner: the starter must mirror GPUI Kit's component docs (left nav, every Kit

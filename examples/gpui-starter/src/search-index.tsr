@@ -64,6 +64,10 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/shortcut", page: "Shortcut", section: "Basic Shortcut", text: "press the keys anywhere in the window. secondary means cmd on macos and ctrl elsewhere.", keywords: "kbd shortcut text view classname command keys ontrigger"
   }, {
+    route: "/app-menu-bar", page: "Application Menu", section: "", text: "application menus use the system menu bar on macos and gpui kit's bar on windows and linux. shortcut commands run in the active window; changing the definition reloads the installed menus.", keywords: "app menu bar appmenu appmenubar checkbox menuitem menulabel menuseparator shortcut submenu text view"
+  }, {
+    route: "/app-menu-bar", page: "Application Menu", section: "Application commands", text: "open file or view in the application menu bar. save updates the message, and show guides toggles its checkmark. disable save updates the installed menu immediately.", keywords: "appmenu appmenubar checkbox menuitem menulabel menuseparator shortcut submenu text view checked classname command disabled keys label onchange ontrigger"
+  }, {
     route: "/menu", page: "Menu", section: "", text: "dropdown and context menus with icons, check marks, labels, separators, links, custom rows, keyboard shortcuts and nested submenus.", keywords: "menu dropdown picker choose options choice button contextmenu dropdownmenu menuitem menulabel menuseparator shortcut submenu text view"
   }, {
     route: "/menu", page: "Menu", section: "Dropdown Menu", text: "a button that opens a menu.", keywords: "dropdownmenu menuitem text view classname label onselect"
@@ -832,9 +836,11 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/diff", page: "Diff", section: "Unified and split", text: "switch the same patch between layouts. the viewer keeps gpui kit's file headers and change colors.", keywords: "diff switch view checked classname mode onchange patch"
   }, {
-    route: "/editor", page: "Editor", section: "", text: "edit source code with gpui kit's native editor, syntax highlighting, selection and folding.", keywords: "editor codeeditor switch text view"
+    route: "/editor", page: "Editor", section: "", text: "edit source code with gpui kit's native editor, syntax highlighting, selection and folding.", keywords: "editor button codeeditor switch text view"
   }, {
     route: "/editor", page: "Editor", section: "Controlled source", text: "the change event supplies the complete source. toggle read-only to preserve selection while preventing edits.", keywords: "codeeditor switch text view checked classname language onchange readonly value variant"
+  }, {
+    route: "/editor", page: "Editor", section: "Editor tools and local text", text: "the editor owns its buffer when value is omitted. toggle line numbers after typing to verify that settings preserve edits. read editor state reports the live buffer, selection and highlighting language.", keywords: "button codeeditor switch text view accessibilitylabel checked classname defaultvalue id indentguides language linenumbers onchange onpress searchable softwrap tabsize"
   }, {
     route: "/questionnaire", page: "Questionnaire", section: "", text: "a survey with required questions, multiple answers, progress and backward navigation.", keywords: "questionnaire question questionchoice questionnaire text view"
   }, {

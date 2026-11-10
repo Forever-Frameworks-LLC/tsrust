@@ -51,6 +51,13 @@ fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
 }
 
 impl Kit {
+    fn validate_prop(&self,name:&str,value:&str)->Result<(),String> {
+        if self.name=="CodeEditor" && matches!(name,"tabSize"|"scrollBeyondLastLine"|"cursorSurroundingLines") {
+            let minimum=usize::from(name=="tabSize");
+            if !value.parse::<usize>().is_ok_and(|value|value>=minimum) {return Err(format!("CodeEditor {name} requires an integer >= {minimum}"));}
+        }
+        Ok(())
+    }
     pub(crate) fn prop(&self, name: &str) -> Option<&str> {self.props.get(name).map(String::as_str)}
     pub(crate) fn text(&self, name: &str) -> String {self.prop(name).unwrap_or_default().to_owned()}
     pub(crate) fn flag(&self, name: &str) -> bool {self.prop(name) == Some("true")}
@@ -117,13 +124,16 @@ impl Node {
     /// A Kit-style option set on this node, if any.
     pub(crate) fn option(&self, name: &str) -> Option<&str> {self.kit.as_deref().and_then(|kit| kit.prop(name))}
     pub fn with_kit_prop(mut self, name: &str, value: &str) -> Result<Self, String> {
-        self.kit_mut()?.props.insert(name.to_owned(), value.to_owned());
+        let kit=self.kit_mut()?;
+        kit.validate_prop(name,value)?;
+        kit.props.insert(name.to_owned(), value.to_owned());
         Ok(self)
     }
     /// A live prop: its value is read now and after every handler.
     pub fn with_kit_binding(mut self, name: &str, binding: TextBinding) -> Result<Self, String> {
         let value = binding.value()?;
         let kit = self.kit_mut()?;
+        kit.validate_prop(name,&value)?;
         kit.props.insert(name.to_owned(), value);
         kit.bindings.push((name.to_owned(), binding));
         Ok(self)
@@ -141,6 +151,7 @@ impl Node {
         let mut changed = 0;
         for (name, binding) in &kit.bindings {
             let value = binding.value()?;
+            kit.validate_prop(name,&value)?;
             if kit.props.get(name) != Some(&value) {kit.props.insert(name.clone(), value); changed += 1;}
         }
         Ok(changed)

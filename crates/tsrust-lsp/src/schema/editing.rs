@@ -5,18 +5,16 @@ impl SourceIndex {
     pub(in crate::intelligence) fn import_bundled_function(&mut self,module:&str,exported:&str,local:&str,span:Span) {
         let Some(source)=tsrust_compiler::project::bundled_source(&tsrust_compiler::project::SourceId(module.into())) else{return};
         let prefix=format!("export function {exported}");
-        let Some(start)=source.find(&prefix).filter(|start|matches!(source.as_bytes().get(start+prefix.len()),Some(b'('|b'<'))) else{return};
+        if !source.match_indices(&prefix).any(|(start,_)|matches!(source.as_bytes().get(start+prefix.len()),Some(b'('|b'<'))) {return;}
         let Some(entry)=builtins_for(module).into_iter().find(|entry|entry["name"]==exported) else{return};
-        let Some(signature)=entry["signature"].as_str().filter(|signature|signature.starts_with(&format!("{exported}("))||signature.starts_with(&format!("{exported}<"))) else{return};
-        let declaration=SourceIndex::with_entry_help(&format!("export function {signature} {{}}"),false);
+        if !entry["signature"].as_str().is_some_and(|signature|signature.starts_with(&format!("{exported}("))||signature.starts_with(&format!("{exported}<"))) {return;}
+        // Bundled bytes are immutable for this server. Share their real declaration
+        // index so function parameters retain record fields without per-edit parsing.
+        static INDICES:std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeMap<String,std::sync::Arc<SourceIndex>>>>=std::sync::OnceLock::new();
+        let declaration=INDICES.get_or_init(Default::default).lock().expect("bundled declaration cache").entry(module.to_owned())
+            .or_insert_with(||std::sync::Arc::new(SourceIndex::with_entry_help(source,false))).clone();
         let uri=format!("tsrust-stdlib:///{module}");
-        if !self.import_declaration(&declaration,exported,local,span,&uri,&Default::default()){return;}
-        // The recovery declaration supplies types; definition ranges use the real bundled source.
-        let name_start=start+"export function ".len();
-        if let Ok(range)=LineIndex::new(source).range(source,Span::new(name_start,name_start+exported.len())) {
-            let id=self.symbols.len()-1;
-            self.foreign_definitions.insert(id,json!({"uri":uri,"range":range}));
-        }
+        self.import_declaration(&declaration,exported,local,span,&uri,&Default::default());
     }
     /// Repair only a standalone unfinished member for completion metadata.
     /// Keep the following source intact; diagnostics never use this probe.

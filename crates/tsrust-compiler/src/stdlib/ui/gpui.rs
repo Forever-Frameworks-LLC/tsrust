@@ -190,7 +190,16 @@ fn content_type(kind: &str, autocomplete: &str) -> Option<InputContentType> {
 }
 
 /// One controlInput action on any input state.
-macro_rules! control_input {($state:expr, $action:expr, $value:expr, $label:expr, $start:expr, $end:expr, $window:expr, $cx:expr) => {{
+macro_rules! control_input {
+($state:expr, $action:expr, $value:expr, $label:expr, $start:expr, $end:expr, $window:expr, $cx:expr) => {
+    control_input!($state,$action,$value,$label,$start,$end,$window,$cx,{
+        let label=$label;
+        let token=gpui_kit::component::input::InlineToken::new($value.clone(),$value.clone());
+        let token=if label.is_empty(){token}else{token.with_label(label)};
+        let _=$state.replace_with_token(token,$window,$cx);
+    })
+};
+($state:expr, $action:expr, $value:expr, $label:expr, $start:expr, $end:expr, $window:expr, $cx:expr, $token:expr) => {{
     let length = $state.value().len();
     let range = $start.min(length)..$end.max($start).min(length);
     match $action.as_str() {
@@ -206,12 +215,7 @@ macro_rules! control_input {($state:expr, $action:expr, $value:expr, $label:expr
         "addSelection" => $state.add_selection(range, $cx),
         "toggleMasked" => $state.toggle_masked($window, $cx),
         "scrollTo" => $state.set_scroll_offset(point(px($start as f32), px($end as f32)), $cx),
-        "insertToken" => {
-            let label = $label;
-            let token = gpui_kit::component::input::InlineToken::new($value.clone(), $value.clone());
-            let token = if label.is_empty() {token} else {token.with_label(label)};
-            let _ = $state.replace_with_token(token, $window, $cx);
-        }
+        "insertToken" => $token,
         "openSearch" => $state.open_search(false, $cx),
         "openReplace" => $state.open_search(true, $cx),
         "search" => {$state.open_search(false, $cx); $state.set_search_query($value, true, $cx);}
@@ -356,7 +360,7 @@ impl Root {
     fn input_by_id(&self, target: &str) -> Option<u64> {
         fn find_id(node: &Node, target: &str) -> Option<u64> {
             let node = node.visible_root()?;
-            if node.editable.is_some() && node.semantics.id == target {return Some(node.identity.get());}
+            if node.editable.is_some() && node.semantics.id == target || node.kit.as_deref().is_some_and(|kit|kit.name=="CodeEditor" && kit.prop("id")==Some(target)) {return Some(node.identity.get());}
             node.children.iter().find_map(|child| find_id(child, target))
         }
         find_id(&self.node, target)
@@ -372,7 +376,10 @@ impl Root {
         match self.inputs.get(&id) {
             Some((Field::Line(state), _)) => state.update(cx, |state, cx| control_input!(state, action.clone(), value.clone(), text("label"), start, end, window, cx)),
             Some((Field::Text(state), _)) => state.update(cx, |state, cx| control_input!(state, action.clone(), value.clone(), text("label"), start, end, window, cx)),
-            None => {}
+            None => if let Some(KitState::Editor(state,_))=self.states.get(&id) {
+                let failure=self.failure.clone();
+                state.update(cx, |state,cx|control_input!(state,action,value,text("label"),start,end,window,cx,fail(&failure,"CodeEditor does not support inline tokens; use Input or Textarea".into())));
+            }
         }
     }
 
@@ -382,12 +389,20 @@ impl Root {
             "found": true, "value": value, "unmaskedValue": unmasked, "selectedText": selected, "selectionStart": range.start, "selectionEnd": range.end,
             "selectionReversed": reversed, "scrollX": f32::from(offset.x), "scrollY": f32::from(offset.y),
             "firstVisibleRow": rows.as_ref().map_or(0, |rows| rows.start), "lastVisibleRow": rows.map_or(0, |rows| rows.end), "focused": focused,
-        }).to_string();
-        match self.input_by_id(id).and_then(|id| self.inputs.get(&id)) {
+        });
+        let target=self.input_by_id(id);
+        match target.and_then(|id| self.inputs.get(&id)) {
             Some((Field::Line(state), _)) => {let state = state.read(cx); snapshot(state.value().to_string(), state.unmask_value().to_string(), state.selected_text().to_string(), state.selected_range(), state.is_selection_reversed(), state.scroll_offset(), state.visible_row_range(), state.focus_handle(cx).contains_focused(window, cx))}
             Some((Field::Text(state), _)) => {let state = state.read(cx); snapshot(state.value().to_string(), state.unmask_value().to_string(), state.selected_text().to_string(), state.selected_range(), state.is_selection_reversed(), state.scroll_offset(), state.visible_row_range(), state.focus_handle(cx).contains_focused(window, cx))}
-            None => serde_json::json!({"found": false}).to_string(),
-        }
+            None => match target.and_then(|id|self.states.get(&id)) {
+                Some(KitState::Editor(state,_)) => {
+                    let state=state.read(cx);
+                    let mut result=snapshot(state.value().to_string(),state.unmask_value().to_string(),state.selected_text().to_string(),state.selected_range(),state.is_selection_reversed(),state.scroll_offset(),state.visible_row_range(),state.focus_handle(cx).contains_focused(window,cx));
+                    result["language"]=state.language_name().to_string().into();result
+                }
+                _=>serde_json::json!({"found": false}),
+            },
+        }.to_string()
     }
 
     /// A GPUI Kit Button for an unclassed core Button, with its Kit options.
