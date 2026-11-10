@@ -882,6 +882,12 @@ export function searchEntries(): SearchEntry[] {
   }, {
     route: "/navigation-and-windows", page: "Navigation and Windows", section: "Notifications and shortcuts `secondary` is Cmd on macOS and Ctrl elsewhere. The clipboard, file dialogs", text: "", keywords: "guide docs"
   }, {
+    route: "/navigation-and-windows", page: "Navigation and Windows", section: "Path parameters", text: "", keywords: "guide docs"
+  }, {
+    route: "/navigation-and-windows", page: "Navigation and Windows", section: "Independent window state", text: "", keywords: "guide docs"
+  }, {
+    route: "/navigation-and-windows", page: "Navigation and Windows", section: "Shared window state", text: "", keywords: "guide docs"
+  }, {
     route: "/packaging", page: "Packaging", section: "", text: "tsrust package turns a std:ui entry file into downloadable artifacts for the\nhost platform. the in-app updater in std:ui installs newer versions from the\ngithub releases of the repository named at packaging time.\n\n start and run\n\nbash\ntsrust new notes --ui\n\n\nbash\ncd notes && tsrust dev\n\n\nrun tsrust setup --toolchain --dependencies --yes once per machine first: builds\nrun offline from the locked crate sets it downloads. new --ui creates a desktop\napp from the gpui starter. programs that use codeeditor or markdown get syntax highlighting automatically. programs that use\nspeechbutton likewise get", keywords: "guide docs packaging"
   }, {
     route: "/packaging", page: "Packaging", section: "Start and run", text: "", keywords: "guide docs"

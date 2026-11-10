@@ -1,6 +1,23 @@
 //! Native import identity survives incomplete editing, before project checking finishes.
 use super::*;
 impl SourceIndex {
+    /// Bundled source functions have public contracts before project checking finishes.
+    pub(in crate::intelligence) fn import_bundled_function(&mut self,module:&str,exported:&str,local:&str,span:Span) {
+        let Some(source)=tsrust_compiler::project::bundled_source(&tsrust_compiler::project::SourceId(module.into())) else{return};
+        let prefix=format!("export function {exported}");
+        let Some(start)=source.find(&prefix).filter(|start|matches!(source.as_bytes().get(start+prefix.len()),Some(b'('|b'<'))) else{return};
+        let Some(entry)=builtins_for(module).into_iter().find(|entry|entry["name"]==exported) else{return};
+        let Some(signature)=entry["signature"].as_str().filter(|signature|signature.starts_with(&format!("{exported}("))||signature.starts_with(&format!("{exported}<"))) else{return};
+        let declaration=SourceIndex::with_entry_help(&format!("export function {signature} {{}}"),false);
+        let uri=format!("tsrust-stdlib:///{module}");
+        if !self.import_declaration(&declaration,exported,local,span,&uri,&Default::default()){return;}
+        // The recovery declaration supplies types; definition ranges use the real bundled source.
+        let name_start=start+"export function ".len();
+        if let Ok(range)=LineIndex::new(source).range(source,Span::new(name_start,name_start+exported.len())) {
+            let id=self.symbols.len()-1;
+            self.foreign_definitions.insert(id,json!({"uri":uri,"range":range}));
+        }
+    }
     /// Repair only a standalone unfinished member for completion metadata.
     /// Keep the following source intact; diagnostics never use this probe.
     pub(in crate::intelligence) fn unfinished_member_probe(&self) -> Option<(String,usize,usize,usize)> {

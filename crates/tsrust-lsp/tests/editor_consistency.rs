@@ -612,3 +612,22 @@ fn websocket_connect_help_exposes_the_lazy_task_result(){
   assert!(answer.to_string().contains("Task<WebSocket>"),"{method}: {answer}");
  }
 }
+
+#[test]
+fn independent_window_routing_exports_and_parameter_help_agree() {
+    let mut session=Session::start(&[]);
+    let before="import { ";
+    let source=format!("{before} }} from 'std:ui';function main(){{}}");
+    session.open("main.tsrx",&source);session.settle();
+    let names=session.completion("main.tsrx",&source,before.len()).unwrap();
+    for name in ["createLocation","routeParam","location","navigate","openWindow"] {assert!(names.iter().any(|item|item==name),"{name}: {names:?}");}
+    let source="import {routeParam} from 'std:ui';function main(){console.log(routeParam('/users/ada','/users/:id','id'));}";
+    session.change("main.tsrx",source);session.settle();
+    let at=source.find("routeParam('/").unwrap();
+    let hover=session.hover("main.tsrx",source,at+2).unwrap_or_default();
+    assert!(hover.contains("empty string") && hover.contains("Ownership:"),"{hover}");
+    let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsrx")},"position":{"line":0,"character":at+"routeParam(".len()}}));
+    let parameters=help["signatures"][0]["parameters"].as_array().unwrap();
+    assert_eq!(parameters.len(),3,"{help}");
+    for (parameter,name) in parameters.iter().zip(["path","pattern","name"]) {assert!(parameter.to_string().contains(name),"{parameter}");}
+}

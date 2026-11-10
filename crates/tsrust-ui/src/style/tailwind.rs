@@ -1,7 +1,7 @@
 //! Tailwind families beyond the core set: arbitrary `[...]` values, the rest of the type, spacing, border,
 //! shadow, gradient, cursor, visibility and animation scales. The shared resolver supplies compiler checks, editor help and native style rules.
 use super::{Length, Utility, layout::{pixels, SPACING}};
-use crate::theme::{Theme, COLORS, ResolvedColor};
+use super::{Theme, COLORS, ResolvedColor};
 
 /// A color name (theme, palette or arbitrary) with an optional `/NN` opacity.
 fn color(name: &str, theme: &Theme, mode: &str) -> Option<ResolvedColor> {
@@ -9,7 +9,7 @@ fn color(name: &str, theme: &Theme, mode: &str) -> Option<ResolvedColor> {
         Some((base, percent)) if !percent.is_empty() && percent.bytes().all(|byte| byte.is_ascii_digit()) => (base, percent.parse::<u8>().ok().filter(|value| *value <= 100)? as f32 / 100.),
         _ => (name, 1.),
     };
-    let value = if name == "transparent" {ResolvedColor::transparent()} else if let Some(fixed) = crate::theme::fixed_color(name) {fixed} else if COLORS.contains(&name) {theme.color(mode, name).ok()?} else {return None};
+    let value = if name == "transparent" {ResolvedColor::transparent()} else if let Some(fixed) = super::super::theme::fixed_color(name) {fixed} else if COLORS.contains(&name) {theme.color(mode, name).ok()?} else {return None};
     Some(value.opacity(alpha))
 }
 
@@ -54,7 +54,7 @@ pub(super) fn tokens() -> Vec<String> {
     tokens.extend(DIRECTIONS.iter().flat_map(|(direction, _)| [format!("bg-linear-to-{direction}"), format!("bg-gradient-to-{direction}")]));
     for prefix in ["m", "mx", "my", "mt", "mr", "mb", "ml"] {tokens.push(format!("{prefix}-auto"));}
     for prefix in ["space-x", "space-y"] {tokens.extend(SPACING.iter().map(|step| format!("{prefix}-{step}")));}
-    for name in COLORS.iter().copied().chain(["transparent"]).chain(crate::theme::palette_names()) {
+    for name in COLORS.iter().copied().chain(["transparent"]).chain(super::super::theme::palette_names()) {
         for prefix in ["shadow", "from", "via", "to"] {tokens.push(format!("{prefix}-{name}"));}
     }
     tokens

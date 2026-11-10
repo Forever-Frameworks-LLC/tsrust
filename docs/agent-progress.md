@@ -28,31 +28,89 @@ Checklist (acceptance pending unless explicitly recorded):
 - Affected suites, whole-project format/token/idempotence proof, gallery interaction
   verification, local accepted checkpoints and output cleanup.
 
-Starter reopened independently of Claude as /tmp/Tsrust Gallery.app, backed by
-examples/gpui-starter/target/gpui-starter (last committed build). Verified native
-window and controls through macOS accessibility. Sandbox-only launch fails in
-NSPasteboard; desktop launch works. Do not stop the owner's pre-existing process.
-Current changes are NOT accepted yet. Local WIP checkpoint precedes the window
-ownership repair. Compiler build passes. UI runtime: 117/119 initially passed;
-affected style suite then passed 24/25, and the repaired remaining Tailwind test
-passed separately (119 distinct tests now passed across these runs, 0.05s initial
-execution, 0.04s style run, 0.03s final witness; builds 2–3s each). Packaging config
-precedence/path/error test passes (execution <0.01s, compiler setup 2m19s).
-Whole-project formatter: 0 files, 0 snippets, 0 fingerprints changed; gallery
---check and git diff --check pass. No performance measurements performed.
-Native gallery build is IN PROGRESS using CARGO_INCREMENTAL=0, jobs=1 and the
-repository target. It passed frontend checking and is compiling pinned GPUI/speech
-dependencies; native renderer field mappings remain unverified. Last built gallery
-remains open. Shell highlighting was visually verified; Tsrust fence aliases added
-and unit-tested. Added five gallery pages (Diff, Editor, Questionnaire, Settings,
-Speech), currently 69 component pages / 349 examples plus generated guide pages.
-New pages are not yet interaction-accepted. API coverage still 1686/2147.
+Starter reopened independently of Claude as /tmp/Tsrust Gallery.app. Its executable
+is a regular copy of examples/gpui-starter/target/gpui-starter; replace it atomically
+when rebuilding, then close/reopen this app through CUA. Do not stop the owner's
+pre-existing ./target/gpui-starter process (historically PID 53885). Desktop launch
+works; sandbox-only launch fails in NSPasteboard. Gallery remains open for inspection.
 
-Next: collect native build result/repair renderer errors, then scope navigation and
-commands to their originating window. Both navigation ACTIVE and command QUEUE are
-currently application-wide. Independent component signals already work; do not
-introduce a second reactive system. Remaining styling limitations (animation,
-nonuniform grid tracks, text transform/tracking, state composition) remain open.
+Source checkpoint: 36149186 is a local WIP preserving Claude's interrupted edits
+and the first review batch. Later navigation, command ownership, source-function
+editor fallback and language-diagnostic changes are currently uncommitted.
+
+Implemented since the WIP:
+- createLocation(initial) gives each window an independent navigation/history owner;
+  routeParam(path, pattern, name) and Route support named nonempty path segments.
+  Node captures navigation context; command queues and asynchronous replies retain
+  their originating window through weak owner identities. Closing a window discards
+  only its pending commands. Full builtin help and navigation guide examples added.
+- Signal writes advance a runtime revision; affected roots refresh bindings and
+  request other windows to redraw. Signal/Computed function parameters now enter
+  the existing reactive lowering scope without becoming additional state owners.
+  Manual testing found the missing parameter lowering; the rebuilt gallery now
+  passes shared-state redraw in both directions (child increments to 1; owner to 2).
+- Editor fallback imports documented bundled source functions without waiting for
+  project analysis, preserves their true source definition and parameter docs, and
+  respects lexical shadowing. No native identity is fabricated.
+- Known built-in controls/blocks inside TSRX Text/Button now reject before an
+  unvisited route runs, using linked component identity. Custom components retain
+  runtime validation; Button render replacements retain their own child contract.
+- Table checker slowdown reproduced with the real gallery page after removing
+  string clones: cloned source checked in 1.997s; borrowed version exceeded a 20s
+  stop and was killed. A one-second sample showed semantic diagnostic replay
+  repeatedly starting in bundled wrappers, not unbounded allocation (about 63 MB
+  RSS at 4s). Recovery now prioritizes user-source functions only, while bundled
+  bodies still check through real calls. The bounded CLI regression preserves both
+  the Table ownership error and an unrelated boolean return error.
+
+Completed acceptance (build/setup recorded separately from execution):
+- UI runtime 122/122, 0.04s execution; setup/build 47.62s including lock wait.
+- Packaging config defaults/CLI precedence/path/error unit test passed (<0.01s;
+  original build/setup 2m19s). Actual archive/signing flow not rerun.
+- Compiler diagnostic recovery 14/14, 0.58s; UI authoring 3/3, 15.27s including
+  real bounded CLI diagnostics. Build/setup 2m33s. These cover static nesting,
+  received Signal getters and the real Table replay regression.
+- Latest affected LSP run: lib 25/25, editor_consistency 30/30 (29.74s), TSRX
+  editor 5/5 (0.04s). Build/setup 4m05s including shared-target contention. The
+  focused routing transport test also passed independently (9.85s).
+- Public navigation suite 2/2 on formatted source: 1.284ms total execution,
+  individual cases 0.019/1.038ms. Build/setup 146802.7ms (including shared-target
+  contention), checking 749.2ms and native/link 145719.3ms. No performance claim.
+- Native gallery build passed with the navigation/window/revision renderer.
+  The further build including received Signal lowering also passed.
+- Earlier workspace/all-target and separate backend/all-target checks passed,
+  with existing test-helper/deprecation warnings. Fresh workspace/all-target
+  checking passed after the language repairs (1m38s). The separate backend-only
+  all-target check also passed (2m07s); only existing warnings observed.
+- Whole-project formatter: last run 0 files, 0 snippets, 0 fingerprints changed.
+  Gallery generation --check passes. Final diff check and checkpoint pending.
+
+Manual CUA proof: two independent counter windows started at zero/first route;
+first increment/navigation did not affect second. Notification and close targeted
+second only. Surviving first retained state, back worked, and closing it left the
+main route intact. Compact title controls and shell highlighting visually verified.
+Five component pages added (Diff, Editor, Questionnaire, Settings, Speech); currently
+69 component pages / 349 examples plus generated guide pages. These pages are not
+full API acceptance. Coverage remains 1686/2147; do not inflate covers metadata.
+
+Latest public navigation+composition suite: 3/3 across two files compiled once;
+1.448ms total execution, cases 0.058/0.927/0.126ms. Build/setup 232836.8ms
+(checking 1684.2ms, native/link 230575.0ms including target contention). The
+composition witness exercises a custom LazyChildren factory containing a reactive
+list inside DialogContent and passes native compilation and assertions. Current
+DialogContent is eager Child[]; the old lazy-part wording is stale. No remaining
+deferred-capture failure reproduced with this direct witness. Latest CUA confirms
+shared-window redraw in both directions and child close preserving owner state.
+Main gallery is raised on Navigation and Windows, shared count 2, no child windows.
+
+Next: checkpoint the accepted routing/editor/language-recovery section, then
+finish Tailwind native gaps (animation,
+text transform/tracking/balancing, nonuniform grid, interaction effect composition,
+viewport sizing), missing Kit APIs and remaining ownership ergonomics. Strings use
+Cow<'static,str>; retaining dynamically owned row text requires an owned copy, while
+literal Cow clones retain static borrows. Do not hide an allocation with a global
+string representation redesign. Original string clones remain an accepted interim
+workaround, not a claimed ergonomic fix. No benchmark measurements or remote runs.
 
 ### Gallery as Kit docs mirror; API coverage tracking — 2026-11-09
 

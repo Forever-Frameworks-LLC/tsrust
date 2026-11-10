@@ -2793,6 +2793,7 @@ impl SourceIndex {
             return;
         }
         let Ok(binding) = tsrust_compiler::native_bindings::lookup(module, exported) else {
+            self.import_bundled_function(module,exported,local,span);
             return;
         };
         let Some(catalog) = builtins_for(module)
@@ -2937,6 +2938,11 @@ impl SourceIndex {
                 .signature
                 .replacen(&format!(" {exported}"), &format!(" {local}"), 1);
         let id = self.symbols.len();
+        if symbol.kind==12 && let Some(module)=uri.strip_prefix("tsrust-stdlib:///")
+            && let Some(entry)=builtins_for(module).into_iter().find(|entry|entry["name"]==exported)
+            && let Some(parameters)=entry["parameters"].as_array() {
+            self.native_parameter_docs.insert(id,parameters.iter().map(|parameter|parameter["documentation"].as_str().unwrap_or_default().to_owned()).collect());
+        }
         self.foreign_definitions.insert(
             id,
             json!({"uri":uri,"range":dependency.range(declaration.span)}),

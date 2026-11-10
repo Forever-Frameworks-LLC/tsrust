@@ -6,7 +6,7 @@ type Scope=BTreeMap<String,String>;
 fn name(value:&str,span:Span)->Expr {Expr::new(ExprKind::Name(value.into()),span)}
 fn call(target:&str,args:Vec<Expr>,span:Span)->Expr {Expr::new(ExprKind::Call(Box::new(name(target,span)),args),span)}
 fn statement(kind:StmtKind,span:Span)->Stmt {Stmt{kind,span,labels:vec![],control_target:None}}
-struct Lower<'a> {each:Option<(&'a str,&'a str)>,lazy_children:BTreeMap<(usize,usize),crate::syntax::ResultAnnotation>,computed:Option<&'a String>,prop:Option<&'a String>,branch:&'a str,child_result:crate::type_syntax::ValueAnnotation,scalar_functions:std::collections::BTreeSet<String>,shadowed:std::collections::BTreeSet<String>,text_binding:&'a str,reactive_types:BTreeMap<(usize,usize,String),crate::type_syntax::ValueAnnotation>,reactive_props:std::collections::BTreeMap<(usize,usize),std::collections::BTreeSet<String>>,condition:&'a str,value_binding:&'a str,next_closure:usize,signal:&'a str,location:Option<&'a String>,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
+struct Lower<'a> {each:Option<(&'a str,&'a str)>,lazy_children:BTreeMap<(usize,usize),crate::syntax::ResultAnnotation>,computed:Option<&'a String>,prop:Option<&'a String>,branch:&'a str,child_result:crate::type_syntax::ValueAnnotation,scalar_functions:std::collections::BTreeSet<String>,shadowed:std::collections::BTreeSet<String>,text_binding:&'a str,reactive_types:BTreeMap<(usize,usize,String),crate::type_syntax::ValueAnnotation>,reactive_props:std::collections::BTreeMap<(usize,usize),std::collections::BTreeSet<String>>,condition:&'a str,value_binding:&'a str,next_closure:usize,signal:&'a str,location:Vec<&'a String>,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
 fn scalar_annotation(value:&crate::type_syntax::ValueAnnotation)->bool {
  use crate::type_syntax::ValueAnnotationKind as K;
  match &value.kind {K::Named(name)=>matches!(name.text.as_str(),"string"|"int"|"number"|"boolean"|"null"|"undefined"),K::Literal(_)=>true,K::Group(value)=>scalar_annotation(value),K::Union(values)=>values.iter().all(scalar_annotation),_=>false}
@@ -138,7 +138,7 @@ impl Lower<'_> {
         for statement in statements {
             match &mut statement.kind {
                 StmtKind::Let{rebindable,name,value,..}=>{
-                    let state=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(n) if n==self.signal || self.location.is_some_and(|location|n==location) || self.computed.is_some_and(|computed|n==computed) || self.prop.is_some_and(|prop|n==prop)));
+                    let state=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(n) if n==self.signal || self.location.iter().any(|location|n==*location) || self.computed.is_some_and(|computed|n==computed) || self.prop.is_some_and(|prop|n==prop)));
                     self.expression(value,&scope)?;
                     if state {
                         if !allow_state || *rebindable {return Err(Diagnostic::new("ui-state-owner","Create component state with a direct const declaration outside anonymous callbacks.",name.span));}
@@ -191,6 +191,7 @@ impl Lower<'_> {
     }
 }
 pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)->Result<(),Diagnostic> {
+    validate_children(program,names)?;
     let (Some(signal),Some(retain),Some(condition),Some(value_binding),Some(text_binding),Some(branch))=(names.get("signal"),names.get("retainComponentState"),names.get("bindCondition"),names.get("bindValue"),names.get("bindText"),names.get("bindBranch")) else{return Ok(());};
     // Only declared reactive prop contracts receive retained getters; unrelated props stay ordinary values.
     let mut reactive_types=BTreeMap::new();
@@ -229,7 +230,7 @@ pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)-
     let scalar_functions=program.functions.iter().filter(|function|matches!(&function.result,Some(crate::syntax::ResultAnnotation::Named(value)) if scalar_annotation(value))).map(|function|function.name.text.clone()).chain(["String","Number","Boolean","parseInt","parseFloat","isNaN","isFinite"].into_iter().map(str::to_owned)).collect();
     let child_result=crate::native_type_resolution::project(&mut program.records,&super::CHILD_VALUE,Span::default())?;
     let bind="@native:std:ui-runtime#handle";
-    let mut lower=Lower{each:names.get("bindEach").zip(names.get("eachRows")).map(|(each,rows)|(each.as_str(),rows.as_str())),lazy_children,computed:names.get("computed"),prop:names.get("useProp"),branch,child_result,scalar_functions,shadowed:Default::default(),text_binding,reactive_types,reactive_props,condition,value_binding,next_closure,signal,location:names.get("location"),bind,retain,next:0,constructors:vec![]};
+    let mut lower=Lower{each:names.get("bindEach").zip(names.get("eachRows")).map(|(each,rows)|(each.as_str(),rows.as_str())),lazy_children,computed:names.get("computed"),prop:names.get("useProp"),branch,child_result,scalar_functions,shadowed:Default::default(),text_binding,reactive_types,reactive_props,condition,value_binding,next_closure,signal,location:["location","createLocation"].iter().filter_map(|name|names.get(*name)).collect(),bind,retain,next:0,constructors:vec![]};
     for function in &mut program.functions {
         if names.values().any(|name|name==&function.name.text) {continue;}
         fn locals(body:&[Stmt],names:&mut std::collections::BTreeSet<String>) {
@@ -247,10 +248,60 @@ pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)-
         let mut shadowed=function.params.iter().map(|(name,_,_)|name.text.clone()).collect::<std::collections::BTreeSet<_>>();locals(&function.body,&mut shadowed);
         crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Closure{params,body,..}=&expression.kind{for parameter in params{shadowed.insert(parameter.name.text.clone());}locals(body,&mut shadowed);}Ok(())})?;
         lower.shadowed=shadowed;
-        lower.body(&mut function.body,&Scope::new(),&[],true)?;
+        let state_types=[crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::UiSignal),crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::UiComputed)];
+        let scope=function.params.iter().filter_map(|(name,annotation,_)|{
+            use crate::type_syntax::ValueAnnotationKind as K;
+            let mut annotation=annotation;
+            while let K::Group(value)=&annotation.kind {annotation=value;}
+            match &annotation.kind {
+                K::Applied{name:ty,..} if state_types.contains(&ty.text) || ["Signal","Computed"].iter().any(|key|names.get(*key)==Some(&ty.text))=>Some((name.text.clone(),name.text.clone())),
+                _=>None,
+            }
+        }).collect();
+        lower.body(&mut function.body,&scope,&[],true)?;
         crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression| {
-            if matches!(&expression.kind,ExprKind::Name(name) if name==signal || ["location","computed","useProp"].iter().any(|constructor|names.get(*constructor).is_some_and(|value|name==value))) && !lower.constructors.contains(&expression.span) {
+            if matches!(&expression.kind,ExprKind::Name(name) if name==signal || ["location","createLocation","computed","useProp"].iter().any(|constructor|names.get(*constructor).is_some_and(|value|name==value))) && !lower.constructors.contains(&expression.span) {
                 return Err(Diagnostic::new("ui-state-owner","Create component state with a direct const declaration; state constructor aliases are not supported.",expression.span));
+            }
+            Ok(())
+        })?;
+    }
+    Ok(())
+}
+
+/// Reject statically known invalid children before an unvisited route can hide them.
+fn validate_children(program:&mut Program,names:&BTreeMap<String,String>)->Result<(),Diagnostic> {
+    let kit:serde_json::Value=serde_json::from_str(include_str!("kit.json")).expect("bundled component catalog");
+    let mut components=kit["components"].as_array().unwrap().iter().filter_map(|component|component["name"].as_str()).collect::<std::collections::BTreeSet<_>>();
+    components.extend(["Text","Button","View","Input","Textarea","Link","Svg","Path"]);
+    let known=components.into_iter().filter_map(|name|names.get(name).map(|linked|(linked.as_str(),name))).collect::<BTreeMap<_,_>>();
+    fn children(value:&Expr,parent:&str,known:&BTreeMap<&str,&str>)->Result<(),Diagnostic> {
+        match &value.kind {
+            ExprKind::Array(values)=>for value in values {children(value,parent,known)?;},
+            ExprKind::Conditional{consequent,alternate,..}=>{children(consequent,parent,known)?;children(alternate,parent,known)?;},
+            ExprKind::Binary{op:crate::syntax::BinaryOp::And|crate::syntax::BinaryOp::Or|crate::syntax::BinaryOp::Coalesce,left,right,..}=>{children(left,parent,known)?;children(right,parent,known)?;},
+            ExprKind::Call(callee,_)=>if let ExprKind::Name(name)=&callee.kind {
+                if let Some(&component)=known.get(name.as_str()) {
+                    let allowed=component=="Text" || parent=="Text" && component=="Link" || parent=="Button" && component=="Svg";
+                    if !allowed {return Err(Diagnostic::new("ui-children",format!("{component} cannot be a child of {parent}; place blocks and controls in View."),value.span));}
+                }
+            },
+            _=>{},
+        }
+        Ok(())
+    }
+    for function in &mut program.functions {
+        crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |value|{
+            if let ExprKind::Call(callee,args)=&value.kind {
+                if let ExprKind::Name(name)=&callee.kind {
+                    if let Some(&parent @ ("Text"|"Button"))=known.get(name.as_str()) {
+                        if let Some(Expr{kind:ExprKind::Record(fields),span,..})=args.first() {
+                            if *span==value.span && !fields.iter().any(|(key,_)|key.text=="render") {
+                                if let Some((_,value))=fields.iter().find(|(key,_)|key.text=="children") {children(value,parent,&known)?;}
+                            }
+                        }
+                    }
+                }
             }
             Ok(())
         })?;

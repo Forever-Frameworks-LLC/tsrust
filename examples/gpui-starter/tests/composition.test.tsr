@@ -1,0 +1,37 @@
+import { test, strictEqual } from 'std:testing';
+import { Node, View, Text, Child, LazyChildren, Dialog, DialogContent, Button, signal, document } from 'std:ui';
+
+interface DeferredProps {
+  children?: LazyChildren;
+}
+
+function Deferred(props: DeferredProps): Node {
+  const render = props.children;
+  if (render === undefined) {
+    return <View />;
+  }
+
+  return <View children={render()} />;
+}
+
+function ReactiveContent(): Node {
+  const count = signal(2);
+  return (
+    <Deferred>
+      <Dialog open={true}>
+        <DialogContent>
+          <Button onPress={() => { count.set(count.get() + 1); }}>Add row</Button>
+          {...[1, 2, 3].slice(0, count.get()).map((id) => <Text>Row {id}</Text>)}
+        </DialogContent>
+      </Dialog>
+    </Deferred>
+  );
+}
+
+test('deferred component children own reactive list captures', () => {
+  const node = ReactiveContent();
+  const html = document(node, 'Deferred content');
+  strictEqual(html.includes('Row 1'), true);
+  strictEqual(html.includes('Row 2'), true);
+  strictEqual(html.includes('Row 3'), false);
+});

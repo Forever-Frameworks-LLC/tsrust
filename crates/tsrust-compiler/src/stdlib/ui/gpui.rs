@@ -88,7 +88,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -228,6 +228,8 @@ macro_rules! control_input {($state:expr, $action:expr, $value:expr, $label:expr
 enum Field {Line(Entity<InputState>), Text(Entity<TextareaState>)}
 
 struct Root {
+    revision: u64,
+    command_owner: commands::Owner,
     styles: HashMap<u64, Vec<(State, Utility)>>,
     node: Node,
     inputs: HashMap<u64, (Field, Subscription)>,
@@ -246,11 +248,28 @@ struct Root {
 }
 
 impl Root {
+    fn scope(&self)->(super::navigation::Scope, commands::Scope) {(self.node.navigation.enter(),self.command_owner.enter())}
+    fn activate(&mut self,id:u64,cx:&mut Context<Self>) {
+        let _scope=self.scope();
+        let result=self.node.activate(id);self.settle(result,cx);
+    }
+    fn reply(&mut self,reply:commands::Reply,value:&str,cx:&mut Context<Self>) {
+        let _scope=self.scope();
+        let result=reply(value);self.settle(result.map(|_|true),cx);
+    }
     /// A failed handler or binding ends the application with its message, as an
     /// uncaught exception ends a backend program.
     fn settle(&mut self, result: Result<bool, String>, cx: &mut Context<Self>) {
         match result.and_then(|_| self.node.refresh()) {
-            Ok(_) => cx.notify(),
+            Ok(_) => {
+                let revision=super::state::revision();
+                if self.revision != revision {
+                    // shortcut: redraw live windows on shared writes; track subscribers if window counts make this costly.
+                    cx.refresh_windows();
+                }
+                self.revision=revision;
+                cx.notify();
+            }
             Err(error) => fail(&self.failure, error),
         }
     }
@@ -323,6 +342,7 @@ impl Root {
 
     /// Deliver a Kit input event: edits update the field, focus, blur and Enter reach handlers.
     fn input_event(&mut self, id: u64, event: &InputEvent, value: String, cx: &mut Context<Self>) {
+        let _scope=self.scope();
         let result = match event {
             InputEvent::Change => self.node.input(id, &value),
             InputEvent::Focus => self.node.kit_event(id, "focus", ""),
@@ -421,7 +441,7 @@ impl Root {
                     let root = cx.entity().downgrade();
                     button = button.on_hover(move |hovered, _, cx| {let hovered = *hovered; let _ = root.update(cx, |root, cx| root.emit(id, "hover", hovered.to_string(), cx));});
                 }
-                button.on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);}))
+                button.on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);}))
     }
 
     fn element(&self, node: &Node, theme: &Theme, mode: &str, cx: &mut Context<Self>) -> AnyElement {
@@ -449,13 +469,13 @@ impl Root {
         match node.kind {
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() && !node.semantics.href.is_empty() => {
                 gpui_kit::component::link::Link::new(ElementId::Integer(id)).disabled(node.is_disabled()).child(SharedString::from(node.content_text()))
-                    .on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
+                    .on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);})).into_any_element()
             }
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => self.kit_button(node, cx).into_any_element(),
             Kind::Button | Kind::DisabledButton => {
                 let element = styled_rules(div(), self.rules(node), node.is_disabled()).children(children).id(ElementId::Integer(id));
                 if node.is_disabled() {return element.into_any_element();}
-                element.cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {let result = this.node.activate(id); this.settle(result, cx);})).into_any_element()
+                element.cursor_pointer().on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);})).into_any_element()
             }
             // Vector art draws as an SVG image with colors resolved for this theme.
             Kind::Svg => {
@@ -484,6 +504,12 @@ impl Root {
 
 impl Render for Root {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let _scope=self.scope();
+        let revision=super::state::revision();
+        if self.revision != revision {
+            if let Err(error)=self.node.refresh() {fail(&self.failure,error);}
+            self.revision=revision;
+        }
         self.node.ensure_identities();
         self.sync_inputs(window, cx);
         self.sync_kit(window, cx);

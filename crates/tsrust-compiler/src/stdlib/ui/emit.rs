@@ -7,6 +7,8 @@ use crate::{
 pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> String {
     if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"each"|"route"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return String::new();}
     if binding.name=="useId"{return result_bridge(program,binding,String::new(),"tsrust_native_ui::use_id().map(String::Owned)".into());}
+    if binding.name=="createLocation" {return result_bridge(program,binding,"initial:&String".into(),"tsrust_native_ui::navigation::create_location(initial.as_ref(),|value|String::Owned(value),|value:&String|value.as_ref().to_owned())".into());}
+    if binding.name=="routeParam" {return result_bridge(program,binding,"path:&String,pattern:&String,name:&String".into(),"tsrust_native_ui::navigation::route_parameter(path.as_ref(),pattern.as_ref(),name.as_ref()).map(String::Owned)".into());}
     let node = program
         .records
         .iter()

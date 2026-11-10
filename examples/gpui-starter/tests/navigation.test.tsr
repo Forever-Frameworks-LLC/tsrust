@@ -1,0 +1,29 @@
+import { test, strictEqual } from 'std:testing';
+import { routeParam, createLocation, Node, Text, document } from 'std:ui';
+
+function ProfileRoot(initial: string): Node {
+  const path = createLocation(initial);
+  return <Text>{routeParam(path.get(), '/users/:id', 'id')}</Text>;
+}
+
+test('named route parameters preserve exact local segments', () => {
+  strictEqual(routeParam('/users/ada#bio', '/users/:id', 'id'), 'ada');
+  strictEqual(routeParam('/teams/rust/users/grace/', '/teams/:team/users/:user', 'team'), 'rust');
+  strictEqual(routeParam('/users/ada/edit', '/users/:id', 'id'), '');
+  strictEqual(routeParam('/users/ada', '/users/:id', 'missing'), '');
+  let rejected = false;
+  try {
+    routeParam('/users/ada', '/:id/:id', 'id');
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+});
+
+test('independent component location owners survive returning their trees', () => {
+  const first = ProfileRoot('/users/ada');
+  const second = ProfileRoot('/users/grace');
+  strictEqual(document(first, 'First').includes('ada'), true);
+  strictEqual(document(second, 'Second').includes('grace'), true);
+});

@@ -111,6 +111,7 @@ pub(crate) struct Semantics {
 
 #[cfg(feature = "runtime")]
 pub struct Node {
+    pub(crate) navigation:navigation::Context,
     depth: usize,
     identity:std::cell::Cell<u64>,
     next_identity:std::cell::Cell<u64>,
@@ -331,6 +332,7 @@ impl Node {
     }
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn refresh(&mut self) -> Result<usize,String> {
+        let _navigation=self.navigation.enter();
         let changed=self.refresh_inner()?;self.ensure_identities();Ok(changed)
     }
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
@@ -384,6 +386,7 @@ impl Node {
     /// IDs initially follow preorder; removed IDs are never reused within this tree.
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn activate(&mut self, target: u64) -> Result<bool,String> {
+        let _navigation=self.navigation.enter();
         self.ensure_identities();
         fn visit(node:&mut Node,target:u64)->Result<bool,String> {
             if node.collapsed{return Ok(false);}
@@ -405,6 +408,7 @@ impl Node {
     }
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn input(&mut self,target:u64,value:&str)->Result<bool,String> {
+        let _navigation=self.navigation.enter();
         self.ensure_identities();
         fn visit(node:&mut Node,target:u64,value:&str)->Result<bool,String>{
             if node.collapsed{return Ok(false);}
@@ -448,6 +452,7 @@ impl Node {
         let class_name = class_name.split_whitespace().collect::<Vec<_>>().join(" ");
         for child in &children{child.reset_identities();}
         let node=Self {
+            navigation:navigation::Context::current(),
             depth,
             identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,each:None,
             theme: None,theme_mode:None,theme_inherited:false,
@@ -464,6 +469,7 @@ impl Node {
 
 #[cfg(feature = "runtime")]
 pub fn document(root: &Node, title: &str) -> String {
+    let _navigation=root.navigation.enter();
     web::document(root, title)
 }
 

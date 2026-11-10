@@ -21782,7 +21782,7 @@
           "documentation": "path is an absolute local path. exact defaults to true. render is an owned zero-argument factory returning Node, called once on first match."
         }
       ],
-      "documentation": "Lazily constructs a retained route subtree. Create the single location() owner first. path uses local navigation rules, normalizes trailing slashes and rejects queries, escapes, traversal and fragments. exact defaults to true; false also matches descendant path segments, so /docs matches /docs/api but not /docs-other. Location fragments do not change the route. render runs once at the first match; later visits preserve the same Nodes, fields, component state and scroll positions. Inactive content leaves layout, input and accessibility. Returns a transparent Node without an extra layout/focus element. Factory errors propagate without an automatic retry. This defers construction, not executable download. Example: <Route path=\"/docs\" render={() => <Text>Documentation</Text>}/> initially renders nothing at / and renders Documentation after navigate(\"/docs\"). Ownership: consumes the factory, drops its captures after construction, retains visited content until parent disposal, and never retains or replaces the location owner. An unvisited factory releases when its parent disposes.\n\n```tsrx\nconst path = location();\n<Route path=\"/docs\" render={() => <Text>Documentation</Text>}/>\n```",
+      "documentation": "Lazily constructs a retained route subtree. Create a location() or createLocation() owner in this window root first. path accepts named segments such as /users/:id and uses local navigation rules, normalizes trailing slashes and rejects queries, escapes, traversal and fragments. exact defaults to true; false also matches descendant path segments, so /docs matches /docs/api but not /docs-other. Location fragments do not change the route. render runs once at the first match; later visits preserve the same Nodes, fields, component state and scroll positions. Inactive content leaves layout, input and accessibility. Returns a transparent Node without an extra layout/focus element. Factory errors propagate without an automatic retry. This defers construction, not executable download. Example: <Route path=\"/docs\" render={() => <Text>Documentation</Text>}/> initially renders nothing at / and renders Documentation after navigate(\"/docs\"). Ownership: consumes the factory, drops its captures after construction, retains visited content until parent disposal, and never retains or replaces the location owner. An unvisited factory releases when its parent disposes.\n\n```tsrx\nconst path = location();\n<Route path=\"/docs\" render={() => <Text>Documentation</Text>}/>\n```",
       "examples": [
         {
           "source": "import {View,Text,Route,location,Node,document} from 'std:ui';function App():Node{const path=location();return <View><Route path=\"/\" render={()=> <Text>Home</Text>}/><Route path=\"/docs\" render={()=> <Text>Documentation</Text>}/></View>;}function main(){const app=App();console.log(document(app,'Route').includes('Home'));}",
@@ -21796,7 +21796,7 @@
       "documentation": "Properties for retained, lazy route content. Supply path and render; exact defaults to true. Only a matching route calls its factory. For example, <Route path=\"/docs\" exact={false} render={() => <Text>Docs</Text>}/> matches /docs and /docs/api. Ownership: transfers the factory once; constructed content remains owned by its route.\n\n```tsrx\n<Route path=\"/settings\" exact={false} render={() => <Settings/>}/>\n```",
       "fields": {
         "path": {
-          "documentation": "Required absolute local route path. Trailing slashes normalize. Queries, escapes, traversal and heading fragments throw. Example: path=\"/docs\" matches /docs, including /docs#heading. Read at construction; changing an ordinary prop record does not update the path. Ownership: copies the checked path into the route."
+          "documentation": "Required absolute local route path. Trailing slashes normalize. Queries, escapes, traversal and heading fragments throw. Example: path=\"/docs\" matches /docs, including /docs#heading. Read at construction; changing an ordinary prop record does not update the path. Ownership: copies the checked path into the route. Named segments such as /users/:id match one nonempty segment. Names must be unique ASCII identifiers. Read their values with routeParam(path.get(), pattern, name)."
         },
         "exact": {
           "documentation": "Optional boolean, default true. false matches the path and its descendants at slash boundaries. Example: path=\"/docs\" exact={false} matches /docs/api and rejects /docs-other. / with exact=false matches all local paths. Fragments do not affect matching. Ownership: copies one boolean at construction."
@@ -21821,7 +21821,37 @@
       "name": "location",
       "signature": "location(): Signal<string>",
       "parameters": [],
-      "documentation": "Creates the single application location owner. No arguments. Starts at /. get() returns an owned path snapshot; set(path) checks and normalizes a local path, pushes history and updates the binding. A repeated current path adds no entry. back() and forward() update the same signal. Native history starts at /. A second live owner or invalid initial path throws. Example: const path = location(); returning <Text>{path.get()}</Text> shows / initially on native. Create it directly in a root component const declaration so its state is retained automatically. Ownership: one component owns the location; callbacks and history listeners use non-retaining bindings.\n\n```tsrx\nconst path = location();\n<Text>Current page: {path}</Text> // Current page: /\n```"
+      "documentation": "Creates the default window location owner. No arguments. Starts at /. get() returns an owned path snapshot; set(path) checks and normalizes a local path, pushes history and updates the binding. A repeated current path adds no entry. back() and forward() update the same signal. Native history starts at /. A second default owner in the same active context or invalid initial path throws. Example: const path = location(); returning <Text>{path.get()}</Text> shows / initially on native. Create it directly in a root component const declaration so its state is retained automatically. Ownership: one component owns the location; callbacks and history listeners use non-retaining bindings.\n\n```tsrx\nconst path = location();\n<Text>Current page: {path}</Text> // Current page: /\n```"
+    },
+    {
+      "name": "createLocation",
+      "signature": "createLocation(initial?: string): Signal<string>",
+      "parameters": [
+        {
+          "label": "initial?: string",
+          "documentation": "Initial checked absolute local path, default '/'. Trailing slashes normalize; queries, escapes, traversal and empty fragments throw."
+        }
+      ],
+      "documentation": "Creates an independent location owner for a window root. get() returns an owned path snapshot; set(path) pushes that window's history and updates its bindings. Keep one owner per window, before constructing its Route and Link children. navigate(), back() and forward() inside its handlers use that window's owner. Separate windows can use the same paths without sharing history. A repeated current path adds no entry. Returns Signal<string>; invalid initial paths throw. Example: const path = createLocation('/users/ada'); path.get() is '/users/ada'. Ownership: the returned signal owns the location; component lowering retains it in the returned Node tree, and links/callbacks retain weak bindings. Closing that window releases its state without disposing another window's location.\n\n```tsrx\nfunction DetailWindow(): Node {\n  const path = createLocation('/users/ada');\n  return <Text>{routeParam(path.get(), '/users/:id', 'id')}</Text>;\n}\n```"
+    },
+    {
+      "name": "routeParam",
+      "signature": "routeParam(path: string, pattern: string, name: string): string",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Current checked absolute local path. Pass path.get() inside a reactive expression to follow navigation. A heading fragment does not affect matching."
+        },
+        {
+          "label": "pattern: string",
+          "documentation": "Complete route pattern, such as '/teams/:team/users/:user'. Named segments start with ':' and use unique ASCII identifier names. Queries, escapes, traversal and fragments throw."
+        },
+        {
+          "label": "name: string",
+          "documentation": "Parameter name without ':', such as 'user'. Returns an empty string if this parameter is absent or the complete pattern does not match."
+        }
+      ],
+      "documentation": "Reads one named path segment without changing navigation or either argument. Returns the segment as an owned string, or an empty string when the complete pattern does not match or the name is absent. Fragments are ignored; percent escapes are rejected, not decoded. Invalid paths or malformed/duplicate parameter names in the pattern throw. Example: routeParam('/teams/rust/users/ada#bio', '/teams/:team/users/:user', 'user') returns 'ada'; adding '/edit' makes the complete pattern fail and returns ''. Route with exact=false can match descendants, while this helper always requires the complete pattern. Ownership: borrows all arguments and allocates only the returned string and checked path/pattern values.\n\n```tsrx\n<Text>{routeParam(path.get(), '/users/:id', 'id')}</Text>\n```"
     },
     {
       "name": "navigate",

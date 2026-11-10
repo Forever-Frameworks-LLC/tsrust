@@ -766,7 +766,7 @@ fn notification(value: &serde_json::Value, events: Option<(WeakEntity<Root>, Not
     if !text("autohide").is_empty() {note = note.autohide(text("autohide") == "true");}
     let Some((root, reply)) = events else {return note};
     let deliver = move |root: &WeakEntity<Root>, reply: &NoteReply, event: &str, cx: &mut App| {
-        if let Some(reply) = reply.borrow_mut().take() {let event = event.to_owned(); let _ = root.update(cx, |root, cx| {let result = reply(&event); root.settle(result.map(|_| true), cx);});}
+        if let Some(reply) = reply.borrow_mut().take() {let event = event.to_owned(); let _ = root.update(cx, |root, cx| {root.reply(reply, &event, cx);});}
     };
     let (click_root, click_reply) = (root.clone(), reply.clone());
     note = note.on_click(move |_, _, cx| deliver(&click_root, &click_reply, "click", cx));
@@ -918,6 +918,7 @@ fn keystroke(text: &str) -> Option<Keystroke> {
 impl Root {
     /// Deliver a component event to its node, then refresh and redraw.
     fn emit(&mut self, id: u64, event: &str, value: String, cx: &mut Context<Self>) {
+        let _scope=self.scope();
         let result = self.node.kit_event(id, event, &value);
         self.settle(result, cx);
     }
@@ -1073,7 +1074,7 @@ impl Root {
 
     /// A Bubble: BubbleContent (or its loose children) and an optional BubbleReactions row.
     fn bubble(&self, node: &Node, kit: &Kit, cx: &mut Context<Self>) -> Bubble {
-        let mut bubble = Bubble::new().with_variant(bubble_variant(kit)).alignment(message_alignment(kit)).refine_style(&self.class_style(&node.class_name, cx));
+        let mut bubble = Bubble::new().with_variant(bubble_variant(kit)).alignment(message_alignment(kit)).refine_style(&self.node_style(node));
         let content = match first_item(node, "BubbleContent") {
             Some(part) => BubbleContent::new().refine_style(&self.node_style(part)).children(self.content(part, cx)),
             None => BubbleContent::new().children(self.content_except(node, &["BubbleReactions"], cx)),
@@ -1126,7 +1127,7 @@ impl Root {
         if let Some(style) = title_kit.and_then(|kit| shimmer_style(kit, cx)).or_else(|| shimmer_style(kit, cx)) {title = title.with_shimmer_style(style);}
         let mut content = AttachmentContent::new().title(title);
         if !description_text.is_empty() {content = content.description(AttachmentDescription::new(description_text).status(status));}
-        let mut attachment = Attachment::new().id(ElementId::Integer(id)).status(status).media(media).content(content).refine_style(&self.class_style(&node.class_name, cx));
+        let mut attachment = Attachment::new().id(ElementId::Integer(id)).status(status).media(media).content(content).refine_style(&self.node_style(node));
         if let Some(part) = first_item(node, "AttachmentActions") {attachment = attachment.actions(AttachmentActions::new().children(self.content(part, cx)));}
         if let Some(progress) = kit.number("progress") {attachment = attachment.progress(progress as f32);}
         if let Some(tooltip) = kit.prop("tooltip") {attachment = attachment.tooltip(tooltip.to_owned());}
@@ -1866,10 +1867,11 @@ impl Root {
 
     /// Run queued application commands; replies refresh the tree like handlers.
     fn run_commands(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let _scope=self.scope();
         commands::set_dark(matches!(window.appearance(), WindowAppearance::Dark | WindowAppearance::VibrantDark));
         // GPUI Kit's own strings (calendar months, placeholders) follow the app locale.
         if super::i18n::take_changed() {gpui_kit::component::set_locale(&super::i18n::locale());}
-        for command in commands::take() {
+        for command in commands::take(&self.command_owner) {
             match command {
                 Command::Plain {name, payload} => {
                     let value: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
@@ -1918,14 +1920,12 @@ impl Root {
                     }
                     if name == "read-input" {
                         let snapshot = self.read_input(value.get("id").and_then(|id| id.as_str()).unwrap_or_default(), window, cx);
-                        let result = reply(&snapshot);
-                        self.settle(result.map(|_| true), cx);
+                        self.reply(reply, &snapshot, cx);
                         continue;
                     }
                     if name == "read-clipboard" {
                         let text = cx.read_from_clipboard().and_then(|item| item.text()).unwrap_or_default();
-                        let result = reply(&text);
-                        self.settle(result.map(|_| true), cx);
+                        self.reply(reply, &text, cx);
                         continue;
                     }
                     if name == "check-update" || name == "install-update" {
@@ -1933,7 +1933,7 @@ impl Root {
                         let work = cx.background_executor().spawn(async move {if name == "check-update" {super::update::check()} else {super::update::install()}});
                         cx.spawn(async move |this, cx| {
                             let outcome = work.await;
-                            let _ = this.update(cx, |root, cx| {let result = reply(&outcome); root.settle(result.map(|_| true), cx);});
+                            let _ = this.update(cx, |root, cx| {root.reply(reply, &outcome, cx);});
                         }).detach();
                         continue;
                     }
@@ -1949,7 +1949,7 @@ impl Root {
                     };
                     cx.spawn(async move |this, cx| {
                         let chosen = receiver.await;
-                        let _ = this.update(cx, |root, cx| {let result = reply(&chosen); root.settle(result.map(|_| true), cx);});
+                        let _ = this.update(cx, |root, cx| {root.reply(reply, &chosen, cx);});
                     }).detach();
                 }
                 Command::Window {mut node, title, options} => {
@@ -2968,7 +2968,7 @@ impl Root {
                     let before = targets.iter().enumerate().filter(|(_, target)| target.2).map(|(index, _)| index).collect::<Vec<_>>();
                     let clicked = selected.iter().chain(before.iter()).find(|index| selected.contains(index) != before.contains(index)).or(selected.first()).copied();
                     if let Some((child, shorthand, _)) = clicked.and_then(|index| targets.get(index)).copied() {
-                        if shorthand {this.emit(child, "click", String::new(), cx);} else {let result = this.node.activate(child); this.settle(result, cx);}
+                        if shorthand {this.emit(child, "click", String::new(), cx);} else {this.activate(child, cx);}
                     }
                     this.emit(id, "click", selected.iter().map(ToString::to_string).collect::<Vec<_>>().join(","), cx);
                 })).into_any_element()

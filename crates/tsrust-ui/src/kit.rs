@@ -147,6 +147,7 @@ impl Node {
     }
     /// Deliver a component event to the visible node with this identity.
         pub(crate) fn kit_event(&mut self, target: u64, event: &str, value: &str) -> Result<bool, String> {
+        let _navigation=self.navigation.enter();
         self.ensure_identities();
         fn visit(node: &mut Node, target: u64, event: &str, value: &str) -> Result<bool, String> {
             if node.collapsed {return Ok(false);}

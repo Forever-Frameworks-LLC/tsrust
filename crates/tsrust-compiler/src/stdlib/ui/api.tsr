@@ -1,6 +1,6 @@
 import { setTranslations as nativeSetTranslations, setLocale as nativeSetLocale, locale as nativeLocale, translate as nativeTranslate, translation as nativeTranslation } from 'std:ui-runtime';
 import { command as nativeCommand, commandReply as nativeCommandReply, openWindow as nativeOpenWindow, appearance as nativeAppearance, appInfo as nativeAppInfo } from 'std:ui-runtime';
-import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, each as nativeEach, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, createLocation as nativeCreateLocation, routeParam as nativeRouteParam, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, each as nativeEach, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -904,9 +904,17 @@ export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<strin
 
   return applyProperties(node, metadata, className, variant);
 }
-/** Creates the single application location owner, initially /. Its get/set methods use checked absolute local paths. */
+/** Creates the default window location owner, initially /. Use createLocation for additional independent window roots. Its get/set methods use checked absolute local paths. */
 export function location(): Signal<string> {
   return unwrap(nativeLocation());
+}
+/** Creates an independent location owner for this window, initially / unless initial is supplied. Keep one per window root. Handlers and retained routes use their own window's location. */
+export function createLocation(initial: string = '/'): Signal<string> {
+  return unwrap(nativeCreateLocation(initial));
+}
+/** Reads a named :parameter from path when the complete pattern matches, or returns an empty string. For example routeParam('/users/42', '/users/:id', 'id') returns '42'. Pass location.get() inside a reactive expression to follow navigation. Invalid paths/patterns throw. */
+export function routeParam(path: string, pattern: string, name: string): string {
+  return unwrap(nativeRouteParam(path, pattern, name));
 }
 /** Pushes an application path. Navigating to the current path is a no-op. */
 export function navigate(path: string): void {
@@ -921,9 +929,9 @@ export function forward(): void {
   unwrap(nativeTraverse(true));
 }
 
-/** A retained lazy route. Create one location() owner in the application root first. */
+/** A retained lazy route. Create a location() or createLocation() owner in this window root first. */
 export interface RouteProps {
-  /** Absolute local path. Trailing slashes normalize; queries, escapes, traversal and fragments reject. */
+  /** Absolute local path or pattern with named segments such as /users/:id. Names must be unique identifiers. Trailing slashes normalize; queries, escapes, traversal and fragments reject. */
   path: string;
   /** True by default. False also matches descendant path segments; /docs does not match /docs-other. Hash changes do not reconstruct content. */
   exact?: boolean;
@@ -1374,7 +1382,7 @@ export function saveFile(suggestedName: string, onChosen: Owned<Function<void, [
   }), onChosen));
 }
 
-/** Opens another window showing node. Call it from a handler or before run; windows share component state passed into them. */
+/** Opens another window showing node. Call it from a handler or before run. Signals created inside its component belong to that window; explicitly passed signals share their existing owner. Use createLocation for an independent route/history owner. */
 export function openWindow(node: Node, title: string, options?: WindowOptions): void {
   unwrap(nativeOpenWindow(node, title, JSON.stringify(options ?? {})));
 }

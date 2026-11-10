@@ -71,10 +71,13 @@ fn recoverable(code:&str)->bool {
     matches!(code,"type"|"unknown"|"name"|"transferred"|"partial-transfer"|"conflicting-access"|"borrowed-view"|"borrowed-place"|"borrowed-element")
 }
 
-pub(crate) fn collect(mut program:Program, first:Diagnostic)->Vec<Diagnostic> {
+pub(crate) fn collect(mut program:Program, first:Diagnostic, bundled:&[Span])->Vec<Diagnostic> {
     if !recoverable(first.code) && !matches!(first.code,"loop-control"|"error-effect") {return vec![first];}
     let (statements,names,closures)=index(&program);
-    let mut roots=program.functions.iter().map(|function|function.name.span).collect::<Vec<_>>();
+    // Bundled facades still check through real calls; starting replay in each
+    // trusted wrapper repeats the same user error without finding another site.
+    let mut roots=program.functions.iter().map(|function|function.name.span)
+        .filter(|span|!bundled.iter().any(|range|contains(*range,*span))).collect::<Vec<_>>();
     // Later declarations are the useful next candidates after an earlier failure.
     roots.sort_by_key(|span|(span.start<first.span.start,span.start));
     let mut roots=roots.into_iter();

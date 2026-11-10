@@ -288,7 +288,7 @@ pub(crate) fn diagnostic_error(source: &str, error: Diagnostic) -> Vec<Diagnosti
         return if errors.is_empty() {vec![error]} else {errors};
     }
     match syntax::parse(source) {
-        Ok(program)=>semantic_diagnostics::collect(program,error),
+        Ok(program)=>semantic_diagnostics::collect(program,error,&[]),
         Err(_)=>vec![error],
     }
 }
