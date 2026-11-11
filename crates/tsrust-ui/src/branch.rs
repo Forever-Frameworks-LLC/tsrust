@@ -1,5 +1,7 @@
 //! Private transparent slots own lazy branches without adding layout or accessibility nodes.
 use super::{Kind,Node};
+#[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
+use super::TextPart;
 
 // Static document-only builds retain factories without a refresh loop.
 #[cfg_attr(not(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web"))),allow(dead_code))]
@@ -113,6 +115,26 @@ mod tests {
         changed.ensure_identities();assert_ne!(row.shape(),changed.shape());
     }
     #[test]
+    fn live_image_zoom_label_keeps_the_preview_mounted() {
+        let zoom=Signal::new(40i64);let read=zoom.handle();let control=zoom.handle();
+        let slot=Node::each(move|| {
+            let image=Node::kit("Image",vec![],String::new())?.with_kit_prop("src","icon.png")?.with_kit_binding("zoom",read.text_binding(i64::to_string))?;
+            let label=Node::text_children(vec![Child::Text(TextPart::Literal("Zoom: ".into())),Child::Text(TextPart::Signal(read.text_binding(i64::to_string))),Child::Text(TextPart::Literal("%".into()))],String::new())?;
+            let row=Node::view(vec![Child::Node(image),Child::Node(label)],String::new())?.with_semantics("{\"id\":\"image-preview\"}")?;
+            Ok(Some(Node::view(vec![Child::Node(row)],String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(slot)],String::new()).unwrap();root.refresh().unwrap();
+        let preview=root.visible_children().next().unwrap().identity.get();
+        let image=root.visible_children().next().unwrap().children[0].identity.get();
+        for value in [41,52,23,100,40] {
+            control.set(value).unwrap();root.refresh().unwrap();
+            let row=root.visible_children().next().unwrap();
+            assert_eq!(row.identity.get(),preview,"zoom label replaced its owning preview");
+            assert_eq!(row.children[0].identity.get(),image,"resize remounted the decoded image");
+            assert_eq!(row.children[1].text,format!("Zoom: {value}%"));
+        }
+    }
+    #[test]
     fn root_slots_are_transparent_and_failed_replacements_drop_the_previous_branch() {
         let show=Signal::new(true);let select=show.handle();let control=show.handle();let released=Rc::new(RefCell::new(0));let drops=released.clone();
         let mut root=Node::branch(move||select.get(),move||{let probe=Probe(drops.clone());Ok(Some(Node::button_children(vec![],String::new(),false,Some(Box::new(move||{let _=&probe;Ok(())})))?))},||Err("Branch construction failed".into())).unwrap().own_state(show).unwrap();
@@ -192,13 +214,20 @@ impl Node {
         if !self.semantics.id.is_empty(){return &self.semantics.id;}
         self.kit.as_deref().filter(|kit|kit.name=="DockPanel").and_then(|kit|kit.prop("value")).unwrap_or("")
     }
-    /// A structural fingerprint: kind, classes, text and component props, ignoring state the node keeps itself.
+    /// A structural fingerprint: kind, static classes/text and component props, ignoring live values.
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     fn shape(&self)->String {
         fn write(node:&Node,out:&mut String){
             use std::fmt::Write;
             let _=write!(out,"{:?}|{}|{}|",node.kind,node.semantics.id,if node.class_binding.is_some(){"<live>"}else{&node.class_name});
-            if node.editable.is_none(){out.push_str(&node.text);}
+            // A paragraph's aggregate text comes from its children; bound labels are state, not structure.
+            if node.editable.is_none() && node.children.is_empty() {
+                if node.parts.is_empty() {let _=write!(out,"text={:?}",node.text);}
+                else {for part in &node.parts {match part {
+                    TextPart::Literal(value)=>{let _=write!(out,"literal={value:?};");},
+                    TextPart::Signal(_)=>out.push_str("bound-text;"),
+                }}}
+            }
             if let Some(kit)=&node.kit{let _=write!(out,"|{}",kit.name);for (key,value) in &kit.props{if !kit.is_local(key){let _=write!(out,";{key}={}",if kit.is_bound(key){"<live>"}else{value});}}}
             out.push('[');for child in &node.children{write(child,out);}out.push(']');
         }

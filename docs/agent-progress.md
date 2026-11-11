@@ -8,6 +8,48 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Image resize flicker — accepted 2026-11-11, follows32082607.
+Two defects fixed. Reactive row shape compared live zoom/aggregate paragraph text,
+remounting the whole preview as its percentage changed. Shape now compares static
+text scaffolding, binding markers and child structure, retaining live text nodes.
+Native ImageViewport also loaded the resource again for painting and treated
+pending decode/zero-size setup as errors. Private ImageAsset retains one decoded
+Arc per mounted preview; painting uses ImageSource::Render. Source changes/unmount
+release owned refs. Pending/setup stays blank; genuine load errors still show alt
+text. No artificial resize delay or public API/AI action change.
+
+Evidence: initial lifecycle reproduction FAILED (preview identity6instead3),
+/tmp/studio-image-lifecycle-repro.log. Fixed affected branch lifecycle8/8PASS0.01s,
+3.81s setup, /tmp/studio-image-lifecycle-tests.log (existing row/tab/local-state
+lifecycle cases included). Conditional import corrected its non-GPUI unused-import
+warning before the final SDK build. Native cache1/1PASS0.00s,1m31s setup,
+/tmp/studio-image-resize-test.log:128repeat resolves never invoke loader again;
+pending/errors distinct; source changes/unmount release owned refs. First isolated
+native test build accidentally used debug symbols; canceled after42s before test
+execution, reran with documented DEV/TEST_DEBUG=0. No full compiler/LSP matrices.
+
+SDK pair PASS2m35s, /tmp/studio-image-resize-sdk.log; atomically installed and
+matched target hashes: CLI884f9efce2aebec3fd27eed325d1529ef45e1aaa931f868aa3b5a05d8a35a3b1;
+LSP444368cec9e4c00a60017e1129292cce9e2ea0dfee1ee77b806c24252f732de8. Dev
+replacement queued before old71128/PTY31480 stopped, with empty recovery drafts.
+New native app build PASS119.678s:check47.410s,emit2.8684s,backend163ms,
+native/link68.6824s (runtime rebuild48.7827s); dev observation, not benchmark.
+CURRENT supervisor97262/PTY44811, app98817; keep one preview running. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-97262-1794440871066896000-0/Tsrust Studio.app.
+
+Live PNG MAT: four successive split-divider drags changed Fit40→25→54→20→40%;
+image visible in inspected frames, no fallback/error text observed. Actual100%
+rendering and Fit40% both worked afterward. Original split position restored;
+icon.png left/problempanel source right,10clean tabs,0errors/0warnings. CUA ended
+"Verified stable images across resizing". No per-frame recording or non-PNG/web
+resize acceptance claimed. Cache is one decoded image per open/mounted preview;
+global GPU-cache lifetime/resource budgets remain part of later resource acceptance.
+Required formatter/idempotence0files/0snippets/0fingerprints; diff check passed.
+Pruned1old program and1old runtime variant under cache locks, keeping current
+preview/recent caches and the shared target. No cold rebuild after cleanup.
+NEXT real LSP/hover/completion/snippets, known DialogFooter slot and dense-layout
+minimum-width follow-ups. No push.
+
 Floating image controls — accepted 2026-11-11, follows70148fc1.
 ImagePreview now renders the image first across the full relative pane, followed
 by compact absolute top-right controls. Removed full-width row height/padding and

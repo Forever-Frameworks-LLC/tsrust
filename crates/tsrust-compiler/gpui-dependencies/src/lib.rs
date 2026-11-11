@@ -6,3 +6,7 @@ pub use serde_json;
 #[cfg(all(test, feature = "terminal"))]
 #[path = "../../src/stdlib/ui/terminal.rs"]
 mod terminal;
+
+#[cfg(all(test, feature = "gpui"))]
+#[path = "../../src/stdlib/ui/image_asset.rs"]
+mod image_asset;

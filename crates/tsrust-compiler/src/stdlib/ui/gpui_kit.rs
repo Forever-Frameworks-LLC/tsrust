@@ -1946,7 +1946,7 @@ impl Root {
                     cx.subscribe_in(&state, window, move |this, _, event: &terminal_view::TerminalEvent, _, cx| match event {terminal_view::TerminalEvent::Exit => this.emit(id, "exit", String::new(), cx), terminal_view::TerminalEvent::OpenLink(link) => this.emit(id, "openLink", link.clone(), cx)}).detach();
                     KitState::Terminal(state)
                 },
-                "Image" => {let root=cx.entity().downgrade();KitState::Image(cx.new(|_| ImageViewport {root,id,props:props.clone(),viewport:Size::default(),last_zoom:None,scroll:ScrollHandle::new(),last_scroll:String::new()}))},
+                "Image" => {let root=cx.entity().downgrade();KitState::Image(cx.new(|_| ImageViewport {root,id,props:props.clone(),viewport:Size::default(),last_zoom:None,scroll:ScrollHandle::new(),last_scroll:String::new(),asset:image_asset::ImageAsset::default()}))},
                 "CodeEditor" => {
                     let (language,value)=(text("language"),props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default());
                     let state = cx.new(|cx| {
@@ -3810,15 +3810,16 @@ struct ImageViewport {
     last_zoom:Option<f32>,
     scroll:ScrollHandle,
     last_scroll:String,
+    asset:image_asset::ImageAsset,
 }
 impl Render for ImageViewport {
     fn render(&mut self,window:&mut Window,cx:&mut Context<Self>)->impl IntoElement {
         let path=self.props.get("src").cloned().unwrap_or_default();
-        let source:ImageSource=if std::path::Path::new(&path).is_file(){std::path::PathBuf::from(path).into()}else{SharedString::from(path).into()};
+        let source:ImageSource=if std::path::Path::new(&path).is_file(){std::path::PathBuf::from(&path).into()}else{SharedString::from(path.clone()).into()};
         let ImageSource::Resource(resource)=source else {unreachable!("image path is a resource")};
         let zoom=self.props.get("zoom").and_then(|value|value.parse::<f32>().ok()).unwrap_or(0.);
         let mut ready=false;
-        let body=match window.use_asset::<ImgResourceLoader>(&resource,cx) {
+        let body=match self.asset.resolve(&path,||window.use_asset::<ImgResourceLoader>(&resource,cx)) {
             Some(Ok(image)) if self.viewport.width>px(0.) && self.viewport.height>px(0.) => {
                 ready=true;
                 let natural=image.size(0);
@@ -3829,9 +3830,10 @@ impl Render for ImageViewport {
                     cx.defer(move|cx| {let _=root.update(cx,|root,cx|root.emit(id,"zoomChange",effective.to_string(),cx));});
                 }
                 div().w(px(width.max(self.viewport.width.into()))).h(px(height.max(self.viewport.height.into()))).flex_shrink_0().flex().items_center().justify_center()
-                    .child(img(ImageSource::Resource(resource)).id("image").w(px(width)).h(px(height)).flex_shrink_0().object_fit(ObjectFit::Contain)).into_any_element()
+                    .child(img(ImageSource::Render(image)).id("image").w(px(width)).h(px(height)).flex_shrink_0().object_fit(ObjectFit::Contain)).into_any_element()
             },
-            _=>div().child(self.props.get("alt").cloned().unwrap_or_default()).into_any_element(),
+            Some(Err(_))=>div().child(self.props.get("alt").cloned().unwrap_or_default()).into_any_element(),
+            _=>div().into_any_element(),
         };
         let scroll=self.props.get("scrollTo").cloned().unwrap_or_default();
         if ready && self.last_scroll!=scroll {

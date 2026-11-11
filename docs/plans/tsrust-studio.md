@@ -101,6 +101,11 @@ settings use the existing guarded formatting routes. Focused checks and live
 acceptance are recorded in docs/agent-progress.md; this is not LSP hosting or
 integrated-agent acceptance.
 
+Image resize correction, November 11: bound zoom labels preserve native preview
+identity; the viewport retains decoded pixels across layout updates and separates
+loading from actual errors. Focused native/lifecycle checks and PNG resize MAT
+passed; exact evidence and remaining resource/platform limits are in the handoff.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize
