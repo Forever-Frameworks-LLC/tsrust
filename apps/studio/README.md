@@ -11,8 +11,8 @@ When launching through Codex tools on macOS, use
 changes Cargo's effective environment and correctly invalidates native caches.
 Ordinary terminal launches can use the standard command above.
 
-Files open in closeable tabs. Edit text and press Cmd+S, or use the title-bar save
-icon. A dot marks unsaved changes. Saves check the original disk bytes and reject
+Files open in closeable tabs. Edit text and press Cmd+S. A dot marks unsaved
+changes. Saves check the original disk bytes and reject
 conflicting external changes. Unsaved drafts are journaled under
 `~/.tsrust/studio/recovery` and restored on restart. The journal also retains
 open files and the active tab; clean buffers read current disk contents. Missing
@@ -65,13 +65,19 @@ interpolation placeholders.
 
 The bottom status bar reports the selected file type, UTF-8/unsaved state and the
 current unconnected language-service state. Cmd+J and the terminal icon toggle the
-task/terminal panel at its configured location. Terminal, Problems, Output,
-Debug, Source Control, AI Chat and Extensions regions explicitly describe their
-unfinished integrations.
+task/terminal panel at its configured location. The native terminal starts a shell
+in the workspace directory. New Terminal and Close share the panel header; the
+resizable right session list switches independent shells and closes individual
+sessions. Its action menu interrupts the foreground job, copies a selection or
+restarts an exited shell. The terminal viewport fills its region without an inset
+frame. Editor and panel tab labels follow configured text size and zoom.
+Problems, Debug, Source Control, AI Chat and Extensions describe their unfinished
+integrations; Output runs the project checker described below.
 
 Native document tabs support reordering and split controls. Named Open tabs menus
 reveal clipped files. Required work includes tree file moves, full pointer and
-manual-scroll acceptance, pane/view persistence, LSP and terminal integration, broader locale/RTL coverage, full accessibility/IME acceptance and remaining editor/agent
+manual-scroll acceptance, pane/view persistence, LSP integration, terminal lifecycle
+and accessibility acceptance, broader locale/RTL coverage, full IME acceptance and remaining editor/agent
 workflows. This is an active development checkpoint, not complete editor acceptance.
 See `docs/plans/tsrust-studio.md` at the repository root for full scope and evidence.
 

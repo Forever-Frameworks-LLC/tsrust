@@ -769,7 +769,8 @@ impl Sizable for Tab {
 }
 
 impl RenderOnce for Tab {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(mut self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let explicit_font_size = self.base.style().text.font_size;
         let mut normal_style = self.variant.normal(cx);
         let mut selected_style = self.variant.selected(cx);
         let mut disabled_style = self.variant.disabled(self.selected, cx);
@@ -797,8 +798,9 @@ impl RenderOnce for Tab {
         let inner_radius = self.variant.inner_radius(self.size, cx);
         let inner_paddings = self.variant.inner_paddings(self.size);
         let inner_margins = self.variant.inner_margins(self.size);
-        let inner_height = self.variant.inner_height(self.size);
-        let height = self.variant.height(self.size);
+        let text_height = explicit_font_size.map(|size| size.to_pixels(window.rem_size()) * 1.5).unwrap_or(px(0.));
+        let inner_height = self.variant.inner_height(self.size).max(text_height);
+        let height = self.variant.height(self.size) + inner_height - self.variant.inner_height(self.size);
         let aria_label = self.a11y_label();
         let folder = self.variant == TabVariant::Folder;
         let metrics = FolderTabMetrics::new(self.size, cx);
@@ -963,6 +965,7 @@ impl RenderOnce for Tab {
                 Size::Large => this.text_base(),
                 _ => this.text_sm(),
             })
+            .when_some(explicit_font_size, |this, size| this.text_size(size))
             .rounded(radius)
             .when(folder, |this| {
                 this.px(metrics.padding_x).pb(metrics.top_padding)
@@ -1136,6 +1139,16 @@ mod tests {
                     .width
             })
             .collect()
+    }
+
+    #[gpui::test]
+    fn explicit_text_size_changes_label_geometry_and_keeps_large_text_inside(cx: &mut TestAppContext) {
+        let small = show(cx, TabVariant::Tab, None, |tab| tab.label(LONG_LABEL).text_size(px(10.)))
+            .debug_bounds("tab").expect("small tab rendered").size;
+        let large = show(cx, TabVariant::Tab, None, |tab| tab.label(LONG_LABEL).text_size(px(24.)))
+            .debug_bounds("tab").expect("large tab rendered").size;
+        assert!(large.width > small.width * 1.5, "explicit text size must reach the label");
+        assert!(large.height >= px(36.), "large label must fit without vertical clipping");
     }
 
     #[gpui::test]

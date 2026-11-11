@@ -30,3 +30,10 @@ in https://github.com/longbridge/gpui-kit:
 - themes/aurora.json: SHA256 40176b7179352ade81371d7ebb27b1ad0144a0c506fd5637b5d8c3f58aee8b1f
 
 The two icon fixtures retain the Lucide license in test-fixtures/LICENSE-LUCIDE.
+
+Tab rendering now preserves an explicit text-size refinement instead of overwriting
+it with the control-size default. Its inner and outer heights grow to fit that
+text; default-size tabs retain their normal geometry. This lets editor and panel
+labels follow Studio zoom through the shared renderer. Remove this patch when an
+admitted upstream version preserves custom tab text sizes and passes native zoom
+and clipping checks.

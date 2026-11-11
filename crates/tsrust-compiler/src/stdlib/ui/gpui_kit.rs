@@ -623,7 +623,7 @@ fn plot_color(name: &str, index: usize, cx: &App) -> Hsla {
 }
 
 // Keep Kit chrome and docking, but render live Tsrust children without a second view cache.
-struct TsrustDockSkin(std::rc::Rc<DockSkin>);
+struct TsrustDockSkin(std::rc::Rc<DockSkin>,std::rc::Rc<std::cell::Cell<Option<AbsoluteLength>>>);
 impl gpui_kit::base::dock::DockAreaRenderer for TsrustDockSkin {
     fn frame(&self, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.frame(window,cx)}
     fn split_frame(&self, node: gpui_kit::base::dock::NodeId, axis: Axis, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.split_frame(node,axis,window,cx)}
@@ -631,9 +631,9 @@ impl gpui_kit::base::dock::DockAreaRenderer for TsrustDockSkin {
     fn render_split_handle(&self, handle: &gpui_kit::base::ResizeHandleContext, window: &mut Window, cx: &mut App) -> Option<AnyElement> {self.0.render_split_handle(handle,window,cx)}
     fn render_dock(&self, dock: &gpui_kit::base::dock::DockContext, content: AnyElement, window: &mut Window, cx: &mut App) -> AnyElement {self.0.render_dock(dock,content,window,cx)}
     fn build_placeholder(&self, state: &gpui_kit::base::dock::PanelState, window: &mut Window, cx: &mut App) -> Option<std::sync::Arc<dyn gpui_kit::base::dock::PanelView>> {self.0.build_placeholder(state,window,cx)}
-    fn tab_group_renderer(&self) -> std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer> {std::rc::Rc::new(TsrustDockTabs(self.0.tab_group_renderer(),ScrollHandle::new(),std::cell::Cell::new(None)))}
+    fn tab_group_renderer(&self) -> std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer> {std::rc::Rc::new(TsrustDockTabs(self.0.tab_group_renderer(),ScrollHandle::new(),std::cell::Cell::new(None),self.1.clone()))}
 }
-struct TsrustDockTabs(std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer>, ScrollHandle, std::cell::Cell<Option<(PanelId,usize)>>);
+struct TsrustDockTabs(std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer>, ScrollHandle, std::cell::Cell<Option<(PanelId,usize)>>, std::rc::Rc<std::cell::Cell<Option<AbsoluteLength>>>);
 struct DockDragCaption(SharedString);
 impl Render for DockDragCaption {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -660,6 +660,7 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
             let select=group.clone();
             let mut tab=Tab::new().label(title.clone()).aria_label(title.clone()).selected(!group.is_collapsed() && Some(id)==active)
                 .on_click(move|_,window,cx|select.select_tab(ix,window,cx));
+            if let Some(size)=self.3.get() {tab=tab.text_size(size);}
             if !group.is_collapsed() {
                 if group.is_panel_closable(id,cx) {
                     let close=group.clone();let label=super::i18n::translate("Close {name}",&serde_json::json!({"name":title.to_string()}).to_string());
@@ -726,7 +727,7 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
 
 /// One DockPanel: its content is the node's children, drawn through the root.
 struct DockContent {root: WeakEntity<Root>, dock: u64, node: u64, value: String, title: SharedString, closable: bool, padded: bool, split_controls: bool, can_split: bool, last_close: bool, area: WeakEntity<DockArea>, group: Option<WeakEntity<TabGroup>>, focus: FocusHandle}
-struct DockState {area: Entity<DockArea>, panels: std::collections::BTreeMap<u64,Entity<DockContent>>, selected: String, repaint_pending: bool, last_layout: String}
+struct DockState {area: Entity<DockArea>, panels: std::collections::BTreeMap<u64,Entity<DockContent>>, selected: String, repaint_pending: bool, last_layout: String, tab_font: std::rc::Rc<std::cell::Cell<Option<AbsoluteLength>>>}
 
 fn restored_dock_layout(state:&gpui_kit::base::dock::PanelState,panels:&std::collections::BTreeMap<u64,Entity<DockContent>>,used:&mut std::collections::BTreeSet<u64>,cx:&App)->Option<DockLayout> {
     use gpui_kit::base::dock::PanelInfo;
@@ -1213,7 +1214,12 @@ impl Root {
         let selected=node.kit.as_deref().map(|kit|kit.text("value")).unwrap_or_default();
         let controlled=node.kit.as_deref().is_some_and(|kit|kit.handles("close"));
         let panels=items(node,"DockPanel").map(|(child,item)|(child.identity.get(),item.text("value"),item.text("title"),item.prop("closable")!=Some("false"),item.prop("padded")!=Some("false"),item.flag("splitControls"))).collect::<Vec<_>>();
+        let tab_font=self.node_style(node).text.font_size;
         let Some(KitState::Dock(state))=self.states.get_mut(&id) else{return;};
+        if state.tab_font.replace(tab_font)!=tab_font {
+            for panel in state.panels.values() {if let Some(group)=panel.read(cx).group.as_ref().and_then(WeakEntity::upgrade) {group.update(cx,|_,cx|cx.notify());}}
+            state.area.update(cx,|_,cx|cx.notify());
+        }
         let area=state.area.clone();let root=cx.entity();let mut values=std::collections::BTreeSet::new();
         let last_close=controlled && panels.len()==1;
         let wanted=panels.iter().map(|panel|panel.0).collect::<std::collections::BTreeSet<_>>();
@@ -1347,7 +1353,7 @@ impl Root {
         let kit = node.kit.as_deref()?;
         let mut item = ListItem::new(ElementId::Name(format!("list-item-{row}").into()));
         if kit.name == "ListSeparator" {return Some(item.separator());}
-        item = item.disabled(kit.flag("disabled")).confirmed(kit.flag("confirmed"));
+        item = item.disabled(kit.flag("disabled")).confirmed(kit.flag("confirmed")).refine_style(&self.node_style(node));
         if let Some(label) = kit.prop("accessibilityLabel") {item = item.accessibility_label(label.to_owned());}
         // Kit draws the confirmed mark only when a check icon is set; default to a check.
         item = item.check_icon(icon_name(&kit.text("checkIcon")).unwrap_or(IconName::Check));
@@ -1971,9 +1977,10 @@ impl Root {
                     let tabbed = text("tabbed") == "true";
                     let panels = find(&self.node,id).map(|node|items(node,"DockPanel").map(|(child,item)|(child.identity.get(),item.text("value"),item.text("title"),item.number("size"),item.prop("closable")!=Some("false"),item.prop("padded")!=Some("false"),item.flag("splitControls"))).collect::<Vec<_>>()).unwrap_or_default();
                     let mut skin=None;
+                    let tab_font=std::rc::Rc::new(std::cell::Cell::new(find(&self.node,id).and_then(|node|self.node_style(node).text.font_size)));
                     let area=cx.new(|cx| {
                         let native=DockSkin::new(cx);skin=Some(native.clone());
-                        DockArea::new(format!("dock-{id}"),None,window,cx).with_renderer(std::rc::Rc::new(TsrustDockSkin(native)))
+                        DockArea::new(format!("dock-{id}"),None,window,cx).with_renderer(std::rc::Rc::new(TsrustDockSkin(native,tab_font.clone())))
                     });
                     let skin=skin.expect("Dock skin constructed with area");
                     skin.set_close_button_visible(true,cx);skin.set_panel_style(PanelStyle::TabBar,cx);
@@ -2028,7 +2035,7 @@ impl Root {
                     if let Some(selected)=props.get("value") && let Some(panel)=held.values().find(|panel|panel.read(cx).value==*selected) {
                         area.update(cx,|area,cx|area.select_panel(PanelId::from(panel.entity_id()),window,cx));
                     }
-                    KitState::Dock(DockState{area,panels:held,selected:text("value"),repaint_pending:false,last_layout:String::new()})
+                    KitState::Dock(DockState{area,panels:held,selected:text("value"),repaint_pending:false,last_layout:String::new(),tab_font})
                 }
                 "Ticker" => {
                     let task = ticker(id, &props, cx);
@@ -2768,6 +2775,7 @@ impl Root {
                 if let Some(space) = first_item(node, "TabsEmptySpace") {bar = bar.last_empty_space(div().flex().items_center().size_full().children(self.content(space, cx)));}
                 for (child, item, _) in &tabs {
                     let mut tab = Tab::new().disabled(item.flag("disabled"));
+                    tab.style().text.font_size = self.node_style(child).text.font_size.or(self.node_style(node).text.font_size);
                     if !item.text("label").is_empty() {tab = tab.label(item.text("label"));}
                     if let Some(label) = item.prop("accessibilityLabel") {tab = tab.aria_label(label.to_owned());}
                     if let Some(icon) = icon_name(&item.text("icon")) {tab = tab.icon(icon);}

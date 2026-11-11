@@ -1921,7 +1921,7 @@ export interface TabsProps {
   className?: ReactiveValue<string>;
 }
 
-/** A row of Tab triggers that switches between TabsContent panels. */
+/** A row of Tab triggers that switches between TabsContent panels. Explicit text-size classes on Tabs or an individual Tab apply to the labels; the height grows to fit larger text. */
 export function Tabs(props: TabsProps): Node {
   let node = kitNode('Tabs', props.children ?? [], props.className);
   const prop_value = props.value;
@@ -9200,7 +9200,7 @@ export interface DockProps {
   className?: ReactiveValue<string>;
 }
 
-/** A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. Live keyed DockPanel additions/removals preserve the user layout. Give each panel a distinct value when controlling selection or handling close requests. */
+/** A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. Live keyed DockPanel additions/removals preserve the user layout. Give each panel a distinct value when controlling selection or handling close requests. Explicit text-size classes on Dock apply live to its document-tab labels. */
 export function Dock(props: DockProps): Node {
   let node = kitNode('Dock', props.children ?? [], props.className);
   const prop_vertical = props.vertical;

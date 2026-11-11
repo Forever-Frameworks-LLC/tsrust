@@ -8,6 +8,69 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Current continuation: right terminal session rail and shared tab typography are
+implemented and running in supervisor91447/PTY74141/app91525. Current bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-91447-1794416983704481000-0/Tsrust Studio.app.
+Reacquire this exact live bundle from ps before CUA; never reuse a handle after
+replacement. Owner's single editor pane and five files remain intact, active
+editor.tsrx, no edits made by MAT. Zoom was increased once and restored to -1.
+
+Rail uses existing List/Resizable/DropdownMenu, stable semantic session ids,
+independent retained Terminal views, trash/actions on the right and New Terminal
+beside Close in the panel header. No extra sparse controls row. Owner clarified
+that contrasting colors are fine; remove viewport padding, retain header spacing.
+Viewport is flush, header has an8px native TabsPrefix inset and one bottom line.
+New Terminal button in that header created/focused shell2PID88596; shell1 remains.
+Pure model and executable guarded session adapter added;
+public terminal-sessions.test.tsr2/2PASS0.67ms execution, build18.064s
+(check1.790s, emit0.302s, native/link15.629s). Both tab types now receive explicit
+font sizing; vendor Tab preserves that size after its defaults and expands height
+for larger text. Dock refreshes its groups when the shared size changes. Panel
+Close lives in TabsSuffix with one native bottom border. SDK pair PASS2m41s;
+native Studio build PASS, then current dev load56.116s. Installed normal pair
+refreshed after density fix: CLI93b7b4ec8099f9d6cc3373fd04f9a50a33d3e0222e73962af9bce1e681cb9cf7,
+LSP71ee69204c8caa634c8a0e6fee2ad91a1ad15ec49fda663a58183a9bd7485503.
+Whole formatter0files/0snippets/0fingerprints, locales2catalogs163keys,
+generator --check and diff check PASS. New native Tab geometry test is written
+but UNRUN; do not count it as passed or launch the full UI matrix.
+
+Live MAT: configured10px visibly reaches editor and panel tabs, both change with
+Cmd+= alongside tree/editor/terminal, Cmd+- restores owner zoom. One panel bottom
+line extends through Close. Shell1PID77143 and shell2PID78266 were distinct;
+New focused shell2, selecting shell1 retained its output/PID. Inactive shell2 trash
+removed only that session and process (ps confirmed); shell1 remained. Invalid
+trash-2 icon caught visually and replaced with admitted trash. List row controls
+are clickable, but nested buttons are flattened in AX; direct secondary action
+Kill terminal was rejected, coordinate click worked. Accessibility remains pending.
+
+MAT found chained native replies require another UI event: Interrupt queued after
+readTerminal but sleep79429 remained at26s, then next menu event delivered Ctrl+C
+before its120s deadline. Shared Root.reply now defers an extra notify until after
+the current frame, so reply-created commands can run without another event.
+SDK pair PASS2m47s, /tmp/studio-terminal-reply-sdk.log; native dev load98.914s
+(runtime compile/publish45.483s, check32.570s, emit2.233s). Header source rebuild
+72.941s (runtime hit, check32.041s, emit2.229s, native/link19.112s); source timings
+are build observations, not comparable benchmarks. Fixed-reply MAT: shell84332
+started sleep85471 with120s deadline; ps confirmed it live at15s. Menu Interrupt
+then showed Ctrl+C/prompt immediately, ps confirmed sleep gone and shell retained,
+without another UI event. Earlier shells77143/78266/job79429 were also gone after
+restart. Final header inset/flush viewport/new button observed in app87441, two
+shells left available. Installed pair refreshed, formatter0/0/0 and diff check pass.
+No full regressions. Native Tab test,
+shell restart/active removal/rail resize, SIGTERM/HUP-ignoring-job cleanup and
+actual integrated AI transport remain pending. Full Studio goal stays active.
+
+Final owner density followup: ListItem wrapper had ignored row utility styles.
+It now refines the native row style; terminal rows use py-0, a square edge and a
+subtle bottom divider. Native MAT app91525 shows two compact rows, separators and
+unclipped controls. New Terminal still creates/selects the second shell. Native
+header inset, flush viewport and same-row plus/close all remain visible. No more
+source edits after that MAT. Normal SDK pair PASS2m47s; dev native build PASS97.621s
+(runtime45.259s, check32.051s, emit2.159s, native/link62.779s includes runtime).
+Whole formatter0/0/0. Installed CLI/LSP match the above normal pair. No full suites.
+
+The following first-integration notes are retained evidence; current identities
+and the session-rail implementation above supersede their live-state references.
 
 Current terminal continuation — first native integration, before the owner's new
 multi-session rail and typography requests. Full Studio goal active. New std:ui

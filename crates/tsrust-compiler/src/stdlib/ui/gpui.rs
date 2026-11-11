@@ -282,6 +282,9 @@ impl Root {
     fn reply(&mut self,reply:commands::Reply,value:&str,cx:&mut Context<Self>) {
         let _scope=self.scope();
         let result=reply(value);self.settle(result.map(|_|true),cx);
+        // A reply can queue another command during render; wake it after this frame.
+        let root=cx.entity().downgrade();
+        cx.defer(move|cx|{let _=root.update(cx,|_,cx|cx.notify());});
     }
     /// A failed handler or binding ends the application with its message, as an
     /// uncaught exception ends a backend program.

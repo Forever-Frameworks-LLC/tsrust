@@ -1,13 +1,16 @@
 import { accessibleName, message } from '../../lib/localization.tsr';
-import { View, Text, Button, Tabs, Tab, Node, Signal, t } from 'std:ui';
+import { View, Text, Button, Tabs, Tab, TabsPrefix, TabsSuffix, Node, Signal, computed, t } from 'std:ui';
 
-export function Panels(panel: Signal<string>, output: Node, terminal: Node): Node {
-  return <View className="flex-col size-full min-h-0 bg-muted">
-    <View className="flex-row items-center shrink-0 border-b border-border">
-      <Tabs value={panel.get()} variant="underline" size="small" className="grow min-w-0" onChange={(value) => { panel.set(clone(value)); }}>
+export function Panels(panel: Signal<string>, output: Node, terminal: Node, terminalActions: Node, font: Signal<int>): Node {
+  const fontClass = computed<string>(() => 'flex-col size-full min-h-0 bg-muted text-[' + font.get().toString() + 'px]');
+  const tabsClass = computed<string>(() => 'w-full min-w-0 text-[' + font.get().toString() + 'px]');
+  return <View className={fontClass.get()}>
+    <View className="flex-row items-center shrink-0">
+      <Tabs value={panel.get()} variant="underline" size="small" className={tabsClass.get()} onChange={(value) => { panel.set(clone(value)); }}>
+        <TabsPrefix><View className="w-2" /></TabsPrefix>
         <Tab value="terminal" label={message("Terminal")} /><Tab value="problems" label={message("Problems")} /><Tab value="output" label={message("Output")} /><Tab value="debug" label={message("Debug Console")} /><Tab value="git" label={message("Source Control")} /><Tab value="extensions" label={message("Extensions")} />
+        <TabsSuffix><View className="flex-row items-center"><View hidden={panel.get() !== 'terminal'}>{terminalActions}</View><Button icon="x" variant="ghost" size="xsmall" tooltip={message("Close panel")} aria-label={accessibleName("Close panel")} onPress={() => { panel.set(''); }} /></View></TabsSuffix>
       </Tabs>
-      <Button icon="x" variant="ghost" size="xsmall" tooltip={message("Close panel")} aria-label={accessibleName("Close panel")} onPress={() => { panel.set(''); }} />
     </View>
     <View className="grow min-h-0">
       <View hidden={panel.get() !== 'terminal'} className="size-full min-h-0">{terminal}</View>

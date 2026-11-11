@@ -1,0 +1,186 @@
+import { Signal, controlTerminal, readTerminal, useId } from 'std:ui';
+import { JsonLimits } from 'std:json';
+import { TerminalWorkspace, addTerminal, activateTerminal, removeTerminal } from '../lib/workspace/terminals.tsr';
+import { TerminalToolResult } from './terminal-actions.tsr';
+import { EditorTool } from './editor-tools.tsr';
+
+export interface TerminalSessionAuthority {
+  allowRead: boolean;
+  allowCreate: boolean;
+  allowNavigate: boolean;
+  allowTerminate: boolean;
+}
+
+interface SessionArguments {
+  id?: string;
+  generation?: int;
+  focus?: boolean;
+}
+
+export function terminalSessionTools(): EditorTool[] {
+  const target = '{"type":"object","properties":{"id":{"type":"string","minLength":1},"focus":{"type":"boolean"}},"required":["id"]}';
+  return [{
+    name: 'terminal_sessions_list', description: 'List this workspace window’s terminal sessions and active selection without changing focus.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'terminal_sessions_create', description: 'Create and select another shell in this workspace. Requires host create and navigation grants. Keyboard focus changes only when focus=true.', inputSchema: '{"type":"object","properties":{"focus":{"type":"boolean"}}}'
+  }, {
+    name: 'terminal_sessions_activate', description: 'Select an existing terminal session. Keyboard focus changes only when focus=true.', inputSchema: target
+  }, {
+    name: 'terminal_sessions_remove', description: 'Force-close and remove a session. Requires host termination permission and the observed generation for a mounted shell.', inputSchema: '{"type":"object","properties":{"id":{"type":"string","minLength":1},"generation":{"type":"integer","minimum":1}},"required":["id"]}'
+  }];
+}
+
+function sessionArguments(payload: ReadOnly<string>): Result<SessionArguments, string> {
+  if (payload.length > 4096) return Err('Terminal session arguments exceed 4 KiB.');
+  try {
+    const limits: JsonLimits = {
+      maxBytes: 4096, maxDepth: 4, maxEntries: 8, maxNodes: 16
+    };
+    return Ok(JSON.parse<SessionArguments>(payload, limits));
+  } catch (_) {
+    return Err('Invalid terminal session arguments.');
+  }
+}
+
+// UI-thread host adapter; neither model JSON nor a session id can supply grants.
+export function invokeTerminalSessionTool(state: Signal<TerminalWorkspace>, authority: ReadOnly<TerminalSessionAuthority>, name: string, payload: ReadOnly<string>, onResult: Owned<Function<void, [result: ReadOnly<TerminalToolResult>]>>): void {
+  const tools = terminalSessionTools();
+  if (!tools.some((tool) => tool.name === name)) {
+    onResult({
+      ok: false, data: '', error: 'Unknown terminal session tool.'
+    });
+    return;
+  }
+
+  const permitted = name === 'terminal_sessions_list' ? authority.allowRead : name === 'terminal_sessions_create' ? authority.allowCreate && authority.allowNavigate : name === 'terminal_sessions_activate' ? authority.allowNavigate : authority.allowTerminate;
+  if (!permitted) {
+    onResult({
+      ok: false, data: '', error: 'Terminal session action is not permitted by the host.'
+    });
+    return;
+  }
+
+  match (sessionArguments(payload)) {
+    Err(error) => {
+      onResult({
+        ok: false, data: '', error: clone(error)
+      });
+    },
+    Ok(args) => {
+      if (name === 'terminal_sessions_list') {
+        onResult({
+          ok: true, data: JSON.stringify(state.get()), error: ''
+        });
+        return;
+      }
+
+      if (name === 'terminal_sessions_create') {
+        const next = state.get();
+        const id = useId();
+        match (addTerminal(next, clone(id))) {
+          Err(error) => {
+            onResult({
+              ok: false, data: '', error: clone(error)
+            });
+          },
+          Ok(_) => {
+            state.set(next);
+            if (args.focus ?? false) controlTerminal(id, {
+              action: 'focus'
+            }, (result) => {
+              onResult({
+                ok: result.ok, data: '', error: clone(result.error ?? '')
+              });
+            });
+            else onResult({
+              ok: true, data: JSON.stringify(state.get()), error: ''
+            });
+          }
+        }
+
+        return;
+      }
+
+      const id = args.id ?? '';
+      if (!state.get().sessions.some((session) => session.id === id)) {
+        onResult({
+          ok: false, data: '', error: 'Terminal session is not in this workspace.'
+        });
+        return;
+      }
+
+      if (name === 'terminal_sessions_activate') {
+        const next = state.get();
+        if (next.active !== id) {
+          unwrap(activateTerminal(next, clone(id)));
+          state.set(next);
+        }
+
+        if (args.focus ?? false) controlTerminal(id, {
+          action: 'focus'
+        }, (result) => {
+          onResult({
+            ok: result.ok, data: '', error: clone(result.error ?? '')
+          });
+        });
+        else onResult({
+          ok: true, data: JSON.stringify(state.get()), error: ''
+        });
+        return;
+      }
+
+      const expected = args.generation ?? 0;
+      if (expected < 1) {
+        readTerminal(clone(id), (snapshot) => {
+          if (snapshot.found) {
+            onResult({
+              ok: false, data: '', error: 'Terminal action requires the observed session generation.'
+            });
+            return;
+          }
+
+          const next = state.get();
+          match (removeTerminal(next, clone(id))) {
+            Ok(_) => {
+              state.set(next);
+              onResult({
+                ok: true, data: '', error: ''
+              });
+            },
+            Err(error) => {
+              onResult({
+                ok: false, data: '', error: clone(error)
+              });
+            }
+          }
+        });
+      } else {
+        controlTerminal(clone(id), {
+          action: 'close', expectedGeneration: expected
+        }, (result) => {
+          if (!result.ok) {
+            onResult({
+              ok: false, data: '', error: clone(result.error ?? '')
+            });
+            return;
+          }
+
+          const next = state.get();
+          match (removeTerminal(next, clone(id))) {
+            Ok(_) => {
+              state.set(next);
+              onResult({
+                ok: true, data: '', error: ''
+              });
+            },
+            Err(error) => {
+              onResult({
+                ok: false, data: '', error: clone(error)
+              });
+            }
+          }
+        });
+      }
+    }
+  }
+}

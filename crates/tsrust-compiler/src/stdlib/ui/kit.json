@@ -1388,7 +1388,7 @@
     },
     {
       "name": "Tabs",
-      "doc": "A row of Tab triggers that switches between TabsContent panels.",
+      "doc": "A row of Tab triggers that switches between TabsContent panels. Explicit text-size classes on Tabs or an individual Tab apply to the labels; the height grows to fit larger text.",
       "props": [
         {
           "name": "value",
@@ -6601,7 +6601,7 @@
     },
     {
       "name": "Dock",
-      "doc": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. Live keyed DockPanel additions/removals preserve the user layout. Give each panel a distinct value when controlling selection or handling close requests.",
+      "doc": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. Live keyed DockPanel additions/removals preserve the user layout. Give each panel a distinct value when controlling selection or handling close requests. Explicit text-size classes on Dock apply live to its document-tab labels.",
       "props": [
         {
           "name": "vertical",

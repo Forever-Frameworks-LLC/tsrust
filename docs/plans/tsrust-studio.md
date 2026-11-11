@@ -57,14 +57,25 @@ facade1/1 focused witnesses pass. Native shell input, correct apps/studio cwd,
 8x136 grid, ANSI red and Unicode/CJK/emoji were observed. This does not prove full
 terminal/editor acceptance or integrated AI transport.
 
-Owner feedback now requires a right session rail for multiple shells, replacing
-the extra full-width controls header. Panel and editor tab labels must follow the
-configured size/zoom, and the panel header must have one bottom line. These are
-next. Cancellation through the button, multiple-session retention, resize/zoom,
-copy/selection, restart/quit and dev-shutdown process-tree behavior remain pending.
+The right session rail now supports independent shells, retained output when
+switching and per-session removal. New Terminal and Close share the panel header;
+the terminal has no contrasting padded frame. Shared rendering makes editor/panel
+tab labels follow configured size/zoom, with one panel-header bottom line. Native
+MAT observed distinct shell PIDs, retained output, isolated inactive removal and
+shared zoom. A delayed chained reply exposed during Interrupt MAT is fixed by
+deferring its redraw until after the current frame; a new identified120-second
+sleep was interrupted immediately while its shell remained alive. Session model
+and registered guarded adapter witnesses pass2/2; integrated AI transport remains
+pending. Rail resize, copy/selection, restart/quit, accessibility and dev-shutdown
+process-tree behavior remain pending. Restored header inset and a flush terminal
+viewport were observed together; the relocated New Terminal button creates and
+focuses another independent shell.
+Session rows are compact and divided; the ListItem wrapper now honors row utility
+styling. Native MAT observed both rows and their controls without clipping.
 Unix dev group termination does not cover a PTY's separate session by itself;
 prove and fix HUP-ignoring-job cleanup before completing that lifecycle gate.
-Installed public consumers still need atomic refresh after the normal pair build.
+Installed public consumers are refreshed from the normal pair containing these
+native renderer fixes. No broad regression run was used for this UI section.
 
 ## Current terminal prerequisite — 2026-11-11
 

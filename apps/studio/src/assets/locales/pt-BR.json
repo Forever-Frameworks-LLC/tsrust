@@ -148,5 +148,18 @@
   "Terminal session is unavailable": "A sessão do terminal não está disponível",
   "Terminal input exceeds 1 MiB per request": "A entrada do terminal excede 1 MiB por solicitação",
   "Native terminal support is not selected": "O suporte nativo ao terminal não está habilitado",
-  "Terminal selection is outside the visible grid": "A seleção do terminal está fora da área visível"
+  "Terminal selection is outside the visible grid": "A seleção do terminal está fora da área visível",
+  "Terminal {number}": "Terminal {number}",
+  "New terminal": "Novo terminal",
+  "Kill terminal": "Encerrar terminal",
+  "Terminal actions": "Ações do terminal",
+  "No terminal sessions": "Nenhuma sessão de terminal",
+  "Terminal session id must be unique.": "O identificador da sessão do terminal deve ser exclusivo.",
+  "Terminal session numbering is exhausted.": "A numeração de sessões de terminal foi esgotada.",
+  "Terminal session is not in this workspace.": "A sessão do terminal não está neste espaço de trabalho.",
+  "Terminal session arguments exceed 4 KiB.": "Os argumentos da sessão do terminal excedem 4 KiB.",
+  "Invalid terminal session arguments.": "Argumentos inválidos para a sessão do terminal.",
+  "Unknown terminal session tool.": "Ferramenta de sessão de terminal desconhecida.",
+  "Terminal session action is not permitted by the host.": "A ação da sessão do terminal não foi autorizada pelo host.",
+  "Terminal id is ambiguous": "O identificador do terminal é ambíguo"
 }

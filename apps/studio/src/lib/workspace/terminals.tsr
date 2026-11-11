@@ -1,0 +1,54 @@
+export interface TerminalSession {
+  id: string;
+  ordinal: int;
+  exited: boolean;
+}
+
+export interface TerminalWorkspace {
+  sessions: TerminalSession[];
+  active: string;
+  nextOrdinal: int;
+}
+
+export function emptyTerminals(): TerminalWorkspace {
+  return {
+    sessions: [], active: '', nextOrdinal: 1
+  };
+}
+
+export function addTerminal(workspace: Mutable<TerminalWorkspace>, id: string): Result<void, string> {
+  if (id === '' || workspace.sessions.some((session) => session.id === id)) return Err('Terminal session id must be unique.');
+  if (workspace.nextOrdinal < 1 || workspace.nextOrdinal === 9223372036854775807) return Err('Terminal session numbering is exhausted.');
+  workspace.sessions.push({
+    id: clone(id), ordinal: workspace.nextOrdinal, exited: false
+  });
+  workspace.nextOrdinal += 1;
+  workspace.active = id;
+  return Ok();
+}
+
+export function activateTerminal(workspace: Mutable<TerminalWorkspace>, id: string): Result<void, string> {
+  if (!workspace.sessions.some((session) => session.id === id)) return Err('Terminal session is not in this workspace.');
+  workspace.active = id;
+  return Ok();
+}
+
+export function removeTerminal(workspace: Mutable<TerminalWorkspace>, id: string): Result<void, string> {
+  const index = workspace.sessions.findIndex((session) => session.id === id);
+  if (index < 0) return Err('Terminal session is not in this workspace.');
+  workspace.sessions.splice(index, 1);
+  if (workspace.active === id) {
+    workspace.active = workspace.sessions.length === 0 ? '' : clone(workspace.sessions[index < workspace.sessions.length ? index : workspace.sessions.length - 1].id);
+  }
+
+  return Ok();
+}
+
+export function terminalExited(workspace: Mutable<TerminalWorkspace>, id: string, exited: boolean): void {
+  for (let index = 0; index < workspace.sessions.length; index += 1) {
+    if (workspace.sessions[index].id === id) {
+      workspace.sessions[index].exited = exited;
+      return;
+    }
+  }
+}

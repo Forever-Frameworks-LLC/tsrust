@@ -139,3 +139,19 @@ UI acceptance separately from missing AI parity. Native editor actions such as
 selection, undo/redo, tab movement and pane layout require checked programmatic
 APIs where those hooks are absent. Clearly labeled planned features remain
 unavailable actions with an explanation, not pretend successful tool calls.
+
+
+## Terminal and tab chrome — owner, 2026-11-11
+
+Support multiple independent terminal shells, with a VS Code-style session rail
+on the right. Put session selection/new/close controls there; remove the extra
+full-width terminal controls header. Editor and panel tab text must follow the
+configured text size and zoom. Use one panel-header bottom border, including the
+close-button region, instead of overlapping wrapper and native tab-bar borders.
+
+Keep New Terminal and Close together in the panel header. Start the right session
+list directly below that header, with no separate sparse controls row. Keep the
+terminal viewport flush to its region; distinct terminal/sidebar colors are fine,
+but do not wrap the viewport in contrasting padding that creates a second box.
+Use compact terminal session rows with subtle dividers; avoid loose rows whose
+spacing is dictated by the default List padding rather than their controls.

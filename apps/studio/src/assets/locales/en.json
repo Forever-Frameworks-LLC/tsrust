@@ -148,5 +148,18 @@
   "Terminal session is unavailable": "Terminal session is unavailable",
   "Terminal input exceeds 1 MiB per request": "Terminal input exceeds 1 MiB per request",
   "Native terminal support is not selected": "Native terminal support is not selected",
-  "Terminal selection is outside the visible grid": "Terminal selection is outside the visible grid"
+  "Terminal selection is outside the visible grid": "Terminal selection is outside the visible grid",
+  "Terminal {number}": "Terminal {number}",
+  "New terminal": "New terminal",
+  "Kill terminal": "Kill terminal",
+  "Terminal actions": "Terminal actions",
+  "No terminal sessions": "No terminal sessions",
+  "Terminal session id must be unique.": "Terminal session id must be unique.",
+  "Terminal session numbering is exhausted.": "Terminal session numbering is exhausted.",
+  "Terminal session is not in this workspace.": "Terminal session is not in this workspace.",
+  "Terminal session arguments exceed 4 KiB.": "Terminal session arguments exceed 4 KiB.",
+  "Invalid terminal session arguments.": "Invalid terminal session arguments.",
+  "Unknown terminal session tool.": "Unknown terminal session tool.",
+  "Terminal session action is not permitted by the host.": "Terminal session action is not permitted by the host.",
+  "Terminal id is ambiguous": "Terminal id is ambiguous"
 }
