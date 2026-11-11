@@ -190,6 +190,2245 @@ Keep orchestration in .tsr/.tsrx and native facilities behind checked stdlib API
 No shell-command textbox disguised as a terminal. One writer/no agents, one preview;
 no push/release/signing. Full Studio/AI goal remains active.
 
+Current section follows7d192232 (open-file restoration) and36fe5ddc
+(localization). Native Dock now exposes initialLayout/onLayoutChange/onLayoutError
+through the generated std:ui facade and LSP documentation. It reuses Kit's own
+versioned serialization, restoring keyed live panels with a DockLayout builder;
+missing values skip and new children append. Shared validation rejects malformed
+shape/version/axis/sizes/duplicate values and excessive input before builders.
+Invalid state falls back with a technical diagnostic; Studio retains the bad
+snapshot rather than overwriting it. Native malformed-fallback UI remains untested.
+Editor composition moved into workspace-view.tsrx; no new dependency.
+
+Owner additionally reported zoom loss. Zoom now persists per workspace as a
+bounded offset from Settings.fontSize, in the existing journal. Startup and Settings
+Save/Reload apply base+offset within8–48px; Cmd+0 resets offset to0 and configured
+base, not hardcoded14. Shortcut changes do not write or normalize the user's
+settings JSON. Legacy journal defaults remain empty Dock layout/zoom0. Document
+sessions regenerate; dirty/external-file/journal write protections remain.
+
+At b8aedbde dev was PTY16049/supervisor39042/app39391, superseded by the live session above. Two clean source
+panes: main.tsrx left,chrome.tsrx right; zoomLevel2/base14 (16px text), drafts0.
+Current launch from apps/studio, login=false,tty=true, desktop access:
+env -u CODEX_TOOL_CALL_ID CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1
+CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
+/Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
+Keep one preview; do not restart merely to replay checks. Queue replacement first,
+print exact target/current PID evidence, then send Ctrl+C to the matching old PTY.
+Review initially rejected81403 despite queued57452; ps proved12055/app13849 on
+81403's tty and replacement26620 explicitly awaiting12055. The same retry passed.
+Subsequent queued restarts passed without permission questions. No refusal bypass.
+
+Passed focused checks: CLI/LSP build2m32s setup; core Dock validator1/1PASS0s
+execution/2m35s setup including Cargo lock wait; compiler Dock contracts1/1PASS
+2.42s execution/2m30s setup (2positive/4negative format-round-trip cases). Project
+check passed before zoom addition; latest main/Settings/zoom compiled and ran under
+dev after it. Public native Dock buildPASS (build has no --verbose option).
+Final formatted recovery+zoom batch3/3PASS75.05ms execution; setup not separately
+timed. Covers opaque layout+dirty/clean/legacy recovery, persistence of zoom,
+clamp/no-op bounds, nondefault base reset and invalid retained zoom. Initial fixture
+integer Math.min use and consumed path were corrected without compiler changes.
+Formatter/generator/catalog/diff checks pass. No broad matrix replay.
+
+Native app29756: right/down buttons built three nested panes; actual drag reordered
+documents.tsr ahead of main.tsrx. Journal recorded axes0/1, sizes412/412 and360.5/
+360.5, correct order and selected tabs. App31412 after restart restored all three
+visible editors and exact JSON structural equality. Both horizontal/vertical
+divider drag attempts produced no size changes: interaction defect remains open.
+App38249 automatically replaced after zoom source edits, retaining Dock layout;
+closed only the two added clean test tabs, returning to owner's original source
+pair. Cmd+= twice recorded2, Cmd+0 recorded0, then2 again; Settings Reload left
+zoom intact. App39391 restart retained the same two panes and16px tree/editor
+text. CUA completions: Verified restored Dock layout; Verified zoom survives restart.
+
+Latest warm launch15,656ms:check13718.0ms,emit1049.3ms,backend170.0ms,app hit120.8ms,
+native+link0ms. Zoom automatic rebuild40,281ms included runtime hit/native+link
+19595.3ms. First new runtime71,193ms included runtime miss41469.0ms. Single
+observations, not benchmarks. App RSS67104KiB/0% and supervisor5584KiB/0.1%, one
+sample, not leak acceptance. Current dev runtime5d3257ac6b383b7b/appd336bcffd08df53a;
+latest tests runtimeb317663627d28ec1/app5b81102062a7469a. Under namespace locks,
+removed13obsolete cache directories/3,064,615,625apparent bytes; current dev,
+public, test caches and prior full-suite control retained. No cache guard weakened.
+
+Installed/target CLI SHA25687633e1999a55788244ce3c59e32274ca30b0a250931b058e9dac794dff3a648;
+LSPc79c86fa516533be93cb10c9b95fb48502ecaee1fe7a7058bf7d6e02d05da80e match.
+Exact source hashes and original settings/.gitignore/config identities in audit.
+Home settings still exact {"schemaVersion":1,"theme":"Studio Dark","fontSize":14};
+no source test drafts saved. Localization36fe5ddc's89messages,4/4runtime and native
+language/Undo/startup proofs remain preserved, not replayed.
+
+Next: diagnose native divider dragging from the real pinned gpui-base resize handle
+and current scene; then shared worker/task/terminal/LSP services. Actual compiled
+source is registry gpui-base0.9.0 (target/debug/deps/gpui_base-967f9078c9669a36.d),
+not an unknown stale copy. Never edit registry files. Also pending: cursor/scroll/
+focus recovery, duplicate/focused-group views, AX selected-range/unnamed popup rows,
+IME, tree moves, JSON key scopes, broader locale/RTL and full editor/AI requirements.
+No full goal completion claim; keep one normalized dev process running.
+
+Previous checkpointbd88e292 added separate persistent Settings, 38 named themes,
+content regex/case search, image routing, Markdown source/preview, status/panel
+controls, workspace launch arguments, editable buffers/Cmd+S, atomic saves and
+workspace recovery. Full goal remains active; drag/drop, splits, selected-tab
+reveal, JSON key colors, docking/i18n configuration and native workflows remain
+required. No completion claim. The per-item table in the Studio plan distinguishes
+observed behavior from implementation.
+
+The current live session is identified above. Command from
+apps/studio, desktop access, login=false, tty=true:
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
+/Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
+Previous app31675 was read-only. The current supervisor loads the shared Kit
+bound-prop identity fix required for editable row/preview state retention.
+
+Historical bd88e292 installed consumer identities (superseded above):
+CLI SHA256280dbb8fbd9954946e94378ce4730da61cca4f132bd962a3125fe0e9baaefd08;
+LSP SHA2561392874ec607b81a3b05620bc3bf34508b8beda37979797c8c9af7ff066e602f.
+No active VSCode document/server at previous observation; do not open the entire
+checkout to force a server restart.
+
+Retained bd88e292 evidence:
+- Combined Studio model/storage/recovery/search/settings/workspace suite18/18PASS,
+  90.14ms test execution. Setup timing was not captured for that run.
+- Expanded 38-theme settings round-trip1/1PASS291.02ms execution,
+  2728.9ms build/setup. Unknown themes and invalid fields reject before writing.
+- Shared native branch/list regressions6/6PASS0.00s execution,1m05s setup
+  (included shared Cargo lock wait). New controlled CodeEditor row keeps identity
+  after bound value change; static prop differences remain structural changes.
+- Explicit Studio main check passed after editable/recovery wiring and theme
+  registration. Latest native dev rebuild also checks/emits/links the final picker
+  synchronization/error-handling repair and starts successfully.
+- Whole-project formatter PASS:10files,0documentation snippets,0fingerprints;
+  stable second pass0files/0snippets/0fingerprints. Formatted suite18/18PASS
+  329.44ms execution,4356.4ms setup. Final settings UI repair formatted1file;
+  Studio format--check passes. Latest native dev rebuild checks/emits/links it.
+- CUA before editable renderer refresh observed actual PNG decode, separate
+  Settings window, active-tab contrast, status/footer and terminal placeholder.
+  Markdown preview click reverted immediately: row rebuild reset local state.
+  Shared bound-prop fingerprint fix passes native recheck: Markdown preview stays
+  open and survives switching away/back.
+- Native tree now uses monospace at shared font size. Screenshot appeared matched
+  to editor; full zoom/resize/overflow and accessibility acceptance remain open.
+- Upstream36community themes are vendored with source revision/hash manifest and
+  Apache license; plus2Studio themes. Live Catppuccin Latte preview/Save/Reload
+  and shared font16 configuration were observed; restored Studio Dark/font14.
+  Full catalog contrast/rendering remains required. Failed first fetch used nonexistent LICENSE name; corrected to
+  LICENSE-APACHE and retained its original bytes.
+
+
+Native acceptance completed in app42379 and app46011:
+Unicode paste creates a dirty tab; Cmd+S writes exact UTF-8 bytes; the dirty dot
+clears. Undo/redo survive a switch to Markdown preview and back. Unsaved recovery
+survives a real supervisor stop/start; disk remains unchanged. The temporary
+.gitignore comments were removed through the app and Cmd+S; original SHA256
+ad8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483 verified,
+and journal drafts are empty. No user draft remains from these checks. Content
+search opens storage.tsr with the cursor at line4; uppercase anchored regex finds
+it case-insensitively and disappears with Aa enabled. Own Settings window saves
+actual ~/.tsrust/studio/tsrust_studio.config.json and Reload restores persisted
+values. Final app49918 verifies picker selection follows direct JSON edits.
+
+Latest native dev rebuild44,434ms: runtime hit,prepare7350.2ms,check11229.2ms,
+emit911.0ms,backend172.8ms,native+link19406.8ms. Earlier fresh supervisor startup
+65,687ms included runtime miss40,370.7ms. These are observations, not comparable
+benchmarks. A bounded1second sample of earlier build supervisor39406 reported
+537.6MiB physical footprint/537.7MiB peak; sample showed runtime unpack/build wait.
+No leak or steady-state memory acceptance claim. Whole-environment native cache
+identity can differ across supervisors; inspect before changing that contract.
+Pruned14,100,780,330bytes of obsolete Studio cache variants plus old staging;
+apps/studio/target/tsrust-native is now about2.0GiB. Keep active runtime1ff49c6f253063ac
+and test runtime366be1fa48a2a0fc; retained current application/test caches.
+
+Next executable section: implement native tab reorder/selected-tab reveal and
+resizable editor splits using Kit facilities; fix JSON key scopes in a reusable
+managed upstream integration. Complete file moves, configuration/docking/i18n,
+close/discard UX, async search and recovery limitations. Do not retest unchanged
+save executables or repeat the whole compiler matrix for routine UI edits.
+
+Recovery limitations remain explicit: synchronous bounded journal writes per
+change; one writer per workspace (first creation not coordinated); missing-file
+recovery fails visibly and preserves the journal. Corrupt/outside-root journals
+must never be overwritten. Saving rejects external changes. The app still needs
+native editing/undo/IME/restart acceptance, close/discard UX and richer recovery.
+
+Historical pre-bd88e292 evidence below (superseded UI behavior; retain passed checks).
+
+CUA completed: Opened Studio package in tabs; Verified package tabs and status;
+Verified native tree without clutter.
+Observed actual main.tsrx, tsrust.config.json and workspace.tsr tabs; source folder
+expansion remains open across file selection. Latest native Tree folder clicks
+and Right-key expansion work; file selection opens real tabs, with no root wrapper
+or button bar. Cmd+F opens native search. Both themes passed on the earlier viewer;
+the current layout starts dark and has no theme button. Full-height layouts work. Binary icon.png reports UTF-8 error without replacing current file. Explicit
+computed<string> status follows selected file/error. Find targets active config;
+initial CUA typeText again lost the first character, while Raise + select-all/type
+produced exact schemaVersion. Focus/first-key attribution and unnamed Kit search
+AX controls remain gaps. A read-only typing attempt left source unchanged; this
+is not full editable, IME, selection or keyboard acceptance.
+
+**Native tab scroll/selection/Find retention now passes in the running app.**
+Checkpoint76713c16 fixes sync_inputs/sync_kit disposal using all mounted identities,
+while creation/synchronization remain visible-only. Hidden AppMenuBar ownership
+still removes its external menus and reinstalls on reveal. Actual scroll position
+(line34 at the top), keyboard selection of the final brace (native Cmd+F adopted
+it), and independent setTheme/schemaVersion Find queries survive tab switches.
+Undo/redo with editable buffers and full AX/focus remain unverified.
+TabsContent's current native
+layout only gave the editor intrinsic height, so Studio composes Kit's real tab
+bar with full-height hidden document panels instead. browser.tsrx constructs its
+child Nodes once outside reactive JSX spread expressions; merely passing Signal
+inside those expressions previously recreated folders and reset expansion.
+
+Typed data prerequisite is checkpointed at791d4d43: signal admission in
+analysis/ui.rs, owned snapshots in emit/ui.rs, facade docs, LSP method help/native
+alias identity and opt-level1 debug LSP profile. The current checkpoint adds
+apps/studio workspace/browser/UI and these acceptance records.
+No JSON-encoded state or handwritten Rust editor code. Generic native Signal
+already supported Clone payloads. Scalars, nullable values, plain records/arrays
+are admitted; nested native resources/views/callbacks reject. The nullable union
+emitter uses existing tsr_owned conversion. Direct record/array-field JSX text is
+still a construction-time snapshot under scalar_text's current form recognition;
+use explicit computed<T> for live scalar text projections. Inference of computed
+from this data projection needed explicit <string>. These reusable language gaps
+must remain visible in acceptance rather than being called fully general reactivity.
+
+Passed checks to preserve; do not replay unchanged executables:
+- Compiler UI authoring: six existing cases passed in the earlier17.36s run;
+  corrected new data/resource rejection case passes1/1 in1.21s (149s setup).
+- Native gpui-starter composition/navigation/data snapshots:12/12PASS,3.30ms
+  execution,163,863.8ms build/setup. Deep constructor/get/set copies, nullable,
+  Unicode/CRLF, empty record arrays and scalar arrays are covered.
+- Studio workspace suite3/3PASS,3.93ms execution,2,953.0ms build/setup. Canonical
+  de-duplication, exact text/language, sorted filtered listing, outside/missing
+  errors preserving tabs. Earlier document proposal4/4 retained unchanged.
+- Native alias unit1/1PASS0.63s; full header/checked graph alias unit1/1PASS12.98s
+  before debug LSP optimization. Debug LSP now uses opt-level1 with debug checks,
+  matching existing compiler optimization. Actual server had exceeded existing
+  3-second deadline with UI indexing; deadline was not raised.
+- New completion matrix2rows x4modesPASS21.47s and editor consistency4modesPASS11.22s,
+  including typed signatures/hover/docs and zero stale/empty/non-member counters.
+- Initial selected Signal checker-agreement run finished418.10s with one false
+  oracle disagreement: Signal.length actually rejects with a specific temporary-
+  receiver error. Oracle had mistaken any diagnostic different from unknown-field
+  for field acceptance. Shared predicate now rejects that diagnostic; actual-
+  compiler regression preserves ordinary array.length and passes0.53s.
+- Corrected full selected Signal agreement rerun PASS1/1,413.88s. Exact binary
+  target/debug/deps/checker_agreement-0e7ca4f34a237d39, environment
+  TSRUST_LSP_AGREEMENT_TYPE='Signal<string[]>'. Session10828 is terminal. The
+  complete candidate scan was preserved; no member or receiver was excluded.
+
+Historical accepted tool pair before subsequent renderer/API updates: CLI SHA256
+0f14ca6e610ae4366a995dab150a275d2c1aca2841ef6c2a3115b71984752bd7;
+LSP SHA2564d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688.
+Installed PATH pair was refreshed with staged copies and atomic replacements,
+matching those SHA256 values; CLI0.2.0/LSP0.3.0. At that earlier refresh, no active tsrust-lsp or VS Code
+process was found. Existing VS Code settings point to repository
+target/debug pair. Constructor hover now explicitly documents computed<T> for
+live data-field text; getter/setter documentation and their passed tests are unchanged.
+
+Current cold elevated dev47,677ms; warm source rebuilds14,767/14,566/14,624ms,
+runtime preparation5,324.4/5,609.7/5,023.4ms, all warm runtime hits. Development
+observations only. The retained supervisor now includes bounded streaming cache
+checksums/extraction from65665fb6 (legacy checksum protocol and corruption guards
+passed11native-cache +2bundle tests). Historical appPID19889 read-only vmmap session25690 completed: supervisor physical footprint49.3M,
+peak408.0M; app258.6M, peak317.0M, with3open file tabs and main active. Units are
+reported verbatim from vmmap; these are not comparable benchmark runs. A subsequent restricted leaks scan reports420leaks/20,336bytes from523,615
+allocated nodes/192,915KB. Allocation contents were not saved; macOS marks the
+process not debuggable, and attribution/growth remain unproven. The earlier
+scratch scan was a different PID and is not a controlled comparison.
+No AI executable was rerun during this editor section.
+
+Prior accepted checkpoints: 3c59b679 initial app/proposals/scalar training;
+e28b8d1f macOS dev identity and live failed-build recovery;65665fb6 bounded cache
+buffers;acb92c73 dev identity ignores release-only options;02de4640 bounded Metal
+inference proof; e09f8fcd initial package scope. Audit retains exact results.
+Candle scalar training3/3 proves only scalar SGD orchestration, not model training.
+Three Candle CPU Qwen attempts stopped without answers on resource limits. Pinned
+llama-cpp0.1.161/Metal/mmap with the same official Qwen1.5B Q4/tokenizer passes2/2
+buffered inference tests (exact5/EOS,31,970.943958ms execution,163,195.539917ms setup,
+zero observed swap-usage growth, sampled treeRSS1,251,000,320B). No full8GiB coding
+quality, streaming, cancellation, training/specialization or distribution acceptance.
+Model artifacts remain ignored under target/studio-models. No unchanged replay.
+
+Latest native Tree/root-removal rebuild13,356ms passed, with runtime preparation
+4,419.3ms. No unchanged acceptance executables were replayed for this layout change.
+
+Native retention checkpoint76713c16: new lifecycle regression1/1PASS,0.00s execution,
+3.66s setup. Compiler build after final menu safeguardPASS2m41s. Final backend
+all-target compilationPASS3m26s; final workspace/all-target compilationPASS1m28s.
+Warnings are in unchanged test helpers; no node/renderer warning. Native Studio
+buildPASS. No unchanged runtime suite or AI executable was replayed.
+
+Owner answered “Restart once and verify tab state.” Old session51314/supervisor15826/
+app29484 stopped normally, and one replacement is live: session6863/supervisor41326/
+app41377. Startup45,087ms, check2,069.4ms, emit312.5ms, native+link42,310.5ms,
+runtime preparation1,498.0ms and runtime build/publish36,864.4ms (cache miss).
+Development observations only, not comparable performance measurements. Exactly
+one Studio preview remains, and the new supervisor must stay running. CUA phase
+“Verified retained editor tab state” completed. Initial config Find typing still
+lost its first character; select-all/retyping gave the exact query. Native AX
+selected-text range is unavailable; keyboard selection was observed and then
+verified by Find inheriting it after a tab round trip. Missing search AX names
+and full focus/IME/editable acceptance remain open.
+
+Repository/running/installed CLI SHA256 is now
+ebf586f90a92b181001b1a8d0012c6e7a415517453fd197063be1d6146f6c899.
+Installed CLI was staged and atomically replaced after native acceptance. LSP
+remains on the prior accepted4d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688;
+no language-service signatures changed in this renderer fix.
+
+Fresh vmmap baseline after native acceptance (two tabs): supervisor384.5M/peak384.5M;
+app253.1M/peak253.1M, units verbatim. Not a controlled comparison or leak proof.
+
+Current document section: workspace OpenFile owns the shared Document (path,
+session, revision, text, savedText). OS-random std:uuid IDs isolate reopened sessions;
+proposals now match session too. Dirty state compares saved text; clean reload
+updates baseline/revision, dirty reload preserves drafts. closeFile model refuses
+dirty close unless explicitly discarded and preserves/selects the remaining tab.
+openFile reuses live sessions and rejects non-regular paths before reading.
+
+Final formatted tests10/10PASS4.31ms execution,3,039.5ms build/setup, using
+`tsrust test tests --profile` from apps/studio. Earlier10/10PASS4.21ms; expanded
+workspace4/4PASS3.57ms; preserved old assertions, added identical-byte session
+reopen, baseline/dirty reload, no-op revision, discard/close and actual reopen.
+First mixed string/FsError catch failed checking; fixed by explicitly matching
+createDocument Result, without changing compiler contracts. Dev retained the
+working app during failure. Formatter changed3files and final native tests passed.
+
+Latest appPID48203, same supervisor41326/session6863. Normal rebuild after format
+12,184ms, runtime preparation5,072.4ms cache hit. Earlier new UUID runtime build
+51,764ms cache miss. CUA “Verified workspace document session integration” completed:
+actual documents.tsr opens in a native tab through the integrated document record.
+No native save/close control is exposed; app remains read-only.
+
+UI alignment checkpoint acbcb8ed: chrome.tsrx, navigation.tsrx,
+editor.tsrx and themes/studio.json now separate the shell. Native custom header
+uses View.windowDragRegion and reserves the macOS traffic-light leading area.
+Settings/search use icon triggers with tooltips. Explicit rail dividers and a
+two-surface palette replace mixed grays. Filename results align left and truncate;
+Input has explicit available-width constraints. Sidebar collapse and actual divider
+resize are verified. Tree text sizing/ellipsis and stable keyed rows are in the
+new renderer awaiting a live load. No Git/extension/terminal/chat filler controls.
+
+Removed workspace.language and its hardcoded extension map. editor.tsrx passes
+the extension to std:ui/Kit, reusing existing tsr/tsrx aliases and syntax lookup.
+The active Syntect backend maps imports to preproc; Studio theme now assigns it
+the keyword color. Actual TSX/TSR imports are visibly distinct. Initial unrelated
+Tree-sitter hypothesis was discarded. Its host build ran0tests after4m43s setup
+and proves nothing; no grammar/backend/dependency change remains. An obsolete
+compiler build was stopped. Do not rerun that experiment.
+
+Native close testing found a stale parent tab click could reselect a removed path
+and blank the editor. selectFile rejects closed paths; native close now restores
+main.tsrx without another click. Full model suite11/11PASS6.47ms execution,
+120,031.5ms setup; final affected workspace5/5PASS4.23ms,93,605.9ms setup includes
+stale selection. Six document cases retained unchanged after that affected rerun.
+
+Shared Node.each uses distinct nonempty document IDs as stable row identities;
+unlabelled rows keep positional semantics. Mixed insertion cannot consume keyed
+rows. Duplicate IDs fail before old ownership is discarded. Dynamic class values
+do not reset row identity. Final new regression1/1PASS0.00s,3.53s setup; existing
+list control1/1PASS0.01s on the final test binary. Tree forwards text size to its
+ListItem and uses ellipsis. Shortcut/Ticker are now absolute/zero-size: ordinary
+empty flex children had created80px trailing action-row gaps. Commands also sit
+outside the visual action row.
+
+Workspace/all-target checkPASS1m31s and separate backend compiler/LSP all-target
+checkPASS1m20s before the final mixed-row/native-only repair. Warnings are confined
+to unchanged test helpers, including unused/dead code and fetch_update deprecation.
+Final repaired Node code passes its test/control; compiler buildPASS2m16s.
+Candidate CLI SHA25642db19302c4f46245262af62e6e2351c6044e6d4cb7e22957d323b1171a88519.
+Final native buildPASS (session28153 terminal); retained dev6863/supervisor41326 still
+uses ebf586f9 renderer. Installed CLI/LSP remain prior accepted images. No live
+supervisor restart is authorized for this new renderer yet.
+
+CUA phase “Verified compact editor shell controls” completed: header/no app label,
+rail divider, left-aligned exact workspace filename filtering/open, tab close
+restoration, collapse/full editor width, actual divider resize (image coordinates
+588,500 to788,500), settings font actions and separate Cmd+=/Cmd+- editor zoom.
+Right action inset is corrected. Light appearance, Tree zoom/ellipsis, native state
+across moves, drag reorder, full AX/IME and layout persistence are still unverified.
+Live appPID76014 after normal source rebuild (child changes on source saves).
+
+Owner explicitly requires configurable locale/i18n, appearance/text sizes, navigation
+and activity-rail sides, terminal and AI-chat docking. These are required scope
+in the plan/AGENTS, not implemented by the current temporary settings menu. Defaults:
+rail/tree left, terminal in a resizable bottom panel under editor, chat right.
+Use existing std:ui locale, Dock/Resizable/Settings and one validated persisted
+settings model. Do not make one-off side toggles or empty panel placeholders.
+
+A one-time supervisor restart question is pending through request_user_input_async;
+no reply yet. Keep session6863 running. Prior goal turn made progress with local
+checkpoint acbcb8ed and removal of the redundant language lookup.
+
+Lifecycle checkpoint79c37206 suppresses unchanged dev replacements before editable buffers.
+Running now owns its complete native cache input identity and, on macOS, the
+generated Info.plist bytes. A successful rebuild retains the child only when
+those exact inputs match and try_wait confirms it is alive. This uses full input
+bytes, not the hash directory name. Exited children still relaunch on the next
+edit; failed builds retain the previous app. Candidate directories drop on the
+unchanged path. No arbitrary memory cap or source/watch exclusion was added.
+
+Identity unit passes1/1 in0.00s. Initial Cargo invocation accidentally used an
+unqualified exact filter and ran0tests (2m12s build); direct final test-binary
+invocation used the qualified path and ran the intended witness. Extended existing
+process lifecycle test covers test-only edit/PID retention, actual dependency edit,
+failed build, exited-child relaunch and interrupt cleanup. Its final run passes1/1 in3.22s execution,12.51s build/setup
+(session48574 terminal). Backend compiler/LSP all-target compilation passes1m19s
+(session27102 terminal); warnings remain in unchanged host test helpers and
+reference controls (unused/dead code and existing fetch_update deprecation). No
+changed dev/cache source warning. Repository CLI SHA256 is now
+074d80e8c16f828d279e44d00c9df866d3baf8b1fd3e7c8f61693ac7b7a5b426.
+Installed consumers and the retained supervisor still use prior images. No live supervisor replacement yet. Settings/save work is
+still pending; this fixes a concrete draft-loss prerequisite.
+
+Current section: std:fs.writeTextFileAtomic for storage, recovery and settings.
+Implemented bindings/registry/bridge, separately selected native module, full
+IntelliSense docs/example, public std:testing suite, compiler selection/type
+witnesses and affected LSP rows/help. Native implementation stages in the same
+directory, syncs file and parent, rejects symlinks/read-only/multiple links, checks
+optional exact baseline plus observed inode/metadata revisions, and preserves
+macOS metadata with fcopyfile (explicit ownership/mode verification). New files
+are private. committed-not-durable means bytes changed despite Err and must be
+handled explicitly by Studio. A final rename can still race an uncooperative
+external writer; no cross-process CAS or filesystem sandbox claim. Windows is
+explicitly unsupported before mutation for now; that remains required later.
+Other Unix metadata preservation is mode-only; Linux product delivery is deferred.
+
+No app save/edit action is enabled yet. Recovery and model integration must handle
+commit/durability outcomes before editable buffers. Atomic backend host witnesses
+cover deterministic staging failure, concurrent changed/identical-byte replaced
+files, post-commit sync failure, ACL/xattr/mode/owner preservation and unsafe
+paths. Public suite covers UTF-8/BOM/CRLF, chunk boundaries, first-class/optional
+calls, empty files, missing parents/targets and conflicts. Whole formatter changed
+one fixture and one doc snippet, with token/idempotence/fingerprint checks passing.
+Atomic backend host units pass3/3 in0.03s (3m17s setup, session20685 terminal).
+Selected runtime extraction/isolation witness passes1/1 in0.23s (2m14s setup,
+session29648 terminal); type-rejection/ownership control passes1/1 in0.02s
+(0.95s setup, session30780 terminal). Initial public generated suites fail before
+execution: new operation was missing from the closed audited native-effect list,
+so direct/first-class calls propagated an opaque contract into std:testing. Added
+the audited Result-only contract without weakening unknown-call rejection, plus
+a mutating-observer exclusion witness. Original direct/alias cases stay intact.
+Corrected effect/audit witness passes1/1 in0.01s (3m16s setup, session79824
+terminal); mutating-observer exclusion control passes1/1 in0.00s on that binary.
+The repaired public suite and generated example compile together in one program.
+Their disposable working directory was /private/tmp/tsrust-atomic-suite.FrjHFj
+(now removed). No native execution pass is claimed for either failed source check. Corrected public suite and actual
+catalog example pass3/3 together in63.47ms execution,1,561.3ms build/setup
+(session45044 terminal). CLI/LSP pair build passes2m28s (session20261 terminal).
+Affected completion matrix2rows x4modes passes2.37s; filesystem consistency8cases
+x4modes including new callable hover/parameter help passes8.78s; catalog contract
+help passes1/1 in0.03s. No new receiver type; existing FsError agreement is retained.
+
+Final macOS metadata strengthening verifies copied BSD flags before publication;
+extended host witness also proves UF_HIDDEN retention and fresh modification time.
+That affected witness passes1/1 in0.03s (3m17s setup, session85303 terminal). Other
+backend/effect/editor witnesses are unchanged and retained. Final pair rebuild
+passes2m27s (session35496 terminal). Final public native suite
+and generated example pass3/3 in45.58ms execution,1,874.7ms build/setup (session57991
+terminal). Backend compiler/LSP all-target compilation passes1m18s (session52425
+terminal), with only unchanged host helper/reference unused/dead code, HTTP import
+and fetch_update deprecation warnings. No changed source warning. Installed CLI
+and LSP were atomically refreshed and SHA256-verified independently:
+CLI f5e31107f51340b11e6a512c63a50551cfb858e6e43a1861ab88612a001fa292;
+LSP 6d55dbde9e6143242f57132cb8067c9cf6f47169b1a2b00cc9f67c38a011963a.
+Repository overrides point at the same new target/debug pair. VS Code is running
+but has an empty editor and no tsrust-lsp process; CUA “Verified no active editor
+documents” completed. No server restart or open-document diagnostic claim is needed.
+Studio supervisor41326/app76014/session6863 remains running on the earlier image;
+latest live poll confirms the PTY remains active. Pending restart question has no
+reply. No Studio restart occurred. Removed the disposable generated catalog tree,
+empty private test cwd, obsolete pre-flags native application cache variant, and
+171,774,617B of obsolete test executables/dependency files. Kept current tools,
+final compiler unit binary, current native cache and the pending Studio preview.
+The macOS storage primitive has focused acceptance. The live Studio app does not
+yet use it; Studio saving/recovery remain unaccepted until their integration and
+workflow checks pass. This is not full application or Windows acceptance.
+
+Next: implement Studio
+save/recovery orchestration in .tsr using exact disk baselines, explicit handling
+of committed-not-durable, and retained drafts before enabling editable buffers.
+While the restart reply is pending, continue that independent storage/settings
+work. Load the renderer only if the pending restart is approved, and verify
+Tree zoom/ellipsis and editor state during close/reorder. Keep6863 running until
+replacement is authorized. Continue validated settings/i18n/docking alongside
+safe file-save/recovery primitives and revisioned editing. Test-only replacement
+is fixed in79c37206 but awaits loading into the retained supervisor. Draft
+preservation across legitimate dev reloads remains required before editable buffers. Full saving, recovery, PTY and chat are
+not implemented; model guards alone do not prove file safety.
+Native checked resource/streaming/session ownership, held-out AI work,
+all editor workflows, cloud/external agents and Windows remain required. Use the
+actual apps/studio package for visible acceptance as implementation proceeds.
+
+### Balanced global search spacing — 2026-11-10 (accepted with this checkpoint)
+
+Owner reported the close button overlapping the command panel. Final change is a
+single p-4 View around the gallery search Command in src/search.tsrx, adding equal
+padding on all four sides while retaining Kit's original rounded border/background.
+The first local attempt used top-only padding and bordered=false; owner rejected
+the squared panel and unbalanced gap, so both were corrected before checkpoint.
+No renderer, public API, search ranking, generated files or new dependencies change.
+
+Final native gallery build passes. Whole formatter0files/snippets/fingerprints and
+diff check pass. Native CUA verifies equal inset on all four sides, rounded panel,
+and unobstructed Close in light/dark themes with the exact Custom input menu query.
+Close works and reopening retains the query. Prior intermediate Enter navigation
+also opened Input; handlers are unchanged. Independent app bundle atomically
+refreshed and one preview left open on dark search for inspection. Completion:
+Verified balanced rounded search spacing. No CUA phase open. No broad regression,
+web interaction, performance measurement, push or remote validation for this
+reversible gallery-only layout change.
+
+### Composed gallery examples — 2026-11-10 (accepted with this checkpoint)
+
+Owner requested readable shadcn-style example composition instead of giant title,
+description and escaped code props. `src/example.tsrx` now exports ExampleTitle,
+ExampleDescription, ExampleTabs, ExamplePreview and ExampleCode alongside Example.
+Example only lays out children. ExampleTabs reuses native Tabs/Tab/TabsContent
+selection and retained child nodes; no separate signal/context API. ExampleCode
+accepts string children, displays Markdown source and owns the Copy control inside
+the code panel. Guide live examples use the same tabs/preview/code composition;
+the duplicate LiveExample implementation is removed. The gallery generator emits
+readable text children and multiline template children, escaping backslashes,
+backticks and interpolation openers without changing displayed source. Regenerated
+all71 component pages/358 examples and guide live blocks; README explains sources.
+
+Completed: full gallery project check; both generators --check; whole formatter
+0files/snippets/fingerprints; diff check; bounded Table authoring regression1/1,
+18.75s execution,4m40 build/setup including shared-target queue. Existing composition
+cases8/8 passed,2.69ms entire initial run. New native composition witness initially
+asserted Markdown source was in document HTML, but Kit props are omitted by that
+serializer; a labeled rerun confirmed precisely this unsupported assertion. The
+source assertions were removed; headings, preview and Copy remain asserted. Final
+focused rerun1/1 passed,1.51ms execution; setup/build3m40 including queue. This
+preserves the existing8/8 evidence instead of rerunning unchanged cases. Independent
+Node VM evaluation of all373 generated template literals matches original spec/guide
+code byte for byte. Native gallery build passed; regular app-bundle executable was
+atomically replaced, old preview terminated, and one independent preview reopened.
+Desktop proof: Basic Accordion initially expands first item; second item remains
+expanded after Code -> Preview switching. Code panel shows highlighted source;
+Copy pastes the complete expected18-line BasicAccordion function into a disposable
+unsaved Code buffer, which was closed without saving. Gallery left on Accordion
+preview. CUA completion: Verified composed example tabs and copy. No CUA phase open.
+VS Code full rescan settled
+idle and CUA reports no workspace problems. No compiler/runtime/LSP source changes,
+new dependency, performance measurement, push or remote validation. Web interaction
+was not rerun for this example-only refactor; native/structural proof is above.
+Pruned four superseded failed-test cache entries; kept final native cache entries,
+shared runtime build support, shared Cargo dependencies and independent app bundle.
+
+### Native text, parser and packaging finish — 2026-11-10 (accepted with this checkpoint)
+
+Latest accepted checkpoints: fd803813 resolves all16 reported workspace diagnostics;
+2bdecffe preserves native behavior for utility-styled buttons. This final family:
+- Native Text uses GPUI StyledText/TextRun through a small RenderOnce adapter, reading
+  inherited window text style at layout. Nested weight/italic/family/colors/solid
+  background/underline/strike stay in one paragraph; explicit no-underline and sans
+  reset work. Root hover inheritance remains native. Text/UTF8/order preservation
+  is asserted against the existing content_text control. Rich Kit button labels use
+  the same runs while retaining an explicit accessible name; ordinary labels keep
+  the upstream label path. Unstyled href links reuse native Kit Button link behavior
+  with no padding/automatic height, replacing the mouse-only upstream Link Div.
+- Inline validation now admits italic/strike/solid background. The first desktop
+  attempt exited because the old shared whitelist rejected those paint effects;
+  corrected at that common boundary. A regression accepts the paint combination
+  and still rejects padding, positioning and flex layout inside text.
+- The new legitimate guide found raw TSRX punctuation after nested tags being read
+  as expression operators. Parser::is now excludes JsxText like String/template
+  tokens. Native punctuation suite proves exact café/punctuation/as/in/satisfies
+  output and normal postfix .length outside markup. Malformed Unicode/nested markup
+  returns valid diagnostics without panicking in the targeted project witness.
+- Styling guide/live examples and hover help now state actual GPUI limits instead
+  of claiming universal parity. Nested links inside Text still lack separate native
+  hit/focus targets; use a Link beside Text. One paragraph has one size/line height.
+  Tracking/balance/transforms/underline offsets/animations/pointer-selection helpers/
+  field-sizing/justify-self/auto-row-min/table CSS/nonuniform tracks/placeholder and
+  inline interaction-state mappings remain explicit limitations. No full CSS or
+  upstream Kit parity claim; prior catalog count1939/2147,20 incomplete is unchanged.
+- Added isolated KeyboardLinks guide example using createLocation. Native AX exposes
+  Open local docs as Link; Shift+Tab focus ring then Enter changes /links/home to
+  /links/docs, keeping the gallery on the same page and opening no other window.
+
+Acceptance (build/setup separate from test execution):
+- UI lib137/137,.04s; build2m37s including queue. Prior136 also passed before whitelist
+  repair. Compiler ui_authoring6/6,19.35s, including bounded Table replay and malformed
+  markup checks; LSP TSRX6/6,1.88s. Public punctuation suite2/2,.27ms execution,
+  compiled together once. Fixture initially had an unrelated optional-array join
+  inference error; required children fits every call and preserves exact oracles.
+- Both consumers rebuilt2m36s for the final runtime validation; parser build2m49s.
+  Native gallery build passes. Workspace/all-target1m49s and separate backend/all-
+  target3m18s pass for current Rust changes. Existing shared test-helper warnings
+  remain reviewed/unchanged; no warning suppression or new runtime timing/SQLite.
+- Desktop visual proof: bold café rose -> sky on signal update; italic monospace
+  code on amber; no-underline clears only its span; sans resets within mono; bold
+  rich button name is exposed. Stock Kit buttons intentionally avoid mouse focus:
+  after Shift+Tab gives keyboard focus, Space activates the rich button and changes
+  sky -> rose. Earlier styled Base Button click/Space/Enter/disabled proof remains.
+- Live editor final server25028 is idle (CPU0%,RSS2160KiB at33m15 after restart) and
+  CUA reports no problems. Old accessible panic message is historical: Tsrust log
+  has three project/link.rs:431 failures before the4:20:05PM restart, none after.
+  This replaces the earlier transient-cleared count. Last CUA completions: Verified
+  native inline text styling; Verified native link keyboard navigation; Verified
+  final editor diagnostics cleared. No CUA phase open.
+- Whole formatter after new fixture/code:0 files/snippets/fingerprints on final
+  pass; both generators and diff passed. This record is included in the local source checkpoint.
+
+Unsigned public packaging smoke passed: a real release build made ZIP, DMG and
+SHA256SUMS. Both hashes verified, archive plist/app.json confirm CLI name Override
+Smoke, config id dev.tsrust.smoke/version1.2.3/repo example/smoke; CLI cwd-relative
+artifacts overrides configured-artifacts (absent). No signing/notarization or
+publication. hdiutil only emitted a host deprecation notice. Temporary smoke tree
+and raw verification data/logs are disposable; do not retain as canonical records.
+
+Cleanup: removed unused target/debug/incremental4.1GB and secondary gpui-stable3.1GB
+only after verifying no active consumers. Keep original target/gpui-starter file.
+Current independent bundle /private/tmp/Tsrust Gallery.app is a regular copied
+executable, parent launchd; one preview process43849 at last inventory. Final prose-only guide rebuild97964 passed; bundle atomically replaced and
+reopened on Styling and Themes, inline example visible. CUA completion: Left the
+updated gallery open. Official native cache cleanup removed25 artifacts/8,574,772,414 bytes; temp cleanup completed
+before the local checkpoint; preserve this regular bundle and compiler/LSP bins.
+Do not restart unchanged heavy matrices or push. All latest logs are /tmp/tsrust-ui-*.log and are disposable after this record.
+
+### Workspace diagnostics repair — 2026-11-10 (accepted fd803813)
+
+Owner screenshot disproved the transient cleared Problems pane:16 diagnostics
+remained after the prior scan. All are now resolved without diagnostic exclusions.
+- Generated both private server SDKs with their checked API configs; resolved the
+  rust-owned-words binding lock offline. API-contract README includes its server
+  config. Ignored generated SDKs are local setup; the dependency lock is retained.
+- Updated dock/gallery/gallery2/gallery3 to current ListItem, string-valued Tabs,
+  InputGroup composition, InputChangeEvent.target.value, Combobox array events and
+  JSON DataTable rows. List retains initial Drafts selection and reports the row.
+  All four check. Realtime SSE handler is async, allowing its runtime-driven
+  producer start; it checks, along with both server witnesses and words/main.
+- Removed unreachable return after an unconditional returning loop from both
+  scoped composition counterparts; explicitly reviewed/updated source hashes.
+  Prior timing remains historical; this run makes no new performance claim.
+- Loop completion now retains newly stored native-view loans on fallthrough and
+  continue without propagating back-edge moves. Recursive view record stores use
+  their already-checked whole-body carrier rather than unrelated nullable join
+  restrictions. All four failing byte-view workloads check and execute correctly.
+- Extended exact-path/exact-byte bundled_entry mapping to split UI facade parts
+  and logging; observes all parts before trusting either UI fragment. LSP uses it
+  only for entries, never imports. Unsaved changes revoke the mapping. All three
+  compiler-owned files check. No private-binding access granted to user modules.
+
+Acceptance:
+- New public loop-provenance suite2/2 native tests,0.74ms execution. Whole formatter
+  proves stable formatted source. All30 std_bytes host tests pass (49.84s), including
+  owner-mutation/short-lifetime rejection on fallthrough and continue and existing
+  native runtime family at both required profiles. Host build3m49s incl queue.
+- Five affected workloads pass native and Node-after-tsc correctness-only checks,
+  five input cases each, matching independent oracles. All12 Node source/oracle
+  registration guards pass (57.21s). No timing or SQLite row added.
+- Full compiler lib1541 passed,0 failed,8 existing ignores,147.55s execution;
+  build7m43s incl queue. LSP lib26/26 (.16s); first run25/26 failed only because the
+  new fixture used a forbidden absolute import; corrected to a relative import.
+- LSP workspace6/6 (.01s) and workspace_scan8/8 (.02s) pass; build4m49s incl queue. Both workspace/all-target and backend/all-target
+  compile. Existing unused members in shared runtime/test controls still warn;
+  all warning sources outside the removed unused native_threads host_id helper
+  are unchanged. No blanket warning suppression. Affected native_threads check
+  rerun passes with no warnings (59.69s incl queue).
+- Both consumers rebuilt7m09s incl queue. Live VS Code restarted onto PID89997;
+  after the entire scan settled (CPU0%, RSS6048KiB at10m39s after restart), Problems
+  pane reports no problems. CUA completion: Verified a clean workspace scan.
+  This is settled verification, replacing the earlier transient cleared count.
+- Whole formatter0 files/snippets/fingerprints; both UI generators and diff pass.
+
+Styled Button WIP also has a successful native gallery build. Bundle atomically
+replaced and reopened, retaining launchd ownership. Desktop proof: click count1;
+click+Space+Enter count4; disabled click remains4 with50% opacity; re-enable,Tab,
+Enter reaches5 with native focus ring. Ordinary buttons now expose button roles
+rather than implicit toggles. CUA does not expose the final page controls in its
+AX dump; manual keyboard/visual proof plus upstream Base Button role contract,
+not a claim of a separate AX audit. Last native CUA completion: Verified native
+styled button behavior. Current preview remains open on that example, enabled,
+count5. Styled changes are validated for their separate source checkpoint. Remaining
+style work: audit unsupported native utility effects and inline text styling; do
+not claim browser CSS parity. No CUA phase open now.
+
+Remaining sessions: unsigned local macOS package smoke94211 (release GPUI build).
+Other checks completed; collect remaining sessions as needed. Logs in /tmp are
+disposable after this evidence. Package source/config in /tmp/tsrust-package-smoke;
+config defaults id dev.tsrust.smoke/version1.2.3/repo example/smoke, CLI overrides
+name to Override Smoke and output to cwd-relative artifacts. No signing/publishing.
+
+### Gallery LSP index repair — 2026-11-10 (accepted8a3c74a8)
+
+Latest accepted local source da2b668b contains Questionnaire/Settings/custom menus;
+84c64577 contains Speech. Current LSP changes validated as follows:
+- Real header gallery index/request: 1/1,8.33s total including90.43ms header setup.
+- Real checked gallery index/request: 1/1,58.29s harness including48.198s compiler
+  graph setup. Header build5.996s, facts77ms, application1.686s, references2.179s.
+  Both retain Route hover and its bundled source definition. Index deadline stays
+  30s after setup; compiler setup has a separate180s watchdog. No benchmark claim.
+- LSP lib25/25 (.19s), checker agreement5/5 (295.91s), typing matrix3/3 (226.18s),
+  editor consistency30/30 (84.17s), intelligence331 relevant tests passed, TSRX6/6
+  (.77s). 400 ordinary editor tests plus the two real gallery tests pass.
+- The native backend catalog also ran because the initial skip named its helper,
+  not its #[test] wrapper backend_catalog_examples_match_native_output. It failed
+  at HttpApp.listen under the known sandbox restriction (147.38s harness including
+  native builds). This runtime-only gate is unaffected by LSP changes. Every
+  catalog key outside std:ui is byte-equivalent as parsed JSON to 4e766220, whose
+  retained full native catalog passed (including resumed HttpApp onward1492.20s).
+  Reuse that completed evidence; do not rerun the unchanged heavy runtime catalog.
+- Both consumers rebuilt successfully (15.64s); whole formatter zero files/snippets/
+  fingerprints, generators and diff check pass. No new runtime measurements or CI.
+
+Root causes/fixes: importing each prop field rescanned duplicate record owners and
+remapped every record in its dependency. Unique record names are collected once,
+field identifiers once, and only referenced types are remapped/imported. Successful
+nominal declaration spellings cache per SourceIndex revision/source/span; generic
+arguments still resolve separately. Declaration/field/native docs borrow one raw
+catalog entry instead of cloning the module. Generic receiver substitution stays
+in builtins_for. Project source indices consume the project graph's checked facts
+and skip redundant standalone compiler checks; ordinary single-file construction
+is unchanged. Checked fields apply only in their owning module, with foreign
+shapes imported on demand; copying all std:ui fields into each importer cost~4.3s
+per module. Structural fields filter by their own source; named inherited fields
+follow the owner declaration. No artificial size caps or weaker type coverage.
+
+Evidence: old live server84953 stayed99% CPU >30min, footprint/peak809MB. Its sample
+was ProjectIndex.checked -> apply_project_checked_facts -> project_type_spelling.
+Separate samples localized duplicate standalone checks and per-page record imports.
+New tests/gallery_index.rs use the actual84-module gallery once per case, separate
+setup from a bounded index/request phase, and run no separate native programs.
+
+Live refresh: VS Code restarted onto the repaired binary (new PID20030, old84953
+exited). Input.onValidate shows current behavioral help and No Problems. Inspection
+keystrokes briefly typed into a selected attribute; all were undone, unsaved flag
+cleared, original onValidate restored and git diff confirms Input.tsrx unchanged.
+Last CUA completion: Verified refreshed TSRX editor help. A subsequent live sample
+of20030 showed workspace_scan.Cache.check_cancellable -> compiler analysis, not
+indexing. Whole-workspace compiler checking is still active; do not claim idle or
+use transient No Problems as proof it settled. Monitor later; no CUA phase open.
+
+Owner noticed two previews. Confirmed processes: original53885 ./target/gpui-starter
+(~7h old) and current1217 /private/tmp/Tsrust Gallery.app/Contents/MacOS/gpui-starter.
+Explained that the original was preserved and Tsrust Gallery has current changes.
+Do not close the original unless the owner asks. Current gallery remains open on
+Input, custom menu field='Hello from the menu', independently of Claude.
+
+Next: finish formatter/local checkpoint for this LSP section, then native classed
+Button keyboard/focus/a11y and native text/style limits, unsigned packaging smoke,
+final all-target checks and obsolete output cleanup. Existing full compiler/LSP
+milestones remain evidence. No push/release/agent work authorized or needed.
+Research: gpui-base-0.9.0/src/button.rs provides an unstyled native Button that owns
+keyboard/focus/a11y and implements Styled, InteractiveElement and
+StatefulInteractiveElement. Use it for the raw-Div classed core Button path, sharing
+utility rule application with styled_rules. Styled Kit Button installs its own
+hover and debug-asserts if a second one is supplied. Preserve href/labels/ids,
+disabled/tab settings, press handlers and rich children. kit_button also calls
+.toggled(false) even when toggled is absent: guard on presence to restore normal
+button accessibility semantics. No UI renderer source changes for this next slice
+yet. Microphone capture, other OS targets and signing remain unverified; full Kit
+coverage remains1939/2147,20 types incomplete, not complete parity.
+
+### Forms desktop acceptance — 2026-11-10
+
+Speech checkpoint 84c64577 is local. Current Questionnaire/Settings section adds
+QuestionInput freeform answers, initial selected choices, live disabled questions
+and choices, root sizes/shortcuts/default question and committed/full submit events.
+Legacy onSubmit remains a map to choice arrays; detailed events include confirmed
+freeform and status for enabled questions only. Schema rejects duplicates, multiple
+single-answer defaults and multiple freeform inputs. Definition changes are mount
+semantics, not a live schema editor.
+
+Settings adds sizing, sidebar width/range, initial page/group, group variants,
+sidebar/search-header and page-heading styles, page icons/default expansion,
+search keywords, vertical rows, dirty/onReset, title suffix and group footer slots.
+Reset reuses SettingField.on_reset, retaining weak root references. Arbitrary child
+controls keep their own size/disabled/value semantics. Input custom menus compose
+existing ContextMenu around contextMenu=false and reuse controlInput actions.
+225 wrappers, 71 pages/357 examples. Mapping 1939/2147 across 185 Kit types;
+20 types remain incomplete. This is substantial coverage, not full API parity.
+
+Acceptance: UI runtime 136/136, 0.04s (build/setup 4.33s); compiler/LSP binary
+build passed 3m06s; TSRX LSP 6/6, 3.26s. Public suites compiled together once:
+10/10, 2.65ms. The initial new fixture incorrectly created state inside its test
+callback; moved construction into a normal component per the state-owner contract,
+then reran the affected public suites. Native gallery build passed and its detached
+bundle was atomically replaced/reopened. Whole formatter: one public fixture first,
+then zero files/snippets/fingerprints on the final run; generators and diff clean.
+
+Desktop proof: Free default survives size/disabled updates; Team becomes enabled,
+selection advances to the input; blank required text blocks submit with an error;
+confirmed notes plus Team appear in detailed JSON. Settings startup keyword keeps
+its row visible; dirty Switch exposes Reset All, reset restores on; numeric 14 ->15
+then reset ->14. Icon, sidebar, footer/title slots and vertical layout render.
+Speech unsupported/disabled buttons expose disabled accessibility states, and size
+changes render without capture. Actual recording/OS permissions remain unverified.
+Input right-click shows custom actions; Replace with greeting updates the same field.
+Gallery currently open on Input, custom menu field='Hello from the menu'.
+
+New issue found while verifying the editor: existing server PID84953 remained busy
+for >22min. Bounded one-second sample /tmp/tsrust-ui-forms-lsp.sample shows
+ProjectIndex::checked -> apply_project_checked_facts -> project_type_spelling,
+not compiler diagnostics. Physical footprint 809MB, peak809MB; RSS15MB reflects
+compression, not real footprint. No memory-limit workaround applied. Inspect
+project_generic_intelligence.rs Named spelling (repeated LineIndex/symbol searches)
+and global fact application before refreshing server; transient No Problems did
+not prove settled analysis. Fix this narrow performance defect next, with a real
+gallery project witness and existing editor agreement tests. Preserve all form
+passes; no need to repeat native acceptance for an LSP-only repair. Still pending:
+classed-button accessibility/native text/style limits, unsigned packaging smoke,
+final all-target checks and obsolete output cleanup. No pushes/agents/measurements.
+
+### Forms continuation — 2026-11-10 (native acceptance pending)
+
+Local accepted input/replay checkpoint is f5673ab7. Current Speech section adds
+size/disabled/showWhenUnsupported, mount-time systemFallback/stopTimeout, waveform
+bars/liquid and started/cancelled callbacks. systemFallback=false takes precedence
+over an explicit locale, leaving no system recognizer. stopTimeout rejects invalid
+durations before mount and finishes with the transcript so far (onFinal), matching
+Kit; it does not emit Cancelled. New gallery availability preview never starts
+capture. Button/Waveform public builder coverage is complete; SpeechState input
+injection and cancellation remain unmapped. No full API parity claim.
+
+Compiler/LSP binary build passed 2m59s. UI runtime 134/134 passed, 0.04s; LSP TSRX
+6/6 passed, 2.98s. Public navigation+composition compiled together once: 9/9 passed,
+2.34ms execution. Whole formatter changed one public suite, zero snippets and
+fingerprints; generators/diff check pass. Native compilation and visual proof are
+pending and will be batched with Questionnaire/Settings form changes. Microphone
+capture, OS permissions and platform recognition remain unverified; do not start
+recording or accept permission prompts silently. Keep detached gallery open.
+
+Next implementation: Questionnaire freeform inputs, sizes, defaults/disabled,
+shortcut/navigation/events and practical Settings sizing/sidebar/layout/reset/slots;
+custom input menu via existing ContextMenu composition. Then rebuild both consumers,
+focused checks, one native gallery build and desktop proof before acceptance.
+
+### Latest accepted section — 2026-11-10
+
+This entry supersedes the older in-progress input/Table notes below. Local WIP
+945a0ae9 contains synchronous Input/Textarea/CodeEditor paste decisions, validation,
+NumberInput stepping and source grammar aliases. The follow-up avoids replaying
+successfully checked diagnostic roots; the real borrowed Table regression still
+reports ownership and independent return errors within its unchanged 20s bound.
+The shared replay observer uses Arc/Mutex to preserve Program's Send property.
+Unsized NumberInput now retains a usable 240px input width; constrained controls
+fill their allocated width.
+
+Acceptance: compiler/LSP binaries rebuilt (2m45s); compiler recovery groups 37/37
+passed (14 recovery, 6 suppression, 10 project, 2 terminal, 5 UI authoring), with
+execution 0.85/0.06/2.71/0.04/23.82s respectively and setup/build 2m44s. LSP TSRX
+6/6 passed in 3.00s. Public navigation+composition suites compiled together once:
+8/8 passed, 2.31ms execution. Runtime UI 133 active passes across retained runs.
+Final native gallery build passed, bundle replaced atomically and reopened.
+Whole formatter changed zero files/snippets/fingerprints; generators and diff check
+passed. Earlier full compiler/LSP milestone passes remain valid evidence; final
+all-target compilation after the shared Program change remains pending.
+
+Desktop proof: validation rejects the ninth character, permits clearing; paste
+reports text/path/image-count metadata; consume=true prevents insertion while
+updating callback state. Custom stepping gives .5 -> .6 -> .5 -> 0 (clamped).
+The final stepper width displays its value. Diff highlights .tsr keywords/strings.
+VS Code restarted onto the refreshed server and shows No Problems. The separately
+accepted hover fence alias fix remains installed and visually verified. Gallery
+is running independently of Claude. No pushes, remote checks or measurements.
+
+Next: finish practical Questionnaire/Settings/Speech options and custom input menu
+composition, native style/accessibility gaps, unsigned packaging archive smoke,
+final affected checks and output cleanup. Full upstream API parity remains open;
+1843/2147 methods mapped, 27 types incomplete. Do not describe this as complete.
+
+### Owner review continuation — 2026-11-10 (in progress)
+
+Active request: resolve all seven gallery/platform comments and finish missing Kit
+coverage, including the outstanding language defects. Starting source is local
+9df57e42 plus Claude's interrupted TSRX wording and Tailwind edits; preserve them.
+One writer, no push/release authorized. The latest owner test rule excludes build
+and setup from the under-one-hour execution budget, superseding older workflow prose.
+
+Checklist (acceptance pending unless explicitly recorded):
+- TSRX wording throughout documentation, diagnostics and editor help.
+- Tailwind utilities/arbitrary and reactive values; actual native rendering,
+  dark/responsive/data selectors, interaction states and documented native limits.
+- Route/path parameters/state, independent per-window state and shared opt-in state.
+- Packaging highlighting and checked config defaults with CLI precedence.
+- Status-bar edges, sidebar badge clipping, compact title-bar controls.
+- Missing Diff, Editor, Questionnaire, Settings, Speech, AppMenuBar and Plot tooltip;
+  input callbacks and honest full public-method coverage.
+- String-field ownership ergonomics, pathological Table checking, early invalid
+  control nesting diagnostics and lazy reactive-list captures.
+- Affected suites, whole-project format/token/idempotence proof, gallery interaction
+  verification, local accepted checkpoints and output cleanup.
+
+Starter reopened independently of Claude as /tmp/Tsrust Gallery.app. Its executable
+is a regular copy of examples/gpui-starter/target/gpui-starter; replace it atomically
+when rebuilding, then close/reopen this app through CUA. Do not stop the owner's
+pre-existing ./target/gpui-starter process (historically PID 53885). Desktop launch
+works; sandbox-only launch fails in NSPasteboard. Gallery remains open for inspection.
+
+Source checkpoints: 36149186 preserves Claude's interrupted edits and the first
+review batch; ccfae53b accepts navigation/window ownership and diagnostic recovery;
+e981bfbc preserves the compiled application-menu/editor section. All are local.
+Current uncommitted section is reactive Kit classes and native viewport/styles.
+
+Implemented since the WIP:
+- createLocation(initial) gives each window an independent navigation/history owner;
+  routeParam(path, pattern, name) and Route support named nonempty path segments.
+  Node captures navigation context; command queues and asynchronous replies retain
+  their originating window through weak owner identities. Closing a window discards
+  only its pending commands. Full builtin help and navigation guide examples added.
+- Signal writes advance a runtime revision; affected roots refresh bindings and
+  request other windows to redraw. Signal/Computed function parameters now enter
+  the existing reactive lowering scope without becoming additional state owners.
+  Manual testing found the missing parameter lowering; the rebuilt gallery now
+  passes shared-state redraw in both directions (child increments to 1; owner to 2).
+- Editor fallback imports documented bundled source functions without waiting for
+  project analysis, preserves their true source definition and parameter docs, and
+  respects lexical shadowing. No native identity is fabricated.
+- Known built-in controls/blocks inside TSRX Text/Button now reject before an
+  unvisited route runs, using linked component identity. Custom components retain
+  runtime validation; Button render replacements retain their own child contract.
+- Table checker slowdown reproduced with the real gallery page after removing
+  string clones: cloned source checked in 1.997s; borrowed version exceeded a 20s
+  stop and was killed. A one-second sample showed semantic diagnostic replay
+  repeatedly starting in bundled wrappers, not unbounded allocation (about 63 MB
+  RSS at 4s). Recovery now prioritizes user-source functions only, while bundled
+  bodies still check through real calls. The bounded CLI regression preserves both
+  the Table ownership error and an unrelated boolean return error.
+
+Completed acceptance (build/setup recorded separately from execution):
+- UI runtime 122/122, 0.04s execution; setup/build 47.62s including lock wait.
+- Packaging config defaults/CLI precedence/path/error unit test passed (<0.01s;
+  original build/setup 2m19s). Actual archive/signing flow not rerun.
+- Compiler diagnostic recovery 14/14, 0.58s; UI authoring 3/3, 15.27s including
+  real bounded CLI diagnostics. Build/setup 2m33s. These cover static nesting,
+  received Signal getters and the real Table replay regression.
+- Latest affected LSP run: lib 25/25, editor_consistency 30/30 (29.74s), TSRX
+  editor 5/5 (0.04s). Build/setup 4m05s including shared-target contention. The
+  focused routing transport test also passed independently (9.85s).
+- Public navigation suite 2/2 on formatted source: 1.284ms total execution,
+  individual cases 0.019/1.038ms. Build/setup 146802.7ms (including shared-target
+  contention), checking 749.2ms and native/link 145719.3ms. No performance claim.
+- Native gallery build passed with the navigation/window/revision renderer.
+  The further build including received Signal lowering also passed.
+- Earlier workspace/all-target and separate backend/all-target checks passed,
+  with existing test-helper/deprecation warnings. Fresh workspace/all-target
+  checking passed after the language repairs (1m38s). The separate backend-only
+  all-target check also passed (2m07s); only existing warnings observed.
+- Whole-project formatter: last run 0 files, 0 snippets, 0 fingerprints changed.
+  Gallery generation --check passes. Final diff check and checkpoint pending.
+
+Manual CUA proof: two independent counter windows started at zero/first route;
+first increment/navigation did not affect second. Notification and close targeted
+second only. Surviving first retained state, back worked, and closing it left the
+main route intact. Compact title controls and shell highlighting visually verified.
+Five component pages added (Diff, Editor, Questionnaire, Settings, Speech); currently
+69 component pages / 349 examples plus generated guide pages. These pages are not
+full API acceptance. Coverage remains 1686/2147; do not inflate covers metadata.
+
+Latest public navigation+composition suite: 3/3 across two files compiled once;
+1.448ms total execution, cases 0.058/0.927/0.126ms. Build/setup 232836.8ms
+(checking 1684.2ms, native/link 230575.0ms including target contention). The
+composition witness exercises a custom LazyChildren factory containing a reactive
+list inside DialogContent and passes native compilation and assertions. Current
+DialogContent is eager Child[]; the old lazy-part wording is stale. No remaining
+deferred-capture failure reproduced with this direct witness. Latest CUA confirms
+shared-window redraw in both directions and child close preserving owner state.
+Main gallery is raised on Navigation and Windows, shared count 2, no child windows.
+
+Next: checkpoint the accepted routing/editor/language-recovery section, then
+finish Tailwind native gaps (animation,
+text transform/tracking/balancing, nonuniform grid, interaction effect composition,
+viewport sizing), missing Kit APIs and remaining ownership ergonomics. Strings use
+Cow<'static,str>; retaining dynamically owned row text requires an owned copy, while
+literal Cow clones retain static borrows. Do not hide an allocation with a global
+string representation redesign. Original string clones remain an accepted interim
+workaround, not a claimed ergonomic fix. No benchmark measurements or remote runs.
+
+### Application menu and editor section — 2026-11-10 (implementation, acceptance pending)
+
+Accepted routing/editor-recovery checkpoint is ccfae53b (local, not pushed), after
+36149186 WIP. Working tree now implements the next section:
+- AppMenuBar/AppMenu typed wrappers and a new Application Menu gallery page.
+  macOS uses GPUI system menus; Windows/Linux use Kit AppMenuBar. Existing
+  MenuItem/Submenu entries dispatch named Shortcut commands in the active window;
+  checked/disabled changes reload menus. Popup-only custom rows/onSelect/href
+  reject explicitly. Hiding the owning bar clears installed menus. Native state
+  and renderer mappings are not compiled yet; no desktop acceptance claimed.
+- CodeEditor supports uncontrolled defaultValue without resetting edits on render,
+  controlled value, editing/display/folding/indent/search props, focus/blur/submit
+  events and shared controlInput/readInput routing by id. Snapshots add language.
+  Native shared input macros are reused; no second editor implementation.
+- Editor byte counts/tab sizes validate at the Kit prop/binding boundary, including
+  binding refresh. Added public composition test for invalid counts. Gallery adds
+  a local-buffer editor with focus/select/find/read actions and a line-number toggle.
+- Catalog/typed wrappers generated; currently 216 components and gallery 70 pages,
+  351 examples. Covers entries record real newly wired methods only; substantial
+  Editor low-level APIs and all remaining Diff/Settings/etc gaps stay open.
+- Before-project-analysis property completion needed real bundled parameter record
+  fields. The source-function fallback now shares one immutable source index per
+  bundled module, rather than synthesizing signatures without their records. Uses
+  existing import_declaration field/definition/help logic. Regression added for
+  CodeEditor alias completion, behavioral hover and source definition. Not yet run.
+
+Section validation so far:
+- UI runtime 122/122 passed (0.04s execution, build/setup 2.36s).
+- Public navigation+composition suite 4/4 passed, two files compiled once. Total
+  execution 1.369ms; cases 0.056/0.890/0.110/0.039ms. Build/setup 189567.5ms,
+  check 1974.1ms, native/link 186963.6ms including shared-target contention.
+- TSRX editor integration 6/6 passed (0.97s, cold immutable bundled index included;
+  build/setup 2m13s). Full affected LSP lib 25/25 (0.13s) and
+  editor_consistency 30/30 (29.35s) also passed; build/setup 1m04s.
+- Generator checks pass. Whole-project formatter changed 0 files/snippets/
+  fingerprints. API coverage implementation count is 1776/2147, not accepted yet.
+- Native gallery build initially failed at two bridges: private GlobalState module
+  access, and EditorMode does not implement inline-token insertion. Corrected the
+  import to the public GlobalState re-export and specialized the shared input
+  command macro's token operation; CodeEditor reports an explicit UI error for
+  insertToken, as now documented. Other shared input commands still use one macro.
+  Compiler rebuild passed (2m22s); the repaired native gallery retry passed.
+- Workspace/all-target check passed (1m30s); separate backend/all-target check
+  passed (2m53s). Both report the existing test/runtime-helper warning set.
+- Local WIP checkpoint e981bfbc preserves this section. Gallery restarted successfully
+  from its independent app bundle. macOS File > Save example updates the page;
+  View > Show guides toggles state; Disable Save reloads its menu definition.
+  Navigating to Editor removes the installed File/View menus.
+- Desktop Editor proof: replacing the local buffer with `fn edited() { println!("Kept"); }`
+  and toggling line numbers preserves the text. Read editor state reports language
+  rust and current selection/buffer. Find fn opens the search field with fn.
+  Disabled-menu click rejection/checkmark appearance still needs direct verification;
+  AX omits their disabled/checked attributes. Other desktop platforms remain pending.
+
+### Reactive Kit styles and native utility rendering — 2026-11-10 (in progress)
+
+Working tree adds ReactiveValue<string> className to all generated Kit wrappers,
+using existing nativeBindClass. Style refresh retains control identity, local state,
+handlers and weak ownership. Kit disabled props now participate in disabled utility
+styles. Guide/gallery and public composition witnesses cover the new behavior.
+Native viewport lengths use actual window viewport pixels; Kit internal raw class
+surfaces now filter dark/responsive predicates and custom spacing. New runtime
+witnesses cover viewport resolution and reactive Kit lifecycle (124/124 passed,
+0.04s; compiler rebuild passed 2m28s).
+
+Further renderer fixes: stable identities for styled surfaces and active styles;
+preserve axis overflow and scoped SVG color; compose hover/focus ring/shadow/gradient
+inputs over base styles (including clearing a ring without losing the base shadow).
+Shared interaction-merge regression passes. Text child bridge moves an owned Cow
+string with into_owned rather than copying it again; explicit borrowed-field clones
+still remain.
+
+Validation so far:
+- UI runtime 125/125, 0.04s execution; setup/build 1m52s including compiler lock.
+- Generated helper initially failed compound negative-guard narrowing. Replaced it
+  with separate undefined/string branches; compiler rebuild passed 2m31s.
+- Public navigation+composition suites 5/5, one runner for both files. Execution
+  1.64ms; setup/build 18474.9ms (check 2066.2ms, emit 334.7ms, backend 54.2ms,
+  native/link 15721.7ms). Reactive Kit className and disabled state pass.
+- LSP lib 25/25 (0.14s), editor_consistency 30/30 (29.93s), TSRX editor 6/6
+  (0.99s), setup/build 9.30s. Whole-project formatting changed zero files/snippets/
+  fingerprints; both generators --check and diff --check pass.
+- Native gallery build passed. Bundle replaced atomically and reopened. Desktop
+  proof: Tag padding/background/foreground change live; Switch disabled opacity
+  paints, and its local on value survives disabling/re-enabling and class changes.
+  The runner used its default example-local shared native Cargo target rather
+  than the repository target because CARGO_TARGET_DIR was omitted. Future native
+  and host invocations must explicitly set CARGO_TARGET_DIR to the repository
+  target. Prune redundant example-local native outputs after active builds end.
+  Example target is about 45GB, repository target about 156GB (logical du sizes).
+
+This section was checkpointed as caa69ba1. Continue text-transform/unsupported-native diagnostics, Plot
+tooltip, Diff and remaining Kit API families plus string-field ergonomics. Full Kit
+API coverage and ownership ergonomics remain open. No performance measurements,
+remote runs, pushes or releases. Gallery is open on Styling and Themes, live styles off and Switch locally on.
+
+### Table diagnostic repair follow-up — 2026-11-10 (active)
+
+Input callback native gallery build PASSED (/tmp/tsrust-ui-input-native.log); it
+has not yet been copied/reopened or manually verified. Final validation script
+12403 stopped at ui_authoring: 4/5 passed, only the existing bounded Table error
+case hit 20s. Preserve the four passes. LSP/public steps did not run. Compiler
+final rebuild passed 2m48s; added alias unit 1/1 passed (<0.01s), so runtime total
+133 active tests passes across retained runs. No source implementation changed
+after that build; only the public suite gained nonfinite NumberInput/negative step
+witnesses (suite step still unrun).
+
+A standalone exact Table-shaped retry (14406, CLI 69870) also exceeded 20s and
+was killed, so this is not merely parallel-test contention. One-second sample
+/tmp/tsrust-ui-table-check.sample shows semantic_diagnostics::collect ->
+analyze_recursive_with_proofs; RSS is bounded, but replay is real. Current
+semantic_diagnostics.rs still has the earlier bundled-root exclusion. Investigate
+which skipped diagnostic/root triggers recursive inference/repeated replay; do
+not raise the timeout or weaken ownership/independent-error coverage. Preserve the
+valid native callback build while repairing this compiler regression. A WIP
+checkpoint of callbacks is appropriate before changing diagnostic recovery; whole
+formatter currently session 22925, log /tmp/tsrust-ui-input-wip-format.log.
+Next: finish format/generator checks and local WIP checkpoint, add bounded/failure
+trace if needed, diagnose/fix replay, rerun only this failing test and affected
+compiler recovery tests, resume unrun LSP/public checks. Then manual Input/paste/
+step/Diff grammar checks and accepted checkpoint. No pushes/agents.
+
+### Synchronous input decisions — 2026-11-10 (implementation, checks running)
+
+Latest local source checkpoint 701a74dc accepts expanded Diff display/review slots.
+Current dirty section adds reusable synchronous predicates to Kit, Input.onValidate,
+Input/Textarea/CodeEditor.onPaste (borrowed JSON {text,paths,imageCount}, no image
+bytes), NumberInput.onValidate and stepBy(value, increment). Callbacks preserve
+errors; paste consumes when true and redraws after the decision. Pure validation
+keeps Kit's empty-string allowance. Numeric steps reject negative/nonfinite output.
+Weak captured command contexts target the originating window without retaining it;
+Node predicates enter their weak navigation context. NumberInput no longer resets
+custom stepping during sync and numeric options retain f64 precision. Boundary
+validation rejects nonfinite NumberInput options and negative fixed steps.
+
+Also fixes source grammar aliases: tsr/tsrust -> typescript, tsrx -> tsx in editor
+and Diff. Diff selects the native highlighting feature even without an editor or
+Markdown. New parse_diff helper sets per-file grammar overrides without changing
+file names. Full API help, generated wrappers and LSP fields updated; gallery adds
+Input validation/paste and value-dependent NumberInput stepping (71 pages /354
+examples). Mapping 1843/2147, 27 types incomplete; no completeness claim.
+
+Completed: runtime 132/132 in 0.04s before the last source-alias unit was added;
+includes callback errors, released state, invalid steps and weak window-context
+routing. Input and NumberInput actual gallery pages check with zero diagnostics.
+Initial compiler rebuild passed 2m49s. Current final coherent validation script
+session 12403, set -e, explicit CARGO_INCREMENTAL=0/CARGO_BUILD_JOBS=1/repo target:
+1. compiler CLI rebuild /tmp/tsrust-ui-input-build-final.log;
+2. added alias unit /tmp/tsrust-ui-input-alias.log;
+3. ui_authoring 5 tests /tmp/tsrust-ui-input-authoring.log;
+4. LSP TSRX 6 tests /tmp/tsrust-ui-input-lsp.log;
+5. public navigation+composition suites compiled once (8 tests expected),
+   /tmp/tsrust-ui-input-public.log.
+At last observation step 1 was still compiling. Preserve terminal passes; on a
+failure repair/rerun affected checks and resume unrun steps. Native GPUI gallery
+compile + desktop proof still required for the new macros/closures, then formatter,
+generator checks, checkpoint. Do not modify source mid-build absent a real repair.
+
+Original broad catalog retry 62502 FINISHED PASS: 1/1, 1492.20s harness including
+many native setup/builds. Earlier 477 LSP tests and remaining 61 targets passed;
+full LSP milestone is now complete. Compiler library milestone remains 1541 active
+pass, 8 unchanged ignored; workspace/backend checks passed. No need to restart
+these full passes for wrapper-only edits. Current callback bridge needs its focused
+checks and native proof. Retain owner test execution <1h, setup/build separately.
+
+Gallery /tmp/Tsrust Gallery.app currently runs 701a74dc, on Diff split/details off;
+code in the working tree is newer and not desktop-accepted yet. VS Code hover fix
+00a44a19 remains installed/loaded. Do not close the owner's other starter process.
+Next after acceptance: custom input menus/practical Questionnaire, Settings, Speech
+options; native style/accessibility limits; packaging archive smoke and cleanup.
+Research already localized: native menu builder is gpui_base input/base/native.rs,
+NativeMenu.menu/menu_with_disabled/separator; existing TsrustCommand + Shortcut can
+reuse application commands. Questionnaire base supports optional InputState answers,
+disabled/default-selected choices, sizes and change/completed events; existing
+wrapper only choices. Settings builder options and Speech size/disabled/fallback/
+timeout/waveform are still mostly absent. Read pinned sources before implementing.
+
+### Diff display and review surface — 2026-11-10 (accepted: 701a74dc)
+
+Hover fence fix checkpoint is 00a44a19, local/not pushed. The installed local
+VS Code extension is 0.2.1 with tsr/tsrx aliases, visually verified and loaded.
+Current dirty section expands Diff with line numbers, syntax toggle, file headers,
+hover/highlight/marker/wrapping choices, context/expansion/inline comparison limits,
+line click/hover and add-annotation JSON callbacks, plus DiffAnnotation,
+DiffDecoration, DiffGutterMarker and DiffHeader child slots. Counts and positions
+validate at the runtime boundary. Malformed patches now report parse errors instead
+of silently becoming empty. Retained state setters skip unchanged values. Header
+slots repeat read-only content per file; per-file interactive headers require
+separate Diff nodes. State command/query APIs remain incomplete. No full Kit claim.
+
+222 wrappers, 71 component pages / 352 examples, mapping 1837/2147, 27 incomplete
+types. Native compile passed and the detached gallery binary was atomically
+updated/reopened. UI count boundary test 1/1 passes (<0.01s; setup/build 1m16s),
+LSP TSRX 6/6 passes (2.31s execution). Compiler rebuild passed (2m50s final); native
+gallery build passed. One-second sample during the build showed Command::output
+waiting on native Cargo, not semantic replay; remove disposable sample later.
+Whole-project formatter 0 files/snippets/fingerprints; both generators --check and
+diff --check pass. Original broad catalog retry remains active (62502) and has
+progressed into UI example native compilation; retain earlier passes below.
+
+Desktop proof: annotation text, custom header suffix and translucent range render;
+marker click reports Comment opened. Switching split/unified preserves annotation
+and state. Line numbers/change backgrounds turn off while explicit range coloring
+remains. Clicking modified source line 2 reports {path:greeting.tsr,side:modified,
+line:2}; annotation button reports inclusive modified 2..2. Gallery left on Diff,
+split on, details off. Pinned Kit does not infer .tsr syntax highlighting in Diff;
+source grammar alias registration should be fixed in the next native/editor slice.
+
+Next: input synchronous callbacks and remaining practical Questionnaire/Settings/
+Speech options, native style/accessibility gaps and packaging smoke; then final
+acceptance/cleanup. Borrowed row string clone is still the accepted interim
+workaround; dynamically retained strings need an owned copy with current Cow
+storage. No new performance claims or remote validation.
+
+### Hover example highlighting — 2026-11-10 (accepted)
+
+Plot/live-array/menu section checkpoint is 4e766220 (local, not pushed).
+Owner reported plain white TSRX hover examples. Builtin docs already carry fenced
+Markdown; VS Code only registered the tsrust language name. Added tsr/tsrx aliases
+to that same grammar; no documentation rewrite or alternate syntax engine.
+Extension compile, executable tests 4/4 and real TextMate tests 2/2 pass (0.29s
+combined test execution). Packaged local 0.2.1 VSIX, installed over local 0.2.0,
+reloaded the owner's VS Code window, and visually verified Route hover: keywords,
+component tags, attributes and strings are colored. Source and open documents
+unchanged. Gallery remains open independently. The broad catalog retry below is
+still running and making progress through stdlib native example compilation.
+
+### Plot tooltip and live array props — 2026-11-10 (final checks running)
+
+Latest accepted checkpoint is caa69ba1 (reactive Kit classes/native viewport styles),
+local and not pushed. Current working section is uncommitted. /tmp/Tsrust Gallery.app
+now runs this working section’s successfully compiled binary, copied atomically
+and reopened through CUA. It is on Plot, offset 1, glide off. One writer; no pushes,
+releases or performance measurements.
+
+Implementation:
+- PlotTooltip/PlotTooltipRow use GPUI Kit’s Plot hover state and overlay: title,
+  automatic colored series rows, explicit plain/colored/value-colored rows,
+  crosshairs, dots, glide/fade, progress, gap and appearance. Marks add label.
+  Missing trailing series values are omitted; no hover work without a tooltip.
+- Plot labels use internal JSON to preserve empty/newline labels. Mark values
+  reject NaN/infinity; stroke/gap reject invalid geometry. Painting and hover
+  share normalization for finite extreme ranges and grouped-bar coordinates.
+- All generated Kit array props accept ReactiveValue<array>, retain evaluated
+  getters for state expressions, and keep the constant path for plain arrays.
+  Live props admit scalar arrays/nested arrays; Computed/useProp stay scalar-only;
+  record/resource arrays still reject. Ordinary array bindings remain invariant.
+- Array literal/Array.of/spread contexts retain a sole array alternative through
+  union injection, without selecting an ambiguous array or tuple alternative.
+- Native empty callback captures use their concrete uninhabited type, without
+  unused generic bounds. Empty/live callback calls share the existing receiver
+  logic, preserving captured mutable reborrows. Public regressions exercise both.
+- Fixed disabled native application menus: GPUI macOS validation follows action
+  availability. Disabled entries/labels now use NoAction, matching the pinned
+  upstream set_menus example; parent disabled state propagates to children.
+- Complete generated help and a new Plot gallery page. 218 wrappers; 71 component
+  pages / 352 examples. Mapping count 1787/2147, 28 types incomplete. Tooltip’s two
+  upstream type names share one inventory row; no full Kit coverage claim.
+
+Completed validation (setup/build separate from observed execution):
+- UI runtime 128/128, 0.05s; setup/build 41.18s including lock wait.
+- Public navigation+composition, one shared runner: 7/7 in 1.80ms. Individual
+  cases ~0.09/0.91/0.15/0.06/0.04/0.05/0.01ms. Build/setup 77226.2ms
+  (check 2478.8ms, emit 422.5ms, backend 66.2ms, native/link 73896.7ms).
+- Full compiler library: 1541 active tests passed; 8 unchanged opt-ins ignored.
+  Initial sandbox run: 1511 pass, 30 permissions failures, 256.22s harness time;
+  only those 30 rerun with local listener/filesystem permissions, all pass 0.57s.
+  Cargo setup/build 6m13s. No code failure in the library run.
+- CLI 49/49: 48 passed in the initial 3.22s run; the one outdated Plot wrapper
+  export expectation was extended for the two new item wrappers and passes 0.01s.
+- ui_authoring 4/4, 21.96s (setup/build 18.79s), including the new array contexts,
+  invariant existing arrays, record/computed rejection and original bounded Table
+  diagnostic recovery. Earlier accepted routing/nesting/shared-signal witnesses retained.
+- Whole-project formatter last changed one public-suite file; zero documentation
+  snippets/fingerprints. Both generators --check and diff --check passed.
+- Native gallery build passed using the explicit repository Cargo target.
+- Desktop CUA: disabled Save is marked disabled, stays inert and preserves its
+  original message; re-enabling restores Save. Navigating away clears File/View.
+  Plot Mon shows Requests 2/Completed 1/Updates 0; Wed shows Requests 4 only plus
+  Updates 0. Update data changes Tue to Requests 8/Completed 7/Updates 1 and Mon
+  Requests 3. Disabling glide preserves values. Crosshairs, colored hover dots,
+  plain row/value color and tooltip edge flipping visibly work.
+
+Running / pending:
+- Full LSP initial run: 477 tests passed before the intelligence target’s catalog
+  example test hit sandbox-blocked HttpApp.listen. Other 331 intelligence tests
+  passed. Preserve these passes. Setup/build 49.31s. Resume only that catalog
+  test with TSRUST_CATALOG_RESUME_FROM=HttpApp and local permissions: session
+  62502, /tmp/tsrust-ui-lsp-catalog-retry.log.
+- Remaining 61 LSP targets after intelligence: all passed (exit 0), including
+  the expanded TSRX completion/hover/definition regression.
+  /tmp/tsrust-ui-lsp-remaining.log. Initial tail run accidentally lacked resource
+  variables; stopped its own Cargo/children before any tests ran and restarted
+  with explicit limits. Prune the aborted target/debug/incremental outputs later.
+- Workspace/all-target and separate backend/all-target checks both passed;
+  /tmp/tsrust-ui-workspace-check.log and /tmp/tsrust-ui-backend-check.log.
+- Whole-project format rerun: 0 files/snippets/fingerprints; both generators
+  --check and git diff --check passed. Catalog retry still running at checkpoint.
+  Do not rerun already passed groups unless changed inputs justify it.
+
+Resource hygiene: official cache clean removed 2092 root artifacts (105371441251
+bytes) and 99 example artifacts (49078328212 bytes), preserving running private
+copies and the repository Cargo target. Every future command explicitly sets
+CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target,
+CARGO_INCREMENTAL=0 and CARGO_BUILD_JOBS=1. Raw /tmp logs are disposable: summarize
+terminal results here, then delete them before handoff; no imported raw receipts.
+
+Next: collect the three running sessions, repair only affected failures and
+checkpoint this section. Continue Diff, remaining input/editor callbacks,
+Questionnaire/Settings/Speech APIs, borrowed string-field ergonomics, and feasible
+native typography/interaction styling. Native style gaps remain: text case,
+tracking/balance, animations, nonuniform grids and flattened nested text; do not
+claim full Tailwind rendering. Core classed-button focus/keyboard behavior also
+needs review: raw classed Div buttons may lack a focus handle. No changes for
+those gaps have been implemented yet. Other desktop platforms/web and signing/
+archive packaging are unverified. Keep the gallery available for owner inspection.
+
+### Gallery as Kit docs mirror; API coverage tracking — 2026-11-09
+
+Owner: the starter must mirror GPUI Kit's component docs (left nav, every Kit
+example live with copyable .tsrx) and every component must cover GPUI Kit's
+full public API, not just the docs. `tools/kit-coverage.py` inventories public
+methods from the locked gpui-component/gpui-base sources (184 types, 1765
+methods; gpui-component types shadow same-named gpui-base primitives) against
+kit.json `covers`; `--check` gates completeness. Done so far: Button (all but
+tooltip_with_action, which needs a std:ui actions/keybinding model shared with
+menus), ButtonGroup (Button children), Toggle, ToggleGroup. Gallery: generated
+from examples/gpui-starter/pages.spec by tools/generate-ui-gallery.py; custom
+title bar (renderer now honors titlebar: 'custom'), tabbed Preview/Code cards,
+Gruvbox theme set via new registerThemes/useTheme; std:ui utility colors now
+follow the active Kit theme. Icons: all 1830 Kit catalog names (IconName is a
+string; a literal union stalled rustc); programs naming non-default icons
+register AllAssets. Display batch: Badge, Tag, Label, Kbd (command prop reads
+Shortcut bindings), Separator, Skeleton, Spinner, Progress/ProgressCircle,
+Avatar/AvatarGroup, Alert, Icon (svg, rotate), ShimmerText, Empty/EmptyMedia,
+GroupBox/GroupBoxFooter, Clipboard and Link (disabled) are complete, with 15
+gallery pages. Forms batch: Checkbox, Switch, Radio (also standalone),
+RadioGroup and Rating are complete with 4 pages (coverage 374/1765). Styled Kit components in STYLED_KIT take
+className as their own style refinement instead of a wrapper. Fixed: every
+ScrollArea shared one scroll offset (Kit keys Scrollable state by call site
+without an explicit id); gallery routes now each own a scroll area; sidebar
+groups merge across the spec; utilities gained rounded-md and rounded-full.
+Owner review fixes (examples must work when exercised and read like shadcn):
+Kit text content comes from children (`<Label>Name <Text variant="secondary">
+(optional)</Text></Label>`, `<Checkbox>Accept</Checkbox>`, `<MenuItem>Copy
+</MenuItem>`); kit.json `textChildren` mirrors kit.rs `text_children_prop`
+(generate-ui-kit.py checks agreement). Text gained `variant`. Alert takes
+AlertTitle/AlertDescription; Empty takes EmptyHeader/EmptyTitle/
+EmptyDescription/EmptyContent and EmptyMedia variant="icon". Form controls are
+uncontrolled when `checked`/`value`/`selected` is unset (defaultChecked,
+defaultValue, defaultSelected set the start). DropdownMenu is a plain button
+that opens the menu; onClick or split makes a split button. Remote image src
+loads through a reqwest HTTP client (gpui-http feature, selected for Avatar and
+Image). Empty Avatar names no longer hide the placeholder icon. Colors: utilities
+and Kit color props accept the Tailwind 4.1 palette (gamut-mapped to sRGB hex)
+and arbitrary [#hex]/[oklch(...)] values. Every gallery page was exercised
+(menus, split button, context menu, checkboxes, switches, toggles, ratings,
+alerts). Inputs batch: Input and Textarea map GPUI Kit's Input/Textarea and
+InputState/TextareaState (masking, masks, number formatting, regex pattern,
+search and replace, rows/auto-grow, wrapping, tabs, focus/blur/submit events,
+inline tokens); imperative calls go through controlInput(id, action) and
+readInput(id, onRead) over the command queue. InputGroup is now shadcn-style
+composition (Input/Textarea child plus InputGroupAddon > InputGroupText /
+InputGroupButton, which opens a menu from MenuItem children); NumberInput gained
+min/max/step (default 1), affix icons, sizes and defaultValue. Four new pages,
+all exercised. tools/kit-coverage.py now matches braces lexically (its
+test-module stripper had swallowed real impls) and maps InputBaseState aliases,
+so the honest total is 701/2147. Still open on inputs: validate/step_by and
+on_paste need synchronous TS callbacks; custom context menus and custom token
+rendering. Select and Combobox are complete with pages: options are SelectItem
+children (value + text label, disabled) optionally in SelectGroup with a
+SelectLabel, or the items prop; SelectEmpty supplies empty-list text (Kit renders
+it from &App, so text only); Combobox adds multiple, query, checkIcon and
+ComboboxTrigger / ComboboxFooter slots. Language limits found: reactive props
+must be scalars (array props are static; Combobox value is newline-separated)
+and owned callbacks are callable only as parameters (kitOnList adapts
+string[] events). Tabs (Tab/TabsContent by value,
+prefix/suffix/empty-space slots, folder variant, menu), Tooltip (keys, command,
+TooltipContent), Popover (open/defaultOpen/onOpenChange, anchor, offset, arrow,
+right-click, overlayClosable) and Accordion (value/defaultValue,
+AccordionTrigger/AccordionContent, styles) are complete with pages; the
+Example card now uses value-based Tabs. Coverage 856/2147 (Tooltip's open
+methods belong to the Plot chart tooltip). Owner direction 2026-11-09: finish a
+page for every component, then add semantic search to the gallery, rebuild
+Getting Started from the real docs as the single source of truth, and add an
+animated showcase page (use the design-taste-frontend skill). Since then: Dialog and Sheet
+(Trigger/Content/Header/Title/Description/Footer/Close parts), AlertDialog,
+notify options and events, HoverCard, Collapsible, Breadcrumb, Pagination,
+Stepper, DescriptionList, Slider, OTP, TimeField, Calendar, DatePicker,
+ColorPicker, and a layout batch (Sidebar with nested items and item menus,
+SidebarToggleButton, Resizable, Toolbar groups, Form/Field, StatusBar,
+TitleBar close, WindowBorder) — each with exercised pages. Utilities gained
+justify-end/around/evenly and items-end/baseline. Coverage 1300/2147. Remaining
+types: Table/DataTable/List/Tree states, Command, Carousel, Diff, Editor,
+Attachment, Bubble/Message/MessageScroller, Marker, Questionnaire, Settings,
+Speech, AppMenuBar, the Plot tooltip, and input sync callbacks (validate,
+onPaste, step_by) plus custom input context menus and token rendering. Then
+semantic search, Getting Started from real docs, and the showcase page.
+Next batch (2026-11-10): Command palette (groups, separators, shortcuts,
+header/footer/empty, controlled query, loading, highlight vs select events),
+Carousel (CarouselContent/CarouselItem/Previous/Next/Pagination, loop,
+vertical, controlled `selected`), composable Table (header/body/footer/caption,
+per-part className, align, colSpan, size) and List over a custom ListDelegate
+(ListItem rows render their own children, ListItemSuffix, ListSeparator,
+ListGroup sections, ListEmpty, search, confirmed/check icon, controlled
+selection/query, hasMore/onLoadMore) and Tree (TreeItem text children,
+icons, defaultExpanded, disabled, controlled `selected` that reveals hidden
+items, onExpand/onCollapse, TreeMenu right-click menu with onContextMenu). TSRX
+children accept spread arrays (`{...rows.map((row) => <Row />)}`); a spread
+that reads component state lowers to a reactive list slot (runtime
+`Node::each`: transparent like branches, rebuilt on refresh, rows whose shape
+is unchanged keep their identity and state; `visible_children` flattens
+slots). Spec sections may define interfaces before the example function, and
+generate-ui-gallery.py rejects unknown icon names (a typo rendered nothing).
+Fixed while exercising: List section headers overlapped rows (Kit measures
+header height from section 0), disabled List rows still reported, confirmed
+rows drew no check (Kit needs an explicit check icon), Tree `selected` could not
+reveal collapsed items, Carousel parts ignored className, Sidebar header/footer
+`collapsed` needed Kit's Collapsible trait in scope. Open defect: in the gallery Table page, consuming a
+read-only callback parameter's string field twice (`name={person.name}` and
+`{person.name}` inside nested cells) made `tsrust check` run for minutes in
+analyze_recursive_with_proofs instead of reporting callback-access; small
+repros report the error in under a second, so the pages use clone() for now.
+Reading a string field in a consuming position should copy rather than
+require clone().
+Second batch (2026-11-10): DataTable is composable (DataTableColumn children
+with key/width/min/max/sortable/defaultSort/align/fixed/resizable/movable/
+selectable/padding; rows as JSON; row, column or cell selection; sort, column
+move/resize, right-click and DataTableMenu, empty/loading/load-more events;
+controlled selectedRow). Chat family: Message parts (MessageAvatar/Header/
+Content/Footer, MessageGroup, a Bubble inside follows the message side),
+Bubble variants/BubbleContent/BubbleReactions/BubbleGroup, Marker parts,
+loading style and shimmer, Attachment parts (AttachmentMedia src or icon,
+AttachmentContent/Title/Description, AttachmentActions, tooltip, vertical,
+size), AttachmentGroup edge fade, MessageScroller styling props. New Ticker
+component (GPUI timer, onTick(frame), interval, running) drives animation.
+Command gained CommandItem `value` and a Command-level onSelect(value).
+Gallery: Getting Started pages are generated from docs/guides/ui/*.md and
+docs/guides/tooling/desktop-apps.md (single source; ```tsx live Name``` blocks
+compile into the gallery as live examples); title-bar search (⌘K) ranks
+pages and examples over a generated index with concept synonyms ("modal"
+finds Dialog); an animated Showcase page (60 Hz plot, 160-cell wave field,
+spectrum, orbits, auto carousel). Fixes: `tsrust new --ui` template did not
+compile against the current API (now checked by a scaffold test); runtime UI
+errors exited silently with status 0 because GPUI exits inside its run loop
+(now printed as Uncaught and exit 1); Plot colors ignored palette names;
+arbitrary pixel offsets (left-[150px]) are supported. Coverage 1686/2147.
+Remaining Kit types: Diff, Editor, Questionnaire, Settings, Speech,
+AppMenuBar, Plot tooltip, SearchableListItemElement, input sync callbacks.
+Known limits found: Kbd/controls inside Text or Button are rejected only at
+runtime; lazy part children (DialogContent) cannot own a reactive list's
+captures, so build rows in a helper function.
+
+### Plot and Speech — 2026-11-09
+
+Owner: wrap the whole GPUI surface (low-level included) and trust GPUI behavior;
+verify our wrapper. Plot/PlotLine/PlotArea/PlotBars paint through GPUI Kit's plot
+primitives (shared band x and linear y scale, axis labels, dashed grid).
+SpeechButton (locale, waveform; onPartial/onFinal/onError) uses SpeechState with
+SystemRecognizer; `gpui-speech` (Kit `speech`: cpal and platform audio, 36 locked
+additions) is selected only when a program uses it, alongside `gpui-highlight`.
+`tsrust package` writes NSMicrophoneUsageDescription and
+NSSpeechRecognitionUsageDescription. `ui add` follows multi-item children lists.
+Plot rendering checked; dictation itself not exercised. 112 components.
+
+### GPUI highlighting, charts and setup — 2026-11-09
+
+`gpui-highlight` feature (GPUI Kit syntect: +syntect, two-face, fancy-regex,
+bincode, bit-set 0.8, bit-vec 0.8; existing pins unchanged) is selected only when
+the emitted program uses CodeEditor (runtime marker); CodeEditor and Markdown code
+blocks highlight. Chart gains radar, candlestick (open/high/low/close) and sankey
+(links). Fixed: `setup --dependencies` fetched only the backend set, so fresh
+machines could not build std:ui apps offline; it now fetches the GPUI set too, and
+the starter's dev.sh runs setup first. Windows/Linux GPUI
+runs remain unverified here. Tests: the test harness now defaults
+CARGO_TARGET_DIR (repository target) and TSRUST_SOURCE_PACK_DIR (Cargo home packs)
+like CI; four shared_sources tests had failed on every local run without them.
+
+### GPUI CLI, Questionnaire, Svg and doc rewrite — 2026-11-09
+
+Owner: no signing or published release; users run the source. The starter has
+`tsrust.config.json` and `examples/gpui-starter/dev.sh` (builds this checkout's
+compiler, then `tsrust dev`: ~20 s rebuild and restart on save; cold first build
+~3 min). `tsrust new <name> --ui` copies the starter; `tsrust ui list|add` writes
+editable wrappers (component plus its item components) into `src/components/`;
+all 75 wrappers check and a generated project builds. Questionnaire/Question/
+QuestionChoice (submit emits JSON answers) verified by input. Fixed: Svg/Path drew
+nothing on GPUI; they now render as SVG images with resolved theme colors
+(`Node::svg_markup`). Route, Link, navigate, back and CopyButton verified on GPUI.
+The 27 std:ui IntelliSense entries and api.tsr comments no longer describe the
+removed browser/Vello renderer; every std:ui entry now has a tsrx example, and
+the LSP catalog tests accept tsrx fences and optional console examples for std:ui
+(they had failed since std:ui returned). The runtime_build dependency-reuse test
+only asserts a shared Cargo target when CARGO_TARGET_DIR is set (it failed on
+every local run without it). 107 components.
+
+### GPUI services, packaging, updates and starter — 2026-11-09
+
+Branch `codex/gpui-ui`. Since the catalog pass: application services (notify,
+window control, clipboard, file dialogs, extra windows, appearance, theme),
+Icon/Animate, font utilities, i18n (`t`/`tWith`/`translate`/`translateWith`,
+JSON catalogs, plurals, live locale switching, Kit strings follow), catalog
+batch 2 (Markdown … ButtonGroup) and batch 3 (InputGroup, Diff, Marker,
+Attachment/AttachmentGroup, DataTable, Settings pages/groups/items,
+MessageScroller) and Dock/DockPanel (drag, stack and split verified): 104 generated components. Kit 0.9.0 has no GridLayout (docs
+are ahead of the pinned crate). Not wrapped: Plot
+(closure drawing API; Chart covers data plots), Questionnaire, Speech (needs the
+`speech` feature and cpal), and code highlighting (syntect/tree-sitter features).
+`tsrust package` (cli/app_package_cli.rs) builds release, writes the `.app`
+(icon, Info.plist, app.json), optional codesign/notarytool/stapler, zip and DMG on
+macOS, zip on Windows, tar.gz and .deb on Linux, plus SHA256SUMS. The std:ui
+updater (tsrust-ui/src/update.rs; `appInfo`, `checkForUpdates`, `installUpdate`,
+`relaunch`) reads GitHub `releases/latest` through system curl, verifies the
+archive digest and macOS signing team, and swaps in place. Check verified against
+the live API; install path verified up to the missing asset; packaged `.app`
+launches. `examples/gpui-starter` is the demo (seven pages, en/fr, dark mode,
+About & updates), verified with real input. Guide: docs/guides/tooling/desktop-apps.md.
+Open: Developer ID identity and notarytool profile choice, a release repository
+for the demo (owner approval before publishing), end-to-end install from a real
+release, the remaining components above, CLI `new --ui`/`ui add`, and rewriting
+the restored std:ui docs.
+
+### GPUI Kit catalog pass — 2026-11-09
+
+Branch `codex/gpui-ui`. One spec (`stdlib/ui/kit.json`, 62 components including
+items and slots) drives `tools/generate-ui-kit.py`, which writes the typed `std:ui`
+wrappers (`kit.tsr`, formatted) and their IntelliSense entries; `--check` guards
+drift. The runtime has one generic Kit node (string props, live props through
+text bindings, typed events `kitOn{,Boolean,Int,Number,Void}`); `gpui_kit.rs`
+holds the renderer arms by pattern (display, controlled, Kit state entities,
+overlays through a weak root handle, item containers). Compiler fixes found on the
+way: literal and literal-union template interpolation (`TsrTemplateText`), and
+text bindings over literal-typed getters. Native cache readers now wait up to 2 s
+for short copies by other processes (dev reuse flake under parallel tests).
+`experiments/gpui-kit-admission/tsrust/gallery.tsrx` renders every component
+(screenshots checked). Lib 1541/47/25/6, tsrust-ui 108.
+Open: event and overlay interaction proof (headless GPUI test platform, since OS
+input injection is unavailable while the owner uses the machine); GPUI rendering
+for Svg/Path, Link navigation, CopyButton and visibility callbacks; rewrite 27
+restored std:ui docs that still describe the removed browser/Vello renderer; then
+CLI (`new --ui`, `ui add/list`) and the starter.
+
+### GPUI bridge: first slice — 2026-11-09
+
+Branch `codex/gpui-ui`. Owner chose to restore the checked reactive lowering
+(signals, computed, text bindings, branches, controlled inputs) rather than add
+generic typed native callbacks first. `std:ui` keeps its name; `crates/tsrust-ui`
+again holds the Node model, utility classes and theme without any renderer;
+`stdlib/ui/gpui.rs` renders Nodes through one GPUI root view (Kit Button/Input
+for unclassed controls, utility classes mapped to GPUI styles). `gpui-dependencies/`
+is the backend manifest plus GPUI Kit with its own lock (892 packages, backend pins
+unchanged). UI window programs keep the OS main thread. `check` hides bundled
+`std:` contracts. Slice in `experiments/gpui-kit-admission/tsrust` matches the
+Rust reference; startup 244 ms vs 253 ms median. Lib 1541/47/25/6, tsrust-ui 107.
+Next: Textarea, focus/active states, Kit theme sync, then CLI (`new --ui`,
+`ui add/list`), catalog and starter. Raise CI job timeouts to ~3 h with the next
+CI change (owner: only test execution has the one-hour limit).
+
+### Rust 1.99.1 pin — 2026-11-09
+
+Branch `codex/gpui-ui`. The backend and repository pin move from 1.96.1 to exactly
+1.99.1 (GPUI Kit needs post-1.96 APIs). Exact, not minimum: the rustdoc JSON reader
+is format-specific, now format 61 with a regenerated trimmed shlex 2.0.1 fixture.
+Active docs, scripts and tests moved; measurement records keep their recorded
+toolchain. Also moved the ownership witnesses used by tests out of the deleted UI
+experiments into `crates/tsrust-compiler/tests/fixtures/owner-handles`, and
+recorded the GPUI bridge design in the platform plan. Local acceptance on 1.99.1:
+clippy correctness; lib 1540/47/25/6; host targets acceptance, async_io,
+native_dependency_bundle, project_commands, rust_adapter_generation, rust_bridge,
+rust_data_boundaries, toolchain_installation, named_handler_specialization,
+tracked_resources; seven pinned LSP targets; 134 runtime suites (415 s, cold cache).
+
+### GPUI section: earlier UI removal — 2026-11-09
+
+Branch `codex/gpui-ui`. Both earlier UI attempts are removed: `crates/tsrust-ui`,
+`std:ui`/`std:ui-runtime`, UI analysis/emit, `ui_project`, the UI CLI, dev web
+and docs app (`docs/src`, `docs/content`), the UI catalog, UI examples, tests and
+benchmarks, and the React/Electron/Expo/shadcn traces. The `.tsrx` parser,
+formatter and TSRX syntax stay; TSRX lowers to plain component calls. The native
+dependency manifest dropped its UI crates (571 to 326 locked packages) and native
+support always builds from the shared backend set. `tsrust ui`/`new --ui` report
+GPUI Kit support in development. Fixed in passing: LSP snapshots record
+`tsrust.config.json` as a loaded source (previously implied by UI config reads);
+`testing_runtime` stubs the capture reset; four test helpers lex with the new
+`tsrust_compiler::source_tokens`.
+
+Local acceptance: compiler lib 1540, CLI 47, LSP lib 25 and bin 6; 134 runtime
+suites (370 s, 0 failed); affected host targets (acceptance, interactive_cli,
+native_cache, native_dependency_bundle, native_package_export, package_management,
+project_commands, router_contract, testing_runtime, toolchain_installation,
+url_features) and LSP targets (stdio, api_project, editor_consistency,
+completion_matrix, checker_agreement, project_intelligence) pass; API audit PASS
+at 1,583 identities (102 UI rows removed); clippy correctness, format check and
+tooling tests pass. Next: toolchain minimum-version policy, then the GPUI bridge.
+
+PR #16 CI fix `f324a669` (Windows `normalize` output, UTF-8 suite output, no `tsc`
+in host tests) is pushed; its CI run is pending.
+
+### Outstanding-issue fixes and v0.2.0 preparation — 2026-11-09
+
+- Fixed: `captureOutput` now ends its capture in `finally`, so a throwing
+  callback no longer swallows later output in the same test (the earlier
+  error-effect failure was the missing effect-table entries, now present).
+- Fixed: no compiler or library-test warnings remain (unused console imports;
+  test-only runtime includes marked as such; `pin_project!` import annotated).
+- Fixed: `tsrust dev` uses `sigaction` (persistent handler, explicit restore)
+  instead of raw `signal()`, removing libc-dependent reset semantics behind the
+  unexplained Linux dev-session exit failure.
+- Fixed: HTTP server tests retried no rebind after shutdown; parallel tests can
+  receive the freed ephemeral port. All five sites wait up to 1s.
+- Doctests: both crates have zero; executable example coverage is the generated
+  catalog suites, so CI does not spend a doctest build.
+- Ledger: 1,685 identities PASS (five new testing identities reviewed).
+- Version: tsrust-compiler 0.2.0, tsrust-lsp 0.3.0, extension 0.2.1 unchanged.
+  Release notes and the status page are updated. All v0.2.0 plan boxes are checked.
+- Local revalidation: compiler library 1,546 (twice), CLI 54, project commands 6,
+  toolchain installation 25, acceptance 8, std:testing catalog suite 12.
+
+### CI build-once restructure — 2026-11-09
+
+Owner: CI must compile once per OS and run `tsrust test`; consolidation instead
+of 1:1 is fine; no PRs/pushes until the restructure is done; pushes exist to
+merge toward release. Plan: `docs/plans/ci-build-once.md`.
+
+- New `std:testing` output capture: `captureOutput`, `startOutputCapture`,
+  `finishOutputCapture` (runner resets unfinished captures; effect table updated).
+- `tools/generate-catalog-suites.py`: 1,066 generated tests from verified catalog
+  examples (42 host-only by rule), one directory per group.
+- `tools/run-suites.py`: 133 suites, one native build each, PASS locally
+  (cold 17.7 min, warm 301s). It found and fixed a real defect:
+  `tsr_console_table` was private, so `console.table` failed in test programs.
+  The rust-regex example's stale bindings lock was re-locked.
+- `tools/host-tests.py`: 21 boundary targets. CI rewritten: lint, lib, build per
+  OS (release artifact), suites and host per OS on that build, editor, CI gate.
+  Removed: shard runner, platform runner/evidence chain, supporting-host timing.
+- About 530 legacy per-case integration targets remain as local deep-regression
+  witnesses, outside CI.
+
+### Full runs 3–4 — 2026-11-08 21:45 UTC
+
+- E0460 root cause: relocated vendored builds recompile shared crates
+  (proc-macro2, cfg_if) in place in the shared target. Direct-rustc tests now
+  link a private nix closure (`target/test-externs`); the CI libnix step was
+  removed. JSON staging test: the runtime rlib is hash-named; test fixed.
+  Relocated/doc budgets raised. Every shard has passed in at least one run; the
+  last failures were cold-build timeouts.
+- Owner flagged the hourly CI loop. Do not dispatch another full run without
+  approval; one confirming run on the final commit remains the only
+  full-suite item. Platform acceptance is complete (C9).
+
+### C9 complete; full run 2 — 2026-11-08 20:00 UTC
+
+- C9 42511473967 at 81f7beed: focused platform acceptance COMPLETE on all four
+  hosts (61 targets each, zero failures). The Windows Ctrl+C fix worked. B00
+  admission, B01/B03 Windows rows, B20 native acceptance and "finish B01–B19"
+  are checked.
+- Full run 2 42511475678: shards 0, 1, 3, 4 and 7 PASS; every shard finished
+  within its hour (max 56 min). Remaining (all pass locally):
+  native_buffered_file_backend E0460 (shared-target `cfg_if` rebuilt by tests
+  that run their own Cargo builds), native_json_build staging,
+  project_commands dev exit (status now printed), and the frozen-UI emit budget
+  (40→120s). Next: full run 3; fix whatever recurs.
+- Remaining plan: clean complete pass, release archives in the notice audit,
+  prune, owner approval.
+
+### First sharded full regression — 2026-11-08 19:30 UTC
+
+- Run 42503200899 (8 shards, 2fd6e5e1-era HEAD on `codex/stdlib-0.2.0-full`):
+  every shard finished within its one-hour job (slowest 54 min). Failures,
+  diagnosed and fixed locally:
+  - map-epoch `while(true)` loops emitted `while !stop && (true)`, so a function
+    ending in such a loop failed rustc with `()` instead of i64. A literal-true
+    loop with no break leaving it now emits `loop` (`breaks_out` uses resolved
+    control targets). Test sources with genuinely dead statements after
+    divergent loops were corrected (3 scoped-record cases).
+  - Stale fixtures: exception_handling inlined runtime lacked `report.rs`;
+    cache callback rejection is now `cache-payload`; `Option<T>` is supported
+    (B19), so it is no longer a rejection case; json.test.tsr now expects the
+    early 413; the empty generic call diagnostic is `array-type`.
+  - Pretty reporter printed absolute assertion paths; sites now render relative
+    to the working directory.
+  - CI environment: crates.io `url` was absent offline (the workspace patches
+    it), so it is now in `tests/dependencies`; a restored stale `libnix` broke
+    direct-rustc tests (dropped before the shards run); "Complete regressions"
+    was skipped after an earlier step failure (`!cancelled()` added); two cold
+    budgets raised.
+  - Local: all affected targets PASS, including scoped_record_composition 207
+    and the map suites.
+- C8 42503198395 sealed (Linux/ARM/Intel complete). The Windows helper died
+  with STATUS_CONTROL_C_EXIT. It now ignores Ctrl+C process-wide and stays
+  attached for one second after sending, so its own copy of the event is
+  delivered while ignored.
+
+### C6 review and measurement completion — 2026-11-08 16:45 UTC
+
+- C6 42494556962 at 3972fa49: Linux, ARM and Intel macOS repairComplete=true
+  (61 targets, packaged smoke PASS). Windows' only failure is the SIGINT witness:
+  the owned console helper now dies on its own event, because it inherits the
+  restored normal Ctrl+C processing. The helper now also sets the process-wide
+  ignore. Sealed in LATER_RUNS (Linux 9e39f0fc…, ARM 5a4fc8a2…, Intel 98908cee…,
+  Windows af07e6fb…).
+- Ingested 240 entries (80 workloads × 3 engines); integrity ok. The page has
+  1,165 comparisons; the generator uses the manifest `rustReference`.
+- Owner: benchmark only Node-comparable operations, not integration wrappers.
+  HTTP upload/middleware timing and the native HTTP refresh are dropped.
+- Site 78 pages, links PASS (128 pages).
+- Open: Windows SIGINT (C7), the sharded full regression run, package admission,
+  B01/B03 Windows rows, prune, release approval.
+
+### Plan completion pass — 2026-11-08 15:30 UTC
+
+Owner: keep going until the whole v0.2 plan is implemented; CI matters but is
+not the main goal. v0.2.0 merge/publication is still not approved.
+
+- C5 42485215015 at a341f7ff terminal: Linux/ARM repairComplete=true (61 targets).
+  Windows' only remaining failure is the real SIGINT witness (listener never saw
+  Ctrl+C although the helper's GenerateConsoleCtrlEvent succeeded). Intel reached
+  41 targets, then the relocated realtime case hit the 55-minute scope stop. All
+  four results sealed in `LATER_RUNS` (Linux 33f3a296…, ARM 1be2637e…, Intel
+  86cca64f…, Windows ef36ee03…); chain verified locally.
+- Windows SIGINT: the CI launcher starts the test owner with Ctrl+C ignored, an
+  attribute every child inherits even with CREATE_NEW_CONSOLE. The test owner now
+  installs its own ignore handler and restores normal processing
+  (`SetConsoleCtrlHandler(None,0)`) before spawning the listener. Unproven until
+  the next Windows run.
+- Generic sibling regression fixed: generic argument preparation retried only
+  `generic-inference` errors, so `identity([])` aborted before the sibling
+  `identity([7])` supplied T. A context-free `array-type` error is now deferred
+  the same way. Witness `empty_array_generic_arguments_take_context_from_generic_siblings`.
+- Host export ledger: `docs/plans/host-export-ledger.md`; verify-api-audit PASS
+  for all 1,680 identities. Language inventory reconciled (80 probe-backed
+  reclassifications, 1,355 disposition notes; generator links repaired).
+- Probe defects fixed: `'a'.localeCompare('b','en')` panicked (receiver rewrite
+  reached std:locale without preparing its records). Locale and regex receiver
+  rewrites now share `prepare_receiver_binding`, which also reports arity by the
+  public member name instead of `__stringCompare expects 3 to 3`.
+- Notice audit: five Android/wasm-only backend crates had no license file in
+  their archives; exact upstream MIT supplements are added by packaging and
+  portable export (distribution tests 15 PASS).
+- Full regression fit: CI `full_regressions=true` now runs eight parallel shards
+  (`tools/regression-shards.py`, weights from the 965de83f run, every target on
+  exactly one shard; shard 0 owns lib/bins/doc/format/lint). Not yet run.
+- Measurement gap found: 80 registered runtime workloads (75 B02 byte codec/
+  operation, 5 B01 file) and 16 B10 upload/middleware HTTP rows have never been
+  measured; HTTP request/CPU native pins date from 2026-11-04.
+- Measured (not yet ingested): all 80 runtime workloads verified (795s) and timed
+  at 3×31 on native/node-tsc/rust-hand, results
+  `benchmarks/runtime/results/2026-11-08T15-45-57-371Z.json` (36 codec) and
+  `…T15-56-53-554Z.json` (44 operation/file). NEXT: `npm run store:ingest` in
+  benchmarks/runtime, verify, add the runs to website/tools/performance-runs.json.
+- B10 upload reference fixed: the hand-written Rust server never compiled
+  (`form_urlencoded::Serializer` held across an await made `forward` non-Send).
+  The serializer is now scoped; manifest pin updated; guard PASS. NEXT: run
+  `--uploads --verify` then `--uploads --prepared`, the same for `--middleware`,
+  then the native-only requests/CPU refresh (scripts http-*.sh pattern in this
+  note's commands), ingest, update pins.
+- C6 focused platform run 42494556962 at 3972fa49 dispatched (later chain
+  42480586761 42485215015). Review all four artifacts when terminal; then
+  dispatch `full_regressions=true` (eight shards) — same-ref runs cancel each other.
+
+### C4 review and C5 dispatch — 2026-11-08 13:45 UTC
+
+- C4 42480586761 at 3d6767c5 terminal: ARM and Linux repairComplete=true (all 61
+  targets, zero failures). Windows reached all 61 targets with 118 new passes;
+  remaining failures: the real SIGINT delivery witness and LSP async_tasks/
+  native_threads/rust_bridge. Intel reached 41 targets, 17 new passes, then scope
+  stop. All four results sealed in `LATER_RUNS` (Linux 720c3bd4…, ARM 377d65d1…,
+  Intel 13a54555…, Windows e14c5b60…).
+- Windows SIGINT root cause: the runner started test binaries with
+  `CREATE_NEW_PROCESS_GROUP`, so every descendant inherited "ignore Ctrl+C" and the
+  generated listener could never observe CTRL_C. Windows cleanup never used the
+  group (owned handle plus exact PID/birth rows), so the flag is removed on
+  Windows; POSIX sessions are unchanged. Guard test added.
+- Windows LSP failures: tests used Unix-only absolute ids (`/async/main.tsr`,
+  `file:///…`). The three files now derive ids from host-absolute URIs (Windows
+  gains `C:`), unchanged on Unix; local async_tasks 30+3, native_threads 18+12,
+  rust_bridge 8+8, service_sections 3+3 PASS (96.8s).
+- Intel root cause: the compiler test harness counted time spent waiting for the
+  serialized heavy-build lock against each command's own timeout (180s). The
+  command budget now starts after the lock is held; the wait has its own 1800s
+  bound. Platform scope 55 min/job 60 min are unchanged.
+- Runner: ordered `LATER_RUNS` chain (`--later-repair-plan`, workflow input
+  `platform_later_prior_runs`) requires every earlier seal unchanged. Python 27 PASS.
+- C5 dispatched: run 42485215015 at a341f7ff (prior/second/third + later
+  42480586761). PRs/Dependabot were empty before push. Do not dispatch another
+  run while it is live; download all four artifacts when terminal, seal them in
+  `LATER_RUNS`, and repair only diagnosed failures.
+- Remaining B00–B20 work after C5: four-host package admission and B01/B03
+  Windows rows from C5 evidence; the generic sibling-context regression above;
+  making the complete compiler/LSP suites fit one hour (historical 11,754s case
+  time plus per-target builds; settle repair saves about 1,000s; next levers are
+  consolidating integration targets into fewer binaries and the 777s
+  checker_agreement case); the per-export host ledger (1,247 inventory identities
+  lack a review entry; `tools/verify-api-audit.py`); measured HTTP metric refresh;
+  docs/help/install/update/archive audits; pruning; then release approval.
+
+### Suite-time and catalog repairs — 2026-11-08 13:20 UTC
+
+- LSP test `Session::settle` now stops 50ms after every open document's current
+  version is published, keeping the old 900/400ms quiet window as fallback when a
+  version publication is not observed. Assertions are unchanged. Actual local
+  timings versus the 965de83f record: completion_matrix 341.5s (was 732s, 3 PASS),
+  editor_consistency 36.5s (was 234s, 38 PASS), intelligence 176.1s (was 570s),
+  checker_agreement 777.4s (unchanged 759s; not settle-bound, 6 PASS).
+- Catalog: 65 non-UI entries had verified `examples` but no documentation fence,
+  failing `backend_catalog_examples_match_native_output` at HttpClientOptions.ca.
+  Each now shows its first verified example, formatted by the current compiler,
+  with `Expected output:`. The test then PASSED alone in 679.3s.
+- OPEN regression found, not yet fixed: `contextual_generic_array_calls_keep_checked_parameter_and_result_help`
+  fails because `check` rejects
+  `function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}function main(){const values:number[]=identity([1,2]);const selected=first(identity([]),identity([7]));console.log(values.length,selected.length);}`
+  with `array-type: An empty array needs an array annotation or call/return context`
+  at `identity([])`. Sibling generic-argument context no longer reaches the nested
+  generic call. Candidate commits touching generic inference: 8b1d4e9f, 91428ba4,
+  e339008f (2026-11-07). Bisect or trace `generic_call_work.rs` parameter contexts.
+- C4 run 42480586761 at 3d6767c5: ARM and Linux SUCCESS, repairComplete true,
+  all 61 targets, zero failures (new passes 6/5; retained 546/552). Results
+  SHA prefixes 377d65d1f095 / 720c3bd41c0d. Intel/Windows pending at this entry.
+
+### Resumed continuation — 2026-11-08 12:30 UTC
+
+Owner resumed the goal. Hosted run 42474075588 at a7795eea is terminal FAIL on all
+four hosts; all four artifacts were downloaded, SHA-sealed and reviewed. This
+continuation repairs its diagnosed causes. Full B00–B20 stays incomplete;
+v0.2.0 merge/publication is not approved.
+
+- Actual C3 results (focused repair, not full-source acceptance): Linux 4 new
+  passes (relocated logging 357.8s, relocated realtime 392.9s, nominal projection
+  2.1s, LSP IO docs 11.8s); ARM 0; Intel 0; Windows 232 new passes across 22
+  targets, reaching 41 of 61 targets before the 55-minute scope stop. Windows
+  build-helper cleanup now works on the host. Results SHA256: Linux 3c28afa0…,
+  ARM 849cf27d…, Intel 8ef7dc2d…, Windows 5f3be802…; each retains the C1/C2 seals.
+- Root cause of almost every failure on all hosts: `Validating native support
+  workspace …: URL patch payload is incomplete.` The Actions cache restores
+  `target/tsrust-native` without some registered URL patch files, and
+  `backend_sources::restore_missing` restored only the four base files. Repair:
+  `native_url_patch::restore_missing` recreates only absent registered payload
+  files under the existing workspace lock; changed files and links are rejected
+  before any write. Unit witnesses cover partial/whole payload loss and changed
+  files. This resolves the earlier unexplained remote ENOENT/missing-path class.
+- Actual Windows stack receipt: relocated exported process `program.exe` (debug)
+  exits 0xc00000fd with main-thread stack overflow. Reproduced locally: the same
+  debug process example aborts under `ulimit -s 1024` (exit 134). Repair: an
+  async entrypoint now runs the whole generated `main` (hook setup, result
+  adapter, exit code) on a scoped thread named `main` with an 8 MiB stack; only
+  `()`/`ExitCode` crosses threads. Local repro then exits 0 with identical output.
+  The thread name keeps panic text unchanged. Witness:
+  `async_entrypoints_run_on_an_explicit_main_thread_stack`.
+- Remaining non-URL timeouts were cold per-command budgets on slow hosts: Intel
+  `emit --package` for logging/realtime exceeded 60s (now 180s, matching IO);
+  Intel IO relocated build and Windows logging relocated release build exceeded
+  300s (all three relocated cargo builds now 600s per profile). Scope 55 min and
+  job 60 min are unchanged.
+- Runner/workflow: optional reviewed third input `platform_third_prior_run=
+  42474075588` (`--third-repair-plan`) retains only C3's own successful cases at
+  their a7795eea identity, and requires both earlier seals. Python 25 PASS 0.14s;
+  workflow/release policy node tests 23 PASS.
+- B19 optimization: equality between a record-union literal tag field and a
+  string literal now selects variants (`match &(base) { ViewUnionN::Vk(_) => true,
+  … }`) in both emitter paths instead of comparing text. Nested-option workload
+  emits zero tag text comparisons; untimed oracle 505733888 matches. Not timed.
+- Local actual checks at the working tree (shared target, inc0, jobs1, exact
+  prior feature graph http-websocket+logging): compiler library 1544 PASS/8
+  ignored; LSP library 27 PASS; CLI 54 PASS (requires explicit CARGO_TARGET_DIR,
+  as on CI); schema_unions 14 incl. new witness, rust_bridge 8+8,
+  owned_iterators 12, recursive_callable_results 16, generic_value_adapters 92,
+  string_operators 6, async_tasks 30+3, async_io 17+4, process 12+4,
+  task_ergonomics 14, service_sections 3+3, structured_logging 4+1 all PASS.
+  The two relocated export cases need `TSRUST_SOURCE_PACK_DIR=target/portable-source-packs`
+  locally, as CI sets it. Each compiler rebuild took about 430s.
+- Next: commit, check PRs/Dependabot, push, dispatch one focused run with all
+  three prior inputs. Continue remaining B00–B20 work locally while it runs.
+
+### Owner-requested stop — 2026-11-08 11:14:58 UTC
+
+The owner explicitly requested a handoff and stop. Pause the goal; do not continue
+implementation or start more validation until the owner resumes it. Full B00–B20
+remains incomplete; v0.2.0 merge/publication is not approved.
+
+- Canonical writer: `/Users/seancotter/Desktop/dev/learning/tsrust`, branch
+  `codex/stdlib-0.2.0`, HEAD `a7795eea73d631a9f4340c0c5d898a107ac047db`, pushed.
+  Preserve the protected app worktree at
+  `/Users/seancotter/.codex/worktrees/stdlib-platform-acceptance/tsrust`.
+- Pending changes are ONLY `docs/agent-progress.md` and
+  `docs/plans/stdlib-0.2.0.md`: actual OS leak/allocation findings and current CI
+  evidence. Preserve them. No source edits or new builds followed a7795eea.
+- Verified at stop: no local Cargo/rustc/native/leaks process, no live agents.
+  Historical build PIDs and vanished sessions must not be restarted.
+- Existing hosted run **42474075588** remains LIVE at exact a7795eea, all four
+  hosts in bounded native-family/package acceptance. It was already dispatched;
+  left running, not cancelled. No additional run was launched for this handoff.
+  https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/42474075588
+- First action after resume: inspect this SAME run to terminal status, download
+  its host artifacts, inspect actual failures and preserve successful scopes
+  with their real identities. Prior two sealed inputs are42460717406@469 and
+  42470181942@f46. Current repair retains both separately and is NOT full-source
+  acceptance. Windows stack/signal phases and missing-support-path diagnosis
+  remain unresolved until actual new host evidence arrives.
+- Accepted local runtime/cache checkpoint7ff214ea: corrected one no-run build
+  31.080s/697811784B; CLI54PASS; IO18 both profiles plus raw stdioPASS; shared55
+  both profilesPASS. Existing compiler1544/LSP27/export proofs retained. Actual
+  113 timing-history entries are committed, original93 samples each; unchanged
+  Rust/Node controls must not be rebuilt or retimed without a diagnosed reason.
+- Latest additional evidence (details below): all four password workloads on
+  native/Rust have zero leaked blocks/bytes under macOS leaks at exit, using
+  existing binaries. The original inside-runtime allocator rejection remains
+  recorded. Current deep-data allocation count18 versus2066; collections5
+  unchanged. Material collection timing drift and nested-adapter7x Rust gap
+  remain explicitly recorded, not hidden by passing allocation observations.
+- Remaining complete-goal work includes final backend binaries/all integration/
+  doctest/editor/package/install/update/rollback/archive acceptance, public metric
+  and inventory reconciliation, and outstanding plan requirements. Do not claim
+  B00–B20 complete from the current focused scopes.
+- Full-suite budget audit is READ-ONLY, no optimization implemented or run:
+  old `/tmp/tsrust-965de83f-full-integration.json` has544 targets/4619 cases;
+  non-UI-prefix509/4503 accumulated10530s case time plus6288s per-target build
+  overhead. These are historical accumulated times, not a current wall-clock
+  estimate. Do not launch a known oversized suite or split it into serial hourly
+  chunks. One Cargo build and complete coherent coverage must fit one hour.
+  Largest historical groups: native_package_export, checker_agreement,
+  completion_matrix. `Session::settle` still waits900/400ms for quiet; replacing
+  it was only considered, NOT implemented or validated. Any future change must
+  preserve actual document-version/phase agreement and all existing assertions.
+- Public metric refresh entry points located, not executed:
+  `website/tools/generate-performance.mjs`,
+  `website/tools/performance-runs.json`, and `website/package.json` reference/build
+  scripts. Generator reads SQLite and explicitly curated Rust baselines. Add
+  accepted current measurements with cached controls; do not fabricate new runs.
+- No pushes/releases after a7795eea. Last prepush PR/Dependabot checks were empty.
+  Check both again before any future push. Keep this as the single handoff.
+
+
+Current source checkpoint a7795eea73d631a9f4340c0c5d898a107ac047db, pushed on
+codex/stdlib-0.2.0. Runtime/cache repair7ff214ea is locally accepted; a7795eea adds
+reviewed two-run evidence reuse and bounded cold-export command adjustments.
+Working-tree changes after this checkpoint are plan/progress evidence only.
+Hosted42460717406@469 and42470181942@f46 areterminalFAIL. Focused repair
+42474075588@a7795eea is RUNNING on all four hosts; do not dispatch another run.
+Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
+
+- ACTUALC3dispatch42474075588 atEXACTa7795eea, usingbothreviewedpriorruns.
+  https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/42474075588.
+  LatestprepushPRs[]/Dependabot[], oldrunsallterminal. All4hostsnowinbounded
+  nativefamily/packageacceptance. Scope55min inclusiveofsetup/job60min. Thisis
+  focusedrepair, neverfullcurrent-sourceacceptance; publicationstillunapproved.
+- OSleakdiagnosisusedEXISTINGcompiledprobesonly, zeronativecompilation:
+  all4passwordworkloads×native/Rust report0leakedblocks/0bytes atprocessExit.
+  Eightownedscopes1.071–1.590s, same120saggregate ceiling. The3additional
+  measuredprogramsperenginehadexactacceptedbinarySHA verified beforeexecution.
+  /tmp/tsrust-password-os-leaks.json. This doesNOTerase earlierstrictallocator
+  inside-runtime zero-retentionfailure orprovezero livebackendallocations there.
+- CurrentB18allocationdiagnosticsACTUALPASS4.213s/283885568B: threeobservations
+  each retain0B. Deepdata18allocations/1728requestedB vsold2066/132800,
+  removing2048temporaryrecordworkallocations. Collections5allocations/2400B,
+  unchangedfromoldprofile. /tmp/tsrust-testing-current-allocations.json;
+  benchmarks/runtime/diagnostics/2026-11-08T11-08-53-828Z-native-allocations.json.
+  Noallocation-countcause forcollectiontimingdrift established; no controlretime.
+- Secondfocusedrepair preparation: all4 C2 artifacts SHA/host/source/parentseal
+  verified locally. ActualC2passesLinux2/Windows0/ARM6/Intel127 remainf46;
+  C1retained447/0/540/399 remain469. Newoptionalexplicitsecondartifactinput
+  preservesbothidentities, ignoresnestedretainedasC2 proof, andskipsONLYactual
+  successfulok/noScopeStopcases; oldforcedC1controlsstillrequireactualC2pass.
+  Fourhostoriginal61targetselection/guards/package+smoke unchanged; focused
+  completefalse staysfalse. Python24PASS; actualall4sealedartifactsPASS.
+- TerminalC2Intel47.6min (jobcap60min/scope55min): mostnewnativefailuresbare
+  ENOENT plusIOpackageemit60s/logging+realtimeDEBUGCargo180s timeouts. Record
+  /tmp/tsrust-repair-42470181942-mac-intel. Logging/realtimeCargo budgets now
+  300s EACHprofile, IOpackageemit180s; onlypercommandcoldworklimits changed,
+  scope55min/job60min stays. Unchangedlocallyacceptedpayloadsnotrerun.
+- Nextremote decision: candidateafter7ffcheckpoint uses54CLI/IO18both+stdio/
+  shared55both accepted, priorcompiler1544/LSP27/exportproofretained. Need
+  Windowsactualstack/signal+successfulownedhelpercleanup and actualmissingpath
+  receipt/resolution onhost caches; selectplatform_acceptance=true,
+  platform_prior_run=42460717406, platform_second_prior_run=42470181942.
+  OldequivalentrunterminalFAIL; no duplicateactivevalidation, nofullCI/release.
+  CheckfreshPRs/Dependabot immediatelybeforepush. Publicationunapproved.
+- Focused cache/build repair ACTUALPASS: exactpriorCargo featuregraph restored;
+  onecorrectedno-run31.080s/697811784B, terminalbuild-finished success.
+  CLI54PASS10.598s includingmissingfile/changedmetadata/symlinkcontrols;
+  registeredIO18EACHprofile+rawstdioPASS193.470s; shared55EACHprofile
+  PASS130.231s. /tmp/tsrust-partial-support-repair-corrected.json.
+  Existing compiler1544/LSP27/relocatedexportsremainaccepted; notrerun.
+- Rootmistakepreserved: firstrepaircommand omitted priorhttp-websocket/logging
+  features andstartedredundantcompilerlibraryrebuild. Stoppedownsupervisor77436
+  /Cargo77519, verifiedsettlement, thenusedEXACTpriorgraph. Bothattemptscharged
+  sameoriginal1770sdeadline, noreset. /tmp/tsrust-partial-support-wrong-features-stop.json.
+- Closed-outputcleanup removed791files343910222logicalbytes and recovered
+  361938944observedfreebytes: aborted/closedloosecodegenobjects plusobsolete
+  profilingbinaries/sources only. CurrentmanifestconsumersSHAverifiedunchanged;
+  sourcepacks/shareddeps/currentdiagnostics preserved. Togetherwithprior
+  8958775296B cleanup, observedrecoverythiscontinuation9320714240B.
+  /tmp/tsrust-measured-repair-closed-output-cleanup.json.
+- Allocation follow-up finished within ORIGINAL1770s deadline: native8
+  iterator/adapter probesPASS5.829s; fourRustallocationcontrolsPASS1.607s.
+  All3observations strictzero. Adaptercounts/bytes IDENTICALnative/Rust;
+  nested4095allocations/77805B, so no allocationvolumecause for7.00x timinggap.
+  /tmp/tsrust-post-allocation-gates.json and
+  benchmarks/runtime/diagnostics/2026-11-08T10-37-09-708Z-native-allocations.json.
+- Original37allocation scopeFAILED755.902s/588445688B atfirstpasswordprobe;
+  noownedprocessesremaining.25syncprobes passedbeforefailure. Strictpassword
+  rejection remains: recovered3samplesretain4376–4424B; matchedunchangedRust
+  control4264–4376B. Backendstate/retirement plausible, leak/eventualcleanup
+  unproved. Remaining3passwordallocationprobesunrun. Existingbinary-onlycounter
+  recovery26rowsPASS2.151s afterEXACTemission/instrumentedsourcecomparison;
+  initialrecoveryfailed .trim() mismatch BEFOREexecution, preserved.
+  /tmp/tsrust-crypto-allocation-counter-recovery-v2.json;
+  /tmp/tsrust-password-rust-allocation-control.json (4.299s scopedbuild/run).
+- B18native-only originalprotocolPASS fivecorrectnesscases perworkload then
+  8warmups/3processes/31samples, quietguardwaited forload<4. Native2groups93samples
+  ingestedONCE at2026-11-08T10:38:29.075Z; cachedRust/Nodecontrolsunchanged.
+  deepdata .011042ms versusprior .045500, 4.12xfaster/Rustgap1.53x. Collections
+  .137666ms versusprior .070750, regression1.95x; no deferredrecordstack in
+  emittedcollections, relevantMap/Set/NumericArray/helpersunchanged. Three
+  processmedians .146625/.137666/.100292 drift; actualcauseunproved. Do not
+  relabelregressionasnoise/pass orretimeunchangedcontrols. Planrecordsboth.
+- Partialcache restoration repair nowLOCALLYPASSED: underexisting
+  ownedworkspacelock restoresONLYmissingbasefiles; changedmetadata/symlinks
+  rejected beforemutation. Contextualvalidationerrors includeactualpath.
+  RemoteENOENTcachecauseremainshypothesisuntilcontextualreceipt. Loggingcold
+  releasecommandbudget300s afterobserved180s compilationtimeout; scope55min/job
+  60min unchanged. Nootherpassedexportsorbackendregressionsrestarted.
+- Windows build-helper cleanup repair is in source: only code0 selected-test
+  builds may terminate exact-owned background helpers and then require fresh
+  empty-tree inspection. Runtime/test scopes still fail on unsettled children;
+  no executable-name exception. buildCleanup preserves before/after evidence.
+  Existing Python platform suite now23PASS0.125s. Hosted behavior is notyetproved.
+- Public37 measurement ACTUALPASS219.179s/404946944B: all555 correctness
+  comparisons passed before timing; original8warmups/3processes/31samples,
+  quietguard enabled/systemallocator. Actual111 engine/workloadgroups93samples
+  ingested ONCE with npm run store:ingest; SQLite integrityok. Canonical minimal
+  histories timestamp2026-11-08T10:14:12.271Z. Preserve unchanged Rust/Nodecontrols.
+  Raw disposable benchmarks/runtime/results/2026-11-08T10-14-12-271Z.json;
+  /tmp/tsrust-current-public-37-measurements.json. B15/B16/B19 plan nowrecords
+  actualmedians, including nestedoption7.00x Rustgap andrandomInt8.22x Nodegap.
+- Allocation scope is CLOSED; no profiling/native process remains. See actual
+  rejected/password and completed iterator/adapter evidence above. Do not
+  restart25passed synchronous probes orremeasureunchangedRust/Nodecontrols.
+- Focused42470181942 actualLinuxfailure: IO2/task1 instantfailures; logging
+  scope319.804s endedwithunsettledchild. Windowsbuildcode0/748.391s blockedby
+  genuinecurrentMSVCvctipdescendant, notoldPIDreuse. No nativeWindowscase ran.
+  Artifacts /tmp/tsrust-repair-42470181942-{linux,windows}; agentsreviewlogs
+  sourceonly. Keepownership/cleanup assertions; no blankettelemetryexemption.
+
+- ACTUAL current compiler library1543PASS/0FAIL/8unchanged opt-ins ignored,
+  96.406s/1352483320B. Current LSP library27PASS/0FAIL1.053s.
+  /tmp/tsrust-final-extraction-test.json and /tmp/tsrust-current-final-lsp-library.json.
+- Native family consolidation: task13, asyncIO18, network18, compression16,
+  HTTP110 =175 registered cases. IO/network/compression pass BOTHprofiles;
+  task/HTTP retain original default-profile protocols. Strict exact case names,
+  original output/typed error oracles, source correspondence, cleanup and no
+  unknown output retained. True stdio, no-runtime, cache, TLS, ABI and relocated
+  export boundaries stay separate. All owned processes settled; no build live.
+- Network BOTHprofiles ACTUALPASS16.694s/753188864B after closed native record/
+  finite plain literal option result-discovery repair. Minimal real2file projects
+  preserve listen alias and DNS conditionalalias/relay/undefined family; genuine
+  void/wrong native argument/invalid literal remain rejected. Recursive-summary
+  scalar eligibility unchanged. /tmp/tsrust-final-extraction-test-network-native.out.
+- HTTP110ACTUALPASS10.447s/1289913592B, nativebuild8180.098333ms. HTTP emitted
+  arguments ONCE; raw text reuses prepared operands, no abandoned conditional
+  owner. Compression16EACHprofile ACTUALPASS25.503s/713097216B, nativebuild
+  3513.819ms debug/20032.778ms optimized; worker7/5 outputs now correctly tagged.
+  /tmp/tsrust-shared-native-context-functional.json.
+- Existing6case testing fixture ACTUALPASS6.809s; FIVE child paths (TokioJob,
+  async pool, sync pool, dedicated, scoped thread) retain exact case/source
+  location/order, no orphan/duplicate output. Profile secondrun cachehit/native0.
+  ONE ArcMutex collector shared across extractedruntime; Tokio poll/drop and
+  sync worker/drop scope restored. Ended scopes reject late capture to existing
+  visible unattributed reporting, never silentlydiscard or leak into next case.
+- Complete runtimevariant factories reused by emission/dependency detection/
+  extraction. Pure tests prove ONE runtime SCOPE/collector and actual selected
+  modules, including async-only runners. No new dependencies or unsafe code.
+  Non-runner runtime hooks remain passthrough. console_async.rs is committed at04f3df1f.
+- Repair failures preserved honestly: originalbuild160.956s failed NEWtesthelper
+  unwrap on InputDiagnostic(noDebug); corrected to render API. Sharedbuild
+  399.154s then3guardsPASS/1FAIL: test wrongly expected bindingfeatureasync;
+  actual async selection follows Task origins/runtime module. Secondbuild
+  388.352s then3PASS/1FAIL: test string matcher missed pub/comment/mod syntax.
+  Original1770s aggregate closed INCOMPLETE, no fake full acceptance.
+  /tmp/tsrust-shared-native-context-repair{,-resume}.json and
+  /tmp/tsrust-native-result-final.json retain failures.
+- Final correction is cfg(test) ONLY: parses Rust AST for exact public module
+  identity/visibility, not formatting. New600s gate rebuilt ONLYcompiler test
+  harness226.206s (no tool binaries), corrected guardPASS2.617s, full library
+  PASS96.406s. Earlier production consumers unchanged; native network is current.
+- CI cache defect fixed: shared Cargo target alone did NOT share standalone
+  native support. Platform runner AND CI env now explicitly use
+  TSRUST_CACHE_DIR=target/tsrust-native; deliberate per-command isolation still
+  overrides. Actual subprocess-environment regression + runner tests16PASS0.081s.
+  No trigger/timeout changes;55min platform/60min job remains. Not dispatched yet.
+- Contract catalog+guides now document direct imported aliases/stored callbacks
+  versus unsupported stored generic all/extracted Iterator method values. Exact
+  thread-call negativePASS. Public logging/realtime reference mapping/sitebuild
+  PASS4.752s and128page rendered links/assets/anchors PASS1.605s (not deployed).
+- Cleanup removed newly-created loose codegen objects only, preserving current
+  libraries, metadata, binaries and shared caches. Exact count/bytes:
+  /tmp/tsrust-native-context-object-cleanup.json. Prior net recovery oldhost
+  1430007808B +obsoletebasepack766394368B remains separate.
+- Generated minimal/unused vs ICU consumer build/size proof ACTUALPASS at04f3df1f:
+  520872B vs2179640B (delta1658768B), exactoutputs7 and ICU4lines verified;
+  first appcachemiss nativebuild2056.4ms/24974.8ms, warmhitsbothnative0.
+  Existingstable sources, sharedtarget/cache, no directcontrols/11sample replay,
+  no sampled-benchmark/SQLite claim. Temporarybinaries/emittedscratch removed.
+  /tmp/tsrust-generated-minimal-footprint.json. B00feature-selection row closed.
+- Public37 original30min scope CLOSED INCOMPLETE before timing after genuine
+  preparation failures, no child/resource runaway and no accepted timing rows.
+  Corrected9stream endindices,3Rust HKDFreference slice calls and4Argon2reference
+  PHCstr calls; all29crypto+4iterator workloads then passed5independentcases on
+  native/Rust/Node. FirstpureRustadapter failed unconditional injected Rayon;
+  rootcompiler dependency-selection repair is required before timing can proceed.
+  Preserved validated prepared artifacts with exact compiler/source/ABI/binary
+  hashes, not a claimed measurement pass. No samples/SQLite rows were ingested.
+  Attempts: /tmp/tsrust-public-iterator-crypto-adapter-{measurements,resume,final,
+  password-repair}.json. Originaldeadline was never reset.
+- Historicallaunchrecord (nowcompletedabove): Newpublic37 firstactualtiming atf46d7400 afterrealcompilerdependency
+  repair. Existing29crypto preparednative/Rust/Node artifacts mustmatchNEWCLI
+  emission/ABI/sourcebefore reuse; all37×5cases×3engines nowpassedindependent
+  correctness before original8warmups/3processes/31samples began. No oldfailed
+  scope reset or fabricated samples. Original publicpreparation gate remains
+  incomplete; newsourcecandidate supportsall4pureRustadapterprograms.
+  /tmp/tsrust-current-public-37-measurements.json; ingestONLYsuccessfulactualrun.
+- Hostedfocusedrepair42470181942RUNNING atf46d7400, all4hosts; priorrun42460717406
+  isexplicitinput withfixed4resulthashes. Failed/missing/new/unreachedcasesand
+  reviewedforcedaffectedcontrols rerun; oldpasseskeeporiginal469identity.
+  https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/42470181942.
+  LatestprepushPRs/Dependabotempty; no duplicatefullCI/publicationdispatched.
+- Final focused host classifierPASS0.569s; crypto source/negative guards5PASS,
+  platform budget/ownership/repair-evidence guards22PASS0.110s. Whole-project
+  format0changes/tokenfingerprints0 anddiff-checkPASS beforecheckpoint.
+- Explicit1MiB Rustthread frontendprobe ACTUALPASS: load/check/emit/drop current
+  process example,226778emittedbytes; compile1.072s/execute0.550s. This islocal
+  frontend evidence, notproof Windowsnative/runtime stackfailurefixed.
+  /tmp/tsrust-process-frontend-stack-probe.json. Windowscommands/stagesnowlogged.
+- Cleanup recoveredadditional2627801088bytes from64 source/CRC-provenobsolete
+  host/cacheoutputs; currentacceptedartifacts SHAverifiedunchanged. Removed1156
+  closedlooseRustobjects702278040logical/722604032observedfreebytes. Combinedwith
+  earlier5608370176bytes consolecleanup, sessionobserved recovery8958775296bytes.
+  Currentarchives/binaries/metadata/shareddeps preserved. Rootcache remainsat
+  target/; do notpurge dependencygraphs ordelete swapfiles.
+  /tmp/tsrust-platform-repair-{obsolete-artifact,loose-object}-cleanup.json.
+- Priorf46 remotevalidation decision (supersededbyactualhostresultsabove): local1544compiler/27LSP/
+ 52CLI/4editorphases/IO18bothprofiles/rawstdio/pure+genuineRust/logging+realtime
+  relocatedbothprofilesPASS. NativeWindowsstack/signal phases andcoldhosttimeouts
+  remainunresolved. SmallestreviewedCI inputplatform_prior_run=42460717406 retains
+  oldpasseswithOLDsourceidentity, listsfreshbinaries, rerunsallfailed/missing/new/
+  unreachedandforcedaffectedcases, thenpackagesmoke. It isFOCUSEDrepair, nevera
+  fullcurrent-sourcepass. Last4hostrun42460717406terminalFAIL; no liveCIrun.
+  CheckfreshPRs/Dependabotimmediatelybeforepush; publicationstillunapproved.
+- ACTUALcurrent compiler1544PASS/0FAIL/8unchangedopt-ins ignored96.012s;
+  LSP27PASS1.099s; CLI52PASS3.196s. PurestdownedadapterO0/O3 PASS2.690s
+  WITHOUTRayon; genuineRayon/TaskContextbridgePASS2.137s. Newdependencyselection
+  factworkswithoutremovingactualRayonavailability. /tmp/tsrust-platform-coherent-repair.json.
+- ACTUALcorrectedIO18 EACHprofile+stable rawstdio witnessPASS116.644s.
+  30min aggregate thenexhaustedduringloggingexport; no scopepass claimed and
+  remainingfield retainsPRE-killchildren. Liveinspectionconfirmedallownednative
+  processesdead. Passedcompiler/editor/CLI/IO/adapterswerenotrestarted.
+- Remainingexports continuedasdistincttrees underABSOLUTEonehourfromtheoriginal
+  repairbuildstart, notanewhour. ACTUALloggingrelocatedBOTHprofilesPASS216.862s;
+  realtimeBOTHprofilesPASS248.588s. Consolehelperrootnamespacefixnowhasactualraw
+  portable/nativeproof. /tmp/tsrust-platform-export-continuation.json. Original
+ 30minscope remainsincomplete; theseactualexportchecksareseparatecompletedproofs.
+- B00new/changed namespace+receivercontractaudit complete, includingbinding
+  signatures/access/results, catalog/reference docs, aliasclasses andcancel/drop.
+  Twoactualdocgapsfixed; no missingnewAPIidentityfound. Nativefourhostandhistorical
+  pre-facadeprofile chronology remainseparateunchecked requirements.
+- Coherent currentrepair build ACTUALPASS416.124s/3386036472B, oneCargo,
+  terminal build-finished success; normalCLI+LSP+selectedharnessescurrent. Original
+ 1770s repairdeadline retained. Watchdogsetup firstfailed on UnixThursday being
+  mistakenforISO(T); correctedformat detection,21Python testsPASS. Laterfocused
+  repair-selection tests bringcurrentPython count22PASS0.092s.
+- Current3compiler selection/worker guardsPASS2.143s. LSP4phaseIO firstrepair
+  fixedcompletiondetail but nothover's checked-call syntheticheader; focused
+  LSP-only rebuild11.583s/529908528B, correctedexistinghoverpath now4testsPASS
+ 12.619s. Originalfailedphasewitnessretained, no assertionweakening.
+- IOsharedsuiteguardfirstrejected blanklines; exacttoken mapping nowignores
+  formattingtrivia while preserving tokens/stringcontents. Thenactual19case run
+  failedNDJSON because stored-call witness writesrawstdout, a genuineprocess/
+  stdioboundary. Revertedthat registration tooriginal18; keepchecked-in stable
+  sourceandexecuteoriginalrawstdoutoracle separately, no tempsource/no library
+  interception. This corrects earliermisclassification, not anI/O runtimefix.
+- Additional hostedterminal evidence: ARM544passing/Intel401passing/Windows174
+  retained. Macs' I/O failures are180/300s setup/run timeouts without captured
+  diagnostics, not proven EOF/loan failures; Intel55min budget exhausted in HTTP,
+  so missing later cases are incomplete rather than independent defects. Global
+  CI60min cap remains; setup-inclusive55min accounting patch nowpasses20Python
+  tests with creation-ordered ownership changes included.
+- ConfirmedWindows watchdog bug: old vctip1508 born07:56 predates08:42root7032,
+  yet reused intermediatePPID1476 made it appear owned. Creation-ordered ancestry
+  and exact identity kills now exclude old processes; Windows taskkill/T removed
+  because it follows PID-only trees independently.20Python testsPASS0.092s.
+  Five raw process cases didpass; seven have genuine stack overflows whose CLI/
+  emitted-program phase is unlocated. No stack-limit increase or semantic pass
+  inferred. Source fixturetime nowuses100ns exactWindows precision, retains1ns
+  onotherhosts; rooted-path probe usesWindowsdrivequalified paths so onlyintended
+  relative call sees injectedcwd failure. Nativeplatformrepairs remainunvalidated.
+- Hosted469 Linux finished35min;551 exactpassing cases retained,4 realfailed
+  scopes. Consolehook namespace breaks raw logging/realtime exports; editor native
+  alias facts overwrite recovered hover shape; pure nominalRustadapter failsRayon
+  linkage. Windows finished with174passing cases and additionalnative issues;
+  full case/attempt evidence downloaded to /tmp/tsrust-platform-42460717406-{linux,
+  windows}/. Macs stillrunning; no duplicate dispatch. No fullplatform pass claimed.
+- Pending coherent source repairs: sharedconsole helper root aliases preserveONE
+  collector for raw+extracted programs; keepnative alias signatures in checked
+  generic-fact application. Docscontract audit additionally found7genericWebSocket
+  type summaries and missing direct-only operation-value limits for signals/
+  threads/delay/yield. Narrowdocs fixes prepared/applied; no newAPIbehavior.
+- Public37 measurement first attempt FAILED before timing258.136s/488713952B
+  at crypto_sha256_stream_262144. Actual native checked error exposed all9
+  streaming benchmark sources passing length instead of bytes.view end index.
+  Rust/Node peers/oracles were correct. Fixed9 Tsrust sources and exact hashes;
+  rehashed bad-length negative now rejects it. Crypto guard3PASS0.701s;
+  whole-project format0changes. No timing rows were produced/ingested.
+- SAME original1770s scope RESUMED with1336.0s remaining, exact6 unchanged
+  one-shotSHA native/Rust/Node prepared artifacts hash-validated/reused by existing
+  prepared-prefix path. No budget reset, sample reduction or new runner.
+  /tmp/tsrust-public-iterator-crypto-adapter-resume.json records deadline;
+  original failure /tmp/tsrust-public-iterator-crypto-adapter-measurements.json.
+  Source/helper/ABI/executable validation remains strict before reuse.
+- Allocation profiler crypto hooks were missing despite existing async driver
+  support. Added existing crypto source/reference validation, frozen runtime
+  rechecks and diagnostic evidence. Strict zero-retention assertion UNCHANGED;
+  no allocation pass or password-retention exception inferred before execution.
+- ACTUAL stored realtime factory acceptance PASS162.370s: shared55 EACHprofile,
+  strict original identities/outputs, cache hit witness native0. Existing host and
+  oracle source hashes match their accepted builds; current stable suites are
+  loaded from disk. Only test fixtures/examples changed, no production compiler
+  code repair or new standalone case programs. Entire affected gate reused one
+  original1770s deadline, including build/repairs/cleanup; no budget reset.
+  /tmp/tsrust-observer-alias-acceptance.json retains failed attempts and passes.
+- Current source adds B03 renamed/stored observer coverage to existing example
+  and controlled process fixtures, plus9 checker-only invalid-argument/readonly
+  controls.17catalog entries now map to15stable std:testing modules, one native
+  runner with exact module/case/output identity and private output. Four existing
+  path testsPASS; new catalog guard initially failed only a blank-line expectation,
+  repaired and catalog15PASS2.629s. Original4passed scopes preserved.
+- Current CLI unit binary52PASS2.626s after ONE26.004s affected-host build.
+  Process11PASS initially; unchanged relocated export failed missing source-pack
+  env, then ONLYthat scope PASS29.153s with current prepared packs. Do not infer
+  a process implementation defect from that setup failure.
+- Compression renamed/stored buffer/stream factories now execute inside existing
+  cases without extra programs. Typed invalid-level assertion required evaluating
+  fallible byte creation before the owner-taking call (correct existing compiler
+  rejection, no weakening). Original failed cheap attempts retained. Current
+ 16casesEACHprofile PASS25.126s with strict old source/output oracles.
+- Complete backend doctest command ACTUALPASS156.752s/2258586768B; both crates
+  register0doctests. This closes command execution only, not executable examples.
+  /tmp/tsrust-final-backend-doctests.json.
+- Remaining public timing audit: B15four+B16twentynine+B19four workloads have
+  ZERO public SQLite histories. Private admission profiles are different work;
+  first public run must measure all3engines, then preserve unchanged controls.
+  Existing8warmups/3processes/31samples and quiet-machine rules remain unchanged.
+- ACTUAL new obsolete console-cache cleanup recovered5608370176bytes (71 exact
+  entries;5592688011logical bytes). Embedded old console collector identifies
+  obsolete source, not age/size. Namespace locks held; no native process active.
+  Current worker-context runtime artifacts, stable build workspaces and shared
+  dependency caches retained. /tmp/tsrust-obsolete-console-runtime-cleanup.json.
+- Hosted FOURHOST validation RUNNING at469e8bb3:
+  https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/42460717406.
+  Each host completed setup and entered bounded native acceptance. No full
+  regression/publication run dispatched. Preserve local passed scopes; monitor
+  terminal host results and actual packaged consumers before any acceptance claim.
+- Remote validation decision: checkpoint includes only platform selector/CI/docs
+  changes after5c3414e7. Local runner tests17PASS0.092s, release-policy9PASS,
+  whole-project format0changes and diff-checkPASS. Hosted OS file/signal/process/
+  TLS/export behavior and55-minute expanded fit cannot be proved locally. Smallest
+  available workflow is CI platform_acceptance=true, four native hosts, no full
+  regression/benchmark/publication dispatch. Previous equivalent full platform
+  run42259225163 at7d67daf8 was cancelled;42279800898 is UDP-only supporting
+  timing, not platform acceptance. Current PRs/Dependabot empty and no live run.
+- Pending platform selection now includes45 compiler/16LSP targets (61 intended,
+  64 validated Cargo artifacts); existing shared55, crypto24 and regex catalog
+  programs are reused. No newly ignored tests or runtime benchmark replay. Fit
+  on four hosts remains unmeasured under the unchanged55-minute aggregate.
+- Full CI regression scope corrected to complete compiler/LSP lib/bin/integration
+  and doctests, per development-workflow.md. Removed duplicate frozen UI runs;
+  test threads3, jobs1/incremental0 unchanged. Job ceiling remains60minutes.
+- B00 historical prototype audit found real pre-facade evidence for B03,
+  B05–B17 and B19, with retained SSE semantics qualification. B01/B02 retained
+  receipts are incomplete; B04/B18 retained profiling is post-facade. Global
+  historical-order checkbox remains open; later measurements do not establish
+  earlier chronology. No speculative prototype rebuild was launched.
+- Defaults audit found no additional implicit v0.2 limits. Process spawn inherits
+  stdio; run pipes output and closes absent input, matching spawn/output modes.
+  Drop cleanup is an explicit documented ownership difference. Existing bounded
+  date-format/Decimal/threadpool contracts remain intentionally preserved.
+- NEXT: reconcile remaining B00contracts/
+  defaults/feature clauses; final backend all-target/bin/doctest acceptance and
+  FOURHOST native/package/install proof still pending. Check current PRs/
+  Dependabot immediatelybeforepush; lastread empty/no live run. Do not dispatch
+  before a concrete current scope that fits55min. Full means full_regressions=true.
+
 ## Earlier retained acceptance (superseded failures are not a work queue)
 
 - ACTUAL PASS currentCLI publicfrontend declared/inferredfactory4controls plus
