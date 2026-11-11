@@ -289,10 +289,16 @@ change unrelated v0.2.0 acceptance or authorize a release.
 - Initial capability/gap audit and bounded resource contract recorded in
   [the audit](tsrust-studio-audit.md). Final language-service selections, coding
   quality floors and full-workflow latency/resource gates remain open.
-- Ordinary Studio project and functional scratch-editor preview run under the
-  retained supported dev workflow. macOS dev identity and failed-build recovery
-  verified; whole-file proposal revision guards pass4/4. Complete document/project
-  services, persisted recovery and all other editor inventory rows remain open.
+- Studio now opens its own apps/studio package with real folder browsing, native
+  file tabs, full-height read-only code views and native Cmd+F Find. Navigation
+  uses std:ui Tree/TreeItem with workspace contents directly at the top level; no
+  redundant root row or convenience button bar. Earlier theme switching passed
+  before removing the theme button; the current layout starts dark.
+  File-opening tests pass3/3; native data-state/composition/navigation tests pass12/12.
+  macOS dev identity and failed-build recovery are verified; existing proposal
+  revision guards pass4/4. Native tab scroll retention, full AX/focus, editing,
+  safe saves, recovery and the rest of the editor inventory remain open. The
+  current dev supervisor stays running; current evidence is in the audit.
 - Candle scalar optimizer proof3/3 passes. Three Candle CPU quantized-model
   attempts stopped on resource conditions, without answers. Those results remain.
 - Exact same official Qwen1.5B Q4 model and arithmetic oracle pass with pinned

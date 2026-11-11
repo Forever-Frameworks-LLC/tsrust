@@ -9,9 +9,9 @@ full implementation on November 10. The required inventory in
 
 | Boundary | Existing source to reuse | Concrete missing witness / implementation |
 |---|---|---|
-| Ordinary project | `tsrust new apps/studio --ui`; `apps/studio/tsrust.config.json` | Native scratch-buffer preview first; project open/create/save and recovery remain required. The CLI requires the parent directory to exist. |
+| Ordinary project | `tsrust new apps/studio --ui`; `apps/studio/tsrust.config.json` | Current native browser previews its own apps/studio package with working file tabs; project create/save and recovery remain required. The CLI requires the parent directory to exist. |
 | Editor | `stdlib/ui/gpui_kit.rs`, CodeEditor initialization and InputEvent subscription; `ui/kit.json` | Full-text `onChange`, controlled values, highlighting and `controlInput`/`readInput` exist. No Studio revision-aware LSP deltas, multi-cursor, IME or large-file acceptance yet. |
-| State | `std:ui` scalar `signal` | Record/array signals reject with `ui-state-type`. A coherent document store and retained subscription model need a reusable capability; scalar text/revision preview is not that store. |
+| State | `std:ui` typed data snapshots | Compiler now accepts plain records, arrays and nullable data, with independent constructor/get/set snapshots and nested resource/callback rejection. Native snapshot/composition suites pass 12/12. Use an explicit scalar `computed<T>` for live text projections. Direct data-field JSX text lowering and hidden native Kit state retention remain gaps; this is not the complete document service. |
 | Proposals | `apps/studio/src/documents.tsr` | Whole-buffer path/revision/base-content comparison implemented. Test typing-and-reverting, duplicate acceptance, wrong paths and Unicode. Atomic multi-file application, grouped undo, recovery and isolated tools remain absent. |
 | Language services | Existing `tsrust-lsp`, `std:process`, `std:io`, `std:json` | Build a revisioned LSP client in Tsrust; prove stdio framing, UTF-16/UTF-8 conversion, cancellation, crash recovery and stale answers. Existing standalone LSP acceptance is not Studio integration. |
 | Rust | rust-analyzer native executable | Inspect/install exact tool through managed tooling; prove lifecycle and project agreement. Not selected or installed by this audit. |
@@ -318,3 +318,98 @@ to ordinary backend manifests; managed experimental binding isolation remains.
 Native owners drop on return; this run's log includes context buffer teardown and
 Metal deallocation. Repeated load/unload, cooperative cancellation during stages,
 streaming and safe task/tool coordination still require dedicated witnesses.
+
+
+## Package browsing and typed state — November 10
+
+The current Studio window opens `apps/studio` itself, not the Tsrust checkout.
+`workspace.tsr` reads canonical in-root UTF-8 files, de-duplicates paths and leaves
+existing tabs untouched after outside/missing/binary-file errors. Listings place
+folders first and omit generated target/.git/node_modules trees. Reads are bounded
+to 4 MiB and directory enumeration to 10,000 entries. The browser performs no disk
+writes. Navigation reuses std:ui Tree/TreeItem, with package contents directly at
+the top level and no redundant studio root. Removed the convenience button bar;
+Find uses native Cmd+F. Workspace switching, file watches and large-file editing
+remain required.
+
+New workspace suite: 3/3 PASS, 3.93 ms execution, 2,953.0 ms build/setup. Existing
+four proposal tests are retained without an unchanged rerun. Whole native UI
+snapshot/composition/navigation suite: 12/12 PASS, 3.30 ms execution; build/setup
+163,863.8 ms. It verifies independent constructor/get/set nested snapshots, Unicode,
+CRLF, nullable updates, empty typed record arrays and scalar arrays. The focused
+compiler state check passes 1/1 in 1.21 s; six unchanged UI-authoring checks passed
+in the preceding 17.36 s run. Early rejection-witness mistakes and the nullable
+union emission failure were repaired before these passes; no failed run is a pass.
+
+The emitter reuses owned cloning and the existing borrowed-union `tsr_owned`
+conversion. State payloads reject native resources and callable environments even
+when nested. Generic Signal ownership and weak captures remain in the existing
+native runtime; no JSON state representation or Rust editor implementation was added.
+
+Editor support derives operation names from compiler `ui_method` metadata and
+substitutes the checked payload in documentation signatures. Runtime UI declarations
+now use public std:ui help when imported through the trusted native bridge. Shared
+native identity lookup handles linked compiler names and imported aliases. Debug
+LSP builds now use opt-level 1 with debug checks retained, matching the compiler's
+existing profile. Before that change, UI project indexing missed the existing
+3-second request deadline; no deadline was raised. New completion rows pass in all
+four server modes, with identical answers including syntax-error recovery (21.47 s total), and typed hover/signature/documentation/counter
+consistency passes all four modes (11.22 s). Header/checked project alias unit
+passes (12.98 s in the prior unoptimized test host); native alias unit passes0.63 s.
+
+The first Signal member-agreement run completed in418.10 s but failed because its
+oracle treated the compiler's explicit rejected `.length` receiver diagnostic as
+an accepted field. A direct CLI check confirms Signal.length rejects. The shared
+oracle now distinguishes that rejection; the actual-compiler regression retains
+ordinary array length acceptance and passes0.53 s. The corrected full selected Signal row rerun passes1/1 in413.88s with the
+complete candidate scan. No members/receivers were excluded. Do not claim full
+editor or compiler/LSP milestone regressions from these focused checks.
+
+Owner approved replacing the scratch supervisor with the built browser. A first
+sandboxed launch crashed at NSPasteboard generalPasteboard after XPC denial. The
+same authorized replacement was completed with desktop access, preserving the
+existing permission model. The retained live supervisor is PID15826/session51314,
+current child29484, bundle dev.tsrust.studio.dev. Cold dev47,677 ms; observed warm
+source rebuilds14,767/14,566/14,624 ms, runtime preparation5,324.4/5,609.7/5,023.4 ms
+with runtime cache hits. These are development observations, not quiet-machine
+benchmarks. This supervisor includes the accepted streaming cache buffers.
+
+Earlier native CUA verified light/dark themes before removing the theme button.
+Latest native CUA verifies std:ui Tree, folder click/Right-key expansion, direct
+workspace contents without a root wrapper, no button bar, native Cmd+F, and real
+source/config/workspace tabs with full-height flat code views. It also verifies correct live
+status through an explicit computed<string> projection, and binary-file errors
+without replacing the active file. Find targets the active config file and matches
+schemaVersion. Initial CUA typing again lost the first character; raising the window
+and select-all/retyping yielded the exact query. AX labels/focus remain open. A
+read-only typing attempt left source unchanged; full editable/IME acceptance is
+not implied. Switching tabs loses scroll position: sync_kit's collect currently
+uses visible_root and retires hidden CodeEditor state. Fix retention and verify
+focus, scroll, selection, undo and disposal before enabling writes. The browser
+also constructs child Nodes once outside reactive JSX list expressions so passing
+a Signal alone does not rebuild and reset directory state.
+
+No complete editor, safe-save/recovery, agent integration, AI quality/resource
+qualification or release acceptance is claimed.
+
+Historical appPID19889 read-only vmmap observations with3open file tabs/main active: supervisor physical
+footprint49.3M/peak408.0M; app258.6M/peak317.0M (units verbatim). Different inputs
+and sessions from the earlier1.2G supervisor peak; not a controlled comparison.
+No allocation-content dumps were retained.
+
+Restricted macOS leaks scan of that historical appPID19889:420leaks/20,336total leaked
+bytes,523,615malloc nodes/192,915KB. The process is not debuggable; no allocation
+contents were saved. Attribution and growth are unresolved, so neither leak-free
+operation nor an expanding Rust leak is established.
+
+After focused acceptance, the installed CLI0.2.0/LSP0.3.0 pair was refreshed with
+staged copies and atomic replacements. Hashes match the current repository tools:
+CLI0f14ca6e610ae4366a995dab150a275d2c1aca2841ef6c2a3115b71984752bd7;
+LSP4d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688.
+No active editor/server process was found at refresh. Running Studio supervisor
+keeps its accepted image and remains active.
+
+Latest native Tree/root-removal source rebuild passed in13,356ms, including
+4,419.3ms runtime preparation. Typed data/compiler/LSP prerequisite is locally
+checkpointed at791d4d43; the package viewer and these records form the next checkpoint.
+No unchanged acceptance executables were replayed for the layout correction.

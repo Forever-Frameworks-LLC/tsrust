@@ -9,6 +9,12 @@ placeholder controls, pretend tabs or website-style branding. File names belong
 in functional document tabs; actions belong in compact editor toolbars/menus.
 Validate behavior in the running app, not only its appearance.
 
+Reuse existing `std:ui`/GPUI Kit components before building custom controls. Use
+Tree/TreeItem for project navigation. The workspace directory itself is not an
+extra tree row: show its contents directly. Keep the main view free of convenience
+button bars; put commands in the editor's native interactions, menus or the
+appropriate dedicated surface. Do not add filler merely because it is clickable.
+
 ## Initial editor test workspace — owner, 2026-11-10
 
 Use this `apps/studio` package as the initial open directory when developing and

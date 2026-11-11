@@ -1,0 +1,69 @@
+import { test, strictEqual } from 'std:testing';
+import { createTempDir, mkdirAll, writeTextFile, removeDirAll } from 'std:fs';
+import { tempDir } from 'std:env';
+import { openWorkspace, openFile, entries } from '../src/workspace.tsr';
+
+test('real package files open once with exact Unicode and CRLF contents', () => {
+  const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+  try {
+    unwrap(mkdirAll(root + '/src'));
+    unwrap(writeTextFile(root + '/src/café.tsr', 'café 🦀 e\u0301\r\n'));
+    unwrap(writeTextFile(root + '/tsrust.config.json', '{}\n'));
+    const workspace = unwrap(openWorkspace(root));
+    unwrap(openFile(workspace, root + '/src/café.tsr'));
+    const source = clone(workspace.active);
+    strictEqual(workspace.files[0].text, 'café 🦀 e\u0301\r\n');
+    strictEqual(workspace.files[0].language, 'tsrust');
+    unwrap(openFile(workspace, root + '/tsrust.config.json'));
+    strictEqual(workspace.files.length, 2);
+    strictEqual(workspace.files[1].language, 'json');
+    unwrap(openFile(workspace, root + '/src/../src/café.tsr'));
+    strictEqual(workspace.active, source);
+    strictEqual(workspace.files.length, 2);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('project listing sorts directories first and omits generated build trees', () => {
+  const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+  try {
+    unwrap(mkdirAll(root + '/target'));
+    unwrap(mkdirAll(root + '/src'));
+    unwrap(writeTextFile(root + '/a.tsr', ''));
+    const children = unwrap(entries(root));
+    strictEqual(children.length, 2);
+    strictEqual(children[0].name, 'src');
+    strictEqual(children[0].directory, true);
+    strictEqual(children[1].name, 'a.tsr');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('outside and missing files leave the current tab and its contents intact', () => {
+  const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+  try {
+    unwrap(mkdirAll(root + '/package'));
+    unwrap(mkdirAll(root + '/package-other'));
+    unwrap(writeTextFile(root + '/package/source.tsr', 'keep me'));
+    unwrap(writeTextFile(root + '/package-other/outside.tsr', 'outside'));
+    const workspace = unwrap(openWorkspace(root + '/package'));
+    unwrap(openFile(workspace, root + '/package/source.tsr'));
+    const active = clone(workspace.active);
+    for (const path of [root + '/package-other/outside.tsr', root + '/package/missing.tsr']) {
+      match (openFile(workspace, path)) {
+        Ok(_) => {
+          throw 'invalid file was admitted';
+        },
+        Err(_) => {}
+      }
+
+      strictEqual(workspace.active, active);
+      strictEqual(workspace.files.length, 1);
+      strictEqual(workspace.files[0].text, 'keep me');
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

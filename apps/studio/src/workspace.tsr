@@ -1,0 +1,88 @@
+import { canonicalize, stat, readDir, readTextFile } from 'std:fs';
+import { basename, extname, separator } from 'std:path';
+
+export interface OpenFile {
+  path: string;
+  name: string;
+  text: string;
+  language: string;
+}
+
+export interface Workspace {
+  root: string;
+  files: OpenFile[];
+  active: string;
+  message: string;
+}
+
+export interface Entry {
+  path: string;
+  name: string;
+  directory: boolean;
+}
+
+export function openWorkspace(path: string): Result<Workspace, string> {
+  try {
+    const root = unwrap(canonicalize(path));
+    if (!unwrap(stat(root)).isDirectory) return Err('Choose a project directory.');
+    return Ok({
+      root, files: [], active: '', message: 'Choose a file to preview.'
+    });
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+export function entries(path: string): Result<Entry[], string> {
+  try {
+    const children = unwrap(readDir(path, 10000));
+    const visible: Entry[] = [];
+    for (const child of children) {
+      if (child.name !== 'target' && child.name !== '.git' && child.name !== 'node_modules') {
+        visible.push({
+          path: clone(child.path), name: clone(child.name), directory: child.isDirectory
+        });
+      }
+    }
+
+    visible.sort((a, b) => a.directory !== b.directory ? (a.directory ? -1 : 1) : (a.name < b.name ? -1 : (a.name > b.name ? 1 : 0)));
+    return Ok(visible);
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+export function language(path: string): string {
+  const extension = extname(path);
+  if (extension === '.tsrx') return 'tsrx';
+  if (extension === '.tsr') return 'tsrust';
+  if (extension === '.rs') return 'rust';
+  if (extension === '.json') return 'json';
+  if (extension === '.md') return 'markdown';
+  if (extension === '.html') return 'html';
+  if (extension === '.css') return 'css';
+  if (extension === '.toml') return 'toml';
+  return '';
+}
+
+export function openFile(workspace: Mutable<Workspace>, path: string): Result<void, string> {
+  try {
+    const resolved = unwrap(canonicalize(path));
+    if (!resolved.startsWith(workspace.root + separator())) return Err('This file is outside the open project directory.');
+    if (workspace.files.some((file) => file.path === resolved)) {
+      workspace.active = clone(resolved);
+      workspace.message = 'Read-only preview • ' + resolved;
+      return Ok();
+    }
+    // shortcut: preview reads are bounded to 4 MiB; add a streaming document path for large-file editing.
+    const text = unwrap(readTextFile(resolved, 4 * 1024 * 1024));
+    workspace.files.push({
+      path: clone(resolved), name: basename(resolved), text, language: language(resolved)
+    });
+    workspace.active = clone(resolved);
+    workspace.message = 'Read-only preview • ' + resolved;
+    return Ok();
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}

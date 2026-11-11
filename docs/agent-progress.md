@@ -8,149 +8,136 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-10
 
-Persistent full Studio goal is active. Owner authorized implementation and genuine
-compiler prerequisites; no reduced MVP, no postponement behind unrelated v0.2.0
-work. One writer, no delegation, no pushes/model publication/signing/tags/releases.
-Checkpoint3c59b679 starts ordinary apps/studio, revision-safe whole-buffer proposals,
-scalar Candle admission and honest stopped-inference evidence. Full required scope:
-[plan](plans/tsrust-studio.md); exact proof/model/resource details:
-[audit](plans/tsrust-studio-audit.md).
+Full persistent Studio goal remains active, not an MVP or delivery claim. Owner
+approved real implementation and compiler prerequisites, one writer/no delegation,
+local checkpoints only. No pushes/model publication/signing/tags/releases. Full
+requirements: [Studio plan](plans/tsrust-studio.md). Exact proofs, model identities,
+failed resource attempts and historical dev profiling: [audit](plans/tsrust-studio-audit.md).
+Attachment: /Users/seancotter/.codex/attachments/59d3ec78-9ac4-4015-8b60-f6fc29fb58a3/pasted-text-1.txt.
 
-Owner UI correction: no decorative app-name/filename headers, pretend tabs or
-nonfunctional controls, even demos. Follow VS Code/Visual Studio/Zed/IntelliJ
-workspace patterns. Removed that header and debug revision label; actual compact
-Find/Replace/theme controls work. Rule persisted in apps/studio/AGENTS.md and plan.
-Initial preview CUA proves Unicode paste/undo, keyboard entry,100-line scrolling,
-zoom/restore, both themes, actual search and replacement/undo. Initial search lost
-first S once; subsequent selected query typed Hello correctly. Initial-focus/first-
-key and unnamed upstream search AX controls remain gaps, not full keyboard/AX
-acceptance. Still an unsaved scratch editor, no file saving/recovery implemented.
+Initial workspace is **apps/studio only**, per owner's correction at e09f8fcd;
+do not open/index the whole compiler checkout yet. No decorative headers, pretend
+tabs or placeholder actions. Follow VS Code/Visual Studio/Zed/IntelliJ patterns.
+The current native window now browses its actual package and opens source/config
+files in real tabs with syntax highlighting, full-height flat code views, active-
+file Find through Cmd+F. Native std:ui Tree/TreeItem shows workspace contents
+directly, without a studio root row; the convenience button bar is removed. All previews are explicitly read-only. Saving,
+editable buffers, recovery and the complete editor/agent inventory remain required.
 
-**Keep dev running.** Owner explicitly requested ongoing tsrust dev monitoring,
-profiling, leak/resource/recompile observations and evidence-led optimization.
-Current live tool PTY session15252, supervisorPID74090; current appPID76050 (changes
-after successful source rebuild), bundleID dev.tsrust.studio.dev. Command from
-apps/studio: repository target/debug/tsrust dev --verbose --color=always, with
-CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1 and repository CARGO_TARGET_DIR. Old standalone
-preview and first dev tree are stopped; exactly one dev Studio window is open.
-Do not stop/restart this supervisor casually. Auto-review rejected initial Ctrl+C;
-owner then explicitly approved ONE restart to load tested macOS identity fix.
-That restart is spent, oldPID70667/70994 reaped. Normal dev source rebuilds continue
-under the same retained supervisor. CUA phase complete: Verified Studio dev rebuild
-recovery. Do not open the superseded dev.tsrust.studio.preview bundle.
+**KEEP DEV RUNNING. Current live tool PTY session51314, supervisorPID15826,
+childPID29484** (child changes after source rebuild), bundle dev.tsrust.studio.dev.
+Command, from apps/studio, with desktop access (require_escalated), login=false:
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
+/Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
+Owner explicitly approved replacing the old scratch supervisor after asking why
+its screen had not changed. That replacement is complete; do not restart casually.
+The first replacement under the restricted sandbox failed at NSPasteboard after
+XPC denial. Completing the same approved replacement with desktop access worked.
+Old supervisor74090/app76050 and failed replacement are stopped. Exactly one
+current Studio preview remains. Normal source rebuilds continue in the retained
+supervisor; temporary .app sandbox-extension warnings remain nonfatal.
 
-Accepted dev fix at e28b8d1f: macOS UI
-programs get temporary .app metadata through the existing packaging plist helper,
-.dev identifier and configured name; backend dev stays a plain executable. No sign,
-notarize, archive, app.json updater identity or release artifact. Studio package
-metadata names the app; new CLI d8d5f8e3a2fd909797ff6b42f87a379882dc528babf0b5e03f517e4b93cb6c85.
-Focused CLI metadata/config tests2/2PASS (0.01s execution,8.73s compile/setup),
-process-group cleanup1/1PASS0.03s (0.33s setup), CLI buildPASS12.32s, whole formatter
-0files/0snippets/0fingerprints, diff checkPASS. Actual CUA now identifies dev bundle.
-Temporary syntax error produced exact source diagnostic while old app stayed usable
-(Find worked). Error removed; real Find->Find in file label edit rebuilt successfully,
-old app reaped, same supervisor alive, new label observed in native UI.
+CUA completed: Opened Studio package in tabs; Verified package tabs and status;
+Verified native tree without clutter.
+Observed actual main.tsrx, tsrust.config.json and workspace.tsr tabs; source folder
+expansion remains open across file selection. Latest native Tree folder clicks
+and Right-key expansion work; file selection opens real tabs, with no root wrapper
+or button bar. Cmd+F opens native search. Both themes passed on the earlier viewer;
+the current layout starts dark and has no theme button. Full-height layouts work. Binary icon.png reports UTF-8 error without replacing current file. Explicit
+computed<string> status follows selected file/error. Find targets active config;
+initial CUA typeText again lost the first character, while Raise + select-all/type
+produced exact schemaVersion. Focus/first-key attribution and unnamed Kit search
+AX controls remain gaps. A read-only typing attempt left source unchanged; this
+is not full editable, IME, selection or keyboard acceptance.
 
-Dev observations, NOT quiet-machine benchmark claims: first cold dev47,767ms,
-runtime prepare1671.1ms, runtime build/publish38815.8ms; metadata-only warm rebuild
-2787ms (check1947.8, emit301.6, native cachehit). New CLI restart46,762ms, runtime
-build/publish37338ms; semantic recovery rebuild11,903ms (check2067, emit297.9,
-runtime-cache prepare5016.6ms/hit; native+link9097.1ms includes preparation).
-Cache restore is an investigation target; do not weaken cache provenance/identity.
-Backend identity intentionally includes all environment inputs for arbitrary
-upstream build scripts; different launch environments may legitimately miss cache.
+**Confirmed remaining UI defect: tab switches reset native scroll state.**
+In stdlib/ui/gpui_kit.rs sync_kit.collect uses visible_root and retires hidden
+CodeEditor state. Correct retained native state/focus/disposal before enabling
+writes; do not mask it with opacity/overlaid controls. TabsContent's current native
+layout only gave the editor intrinsic height, so Studio composes Kit's real tab
+bar with full-height hidden document panels instead. browser.tsrx constructs its
+child Nodes once outside reactive JSX spread expressions; merely passing Signal
+inside those expressions previously recreated folders and reset expansion.
 
-Read-only native profiling worked. First dev supervisor leaks0; footprint124.0MiB,
-peak1.2GiB; app footprint100.0MiB/peak161.7MiB. Two app scans SAME PID70994 report
-exactly421 unreachable objects/20,368 bytes, chiefly3NSXPCConnection cycles plus
-NSMutableArrays; unchanged between scans. Attribution remains open, not leak-free
-or proof of growing Rust retention. Post-rebuild current supervisor82.5MiB/peak1.2GiB;
-current app118.2MiB/peak178.7MiB. RSS varies with macOS compression; do not call its
-changes leaks. Inspect stack/alloc evidence before changing owners or disabling features.
-Native macOS logs sandbox_extension_issue_file_to_process for temp bundle; window,
-AX and dev recovery still work. Record warning separately; no permissions weakened.
-Installed PATH tools were stale CLI0.1.2/LSP0.2.2. Repository-required atomic paired
-refresh succeeded: tsrust0.2.0/tsrust-lsp0.3.0. Existing VS Code config already points
-to repository debug pair; no owner editor process was controlled/restarted.
+Typed data prerequisite is checkpointed at791d4d43: signal admission in
+analysis/ui.rs, owned snapshots in emit/ui.rs, facade docs, LSP method help/native
+alias identity and opt-level1 debug LSP profile. The current checkpoint adds
+apps/studio workspace/browser/UI and these acceptance records.
+No JSON-encoded state or handwritten Rust editor code. Generic native Signal
+already supported Clone payloads. Scalars, nullable values, plain records/arrays
+are admitted; nested native resources/views/callbacks reject. The nullable union
+emitter uses existing tsr_owned conversion. Direct record/array-field JSX text is
+still a construction-time snapshot under scalar_text's current form recognition;
+use explicit computed<T> for live scalar text projections. Inference of computed
+from this data projection needed explicit <string>. These reusable language gaps
+must remain visible in acceptance rather than being called fully general reactivity.
 
-Preserve earlier passed proofs: documents4/4 (formatted rerun0.207125ms, setup322.716ms,
-cachehit); Candle scalar training3/3, execution1.5945ms, setup/build414405.813042ms
-including unrelated shared-target wait. This proves autodiff/SGD/scalar orchestration,
-not adapters/checkpoint files/model training. Generic UI record/array signals and
-checked native opaque/Drop owners remain reusable capability gaps.
+Passed checks to preserve; do not replay unchanged executables:
+- Compiler UI authoring: six existing cases passed in the earlier17.36s run;
+  corrected new data/resource rejection case passes1/1 in1.21s (149s setup).
+- Native gpui-starter composition/navigation/data snapshots:12/12PASS,3.30ms
+  execution,163,863.8ms build/setup. Deep constructor/get/set copies, nullable,
+  Unicode/CRLF, empty record arrays and scalar arrays are covered.
+- Studio workspace suite3/3PASS,3.93ms execution,2,953.0ms build/setup. Canonical
+  de-duplication, exact text/language, sorted filtered listing, outside/missing
+  errors preserving tabs. Earlier document proposal4/4 retained unchanged.
+- Native alias unit1/1PASS0.63s; full header/checked graph alias unit1/1PASS12.98s
+  before debug LSP optimization. Debug LSP now uses opt-level1 with debug checks,
+  matching existing compiler optimization. Actual server had exceeded existing
+  3-second deadline with UI indexing; deadline was not raised.
+- New completion matrix2rows x4modesPASS21.47s and editor consistency4modesPASS11.22s,
+  including typed signatures/hover/docs and zero stale/empty/non-member counters.
+- Initial selected Signal checker-agreement run finished418.10s with one false
+  oracle disagreement: Signal.length actually rejects with a specific temporary-
+  receiver error. Oracle had mistaken any diagnostic different from unknown-field
+  for field acceptance. Shared predicate now rejects that diagnostic; actual-
+  compiler regression preserves ordinary array.length and passes0.53s.
+- Corrected full selected Signal agreement rerun PASS1/1,413.88s. Exact binary
+  target/debug/deps/checker_agreement-0e7ca4f34a237d39, environment
+  TSRUST_LSP_AGREEMENT_TYPE='Signal<string[]>'. Session10828 is terminal. The
+  complete candidate scan was preserved; no member or receiver was excluded.
 
-Official Qwen1.5B Q4_K_M + pinned tokenizer under ignored target/studio-models;
-size/SHA256/Git blobs verified, exact identities in audit. Two bounded CPU Candle
-attempts stopped before answers on >256MiB system swap growth: attempt1 261.5MiB,
-54.910s total with concurrent external builds; attempt2 468.5MiB,10.603s after builds
-ended, sampled ownedRSS607256576B. Invalid-limit controls passed both attempts.
-No native inference/quality/minimum-machine acceptance. No unchanged retries.
-Candle0.11 Qwen fully dequantizes embeddings; concrete memory-cost candidate,
-not proven allocation attribution. Investigate compiled llama-cpp-2 Rust library
-as alternative managed inference (no separate server), retain Candle training proof.
-Primary research and CMake inventory preceded the successful native candidate below.
+Current verified repository binaries: CLI SHA256
+0f14ca6e610ae4366a995dab150a275d2c1aca2841ef6c2a3115b71984752bd7;
+LSP SHA2564d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688.
+Installed PATH pair was refreshed with staged copies and atomic replacements,
+matching those SHA256 values; CLI0.2.0/LSP0.3.0. No active tsrust-lsp or VS Code
+process was found at refresh. Existing VS Code settings point to repository
+target/debug pair. Constructor hover now explicitly documents computed<T> for
+live data-field text; getter/setter documentation and their passed tests are unchanged.
 
-Accepted cache-memory section at65665fb6: NativeCache checksum
-now streams64KiB with exact legacy byte-slice Hash compatibility; native bundle
-extraction validates headers/paths/duplicates/full lengths before creating output,
-then streams payloads instead of allocating the entire802MiB packed bundle.
-Existing1GiB/512-entry/version guards retained; ASCII filesystem leaf name bound255
-is explicit and tested at255/256. No cache identity, locking, corruption or alias
-validation weakened. Files: native/cache.rs, cli/native_dependency_bundle.rs,
-tests/native_cache.rs. All11native_cache tests PASS12.28s; one ignored worker is
-actually invoked by cross-process test. Bundle tests2/2PASS0.02s, including late
-malformation/no partial output, sparse >1GiB rejection, legacy version and native
-file roundtrip. Added filename-boundary cases rerun2/2PASS0.02s; setup8.70s.
-Initial selected compilation153s, no broad compiler/LSP replay. Whole formatter0.
-No comparative latency/peak-memory claim: current retained dev supervisor still
-runs prior d8d image and must not be restarted casually; fresh CLI01dc84798dded47f74f6062e3ea4ee1f3fb76e87ff919b73061e628d76ed6ff5
-contains streaming change. Installed pair remains accepted dev-fix version.
+Current cold elevated dev47,677ms; warm source rebuilds14,767/14,566/14,624ms,
+runtime preparation5,324.4/5,609.7/5,023.4ms, all warm runtime hits. Development
+observations only. The retained supervisor now includes bounded streaming cache
+checksums/extraction from65665fb6 (legacy checksum protocol and corruption guards
+passed11native-cache +2bundle tests). Historical appPID19889 read-only vmmap session25690 completed: supervisor physical footprint49.3M,
+peak408.0M; app258.6M, peak317.0M, with3open file tabs and main active. Units are
+reported verbatim from vmmap; these are not comparable benchmark runs. A subsequent restricted leaks scan reports420leaks/20,336bytes from523,615
+allocated nodes/192,915KB. Allocation contents were not saved; macOS marks the
+process not debuggable, and attribution/growth remain unproven. The earlier
+scratch scan was a different PID and is not a controlled comparison.
+No AI executable was rerun during this editor section.
 
-Third same-model/task inference attempt on streamed runner: setup/build6702.002625ms,
-invalid-limitPASS0.362375ms; stop critical pressure at10.239s total, system swapdelta
-520.06MiB, sampled ownedRSS507559936B. No answer/summary. Pressure recovered to1;
-absolute swap4294.94MiB at observation. Keep all three failed/incomplete resource
-proofs. No more unchanged Candle retries; investigate memory-mapped native backend.
+Prior accepted checkpoints: 3c59b679 initial app/proposals/scalar training;
+e28b8d1f macOS dev identity and live failed-build recovery;65665fb6 bounded cache
+buffers;acb92c73 dev identity ignores release-only options;02de4640 bounded Metal
+inference proof; e09f8fcd initial package scope. Audit retains exact results.
+Candle scalar training3/3 proves only scalar SGD orchestration, not model training.
+Three Candle CPU Qwen attempts stopped without answers on resource limits. Pinned
+llama-cpp0.1.161/Metal/mmap with the same official Qwen1.5B Q4/tokenizer passes2/2
+buffered inference tests (exact5/EOS,31,970.943958ms execution,163,195.539917ms setup,
+zero observed swap-usage growth, sampled treeRSS1,251,000,320B). No full8GiB coding
+quality, streaming, cancellation, training/specialization or distribution acceptance.
+Model artifacts remain ignored under target/studio-models. No unchanged replay.
 
-Current native-library inference gate PASS at02de4640. New managed
-llama.bindings.json/lock and ai/llama_admission.rs, ordinary admission config
-@engine alias (same worker/test assertions). Root/sys llama-cpp0.1.161, VCS e7af607,
-lock66eb63527e2cbbd31e682c8034efaa14ed62e3fde411a1f9266167d52e1f329a.
-Metal+mmap required, context2080 for unchanged2048input/32output bounds, microbatch128,
-2CPU threads, strict embedded/external tokenizer IDs. CMAKE_BUILD_PARALLEL_LEVEL=1
-explicit (--parallel1 observed); LLAMA_BUILD_SHARED_LIBS=0, LLAMA_LIB_PROFILE=Release.
-Native code is engine primitive only; prompts/workers/tests remain Tsrust.
+Latest native Tree/root-removal rebuild13,356ms passed, with runtime preparation
+4,419.3ms. No unchanged acceptance executables were replayed for this layout change.
 
-Actual offline suite2/2PASS31,970.943958ms (model31,969.934667; invalid0.225625),
-setup163,195.539917ms; total195.485s, stopnull, swap-usage delta0MiB, sampled ownedRSS
-1,251,000,320B. Exact answer5/EOS. No coding-quality or complete8GiB claim.
-Actual27,548,728B executable target/tsrust-native/v2/094d7eedb78f0baf/program links
-only macOS system dylibs/frameworks; no AI server/OpenSSL runtime dependency. CMake
-common=ON transitively despite SDK defaultFeaturesfalse; server/tools/app/shared/
-OpenMP=OFF, Metal=ON. Homebrew OpenSSL found during build, not linked; minimal build/
-portable-export closure unverified. Native GPU startup logs are verbose; no raw logs
-saved. Default source resource/stage descriptions in audit and admission README.
-
-Dev metadata refinement accepted at acb92c73: dev metadata now keeps
-only name/id, ignoring version/repo/signing options that can be supplied later at
-package time. Regression2/2PASS0.01s, setup9.01s, actualplutil valid; source change
-in app_package_cli.rs is committed. Existing retained dev remains running and
-normal Studio config is unaffected. Do not restart it to load this refinement.
-
-Next: implement real project/document opening, working document tabs and safe
-saves. Owner narrowed the initial open directory to apps/studio itself, not the
-whole Tsrust checkout. Use that package's real source/config/tests for editor
-dogfooding; expand only for a concrete workflow. Preserve unchanged executable
-test passes rather than replaying them. Record/array UI signals are still a
-compiler prerequisite for the typed document store; inspect existing generic
-native Signal and snapshot/clone handling rather than serializing application
-state into strings. Native lifecycle/cancellation, streaming/session capabilities
-and held-out evaluation remain required after this editor section. Keep
-dev session15252/PID74090 and current app76050; no superseded standalone bundle
-remains (its3verified generated files were removed). Full held-out evaluation/training/quantized artifact qualification,
-revisioned document store/safe isolated tools, complete editor services, cloud/external
-agents and Windows remain required. No full regressions, comparative measurements,
-AI distribution or release acceptance claimed.
+Next: keep supervisor51314 alive. Correct native tab state
+retention and implement revisioned editing, safe saves, external-change/draft/close
+protection. Native checked resource/streaming/session ownership, held-out AI work,
+all editor workflows, cloud/external agents and Windows remain required. Use the
+actual apps/studio package for visible acceptance as implementation proceeds.
 
 ### Balanced global search spacing — 2026-11-10 (accepted with this checkpoint)
 
