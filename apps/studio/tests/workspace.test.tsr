@@ -1,7 +1,8 @@
 import { test, strictEqual } from 'std:testing';
 import { createTempDir, mkdirAll, writeTextFile, removeDirAll } from 'std:fs';
 import { tempDir } from 'std:env';
-import { openWorkspace, openFile, entries } from '../src/workspace.tsr';
+import { edit, propose, apply } from '../src/documents.tsr';
+import { openWorkspace, openFile, closeFile, entries } from '../src/workspace.tsr';
 
 test('real package files open once with exact Unicode and CRLF contents', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
@@ -12,7 +13,7 @@ test('real package files open once with exact Unicode and CRLF contents', () => 
     const workspace = unwrap(openWorkspace(root));
     unwrap(openFile(workspace, root + '/src/café.tsr'));
     const source = clone(workspace.active);
-    strictEqual(workspace.files[0].text, 'café 🦀 e\u0301\r\n');
+    strictEqual(workspace.files[0].document.text, 'café 🦀 e\u0301\r\n');
     strictEqual(workspace.files[0].language, 'tsrust');
     unwrap(openFile(workspace, root + '/tsrust.config.json'));
     strictEqual(workspace.files.length, 2);
@@ -41,17 +42,18 @@ test('project listing sorts directories first and omits generated build trees', 
   }
 });
 
-test('outside and missing files leave the current tab and its contents intact', () => {
+test('outside, missing and non-file paths leave the current tab and its contents intact', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
   try {
     unwrap(mkdirAll(root + '/package'));
+    unwrap(mkdirAll(root + '/package/subdir'));
     unwrap(mkdirAll(root + '/package-other'));
     unwrap(writeTextFile(root + '/package/source.tsr', 'keep me'));
     unwrap(writeTextFile(root + '/package-other/outside.tsr', 'outside'));
     const workspace = unwrap(openWorkspace(root + '/package'));
     unwrap(openFile(workspace, root + '/package/source.tsr'));
     const active = clone(workspace.active);
-    for (const path of [root + '/package-other/outside.tsr', root + '/package/missing.tsr']) {
+    for (const path of [root + '/package-other/outside.tsr', root + '/package/missing.tsr', root + '/package/subdir']) {
       match (openFile(workspace, path)) {
         Ok(_) => {
           throw 'invalid file was admitted';
@@ -61,8 +63,50 @@ test('outside and missing files leave the current tab and its contents intact', 
 
       strictEqual(workspace.active, active);
       strictEqual(workspace.files.length, 1);
-      strictEqual(workspace.files[0].text, 'keep me');
+      strictEqual(workspace.files[0].document.text, 'keep me');
     }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('dirty close refuses data loss and reopening rejects proposals from the prior session', () => {
+  const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+  try {
+    unwrap(writeTextFile(root + '/a.tsr', 'disk'));
+    unwrap(writeTextFile(root + '/b.tsr', 'other'));
+    const workspace = unwrap(openWorkspace(root));
+    unwrap(openFile(workspace, root + '/a.tsr'));
+    const path = clone(workspace.active);
+    const session = clone(workspace.files[0].document.session);
+    const old = propose(workspace.files[0].document, 'old task');
+    edit(workspace.files[0].document, 'unsaved 🦀');
+    match (closeFile(workspace, path)) {
+      Ok(_) => {
+        throw 'dirty close discarded user data';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(workspace.active, path);
+    strictEqual(workspace.files[0].document.text, 'unsaved 🦀');
+    unwrap(openFile(workspace, path));
+    strictEqual(workspace.files[0].document.session, session);
+    strictEqual(workspace.files[0].document.text, 'unsaved 🦀');
+    unwrap(openFile(workspace, root + '/b.tsr'));
+    const other = clone(workspace.active);
+    unwrap(closeFile(workspace, path, true));
+    strictEqual(workspace.active, other);
+    strictEqual(workspace.files.length, 1);
+    unwrap(openFile(workspace, path));
+    strictEqual(workspace.files[1].document.session === session, false);
+    strictEqual(apply(workspace.files[1].document, old), false);
+    strictEqual(workspace.files[1].document.text, 'disk');
+    unwrap(closeFile(workspace, path));
+    strictEqual(workspace.active, other);
+    unwrap(closeFile(workspace, other));
+    strictEqual(workspace.active, '');
+    strictEqual(workspace.files.length, 0);
   } finally {
     unwrap(removeDirAll(root));
   }

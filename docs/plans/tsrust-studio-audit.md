@@ -464,3 +464,52 @@ supervisor41326 physical footprint384.5M/peak384.5M and app41377
 253.1M/peak253.1M, with two open tabs and per-file Find queries. Units are verbatim.
 This is a fresh-session baseline, not a controlled comparison or leak/growth proof.
 No allocation contents were dumped.
+
+## Workspace document sessions — November 10
+
+OpenFile now owns the shared Document record instead of duplicating path/text
+in a disconnected preview model. createDocument uses existing std:uuid OS
+randomness and keeps its formatted session ID as plain typed data. Reopening a
+closed document creates a fresh session; proposals validate session, canonical
+path, revision and original text. A saved-text baseline derives dirty state.
+Clean external reload updates text/baseline and revisions; dirty reload refuses
+without changing either. Model close refuses dirty text unless the caller makes
+an explicit discard decision, then preserves another active file or selects the
+remaining neighbor. These are model operations, not native close prompts or saves.
+No new dependency, native editor implementation or disk-write control was added.
+
+openFile reuses existing open sessions, so selecting the same file cannot reload
+and discard a draft. It now refuses non-regular paths before a text read and
+handles a filesystem-root workspace prefix without doubling the separator.
+Canonical in-root/UTF-8/size guards remain. This is not race-safe hostile filesystem
+access: worker-backed file identity checks and transactional writes remain required.
+
+Final formatted native suite:10/10 PASS,4.31ms execution,3,039.5ms build/setup.
+The original proposal and file-opening assertions are preserved with the integrated
+record representation. New cases cover identical-content reopen isolation, clean
+reload/stale proposal rejection, dirty reload preservation, no-op revisions, dirty
+close rejection, explicit discard, active-neighbor selection, last close and
+reopening from actual disk. The added non-file error case preserves the current
+tab/text. Earlier integrated10/10 passed4.21ms; expanded workspace-only4/4 passed
+3.57ms before formatting. These are correctness observations, not timed benchmarks.
+
+The first check rejected unwrapping a Result<Document,string> inside the FsError
+catch (mixed error payload has no universal message field). The final code matches
+that Result explicitly; the live dev supervisor preserved the old app on failure.
+No compiler or error-contract weakening was used. Whole-project formatter changed
+3files, verified tokens/idempotence, and the final formatted suite above passed.
+
+Normal source rebuilds use the retained session6863/supervisor41326. Initial
+session-model build51,764ms included a runtime cache miss (prepare1,599.8ms,
+build/publish41,486.4ms); final formatted-source rebuild12,184ms used a runtime
+cache hit. Current app48203 opens main.tsrx and the actual documents.tsr with native
+Tree and tabs. CUA phase “Verified workspace document session integration” completed.
+
+Observed dev limitation: changing only the test source still restarted the app
+after an identical native-cache hit (3,015ms), resetting open tabs. Suppress
+unchanged-app replacements and preserve unsaved drafts before exposing editing;
+this is not accepted as safe live editor development. Keyed panel reconciliation
+is also required before native close/reordering: current reactive lists retain
+rows by position/shape. Safe-save atomicity/external-change detection, recovery,
+native close prompts, editable undo/redo, full AX/IME and agent file isolation
+remain open. The app remains read-only.

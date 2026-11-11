@@ -13,6 +13,11 @@ expanded folders when tabs change. Generated `target`, `.git` and `node_modules`
 directories are omitted; preview reads are limited to 4 MiB per file. Invalid
 UTF-8/binary files report an error while preserving the current document.
 
+Each open file now uses a revisioned document session, with a saved-text baseline.
+Reopening gets a fresh session; old proposals reject even when the path and bytes
+match. The document model refuses dirty reload/close without explicit discard.
+Those guards are tested; native close prompts and disk saving are not yet connected.
+
 This stage is read-only: no editor writes or save controls are enabled. Safe
 editing, saves, external-change handling, recovery and tab closing remain required.
 Native tab switching retains scroll, selection and each file’s Find query,

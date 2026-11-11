@@ -1,10 +1,10 @@
 import { canonicalize, stat, readDir, readTextFile } from 'std:fs';
 import { basename, extname, separator } from 'std:path';
+import { Document, createDocument, dirty } from './documents.tsr';
 
 export interface OpenFile {
-  path: string;
+  document: Document;
   name: string;
-  text: string;
   language: string;
 }
 
@@ -68,21 +68,52 @@ export function language(path: string): string {
 export function openFile(workspace: Mutable<Workspace>, path: string): Result<void, string> {
   try {
     const resolved = unwrap(canonicalize(path));
-    if (!resolved.startsWith(workspace.root + separator())) return Err('This file is outside the open project directory.');
-    if (workspace.files.some((file) => file.path === resolved)) {
+    const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+    if (!resolved.startsWith(prefix)) return Err('This file is outside the open project directory.');
+    if (workspace.files.some((file) => file.document.path === resolved)) {
       workspace.active = clone(resolved);
       workspace.message = 'Read-only preview • ' + resolved;
       return Ok();
     }
+
+    if (!unwrap(stat(resolved)).isFile) return Err('Choose a regular file.');
     // shortcut: preview reads are bounded to 4 MiB; add a streaming document path for large-file editing.
     const text = unwrap(readTextFile(resolved, 4 * 1024 * 1024));
-    workspace.files.push({
-      path: clone(resolved), name: basename(resolved), text, language: language(resolved)
-    });
+    match (createDocument(clone(resolved), text)) {
+      Err(message) => {
+        return Err(clone(message));
+      },
+      Ok(document) => {
+        workspace.files.push({
+          document, name: basename(resolved), language: language(resolved)
+        });
+      }
+    }
+
     workspace.active = clone(resolved);
     workspace.message = 'Read-only preview • ' + resolved;
     return Ok();
   } catch (error) {
     return Err(clone(error.message));
   }
+}
+
+// Closing a dirty document requires an explicit discard decision from the caller.
+export function closeFile(workspace: Mutable<Workspace>, path: string, discard: boolean = false): Result<void, string> {
+  const index = workspace.files.findIndex((file) => file.document.path === path);
+  if (index < 0) return Err('This file is not open.');
+  if (!discard && dirty(workspace.files[index].document)) return Err('Save or discard the unsaved changes before closing.');
+  workspace.files.splice(index, 1);
+  if (workspace.active === path) {
+    if (workspace.files.length === 0) {
+      workspace.active = '';
+      workspace.message = 'Choose a file to preview.';
+    } else {
+      const next = index < workspace.files.length ? index : workspace.files.length - 1;
+      workspace.active = clone(workspace.files[next].document.path);
+      workspace.message = 'Read-only preview • ' + workspace.active;
+    }
+  }
+
+  return Ok();
 }

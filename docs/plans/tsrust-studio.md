@@ -300,6 +300,11 @@ change unrelated v0.2.0 acceptance or authorize a release.
   verified after the runtime fix. Full AX/focus, editing,
   safe saves, recovery and the rest of the editor inventory remain open. The
   current dev supervisor stays running; current evidence is in the audit.
+- Package tabs now own revisioned document sessions with saved-text baselines.
+  Fresh session identities reject proposals from previously closed/reopened files,
+  even with identical bytes and revision numbers. Dirty reload/close guards pass
+  in the model. Integrated native document/workspace suite10/10 passes; native
+  close prompts, safe disk writes and crash/draft recovery remain required.
 - Candle scalar optimizer proof3/3 passes. Three Candle CPU quantized-model
   attempts stopped on resource conditions, without answers. Those results remain.
 - Exact same official Qwen1.5B Q4 model and arithmetic oracle pass with pinned

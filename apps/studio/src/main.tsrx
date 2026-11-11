@@ -5,9 +5,9 @@ import { Workspace, OpenFile, openWorkspace, openFile } from './workspace.tsr';
 import { ProjectTree } from './browser.tsrx';
 
 function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>): Node {
-  const path = clone(file.path);
+  const path = clone(file.document.path);
   return <View hidden={workspace.get().active !== path} className="flex-col grow min-h-0">
-    <CodeEditor id={clone(file.path)} language={clone(file.language)} value={clone(file.text)} readOnly={true} appearance={false} bordered={false} accessibilityLabel={clone(file.path)} className="grow min-h-0" />
+    <CodeEditor id={clone(file.document.path)} language={clone(file.language)} value={clone(file.document.text)} readOnly={true} appearance={false} bordered={false} accessibilityLabel={clone(file.document.path)} className="grow min-h-0" />
   </View>;
 }
 
@@ -36,7 +36,7 @@ function App(): Node {
         next.message = 'Read-only preview • ' + path;
         workspace.set(next);
       }} size="small" variant="tab" className="shrink-0">
-        {...workspace.get().files.map((file: ReadOnly<OpenFile>) => <Tab value={clone(file.path)} label={clone(file.name)} accessibilityLabel={clone(file.path)} />)}
+        {...workspace.get().files.map((file: ReadOnly<OpenFile>) => <Tab value={clone(file.document.path)} label={clone(file.name)} accessibilityLabel={clone(file.document.path)} />)}
       </Tabs>
       <View className="flex-col grow min-h-0">
         {...workspace.get().files.map((file: ReadOnly<OpenFile>) => FilePanel(file, workspace))}

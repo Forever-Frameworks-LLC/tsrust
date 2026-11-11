@@ -25,7 +25,7 @@ directly, without a studio root row; the convenience button bar is removed. All 
 editable buffers, recovery and the complete editor/agent inventory remain required.
 
 **KEEP DEV RUNNING. Current live tool PTY session6863, supervisorPID41326,
-childPID41377** (child changes after source rebuild), bundle dev.tsrust.studio.dev.
+childPID48203** (child changes after source rebuild), bundle dev.tsrust.studio.dev.
 Command, from apps/studio, with desktop access (require_escalated), login=false:
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
 /Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
@@ -165,8 +165,33 @@ no language-service signatures changed in this renderer fix.
 Fresh vmmap baseline after native acceptance (two tabs): supervisor384.5M/peak384.5M;
 app253.1M/peak253.1M, units verbatim. Not a controlled comparison or leak proof.
 
-Next: keep session6863 alive. Implement revisioned editing, safe saves,
-external-change/draft/close protection in the actual package workspace.
+Current document section: workspace OpenFile owns the shared Document (path,
+session, revision, text, savedText). OS-random std:uuid IDs isolate reopened sessions;
+proposals now match session too. Dirty state compares saved text; clean reload
+updates baseline/revision, dirty reload preserves drafts. closeFile model refuses
+dirty close unless explicitly discarded and preserves/selects the remaining tab.
+openFile reuses live sessions and rejects non-regular paths before reading.
+
+Final formatted tests10/10PASS4.31ms execution,3,039.5ms build/setup, using
+`tsrust test tests --profile` from apps/studio. Earlier10/10PASS4.21ms; expanded
+workspace4/4PASS3.57ms; preserved old assertions, added identical-byte session
+reopen, baseline/dirty reload, no-op revision, discard/close and actual reopen.
+First mixed string/FsError catch failed checking; fixed by explicitly matching
+createDocument Result, without changing compiler contracts. Dev retained the
+working app during failure. Formatter changed3files and final native tests passed.
+
+Latest appPID48203, same supervisor41326/session6863. Normal rebuild after format
+12,184ms, runtime preparation5,072.4ms cache hit. Earlier new UUID runtime build
+51,764ms cache miss. CUA “Verified workspace document session integration” completed:
+actual documents.tsr opens in a native tab through the integrated document record.
+No native save/close control is exposed; app remains read-only.
+
+Next: keep session6863 alive. Add safe file-save/recovery primitives and wire
+revisioned editing, external changes and native close prompts. Also fix positional
+reactive list retention before closing/reordering panels; prevent test-only changes
+with an identical native binary from needlessly replacing the app (observed3,015ms
+cache-hit restart). Unsaved draft preservation across legitimate dev reloads is
+required before enabling editing. Model guards alone do not prove disk safety.
 Native checked resource/streaming/session ownership, held-out AI work,
 all editor workflows, cloud/external agents and Windows remain required. Use the
 actual apps/studio package for visible acceptance as implementation proceeds.
