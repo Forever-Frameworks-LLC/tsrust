@@ -73,6 +73,8 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
     const second = clone(workspace.files[1].document.path);
     const oldSession = clone(workspace.files[0].document.session);
     strictEqual(selectFile(workspace, first), true);
+    workspace.dockLayout = 'opaque native layout 日本語';
+    workspace.zoomLevel = 3;
     edit(workspace.files[1].document, 'draft 日本語 🦀\r\n');
     unwrap(persistRecovery(workspace, recovery));
     unwrap(writeTextFile(root + '/a.tsr', 'changed on disk'));
@@ -81,6 +83,8 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
     const restored = unwrap(restoreRecovery(reopened, root + '/journal.json'));
     strictEqual(reopened.files.length, 2);
     strictEqual(reopened.active, first);
+    strictEqual(reopened.dockLayout, 'opaque native layout 日本語');
+    strictEqual(reopened.zoomLevel, 3);
     strictEqual(reopened.files[0].document.text, 'changed on disk');
     strictEqual(dirty(reopened.files[0].document), false);
     strictEqual(reopened.files[0].document.session === oldSession, false);
@@ -106,6 +110,8 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
     unwrap(restoreRecovery(legacy, root + '/legacy.json'));
     strictEqual(legacy.files.length, 1);
     strictEqual(legacy.files[0].document.text, 'legacy');
+    strictEqual(legacy.dockLayout, '');
+    strictEqual(legacy.zoomLevel, 0);
     // Invalid view state cannot partially restore buffers or replace its journal.
     const invalidJournal = {
       schemaVersion: 1, root: clone(workspace.root), drafts: clone(legacyJournal.drafts), opened: [clone(first), root + '-outside/file.tsr'], active: clone(first)

@@ -13,6 +13,8 @@ export interface Workspace {
   files: OpenFile[];
   active: string;
   error: string;
+  dockLayout: string;
+  zoomLevel: int;
 }
 
 export interface Entry {
@@ -26,7 +28,7 @@ export function openWorkspace(path: string): Result<Workspace, string> {
     const root = unwrap(canonicalize(path));
     if (!unwrap(stat(root)).isDirectory) return Err('Choose a project directory.');
     return Ok({
-      root, files: [], active: '', error: ''
+      root, files: [], active: '', error: '', dockLayout: '', zoomLevel: 0
     });
   } catch (error) {
     return Err(clone(error.message));

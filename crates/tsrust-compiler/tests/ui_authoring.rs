@@ -114,7 +114,8 @@ fn dock_selection_and_close_callbacks_keep_borrowed_string_contracts() {
         check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap())
     };
     check("import {Node,Dock,DockPanel,Text,signal} from 'std:ui';function main(){const selected=signal('a');const dirty=signal(false);const node=<Dock tabbed={true} value={selected.get()} onChange={(value)=>{selected.set(clone(value));}} onClose={(value)=>{console.log(value);}}><DockPanel value='a' title='First' closable={!dirty.get()} padded={false}><Text>Editor</Text></DockPanel></Dock>;}").unwrap().emit_rust();
-    for property in ["onChange", "onClose"] {
+    check("import {Dock,DockPanel,signal} from 'std:ui';function main(){const saved=signal('');const node=<Dock initialLayout={saved.get()} onLayoutChange={(layout)=>{saved.set(clone(layout));}} onLayoutError={(error)=>{console.log(error);}}><DockPanel value='stable'/></Dock>;}").unwrap().emit_rust();
+    for property in ["onChange", "onClose", "onLayoutChange", "onLayoutError"] {
         let source=format!("import {{Dock}} from 'std:ui';function main(){{const node=<Dock {property}={{(value:int)=>{{console.log(value);}}}}/>;}}");
         assert!(check(&source).is_err(),"{property} accepted an integer callback instead of borrowed text");
     }

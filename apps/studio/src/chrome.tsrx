@@ -5,6 +5,7 @@ import { showSettings } from './settings-window.tsrx';
 import { StudioConfig } from './settings.tsr';
 import { Recovery } from './recovery.tsr';
 import { saveActive, publishWorkspace } from './document-actions.tsr';
+import { zoomWorkspace } from './zoom.tsr';
 
 export function closeTab(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: string): void {
   const next = workspace.get();
@@ -27,17 +28,17 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
     <View className="absolute right-2 top-0 bottom-0 flex-row items-center gap-2">
       <Button icon="save" variant="ghost" size="small" aria-label={accessibleName("Save file")} tooltip={message("Save file")} tooltipCommand="save-file" onPress={() => { saveActive(workspace, recovery); }} />
       <Button icon="terminal" variant="ghost" size="small" aria-label={accessibleName("Toggle terminal")} tooltip={message("Toggle terminal")} onPress={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
-      <Button icon="settings" variant="ghost" size="small" aria-label={accessibleName("Settings")} tooltip={message("Settings")} onPress={() => { showSettings(font, settings); }} />
+      <Button icon="settings" variant="ghost" size="small" aria-label={accessibleName("Settings")} tooltip={message("Settings")} onPress={() => { showSettings(font, settings, workspace); }} />
     </View>
     <Shortcut command="toggle-sidebar" keys="secondary-b" onTrigger={() => { sidebar.set(!sidebar.get()); }} />
     <Shortcut command="save-file" keys="secondary-s" onTrigger={() => { saveActive(workspace, recovery); }} />
     <Shortcut command="find-file" keys="secondary-p" onTrigger={() => { mode.set('filesearch'); sidebar.set(true); }} />
-    <Shortcut command="zoom-in" keys="secondary-=" onTrigger={() => { font.set(font.get() + 1); }} />
-    <Shortcut command="zoom-in-plus" keys="secondary-+" onTrigger={() => { font.set(font.get() + 1); }} />
-    <Shortcut command="zoom-out" keys="secondary--" onTrigger={() => { if (font.get() > 8) font.set(font.get() - 1); }} />
-    <Shortcut command="zoom-reset" keys="secondary-0" onTrigger={() => { font.set(14); }} />
+    <Shortcut command="zoom-in" keys="secondary-=" onTrigger={() => { zoomWorkspace(workspace, recovery, font, settings, 1); }} />
+    <Shortcut command="zoom-in-plus" keys="secondary-+" onTrigger={() => { zoomWorkspace(workspace, recovery, font, settings, 1); }} />
+    <Shortcut command="zoom-out" keys="secondary--" onTrigger={() => { zoomWorkspace(workspace, recovery, font, settings, -1); }} />
+    <Shortcut command="zoom-reset" keys="secondary-0" onTrigger={() => { zoomWorkspace(workspace, recovery, font, settings, 0, true); }} />
     <Shortcut command="toggle-terminal" keys="secondary-j" onTrigger={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
-    <Shortcut command="open-settings" keys="secondary-," onTrigger={() => { showSettings(font, settings); }} />
+    <Shortcut command="open-settings" keys="secondary-," onTrigger={() => { showSettings(font, settings, workspace); }} />
     <Shortcut command="search-workspace" keys="secondary-shift-f" onTrigger={() => { mode.set('search'); sidebar.set(true); }} />
     <Shortcut command="close-tab" keys="secondary-w" onTrigger={() => { closeTab(workspace, recovery, workspace.get().active); }} />
   </View>;

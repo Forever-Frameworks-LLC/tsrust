@@ -998,3 +998,92 @@ Native Dock tab drag order, split tree/sizes, cursor/scroll positions and sideba
 expansion remain unpersisted; do not infer those from open-file restoration.
 Existing synchronous journal/one-writer/missing dirty file limitations remain.
 Full original Studio/AI/editor acceptance remains incomplete and active.
+
+
+## Native Dock restoration and workspace zoom — 2026-11-11
+
+Follows7d192232 and36fe5ddc. Generated std:ui Dock now has initialLayout,
+onLayoutChange and onLayoutError with matching LSP docs. Native panels dump stable
+values through Kit's serializer. Restore maps validated center split/tab state to
+existing keyed live panels through DockLayout, skips absent panels and appends new
+children. Validation rejects malformed JSON/version/shape, unknown panel types,
+duplicate/empty values, invalid axes/sizes, input over1MiB/depth64 before builders.
+Snapshots emit after the next frame, coalescing events and suppressing equality.
+Malformed state uses default layout/error callback; Studio preserves its original
+snapshot. Native malformed fallback remains unverified; pure validation passes.
+No new dependencies or manual application Rust; editor composition extracted into
+workspace-view.tsrx, orchestration/data remain Tsrust.
+
+Owner zoom-loss report handled in same section. Workspace journal stores bounded
+zoomLevel relative to configured base fontSize. All zoom shortcuts persist; Cmd+0
+uses configured base. Startup and Settings Save/Reload retain the offset and clamp
+visible size to8–48px. Settings JSON is never rewritten by zoom shortcuts, preserving
+unknown/future fields and exact original bytes. Legacy journals default to0. This
+is document/navigation text zoom, not whole-window/system scaling. Existing
+transactional restore, fresh sessions, dirty saved baselines and atomic journal
+conflict handling are preserved. Cursor/scroll/focus state remains unpersisted.
+
+Checks: CLI/LSP build2m32s; Dock shape-validator1/1PASS0.00s execution/2m35s setup
+including lock wait; compiler Dock callback/type/format contracts1/1PASS2.42s
+execution/2m30s setup,2positive/4negative cases. Project checkPASS before zoom;
+current main/Settings/zoom compiled and ran in latest native dev. Public native
+Dock buildPASS; initial --verbose rejected without building (dev-only option).
+Recovery before zoom2/2PASS89.05ms; final formatted recovery+zoom batch3/3PASS75.05ms
+execution (setup not separately timed). Tests cover exact draft/disk baseline,
+clean tab/current disk/selection, legacy/default opaque layout+zoom, atomic conflict,
+bounds/no-op saves, nondefault base reset and invalid zoom/journal preservation.
+Fixture fixes for inline generic JSON inference, integer Math.min and consumed
+path use did not change compiler semantics. Whole formatter/generator/catalog/diff
+checks pass; broad matrix not replayed.
+
+App29756 created right/down nested panes and actually dragged documents.tsr before
+main.tsrx. Serialized center: horizontal sizes412/412; nested vertical360.5/360.5;
+per-group selections/documents-main order correct. App31412 restored all three
+native editor AX nodes and screenshot layout; independent journal comparison was
+exact JSON structural equality before/after restart. Divider drags at1417,500 to
+1537,500 and1000,794 to1000,694 produced no size changes. Do not claim pointer
+resize acceptance. Actual compiled GPUI base source path confirmed through .d:
+registry gpui-base0.9.0; inspect managed integration rather than editing registry.
+
+Zoom source auto-rebuild kept nested layout in app38249. Closed only clean test
+tabs workspace-view/documents, restoring owner's main/chrome source split. Cmd+=
+twice saved zoomLevel2; Cmd+0 saved0; twice again saved2. Settings Reload kept the
+offset without saving JSON. App39391 after queued supervisor restart retained
+both clean source panes and16px tree/editor text. Journal confirms2/drafts0.
+CUA completions: Verified restored Dock layout; Verified zoom survives restart.
+
+Current PTY16049/supervisor39042/app39391 stays running with normalized command.
+Review initially rejected Ctrl+C to81403 as a mismatched target. Read-only ps proved
+supervisor12055/app13849 and replacement wrapper26620 explicitly waiting12055;
+the same Ctrl+C retry was approved. All restarts queued concrete replacements first;
+owner standing authorization honored without another permission question.
+Latest warm build15,656ms:check13718.0ms,emit1049.3ms,backend170.0ms,app hit120.8ms,
+native+link0ms. Prior warm15,591ms/app hit116.3ms. Zoom auto-rebuild40,281ms,
+runtime hit,prepare7156.2ms,check14806.1ms,emit1135.8ms,backend59.3ms,native+link
+19595.3ms. First new-runtime dev build71,193ms/runtime miss41469.0ms. Single
+observations, not comparable benchmarks or leak tests. One idle sample app67104KiB/
+0% CPU,supervisor5584KiB/0.1%. No memory-leak acceptance claim.
+
+Cleanup under both cache namespace locks removed13known obsolete directories,
+3,064,615,625apparent bytes. Retained current dev runtime5d3257ac6b383b7b/appd336bcffd08df53a,
+public runtimecc49de1ead365b54/appb5fea5342b0e8e21, latest test runtimeb317663627d28ec1/
+app5b81102062a7469a, reusable non-UI runtime29a1299ad4f81872 and prior full-suite
+control366be1fa48a2a0fc/f373f71c690b563f. No cache/environment guard weakened.
+
+Exact SHA256: gpui_kit.rscb7dd655ad7f318f00898efc7279eddd5da7468aa36dca9f770ee0407af1641a;
+kit.rs35095183bc0acba2bd980f699bd5ebe70cafc9a6aab5e57ae5004f9b1f54b779;
+recovery.tsr77f0b86c91aa10383fdf8cde289a127bc1182e95fc266f673e5336a7f6195571;
+zoom.tsrf5d1e503670c1d5c7e94853f78d237e7912ae2d0e71aed53410e209053bec224;
+workspace-view.tsrx1d6267d0a91ad71fe942b98931242090ea1a6e20d95c20465c39f96866171290;
+zoom.test.tsr1eea9f7e7259677834b12081d1bb20df295d8cdb65fb062d664d095883c15bdf.
+Installed/target CLI87633e1999a55788244ce3c59e32274ca30b0a250931b058e9dac794dff3a648;
+LSPc79c86fa516533be93cb10c9b95fb48502ecaee1fe7a7058bf7d6e02d05da80e.
+Original home settings0c806c00cece149957766b2f47196beb82fceb1917e0d1f732997fcfae7fdddb,
+.gitignoread8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483,
+project config6facc291d6b15db7aac40cb3ad3230d45aba8bfc0c12d0e6c1bc817ce7bc8439
+remain exact. No source test draft saved. Full editor/AI scope remains active.
+
+Final pair audit caught that the host-test build had refreshed target CLI after
+the first installation. Atomically refreshed installed CLI to87633e19 (the target
+image used by all later native/zoom checks); LSP stayedc79c86fa. Both installed
+hashes now match independently. No functional tests or supervisor restart repeated.

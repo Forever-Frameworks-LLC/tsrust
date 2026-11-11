@@ -19,6 +19,8 @@ interface Journal {
   drafts: Draft[];
   opened?: string[];
   active?: string;
+  dockLayout?: string;
+  zoomLevel?: int;
 }
 
 export interface Recovery {
@@ -58,6 +60,8 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
   try {
     const journal = JSON.parse<Journal>(baseline);
     if (journal.schemaVersion !== 1 || journal.root !== workspace.root) return Err('Draft recovery belongs to another workspace or version.');
+    const zoom = journal.zoomLevel ?? 0;
+    if (zoom < -40 || zoom > 40) return Err('Invalid recovery document.');
     const next = clone(workspace);
     const opened = journal.opened;
     if (opened !== undefined) {
@@ -90,6 +94,8 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
     if (active !== undefined) selectFile(next, active);
     workspace.files = next.files;
     workspace.active = next.active;
+    workspace.dockLayout = journal.dockLayout ?? '';
+    workspace.zoomLevel = zoom;
     return Ok({
       path, baseline, ready: true
     });
@@ -108,7 +114,7 @@ export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutabl
   }
 
   const journal: Journal = {
-    schemaVersion: 1, root: clone(workspace.root), drafts, opened: workspace.files.map((file) => clone(file.document.path)), active: clone(workspace.active)
+    schemaVersion: 1, root: clone(workspace.root), drafts, opened: workspace.files.map((file) => clone(file.document.path)), active: clone(workspace.active), dockLayout: clone(workspace.dockLayout), zoomLevel: workspace.zoomLevel
   };
   const text = JSON.stringify(journal);
   if (text === recovery.baseline) return Ok();

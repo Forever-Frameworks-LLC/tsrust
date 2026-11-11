@@ -9124,10 +9124,16 @@ export interface DockProps {
   tabbed?: ReactiveValue<boolean>;
   /** Selects the panel with this value in its current group. Update from onChange. Other visible split groups stay open. */
   value?: ReactiveValue<string> | TextBinding;
+  /** Native GPUI saved layout from onLayoutChange, read only at mount. Empty or omitted uses tabbed/vertical defaults. Restores split axes, sizes, tab order and each group selection by distinct DockPanel.value; absent panels are skipped and new children are appended. Invalid JSON, unsupported version/shape, duplicate values, nonfinite/negative sizes, more than 64 levels or 1 MiB falls back to the default layout and reports onLayoutError. Does not open files, restore panel contents, focus, zoom or editor cursor/scroll state. HTML retains the option without native docking behavior. Ownership: copies text; no panel or callback ownership changes. */
+  initialLayout?: ReactiveValue<string> | TextBinding;
   /** Reports a panel value when its tab becomes active. */
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Reports a panel value after a user closes it. Remove that DockPanel child to accept; retaining it restores the panel. Set closable=false to prevent closing dirty content. */
   onClose?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Native GPUI emits an opaque versioned JSON snapshot after a layout change and the next frame, coalescing changes and suppressing unchanged snapshots. Includes measured split sizes, tab order and per-group active tabs using DockPanel.value. Persist it and pass it as initialLayout on the next mount; do not update layout by parsing/reconstructing this payload. Content and editor state are excluded. The borrowed text is valid only during the callback; clone to retain. */
+  onLayoutChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Reports why a nonempty initialLayout could not be restored. The default layout remains usable and panels keep their content. Errors are technical English diagnostics. Clone the borrowed message to retain it. No event for an empty initialLayout. */
+  onLayoutError?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** DockPanel elements. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
@@ -9152,6 +9158,11 @@ export function Dock(props: DockProps): Node {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
+  const prop_initialLayout = props.initialLayout;
+  if (prop_initialLayout !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'initialLayout', prop_initialLayout));
+  }
+
   const event_onChange = props.onChange;
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
@@ -9160,6 +9171,16 @@ export function Dock(props: DockProps): Node {
   const event_onClose = props.onClose;
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'close', event_onClose));
+  }
+
+  const event_onLayoutChange = props.onLayoutChange;
+  if (event_onLayoutChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'layoutChange', event_onLayoutChange));
+  }
+
+  const event_onLayoutError = props.onLayoutError;
+  if (event_onLayoutError !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'layoutError', event_onLayoutError));
   }
 
   return node;

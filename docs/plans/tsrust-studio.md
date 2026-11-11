@@ -371,15 +371,15 @@ Each item requires observed behavior; source changes alone do not close it.
 | # | Requirement | Current acceptance |
 |---|---|---|
 | 1 | Separate Settings window; tsrust_studio.config.json persistence | Own window, live Save/Reload, persisted region/locale preferences, preview rollback and legacy defaults observed |
-| 2 | Matching navigation/editor text sizing | Shared zoom observed; monospace tree/editor screenshot appears matched; full layout acceptance pending |
+| 2 | Matching navigation/editor text sizing | Shared tree/editor zoom and per-workspace restart retention observed; Cmd+0 records reset and Settings Reload retains offset; full layout acceptance pending |
 | 3 | Content search, regex/case toggles; distinct filename command | Model regression passes literal/case/regex/UTF-8/open-draft cases; live regex/case toggles and result-line navigation observed; Enter/worker/cancellation pending |
 | 4 | Image and appropriate non-text viewers | Actual package PNG decoded in app; other image formats and failures pending |
 | 5 | Clearly distinguished active tab | Dark active-tab contrast observed; light/other themes pending |
-| 6 | Tab/tree drag/drop, resizable editor splits | Native tab reorder/draft/undo, direct right/down splits, nested-pane redraw, all visible editor AX nodes, named tabs/close actions, pane maximize/restore and focused save observed; divider/edge gestures, shared views/layout persistence and tree moves pending |
+| 6 | Tab/tree drag/drop, resizable editor splits | Native tab reorder/draft/undo, direct right/down splits, nested-pane redraw, all visible editor AX nodes, named tabs/close actions, pane maximize/restore and focused save observed; nested split axes/sizes, dragged tab order and per-group selection restore with exact serialized equality; divider/edge gestures, duplicate views, cursor/scroll persistence and tree moves pending |
 | 7 | Markdown preview | Native preview observed after shared row-state fix; preview survives tab switches |
 | 8 | Distinct JSON syntax categories | Pending |
 | 9 | Workspace launch argument; later code-dot/dock directory opening | Root uses launch argument/current directory; package default observed; alternate launch/drop pending |
-| 10 | Editable buffers, saving and recovery | Formatted suite18/18 passes; native Unicode typing/Cmd+S/undo/redo/tab switch and unsaved recovery across supervisor restart observed; clean open files/active selection now restore (recovery2/2 passes), native Dock layout persistence pending; IME/conflict/close UX and larger recovery scope pending |
+| 10 | Editable buffers, saving and recovery | Formatted suite18/18 passes; native Unicode typing/Cmd+S/undo/redo/tab switch and unsaved recovery across supervisor restart observed; clean open files/active selection now restore (recovery2/2 passes), native Dock layout/zoom restore verified; IME/conflict/close UX and larger recovery scope pending |
 | 11 | Broad theme catalog; configuration round-trip | 38 themes including36 pinned upstream variants; all38 persistence round-trips pass; Catppuccin Latte native preview/Save/Reload observed; full catalog contrast/rendering pending |
 | 12 | Selected-tab auto-reveal; respect manual scrolling | New last tabs and clipped first/final files selected through named overflow are visibly revealed; manual scrolling remains unverified |
 | 13 | Useful status bar with truthful file/diagnostic/service state | File type/encoding, unsaved state and unconnected-LSP status implemented; type/LSP text observed; services not yet connected |
@@ -391,7 +391,7 @@ supported positions, independent visibility, saved-setting reload, Unicode draft
 split-pane and Undo preservation. English/Brazilian-Portuguese catalogs and live locale Save/Reload/startup recovery
 are verified for owned Studio UI, with query/editor Undo retained across language
 changes. Wider locale/RTL/native-control coverage, AX selected-range support and
-pane/view persistence across restart remain required.
+cursor/scroll/focus restoration and duplicate views across restart remain required.
 
 Owner permits supervisor restarts whenever needed without another permission
 question. Keep one current dev session running. Planned-feature placeholders are

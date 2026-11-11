@@ -21,63 +21,80 @@ terminal toggle and clearly labeled planned panels. Standing authorization:
 **restart the dev supervisor whenever needed without asking again**, then leave
 one preview running. Editable drafts must survive those restarts.
 
-Current section follows localization checkpoint36fe5ddc. Recovery now retains
-clean open-file paths and active selection alongside dirty drafts, through optional
-v1 fields (legacy journals remain readable). Clean files read fresh disk contents;
-deleted clean files skip, while dirty restoration remains mandatory. All validation
-finishes against a temporary Workspace before application. Existing root/canonical
-path guards and atomic compare-before-write behavior remain in force. Shared
-publishWorkspace persists tree/file/content-search opens, Dock/keyboard closes,
-selection, focus, edits and saves. No new dependency or native compiler change.
-Native Dock drag order, splits, cursor/scroll and sidebar expansion are NOT yet
-serialized; document identities regenerate on restart as required for stale edits.
+Current section follows7d192232 (open-file restoration) and36fe5ddc
+(localization). Native Dock now exposes initialLayout/onLayoutChange/onLayoutError
+through the generated std:ui facade and LSP documentation. It reuses Kit's own
+versioned serialization, restoring keyed live panels with a DockLayout builder;
+missing values skip and new children append. Shared validation rejects malformed
+shape/version/axis/sizes/duplicate values and excessive input before builders.
+Invalid state falls back with a technical diagnostic; Studio retains the bad
+snapshot rather than overwriting it. Native malformed-fallback UI remains untested.
+Editor composition moved into workspace-view.tsrx; no new dependency.
 
-**KEEP DEV RUNNING: PTY81403, supervisor12055, app13849.** Studio has README.md
-open clean, package workspace only. Current launch from apps/studio, login=false,
-tty=true, desktop access:
+Owner additionally reported zoom loss. Zoom now persists per workspace as a
+bounded offset from Settings.fontSize, in the existing journal. Startup and Settings
+Save/Reload apply base+offset within8–48px; Cmd+0 resets offset to0 and configured
+base, not hardcoded14. Shortcut changes do not write or normalize the user's
+settings JSON. Legacy journal defaults remain empty Dock layout/zoom0. Document
+sessions regenerate; dirty/external-file/journal write protections remain.
+
+**KEEP DEV RUNNING: PTY16049, supervisor39042, app39391.** Two clean source
+panes: main.tsrx left,chrome.tsrx right; zoomLevel2/base14 (16px text), drafts0.
+Current launch from apps/studio, login=false,tty=true, desktop access:
 env -u CODEX_TOOL_CALL_ID CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1
 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
 /Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
-Do not restart merely to repeat acceptance. Automatic approval review first rejected
-Ctrl+C without a concrete replacement. Queued replacement81403 waiting for94662
-exit, then the same Ctrl+C was approved; no duplicate preview or permission question.
+Keep one preview; do not restart merely to replay checks. Queue replacement first,
+print exact target/current PID evidence, then send Ctrl+C to the matching old PTY.
+Review initially rejected81403 despite queued57452; ps proved12055/app13849 on
+81403's tty and replacement26620 explicitly awaiting12055. The same retry passed.
+Subsequent queued restarts passed without permission questions. No refusal bypass.
 
-Final formatted recovery suite2/2PASS29.90ms execution (setup not separately timed).
-New witness covers clean opening order/active selection, fresh external disk bytes,
-new sessions, exact Unicode/CRLF dirty baseline, deleted clean file, closed-tab
-absence, legacy journal and invalid outside-root transaction preservation. Original
-external-edit/compare-write/corrupt-journal case also passes. Earlier2/2PASS34.52ms
-used an earlier test-fixture form, not final-source proof. Initial project check
-rejected inline JSON.stringify record inference in the fixture; named records fixed
-it without weakening compiler behavior. Native dev compiled current main and
-callers successfully. Whole-project formatter/catalog/diff checks pass.
+Passed focused checks: CLI/LSP build2m32s setup; core Dock validator1/1PASS0s
+execution/2m35s setup including Cargo lock wait; compiler Dock contracts1/1PASS
+2.42s execution/2m30s setup (2positive/4negative format-round-trip cases). Project
+check passed before zoom addition; latest main/Settings/zoom compiled and ran under
+dev after it. Public native Dock buildPASS (build has no --verbose option).
+Final formatted recovery+zoom batch3/3PASS75.05ms execution; setup not separately
+timed. Covers opaque layout+dirty/clean/legacy recovery, persistence of zoom,
+clamp/no-op bounds, nondefault base reset and invalid retained zoom. Initial fixture
+integer Math.min use and consumed path were corrected without compiler changes.
+Formatter/generator/catalog/diff checks pass. No broad matrix replay.
 
-Native app9214 opened README.md/config and selected README. Journal independently
-contained both paths/README active/drafts0. Replacement app13849 restored both
-clean tabs with README selected; closing config removed it from both UI and journal.
-CUA completed: Verified workspace tab restoration. Restart built15,992ms with app
-cache hit113.4ms/native+link0ms; preceding automatic build40,861ms had runtime hit
-and native+link16,488ms. Single observations, not benchmarks or leak acceptance.
-App RSS103936KiB/CPU0.0%, supervisor27920KiB/0.1%, one sample only.
-Home settings/.gitignore/project config hashes remain the exact original values
-recorded in the audit; recovery has only README and drafts0, no test text on disk.
+Native app29756: right/down buttons built three nested panes; actual drag reordered
+documents.tsr ahead of main.tsrx. Journal recorded axes0/1, sizes412/412 and360.5/
+360.5, correct order and selected tabs. App31412 after restart restored all three
+visible editors and exact JSON structural equality. Both horizontal/vertical
+divider drag attempts produced no size changes: interaction defect remains open.
+App38249 automatically replaced after zoom source edits, retaining Dock layout;
+closed only the two added clean test tabs, returning to owner's original source
+pair. Cmd+= twice recorded2, Cmd+0 recorded0, then2 again; Settings Reload left
+zoom intact. App39391 restart retained the same two panes and16px tree/editor
+text. CUA completions: Verified restored Dock layout; Verified zoom survives restart.
 
-Recovery SHA256e6919d35f37ce39e02cc4a99a9321527cd15b5d78b6b1af65d54916740aa186a;
-actions21a558865c7caf272c85b79bcb9931b7bb7cd3d50d54d7917fc47218936e5c5e;
-fixture8b4c54bc159bfcd6ec716dabadecbb1ddfb57f3c66ea01ef10621aef4ec2f614.
-Localization36fe5ddc: en/pt-BR89messages, live Settings preview/Save/Reload/native
-Dock labels, correct live tooltip/placeholder contracts and unchanged generic
-ownership; runtime4/4PASS562.41ms, UI contract1/1PASS7.80s, placeholder1/1PASS0s.
-Installed CLI/LSP still match target hashes in the audit; unchanged executables
-were not functionally retested here. CODEX_TOOL_CALL_ID launch normalization keeps
-compiler Cargo environment fingerprinting intact and enables application cache reuse.
+Latest warm launch15,656ms:check13718.0ms,emit1049.3ms,backend170.0ms,app hit120.8ms,
+native+link0ms. Zoom automatic rebuild40,281ms included runtime hit/native+link
+19595.3ms. First new runtime71,193ms included runtime miss41469.0ms. Single
+observations, not benchmarks. App RSS67104KiB/0% and supervisor5584KiB/0.1%, one
+sample, not leak acceptance. Current dev runtime5d3257ac6b383b7b/appd336bcffd08df53a;
+latest tests runtimeb317663627d28ec1/app5b81102062a7469a. Under namespace locks,
+removed13obsolete cache directories/3,064,615,625apparent bytes; current dev,
+public, test caches and prior full-suite control retained. No cache guard weakened.
 
-Remaining: native Dock layout/view persistence and duplicate/focused-group views,
-AX selected-text-range/unnamed Select popup rows, pointer resize/edge drag/manual
-scroll, broader locale/RTL, IME/focus, tree moves, JSON key scopes and full editor/
-agent scope. Next dependency-ready work: native Dock serialization and reusable
-managed worker/task/terminal/LSP integration. Planned panels are not services.
-Full goal remains active; keep one normalized dev process running.
+Installed/target CLI SHA25687633e1999a55788244ce3c59e32274ca30b0a250931b058e9dac794dff3a648;
+LSPc79c86fa516533be93cb10c9b95fb48502ecaee1fe7a7058bf7d6e02d05da80e match.
+Exact source hashes and original settings/.gitignore/config identities in audit.
+Home settings still exact {"schemaVersion":1,"theme":"Studio Dark","fontSize":14};
+no source test drafts saved. Localization36fe5ddc's89messages,4/4runtime and native
+language/Undo/startup proofs remain preserved, not replayed.
+
+Next: diagnose native divider dragging from the real pinned gpui-base resize handle
+and current scene; then shared worker/task/terminal/LSP services. Actual compiled
+source is registry gpui-base0.9.0 (target/debug/deps/gpui_base-967f9078c9669a36.d),
+not an unknown stale copy. Never edit registry files. Also pending: cursor/scroll/
+focus recovery, duplicate/focused-group views, AX selected-range/unnamed popup rows,
+IME, tree moves, JSON key scopes, broader locale/RTL and full editor/AI requirements.
+No full goal completion claim; keep one normalized dev process running.
 
 Previous checkpointbd88e292 added separate persistent Settings, 38 named themes,
 content regex/case search, image routing, Markdown source/preview, status/panel

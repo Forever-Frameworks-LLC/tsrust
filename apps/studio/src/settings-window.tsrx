@@ -1,16 +1,18 @@
+import { Workspace } from './workspace.tsr';
+import { zoomFontSize } from './zoom.tsr';
 import { message, localizeError } from './localization.tsr';
 import { View, Text, Button, CodeEditor, Select, SelectItem, Node, Signal, signal, computed, openWindow, useTheme, setLocale, setWindowTitle, translate, t } from 'std:ui';
 import { configPath, loadConfig, saveConfig, parseConfig, defaultConfig, themes, StudioConfig } from './settings.tsr';
 
-function applySettings(config: StudioConfig, font: Signal<int>, settings: Signal<StudioConfig>): void {
+function applySettings(config: StudioConfig, font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): void {
   setLocale(config.locale);
-  font.set(config.fontSize);
+  font.set(zoomFontSize(config.fontSize, workspace.get().zoomLevel));
   useTheme(clone(config.theme));
   settings.set(config);
   setWindowTitle(translate('Tsrust Studio Settings'));
 }
 
-function SettingsEditor(path: string, font: Signal<int>, settings: Signal<StudioConfig>): Node {
+function SettingsEditor(path: string, font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): Node {
   let initial = defaultConfig();
   const notice = signal('');
   const preserved = signal(false);
@@ -52,12 +54,12 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
       <Text className="grow truncate">{path}</Text>
       <Button icon="save" size="small" onPress={() => {
         match (saveConfig(savePath, text.get())) {
-          Ok(config) => { applySettings(config, font, settings); preserved.set(false); notice.set('Settings saved.'); },
+          Ok(config) => { applySettings(config, font, settings, workspace); preserved.set(false); notice.set('Settings saved.'); },
           Err(error) => { notice.set(error); }
         }
       }}>{t("Save")}</Button>
       <Button icon="rotate-ccw" size="small" variant="ghost" onPress={() => {
-        match (loadConfig(reloadPath)) { Ok(config) => { text.set(JSON.stringify(config)); applySettings(config, font, settings); preserved.set(false); notice.set(''); }, Err(error) => { notice.set(error); } }
+        match (loadConfig(reloadPath)) { Ok(config) => { text.set(JSON.stringify(config)); applySettings(config, font, settings, workspace); preserved.set(false); notice.set(''); }, Err(error) => { notice.set(error); } }
       }}>{t("Reload")}</Button>
     </View>
     <View className="flex-row items-center gap-3 px-3 py-2 border-b border-border">
@@ -83,10 +85,10 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
   </View>;
 }
 
-export function showSettings(font: Signal<int>, settings: Signal<StudioConfig>): void {
+export function showSettings(font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): void {
   match (configPath()) {
     Ok(path) => {
-      openWindow(SettingsEditor(path, font, settings), translate('Tsrust Studio Settings'), {
+      openWindow(SettingsEditor(path, font, settings, workspace), translate('Tsrust Studio Settings'), {
         width: 820, height: 640, minWidth: 600, minHeight: 400
       });
     },

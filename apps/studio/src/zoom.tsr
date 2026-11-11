@@ -1,0 +1,23 @@
+import { Signal } from 'std:ui';
+import { Workspace } from './workspace.tsr';
+import { Recovery } from './recovery.tsr';
+import { StudioConfig } from './settings.tsr';
+import { publishWorkspace } from './document-actions.tsr';
+
+export function zoomFontSize(base: int, level: int): int {
+  const size = base + level;
+  if (size < 8) return 8;
+  if (size > 48) return 48;
+  return size;
+}
+
+export function zoomWorkspace(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, settings: Signal<StudioConfig>, step: int, reset: boolean = false): void {
+  const base = settings.get().fontSize;
+  const size = reset ? base : zoomFontSize(font.get(), step);
+  const next = workspace.get();
+  const level = size - base;
+  if (next.zoomLevel === level && font.get() === size) return;
+  next.zoomLevel = level;
+  publishWorkspace(next, workspace, recovery);
+  font.set(size);
+}

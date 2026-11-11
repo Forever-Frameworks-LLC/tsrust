@@ -17,9 +17,17 @@ conflicting external changes. Unsaved drafts are journaled under
 `~/.tsrust/studio/recovery` and restored on restart. The journal also retains
 open files and the active tab; clean buffers read current disk contents. Missing
 clean files are skipped, while a missing dirty file preserves the journal and
-reports recovery failure. Native drag order, splits, cursor/scroll positions and
-sidebar expansion are not restored yet. Dirty tabs refuse to close;
+reports recovery failure. Native Dock split axes/measured sizes, tab order and
+per-group selection are restored by stable panel values. Cursor/scroll positions
+and sidebar expansion are not restored yet. Automated divider drags still show
+no size change and remain a tracked interaction defect. Dirty tabs refuse to close;
 explicit discard/close prompts and recovery of deleted files remain unfinished.
+Cmd++/Cmd+- adjust shared tree/editor text size between 8 and 48 pixels. Zoom
+is retained per workspace in its view-state journal, separately from the base
+`fontSize` in Settings. Cmd+0 resets to that configured base; Settings Save/Reload
+applies the base while retaining the workspace zoom offset. This changes document
+and navigation text, not the entire operating-system window scale.
+
 Recovery currently assumes one Studio writer per workspace and writes
 synchronously; large-document performance and multi-window coordination remain
 required.

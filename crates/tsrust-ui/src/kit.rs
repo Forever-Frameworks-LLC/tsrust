@@ -12,6 +12,66 @@ pub(crate) fn predicate(handler:&Predicate,value:&str)->Result<bool,String> {
 }
 pub(crate) type EventHandler = Box<dyn FnMut(&str) -> Result<(), String>>;
 
+// Validate persisted data before passing it to Kit's layout builders.
+pub(crate) fn dock_layout(text:&str)->Result<serde_json::Value,String> {
+    use serde_json::Value;
+    fn panel(node:&Value,depth:usize,values:&mut std::collections::BTreeSet<String>,leaf:bool)->Result<(),String> {
+        if depth>64{return Err("Dock layout exceeds 64 levels".into());}
+        let children=node["children"].as_array().ok_or("Dock layout requires panel children")?;
+        let info=node["info"].as_object().filter(|info|info.len()==1).ok_or("Invalid Dock panel info")?;
+        match node["panel_name"].as_str() {
+            Some("StackPanel") if !leaf=>{
+                let stack=info.get("stack").ok_or("Dock split requires stack info")?;
+                if !matches!(stack["axis"].as_u64(),Some(0|1)){return Err("Invalid Dock split axis".into());}
+                let sizes=stack["sizes"].as_array().filter(|sizes|sizes.len()==children.len()).ok_or("Dock split sizes must match children")?;
+                if sizes.iter().any(|size|!size.as_f64().is_some_and(|size|size.is_finite() && size>=0. && size<=f32::MAX as f64)){return Err("Dock split sizes require finite nonnegative native pixels".into());}
+                for child in children{panel(child,depth+1,values,false)?;}
+            },
+            Some("TabPanel") if !leaf=>{
+                if info.get("tabs").and_then(|tabs|tabs["active_index"].as_u64()).is_none(){return Err("Dock tabs require an active index".into());}
+                for child in children{panel(child,depth+1,values,true)?;}
+            },
+            Some("TsrustDockPanel") if leaf && children.is_empty()=>{
+                let value=info.get("panel").and_then(|info|info["value"].as_str()).filter(|value|!value.is_empty()).ok_or("Dock panels require stable values")?;
+                if !values.insert(value.to_owned()){return Err("Dock layout contains duplicate panel values".into());}
+            },
+            _=>return Err("Unsupported Dock layout panel".into()),
+        }
+        Ok(())
+    }
+    if text.len()>1024*1024{return Err("Dock layout exceeds 1 MiB".into());}
+    let value:Value=serde_json::from_str(text).map_err(|error|format!("Invalid Dock layout JSON: {error}"))?;
+    if value["version"].as_u64()!=Some(1){return Err("Unsupported Dock layout version".into());}
+    if ["left_dock","right_dock","bottom_dock"].iter().any(|key|value.get(key).is_some_and(|dock|!dock.is_null())){return Err("Dock layout supports the center area only".into());}
+    panel(&value["center"],0,&mut std::collections::BTreeSet::new(),false)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+mod dock_layout_tests {
+    use super::dock_layout;
+    use serde_json::{json,Value};
+    fn tab(value:&str)->Value{json!({"panel_name":"TsrustDockPanel","children":[],"info":{"panel":{"value":value}}})}
+    fn tabs(values:Vec<Value>)->Value{json!({"panel_name":"TabPanel","children":values,"info":{"tabs":{"active_index":1}}})}
+    #[test]
+    fn persisted_dock_layout_accepts_nested_unicode_and_rejects_unsafe_shapes() {
+        let state=json!({"version":1,"center":{"panel_name":"StackPanel","children":[tabs(vec![tab("src/日本語.tsr"),tab("b")]),tabs(vec![tab("c")])],"info":{"stack":{"sizes":[320,640],"axis":1}}}});
+        assert_eq!(dock_layout(&state.to_string()).unwrap(),state);
+        let mut cases=Vec::new();
+        let mut bad=state.clone();bad["version"]=json!(2);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["info"]["stack"]["axis"]=json!(2);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["info"]["stack"]["sizes"]=json!([-1,640]);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["info"]["stack"]["sizes"]=json!([320]);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["children"][1]=tabs(vec![tab("b")]);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["children"][0]=tab("not-in-tabs");cases.push(bad);
+        let mut bad=state.clone();bad["center"]["children"][0]["children"][0]=tabs(vec![]);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["children"][0]["children"][0]["panel_name"]=json!("Unknown");cases.push(bad);
+        let mut bad=state.clone();bad["left_dock"]=json!({});cases.push(bad);
+        for bad in cases{assert!(dock_layout(&bad.to_string()).is_err(),"{bad}");}
+        assert!(dock_layout("{").is_err());assert!(dock_layout(&" ".repeat(1024*1024+1)).is_err());
+    }
+}
+
 #[cfg(any(test,feature="gpui"))]
 pub(crate) fn source_language(name:&str)->&str {
     if name.eq_ignore_ascii_case("tsr") || name.eq_ignore_ascii_case("tsrust") {"typescript"}else if name.eq_ignore_ascii_case("tsrx"){"tsx"}else{name}

@@ -1,16 +1,16 @@
-import { publishWorkspace } from './document-actions.tsr';
-import { accessibleName, message, initializeTranslations, localizeError } from './localization.tsr';
-import { View, Text, Button, Dock, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
+import { accessibleName, message, initializeTranslations } from './localization.tsr';
+import { View, Text, Button, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
 import { currentDir, args } from 'std:env';
 import { extname } from 'std:path';
-import { OpenFile, openWorkspace, selectFile } from './workspace.tsr';
+import { openWorkspace } from './workspace.tsr';
 import { dirty } from './documents.tsr';
 import { Recovery, recoveryPath, restoreRecovery } from './recovery.tsr';
 import { ProjectTree } from './browser.tsrx';
 import { FileSearch } from './navigation.tsrx';
 import { ContentSearch } from './search-panel.tsrx';
-import { Chrome, closeTab } from './chrome.tsrx';
-import { FilePanel } from './editor.tsrx';
+import { Chrome } from './chrome.tsrx';
+import { EditorWorkspace } from './workspace-view.tsrx';
+import { zoomFontSize } from './zoom.tsr';
 import { Region } from './layout.tsrx';
 import { Panels, ChatPanel } from './panels.tsrx';
 import { configPath, loadConfig, defaultConfig } from './settings.tsr';
@@ -51,7 +51,7 @@ function App(path: string): Node {
       match (loadConfig(path)) {
         Ok(config) => {
           setLocale(config.locale);
-          font.set(config.fontSize);
+          font.set(zoomFontSize(config.fontSize, workspace.get().zoomLevel));
           useTheme(clone(config.theme));
           settings.set(config);
         },
@@ -74,7 +74,6 @@ function App(path: string): Node {
   const contentSearch = ContentSearch(workspace, recovery);
   const panelView = Panels(panel);
   const chatView = ChatPanel(chat);
-  const error = computed<string>(() => localizeError(workspace.get().error));
   const status = computed<string>(() => {
     const state = workspace.get();
     for (const file of state.files) {
@@ -84,17 +83,7 @@ function App(path: string): Node {
     return translate('No file open');
   });
   const chrome = Chrome(workspace, sidebar, mode, font, panel, recovery, settings);
-  const editor = <View className="flex-col size-full min-w-0 min-h-0 bg-background">
-                  <View hidden={workspace.get().files.length !== 0} className="flex-col grow items-center justify-center">
-                    <Button icon="file-search" variant="ghost" onPress={() => { mode.set('filesearch'); sidebar.set(true); }}>{t("Open a file")}</Button>
-                  </View>
-                  <View hidden={workspace.get().files.length === 0} className="flex-col grow min-h-0">
-                    <Dock value={workspace.get().active} tabbed={true} className="size-full" onChange={(path) => { const next = workspace.get(); if (next.active !== path && selectFile(next, clone(path))) publishWorkspace(next, workspace, recovery); }} onClose={(path) => { closeTab(workspace, recovery, clone(path)); }}>
-                      {...workspace.get().files.map((file: ReadOnly<OpenFile>) => FilePanel(file, workspace, font, recovery))}
-                    </Dock>
-                  </View>
-                  <View hidden={workspace.get().error === ''} className="px-3 py-2"><Text className="text-destructive">{error.get()}</Text></View>
-                </View>;
+  const editor = EditorWorkspace(workspace, font, recovery, mode, sidebar);
   const panelPosition = computed<string>(() => settings.get().panelPosition);
   const panelVisible = computed<boolean>(() => panel.get() !== '');
   const chatPosition = computed<string>(() => settings.get().chatPosition);

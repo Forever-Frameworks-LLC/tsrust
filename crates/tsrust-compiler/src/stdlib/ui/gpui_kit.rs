@@ -724,13 +724,41 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
 
 /// One DockPanel: its content is the node's children, drawn through the root.
 struct DockContent {root: WeakEntity<Root>, dock: u64, node: u64, value: String, title: SharedString, closable: bool, padded: bool, split_controls: bool, can_split: bool, last_close: bool, area: WeakEntity<DockArea>, group: Option<WeakEntity<TabGroup>>, focus: FocusHandle}
-struct DockState {area: Entity<DockArea>, panels: std::collections::BTreeMap<u64,Entity<DockContent>>, selected: String, repaint_pending: bool}
+struct DockState {area: Entity<DockArea>, panels: std::collections::BTreeMap<u64,Entity<DockContent>>, selected: String, repaint_pending: bool, last_layout: String}
+
+fn restored_dock_layout(state:&gpui_kit::base::dock::PanelState,panels:&std::collections::BTreeMap<u64,Entity<DockContent>>,used:&mut std::collections::BTreeSet<u64>,cx:&App)->Option<DockLayout> {
+    use gpui_kit::base::dock::PanelInfo;
+    match &state.info {
+        PanelInfo::Stack{sizes,axis}=>{
+            let mut layout=if *axis==1{DockLayout::v_split()}else{DockLayout::h_split()};let mut found=false;
+            for (child,size) in state.children.iter().zip(sizes) {
+                if let Some(child)=restored_dock_layout(child,panels,used,cx){layout=layout.child(child,if *size>px(0.){Some(*size)}else{None});found=true;}
+            }
+            found.then_some(layout)
+        },
+        PanelInfo::Tabs{active_index}=>{
+            let mut layout=DockLayout::tabs();let mut count=0;let mut active=0;
+            for (index,child) in state.children.iter().enumerate() {
+                let PanelInfo::Panel(info)=&child.info else{continue;};
+                if let Some((node,panel))=panels.iter().find(|(_,panel)|Some(panel.read(cx).value.as_str())==info["value"].as_str()) {
+                    used.insert(*node);layout=layout.panel_view(panel_handle(panel.clone()),cx);
+                    if index==*active_index{active=count;}count+=1;
+                }
+            }
+            (count>0).then(||layout.active_index(active))
+        },
+        PanelInfo::Panel(_)=>None,
+    }
+}
 impl EventEmitter<PanelEvent> for DockContent {}
 impl Focusable for DockContent {
     fn focus_handle(&self, _: &App) -> FocusHandle {self.focus.clone()}
 }
 impl BasePanel for DockContent {
     fn panel_name(&self) -> &'static str {"TsrustDockPanel"}
+    fn dump(&self,_:&App)->gpui_kit::base::dock::PanelState {
+        gpui_kit::base::dock::PanelState{panel_name:self.panel_name().into(),children:Vec::new(),info:gpui_kit::base::dock::PanelInfo::panel(serde_json::json!({"value":self.value}))}
+    }
     fn closable(&self, _: &App) -> bool {self.closable}
     fn on_added_to(&mut self,group:WeakEntity<TabGroup>,_:&mut Window,_:&mut Context<Self>){self.group=Some(group);}
     fn set_active(&mut self, active: bool, _: &mut Window, cx: &mut Context<Self>) {
@@ -1951,7 +1979,11 @@ impl Root {
                             let panels=state.panels.values().cloned().collect::<Vec<_>>();
                             for panel in panels{panel.update(cx,|_,cx|cx.notify());}
                             let editors=root.states.values().filter_map(|state|if let KitState::Editor(editor,_)=state{Some(editor.clone())}else{None}).collect::<Vec<_>>();
-                            for editor in editors{editor.update(cx,|_,cx|cx.notify());}cx.notify();
+                            for editor in editors{editor.update(cx,|_,cx|cx.notify());}
+                            let Some(KitState::Dock(state))=root.states.get_mut(&id) else{return;};
+                            let layout=serde_json::to_string(&state.area.read(cx).dump(cx)).expect("finite native Dock layout");
+                            if state.last_layout!=layout {state.last_layout=layout.clone();root.emit(id,"layoutChange",layout,cx);}
+                            cx.notify();
                         });});
                     }).detach();
                     let root = cx.entity();
@@ -1969,11 +2001,24 @@ impl Root {
                         if tabbed{group=group.panel_view(panel_handle(panel.clone()),cx);}else{layout=layout.child(DockLayout::tabs().panel_view(panel_handle(panel.clone()),cx),size.map(|size|px(size as f32)));}
                         held.insert(node,panel);
                     }
-                    area.update(cx, |area, cx| area.set_center(if tabbed{group}else{layout}, window, cx));
+                    let mut layout=if tabbed{group}else{layout};
+                    let initial=text("initialLayout");let mut used=None;
+                    if !initial.is_empty() {
+                        let restored=super::kit::dock_layout(&initial).and_then(|value|serde_json::from_value::<gpui_kit::base::dock::DockAreaState>(value).map_err(|error|error.to_string()));
+                        match restored {
+                            Ok(saved)=>{
+                                let mut found=std::collections::BTreeSet::new();
+                                if let Some(saved)=restored_dock_layout(&saved.center,&held,&mut found,cx){layout=saved;used=Some(found);}
+                            },
+                            Err(error)=>{let root=root.downgrade();cx.defer(move|cx|{let _=root.update(cx,|root,cx|root.emit(id,"layoutError",error,cx));});},
+                        }
+                    }
+                    area.update(cx, |area, cx| {area.set_version(Some(1),cx);area.set_center(layout, window, cx);});
+                    if let Some(used)=used {for (node,panel) in &held {if !used.contains(node){area.update(cx,|area,cx|area.add_panel_view(panel_handle(panel.clone()),DockPlacement::Center,None,window,cx));}}}
                     if let Some(selected)=props.get("value") && let Some(panel)=held.values().find(|panel|panel.read(cx).value==*selected) {
                         area.update(cx,|area,cx|area.select_panel(PanelId::from(panel.entity_id()),window,cx));
                     }
-                    KitState::Dock(DockState{area,panels:held,selected:text("value"),repaint_pending:false})
+                    KitState::Dock(DockState{area,panels:held,selected:text("value"),repaint_pending:false,last_layout:String::new()})
                 }
                 "Ticker" => {
                     let task = ticker(id, &props, cx);

@@ -1,0 +1,56 @@
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+import { createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
+import { openWorkspace } from '../src/workspace.tsr';
+import { restoreRecovery } from '../src/recovery.tsr';
+import { defaultConfig } from '../src/settings.tsr';
+import { zoomFontSize, zoomWorkspace } from '../src/zoom.tsr';
+
+test('zoom persists per workspace, clamps text size and resets to the configured base', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-zoom-'));
+  try {
+    const initial = unwrap(openWorkspace(root));
+    const path = root + '/journal.json';
+    const journal = signal(unwrap(restoreRecovery(initial, clone(path))));
+    const workspace = signal(initial);
+    const config = defaultConfig();
+    config.fontSize = 18;
+    const settings = signal(clone(config));
+    const font = signal(18);
+    zoomWorkspace(workspace, journal, font, settings, 1);
+    strictEqual(font.get(), 19);
+    strictEqual(workspace.get().zoomLevel, 1);
+    const restored = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(restored, clone(path)));
+    strictEqual(zoomFontSize(config.fontSize, restored.zoomLevel), 19);
+    strictEqual(config.fontSize, 18);
+    strictEqual(zoomFontSize(20, restored.zoomLevel), 21);
+    zoomWorkspace(workspace, journal, font, settings, -1);
+    strictEqual(font.get(), 18);
+    zoomWorkspace(workspace, journal, font, settings, 100);
+    strictEqual(font.get(), 48);
+    const maximum = unwrap(readTextFile(path));
+    zoomWorkspace(workspace, journal, font, settings, 1);
+    strictEqual(unwrap(readTextFile(path)), maximum);
+    zoomWorkspace(workspace, journal, font, settings, -100);
+    strictEqual(font.get(), 8);
+    zoomWorkspace(workspace, journal, font, settings, 0, true);
+    strictEqual(font.get(), 18);
+    const reset = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(reset, clone(path)));
+    strictEqual(reset.zoomLevel, 0);
+    const invalid = '{"schemaVersion":1,"root":' + JSON.stringify(reset.root) + ',"drafts":[],"zoomLevel":41}';
+    unwrap(writeTextFile(root + '/invalid.json', invalid));
+    match (restoreRecovery(reset, root + '/invalid.json')) {
+      Ok(_) => {
+        throw 'invalid zoom level accepted';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(reset.zoomLevel, 0);
+    strictEqual(unwrap(readTextFile(root + '/invalid.json')), invalid);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
