@@ -12,7 +12,7 @@ full implementation on November 10. The required inventory in
 | Ordinary project | `tsrust new apps/studio --ui`; `apps/studio/tsrust.config.json` | Current native browser previews its own apps/studio package with working file tabs; project create/save and recovery remain required. The CLI requires the parent directory to exist. |
 | Editor | `stdlib/ui/gpui_kit.rs`, CodeEditor initialization and InputEvent subscription; `ui/kit.json` | Full-text `onChange`, controlled values, highlighting and `controlInput`/`readInput` exist. No Studio revision-aware LSP deltas, multi-cursor, IME or large-file acceptance yet. |
 | State | `std:ui` typed data snapshots | Compiler now accepts plain records, arrays and nullable data, with independent constructor/get/set snapshots and nested resource/callback rejection. Native snapshot/composition suites pass 12/12. Use an explicit scalar `computed<T>` for live text projections. Direct data-field JSX text lowering remains a gap; hidden native state retention is now verified in Studio; this is not the complete document service. |
-| Proposals | `apps/studio/src/documents.tsr` | Whole-buffer path/revision/base-content comparison implemented. Test typing-and-reverting, duplicate acceptance, wrong paths and Unicode. Atomic multi-file application, grouped undo, recovery and isolated tools remain absent. |
+| Proposals | `apps/studio/src/lib/workspace/documents.tsr` | Whole-buffer path/revision/base-content comparison implemented. Test typing-and-reverting, duplicate acceptance, wrong paths and Unicode. Atomic multi-file application, grouped undo, recovery and isolated tools remain absent. |
 | Language services | Existing `tsrust-lsp`, `std:process`, `std:io`, `std:json` | Build a revisioned LSP client in Tsrust; prove stdio framing, UTF-16/UTF-8 conversion, cancellation, crash recovery and stale answers. Existing standalone LSP acceptance is not Studio integration. |
 | Rust | rust-analyzer native executable | Inspect/install exact tool through managed tooling; prove lifecycle and project agreement. Not selected or installed by this audit. |
 | HTML/CSS/JSON/Markdown | Kit syntax highlighting and Markdown rendering; `std:json` validation | Appropriate language services remain open. Microsoft's HTML/JSON libraries are TypeScript packages, not drop-in native servers. Do not add a Node host implicitly. Inventory native options before choosing. |
@@ -1246,3 +1246,57 @@ Built/installed CLIaf342ff25a0e31aabb7491ae552baf6565602661e942b6073860f441b4aa3
 LSP5ec7890a51babce6f2af1a6e4c2458c053f96052ff8d39e5807588322661d98b.
 Whole formatter, generator and2locale/114message checks pass. Actual task/PTY/LSP
 services remain unconnected; next section traces reusable async process contracts.
+
+
+### Organized source and real project-check service — 2026-11-11
+
+57e2a1cb moves35files into components/workbench, explorer, editor, settings and
+tasks; lib/workspace, settings, explorer and localization; services; assets/icons,
+themes and locales. main.tsrx remains the configured entry. All33source/test
+relative imports resolve; locale checker now recurses. Tests retain the same model
+sources. Own TSRXpurplecomponent glyph differs from coralTr; provenance retained.
+
+One-time recovery path migration ran after oldsupervisor19300 stopped, before
+30887 started. It read currentbytes, remapped opened/active/Dock/draftpaths atomically,
+preserved0drafts/zoom-1. Owner had changed preferences toAlduin/base11 and closedzoom
+pane; latesttwo-pane layout/openfiles retained, no oldstate reinstated. Native
+app33677 displays categorized folders and moved openfiles. No files or drafts edited
+through the UI during MAT.
+
+New .tsr service uses existing std:futures channels/jobs/race and std:process run,
+not a separate app host. Check uses workspacecwd/publicCLI JSON onsavedfiles;
+PATH or TSRUST selects executable. Explicit5min/4MiB bounds, no shell, onejobatonce.
+Output uses native read-only CodeEditor and play/stop icons. CmdShiftB lives atApp
+scope, so it works with panelclosed. Closing the nativeapp during anactivecheck
+remains unverified; GPUI exitsprocess, while dev groupcleanup isalreadyaccepted.
+
+Actual integration found two prerequisites. Literal race/settled erased borrowed
+futures into nonSend dynFuture inside a startedownedworker(E0277). Concrete generic
+enum adapter preserves natural Send/lifetimes without unsafe or changing runtime
+combinator semantics. Existingall/dynamicarrays unchanged. Stable2newcases join13
+existingcases in one publicrunner. Firstfixture indexownership error fixedwithclone;
+15/15PASS13.19ms execution/setup4.718s. HostregistrationcheckPASS9.59s.
+
+AsyncUI entry also used CLI's8MiB helperthread, causing GPUI macOS mainthreadpanic.
+UI entry selection now precedes async helper selection; CLI/test helper unchanged.
+New focused hostUIvsCLIentryguard1/1PASS1.14s execution/setup2m32s. Finalpairbuild
+PASS2m36s and publicnativebuildPASS. No fullmatrix/repeatedunchangedtests.
+
+MATapp33172 toolbar launchedrealCLIchild33338; Stop producedCheckcancelled and ps
+confirmedchildgone. Hidden-panel shortcut failure was corrected atAppscope.
+App33677 CmdShiftB fromclosedpanel openedOutput/launched33837, then displayed
+Checkpassed.; finalpsshowednochild. CUA: Verified organized workspace and checks.
+Live32953/PTY22133; one preview. Latestrebuild44026ms(check24136,emit1382.2,
+backend73.6,native+link18086.3,runtimehit); single observation, notbenchmark.
+CLIfe37a0e2a8c8c01bfda4db72becd93766497f9fb9c53e851f9892ccbcbb8cacd;
+LSP09e980d2c6a1027c31edbceed73681aea6e451972ca08a56b7e17c78b5271721.
+Installedpair refreshedatomically after restoringdevprofilebinary(Cargo test selected
+anotherprofile; guardedcopy refusedunexpectedhash). No activeexternalLSP torestart.
+ActualPTy/LSP/debug/Git/AI services and full editor/resource acceptance stillpending.
+
+The required final whole-project formatter changed one file. Dev rebuilt that
+formatted source successfully in44,166ms and launched app35512 under32953/PTY22133.
+The source and formatter preserve tokens; the accepted MAT is retained. Removed
+one obsolete generated Rust long-type diagnostic (511bytes). Generator, recursive
+locale coverage (119keys/two catalogs) and diff whitespace checks pass. No broad
+regression or benchmark run was added.

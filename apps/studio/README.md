@@ -64,15 +64,14 @@ fallback; `node ../../tools/check-studio-locales.mjs` checks coverage and matchi
 interpolation placeholders.
 
 The bottom status bar reports the selected file type, UTF-8/unsaved state and the
-current unconnected language-service state. Cmd+J and terminal icons toggle the
+current unconnected language-service state. Cmd+J and the terminal icon toggle the
 task/terminal panel at its configured location. Terminal, Problems, Output,
 Debug, Source Control, AI Chat and Extensions regions explicitly describe their
 unfinished integrations.
 
 Native document tabs support reordering and split controls. Named Open tabs menus
 reveal clipped files. Required work includes tree file moves, full pointer and
-manual-scroll acceptance, pane/view persistence, JSON key highlighting, LSP and
-terminal integration, broader locale/RTL coverage, full accessibility/IME acceptance and remaining editor/agent
+manual-scroll acceptance, pane/view persistence, LSP and terminal integration, broader locale/RTL coverage, full accessibility/IME acceptance and remaining editor/agent
 workflows. This is an active development checkpoint, not complete editor acceptance.
 See `docs/plans/tsrust-studio.md` at the repository root for full scope and evidence.
 

@@ -1,9 +1,9 @@
 import { accessibleName, message, initializeTranslations } from './lib/localization.tsr';
-import { View, Text, Button, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
+import { View, Text, Button, Shortcut, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
 import { currentDir, args, get } from 'std:env';
 import { Channel, Sender } from 'std:futures';
 import { CheckResult, projectCheckWorker } from './services/project-check.tsr';
-import { CheckPanel } from './components/tasks/check-panel.tsrx';
+import { CheckPanel, beginCheck } from './components/tasks/check-panel.tsrx';
 import { extname } from 'std:path';
 import { openWorkspace } from './lib/workspace/workspace.tsr';
 import { dirty } from './lib/workspace/documents.tsr';
@@ -47,6 +47,8 @@ function App(path: string, requests: Sender<string>, shortcutRequests: Sender<st
   const mode = signal('files');
   const font = signal(14);
   const panel = signal('');
+  const checking = signal(false);
+  const checkOutput = signal('');
   const chat = signal(false);
   const settings = signal(defaultConfig());
   match (configPath()) {
@@ -75,7 +77,7 @@ function App(path: string, requests: Sender<string>, shortcutRequests: Sender<st
   const browser = ProjectTree(workspace.get().root, workspace, font, recovery, settings);
   const fileSearch = FileSearch(workspace.get().root, workspace, font, recovery);
   const contentSearch = ContentSearch(workspace, recovery);
-  const panelView = Panels(panel, CheckPanel(panel, requests, shortcutRequests, cancellations, results, font));
+  const panelView = Panels(panel, CheckPanel(requests, cancellations, results, font, checking, checkOutput));
   const chatView = ChatPanel(chat);
   const status = computed<string>(() => {
     const state = workspace.get();
@@ -113,6 +115,7 @@ function App(path: string, requests: Sender<string>, shortcutRequests: Sender<st
         <Button icon="bot" variant="ghost" selected={chat.get()} tooltip={message("AI Chat (planned)")} aria-label={accessibleName("AI Chat")} onPress={() => { chat.set(!chat.get()); }} />
       </View>;
   return <View className="flex-col size-full bg-background text-foreground">
+    <Shortcut command="check-project" keys="secondary-shift-b" onTrigger={() => { panel.set('output'); beginCheck(shortcutRequests, checking, checkOutput); }} />
     {chrome}
     <View className="grow min-h-0">
       <Resizable reverse={settings.get().activityBarSide === 'right'} className="size-full min-w-0 min-h-0">

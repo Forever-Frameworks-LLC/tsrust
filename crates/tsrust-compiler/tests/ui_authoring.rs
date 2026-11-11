@@ -148,3 +148,17 @@ fn localized_tooltips_and_placeholders_accept_live_text_only() {
         }
     }
 }
+
+
+#[test]
+fn asynchronous_native_ui_keeps_the_process_main_thread() {
+    let directory=tempfile::tempdir().unwrap();
+    let path=directory.path().join("main.tsrx");
+    std::fs::write(&path,"import {View,run} from 'std:ui';import {delay} from 'std:futures';async function main():Task<void>{await delay(0);unwrap(run(<View/>, 'Async UI'));}").unwrap();
+    let rust=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap().emit_rust();
+    assert!(rust.contains("tsrust_async_block_on(async move"));
+    assert!(rust.contains("fn main()->std::process::ExitCode{ tsrust_entry_main() }"));
+    assert!(!rust.contains("tsrust_main_thread(tsrust_entry_main)"));
+    let cli=tsrust_compiler::check("async function main():Task<void>{}").unwrap().emit_rust();
+    assert!(cli.contains("tsrust_main_thread(tsrust_entry_main)"));
+}

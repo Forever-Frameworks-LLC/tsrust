@@ -52,7 +52,9 @@ async function runCheck(root: ReadOnly<string>, program: ReadOnly<string>): Task
     Ok(output) => {
       try {
         result = formatCheckReport(unwrap(toUtf8(output.stdout)));
-        if (!output.status.success) result.failed = true;
+        if (!output.status.success && !result.failed) result = {
+          output: 'The compiler failed without diagnostics.\n', failed: true
+        };
       } catch (_) {
         match (toUtf8(output.stderr)) {
           Ok(text) => {
@@ -82,7 +84,8 @@ async function cancelled(requests: ReadOnly<Channel<string>>): Task<CheckResult>
 export async function projectCheckWorker(root: string, program: string, requests: Channel<string>, results: Sender<CheckResult>): Task<void> {
   while (true) {
     try {
-      await requests.receive();
+      const command = await requests.receive();
+      if (command !== 'check') continue;
     } catch (_) {
       return;
     }

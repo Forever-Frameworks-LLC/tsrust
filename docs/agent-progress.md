@@ -155,6 +155,80 @@ existing/pinned standard language glyphs, with resource provenance. After that,
 real terminal/task/LSP integration remains required. Keep one preview and preserve
 owner feedback; no full suite unless meaningful family milestone requires it.
 
+CURRENT ACCEPTED SECTION — native source organization and project checks.
+Local source checkpoints:0f5ef449 icons,ff925577 evidence restoration,ca66fae4
+TSRX distinction/check draft,57e2a1cb35source moves; current compiler/service fixes
+pending final local checkpoint. src/components groupedworkbench/explorer/editor/
+settings/tasks; lib groupedworkspace/settings/explorer pluslocalization; services
+owns .tsr workers; assets holdsicons/themes/locales. main/configentry unchanged.
+Relative imports/tests and recursive locale auditupdated. Preserve originalevidence
+below; old LIVE process markers are superseded by this paragraph.
+
+LIVE **supervisor32953/PTY22133/app35512**, one current preview. Main-thread fix nativeaccepted: asyncUI startup nowstaysOSmain;
+CLI/test8MiB helper unchanged. Focusedui_authoring hosttest1/1PASS1.14s execution,
+setup2m32s. Final CLI/LSPbuildPASS2m36s; publicnativebuildPASS. Installed/target
+CLIfe37a0e2a8c8c01bfda4db72becd93766497f9fb9c53e851f9892ccbcbb8cacd;
+LSP09e980d2c6a1027c31edbceed73681aea6e451972ca08a56b7e17c78b5271721.
+Cargo test temporarily selected differentCLI profile235b21d7; guardedrefresh refused
+mismatch beforecopy. Normalpairbuild0.36s restoredexactfe37/09e9, thenatomicrefresh
+SHAverified both. No activeexternalLSP process found; StudioLSP stillunconnected.
+
+Native MAT: categorizedfoldersvisible, TSRXpurplebrackets vsTSRcoralTr. Migrated
+currentopen/Dock/draftpaths atomically onlyafterold19300exited,beforereplacement;
+0drafts,zoom-1 andallcurrentopenpathsexist. OwnerAlduin/base11 retained. Ownerhad
+closedzoom pane duringwork, so currenttwo-pane layout isintentional; do notrestore
+oldthree-panecontrols. Savedsettings/currenttabsremainownerstate.
+
+Check toolbarlaunchedrealCLIchild33338 underapp33172; Stop displayedCheckcancelled
+andreapedchild(psabsent). MATcaughtshortcutinsidehiddenpanel; movedglobalShortcut
+toAppwithsharedrunning/outputsignals. App33677 CmdShiftB fromclosedpanelopenedOutput,
+launchedchild33837, finishedwithvisibleCheckpassed.; noleftovercompilerchild.
+Outputread-only/selectable andsamefont. Checks usepublicstructuredJSON onsaved
+workspacefiles,cwdroot,PATH/TSRUSTexe,5min/4MiBexplicitbounds,noShell. Onejobatonce,
+latecancelmessagesignored. Worker .tsr main-owned Job/cancel/await. No fakeLSP/PTy.
+CUAcompletion: Verified organized workspace and checks. Final formatterPASS1file;
+formatted-source auto rebuildPASS44166ms and startedapp35512. lastrebuild44026mscheck24136,emit1382.2,backend73.6,native+link18086.3,
+runtimehit. Single observation, no comparablebenchmark/leakclaim. Appidle47872KiB
+onesample; supervisorduringanalysis171600KiB99.7%; notleakqualification.
+
+Passedrelatedproofs preserved: mapping/reportbatch3/3PASS0.90ms/setup5.361s;
+changedfutureadaptertaskbatch15/15PASS13.19ms/setup4.718s; hostregistrationcargo
+checkPASS9.59s; uientry1/1above; wholeformatter/generator119keys2locales/diffPASS.
+NO fullregressions. Standaloneappquit whilecheckrunning remainsunverified: GPUI
+exitsprocess, whereasdevsupervisorprocess-groupcleanup isexistingacceptedbehavior.
+Removed1obsoletegeneratedlongtype diagnostic (511bytes). Formatter/generator/locale/
+diff checks pass. Next: localcheckpoint, then actualPTY/LSP/Git/editorfeatures;
+useexisting .tsr worker/channel/processpattern andnativeKit whereavailable. Keep
+onepreviewrunning,onewriter/noagents,nopush/release/signing/modelpublication.
+FullStudio/localAIgoal remainsactive; noMVP/fullcompletionclaim.
+
+Latest runtime prerequisite: typed enum adapter replaces dynFuture erasure for
+literal race/allSettled, preserving inferred Send/borrow lifetimes. New stable
+literal-combinators.test.tsr registered in existing task host runner alongside13
+cases. Public batch15/15PASS13.19ms execution/setup4.718s. Initial fixture indexed
+owned Result rejection fixed with clone, no production ownership change. CLI/LSP
+buildPASS2m36s; target hashes4cd0eae6/326a2328. Host registration cargo checkPASS9.59s.
+Native public Studio buildPASS after adapter. Source organization35moves and current
+relative imports resolve; root config still src/main.tsrx. Prior evidence retained.
+
+Restart review initially rejected CtrlC99098 because original wrapper mentionedold
+8045; read-only ps proved actual19300/app23352 onttys002 and queued30887 onttys001
+waiting19300. Same matching CtrlC retry passed after evidence, no bypass. Migration
+ran after oldsupervisor exited and preserved0drafts/zoom-1/openpaths/Dockstrings.
+Owner active chrome path nowcomponents/workbench/chrome.tsrx; allopenpathsexist.
+
+**LIVE SUPERVISOR30887/PTY63728, APP CURRENTLY EXITED101**: async main uses compiler
+8MiB helperthread, violating GPUI OSmain requirement. Fix now in emit/mod.rs:
+UI entry adapter gets OSmain BEFORE async helper branch; nonthrowing async UI
+threaded flag likewise excludes UI. CLI/test workers retain8MiB unchanged. Focused
+host regression in ui_authoring.rs contrasts UI vs CLI emitted entry. Build CLI/LSP
+currentlyPTY16795, /tmp/studio-ui-entry-build.log. Next finish it, run only new host
+regression, buildpublic native and queue exact30887 replacement (wrapperwaits30887,
+no secondpathmigration), then CtrlC63728. Keep one currentpreviewafterfix.
+Project-check service remains nativeunaccepted; complete UI play/stop/result/MAT,
+confirm no leftovercheckprocesses, consumerrefresh, finalformatter/localcheckpoint.
+No fullmatrix. Lastuserrequest sourceorganization nowimplemented checkpoint57e2a1cb.
+
 Source organization now moved35files into components/{workbench,explorer,editor,
 settings,tasks}, lib/{workspace,settings,explorer}, services and assets/{themes,
 icons,locales}. main remains src/main.tsrx; config unchanged. All33relative-source/

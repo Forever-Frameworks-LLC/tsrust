@@ -3,15 +3,17 @@ use super::*;
 use crate::Span;
 use crate::native_signatures::NativeTypeId;
 impl Emitter<'_>{
-    fn future_owned(&self,root:Type)->bool{
-        let mut pending=vec![root];let mut seen=std::collections::HashSet::new();
-        while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
-            Type::Closure(id)=>{let closure=&self.program.closures[id];if closure.program_scoped || !closure.program_captures.is_empty(){return false;}for capture in &closure.captures {if capture.storage!=Mode::Consume && capture.storage!=Mode::Copy{return false;}pending.push(closure.function.bindings[capture.inner].ty);}},
-            Type::Record(id)=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
-            Type::Array(element)=>pending.push(element.ty()),
-            Type::StoredCallable(_)|Type::Callback(_)|Type::BorrowedCallable(_)=>return false,
-            _=>{}
-        }}true
+    // Keep each concrete future type: a borrowed future may still be Send.
+    fn future_literal_inputs(&self,fields:&[crate::syntax::RecordField],error:Type,span:Span)->String {
+        let generics=(0..fields.len()).map(|index|format!("F{index}")).collect::<Vec<_>>().join(",");
+        let variants=(0..fields.len()).map(|index|format!("V{index}(std::pin::Pin<Box<F{index}>>),")).collect::<String>();
+        let bounds=(0..fields.len()).map(|index|format!("F{index}:std::future::Future<Output=Result<T,tsrust_native_futures::Failure<E>>>")).collect::<Vec<_>>().join(",");
+        let arms=(0..fields.len()).map(|index|format!("Self::V{index}(future)=>future.as_mut().poll(cx),")).collect::<String>();
+        let items=fields.iter().enumerate().map(|(index,field)|{
+            let poll=self.future_poll(field.ty.unwrap(),"task",error,span);
+            format!("{{let task=inputs.field{index};TsrFutureInput::V{index}(Box::pin(async move{{{poll}}}))}}")
+        }).collect::<Vec<_>>().join(",");
+        format!("enum TsrFutureInput<{generics}>{{{variants}}}impl<T,E,{generics}> std::future::Future for TsrFutureInput<{generics}> where {bounds}{{type Output=Result<T,tsrust_native_futures::Failure<E>>;fn poll(self:std::pin::Pin<&mut Self>,cx:&mut std::task::Context<'_>)->std::task::Poll<Self::Output>{{match self.get_mut(){{{arms}}}}}}}let futures=vec![{items}];")
     }
 
     pub(super) fn future_inject(&self,source:Type,destination:Type,value:&str)->String{
@@ -169,15 +171,8 @@ impl Emitter<'_>{
                         let call=self.future_literal_all(&values,id,error,expr.span);
                         return Some(self.future_result(result,&call,true));
                     }
-                    let fields=&self.program.records[id].fields;
-                    let result_type=self.program.unions[union.index()].members.iter().find_map(|ty|{let Type::Record(id)=ty else{return None;};let record=&self.program.records[*id];(record.application.as_ref()?.declaration.text=="Result#Ok").then(||record.fields.first().and_then(|field|field.ty).unwrap_or(Type::Void))}).unwrap();
-                    let result_type=if binding.name=="__all"{let Type::Array(element)=result_type else{unreachable!("checked all output")};element.ty()}else{result_type};
-                    let send=if self.future_owned(args[0].ty.unwrap()){ "+Send" }else{""};
-                    let items=fields.iter().enumerate().map(|(index,field)|{
-                        let poll=self.future_poll(field.ty.unwrap(),"task",error,expr.span);
-                        format!("{{let task=inputs.field{index};Box::pin(async move{{{poll}}}) as std::pin::Pin<Box<dyn std::future::Future<Output=Result<{},tsrust_native_futures::Failure<{}>>>{send}+'_>>}}",self.native_type(result_type),self.native_type(error))
-                    }).collect::<Vec<_>>().join(",");
-                    format!("{{let inputs={values};tsrust_native_futures::{operation}(vec![{items}]).await}}")
+                    let inputs=self.future_literal_inputs(&self.program.records[id].fields,error,expr.span);
+                    format!("{{let inputs={values};{inputs}tsrust_native_futures::{operation}(futures).await}}")
                 }}
             },
             "__send"=>format!("({}).send({}).await",self.expr(fun,&args[0],Mode::Read),self.expr(fun,&args[1],Mode::Consume)),

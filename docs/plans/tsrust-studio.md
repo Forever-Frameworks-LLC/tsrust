@@ -406,3 +406,12 @@ icons are data-driven, bundled and configurable; native off/on preserves selecti
 expanded folders and panes. Focused mapping/settings proofs and native observations
 are recorded in the audit. Owner prioritizes feature throughput/manual acceptance;
 next work is actual task/terminal/language services, not repeated unchanged suites.
+
+
+November11 organization/service update: src now separates categorized components,
+lib models/actions, .tsr services and bundled assets. Tests/imports/localization
+coverage follow the moves. Native saved-file project checking works in Output via
+CmdShiftB or play, with verified Stop/child cleanup and actual success result.
+Shared compiler fixes preserve concrete race/settled future types and keep async
+GPUI entry on the OS main thread. Focused acceptance and remaining standalonequit
+uncertainty are in the audit. This is compiler-task integration; LSP/PTy remainpending.
