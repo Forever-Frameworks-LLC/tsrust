@@ -1300,3 +1300,30 @@ The source and formatter preserve tokens; the accepted MAT is retained. Removed
 one obsolete generated Rust long-type diagnostic (511bytes). Generator, recursive
 locale coverage (119keys/two catalogs) and diff whitespace checks pass. No broad
 regression or benchmark run was added.
+
+
+### Content-search input group and shared text sizing — 2026-11-11
+
+The owner's screenshot is addressed with std:ui InputGroup/Addon/Button and inline
+CaseSensitive, Regex and Search icons with tooltips/accessibility labels. The field,
+summary, errors and results read the existing shared font Signal. Filename search
+also binds its field size. Empty errors collapse instead of leaving a blank line.
+
+Native Input/Textarea previously applied typography only outside the control; Kit
+reset its text size inside. The shared input macro now applies explicit node text
+style to the actual control. The group-button adapter receives node style too.
+Compact Kit button labels retain a separate size, so these toggles now use the
+standard icons. No vendored changes, new API or configuration field.
+
+CLI/LSP build passed in2m41s; public native build passed. Whole-project formatting
+reported zero changes. Recursive locale coverage119keys/two catalogs and diff checks
+pass. No full regression or repeated executable test. Native app37898 searched
+projectCheckWorker: three matching lines, one skipped file. Cmd+= twice changed
+field/summary/results from10to12px while retaining the query; case/regex controls
+remained functional. Cmd+- twice restored zoom-1/base11. Owner Alduin settings and
+fileIcons:true retained; drafts0. Final app39551 visually confirms grouped icons.
+CUA: Verified grouped search and zoom. Dev37767/PTY50581 remains running.
+Final automatic rebuild45,660ms with runtime hit is one observation, not a benchmark.
+Installed/target CLIc2f44df5a51101b64c603f11fd2b28cffe3a82c9fca7a8eb8555857c984d8287;
+LSP1aa17d7abef5ed53269091ad96412f5ba9883668b7f37845ceb6b7a5faf7f07c,
+atomically refreshed and independently SHA-verified.

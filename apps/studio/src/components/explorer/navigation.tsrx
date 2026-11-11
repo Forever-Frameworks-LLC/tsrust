@@ -21,6 +21,7 @@ function SearchResult(file: ReadOnly<Entry>, root: string, workspace: Signal<Wor
 
 export function FileSearch(root: string, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>): Node {
   const query = signal('');
+  const inputClass = computed<string>(() => 'w-full min-w-0 text-[' + font.get().toString() + 'px]');
   match (projectFiles(root)) {
     Err(message) => {
       const errorText = computed<string>(() => localizeError(message));
@@ -30,7 +31,7 @@ export function FileSearch(root: string, workspace: Signal<Workspace>, font: Sig
       const results: Node[] = [];
       for (const file of files) results.push(SearchResult(file, clone(root), workspace, query, font, recovery));
       return <View className="flex-col size-full p-3 gap-2">
-        <Input className="w-full min-w-0" value={query.get()} placeholder={message("Find a file by name or path")} aria-label={accessibleName("Find project file")} onChange={(event) => { query.set(clone(event.target.value)); }} />
+        <Input className={inputClass.get()} value={query.get()} placeholder={message("Find a file by name or path")} aria-label={accessibleName("Find project file")} onChange={(event) => { query.set(clone(event.target.value)); }} />
         <View className="flex-col grow min-h-0 overflow-y-auto">{...results}</View>
       </View>;
     }

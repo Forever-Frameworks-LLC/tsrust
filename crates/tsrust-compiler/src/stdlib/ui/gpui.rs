@@ -156,6 +156,8 @@ macro_rules! input_options {($input:expr, $node:expr, $line:tt, $this:expr, $cx:
     let flag = |name: &str| option(name) == "true";
     let read_only = node.editable.as_ref().is_some_and(|field| field.read_only);
     let mut input = $input.disabled(node.is_disabled()).readonly(read_only);
+    // Native controls reset their text size; apply the field's explicit typography inside the frame.
+    input.style().text = $this.node_style(node).text;
     if option("appearance") == "false" {input = input.appearance(false);}
     if option("bordered") == "false" {input = input.bordered(false);}
     input = match option("size") {"xsmall" => input.with_size(KitSize::XSmall), "small" => input.with_size(KitSize::Small), "large" => input.with_size(KitSize::Large), _ => input};

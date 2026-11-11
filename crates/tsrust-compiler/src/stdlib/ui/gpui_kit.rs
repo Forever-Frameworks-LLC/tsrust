@@ -1302,7 +1302,7 @@ impl Root {
     fn input_group_button(&self, node: &Node, cx: &mut Context<Self>) -> AnyElement {
         let id = node.identity.get();
         let kit = node.kit.as_deref().expect("InputGroupButton");
-        let mut button = menu_button(InputGroupButton::new(ElementId::Integer(id)), kit, cx);
+        let mut button = menu_button(InputGroupButton::new(ElementId::Integer(id)), kit, cx).refine_style(&self.node_style(node));
         if !kit.text("label").is_empty() {button = button.label(kit.text("label"));}
         if let Some(icon) = icon_name(&kit.text("icon")) {button = button.icon(icon);}
         if let Some(label) = kit.prop("accessibilityLabel") {button = button.accessibility_label(label.to_owned());}

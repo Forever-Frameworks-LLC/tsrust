@@ -155,6 +155,36 @@ existing/pinned standard language glyphs, with resource provenance. After that,
 real terminal/task/LSP integration remains required. Keep one preview and preserve
 owner feedback; no full suite unless meaningful family milestone requires it.
 
+Latest accepted fix — content-search InputGroup and typography, November 11.
+The screenshot request is implemented with existing InputGroup/Addon/Button:
+inline case-sensitive, regex and search icons, tooltips and accessible names.
+ContentSearch receives the shared font Signal; field, summary, errors and result
+rows follow it. Filename-search input also binds the same size. Empty errors no
+longer reserve a blank line. No new component framework or settings field.
+
+The shared native input macro now applies explicit node typography to the actual
+Input/Textarea, after Kit's control-size defaults; the former outer frame style
+could not override the native field. InputGroupButton also receives its node style.
+Compact text labels have their own Kit size, so the search toggles use the standard
+CaseSensitive/Regex icons rather than text labels. No vendored dependency edit.
+
+CLI/LSP build passed (2m41s); public native build passed. Whole-project formatter
+passed with zero changes; locale coverage119keys/two catalogs and diff checks pass.
+No full regression or unchanged executable test was run. Native MAT app37898:
+projectCheckWorker query produced three matching lines/one skipped file. Cmd+= twice
+scaled field, summary and results from10to12px, with query retained; case/regex
+buttons still worked. Cmd+- twice restored owner zoom-1/base11. Settings unchanged
+(Alduin, fileIcons:true), drafts0. Final app39551 visually confirms the icon group.
+CUA completion: Verified grouped search and zoom.
+
+CURRENT LIVE supervisor37767/PTY50581/app39551, one preview, superseding older
+process markers below. Final source auto-rebuilt in45,660ms; native runtime hit.
+Installed/target CLIc2f44df5a51101b64c603f11fd2b28cffe3a82c9fca7a8eb8555857c984d8287;
+LSP1aa17d7abef5ed53269091ad96412f5ba9883668b7f37845ceb6b7a5faf7f07c;
+both refreshed atomically and SHA-verified after native acceptance. Next: local
+checkpoint, then resume real editor/service features. Keep existing acceptance,
+one writer, no agents, one current preview; no push/release/signing. Full goal active.
+
 CURRENT ACCEPTED SECTION — native source organization and project checks.
 Local source checkpoints:0f5ef449 icons,ff925577 evidence restoration,ca66fae4
 TSRX distinction/check draft,57e2a1cb35source moves; current compiler/service fixes
