@@ -4,7 +4,7 @@ import { defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/se
 
 test('file glyphs recognize names and extensions without decorating folders', () => {
   strictEqual(fileDecoration('main.tsr', false).svg.includes('fill-rule="evenodd"'), true);
-  strictEqual(fileDecoration('view.TSRX', false).color, '#A78BFA');
+  strictEqual(fileDecoration('view.TSRX', false).color, fileDecoration('main.tsr', false).color);
   strictEqual(fileDecoration('view.tsrx', false).svg === fileDecoration('main.tsr', false).svg, false);
   strictEqual(fileDecoration('script.ts', false).color, '#3178C6');
   strictEqual(fileDecoration('Cargo.toml', false).svg, fileDecoration('main.rs', false).svg);

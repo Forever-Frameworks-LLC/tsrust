@@ -8,6 +8,13 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Latest small owner correction: .tsrx file icons now share .tsr's #CE7045 tint;
+their distinct glyphs remain. Existing file-icon suite2/2PASS0.33ms execution;
+whole formatter0files/0snippets/0fingerprints and diff-check pass. Dev supervisor
+23759/PTY74802 remains running and watches the catalog change. Visual reload not
+separately inspected for this two-line catalog/assertion edit. Previous full
+save/diff/status section checkpoint is f1b158da; LSP remains next feature priority.
+
 Latest owner-feedback acceptance — 2026-11-11, 15:42.
 The apparent double titlebar was SaveConflicts' empty normal-flow View placed
 before Chrome. Its overlay host is now absolute/size-0; native creation options
