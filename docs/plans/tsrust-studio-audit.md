@@ -751,3 +751,46 @@ layout persistence and duplicate views remain incomplete/unverified. The optiona
 owner mouse-gesture check has no response yet. No complete Dock/editor or broader
 Studio goal acceptance is claimed. Native startup66,407ms includes40,724.0ms runtime
 build/publish; these are setup observations, not comparable performance measures.
+
+
+### Native dock accessibility — 2026-11-11, after b0504b89
+
+Shared GPUI SDK source SHA25678e5dcb91eeaf81cb2672ebd87dd09c42ad664e0a91cf84cf89a9f931fe042cb.
+Scope is the shared native renderer only; no public signatures, generated bindings,
+Studio models or editor document ownership changed. DockArea/TabGroup renderer
+hooks retain Kit layout/drop/resize behavior and Kit Tab/TabBar components. Tabs
+now use label/aria_label; close and pane actions have explicit labels. The outer
+pane AnyView cache is removed while retained editor entities keep their history.
+Selection reveal tracks panel identity and visible index, without scrolling on an
+unchanged selection. Overflow/manual-scroll behavior remains unverified.
+
+Before: live app99663 has three visible panes but one accessible editor and empty
+AX tab names. After: app22030 full-tree assertions pass for three named active
+tabs and three editors following nested splits. Unicode draft survives native
+AGENTS.md/.gitignore tab reordering; Undo returns the original clean buffer.
+Labeled close works, dirty documents have no close action, pane menu maximize and
+Restore pane retain all three editors. A diff-count assertion was inappropriate;
+the corrected full AX snapshot proves restoration. Divider pointer dragging still
+shows no movement under CUA; no gesture pass claimed. Overflow-menu buttons remain
+unnamed. No installed dependency source or alternate UI toolkit was introduced.
+
+Compiler/LSP buildPASS (2m37s setup); public tsrust buildPASS and dev native
+runtime/application buildPASS. One premature public build used the earlier CLI
+while replacement was still linking and failed on a corrected private-module
+path; current binary/source identity was then checked and the build rerun. No
+failed run is counted as a pass. Preserve prior unchanged compiler callback,
+branch identity, Studio18/18 and atomic-storage evidence; no broad replay needed.
+Whole-project formatterPASS0files/0snippets/0fingerprints before native build;
+final formatter/diff checks precede checkpoint. Runtime assertion checks in CUA
+cover names, all visible editors, Unicode retention, undo and restoration.
+
+Current PTY94264, supervisor21372, app22030; installed CLI
+2c3cb0c391a6b041ae1e8fcc700fb6e3caf984dd348cd5cf3807bc9e1c4b5c14,
+LSP70ca9934ec7c2748efb5fc3356ff42bc2eb92caaef0ad5b84b59bf0c4f8759ab,
+independently verified against target/debug. Zero recovery drafts and original
+.gitignore/config hashes confirmed afterward. No draft was saved to disk during
+this witness. Three clean panes remain open. Startup66,552ms includes runtime
+miss41,047.9ms; RSSapp76,480KiB/supervisor5,440KiB are single observations, not
+comparable benchmarks or leak acceptance. Removed966,874,559bytes obsolete
+runtime754fd283c74c75dd/appaceb2dcec93b341d caches; keep current dev/runtime,
+public-build and unchanged test consumers. Full Studio goal remains active.

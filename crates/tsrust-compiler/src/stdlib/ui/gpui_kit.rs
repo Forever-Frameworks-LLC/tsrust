@@ -43,6 +43,7 @@ use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState, DiffHoverHi
 use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupText};
 use gpui_kit::component::marker::{Marker, MarkerAlignment, MarkerContent, MarkerIcon, MarkerLoadingStyle, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
+use gpui_kit::base::dock::DockAreaRenderer as _;
 use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, PanelId, DockPlacement, PanelStyle, TabGroup, InsertTarget, DockEvent, panel_handle};
 use gpui_kit::component::questionnaire::{Questionnaire, QuestionnaireActions, QuestionnaireChoice, QuestionnaireChoiceDefinition, QuestionnaireChoices, QuestionnaireDescription, QuestionnaireError, QuestionnaireEvent, QuestionnaireItem, QuestionnaireItemDefinition, QuestionnaireInput, QuestionnaireInputDefinition, QuestionnaireShortcutMode, QuestionnaireItemStatus, QuestionnaireNext, QuestionnairePrevious, QuestionnaireProgress, QuestionnaireSkip, QuestionnaireState, QuestionnaireSubmit, QuestionnaireTitle};
 use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings, SelectIndex};
@@ -619,6 +620,98 @@ fn plot_color(name: &str, index: usize, cx: &App) -> Hsla {
     theme_color(name, cx).unwrap_or(charts[index % charts.len()])
 }
 
+// Keep Kit chrome and docking, but render live Tsrust children without a second view cache.
+struct TsrustDockSkin(std::rc::Rc<DockSkin>);
+impl gpui_kit::base::dock::DockAreaRenderer for TsrustDockSkin {
+    fn frame(&self, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.frame(window,cx)}
+    fn split_frame(&self, node: gpui_kit::base::dock::NodeId, axis: Axis, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.split_frame(node,axis,window,cx)}
+    fn center_frame(&self, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.center_frame(window,cx)}
+    fn render_split_handle(&self, handle: &gpui_kit::base::ResizeHandleContext, window: &mut Window, cx: &mut App) -> Option<AnyElement> {self.0.render_split_handle(handle,window,cx)}
+    fn render_dock(&self, dock: &gpui_kit::base::dock::DockContext, content: AnyElement, window: &mut Window, cx: &mut App) -> AnyElement {self.0.render_dock(dock,content,window,cx)}
+    fn build_placeholder(&self, state: &gpui_kit::base::dock::PanelState, window: &mut Window, cx: &mut App) -> Option<std::sync::Arc<dyn gpui_kit::base::dock::PanelView>> {self.0.build_placeholder(state,window,cx)}
+    fn tab_group_renderer(&self) -> std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer> {std::rc::Rc::new(TsrustDockTabs(self.0.tab_group_renderer(),ScrollHandle::new(),std::cell::Cell::new(None)))}
+}
+struct TsrustDockTabs(std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer>, ScrollHandle, std::cell::Cell<Option<(PanelId,usize)>>);
+struct DockDragCaption(SharedString);
+impl Render for DockDragCaption {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div().px_3().py_2().bg(cx.theme().tokens.tab_bar).text_color(cx.theme().foreground).child(self.0.clone())
+    }
+}
+impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
+    fn frame(&self, group: &gpui_kit::base::dock::TabGroupContext, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.frame(group,window,cx)}
+    fn content_frame(&self, group: &gpui_kit::base::dock::TabGroupContext, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.content_frame(group,window,cx)}
+    fn render_tab_bar(&self, group: &gpui_kit::base::dock::TabGroupContext, window: &mut Window, cx: &mut App) -> AnyElement {
+        use gpui_kit::base::dock::{DragPanel,AnyDrag};
+        use gpui_kit::component::dock::{PanelHandle,ToggleZoom,ClosePanel};
+        use gpui_kit::prelude::FluentBuilder;
+        let active=group.active_panel().map(|panel|panel.panel_id(cx));
+        let visible=group.panels().iter().enumerate().filter(|(_,panel)|panel.visible(cx)).collect::<Vec<_>>();
+        let selected=visible.iter().position(|(_,panel)|Some(panel.panel_id(cx))==active).unwrap_or(0);
+        let selection=active.map(|id|(id,selected));
+        if self.2.replace(selection)!=selection {self.1.scroll_to_item(selected);}
+        let mut tabs=Vec::new();
+        for (ix,panel) in visible {
+            let id=panel.panel_id(cx);
+            let title=PanelHandle::of(panel).and_then(|handle|handle.panel().tab_name(cx)).unwrap_or_else(||panel.panel_name(cx).into());
+            let select=group.clone();
+            let mut tab=Tab::new().label(title.clone()).aria_label(title.clone()).selected(!group.is_collapsed() && Some(id)==active)
+                .on_click(move|_,window,cx|select.select_tab(ix,window,cx));
+            if !group.is_collapsed() {
+                if group.is_panel_closable(id,cx) {
+                    let close=group.clone();let label=format!("Close {title}");
+                    tab=tab.suffix(Button::new(("close-tab",ix)).icon(gpui_kit::assets::IconName::X).xsmall().ghost()
+                        .accessibility_label(label.clone()).tooltip(label).tab_stop(false)
+                        .on_click(move|_,window,cx|{cx.stop_propagation();close.close(id,window,cx);}));
+                }
+                if let Some(drag)=group.drag_panel(ix,cx) {
+                    tab=tab.on_drag(drag,move|drag,offset,_,cx| {
+                        cx.stop_propagation();drag.set_drag_offset(offset);drag.set_preview_size(size(px(240.),px(32.)));
+                        cx.new(|_|DockDragCaption(title.clone()))
+                    });
+                }
+                if group.is_droppable() {
+                    let drop=group.clone();let item_drop=group.clone();
+                    tab=tab.drag_over::<DragPanel>(|tab,_,_,cx|tab.border_l_2().border_color(cx.theme().drag_border))
+                        .on_drop(move|drag:&DragPanel,window,cx|drop.drop_panel(drag.clone(),Some(ix),true,window,cx))
+                        .on_drop(move|drag:&AnyDrag,window,cx|item_drop.drop_item(drag.clone(),None,window,cx));
+                }
+            }
+            tabs.push(tab);
+        }
+        let handle=group.active_panel().and_then(PanelHandle::of);
+        let buttons=if group.is_collapsed(){None}else{handle.and_then(|handle|handle.panel().toolbar_buttons(window,cx))};
+        let panel=handle.map(PanelHandle::panel);
+        let control=panel.as_ref().and_then(|panel|panel.zoom_control(cx));
+        let zoomed=group.is_zoomed();let closable=group.is_closable();
+        let mut toolbar=div().flex().items_center().gap_1().children(buttons.unwrap_or_default().into_iter().map(|button|button.xsmall().ghost().tab_stop(false)));
+        if zoomed || control.is_some_and(|control|control.toolbar_visible()) {
+            let zoom=group.clone();let label=if zoomed{"Restore pane"}else{"Maximize pane"};
+            toolbar=toolbar.child(Button::new("zoom-pane").icon(gpui_kit::assets::IconName::Maximize).xsmall().ghost().accessibility_label(label).tooltip(label)
+                .on_click(move|_,window,cx|zoom.toggle_zoom(window,cx)));
+        }
+        toolbar=toolbar.child(Button::new("pane-menu").icon(gpui_kit::assets::IconName::Ellipsis).xsmall().ghost().accessibility_label("Pane actions").tooltip("Pane actions")
+            .dropdown_menu(move|menu,window,cx| {
+                menu.when_some(panel.clone(),|menu,panel|panel.dropdown_menu(menu,window,cx)).separator()
+                    .menu_with_disabled(if zoomed{"Restore pane"}else{"Maximize pane"},Box::new(ToggleZoom),!control.is_some_and(|control|control.menu_visible()))
+                    .when(closable,|menu|menu.separator().menu("Close",Box::new(ClosePanel)))
+            }).anchor(Anchor::TopRight));
+        let drop=group.clone();let item_drop=group.clone();
+        TabBar::new("tab-bar").track_scroll(&self.1).selected_index(selected).max_width(px(220.)).menu(true).children(tabs)
+            .last_empty_space(div().id("tab-bar-empty-space").h_full().flex_grow_1()
+                .on_drop(move|drag:&DragPanel,window,cx|drop.drop_panel(drag.clone(),None,true,window,cx))
+                .on_drop(move|drag:&AnyDrag,window,cx|item_drop.drop_item(drag.clone(),None,window,cx)))
+            .suffix(toolbar).into_any_element()
+    }
+    fn render_active_panel(&self, panel: AnyView, group: &gpui_kit::base::dock::TabGroupContext, _: &mut Window, _: &mut App) -> AnyElement {
+        if group.is_collapsed() {return div().into_any_element();}
+        div().id("tab-content").relative().flex_1().min_h(px(0.)).overflow_hidden()
+            .child(div().absolute().size_full().child(panel)).into_any_element()
+    }
+    fn render_drop_indicator(&self, indicator: gpui_kit::base::dock::DropIndicator, window: &mut Window, cx: &mut App) -> Option<AnyElement> {self.0.render_drop_indicator(indicator,window,cx)}
+    fn render_empty(&self, group: &gpui_kit::base::dock::TabGroupContext, window: &mut Window, cx: &mut App) -> Option<AnyElement> {self.0.render_empty(group,window,cx)}
+}
+
 /// One DockPanel: its content is the node's children, drawn through the root.
 struct DockContent {root: WeakEntity<Root>, dock: u64, node: u64, value: String, title: SharedString, closable: bool, padded: bool, split_controls: bool, can_split: bool, last_close: bool, area: WeakEntity<DockArea>, group: Option<WeakEntity<TabGroup>>, focus: FocusHandle}
 struct DockState {area: Entity<DockArea>, panels: std::collections::BTreeMap<u64,Entity<DockContent>>, selected: String, repaint_pending: bool}
@@ -644,6 +737,7 @@ impl BasePanel for DockContent {
     }
 }
 impl DockPanelView for DockContent {
+    fn tab_name(&self, _: &App) -> Option<SharedString> {Some(self.title.clone())}
     fn title(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {self.title.clone()}
     fn inner_padding(&self, _: &App) -> bool {false}
     fn toolbar_buttons(&mut self,_:&mut Window,cx:&mut Context<Self>)->Option<Vec<Button>> {
@@ -1827,7 +1921,12 @@ impl Root {
                     let vertical = text("vertical") == "true";
                     let tabbed = text("tabbed") == "true";
                     let panels = find(&self.node,id).map(|node|items(node,"DockPanel").map(|(child,item)|(child.identity.get(),item.text("value"),item.text("title"),item.number("size"),item.prop("closable")!=Some("false"),item.prop("padded")!=Some("false"),item.flag("splitControls"))).collect::<Vec<_>>()).unwrap_or_default();
-                    let (area, skin) = DockSkin::dock_area(format!("dock-{id}"), None, window, cx);
+                    let mut skin=None;
+                    let area=cx.new(|cx| {
+                        let native=DockSkin::new(cx);skin=Some(native.clone());
+                        DockArea::new(format!("dock-{id}"),None,window,cx).with_renderer(std::rc::Rc::new(TsrustDockSkin(native)))
+                    });
+                    let skin=skin.expect("Dock skin constructed with area");
                     skin.set_close_button_visible(true,cx);skin.set_panel_style(PanelStyle::TabBar,cx);
                     cx.observe(&area,|_,_,cx|cx.notify()).detach();
                     cx.subscribe_in(&area,window,move|root,_,event:&DockEvent,window,cx|{
