@@ -244,3 +244,36 @@ Installed CLI/LSP atomically refreshed to current repository0.2.0/0.3.0; existin
 VS Code config already selects the repository pair. No LSP source changed and no
 owner editor was restarted. Whole formatter0files/0snippets/0fingerprints; earlier
 proposal/training proofs retained. Signing/publication remains unauthorized.
+
+## Bounded cache buffers — accepted source, measurements pending
+
+Inspection found an802MiB GPUI runtime artifact. NativeCache checksum and bundle
+unpack each used fs::read on the complete artifact. Replaced those whole-artifact
+buffers with64KiB incremental hashing and a metadata-first, payload-streaming
+extractor. Cache checksum bytes remain compatible with the previous byte-slice
+Hash protocol; no namespace/version/identity, lock, inode replacement, corruption
+or provenance checks are removed. Interrupted reads retry; changed-length cache
+files fail validation. All bundle metadata is checked before outputs are created.
+Existing1GiB and512-entry bounds and v2/v3 distinctions remain. ASCII leaf names
+are bounded to255 bytes, matching supported filesystem leaf limits;255 succeeds
+and256 rejects before creating outputs. Payload bytes and native import behavior
+remain covered by existing round-trip controls (Windows execution still pending).
+
+Focused proof: native_cache11/11PASS12.28s, with its ignored subprocess helper
+invoked by the process test. Covers legacy checksum bytes at multiple buffer
+boundaries, corruption/repair, independent executable readers, concurrent/process
+publication, stable cross-process identity, backend discovery and CLI warm cache
+invalidation. Bundle tests2/2PASS0.02s; filename-boundary extension rerun2/2PASS0.02s,
+compile/setup8.70s. Initial selected test compilation153s. No full compiler/LSP
+matrix was repeated. Source-level allocation bounds improved; no quiet-machine
+speed comparison or numerical peak-memory reduction is claimed yet. The retained
+dev supervisor deliberately keeps its existing executable image.
+
+Third inference attempt retained the exact model, task, token budgets and stop
+conditions with the streamed-cache CLI. Setup/build6702.002625ms; invalid-limit
+control0.362375ms PASS. Native model proof stopped on critical memory pressure at
+10.239s total, system swapdelta520.06MiB, sampled owned-treeRSS507,559,936 bytes.
+No answer or suite summary. Pressure subsequently returned to normal level1.
+The cache change did not establish inference feasibility; a changed native backend
+hypothesis is required before another model run. Do not relax limits or hide any
+of the three incomplete resource attempts.

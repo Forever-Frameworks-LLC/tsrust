@@ -39,7 +39,7 @@ That restart is spent, oldPID70667/70994 reaped. Normal dev source rebuilds cont
 under the same retained supervisor. CUA phase complete: Verified Studio dev rebuild
 recovery. Do not open the superseded dev.tsrust.studio.preview bundle.
 
-Current dev fix (source acceptance complete, local checkpoint pending): macOS UI
+Accepted dev fix at e28b8d1f: macOS UI
 programs get temporary .app metadata through the existing packaging plist helper,
 .dev identifier and configured name; backend dev stays a plain executable. No sign,
 notarize, archive, app.json updater identity or release artifact. Studio package
@@ -90,9 +90,30 @@ not proven allocation attribution. Investigate compiled llama-cpp-2 Rust library
 as alternative managed inference (no separate server), retain Candle training proof.
 Primary research done, CMake available; no alternative dependency admitted yet.
 
-Next: checkpoint tested dev fix/evidence; profile runtime restore before optimizing,
-keep current dev process/window; continue native inference admission with changed
-backend hypothesis. Full held-out evaluation/training/quantized artifact qualification,
+Current accepted cache-memory section, checkpoint pending: NativeCache checksum
+now streams64KiB with exact legacy byte-slice Hash compatibility; native bundle
+extraction validates headers/paths/duplicates/full lengths before creating output,
+then streams payloads instead of allocating the entire802MiB packed bundle.
+Existing1GiB/512-entry/version guards retained; ASCII filesystem leaf name bound255
+is explicit and tested at255/256. No cache identity, locking, corruption or alias
+validation weakened. Files: native/cache.rs, cli/native_dependency_bundle.rs,
+tests/native_cache.rs. All11native_cache tests PASS12.28s; one ignored worker is
+actually invoked by cross-process test. Bundle tests2/2PASS0.02s, including late
+malformation/no partial output, sparse >1GiB rejection, legacy version and native
+file roundtrip. Added filename-boundary cases rerun2/2PASS0.02s; setup8.70s.
+Initial selected compilation153s, no broad compiler/LSP replay. Whole formatter0.
+No comparative latency/peak-memory claim: current retained dev supervisor still
+runs prior d8d image and must not be restarted casually; fresh CLI01dc84798dded47f74f6062e3ea4ee1f3fb76e87ff919b73061e628d76ed6ff5
+contains streaming change. Installed pair remains accepted dev-fix version.
+
+Third same-model/task inference attempt on streamed runner: setup/build6702.002625ms,
+invalid-limitPASS0.362375ms; stop critical pressure at10.239s total, system swapdelta
+520.06MiB, sampled ownedRSS507559936B. No answer/summary. Pressure recovered to1;
+absolute swap4294.94MiB at observation. Keep all three failed/incomplete resource
+proofs. No more unchanged Candle retries; investigate memory-mapped native backend.
+
+Next: checkpoint bounded cache-memory section, keep current dev process/window;
+continue native inference admission with a changed backend hypothesis. Full held-out evaluation/training/quantized artifact qualification,
 revisioned document store/safe isolated tools, complete editor services, cloud/external
 agents and Windows remain required. No full regressions, comparative measurements,
 AI distribution or release acceptance claimed.
