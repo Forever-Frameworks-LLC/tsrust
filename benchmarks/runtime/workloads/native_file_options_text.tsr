@@ -8,6 +8,7 @@ function workload(n: int, seed: int, input: string): int[][] {
   const content = unwrap(fromUtf8(initial));
   let rows: int[][] = [];
   let i = 0;
+
   while (i < n) {
     unwrap(writeTextFile(destination, initial));
     unwrap(appendFile(destination, newline));
@@ -19,6 +20,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     unwrap(writeAll(file, content));
     unwrap(close(file));
     const observed = unwrap(readTextFile(destination));
+
     if (observed !== initial) {
       throw "text changed";
     }

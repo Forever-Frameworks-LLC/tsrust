@@ -10,12 +10,15 @@ async function produce(sender: Sender<Bytes>): Task<void> {
 
 async function batch(): Task<int> {
   let sum = 0;
+
   for (let index = 0; index < 128; index++) {
     const chunks = new Channel<Bytes>(1);
     const job = produce(chunks.sender()).start();
+
     try {
       const response = streamChannel(chunks);
       const body = await response.text();
+
       if (body !== 'abcdefgabcdefgabcdefgabcdefgabcdefgabcdefg') {
         throw 'Unexpected body';
       }

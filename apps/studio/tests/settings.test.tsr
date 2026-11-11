@@ -4,6 +4,7 @@ import { defaultConfig, parseConfig, loadConfig, saveConfig, formatConfig, theme
 
 test('settings validate before persistence and round trip their named theme and shared text size', () => {
   const root = unwrap(createTempDir(undefined, 'studio-settings-'));
+
   try {
     const path = root + '/tsrust_studio.config.json';
     strictEqual(unwrap(loadConfig(path)).fontSize, defaultConfig().fontSize);
@@ -12,6 +13,7 @@ test('settings validate before persistence and round trip their named theme and 
     strictEqual(unwrap(loadConfig(path)).theme, 'Studio Light');
     strictEqual(unwrap(loadConfig(path)).fontSize, 18);
     strictEqual(themes().length >= 38, true);
+
     for (const theme of themes()) {
       const config = defaultConfig();
       config.theme = clone(theme);
@@ -20,6 +22,7 @@ test('settings validate before persistence and round trip their named theme and 
     }
 
     unwrap(saveConfig(path, text));
+
     for (const invalid of ['{}', 'not json', '{"schemaVersion":1,"theme":"missing theme","fontSize":14}', '{"schemaVersion":2,"theme":"Studio Dark","fontSize":14}', '{"schemaVersion":1,"theme":"Studio Dark","fontSize":7}', '{"schemaVersion":1,"theme":"","fontSize":14}', '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14.5}']) {
       match (parseConfig(invalid)) {
         Ok(_) => {
@@ -50,8 +53,10 @@ test('layout defaults migrate existing settings and every supported placement ro
   strictEqual(legacy.panelPosition, 'bottom');
   strictEqual(legacy.chatPosition, 'right');
   const root = unwrap(createTempDir(undefined, 'studio-layout-'));
+
   try {
     const path = root + '/tsrust_studio.config.json';
+
     for (const navigation of ['left', 'right']) {
       for (const activity of ['left', 'right']) {
         for (const panel of ['left', 'right', 'bottom']) {
@@ -74,8 +79,10 @@ test('layout defaults migrate existing settings and every supported placement ro
     }
 
     const baseline = unwrap(readTextFile(path));
+
     for (const field of ['navigationSide', 'activityBarSide', 'panelPosition', 'chatPosition']) {
       const invalid = '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"' + field + '":"top"}';
+
       match (saveConfig(path, invalid)) {
         Ok(_) => {
           throw 'invalid placement saved';
@@ -94,8 +101,10 @@ test('layout defaults migrate existing settings and every supported placement ro
 test('locale preferences round trip and legacy settings stay English', () => {
   strictEqual(unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}')).locale, 'en');
   const root = unwrap(createTempDir(undefined, 'studio-locale-'));
+
   try {
     const path = root + '/tsrust_studio.config.json';
+
     for (const locale of ['en', 'pt-BR']) {
       const config = defaultConfig();
       config.locale = clone(locale);
@@ -105,6 +114,7 @@ test('locale preferences round trip and legacy settings stay English', () => {
 
     const baseline = unwrap(readTextFile(path));
     const invalid = '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"locale":"missing"}';
+
     match (saveConfig(path, invalid)) {
       Ok(_) => {
         throw 'unsupported locale saved';
@@ -121,6 +131,7 @@ test('locale preferences round trip and legacy settings stay English', () => {
 
 test('GUI settings formatting and stale writes preserve configuration data', () => {
   const root = unwrap(createTempDir(undefined, 'studio-settings-edit-'));
+
   try {
     const path = root + '/tsrust_studio.config.json';
     const config = defaultConfig();
@@ -132,6 +143,7 @@ test('GUI settings formatting and stale writes preserve configuration data', () 
     external.fontSize = 19;
     const changed = formatConfig(external);
     unwrap(saveConfig(path, changed, formatted));
+
     match (saveConfig(path, formatted, formatted)) {
       Ok(_) => {
         throw 'stale settings overwrote an external edit';

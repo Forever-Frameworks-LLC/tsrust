@@ -10,6 +10,7 @@ import { searchContents, searchPreview, SearchResults } from '../src/lib/explore
 
 test('content search supports literal, case and regex matching with UTF-8 line offsets', () => {
   const root = unwrap(createTempDir(undefined, 'studio-search-'));
+
   try {
     unwrap(writeTextFile(root + '/source.tsr', '🦀 first\r\nAlpha beta\nalpha.betA\n'));
     unwrap(mkdirAll(root + '/target'));
@@ -23,6 +24,7 @@ test('content search supports literal, case and regex matching with UTF-8 line o
     strictEqual(unwrap(searchContents(workspace, 'alpha.betA', false, true)).hits.length, 1);
     strictEqual(unwrap(searchContents(workspace, '^alpha[ .]beta$', true, false)).hits.length, 2);
     strictEqual(unwrap(searchContents(workspace, '', false, false)).hits.length, 0);
+
     match (searchContents(workspace, '[', true, false)) {
       Ok(_) => {
         throw 'invalid regex accepted';
@@ -45,6 +47,7 @@ test('content search supports literal, case and regex matching with UTF-8 line o
 
 test('match previews retain UTF-8 ranges and bound long-line display around the hit', () => {
   const root = unwrap(createTempDir(undefined, 'studio-preview-'));
+
   try {
     const prefix = '界'.repeat(80);
     unwrap(writeTextFile(root + '/source.tsr', prefix + '🦀needle🦀' + '界'.repeat(80)));
@@ -55,6 +58,7 @@ test('match previews retain UTF-8 ranges and bound long-line display around the 
     strictEqual(parts[parts.length - 1].text, '…');
     const matched = parts.find((part) => part.matched);
     strictEqual(matched !== undefined, true);
+
     if (matched !== undefined) strictEqual(matched.text, 'needle');
     strictEqual(parts.map((part) => clone(part.text)).join('').length < 200, true);
     const zero = unwrap(searchContents(unwrap(openWorkspace(root)), '^', true, true)).hits;
@@ -68,6 +72,7 @@ test('match previews retain UTF-8 ranges and bound long-line display around the 
 
 test('registered AI search tools share results and enforce host navigation and stale-hit guards', () => {
   const root = unwrap(createTempDir(undefined, 'studio-search-tools-'));
+
   try {
     unwrap(writeTextFile(root + '/source.tsr', '🦀 needle\n'));
     const workspace = signal(unwrap(openWorkspace(root)));
@@ -82,6 +87,7 @@ test('registered AI search tools share results and enforce host navigation and s
     const result = JSON.parse<SearchResults>(response);
     strictEqual(result.hits[0].matches[0].start, 5);
     const hit = JSON.stringify(result.hits[0]);
+
     match (invokeEditorTool(context, 'open_search_result', hit.slice(0, -1) + ',"allowNavigation":true}')) {
       Ok(_) => {
         throw 'tool arguments escalated navigation permission';
@@ -95,6 +101,7 @@ test('registered AI search tools share results and enforce host navigation and s
     strictEqual(context.workspace.get().active, unwrap(canonicalize(root + '/source.tsr')));
     const invalid = clone(result.hits[0]);
     invalid.offset = 9223372036854775807;
+
     match (invokeEditorTool(context, 'open_search_result', JSON.stringify(invalid))) {
       Ok(_) => {
         throw 'overflowing tool offset accepted';
@@ -105,6 +112,7 @@ test('registered AI search tools share results and enforce host navigation and s
     invalid.offset = 0;
     invalid.matches[0].start = 1;
     invalid.matches[0].end = 2;
+
     match (invokeEditorTool(context, 'open_search_result', JSON.stringify(invalid))) {
       Ok(_) => {
         throw 'interior Unicode byte range accepted';
@@ -115,6 +123,7 @@ test('registered AI search tools share results and enforce host navigation and s
     const next = context.workspace.get();
     edit(next.files[0].document, 'changed');
     context.workspace.set(next);
+
     match (invokeEditorTool(context, 'open_search_result', hit)) {
       Ok(_) => {
         throw 'stale search result accepted';

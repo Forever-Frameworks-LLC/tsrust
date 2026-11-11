@@ -3,6 +3,7 @@ import { monotonicNow } from 'std:time';
 
 function batch(): int {
   let checksum = 0;
+
   for (let i = 0; i < 2048; i += 1) {
     const value = unwrap(toInt(unwrap(toNumber(i))));
     const exact = match (toFloat32(i)) {

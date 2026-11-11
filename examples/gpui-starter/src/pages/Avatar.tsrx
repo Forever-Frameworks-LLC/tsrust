@@ -3,7 +3,9 @@ import { Avatar, AvatarGroup, Node, Text, View } from 'std:ui';
 import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview, ExampleCode, PageHeader } from '../example.tsrx';
 
 function BasicAvatar(): Node {
-  return <Avatar name="Jason Lee" src="https://avatars.githubusercontent.com/u/5518?v=4" />;
+  return (
+    <Avatar name="Jason Lee" src="https://avatars.githubusercontent.com/u/5518?v=4" />
+  );
 }
 
 function InitialsAvatar(): Node {
@@ -36,7 +38,9 @@ function AvatarSizes(): Node {
 }
 
 function StyledAvatar(): Node {
-  return <Avatar name="Grace Hopper" className="size-16 border border-primary" />;
+  return (
+    <Avatar name="Grace Hopper" className="size-16 border border-primary" />
+  );
 }
 
 function BasicAvatarGroup(): Node {
@@ -72,8 +76,16 @@ function LimitedAvatarGroup(): Node {
 function AvatarGroupSizes(): Node {
   return (
     <View className="flex-col items-start gap-3">
-      <AvatarGroup size="small"><Avatar name="Ada" /><Avatar name="Alan" /><Avatar name="Grace" /></AvatarGroup>
-      <AvatarGroup size="large"><Avatar name="Ada" /><Avatar name="Alan" /><Avatar name="Grace" /></AvatarGroup>
+      <AvatarGroup size="small">
+        <Avatar name="Ada" />
+        <Avatar name="Alan" />
+        <Avatar name="Grace" />
+      </AvatarGroup>
+      <AvatarGroup size="large">
+        <Avatar name="Ada" />
+        <Avatar name="Alan" />
+        <Avatar name="Grace" />
+      </AvatarGroup>
     </View>
   );
 }
@@ -86,7 +98,9 @@ export function AvatarPage(): Node {
         <ExampleTitle>Basic Avatar</ExampleTitle>
         <ExampleDescription>An image source.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicAvatar /></ExamplePreview>
+          <ExamplePreview>
+            <BasicAvatar />
+          </ExamplePreview>
           <ExampleCode>{`function BasicAvatar(): Node {
   return <Avatar name="Jason Lee" src="https://avatars.githubusercontent.com/u/5518?v=4" />;
 }`}</ExampleCode>
@@ -96,7 +110,9 @@ export function AvatarPage(): Node {
         <ExampleTitle>Avatar with Fallback Text</ExampleTitle>
         <ExampleDescription>Initials from the name when there is no image.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><InitialsAvatar /></ExamplePreview>
+          <ExamplePreview>
+            <InitialsAvatar />
+          </ExamplePreview>
           <ExampleCode>{`function InitialsAvatar(): Node {
   return (
     <View className="flex-row gap-3">
@@ -111,7 +127,9 @@ export function AvatarPage(): Node {
         <ExampleTitle>Avatar Placeholder</ExampleTitle>
         <ExampleDescription>An icon when there is no image or name.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PlaceholderAvatar /></ExamplePreview>
+          <ExamplePreview>
+            <PlaceholderAvatar />
+          </ExamplePreview>
           <ExampleCode>{`function PlaceholderAvatar(): Node {
   return (
     <View className="flex-row gap-3">
@@ -126,7 +144,9 @@ export function AvatarPage(): Node {
         <ExampleTitle>Avatar Sizes</ExampleTitle>
         <ExampleDescription>xsmall to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><AvatarSizes /></ExamplePreview>
+          <ExamplePreview>
+            <AvatarSizes />
+          </ExamplePreview>
           <ExampleCode>{`function AvatarSizes(): Node {
   return (
     <View className="flex-row items-center gap-3">
@@ -143,7 +163,9 @@ export function AvatarPage(): Node {
         <ExampleTitle>Custom Styling</ExampleTitle>
         <ExampleDescription>Utility classes such as size and border.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><StyledAvatar /></ExamplePreview>
+          <ExamplePreview>
+            <StyledAvatar />
+          </ExamplePreview>
           <ExampleCode>{`function StyledAvatar(): Node {
   return <Avatar name="Grace Hopper" className="size-16 border border-primary" />;
 }`}</ExampleCode>
@@ -153,7 +175,9 @@ export function AvatarPage(): Node {
         <ExampleTitle>Avatar Group</ExampleTitle>
         <ExampleDescription>Overlapping avatars.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicAvatarGroup /></ExamplePreview>
+          <ExamplePreview>
+            <BasicAvatarGroup />
+          </ExamplePreview>
           <ExampleCode>{`function BasicAvatarGroup(): Node {
   return (
     <AvatarGroup>
@@ -169,7 +193,9 @@ export function AvatarPage(): Node {
         <ExampleTitle>Group with Limit</ExampleTitle>
         <ExampleDescription>Avatars past the limit are hidden, or summarized by an ellipsis.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LimitedAvatarGroup /></ExamplePreview>
+          <ExamplePreview>
+            <LimitedAvatarGroup />
+          </ExamplePreview>
           <ExampleCode>{`function LimitedAvatarGroup(): Node {
   return (
     <View className="flex-col items-start gap-3">
@@ -195,7 +221,9 @@ export function AvatarPage(): Node {
         <ExampleTitle>Group Sizes</ExampleTitle>
         <ExampleDescription>The group size applies to every avatar.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><AvatarGroupSizes /></ExamplePreview>
+          <ExamplePreview>
+            <AvatarGroupSizes />
+          </ExamplePreview>
           <ExampleCode>{`function AvatarGroupSizes(): Node {
   return (
     <View className="flex-col items-start gap-3">

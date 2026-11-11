@@ -6,12 +6,15 @@ function workload(n: int, seed: int, input: string): int {
   }).retain();
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     {
       const outcome = schema.safeParseJson(input);
+
       if (outcome.success) {
         const value = outcome.data;
         const extra = value.extra.get('extra');
+
         if (extra === undefined || value.extra.size !== 1) {
           throw 'Invalid extras';
         }
@@ -29,13 +32,16 @@ function workload(n: int, seed: int, input: string): int {
 
     {
       const outcome = schema.safeParseJson('{"extra":true}');
+
       if (outcome.success) {
         const value = outcome.data;
         throw 'Expected source rejection';
       } else {
         const failure = outcome.error;
+
         if (failure.kind === 'validation') {
           const error = failure.error;
+
           if (error.truncated || error.issues.length !== 1) {
             throw 'Invalid count';
           }

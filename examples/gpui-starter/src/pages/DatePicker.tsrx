@@ -6,21 +6,38 @@ function BasicDatePicker(): Node {
   const picked = signal('');
   return (
     <View className="flex-col gap-2 w-72">
-      <DatePicker placeholder="Pick a date" cleanable={true} onChange={(value) => { picked.set(clone(value)); }} />
+      <DatePicker
+        placeholder="Pick a date"
+        cleanable={true}
+        onChange={(value) => {
+          picked.set(clone(value));
+        }}
+      />
       <Text variant="muted">Value: {picked}</Text>
     </View>
   );
 }
 
 function RangeDatePicker(): Node {
-  return <DatePicker range={true} months={2} placeholder="Trip dates" presets={[['Thanksgiving week', '2026-11-23', '2026-11-29'], ['New Year', '2027-01-01']]} className="w-80" />;
+  return (
+    <DatePicker range={true} months={2} placeholder="Trip dates" presets={[['Thanksgiving week', '2026-11-23', '2026-11-29'], ['New Year', '2027-01-01']]} className="w-80" />
+  );
 }
 
 function TimedDatePicker(): Node {
   const at = signal('');
   return (
     <View className="flex-col gap-2 w-80">
-      <DatePicker time="minute" twelveHour={true} defaultTime="09:00" format="%b %d, %Y" placeholder="Meeting time" onChange={(value) => { at.set(clone(value)); }} />
+      <DatePicker
+        time="minute"
+        twelveHour={true}
+        defaultTime="09:00"
+        format="%b %d, %Y"
+        placeholder="Meeting time"
+        onChange={(value) => {
+          at.set(clone(value));
+        }}
+      />
       <Text variant="muted">Value: {at}</Text>
     </View>
   );
@@ -44,7 +61,9 @@ export function DatePickerPage(): Node {
         <ExampleTitle>Basic Date Picker</ExampleTitle>
         <ExampleDescription>Keeps its own value; onChange reports YYYY-MM-DD.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicDatePicker /></ExamplePreview>
+          <ExamplePreview>
+            <BasicDatePicker />
+          </ExamplePreview>
           <ExampleCode>{`function BasicDatePicker(): Node {
   const picked = signal('');
   return (
@@ -60,7 +79,9 @@ export function DatePickerPage(): Node {
         <ExampleTitle>Range with Presets</ExampleTitle>
         <ExampleDescription>range picks start..end; presets offer quick choices.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RangeDatePicker /></ExamplePreview>
+          <ExamplePreview>
+            <RangeDatePicker />
+          </ExamplePreview>
           <ExampleCode>{`function RangeDatePicker(): Node {
   return <DatePicker range={true} months={2} placeholder="Trip dates" presets={[['Thanksgiving week', '2026-11-23', '2026-11-29'], ['New Year', '2027-01-01']]} className="w-80" />;
 }`}</ExampleCode>
@@ -70,7 +91,9 @@ export function DatePickerPage(): Node {
         <ExampleTitle>Date and Time</ExampleTitle>
         <ExampleDescription>time adds a time; format changes the display.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TimedDatePicker /></ExamplePreview>
+          <ExamplePreview>
+            <TimedDatePicker />
+          </ExamplePreview>
           <ExampleCode>{`function TimedDatePicker(): Node {
   const at = signal('');
   return (
@@ -86,7 +109,9 @@ export function DatePickerPage(): Node {
         <ExampleTitle>Disabled Days and States</ExampleTitle>
         <ExampleDescription>Only weekdays from today; disabled and bare triggers.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RestrictedDatePicker /></ExamplePreview>
+          <ExamplePreview>
+            <RestrictedDatePicker />
+          </ExamplePreview>
           <ExampleCode>{`function RestrictedDatePicker(): Node {
   return (
     <View className="flex-col gap-2 w-72">

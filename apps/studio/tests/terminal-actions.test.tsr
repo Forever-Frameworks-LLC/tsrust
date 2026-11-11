@@ -15,6 +15,7 @@ test('terminal commands enforce host scope, grants, generation and argument boun
     id: 'human-shell', generation: 7, text: 'echo unsafe\r'
   };
   strictEqual(unwrap(validateTerminalCommand(denied, 'read', args)) === undefined, true);
+
   for (const name of ['write', 'paste', 'interrupt', 'copy', 'scroll', 'focus', 'close', 'restart', 'select']) {
     match (validateTerminalCommand(denied, name, args)) {
       Ok(_) => {
@@ -31,6 +32,7 @@ test('terminal commands enforce host scope, grants, generation and argument boun
     id: 'isolated-shell', generation: 7, text: 'printf ok\r', lines: -12
   };
   const write = unwrap(validateTerminalCommand(granted, 'write', valid));
+
   if (write === undefined) throw 'write request missing';
   strictEqual(write.text ?? '', 'printf ok\r');
   strictEqual(write.expectedGeneration ?? 0, 7);
@@ -41,6 +43,7 @@ test('terminal commands enforce host scope, grants, generation and argument boun
   }, {
     id: 'isolated-shell'
   }];
+
   for (const invalid of invalidCases) {
     match (validateTerminalCommand(granted, 'interrupt', invalid)) {
       Ok(_) => {
@@ -70,6 +73,7 @@ test('terminal commands enforce host scope, grants, generation and argument boun
 
   strictEqual(terminalCommands().length, 10);
   strictEqual(terminalTools().some((tool) => tool.name === 'terminal_write'), true);
+
   for (const command of terminalCommands()) {
     const schema = JSON.parse<TerminalToolSchema>(terminalToolSchema(command));
     strictEqual(schema.type, 'object');
@@ -92,6 +96,7 @@ test('registered terminal adapter rejects forged grants and malformed requests b
     name: 'terminal_read', payload: '{'}, {
     name: 'terminal_execute-unregistered', payload: '{"id":"human-shell"}'
   }];
+
   for (const attempt of cases) {
     const reply = replies.sender();
     invokeTerminalTool(denied, clone(attempt.name), clone(attempt.payload), (result) => {

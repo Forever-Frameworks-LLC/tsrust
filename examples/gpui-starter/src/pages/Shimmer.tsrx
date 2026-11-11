@@ -3,7 +3,9 @@ import { Node, ShimmerText, Text, View } from 'std:ui';
 import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview, ExampleCode, PageHeader } from '../example.tsrx';
 
 function BasicShimmer(): Node {
-  return <ShimmerText>Thinking...</ShimmerText>;
+  return (
+    <ShimmerText>Thinking...</ShimmerText>
+  );
 }
 
 function ShimmerDuration(): Node {
@@ -16,7 +18,9 @@ function ShimmerDuration(): Node {
 }
 
 function ShimmerColor(): Node {
-  return <ShimmerText highlightColor="blue">Generating response</ShimmerText>;
+  return (
+    <ShimmerText highlightColor="blue">Generating response</ShimmerText>
+  );
 }
 
 function ShimmerSpread(): Node {
@@ -38,7 +42,9 @@ function ShimmerDirection(): Node {
 }
 
 function StyledShimmer(): Node {
-  return <ShimmerText className="text-xl font-semibold">Searching the web</ShimmerText>;
+  return (
+    <ShimmerText className="text-xl font-semibold">Searching the web</ShimmerText>
+  );
 }
 
 export function ShimmerPage(): Node {
@@ -49,7 +55,9 @@ export function ShimmerPage(): Node {
         <ExampleTitle>Basic Usage</ExampleTitle>
         <ExampleDescription>A repeating sweep.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicShimmer /></ExamplePreview>
+          <ExamplePreview>
+            <BasicShimmer />
+          </ExamplePreview>
           <ExampleCode>{`function BasicShimmer(): Node {
   return <ShimmerText>Thinking...</ShimmerText>;
 }`}</ExampleCode>
@@ -59,7 +67,9 @@ export function ShimmerPage(): Node {
         <ExampleTitle>Duration</ExampleTitle>
         <ExampleDescription>Milliseconds per sweep.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ShimmerDuration /></ExamplePreview>
+          <ExamplePreview>
+            <ShimmerDuration />
+          </ExamplePreview>
           <ExampleCode>{`function ShimmerDuration(): Node {
   return (
     <View className="flex-col gap-2">
@@ -74,7 +84,9 @@ export function ShimmerPage(): Node {
         <ExampleTitle>Highlight Color</ExampleTitle>
         <ExampleDescription>Any theme color or hex.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ShimmerColor /></ExamplePreview>
+          <ExamplePreview>
+            <ShimmerColor />
+          </ExamplePreview>
           <ExampleCode>{`function ShimmerColor(): Node {
   return <ShimmerText highlightColor="blue">Generating response</ShimmerText>;
 }`}</ExampleCode>
@@ -84,7 +96,9 @@ export function ShimmerPage(): Node {
         <ExampleTitle>Spread</ExampleTitle>
         <ExampleDescription>Highlight half-width as a fraction of the text.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ShimmerSpread /></ExamplePreview>
+          <ExamplePreview>
+            <ShimmerSpread />
+          </ExamplePreview>
           <ExampleCode>{`function ShimmerSpread(): Node {
   return (
     <View className="flex-col gap-2">
@@ -99,7 +113,9 @@ export function ShimmerPage(): Node {
         <ExampleTitle>Direction and Play-once</ExampleTitle>
         <ExampleDescription>Reverse the sweep or play it once.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ShimmerDirection /></ExamplePreview>
+          <ExamplePreview>
+            <ShimmerDirection />
+          </ExamplePreview>
           <ExampleCode>{`function ShimmerDirection(): Node {
   return (
     <View className="flex-col gap-2">
@@ -114,7 +130,9 @@ export function ShimmerPage(): Node {
         <ExampleTitle>Styling</ExampleTitle>
         <ExampleDescription>Text utilities style the shimmer.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><StyledShimmer /></ExamplePreview>
+          <ExamplePreview>
+            <StyledShimmer />
+          </ExamplePreview>
           <ExampleCode>{`function StyledShimmer(): Node {
   return <ShimmerText className="text-xl font-semibold">Searching the web</ShimmerText>;
 }`}</ExampleCode>

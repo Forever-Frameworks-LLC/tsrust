@@ -54,6 +54,7 @@ function loop(result: Mutable<Result<int[], string>>): void {
     match (result) {
       Ok(values) => {
         values.push(index);
+
         if (index < 2) {
           continue;
         }
@@ -94,6 +95,7 @@ function main() {
     finalized: 0
   };
   strictEqual(finish(Ok("returned"), state), "returned");
+
   try {
     finish(Err("thrown"), state);
   } catch (error) {
@@ -103,6 +105,7 @@ function main() {
   strictEqual(state.finalized, 2);
   let replaced: Result<string[], string> = Ok(["old".repeat(16)]);
   replaced = Err("new".repeat(16));
+
   match (replaced) {
     Ok(_) => {
       strictEqual(1, 0);
@@ -114,6 +117,7 @@ function main() {
 
   const callback = failing();
   let caught = 0;
+
   try {
     invoke(callback);
   } catch (error) {
@@ -129,6 +133,7 @@ function main() {
   }
 
   strictEqual(caught, 2);
+
   match (callback) {
     Ok(action) => {
       try {
@@ -146,6 +151,7 @@ function main() {
   strictEqual(caught, 3);
   let replacedCallback = message("first".repeat(16));
   replacedCallback = message("second".repeat(16));
+
   match (replacedCallback) {
     Ok(action) => {
       strictEqual(action().length, 96);
@@ -156,6 +162,7 @@ function main() {
   }
 
   const once = onceFailure("once".repeat(8));
+
   match (once) {
     Ok(action) => {
       try {
@@ -171,6 +178,7 @@ function main() {
 
   const iterated: Result<int[], string> = Ok([]);
   loop(iterated);
+
   match (iterated) {
     Ok(values) => {
       strictEqual(values.length, 4);

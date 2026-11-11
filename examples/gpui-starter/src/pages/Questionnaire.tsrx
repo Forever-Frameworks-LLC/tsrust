@@ -6,7 +6,12 @@ function GuidedQuestions(): Node {
   const answers = signal('No answers submitted.');
   return (
     <View className="flex-col gap-3 w-full">
-      <Questionnaire onSubmit={(value) => { answers.set(clone(value)); }} className="h-96 w-full">
+      <Questionnaire
+        onSubmit={(value) => {
+          answers.set(clone(value));
+        }}
+        className="h-96 w-full"
+      >
         <Question id="plan" title="Which plan fits?" description="Choose one to continue." required={true}>
           <QuestionChoice id="free" label="Free" description="For personal projects." />
           <QuestionChoice id="team" label="Team" description="For shared projects." />
@@ -17,7 +22,9 @@ function GuidedQuestions(): Node {
           <QuestionChoice id="browser" label="Browser" />
         </Question>
       </Questionnaire>
-      <Text>{answers}</Text>
+      <Text>
+        {answers}
+      </Text>
     </View>
   );
 }
@@ -33,7 +40,18 @@ function FreeformQuestions(): Node {
         <Switch checked={disabled.get()} onChange={(value) => { disabled.set(value); }}>Disable Team</Switch>
         <Switch checked={large.get()} onChange={(value) => { large.set(value); }}>Large questions</Switch>
       </View>
-      <Questionnaire defaultCurrent="plan" shortcuts="numbers" size={large.get() ? 'large' : 'small'} onCurrentChange={(id) => { current.set(clone(id)); }} onSubmitDetails={(value) => { result.set(clone(value)); }} className="h-96 w-full">
+      <Questionnaire
+        defaultCurrent="plan"
+        shortcuts="numbers"
+        size={large.get() ? 'large' : 'small'}
+        onCurrentChange={(id) => {
+          current.set(clone(id));
+        }}
+        onSubmitDetails={(value) => {
+          result.set(clone(value));
+        }}
+        className="h-96 w-full"
+      >
         <Question id="plan" title="Choose a plan" required={true}>
           <QuestionChoice id="free" label="Free" defaultSelected={true} />
           <QuestionChoice id="team" label="Team" disabled={disabled.get()} />
@@ -46,7 +64,9 @@ function FreeformQuestions(): Node {
         </Question>
       </Questionnaire>
       <Text>Current question: {current}</Text>
-      <Text>{result}</Text>
+      <Text>
+        {result}
+      </Text>
     </View>
   );
 }
@@ -59,7 +79,9 @@ export function QuestionnairePage(): Node {
         <ExampleTitle>Guided questions</ExampleTitle>
         <ExampleDescription>Choose a plan, then select the tools you use. Submit reports the answers as JSON.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><GuidedQuestions /></ExamplePreview>
+          <ExamplePreview>
+            <GuidedQuestions />
+          </ExamplePreview>
           <ExampleCode>{`function GuidedQuestions(): Node {
   const answers = signal('No answers submitted.');
   return (
@@ -85,7 +107,9 @@ export function QuestionnairePage(): Node {
         <ExampleTitle>Freeform answers and defaults</ExampleTitle>
         <ExampleDescription>Defaults initialize answers once. Disable Team live without rebuilding the questionnaire; text is a draft until Next or Submit. Detailed submission preserves choices, freeform text and skipped status.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FreeformQuestions /></ExamplePreview>
+          <ExamplePreview>
+            <FreeformQuestions />
+          </ExamplePreview>
           <ExampleCode>{`function FreeformQuestions(): Node {
   const disabled = signal(true);
   const large = signal(false);

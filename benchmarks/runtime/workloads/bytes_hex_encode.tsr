@@ -2,6 +2,7 @@ import { toHex, fromUtf8, length, at } from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int[] {
   let size = 32;
+
   if (input === "4k") {
     size = 4096;
   }
@@ -14,6 +15,7 @@ function workload(n: int, seed: int, input: string): int[] {
   const bytes = unwrap(fromUtf8(text));
   const output: int[] = [];
   let i = 0;
+
   while (i < n) {
     const result = unwrap(toHex(bytes));
     output.push(result.length);

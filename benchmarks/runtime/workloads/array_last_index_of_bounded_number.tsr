@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): int[] {
   const values: number[] = [];
   let j = 0;
+
   while (j < 129) {
     values.push(numberItem(j * 37 + seed));
     j = j + 1;
@@ -8,8 +9,10 @@ function workload(n: int, seed: int): int[] {
 
   const output: int[] = [];
   let i = 0;
+
   while (i < n) {
     let needle = numberItem(i * 17 + seed);
+
     if ((i + seed) % 11 === 10) {
       needle = 99.75;
     }
@@ -24,6 +27,7 @@ function workload(n: int, seed: int): int[] {
 
 function numberItem(base: int): number {
   const c = base % 8;
+
   if (c === 0) {
     return 0.0;
   }
@@ -57,6 +61,7 @@ function numberItem(base: int): number {
 
 function bound(i: int, seed: int): int {
   const c = (i * 13 + seed) % 12;
+
   if (c === 0) {
     return -9223372036854775808;
   }

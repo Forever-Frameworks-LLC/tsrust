@@ -15,6 +15,7 @@ type Catalog = {
 function workload(n: int, seed: int): int {
   let sum = seed;
   let i = 0;
+
   while (i < n) {
     const catalog: Catalog = {
       users: [{
@@ -24,6 +25,7 @@ function workload(n: int, seed: int): int {
       }], rows: [[seed]]
     };
     append(catalog, i);
+
     for (const user of catalog.users) {
       sum = sum + user.profile.score;
     }

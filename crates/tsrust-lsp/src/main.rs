@@ -253,12 +253,17 @@ fn run(
                             }
                             "textDocument/formatting" if initialized && !shutdown => {
                                 let snapshot = request.params.pointer("/textDocument/uri").and_then(Value::as_str).and_then(|uri| documents.snapshot(uri));
-                                match snapshot.map(|snapshot| tsrust_compiler::format(&snapshot.text).map(|formatted| {
+                                match snapshot.map(|snapshot| -> Result<Value, String> {
+                                    let path = tsrust_lsp::project_diagnostics::source_path_id(&snapshot.uri)?;
+                                    let mut defaults = tsrust_compiler::FormatOptions::default();
+                                    if let Some(width) = request.params.pointer("/options/tabSize").and_then(Value::as_u64) { defaults.indent_width = usize::try_from(width).map_err(|_| "Format tabSize exceeds this platform's supported range.".to_owned())?; }
+                                    let options = tsrust_compiler::FormatOptions::for_path(std::path::Path::new(&path.0), &defaults)?;
+                                    let formatted = tsrust_compiler::format_with_options(&snapshot.text, &options).map_err(|error| error.message)?;
                                     let range = tsrust_lsp::LineIndex::new(&snapshot.text).range(&snapshot.text, tsrust_compiler::Span::new(0, snapshot.text.len())).expect("snapshot boundaries");
-                                    if formatted == snapshot.text { json!([]) } else { json!([{"range":range,"newText":formatted}]) }
-                                })) {
+                                    Ok(if formatted == snapshot.text { json!([]) } else { json!([{"range":range,"newText":formatted}]) })
+                                }) {
                                     Some(Ok(result)) => Response::new_ok(request.id, result),
-                                    Some(Err(error)) => Response::new_err(request.id, ErrorCode::RequestFailed as i32, error.message),
+                                    Some(Err(error)) => Response::new_err(request.id, ErrorCode::RequestFailed as i32, error),
                                     None => Response::new_ok(request.id, json!([])),
                                 }
                             }

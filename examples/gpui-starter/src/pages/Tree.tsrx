@@ -7,7 +7,13 @@ function FileTree(): Node {
   return (
     <View className="flex-col gap-3 w-72">
       <View className="h-64 rounded-lg border border-border">
-        <Tree className="size-full" defaultSelected="main.tsrx" onSelect={(id) => { selected.set(id); }}>
+        <Tree
+          className="size-full"
+          defaultSelected="main.tsrx"
+          onSelect={(id) => {
+            selected.set(id);
+          }}
+        >
           <TreeItem id="src" defaultExpanded={true}>
             src
             <TreeItem id="main.tsrx">main.tsrx</TreeItem>
@@ -33,7 +39,19 @@ function ControlledTree(): Node {
   return (
     <View className="flex-row gap-6">
       <View className="h-56 w-64 rounded-lg border border-border">
-        <Tree className="size-full" selected={selected.get()} onSelect={(id) => { selected.set(id); }} onExpand={(id) => { log.set(`Opened ${id}`); }} onCollapse={(id) => { log.set(`Closed ${id}`); }}>
+        <Tree
+          className="size-full"
+          selected={selected.get()}
+          onSelect={(id) => {
+            selected.set(id);
+          }}
+          onExpand={(id) => {
+            log.set(`Opened ${id}`);
+          }}
+          onCollapse={(id) => {
+            log.set(`Closed ${id}`);
+          }}
+        >
           <TreeItem id="docs">
             docs
             <TreeItem id="guide">
@@ -46,7 +64,9 @@ function ControlledTree(): Node {
       </View>
       <View className="flex-col gap-2">
         <Button outline={true} onPress={() => { selected.set('install.md'); }}>Reveal install.md</Button>
-        <Text variant="muted">{log.get()}</Text>
+        <Text variant="muted">
+          {log.get()}
+        </Text>
       </View>
     </View>
   );
@@ -58,7 +78,12 @@ function MenuTree(): Node {
   return (
     <View className="flex-col gap-3 w-72">
       <View className="h-36 rounded-lg border border-border">
-        <Tree className="size-full" onContextMenu={(id) => { target.set(id); }}>
+        <Tree
+          className="size-full"
+          onContextMenu={(id) => {
+            target.set(id);
+          }}
+        >
           <TreeItem id="a.txt">a.txt</TreeItem>
           <TreeItem id="b.txt">b.txt</TreeItem>
           <TreeMenu>
@@ -67,7 +92,9 @@ function MenuTree(): Node {
           </TreeMenu>
         </Tree>
       </View>
-      <Text variant="muted">{action.get()}</Text>
+      <Text variant="muted">
+        {action.get()}
+      </Text>
     </View>
   );
 }
@@ -80,7 +107,9 @@ export function TreePage(): Node {
         <ExampleTitle>Basic Tree</ExampleTitle>
         <ExampleDescription>Nested TreeItem children make folders; click to select, arrow keys move and expand.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FileTree /></ExamplePreview>
+          <ExamplePreview>
+            <FileTree />
+          </ExamplePreview>
           <ExampleCode>{`function FileTree(): Node {
   const selected = signal('main.tsrx');
   return (
@@ -111,7 +140,9 @@ export function TreePage(): Node {
         <ExampleTitle>Expand Events and Controlled Selection</ExampleTitle>
         <ExampleDescription>selected drives the highlight and reveals hidden items; onExpand and onCollapse report folders.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledTree /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledTree />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledTree(): Node {
   const selected = signal('');
   const log = signal('');
@@ -142,7 +173,9 @@ export function TreePage(): Node {
         <ExampleTitle>Context Menu</ExampleTitle>
         <ExampleDescription>TreeMenu items open on right click; onContextMenu says which row.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><MenuTree /></ExamplePreview>
+          <ExamplePreview>
+            <MenuTree />
+          </ExamplePreview>
           <ExampleCode>{`function MenuTree(): Node {
   const target = signal('');
   const action = signal('');

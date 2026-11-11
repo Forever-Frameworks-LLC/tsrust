@@ -6,7 +6,14 @@ function Temperature(): Node {
   const celsius = signal(21.0);
   return (
     <View className="flex-col gap-3 w-80">
-      <Slider min={-20} max={40} value={celsius.get()} onChange={(value) => { celsius.set(value); }} />
+      <Slider
+        min={-20}
+        max={40}
+        value={celsius.get()}
+        onChange={(value) => {
+          celsius.set(value);
+        }}
+      />
       <Text>{Math.round(celsius.get())} °C is {Math.round(celsius.get() * 9 / 5 + 32)} °F</Text>
     </View>
   );
@@ -26,8 +33,16 @@ function Conditional(): Node {
   const signedIn = signal(false);
   return (
     <View className="flex-col gap-3">
-      <Button onPress={() => { signedIn.set(!signedIn.get()); }}>{signedIn.get() ? 'Sign out' : 'Sign in'}</Button>
-      {signedIn.get() ? <Alert variant="success"><AlertTitle>Welcome back</AlertTitle></Alert> : <Text variant="muted">You are signed out.</Text>}
+      <Button
+        onPress={() => {
+          signedIn.set(!signedIn.get());
+        }}
+      >
+        {signedIn.get() ? 'Sign out' : 'Sign in'}
+      </Button>
+      {signedIn.get() ? <Alert variant="success">
+        <AlertTitle>Welcome back</AlertTitle>
+      </Alert> : <Text variant="muted">You are signed out.</Text>}
     </View>
   );
 }
@@ -37,7 +52,10 @@ function TodoList(): Node {
   const tasks: string[] = ['Write docs', 'Review the PR', 'Ship 0.2.0', 'Plan GPUI showcase', 'Celebrate'];
   return (
     <View className="flex-col gap-2 w-80">
-      {...tasks.filter((task: string, index: int) => index < count.get()).map((task: string) => <Checkbox>{clone(task)}</Checkbox>)}
+      {...tasks.filter((task: string, index: int) => index < count.get()).map((task: string) => <Checkbox>
+        {clone(task)}
+      </Checkbox>
+      )}
       <Button outline={true} disabled={count.get() >= 5} onPress={() => { count.set(count.get() + 1); }}>Add task</Button>
     </View>
   );
@@ -49,7 +67,9 @@ export function StateandReactivityPage(): Node {
       <Markdown content={"# State and Reactivity"} />
       <Markdown content={"State lives in signals. Reading `signal.get()` inside TSRX markup makes that part of\nthe tree update when the signal changes; nothing else re-renders.\n\n## Signals"} />
       <ExampleTabs>
-        <ExamplePreview><Temperature /></ExamplePreview>
+        <ExamplePreview>
+          <Temperature />
+        </ExamplePreview>
         <ExampleCode>{`function Temperature(): Node {
   const celsius = signal(21.0);
   return (
@@ -62,7 +82,9 @@ export function StateandReactivityPage(): Node {
       </ExampleTabs>
       <Markdown content={"`computed(() => ...)` names a derived value; it re-evaluates when read.\n\n## Controlled and uncontrolled\n\nA form control is controlled when you pass its value (`checked`, `value`,\n`selected`, `open`) and update it from the change event. Leave the value out\nand the control keeps its own state; `defaultChecked`, `defaultValue` or\n`defaultOpen` set where it starts."} />
       <ExampleTabs>
-        <ExamplePreview><ControlledSwitch /></ExamplePreview>
+        <ExamplePreview>
+          <ControlledSwitch />
+        </ExamplePreview>
         <ExampleCode>{`function ControlledSwitch(): Node {
   const on = signal(true);
   return (
@@ -75,7 +97,9 @@ export function StateandReactivityPage(): Node {
       </ExampleTabs>
       <Markdown content={"## Conditional content\n\nA ternary that reads a signal swaps subtrees; `hidden` keeps a subtree but\nhides it."} />
       <ExampleTabs>
-        <ExamplePreview><Conditional /></ExamplePreview>
+        <ExamplePreview>
+          <Conditional />
+        </ExamplePreview>
         <ExampleCode>{`function Conditional(): Node {
   const signedIn = signal(false);
   return (
@@ -88,7 +112,9 @@ export function StateandReactivityPage(): Node {
       </ExampleTabs>
       <Markdown content={"## Lists\n\nSpread an array of nodes into children with `{...items.map(...)}`. When the\nexpression reads a signal, the list updates; rows whose content did not\nchange keep their state. Array callbacks borrow each element, so `clone()`\ncopies a string into the row it builds."} />
       <ExampleTabs>
-        <ExamplePreview><TodoList /></ExamplePreview>
+        <ExamplePreview>
+          <TodoList />
+        </ExamplePreview>
         <ExampleCode>{`function TodoList(): Node {
   const count = signal(3);
   const tasks: string[] = ['Write docs', 'Review the PR', 'Ship 0.2.0', 'Plan GPUI showcase', 'Celebrate'];

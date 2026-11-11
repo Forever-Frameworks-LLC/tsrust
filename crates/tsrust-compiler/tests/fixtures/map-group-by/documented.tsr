@@ -4,6 +4,7 @@ function main() {
   });
   console.log(groups.size);
   const even = groups.get(0);
+
   if (even !== undefined) {
     console.log(even.join(","));
   }

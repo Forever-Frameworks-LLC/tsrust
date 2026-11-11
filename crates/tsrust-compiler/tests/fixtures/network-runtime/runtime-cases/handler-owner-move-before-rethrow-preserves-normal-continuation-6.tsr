@@ -6,6 +6,7 @@ function consume(value: Owned<Bytes>): void {
 
 function inspect(fail: boolean): void {
   const owner = unwrap(alloc(3));
+
   try {
     if (fail) {
       throw 1;
@@ -20,6 +21,7 @@ function inspect(fail: boolean): void {
 
 export function run() {
   inspect(false);
+
   try {
     inspect(true);
   } catch (error) {

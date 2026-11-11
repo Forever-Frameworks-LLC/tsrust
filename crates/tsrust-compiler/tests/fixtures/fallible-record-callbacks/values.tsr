@@ -30,6 +30,7 @@ function relay(holder: ReadOnly<Holder>, finished: Mutable<int[]>): int {
 
 function checked(holder: ReadOnly<Holder>, limit: int): int {
   const value = holder.run();
+
   if (value > limit) {
     throw "big";
   }
@@ -57,8 +58,8 @@ function main() {
   const limit = [10];
   let caught = "";
 
-    // A failure travels out of the function that called the field.
-    {
+  // A failure travels out of the function that called the field.
+  {
     const holder: Holder = {
       run: (): int => {
         if (values[1] > limit[0]) {
@@ -82,6 +83,7 @@ function main() {
         return values[1];
       }
     };
+
     try {
       call(holder);
     } catch (error) {
@@ -91,8 +93,8 @@ function main() {
 
   strictEqual(caught, "over");
 
-    // A thrown string and a thrown number share one field contract.
-    const thrower: Holder = {
+  // A thrown string and a thrown number share one field contract.
+  const thrower: Holder = {
     run: (): int => {
       throw "four";
     }
@@ -107,13 +109,14 @@ function main() {
   strictEqual(guarded(coded, finished), 1007);
   strictEqual(finished[0], 3);
 
-    // The calling function adds its own failure.
-    {
+  // The calling function adds its own failure.
+  {
     const holder: Holder = {
       run: (): int => values[0]
     };
     strictEqual(checked(holder, 10), 3);
     caught = "";
+
     try {
       checked(holder, 1);
     } catch (error) {
@@ -123,12 +126,13 @@ function main() {
 
   strictEqual(caught, "big");
 
-    // A mutable field keeps the changes made before the failure.
-    let position = 0;
+  // A mutable field keeps the changes made before the failure.
+  let position = 0;
   {
     const step: Step = {
       next: (): int => {
         position += 1;
+
         if (position > 1) {
           throw "end";
         }
@@ -137,6 +141,7 @@ function main() {
       }
     };
     caught = "";
+
     try {
       drive(step);
     } catch {
@@ -147,14 +152,15 @@ function main() {
   strictEqual(caught, "out");
   strictEqual(position, 2);
 
-    // A callback stored by a callee can fail too.
-    {
+  // A callback stored by a callee can fail too.
+  {
     let holder: Holder = {
       run: (): int => values[0]
     };
     strictEqual(call(holder), 3);
     replace(holder, 5);
     caught = "";
+
     try {
       call(holder);
     } catch (error) {

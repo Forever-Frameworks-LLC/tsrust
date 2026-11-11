@@ -22,6 +22,7 @@ function copiedText(value: Mutable<string | int[]> = [1]): string {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = (i * 13 + seed) % 97;
     const mode = (i + seed) % 4;

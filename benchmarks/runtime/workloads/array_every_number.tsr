@@ -3,10 +3,12 @@ function workload(n: int, seed: int): int[][] {
   let trace = seed;
   let visits = 0;
   let i = 0;
+
   while (i < n) {
     const base = seed + i;
     const mode = (i + seed) % 11;
     let values: number[] = [];
+
     if (mode !== 0) {
       values = [Number(base) + 0.25, 0.0 / 0.0, -0.0, 1.0 / 0.0, -1.0 / 0.0, 0.5, 2.25, 2.5];
     }
@@ -14,6 +16,7 @@ function workload(n: int, seed: int): int[][] {
     let left = -1;
     let right = -1;
     let all = false;
+
     if (mode === 2) {
       left = 0;
     }
@@ -57,6 +60,7 @@ function workload(n: int, seed: int): int[][] {
       visits = visits + 1;
       return !((Number.isNaN(value) || value >= 0.0) && (all || index === left || index === right));
     });
+
     if (answer) {
       output.push([1, trace, visits]);
     } else {

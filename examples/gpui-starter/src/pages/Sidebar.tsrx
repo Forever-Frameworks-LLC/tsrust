@@ -7,7 +7,9 @@ function BasicSidebar(): Node {
   return (
     <View className="flex-row h-[360px] w-full rounded-lg border border-border">
       <Sidebar>
-        <SidebarHeader><Text className="font-semibold">Acme Inc.</Text></SidebarHeader>
+        <SidebarHeader>
+          <Text className="font-semibold">Acme Inc.</Text>
+        </SidebarHeader>
         <SidebarGroup label="Workspace">
           <SidebarItem icon="inbox" active={page.get() === 'inbox'} onClick={() => { page.set('inbox'); }}>Inbox<SidebarItemSuffix><View className="w-6 h-5 pr-2 pt-2"><Badge count={4} /></View></SidebarItemSuffix></SidebarItem>
           <SidebarItem icon="calendar" active={page.get() === 'calendar'} onClick={() => { page.set('calendar'); }}>Calendar</SidebarItem>
@@ -16,9 +18,16 @@ function BasicSidebar(): Node {
             <SidebarItem active={page.get() === 'mobile'} onClick={() => { page.set('mobile'); }}>Mobile app</SidebarItem>
           </SidebarItem>
         </SidebarGroup>
-        <SidebarFooter><View className="flex-row items-center gap-2"><Avatar name="Ada Lovelace" size="small" /><Text>Ada Lovelace</Text></View></SidebarFooter>
+        <SidebarFooter>
+          <View className="flex-row items-center gap-2">
+            <Avatar name="Ada Lovelace" size="small" />
+            <Text>Ada Lovelace</Text>
+          </View>
+        </SidebarFooter>
       </Sidebar>
-      <View className="grow p-6"><Text>Page: {page}</Text></View>
+      <View className="grow p-6">
+        <Text>Page: {page}</Text>
+      </View>
     </View>
   );
 }
@@ -34,7 +43,14 @@ function CollapsibleSidebar(): Node {
           <SidebarItem icon="settings" accessibilityLabel="Settings">Settings</SidebarItem>
         </SidebarGroup>
       </Sidebar>
-      <View className="grow p-4"><SidebarToggleButton collapsed={collapsed.get()} onClick={() => { collapsed.set(!collapsed.get()); }} /></View>
+      <View className="grow p-4">
+        <SidebarToggleButton
+          collapsed={collapsed.get()}
+          onClick={() => {
+            collapsed.set(!collapsed.get());
+          }}
+        />
+      </View>
     </View>
   );
 }
@@ -43,7 +59,9 @@ function RightSidebar(): Node {
   const action = signal('none');
   return (
     <View className="flex-row h-[260px] w-full rounded-lg border border-border">
-      <View className="grow p-6"><Text>Right-click a file (last: {action})</Text></View>
+      <View className="grow p-6">
+        <Text>Right-click a file (last: {action})</Text>
+      </View>
       <Sidebar side="right" collapsible="none">
         <SidebarGroup label="Files">
           <SidebarItem icon="file">report.pdf
@@ -65,7 +83,9 @@ export function SidebarPage(): Node {
         <ExampleTitle>Basic Sidebar</ExampleTitle>
         <ExampleDescription>Groups of items; the active item marks the current page.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicSidebar /></ExamplePreview>
+          <ExamplePreview>
+            <BasicSidebar />
+          </ExamplePreview>
           <ExampleCode>{`function BasicSidebar(): Node {
   const page = signal('inbox');
   return (
@@ -92,7 +112,9 @@ export function SidebarPage(): Node {
         <ExampleTitle>Collapsible</ExampleTitle>
         <ExampleDescription>SidebarToggleButton collapses the sidebar to icons.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CollapsibleSidebar /></ExamplePreview>
+          <ExamplePreview>
+            <CollapsibleSidebar />
+          </ExamplePreview>
           <ExampleCode>{`function CollapsibleSidebar(): Node {
   const collapsed = signal(false);
   return (
@@ -114,7 +136,9 @@ export function SidebarPage(): Node {
         <ExampleTitle>Right Side and Item Menus</ExampleTitle>
         <ExampleDescription>side="right"; MenuItem children give an item a right-click menu.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RightSidebar /></ExamplePreview>
+          <ExamplePreview>
+            <RightSidebar />
+          </ExamplePreview>
           <ExampleCode>{`function RightSidebar(): Node {
   const action = signal('none');
   return (

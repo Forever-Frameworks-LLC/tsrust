@@ -8,6 +8,7 @@ import { zoomFontSize, zoomWorkspace } from '../src/lib/workspace/zoom.tsr';
 
 test('zoom persists per workspace, clamps text size and resets to the configured base', () => {
   const root = unwrap(createTempDir(undefined, 'studio-zoom-'));
+
   try {
     const initial = unwrap(openWorkspace(root));
     const path = root + '/journal.json';
@@ -41,6 +42,7 @@ test('zoom persists per workspace, clamps text size and resets to the configured
     strictEqual(reset.zoomLevel, 0);
     const invalid = '{"schemaVersion":1,"root":' + JSON.stringify(reset.root) + ',"drafts":[],"zoomLevel":41}';
     unwrap(writeTextFile(root + '/invalid.json', invalid));
+
     match (restoreRecovery(reset, root + '/invalid.json')) {
       Ok(_) => {
         throw 'invalid zoom level accepted';

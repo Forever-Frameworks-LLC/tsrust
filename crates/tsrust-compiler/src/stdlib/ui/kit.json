@@ -4960,7 +4960,7 @@
     },
     {
       "name": "Terminal",
-      "doc": "A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory is read once at mount.",
+      "doc": "A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount, or runs an explicit program with args as a visible task. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory/program/args are read once at mount. Starting a task can execute code or write files; its host must grant those effects.",
       "props": [
         {
           "name": "id",
@@ -4971,6 +4971,17 @@
           "name": "directory",
           "type": "string",
           "doc": "Existing shell working directory. Read at mount; omission uses the application current directory. Changing this prop never changes a running shell."
+        },
+        {
+          "name": "program",
+          "type": "string",
+          "doc": "Optional executable to run directly instead of the login shell, for a task terminal. Nonempty and without NUL. Read at mount; restart reruns this program. No shell expansion is performed."
+        },
+        {
+          "name": "args",
+          "type": "string[]",
+          "doc": "Arguments for program, passed individually without a shell. Requires an explicit program when nonempty; NUL is rejected. Read at mount and reused on restart.",
+          "json": true
         },
         {
           "name": "fontSize",
@@ -4989,6 +5000,11 @@
           "prop": "onExit",
           "value": "void",
           "doc": "Runs once when the current shell exits. Read its final status with readTerminal; restart resets this notification for the new session."
+        },
+        {
+          "prop": "onOpenLink",
+          "value": "string",
+          "doc": "Cmd-click (Ctrl-click outside macOS) a path:line:column to request guarded editor navigation. Value is JSON containing path, line and column. Includes soft-wrapped locations. The host must validate workspace scope; no external URL is opened."
         }
       ]
     },

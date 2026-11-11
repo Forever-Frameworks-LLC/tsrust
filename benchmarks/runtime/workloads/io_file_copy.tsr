@@ -6,12 +6,14 @@ async function workload(n: int, seed: int): Task<int> {
   const source = directory + '/source';
   const target = directory + '/target';
   const data: int[] = [];
+
   for (let j: int = 0; j < 4096; j++) {
     data.push((seed + j) % 251);
   }
 
   unwrap(writeFile(source, unwrap(fromArray(data))));
   let sum: int = 0;
+
   try {
     for (let i: int = 0; i < n; i++) {
       const input = reader(unwrap(open(source)));
@@ -21,6 +23,7 @@ async function workload(n: int, seed: int): Task<int> {
       unwrap(await close(output));
       sum = (sum * 131 + count) % 1000000007;
       const bytes = unwrap(readFile(target));
+
       for (let j: int = 0; j < length(bytes); j++) {
         sum = (sum * 131 + unwrap(at(bytes, j))) % 1000000007;
       }

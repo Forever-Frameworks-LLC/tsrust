@@ -7,6 +7,7 @@ import { saveDocument } from '../src/lib/workspace/storage.tsr';
 
 test('recovery restores exact drafts with fresh sessions and retains the original disk baseline', () => {
   const root = unwrap(createTempDir(undefined, 'studio-recovery-'));
+
   try {
     unwrap(writeTextFile(root + '/source.tsr', 'disk\r\n'));
     const workspace = unwrap(openWorkspace(root));
@@ -23,6 +24,7 @@ test('recovery restores exact drafts with fresh sessions and retains the origina
     strictEqual(reopened.files[0].document.savedText, 'disk\r\n');
     strictEqual(reopened.files[0].document.session === session, false);
     strictEqual(dirty(reopened.files[0].document), true);
+
     match (saveDocument(reopened.files[0].document)) {
       Ok(_) => {
         throw 'recovery overwrote external changes';
@@ -32,12 +34,14 @@ test('recovery restores exact drafts with fresh sessions and retains the origina
 
     strictEqual(unwrap(readTextFile(root + '/source.tsr')), 'external edit');
     unwrap(writeTextFile(root + '/journal.json', 'external journal edit'));
+
     match (persistRecovery(reopened, restored)) {
       Ok(_) => {},
       Err(_) => {}
     }
 
     edit(reopened.files[0].document, 'new draft');
+
     match (persistRecovery(reopened, restored)) {
       Ok(_) => {
         throw 'changed journal was overwritten';
@@ -47,6 +51,7 @@ test('recovery restores exact drafts with fresh sessions and retains the origina
 
     strictEqual(unwrap(readTextFile(root + '/journal.json')), 'external journal edit');
     const invalid = unwrap(openWorkspace(root));
+
     match (restoreRecovery(invalid, root + '/journal.json')) {
       Ok(_) => {
         throw 'corrupt journal accepted';
@@ -62,12 +67,14 @@ test('recovery restores exact drafts with fresh sessions and retains the origina
 
 test('workspace recovery retains clean tabs and selection while taking fresh disk contents', () => {
   const root = unwrap(createTempDir(undefined, 'studio-view-recovery-'));
+
   try {
     unwrap(writeTextFile(root + '/a.tsr', 'a'));
     unwrap(writeTextFile(root + '/b.tsr', 'b'));
     unwrap(writeTextFile(root + '/deleted.tsr', 'deleted'));
     const workspace = unwrap(openWorkspace(root));
     const recovery = unwrap(restoreRecovery(workspace, root + '/journal.json'));
+
     for (const file of ['a.tsr', 'b.tsr', 'deleted.tsr']) unwrap(openFile(workspace, root + '/' + file));
     const first = clone(workspace.files[0].document.path);
     const second = clone(workspace.files[1].document.path);
@@ -119,6 +126,7 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
     const invalidText = JSON.stringify(invalidJournal);
     unwrap(writeTextFile(root + '/invalid.json', invalidText));
     const invalid = unwrap(openWorkspace(root));
+
     match (restoreRecovery(invalid, root + '/invalid.json')) {
       Ok(_) => {
         throw 'outside workspace view was accepted';

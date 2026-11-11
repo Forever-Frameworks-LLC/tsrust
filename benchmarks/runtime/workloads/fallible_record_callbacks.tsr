@@ -16,6 +16,7 @@ function guarded(holder: ReadOnly<Holder>): int {
 
 function checked(holder: ReadOnly<Holder>, limit: int): int {
   const value = holder.run();
+
   if (value > limit) {
     throw "big";
   }
@@ -26,6 +27,7 @@ function checked(holder: ReadOnly<Holder>, limit: int): int {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const value = i % 5 + seed % 5 + 1;
     const base = [value];
@@ -43,6 +45,7 @@ function workload(n: int, seed: int, input: string): int[][] {
       }
     };
     let outer = 0;
+
     try {
       checked(plain, 2);
       outer = 1;

@@ -46,6 +46,7 @@ function first(values: ReadOnly<Deque<ByteView>>): int {
 
 function guarded(values: ReadOnly<Deque<ByteView>>): string {
   let output = '';
+
   try {
     for (const part of values) {
       output += text(part);
@@ -64,6 +65,7 @@ export function main() {
   values.pushBack(window(owner));
   values.pushFront(window(owner));
   let sum = 0;
+
   for (const part of values) {
     sum += length(part);
   }

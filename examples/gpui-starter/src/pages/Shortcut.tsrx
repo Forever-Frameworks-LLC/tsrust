@@ -6,7 +6,13 @@ function BasicShortcut(): Node {
   const count = signal(0);
   return (
     <View className="flex-row items-center gap-3">
-      <Shortcut command="increment" keys="secondary-k" onTrigger={() => { count.set(count.get() + 1); }} />
+      <Shortcut
+        command="increment"
+        keys="secondary-k"
+        onTrigger={() => {
+          count.set(count.get() + 1);
+        }}
+      />
       <Kbd>secondary-k</Kbd>
       <Text>Pressed {count} times</Text>
     </View>
@@ -21,7 +27,9 @@ export function ShortcutPage(): Node {
         <ExampleTitle>Basic Shortcut</ExampleTitle>
         <ExampleDescription>Press the keys anywhere in the window. secondary means cmd on macOS and ctrl elsewhere.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicShortcut /></ExamplePreview>
+          <ExamplePreview>
+            <BasicShortcut />
+          </ExamplePreview>
           <ExampleCode>{`function BasicShortcut(): Node {
   const count = signal(0);
   return (

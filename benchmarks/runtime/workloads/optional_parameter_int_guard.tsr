@@ -5,6 +5,7 @@ type Trace = {
 
 function apply(trace: Trace, value?: int): int {
   trace.calls = trace.calls + 1;
+
   if (value !== undefined) {
     return value + 3;
   }
@@ -18,6 +19,7 @@ function workload(n: int, seed: int, input: string): int[] {
     calls: 0, defaults: 0
   };
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 4;
     const value = (i * 13 + seed) % 97;

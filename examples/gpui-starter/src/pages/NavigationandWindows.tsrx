@@ -6,7 +6,16 @@ function Feedback(): Node {
   const saves = signal(0);
   return (
     <View className="flex-row items-center gap-3">
-      <Shortcut command="save-doc" keys="secondary-s" onTrigger={() => { saves.set(saves.get() + 1); notify('Saved', { variant: 'success' }); }} />
+      <Shortcut
+        command="save-doc"
+        keys="secondary-s"
+        onTrigger={() => {
+          saves.set(saves.get() + 1);
+          notify('Saved', {
+            variant: 'success'
+          });
+        }}
+      />
       <Button onPress={() => { notify('Upload finished', { title: 'Files', variant: 'info' }); }}>Show notification</Button>
       <Kbd>secondary-s</Kbd>
       <Text variant="muted">saves: {saves.get()}</Text>
@@ -32,7 +41,9 @@ function WindowCounter(): Node {
 }
 
 function IndependentWindows(): Node {
-  return <Button onPress={() => { openWindow(WindowCounter(), 'Independent counter', { width: 480, height: 560, minHeight: 480 }); }}>Open an independent counter</Button>;
+  return (
+    <Button onPress={() => { openWindow(WindowCounter(), 'Independent counter', { width: 480, height: 560, minHeight: 480 }); }}>Open an independent counter</Button>
+  );
 }
 
 function SharedCounter(count: Signal<int>): Node {
@@ -74,7 +85,9 @@ export function NavigationandWindowsPage(): Node {
       <Markdown content={"# Navigation and Windows"} />
       <Markdown content={"## Routes\n\n`location()` holds the current path and `navigate(path)` changes it. A\n`Route` renders its page on the first visit and keeps it, with its state and\nscroll position, while you are elsewhere.\n\n```tsx\nfunction App(): Node {\n  const path = location();\n  return (\n    <View className=\"flex-row size-full\">\n      <Sidebar>\n        <SidebarGroup label=\"Pages\">\n          <SidebarItem active={path.get() === '/'} onClick={() => { navigate('/'); }}>Home</SidebarItem>\n          <SidebarItem active={path.get() === '/settings'} onClick={() => { navigate('/settings'); }}>Settings</SidebarItem>\n        </SidebarGroup>\n      </Sidebar>\n      <Route path=\"/\" render={() => <Home />} />\n      <Route path=\"/settings\" render={() => <Settings />} />\n    </View>\n  );\n}\n```\n\n## Windows\n\n`run(node, title, options)` opens the main window; `width`, `height`,\n`minWidth`, `minHeight`, `fonts` and `titlebar: 'custom'` (with a `TitleBar`\ncomponent) configure it. `openWindow(node, title)` opens another window that\ncan own independent state. Signals created inside the window component belong to\nthat window. Passing a signal into another window shares its value; its owning\ncomponent must stay alive while the other window uses it.\n\n## Notifications and shortcuts"} />
       <ExampleTabs>
-        <ExamplePreview><Feedback /></ExamplePreview>
+        <ExamplePreview>
+          <Feedback />
+        </ExamplePreview>
         <ExampleCode>{`function Feedback(): Node {
   const saves = signal(0);
   return (
@@ -89,7 +102,9 @@ export function NavigationandWindowsPage(): Node {
       </ExampleTabs>
       <Markdown content={"`secondary` is Cmd on macOS and Ctrl elsewhere. The clipboard, file dialogs\nand URLs have functions too: `writeClipboard`, `readClipboard`, `pickFiles`,\n`saveFile` and `openUrl`.\n\n\n## Path parameters\n\nA route pattern can name one nonempty path segment with `:name`, for example\n`/users/:id`. Names are unique ASCII identifiers. Use\n`routeParam(path.get(), '/users/:id', 'id')` to read the value; the result is an\nempty string when the full pattern does not match or the name is absent. Heading\nfragments do not affect matching. Paths remain checked local paths: queries,\npercent escapes and traversal throw.\n\nA retained route constructs its page once, including when a parameter changes.\nRead the location signal in displayed expressions to follow those changes.\n\n## Independent window state\n\nUse `createLocation(initialPath)` before constructing an additional window's\nroutes and links. Its navigation/history and component signals belong to that\nwindow. Commands such as `closeWindow()` and notifications go to the window whose\nhandler issued them. Theme changes still apply to the whole application."} />
       <ExampleTabs>
-        <ExamplePreview><IndependentWindows /></ExamplePreview>
+        <ExamplePreview>
+          <IndependentWindows />
+        </ExamplePreview>
         <ExampleCode>{`function WindowCounter(): Node {
   const path = createLocation('/counter/first');
   const count = signal(0);
@@ -113,7 +128,9 @@ function IndependentWindows(): Node {
       </ExampleTabs>
       <Markdown content={"Open two counters: each starts at zero and `/counter/first`. Incrementing or\nnavigating one leaves the other unchanged. Closing one keeps the other and this\ngallery open.\n\n## Shared window state\n\nPass a signal explicitly to share it. Writes redraw every live window reading\nthat signal. The component that created it remains its owner; closing a window\nthat only received the signal leaves the owner alive."} />
       <ExampleTabs>
-        <ExamplePreview><SharedWindows /></ExamplePreview>
+        <ExamplePreview>
+          <SharedWindows />
+        </ExamplePreview>
         <ExampleCode>{`function SharedCounter(count: Signal<int>): Node {
   const path = createLocation('/');
   return (
@@ -138,7 +155,9 @@ function SharedWindows(): Node {
       </ExampleTabs>
       <Markdown content={"## Keyboard links\n\nUnstyled links use the same native focus and keyboard behavior as buttons. Tab to\nOpen local docs and press Enter; the path below changes without leaving this page.\nThis example owns its location so it does not change the gallery's navigation."} />
       <ExampleTabs>
-        <ExamplePreview><KeyboardLinks /></ExamplePreview>
+        <ExamplePreview>
+          <KeyboardLinks />
+        </ExamplePreview>
         <ExampleCode>{`function KeyboardLinks(): Node {
   const path = createLocation('/links/home');
   return (

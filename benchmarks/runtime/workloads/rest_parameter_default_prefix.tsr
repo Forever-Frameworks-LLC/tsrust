@@ -16,6 +16,7 @@ function argument(trace: Trace, value: int): int {
 function pack(trace: Trace, prefix: int = fallback(trace), ...values: int[]): int[] {
   const result: int[] = [prefix];
   let at = 0;
+
   while (at < values.length) {
     result.push(values[at]);
     at = at + 1;
@@ -33,6 +34,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     calls: 0, defaults: 0
   };
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const base = (i * 13 + seed) % 97;

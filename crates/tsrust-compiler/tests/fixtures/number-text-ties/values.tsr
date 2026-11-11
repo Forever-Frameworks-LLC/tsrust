@@ -339,6 +339,7 @@ function main() {
   values.push(3e+21);
   values.push(7e+21);
   values.push(3e+22);
+
   for (const value of values) {
     console.log(value);
     console.log(value, String(value), `${value}`, value.toString(), [value, value].join("|"));

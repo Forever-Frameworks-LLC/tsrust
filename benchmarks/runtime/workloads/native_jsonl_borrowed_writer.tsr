@@ -10,10 +10,12 @@ type Item = {
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const item: Item = {
       active: true, name: 'hello', values: [20, 17]
     };
+
     match (create(input)) {
       Ok(file) => {
         match (bufferWriter(file, 8192)) {

@@ -27,6 +27,7 @@ function make(log: int[]): Size {
 
 function total(size: ReadOnly<Size>): int {
   let sum = 0;
+
   for (const value of Object.values(size)) {
     sum += value;
   }
@@ -40,11 +41,13 @@ function main() {
   };
   const values = Object.values(p);
   console.log(values, values.length, Object.keys(p).join(","));
+
   for (const value of values) {
     console.log(typeof value, String(value));
   }
 
   const entries = Object.entries(p);
+
   for (const entry of entries) {
     console.log(entry[0], typeof entry[1], String(entry[1]));
   }
@@ -69,6 +72,7 @@ function main() {
   console.log(all.length, all);
   let texts = 0;
   let objects = 0;
+
   for (const value of all) {
     if (typeof value === "string") {
       texts += 1;
@@ -80,6 +84,7 @@ function main() {
   }
 
   console.log(texts, objects);
+
   for (const entry of Object.entries(m)) {
     console.log(entry[0], typeof entry[1]);
   }

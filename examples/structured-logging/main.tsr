@@ -29,10 +29,12 @@ async function respond(logger: ReadOnly<Logger>, context: Mutable<Context>): Tas
   }), ready.sender()).start();
   let requested = false;
   let cancelled = false;
+
   try {
     strictEqual(await ready.receive(), 1);
   } finally {
     requested = pending.cancel();
+
     try {
       await pending;
     } catch {
@@ -70,6 +72,7 @@ export async function runScenario(): Task<void> {
   app.use(accessLog(logger));
   app.get('/items/:id', context => respond(routeLogger, context));
   const server = await app.listen('127.0.0.1:0');
+
   try {
     const client = new Client({
       noProxy: true

@@ -2,9 +2,11 @@ function workload(n: int, seed: int): int {
   let sum = seed;
   let state = seed;
   let i = 0;
+
   while (i < n) {
     const value = (state + i) % 13;
     let code = 0;
+
     if (value < 3) {
       code = 11;
     } else if (value < 7) {

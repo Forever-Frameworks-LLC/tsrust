@@ -8,11 +8,13 @@ async function step(value: int): Task<int> {
 
 async function batch(): Task<int> {
   let checksum = 0;
+
   for (let value = 0; value < 4096; value += 4) {
     const second = value + 1;
     const third = value + 2;
     const fourth = value + 3;
     const outcomes = await allSettled([step(value).start(), step(second).start(), step(third).start(), step(fourth).start(),]);
+
     for (const outcome of outcomes) {
       checksum += unwrap(clone(outcome));
     }

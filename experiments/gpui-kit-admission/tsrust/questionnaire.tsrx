@@ -4,7 +4,11 @@ function App(): Node {
   const answers = signal('none');
   return (
     <View className="flex-col size-full p-6 gap-4">
-      <Questionnaire onSubmit={(result) => { answers.set(clone(result)); }}>
+      <Questionnaire
+        onSubmit={(result) => {
+          answers.set(clone(result));
+        }}
+      >
         <Question id="plan" title="Which plan fits your team?" description="You can change it later." required={true}>
           <QuestionChoice id="free" label="Free" description="For individuals." />
           <QuestionChoice id="pro" label="Pro" />

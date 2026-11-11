@@ -1,10 +1,12 @@
 function workload(n: int, seed: int, input: string): string[] {
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const values: string[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
     const replacement = item(seed + i + 11, input);
     const result = values.with(index(i, seed), replacement);
+
     for (const value of result) {
       output.push(clone(value));
     }
@@ -17,6 +19,7 @@ function workload(n: int, seed: int, input: string): string[] {
 
 function index(i: int, seed: int): int {
   const c = (i + seed) % 8;
+
   if (c === 0) {
     return -6;
   }

@@ -30,7 +30,9 @@ export function PlotPage(): Node {
         <ExampleTitle>Hover values and live data</ExampleTitle>
         <ExampleDescription>Move across the plot to inspect categories. Update data changes values without replacing the plot; the last series intentionally omits its final value. Plain tooltip rows can show application state alongside series values.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PlotHoverValues /></ExamplePreview>
+          <ExamplePreview>
+            <PlotHoverValues />
+          </ExamplePreview>
           <ExampleCode>{`function PlotHoverValues(): Node {
   const offset = signal(0);
   const glide = signal(true);

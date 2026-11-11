@@ -22,9 +22,18 @@ function BasicToolbar(): Node {
 function ToolbarSizes(): Node {
   return (
     <View className="flex-col gap-3">
-      <Toolbar size="small"><Button variant="ghost" icon="undo" /><Button variant="ghost" icon="redo" /></Toolbar>
-      <Toolbar size="large"><Button variant="ghost" icon="undo" /><Button variant="ghost" icon="redo" /></Toolbar>
-      <Toolbar disabled={true}><Button variant="ghost" icon="undo" /><Button variant="ghost" icon="redo" /></Toolbar>
+      <Toolbar size="small">
+        <Button variant="ghost" icon="undo" />
+        <Button variant="ghost" icon="redo" />
+      </Toolbar>
+      <Toolbar size="large">
+        <Button variant="ghost" icon="undo" />
+        <Button variant="ghost" icon="redo" />
+      </Toolbar>
+      <Toolbar disabled={true}>
+        <Button variant="ghost" icon="undo" />
+        <Button variant="ghost" icon="redo" />
+      </Toolbar>
     </View>
   );
 }
@@ -37,7 +46,9 @@ export function ToolbarPage(): Node {
         <ExampleTitle>Basic Toolbar</ExampleTitle>
         <ExampleDescription>Toggles and buttons in groups.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicToolbar /></ExamplePreview>
+          <ExamplePreview>
+            <BasicToolbar />
+          </ExamplePreview>
           <ExampleCode>{`function BasicToolbar(): Node {
   return (
     <Toolbar>
@@ -60,7 +71,9 @@ export function ToolbarPage(): Node {
         <ExampleTitle>Sizes and Disabled</ExampleTitle>
         <ExampleDescription>The toolbar size applies to its controls; disabled turns them all off.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ToolbarSizes /></ExamplePreview>
+          <ExamplePreview>
+            <ToolbarSizes />
+          </ExamplePreview>
           <ExampleCode>{`function ToolbarSizes(): Node {
   return (
     <View className="flex-col gap-3">

@@ -7,6 +7,7 @@ type Envelope = {
 
 function workload(n: int, seed: int, input: ReadOnly<string>): JsonRaw {
   const value = JSON.parse<Envelope>(input);
+
   if (value.tag !== 42) {
     throw 'unexpected tag';
   }

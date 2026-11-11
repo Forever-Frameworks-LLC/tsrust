@@ -9,6 +9,7 @@ test('Candle autodiff and SGD agree with an independent derivative', () => {
 
 test('Tsrust owns repeated optimizer orchestration and resumes scalar state', () => {
   let weight = 0.0;
+
   for (let index = 0; index < 32; index += 1) {
     const step = unwrap(scalar_step(weight, 3.0, 0.125));
     weight = step.weight;
@@ -23,6 +24,7 @@ test('Tsrust owns repeated optimizer orchestration and resumes scalar state', ()
 test('invalid optimizer inputs fail rather than passing a loss comparison', () => {
   for (const rate of [0.0, -1.0]) {
     let rejected = false;
+
     match (scalar_step(0.0, 3.0, rate)) {
       Ok(_) => {},
       Err(_) => {

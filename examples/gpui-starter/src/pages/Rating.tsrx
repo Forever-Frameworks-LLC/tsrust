@@ -4,7 +4,14 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 
 function BasicRating(): Node {
   const value = signal(3);
-  return <Rating value={value.get()} onChange={(stars) => { value.set(stars); }} />;
+  return (
+    <Rating
+      value={value.get()}
+      onChange={(stars) => {
+        value.set(stars);
+      }}
+    />
+  );
 }
 
 function RatingSizes(): Node {
@@ -19,16 +26,28 @@ function RatingSizes(): Node {
 }
 
 function ColoredRating(): Node {
-  return <Rating defaultValue={4} color="danger" />;
+  return (
+    <Rating defaultValue={4} color="danger" />
+  );
 }
 
 function DisabledRating(): Node {
-  return <Rating value={2} disabled={true} />;
+  return (
+    <Rating value={2} disabled={true} />
+  );
 }
 
 function MaxRating(): Node {
   const value = signal(7);
-  return <Rating value={value.get()} max={10} onChange={(stars) => { value.set(stars); }} />;
+  return (
+    <Rating
+      value={value.get()}
+      max={10}
+      onChange={(stars) => {
+        value.set(stars);
+      }}
+    />
+  );
 }
 
 export function RatingPage(): Node {
@@ -39,7 +58,9 @@ export function RatingPage(): Node {
         <ExampleTitle>Basic Rating</ExampleTitle>
         <ExampleDescription>Controlled with value and onChange.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicRating /></ExamplePreview>
+          <ExamplePreview>
+            <BasicRating />
+          </ExamplePreview>
           <ExampleCode>{`function BasicRating(): Node {
   const value = signal(3);
   return <Rating value={value.get()} onChange={(stars) => { value.set(stars); }} />;
@@ -50,7 +71,9 @@ export function RatingPage(): Node {
         <ExampleTitle>Different Sizes</ExampleTitle>
         <ExampleDescription>xsmall to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RatingSizes /></ExamplePreview>
+          <ExamplePreview>
+            <RatingSizes />
+          </ExamplePreview>
           <ExampleCode>{`function RatingSizes(): Node {
   return (
     <View className="flex-col gap-2">
@@ -67,7 +90,9 @@ export function RatingPage(): Node {
         <ExampleTitle>Custom Color</ExampleTitle>
         <ExampleDescription>A theme color, palette color or hex.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ColoredRating /></ExamplePreview>
+          <ExamplePreview>
+            <ColoredRating />
+          </ExamplePreview>
           <ExampleCode>{`function ColoredRating(): Node {
   return <Rating defaultValue={4} color="danger" />;
 }`}</ExampleCode>
@@ -77,7 +102,9 @@ export function RatingPage(): Node {
         <ExampleTitle>Disabled State</ExampleTitle>
         <ExampleDescription>A read-only display.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledRating /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledRating />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledRating(): Node {
   return <Rating value={2} disabled={true} />;
 }`}</ExampleCode>
@@ -87,7 +114,9 @@ export function RatingPage(): Node {
         <ExampleTitle>Custom Maximum</ExampleTitle>
         <ExampleDescription>Any number of stars.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><MaxRating /></ExamplePreview>
+          <ExamplePreview>
+            <MaxRating />
+          </ExamplePreview>
           <ExampleCode>{`function MaxRating(): Node {
   const value = signal(7);
   return <Rating value={value.get()} max={10} onChange={(stars) => { value.set(stars); }} />;

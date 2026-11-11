@@ -4,16 +4,27 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 
 function BasicSwitch(): Node {
   const on = signal(false);
-  return <Switch checked={on.get()} onChange={(value) => { on.set(value); }} />;
+  return (
+    <Switch
+      checked={on.get()}
+      onChange={(value) => {
+        on.set(value);
+      }}
+    />
+  );
 }
 
 function LabeledSwitch(): Node {
   const on = signal(true);
-  return <Switch checked={on.get()} onChange={(value) => { on.set(value); }}>Enable notifications</Switch>;
+  return (
+    <Switch checked={on.get()} onChange={(value) => { on.set(value); }}>Enable notifications</Switch>
+  );
 }
 
 function BareSwitch(): Node {
-  return <Switch accessibilityLabel="Airplane mode" />;
+  return (
+    <Switch accessibilityLabel="Airplane mode" />
+  );
 }
 
 function SwitchSizes(): Node {
@@ -45,7 +56,9 @@ function ColoredSwitch(): Node {
 }
 
 function TooltipSwitch(): Node {
-  return <Switch tooltip="Save changes automatically">Auto-save</Switch>;
+  return (
+    <Switch tooltip="Save changes automatically">Auto-save</Switch>
+  );
 }
 
 function FocusSwitch(): Node {
@@ -65,7 +78,9 @@ export function SwitchPage(): Node {
         <ExampleTitle>Basic Switch</ExampleTitle>
         <ExampleDescription>Controlled with checked and onChange.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicSwitch /></ExamplePreview>
+          <ExamplePreview>
+            <BasicSwitch />
+          </ExamplePreview>
           <ExampleCode>{`function BasicSwitch(): Node {
   const on = signal(false);
   return <Switch checked={on.get()} onChange={(value) => { on.set(value); }} />;
@@ -76,7 +91,9 @@ export function SwitchPage(): Node {
         <ExampleTitle>With Label</ExampleTitle>
         <ExampleDescription>A label beside the switch.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LabeledSwitch /></ExamplePreview>
+          <ExamplePreview>
+            <LabeledSwitch />
+          </ExamplePreview>
           <ExampleCode>{`function LabeledSwitch(): Node {
   const on = signal(true);
   return <Switch checked={on.get()} onChange={(value) => { on.set(value); }}>Enable notifications</Switch>;
@@ -87,7 +104,9 @@ export function SwitchPage(): Node {
         <ExampleTitle>Without Label</ExampleTitle>
         <ExampleDescription>An accessibility label names a bare switch.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BareSwitch /></ExamplePreview>
+          <ExamplePreview>
+            <BareSwitch />
+          </ExamplePreview>
           <ExampleCode>{`function BareSwitch(): Node {
   return <Switch accessibilityLabel="Airplane mode" />;
 }`}</ExampleCode>
@@ -97,7 +116,9 @@ export function SwitchPage(): Node {
         <ExampleTitle>Different Sizes</ExampleTitle>
         <ExampleDescription>small and medium.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SwitchSizes /></ExamplePreview>
+          <ExamplePreview>
+            <SwitchSizes />
+          </ExamplePreview>
           <ExampleCode>{`function SwitchSizes(): Node {
   return (
     <View className="flex-row items-center gap-4">
@@ -112,7 +133,9 @@ export function SwitchPage(): Node {
         <ExampleTitle>Disabled State</ExampleTitle>
         <ExampleDescription>Disabled switches keep their state.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledSwitch /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledSwitch />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">
@@ -127,7 +150,9 @@ export function SwitchPage(): Node {
         <ExampleTitle>Custom Color</ExampleTitle>
         <ExampleDescription>The track color when on; disabled draws it at half opacity.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ColoredSwitch /></ExamplePreview>
+          <ExamplePreview>
+            <ColoredSwitch />
+          </ExamplePreview>
           <ExampleCode>{`function ColoredSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">
@@ -143,7 +168,9 @@ export function SwitchPage(): Node {
         <ExampleTitle>With Tooltip</ExampleTitle>
         <ExampleDescription>A tooltip on hover.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TooltipSwitch /></ExamplePreview>
+          <ExamplePreview>
+            <TooltipSwitch />
+          </ExamplePreview>
           <ExampleCode>{`function TooltipSwitch(): Node {
   return <Switch tooltip="Save changes automatically">Auto-save</Switch>;
 }`}</ExampleCode>
@@ -153,7 +180,9 @@ export function SwitchPage(): Node {
         <ExampleTitle>Keyboard Focus</ExampleTitle>
         <ExampleDescription>tabIndex orders focus; tabStop skips it.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FocusSwitch /></ExamplePreview>
+          <ExamplePreview>
+            <FocusSwitch />
+          </ExamplePreview>
           <ExampleCode>{`function FocusSwitch(): Node {
   return (
     <View className="flex-row items-center gap-4">

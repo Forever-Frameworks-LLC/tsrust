@@ -13,22 +13,34 @@ function BasicSelect(): Node {
 }
 
 function PlaceholderSelect(): Node {
-  return <Select placeholder="Select a language..." items={['Rust', 'Go', 'JavaScript']} className="w-60" />;
+  return (
+    <Select placeholder="Select a language..." items={['Rust', 'Go', 'JavaScript']} className="w-60" />
+  );
 }
 
 function NamedSelect(): Node {
-  return <Select accessibilityLabel="Programming language" placeholder="Choose a language" items={['Rust', 'TypeScript', 'Python']} className="w-60" />;
+  return (
+    <Select accessibilityLabel="Programming language" placeholder="Choose a language" items={['Rust', 'TypeScript', 'Python']} className="w-60" />
+  );
 }
 
 function SearchableSelect(): Node {
-  return <Select searchable={true} icon="search" searchPlaceholder="Search fruit" placeholder="Pick a fruit" items={['Apple', 'Orange', 'Banana', 'Grape', 'Pineapple']} className="w-60" />;
+  return (
+    <Select searchable={true} icon="search" searchPlaceholder="Search fruit" placeholder="Pick a fruit" items={['Apple', 'Orange', 'Banana', 'Grape', 'Pineapple']} className="w-60" />
+  );
 }
 
 function ValueSelect(): Node {
   const country = signal('');
   return (
     <View className="flex-col gap-2 w-60">
-      <Select placeholder="Country" value={country.get()} onChange={(value) => { country.set(value); }}>
+      <Select
+        placeholder="Country"
+        value={country.get()}
+        onChange={(value) => {
+          country.set(value);
+        }}
+      >
         <SelectItem value="US">United States</SelectItem>
         <SelectItem value="CA">Canada</SelectItem>
         <SelectItem value="MX">Mexico</SelectItem>
@@ -67,11 +79,15 @@ function SelectSizes(): Node {
 }
 
 function DisabledSelect(): Node {
-  return <Select disabled={true} defaultValue="Rust" items={['Rust', 'Go']} className="w-60" />;
+  return (
+    <Select disabled={true} defaultValue="Rust" items={['Rust', 'Go']} className="w-60" />
+  );
 }
 
 function CleanableSelect(): Node {
-  return <Select cleanable={true} defaultValue="Go" items={['Rust', 'Go', 'Zig']} className="w-60" />;
+  return (
+    <Select cleanable={true} defaultValue="Go" items={['Rust', 'Go', 'Zig']} className="w-60" />
+  );
 }
 
 function StyledSelect(): Node {
@@ -88,7 +104,9 @@ function StyledSelect(): Node {
 function EmptySelect(): Node {
   return (
     <Select placeholder="No options" className="w-60">
-      <SelectEmpty><Text variant="muted">No options available</Text></SelectEmpty>
+      <SelectEmpty>
+        <Text variant="muted">No options available</Text>
+      </SelectEmpty>
     </Select>
   );
 }
@@ -97,7 +115,13 @@ function DynamicSelect(): Node {
   const size = signal('M');
   return (
     <View className="flex-col gap-2 w-80">
-      <Select value={size.get()} onChange={(value) => { size.set(value); }} items={['S', 'M', 'L', 'XL']} />
+      <Select
+        value={size.get()}
+        onChange={(value) => {
+          size.set(value);
+        }}
+        items={['S', 'M', 'L', 'XL']}
+      />
       <View className="flex-row gap-2">
         <Button size="small" onPress={() => { size.set('L'); }}>Choose L</Button>
         <Button size="small" onPress={() => { size.set('S'); }}>Choose S</Button>
@@ -115,7 +139,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Basic Select</ExampleTitle>
         <ExampleDescription>SelectItem children; the select keeps its own choice, starting from defaultValue.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicSelect /></ExamplePreview>
+          <ExamplePreview>
+            <BasicSelect />
+          </ExamplePreview>
           <ExampleCode>{`function BasicSelect(): Node {
   return (
     <Select defaultValue="apple" className="w-60">
@@ -131,7 +157,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Placeholder</ExampleTitle>
         <ExampleDescription>Shown until something is chosen.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PlaceholderSelect /></ExamplePreview>
+          <ExamplePreview>
+            <PlaceholderSelect />
+          </ExamplePreview>
           <ExampleCode>{`function PlaceholderSelect(): Node {
   return <Select placeholder="Select a language..." items={['Rust', 'Go', 'JavaScript']} className="w-60" />;
 }`}</ExampleCode>
@@ -141,7 +169,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Accessibility</ExampleTitle>
         <ExampleDescription>A name that stays the same as the selection changes.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><NamedSelect /></ExamplePreview>
+          <ExamplePreview>
+            <NamedSelect />
+          </ExamplePreview>
           <ExampleCode>{`function NamedSelect(): Node {
   return <Select accessibilityLabel="Programming language" placeholder="Choose a language" items={['Rust', 'TypeScript', 'Python']} className="w-60" />;
 }`}</ExampleCode>
@@ -151,7 +181,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Searchable</ExampleTitle>
         <ExampleDescription>A search field filters the options.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SearchableSelect /></ExamplePreview>
+          <ExamplePreview>
+            <SearchableSelect />
+          </ExamplePreview>
           <ExampleCode>{`function SearchableSelect(): Node {
   return <Select searchable={true} icon="search" searchPlaceholder="Search fruit" placeholder="Pick a fruit" items={['Apple', 'Orange', 'Banana', 'Grape', 'Pineapple']} className="w-60" />;
 }`}</ExampleCode>
@@ -161,7 +193,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Values and Labels</ExampleTitle>
         <ExampleDescription>value is what onChange reports; the children are what people see.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ValueSelect /></ExamplePreview>
+          <ExamplePreview>
+            <ValueSelect />
+          </ExamplePreview>
           <ExampleCode>{`function ValueSelect(): Node {
   const country = signal('');
   return (
@@ -182,7 +216,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Group Items</ExampleTitle>
         <ExampleDescription>SelectGroup with a SelectLabel title.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><GroupedSelect /></ExamplePreview>
+          <ExamplePreview>
+            <GroupedSelect />
+          </ExamplePreview>
           <ExampleCode>{`function GroupedSelect(): Node {
   return (
     <Select placeholder="Select a country" searchable={true} className="w-60">
@@ -205,7 +241,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Sizes</ExampleTitle>
         <ExampleDescription>xsmall to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SelectSizes /></ExamplePreview>
+          <ExamplePreview>
+            <SelectSizes />
+          </ExamplePreview>
           <ExampleCode>{`function SelectSizes(): Node {
   return (
     <View className="flex-col gap-2 w-60">
@@ -221,7 +259,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Disabled State</ExampleTitle>
         <ExampleDescription>Ignores clicks and keys.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledSelect /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledSelect />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledSelect(): Node {
   return <Select disabled={true} defaultValue="Rust" items={['Rust', 'Go']} className="w-60" />;
 }`}</ExampleCode>
@@ -231,7 +271,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Cleanable</ExampleTitle>
         <ExampleDescription>A clear button while something is selected.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CleanableSelect /></ExamplePreview>
+          <ExamplePreview>
+            <CleanableSelect />
+          </ExamplePreview>
           <ExampleCode>{`function CleanableSelect(): Node {
   return <Select cleanable={true} defaultValue="Go" items={['Rust', 'Go', 'Zig']} className="w-60" />;
 }`}</ExampleCode>
@@ -241,7 +283,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Custom Appearance</ExampleTitle>
         <ExampleDescription>A prefix before the label, a wider menu with a height limit, or a bare trigger.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><StyledSelect /></ExamplePreview>
+          <ExamplePreview>
+            <StyledSelect />
+          </ExamplePreview>
           <ExampleCode>{`function StyledSelect(): Node {
   return (
     <View className="flex-col gap-2 w-80">
@@ -258,7 +302,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Empty State</ExampleTitle>
         <ExampleDescription>SelectEmpty replaces the list when there is nothing to show.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><EmptySelect /></ExamplePreview>
+          <ExamplePreview>
+            <EmptySelect />
+          </ExamplePreview>
           <ExampleCode>{`function EmptySelect(): Node {
   return (
     <Select placeholder="No options" className="w-60">
@@ -272,7 +318,9 @@ export function SelectPage(): Node {
         <ExampleTitle>Controlled Selection</ExampleTitle>
         <ExampleDescription>The selected value follows state.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DynamicSelect /></ExamplePreview>
+          <ExamplePreview>
+            <DynamicSelect />
+          </ExamplePreview>
           <ExampleCode>{`function DynamicSelect(): Node {
   const size = signal('M');
   return (

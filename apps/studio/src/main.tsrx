@@ -1,11 +1,16 @@
 import { accessibleName, message, initializeTranslations } from './lib/localization.tsr';
-import { View, Text, Button, Shortcut, Resizable, ResizablePanel, Node, signal, computed, useId, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
+import { View, Text, Button, Resizable, ResizablePanel, Node, signal, computed, useId, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
 import { currentDir, args, get } from 'std:env';
-import { Channel, Sender } from 'std:futures';
+import { Channel } from 'std:futures';
 import { CheckResult, projectCheckWorker } from './services/project-check.tsr';
 import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.tsrx';
 import { emptyTerminals, addTerminal } from './lib/workspace/terminals.tsr';
-import { CheckPanel, beginCheck } from './components/tasks/check-panel.tsrx';
+import { CheckPanel } from './components/tasks/check-panel.tsrx';
+import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
+import { ProblemsPanel, collectProblems } from './components/tasks/problems-panel.tsrx';
+import { Problem } from './lib/workspace/problems.tsr';
+import { FormattingRequest, FormattingResult } from './lib/workspace/formatting-actions.tsr';
+import { formattingWorker } from './services/formatting.tsr';
 import { extname } from 'std:path';
 import { openWorkspace } from './lib/workspace/workspace.tsr';
 import { dirty } from './lib/workspace/documents.tsr';
@@ -22,11 +27,12 @@ import { configPath, loadConfig, defaultConfig } from './lib/settings/settings.t
 import studioThemes from './assets/themes/studio.json';
 import communityThemes from './assets/themes/community.json';
 
-function App(path: string, requests: Sender<string>, shortcutRequests: Sender<string>, cancellations: Sender<string>, results: Channel<CheckResult>): Node {
+function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel<CheckResult>, formattingRequests: ReadOnly<Channel<FormattingRequest>>, formattingResults: Channel<FormattingResult>, program: string): Node {
   const initial = unwrap(openWorkspace(path));
   let journal: Recovery = {
     path: '', baseline: '', ready: false
   };
+
   match (recoveryPath(initial.root)) {
     Ok(path) => {
       match (restoreRecovery(initial, path)) {
@@ -53,6 +59,7 @@ function App(path: string, requests: Sender<string>, shortcutRequests: Sender<st
   const checkOutput = signal('');
   const chat = signal(false);
   const settings = signal(defaultConfig());
+
   match (configPath()) {
     Ok(path) => {
       match (loadConfig(path)) {
@@ -83,10 +90,17 @@ function App(path: string, requests: Sender<string>, shortcutRequests: Sender<st
   unwrap(addTerminal(initialTerminals, useId()));
   const terminals = signal(initialTerminals);
   const terminalError = signal('');
-  const panelView = Panels(panel, CheckPanel(requests, cancellations, results, font, checking, checkOutput), TerminalPanel(workspace.get().root, font, terminals, terminalError), NewTerminal(terminals, terminalError), font);
+  const problems = signal<Problem[]>([]);
+  const problemCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).length);
+  const problemLabel = computed<string>(() => translate('Problems') + ': ' + problemCount.get().toString());
+  const panelView = Panels(panel, CheckPanel(requests.sender(), results, font, checking, checkOutput, problems, panel), TerminalPanel(workspace.get().root, font, terminals, terminalError, workspace, recovery), NewTerminal(terminals, terminalError), ProblemsPanel(workspace, recovery, terminals, panel, problems, terminalError, font), font);
+  const formatBusy = signal(false);
+  const formatFocus = signal<string[]>([]);
+  const workflows = WorkflowControls(workspace, recovery, settings, panel, formattingRequests, formattingResults, requests, checking, checkOutput, problems, terminals, terminalError, program, formatBusy, formatFocus);
   const chatView = ChatPanel(chat);
   const status = computed<string>(() => {
     const state = workspace.get();
+
     for (const file of state.files) {
       if (file.document.path === state.active) return (file.kind === 'image' ? translate('Image') : extname(file.document.path).slice(1) + ' • UTF-8') + (dirty(file.document) ? ' • ' + translate('Unsaved') : '');
     }
@@ -94,7 +108,7 @@ function App(path: string, requests: Sender<string>, shortcutRequests: Sender<st
     return translate('No file open');
   });
   const chrome = Chrome(workspace, sidebar, mode, font, panel, recovery, settings);
-  const editor = EditorWorkspace(workspace, font, recovery, mode, sidebar);
+  const editor = EditorWorkspace(workspace, font, recovery, mode, sidebar, formatFocus);
   const panelPosition = computed<string>(() => settings.get().panelPosition);
   const panelVisible = computed<boolean>(() => panel.get() !== '');
   const chatPosition = computed<string>(() => settings.get().chatPosition);
@@ -104,37 +118,132 @@ function App(path: string, requests: Sender<string>, shortcutRequests: Sender<st
   const panelArea = Region(editor, panelView, panelPosition, panelVisible, 220, 100);
   const chatArea = Region(panelArea, chatView, chatPosition, chatVisible, 320, 160);
   const explorer = <View className="flex-col size-full min-h-0">
-    <View hidden={mode.get() !== 'files'} className="flex-col size-full min-h-0">{browser}</View>
-    <View hidden={mode.get() !== 'filesearch'} className="flex-col size-full min-h-0">{fileSearch}</View>
-    <View hidden={mode.get() !== 'search'} className="flex-col size-full min-h-0">{contentSearch}</View>
+    <View hidden={mode.get() !== 'files'} className="flex-col size-full min-h-0">
+      {browser}
+    </View>
+    <View hidden={mode.get() !== 'filesearch'} className="flex-col size-full min-h-0">
+      {fileSearch}
+    </View>
+    <View hidden={mode.get() !== 'search'} className="flex-col size-full min-h-0">
+      {contentSearch}
+    </View>
   </View>;
   const navigationArea = Region(chatArea, explorer, navigationPosition, navigationVisible, 248, 160);
   const workbench = <View id="workbench" className="size-full min-w-0 min-h-0">
     {navigationArea}
   </View>;
   const rail = <View id="activity-bar" className={settings.get().activityBarSide === 'left' ? 'flex-col items-center w-12 h-full py-2 gap-2 shrink-0 border-r border-border bg-muted' : 'flex-col items-center w-12 h-full py-2 gap-2 shrink-0 border-l border-border bg-muted'}>
-        <Button icon="files" variant="ghost" selected={sidebar.get() && mode.get() === 'files'} tooltip={message("Files")} aria-label={accessibleName("Files")} onPress={() => { sidebar.set(mode.get() !== 'files' || !sidebar.get()); mode.set('files'); }} />
-        <Button icon="search" variant="ghost" selected={sidebar.get() && mode.get() === 'search'} tooltip={message("Search contents")} aria-label={accessibleName("Search contents")} onPress={() => { sidebar.set(mode.get() !== 'search' || !sidebar.get()); mode.set('search'); }} />
-        <Button icon="git-branch" variant="ghost" selected={panel.get() === 'git'} tooltip={message("Source Control (planned)")} aria-label={accessibleName("Source Control")} onPress={() => { panel.set(panel.get() === 'git' ? '' : 'git'); }} />
-        <Button icon="bug" variant="ghost" selected={panel.get() === 'debug'} tooltip={message("Run and Debug (planned)")} aria-label={accessibleName("Run and Debug")} onPress={() => { panel.set(panel.get() === 'debug' ? '' : 'debug'); }} />
-        <Button icon="blocks" variant="ghost" selected={panel.get() === 'extensions'} tooltip={message("Extensions (planned)")} aria-label={accessibleName("Extensions")} onPress={() => { panel.set(panel.get() === 'extensions' ? '' : 'extensions'); }} />
-        <Button icon="bot" variant="ghost" selected={chat.get()} tooltip={message("AI Chat (planned)")} aria-label={accessibleName("AI Chat")} onPress={() => { chat.set(!chat.get()); }} />
-      </View>;
-  return <View className="flex-col size-full bg-background text-foreground">
-    <Shortcut command="check-project" keys="secondary-shift-b" onTrigger={() => { panel.set('output'); beginCheck(shortcutRequests, checking, checkOutput); }} />
-    {chrome}
-    <View className="grow min-h-0">
-      <Resizable reverse={settings.get().activityBarSide === 'right'} className="size-full min-w-0 min-h-0">
-        <ResizablePanel size={48} minSize={48} maxSize={48} fixed={true}>{rail}</ResizablePanel>
-        <ResizablePanel minSize={280}>{workbench}</ResizablePanel>
-      </Resizable>
-    </View>
-    <View className="flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border">
-      <Button icon="terminal" variant="ghost" size="xsmall" tooltip={message("Toggle terminal")} aria-label={accessibleName("Toggle terminal")} onPress={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
-      <Button icon="circle-alert" variant="ghost" size="xsmall" tooltip={message("Problems: language service not connected")} onPress={() => { panel.set('problems'); }} />
-      <Text className="text-xs">{t("LSP: not connected")}</Text><View className="grow" /><Text className="text-xs">{status.get()}</Text>
-    </View>
+    <Button
+      icon="files"
+      variant="ghost"
+      selected={sidebar.get() && mode.get() === 'files'}
+      tooltip={message("Files")}
+      aria-label={accessibleName("Files")}
+      onPress={() => {
+        sidebar.set(mode.get() !== 'files' || !sidebar.get());
+        mode.set('files');
+      }}
+    />
+    <Button
+      icon="search"
+      variant="ghost"
+      selected={sidebar.get() && mode.get() === 'search'}
+      tooltip={message("Search contents")}
+      aria-label={accessibleName("Search contents")}
+      onPress={() => {
+        sidebar.set(mode.get() !== 'search' || !sidebar.get());
+        mode.set('search');
+      }}
+    />
+    <Button
+      icon="git-branch"
+      variant="ghost"
+      selected={panel.get() === 'git'}
+      tooltip={message("Source Control (planned)")}
+      aria-label={accessibleName("Source Control")}
+      onPress={() => {
+        panel.set(panel.get() === 'git' ? '' : 'git');
+      }}
+    />
+    <Button
+      icon="bug"
+      variant="ghost"
+      selected={panel.get() === 'debug'}
+      tooltip={message("Run and Debug (planned)")}
+      aria-label={accessibleName("Run and Debug")}
+      onPress={() => {
+        panel.set(panel.get() === 'debug' ? '' : 'debug');
+      }}
+    />
+    <Button
+      icon="blocks"
+      variant="ghost"
+      selected={panel.get() === 'extensions'}
+      tooltip={message("Extensions (planned)")}
+      aria-label={accessibleName("Extensions")}
+      onPress={() => {
+        panel.set(panel.get() === 'extensions' ? '' : 'extensions');
+      }}
+    />
+    <Button
+      icon="bot"
+      variant="ghost"
+      selected={chat.get()}
+      tooltip={message("AI Chat (planned)")}
+      aria-label={accessibleName("AI Chat")}
+      onPress={() => {
+        chat.set(!chat.get());
+      }}
+    />
   </View>;
+  return (
+    <View className="flex-col size-full bg-background text-foreground">
+      {chrome}
+      <View className="grow min-h-0">
+        <Resizable reverse={settings.get().activityBarSide === 'right'} className="size-full min-w-0 min-h-0">
+          <ResizablePanel size={48} minSize={48} maxSize={48} fixed={true}>
+            {rail}
+          </ResizablePanel>
+          <ResizablePanel minSize={280}>
+            {workbench}
+          </ResizablePanel>
+        </Resizable>
+      </View>
+      <View className="flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border">
+        <Button
+          icon="terminal"
+          variant="ghost"
+          size="xsmall"
+          tooltip={message("Toggle terminal")}
+          aria-label={accessibleName("Toggle terminal")}
+          onPress={() => {
+            panel.set(panel.get() === 'terminal' ? '' : 'terminal');
+          }}
+        />
+        <Button
+          icon="circle-alert"
+          variant="ghost"
+          size="xsmall"
+          tooltip={problemLabel.get()}
+          aria-label={problemLabel.get()}
+          className={problemCount.get() > 0 ? 'text-destructive' : ''}
+          onPress={() => {
+            panel.set('problems');
+          }}
+        >
+          {problemCount.get().toString()}
+        </Button>
+        <Text className="text-xs">
+          {t("LSP: not connected")}
+        </Text>
+        <View className="grow" />
+        {workflows}
+        <Text className="text-xs">
+          {status.get()}
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 async function main(): Task<void> {
@@ -148,21 +257,30 @@ async function main(): Task<void> {
   const path = parameters.length > 1 ? clone(parameters[1]) : unwrap(currentDir());
   const requests = new Channel<string>(1);
   const results = new Channel<CheckResult>(1);
-  const actions = requests.sender();
-  const shortcuts = requests.sender();
-  const cancellations = requests.sender();
   const replies = results.sender();
+  const formattingRequests = new Channel<FormattingRequest>(1);
+  const formattingResults = new Channel<FormattingResult>(1);
+  const formattingReplies = formattingResults.sender();
   const configured = unwrap(get('TSRUST'));
   const program: string = configured ?? 'tsrust';
-  const worker = projectCheckWorker(clone(path), program, requests, replies).start();
+  const view = App(clone(path), requests, results, formattingRequests, formattingResults, clone(program));
+  const worker = projectCheckWorker(clone(path), clone(program), requests, replies).start();
+  const formatter = formattingWorker(program, formattingRequests, formattingReplies).start();
+
   try {
-    unwrap(run(App(path, actions, shortcuts, cancellations, results), 'Tsrust Studio', {
+    unwrap(run(view, 'Tsrust Studio', {
       titlebar: 'custom', width: 1120, height: 780, minWidth: 720, minHeight: 520
     }));
   } finally {
     worker.cancel();
+    formatter.cancel();
+
     try {
       await worker;
+    } catch (_) {}
+
+    try {
+      await formatter;
     } catch (_) {}
   }
 }

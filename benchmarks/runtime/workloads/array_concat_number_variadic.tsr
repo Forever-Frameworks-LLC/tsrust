@@ -2,9 +2,11 @@ function workload(n: int, seed: int): number[][] {
   const base: number[] = [Number(seed) / 4.0, -0.0, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NaN];
   const output: number[][] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 4;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {

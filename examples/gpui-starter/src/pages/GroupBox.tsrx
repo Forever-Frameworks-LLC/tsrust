@@ -15,9 +15,15 @@ function BasicGroupBox(): Node {
 function GroupBoxVariants(): Node {
   return (
     <View className="flex-col gap-4 w-full">
-      <GroupBox title="Normal"><Text>Default surface</Text></GroupBox>
-      <GroupBox title="Fill" variant="fill"><Text>Filled surface</Text></GroupBox>
-      <GroupBox title="Outline" variant="outline"><Text>Outlined surface</Text></GroupBox>
+      <GroupBox title="Normal">
+        <Text>Default surface</Text>
+      </GroupBox>
+      <GroupBox title="Fill" variant="fill">
+        <Text>Filled surface</Text>
+      </GroupBox>
+      <GroupBox title="Outline" variant="outline">
+        <Text>Outlined surface</Text>
+      </GroupBox>
     </View>
   );
 }
@@ -27,7 +33,9 @@ function FooterGroupBox(): Node {
     <GroupBox title="Notifications" variant="fill">
       <Switch defaultChecked={true}>Email</Switch>
       <Switch>Push</Switch>
-      <GroupBoxFooter><Button variant="primary" size="small">Save</Button></GroupBoxFooter>
+      <GroupBoxFooter>
+        <Button variant="primary" size="small">Save</Button>
+      </GroupBoxFooter>
     </GroupBox>
   );
 }
@@ -67,7 +75,9 @@ export function GroupBoxPage(): Node {
         <ExampleTitle>Basic GroupBox</ExampleTitle>
         <ExampleDescription>Content on a surface.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicGroupBox /></ExamplePreview>
+          <ExamplePreview>
+            <BasicGroupBox />
+          </ExamplePreview>
           <ExampleCode>{`function BasicGroupBox(): Node {
   return (
     <GroupBox>
@@ -83,7 +93,9 @@ export function GroupBoxPage(): Node {
         <ExampleTitle>GroupBox Variants</ExampleTitle>
         <ExampleDescription>Normal, fill and outline.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><GroupBoxVariants /></ExamplePreview>
+          <ExamplePreview>
+            <GroupBoxVariants />
+          </ExamplePreview>
           <ExampleCode>{`function GroupBoxVariants(): Node {
   return (
     <View className="flex-col gap-4 w-full">
@@ -99,7 +111,9 @@ export function GroupBoxPage(): Node {
         <ExampleTitle>Footer Outside the Surface</ExampleTitle>
         <ExampleDescription>A GroupBoxFooter child sits below the surface.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FooterGroupBox /></ExamplePreview>
+          <ExamplePreview>
+            <FooterGroupBox />
+          </ExamplePreview>
           <ExampleCode>{`function FooterGroupBox(): Node {
   return (
     <GroupBox title="Notifications" variant="fill">
@@ -115,7 +129,9 @@ export function GroupBoxPage(): Node {
         <ExampleTitle>Custom Title Styling</ExampleTitle>
         <ExampleDescription>Utility classes for the title.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TitleStyledGroupBox /></ExamplePreview>
+          <ExamplePreview>
+            <TitleStyledGroupBox />
+          </ExamplePreview>
           <ExampleCode>{`function TitleStyledGroupBox(): Node {
   return (
     <GroupBox title="Account" titleClassName="text-xl font-semibold text-primary">
@@ -129,7 +145,9 @@ export function GroupBoxPage(): Node {
         <ExampleTitle>Custom Content Styling</ExampleTitle>
         <ExampleDescription>Utility classes for the content surface.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ContentStyledGroupBox /></ExamplePreview>
+          <ExamplePreview>
+            <ContentStyledGroupBox />
+          </ExamplePreview>
           <ExampleCode>{`function ContentStyledGroupBox(): Node {
   return (
     <GroupBox title="Spacing" variant="outline" contentClassName="gap-4 p-6 rounded-xl">
@@ -144,7 +162,9 @@ export function GroupBoxPage(): Node {
         <ExampleTitle>Form Section</ExampleTitle>
         <ExampleDescription>Fields grouped under a heading.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FormGroupBox /></ExamplePreview>
+          <ExamplePreview>
+            <FormGroupBox />
+          </ExamplePreview>
           <ExampleCode>{`function FormGroupBox(): Node {
   return (
     <GroupBox title="Profile" variant="fill">

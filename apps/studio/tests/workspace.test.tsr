@@ -6,6 +6,7 @@ import { openWorkspace, openFile, closeFile, moveFile, selectFile, entries } fro
 
 test('real package files open once with exact Unicode and CRLF contents', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+
   try {
     unwrap(mkdirAll(root + '/src'));
     unwrap(writeTextFile(root + '/src/café.tsr', 'café 🦀 e\u0301\r\n'));
@@ -28,6 +29,7 @@ test('real package files open once with exact Unicode and CRLF contents', () => 
 
 test('project listing sorts directories first and omits generated build trees', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+
   try {
     unwrap(mkdirAll(root + '/target'));
     unwrap(mkdirAll(root + '/src'));
@@ -44,6 +46,7 @@ test('project listing sorts directories first and omits generated build trees', 
 
 test('outside, missing and non-file paths leave the current tab and its contents intact', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+
   try {
     unwrap(mkdirAll(root + '/package'));
     unwrap(mkdirAll(root + '/package/subdir'));
@@ -53,6 +56,7 @@ test('outside, missing and non-file paths leave the current tab and its contents
     const workspace = unwrap(openWorkspace(root + '/package'));
     unwrap(openFile(workspace, root + '/package/source.tsr'));
     const active = clone(workspace.active);
+
     for (const path of [root + '/package-other/outside.tsr', root + '/package/missing.tsr', root + '/package/subdir']) {
       match (openFile(workspace, path)) {
         Ok(_) => {
@@ -72,6 +76,7 @@ test('outside, missing and non-file paths leave the current tab and its contents
 
 test('dirty close refuses data loss and reopening rejects proposals from the prior session', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+
   try {
     unwrap(writeTextFile(root + '/a.tsr', 'disk'));
     unwrap(writeTextFile(root + '/b.tsr', 'other'));
@@ -81,6 +86,7 @@ test('dirty close refuses data loss and reopening rejects proposals from the pri
     const session = clone(workspace.files[0].document.session);
     const old = propose(workspace.files[0].document, 'old task');
     edit(workspace.files[0].document, 'unsaved 🦀');
+
     match (closeFile(workspace, path)) {
       Ok(_) => {
         throw 'dirty close discarded user data';
@@ -103,6 +109,7 @@ test('dirty close refuses data loss and reopening rejects proposals from the pri
     strictEqual(apply(workspace.files[1].document, old), false);
     strictEqual(workspace.files[1].document.text, 'disk');
     markSaved(workspace.files[1].document, 'disk', false);
+
     match (closeFile(workspace, path)) {
       Ok(_) => {
         throw 'nondurable write warning was discarded';
@@ -125,6 +132,7 @@ test('dirty close refuses data loss and reopening rejects proposals from the pri
 
 test('moving tabs preserves active session and draft contents', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+
   try {
     unwrap(writeTextFile(root + '/a.tsr', 'a'));
     unwrap(writeTextFile(root + '/b.tsr', 'b'));

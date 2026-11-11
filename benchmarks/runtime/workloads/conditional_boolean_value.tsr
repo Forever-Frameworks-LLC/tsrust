@@ -10,11 +10,13 @@ function workload(n: int, seed: int): int[] {
     predicates: 0, left: 0, right: 0
   };
   let i = 0;
+
   while (i < n) {
     const left: boolean = (i * 13 + seed) % 3 === 0;
     const right: boolean = (i * 7 + seed) % 3 === 1;
     const selected: boolean = predicate(trace, (i + seed) % 2 === 0) ? leftValue(trace, left) : rightValue(trace, right);
     let selectedBit: int = 0;
+
     if (selected) {
       selectedBit = 1;
     }

@@ -36,6 +36,7 @@ export function commitSettings(session: ReadOnly<SettingsSession>, config: Studi
   const formatted = formatConfig(config);
   // shortcut: initial creation assumes one settings writer; existing files use exact-text conflict checks.
   const expected = session.present.get() ? session.baseline.get() : undefined;
+
   match (saveConfig(session.path, formatted, expected)) {
     Ok(saved) => {
       session.baseline.set(clone(formatted));

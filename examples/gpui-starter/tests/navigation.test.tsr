@@ -3,7 +3,11 @@ import { routeParam, createLocation, Node, Text, document } from 'std:ui';
 
 function ProfileRoot(initial: string): Node {
   const path = createLocation(initial);
-  return <Text>{routeParam(path.get(), '/users/:id', 'id')}</Text>;
+  return (
+    <Text>
+      {routeParam(path.get(), '/users/:id', 'id')}
+    </Text>
+  );
 }
 
 test('named route parameters preserve exact local segments', () => {
@@ -12,6 +16,7 @@ test('named route parameters preserve exact local segments', () => {
   strictEqual(routeParam('/users/ada/edit', '/users/:id', 'id'), '');
   strictEqual(routeParam('/users/ada', '/users/:id', 'missing'), '');
   let rejected = false;
+
   try {
     routeParam('/users/ada', '/:id/:id', 'id');
   } catch {

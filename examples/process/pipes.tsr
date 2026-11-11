@@ -5,6 +5,7 @@ import { fromUtf8, length, toUtf8 } from 'std:bytes';
 async function main(): Task<void> {
   if (unwrap(args()).length > 0) {
     const input = stdin();
+
     while (length(unwrap(readStdin(input, 8192))) > 0) {}
 
     const output = stdout();
@@ -22,6 +23,7 @@ async function main(): Task<void> {
   const input = child.takeStdin();
   const output = child.takeStdout();
   const errors = child.takeStderr();
+
   if (child.takeStdin() !== undefined || child.takeStdout() !== undefined || child.takeStderr() !== undefined) {
     throw 'pipe transferred twice';
   }

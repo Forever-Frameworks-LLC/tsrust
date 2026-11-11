@@ -6,8 +6,10 @@ async function main(): Task<void> {
   {
     const cursor = await db.cursor('SELECT 1 AS value UNION ALL SELECT 2 AS value');
     let total = 0;
+
     while (true) {
       const row = await cursor.next();
+
       if (row === undefined) {
         break;
       }

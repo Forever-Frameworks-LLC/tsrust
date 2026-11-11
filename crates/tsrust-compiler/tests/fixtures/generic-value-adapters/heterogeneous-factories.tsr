@@ -27,6 +27,7 @@ function main() {
   const second: Function<int | int[], [value: int]> = (false ? left : right)();
   const scalar = first(7);
   const array = second(8);
+
   if (typeof scalar === 'number') {
     strictEqual(scalar, 7);
   } else {

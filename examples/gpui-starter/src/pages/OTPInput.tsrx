@@ -7,7 +7,14 @@ function BasicOtp(): Node {
   const done = signal('not yet');
   return (
     <View className="flex-col gap-2">
-      <OtpInput onChange={(value) => { code.set(clone(value)); }} onComplete={(value) => { done.set(clone(value)); }} />
+      <OtpInput
+        onChange={(value) => {
+          code.set(clone(value));
+        }}
+        onComplete={(value) => {
+          done.set(clone(value));
+        }}
+      />
       <Text variant="muted">Code: {code} (complete: {done})</Text>
     </View>
   );
@@ -36,7 +43,13 @@ function ControlledOtp(): Node {
   const code = signal('');
   return (
     <View className="flex-row items-center gap-3">
-      <OtpInput length={4} value={code.get()} onChange={(value) => { code.set(clone(value)); }} />
+      <OtpInput
+        length={4}
+        value={code.get()}
+        onChange={(value) => {
+          code.set(clone(value));
+        }}
+      />
       <Button size="small" onPress={() => { code.set(''); }}>Clear</Button>
     </View>
   );
@@ -50,7 +63,9 @@ export function OTPInputPage(): Node {
         <ExampleTitle>Basic OTP Input</ExampleTitle>
         <ExampleDescription>Six boxes; onComplete fires when every box is filled.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicOtp /></ExamplePreview>
+          <ExamplePreview>
+            <BasicOtp />
+          </ExamplePreview>
           <ExampleCode>{`function BasicOtp(): Node {
   const code = signal('');
   const done = signal('not yet');
@@ -67,7 +82,9 @@ export function OTPInputPage(): Node {
         <ExampleTitle>Length, Groups and Masking</ExampleTitle>
         <ExampleDescription>Four characters in two groups, drawn as dots.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><GroupedOtp /></ExamplePreview>
+          <ExamplePreview>
+            <GroupedOtp />
+          </ExamplePreview>
           <ExampleCode>{`function GroupedOtp(): Node {
   return (
     <View className="flex-col gap-3">
@@ -82,7 +99,9 @@ export function OTPInputPage(): Node {
         <ExampleTitle>Sizes and Disabled</ExampleTitle>
         <ExampleDescription>small to large; disabled ignores input.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><OtpSizes /></ExamplePreview>
+          <ExamplePreview>
+            <OtpSizes />
+          </ExamplePreview>
           <ExampleCode>{`function OtpSizes(): Node {
   return (
     <View className="flex-col gap-3">
@@ -98,7 +117,9 @@ export function OTPInputPage(): Node {
         <ExampleTitle>Controlled</ExampleTitle>
         <ExampleDescription>value follows state.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledOtp /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledOtp />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledOtp(): Node {
   const code = signal('');
   return (

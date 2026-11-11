@@ -2,6 +2,11 @@ export interface TerminalSession {
   id: string;
   ordinal: int;
   exited: boolean;
+  title?: string;
+  program?: string;
+  args?: string[];
+  task?: string;
+  failed?: boolean;
 }
 
 export interface TerminalWorkspace {
@@ -18,6 +23,7 @@ export function emptyTerminals(): TerminalWorkspace {
 
 export function addTerminal(workspace: Mutable<TerminalWorkspace>, id: string): Result<void, string> {
   if (id === '' || workspace.sessions.some((session) => session.id === id)) return Err('Terminal session id must be unique.');
+
   if (workspace.nextOrdinal < 1 || workspace.nextOrdinal === 9223372036854775807) return Err('Terminal session numbering is exhausted.');
   workspace.sessions.push({
     id: clone(id), ordinal: workspace.nextOrdinal, exited: false
@@ -35,8 +41,10 @@ export function activateTerminal(workspace: Mutable<TerminalWorkspace>, id: stri
 
 export function removeTerminal(workspace: Mutable<TerminalWorkspace>, id: string): Result<void, string> {
   const index = workspace.sessions.findIndex((session) => session.id === id);
+
   if (index < 0) return Err('Terminal session is not in this workspace.');
   workspace.sessions.splice(index, 1);
+
   if (workspace.active === id) {
     workspace.active = workspace.sessions.length === 0 ? '' : clone(workspace.sessions[index < workspace.sessions.length ? index : workspace.sessions.length - 1].id);
   }

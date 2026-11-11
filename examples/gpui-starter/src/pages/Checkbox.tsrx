@@ -4,7 +4,9 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 
 function BasicCheckbox(): Node {
   const checked = signal(false);
-  return <Checkbox checked={checked.get()} onChange={(on) => { checked.set(on); }}>Accept terms and conditions</Checkbox>;
+  return (
+    <Checkbox checked={checked.get()} onChange={(on) => { checked.set(on); }}>Accept terms and conditions</Checkbox>
+  );
 }
 
 function CheckboxSizes(): Node {
@@ -29,7 +31,15 @@ function DisabledCheckbox(): Node {
 
 function BareCheckbox(): Node {
   const checked = signal(true);
-  return <Checkbox accessibilityLabel="Remember me" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;
+  return (
+    <Checkbox
+      accessibilityLabel="Remember me"
+      checked={checked.get()}
+      onChange={(on) => {
+        checked.set(on);
+      }}
+    />
+  );
 }
 
 function TooltipCheckbox(): Node {
@@ -59,7 +69,9 @@ export function CheckboxPage(): Node {
         <ExampleTitle>Basic Checkbox</ExampleTitle>
         <ExampleDescription>Controlled with checked and onChange. Without checked a checkbox keeps its own state; defaultChecked sets where it starts.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicCheckbox /></ExamplePreview>
+          <ExamplePreview>
+            <BasicCheckbox />
+          </ExamplePreview>
           <ExampleCode>{`function BasicCheckbox(): Node {
   const checked = signal(false);
   return <Checkbox checked={checked.get()} onChange={(on) => { checked.set(on); }}>Accept terms and conditions</Checkbox>;
@@ -70,7 +82,9 @@ export function CheckboxPage(): Node {
         <ExampleTitle>Different Sizes</ExampleTitle>
         <ExampleDescription>xsmall to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CheckboxSizes /></ExamplePreview>
+          <ExamplePreview>
+            <CheckboxSizes />
+          </ExamplePreview>
           <ExampleCode>{`function CheckboxSizes(): Node {
   return (
     <View className="flex-col gap-2">
@@ -87,7 +101,9 @@ export function CheckboxPage(): Node {
         <ExampleTitle>Disabled State</ExampleTitle>
         <ExampleDescription>Disabled checkboxes ignore input.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledCheckbox /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledCheckbox />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledCheckbox(): Node {
   return (
     <View className="flex-col gap-2">
@@ -102,7 +118,9 @@ export function CheckboxPage(): Node {
         <ExampleTitle>Without Label</ExampleTitle>
         <ExampleDescription>An accessibility label names a bare checkbox.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BareCheckbox /></ExamplePreview>
+          <ExamplePreview>
+            <BareCheckbox />
+          </ExamplePreview>
           <ExampleCode>{`function BareCheckbox(): Node {
   const checked = signal(true);
   return <Checkbox accessibilityLabel="Remember me" checked={checked.get()} onChange={(on) => { checked.set(on); }} />;
@@ -113,7 +131,9 @@ export function CheckboxPage(): Node {
         <ExampleTitle>Tooltip and Role</ExampleTitle>
         <ExampleDescription>A tooltip, or the switch role for on/off settings.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TooltipCheckbox /></ExamplePreview>
+          <ExamplePreview>
+            <TooltipCheckbox />
+          </ExamplePreview>
           <ExampleCode>{`function TooltipCheckbox(): Node {
   return (
     <View className="flex-col gap-2">
@@ -128,7 +148,9 @@ export function CheckboxPage(): Node {
         <ExampleTitle>Custom Tab Order</ExampleTitle>
         <ExampleDescription>tabIndex orders focus; tabStop skips a control.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TabOrderCheckbox /></ExamplePreview>
+          <ExamplePreview>
+            <TabOrderCheckbox />
+          </ExamplePreview>
           <ExampleCode>{`function TabOrderCheckbox(): Node {
   return (
     <View className="flex-col gap-2">

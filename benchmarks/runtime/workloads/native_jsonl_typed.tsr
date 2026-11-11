@@ -9,10 +9,12 @@ type Item = {
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     match (openJsonl(input)) {
       Ok(reader) => {
         let done = false;
+
         while (!done) {
           match (readJsonl<Item>(reader)) {
             Ok(item) => {

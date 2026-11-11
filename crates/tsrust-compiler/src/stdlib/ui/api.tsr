@@ -119,6 +119,7 @@ export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>
   checkSvgPaint(props.strokeWidth, props.strokeMiterlimit);
   const width: number = props.width ?? 24;
   const height: number = props.height ?? 24;
+
   if (!Number.isFinite(width) || !Number.isFinite(height) || width < 0 || height < 0) {
     throw 'SVG width/height must be finite and nonnegative';
   }
@@ -457,7 +458,8 @@ export function Input(props: InputProps<ReactiveValue<string>, ReactiveValue<str
   const prefix = props.prefix !== undefined ? clone(props.prefix) : undefined;
   const suffix = props.suffix !== undefined ? clone(props.suffix) : undefined;
   const selected = props.selected;
-  let node = <TextField {...props} multiline={false}/>;
+  let node = <TextField {...props} multiline={false} />;
+
   if (validate !== undefined) {
     node = unwrapNode(nativeKitPredicate(node, 'validate', validate));
   }
@@ -482,7 +484,7 @@ export function Textarea(props: TextareaProps<ReactiveValue<string>, ReactiveVal
   const wrappingIndent = props.wrappingIndent !== undefined ? clone(props.wrappingIndent) : undefined;
   const tabSize = props.tabSize;
   const hardTabs = props.hardTabs;
-  let node = <TextField {...props} multiline={true}/>;
+  let node = <TextField {...props} multiline={true} />;
   node = fieldNumber(node, 'rows', rows);
   node = fieldNumber(node, 'minRows', minRows);
   node = fieldNumber(node, 'maxRows', maxRows);
@@ -662,6 +664,7 @@ function TextField(props: TextFieldOptions): Node {
   const created = handler !== undefined ? unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)) : unwrapNode(nativeInput(props.value, props.defaultValue, config, classes));
   let node = applyProperties(inputFlags(created, disabled, readOnly), metadata, className, variant);
   const placeholder = props.placeholder;
+
   if (placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', placeholder));
   }
@@ -696,31 +699,37 @@ function TextField(props: TextFieldOptions): Node {
   node = fieldOption(node, 'autoCapitalize', autoCapitalize === undefined ? undefined : `${autoCapitalize}`);
   node = options.autoComplete === '' ? node : fieldOption(node, 'autoComplete', clone(options.autoComplete));
   const paste = props.onPaste;
+
   if (paste !== undefined) {
     node = unwrapNode(nativeKitPredicate(node, 'paste', paste));
   }
 
   const onFocus = props.onFocus;
+
   if (onFocus !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'focus', onFocus));
   }
 
   const onBlur = props.onBlur;
+
   if (onBlur !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'blur', onBlur));
   }
 
   const onSubmit = props.onSubmit;
+
   if (onSubmit !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'submit', onSubmit));
   }
 
   const onTokenClick = props.onTokenClick;
+
   if (onTokenClick !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'tokenClick', onTokenClick));
   }
 
   const onTokenHover = props.onTokenHover;
+
   if (onTokenHover !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'tokenHover', onTokenHover));
   }
@@ -756,6 +765,7 @@ export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<strin
   const classes = muted ? `text-muted-foreground ${given}` : given;
   const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid']);
   const result = text(props.children ?? [], classes);
+
   match (result) {
     Ok(value) => {
       const toned = muted ? unwrapNode(nativeKitSet(value, 'variant', 'secondary')) : value;
@@ -770,8 +780,11 @@ export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<strin
 export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const Render = props.render;
   props.render = undefined;
+
   if (Render !== undefined) {
-    return <Render {...props}/>;
+    return (
+      <Render {...props} />
+    );
   }
 
   const className = props.className;
@@ -779,12 +792,14 @@ export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<strin
   const classes = typeof className === 'string' ? clone(className) : '';
   const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'], props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex, undefined, undefined, props['data-state'], props.colSpan, String(props.scope ?? ''));
   const result = view(props.children ?? [], classes);
+
   match (result) {
     Ok(value) => {
       const decorated = applyProperties(value, metadata, className, variant);
       const observer = props.onVisibilityChange;
       const node = observer === undefined ? decorated : unwrapNode(nativeVisibility(decorated, observer));
       const hidden = props.hidden;
+
       if (hidden === undefined) {
         return node;
       }
@@ -805,8 +820,11 @@ export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<strin
 export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const Render = props.render;
   props.render = undefined;
+
   if (Render !== undefined) {
-    return <Render {...props}/>;
+    return (
+      <Render {...props} />
+    );
   }
 
   const className = props.className;
@@ -818,6 +836,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const disabled = props.disabled;
   const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false);
   const extra: [string, string][] = [];
+
   if (props.tooltipCommand !== undefined) {
     extra.push(['tooltipCommand', clone(props.tooltipCommand)]);
   }
@@ -877,6 +896,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const loading = props.loading;
   const selected = props.selected;
   let node: Node;
+
   if (disabled !== undefined && typeof disabled !== 'boolean') {
     if (handler === undefined) {
       node = applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, classes, false)), disabled.evaluate)), metadata, className, variant);
@@ -927,6 +947,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
 /** Kit button options that are set, as name/value pairs. */
 function buttonOptions(variant: string | undefined, size: string | undefined, icon: string | undefined, outline: boolean, compact: boolean, caret: boolean): [string, string][] {
   const options: [string, string][] = [];
+
   if (variant !== undefined) {
     options.push(['variant', variant]);
   }
@@ -974,6 +995,7 @@ export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<strin
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   let node = unwrapNode(nativeLink(props.children ?? [], classes, props.href));
   const disabled = props.disabled;
+
   if (disabled !== undefined) {
     if (typeof disabled === 'boolean') {
       const fixed = disabled;
@@ -1132,6 +1154,7 @@ export interface ThemeConfig {
 /** Applies checked project tokens to this subtree. Mode defaults to light. A string Signal switches palettes after handlers without remounting children. */
 export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Signal<string>): Node {
   const config = JSON.stringify(value);
+
   if (mode === undefined) {
     return unwrap(nativeTheme(node, config, 'light'));
   }
@@ -1256,6 +1279,7 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   next.expanded = expandedValue === undefined ? '' : String(expandedValue);
   next.controls = semanticString(controls);
   next.state = semanticString(state);
+
   if (config.tag === 'svg' && config.role === '') {
     next.role = next.label === '' ? 'presentation' : 'img';
   }
@@ -1267,6 +1291,7 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
   const config: SemanticConfig = {
     tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', expanded: '', controls: '', htmlFor, windowDragRegion, tabIndex, state: '', colSpan, scope
   };
+
   if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean') && (expanded === undefined || typeof expanded === 'boolean') && (controls === undefined || typeof controls === 'string') && (state === undefined || typeof state === 'string')) {
     if (config.tag === '' && config.role === '' && (label === undefined || label === '') && config.id === '' && (hidden === undefined || !hidden) && config.slot === '' && config.size === '' && config.variant === '' && config.orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && expanded === undefined && (controls === undefined || controls === '') && config.htmlFor === '' && !config.windowDragRegion && config.tabIndex === undefined && (state === undefined || state === '') && colSpan === undefined && config.scope === '') {
       return '';
@@ -1279,6 +1304,7 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
     config.expanded = typeof expanded === 'boolean' ? String(expanded) : '';
     config.controls = typeof controls === 'string' ? clone(controls) : '';
     config.state = typeof state === 'string' ? clone(state) : '';
+
     if (config.tag === 'svg' && config.role === '') {
       config.role = config.label === '' ? 'presentation' : 'img';
     }
@@ -1350,6 +1376,7 @@ function notifyWith(message: string, options: NotifyOptions): void {
     message: message, title: options.title ?? '', variant: `${options.variant ?? 'info'}`, delivery: `${options.delivery ?? 'app'}`, id: options.id ?? '', icon: options.icon ?? '', placement: `${options.placement ?? ''}`, autohide: autohide === undefined ? '' : (autohide ? 'true' : 'false'), action: options.action ?? ''
   };
   const payload: string = JSON.stringify(body);
+
   if (handler !== undefined) {
     notifyWithEvents(payload, handler);
     return;

@@ -22,6 +22,7 @@ function initialValue(cache: ReadOnly<SharedLruCache<string, Value>>): Value {
 
 async function populate(cache: Owned<SharedLruCache<int, int>>, offset: int): Task<int> {
   let sum = 0;
+
   for (let index = 0; index < 32; index++) {
     const key = offset + index;
     unwrap(cache.set(key, key));
@@ -35,6 +36,7 @@ async function populate(cache: Owned<SharedLruCache<int, int>>, offset: int): Ta
 async function reply(cache: ReadOnly<SharedLruCache<string, string>>, input: Request): Task<Response> {
   await delay(1);
   const value = cache.getCloned('greeting');
+
   if (value !== undefined) {
     return text(value);
   }
@@ -61,12 +63,14 @@ async function main(): Task<void> {
   const values = new SharedLruCache<string, Value>(2);
   unwrap(values.set('a', initialValue(values)));
   const copy = values.getCloned(selectedKey(values));
+
   if (copy !== undefined) {
     copy.message = 'changed';
     copy.numbers.push(3);
   }
 
   const independent = values.peekCloned('a');
+
   if (independent !== undefined) {
     strictEqual(independent.message, 'original');
     strictEqual(independent.numbers.length, 2);
@@ -77,6 +81,7 @@ async function main(): Task<void> {
   const other = values.share();
   other.clear();
   strictEqual(values.size(), 0);
+
   if (copy !== undefined) {
     strictEqual(copy.message, 'changed');
   }
@@ -95,6 +100,7 @@ async function main(): Task<void> {
 
   strictEqual(values.size(), 0);
   let invalidCapacity = false;
+
   try {
     const invalid = new SharedLruCache<int, int>(0);
   } catch (error) {
@@ -103,6 +109,7 @@ async function main(): Task<void> {
 
   strictEqual(invalidCapacity, true);
   let localInvalid = false;
+
   try {
     const invalid = new LruCache<int, int>(0);
   } catch (error) {
@@ -116,6 +123,7 @@ async function main(): Task<void> {
   const second = counters.share();
   const results = await allSettled([populate(first, 0).start(), populate(second, 32).start()]);
   let total = 0;
+
   for (const result of results) {
     total += unwrap(clone(result));
   }
@@ -132,6 +140,7 @@ async function main(): Task<void> {
   const routeUrl = base + '/cached';
   const fallbackUrl = base + '/fallback';
   const replies = await allSettled([read(routeUrl).start(), read(fallbackUrl).start()]);
+
   for (const result of replies) {
     strictEqual(unwrap(clone(result)), 'shared cache');
   }

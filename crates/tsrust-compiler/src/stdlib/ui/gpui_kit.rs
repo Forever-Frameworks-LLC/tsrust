@@ -1916,8 +1916,10 @@ impl Root {
                 }
                 #[cfg(feature="gpui-terminal")]
                 "Terminal" => {
-                    let state = cx.new(|cx| terminal_view::TerminalView::new(if text("directory").is_empty() {std::env::current_dir().unwrap_or_default().to_string_lossy().into_owned()} else {text("directory")}, number("fontSize").unwrap_or(14.), window, cx));
-                    cx.subscribe_in(&state, window, move |this, _, _: &terminal_view::TerminalEvent, _, cx| this.emit(id, "exit", String::new(), cx)).detach();
+                    let args = if text("args").is_empty() {Vec::new()} else {serde_json::from_str::<Vec<String>>(&text("args")).unwrap_or_else(|error| fail(&self.failure, format!("Invalid Terminal args: {error}")))};
+                    if !args.is_empty() && text("program").is_empty() {fail(&self.failure,"Terminal args require an explicit program".into());}
+                    let state = cx.new(|cx| terminal_view::TerminalView::new(if text("directory").is_empty() {std::env::current_dir().unwrap_or_default().to_string_lossy().into_owned()} else {text("directory")}, text("program"), args, number("fontSize").unwrap_or(14.), window, cx));
+                    cx.subscribe_in(&state, window, move |this, _, event: &terminal_view::TerminalEvent, _, cx| match event {terminal_view::TerminalEvent::Exit => this.emit(id, "exit", String::new(), cx), terminal_view::TerminalEvent::OpenLink(link) => this.emit(id, "openLink", link.clone(), cx)}).detach();
                     KitState::Terminal(state)
                 },
                 "CodeEditor" => {

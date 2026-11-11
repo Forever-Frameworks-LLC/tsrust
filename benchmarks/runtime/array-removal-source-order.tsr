@@ -10,12 +10,14 @@ function main() {
   console.log(trace[0]);
   const values: string[] = ["é".repeat(1), "x".repeat(1)];
   const first = values.shift();
+
   if (first !== undefined) {
     console.log(first.concat("!"));
   }
 
   console.log(values.join("|"));
   const last = values.pop();
+
   if (last !== undefined) {
     console.log(last);
   }

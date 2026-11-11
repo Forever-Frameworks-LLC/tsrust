@@ -24,6 +24,7 @@ async function main(): Task<void> {
     kind: 'ready', address: server.address()
   };
   console.log(JSON.stringify(ready));
+
   try {
     await control.receive();
   } finally {

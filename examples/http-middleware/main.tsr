@@ -32,6 +32,7 @@ async function main(): Task<void> {
     throw 'checked route failure';
   });
   const server = await router.listen('127.0.0.1:0');
+
   try {
     const base = 'http://' + server.address();
     const client = new Client({
@@ -65,6 +66,7 @@ async function main(): Task<void> {
     const policy: Middleware = cors();
     plain.use(policy);
     let rejected = false;
+
     try {
       cors({
         origins: ['*'], credentials: true

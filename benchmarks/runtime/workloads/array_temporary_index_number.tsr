@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): number {
   let sum: number = Number(seed);
   let i = 0;
+
   while (i < n) {
     const value = make_number(seed, i)[index_for(i, seed)];
     sum = sum + value;

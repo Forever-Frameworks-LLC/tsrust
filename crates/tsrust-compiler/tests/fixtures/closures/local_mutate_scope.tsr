@@ -6,6 +6,7 @@ function main() {
   const user: User = {
     name: "Pat"
   };
+
   if (true) {
     const change = (): void => {
       user.name = "Sam";

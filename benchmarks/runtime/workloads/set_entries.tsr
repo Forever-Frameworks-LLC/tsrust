@@ -1,6 +1,7 @@
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const values = new Set<int>([i + seed, i + seed + 1, i + seed]);
     values.delete(i + seed);

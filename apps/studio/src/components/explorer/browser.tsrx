@@ -15,7 +15,11 @@ function FileTreeItem(path: string, name: string, directory: boolean, children: 
   const svg = computed<string>(() => settings.get().fileIcons ? clone(glyph) : '');
   const color = computed<string>(() => settings.get().fileIcons ? clone(tint) : '');
   const icon = computed<string>(() => settings.get().fileIcons ? clone(named) : '');
-  return <TreeItem id={path} label={name} iconSvg={svg.get()} iconColor={color.get()} icon={icon.get()}>{...children}</TreeItem>;
+  return (
+    <TreeItem id={path} label={name} iconSvg={svg.get()} iconColor={color.get()} icon={icon.get()}>
+      {...children}
+    </TreeItem>
+  );
 }
 
 function directoryItems(path: string, settings: Signal<StudioConfig>): Result<Node[], string> {
@@ -25,8 +29,10 @@ function directoryItems(path: string, settings: Signal<StudioConfig>): Result<No
     },
     Ok(children) => {
       const nodes: Node[] = [];
+
       for (const entry of children) {
         let nested: Node[] = [];
+
         if (entry.directory) {
           match (directoryItems(entry.path, settings)) {
             Ok(items) => {
@@ -48,30 +54,48 @@ function directoryItems(path: string, settings: Signal<StudioConfig>): Result<No
 
 export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>): Node {
   const treeClass = computed<string>(() => 'size-full min-w-0 font-mono text-[' + font.get().toString() + 'px]');
+
   match (directoryItems(path, settings)) {
     Err(message) => {
       const errorText = computed<string>(() => localizeError(message));
-      return <Text>{errorText.get()}</Text>;
+      return (
+        <Text>
+          {errorText.get()}
+        </Text>
+      );
     },
     Ok(children) => {
-      return <Tree defaultSelected={workspace.get().active} className={treeClass.get()} onSelect={(selectedPath) => {
-        const next = workspace.get();
-        match (stat(selectedPath)) {
-          Ok(metadata) => { if (metadata.isDirectory) return; },
-          Err(error) => {
-            next.error = clone(error.message);
+      return (
+        <Tree
+          defaultSelected={workspace.get().active}
+          className={treeClass.get()}
+          onSelect={(selectedPath) => {
+            const next = workspace.get();
+
+            match (stat(selectedPath)) {
+              Ok(metadata) => {
+                if (metadata.isDirectory) return;
+              },
+              Err(error) => {
+                next.error = clone(error.message);
+                publishWorkspace(next, workspace, recovery);
+                return;
+              }
+            }
+
+            match (openFile(next, selectedPath)) {
+              Ok(_) => {},
+              Err(message) => {
+                next.error = clone(message);
+              }
+            }
+
             publishWorkspace(next, workspace, recovery);
-            return;
-          }
-        }
-        match (openFile(next, selectedPath)) {
-          Ok(_) => {},
-          Err(message) => { next.error = clone(message); }
-        }
-        publishWorkspace(next, workspace, recovery);
-      }}>
-        {...children}
-      </Tree>;
+          }}
+        >
+          {...children}
+        </Tree>
+      );
     }
   }
 }

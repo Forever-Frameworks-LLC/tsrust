@@ -1,6 +1,7 @@
 function workload(n: int, seed: int, input: string): string[] {
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     output.push(clone(input));
     i = i + 1;
@@ -11,6 +12,7 @@ function workload(n: int, seed: int, input: string): string[] {
 
 function main() {
   const values = workload(2, 7, "sample");
+
   for (const value of values) {
     console.log(value);
   }

@@ -10,6 +10,7 @@ export function run() {
     pull: (): int => 7
   };
   current = inner;
+
   if (current !== undefined) {
     {
       const observed1_0 = current.pull();

@@ -79,8 +79,10 @@ export function emptyMetrics(): Metrics {
 export async function collect(queue: Owned<Channel<Event>>): Task<Metrics> {
   const metrics = emptyMetrics();
   let running = true;
+
   while (running) {
     const event = await queue.receive();
+
     if (event.phase === 'stop') {
       running = false;
       break;
@@ -88,6 +90,7 @@ export async function collect(queue: Owned<Channel<Event>>): Task<Metrics> {
 
     const line = formatEvent(event);
     console.log(line);
+
     if (event.phase === 'request-start') {
       metrics.started += 1;
     }

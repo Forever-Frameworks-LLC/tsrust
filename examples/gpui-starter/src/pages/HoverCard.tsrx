@@ -5,7 +5,9 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 function BasicHoverCard(): Node {
   return (
     <HoverCard>
-      <HoverCardTrigger><Link href="https://github.com/gpui-kit">@gpui-kit</Link></HoverCardTrigger>
+      <HoverCardTrigger>
+        <Link href="https://github.com/gpui-kit">@gpui-kit</Link>
+      </HoverCardTrigger>
       <HoverCardContent>
         <View className="flex-row gap-3">
           <Avatar name="GPUI Kit" />
@@ -23,9 +25,20 @@ function DelayedHoverCard(): Node {
   const open = signal(false);
   return (
     <View className="flex-row items-center gap-3">
-      <HoverCard openDelay={100} closeDelay={600} anchor="top-right" onOpenChange={(next) => { open.set(next); }}>
-        <HoverCardTrigger><Button outline={true}>Hover quickly</Button></HoverCardTrigger>
-        <HoverCardContent><Text>Opens fast, lingers longer.</Text></HoverCardContent>
+      <HoverCard
+        openDelay={100}
+        closeDelay={600}
+        anchor="top-right"
+        onOpenChange={(next) => {
+          open.set(next);
+        }}
+      >
+        <HoverCardTrigger>
+          <Button outline={true}>Hover quickly</Button>
+        </HoverCardTrigger>
+        <HoverCardContent>
+          <Text>Opens fast, lingers longer.</Text>
+        </HoverCardContent>
       </HoverCard>
       <Text variant="muted">Open: {open.get() ? 'yes' : 'no'}</Text>
     </View>
@@ -40,7 +53,9 @@ export function HoverCardPage(): Node {
         <ExampleTitle>Basic Hover Card</ExampleTitle>
         <ExampleDescription>HoverCardTrigger and HoverCardContent.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicHoverCard /></ExamplePreview>
+          <ExamplePreview>
+            <BasicHoverCard />
+          </ExamplePreview>
           <ExampleCode>{`function BasicHoverCard(): Node {
   return (
     <HoverCard>
@@ -63,7 +78,9 @@ export function HoverCardPage(): Node {
         <ExampleTitle>Delays and Anchor</ExampleTitle>
         <ExampleDescription>openDelay and closeDelay in milliseconds; anchor picks the card corner.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DelayedHoverCard /></ExamplePreview>
+          <ExamplePreview>
+            <DelayedHoverCard />
+          </ExamplePreview>
           <ExampleCode>{`function DelayedHoverCard(): Node {
   const open = signal(false);
   return (

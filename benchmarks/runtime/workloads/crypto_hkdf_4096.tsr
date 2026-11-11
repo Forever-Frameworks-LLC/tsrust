@@ -27,6 +27,7 @@ export function workload(n: int, seed: int): int {
   unwrap(set(info, 18, 111));
   let sum = 0;
   let i = 0;
+
   while (i < n) {
     const output = unwrap(hkdfSha256(input, salt, info, 32));
     sum = fold(sum, output);
@@ -39,6 +40,7 @@ export function workload(n: int, seed: int): int {
 function inputBytes(size: int, seed: int): Bytes {
   const bytes = unwrap(alloc(size));
   let i = 0;
+
   while (i < size) {
     unwrap(set(bytes, i, (i + seed) % 251));
     i++;
@@ -50,6 +52,7 @@ function inputBytes(size: int, seed: int): Bytes {
 function fold(previous: int, bytes: ReadOnly<Bytes>): int {
   let i = 0;
   let sum = previous;
+
   while (i < length(bytes)) {
     sum = (sum * 131 + unwrap(at(bytes, i))) % 1000000007;
     i++;

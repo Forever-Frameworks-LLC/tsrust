@@ -20,7 +20,9 @@ function BasicContextMenu(): Node {
   const last = signal('none');
   return (
     <ContextMenu>
-      <View className="rounded-lg border border-border p-8"><Text>Right-click here (last: {last})</Text></View>
+      <View className="rounded-lg border border-border p-8">
+        <Text>Right-click here (last: {last})</Text>
+      </View>
       <MenuItem onSelect={() => { last.set('rename'); }}>Rename</MenuItem>
       <MenuItem onSelect={() => { last.set('duplicate'); }}>Duplicate</MenuItem>
     </ContextMenu>
@@ -31,7 +33,13 @@ function SplitDropdown(): Node {
   const runs = signal(0);
   return (
     <View className="flex-row items-center gap-3">
-      <DropdownMenu label="Run" variant="primary" onClick={() => { runs.set(runs.get() + 1); }}>
+      <DropdownMenu
+        label="Run"
+        variant="primary"
+        onClick={() => {
+          runs.set(runs.get() + 1);
+        }}
+      >
         <MenuItem>Run tests</MenuItem>
         <MenuItem>Run benchmarks</MenuItem>
       </DropdownMenu>
@@ -80,7 +88,12 @@ function LabelsAndLinks(): Node {
 function CustomEntry(): Node {
   return (
     <DropdownMenu label="Account">
-      <MenuItem><View className="flex-col"><Text className="font-semibold">Ada Lovelace</Text><Text className="text-muted-foreground">ada@example.com</Text></View></MenuItem>
+      <MenuItem>
+        <View className="flex-col">
+          <Text className="font-semibold">Ada Lovelace</Text>
+          <Text className="text-muted-foreground">ada@example.com</Text>
+        </View>
+      </MenuItem>
       <MenuSeparator />
       <MenuItem icon="user">Profile</MenuItem>
     </DropdownMenu>
@@ -91,7 +104,13 @@ function ShortcutEntries(): Node {
   const saved = signal(0);
   return (
     <View className="flex-row items-center gap-3">
-      <Shortcut command="menu-save" keys="secondary-shift-s" onTrigger={() => { saved.set(saved.get() + 1); }} />
+      <Shortcut
+        command="menu-save"
+        keys="secondary-shift-s"
+        onTrigger={() => {
+          saved.set(saved.get() + 1);
+        }}
+      />
       <DropdownMenu label="File">
         <MenuItem command="menu-save">Save all</MenuItem>
       </DropdownMenu>
@@ -138,7 +157,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Dropdown Menu</ExampleTitle>
         <ExampleDescription>A button that opens a menu.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicDropdown /></ExamplePreview>
+          <ExamplePreview>
+            <BasicDropdown />
+          </ExamplePreview>
           <ExampleCode>{`function BasicDropdown(): Node {
   const last = signal('none');
   return (
@@ -158,7 +179,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Context Menu</ExampleTitle>
         <ExampleDescription>Right-click the area to open its menu.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicContextMenu /></ExamplePreview>
+          <ExamplePreview>
+            <BasicContextMenu />
+          </ExamplePreview>
           <ExampleCode>{`function BasicContextMenu(): Node {
   const last = signal('none');
   return (
@@ -175,7 +198,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Split Button</ExampleTitle>
         <ExampleDescription>With onClick the button runs its own action and only the arrow opens the menu.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SplitDropdown /></ExamplePreview>
+          <ExamplePreview>
+            <SplitDropdown />
+          </ExamplePreview>
           <ExampleCode>{`function SplitDropdown(): Node {
   const runs = signal(0);
   return (
@@ -194,7 +219,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Custom Trigger and Anchor</ExampleTitle>
         <ExampleDescription>A Button child is the trigger with all its options; anchor picks the menu corner aligned to it.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TriggerAndAnchor /></ExamplePreview>
+          <ExamplePreview>
+            <TriggerAndAnchor />
+          </ExamplePreview>
           <ExampleCode>{`function TriggerAndAnchor(): Node {
   return (
     <DropdownMenu anchor="top-right" menuLabel="More actions">
@@ -210,7 +237,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Icons, Disabled and Check State</ExampleTitle>
         <ExampleDescription>Entries can carry an icon, be disabled or show a check mark on either side.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><EntryStates /></ExamplePreview>
+          <ExamplePreview>
+            <EntryStates />
+          </ExamplePreview>
           <ExampleCode>{`function EntryStates(): Node {
   const wrap = signal(true);
   return (
@@ -231,7 +260,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Labels, Separators and Links</ExampleTitle>
         <ExampleDescription>Labels head groups of entries; separators divide them; a link entry opens a URL.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LabelsAndLinks /></ExamplePreview>
+          <ExamplePreview>
+            <LabelsAndLinks />
+          </ExamplePreview>
           <ExampleCode>{`function LabelsAndLinks(): Node {
   return (
     <DropdownMenu label="Help">
@@ -249,7 +280,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Custom Element</ExampleTitle>
         <ExampleDescription>Text children are the item label; other children draw a custom row.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CustomEntry /></ExamplePreview>
+          <ExamplePreview>
+            <CustomEntry />
+          </ExamplePreview>
           <ExampleCode>{`function CustomEntry(): Node {
   return (
     <DropdownMenu label="Account">
@@ -265,7 +298,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Keyboard Shortcuts</ExampleTitle>
         <ExampleDescription>A MenuItem naming a Shortcut command shows its keys and runs it.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ShortcutEntries /></ExamplePreview>
+          <ExamplePreview>
+            <ShortcutEntries />
+          </ExamplePreview>
           <ExampleCode>{`function ShortcutEntries(): Node {
   const saved = signal(0);
   return (
@@ -284,7 +319,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Submenus</ExampleTitle>
         <ExampleDescription>Submenus nest, with icons.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><NestedMenus /></ExamplePreview>
+          <ExamplePreview>
+            <NestedMenus />
+          </ExamplePreview>
           <ExampleCode>{`function NestedMenus(): Node {
   return (
     <DropdownMenu label="Share">
@@ -305,7 +342,9 @@ export function MenuPage(): Node {
         <ExampleTitle>Scrollable Menus and Sizing</ExampleTitle>
         <ExampleDescription>Long menus scroll within a maximum height; widths can be bounded.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LongMenu /></ExamplePreview>
+          <ExamplePreview>
+            <LongMenu />
+          </ExamplePreview>
           <ExampleCode>{`function LongMenu(): Node {
   return (
     <DropdownMenu label="Font" scrollable={true} maxHeight={200} minWidth={180}>

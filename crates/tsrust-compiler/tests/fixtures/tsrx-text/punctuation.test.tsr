@@ -8,11 +8,15 @@ function Text(props: TextProps): string {
 }
 
 function punctuation(): string {
-  return <Text><Text>café</Text>.<Text>A</Text>!<Text>B</Text>?<Text>C</Text>?.<Text>D</Text>(<Text>E</Text>[<Text>F</Text>as<Text>G</Text>in<Text>H</Text>satisfies<Text>I</Text></Text>;
+  return (
+    <Text><Text>café</Text>.<Text>A</Text>!<Text>B</Text>?<Text>C</Text>?.<Text>D</Text>(<Text>E</Text>[<Text>F</Text>as<Text>G</Text>in<Text>H</Text>satisfies<Text>I</Text></Text>
+  );
 }
 
 function expressionSuffix(): int {
-  return (<Text><Text>ab</Text>.</Text>).length;
+  return (
+    <Text><Text>ab</Text>.</Text>
+  ).length;
 }
 
 test('nested TSRX keeps punctuation and keyword text as children', () => {

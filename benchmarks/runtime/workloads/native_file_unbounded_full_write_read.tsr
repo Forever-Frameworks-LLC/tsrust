@@ -11,6 +11,7 @@ function sample(input: ReadOnly<string>, count: int, fill: int): int[] {
   const bytes = unwrap(readFile(destination));
   let sum = 0;
   let index = 0;
+
   while (index < length(bytes)) {
     sum += unwrap(at(bytes, index));
     index++;
@@ -22,8 +23,10 @@ function sample(input: ReadOnly<string>, count: int, fill: int): int[] {
 function workload(n: int, seed: int, input: string): int[][] {
   let output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     let count = 65536;
+
     if (i % 3 === 1) {
       count = 1048576;
     }

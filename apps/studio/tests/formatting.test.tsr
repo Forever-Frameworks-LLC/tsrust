@@ -1,0 +1,201 @@
+import { test, strictEqual } from 'std:testing';
+import { createTempDir, removeDirAll, writeTextFile, readTextFile } from 'std:fs';
+import { get } from 'std:env';
+import { Workspace } from '../src/lib/workspace/workspace.tsr';
+import { createDocument, ProposedEdit } from '../src/lib/workspace/documents.tsr';
+import { FormattingAuthority, FormattingTarget, FormattingResult, prepareFormatting, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
+import { EditorPolicy, defaultFormatting, projectEditorPolicy } from '../src/lib/settings/formatting.tsr';
+import { prepareProjectTask } from '../src/services/project-tasks.tsr';
+import { problemSelection } from '../src/lib/workspace/problem-actions.tsr';
+import { defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
+import { WorkflowToolContext, workflowTools, invokeWorkflowTool } from '../src/services/workflow-tools.tsr';
+
+function workspace(root: string, source: string): Workspace {
+  const path = root + '/main.tsrx';
+  return {
+    root, files: [{
+      document: unwrap(createDocument(clone(path), source)), name: 'main.tsrx', kind: 'text'
+    }], active: path, error: '', dockLayout: '', zoomLevel: 0
+  };
+}
+
+function policy(): EditorPolicy {
+  return {
+    formatOnSave: false, checkOnSave: false, formatOnFocusChange: false, checkOnFocusChange: false, format: defaultFormatting()
+  };
+}
+
+function rejected<T>(value: Result<T, string>): boolean {
+  match (value) {
+    Err(_) => {
+      return true;
+    },
+    Ok(_) => {
+      return false;
+    }
+  }
+}
+
+test('formatting keeps its explicit document target and rejects stale or unapproved replies', () => {
+  const state = workspace('/project', 'before');
+  const target: FormattingTarget = {
+    path: clone(state.active), session: clone(state.files[0].document.session), revision: 0
+  };
+  const allowed: FormattingAuthority = {
+    allowPropose: true, allowApply: true, allowSave: true
+  };
+  const request = unwrap(prepareFormatting(state, policy(), allowed, target, 'format'));
+  state.active = '/project/other.tsr';
+  const result: FormattingResult = {
+    request: clone(request), text: 'formatted', error: ''
+  };
+  strictEqual(unwrap(applyFormatting(state, result)), false);
+  strictEqual(state.active, '/project/other.tsr');
+  strictEqual(state.files[0].document.text, 'formatted');
+  strictEqual(state.files[0].document.savedText, 'before');
+  const baseline = JSON.stringify(state);
+  strictEqual(rejected(applyFormatting(state, result)), true);
+  strictEqual(JSON.stringify(state), baseline);
+  const denied: FormattingAuthority = {
+    allowPropose: false, allowApply: false, allowSave: false
+  };
+  strictEqual(rejected(prepareFormatting(state, policy(), denied, target, 'format')), true);
+  const fresh: FormattingTarget = {
+    path: clone(target.path), session: clone(target.session), revision: 1
+  };
+  const proposal = unwrap(prepareFormatting(state, policy(), allowed, fresh, 'proposal'));
+  const isolated: FormattingResult = {
+    request: proposal, text: 'unreviewed', error: ''
+  };
+  strictEqual(rejected(applyFormatting(state, isolated)), true);
+  strictEqual(state.files[0].document.text, 'formatted');
+});
+
+test('editor defaults persist and project overrides are partial and live', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-format-policy-'));
+
+  try {
+    const legacy = unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}'));
+    strictEqual(legacy.formatOnSave, false);
+    strictEqual(legacy.checkOnSave, false);
+    const config = defaultConfig();
+    config.formatOnSave = true;
+    config.formatOnFocusChange = true;
+    strictEqual(unwrap(parseConfig(formatConfig(config))).formatOnFocusChange, true);
+    config.format.jsxReturnParentheses = false;
+    strictEqual(unwrap(parseConfig(formatConfig(config))).format.jsxReturnParentheses, false);
+    const defaults: EditorPolicy = {
+      formatOnSave: true, checkOnSave: false, formatOnFocusChange: false, checkOnFocusChange: false, format: clone(config.format)
+    };
+    unwrap(writeTextFile(root + '/tsrust.config.json', '{"editor":{"formatOnSave":false,"checkOnSave":true,"checkOnFocusChange":true},"format":{"indentWidth":4}}'));
+    const project = unwrap(projectEditorPolicy(root, defaults));
+    strictEqual(project.formatOnSave, false);
+    strictEqual(project.checkOnSave, true);
+    strictEqual(project.checkOnFocusChange, true);
+    strictEqual(project.format.indentWidth, 4);
+    strictEqual(project.format.jsxReturnParentheses, false);
+    unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"indentWidth":0}}'));
+    strictEqual(rejected(projectEditorPolicy(root, defaults)), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('format on save checks only a committed save and preserves external conflicts', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-format-save-'));
+
+  try {
+    const state = workspace(clone(root), 'original');
+    unwrap(writeTextFile(state.active, 'original'));
+    const options = policy();
+    options.checkOnSave = true;
+    const authority: FormattingAuthority = {
+      allowPropose: true, allowApply: true, allowSave: true
+    };
+    const target: FormattingTarget = {
+      path: clone(state.active), session: clone(state.files[0].document.session), revision: 0
+    };
+    const request = unwrap(prepareFormatting(state, options, authority, target, 'save'));
+    const result: FormattingResult = {
+      request, text: 'formatted', error: ''
+    };
+    strictEqual(unwrap(applyFormatting(state, result)), true);
+    strictEqual(unwrap(readTextFile(state.active)), 'formatted');
+    strictEqual(state.files[0].document.savedText, 'formatted');
+    const nextTarget: FormattingTarget = {
+      path: clone(state.active), session: clone(state.files[0].document.session), revision: state.files[0].document.revision
+    };
+    const next = unwrap(prepareFormatting(state, options, authority, nextTarget, 'save'));
+    unwrap(writeTextFile(state.active, 'external edit'));
+    const conflict: FormattingResult = {
+      request: next, text: 'new formatted draft', error: ''
+    };
+    strictEqual(rejected(applyFormatting(state, conflict)), true);
+    strictEqual(state.files[0].document.text, 'new formatted draft');
+    strictEqual(state.files[0].document.savedText, 'formatted');
+    strictEqual(unwrap(readTextFile(state.active)), 'external edit');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('registered formatting tool uses the real CLI and returns an isolated revisioned proposal', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-format-tool-'));
+
+  try {
+    const source = 'function Panel():Node{return <View className="grow"><Icon/><View label="日本語"/></View>;}';
+    const state = workspace(clone(root), clone(source));
+    unwrap(writeTextFile(state.active, source));
+    unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"indentWidth":4}}'));
+    const configured = unwrap(get('TSRUST'));
+    const context: WorkflowToolContext = {
+      workspace: clone(state), policy: policy(), program: configured ?? 'tsrust', formatAuthority: {
+        allowPropose: true, allowApply: false, allowSave: false
+      }, allowCheck: false
+    };
+    const payload = JSON.stringify({
+      path: clone(state.active), session: clone(state.files[0].document.session), revision: 0, mode: 'save', allowSave: true
+    });
+    const response = unwrap(await invokeWorkflowTool(context, 'format_document', payload));
+    const proposal = JSON.parse<ProposedEdit>(response);
+    strictEqual(proposal.before, state.files[0].document.text);
+    strictEqual(proposal.revision, 0);
+    strictEqual(proposal.after.includes('return (\n'), true);
+    strictEqual(proposal.after.includes('\n        <View '), true);
+    strictEqual(unwrap(readTextFile(state.active)), state.files[0].document.text);
+    strictEqual(rejected(await invokeWorkflowTool(context, 'check_project', '{"allowCheck":true}')), true);
+    strictEqual(rejected(await invokeWorkflowTool(context, 'format_document', '{"path":"/outside.tsr"}')), true);
+    strictEqual(rejected(await invokeWorkflowTool(context, 'format_project', '{"allowProjectWrite":true}')), true);
+    strictEqual(workflowTools().length, 3);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('focus formatting leaves disk and tab selection intact; terminal tasks enforce grants', () => {
+  const state = workspace('/project', 'const value=1;');
+  const options = policy();
+  options.checkOnFocusChange = true;
+  const target: FormattingTarget = {
+    path: clone(state.active), session: clone(state.files[0].document.session), revision: 0
+  };
+  const authority: FormattingAuthority = {
+    allowPropose: true, allowApply: true, allowSave: false
+  };
+  const request = unwrap(prepareFormatting(state, options, authority, target, 'focus'));
+  state.active = '/project/other.tsr';
+  const result: FormattingResult = {
+    request, text: 'const value = 1;\n', error: ''
+  };
+  strictEqual(unwrap(applyFormatting(state, result)), true);
+  strictEqual(state.active, '/project/other.tsr');
+  strictEqual(state.files[0].document.savedText, 'const value=1;');
+  strictEqual(rejected(prepareProjectTask(state, 'tsrust', 'format', options.format, true, true)), true);
+  strictEqual(rejected(prepareProjectTask(state, 'tsrust', 'check', options.format, false, false)), true);
+  const task = unwrap(prepareProjectTask(state, '/bin/tsrust', 'check', options.format, true, false));
+  strictEqual(task.program, '/bin/tsrust');
+  strictEqual(task.args.join(' '), 'check . --color=always --progress');
+  const selected = problemSelection('first\n日本 value', 2, 3);
+  strictEqual(selected.start, 12);
+  strictEqual(selected.end, 18);
+});

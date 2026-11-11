@@ -24,6 +24,7 @@ function main() {
   strictEqual(unwrap(resolve()), directory);
   strictEqual(unwrap(resolve(directory, 'one', '..', 'two')), join(directory, 'two'));
   const pairs = unwrap(vars());
+
   for (let index = 0; index < pairs.length; index++) {
     if (pairs[index].name === 'TSRUST_B03_TEXT') {
       strictEqual(pairs[index].value, 'héllo 🦀');
@@ -36,6 +37,7 @@ function main() {
   strictEqual(unwrap(currentExe()).length > 0, true);
   const temporary = unwrap(tempDir());
   const home = unwrap(homeDir());
+
   if (home !== undefined) {
     strictEqual(typeof home, 'string');
   }

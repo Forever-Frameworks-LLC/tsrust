@@ -1,10 +1,14 @@
 import { Channel, Sender, race } from 'std:futures';
 import { run } from 'std:process';
 import { toUtf8 } from 'std:bytes';
+import { Problem, operationProblem } from '../lib/workspace/problems.tsr';
 
 export interface CheckResult {
   output: string;
   failed: boolean;
+  problems: Problem[];
+  reveal?: boolean;
+  cancelled?: boolean;
 }
 
 interface CheckLocation {
@@ -18,6 +22,7 @@ interface CheckDiagnostic {
   code: string;
   message: string;
   location?: CheckLocation;
+  severity?: string;
 }
 
 interface CheckReport {
@@ -29,31 +34,40 @@ interface CheckReport {
 export function formatCheckReport(text: ReadOnly<string>): CheckResult {
   const report = JSON.parse<CheckReport>(text);
   let output = '';
+  const problems: Problem[] = [];
+
   for (const diagnostic of report.diagnostics) {
     const location = diagnostic.location;
-    output += diagnostic.file ?? (location === undefined ? '' : location.file ?? '');
+    const path = clone(diagnostic.file ?? (location === undefined ? '' : location.file ?? ''));
+    output += clone(path);
+
     if (location !== undefined) output += ':' + location.line.toString() + ':' + location.column.toString();
-    output += ' [' + diagnostic.code + '] ' + diagnostic.message + '\n';
+    output += ' [' + clone(diagnostic.code) + '] ' + clone(diagnostic.message) + '\n';
+    problems.push({
+      source: 'check', path, line: location === undefined ? 0 : location.line, column: location === undefined ? 0 : location.column, code: clone(diagnostic.code), message: clone(diagnostic.message), severity: clone(diagnostic.severity ?? 'error')
+    });
   }
 
   output += report.ok ? 'Check passed.\n' : 'Check failed.\n';
   return {
-    output, failed: !report.ok
+    output, failed: !report.ok, problems
   };
 }
 
-async function runCheck(root: ReadOnly<string>, program: ReadOnly<string>): Task<CheckResult> {
+export async function checkSavedProject(root: ReadOnly<string>, program: ReadOnly<string>): Task<CheckResult> {
   let result: CheckResult = {
-    output: '', failed: true
+    output: '', failed: true, problems: []
   };
+
   match (await run(program, ['check', '--json', '--color=never'], {
     cwd: clone(root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
   })) {
     Ok(output) => {
       try {
         result = formatCheckReport(unwrap(toUtf8(output.stdout)));
+
         if (!output.status.success && !result.failed) result = {
-          output: 'The compiler failed without diagnostics.\n', failed: true
+          output: 'The compiler failed without diagnostics.\n', failed: true, problems: []
         };
       } catch (_) {
         match (toUtf8(output.stderr)) {
@@ -71,26 +85,33 @@ async function runCheck(root: ReadOnly<string>, program: ReadOnly<string>): Task
     }
   }
 
+  if (result.failed && result.problems.length === 0) result.problems.push(operationProblem('check', '', clone(result.output)));
   return result;
 }
 
 async function cancelled(requests: ReadOnly<Channel<string>>): Task<CheckResult> {
   await requests.receive();
   return {
-    output: 'Check cancelled.\n', failed: true
+    output: 'Check cancelled.\n', failed: true, problems: [], cancelled: true
   };
 }
 
 export async function projectCheckWorker(root: string, program: string, requests: Channel<string>, results: Sender<CheckResult>): Task<void> {
   while (true) {
+    let reveal = false;
+
     try {
       const command = await requests.receive();
-      if (command !== 'check') continue;
+
+      if (command !== 'check' && command !== 'check-background') continue;
+      reveal = command === 'check';
     } catch (_) {
       return;
     }
     // Check never spawns Cargo/native children; dropping its task reaps the CLI process.
-    const result = await race([runCheck(root, program), cancelled(requests)]);
+    const result = await race([checkSavedProject(root, program), cancelled(requests)]);
+    result.reveal = reveal;
+
     try {
       await results.send(result);
     } catch (_) {

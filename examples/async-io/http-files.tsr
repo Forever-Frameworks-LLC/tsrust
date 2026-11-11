@@ -11,6 +11,7 @@ async function main(): Task<void> {
   const app = new App();
   app.get("/file", download);
   const server = await app.listen("127.0.0.1:0");
+
   try {
     const client = new Client();
     const response = await client.send(request("GET", "http://" + server.address() + "/file", ""));

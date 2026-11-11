@@ -41,6 +41,8 @@ mod kit;
 #[cfg(feature = "runtime")]
 mod commands;
 #[cfg(feature = "runtime")]
+mod terminal_links;
+#[cfg(feature = "runtime")]
 mod i18n;
 #[cfg(feature = "runtime")]
 mod update;

@@ -24,6 +24,7 @@ test('terminal sessions keep distinct identity and choose an adjacent session wh
   unwrap(addTerminal(state, 'fourth'));
   strictEqual(state.sessions[0].ordinal, 4);
   const before = JSON.stringify(state);
+
   match (addTerminal(state, 'fourth')) {
     Ok(_) => {
       throw 'duplicate identity accepted';

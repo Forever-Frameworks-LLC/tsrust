@@ -5,7 +5,9 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 function BasicPopover(): Node {
   return (
     <Popover>
-      <PopoverTrigger><Button outline={true}>Open popover</Button></PopoverTrigger>
+      <PopoverTrigger>
+        <Button outline={true}>Open popover</Button>
+      </PopoverTrigger>
       <PopoverContent>
         <Text className="font-semibold">Dimensions</Text>
         <Text variant="muted">Set the dimensions for the layer.</Text>
@@ -18,16 +20,28 @@ function PositionedPopovers(): Node {
   return (
     <View className="flex-row gap-3">
       <Popover anchor="top-left" offset={8}>
-        <PopoverTrigger><Button>Below left</Button></PopoverTrigger>
-        <PopoverContent><Text>Anchored top-left</Text></PopoverContent>
+        <PopoverTrigger>
+          <Button>Below left</Button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <Text>Anchored top-left</Text>
+        </PopoverContent>
       </Popover>
       <Popover anchor="top-right" arrow={true}>
-        <PopoverTrigger><Button>Below right, arrow</Button></PopoverTrigger>
-        <PopoverContent><Text>Anchored top-right</Text></PopoverContent>
+        <PopoverTrigger>
+          <Button>Below right, arrow</Button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <Text>Anchored top-right</Text>
+        </PopoverContent>
       </Popover>
       <Popover anchor="bottom-center">
-        <PopoverTrigger><Button>Above</Button></PopoverTrigger>
-        <PopoverContent><Text>Anchored bottom-center</Text></PopoverContent>
+        <PopoverTrigger>
+          <Button>Above</Button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <Text>Anchored bottom-center</Text>
+        </PopoverContent>
       </Popover>
     </View>
   );
@@ -36,8 +50,14 @@ function PositionedPopovers(): Node {
 function RightClickPopover(): Node {
   return (
     <Popover mouseButton="right">
-      <PopoverTrigger><View className="rounded-lg border border-dashed border-border p-6"><Text>Right-click here</Text></View></PopoverTrigger>
-      <PopoverContent><Text>Opened with the right button</Text></PopoverContent>
+      <PopoverTrigger>
+        <View className="rounded-lg border border-dashed border-border p-6">
+          <Text>Right-click here</Text>
+        </View>
+      </PopoverTrigger>
+      <PopoverContent>
+        <Text>Opened with the right button</Text>
+      </PopoverContent>
     </Popover>
   );
 }
@@ -47,12 +67,28 @@ function FormPopover(): Node {
   const width = signal('100%');
   return (
     <View className="flex-row items-center gap-3">
-      <Popover open={open.get()} onOpenChange={(next) => { open.set(next); }} overlayClosable={false}>
-        <PopoverTrigger><Button>Edit width</Button></PopoverTrigger>
+      <Popover
+        open={open.get()}
+        onOpenChange={(next) => {
+          open.set(next);
+        }}
+        overlayClosable={false}
+      >
+        <PopoverTrigger>
+          <Button>Edit width</Button>
+        </PopoverTrigger>
         <PopoverContent>
           <Label>Width</Label>
-          <Input value={width} onChange={(event) => { width.set(event.target.value); }} className="w-48" />
-          <View className="flex-row justify-end"><Button size="small" variant="primary" onPress={() => { open.set(false); }}>Done</Button></View>
+          <Input
+            value={width}
+            onChange={(event) => {
+              width.set(event.target.value);
+            }}
+            className="w-48"
+          />
+          <View className="flex-row justify-end">
+            <Button size="small" variant="primary" onPress={() => { open.set(false); }}>Done</Button>
+          </View>
         </PopoverContent>
       </Popover>
       <Text variant="muted">Width: {width}</Text>
@@ -64,9 +100,18 @@ function ControlledPopover(): Node {
   const open = signal(false);
   return (
     <View className="flex-row items-center gap-3">
-      <Popover open={open.get()} onOpenChange={(next) => { open.set(next); }}>
-        <PopoverTrigger><Button>Toggle</Button></PopoverTrigger>
-        <PopoverContent><Text>Open is {open.get() ? 'true' : 'false'}</Text></PopoverContent>
+      <Popover
+        open={open.get()}
+        onOpenChange={(next) => {
+          open.set(next);
+        }}
+      >
+        <PopoverTrigger>
+          <Button>Toggle</Button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <Text>Open is {open.get() ? 'true' : 'false'}</Text>
+        </PopoverContent>
       </Popover>
       <Button outline={true} onPress={() => { open.set(!open.get()); }}>Open from outside</Button>
     </View>
@@ -76,8 +121,14 @@ function ControlledPopover(): Node {
 function BarePopover(): Node {
   return (
     <Popover appearance={false}>
-      <PopoverTrigger><Button>Custom surface</Button></PopoverTrigger>
-      <PopoverContent><View className="rounded-xl bg-primary p-4"><Text className="text-primary-foreground">Styled by utilities</Text></View></PopoverContent>
+      <PopoverTrigger>
+        <Button>Custom surface</Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <View className="rounded-xl bg-primary p-4">
+          <Text className="text-primary-foreground">Styled by utilities</Text>
+        </View>
+      </PopoverContent>
     </Popover>
   );
 }
@@ -90,7 +141,9 @@ export function PopoverPage(): Node {
         <ExampleTitle>Basic Popover</ExampleTitle>
         <ExampleDescription>PopoverTrigger opens PopoverContent; clicking outside closes it.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicPopover /></ExamplePreview>
+          <ExamplePreview>
+            <BasicPopover />
+          </ExamplePreview>
           <ExampleCode>{`function BasicPopover(): Node {
   return (
     <Popover>
@@ -108,7 +161,9 @@ export function PopoverPage(): Node {
         <ExampleTitle>Positioning</ExampleTitle>
         <ExampleDescription>anchor picks the popup corner aligned to the trigger; offset adds a gap; arrow points at the trigger.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PositionedPopovers /></ExamplePreview>
+          <ExamplePreview>
+            <PositionedPopovers />
+          </ExamplePreview>
           <ExampleCode>{`function PositionedPopovers(): Node {
   return (
     <View className="flex-row gap-3">
@@ -133,7 +188,9 @@ export function PopoverPage(): Node {
         <ExampleTitle>Right-click Trigger</ExampleTitle>
         <ExampleDescription>mouseButton="right" opens on a secondary click.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RightClickPopover /></ExamplePreview>
+          <ExamplePreview>
+            <RightClickPopover />
+          </ExamplePreview>
           <ExampleCode>{`function RightClickPopover(): Node {
   return (
     <Popover mouseButton="right">
@@ -148,7 +205,9 @@ export function PopoverPage(): Node {
         <ExampleTitle>Form in a Popover</ExampleTitle>
         <ExampleDescription>Inputs work inside; overlayClosable=false keeps it open while you click elsewhere.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FormPopover /></ExamplePreview>
+          <ExamplePreview>
+            <FormPopover />
+          </ExamplePreview>
           <ExampleCode>{`function FormPopover(): Node {
   const open = signal(false);
   const width = signal('100%');
@@ -172,7 +231,9 @@ export function PopoverPage(): Node {
         <ExampleTitle>Controlled Open State</ExampleTitle>
         <ExampleDescription>open follows state; onOpenChange reports the popover's own requests.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledPopover /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledPopover />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledPopover(): Node {
   const open = signal(false);
   return (
@@ -191,7 +252,9 @@ export function PopoverPage(): Node {
         <ExampleTitle>Without Default Styling</ExampleTitle>
         <ExampleDescription>appearance=false leaves the surface to your own classes.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BarePopover /></ExamplePreview>
+          <ExamplePreview>
+            <BarePopover />
+          </ExamplePreview>
           <ExampleCode>{`function BarePopover(): Node {
   return (
     <Popover appearance={false}>

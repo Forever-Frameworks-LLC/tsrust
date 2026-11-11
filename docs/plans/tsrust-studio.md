@@ -49,6 +49,34 @@ identities, proof contracts, current checks and unresolved prerequisites.
   actions. Use actual document tabs and working editor actions. Visual polish
   must serve editing rather than website branding.
 
+Current formatter/workflow section, November 11: native menus/status commands,
+global/project rules and save/focus triggers are implemented. Focused formatter3/3,
+terminal-link parser1/1, public workflow/model6/6 passed. Native app builds and live
+MAT verified a named CLI check terminal plus Cmd-click navigation with destination
+highlighting; source-labeled Problems is implemented, LSP is still disconnected.
+All8open files/4drafts/zoom-1 survived the final reload. Actual51-file manual CLI
+check completion and broader live focus/settings acceptance are still pending.
+Exact identities/checks and current supervisor are in docs/agent-progress.md.
+
+## Immediate implementation priority — owner, 2026-11-11
+
+Finish the current formatting/task-terminal/Problems integration, then prioritize
+real language services before Git, debugger and extension-management surfaces.
+Use a shared configurable LSP connection for Tsrust and external language servers
+(including Rust, TypeScript and Go), with diagnostics routed to Problems and
+hover, completion and snippets exposed through the existing native editor UI.
+Support server lifecycle, document synchronization, stale-version rejection,
+Unicode position conversion, cancellation and visible connection/error state.
+Language/server registration should permit later language extensions without a
+separate integration architecture for each server. Do not claim external server
+acceptance until the installed server is exercised.
+
+Next prioritize the built-in AI agent and shared semantic editor actions. Agent
+review/diffs and eventual debugger stepping must use the same guarded commands
+as the user; a tool catalog without executable integration is not acceptance.
+Reuse the existing native completion/hover/diff components where appropriate.
+Git, debugger and general extension UI follow these priorities.
+
 ## Current native terminal integration — 2026-11-11
 
 The native Terminal, checked command/snapshot API and Studio's first shell are now

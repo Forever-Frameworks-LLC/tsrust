@@ -32,6 +32,7 @@ function takeWithCallbacks(row: Row, early: boolean, trace: int[]): string {
   handlers.set("old", {
     run: (): int => old[0]
   });
+
   try {
     try {
       if (early) {
@@ -48,6 +49,7 @@ function takeWithCallbacks(row: Row, early: boolean, trace: int[]): string {
     trace.push(32);
   } finally {
     const item = handlers.get(early ? "old" : "new");
+
     if (item !== undefined) {
       trace.push(item.run());
     }
@@ -109,6 +111,7 @@ function takeThroughCatch(row: Row, mode: int, trace: int[]): string {
     trace.push(29);
   } catch (error) {
     trace.push(30);
+
     if (mode === 1) {
       return row.name;
     }
@@ -180,6 +183,7 @@ function main() {
   strictEqual(selectWithCleanup({
     name: "left", other: "right"
   }, false, true), "right");
+
   for (let mode = 0; mode < 4; mode += 1) {
     const loopTrace: int[] = [];
     strictEqual(takeThroughLoop({

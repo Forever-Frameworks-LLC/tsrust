@@ -20,8 +20,8 @@ function makePick() {
 }
 
 function main() {
-    // Omitted result types.
-    const offsets = [10];
+  // Omitted result types.
+  const offsets = [10];
   function twice(value: int) {
     return value + value;
   }
@@ -38,8 +38,8 @@ function main() {
   strictEqual(label(2), "n2");
   strictEqual(shifted(1), 11);
 
-    // A generic function that uses a variable of main, as one value for two types.
-    const seen: string[] = [];
+  // A generic function that uses a variable of main, as one value for two types.
+  const seen: string[] = [];
   function note<T>(value: T): T {
     seen.push("x");
     return value;
@@ -58,8 +58,8 @@ function main() {
   strictEqual(select(7), 7);
   strictEqual(select("x"), "x");
 
-    // Default and optional parameters on function values.
-    const base = [10];
+  // Default and optional parameters on function values.
+  const base = [10];
   function pick(value: int, extra: int = base[0]): int {
     return value + extra;
   }
@@ -77,8 +77,8 @@ function main() {
     strictEqual(maybe(1, 2), 3);
   }
 
-    // An array callback supplies the index as the second argument.
-    strictEqual([1, 2].map(pick).join(","), "1,3");
+  // An array callback supplies the index as the second argument.
+  strictEqual([1, 2].map(pick).join(","), "1,3");
 
   let total = 0;
   function bump(by: int = 1): int {

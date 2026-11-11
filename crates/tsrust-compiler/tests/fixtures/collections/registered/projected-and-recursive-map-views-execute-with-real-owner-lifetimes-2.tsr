@@ -56,6 +56,7 @@ export function main() {
   root.children.set(1, leaf(window(second)));
   const restored = identity(root, leaf(window(first)));
   strictEqual(text(restored.data), "first");
+
   for (const [key, child] of restored.children) {
     strictEqual(text(child.data), "second");
   }

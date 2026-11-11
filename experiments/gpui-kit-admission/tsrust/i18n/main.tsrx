@@ -7,11 +7,30 @@ function App(): Node {
   const current = signal(locale());
   return (
     <View className="flex-col size-full items-center justify-center gap-3">
-      <Text className="text-2xl font-semibold">{t('title')}</Text>
-      <Text>{tWith('greeting', { name: 'Ada' })}</Text>
-      <Text>{translateWith('messages', { count: count.get() })}</Text>
+      <Text className="text-2xl font-semibold">
+        {t('title')}
+      </Text>
+      <Text>
+        {tWith('greeting', {
+          name: 'Ada'
+        })}
+      </Text>
+      <Text>
+        {translateWith('messages', {
+          count: count.get()
+        })}
+      </Text>
       <Input placeholder={translate('search')} />
-      <Select items={['en', 'fr']} value={current.get()} placeholder={t('language')} onChange={(value) => { current.set(clone(value)); setLocale(value); }} className="w-48" />
+      <Select
+        items={['en', 'fr']}
+        value={current.get()}
+        placeholder={t('language')}
+        onChange={(value) => {
+          current.set(clone(value));
+          setLocale(value);
+        }}
+        className="w-48"
+      />
       <DatePicker value="2026-11-09" className="w-48" />
       <Button onPress={() => { count.set(count.get() + 1); }}>+1</Button>
     </View>

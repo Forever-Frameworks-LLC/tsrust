@@ -30,6 +30,7 @@ function main() {
   }, "s"];
   console.log(items[1] === "s", items[0] === "s", items.findIndex((item) => item === "s"));
   let count = 0;
+
   for (const x of v) {
     if (x === "b") {
       count += 1;

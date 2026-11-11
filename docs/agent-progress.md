@@ -8,6 +8,119 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Latest live acceptance, 14:19 — corrected JSON argument encoding is loaded.
+SDK normal pair PASS2m39s; installed CLI
+8c54844d081591fc355105664b08f57522299d1972d771817b154567be731454,
+LSP75286aaa017dcb2685efbdd755ac9a203e409eb244264c120bf6cce9a7589e85.
+Queued replacement BEFORE stopping8139. CURRENT supervisor8979 / PTY46813,
+app9078, live bundle (rediscover before CUA after any reload):
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-8979-1794424644569030000-0/Tsrust Studio.app.
+Dev build62.724s: check37.4627s, emit2.5012s, backend0.1724s,
+native/link22.0661s, runtime cache hit. Keep this session running.
+
+Live MAT PASS: recovered8open files,4drafts,zoom-1; active terminal-panel.tsrx.
+Check Project status button starts named direct CLI terminal, visible
+"Checking51 source files…" and running spinner. Manual check still running at
+handoff; do not claim whole-project check passed until its exit is observed.
+Independent Terminal1 retained while check task ran. Printed
+src/components/tasks/terminal-panel.tsrx:4:1 in shell; Cmd-click selected existing
+editor and visibly highlighted line4 through line end, without changing draft.
+No giant raw error strip. CUA phase ended with completion summary
+"Verified task terminals and navigation". CUA bindings MUST be reacquired after
+reload. Existing settings/focus GUI interactions and long-running Check completion
+still need live acceptance; model/config/safety6/6 evidence below remains passed.
+
+Earlier live task crash was args string[] encoded via display-list join. Fixed
+catalog json:true; generated wrapper uses JSON.stringify for static/reactive args,
+then SDK rebuilt/installed/restarted and actual click verified. Native grid index
+fix first-1usize also native-build passed. Task shells cannot bypass project-format
+dirty checks via generic Restart Shell item: that item disabled for task sessions;
+rerun explicit task through Project commands. No full compiler/LSP matrix replay.
+
+Pruned85 obsolete Studio native cache entries with nonblocking locks. Studio
+target18GiB→2.8GiB, preserving current runtime/current app outputs. Root shared
+Cargo target still79GiB; no blind clean. Mandatory final whole formatter currently
+PTY (see active tool handle), /tmp/studio-workflows-format.log. Final source
+idempotence, generated catalog/locales and diff check then local checkpoint remain.
+No checkpoint yet; all source uncommitted after79474f87. Immediate next product
+section: real configurable LSP, then hover/completion/snippets and built-in AI,
+before Git/debugger/extensions. Do not lose owner drafts during further reloads.
+
+Active section — formatter/workflows/Problems/CLI task terminals (2026-11-11),
+uncommitted after79474f87. Owner's next priority is real LSP (configurable Tsrust,
+Rust/TypeScript/Go/external servers), hover/completion/snippets, then built-in AI
+before Git/debugger/extension UI. See immediate-priority section of Studio plan.
+Full goal stays active. Do not restart full compiler/LSP matrices.
+
+Compiler FormatOptions implements indentWidth1..8, JSX return parentheses,
+separate JSX children and blank lines around control blocks; canonical token,
+JSX text and exact-comment guard; raw quoted attrs and callback comment trivia
+preserved. Latest argument-layout fix prevents openWindow(<View/>,...) drift.
+CLI format --stdin-filepath path --options JSON takes <=16MiB stdin and never
+writes source; nearest project format fields overlay global defaults. CLI check
+and format accept --progress for visible tasks. project_config accepts format and
+four editor trigger flags. LSP formatter shares these rules and client tabSize.
+
+Studio global/project rules and GUI support independent format/check on save and
+editor focus loss (manual when both disabled, both when enabled). Focus formatting
+keeps draft/disk distinction; explicit path/session/revision guards survive tab
+switches. Focus-loss paths queue through shared Signal<string[]> and the workflow
+controller's own sender endpoints, avoiding escaped borrowed channels. Save uses
+existing atomic conflict/recovery boundary. AI format_document returns isolated
+proposal; check_project and format_project have executable host-grant adapters.
+No actual integrated AI transport claimed. Manual Project menu/status checks and
+project formatting now launch named native task terminals via direct program/args,
+with running/exit icons and retained output. Project format refuses dirty buffers;
+a successful task reloads only clean open text buffers. Background checks remain
+structured worker tasks and do not steal focus/panels. Output has cancellation,
+no duplicate manual Play action.
+
+Problems receives source-labeled structured check/formatter errors and Studio/
+terminal operation errors; raw giant red strips are removed. No fake LSP link.
+Problems navigation and terminal Cmd-click file links share guarded openProblem,
+workspace canonicalization, Unicode scalar columns to UTF8 selection and highlight
+through line end. Native terminal links handle soft-wrapped paths and emit bounded
+JSON onOpenLink. Open_problem is an executable registered editor tool. Array-valued
+computed is unsupported: collectProblems is pure, called from JSX/scalar count;
+never restore computed<Problem[]> or a factory alias state constructor.
+
+Latest retained acceptance: focused Rust formatting3/3PASS0.67s, setup2m37s,
+/tmp/studio-formatting-final.log (includes JSX-argument idempotence, raw quotes,
+Unicode attrs, comments, option toggles, stdin/project override/no write).
+Earlier corpus639 lexable fixtures+86 callable contracts PASS2.35s, setup3m26s,
+/tmp/studio-formatting-corpus.log; do not replay it after native-only edits.
+Pure terminal file parser1/1PASS0.00s, setup4.98s,
+/tmp/studio-terminal-links.log. Public affected suites together6/6PASS26.22ms,
+/tmp/studio-workflows-models.log: explicit/stale/unauthorized format requests,
+legacy/global/project config, save conflicts, actual CLI proposal/no disk writes,
+forged project-write denial, focus draft/selection behavior, task grant/dirty guards,
+Unicode byte selection, structured check diagnostics. No full regression matrix.
+
+Whole formatter already ran1648 files+254 doc snippets+1002 fingerprints, then
+latest pass39 files and one follow-up file; docs0left/fingerprints0changed.
+/tmp/studio-formatting-whole.log and /tmp/studio-workflows-format.log. Expect huge
+~1678-file mechanical style diff; required owner whole-project formatting, not
+permission to revert. All new files git add -N. Full source idempotence exit0,
+/tmp/studio-workflows-idempotence.log (before last1-file serialization formatting).
+Generated226-component Kit catalog check and2locale/211key coverage PASS.
+Need final formatter/idempotence/diff check after source settles. Diff-check's only
+extra EOF blank in formatting/jsx.rs has been removed.
+
+Final native/consumer status is in the latest live acceptance at the top. Earlier
+intermediate failures were repaired; do not restart the obsolete supervisors or
+reuse their CUA handles. The current supervisor is8979/PTY46813. Retain the owner’s
+four drafts; save conflicts remain intentional protection, not permission to
+replace external disk edits. Root Cargo target cleanup beyond the scoped Studio
+cache cleanup has not been performed.
+
+LSP investigation: existing GPUI base EditorState has lsp_mut hover/completion/
+definition/code-action providers and diagnostics_mut. Reuse these native surfaces;
+Studio's process/stdio/document lifecycle should remain Tsrust. Installed external
+commands found rust-analyzer and gopls; typescript-language-server absent from PATH.
+No external server or new LSP integration was started/implemented yet. Owner explicitly
+wants hover, completion and snippets before Git/debugger/extensions and integrated
+AI next. Future AI review/diffs/debug actions must share guarded UI command paths.
+
 Current continuation: right terminal session rail and shared tab typography are
 implemented and running in supervisor91447/PTY74141/app91525. Current bundle:
 /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-91447-1794416983704481000-0/Tsrust Studio.app.

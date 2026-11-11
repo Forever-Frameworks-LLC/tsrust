@@ -7,9 +7,25 @@ function LiveTranscript(): Node {
   const error = signal('');
   return (
     <View className="flex-col gap-3 w-full">
-      <SpeechButton locale="en-US" waveform={true} onPartial={(value) => { transcript.set(clone(value)); }} onFinal={(value) => { transcript.set(clone(value)); }} onError={(message) => { error.set(clone(message)); }} />
-      <Text>{transcript}</Text>
-      <Text variant="muted">{error}</Text>
+      <SpeechButton
+        locale="en-US"
+        waveform={true}
+        onPartial={(value) => {
+          transcript.set(clone(value));
+        }}
+        onFinal={(value) => {
+          transcript.set(clone(value));
+        }}
+        onError={(message) => {
+          error.set(clone(message));
+        }}
+      />
+      <Text>
+        {transcript}
+      </Text>
+      <Text variant="muted">
+        {error}
+      </Text>
     </View>
   );
 }
@@ -36,7 +52,9 @@ export function SpeechPage(): Node {
         <ExampleTitle>Live transcript</ExampleTitle>
         <ExampleDescription>Click the microphone to start, speak, then click again to finish. The first attempt may request system permission.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LiveTranscript /></ExamplePreview>
+          <ExamplePreview>
+            <LiveTranscript />
+          </ExamplePreview>
           <ExampleCode>{`function LiveTranscript(): Node {
   const transcript = signal('Your transcript appears here.');
   const error = signal('');
@@ -54,7 +72,9 @@ export function SpeechPage(): Node {
         <ExampleTitle>Availability and disabled controls</ExampleTitle>
         <ExampleDescription>These previews never request microphone access: the first disables system fallback, and the others disable interaction. Presentation changes do not recreate speech state.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SpeechAvailability /></ExamplePreview>
+          <ExamplePreview>
+            <SpeechAvailability />
+          </ExamplePreview>
           <ExampleCode>{`function SpeechAvailability(): Node {
   const large = signal(false);
   return (

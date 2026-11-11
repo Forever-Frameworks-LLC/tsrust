@@ -5,6 +5,7 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 function LiveTranscript(): Node {
   const count = signal(6);
   const lines: int[] = [];
+
   for (let index = 0; index < 200; index += 1) {
     lines.push(index);
   }
@@ -12,7 +13,8 @@ function LiveTranscript(): Node {
   return (
     <View className="flex-col gap-3 w-[520px]">
       <MessageScroller className="h-72 rounded-lg border border-border" jumpLabel="Latest" rowClassName="px-3 py-1">
-        {...lines.filter((line: int) => line < count.get()).map((line: int) => <Message align={line % 2 === 0 ? 'start' : 'end'} variant={line % 2 === 0 ? 'secondary' : 'filled'}>Message {line + 1}</Message>)}
+        {...lines.filter((line: int) => line < count.get()).map((line: int) => <Message align={line % 2 === 0 ? 'start' : 'end'} variant={line % 2 === 0 ? 'secondary' : 'filled'}>Message {line + 1}</Message>
+        )}
       </MessageScroller>
       <Button onPress={() => { count.set(count.get() + 1); }}>Send message</Button>
     </View>
@@ -27,7 +29,9 @@ export function MessageScrollerPage(): Node {
         <ExampleTitle>Live Transcript</ExampleTitle>
         <ExampleDescription>Add messages; the scroller follows the end unless you scrolled up.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LiveTranscript /></ExamplePreview>
+          <ExamplePreview>
+            <LiveTranscript />
+          </ExamplePreview>
           <ExampleCode>{`function LiveTranscript(): Node {
   const count = signal(6);
   const lines: int[] = [];

@@ -28,8 +28,10 @@ async function produce(sender: Sender<Work>): Task<int> {
 async function consume(queue: ReadOnly<Channel<Work>>): Task<int> {
   let total = 0;
   let working = true;
+
   while (working) {
     const work = await queue.receive();
+
     if (work.stop) {
       working = false;
       break;
@@ -57,6 +59,7 @@ async function checkCloseAndDrain(): Task<void> {
   strictEqual((await queue.receive()).id, 1);
   strictEqual((await queue.receive()).id, 2);
   let drained = false;
+
   try {
     await queue.receive();
   } catch (error) {
@@ -69,6 +72,7 @@ async function checkCloseAndDrain(): Task<void> {
     id: 3, payload: 'disposed on failed send', stop: false
   };
   let closed = false;
+
   try {
     await queue.send(rejected);
   } catch (error) {
@@ -83,6 +87,7 @@ async function main(): Task<void> {
   const queue = new Channel<Work>(2);
   const results = await allSettled([produce(queue.sender()).start(), consume(queue), consume(queue)]).timeout(5000);
   let total = 0;
+
   for (const result of results) {
     total += unwrap(clone(result));
   }

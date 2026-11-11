@@ -5,6 +5,7 @@ function item(base: int, ordinal: int, input: string): null {
 function describe(values: null[]): string[] {
   const result: string[] = [];
   let at = 0;
+
   while (at < values.length) {
     const kind = typeof values[at];
     result.push(kind.concat(":", String(values[at])));
@@ -21,6 +22,7 @@ function pack(...values: null[]): null[] {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const base = (i * 13 + seed) % 97;

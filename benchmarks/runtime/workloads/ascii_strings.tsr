@@ -1,8 +1,10 @@
 function workload(n: int, seed: int): string[] {
   const values: string[] = [];
   let i = 0;
+
   while (i < n) {
     let name = "  Pat  ";
+
     if ((i + seed) % 2 === 0) {
       name = " SAM ";
     }
@@ -16,6 +18,7 @@ function workload(n: int, seed: int): string[] {
 
 function main() {
   const values = workload(2, 7);
+
   for (const value of values) {
     console.log(value);
   }

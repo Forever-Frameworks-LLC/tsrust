@@ -8,11 +8,14 @@ function workload(n: int, seed: int, input: string): int {
   const collisionSet = s.set(s.string().transform(value => value.toLowerCase()));
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     {
       const outcome0 = record.safeParseJson(input);
+
       if (outcome0.success) {
         const value = outcome0.data;
+
         if (value.size !== 1 || value.get('x') !== 2) {
           throw 'Wrong record';
         }
@@ -28,8 +31,10 @@ function workload(n: int, seed: int, input: string): int {
     entries.set('x', 3);
     {
       const outcome1 = map.safeParse(entries);
+
       if (outcome1.success) {
         const value = outcome1.data;
+
         if (value.size !== 1 || value.get('x') !== 3) {
           throw 'Wrong map';
         }
@@ -45,8 +50,10 @@ function workload(n: int, seed: int, input: string): int {
     elements.add('ready');
     {
       const outcome2 = set.safeParse(elements);
+
       if (outcome2.success) {
         const value = outcome2.data;
+
         if (value.size !== 1 || !value.has('ready')) {
           throw 'Wrong set';
         }
@@ -63,11 +70,13 @@ function workload(n: int, seed: int, input: string): int {
     keys.set('a', 2);
     {
       const outcome3 = collisionMap.safeParse(keys);
+
       if (outcome3.success) {
         const value = outcome3.data;
         throw 'Map collision accepted';
       } else {
         const error = outcome3.error;
+
         if (error.truncated || error.issues.length !== 1 || error.issues[0].code !== 'collection-collision') {
           throw 'Wrong collision';
         }
@@ -81,11 +90,13 @@ function workload(n: int, seed: int, input: string): int {
     tags.add('a');
     {
       const outcome4 = collisionSet.safeParse(tags);
+
       if (outcome4.success) {
         const value = outcome4.data;
         throw 'Set collision accepted';
       } else {
         const error = outcome4.error;
+
         if (error.truncated || error.issues.length !== 1 || error.issues[0].code !== 'collection-collision') {
           throw 'Wrong collision';
         }

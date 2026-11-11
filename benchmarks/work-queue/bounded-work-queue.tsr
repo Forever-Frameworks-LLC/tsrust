@@ -29,8 +29,10 @@ async function produce(sender: Sender<Work>): Task<int> {
 async function consume(queue: ReadOnly<Channel<Work>>): Task<int> {
   let total = 0;
   let working = true;
+
   while (working) {
     const work = await queue.receive();
+
     if (work.stop) {
       working = false;
       break;
@@ -48,6 +50,7 @@ async function batch(): Task<int> {
   const queue = new Channel<Work>(2);
   const results = await allSettled([produce(queue.sender()).start(), consume(queue), consume(queue)]);
   let total = 0;
+
   for (const result of results) {
     total += unwrap(clone(result));
   }

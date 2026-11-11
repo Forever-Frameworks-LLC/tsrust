@@ -15,6 +15,7 @@ function three(a: string, b: string, c: string): string {
 
 function sum(...values: int[]): int {
   let total = 0;
+
   for (const value of values) {
     total += value;
   }
@@ -114,6 +115,7 @@ function main() {
   strictEqual(Array.isArray(..."abc"), false);
   strictEqual(defaults(...new Set()), 9);
   let caught = 0;
+
   try {
     sum(...failSource(counter), mark(counter));
   } catch (error) {

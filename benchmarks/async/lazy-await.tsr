@@ -6,6 +6,7 @@ async function step(value: int): Task<int> {
 
 async function batch(): Task<int> {
   let checksum = 0;
+
   for (let value = 0; value < 4096; value++) {
     const task = step(value);
     checksum += await task;

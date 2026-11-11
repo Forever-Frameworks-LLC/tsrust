@@ -1,0 +1,33 @@
+import { fromUtf8, length } from 'std:bytes';
+
+export interface Problem {
+  source: string;
+  path: string;
+  line: int;
+  column: int;
+  code: string;
+  message: string;
+  severity: string;
+  terminal?: string;
+}
+
+export function operationProblem(source: string, path: string, message: string): Problem {
+  return {
+    source: clone(source), path, line: 0, column: 0, code: source, message, severity: 'error'
+  };
+}
+
+export function replaceProblems(current: ReadOnly<Problem[]>, source: ReadOnly<string>, next: Problem[]): Problem[] {
+  return current.filter((problem) => problem.source !== source).concat(next);
+}
+
+// Compiler columns count Unicode scalars; CodeEditor selections use UTF-8 bytes.
+export function problemOffset(text: ReadOnly<string>, line: int, column: int): int {
+  const lines = text.split('\n');
+  const target = line > 0 && line <= lines.length ? line - 1 : 0;
+  let offset = 0;
+
+  for (let index = 0; index < target; index += 1) offset += length(unwrap(fromUtf8(lines[index]))) + 1;
+  const prefix = Array.from(lines[target]).slice(0, column > 0 ? column - 1 : 0).join('');
+  return offset + length(unwrap(fromUtf8(prefix)));
+}

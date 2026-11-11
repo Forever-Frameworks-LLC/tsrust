@@ -46,6 +46,7 @@ export function run() {
   const action = replace;
   action(holder, read(first));
   const result = holder.read();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 3);

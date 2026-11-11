@@ -18,6 +18,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   const server = servers.pop();
+
   if (server !== undefined) {
     await server.shutdown();
   }

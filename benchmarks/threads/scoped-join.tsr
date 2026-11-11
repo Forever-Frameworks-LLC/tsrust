@@ -3,6 +3,7 @@ import { monotonicNow } from 'std:time';
 
 function batch(): int {
   let checksum = 0;
+
   for (let index = 0; index < 8; index += 2) {
     const left = index;
     const right = index + 1;

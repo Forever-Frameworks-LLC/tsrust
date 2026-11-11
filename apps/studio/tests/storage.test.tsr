@@ -6,12 +6,14 @@ import { saveDocument } from '../src/lib/workspace/storage.tsr';
 
 test('saving writes exact draft bytes and advances only the disk baseline', () => {
   const root = unwrap(createTempDir(undefined, 'studio-save-'));
+
   try {
     const path = root + '/café-🦀.tsr';
     unwrap(writeTextFile(path, 'original\r\n'));
     const document = unwrap(createDocument(clone(path), 'original\r\n'));
     const session = clone(document.session);
     edit(document, '\ufeff日本語 e\u0301 🦀\r\n');
+
     if (platform() === 'win32') {
       match (saveDocument(document)) {
         Ok(_) => {
@@ -50,12 +52,14 @@ test('saving writes exact draft bytes and advances only the disk baseline', () =
 test('save conflicts, removed files and linked targets retain the full local draft', () => {
   if (platform() === 'win32') return;
   const root = unwrap(createTempDir(undefined, 'studio-conflict-'));
+
   try {
     const path = root + '/document.tsr';
     unwrap(writeTextFile(path, 'disk'));
     const document = unwrap(createDocument(clone(path), 'disk'));
     edit(document, 'local draft 🦀');
     unwrap(writeTextFile(path, 'external'));
+
     match (saveDocument(document)) {
       Ok(_) => {
         throw 'external edit was overwritten';
@@ -72,6 +76,7 @@ test('save conflicts, removed files and linked targets retain the full local dra
     strictEqual(document.durabilityPending, false);
     strictEqual(dirty(document), true);
     unwrap(removeFile(path));
+
     match (saveDocument(document)) {
       Ok(_) => {
         throw 'deleted file was recreated';
@@ -92,6 +97,7 @@ test('save conflicts, removed files and linked targets retain the full local dra
 
     unwrap(writeTextFile(path, 'disk'));
     unwrap(hardLink(path, root + '/alias'));
+
     match (saveDocument(document)) {
       Ok(_) => {
         throw 'hard links were separated';
@@ -113,6 +119,7 @@ test('save conflicts, removed files and linked targets retain the full local dra
 test('retrying a committed nondurable write uses the new disk baseline', () => {
   if (platform() === 'win32') return;
   const root = unwrap(createTempDir(undefined, 'studio-durability-'));
+
   try {
     const path = root + '/document';
     unwrap(writeTextFile(path, 'old'));

@@ -4,6 +4,7 @@ function workload(n: int, seed: int): int {
   const consumer = factory();
   let trace = seed;
   let i = 0;
+
   while (i < n) {
     const a = pass(consumer, plus, seed + i);
     const b = pass(consumer, times, seed + i);

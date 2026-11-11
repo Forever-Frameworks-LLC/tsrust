@@ -4,20 +4,24 @@ import { alloc, set, at, length } from 'std:bytes';
 import { reader } from 'std:io';
 async function workload(n: int, seed: int): Task<int> {
   const executable = unwrap(get('TSRUST_PROCESS_HELPER'));
+
   if (executable === undefined) {
     throw 'missing helper';
   }
 
   const payload = unwrap(alloc(16384));
+
   for (let j: int = 0; j < 16384; j++) {
     unwrap(set(payload, j, (seed + j) % 251));
   }
 
   let sum: int = 0;
+
   for (let i: int = 0; i < n; i++) {
     const output = unwrap(await run(executable, ['echo'], {
       input: reader(clone(payload))
     }));
+
     if (!output.status.success) {
       throw 'child failed';
     }

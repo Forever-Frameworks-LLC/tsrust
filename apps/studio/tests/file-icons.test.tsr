@@ -19,6 +19,7 @@ test('file icons default on and their disabled preference survives formatted set
   const config = defaultConfig();
   config.fileIcons = false;
   strictEqual(unwrap(parseConfig(formatConfig(config))).fileIcons, false);
+
   match (parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"fileIcons":"yes"}')) {
     Ok(_) => {
       throw 'invalid fileIcons type accepted';

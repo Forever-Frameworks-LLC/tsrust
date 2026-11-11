@@ -34,7 +34,9 @@ export function BreadcrumbPage(): Node {
         <ExampleTitle>Basic Breadcrumb</ExampleTitle>
         <ExampleDescription>Clickable items; the last is the current page.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicBreadcrumb /></ExamplePreview>
+          <ExamplePreview>
+            <BasicBreadcrumb />
+          </ExamplePreview>
           <ExampleCode>{`function BasicBreadcrumb(): Node {
   const last = signal('none');
   return (
@@ -54,7 +56,9 @@ export function BreadcrumbPage(): Node {
         <ExampleTitle>Disabled Items</ExampleTitle>
         <ExampleDescription>Disabled items are not clickable.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledBreadcrumb /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledBreadcrumb />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledBreadcrumb(): Node {
   return (
     <Breadcrumb>

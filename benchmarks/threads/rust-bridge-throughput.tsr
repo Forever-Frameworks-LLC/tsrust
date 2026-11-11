@@ -22,6 +22,7 @@ function parallel(pool: ReadOnly<ThreadPool>, offset: int): int {
   const third = unwrap(pool.task((): void => sendResult(c, seed3)));
   const fourth = unwrap(pool.task((): void => sendResult(d, seed4)));
   let checksum = 0;
+
   for (let index = 0; index < 4; index += 1) {
     checksum += unwrap(results.receive());
   }
@@ -35,6 +36,7 @@ function parallel(pool: ReadOnly<ThreadPool>, offset: int): int {
 
 function serial(offset: int): int {
   let checksum = 0;
+
   for (let seed = 1; seed <= 4; seed += 1) {
     checksum += calculate((seed - 1 + offset) % 4 + 1);
   }

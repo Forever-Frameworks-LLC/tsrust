@@ -7,6 +7,7 @@ export function main() {
   values.pushFront('a');
   values.pushBack('c');
   let joined = '';
+
   for (const value of values) {
     joined += value;
   }
@@ -14,6 +15,7 @@ export function main() {
   strictEqual(joined, 'abc');
   strictEqual(values.size, 3);
   values.clear();
+
   for (const value of values) {
     throw 'empty queue visited';
   }

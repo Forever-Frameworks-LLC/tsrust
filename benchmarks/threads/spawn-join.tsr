@@ -3,8 +3,10 @@ import { monotonicNow } from 'std:time';
 
 function batch(): int {
   let checksum = 0;
+
   for (let index = 0; index < 8; index += 1) {
     const input = index;
+
     match (spawn((): int => input * input)) {
       Ok(worker) => {
         match (join(worker)) {

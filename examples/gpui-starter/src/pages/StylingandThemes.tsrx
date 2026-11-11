@@ -29,7 +29,9 @@ function DynamicStyles(): Node {
         <Text className="font-black line-through">Two</Text>
         <Text className="opacity-[0.37]">Three</Text>
       </View>
-      <View className="hidden md:flex dark:bg-muted rounded-[10px] p-3"><Text>Visible from 768 logical pixels</Text></View>
+      <View className="hidden md:flex dark:bg-muted rounded-[10px] p-3">
+        <Text>Visible from 768 logical pixels</Text>
+      </View>
     </View>
   );
 }
@@ -42,7 +44,13 @@ function InlineTypography(): Node {
       <Text>Plain <Text as="span" className={alternate.get() ? 'font-bold text-sky-600' : 'font-bold text-rose-600'}>bold café</Text> and <Text as="span" className="italic font-mono bg-amber-200">inline code</Text>.</Text>
       <Text className="underline">Underlined <Text as="span" className="no-underline">plain span</Text> underlined.</Text>
       <Text className="font-mono">Monospace <Text as="span" className="font-sans">system sans</Text> monospace.</Text>
-      <Button onPress={() => { alternate.set(!alternate.get()); }}><Text className="font-bold">Styled button label</Text></Button>
+      <Button
+        onPress={() => {
+          alternate.set(!alternate.get());
+        }}
+      >
+        <Text className="font-bold">Styled button label</Text>
+      </Button>
       <Text>Current color: {alternate.get() ? 'sky' : 'rose'}</Text>
     </View>
   );
@@ -54,7 +62,9 @@ export function StylingandThemesPage(): Node {
       <Markdown content={"# Styling and Themes"} />
       <Markdown content={"`className` takes Tailwind-style utilities: layout (`flex-row`, `gap-4`,\n`grow`, `items-center`), sizing (`w-72`, `size-full`, `max-w-[960px]`),\nspacing, borders, radius and typography.\n\n## Colors\n\nTheme colors such as `bg-primary`, `text-muted-foreground` and\n`border-border` follow the active theme. The Tailwind palette works too\n(`bg-sky-500`, `text-rose-600`), and so do arbitrary values such as\n`bg-[#0ea5e9]` or `text-[oklch(0.7_0.15_150)]`."} />
       <ExampleTabs>
-        <ExamplePreview><Swatches /></ExamplePreview>
+        <ExamplePreview>
+          <Swatches />
+        </ExamplePreview>
         <ExampleCode>{`function Swatches(): Node {
   return (
     <View className="flex-row gap-3">
@@ -69,7 +79,9 @@ export function StylingandThemesPage(): Node {
       </ExampleTabs>
       <Markdown content={"## Light, dark and custom themes\n\n`setTheme('dark')` switches GPUI Kit's dark theme for every window, and\n`'system'` follows the OS. Register a theme set in GPUI Kit's JSON format and\napply one by name:\n\n```tsx\nimport gruvbox from './themes/gruvbox.json';\n\nfunction main() {\n  registerThemes(gruvbox);\n  useTheme('Gruvbox Light Medium');\n  unwrap(run(<App />, 'App'));\n}\n```\n\nThis gallery uses that set; the title bar switch calls\n`useTheme('Gruvbox Dark Medium')`.\n\n\n## Exact and reactive values\n\nNumeric spacing includes decimal steps (`p-13`, `gap-2.5`); theme spacing sets the\nunit. Use exact values for dimensions and spacing (`w-[350px]`, `p-[13px]`,\n`gap-[0.5rem]`), percentage dimensions (`w-[37%]`) or fractions (`w-2/5`). Values\nmust be finite and nonnegative; negative margins and offsets use a leading minus.\n\nA class expression that reads a signal updates after a handler changes the signal:"} />
       <ExampleTabs>
-        <ExamplePreview><DynamicStyles /></ExamplePreview>
+        <ExamplePreview>
+          <DynamicStyles />
+        </ExamplePreview>
         <ExampleCode>{`function DynamicStyles(): Node {
   const selected = signal(false);
   return (
@@ -92,7 +104,9 @@ export function StylingandThemesPage(): Node {
       </ExampleTabs>
       <Markdown content={"## Inline text\n\nNested `Text` keeps font weight, italic style, generic font family, foreground,\nsolid background, underline and strikethrough in one wrapped paragraph. Dynamic classes\nupdate those runs without changing the text value. A paragraph shares one font\nsize and line height; put differently sized text in separate `Text` elements.\nBox layout and interaction utilities belong on the outer text element.\nPlace interactive `Link` components beside `Text` on desktop: links nested inside\na text paragraph do not yet have independent native pointer or keyboard targets."} />
       <ExampleTabs>
-        <ExamplePreview><InlineTypography /></ExamplePreview>
+        <ExamplePreview>
+          <InlineTypography />
+        </ExamplePreview>
         <ExampleCode>{`function InlineTypography(): Node {
   const alternate = signal(false);
   return (

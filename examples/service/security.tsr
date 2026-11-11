@@ -22,6 +22,7 @@ export function tokenHash(value: string): Bytes {
 export function newToken(): string {
   const bytes = unwrap(randomBytes(32));
   let token = '';
+
   for (let i = 0; i < length(bytes); i++) {
     token += unwrap(at(bytes, i)).toString(16).padStart(2, '0');
   }
@@ -41,8 +42,10 @@ export function matchesToken(value: string, expected: ReadOnly<Bytes>): boolean 
 // A single fixed cookie name avoids ambiguous duplicate-cookie precedence.
 export function sessionCookie(header: string): string | undefined {
   let result: string | undefined = undefined;
+
   for (const pair of header.split(';')) {
     const parts = pair.trim().split('=');
+
     if (parts[0] === '__Host-session') {
       if (result !== undefined || parts.length !== 2 || !isToken(parts[1])) {
         return undefined;

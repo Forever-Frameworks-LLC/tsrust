@@ -71,6 +71,8 @@ Usage:
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
+  tsrust format --stdin-filepath <source-path> [--options <JSON>]
+  tsrust check|format [--progress]   Print a task-start message before processing
   tsrust check [files/directories] [--json]
   tsrust check|build|test|format [--project name]   At a tsrust.workspace.json root: every member, clients first
 
@@ -90,7 +92,7 @@ Commands:
   new      Create a project with source, tests and configuration; --ui creates a desktop app
   ui       List GPUI Kit components or copy editable wrappers into src/components
   check    Check files/directories recursively; defaults to the current directory
-  format   Format all .tsr project files; one explicit file prints source
+  format   Format .tsr/.tsrx project files; one explicit file prints source
   emit     Emit Rust source or a standalone Cargo package
   build    Build a native executable using config output or -o
   run      Build and run a program

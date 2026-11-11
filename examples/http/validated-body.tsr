@@ -6,6 +6,7 @@ async function createItem(input: Request): Task<Response> {
     name: s.string().min(1), count: s.int().min(1)
   });
   const parsed = schema.safeParseJson(await input.text());
+
   if (!parsed.success) {
     return text('Expected a name and a positive count', 400);
   }

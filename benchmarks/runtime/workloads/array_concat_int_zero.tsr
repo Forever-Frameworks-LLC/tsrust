@@ -2,9 +2,11 @@ function workload(n: int, seed: int): int[][] {
   const base: int[] = [seed, seed + 1, 2, 0, seed + 4];
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 4;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {

@@ -1,6 +1,7 @@
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const k = i + seed;
     const source: int[] = [k, k + 1, k + 2, k + 3];
@@ -13,11 +14,13 @@ function workload(n: int, seed: int, input: string): string[][] {
     let first = "";
     let second = "";
     const a = groups.get(k % 2);
+
     if (a !== undefined) {
       first = a.join(",");
     }
 
     const b = groups.get((k + 1) % 2);
+
     if (b !== undefined) {
       second = b.join(",");
     }
@@ -28,11 +31,13 @@ function workload(n: int, seed: int, input: string): string[][] {
     let alpha = "";
     let other = "";
     const x = characters.get(0);
+
     if (x !== undefined) {
       alpha = x.join("|");
     }
 
     const y = characters.get(1);
+
     if (y !== undefined) {
       other = y.join("|");
     }

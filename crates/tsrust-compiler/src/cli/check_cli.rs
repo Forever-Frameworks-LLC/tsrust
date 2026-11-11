@@ -3,10 +3,11 @@ use std::{collections::BTreeMap, env, fs, io::IsTerminal, path::PathBuf};
 use tsrust_compiler::{Diagnostic, Span, json_string, project_cli::{InputDiagnostic, check_input_diagnostics}};
 
 pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
-    let mut inputs=Vec::new();let mut json=false;let mut color="auto".to_owned();
+    let mut inputs=Vec::new();let mut json=false;let mut progress=false;let mut color="auto".to_owned();
     while let Some(arg)=args.next() {
         match arg.as_str() {
             "--json" if !json => json=true,
+            "--progress" if !progress => progress=true,
             "--release" => return Err("--release applies only to build/run/test/dev".into()),
             "--color" => color=args.next().ok_or("--color requires auto, always or never")?,
             _ if arg.starts_with("--color=") => color=arg[8..].to_owned(),
@@ -18,6 +19,7 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     let single=inputs.len()==1 && inputs[0].is_file();
     if inputs.is_empty(){inputs.push(super::project_config::default_root()?);}
     let files=tsrust_compiler::source_discovery::discover(&inputs)?;
+    if progress {eprintln!("Checking {} source files…",files.len());}
     let color=color=="always" || (color=="auto" && std::io::stderr().is_terminal() && env::var_os("NO_COLOR").is_none() && env::var("TERM").as_deref()!=Ok("dumb"));
     let mut failed=false;let mut diagnostics=BTreeMap::new();let mut single_result=None;let mut suppressions=BTreeMap::new();
     for path in files {

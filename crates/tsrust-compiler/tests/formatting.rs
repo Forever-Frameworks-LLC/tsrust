@@ -1,5 +1,80 @@
 mod support;
 use tsrust_compiler::{check, format};
+
+#[test]
+fn studio_formatting_lays_out_jsx_returns_siblings_and_callback_blocks() {
+    let source = "function Panel(): Node {const n=1;if(n>0){return <View className=\"grow\"><Button label=\"Português\" onPress={()=>{const n=1;if(n>0){console.log(n);}console.log(2);}}/><View><Text value={n}/><Icon/></View></View>;}return <View/>;}";
+    let result = format(source).unwrap();
+    assert!(result.contains("return (\n"), "{result}");
+    assert!(result.contains(";\n\n  if (n > 0)"), "{result}");
+    assert!(result.contains("/>\n"), "{result}");
+    assert!(!result.contains("/><View>"), "{result}");
+    assert!(result.contains("onPress={() => {\n"), "{result}");
+    assert!(result.contains("className=\"grow\""), "{result}");
+    assert!(result.contains("label=\"Português\""), "{result}");
+    assert_eq!(format(&result).unwrap(), result);
+    for source in [
+        "function Panel():Node{return <Text>Hello <Text>world</Text> !</Text>;}",
+        "function Panel():Node{return <View><Text value={`a\n b`}/><Icon/></View>;}",
+        "function Panel():Node{return (<View>{/* retained comment */}<Icon/></View>);}",
+        "function Panel():Node{return <View /* attr comment */ onPress={()=>{/* block\n keep spaces */const n=1; // line\nconsole.log(n);}}><Icon/></View>;}",
+        "function Panel():Node{return <View>{// child comment\n}<Icon/></View>;}",
+        "function Panel():Node{openWindow(<View><Icon/></View>,\"Title\",{});return <View/>;}",
+    ] {
+        let result = format(source).unwrap();
+        assert_eq!(format(&result).unwrap(), result, "{result}");
+        if source.contains("retained comment") { assert!(result.contains("/* retained comment */")); }
+        if source.contains("Hello ") { assert!(result.contains("Hello <Text>world</Text> !")); }
+        if source.contains("`a") { assert!(result.contains("`a\n b`")); }
+        assert!(!result.lines().any(|line| line.ends_with(' ')), "{result}");
+    }
+}
+
+#[test]
+fn studio_formatting_options_validate_and_overlay_only_project_fields() {
+    let directory = support::TempDirectory::new();
+    std::fs::write(directory.0.join("tsrust.config.json"), r#"{"format":{"indentWidth":4,"blankLinesAroundBlocks":false}}"#).unwrap();
+    let mut defaults = tsrust_compiler::FormatOptions::default();
+    defaults.jsx_children_on_new_lines = false;
+    let options = tsrust_compiler::FormatOptions::for_path(&directory.0.join("new.tsrx"), &defaults).unwrap();
+    assert_eq!(options.indent_width, 4);
+    assert!(!options.jsx_children_on_new_lines);
+    assert!(!options.blank_lines_around_blocks);
+    let formatted = tsrust_compiler::format_with_options("function main(){const n=1;if(n>0){console.log(n);}}", &options).unwrap();
+    assert!(formatted.contains("\n    if (n > 0)"), "{formatted}");
+    assert!(!formatted.contains(";\n\n"));
+    assert!(check(&formatted).is_ok());
+    let spaced = format("function main(){const n=1;if(n>0){console.log(n);}}").unwrap();
+    assert!(!tsrust_compiler::format_with_options(&spaced, &options).unwrap().contains(";\n\n"));
+    let jsx = format("function Panel():Node{return <View><Icon/><View/></View>;}").unwrap();
+    let mut unwrapped = options.clone();
+    unwrapped.jsx_return_parentheses = false;
+    let plain = tsrust_compiler::format_with_options(&jsx, &unwrapped).unwrap();
+    assert!(plain.contains("return <View>"), "{plain}");
+    assert_eq!(tsrust_compiler::format_with_options(&plain, &unwrapped).unwrap(), plain);
+    for value in [serde_json::json!({"indentWidth":0}), serde_json::json!({"imaginaryRule":true}), serde_json::json!({"jsxReturnParentheses":"yes"})] {
+        assert!(tsrust_compiler::FormatOptions::overlay(&defaults, &value).is_err());
+    }
+}
+
+#[test]
+fn studio_formatting_stdin_keeps_disk_unchanged_and_uses_project_rules() {
+    use std::io::Write;
+    use std::process::Stdio;
+    let directory = support::TempDirectory::new();
+    let path = directory.source("function main() {}");
+    std::fs::write(directory.0.join("tsrust.config.json"), r#"{"format":{"indentWidth":4}}"#).unwrap();
+    let mut child = support::cli().args(["format", "--stdin-filepath"]).arg(&path)
+        .args(["--options", r#"{"indentWidth":2}"#, "--color=never"])
+        .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+    child.stdin.take().unwrap().write_all(b"function main(){const n=1;if(n>0){console.log(n);}}").unwrap();
+    let output = child.wait_with_output().unwrap();
+    support::success(&output);
+    let formatted = String::from_utf8(output.stdout).unwrap();
+    assert!(formatted.contains(";\n\n    if (n > 0)"), "{formatted}");
+    assert!(check(&formatted).is_ok());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "function main() {}");
+}
 #[test]
 fn exception_handlers_stay_with_their_closing_block() {
     let source="function nestedFinal(trace:int[]):int{try{try{return 4;}\n\nfinally{trace.push(5);}}\n\nfinally{trace.push(6);}}function main(){try{nestedFinal([]);}\n\ncatch(error){throw error;}\n\nfinally{}}";

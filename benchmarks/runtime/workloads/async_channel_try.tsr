@@ -3,6 +3,7 @@ async function workload(n: int, seed: int): Task<int> {
   const queue = new Channel<int>(4);
   const sender = queue.sender();
   let sum: int = 0;
+
   for (let i: int = 0; i < n; i++) {
     for (let j: int = 0; j < 4; j++) {
       unwrap(sender.trySend(seed + i + j));

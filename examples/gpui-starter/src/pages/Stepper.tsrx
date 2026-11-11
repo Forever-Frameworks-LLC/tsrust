@@ -33,7 +33,12 @@ function ControlledStepper(): Node {
   const step = signal(0);
   return (
     <View className="flex-col gap-3 w-full">
-      <Stepper selected={step.get()} onChange={(index) => { step.set(index); }}>
+      <Stepper
+        selected={step.get()}
+        onChange={(index) => {
+          step.set(index);
+        }}
+      >
         <StepperItem>Details</StepperItem>
         <StepperItem>Review</StepperItem>
         <StepperItem>Publish</StepperItem>
@@ -54,7 +59,9 @@ export function StepperPage(): Node {
         <ExampleTitle>Basic Stepper</ExampleTitle>
         <ExampleDescription>Click a step to select it.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicStepper /></ExamplePreview>
+          <ExamplePreview>
+            <BasicStepper />
+          </ExamplePreview>
           <ExampleCode>{`function BasicStepper(): Node {
   return (
     <Stepper className="w-full">
@@ -70,7 +77,9 @@ export function StepperPage(): Node {
         <ExampleTitle>Icons, Vertical and Centered Text</ExampleTitle>
         <ExampleDescription>Icons in the markers, a vertical layout, or labels centered under markers.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><IconStepper /></ExamplePreview>
+          <ExamplePreview>
+            <IconStepper />
+          </ExamplePreview>
           <ExampleCode>{`function IconStepper(): Node {
   return (
     <View className="flex-row gap-12">
@@ -93,7 +102,9 @@ export function StepperPage(): Node {
         <ExampleTitle>Controlled</ExampleTitle>
         <ExampleDescription>selected follows state with Back and Next buttons.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledStepper /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledStepper />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledStepper(): Node {
   const step = signal(0);
   return (

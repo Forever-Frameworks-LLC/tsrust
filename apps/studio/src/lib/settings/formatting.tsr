@@ -1,0 +1,89 @@
+import { readTextFile } from 'std:fs';
+import { join } from 'std:path';
+
+export interface FormattingOptions {
+  indentWidth: int;
+  jsxReturnParentheses: boolean;
+  jsxChildrenOnNewLines: boolean;
+  blankLinesAroundBlocks: boolean;
+}
+
+export interface FormattingOverrides {
+  indentWidth?: int;
+  jsxReturnParentheses?: boolean;
+  jsxChildrenOnNewLines?: boolean;
+  blankLinesAroundBlocks?: boolean;
+}
+
+export interface EditorPolicy {
+  formatOnSave: boolean;
+  checkOnSave: boolean;
+  formatOnFocusChange: boolean;
+  checkOnFocusChange: boolean;
+  format: FormattingOptions;
+}
+
+interface ProjectEditor {
+  formatOnSave?: boolean;
+  checkOnSave?: boolean;
+  formatOnFocusChange?: boolean;
+  checkOnFocusChange?: boolean;
+}
+
+interface ProjectSettings {
+  editor?: ProjectEditor;
+  format?: FormattingOverrides;
+}
+
+export function defaultFormatting(): FormattingOptions {
+  return {
+    indentWidth: 2, jsxReturnParentheses: true, jsxChildrenOnNewLines: true, blankLinesAroundBlocks: true
+  };
+}
+
+export function resolveFormatting(base: ReadOnly<FormattingOptions>, overrides: ReadOnly<FormattingOverrides>): Result<FormattingOptions, string> {
+  const resolved: FormattingOptions = {
+    indentWidth: overrides.indentWidth ?? base.indentWidth, jsxReturnParentheses: overrides.jsxReturnParentheses ?? base.jsxReturnParentheses, jsxChildrenOnNewLines: overrides.jsxChildrenOnNewLines ?? base.jsxChildrenOnNewLines, blankLinesAroundBlocks: overrides.blankLinesAroundBlocks ?? base.blankLinesAroundBlocks
+  };
+
+  if (resolved.indentWidth < 1 || resolved.indentWidth > 8) return Err('format.indentWidth must be between 1 and 8.');
+  return Ok(resolved);
+}
+
+// Project overrides are reread for each command, without changing global settings.
+export function projectEditorPolicy(root: ReadOnly<string>, defaults: ReadOnly<EditorPolicy>): Result<EditorPolicy, string> {
+  match (readTextFile(join(root, 'tsrust.config.json'), 1024 * 1024)) {
+    Err(error) => {
+      if (error.code === 'not-found') return Ok(clone(defaults));
+      return Err(clone(error.message));
+    },
+    Ok(text) => {
+      try {
+        const project = JSON.parse<ProjectSettings>(text);
+        const policy = clone(defaults);
+
+        if (project.editor !== undefined) {
+          policy.formatOnSave = project.editor.formatOnSave ?? policy.formatOnSave;
+          policy.checkOnSave = project.editor.checkOnSave ?? policy.checkOnSave;
+          policy.formatOnFocusChange = project.editor.formatOnFocusChange ?? policy.formatOnFocusChange;
+          policy.checkOnFocusChange = project.editor.checkOnFocusChange ?? policy.checkOnFocusChange;
+        }
+
+        if (project.format !== undefined) {
+          match (resolveFormatting(policy.format, project.format)) {
+            Ok(format) => {
+              policy.format = format;
+            },
+            Err(error) => {
+              return Err(clone(error));
+            }
+          }
+        }
+
+        return Ok(policy);
+      } catch (_) {
+        return Err('Invalid project editor or format settings.');
+      }
+    }
+  }
+}

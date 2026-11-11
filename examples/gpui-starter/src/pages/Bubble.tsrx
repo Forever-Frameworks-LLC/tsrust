@@ -22,7 +22,9 @@ function ReactionBubbles(): Node {
     <View className="flex-col gap-6 w-[420px]">
       <Bubble variant="secondary">
         <BubbleContent>Shipping tonight?</BubbleContent>
-        <BubbleReactions><Button size="xsmall" variant="ghost" onPress={() => { likes.set(likes.get() + 1); }}>👍 {likes.get()}</Button></BubbleReactions>
+        <BubbleReactions>
+          <Button size="xsmall" variant="ghost" onPress={() => { likes.set(likes.get() + 1); }}>👍 {likes.get()}</Button>
+        </BubbleReactions>
       </Bubble>
       <BubbleGroup>
         <Bubble align="end">On it.</Bubble>
@@ -40,7 +42,9 @@ export function BubblePage(): Node {
         <ExampleTitle>Variants</ExampleTitle>
         <ExampleDescription>variant sets the bubble style.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BubbleVariants /></ExamplePreview>
+          <ExamplePreview>
+            <BubbleVariants />
+          </ExamplePreview>
           <ExampleCode>{`function BubbleVariants(): Node {
   return (
     <View className="flex-col gap-2 w-[420px]">
@@ -60,7 +64,9 @@ export function BubblePage(): Node {
         <ExampleTitle>Reactions and Groups</ExampleTitle>
         <ExampleDescription>BubbleReactions attach buttons to an edge; BubbleGroup stacks one sender's bubbles.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ReactionBubbles /></ExamplePreview>
+          <ExamplePreview>
+            <ReactionBubbles />
+          </ExamplePreview>
           <ExampleCode>{`function ReactionBubbles(): Node {
   const likes = signal(2);
   return (

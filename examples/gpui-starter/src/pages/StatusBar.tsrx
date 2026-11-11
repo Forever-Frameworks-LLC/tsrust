@@ -6,8 +6,15 @@ function BasicStatusBar(): Node {
   return (
     <View className="w-full">
       <StatusBar>
-        <StatusBarLeft><Icon name="git-branch" /><Text>main</Text><Text variant="muted">0 errors</Text></StatusBarLeft>
-        <StatusBarRight><Text variant="muted">Ln 12, Col 4</Text><Text variant="muted">UTF-8</Text></StatusBarRight>
+        <StatusBarLeft>
+          <Icon name="git-branch" />
+          <Text>main</Text>
+          <Text variant="muted">0 errors</Text>
+        </StatusBarLeft>
+        <StatusBarRight>
+          <Text variant="muted">Ln 12, Col 4</Text>
+          <Text variant="muted">UTF-8</Text>
+        </StatusBarRight>
       </StatusBar>
     </View>
   );
@@ -21,7 +28,9 @@ export function StatusBarPage(): Node {
         <ExampleTitle>Basic Status Bar</ExampleTitle>
         <ExampleDescription>StatusBarLeft and StatusBarRight.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicStatusBar /></ExamplePreview>
+          <ExamplePreview>
+            <BasicStatusBar />
+          </ExamplePreview>
           <ExampleCode>{`function BasicStatusBar(): Node {
   return (
     <View className="w-full">

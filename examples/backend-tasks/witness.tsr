@@ -5,18 +5,22 @@ import { list, create, update, remove } from './repository.tsr';
 
 async function main(): Task<void> {
   const database = unwrap(get('TASK_TEST_DATABASE_URL'));
+
   if (database === undefined || database === 'sqlite::memory:') {
     throw 'TASK_TEST_DATABASE_URL must select a disposable disk database';
   }
 
   const phase = unwrap(get('TASK_TEST_PHASE'));
   const pool = await connect(database, 2);
+
   try {
     await pool.migrate('examples/backend-tasks/migrations');
+
     if (phase === 'verify') {
       const persisted = await list(pool, {
         after: 0, limit: 100
       });
+
       if (persisted.kind !== 'page') {
         throw 'Expected persisted page';
       }
@@ -31,6 +35,7 @@ async function main(): Task<void> {
     const empty = await list(pool, {
       after: 0, limit: 100
     });
+
     if (empty.kind !== 'page') {
       throw 'Expected empty page';
     }
@@ -39,6 +44,7 @@ async function main(): Task<void> {
     const invalid = await create(pool, {
       title: '   '
     });
+
     if (invalid.kind !== 'error') {
       throw 'Empty title was accepted';
     }
@@ -47,6 +53,7 @@ async function main(): Task<void> {
     const tooLong = await create(pool, {
       title: 'a'.repeat(201)
     });
+
     if (tooLong.kind !== 'error') {
       throw 'Long title was accepted';
     }
@@ -55,6 +62,7 @@ async function main(): Task<void> {
     const unicodeLong = await create(pool, {
       title: '🚀'.repeat(51)
     });
+
     if (unicodeLong.kind !== 'error') {
       throw 'Long UTF-8 title was accepted';
     }
@@ -63,6 +71,7 @@ async function main(): Task<void> {
     const unicodeBoundary = await create(pool, {
       title: '🚀'.repeat(50)
     });
+
     if (unicodeBoundary.kind !== 'task') {
       throw 'UTF-8 boundary title rejected';
     }
@@ -71,6 +80,7 @@ async function main(): Task<void> {
     const unicodeDeleted = await remove(pool, {
       id: unicodeBoundary.id
     });
+
     if (unicodeDeleted.kind !== 'deleted') {
       throw 'UTF-8 boundary cleanup failed';
     }
@@ -78,6 +88,7 @@ async function main(): Task<void> {
     const first = await create(pool, {
       title: '  First task  '
     });
+
     if (first.kind !== 'task') {
       throw 'First create failed';
     }
@@ -87,6 +98,7 @@ async function main(): Task<void> {
     const boundary = await create(pool, {
       title: 'a'.repeat(200)
     });
+
     if (boundary.kind !== 'task') {
       throw 'Boundary title was rejected';
     }
@@ -94,6 +106,7 @@ async function main(): Task<void> {
     const boundaryDeleted = await remove(pool, {
       id: boundary.id
     });
+
     if (boundaryDeleted.kind !== 'deleted') {
       throw 'Boundary cleanup failed';
     }
@@ -101,6 +114,7 @@ async function main(): Task<void> {
     const second = await create(pool, {
       title: "SQL '); DROP TABLE tasks; --"
     });
+
     if (second.kind !== 'task') {
       throw 'Parameterized title failed';
     }
@@ -108,6 +122,7 @@ async function main(): Task<void> {
     const page = await list(pool, {
       after: 0, limit: 1
     });
+
     if (page.kind !== 'page') {
       throw 'Expected bounded page';
     }
@@ -117,6 +132,7 @@ async function main(): Task<void> {
     const next = await list(pool, {
       after: first.id, limit: 1
     });
+
     if (next.kind !== 'page') {
       throw 'Expected cursor page';
     }
@@ -127,6 +143,7 @@ async function main(): Task<void> {
     const changed = await update(pool, {
       id: first.id, title: 'Persisted task', completed: true
     });
+
     if (changed.kind !== 'task') {
       throw 'Update failed';
     }
@@ -136,6 +153,7 @@ async function main(): Task<void> {
     const badUpdate = await update(pool, {
       id: first.id, title: ' ', completed: false
     });
+
     if (badUpdate.kind !== 'error') {
       throw 'Invalid update accepted';
     }
@@ -144,6 +162,7 @@ async function main(): Task<void> {
     const missingUpdate = await update(pool, {
       id: 9007199254740991, title: 'Missing', completed: false
     });
+
     if (missingUpdate.kind !== 'error') {
       throw 'Missing update accepted';
     }
@@ -152,6 +171,7 @@ async function main(): Task<void> {
     const badId = await remove(pool, {
       id: -1
     });
+
     if (badId.kind !== 'error') {
       throw 'Invalid id accepted';
     }
@@ -160,6 +180,7 @@ async function main(): Task<void> {
     const deleted = await remove(pool, {
       id: second.id
     });
+
     if (deleted.kind !== 'deleted') {
       throw 'Delete failed';
     }
@@ -168,6 +189,7 @@ async function main(): Task<void> {
     const missing = await remove(pool, {
       id: second.id
     });
+
     if (missing.kind !== 'error') {
       throw 'Repeated delete accepted';
     }
@@ -176,6 +198,7 @@ async function main(): Task<void> {
     const badPage = await list(pool, {
       after: 0, limit: 101
     });
+
     if (badPage.kind !== 'error') {
       throw 'Unbounded page accepted';
     }
@@ -184,6 +207,7 @@ async function main(): Task<void> {
     const zeroLimit = await list(pool, {
       after: 0, limit: 0
     });
+
     if (zeroLimit.kind !== 'error') {
       throw 'Zero limit accepted';
     }

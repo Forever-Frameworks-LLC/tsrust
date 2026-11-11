@@ -23,6 +23,7 @@ function normal(): int {
 
 function early(): int {
   const bytes = make();
+
   if (length(bytes) === 8) {
     return 1;
   }
@@ -43,6 +44,7 @@ function resultFailure(): Result<int, int> {
 
 function throwing(): void {
   const bytes = make();
+
   if (length(bytes) === 8) {
     throw "expected";
   }
@@ -50,6 +52,7 @@ function throwing(): void {
 
 function finalized(): int {
   const bytes = make();
+
   try {
     return length(bytes);
   } finally {
@@ -70,6 +73,7 @@ function callbackFailure(): void {
   const action = (): int => {
     throw String(length(bytes));
   };
+
   try {
     action();
   } catch (error) {
@@ -84,6 +88,7 @@ function onceFailure(): void {
     strictEqual(length(spare), 8);
     throw "expected";
   };
+
   try {
     action();
   } catch (error) {
@@ -107,6 +112,7 @@ function main() {
   strictEqual(normal(), 8);
   strictEqual(early(), 1);
   strictEqual(replace(), 8);
+
   match (resultFailure()) {
     Ok(_) => {
       throw "unexpected success";

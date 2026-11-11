@@ -1,0 +1,100 @@
+import { toUtf8 } from 'std:bytes';
+import { run } from 'std:process';
+import { prepareProjectTask } from './project-tasks.tsr';
+import { JsonLimits } from 'std:json';
+import { Workspace } from '../lib/workspace/workspace.tsr';
+import { EditorPolicy } from '../lib/settings/formatting.tsr';
+import { FormattingTarget, FormattingAuthority, prepareFormatting } from '../lib/workspace/formatting-actions.tsr';
+import { formatBuffer } from './formatting.tsr';
+import { checkSavedProject } from './project-check.tsr';
+import { EditorTool } from './editor-tools.tsr';
+
+export interface WorkflowToolContext {
+  workspace: Workspace;
+  policy: EditorPolicy;
+  program: string;
+  formatAuthority: FormattingAuthority;
+  allowCheck: boolean;
+  allowProjectWrite?: boolean;
+}
+
+interface WorkflowArguments {
+  path?: string;
+  session?: string;
+  revision?: int;
+}
+
+export function workflowTools(): EditorTool[] {
+  return [{
+    name: 'format_project', description: 'Run the public project formatter with the same rules as the Project menu. Writes saved workspace files only with an explicit host workspace-write grant, otherwise rejects. Refuses dirty open buffers. The agent host must supply an isolated workspace unless live writes are approved.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'format_document', description: 'Format an explicit open .tsr/.tsrx document revision and return an isolated ProposedEdit. Never applies or saves it. Requires a host proposal grant; project format rules override editor defaults.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer","minimum":0}},"required":["path","session","revision"]}'
+  }, {
+    name: 'check_project', description: 'Check saved files in the host-selected workspace using the public compiler. Bounded to five minutes and 4 MiB output; no file writes or focus changes. Requires a host check grant.', inputSchema: '{"type":"object","properties":{}}'
+  }];
+}
+
+// This executable host adapter shares the UI's formatter and saved-project checker.
+export async function invokeWorkflowTool(context: ReadOnly<WorkflowToolContext>, name: string, payload: ReadOnly<string>): Task<Result<string, string>> {
+  if (!workflowTools().some((tool) => tool.name === name)) return Err('Unknown editor workflow tool.');
+
+  if (payload.length > 4096) return Err('Invalid editor workflow arguments.');
+
+  try {
+    const limits: JsonLimits = {
+      maxBytes: 4096, maxDepth: 4, maxEntries: 8, maxNodes: 16
+    };
+    const args = JSON.parse<WorkflowArguments>(payload, limits);
+
+    if (name === 'format_project') {
+      match (prepareProjectTask(context.workspace, clone(context.program), 'format', context.policy.format, context.allowCheck, context.allowProjectWrite ?? false)) {
+        Err(error) => {
+          return Err(clone(error));
+        },
+        Ok(task) => {
+          match (await run(task.program, task.args, {
+            cwd: clone(context.workspace.root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
+          })) {
+            Err(error) => {
+              return Err(clone(error.message));
+            },
+            Ok(output) => {
+              return Ok(JSON.stringify({
+                success: output.status.success, stdout: unwrap(toUtf8(output.stdout)), stderr: unwrap(toUtf8(output.stderr))
+              }));
+            }
+          }
+        }
+      }
+    }
+
+    if (name === 'check_project') {
+      if (!context.allowCheck) return Err('Project checking is not permitted by the host.');
+      return Ok(JSON.stringify(await checkSavedProject(context.workspace.root, context.program)));
+    }
+
+    const target: FormattingTarget = {
+      path: args.path ?? '', session: args.session ?? '', revision: args.revision ?? -1
+    };
+
+    match (prepareFormatting(context.workspace, context.policy, context.formatAuthority, target, 'proposal')) {
+      Err(error) => {
+        return Err(clone(error));
+      },
+      Ok(request) => {
+        match (await formatBuffer(context.program, request)) {
+          Err(error) => {
+            return Err(clone(error));
+          },
+          Ok(text) => {
+            const proposal = clone(request.document);
+            proposal.after = clone(text);
+            return Ok(JSON.stringify(proposal));
+          }
+        }
+      }
+    }
+  } catch (_) {
+    return Err('Invalid editor workflow arguments.');
+  }
+}

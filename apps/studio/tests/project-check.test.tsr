@@ -7,8 +7,13 @@ test('structured compiler reports retain file locations and failures', () => {
   strictEqual(clean.output, 'Check passed.\n');
   const failure = formatCheckReport('{"ok":false,"diagnostics":[{"file":"/project/界.tsr","code":"type","message":"Expected int","location":{"line":3,"column":7}}]}');
   strictEqual(failure.failed, true);
+  strictEqual(failure.problems.length, 1);
+  strictEqual(failure.problems[0].source, 'check');
+  strictEqual(failure.problems[0].line, 3);
+  strictEqual(failure.problems[0].column, 7);
   strictEqual(failure.output, '/project/界.tsr:3:7 [type] Expected int\nCheck failed.\n');
   let rejected = false;
+
   try {
     formatCheckReport('{"diagnostics":[]}');
   } catch (_) {

@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): number[][] {
   const output: number[][] = [];
   let i = 0;
+
   while (i < n) {
     const values = makeItems(i + seed);
     output.push(values);
@@ -12,6 +13,7 @@ function workload(n: int, seed: int): number[][] {
 
 function makeItems(seed: int): number[] {
   const choice = seed % 3;
+
   if (choice === 0) {
     const empty: number[] = Array.of ();
     return empty;

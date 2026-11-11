@@ -47,6 +47,7 @@ export function run() {
   };
   const child = holder.next!.value;
   const childResult = child.read();
+
   match (at(childResult, 0)) {
     Ok(value) => {
       strictEqual(value, 3);
@@ -58,6 +59,7 @@ export function run() {
 
   const result = holder.read();
   strictEqual(length(result), 2);
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 7);

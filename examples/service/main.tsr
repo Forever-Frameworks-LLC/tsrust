@@ -17,6 +17,7 @@ type Ready = {
 
 function required(name: string): string {
   const value = unwrap(get(name));
+
   if (value === undefined || value === '') {
     throw 'Missing required service configuration';
   }
@@ -53,6 +54,7 @@ async function serve(app: Owned<Router<Application, Variables>>, signals: Owned<
       kind: 'ready', address: server.address()
     };
     console.log(JSON.stringify(ready));
+
     try {
       await receive(signals);
     } finally {
@@ -68,11 +70,13 @@ async function serve(app: Owned<Router<Application, Variables>>, signals: Owned<
 export async function runService(): Task<void> {
   const signals = unwrap(listen());
   const admin = required('SERVICE_ADMIN_TOKEN');
+
   if (!isToken(admin)) {
     throw 'SERVICE_ADMIN_TOKEN must contain 64 lowercase hexadecimal characters';
   }
 
   const origin = required('SERVICE_ORIGIN');
+
   if (!origin.startsWith('https://') || origin.slice(8) === '' || origin.slice(8).includes('/') || origin.includes('?') || origin.includes('#') || origin.includes('@') || origin.includes(' ') || origin.includes('\r') || origin.includes('\n')) {
     throw 'SERVICE_ORIGIN must be an HTTPS origin without a trailing slash';
   }
@@ -92,10 +96,13 @@ export async function runService(): Task<void> {
   };
   const service = serve(app, signals, control, required('SERVICE_ADDRESS'), tls);
   const outcomes = await allSettled([collect(events).start(), service.start()]);
+
   while (outcomes.length > 0) {
     const outcome = outcomes.pop();
+
     if (outcome !== undefined) {
       const metrics = unwrap(outcome);
+
       if (metrics.started > 0) {
         console.log(JSON.stringify(metrics));
       }

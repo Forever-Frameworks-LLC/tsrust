@@ -47,6 +47,7 @@ export function main() {
   values.pushBack({
     read: () => length(part)
   });
+
   for (const item of values) {
     strictEqual(item.read(), 2);
   }

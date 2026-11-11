@@ -4,6 +4,7 @@ import { initializeTranslations, message, accessibleName, localizeError } from '
 
 test('catalogs translate live props, plurals and errors while preserving paths and fallback', () => {
   initializeTranslations();
+
   try {
     const label = message('Files');
     setLocale('en');
@@ -12,6 +13,7 @@ test('catalogs translate live props, plurals and errors while preserving paths a
     strictEqual(label.evaluate(), 'Arquivos');
     const name = accessibleName('Files');
     const value = name.evaluate();
+
     if (value === undefined) throw 'translated accessible name missing';
     strictEqual(value, 'Arquivos');
     strictEqual(translate('Settings'), 'Configurações');

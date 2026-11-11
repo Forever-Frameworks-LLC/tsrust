@@ -5,12 +5,14 @@ import { initialize, enqueue, claim, retry, acknowledge } from './jobs.tsr';
 
 async function main(): Task<void> {
   const url = unwrap(get('DATABASE_URL'));
+
   if (url === undefined || !url.startsWith('sqlite:') || url.includes(':memory:')) {
     throw 'Set DATABASE_URL to a fresh file-backed SQLite database';
   }
 
   const db = await connect(clone(url), 1);
   const databases = await db.query("SELECT file FROM pragma_database_list WHERE name = 'main'");
+
   if (unwrap(databases[0].text('file')) === '') {
     throw 'Jobs require file-backed SQLite';
   }
@@ -20,6 +22,7 @@ async function main(): Task<void> {
   strictEqual(await enqueue(db, 'receipt-1', 'receipt body', 0), true);
   strictEqual(await enqueue(db, 'receipt-1', 'different body', 0), false);
   const first = await claim(db, 0);
+
   if (first === undefined) {
     throw 'Expected first delivery';
   }
@@ -29,6 +32,7 @@ async function main(): Task<void> {
   strictEqual(await retry(db, first, 10), true);
   strictEqual(await claim(db, 1009) === undefined, true);
   const second = await claim(db, 1010);
+
   if (second === undefined) {
     throw 'Expected retry';
   }
@@ -41,6 +45,7 @@ async function main(): Task<void> {
   strictEqual(await claim(reopened, 31009) === undefined, true);
   strictEqual(await acknowledge(reopened, second, 31010), false);
   const recovered = await claim(reopened, 31010);
+
   if (recovered === undefined) {
     throw 'Expected recovered delivery';
   }
@@ -57,8 +62,10 @@ async function main(): Task<void> {
   strictEqual(unwrap(effects[0].text('body')), 'receipt body');
 
   strictEqual(await enqueue(reopened, 'poison', 'cannot process', 40000), true);
+
   for (let attempt = 1; attempt <= 3; attempt++) {
     const failed = await claim(reopened, 40000 + attempt * 10000);
+
     if (failed === undefined) {
       throw 'Expected poison delivery';
     }
@@ -71,8 +78,10 @@ async function main(): Task<void> {
   const terminal = await reopened.query('SELECT state FROM jobs WHERE id = ?', ['poison']);
   strictEqual(unwrap(terminal[0].text('state')), 'failed');
   strictEqual(await enqueue(reopened, 'abandoned', 'worker disappeared', 200000), true);
+
   for (let attempt = 1; attempt <= 3; attempt++) {
     const abandoned = await claim(reopened, 200000 + (attempt - 1) * 30000);
+
     if (abandoned === undefined) {
       throw 'Expected abandoned delivery';
     }

@@ -12,6 +12,7 @@ export type ItemV2 = {
 export function listV2(input: Filter): ItemV2[] {
   const result: ItemV2[] = [];
   const items = list(input);
+
   for (const item of items) {
     result.push({
       kind: 'task', id: item.id, title: clone(item.title), completed: item.completed, revision: 1

@@ -65,6 +65,7 @@ export function run() {
   };
   const callback = takeLink(holder.next!);
   const result = callback();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 7);

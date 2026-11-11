@@ -6,8 +6,17 @@ function ClearableGroup(): Node {
   const query = signal('');
   return (
     <InputGroup className="w-96">
-      <InputGroupAddon><Icon name="search" /></InputGroupAddon>
-      <Input id="group-search" placeholder="Search..." value={query} onChange={(event) => { query.set(event.target.value); }} />
+      <InputGroupAddon>
+        <Icon name="search" />
+      </InputGroupAddon>
+      <Input
+        id="group-search"
+        placeholder="Search..."
+        value={query}
+        onChange={(event) => {
+          query.set(event.target.value);
+        }}
+      />
       <InputGroupAddon align="inline-end">
         <InputGroupText>{query.get().length} characters</InputGroupText>
         <InputGroupButton disabled={query.get().length === 0} onClick={() => { query.set(''); controlInput('group-search', 'focus'); }}>Clear</InputGroupButton>
@@ -19,9 +28,13 @@ function ClearableGroup(): Node {
 function TextAddonGroup(): Node {
   return (
     <InputGroup className="w-96">
-      <InputGroupAddon><InputGroupText>https://</InputGroupText></InputGroupAddon>
+      <InputGroupAddon>
+        <InputGroupText>https://</InputGroupText>
+      </InputGroupAddon>
       <Input placeholder="example" />
-      <InputGroupAddon align="inline-end"><InputGroupText>.com</InputGroupText></InputGroupAddon>
+      <InputGroupAddon align="inline-end">
+        <InputGroupText>.com</InputGroupText>
+      </InputGroupAddon>
     </InputGroup>
   );
 }
@@ -50,7 +63,16 @@ function ComposerGroup(): Node {
   return (
     <View className="flex-col gap-2 w-96">
       <InputGroup>
-        <Textarea id="composer" minRows={2} maxRows={6} placeholder="Write a message" value={draft} onChange={(event) => { draft.set(event.target.value); }} />
+        <Textarea
+          id="composer"
+          minRows={2}
+          maxRows={6}
+          placeholder="Write a message"
+          value={draft}
+          onChange={(event) => {
+            draft.set(event.target.value);
+          }}
+        />
         <InputGroupAddon align="block-end">
           <InputGroupText>{draft.get().length}/280</InputGroupText>
           <View className="grow" />
@@ -65,9 +87,21 @@ function ComposerGroup(): Node {
 function GroupStates(): Node {
   return (
     <View className="flex-col gap-2 w-96">
-      <InputGroup disabled={true}><Input defaultValue="Disabled" /><InputGroupAddon align="inline-end"><InputGroupButton>Go</InputGroupButton></InputGroupAddon></InputGroup>
-      <InputGroup readOnly={true}><Input readOnly={true} defaultValue="Read-only" /></InputGroup>
-      <InputGroup invalid={true}><InputGroupAddon><Icon name="circle-alert" /></InputGroupAddon><Input defaultValue="Invalid value" /></InputGroup>
+      <InputGroup disabled={true}>
+        <Input defaultValue="Disabled" />
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton>Go</InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
+      <InputGroup readOnly={true}>
+        <Input readOnly={true} defaultValue="Read-only" />
+      </InputGroup>
+      <InputGroup invalid={true}>
+        <InputGroupAddon>
+          <Icon name="circle-alert" />
+        </InputGroupAddon>
+        <Input defaultValue="Invalid value" />
+      </InputGroup>
     </View>
   );
 }
@@ -80,7 +114,9 @@ export function InputGroupPage(): Node {
         <ExampleTitle>Input with a Clear Button</ExampleTitle>
         <ExampleDescription>An icon addon, a live character count and a clear button.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ClearableGroup /></ExamplePreview>
+          <ExamplePreview>
+            <ClearableGroup />
+          </ExamplePreview>
           <ExampleCode>{`function ClearableGroup(): Node {
   const query = signal('');
   return (
@@ -100,7 +136,9 @@ export function InputGroupPage(): Node {
         <ExampleTitle>Text Addons</ExampleTitle>
         <ExampleDescription>A protocol before and a domain after the text.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TextAddonGroup /></ExamplePreview>
+          <ExamplePreview>
+            <TextAddonGroup />
+          </ExamplePreview>
           <ExampleCode>{`function TextAddonGroup(): Node {
   return (
     <InputGroup className="w-96">
@@ -116,7 +154,9 @@ export function InputGroupPage(): Node {
         <ExampleTitle>Buttons, Icons and Menus</ExampleTitle>
         <ExampleDescription>Icon buttons with tooltips, variants, and a button that opens a menu.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ButtonAddonGroup /></ExamplePreview>
+          <ExamplePreview>
+            <ButtonAddonGroup />
+          </ExamplePreview>
           <ExampleCode>{`function ButtonAddonGroup(): Node {
   const engine = signal('Web');
   return (
@@ -140,7 +180,9 @@ export function InputGroupPage(): Node {
         <ExampleTitle>Textarea with a Counter and Submit</ExampleTitle>
         <ExampleDescription>Block addons sit above and below a growing textarea.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ComposerGroup /></ExamplePreview>
+          <ExamplePreview>
+            <ComposerGroup />
+          </ExamplePreview>
           <ExampleCode>{`function ComposerGroup(): Node {
   const draft = signal('');
   const sent = signal('');
@@ -164,7 +206,9 @@ export function InputGroupPage(): Node {
         <ExampleTitle>States</ExampleTitle>
         <ExampleDescription>Disabled, read-only and invalid groups.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><GroupStates /></ExamplePreview>
+          <ExamplePreview>
+            <GroupStates />
+          </ExamplePreview>
           <ExampleCode>{`function GroupStates(): Node {
   return (
     <View className="flex-col gap-2 w-96">

@@ -2,6 +2,7 @@ function workload(n: int, seed: int, input: string): string[] {
   const consumer = transfer;
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const value = clone(input);
     output.push(consumer(take, value));

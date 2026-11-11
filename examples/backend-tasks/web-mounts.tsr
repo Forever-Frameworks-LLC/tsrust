@@ -17,6 +17,7 @@ export function mountWeb(app: Mutable<Router<Application>>, mounts: ReadOnly<Web
 export function mountConfiguredWeb(app: Mutable<Router<Application>>): void {
   const mounts: WebMount[] = [];
   const web = unwrap(get('TASK_WEB_ROOT'));
+
   if (web !== undefined && web !== '') {
     mounts.push({
       prefix: '/web', directory: clone(web), fallback: 'index.html'
@@ -24,6 +25,7 @@ export function mountConfiguredWeb(app: Mutable<Router<Application>>): void {
   }
 
   const admin = unwrap(get('TASK_ADMIN_ROOT'));
+
   if (admin !== undefined && admin !== '') {
     mounts.push({
       prefix: '/admin', directory: clone(admin), fallback: 'index.html'

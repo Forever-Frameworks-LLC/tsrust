@@ -7,6 +7,7 @@ import { Recovery, persistRecovery } from './recovery.tsr';
 // All document navigation and edits persist the same workspace snapshot.
 export function publishWorkspace(next: Workspace, workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {
   const journal = recovery.get();
+
   match (persistRecovery(next, journal)) {
     Ok(_) => {},
     Err(error) => {
@@ -21,6 +22,7 @@ export function publishWorkspace(next: Workspace, workspace: Signal<Workspace>, 
 export function updateDraft(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: ReadOnly<string>, text: ReadOnly<string>): void {
   const next = workspace.get();
   const index = next.files.findIndex((file) => file.document.path === path);
+
   if (index < 0) return;
   edit(next.files[index].document, clone(text));
   next.error = '';
@@ -30,8 +32,10 @@ export function updateDraft(workspace: Signal<Workspace>, recovery: Signal<Recov
 export function saveActive(workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {
   const next = workspace.get();
   const index = next.files.findIndex((file) => file.document.path === next.active);
+
   if (index < 0 || next.files[index].kind !== 'text') return;
   next.error = '';
+
   match (saveDocument(next.files[index].document)) {
     Ok(_) => {},
     Err(error) => {

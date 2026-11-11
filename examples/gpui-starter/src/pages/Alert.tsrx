@@ -3,7 +3,9 @@ import { Alert, AlertDescription, AlertTitle, Button, Node, Switch, Text, View, 
 import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview, ExampleCode, PageHeader } from '../example.tsrx';
 
 function BasicAlert(): Node {
-  return <Alert>This is a simple alert message.</Alert>;
+  return (
+    <Alert>This is a simple alert message.</Alert>
+  );
 }
 
 function TitledAlert(): Node {
@@ -49,11 +51,15 @@ function ClosableAlert(): Node {
 }
 
 function BannerAlert(): Node {
-  return <Alert variant="info" banner={true}>This is a banner alert that spans the full width.</Alert>;
+  return (
+    <Alert variant="info" banner={true}>This is a banner alert that spans the full width.</Alert>
+  );
 }
 
 function IconAlert(): Node {
-  return <Alert variant="info" icon="bell">You have new notifications.</Alert>;
+  return (
+    <Alert variant="info" icon="bell">You have new notifications.</Alert>
+  );
 }
 
 function ConditionalAlert(): Node {
@@ -74,7 +80,9 @@ export function AlertPage(): Node {
         <ExampleTitle>Basic Alert</ExampleTitle>
         <ExampleDescription>An info alert.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicAlert /></ExamplePreview>
+          <ExamplePreview>
+            <BasicAlert />
+          </ExamplePreview>
           <ExampleCode>{`function BasicAlert(): Node {
   return <Alert>This is a simple alert message.</Alert>;
 }`}</ExampleCode>
@@ -84,7 +92,9 @@ export function AlertPage(): Node {
         <ExampleTitle>Alert with Title</ExampleTitle>
         <ExampleDescription>AlertTitle and AlertDescription children, as in shadcn/ui. Plain text children are the description.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TitledAlert /></ExamplePreview>
+          <ExamplePreview>
+            <TitledAlert />
+          </ExamplePreview>
           <ExampleCode>{`function TitledAlert(): Node {
   return (
     <Alert>
@@ -99,7 +109,9 @@ export function AlertPage(): Node {
         <ExampleTitle>Alert Variants</ExampleTitle>
         <ExampleDescription>Default, info, success, warning and error.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><AlertVariants /></ExamplePreview>
+          <ExamplePreview>
+            <AlertVariants />
+          </ExamplePreview>
           <ExampleCode>{`function AlertVariants(): Node {
   return (
     <View className="flex-col gap-3 w-full">
@@ -117,7 +129,9 @@ export function AlertPage(): Node {
         <ExampleTitle>Alert Sizes</ExampleTitle>
         <ExampleDescription>xsmall to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><AlertSizes /></ExamplePreview>
+          <ExamplePreview>
+            <AlertSizes />
+          </ExamplePreview>
           <ExampleCode>{`function AlertSizes(): Node {
   return (
     <View className="flex-col gap-3 w-full">
@@ -134,7 +148,9 @@ export function AlertPage(): Node {
         <ExampleTitle>Closable Alerts</ExampleTitle>
         <ExampleDescription>onClose shows a close button.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ClosableAlert /></ExamplePreview>
+          <ExamplePreview>
+            <ClosableAlert />
+          </ExamplePreview>
           <ExampleCode>{`function ClosableAlert(): Node {
   const open = signal(true);
   return (
@@ -150,7 +166,9 @@ export function AlertPage(): Node {
         <ExampleTitle>Banner Mode</ExampleTitle>
         <ExampleDescription>Full width, without rounding.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BannerAlert /></ExamplePreview>
+          <ExamplePreview>
+            <BannerAlert />
+          </ExamplePreview>
           <ExampleCode>{`function BannerAlert(): Node {
   return <Alert variant="info" banner={true}>This is a banner alert that spans the full width.</Alert>;
 }`}</ExampleCode>
@@ -160,7 +178,9 @@ export function AlertPage(): Node {
         <ExampleTitle>Custom Icons</ExampleTitle>
         <ExampleDescription>Replace the variant icon.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><IconAlert /></ExamplePreview>
+          <ExamplePreview>
+            <IconAlert />
+          </ExamplePreview>
           <ExampleCode>{`function IconAlert(): Node {
   return <Alert variant="info" icon="bell">You have new notifications.</Alert>;
 }`}</ExampleCode>
@@ -170,7 +190,9 @@ export function AlertPage(): Node {
         <ExampleTitle>Conditional Visibility</ExampleTitle>
         <ExampleDescription>visible hides the alert without removing it.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ConditionalAlert /></ExamplePreview>
+          <ExamplePreview>
+            <ConditionalAlert />
+          </ExamplePreview>
           <ExampleCode>{`function ConditionalAlert(): Node {
   const show = signal(true);
   return (

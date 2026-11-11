@@ -19,6 +19,7 @@ function main() {
   });
   strictEqual(liveCount(), before);
   let failed = false;
+
   try {
     throws(() => {}, 'normal return');
   } catch (error) {

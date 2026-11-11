@@ -26,6 +26,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     callTrace.calls = callTrace.calls + 1;
     const result: int[] = [offset];
     let at = 0;
+
     while (at < values.length) {
       result.push(values[at] + offset);
       at = at + 1;
@@ -34,6 +35,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     return result;
   };
   let i = 0;
+
   while (i < n) {
     const before = trace.calls;
     const mode = (i + seed) % 3;

@@ -4,8 +4,10 @@ function workload(n: int, seed: int, input: string): int {
   const value = createSegmenter();
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const ranges = value.segment(input);
+
     for (const range of ranges) {
       checksum += range.start + range.end + 1;
     }

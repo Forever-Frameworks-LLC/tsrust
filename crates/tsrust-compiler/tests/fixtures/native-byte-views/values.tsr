@@ -64,6 +64,7 @@ function inspect(bytes: ReadOnly<Bytes>) {
     read: () => middle, marker: 1
   };
   strictEqual(text(reader.read()), "ll");
+
   match (view(first, 1, 3)) {
     Ok(nested) => {
       strictEqual(text(nested), "el");
@@ -78,6 +79,7 @@ function main() {
   match (fromUtf8("hello world")) {
     Ok(bytes) => {
       inspect(bytes);
+
       match (viewMut(bytes, 0, 5)) {
         Ok(edit) => {
           upper(edit, 0);
@@ -89,6 +91,7 @@ function main() {
       }
 
       strictEqual(text(slice(bytes, 0, 5)), "Hello");
+
       match (copy(slice(bytes, 6, 11), 0, 5)) {
         Ok(owned) => {
           strictEqual(length(owned), 5);

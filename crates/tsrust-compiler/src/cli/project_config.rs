@@ -29,11 +29,17 @@ pub fn load(root:&Path)->Result<Project,String> {
 pub(crate) fn parse(root:&Path,text:&str)->Result<Project,String> {
     let path=root.join(FILE);
     let value:Value=serde_json::from_str(text).map_err(|e|format!("{}: {e}",path.display()))?;
-    let config=object(&value,FILE,&["schemaVersion","name","build","paths","ui","documentation","api","package"])?;
+    let config=object(&value,FILE,&["schemaVersion","name","build","paths","ui","documentation","api","package","format","editor"])?;
     if config.get("schemaVersion").and_then(Value::as_u64)!=Some(1) {return Err(format!("{FILE}: schemaVersion must be 1"));}
     if !config.get("name").and_then(Value::as_str).is_some_and(valid_name) {return Err(format!("{FILE}: name must start with a letter and contain only ASCII letters, digits, '_' or '-' (maximum 100 characters)"));}
     tsrust_compiler::project_resolution::Aliases::parse(root,config.get("paths"))?;
     config.get("api").map(super::api_cli::validate_inline).transpose()?;
+    if let Some(format)=config.get("format") {tsrust_compiler::FormatOptions::overlay(&Default::default(),format)?;}
+    if let Some(editor)=config.get("editor") {
+        for (key,value) in object(editor,"editor",&["formatOnSave","checkOnSave","formatOnFocusChange","checkOnFocusChange"])? {
+            if !value.is_boolean() {return Err(format!("editor.{key} must be a boolean"));}
+        }
+    }
     let build=object(config.get("build").ok_or("Missing build configuration")?,"build",&["entry","output"])?;
     let entry=relative(build.get("entry"),"build.entry")?;
     let output=relative(build.get("output"),"build.output")?;

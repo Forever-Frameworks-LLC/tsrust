@@ -6,14 +6,21 @@ function BasicPagination(): Node {
   const page = signal(1);
   return (
     <View className="flex-col gap-2">
-      <Pagination total={10} onChange={(next) => { page.set(next); }} />
+      <Pagination
+        total={10}
+        onChange={(next) => {
+          page.set(next);
+        }}
+      />
       <Text variant="muted">Page {page}</Text>
     </View>
   );
 }
 
 function ManyPages(): Node {
-  return <Pagination defaultPage={25} total={50} visiblePages={7} />;
+  return (
+    <Pagination defaultPage={25} total={50} visiblePages={7} />
+  );
 }
 
 function CompactPagination(): Node {
@@ -30,7 +37,13 @@ function ControlledPagination(): Node {
   const page = signal(3);
   return (
     <View className="flex-col items-start gap-3">
-      <Pagination page={page.get()} total={6} onChange={(next) => { page.set(next); }} />
+      <Pagination
+        page={page.get()}
+        total={6}
+        onChange={(next) => {
+          page.set(next);
+        }}
+      />
       <Button size="small" onPress={() => { page.set(1); }}>First page</Button>
       <Pagination defaultPage={2} total={6} disabled={true} />
     </View>
@@ -45,7 +58,9 @@ export function PaginationPage(): Node {
         <ExampleTitle>Basic Pagination</ExampleTitle>
         <ExampleDescription>Keeps its own page; onChange reports it.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicPagination /></ExamplePreview>
+          <ExamplePreview>
+            <BasicPagination />
+          </ExamplePreview>
           <ExampleCode>{`function BasicPagination(): Node {
   const page = signal(1);
   return (
@@ -61,7 +76,9 @@ export function PaginationPage(): Node {
         <ExampleTitle>Many Pages</ExampleTitle>
         <ExampleDescription>visiblePages limits the numbered buttons; ellipses stand in for the rest.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ManyPages /></ExamplePreview>
+          <ExamplePreview>
+            <ManyPages />
+          </ExamplePreview>
           <ExampleCode>{`function ManyPages(): Node {
   return <Pagination defaultPage={25} total={50} visiblePages={7} />;
 }`}</ExampleCode>
@@ -71,7 +88,9 @@ export function PaginationPage(): Node {
         <ExampleTitle>Compact and Sizes</ExampleTitle>
         <ExampleDescription>Previous and next only, in several sizes.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CompactPagination /></ExamplePreview>
+          <ExamplePreview>
+            <CompactPagination />
+          </ExamplePreview>
           <ExampleCode>{`function CompactPagination(): Node {
   return (
     <View className="flex-col items-start gap-3">
@@ -87,7 +106,9 @@ export function PaginationPage(): Node {
         <ExampleTitle>Controlled and Disabled</ExampleTitle>
         <ExampleDescription>page follows state; disabled ignores clicks.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledPagination /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledPagination />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledPagination(): Node {
   const page = signal(3);
   return (

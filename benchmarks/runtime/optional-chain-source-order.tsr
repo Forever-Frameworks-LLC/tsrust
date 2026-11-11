@@ -8,6 +8,7 @@ type Carrier = {
 
 function base(trace: int[], tag: int): Carrier | null | undefined {
   trace.push(1);
+
   if (tag === 0) {
     return null;
   }
@@ -42,6 +43,7 @@ function argument(trace: int[]): string {
 
 function arrayBase(trace: int[], missing: boolean): int[] | null {
   trace.push(3);
+
   if (missing) {
     return null;
   }
@@ -56,6 +58,7 @@ function index(trace: int[]): int {
 
 function main() {
   let tag = 0;
+
   while (tag < 5) {
     const trace: int[] = [];
     const selected = base(trace, tag)?.child?.text.concat(argument(trace));

@@ -9,7 +9,9 @@ interface PageHeaderProps {
 export function PageHeader(props: PageHeaderProps): Node {
   return (
     <View className="flex-col gap-3">
-      <Text className="text-muted-foreground">{props.summary}</Text>
+      <Text className="text-muted-foreground">
+        {props.summary}
+      </Text>
       <Link href={`https://gpui-kit.com/component/${props.slug}`}>GPUI Kit reference</Link>
       <Separator />
     </View>
@@ -26,15 +28,21 @@ interface ExampleCodeProps {
 
 /** A documented example composed from its heading and tabbed content. */
 export function Example(props: ExampleProps): Node {
-  return <View className="flex-col gap-3" children={props.children ?? []} />;
+  return (
+    <View className="flex-col gap-3" children={props.children ?? []} />
+  );
 }
 
 export function ExampleTitle(props: ExampleProps): Node {
-  return <Text className="text-xl font-semibold" children={props.children ?? []} />;
+  return (
+    <Text className="text-xl font-semibold" children={props.children ?? []} />
+  );
 }
 
 export function ExampleDescription(props: ExampleProps): Node {
-  return <Text className="text-muted-foreground" children={props.children ?? []} />;
+  return (
+    <Text className="text-muted-foreground" children={props.children ?? []} />
+  );
 }
 
 /** Native tabs own selection and retain both panels while switching. */
@@ -61,7 +69,9 @@ export function ExampleCode(props: ExampleCodeProps): Node {
   return (
     <TabsContent value="code">
       <View className="flex-col gap-2 p-2">
-        <View className="flex-row justify-end"><CopyButton value={clone(code)} /></View>
+        <View className="flex-row justify-end">
+          <CopyButton value={clone(code)} />
+        </View>
         <Markdown content={`\`\`\`tsx\n${code}\n\`\`\``} />
       </View>
     </TabsContent>

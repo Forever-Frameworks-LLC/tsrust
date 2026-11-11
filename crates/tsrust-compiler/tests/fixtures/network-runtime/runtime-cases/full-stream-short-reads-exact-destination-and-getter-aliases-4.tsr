@@ -15,6 +15,7 @@ export async function run(): Task<void> {
   const listener = unwrap(await listen(unwrap(parseAddress('127.0.0.1:0'))));
   const endpoint = unwrap(listener.localAddress());
   const worker = server(listener).start();
+
   try {
     const client = unwrap(await connect(endpoint));
     console.log(formatAddress(unwrap(client.peerAddress())) === formatAddress(endpoint), formatAddress(unwrap(client.localAddress())).startsWith('127.0.0.1:'));
@@ -34,6 +35,7 @@ export async function run(): Task<void> {
     client.close();
   } catch (failure) {
     worker.cancel();
+
     try {
       await worker;
     } catch (cleanupFailure) {}

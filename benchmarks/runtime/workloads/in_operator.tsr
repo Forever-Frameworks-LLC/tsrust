@@ -6,6 +6,7 @@ type Sample = {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = (i * 13 + seed) % 97;
     const sample: Sample = {
@@ -19,11 +20,13 @@ function workload(n: int, seed: int, input: string): string[][] {
     const fractional = (Number(index) + 0.5) in values;
     const length = "length" in values;
     let names = "";
+
     for (const key in sample) {
       names += key + ",";
     }
 
     let indices = "";
+
     for (const key in values) {
       indices += key;
     }

@@ -18,6 +18,7 @@ function finalized(trace: int[]): int {
 
 function main() {
   let value = 0;
+
   try {
     value = risky(0);
   } catch (error) {
@@ -33,6 +34,7 @@ function main() {
   strictEqual(value, 2);
   strictEqual(risky(3), 4);
   let caught = 0;
+
   try {
     throw 5;
   } catch (error) {
@@ -42,6 +44,7 @@ function main() {
 
   strictEqual(caught, 1);
   const trace: int[] = [];
+
   try {
     trace.push(1);
     throw "outer";
@@ -61,6 +64,7 @@ function main() {
   strictEqual(finalized(trace), 7);
   strictEqual(trace.join(","), "1,2,4,3");
   let nested = 0;
+
   try {
     try {
       throw "again";
@@ -74,6 +78,7 @@ function main() {
 
   strictEqual(nested, 1);
   let optional = 0;
+
   try {
     throw "ignored";
   } catch {

@@ -9,6 +9,7 @@ function selected(trace: int[], value: int): int {
 
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
+
   for (let i = 0, j = seed; i < n; i++, j++) {
     const trace: int[] = [];
     const value = (observe(trace, j), observe(trace, j + 2), j * 3);

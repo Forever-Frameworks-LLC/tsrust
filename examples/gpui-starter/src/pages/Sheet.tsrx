@@ -5,7 +5,9 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 function BasicSheet(): Node {
   return (
     <Sheet>
-      <SheetTrigger><Button outline={true}>Open sheet</Button></SheetTrigger>
+      <SheetTrigger>
+        <Button outline={true}>Open sheet</Button>
+      </SheetTrigger>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Edit profile</SheetTitle>
@@ -13,7 +15,11 @@ function BasicSheet(): Node {
         </SheetHeader>
         <Label>Name</Label>
         <Input defaultValue="Ada Lovelace" />
-        <SheetFooter><SheetClose><Button variant="primary">Save changes</Button></SheetClose></SheetFooter>
+        <SheetFooter>
+          <SheetClose>
+            <Button variant="primary">Save changes</Button>
+          </SheetClose>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
@@ -22,10 +28,38 @@ function BasicSheet(): Node {
 function SheetSides(): Node {
   return (
     <View className="flex-row gap-3">
-      <Sheet side="left" title="From the left"><SheetTrigger><Button outline={true}>Left</Button></SheetTrigger><SheetContent><Text>Navigation goes here.</Text></SheetContent></Sheet>
-      <Sheet side="right" title="From the right"><SheetTrigger><Button outline={true}>Right</Button></SheetTrigger><SheetContent><Text>Details go here.</Text></SheetContent></Sheet>
-      <Sheet side="top" title="From the top" size={200}><SheetTrigger><Button outline={true}>Top</Button></SheetTrigger><SheetContent><Text>Announcements.</Text></SheetContent></Sheet>
-      <Sheet side="bottom" title="From the bottom" size={200}><SheetTrigger><Button outline={true}>Bottom</Button></SheetTrigger><SheetContent><Text>Quick actions.</Text></SheetContent></Sheet>
+      <Sheet side="left" title="From the left">
+        <SheetTrigger>
+          <Button outline={true}>Left</Button>
+        </SheetTrigger>
+        <SheetContent>
+          <Text>Navigation goes here.</Text>
+        </SheetContent>
+      </Sheet>
+      <Sheet side="right" title="From the right">
+        <SheetTrigger>
+          <Button outline={true}>Right</Button>
+        </SheetTrigger>
+        <SheetContent>
+          <Text>Details go here.</Text>
+        </SheetContent>
+      </Sheet>
+      <Sheet side="top" title="From the top" size={200}>
+        <SheetTrigger>
+          <Button outline={true}>Top</Button>
+        </SheetTrigger>
+        <SheetContent>
+          <Text>Announcements.</Text>
+        </SheetContent>
+      </Sheet>
+      <Sheet side="bottom" title="From the bottom" size={200}>
+        <SheetTrigger>
+          <Button outline={true}>Bottom</Button>
+        </SheetTrigger>
+        <SheetContent>
+          <Text>Quick actions.</Text>
+        </SheetContent>
+      </Sheet>
     </View>
   );
 }
@@ -33,8 +67,12 @@ function SheetSides(): Node {
 function SizedSheet(): Node {
   return (
     <Sheet size={520} resizable={true} title="Wide and resizable">
-      <SheetTrigger><Button outline={true}>Open wide sheet</Button></SheetTrigger>
-      <SheetContent><Text>Drag the left edge to resize.</Text></SheetContent>
+      <SheetTrigger>
+        <Button outline={true}>Open wide sheet</Button>
+      </SheetTrigger>
+      <SheetContent>
+        <Text>Drag the left edge to resize.</Text>
+      </SheetContent>
     </Sheet>
   );
 }
@@ -42,8 +80,16 @@ function SizedSheet(): Node {
 function PlainSheet(): Node {
   return (
     <Sheet overlay={false} overlayClosable={false} title="No backdrop">
-      <SheetTrigger><Button outline={true}>Open without backdrop</Button></SheetTrigger>
-      <SheetContent><SheetFooter><SheetClose><Button>Close</Button></SheetClose></SheetFooter></SheetContent>
+      <SheetTrigger>
+        <Button outline={true}>Open without backdrop</Button>
+      </SheetTrigger>
+      <SheetContent>
+        <SheetFooter>
+          <SheetClose>
+            <Button>Close</Button>
+          </SheetClose>
+        </SheetFooter>
+      </SheetContent>
     </Sheet>
   );
 }
@@ -53,8 +99,16 @@ function ControlledSheet(): Node {
   return (
     <View className="flex-row items-center gap-3">
       <Button onPress={() => { open.set(true); }}>Open from state</Button>
-      <Sheet open={open.get()} onOpenChange={(next) => { open.set(next); }} title="Controlled sheet">
-        <SheetContent><Button onPress={() => { open.set(false); }}>Close from code</Button></SheetContent>
+      <Sheet
+        open={open.get()}
+        onOpenChange={(next) => {
+          open.set(next);
+        }}
+        title="Controlled sheet"
+      >
+        <SheetContent>
+          <Button onPress={() => { open.set(false); }}>Close from code</Button>
+        </SheetContent>
       </Sheet>
       <Text variant="muted">Open: {open.get() ? 'yes' : 'no'}</Text>
     </View>
@@ -69,7 +123,9 @@ export function SheetPage(): Node {
         <ExampleTitle>Basic Sheet</ExampleTitle>
         <ExampleDescription>SheetTrigger opens it from the right.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicSheet /></ExamplePreview>
+          <ExamplePreview>
+            <BasicSheet />
+          </ExamplePreview>
           <ExampleCode>{`function BasicSheet(): Node {
   return (
     <Sheet>
@@ -92,7 +148,9 @@ export function SheetPage(): Node {
         <ExampleTitle>Sides</ExampleTitle>
         <ExampleDescription>left, right, top and bottom.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SheetSides /></ExamplePreview>
+          <ExamplePreview>
+            <SheetSides />
+          </ExamplePreview>
           <ExampleCode>{`function SheetSides(): Node {
   return (
     <View className="flex-row gap-3">
@@ -109,7 +167,9 @@ export function SheetPage(): Node {
         <ExampleTitle>Size and Resizing</ExampleTitle>
         <ExampleDescription>size sets the width; resizable lets people drag the edge.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SizedSheet /></ExamplePreview>
+          <ExamplePreview>
+            <SizedSheet />
+          </ExamplePreview>
           <ExampleCode>{`function SizedSheet(): Node {
   return (
     <Sheet size={520} resizable={true} title="Wide and resizable">
@@ -124,7 +184,9 @@ export function SheetPage(): Node {
         <ExampleTitle>Without Overlay</ExampleTitle>
         <ExampleDescription>overlay=false keeps the page bright; overlayClosable=false ignores outside clicks.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PlainSheet /></ExamplePreview>
+          <ExamplePreview>
+            <PlainSheet />
+          </ExamplePreview>
           <ExampleCode>{`function PlainSheet(): Node {
   return (
     <Sheet overlay={false} overlayClosable={false} title="No backdrop">
@@ -139,7 +201,9 @@ export function SheetPage(): Node {
         <ExampleTitle>Controlled</ExampleTitle>
         <ExampleDescription>open follows state.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledSheet /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledSheet />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledSheet(): Node {
   const open = signal(false);
   return (

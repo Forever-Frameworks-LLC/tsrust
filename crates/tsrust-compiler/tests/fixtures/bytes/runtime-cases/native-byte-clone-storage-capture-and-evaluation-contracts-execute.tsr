@@ -65,6 +65,7 @@ function failing(bytes: Bytes): Function<int> {
 
 function finish(bytes: Bytes, state: Mutable<State>, fail: boolean): Bytes {
   const spare = clone(bytes);
+
   try {
     if (fail) {
       throw "expected";
@@ -111,6 +112,7 @@ function exercise(): void {
   let result: Result<Bytes, ByteError> = alloc(4, 2);
   const resultCopy = clone(result);
   result = alloc(1, 3);
+
   match (resultCopy) {
     Ok(saved) => {
       strictEqual(length(saved), 4);
@@ -128,6 +130,7 @@ function exercise(): void {
   strictEqual(length(taken), 6);
   const unused = once(make(7, 6));
   const failure = failing(make(8, 7));
+
   try {
     failure();
   } catch (error) {
@@ -139,6 +142,7 @@ function exercise(): void {
   };
   const returned = finish(make(2, 8), state, false);
   strictEqual(length(returned), 2);
+
   try {
     finish(make(3, 9), state, true);
   } catch (error) {
@@ -146,6 +150,7 @@ function exercise(): void {
   }
 
   strictEqual(state.finalized, 5);
+
   match (alloc(tick(state, 2), tick(state, 0))) {
     Ok(counted) => {
       match (resize(counted, tick(state, 4), tick(state, 1))) {

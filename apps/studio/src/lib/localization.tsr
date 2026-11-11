@@ -23,6 +23,7 @@ export function accessibleName(key: string): Reactive<string | undefined> {
 
 export function localizeError(value: ReadOnly<string>): string {
   const preserved = 'Draft recovery could not be read. Its file was preserved: ';
+
   if (value.startsWith(preserved)) return translateWith('Draft recovery could not be read. Its file was preserved: {path}', {
     path: value.slice(preserved.length)
   });

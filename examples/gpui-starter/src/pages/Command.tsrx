@@ -6,8 +6,20 @@ function BasicCommand(): Node {
   const picked = signal('Nothing selected');
   return (
     <View className="flex-col gap-3 w-96">
-      <Shortcut command="open-profile" keys="secondary-p" onTrigger={() => { picked.set('Profile'); }} />
-      <Shortcut command="open-settings" keys="secondary-," onTrigger={() => { picked.set('Settings'); }} />
+      <Shortcut
+        command="open-profile"
+        keys="secondary-p"
+        onTrigger={() => {
+          picked.set('Profile');
+        }}
+      />
+      <Shortcut
+        command="open-settings"
+        keys="secondary-,"
+        onTrigger={() => {
+          picked.set('Settings');
+        }}
+      />
       <Command placeholder="Type a command or search..." maxHeight={280}>
         <CommandGroup heading="Suggestions">
           <CommandItem icon="calendar" onSelect={() => { picked.set('Calendar'); }}>Calendar</CommandItem>
@@ -19,9 +31,13 @@ function BasicCommand(): Node {
           <CommandItem icon="user" command="open-profile" onSelect={() => { picked.set('Profile'); }}>Profile</CommandItem>
           <CommandItem icon="settings" command="open-settings" onSelect={() => { picked.set('Settings'); }}>Settings</CommandItem>
         </CommandGroup>
-        <CommandEmpty><Text variant="muted">No results found.</Text></CommandEmpty>
+        <CommandEmpty>
+          <Text variant="muted">No results found.</Text>
+        </CommandEmpty>
       </Command>
-      <Text variant="muted">{picked.get()}</Text>
+      <Text variant="muted">
+        {picked.get()}
+      </Text>
     </View>
   );
 }
@@ -31,11 +47,15 @@ function FramedCommand(): Node {
   return (
     <View className="w-96">
       <Command placeholder="Jump to file..." maxHeight={220}>
-        <CommandHeader><Text variant="muted" className="px-3 py-2">Recent files</Text></CommandHeader>
+        <CommandHeader>
+          <Text variant="muted" className="px-3 py-2">Recent files</Text>
+        </CommandHeader>
         <CommandItem icon="file" onHighlight={() => { highlighted.set('main.tsrx'); }}>main.tsrx</CommandItem>
         <CommandItem icon="file" onHighlight={() => { highlighted.set('example.tsrx'); }}>example.tsrx</CommandItem>
         <CommandItem icon="file" onHighlight={() => { highlighted.set('pages.spec'); }}>pages.spec</CommandItem>
-        <CommandFooter><Text variant="muted" className="px-3 py-2">Highlighted: {highlighted.get()}</Text></CommandFooter>
+        <CommandFooter>
+          <Text variant="muted" className="px-3 py-2">Highlighted: {highlighted.get()}</Text>
+        </CommandFooter>
       </Command>
     </View>
   );
@@ -45,7 +65,15 @@ function QueryCommand(): Node {
   const query = signal('');
   return (
     <View className="flex-col gap-3 w-96">
-      <Command query={query.get()} onQuery={(text) => { query.set(text); }} loading={query.get().length > 0} filterable={false} bordered={false}>
+      <Command
+        query={query.get()}
+        onQuery={(text) => {
+          query.set(text);
+        }}
+        loading={query.get().length > 0}
+        filterable={false}
+        bordered={false}
+      >
         <CommandItem icon="search">Search the web for "{query.get()}"</CommandItem>
         <CommandItem icon="book-open">Search the docs for "{query.get()}"</CommandItem>
       </Command>
@@ -62,7 +90,9 @@ export function CommandPage(): Node {
         <ExampleTitle>Basic Command</ExampleTitle>
         <ExampleDescription>Type to filter; arrow keys move the highlight and Enter selects. A command shows its Shortcut keys.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicCommand /></ExamplePreview>
+          <ExamplePreview>
+            <BasicCommand />
+          </ExamplePreview>
           <ExampleCode>{`function BasicCommand(): Node {
   const picked = signal('Nothing selected');
   return (
@@ -92,7 +122,9 @@ export function CommandPage(): Node {
         <ExampleTitle>Header, Footer and Highlight</ExampleTitle>
         <ExampleDescription>CommandHeader and CommandFooter frame the list; onHighlight follows the keyboard.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FramedCommand /></ExamplePreview>
+          <ExamplePreview>
+            <FramedCommand />
+          </ExamplePreview>
           <ExampleCode>{`function FramedCommand(): Node {
   const highlighted = signal('');
   return (
@@ -113,7 +145,9 @@ export function CommandPage(): Node {
         <ExampleTitle>Controlled Query and Loading</ExampleTitle>
         <ExampleDescription>query and onQuery control the search text; loading shows a spinner; filterable=false keeps every item.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><QueryCommand /></ExamplePreview>
+          <ExamplePreview>
+            <QueryCommand />
+          </ExamplePreview>
           <ExampleCode>{`function QueryCommand(): Node {
   const query = signal('');
   return (

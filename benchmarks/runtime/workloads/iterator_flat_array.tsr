@@ -2,8 +2,10 @@ import { Iterator } from 'std:iterator';
 
 function workload(n: int, seed: int): int {
   let result: int = 0;
+
   for (let i: int = 0; i < n; i++) {
     const values: int[] = [];
+
     for (let j: int = 0; j < 64; j++) {
       values.push((j * 17 + seed + i) % 997);
     }
@@ -17,6 +19,7 @@ function workload(n: int, seed: int): int {
 
 function observe(values: Owned<int[]>): int {
   let sum: int = 7;
+
   for (const value of values) {
     sum = (sum * 131 + value) % 1000000007;
   }

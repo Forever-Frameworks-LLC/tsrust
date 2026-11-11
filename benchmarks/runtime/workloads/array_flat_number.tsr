@@ -3,14 +3,17 @@ function workload(n: int, seed: int): number[][] {
   const sizes: int[] = [0, 1, 4, 5, 17];
   const numbers: number[] = [-0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, -1.0 / 0.0, Number(seed) / 4.0, -2.5];
   let i = 0;
+
   while (i < n) {
     const count = sizes[(i + seed) % 5];
     const source: number[][] = [];
     let j = 0;
+
     while (j < count) {
       const part: number[] = [];
       const width = (j + seed) % 3;
       let k = 0;
+
       while (k < width) {
         const ordinal = j * 3 + k;
         part.push(numbers[(ordinal * 3 + seed) % 7]);

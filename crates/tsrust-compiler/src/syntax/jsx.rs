@@ -156,7 +156,7 @@ impl Parser<'_> {
 }
 
 // JSX indentation is not text; explicit {" "} keeps an intentional separator.
-fn child_text(text: &str) -> String {
+pub(crate) fn child_text(text: &str) -> String {
     let lines=text.split('\n').collect::<Vec<_>>();
     let last=lines.len()-1;
     lines.into_iter().enumerate().filter_map(|(index,line)| {

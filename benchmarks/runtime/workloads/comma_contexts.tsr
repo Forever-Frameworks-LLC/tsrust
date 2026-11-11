@@ -14,6 +14,7 @@ function reset(row: Row): int {
 
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
+
   for (let i = 0; i < n; i++) {
     const trace: int[] = [];
     const j = seed + i;
@@ -24,12 +25,14 @@ function workload(n: int, seed: int, input: string): string[][] {
     const joined = (mark(trace, 4), values).join(",");
     const value: int | null = i % 2 === 0 ? j : null;
     let narrowed = 0;
+
     if (value !== (mark(trace, 5), null)) {
       narrowed = value + 1;
     }
 
     const alternative: int | string = i % 2 === 0 ? "yes" : j;
     let text = "number";
+
     if ((mark(trace, 6), typeof alternative) === (mark(trace, 7), "string")) {
       text = alternative.toUpperCase();
     }
@@ -38,6 +41,7 @@ function workload(n: int, seed: int, input: string): string[][] {
       value: j
     };
     let changed = false;
+
     if (row.value !== (reset(row), null)) {
       changed = row.value === null;
     }

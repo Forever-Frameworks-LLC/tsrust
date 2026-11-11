@@ -67,6 +67,7 @@ export interface IconProps {
 export function Icon(props: IconProps): Node {
   let node = kitNode('Icon', [], props.className);
   const prop_name = props.name;
+
   if (prop_name !== undefined) {
     if (typeof prop_name === 'string') {
       node = unwrapNode(nativeKitSet(node, 'name', `${prop_name}`));
@@ -76,6 +77,7 @@ export function Icon(props: IconProps): Node {
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -85,11 +87,13 @@ export function Icon(props: IconProps): Node {
   }
 
   const prop_rotate = props.rotate;
+
   if (prop_rotate !== undefined) {
     node = kitNumber(node, 'rotate', prop_rotate);
   }
 
   const prop_svg = props.svg;
+
   if (prop_svg !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'svg', prop_svg));
   }
@@ -116,6 +120,7 @@ export interface AnimateProps {
 export function Animate(props: AnimateProps): Node {
   let node = kitNode('Animate', props.children ?? [], props.className);
   const prop_kind = props.kind;
+
   if (prop_kind !== undefined) {
     if (typeof prop_kind === 'string') {
       node = unwrapNode(nativeKitSet(node, 'kind', `${prop_kind}`));
@@ -125,16 +130,19 @@ export function Animate(props: AnimateProps): Node {
   }
 
   const prop_duration = props.duration;
+
   if (prop_duration !== undefined) {
     node = kitInt(node, 'duration', prop_duration);
   }
 
   const prop_repeat = props.repeat;
+
   if (prop_repeat !== undefined) {
     node = kitFlag(node, 'repeat', prop_repeat);
   }
 
   const prop_key = props.key;
+
   if (prop_key !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'key', prop_key));
   }
@@ -165,21 +173,25 @@ export interface BadgeProps {
 export function Badge(props: BadgeProps): Node {
   let node = kitNode('Badge', props.children ?? [], props.className);
   const prop_count = props.count;
+
   if (prop_count !== undefined) {
     node = kitInt(node, 'count', prop_count);
   }
 
   const prop_max = props.max;
+
   if (prop_max !== undefined) {
     node = kitInt(node, 'max', prop_max);
   }
 
   const prop_dot = props.dot;
+
   if (prop_dot !== undefined) {
     node = kitFlag(node, 'dot', prop_dot);
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -189,11 +201,13 @@ export function Badge(props: BadgeProps): Node {
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -234,6 +248,7 @@ export interface TagProps {
 export function Tag(props: TagProps): Node {
   let node = kitNode('Tag', props.children ?? [], props.className);
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -243,11 +258,13 @@ export function Tag(props: TagProps): Node {
   }
 
   const prop_outline = props.outline;
+
   if (prop_outline !== undefined) {
     node = kitFlag(node, 'outline', prop_outline);
   }
 
   const prop_palette = props.palette;
+
   if (prop_palette !== undefined) {
     if (typeof prop_palette === 'string') {
       node = unwrapNode(nativeKitSet(node, 'palette', `${prop_palette}`));
@@ -257,31 +274,37 @@ export function Tag(props: TagProps): Node {
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_foreground = props.foreground;
+
   if (prop_foreground !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'foreground', prop_foreground));
   }
 
   const prop_borderColor = props.borderColor;
+
   if (prop_borderColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'borderColor', prop_borderColor));
   }
 
   const prop_rounded = props.rounded;
+
   if (prop_rounded !== undefined) {
     node = kitNumber(node, 'rounded', prop_rounded);
   }
 
   const prop_roundedFull = props.roundedFull;
+
   if (prop_roundedFull !== undefined) {
     node = kitFlag(node, 'roundedFull', prop_roundedFull);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -314,26 +337,31 @@ export interface LabelProps {
 export function Label(props: LabelProps): Node {
   let node = kitNode('Label', props.children ?? [], props.className);
   const prop_text = props.text;
+
   if (prop_text !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
   }
 
   const prop_secondary = props.secondary;
+
   if (prop_secondary !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'secondary', prop_secondary));
   }
 
   const prop_masked = props.masked;
+
   if (prop_masked !== undefined) {
     node = kitFlag(node, 'masked', prop_masked);
   }
 
   const prop_highlight = props.highlight;
+
   if (prop_highlight !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'highlight', prop_highlight));
   }
 
   const prop_highlightPrefix = props.highlightPrefix;
+
   if (prop_highlightPrefix !== undefined) {
     node = kitFlag(node, 'highlightPrefix', prop_highlightPrefix);
   }
@@ -360,21 +388,25 @@ export interface KbdProps {
 export function Kbd(props: KbdProps): Node {
   let node = kitNode('Kbd', props.children ?? [], props.className);
   const prop_keys = props.keys;
+
   if (prop_keys !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'keys', prop_keys));
   }
 
   const prop_outline = props.outline;
+
   if (prop_outline !== undefined) {
     node = kitFlag(node, 'outline', prop_outline);
   }
 
   const prop_command = props.command;
+
   if (prop_command !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'command', prop_command));
   }
 
   const prop_plain = props.plain;
+
   if (prop_plain !== undefined) {
     node = kitFlag(node, 'plain', prop_plain);
   }
@@ -401,6 +433,7 @@ export interface SeparatorProps {
 export function Separator(props: SeparatorProps): Node {
   let node = kitNode('Separator', props.children ?? [], props.className);
   const prop_orientation = props.orientation;
+
   if (prop_orientation !== undefined) {
     if (typeof prop_orientation === 'string') {
       node = unwrapNode(nativeKitSet(node, 'orientation', `${prop_orientation}`));
@@ -410,16 +443,19 @@ export function Separator(props: SeparatorProps): Node {
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_dashed = props.dashed;
+
   if (prop_dashed !== undefined) {
     node = kitFlag(node, 'dashed', prop_dashed);
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
@@ -438,6 +474,7 @@ export interface SkeletonProps {
 export function Skeleton(props: SkeletonProps): Node {
   let node = kitNode('Skeleton', [], props.className);
   const prop_secondary = props.secondary;
+
   if (prop_secondary !== undefined) {
     node = kitFlag(node, 'secondary', prop_secondary);
   }
@@ -462,6 +499,7 @@ export interface SpinnerProps {
 export function Spinner(props: SpinnerProps): Node {
   let node = kitNode('Spinner', [], props.className);
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -471,11 +509,13 @@ export function Spinner(props: SpinnerProps): Node {
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_easing = props.easing;
+
   if (prop_easing !== undefined) {
     if (typeof prop_easing === 'string') {
       node = unwrapNode(nativeKitSet(node, 'easing', `${prop_easing}`));
@@ -485,6 +525,7 @@ export function Spinner(props: SpinnerProps): Node {
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -515,26 +556,31 @@ export interface ProgressProps {
 export function Progress(props: ProgressProps): Node {
   let node = kitNode('Progress', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = kitNumber(node, 'value', prop_value);
   }
 
   const prop_loading = props.loading;
+
   if (prop_loading !== undefined) {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -567,26 +613,31 @@ export interface ProgressCircleProps {
 export function ProgressCircle(props: ProgressCircleProps): Node {
   let node = kitNode('ProgressCircle', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = kitNumber(node, 'value', prop_value);
   }
 
   const prop_loading = props.loading;
+
   if (prop_loading !== undefined) {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -615,16 +666,19 @@ export interface AvatarProps {
 export function Avatar(props: AvatarProps): Node {
   let node = kitNode('Avatar', [], props.className);
   const prop_name = props.name;
+
   if (prop_name !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'name', prop_name));
   }
 
   const prop_src = props.src;
+
   if (prop_src !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'src', prop_src));
   }
 
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     if (typeof prop_placeholder === 'string') {
       node = unwrapNode(nativeKitSet(node, 'placeholder', `${prop_placeholder}`));
@@ -634,6 +688,7 @@ export function Avatar(props: AvatarProps): Node {
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -672,16 +727,19 @@ export interface AlertProps {
 export function Alert(props: AlertProps): Node {
   let node = kitNode('Alert', props.children ?? [], props.className);
   const prop_message = props.message;
+
   if (prop_message !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'message', prop_message));
   }
 
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -691,11 +749,13 @@ export function Alert(props: AlertProps): Node {
   }
 
   const prop_banner = props.banner;
+
   if (prop_banner !== undefined) {
     node = kitFlag(node, 'banner', prop_banner);
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -705,11 +765,13 @@ export function Alert(props: AlertProps): Node {
   }
 
   const prop_visible = props.visible;
+
   if (prop_visible !== undefined) {
     node = kitFlag(node, 'visible', prop_visible);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -719,6 +781,7 @@ export function Alert(props: AlertProps): Node {
   }
 
   const event_onClose = props.onClose;
+
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
   }
@@ -775,31 +838,37 @@ export interface ShimmerTextProps {
 export function ShimmerText(props: ShimmerTextProps): Node {
   let node = kitNode('ShimmerText', props.children ?? [], props.className);
   const prop_text = props.text;
+
   if (prop_text !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
   }
 
   const prop_duration = props.duration;
+
   if (prop_duration !== undefined) {
     node = kitInt(node, 'duration', prop_duration);
   }
 
   const prop_highlightColor = props.highlightColor;
+
   if (prop_highlightColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'highlightColor', prop_highlightColor));
   }
 
   const prop_spread = props.spread;
+
   if (prop_spread !== undefined) {
     node = kitNumber(node, 'spread', prop_spread);
   }
 
   const prop_reverse = props.reverse;
+
   if (prop_reverse !== undefined) {
     node = kitFlag(node, 'reverse', prop_reverse);
   }
 
   const prop_once = props.once;
+
   if (prop_once !== undefined) {
     node = kitFlag(node, 'once', prop_once);
   }
@@ -824,16 +893,19 @@ export interface EmptyProps {
 export function Empty(props: EmptyProps): Node {
   let node = kitNode('Empty', props.children ?? [], props.className);
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -864,11 +936,13 @@ export interface GroupBoxProps {
 export function GroupBox(props: GroupBoxProps): Node {
   let node = kitNode('GroupBox', props.children ?? [], props.className);
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -878,11 +952,13 @@ export function GroupBox(props: GroupBoxProps): Node {
   }
 
   const prop_titleClassName = props.titleClassName;
+
   if (prop_titleClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'titleClassName', prop_titleClassName));
   }
 
   const prop_contentClassName = props.contentClassName;
+
   if (prop_contentClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'contentClassName', prop_contentClassName));
   }
@@ -911,26 +987,31 @@ export interface DescriptionListProps {
 export function DescriptionList(props: DescriptionListProps): Node {
   let node = kitNode('DescriptionList', props.children ?? [], props.className);
   const prop_columns = props.columns;
+
   if (prop_columns !== undefined) {
     node = kitInt(node, 'columns', prop_columns);
   }
 
   const prop_bordered = props.bordered;
+
   if (prop_bordered !== undefined) {
     node = kitFlag(node, 'bordered', prop_bordered);
   }
 
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_labelWidth = props.labelWidth;
+
   if (prop_labelWidth !== undefined) {
     node = kitNumber(node, 'labelWidth', prop_labelWidth);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -959,16 +1040,19 @@ export interface DescriptionItemProps {
 export function DescriptionItem(props: DescriptionItemProps): Node {
   let node = kitNode('DescriptionItem', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_span = props.span;
+
   if (prop_span !== undefined) {
     node = kitInt(node, 'span', prop_span);
   }
@@ -1017,16 +1101,19 @@ export interface BreadcrumbItemProps {
 export function BreadcrumbItem(props: BreadcrumbItemProps): Node {
   let node = kitNode('BreadcrumbItem', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
@@ -1055,26 +1142,31 @@ export interface ClipboardProps {
 export function Clipboard(props: ClipboardProps): Node {
   let node = kitNode('Clipboard', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_tooltip = props.tooltip;
+
   if (prop_tooltip !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
   }
 
   const prop_tooltipDelay = props.tooltipDelay;
+
   if (prop_tooltipDelay !== undefined) {
     node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1084,6 +1176,7 @@ export function Clipboard(props: ClipboardProps): Node {
   }
 
   const event_onCopied = props.onCopied;
+
   if (event_onCopied !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'copied', event_onCopied));
   }
@@ -1126,51 +1219,61 @@ export interface CheckboxProps {
 export function Checkbox(props: CheckboxProps): Node {
   let node = kitNode('Checkbox', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_checked = props.checked;
+
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
   }
 
   const prop_defaultChecked = props.defaultChecked;
+
   if (prop_defaultChecked !== undefined) {
     node = kitFlag(node, 'defaultChecked', prop_defaultChecked);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_tooltip = props.tooltip;
+
   if (prop_tooltip !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
   }
 
   const prop_tooltipDelay = props.tooltipDelay;
+
   if (prop_tooltipDelay !== undefined) {
     node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_tabIndex = props.tabIndex;
+
   if (prop_tabIndex !== undefined) {
     node = kitInt(node, 'tabIndex', prop_tabIndex);
   }
 
   const prop_tabStop = props.tabStop;
+
   if (prop_tabStop !== undefined) {
     node = kitFlag(node, 'tabStop', prop_tabStop);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1180,6 +1283,7 @@ export function Checkbox(props: CheckboxProps): Node {
   }
 
   const prop_role = props.role;
+
   if (prop_role !== undefined) {
     if (typeof prop_role === 'string') {
       node = unwrapNode(nativeKitSet(node, 'role', `${prop_role}`));
@@ -1189,6 +1293,7 @@ export function Checkbox(props: CheckboxProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
   }
@@ -1231,51 +1336,61 @@ export interface SwitchProps {
 export function Switch(props: SwitchProps): Node {
   let node = kitNode('Switch', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_checked = props.checked;
+
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
   }
 
   const prop_defaultChecked = props.defaultChecked;
+
   if (prop_defaultChecked !== undefined) {
     node = kitFlag(node, 'defaultChecked', prop_defaultChecked);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_tooltip = props.tooltip;
+
   if (prop_tooltip !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
   }
 
   const prop_tooltipDelay = props.tooltipDelay;
+
   if (prop_tooltipDelay !== undefined) {
     node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_tabIndex = props.tabIndex;
+
   if (prop_tabIndex !== undefined) {
     node = kitInt(node, 'tabIndex', prop_tabIndex);
   }
 
   const prop_tabStop = props.tabStop;
+
   if (prop_tabStop !== undefined) {
     node = kitFlag(node, 'tabStop', prop_tabStop);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1285,11 +1400,13 @@ export function Switch(props: SwitchProps): Node {
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
   }
@@ -1318,26 +1435,31 @@ export interface RadioGroupProps {
 export function RadioGroup(props: RadioGroupProps): Node {
   let node = kitNode('RadioGroup', props.children ?? [], props.className);
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitInt(node, 'selected', prop_selected);
   }
 
   const prop_defaultSelected = props.defaultSelected;
+
   if (prop_defaultSelected !== undefined) {
     node = kitInt(node, 'defaultSelected', prop_defaultSelected);
   }
 
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
   }
@@ -1378,51 +1500,61 @@ export interface RadioProps {
 export function Radio(props: RadioProps): Node {
   let node = kitNode('Radio', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_checked = props.checked;
+
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
   }
 
   const prop_defaultChecked = props.defaultChecked;
+
   if (prop_defaultChecked !== undefined) {
     node = kitFlag(node, 'defaultChecked', prop_defaultChecked);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_tooltip = props.tooltip;
+
   if (prop_tooltip !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
   }
 
   const prop_tooltipDelay = props.tooltipDelay;
+
   if (prop_tooltipDelay !== undefined) {
     node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_tabIndex = props.tabIndex;
+
   if (prop_tabIndex !== undefined) {
     node = kitInt(node, 'tabIndex', prop_tabIndex);
   }
 
   const prop_tabStop = props.tabStop;
+
   if (prop_tabStop !== undefined) {
     node = kitFlag(node, 'tabStop', prop_tabStop);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1432,6 +1564,7 @@ export function Radio(props: RadioProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
   }
@@ -1468,11 +1601,13 @@ export interface ToggleProps {
 export function Toggle(props: ToggleProps): Node {
   let node = kitNode('Toggle', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -1482,31 +1617,37 @@ export function Toggle(props: ToggleProps): Node {
   }
 
   const prop_checked = props.checked;
+
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
   }
 
   const prop_defaultChecked = props.defaultChecked;
+
   if (prop_defaultChecked !== undefined) {
     node = kitFlag(node, 'defaultChecked', prop_defaultChecked);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_tooltip = props.tooltip;
+
   if (prop_tooltip !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
   }
 
   const prop_tooltipDelay = props.tooltipDelay;
+
   if (prop_tooltipDelay !== undefined) {
     node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1516,6 +1657,7 @@ export function Toggle(props: ToggleProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'change', event_onChange));
   }
@@ -1546,31 +1688,37 @@ export interface RatingProps {
 export function Rating(props: RatingProps): Node {
   let node = kitNode('Rating', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = kitInt(node, 'value', prop_value);
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = kitInt(node, 'defaultValue', prop_defaultValue);
   }
 
   const prop_max = props.max;
+
   if (prop_max !== undefined) {
     node = kitInt(node, 'max', prop_max);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1580,6 +1728,7 @@ export function Rating(props: RatingProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
   }
@@ -1612,36 +1761,43 @@ export interface PaginationProps {
 export function Pagination(props: PaginationProps): Node {
   let node = kitNode('Pagination', [], props.className);
   const prop_page = props.page;
+
   if (prop_page !== undefined) {
     node = kitInt(node, 'page', prop_page);
   }
 
   const prop_defaultPage = props.defaultPage;
+
   if (prop_defaultPage !== undefined) {
     node = kitInt(node, 'defaultPage', prop_defaultPage);
   }
 
   const prop_total = props.total;
+
   if (prop_total !== undefined) {
     node = kitInt(node, 'total', prop_total);
   }
 
   const prop_compact = props.compact;
+
   if (prop_compact !== undefined) {
     node = kitFlag(node, 'compact', prop_compact);
   }
 
   const prop_visiblePages = props.visiblePages;
+
   if (prop_visiblePages !== undefined) {
     node = kitInt(node, 'visiblePages', prop_visiblePages);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1651,6 +1807,7 @@ export function Pagination(props: PaginationProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
   }
@@ -1699,46 +1856,55 @@ export interface SliderProps {
 export function Slider(props: SliderProps): Node {
   let node = kitNode('Slider', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = kitNumber(node, 'value', prop_value);
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = kitNumber(node, 'defaultValue', prop_defaultValue);
   }
 
   const prop_range = props.range;
+
   if (prop_range !== undefined) {
     node = kitFlag(node, 'range', prop_range);
   }
 
   const prop_endValue = props.endValue;
+
   if (prop_endValue !== undefined) {
     node = kitNumber(node, 'endValue', prop_endValue);
   }
 
   const prop_defaultEndValue = props.defaultEndValue;
+
   if (prop_defaultEndValue !== undefined) {
     node = kitNumber(node, 'defaultEndValue', prop_defaultEndValue);
   }
 
   const prop_min = props.min;
+
   if (prop_min !== undefined) {
     node = kitNumber(node, 'min', prop_min);
   }
 
   const prop_max = props.max;
+
   if (prop_max !== undefined) {
     node = kitNumber(node, 'max', prop_max);
   }
 
   const prop_step = props.step;
+
   if (prop_step !== undefined) {
     node = kitNumber(node, 'step', prop_step);
   }
 
   const prop_scale = props.scale;
+
   if (prop_scale !== undefined) {
     if (typeof prop_scale === 'string') {
       node = unwrapNode(nativeKitSet(node, 'scale', `${prop_scale}`));
@@ -1748,36 +1914,43 @@ export function Slider(props: SliderProps): Node {
   }
 
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_reverse = props.reverse;
+
   if (prop_reverse !== undefined) {
     node = kitFlag(node, 'reverse', prop_reverse);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnNumber(node, 'change', event_onChange));
   }
 
   const event_onEndChange = props.onEndChange;
+
   if (event_onEndChange !== undefined) {
     node = unwrapNode(nativeKitOnNumber(node, 'endChange', event_onEndChange));
   }
 
   const event_onCommit = props.onCommit;
+
   if (event_onCommit !== undefined) {
     node = unwrapNode(nativeKitOnNumber(node, 'commit', event_onCommit));
   }
@@ -1810,31 +1983,37 @@ export interface StepperProps {
 export function Stepper(props: StepperProps): Node {
   let node = kitNode('Stepper', props.children ?? [], props.className);
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitInt(node, 'selected', prop_selected);
   }
 
   const prop_defaultSelected = props.defaultSelected;
+
   if (prop_defaultSelected !== undefined) {
     node = kitInt(node, 'defaultSelected', prop_defaultSelected);
   }
 
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_textCenter = props.textCenter;
+
   if (prop_textCenter !== undefined) {
     node = kitFlag(node, 'textCenter', prop_textCenter);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1844,6 +2023,7 @@ export function Stepper(props: StepperProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
   }
@@ -1870,11 +2050,13 @@ export interface StepperItemProps {
 export function StepperItem(props: StepperItemProps): Node {
   let node = kitNode('StepperItem', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -1884,11 +2066,13 @@ export function StepperItem(props: StepperItemProps): Node {
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1925,16 +2109,19 @@ export interface TabsProps {
 export function Tabs(props: TabsProps): Node {
   let node = kitNode('Tabs', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -1944,16 +2131,19 @@ export function Tabs(props: TabsProps): Node {
   }
 
   const prop_menu = props.menu;
+
   if (prop_menu !== undefined) {
     node = kitFlag(node, 'menu', prop_menu);
   }
 
   const prop_maxWidth = props.maxWidth;
+
   if (prop_maxWidth !== undefined) {
     node = kitNumber(node, 'maxWidth', prop_maxWidth);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -1963,6 +2153,7 @@ export function Tabs(props: TabsProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
@@ -1993,16 +2184,19 @@ export interface TabProps {
 export function Tab(props: TabProps): Node {
   let node = kitNode('Tab', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -2012,11 +2206,13 @@ export function Tab(props: TabProps): Node {
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -2026,6 +2222,7 @@ export function Tab(props: TabProps): Node {
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
@@ -2046,6 +2243,7 @@ export interface TabsContentProps {
 export function TabsContent(props: TabsContentProps): Node {
   let node = kitNode('TabsContent', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
@@ -2143,31 +2341,37 @@ export interface AccordionProps {
 export function Accordion(props: AccordionProps): Node {
   let node = kitNode('Accordion', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_multiple = props.multiple;
+
   if (prop_multiple !== undefined) {
     node = kitFlag(node, 'multiple', prop_multiple);
   }
 
   const prop_bordered = props.bordered;
+
   if (prop_bordered !== undefined) {
     node = kitFlag(node, 'bordered', prop_bordered);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -2177,6 +2381,7 @@ export function Accordion(props: AccordionProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = kitOnList(node, 'change', event_onChange);
   }
@@ -2213,16 +2418,19 @@ export interface AccordionItemProps {
 export function AccordionItem(props: AccordionItemProps): Node {
   let node = kitNode('AccordionItem', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -2232,31 +2440,37 @@ export function AccordionItem(props: AccordionItemProps): Node {
   }
 
   const prop_open = props.open;
+
   if (prop_open !== undefined) {
     node = kitFlag(node, 'open', prop_open);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_titleClassName = props.titleClassName;
+
   if (prop_titleClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'titleClassName', prop_titleClassName));
   }
 
   const prop_contentClassName = props.contentClassName;
+
   if (prop_contentClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'contentClassName', prop_contentClassName));
   }
 
   const prop_hoverClassName = props.hoverClassName;
+
   if (prop_hoverClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'hoverClassName', prop_hoverClassName));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -2311,16 +2525,19 @@ export interface CollapsibleProps {
 export function Collapsible(props: CollapsibleProps): Node {
   let node = kitNode('Collapsible', props.children ?? [], props.className);
   const prop_open = props.open;
+
   if (prop_open !== undefined) {
     node = kitFlag(node, 'open', prop_open);
   }
 
   const prop_defaultOpen = props.defaultOpen;
+
   if (prop_defaultOpen !== undefined) {
     node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
   }
 
   const event_onOpenChange = props.onOpenChange;
+
   if (event_onOpenChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
   }
@@ -2401,6 +2618,7 @@ export interface SelectProps {
 export function Select(props: SelectProps): Node {
   let node = kitNode('Select', props.children ?? [], props.className);
   const prop_items = props.items;
+
   if (prop_items !== undefined) {
     if (Array.isArray(prop_items)) {
       node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
@@ -2411,41 +2629,49 @@ export function Select(props: SelectProps): Node {
   }
 
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_searchable = props.searchable;
+
   if (prop_searchable !== undefined) {
     node = kitFlag(node, 'searchable', prop_searchable);
   }
 
   const prop_searchPlaceholder = props.searchPlaceholder;
+
   if (prop_searchPlaceholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'searchPlaceholder', prop_searchPlaceholder));
   }
 
   const prop_cleanable = props.cleanable;
+
   if (prop_cleanable !== undefined) {
     node = kitFlag(node, 'cleanable', prop_cleanable);
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -2455,41 +2681,49 @@ export function Select(props: SelectProps): Node {
   }
 
   const prop_titlePrefix = props.titlePrefix;
+
   if (prop_titlePrefix !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'titlePrefix', prop_titlePrefix));
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_appearance = props.appearance;
+
   if (prop_appearance !== undefined) {
     node = kitFlag(node, 'appearance', prop_appearance);
   }
 
   const prop_menuWidth = props.menuWidth;
+
   if (prop_menuWidth !== undefined) {
     node = kitNumber(node, 'menuWidth', prop_menuWidth);
   }
 
   const prop_menuMaxHeight = props.menuMaxHeight;
+
   if (prop_menuMaxHeight !== undefined) {
     node = kitNumber(node, 'menuMaxHeight', prop_menuMaxHeight);
   }
 
   const prop_scrollBounce = props.scrollBounce;
+
   if (prop_scrollBounce !== undefined) {
     node = kitFlag(node, 'scrollBounce', prop_scrollBounce);
   }
 
   const prop_autoFocus = props.autoFocus;
+
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -2499,6 +2733,7 @@ export function Select(props: SelectProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
@@ -2523,16 +2758,19 @@ export interface SelectItemProps {
 export function SelectItem(props: SelectItemProps): Node {
   let node = kitNode('SelectItem', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
@@ -2553,6 +2791,7 @@ export interface SelectGroupProps {
 export function SelectGroup(props: SelectGroupProps): Node {
   let node = kitNode('SelectGroup', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
@@ -2625,36 +2864,43 @@ export interface NumberInputProps {
 export function NumberInput(props: NumberInputProps): Node {
   let node = kitNode('NumberInput', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = kitNumber(node, 'value', prop_value);
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = kitNumber(node, 'defaultValue', prop_defaultValue);
   }
 
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_step = props.step;
+
   if (prop_step !== undefined) {
     node = kitNumber(node, 'step', prop_step);
   }
 
   const prop_min = props.min;
+
   if (prop_min !== undefined) {
     node = kitNumber(node, 'min', prop_min);
   }
 
   const prop_max = props.max;
+
   if (prop_max !== undefined) {
     node = kitNumber(node, 'max', prop_max);
   }
 
   const prop_prefix = props.prefix;
+
   if (prop_prefix !== undefined) {
     if (typeof prop_prefix === 'string') {
       node = unwrapNode(nativeKitSet(node, 'prefix', `${prop_prefix}`));
@@ -2664,6 +2910,7 @@ export function NumberInput(props: NumberInputProps): Node {
   }
 
   const prop_suffix = props.suffix;
+
   if (prop_suffix !== undefined) {
     if (typeof prop_suffix === 'string') {
       node = unwrapNode(nativeKitSet(node, 'suffix', `${prop_suffix}`));
@@ -2673,21 +2920,25 @@ export function NumberInput(props: NumberInputProps): Node {
   }
 
   const prop_appearance = props.appearance;
+
   if (prop_appearance !== undefined) {
     node = kitFlag(node, 'appearance', prop_appearance);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -2697,16 +2948,19 @@ export function NumberInput(props: NumberInputProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnNumber(node, 'change', event_onChange));
   }
 
   const event_onValidate = props.onValidate;
+
   if (event_onValidate !== undefined) {
     node = unwrapNode(nativeKitPredicate(node, 'validate', event_onValidate));
   }
 
   const event_stepBy = props.stepBy;
+
   if (event_stepBy !== undefined) {
     node = unwrapNode(nativeKitStep(node, 'stepBy', event_stepBy));
   }
@@ -2747,41 +3001,49 @@ export interface OtpInputProps {
 export function OtpInput(props: OtpInputProps): Node {
   let node = kitNode('OtpInput', [], props.className);
   const prop_length = props.length;
+
   if (prop_length !== undefined) {
     node = kitInt(node, 'length', prop_length);
   }
 
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_masked = props.masked;
+
   if (prop_masked !== undefined) {
     node = kitFlag(node, 'masked', prop_masked);
   }
 
   const prop_groups = props.groups;
+
   if (prop_groups !== undefined) {
     node = kitInt(node, 'groups', prop_groups);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_autoFocus = props.autoFocus;
+
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -2791,21 +3053,25 @@ export function OtpInput(props: OtpInputProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
 
   const event_onComplete = props.onComplete;
+
   if (event_onComplete !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'complete', event_onComplete));
   }
 
   const event_onFocus = props.onFocus;
+
   if (event_onFocus !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'focus', event_onFocus));
   }
 
   const event_onBlur = props.onBlur;
+
   if (event_onBlur !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'blur', event_onBlur));
   }
@@ -2870,21 +3136,25 @@ export interface DatePickerProps {
 export function DatePicker(props: DatePickerProps): Node {
   let node = kitNode('DatePicker', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_range = props.range;
+
   if (prop_range !== undefined) {
     node = kitFlag(node, 'range', prop_range);
   }
 
   const prop_time = props.time;
+
   if (prop_time !== undefined) {
     if (typeof prop_time === 'string') {
       node = unwrapNode(nativeKitSet(node, 'time', `${prop_time}`));
@@ -2894,41 +3164,49 @@ export function DatePicker(props: DatePickerProps): Node {
   }
 
   const prop_twelveHour = props.twelveHour;
+
   if (prop_twelveHour !== undefined) {
     node = kitFlag(node, 'twelveHour', prop_twelveHour);
   }
 
   const prop_defaultTime = props.defaultTime;
+
   if (prop_defaultTime !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultTime', prop_defaultTime));
   }
 
   const prop_format = props.format;
+
   if (prop_format !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'format', prop_format));
   }
 
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_cleanable = props.cleanable;
+
   if (prop_cleanable !== undefined) {
     node = kitFlag(node, 'cleanable', prop_cleanable);
   }
 
   const prop_months = props.months;
+
   if (prop_months !== undefined) {
     node = kitInt(node, 'months', prop_months);
   }
 
   const prop_firstDayOfWeek = props.firstDayOfWeek;
+
   if (prop_firstDayOfWeek !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'firstDayOfWeek', prop_firstDayOfWeek));
   }
 
   const prop_presets = props.presets;
+
   if (prop_presets !== undefined) {
     if (Array.isArray(prop_presets)) {
       node = unwrapNode(nativeKitSet(node, 'presets', JSON.stringify(prop_presets)));
@@ -2939,36 +3217,43 @@ export function DatePicker(props: DatePickerProps): Node {
   }
 
   const prop_appearance = props.appearance;
+
   if (prop_appearance !== undefined) {
     node = kitFlag(node, 'appearance', prop_appearance);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_disabledBefore = props.disabledBefore;
+
   if (prop_disabledBefore !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'disabledBefore', prop_disabledBefore));
   }
 
   const prop_disabledAfter = props.disabledAfter;
+
   if (prop_disabledAfter !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'disabledAfter', prop_disabledAfter));
   }
 
   const prop_disabledFrom = props.disabledFrom;
+
   if (prop_disabledFrom !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'disabledFrom', prop_disabledFrom));
   }
 
   const prop_disabledTo = props.disabledTo;
+
   if (prop_disabledTo !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'disabledTo', prop_disabledTo));
   }
 
   const prop_disabledWeekdays = props.disabledWeekdays;
+
   if (prop_disabledWeekdays !== undefined) {
     if (Array.isArray(prop_disabledWeekdays)) {
       node = unwrapNode(nativeKitSet(node, 'disabledWeekdays', prop_disabledWeekdays.join('\n')));
@@ -2979,6 +3264,7 @@ export function DatePicker(props: DatePickerProps): Node {
   }
 
   const prop_disabledDates = props.disabledDates;
+
   if (prop_disabledDates !== undefined) {
     if (Array.isArray(prop_disabledDates)) {
       node = unwrapNode(nativeKitSet(node, 'disabledDates', prop_disabledDates.join('\n')));
@@ -2989,16 +3275,19 @@ export function DatePicker(props: DatePickerProps): Node {
   }
 
   const prop_yearStart = props.yearStart;
+
   if (prop_yearStart !== undefined) {
     node = kitInt(node, 'yearStart', prop_yearStart);
   }
 
   const prop_yearEnd = props.yearEnd;
+
   if (prop_yearEnd !== undefined) {
     node = kitInt(node, 'yearEnd', prop_yearEnd);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -3008,6 +3297,7 @@ export function DatePicker(props: DatePickerProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
@@ -3046,16 +3336,19 @@ export interface ColorPickerProps {
 export function ColorPicker(props: ColorPickerProps): Node {
   let node = kitNode('ColorPicker', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_featuredColors = props.featuredColors;
+
   if (prop_featuredColors !== undefined) {
     if (Array.isArray(prop_featuredColors)) {
       node = unwrapNode(nativeKitSet(node, 'featuredColors', prop_featuredColors.join('\n')));
@@ -3066,21 +3359,25 @@ export function ColorPicker(props: ColorPickerProps): Node {
   }
 
   const prop_select = props.select;
+
   if (prop_select !== undefined) {
     node = kitFlag(node, 'select', prop_select);
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -3090,6 +3387,7 @@ export function ColorPicker(props: ColorPickerProps): Node {
   }
 
   const prop_anchor = props.anchor;
+
   if (prop_anchor !== undefined) {
     if (typeof prop_anchor === 'string') {
       node = unwrapNode(nativeKitSet(node, 'anchor', `${prop_anchor}`));
@@ -3099,11 +3397,13 @@ export function ColorPicker(props: ColorPickerProps): Node {
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -3113,6 +3413,7 @@ export function ColorPicker(props: ColorPickerProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
@@ -3139,21 +3440,25 @@ export interface TooltipProps {
 export function Tooltip(props: TooltipProps): Node {
   let node = kitNode('Tooltip', props.children ?? [], props.className);
   const prop_text = props.text;
+
   if (prop_text !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
   }
 
   const prop_keys = props.keys;
+
   if (prop_keys !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'keys', prop_keys));
   }
 
   const prop_command = props.command;
+
   if (prop_command !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'command', prop_command));
   }
 
   const prop_contentClassName = props.contentClassName;
+
   if (prop_contentClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'contentClassName', prop_contentClassName));
   }
@@ -3205,16 +3510,19 @@ export interface PopoverProps {
 export function Popover(props: PopoverProps): Node {
   let node = kitNode('Popover', props.children ?? [], props.className);
   const prop_open = props.open;
+
   if (prop_open !== undefined) {
     node = kitFlag(node, 'open', prop_open);
   }
 
   const prop_defaultOpen = props.defaultOpen;
+
   if (prop_defaultOpen !== undefined) {
     node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
   }
 
   const prop_anchor = props.anchor;
+
   if (prop_anchor !== undefined) {
     if (typeof prop_anchor === 'string') {
       node = unwrapNode(nativeKitSet(node, 'anchor', `${prop_anchor}`));
@@ -3224,16 +3532,19 @@ export function Popover(props: PopoverProps): Node {
   }
 
   const prop_offset = props.offset;
+
   if (prop_offset !== undefined) {
     node = kitNumber(node, 'offset', prop_offset);
   }
 
   const prop_arrow = props.arrow;
+
   if (prop_arrow !== undefined) {
     node = kitFlag(node, 'arrow', prop_arrow);
   }
 
   const prop_mouseButton = props.mouseButton;
+
   if (prop_mouseButton !== undefined) {
     if (typeof prop_mouseButton === 'string') {
       node = unwrapNode(nativeKitSet(node, 'mouseButton', `${prop_mouseButton}`));
@@ -3243,21 +3554,25 @@ export function Popover(props: PopoverProps): Node {
   }
 
   const prop_overlayClosable = props.overlayClosable;
+
   if (prop_overlayClosable !== undefined) {
     node = kitFlag(node, 'overlayClosable', prop_overlayClosable);
   }
 
   const prop_appearance = props.appearance;
+
   if (prop_appearance !== undefined) {
     node = kitFlag(node, 'appearance', prop_appearance);
   }
 
   const prop_triggerClassName = props.triggerClassName;
+
   if (prop_triggerClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'triggerClassName', prop_triggerClassName));
   }
 
   const event_onOpenChange = props.onOpenChange;
+
   if (event_onOpenChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
   }
@@ -3314,6 +3629,7 @@ export interface HoverCardProps {
 export function HoverCard(props: HoverCardProps): Node {
   let node = kitNode('HoverCard', props.children ?? [], props.className);
   const prop_anchor = props.anchor;
+
   if (prop_anchor !== undefined) {
     if (typeof prop_anchor === 'string') {
       node = unwrapNode(nativeKitSet(node, 'anchor', `${prop_anchor}`));
@@ -3323,26 +3639,31 @@ export function HoverCard(props: HoverCardProps): Node {
   }
 
   const prop_openDelay = props.openDelay;
+
   if (prop_openDelay !== undefined) {
     node = kitInt(node, 'openDelay', prop_openDelay);
   }
 
   const prop_closeDelay = props.closeDelay;
+
   if (prop_closeDelay !== undefined) {
     node = kitInt(node, 'closeDelay', prop_closeDelay);
   }
 
   const prop_appearance = props.appearance;
+
   if (prop_appearance !== undefined) {
     node = kitFlag(node, 'appearance', prop_appearance);
   }
 
   const prop_triggerClassName = props.triggerClassName;
+
   if (prop_triggerClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'triggerClassName', prop_triggerClassName));
   }
 
   const event_onOpenChange = props.onOpenChange;
+
   if (event_onOpenChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
   }
@@ -3425,66 +3746,79 @@ export interface DialogProps {
 export function Dialog(props: DialogProps): Node {
   let node = kitNode('Dialog', props.children ?? [], props.className);
   const prop_open = props.open;
+
   if (prop_open !== undefined) {
     node = kitFlag(node, 'open', prop_open);
   }
 
   const prop_defaultOpen = props.defaultOpen;
+
   if (prop_defaultOpen !== undefined) {
     node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
   }
 
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_overlay = props.overlay;
+
   if (prop_overlay !== undefined) {
     node = kitFlag(node, 'overlay', prop_overlay);
   }
 
   const prop_overlayClosable = props.overlayClosable;
+
   if (prop_overlayClosable !== undefined) {
     node = kitFlag(node, 'overlayClosable', prop_overlayClosable);
   }
 
   const prop_closeButton = props.closeButton;
+
   if (prop_closeButton !== undefined) {
     node = kitFlag(node, 'closeButton', prop_closeButton);
   }
 
   const prop_keyboard = props.keyboard;
+
   if (prop_keyboard !== undefined) {
     node = kitFlag(node, 'keyboard', prop_keyboard);
   }
 
   const prop_width = props.width;
+
   if (prop_width !== undefined) {
     node = kitNumber(node, 'width', prop_width);
   }
 
   const prop_maxWidth = props.maxWidth;
+
   if (prop_maxWidth !== undefined) {
     node = kitNumber(node, 'maxWidth', prop_maxWidth);
   }
 
   const prop_marginTop = props.marginTop;
+
   if (prop_marginTop !== undefined) {
     node = kitNumber(node, 'marginTop', prop_marginTop);
   }
 
   const prop_centered = props.centered;
+
   if (prop_centered !== undefined) {
     node = kitFlag(node, 'centered', prop_centered);
   }
 
   const prop_entrance = props.entrance;
+
   if (prop_entrance !== undefined) {
     if (typeof prop_entrance === 'string') {
       node = unwrapNode(nativeKitSet(node, 'entrance', `${prop_entrance}`));
@@ -3494,31 +3828,37 @@ export function Dialog(props: DialogProps): Node {
   }
 
   const prop_okText = props.okText;
+
   if (prop_okText !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'okText', prop_okText));
   }
 
   const prop_cancelText = props.cancelText;
+
   if (prop_cancelText !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'cancelText', prop_cancelText));
   }
 
   const event_onOpenChange = props.onOpenChange;
+
   if (event_onOpenChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
   }
 
   const event_onClose = props.onClose;
+
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
   }
 
   const event_onOk = props.onOk;
+
   if (event_onOk !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'ok', event_onOk));
   }
 
   const event_onCancel = props.onCancel;
+
   if (event_onCancel !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'cancel', event_onCancel));
   }
@@ -3559,36 +3899,43 @@ export interface SheetProps {
 export function Sheet(props: SheetProps): Node {
   let node = kitNode('Sheet', props.children ?? [], props.className);
   const prop_open = props.open;
+
   if (prop_open !== undefined) {
     node = kitFlag(node, 'open', prop_open);
   }
 
   const prop_defaultOpen = props.defaultOpen;
+
   if (prop_defaultOpen !== undefined) {
     node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
   }
 
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_overlay = props.overlay;
+
   if (prop_overlay !== undefined) {
     node = kitFlag(node, 'overlay', prop_overlay);
   }
 
   const prop_overlayClosable = props.overlayClosable;
+
   if (prop_overlayClosable !== undefined) {
     node = kitFlag(node, 'overlayClosable', prop_overlayClosable);
   }
 
   const prop_side = props.side;
+
   if (prop_side !== undefined) {
     if (typeof prop_side === 'string') {
       node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
@@ -3598,21 +3945,25 @@ export function Sheet(props: SheetProps): Node {
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     node = kitNumber(node, 'size', prop_size);
   }
 
   const prop_resizable = props.resizable;
+
   if (prop_resizable !== undefined) {
     node = kitFlag(node, 'resizable', prop_resizable);
   }
 
   const event_onOpenChange = props.onOpenChange;
+
   if (event_onOpenChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
   }
 
   const event_onClose = props.onClose;
+
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
   }
@@ -3671,26 +4022,31 @@ export interface AlertDialogProps {
 export function AlertDialog(props: AlertDialogProps): Node {
   let node = kitNode('AlertDialog', props.children ?? [], props.className);
   const prop_open = props.open;
+
   if (prop_open !== undefined) {
     node = kitFlag(node, 'open', prop_open);
   }
 
   const prop_defaultOpen = props.defaultOpen;
+
   if (prop_defaultOpen !== undefined) {
     node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
   }
 
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -3700,11 +4056,13 @@ export function AlertDialog(props: AlertDialogProps): Node {
   }
 
   const prop_okText = props.okText;
+
   if (prop_okText !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'okText', prop_okText));
   }
 
   const prop_okVariant = props.okVariant;
+
   if (prop_okVariant !== undefined) {
     if (typeof prop_okVariant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'okVariant', `${prop_okVariant}`));
@@ -3714,11 +4072,13 @@ export function AlertDialog(props: AlertDialogProps): Node {
   }
 
   const prop_cancelText = props.cancelText;
+
   if (prop_cancelText !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'cancelText', prop_cancelText));
   }
 
   const prop_cancelVariant = props.cancelVariant;
+
   if (prop_cancelVariant !== undefined) {
     if (typeof prop_cancelVariant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'cancelVariant', `${prop_cancelVariant}`));
@@ -3728,36 +4088,43 @@ export function AlertDialog(props: AlertDialogProps): Node {
   }
 
   const prop_confirm = props.confirm;
+
   if (prop_confirm !== undefined) {
     node = kitFlag(node, 'confirm', prop_confirm);
   }
 
   const prop_closeButton = props.closeButton;
+
   if (prop_closeButton !== undefined) {
     node = kitFlag(node, 'closeButton', prop_closeButton);
   }
 
   const prop_keyboard = props.keyboard;
+
   if (prop_keyboard !== undefined) {
     node = kitFlag(node, 'keyboard', prop_keyboard);
   }
 
   const prop_width = props.width;
+
   if (prop_width !== undefined) {
     node = kitNumber(node, 'width', prop_width);
   }
 
   const prop_marginTop = props.marginTop;
+
   if (prop_marginTop !== undefined) {
     node = kitNumber(node, 'marginTop', prop_marginTop);
   }
 
   const prop_centered = props.centered;
+
   if (prop_centered !== undefined) {
     node = kitFlag(node, 'centered', prop_centered);
   }
 
   const prop_entrance = props.entrance;
+
   if (prop_entrance !== undefined) {
     if (typeof prop_entrance === 'string') {
       node = unwrapNode(nativeKitSet(node, 'entrance', `${prop_entrance}`));
@@ -3767,21 +4134,25 @@ export function AlertDialog(props: AlertDialogProps): Node {
   }
 
   const event_onOpenChange = props.onOpenChange;
+
   if (event_onOpenChange !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'openChange', event_onOpenChange));
   }
 
   const event_onOk = props.onOk;
+
   if (event_onOk !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'ok', event_onOk));
   }
 
   const event_onCancel = props.onCancel;
+
   if (event_onCancel !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'cancel', event_onCancel));
   }
 
   const event_onClose = props.onClose;
+
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'close', event_onClose));
   }
@@ -4077,11 +4448,13 @@ export interface AppMenuProps {
 export function AppMenu(props: AppMenuProps): Node {
   let node = kitNode('AppMenu', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
@@ -4142,21 +4515,25 @@ export interface DropdownMenuProps {
 export function DropdownMenu(props: DropdownMenuProps): Node {
   let node = kitNode('DropdownMenu', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_split = props.split;
+
   if (prop_split !== undefined) {
     node = kitFlag(node, 'split', prop_split);
   }
 
   const prop_caret = props.caret;
+
   if (prop_caret !== undefined) {
     node = kitFlag(node, 'caret', prop_caret);
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -4166,11 +4543,13 @@ export function DropdownMenu(props: DropdownMenuProps): Node {
   }
 
   const prop_outline = props.outline;
+
   if (prop_outline !== undefined) {
     node = kitFlag(node, 'outline', prop_outline);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -4180,16 +4559,19 @@ export function DropdownMenu(props: DropdownMenuProps): Node {
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitFlag(node, 'selected', prop_selected);
   }
 
   const prop_anchor = props.anchor;
+
   if (prop_anchor !== undefined) {
     if (typeof prop_anchor === 'string') {
       node = unwrapNode(nativeKitSet(node, 'anchor', `${prop_anchor}`));
@@ -4199,51 +4581,61 @@ export function DropdownMenu(props: DropdownMenuProps): Node {
   }
 
   const prop_menuLabel = props.menuLabel;
+
   if (prop_menuLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'menuLabel', prop_menuLabel));
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_foreground = props.foreground;
+
   if (prop_foreground !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'foreground', prop_foreground));
   }
 
   const prop_hoverColor = props.hoverColor;
+
   if (prop_hoverColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'hoverColor', prop_hoverColor));
   }
 
   const prop_activeColor = props.activeColor;
+
   if (prop_activeColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'activeColor', prop_activeColor));
   }
 
   const prop_minWidth = props.minWidth;
+
   if (prop_minWidth !== undefined) {
     node = kitNumber(node, 'minWidth', prop_minWidth);
   }
 
   const prop_maxWidth = props.maxWidth;
+
   if (prop_maxWidth !== undefined) {
     node = kitNumber(node, 'maxWidth', prop_maxWidth);
   }
 
   const prop_maxHeight = props.maxHeight;
+
   if (prop_maxHeight !== undefined) {
     node = kitNumber(node, 'maxHeight', prop_maxHeight);
   }
 
   const prop_scrollable = props.scrollable;
+
   if (prop_scrollable !== undefined) {
     node = kitFlag(node, 'scrollable', prop_scrollable);
   }
 
   const prop_checkSide = props.checkSide;
+
   if (prop_checkSide !== undefined) {
     if (typeof prop_checkSide === 'string') {
       node = unwrapNode(nativeKitSet(node, 'checkSide', `${prop_checkSide}`));
@@ -4253,11 +4645,13 @@ export function DropdownMenu(props: DropdownMenuProps): Node {
   }
 
   const prop_externalLinkIcon = props.externalLinkIcon;
+
   if (prop_externalLinkIcon !== undefined) {
     node = kitFlag(node, 'externalLinkIcon', prop_externalLinkIcon);
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
@@ -4290,11 +4684,13 @@ export interface MenuItemProps {
 export function MenuItem(props: MenuItemProps): Node {
   let node = kitNode('MenuItem', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -4304,26 +4700,31 @@ export function MenuItem(props: MenuItemProps): Node {
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_checked = props.checked;
+
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
   }
 
   const prop_command = props.command;
+
   if (prop_command !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'command', prop_command));
   }
 
   const prop_href = props.href;
+
   if (prop_href !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'href', prop_href));
   }
 
   const event_onSelect = props.onSelect;
+
   if (event_onSelect !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'select', event_onSelect));
   }
@@ -4354,26 +4755,31 @@ export interface ContextMenuProps {
 export function ContextMenu(props: ContextMenuProps): Node {
   let node = kitNode('ContextMenu', props.children ?? [], props.className);
   const prop_minWidth = props.minWidth;
+
   if (prop_minWidth !== undefined) {
     node = kitNumber(node, 'minWidth', prop_minWidth);
   }
 
   const prop_maxWidth = props.maxWidth;
+
   if (prop_maxWidth !== undefined) {
     node = kitNumber(node, 'maxWidth', prop_maxWidth);
   }
 
   const prop_maxHeight = props.maxHeight;
+
   if (prop_maxHeight !== undefined) {
     node = kitNumber(node, 'maxHeight', prop_maxHeight);
   }
 
   const prop_scrollable = props.scrollable;
+
   if (prop_scrollable !== undefined) {
     node = kitFlag(node, 'scrollable', prop_scrollable);
   }
 
   const prop_checkSide = props.checkSide;
+
   if (prop_checkSide !== undefined) {
     if (typeof prop_checkSide === 'string') {
       node = unwrapNode(nativeKitSet(node, 'checkSide', `${prop_checkSide}`));
@@ -4383,6 +4789,7 @@ export function ContextMenu(props: ContextMenuProps): Node {
   }
 
   const prop_externalLinkIcon = props.externalLinkIcon;
+
   if (prop_externalLinkIcon !== undefined) {
     node = kitFlag(node, 'externalLinkIcon', prop_externalLinkIcon);
   }
@@ -4407,11 +4814,13 @@ export interface SidebarProps {
 export function Sidebar(props: SidebarProps): Node {
   let node = kitNode('Sidebar', props.children ?? [], props.className);
   const prop_collapsed = props.collapsed;
+
   if (prop_collapsed !== undefined) {
     node = kitFlag(node, 'collapsed', prop_collapsed);
   }
 
   const prop_side = props.side;
+
   if (prop_side !== undefined) {
     if (typeof prop_side === 'string') {
       node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
@@ -4421,6 +4830,7 @@ export function Sidebar(props: SidebarProps): Node {
   }
 
   const prop_collapsible = props.collapsible;
+
   if (prop_collapsible !== undefined) {
     if (typeof prop_collapsible === 'string') {
       node = unwrapNode(nativeKitSet(node, 'collapsible', `${prop_collapsible}`));
@@ -4445,6 +4855,7 @@ export interface SidebarHeaderProps {
 export function SidebarHeader(props: SidebarHeaderProps): Node {
   let node = kitNode('SidebarHeader', props.children ?? [], props.className);
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitFlag(node, 'selected', prop_selected);
   }
@@ -4465,6 +4876,7 @@ export interface SidebarFooterProps {
 export function SidebarFooter(props: SidebarFooterProps): Node {
   let node = kitNode('SidebarFooter', props.children ?? [], props.className);
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitFlag(node, 'selected', prop_selected);
   }
@@ -4485,6 +4897,7 @@ export interface SidebarGroupProps {
 export function SidebarGroup(props: SidebarGroupProps): Node {
   let node = kitNode('SidebarGroup', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
@@ -4523,11 +4936,13 @@ export interface SidebarItemProps {
 export function SidebarItem(props: SidebarItemProps): Node {
   let node = kitNode('SidebarItem', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -4537,41 +4952,49 @@ export function SidebarItem(props: SidebarItemProps): Node {
   }
 
   const prop_active = props.active;
+
   if (prop_active !== undefined) {
     node = kitFlag(node, 'active', prop_active);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_defaultOpen = props.defaultOpen;
+
   if (prop_defaultOpen !== undefined) {
     node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
   }
 
   const prop_clickToOpen = props.clickToOpen;
+
   if (prop_clickToOpen !== undefined) {
     node = kitFlag(node, 'clickToOpen', prop_clickToOpen);
   }
 
   const prop_clickToToggle = props.clickToToggle;
+
   if (prop_clickToToggle !== undefined) {
     node = kitFlag(node, 'clickToToggle', prop_clickToToggle);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_labelClassName = props.labelClassName;
+
   if (prop_labelClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'labelClassName', prop_labelClassName));
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
@@ -4609,6 +5032,7 @@ export interface SidebarToggleButtonProps {
 export function SidebarToggleButton(props: SidebarToggleButtonProps): Node {
   let node = kitNode('SidebarToggleButton', [], props.className);
   const prop_side = props.side;
+
   if (prop_side !== undefined) {
     if (typeof prop_side === 'string') {
       node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
@@ -4618,16 +5042,19 @@ export function SidebarToggleButton(props: SidebarToggleButtonProps): Node {
   }
 
   const prop_collapsed = props.collapsed;
+
   if (prop_collapsed !== undefined) {
     node = kitFlag(node, 'collapsed', prop_collapsed);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
@@ -4654,21 +5081,25 @@ export interface ResizableProps {
 export function Resizable(props: ResizableProps): Node {
   let node = kitNode('Resizable', props.children ?? [], props.className);
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     node = kitNumber(node, 'size', prop_size);
   }
 
   const prop_reverse = props.reverse;
+
   if (prop_reverse !== undefined) {
     node = kitFlag(node, 'reverse', prop_reverse);
   }
 
   const event_onResize = props.onResize;
+
   if (event_onResize !== undefined) {
     node = kitOnList(node, 'resize', event_onResize);
   }
@@ -4697,26 +5128,31 @@ export interface ResizablePanelProps {
 export function ResizablePanel(props: ResizablePanelProps): Node {
   let node = kitNode('ResizablePanel', props.children ?? [], props.className);
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     node = kitNumber(node, 'size', prop_size);
   }
 
   const prop_minSize = props.minSize;
+
   if (prop_minSize !== undefined) {
     node = kitNumber(node, 'minSize', prop_minSize);
   }
 
   const prop_maxSize = props.maxSize;
+
   if (prop_maxSize !== undefined) {
     node = kitNumber(node, 'maxSize', prop_maxSize);
   }
 
   const prop_fixed = props.fixed;
+
   if (prop_fixed !== undefined) {
     node = kitFlag(node, 'fixed', prop_fixed);
   }
 
   const prop_visible = props.visible;
+
   if (prop_visible !== undefined) {
     node = kitFlag(node, 'visible', prop_visible);
   }
@@ -4739,11 +5175,13 @@ export interface TableProps {
 export function Table(props: TableProps): Node {
   let node = kitNode('Table', props.children ?? [], props.className);
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -4835,11 +5273,13 @@ export interface TableHeadProps {
 export function TableHead(props: TableHeadProps): Node {
   let node = kitNode('TableHead', props.children ?? [], props.className);
   const prop_colSpan = props.colSpan;
+
   if (prop_colSpan !== undefined) {
     node = kitInt(node, 'colSpan', prop_colSpan);
   }
 
   const prop_align = props.align;
+
   if (prop_align !== undefined) {
     if (typeof prop_align === 'string') {
       node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
@@ -4866,11 +5306,13 @@ export interface TableCellProps {
 export function TableCell(props: TableCellProps): Node {
   let node = kitNode('TableCell', props.children ?? [], props.className);
   const prop_colSpan = props.colSpan;
+
   if (prop_colSpan !== undefined) {
     node = kitInt(node, 'colSpan', prop_colSpan);
   }
 
   const prop_align = props.align;
+
   if (prop_align !== undefined) {
     if (typeof prop_align === 'string') {
       node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
@@ -4895,11 +5337,13 @@ export interface MarkdownProps {
 export function Markdown(props: MarkdownProps): Node {
   let node = kitNode('Markdown', [], props.className);
   const prop_content = props.content;
+
   if (prop_content !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'content', prop_content));
   }
 
   const prop_scrollable = props.scrollable;
+
   if (prop_scrollable !== undefined) {
     node = kitFlag(node, 'scrollable', prop_scrollable);
   }
@@ -4918,6 +5362,7 @@ export interface HtmlProps {
 export function Html(props: HtmlProps): Node {
   let node = kitNode('Html', [], props.className);
   const prop_content = props.content;
+
   if (prop_content !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'content', prop_content));
   }
@@ -4940,11 +5385,13 @@ export interface ImageProps {
 export function Image(props: ImageProps): Node {
   let node = kitNode('Image', [], props.className);
   const prop_src = props.src;
+
   if (prop_src !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'src', prop_src));
   }
 
   const prop_fit = props.fit;
+
   if (prop_fit !== undefined) {
     if (typeof prop_fit === 'string') {
       node = unwrapNode(nativeKitSet(node, 'fit', `${prop_fit}`));
@@ -4954,6 +5401,7 @@ export function Image(props: ImageProps): Node {
   }
 
   const prop_alt = props.alt;
+
   if (prop_alt !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'alt', prop_alt));
   }
@@ -4974,6 +5422,7 @@ export interface TitleBarProps {
 export function TitleBar(props: TitleBarProps): Node {
   let node = kitNode('TitleBar', props.children ?? [], props.className);
   const event_onCloseWindow = props.onCloseWindow;
+
   if (event_onCloseWindow !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'closeWindow', event_onCloseWindow));
   }
@@ -4996,11 +5445,13 @@ export interface WindowBorderProps {
 export function WindowBorder(props: WindowBorderProps): Node {
   let node = kitNode('WindowBorder', props.children ?? [], props.className);
   const prop_shadowSize = props.shadowSize;
+
   if (prop_shadowSize !== undefined) {
     node = kitNumber(node, 'shadowSize', prop_shadowSize);
   }
 
   const prop_resizeHitSize = props.resizeHitSize;
+
   if (prop_resizeHitSize !== undefined) {
     node = kitNumber(node, 'resizeHitSize', prop_resizeHitSize);
   }
@@ -5062,11 +5513,13 @@ export interface ToolbarProps {
 export function Toolbar(props: ToolbarProps): Node {
   let node = kitNode('Toolbar', props.children ?? [], props.className);
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -5093,11 +5546,13 @@ export interface ToolbarGroupProps {
 export function ToolbarGroup(props: ToolbarGroupProps): Node {
   let node = kitNode('ToolbarGroup', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -5132,16 +5587,19 @@ export interface FormProps {
 export function Form(props: FormProps): Node {
   let node = kitNode('Form', props.children ?? [], props.className);
   const prop_columns = props.columns;
+
   if (prop_columns !== undefined) {
     node = kitInt(node, 'columns', prop_columns);
   }
 
   const prop_horizontal = props.horizontal;
+
   if (prop_horizontal !== undefined) {
     node = kitFlag(node, 'horizontal', prop_horizontal);
   }
 
   const prop_labelLayout = props.labelLayout;
+
   if (prop_labelLayout !== undefined) {
     if (typeof prop_labelLayout === 'string') {
       node = unwrapNode(nativeKitSet(node, 'labelLayout', `${prop_labelLayout}`));
@@ -5151,16 +5609,19 @@ export function Form(props: FormProps): Node {
   }
 
   const prop_labelWidth = props.labelWidth;
+
   if (prop_labelWidth !== undefined) {
     node = kitNumber(node, 'labelWidth', prop_labelWidth);
   }
 
   const prop_labelTextSize = props.labelTextSize;
+
   if (prop_labelTextSize !== undefined) {
     node = kitNumber(node, 'labelTextSize', prop_labelTextSize);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -5201,31 +5662,37 @@ export interface FieldProps {
 export function Field(props: FieldProps): Node {
   let node = kitNode('Field', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_required = props.required;
+
   if (prop_required !== undefined) {
     node = kitFlag(node, 'required', prop_required);
   }
 
   const prop_labelIndent = props.labelIndent;
+
   if (prop_labelIndent !== undefined) {
     node = kitFlag(node, 'labelIndent', prop_labelIndent);
   }
 
   const prop_visible = props.visible;
+
   if (prop_visible !== undefined) {
     node = kitFlag(node, 'visible', prop_visible);
   }
 
   const prop_align = props.align;
+
   if (prop_align !== undefined) {
     if (typeof prop_align === 'string') {
       node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
@@ -5235,16 +5702,19 @@ export function Field(props: FieldProps): Node {
   }
 
   const prop_colSpan = props.colSpan;
+
   if (prop_colSpan !== undefined) {
     node = kitInt(node, 'colSpan', prop_colSpan);
   }
 
   const prop_colStart = props.colStart;
+
   if (prop_colStart !== undefined) {
     node = kitInt(node, 'colStart', prop_colStart);
   }
 
   const prop_colEnd = props.colEnd;
+
   if (prop_colEnd !== undefined) {
     node = kitInt(node, 'colEnd', prop_colEnd);
   }
@@ -5304,6 +5774,7 @@ export interface ScrollAreaProps {
 export function ScrollArea(props: ScrollAreaProps): Node {
   let node = kitNode('ScrollArea', props.children ?? [], props.className);
   const prop_horizontal = props.horizontal;
+
   if (prop_horizontal !== undefined) {
     node = kitFlag(node, 'horizontal', prop_horizontal);
   }
@@ -5334,16 +5805,19 @@ export interface MessageProps {
 export function Message(props: MessageProps): Node {
   let node = kitNode('Message', props.children ?? [], props.className);
   const prop_author = props.author;
+
   if (prop_author !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'author', prop_author));
   }
 
   const prop_time = props.time;
+
   if (prop_time !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'time', prop_time));
   }
 
   const prop_align = props.align;
+
   if (prop_align !== undefined) {
     if (typeof prop_align === 'string') {
       node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
@@ -5353,6 +5827,7 @@ export function Message(props: MessageProps): Node {
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -5362,11 +5837,13 @@ export function Message(props: MessageProps): Node {
   }
 
   const prop_stackClassName = props.stackClassName;
+
   if (prop_stackClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'stackClassName', prop_stackClassName));
   }
 
   const prop_role = props.role;
+
   if (prop_role !== undefined) {
     if (typeof prop_role === 'string') {
       node = unwrapNode(nativeKitSet(node, 'role', `${prop_role}`));
@@ -5417,6 +5894,7 @@ export interface MessageHeaderProps {
 export function MessageHeader(props: MessageHeaderProps): Node {
   let node = kitNode('MessageHeader', props.children ?? [], props.className);
   const prop_inset = props.inset;
+
   if (prop_inset !== undefined) {
     node = kitFlag(node, 'inset', prop_inset);
   }
@@ -5450,6 +5928,7 @@ export interface MessageFooterProps {
 export function MessageFooter(props: MessageFooterProps): Node {
   let node = kitNode('MessageFooter', props.children ?? [], props.className);
   const prop_inset = props.inset;
+
   if (prop_inset !== undefined) {
     node = kitFlag(node, 'inset', prop_inset);
   }
@@ -5472,6 +5951,7 @@ export interface BubbleProps {
 export function Bubble(props: BubbleProps): Node {
   let node = kitNode('Bubble', props.children ?? [], props.className);
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -5481,6 +5961,7 @@ export function Bubble(props: BubbleProps): Node {
   }
 
   const prop_align = props.align;
+
   if (prop_align !== undefined) {
     if (typeof prop_align === 'string') {
       node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
@@ -5520,6 +6001,7 @@ export interface BubbleReactionsProps {
 export function BubbleReactions(props: BubbleReactionsProps): Node {
   let node = kitNode('BubbleReactions', props.children ?? [], props.className);
   const prop_side = props.side;
+
   if (prop_side !== undefined) {
     if (typeof prop_side === 'string') {
       node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
@@ -5529,6 +6011,7 @@ export function BubbleReactions(props: BubbleReactionsProps): Node {
   }
 
   const prop_align = props.align;
+
   if (prop_align !== undefined) {
     if (typeof prop_align === 'string') {
       node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
@@ -5578,6 +6061,7 @@ export interface ChartProps {
 export function Chart(props: ChartProps): Node {
   let node = kitNode('Chart', [], props.className);
   const prop_kind = props.kind;
+
   if (prop_kind !== undefined) {
     if (typeof prop_kind === 'string') {
       node = unwrapNode(nativeKitSet(node, 'kind', `${prop_kind}`));
@@ -5587,6 +6071,7 @@ export function Chart(props: ChartProps): Node {
   }
 
   const prop_labels = props.labels;
+
   if (prop_labels !== undefined) {
     if (Array.isArray(prop_labels)) {
       node = unwrapNode(nativeKitSet(node, 'labels', prop_labels.join('\n')));
@@ -5597,6 +6082,7 @@ export function Chart(props: ChartProps): Node {
   }
 
   const prop_values = props.values;
+
   if (prop_values !== undefined) {
     if (Array.isArray(prop_values)) {
       node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
@@ -5607,6 +6093,7 @@ export function Chart(props: ChartProps): Node {
   }
 
   const prop_open = props.open;
+
   if (prop_open !== undefined) {
     if (Array.isArray(prop_open)) {
       node = unwrapNode(nativeKitSet(node, 'open', prop_open.join('\n')));
@@ -5617,6 +6104,7 @@ export function Chart(props: ChartProps): Node {
   }
 
   const prop_high = props.high;
+
   if (prop_high !== undefined) {
     if (Array.isArray(prop_high)) {
       node = unwrapNode(nativeKitSet(node, 'high', prop_high.join('\n')));
@@ -5627,6 +6115,7 @@ export function Chart(props: ChartProps): Node {
   }
 
   const prop_low = props.low;
+
   if (prop_low !== undefined) {
     if (Array.isArray(prop_low)) {
       node = unwrapNode(nativeKitSet(node, 'low', prop_low.join('\n')));
@@ -5637,6 +6126,7 @@ export function Chart(props: ChartProps): Node {
   }
 
   const prop_close = props.close;
+
   if (prop_close !== undefined) {
     if (Array.isArray(prop_close)) {
       node = unwrapNode(nativeKitSet(node, 'close', prop_close.join('\n')));
@@ -5647,6 +6137,7 @@ export function Chart(props: ChartProps): Node {
   }
 
   const prop_links = props.links;
+
   if (prop_links !== undefined) {
     if (Array.isArray(prop_links)) {
       node = unwrapNode(nativeKitSet(node, 'links', JSON.stringify(prop_links)));
@@ -5704,56 +6195,67 @@ export interface ListProps {
 export function List(props: ListProps): Node {
   let node = kitNode('List', props.children ?? [], props.className);
   const prop_searchable = props.searchable;
+
   if (prop_searchable !== undefined) {
     node = kitFlag(node, 'searchable', prop_searchable);
   }
 
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_selectable = props.selectable;
+
   if (prop_selectable !== undefined) {
     node = kitFlag(node, 'selectable', prop_selectable);
   }
 
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitInt(node, 'selected', prop_selected);
   }
 
   const prop_defaultSelected = props.defaultSelected;
+
   if (prop_defaultSelected !== undefined) {
     node = kitInt(node, 'defaultSelected', prop_defaultSelected);
   }
 
   const prop_loading = props.loading;
+
   if (prop_loading !== undefined) {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
   const prop_hasMore = props.hasMore;
+
   if (prop_hasMore !== undefined) {
     node = kitFlag(node, 'hasMore', prop_hasMore);
   }
 
   const prop_loadMoreThreshold = props.loadMoreThreshold;
+
   if (prop_loadMoreThreshold !== undefined) {
     node = kitInt(node, 'loadMoreThreshold', prop_loadMoreThreshold);
   }
 
   const prop_scrollbarVisible = props.scrollbarVisible;
+
   if (prop_scrollbarVisible !== undefined) {
     node = kitFlag(node, 'scrollbarVisible', prop_scrollbarVisible);
   }
 
   const prop_scrollBounce = props.scrollBounce;
+
   if (prop_scrollBounce !== undefined) {
     node = kitFlag(node, 'scrollBounce', prop_scrollBounce);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -5763,31 +6265,37 @@ export function List(props: ListProps): Node {
   }
 
   const prop_query = props.query;
+
   if (prop_query !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'query', prop_query));
   }
 
   const prop_autoFocus = props.autoFocus;
+
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
   const event_onSelect = props.onSelect;
+
   if (event_onSelect !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'select', event_onSelect));
   }
 
   const event_onConfirm = props.onConfirm;
+
   if (event_onConfirm !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'confirm', event_onConfirm));
   }
 
   const event_onCancel = props.onCancel;
+
   if (event_onCancel !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'cancel', event_onCancel));
   }
 
   const event_onLoadMore = props.onLoadMore;
+
   if (event_onLoadMore !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'loadMore', event_onLoadMore));
   }
@@ -5824,11 +6332,13 @@ export interface ListItemProps {
 export function ListItem(props: ListItemProps): Node {
   let node = kitNode('ListItem', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_keywords = props.keywords;
+
   if (prop_keywords !== undefined) {
     if (Array.isArray(prop_keywords)) {
       node = unwrapNode(nativeKitSet(node, 'keywords', prop_keywords.join('\n')));
@@ -5839,16 +6349,19 @@ export function ListItem(props: ListItemProps): Node {
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_confirmed = props.confirmed;
+
   if (prop_confirmed !== undefined) {
     node = kitFlag(node, 'confirmed', prop_confirmed);
   }
 
   const prop_checkIcon = props.checkIcon;
+
   if (prop_checkIcon !== undefined) {
     if (typeof prop_checkIcon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'checkIcon', `${prop_checkIcon}`));
@@ -5858,21 +6371,25 @@ export function ListItem(props: ListItemProps): Node {
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
 
   const event_onMouseDown = props.onMouseDown;
+
   if (event_onMouseDown !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'mouseDown', event_onMouseDown));
   }
 
   const event_onHover = props.onHover;
+
   if (event_onHover !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'hover', event_onHover));
   }
@@ -5917,6 +6434,7 @@ export interface ListGroupProps {
 export function ListGroup(props: ListGroupProps): Node {
   let node = kitNode('ListGroup', props.children ?? [], props.className);
   const prop_heading = props.heading;
+
   if (prop_heading !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'heading', prop_heading));
   }
@@ -5964,41 +6482,49 @@ export interface TreeProps {
 export function Tree(props: TreeProps): Node {
   let node = kitNode('Tree', props.children ?? [], props.className);
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'selected', prop_selected));
   }
 
   const prop_defaultSelected = props.defaultSelected;
+
   if (prop_defaultSelected !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultSelected', prop_defaultSelected));
   }
 
   const prop_scrollBounce = props.scrollBounce;
+
   if (prop_scrollBounce !== undefined) {
     node = kitFlag(node, 'scrollBounce', prop_scrollBounce);
   }
 
   const prop_autoFocus = props.autoFocus;
+
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
   const event_onSelect = props.onSelect;
+
   if (event_onSelect !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'select', event_onSelect));
   }
 
   const event_onExpand = props.onExpand;
+
   if (event_onExpand !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'expand', event_onExpand));
   }
 
   const event_onCollapse = props.onCollapse;
+
   if (event_onCollapse !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'collapse', event_onCollapse));
   }
 
   const event_onContextMenu = props.onContextMenu;
+
   if (event_onContextMenu !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'contextMenu', event_onContextMenu));
   }
@@ -6033,16 +6559,19 @@ export interface TreeItemProps {
 export function TreeItem(props: TreeItemProps): Node {
   let node = kitNode('TreeItem', props.children ?? [], props.className);
   const prop_id = props.id;
+
   if (prop_id !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'id', prop_id));
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -6052,26 +6581,31 @@ export function TreeItem(props: TreeItemProps): Node {
   }
 
   const prop_iconSvg = props.iconSvg;
+
   if (prop_iconSvg !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'iconSvg', prop_iconSvg));
   }
 
   const prop_iconColor = props.iconColor;
+
   if (prop_iconColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'iconColor', prop_iconColor));
   }
 
   const prop_expanded = props.expanded;
+
   if (prop_expanded !== undefined) {
     node = kitFlag(node, 'expanded', prop_expanded);
   }
 
   const prop_defaultExpanded = props.defaultExpanded;
+
   if (prop_defaultExpanded !== undefined) {
     node = kitFlag(node, 'defaultExpanded', prop_defaultExpanded);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
@@ -6133,31 +6667,37 @@ export interface CalendarProps {
 export function Calendar(props: CalendarProps): Node {
   let node = kitNode('Calendar', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_range = props.range;
+
   if (prop_range !== undefined) {
     node = kitFlag(node, 'range', prop_range);
   }
 
   const prop_months = props.months;
+
   if (prop_months !== undefined) {
     node = kitInt(node, 'months', prop_months);
   }
 
   const prop_firstDayOfWeek = props.firstDayOfWeek;
+
   if (prop_firstDayOfWeek !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'firstDayOfWeek', prop_firstDayOfWeek));
   }
 
   const prop_view = props.view;
+
   if (prop_view !== undefined) {
     if (typeof prop_view === 'string') {
       node = unwrapNode(nativeKitSet(node, 'view', `${prop_view}`));
@@ -6167,26 +6707,31 @@ export function Calendar(props: CalendarProps): Node {
   }
 
   const prop_disabledBefore = props.disabledBefore;
+
   if (prop_disabledBefore !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'disabledBefore', prop_disabledBefore));
   }
 
   const prop_disabledAfter = props.disabledAfter;
+
   if (prop_disabledAfter !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'disabledAfter', prop_disabledAfter));
   }
 
   const prop_disabledFrom = props.disabledFrom;
+
   if (prop_disabledFrom !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'disabledFrom', prop_disabledFrom));
   }
 
   const prop_disabledTo = props.disabledTo;
+
   if (prop_disabledTo !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'disabledTo', prop_disabledTo));
   }
 
   const prop_disabledWeekdays = props.disabledWeekdays;
+
   if (prop_disabledWeekdays !== undefined) {
     if (Array.isArray(prop_disabledWeekdays)) {
       node = unwrapNode(nativeKitSet(node, 'disabledWeekdays', prop_disabledWeekdays.join('\n')));
@@ -6197,6 +6742,7 @@ export function Calendar(props: CalendarProps): Node {
   }
 
   const prop_disabledDates = props.disabledDates;
+
   if (prop_disabledDates !== undefined) {
     if (Array.isArray(prop_disabledDates)) {
       node = unwrapNode(nativeKitSet(node, 'disabledDates', prop_disabledDates.join('\n')));
@@ -6207,16 +6753,19 @@ export function Calendar(props: CalendarProps): Node {
   }
 
   const prop_yearStart = props.yearStart;
+
   if (prop_yearStart !== undefined) {
     node = kitInt(node, 'yearStart', prop_yearStart);
   }
 
   const prop_yearEnd = props.yearEnd;
+
   if (prop_yearEnd !== undefined) {
     node = kitInt(node, 'yearEnd', prop_yearEnd);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -6226,6 +6775,7 @@ export function Calendar(props: CalendarProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
@@ -6260,41 +6810,49 @@ export interface TimeFieldProps {
 export function TimeField(props: TimeFieldProps): Node {
   let node = kitNode('TimeField', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_seconds = props.seconds;
+
   if (prop_seconds !== undefined) {
     node = kitFlag(node, 'seconds', prop_seconds);
   }
 
   const prop_twelveHour = props.twelveHour;
+
   if (prop_twelveHour !== undefined) {
     node = kitFlag(node, 'twelveHour', prop_twelveHour);
   }
 
   const prop_invalid = props.invalid;
+
   if (prop_invalid !== undefined) {
     node = kitFlag(node, 'invalid', prop_invalid);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_autoFocus = props.autoFocus;
+
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -6304,6 +6862,7 @@ export function TimeField(props: TimeFieldProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
@@ -6358,6 +6917,7 @@ export interface ComboboxProps {
 export function Combobox(props: ComboboxProps): Node {
   let node = kitNode('Combobox', props.children ?? [], props.className);
   const prop_items = props.items;
+
   if (prop_items !== undefined) {
     if (Array.isArray(prop_items)) {
       node = unwrapNode(nativeKitSet(node, 'items', prop_items.join('\n')));
@@ -6368,11 +6928,13 @@ export function Combobox(props: ComboboxProps): Node {
   }
 
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     if (Array.isArray(prop_defaultValue)) {
       node = unwrapNode(nativeKitSet(node, 'defaultValue', prop_defaultValue.join('\n')));
@@ -6383,41 +6945,49 @@ export function Combobox(props: ComboboxProps): Node {
   }
 
   const prop_multiple = props.multiple;
+
   if (prop_multiple !== undefined) {
     node = kitFlag(node, 'multiple', prop_multiple);
   }
 
   const prop_searchable = props.searchable;
+
   if (prop_searchable !== undefined) {
     node = kitFlag(node, 'searchable', prop_searchable);
   }
 
   const prop_query = props.query;
+
   if (prop_query !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'query', prop_query));
   }
 
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_searchPlaceholder = props.searchPlaceholder;
+
   if (prop_searchPlaceholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'searchPlaceholder', prop_searchPlaceholder));
   }
 
   const prop_cleanable = props.cleanable;
+
   if (prop_cleanable !== undefined) {
     node = kitFlag(node, 'cleanable', prop_cleanable);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -6427,6 +6997,7 @@ export function Combobox(props: ComboboxProps): Node {
   }
 
   const prop_checkIcon = props.checkIcon;
+
   if (prop_checkIcon !== undefined) {
     if (typeof prop_checkIcon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'checkIcon', `${prop_checkIcon}`));
@@ -6436,26 +7007,31 @@ export function Combobox(props: ComboboxProps): Node {
   }
 
   const prop_appearance = props.appearance;
+
   if (prop_appearance !== undefined) {
     node = kitFlag(node, 'appearance', prop_appearance);
   }
 
   const prop_menuWidth = props.menuWidth;
+
   if (prop_menuWidth !== undefined) {
     node = kitNumber(node, 'menuWidth', prop_menuWidth);
   }
 
   const prop_menuMaxHeight = props.menuMaxHeight;
+
   if (prop_menuMaxHeight !== undefined) {
     node = kitNumber(node, 'menuMaxHeight', prop_menuMaxHeight);
   }
 
   const prop_autoFocus = props.autoFocus;
+
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -6465,6 +7041,7 @@ export function Combobox(props: ComboboxProps): Node {
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = kitOnList(node, 'change', event_onChange);
   }
@@ -6533,61 +7110,73 @@ export interface CommandProps {
 export function Command(props: CommandProps): Node {
   let node = kitNode('Command', props.children ?? [], props.className);
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_searchable = props.searchable;
+
   if (prop_searchable !== undefined) {
     node = kitFlag(node, 'searchable', prop_searchable);
   }
 
   const prop_filterable = props.filterable;
+
   if (prop_filterable !== undefined) {
     node = kitFlag(node, 'filterable', prop_filterable);
   }
 
   const prop_query = props.query;
+
   if (prop_query !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'query', prop_query));
   }
 
   const prop_loading = props.loading;
+
   if (prop_loading !== undefined) {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
   const prop_maxHeight = props.maxHeight;
+
   if (prop_maxHeight !== undefined) {
     node = kitNumber(node, 'maxHeight', prop_maxHeight);
   }
 
   const prop_scrollBounce = props.scrollBounce;
+
   if (prop_scrollBounce !== undefined) {
     node = kitFlag(node, 'scrollBounce', prop_scrollBounce);
   }
 
   const prop_bordered = props.bordered;
+
   if (prop_bordered !== undefined) {
     node = kitFlag(node, 'bordered', prop_bordered);
   }
 
   const prop_autoFocus = props.autoFocus;
+
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
   const event_onQuery = props.onQuery;
+
   if (event_onQuery !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'query', event_onQuery));
   }
 
   const event_onCancel = props.onCancel;
+
   if (event_onCancel !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'cancel', event_onCancel));
   }
 
   const event_onSelect = props.onSelect;
+
   if (event_onSelect !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'select', event_onSelect));
   }
@@ -6624,16 +7213,19 @@ export interface CommandItemProps {
 export function CommandItem(props: CommandItemProps): Node {
   let node = kitNode('CommandItem', props.children ?? [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -6643,6 +7235,7 @@ export function CommandItem(props: CommandItemProps): Node {
   }
 
   const prop_keywords = props.keywords;
+
   if (prop_keywords !== undefined) {
     if (Array.isArray(prop_keywords)) {
       node = unwrapNode(nativeKitSet(node, 'keywords', prop_keywords.join('\n')));
@@ -6653,26 +7246,31 @@ export function CommandItem(props: CommandItemProps): Node {
   }
 
   const prop_command = props.command;
+
   if (prop_command !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'command', prop_command));
   }
 
   const prop_checked = props.checked;
+
   if (prop_checked !== undefined) {
     node = kitFlag(node, 'checked', prop_checked);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const event_onSelect = props.onSelect;
+
   if (event_onSelect !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'select', event_onSelect));
   }
 
   const event_onHighlight = props.onHighlight;
+
   if (event_onHighlight !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'highlight', event_onHighlight));
   }
@@ -6743,6 +7341,7 @@ export interface CommandGroupProps {
 export function CommandGroup(props: CommandGroupProps): Node {
   let node = kitNode('CommandGroup', props.children ?? [], props.className);
   const prop_heading = props.heading;
+
   if (prop_heading !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'heading', prop_heading));
   }
@@ -6773,31 +7372,37 @@ export interface CarouselProps {
 export function Carousel(props: CarouselProps): Node {
   let node = kitNode('Carousel', props.children ?? [], props.className);
   const prop_loop = props.loop;
+
   if (prop_loop !== undefined) {
     node = kitFlag(node, 'loop', prop_loop);
   }
 
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitInt(node, 'selected', prop_selected);
   }
 
   const prop_defaultSelected = props.defaultSelected;
+
   if (prop_defaultSelected !== undefined) {
     node = kitInt(node, 'defaultSelected', prop_defaultSelected);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'change', event_onChange));
   }
@@ -6831,6 +7436,7 @@ export interface CarouselContentProps {
 export function CarouselContent(props: CarouselContentProps): Node {
   let node = kitNode('CarouselContent', props.children ?? [], props.className);
   const prop_trackClassName = props.trackClassName;
+
   if (prop_trackClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'trackClassName', prop_trackClassName));
   }
@@ -6851,6 +7457,7 @@ export interface CarouselItemProps {
 export function CarouselItem(props: CarouselItemProps): Node {
   let node = kitNode('CarouselItem', props.children ?? [], props.className);
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
@@ -6871,11 +7478,13 @@ export interface CarouselPreviousProps {
 export function CarouselPrevious(props: CarouselPreviousProps): Node {
   let node = kitNode('CarouselPrevious', [], props.className);
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -6900,11 +7509,13 @@ export interface CarouselNextProps {
 export function CarouselNext(props: CarouselNextProps): Node {
   let node = kitNode('CarouselNext', [], props.className);
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -6929,11 +7540,13 @@ export interface CarouselPaginationProps {
 export function CarouselPagination(props: CarouselPaginationProps): Node {
   let node = kitNode('CarouselPagination', [], props.className);
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -6950,42 +7563,76 @@ export interface TerminalProps {
   id?: ReactiveValue<string> | TextBinding;
   /** Existing shell working directory. Read at mount; omission uses the application current directory. Changing this prop never changes a running shell. */
   directory?: ReactiveValue<string> | TextBinding;
+  /** Optional executable to run directly instead of the login shell, for a task terminal. Nonempty and without NUL. Read at mount; restart reruns this program. No shell expansion is performed. */
+  program?: ReactiveValue<string> | TextBinding;
+  /** Arguments for program, passed individually without a shell. Requires an explicit program when nonempty; NUL is rejected. Read at mount and reused on restart. Expressions reading component signals update live; plain arrays are read at construction. */
+  args?: ReactiveValue<string[]>;
   /** Monospace text size in logical pixels, from 8 through 40. Defaults to 14. Live changes resize the PTY to the measured font grid. */
   fontSize?: ReactiveValue<int>;
   /** Accessible terminal name. Defaults to Terminal. */
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Runs once when the current shell exits. Read its final status with readTerminal; restart resets this notification for the new session. */
   onExit?: Owned<Function<void>>;
+  /** Cmd-click (Ctrl-click outside macOS) a path:line:column to request guarded editor navigation. Value is JSON containing path, line and column. Includes soft-wrapped locations. The host must validate workspace scope; no external URL is opened. */
+  onOpenLink?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
 
-/** A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id="shell" directory="/tmp" fontSize={14} className="size-full"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory is read once at mount. */
+/** A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount, or runs an explicit program with args as a visible task. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id="shell" directory="/tmp" fontSize={14} className="size-full"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory/program/args are read once at mount. Starting a task can execute code or write files; its host must grant those effects. */
 export function Terminal(props: TerminalProps): Node {
   let node = kitNode('Terminal', [], props.className);
   const prop_id = props.id;
+
   if (prop_id !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'id', prop_id));
   }
 
   const prop_directory = props.directory;
+
   if (prop_directory !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'directory', prop_directory));
   }
 
+  const prop_program = props.program;
+
+  if (prop_program !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'program', prop_program));
+  }
+
+  const prop_args = props.args;
+
+  if (prop_args !== undefined) {
+    if (Array.isArray(prop_args)) {
+      node = unwrapNode(nativeKitSet(node, 'args', JSON.stringify(prop_args)));
+    } else {
+      const evaluate = prop_args.evaluate;
+      node = unwrapNode(nativeKitBind(node, 'args', nativeBindText(() => JSON.stringify(evaluate()))));
+    }
+  }
+
   const prop_fontSize = props.fontSize;
+
   if (prop_fontSize !== undefined) {
     node = kitInt(node, 'fontSize', prop_fontSize);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const event_onExit = props.onExit;
+
   if (event_onExit !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'exit', event_onExit));
+  }
+
+  const event_onOpenLink = props.onOpenLink;
+
+  if (event_onOpenLink !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'openLink', event_onOpenLink));
   }
 
   return node;
@@ -7082,61 +7729,73 @@ export interface CodeEditorProps {
 export function CodeEditor(props: CodeEditorProps): Node {
   let node = kitNode('CodeEditor', [], props.className);
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_language = props.language;
+
   if (prop_language !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'language', prop_language));
   }
 
   const prop_readOnly = props.readOnly;
+
   if (prop_readOnly !== undefined) {
     node = kitFlag(node, 'readOnly', prop_readOnly);
   }
 
   const prop_id = props.id;
+
   if (prop_id !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'id', prop_id));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_appearance = props.appearance;
+
   if (prop_appearance !== undefined) {
     node = kitFlag(node, 'appearance', prop_appearance);
   }
 
   const prop_bordered = props.bordered;
+
   if (prop_bordered !== undefined) {
     node = kitFlag(node, 'bordered', prop_bordered);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_tabIndex = props.tabIndex;
+
   if (prop_tabIndex !== undefined) {
     node = kitInt(node, 'tabIndex', prop_tabIndex);
   }
 
   const prop_role = props.role;
+
   if (prop_role !== undefined) {
     if (typeof prop_role === 'string') {
       node = unwrapNode(nativeKitSet(node, 'role', `${prop_role}`));
@@ -7146,6 +7805,7 @@ export function CodeEditor(props: CodeEditorProps): Node {
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -7155,56 +7815,67 @@ export function CodeEditor(props: CodeEditorProps): Node {
   }
 
   const prop_autoFocus = props.autoFocus;
+
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
   const prop_lineNumbers = props.lineNumbers;
+
   if (prop_lineNumbers !== undefined) {
     node = kitFlag(node, 'lineNumbers', prop_lineNumbers);
   }
 
   const prop_folding = props.folding;
+
   if (prop_folding !== undefined) {
     node = kitFlag(node, 'folding', prop_folding);
   }
 
   const prop_autoClose = props.autoClose;
+
   if (prop_autoClose !== undefined) {
     node = kitFlag(node, 'autoClose', prop_autoClose);
   }
 
   const prop_smartIndent = props.smartIndent;
+
   if (prop_smartIndent !== undefined) {
     node = kitFlag(node, 'smartIndent', prop_smartIndent);
   }
 
   const prop_indentGuides = props.indentGuides;
+
   if (prop_indentGuides !== undefined) {
     node = kitFlag(node, 'indentGuides', prop_indentGuides);
   }
 
   const prop_cleanOnEscape = props.cleanOnEscape;
+
   if (prop_cleanOnEscape !== undefined) {
     node = kitFlag(node, 'cleanOnEscape', prop_cleanOnEscape);
   }
 
   const prop_submitOnEnter = props.submitOnEnter;
+
   if (prop_submitOnEnter !== undefined) {
     node = kitFlag(node, 'submitOnEnter', prop_submitOnEnter);
   }
 
   const prop_contextMenu = props.contextMenu;
+
   if (prop_contextMenu !== undefined) {
     node = kitFlag(node, 'contextMenu', prop_contextMenu);
   }
 
   const prop_showWhitespace = props.showWhitespace;
+
   if (prop_showWhitespace !== undefined) {
     node = kitFlag(node, 'showWhitespace', prop_showWhitespace);
   }
 
   const prop_textAlign = props.textAlign;
+
   if (prop_textAlign !== undefined) {
     if (typeof prop_textAlign === 'string') {
       node = unwrapNode(nativeKitSet(node, 'textAlign', `${prop_textAlign}`));
@@ -7214,16 +7885,19 @@ export function CodeEditor(props: CodeEditorProps): Node {
   }
 
   const prop_scrollBeyondLastLine = props.scrollBeyondLastLine;
+
   if (prop_scrollBeyondLastLine !== undefined) {
     node = kitInt(node, 'scrollBeyondLastLine', prop_scrollBeyondLastLine);
   }
 
   const prop_cursorSurroundingLines = props.cursorSurroundingLines;
+
   if (prop_cursorSurroundingLines !== undefined) {
     node = kitInt(node, 'cursorSurroundingLines', prop_cursorSurroundingLines);
   }
 
   const prop_enterKeyHint = props.enterKeyHint;
+
   if (prop_enterKeyHint !== undefined) {
     if (typeof prop_enterKeyHint === 'string') {
       node = unwrapNode(nativeKitSet(node, 'enterKeyHint', `${prop_enterKeyHint}`));
@@ -7233,11 +7907,13 @@ export function CodeEditor(props: CodeEditorProps): Node {
   }
 
   const prop_autoCorrect = props.autoCorrect;
+
   if (prop_autoCorrect !== undefined) {
     node = kitFlag(node, 'autoCorrect', prop_autoCorrect);
   }
 
   const prop_autoCapitalize = props.autoCapitalize;
+
   if (prop_autoCapitalize !== undefined) {
     if (typeof prop_autoCapitalize === 'string') {
       node = unwrapNode(nativeKitSet(node, 'autoCapitalize', `${prop_autoCapitalize}`));
@@ -7247,26 +7923,31 @@ export function CodeEditor(props: CodeEditorProps): Node {
   }
 
   const prop_replaceable = props.replaceable;
+
   if (prop_replaceable !== undefined) {
     node = kitFlag(node, 'replaceable', prop_replaceable);
   }
 
   const prop_softWrap = props.softWrap;
+
   if (prop_softWrap !== undefined) {
     node = kitFlag(node, 'softWrap', prop_softWrap);
   }
 
   const prop_searchable = props.searchable;
+
   if (prop_searchable !== undefined) {
     node = kitFlag(node, 'searchable', prop_searchable);
   }
 
   const prop_scrollBounce = props.scrollBounce;
+
   if (prop_scrollBounce !== undefined) {
     node = kitFlag(node, 'scrollBounce', prop_scrollBounce);
   }
 
   const prop_wrappingIndent = props.wrappingIndent;
+
   if (prop_wrappingIndent !== undefined) {
     if (typeof prop_wrappingIndent === 'string') {
       node = unwrapNode(nativeKitSet(node, 'wrappingIndent', `${prop_wrappingIndent}`));
@@ -7276,36 +7957,43 @@ export function CodeEditor(props: CodeEditorProps): Node {
   }
 
   const prop_tabSize = props.tabSize;
+
   if (prop_tabSize !== undefined) {
     node = kitInt(node, 'tabSize', prop_tabSize);
   }
 
   const prop_hardTabs = props.hardTabs;
+
   if (prop_hardTabs !== undefined) {
     node = kitFlag(node, 'hardTabs', prop_hardTabs);
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
 
   const event_onFocus = props.onFocus;
+
   if (event_onFocus !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'focus', event_onFocus));
   }
 
   const event_onBlur = props.onBlur;
+
   if (event_onBlur !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'blur', event_onBlur));
   }
 
   const event_onSubmit = props.onSubmit;
+
   if (event_onSubmit !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'submit', event_onSubmit));
   }
 
   const event_onPaste = props.onPaste;
+
   if (event_onPaste !== undefined) {
     node = unwrapNode(nativeKitPredicate(node, 'paste', event_onPaste));
   }
@@ -7330,11 +8018,13 @@ export interface ToggleGroupProps {
 export function ToggleGroup(props: ToggleGroupProps): Node {
   let node = kitNode('ToggleGroup', props.children ?? [], props.className);
   const prop_segmented = props.segmented;
+
   if (prop_segmented !== undefined) {
     node = kitFlag(node, 'segmented', prop_segmented);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -7344,6 +8034,7 @@ export function ToggleGroup(props: ToggleGroupProps): Node {
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
@@ -7386,26 +8077,31 @@ export interface ButtonGroupProps {
 export function ButtonGroup(props: ButtonGroupProps): Node {
   let node = kitNode('ButtonGroup', props.children ?? [], props.className);
   const prop_outline = props.outline;
+
   if (prop_outline !== undefined) {
     node = kitFlag(node, 'outline', prop_outline);
   }
 
   const prop_compact = props.compact;
+
   if (prop_compact !== undefined) {
     node = kitFlag(node, 'compact', prop_compact);
   }
 
   const prop_multiple = props.multiple;
+
   if (prop_multiple !== undefined) {
     node = kitFlag(node, 'multiple', prop_multiple);
   }
 
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -7415,6 +8111,7 @@ export function ButtonGroup(props: ButtonGroupProps): Node {
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -7424,31 +8121,37 @@ export function ButtonGroup(props: ButtonGroupProps): Node {
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_foreground = props.foreground;
+
   if (prop_foreground !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'foreground', prop_foreground));
   }
 
   const prop_hoverColor = props.hoverColor;
+
   if (prop_hoverColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'hoverColor', prop_hoverColor));
   }
 
   const prop_activeColor = props.activeColor;
+
   if (prop_activeColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'activeColor', prop_activeColor));
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'click', event_onClick));
   }
@@ -7477,11 +8180,13 @@ export interface GroupButtonProps {
 export function GroupButton(props: GroupButtonProps): Node {
   let node = kitNode('GroupButton', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -7491,16 +8196,19 @@ export function GroupButton(props: GroupButtonProps): Node {
   }
 
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitFlag(node, 'selected', prop_selected);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
@@ -7529,26 +8237,31 @@ export interface InputGroupProps {
 export function InputGroup(props: InputGroupProps): Node {
   let node = kitNode('InputGroup', props.children ?? [], props.className);
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_readOnly = props.readOnly;
+
   if (prop_readOnly !== undefined) {
     node = kitFlag(node, 'readOnly', prop_readOnly);
   }
 
   const prop_invalid = props.invalid;
+
   if (prop_invalid !== undefined) {
     node = kitFlag(node, 'invalid', prop_invalid);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -7573,6 +8286,7 @@ export interface InputGroupAddonProps {
 export function InputGroupAddon(props: InputGroupAddonProps): Node {
   let node = kitNode('InputGroupAddon', props.children ?? [], props.className);
   const prop_align = props.align;
+
   if (prop_align !== undefined) {
     if (typeof prop_align === 'string') {
       node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
@@ -7646,11 +8360,13 @@ export interface InputGroupButtonProps {
 export function InputGroupButton(props: InputGroupButtonProps): Node {
   let node = kitNode('InputGroupButton', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -7660,6 +8376,7 @@ export function InputGroupButton(props: InputGroupButtonProps): Node {
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -7669,26 +8386,31 @@ export function InputGroupButton(props: InputGroupButtonProps): Node {
   }
 
   const prop_outline = props.outline;
+
   if (prop_outline !== undefined) {
     node = kitFlag(node, 'outline', prop_outline);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_selected = props.selected;
+
   if (prop_selected !== undefined) {
     node = kitFlag(node, 'selected', prop_selected);
   }
 
   const prop_loading = props.loading;
+
   if (prop_loading !== undefined) {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
   const prop_loadingIcon = props.loadingIcon;
+
   if (prop_loadingIcon !== undefined) {
     if (typeof prop_loadingIcon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'loadingIcon', `${prop_loadingIcon}`));
@@ -7698,51 +8420,61 @@ export function InputGroupButton(props: InputGroupButtonProps): Node {
   }
 
   const prop_tooltip = props.tooltip;
+
   if (prop_tooltip !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
   }
 
   const prop_tooltipDelay = props.tooltipDelay;
+
   if (prop_tooltipDelay !== undefined) {
     node = kitInt(node, 'tooltipDelay', prop_tooltipDelay);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_tabIndex = props.tabIndex;
+
   if (prop_tabIndex !== undefined) {
     node = kitInt(node, 'tabIndex', prop_tabIndex);
   }
 
   const prop_caret = props.caret;
+
   if (prop_caret !== undefined) {
     node = kitFlag(node, 'caret', prop_caret);
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_foreground = props.foreground;
+
   if (prop_foreground !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'foreground', prop_foreground));
   }
 
   const prop_hoverColor = props.hoverColor;
+
   if (prop_hoverColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'hoverColor', prop_hoverColor));
   }
 
   const prop_activeColor = props.activeColor;
+
   if (prop_activeColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'activeColor', prop_activeColor));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -7752,6 +8484,7 @@ export function InputGroupButton(props: InputGroupButtonProps): Node {
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
@@ -7808,11 +8541,13 @@ export interface DiffProps {
 export function Diff(props: DiffProps): Node {
   let node = kitNode('Diff', props.children ?? [], props.className);
   const prop_patch = props.patch;
+
   if (prop_patch !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'patch', prop_patch));
   }
 
   const prop_mode = props.mode;
+
   if (prop_mode !== undefined) {
     if (typeof prop_mode === 'string') {
       node = unwrapNode(nativeKitSet(node, 'mode', `${prop_mode}`));
@@ -7822,21 +8557,25 @@ export function Diff(props: DiffProps): Node {
   }
 
   const prop_lineNumbers = props.lineNumbers;
+
   if (prop_lineNumbers !== undefined) {
     node = kitFlag(node, 'lineNumbers', prop_lineNumbers);
   }
 
   const prop_syntaxHighlight = props.syntaxHighlight;
+
   if (prop_syntaxHighlight !== undefined) {
     node = kitFlag(node, 'syntaxHighlight', prop_syntaxHighlight);
   }
 
   const prop_headerVisible = props.headerVisible;
+
   if (prop_headerVisible !== undefined) {
     node = kitFlag(node, 'headerVisible', prop_headerVisible);
   }
 
   const prop_hoverHighlight = props.hoverHighlight;
+
   if (prop_hoverHighlight !== undefined) {
     if (typeof prop_hoverHighlight === 'string') {
       node = unwrapNode(nativeKitSet(node, 'hoverHighlight', `${prop_hoverHighlight}`));
@@ -7846,6 +8585,7 @@ export function Diff(props: DiffProps): Node {
   }
 
   const prop_hunkSeparator = props.hunkSeparator;
+
   if (prop_hunkSeparator !== undefined) {
     if (typeof prop_hunkSeparator === 'string') {
       node = unwrapNode(nativeKitSet(node, 'hunkSeparator', `${prop_hunkSeparator}`));
@@ -7855,6 +8595,7 @@ export function Diff(props: DiffProps): Node {
   }
 
   const prop_changeIndicator = props.changeIndicator;
+
   if (prop_changeIndicator !== undefined) {
     if (typeof prop_changeIndicator === 'string') {
       node = unwrapNode(nativeKitSet(node, 'changeIndicator', `${prop_changeIndicator}`));
@@ -7864,31 +8605,37 @@ export function Diff(props: DiffProps): Node {
   }
 
   const prop_changeBackground = props.changeBackground;
+
   if (prop_changeBackground !== undefined) {
     node = kitFlag(node, 'changeBackground', prop_changeBackground);
   }
 
   const prop_softWrap = props.softWrap;
+
   if (prop_softWrap !== undefined) {
     node = kitFlag(node, 'softWrap', prop_softWrap);
   }
 
   const prop_contextLines = props.contextLines;
+
   if (prop_contextLines !== undefined) {
     node = kitInt(node, 'contextLines', prop_contextLines);
   }
 
   const prop_expansionLines = props.expansionLines;
+
   if (prop_expansionLines !== undefined) {
     node = kitInt(node, 'expansionLines', prop_expansionLines);
   }
 
   const prop_minCollapsedLines = props.minCollapsedLines;
+
   if (prop_minCollapsedLines !== undefined) {
     node = kitInt(node, 'minCollapsedLines', prop_minCollapsedLines);
   }
 
   const prop_inlineUnit = props.inlineUnit;
+
   if (prop_inlineUnit !== undefined) {
     if (typeof prop_inlineUnit === 'string') {
       node = unwrapNode(nativeKitSet(node, 'inlineUnit', `${prop_inlineUnit}`));
@@ -7898,26 +8645,31 @@ export function Diff(props: DiffProps): Node {
   }
 
   const prop_inlineMaxLineLength = props.inlineMaxLineLength;
+
   if (prop_inlineMaxLineLength !== undefined) {
     node = kitInt(node, 'inlineMaxLineLength', prop_inlineMaxLineLength);
   }
 
   const prop_syntaxMaxLineLength = props.syntaxMaxLineLength;
+
   if (prop_syntaxMaxLineLength !== undefined) {
     node = kitInt(node, 'syntaxMaxLineLength', prop_syntaxMaxLineLength);
   }
 
   const event_onLineClick = props.onLineClick;
+
   if (event_onLineClick !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'lineClick', event_onLineClick));
   }
 
   const event_onLineHover = props.onLineHover;
+
   if (event_onLineHover !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'lineHover', event_onLineHover));
   }
 
   const event_onAddAnnotation = props.onAddAnnotation;
+
   if (event_onAddAnnotation !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'addAnnotation', event_onAddAnnotation));
   }
@@ -7942,11 +8694,13 @@ export interface DiffAnnotationProps {
 export function DiffAnnotation(props: DiffAnnotationProps): Node {
   let node = kitNode('DiffAnnotation', props.children ?? [], props.className);
   const prop_path = props.path;
+
   if (prop_path !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'path', prop_path));
   }
 
   const prop_side = props.side;
+
   if (prop_side !== undefined) {
     if (typeof prop_side === 'string') {
       node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
@@ -7956,6 +8710,7 @@ export function DiffAnnotation(props: DiffAnnotationProps): Node {
   }
 
   const prop_line = props.line;
+
   if (prop_line !== undefined) {
     node = kitInt(node, 'line', prop_line);
   }
@@ -7984,11 +8739,13 @@ export interface DiffDecorationProps {
 export function DiffDecoration(props: DiffDecorationProps): Node {
   let node = kitNode('DiffDecoration', [], props.className);
   const prop_path = props.path;
+
   if (prop_path !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'path', prop_path));
   }
 
   const prop_side = props.side;
+
   if (prop_side !== undefined) {
     if (typeof prop_side === 'string') {
       node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
@@ -7998,16 +8755,19 @@ export function DiffDecoration(props: DiffDecorationProps): Node {
   }
 
   const prop_start = props.start;
+
   if (prop_start !== undefined) {
     node = kitInt(node, 'start', prop_start);
   }
 
   const prop_end = props.end;
+
   if (prop_end !== undefined) {
     node = kitInt(node, 'end', prop_end);
   }
 
   const prop_endSide = props.endSide;
+
   if (prop_endSide !== undefined) {
     if (typeof prop_endSide === 'string') {
       node = unwrapNode(nativeKitSet(node, 'endSide', `${prop_endSide}`));
@@ -8017,6 +8777,7 @@ export function DiffDecoration(props: DiffDecorationProps): Node {
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
@@ -8041,11 +8802,13 @@ export interface DiffGutterMarkerProps {
 export function DiffGutterMarker(props: DiffGutterMarkerProps): Node {
   let node = kitNode('DiffGutterMarker', props.children ?? [], props.className);
   const prop_path = props.path;
+
   if (prop_path !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'path', prop_path));
   }
 
   const prop_side = props.side;
+
   if (prop_side !== undefined) {
     if (typeof prop_side === 'string') {
       node = unwrapNode(nativeKitSet(node, 'side', `${prop_side}`));
@@ -8055,6 +8818,7 @@ export function DiffGutterMarker(props: DiffGutterMarkerProps): Node {
   }
 
   const prop_line = props.line;
+
   if (prop_line !== undefined) {
     node = kitInt(node, 'line', prop_line);
   }
@@ -8075,6 +8839,7 @@ export interface DiffHeaderProps {
 export function DiffHeader(props: DiffHeaderProps): Node {
   let node = kitNode('DiffHeader', props.children ?? [], props.className);
   const prop_part = props.part;
+
   if (prop_part !== undefined) {
     if (typeof prop_part === 'string') {
       node = unwrapNode(nativeKitSet(node, 'part', `${prop_part}`));
@@ -8117,11 +8882,13 @@ export interface MarkerProps {
 export function Marker(props: MarkerProps): Node {
   let node = kitNode('Marker', props.children ?? [], props.className);
   const prop_text = props.text;
+
   if (prop_text !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -8131,6 +8898,7 @@ export function Marker(props: MarkerProps): Node {
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -8140,11 +8908,13 @@ export function Marker(props: MarkerProps): Node {
   }
 
   const prop_loading = props.loading;
+
   if (prop_loading !== undefined) {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
   const prop_loadingStyle = props.loadingStyle;
+
   if (prop_loadingStyle !== undefined) {
     if (typeof prop_loadingStyle === 'string') {
       node = unwrapNode(nativeKitSet(node, 'loadingStyle', `${prop_loadingStyle}`));
@@ -8154,6 +8924,7 @@ export function Marker(props: MarkerProps): Node {
   }
 
   const prop_alignment = props.alignment;
+
   if (prop_alignment !== undefined) {
     if (typeof prop_alignment === 'string') {
       node = unwrapNode(nativeKitSet(node, 'alignment', `${prop_alignment}`));
@@ -8163,11 +8934,13 @@ export function Marker(props: MarkerProps): Node {
   }
 
   const prop_separatorClassName = props.separatorClassName;
+
   if (prop_separatorClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'separatorClassName', prop_separatorClassName));
   }
 
   const prop_role = props.role;
+
   if (prop_role !== undefined) {
     if (typeof prop_role === 'string') {
       node = unwrapNode(nativeKitSet(node, 'role', `${prop_role}`));
@@ -8177,11 +8950,13 @@ export function Marker(props: MarkerProps): Node {
   }
 
   const prop_shimmerDuration = props.shimmerDuration;
+
   if (prop_shimmerDuration !== undefined) {
     node = kitInt(node, 'shimmerDuration', prop_shimmerDuration);
   }
 
   const prop_shimmerColor = props.shimmerColor;
+
   if (prop_shimmerColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'shimmerColor', prop_shimmerColor));
   }
@@ -8254,16 +9029,19 @@ export interface AttachmentProps {
 export function Attachment(props: AttachmentProps): Node {
   let node = kitNode('Attachment', props.children ?? [], props.className);
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -8273,11 +9051,13 @@ export function Attachment(props: AttachmentProps): Node {
   }
 
   const prop_image = props.image;
+
   if (prop_image !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'image', prop_image));
   }
 
   const prop_status = props.status;
+
   if (prop_status !== undefined) {
     if (typeof prop_status === 'string') {
       node = unwrapNode(nativeKitSet(node, 'status', `${prop_status}`));
@@ -8287,21 +9067,25 @@ export function Attachment(props: AttachmentProps): Node {
   }
 
   const prop_progress = props.progress;
+
   if (prop_progress !== undefined) {
     node = kitNumber(node, 'progress', prop_progress);
   }
 
   const prop_tooltip = props.tooltip;
+
   if (prop_tooltip !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'tooltip', prop_tooltip));
   }
 
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -8311,26 +9095,31 @@ export function Attachment(props: AttachmentProps): Node {
   }
 
   const prop_shimmerDuration = props.shimmerDuration;
+
   if (prop_shimmerDuration !== undefined) {
     node = kitInt(node, 'shimmerDuration', prop_shimmerDuration);
   }
 
   const prop_shimmerColor = props.shimmerColor;
+
   if (prop_shimmerColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'shimmerColor', prop_shimmerColor));
   }
 
   const event_onClick = props.onClick;
+
   if (event_onClick !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'click', event_onClick));
   }
 
   const event_onRemove = props.onRemove;
+
   if (event_onRemove !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'remove', event_onRemove));
   }
 
   const event_onRetry = props.onRetry;
+
   if (event_onRetry !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'retry', event_onRetry));
   }
@@ -8379,11 +9168,13 @@ export interface AttachmentTitleProps {
 export function AttachmentTitle(props: AttachmentTitleProps): Node {
   let node = kitNode('AttachmentTitle', props.children ?? [], props.className);
   const prop_shimmerDuration = props.shimmerDuration;
+
   if (prop_shimmerDuration !== undefined) {
     node = kitInt(node, 'shimmerDuration', prop_shimmerDuration);
   }
 
   const prop_shimmerColor = props.shimmerColor;
+
   if (prop_shimmerColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'shimmerColor', prop_shimmerColor));
   }
@@ -8417,6 +9208,7 @@ export interface AttachmentMediaProps {
 export function AttachmentMedia(props: AttachmentMediaProps): Node {
   let node = kitNode('AttachmentMedia', props.children ?? [], props.className);
   const prop_src = props.src;
+
   if (prop_src !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'src', prop_src));
   }
@@ -8437,6 +9229,7 @@ export interface AttachmentGroupProps {
 export function AttachmentGroup(props: AttachmentGroupProps): Node {
   let node = kitNode('AttachmentGroup', props.children ?? [], props.className);
   const prop_edgeFade = props.edgeFade;
+
   if (prop_edgeFade !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'edgeFade', prop_edgeFade));
   }
@@ -8527,11 +9320,13 @@ export interface DataTableProps {
 export function DataTable(props: DataTableProps): Node {
   let node = kitNode('DataTable', props.children ?? [], props.className);
   const prop_rows = props.rows;
+
   if (prop_rows !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'rows', prop_rows));
   }
 
   const prop_columns = props.columns;
+
   if (prop_columns !== undefined) {
     if (Array.isArray(prop_columns)) {
       node = unwrapNode(nativeKitSet(node, 'columns', prop_columns.join('\n')));
@@ -8542,111 +9337,133 @@ export function DataTable(props: DataTableProps): Node {
   }
 
   const prop_stripe = props.stripe;
+
   if (prop_stripe !== undefined) {
     node = kitFlag(node, 'stripe', prop_stripe);
   }
 
   const prop_bordered = props.bordered;
+
   if (prop_bordered !== undefined) {
     node = kitFlag(node, 'bordered', prop_bordered);
   }
 
   const prop_sortable = props.sortable;
+
   if (prop_sortable !== undefined) {
     node = kitFlag(node, 'sortable', prop_sortable);
   }
 
   const prop_rowSelectable = props.rowSelectable;
+
   if (prop_rowSelectable !== undefined) {
     node = kitFlag(node, 'rowSelectable', prop_rowSelectable);
   }
 
   const prop_columnSelectable = props.columnSelectable;
+
   if (prop_columnSelectable !== undefined) {
     node = kitFlag(node, 'columnSelectable', prop_columnSelectable);
   }
 
   const prop_cellSelectable = props.cellSelectable;
+
   if (prop_cellSelectable !== undefined) {
     node = kitFlag(node, 'cellSelectable', prop_cellSelectable);
   }
 
   const prop_selectOnModifierClick = props.selectOnModifierClick;
+
   if (prop_selectOnModifierClick !== undefined) {
     node = kitFlag(node, 'selectOnModifierClick', prop_selectOnModifierClick);
   }
 
   const prop_loopSelection = props.loopSelection;
+
   if (prop_loopSelection !== undefined) {
     node = kitFlag(node, 'loopSelection', prop_loopSelection);
   }
 
   const prop_columnMovable = props.columnMovable;
+
   if (prop_columnMovable !== undefined) {
     node = kitFlag(node, 'columnMovable', prop_columnMovable);
   }
 
   const prop_columnResizable = props.columnResizable;
+
   if (prop_columnResizable !== undefined) {
     node = kitFlag(node, 'columnResizable', prop_columnResizable);
   }
 
   const prop_rowHeader = props.rowHeader;
+
   if (prop_rowHeader !== undefined) {
     node = kitFlag(node, 'rowHeader', prop_rowHeader);
   }
 
   const prop_fixedColumnsBorder = props.fixedColumnsBorder;
+
   if (prop_fixedColumnsBorder !== undefined) {
     node = kitFlag(node, 'fixedColumnsBorder', prop_fixedColumnsBorder);
   }
 
   const prop_scrollbarVisible = props.scrollbarVisible;
+
   if (prop_scrollbarVisible !== undefined) {
     node = kitFlag(node, 'scrollbarVisible', prop_scrollbarVisible);
   }
 
   const prop_horizontalScrollbarVisible = props.horizontalScrollbarVisible;
+
   if (prop_horizontalScrollbarVisible !== undefined) {
     node = kitFlag(node, 'horizontalScrollbarVisible', prop_horizontalScrollbarVisible);
   }
 
   const prop_scrollBounce = props.scrollBounce;
+
   if (prop_scrollBounce !== undefined) {
     node = kitFlag(node, 'scrollBounce', prop_scrollBounce);
   }
 
   const prop_headerRowHeight = props.headerRowHeight;
+
   if (prop_headerRowHeight !== undefined) {
     node = kitNumber(node, 'headerRowHeight', prop_headerRowHeight);
   }
 
   const prop_selectedRow = props.selectedRow;
+
   if (prop_selectedRow !== undefined) {
     node = kitInt(node, 'selectedRow', prop_selectedRow);
   }
 
   const prop_loading = props.loading;
+
   if (prop_loading !== undefined) {
     node = kitFlag(node, 'loading', prop_loading);
   }
 
   const prop_hasMore = props.hasMore;
+
   if (prop_hasMore !== undefined) {
     node = kitFlag(node, 'hasMore', prop_hasMore);
   }
 
   const prop_loadMoreThreshold = props.loadMoreThreshold;
+
   if (prop_loadMoreThreshold !== undefined) {
     node = kitInt(node, 'loadMoreThreshold', prop_loadMoreThreshold);
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -8656,61 +9473,73 @@ export function DataTable(props: DataTableProps): Node {
   }
 
   const event_onSelect = props.onSelect;
+
   if (event_onSelect !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'select', event_onSelect));
   }
 
   const event_onActivate = props.onActivate;
+
   if (event_onActivate !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'activate', event_onActivate));
   }
 
   const event_onSelectColumn = props.onSelectColumn;
+
   if (event_onSelectColumn !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'selectColumn', event_onSelectColumn));
   }
 
   const event_onSelectCell = props.onSelectCell;
+
   if (event_onSelectCell !== undefined) {
     node = kitOnList(node, 'selectCell', event_onSelectCell);
   }
 
   const event_onActivateCell = props.onActivateCell;
+
   if (event_onActivateCell !== undefined) {
     node = kitOnList(node, 'activateCell', event_onActivateCell);
   }
 
   const event_onSort = props.onSort;
+
   if (event_onSort !== undefined) {
     node = kitOnList(node, 'sort', event_onSort);
   }
 
   const event_onColumnsChange = props.onColumnsChange;
+
   if (event_onColumnsChange !== undefined) {
     node = kitOnList(node, 'columnsChange', event_onColumnsChange);
   }
 
   const event_onColumnWidthsChange = props.onColumnWidthsChange;
+
   if (event_onColumnWidthsChange !== undefined) {
     node = kitOnList(node, 'columnWidthsChange', event_onColumnWidthsChange);
   }
 
   const event_onRightClick = props.onRightClick;
+
   if (event_onRightClick !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'rightClick', event_onRightClick));
   }
 
   const event_onContextMenu = props.onContextMenu;
+
   if (event_onContextMenu !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'contextMenu', event_onContextMenu));
   }
 
   const event_onClearSelection = props.onClearSelection;
+
   if (event_onClearSelection !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'clearSelection', event_onClearSelection));
   }
 
   const event_onLoadMore = props.onLoadMore;
+
   if (event_onLoadMore !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'loadMore', event_onLoadMore));
   }
@@ -8755,36 +9584,43 @@ export interface DataTableColumnProps {
 export function DataTableColumn(props: DataTableColumnProps): Node {
   let node = kitNode('DataTableColumn', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_key = props.key;
+
   if (prop_key !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'key', prop_key));
   }
 
   const prop_width = props.width;
+
   if (prop_width !== undefined) {
     node = kitNumber(node, 'width', prop_width);
   }
 
   const prop_minWidth = props.minWidth;
+
   if (prop_minWidth !== undefined) {
     node = kitNumber(node, 'minWidth', prop_minWidth);
   }
 
   const prop_maxWidth = props.maxWidth;
+
   if (prop_maxWidth !== undefined) {
     node = kitNumber(node, 'maxWidth', prop_maxWidth);
   }
 
   const prop_sortable = props.sortable;
+
   if (prop_sortable !== undefined) {
     node = kitFlag(node, 'sortable', prop_sortable);
   }
 
   const prop_defaultSort = props.defaultSort;
+
   if (prop_defaultSort !== undefined) {
     if (typeof prop_defaultSort === 'string') {
       node = unwrapNode(nativeKitSet(node, 'defaultSort', `${prop_defaultSort}`));
@@ -8794,6 +9630,7 @@ export function DataTableColumn(props: DataTableColumnProps): Node {
   }
 
   const prop_align = props.align;
+
   if (prop_align !== undefined) {
     if (typeof prop_align === 'string') {
       node = unwrapNode(nativeKitSet(node, 'align', `${prop_align}`));
@@ -8803,6 +9640,7 @@ export function DataTableColumn(props: DataTableColumnProps): Node {
   }
 
   const prop_fixed = props.fixed;
+
   if (prop_fixed !== undefined) {
     if (typeof prop_fixed === 'string') {
       node = unwrapNode(nativeKitSet(node, 'fixed', `${prop_fixed}`));
@@ -8812,21 +9650,25 @@ export function DataTableColumn(props: DataTableColumnProps): Node {
   }
 
   const prop_resizable = props.resizable;
+
   if (prop_resizable !== undefined) {
     node = kitFlag(node, 'resizable', prop_resizable);
   }
 
   const prop_movable = props.movable;
+
   if (prop_movable !== undefined) {
     node = kitFlag(node, 'movable', prop_movable);
   }
 
   const prop_selectable = props.selectable;
+
   if (prop_selectable !== undefined) {
     node = kitFlag(node, 'selectable', prop_selectable);
   }
 
   const prop_padding = props.padding;
+
   if (prop_padding !== undefined) {
     node = kitNumber(node, 'padding', prop_padding);
   }
@@ -8889,6 +9731,7 @@ export interface SettingsProps {
 export function Settings(props: SettingsProps): Node {
   let node = kitNode('Settings', props.children ?? [], props.className);
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -8898,31 +9741,37 @@ export function Settings(props: SettingsProps): Node {
   }
 
   const prop_sidebarWidth = props.sidebarWidth;
+
   if (prop_sidebarWidth !== undefined) {
     node = kitNumber(node, 'sidebarWidth', prop_sidebarWidth);
   }
 
   const prop_sidebarMinWidth = props.sidebarMinWidth;
+
   if (prop_sidebarMinWidth !== undefined) {
     node = kitNumber(node, 'sidebarMinWidth', prop_sidebarMinWidth);
   }
 
   const prop_sidebarMaxWidth = props.sidebarMaxWidth;
+
   if (prop_sidebarMaxWidth !== undefined) {
     node = kitNumber(node, 'sidebarMaxWidth', prop_sidebarMaxWidth);
   }
 
   const prop_defaultPage = props.defaultPage;
+
   if (prop_defaultPage !== undefined) {
     node = kitInt(node, 'defaultPage', prop_defaultPage);
   }
 
   const prop_defaultGroup = props.defaultGroup;
+
   if (prop_defaultGroup !== undefined) {
     node = kitInt(node, 'defaultGroup', prop_defaultGroup);
   }
 
   const prop_groupVariant = props.groupVariant;
+
   if (prop_groupVariant !== undefined) {
     if (typeof prop_groupVariant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'groupVariant', `${prop_groupVariant}`));
@@ -8932,11 +9781,13 @@ export function Settings(props: SettingsProps): Node {
   }
 
   const prop_sidebarClassName = props.sidebarClassName;
+
   if (prop_sidebarClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'sidebarClassName', prop_sidebarClassName));
   }
 
   const prop_headerClassName = props.headerClassName;
+
   if (prop_headerClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'headerClassName', prop_headerClassName));
   }
@@ -8967,31 +9818,37 @@ export interface SettingsPageProps {
 export function SettingsPage(props: SettingsPageProps): Node {
   let node = kitNode('SettingsPage', props.children ?? [], props.className);
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'icon', prop_icon));
   }
 
   const prop_defaultOpen = props.defaultOpen;
+
   if (prop_defaultOpen !== undefined) {
     node = kitFlag(node, 'defaultOpen', prop_defaultOpen);
   }
 
   const prop_resettable = props.resettable;
+
   if (prop_resettable !== undefined) {
     node = kitFlag(node, 'resettable', prop_resettable);
   }
 
   const prop_headerClassName = props.headerClassName;
+
   if (prop_headerClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'headerClassName', prop_headerClassName));
   }
@@ -9016,16 +9873,19 @@ export interface SettingsGroupProps {
 export function SettingsGroup(props: SettingsGroupProps): Node {
   let node = kitNode('SettingsGroup', props.children ?? [], props.className);
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));
@@ -9060,16 +9920,19 @@ export interface SettingItemProps {
 export function SettingItem(props: SettingItemProps): Node {
   let node = kitNode('SettingItem', props.children ?? [], props.className);
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_keywords = props.keywords;
+
   if (prop_keywords !== undefined) {
     if (Array.isArray(prop_keywords)) {
       node = unwrapNode(nativeKitSet(node, 'keywords', prop_keywords.join('\n')));
@@ -9080,6 +9943,7 @@ export function SettingItem(props: SettingItemProps): Node {
   }
 
   const prop_layout = props.layout;
+
   if (prop_layout !== undefined) {
     if (typeof prop_layout === 'string') {
       node = unwrapNode(nativeKitSet(node, 'layout', `${prop_layout}`));
@@ -9089,11 +9953,13 @@ export function SettingItem(props: SettingItemProps): Node {
   }
 
   const prop_dirty = props.dirty;
+
   if (prop_dirty !== undefined) {
     node = kitFlag(node, 'dirty', prop_dirty);
   }
 
   const event_onReset = props.onReset;
+
   if (event_onReset !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'reset', event_onReset));
   }
@@ -9130,46 +9996,55 @@ export interface MessageScrollerProps {
 export function MessageScroller(props: MessageScrollerProps): Node {
   let node = kitNode('MessageScroller', props.children ?? [], props.className);
   const prop_jumpLabel = props.jumpLabel;
+
   if (prop_jumpLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'jumpLabel', prop_jumpLabel));
   }
 
   const prop_scrollbar = props.scrollbar;
+
   if (prop_scrollbar !== undefined) {
     node = kitFlag(node, 'scrollbar', prop_scrollbar);
   }
 
   const prop_jumpButton = props.jumpButton;
+
   if (prop_jumpButton !== undefined) {
     node = kitFlag(node, 'jumpButton', prop_jumpButton);
   }
 
   const prop_jumpButtonTransition = props.jumpButtonTransition;
+
   if (prop_jumpButtonTransition !== undefined) {
     node = kitInt(node, 'jumpButtonTransition', prop_jumpButtonTransition);
   }
 
   const prop_bottomFade = props.bottomFade;
+
   if (prop_bottomFade !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'bottomFade', prop_bottomFade));
   }
 
   const prop_contentClassName = props.contentClassName;
+
   if (prop_contentClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'contentClassName', prop_contentClassName));
   }
 
   const prop_listClassName = props.listClassName;
+
   if (prop_listClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'listClassName', prop_listClassName));
   }
 
   const prop_rowClassName = props.rowClassName;
+
   if (prop_rowClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'rowClassName', prop_rowClassName));
   }
 
   const prop_jumpButtonClassName = props.jumpButtonClassName;
+
   if (prop_jumpButtonClassName !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'jumpButtonClassName', prop_jumpButtonClassName));
   }
@@ -9204,41 +10079,49 @@ export interface DockProps {
 export function Dock(props: DockProps): Node {
   let node = kitNode('Dock', props.children ?? [], props.className);
   const prop_vertical = props.vertical;
+
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
   }
 
   const prop_tabbed = props.tabbed;
+
   if (prop_tabbed !== undefined) {
     node = kitFlag(node, 'tabbed', prop_tabbed);
   }
 
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_initialLayout = props.initialLayout;
+
   if (prop_initialLayout !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'initialLayout', prop_initialLayout));
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
 
   const event_onClose = props.onClose;
+
   if (event_onClose !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'close', event_onClose));
   }
 
   const event_onLayoutChange = props.onLayoutChange;
+
   if (event_onLayoutChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'layoutChange', event_onLayoutChange));
   }
 
   const event_onLayoutError = props.onLayoutError;
+
   if (event_onLayoutError !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'layoutError', event_onLayoutError));
   }
@@ -9269,31 +10152,37 @@ export interface DockPanelProps {
 export function DockPanel(props: DockPanelProps): Node {
   let node = kitNode('DockPanel', props.children ?? [], props.className);
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     node = kitNumber(node, 'size', prop_size);
   }
 
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_closable = props.closable;
+
   if (prop_closable !== undefined) {
     node = kitFlag(node, 'closable', prop_closable);
   }
 
   const prop_padded = props.padded;
+
   if (prop_padded !== undefined) {
     node = kitFlag(node, 'padded', prop_padded);
   }
 
   const prop_splitControls = props.splitControls;
+
   if (prop_splitControls !== undefined) {
     node = kitFlag(node, 'splitControls', prop_splitControls);
   }
@@ -9328,6 +10217,7 @@ export interface QuestionnaireProps {
 export function Questionnaire(props: QuestionnaireProps): Node {
   let node = kitNode('Questionnaire', props.children ?? [], props.className);
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -9337,11 +10227,13 @@ export function Questionnaire(props: QuestionnaireProps): Node {
   }
 
   const prop_defaultCurrent = props.defaultCurrent;
+
   if (prop_defaultCurrent !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultCurrent', prop_defaultCurrent));
   }
 
   const prop_shortcuts = props.shortcuts;
+
   if (prop_shortcuts !== undefined) {
     if (typeof prop_shortcuts === 'string') {
       node = unwrapNode(nativeKitSet(node, 'shortcuts', `${prop_shortcuts}`));
@@ -9351,26 +10243,31 @@ export function Questionnaire(props: QuestionnaireProps): Node {
   }
 
   const event_onSubmit = props.onSubmit;
+
   if (event_onSubmit !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'submit', event_onSubmit));
   }
 
   const event_onChange = props.onChange;
+
   if (event_onChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
   }
 
   const event_onCurrentChange = props.onCurrentChange;
+
   if (event_onCurrentChange !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'currentChange', event_onCurrentChange));
   }
 
   const event_onComplete = props.onComplete;
+
   if (event_onComplete !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'complete', event_onComplete));
   }
 
   const event_onSubmitDetails = props.onSubmitDetails;
+
   if (event_onSubmitDetails !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'submitDetails', event_onSubmitDetails));
   }
@@ -9401,31 +10298,37 @@ export interface QuestionProps {
 export function Question(props: QuestionProps): Node {
   let node = kitNode('Question', props.children ?? [], props.className);
   const prop_id = props.id;
+
   if (prop_id !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'id', prop_id));
   }
 
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_required = props.required;
+
   if (prop_required !== undefined) {
     node = kitFlag(node, 'required', prop_required);
   }
 
   const prop_multiple = props.multiple;
+
   if (prop_multiple !== undefined) {
     node = kitFlag(node, 'multiple', prop_multiple);
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
@@ -9454,26 +10357,31 @@ export interface QuestionChoiceProps {
 export function QuestionChoice(props: QuestionChoiceProps): Node {
   let node = kitNode('QuestionChoice', props.children ?? [], props.className);
   const prop_id = props.id;
+
   if (prop_id !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'id', prop_id));
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_description = props.description;
+
   if (prop_description !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'description', prop_description));
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_defaultSelected = props.defaultSelected;
+
   if (prop_defaultSelected !== undefined) {
     node = kitFlag(node, 'defaultSelected', prop_defaultSelected);
   }
@@ -9498,21 +10406,25 @@ export interface QuestionInputProps {
 export function QuestionInput(props: QuestionInputProps): Node {
   let node = kitNode('QuestionInput', [], props.className);
   const prop_placeholder = props.placeholder;
+
   if (prop_placeholder !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'placeholder', prop_placeholder));
   }
 
   const prop_defaultValue = props.defaultValue;
+
   if (prop_defaultValue !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'defaultValue', prop_defaultValue));
   }
 
   const prop_accessibilityLabel = props.accessibilityLabel;
+
   if (prop_accessibilityLabel !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
@@ -9555,16 +10467,19 @@ export interface SpeechButtonProps {
 export function SpeechButton(props: SpeechButtonProps): Node {
   let node = kitNode('SpeechButton', [], props.className);
   const prop_locale = props.locale;
+
   if (prop_locale !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'locale', prop_locale));
   }
 
   const prop_waveform = props.waveform;
+
   if (prop_waveform !== undefined) {
     node = kitFlag(node, 'waveform', prop_waveform);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -9574,26 +10489,31 @@ export function SpeechButton(props: SpeechButtonProps): Node {
   }
 
   const prop_disabled = props.disabled;
+
   if (prop_disabled !== undefined) {
     node = kitFlag(node, 'disabled', prop_disabled);
   }
 
   const prop_showWhenUnsupported = props.showWhenUnsupported;
+
   if (prop_showWhenUnsupported !== undefined) {
     node = kitFlag(node, 'showWhenUnsupported', prop_showWhenUnsupported);
   }
 
   const prop_systemFallback = props.systemFallback;
+
   if (prop_systemFallback !== undefined) {
     node = kitFlag(node, 'systemFallback', prop_systemFallback);
   }
 
   const prop_stopTimeout = props.stopTimeout;
+
   if (prop_stopTimeout !== undefined) {
     node = kitInt(node, 'stopTimeout', prop_stopTimeout);
   }
 
   const prop_waveformStyle = props.waveformStyle;
+
   if (prop_waveformStyle !== undefined) {
     if (typeof prop_waveformStyle === 'string') {
       node = unwrapNode(nativeKitSet(node, 'waveformStyle', `${prop_waveformStyle}`));
@@ -9603,26 +10523,31 @@ export function SpeechButton(props: SpeechButtonProps): Node {
   }
 
   const event_onPartial = props.onPartial;
+
   if (event_onPartial !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'partial', event_onPartial));
   }
 
   const event_onFinal = props.onFinal;
+
   if (event_onFinal !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'final', event_onFinal));
   }
 
   const event_onError = props.onError;
+
   if (event_onError !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'error', event_onError));
   }
 
   const event_onStarted = props.onStarted;
+
   if (event_onStarted !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'started', event_onStarted));
   }
 
   const event_onCancelled = props.onCancelled;
+
   if (event_onCancelled !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'cancelled', event_onCancelled));
   }
@@ -9647,6 +10572,7 @@ export interface PlotProps {
 export function Plot(props: PlotProps): Node {
   let node = kitNode('Plot', props.children ?? [], props.className);
   const prop_labels = props.labels;
+
   if (prop_labels !== undefined) {
     if (Array.isArray(prop_labels)) {
       node = unwrapNode(nativeKitSet(node, 'labels', JSON.stringify(prop_labels)));
@@ -9657,11 +10583,13 @@ export function Plot(props: PlotProps): Node {
   }
 
   const prop_axis = props.axis;
+
   if (prop_axis !== undefined) {
     node = kitFlag(node, 'axis', prop_axis);
   }
 
   const prop_grid = props.grid;
+
   if (prop_grid !== undefined) {
     node = kitFlag(node, 'grid', prop_grid);
   }
@@ -9696,31 +10624,37 @@ export interface PlotTooltipProps {
 export function PlotTooltip(props: PlotTooltipProps): Node {
   let node = kitNode('PlotTooltip', props.children ?? [], props.className);
   const prop_glide = props.glide;
+
   if (prop_glide !== undefined) {
     node = kitFlag(node, 'glide', prop_glide);
   }
 
   const prop_progress = props.progress;
+
   if (prop_progress !== undefined) {
     node = kitNumber(node, 'progress', prop_progress);
   }
 
   const prop_title = props.title;
+
   if (prop_title !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'title', prop_title));
   }
 
   const prop_showSeries = props.showSeries;
+
   if (prop_showSeries !== undefined) {
     node = kitFlag(node, 'showSeries', prop_showSeries);
   }
 
   const prop_gap = props.gap;
+
   if (prop_gap !== undefined) {
     node = kitNumber(node, 'gap', prop_gap);
   }
 
   const prop_crossLine = props.crossLine;
+
   if (prop_crossLine !== undefined) {
     if (typeof prop_crossLine === 'string') {
       node = unwrapNode(nativeKitSet(node, 'crossLine', `${prop_crossLine}`));
@@ -9730,11 +10664,13 @@ export function PlotTooltip(props: PlotTooltipProps): Node {
   }
 
   const prop_dots = props.dots;
+
   if (prop_dots !== undefined) {
     node = kitFlag(node, 'dots', prop_dots);
   }
 
   const prop_appearance = props.appearance;
+
   if (prop_appearance !== undefined) {
     node = kitFlag(node, 'appearance', prop_appearance);
   }
@@ -9759,21 +10695,25 @@ export interface PlotTooltipRowProps {
 export function PlotTooltipRow(props: PlotTooltipRowProps): Node {
   let node = kitNode('PlotTooltipRow', [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_value = props.value;
+
   if (prop_value !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'value', prop_value));
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_valueColor = props.valueColor;
+
   if (prop_valueColor !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'valueColor', prop_valueColor));
   }
@@ -9802,6 +10742,7 @@ export interface PlotLineProps {
 export function PlotLine(props: PlotLineProps): Node {
   let node = kitNode('PlotLine', [], props.className);
   const prop_values = props.values;
+
   if (prop_values !== undefined) {
     if (Array.isArray(prop_values)) {
       node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
@@ -9812,11 +10753,13 @@ export function PlotLine(props: PlotLineProps): Node {
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_curve = props.curve;
+
   if (prop_curve !== undefined) {
     if (typeof prop_curve === 'string') {
       node = unwrapNode(nativeKitSet(node, 'curve', `${prop_curve}`));
@@ -9826,16 +10769,19 @@ export function PlotLine(props: PlotLineProps): Node {
   }
 
   const prop_dots = props.dots;
+
   if (prop_dots !== undefined) {
     node = kitFlag(node, 'dots', prop_dots);
   }
 
   const prop_width = props.width;
+
   if (prop_width !== undefined) {
     node = kitNumber(node, 'width', prop_width);
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
@@ -9860,6 +10806,7 @@ export interface PlotAreaProps {
 export function PlotArea(props: PlotAreaProps): Node {
   let node = kitNode('PlotArea', [], props.className);
   const prop_values = props.values;
+
   if (prop_values !== undefined) {
     if (Array.isArray(prop_values)) {
       node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
@@ -9870,11 +10817,13 @@ export function PlotArea(props: PlotAreaProps): Node {
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_curve = props.curve;
+
   if (prop_curve !== undefined) {
     if (typeof prop_curve === 'string') {
       node = unwrapNode(nativeKitSet(node, 'curve', `${prop_curve}`));
@@ -9884,6 +10833,7 @@ export function PlotArea(props: PlotAreaProps): Node {
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
@@ -9906,6 +10856,7 @@ export interface PlotBarsProps {
 export function PlotBars(props: PlotBarsProps): Node {
   let node = kitNode('PlotBars', [], props.className);
   const prop_values = props.values;
+
   if (prop_values !== undefined) {
     if (Array.isArray(prop_values)) {
       node = unwrapNode(nativeKitSet(node, 'values', prop_values.join('\n')));
@@ -9916,11 +10867,13 @@ export function PlotBars(props: PlotBarsProps): Node {
   }
 
   const prop_color = props.color;
+
   if (prop_color !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'color', prop_color));
   }
 
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
@@ -9943,16 +10896,19 @@ export interface ShortcutProps {
 export function Shortcut(props: ShortcutProps): Node {
   let node = kitNode('Shortcut', [], props.className);
   const prop_command = props.command;
+
   if (prop_command !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'command', prop_command));
   }
 
   const prop_keys = props.keys;
+
   if (prop_keys !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'keys', prop_keys));
   }
 
   const event_onTrigger = props.onTrigger;
+
   if (event_onTrigger !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'trigger', event_onTrigger));
   }
@@ -9975,16 +10931,19 @@ export interface TickerProps {
 export function Ticker(props: TickerProps): Node {
   let node = kitNode('Ticker', [], props.className);
   const prop_interval = props.interval;
+
   if (prop_interval !== undefined) {
     node = kitNumber(node, 'interval', prop_interval);
   }
 
   const prop_running = props.running;
+
   if (prop_running !== undefined) {
     node = kitFlag(node, 'running', prop_running);
   }
 
   const event_onTick = props.onTick;
+
   if (event_onTick !== undefined) {
     node = unwrapNode(nativeKitOnInt(node, 'tick', event_onTick));
   }
@@ -10005,6 +10964,7 @@ export interface MenuLabelProps {
 export function MenuLabel(props: MenuLabelProps): Node {
   let node = kitNode('MenuLabel', props.children ?? [], props.className);
   const prop_text = props.text;
+
   if (prop_text !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'text', prop_text));
   }
@@ -10038,11 +10998,13 @@ export interface SubmenuProps {
 export function Submenu(props: SubmenuProps): Node {
   let node = kitNode('Submenu', props.children ?? [], props.className);
   const prop_label = props.label;
+
   if (prop_label !== undefined) {
     node = unwrapNode(nativeKitValue(node, 'label', prop_label));
   }
 
   const prop_icon = props.icon;
+
   if (prop_icon !== undefined) {
     if (typeof prop_icon === 'string') {
       node = unwrapNode(nativeKitSet(node, 'icon', `${prop_icon}`));
@@ -10071,16 +11033,19 @@ export interface AvatarGroupProps {
 export function AvatarGroup(props: AvatarGroupProps): Node {
   let node = kitNode('AvatarGroup', props.children ?? [], props.className);
   const prop_limit = props.limit;
+
   if (prop_limit !== undefined) {
     node = kitInt(node, 'limit', prop_limit);
   }
 
   const prop_ellipsis = props.ellipsis;
+
   if (prop_ellipsis !== undefined) {
     node = kitFlag(node, 'ellipsis', prop_ellipsis);
   }
 
   const prop_size = props.size;
+
   if (prop_size !== undefined) {
     if (typeof prop_size === 'string') {
       node = unwrapNode(nativeKitSet(node, 'size', `${prop_size}`));
@@ -10107,11 +11072,13 @@ export interface EmptyMediaProps {
 export function EmptyMedia(props: EmptyMediaProps): Node {
   let node = kitNode('EmptyMedia', props.children ?? [], props.className);
   const prop_framed = props.framed;
+
   if (prop_framed !== undefined) {
     node = kitFlag(node, 'framed', prop_framed);
   }
 
   const prop_variant = props.variant;
+
   if (prop_variant !== undefined) {
     if (typeof prop_variant === 'string') {
       node = unwrapNode(nativeKitSet(node, 'variant', `${prop_variant}`));

@@ -19,6 +19,7 @@ function main() {
   const plainStrings: string[] = plain();
   plainNumbers.push(7);
   plainStrings.push("plain");
+
   if (plainNumbers[0] !== 7 || plainStrings[0] !== "plain") {
     throw 99;
   }

@@ -56,6 +56,7 @@ export function run() {
   holder.next = child;
   const callback = take(holder.next!);
   const result = callback();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 7);

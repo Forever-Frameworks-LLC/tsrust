@@ -3,6 +3,7 @@ function workload(n: int, seed: int, input: string): string[] {
   const extras: int[] = [-10000, -1, 0, 1, 2, 5, 8, 17];
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const at = (i * 13 + seed) % 8;
     const target: int = values[at].length + extras[(i * 7 + seed) % 8];

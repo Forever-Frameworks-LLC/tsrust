@@ -1,14 +1,17 @@
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     let trace = "";
     let count = 0;
     let filtered = "";
     let nested = "";
+
     for (const character of input) {
       trace = trace + character + "|";
       count += 1;
+
       if (character !== "é") {
         filtered = filtered + character;
       }

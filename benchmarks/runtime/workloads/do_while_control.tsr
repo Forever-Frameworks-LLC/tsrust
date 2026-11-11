@@ -1,14 +1,17 @@
 function workload(n: int, seed: int): int {
   let sum = seed;
   let i = 0;
+
   while (i < n) {
     const bound = (i + seed) % 10;
     const stop = (i * 3 + seed) % 7;
     let j = 0;
+
     do {
       const current = j;
       j = j + 1;
       sum = (sum * 131 + (current + seed) % 97) % 1000000007;
+
       if (current === stop) {
         break;
       }

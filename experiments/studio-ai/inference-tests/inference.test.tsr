@@ -6,6 +6,7 @@ import { chatPrompt } from '../prompts.tsr';
 
 function resource(name: string): string {
   const value = unwrap(get(name));
+
   if (value === undefined) {
     throw 'Missing verified local artifact path: ' + name;
   }
@@ -17,6 +18,7 @@ test('invalid generation limits reject before reading local resources', () => {
   for (const count of [0, -1, 33]) {
     const worker = unwrap(spawn((task) => qwen_generate(task, '/missing/model', '/missing/tokenizer', 'test', count)));
     let rejected = false;
+
     match (unwrap(worker.join())) {
       Ok(_) => {},
       Err(error) => {

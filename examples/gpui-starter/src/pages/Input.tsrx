@@ -6,22 +6,32 @@ function BasicInput(): Node {
   const text = signal('');
   return (
     <View className="flex-col gap-2 w-80">
-      <Input onChange={(event) => { text.set(event.target.value); }} />
+      <Input
+        onChange={(event) => {
+          text.set(event.target.value);
+        }}
+      />
       <Text variant="muted">Value: {text}</Text>
     </View>
   );
 }
 
 function PlaceholderInput(): Node {
-  return <Input placeholder="Enter your name..." className="w-80" />;
+  return (
+    <Input placeholder="Enter your name..." className="w-80" />
+  );
 }
 
 function DefaultValueInput(): Node {
-  return <Input defaultValue="John Doe" className="w-80" />;
+  return (
+    <Input defaultValue="John Doe" className="w-80" />
+  );
 }
 
 function CleanableInput(): Node {
-  return <Input cleanable={true} defaultValue="Clear me" className="w-80" />;
+  return (
+    <Input cleanable={true} defaultValue="Clear me" className="w-80" />
+  );
 }
 
 function PrefixSuffixInput(): Node {
@@ -35,7 +45,9 @@ function PrefixSuffixInput(): Node {
 }
 
 function PasswordInput(): Node {
-  return <Input type="password" defaultValue="password123" className="w-80" />;
+  return (
+    <Input type="password" defaultValue="password123" className="w-80" />
+  );
 }
 
 function InputSizes(): Node {
@@ -59,7 +71,9 @@ function DisabledInput(): Node {
 }
 
 function EscapeInput(): Node {
-  return <Input cleanOnEscape={true} placeholder="Type, then press Escape" className="w-80" />;
+  return (
+    <Input cleanOnEscape={true} placeholder="Type, then press Escape" className="w-80" />
+  );
 }
 
 function ValidatedInput(): Node {
@@ -77,7 +91,14 @@ function MaskedInput(): Node {
     <View className="flex-col gap-2 w-80">
       <Input mask="(999)-999-9999" placeholder="Phone" />
       <Input mask="AAA-###-AAA" placeholder="Code" />
-      <Input thousandsSeparator="," fractionDigits={2} placeholder="Amount" onChange={(event) => { amount.set(event.target.value); }} />
+      <Input
+        thousandsSeparator=","
+        fractionDigits={2}
+        placeholder="Amount"
+        onChange={(event) => {
+          amount.set(event.target.value);
+        }}
+      />
       <Text variant="muted">Value: {amount}</Text>
     </View>
   );
@@ -87,8 +108,21 @@ function InputEvents(): Node {
   const log = signal('Nothing yet');
   return (
     <View className="flex-col gap-2 w-80">
-      <Input placeholder="Focus, type and press Enter" onFocus={() => { log.set('Focused'); }} onBlur={() => { log.set('Blurred'); }} onSubmit={(secondary) => { log.set(secondary ? 'Submitted with the modifier' : 'Submitted'); }} />
-      <Text variant="muted">{log}</Text>
+      <Input
+        placeholder="Focus, type and press Enter"
+        onFocus={() => {
+          log.set('Focused');
+        }}
+        onBlur={() => {
+          log.set('Blurred');
+        }}
+        onSubmit={(secondary) => {
+          log.set(secondary ? 'Submitted with the modifier' : 'Submitted');
+        }}
+      />
+      <Text variant="muted">
+        {log}
+      </Text>
     </View>
   );
 }
@@ -102,7 +136,9 @@ function BareInput(): Node {
 }
 
 function NoMenuInput(): Node {
-  return <Input contextMenu={false} defaultValue="Right-click does nothing" className="w-80" />;
+  return (
+    <Input contextMenu={false} defaultValue="Right-click does nothing" className="w-80" />
+  );
 }
 
 function CustomInputMenu(): Node {
@@ -129,7 +165,9 @@ function ControlledInput(): Node {
         <Button size="small" onPress={() => { controlInput('demo-field', 'clear'); }}>Clear</Button>
         <Button size="small" onPress={() => { readInput('demo-field', (field) => { selection.set(`Selected: "${field.selectedText ?? ''}" (${field.selectionStart ?? 0}-${field.selectionEnd ?? 0})`); }); }}>Read selection</Button>
       </View>
-      <Text variant="muted">{selection}</Text>
+      <Text variant="muted">
+        {selection}
+      </Text>
     </View>
   );
 }
@@ -138,7 +176,13 @@ function TokenInput(): Node {
   const clicked = signal('none');
   return (
     <View className="flex-col gap-2 w-96">
-      <Input id="token-field" placeholder="Message" onTokenClick={(id) => { clicked.set(id); }} />
+      <Input
+        id="token-field"
+        placeholder="Message"
+        onTokenClick={(id) => {
+          clicked.set(id);
+        }}
+      />
       <View className="flex-row gap-2">
         <Button size="small" onPress={() => { controlInput('token-field', 'insertToken', { value: '@alice', label: 'Alice' }); }}>Mention Alice</Button>
         <Button size="small" onPress={() => { controlInput('token-field', 'insertToken', { value: '#general', label: 'general' }); }}>Add #general</Button>
@@ -153,10 +197,20 @@ function SynchronousInput(): Node {
   const paste = signal('Paste into this field to inspect the clipboard snapshot.');
   return (
     <View className="flex-col gap-3 w-full">
-      <Input id="validated-input" placeholder="Up to eight bytes" onValidate={(value) => value.length <= 8} onPaste={(payload) => { paste.set(payload); return consume.get(); }} />
+      <Input
+        id="validated-input"
+        placeholder="Up to eight bytes"
+        onValidate={(value) => value.length <= 8}
+        onPaste={(payload) => {
+          paste.set(payload);
+          return consume.get();
+        }}
+      />
       <Switch checked={consume.get()} onChange={(value) => { consume.set(value); }}>Consume paste without inserting</Switch>
       <Button size="small" onPress={() => { writeClipboard('Pasted'); }}>Copy test text</Button>
-      <Text>{paste.get()}</Text>
+      <Text>
+        {paste.get()}
+      </Text>
     </View>
   );
 }
@@ -169,7 +223,9 @@ export function InputPage(): Node {
         <ExampleTitle>Basic Input</ExampleTitle>
         <ExampleDescription>Uncontrolled: the field keeps its own text. onChange reports each edit.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicInput /></ExamplePreview>
+          <ExamplePreview>
+            <BasicInput />
+          </ExamplePreview>
           <ExampleCode>{`function BasicInput(): Node {
   const text = signal('');
   return (
@@ -185,7 +241,9 @@ export function InputPage(): Node {
         <ExampleTitle>With Placeholder</ExampleTitle>
         <ExampleDescription>Hint text while the field is empty.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PlaceholderInput /></ExamplePreview>
+          <ExamplePreview>
+            <PlaceholderInput />
+          </ExamplePreview>
           <ExampleCode>{`function PlaceholderInput(): Node {
   return <Input placeholder="Enter your name..." className="w-80" />;
 }`}</ExampleCode>
@@ -195,7 +253,9 @@ export function InputPage(): Node {
         <ExampleTitle>With Default Value</ExampleTitle>
         <ExampleDescription>The starting text of an uncontrolled field.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DefaultValueInput /></ExamplePreview>
+          <ExamplePreview>
+            <DefaultValueInput />
+          </ExamplePreview>
           <ExampleCode>{`function DefaultValueInput(): Node {
   return <Input defaultValue="John Doe" className="w-80" />;
 }`}</ExampleCode>
@@ -205,7 +265,9 @@ export function InputPage(): Node {
         <ExampleTitle>Cleanable Input</ExampleTitle>
         <ExampleDescription>A clear button while the field has a value.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CleanableInput /></ExamplePreview>
+          <ExamplePreview>
+            <CleanableInput />
+          </ExamplePreview>
           <ExampleCode>{`function CleanableInput(): Node {
   return <Input cleanable={true} defaultValue="Clear me" className="w-80" />;
 }`}</ExampleCode>
@@ -215,7 +277,9 @@ export function InputPage(): Node {
         <ExampleTitle>With Prefix and Suffix</ExampleTitle>
         <ExampleDescription>Icons before and after the text. For buttons and text addons, use InputGroup.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PrefixSuffixInput /></ExamplePreview>
+          <ExamplePreview>
+            <PrefixSuffixInput />
+          </ExamplePreview>
           <ExampleCode>{`function PrefixSuffixInput(): Node {
   return (
     <View className="flex-col gap-2 w-80">
@@ -231,7 +295,9 @@ export function InputPage(): Node {
         <ExampleTitle>Password Input (Masked)</ExampleTitle>
         <ExampleDescription>type="password" masks the value and adds a reveal toggle; copy and cut are blocked while masked.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PasswordInput /></ExamplePreview>
+          <ExamplePreview>
+            <PasswordInput />
+          </ExamplePreview>
           <ExampleCode>{`function PasswordInput(): Node {
   return <Input type="password" defaultValue="password123" className="w-80" />;
 }`}</ExampleCode>
@@ -241,7 +307,9 @@ export function InputPage(): Node {
         <ExampleTitle>Input Sizes</ExampleTitle>
         <ExampleDescription>xsmall to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><InputSizes /></ExamplePreview>
+          <ExamplePreview>
+            <InputSizes />
+          </ExamplePreview>
           <ExampleCode>{`function InputSizes(): Node {
   return (
     <View className="flex-col gap-2 w-80">
@@ -258,7 +326,9 @@ export function InputPage(): Node {
         <ExampleTitle>Disabled and Read-only</ExampleTitle>
         <ExampleDescription>A read-only field keeps its look and can still be focused, selected and copied.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledInput /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledInput />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledInput(): Node {
   return (
     <View className="flex-col gap-2 w-80">
@@ -273,7 +343,9 @@ export function InputPage(): Node {
         <ExampleTitle>Clean on ESC</ExampleTitle>
         <ExampleDescription>Escape clears the field.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><EscapeInput /></ExamplePreview>
+          <ExamplePreview>
+            <EscapeInput />
+          </ExamplePreview>
           <ExampleCode>{`function EscapeInput(): Node {
   return <Input cleanOnEscape={true} placeholder="Type, then press Escape" className="w-80" />;
 }`}</ExampleCode>
@@ -283,7 +355,9 @@ export function InputPage(): Node {
         <ExampleTitle>Input Validation</ExampleTitle>
         <ExampleDescription>A pattern every value must match; edits that would break it are rejected.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ValidatedInput /></ExamplePreview>
+          <ExamplePreview>
+            <ValidatedInput />
+          </ExamplePreview>
           <ExampleCode>{`function ValidatedInput(): Node {
   return (
     <View className="flex-col gap-2 w-80">
@@ -298,7 +372,9 @@ export function InputPage(): Node {
         <ExampleTitle>Input Masking</ExampleTitle>
         <ExampleDescription>mask formats as you type: 9 an optional digit, # a digit, A a letter. thousandsSeparator and fractionDigits format numbers.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><MaskedInput /></ExamplePreview>
+          <ExamplePreview>
+            <MaskedInput />
+          </ExamplePreview>
           <ExampleCode>{`function MaskedInput(): Node {
   const amount = signal('');
   return (
@@ -316,7 +392,9 @@ export function InputPage(): Node {
         <ExampleTitle>Handle Input Events</ExampleTitle>
         <ExampleDescription>onFocus, onBlur and onSubmit (Enter) beside onChange.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><InputEvents /></ExamplePreview>
+          <ExamplePreview>
+            <InputEvents />
+          </ExamplePreview>
           <ExampleCode>{`function InputEvents(): Node {
   const log = signal('Nothing yet');
   return (
@@ -332,7 +410,9 @@ export function InputPage(): Node {
         <ExampleTitle>Custom Appearance</ExampleTitle>
         <ExampleDescription>appearance=false draws bare text for a custom container.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BareInput /></ExamplePreview>
+          <ExamplePreview>
+            <BareInput />
+          </ExamplePreview>
           <ExampleCode>{`function BareInput(): Node {
   return (
     <View className="w-80 border-b-2 border-border bg-secondary px-6 py-3">
@@ -346,7 +426,9 @@ export function InputPage(): Node {
         <ExampleTitle>Context Menu</ExampleTitle>
         <ExampleDescription>contextMenu=false turns off the right-click edit menu.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><NoMenuInput /></ExamplePreview>
+          <ExamplePreview>
+            <NoMenuInput />
+          </ExamplePreview>
           <ExampleCode>{`function NoMenuInput(): Node {
   return <Input contextMenu={false} defaultValue="Right-click does nothing" className="w-80" />;
 }`}</ExampleCode>
@@ -356,7 +438,9 @@ export function InputPage(): Node {
         <ExampleTitle>Custom input menu</ExampleTitle>
         <ExampleDescription>Compose ContextMenu around Input with contextMenu=false. Menu actions use the same field state through controlInput; no separate field implementation is needed.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CustomInputMenu /></ExamplePreview>
+          <ExamplePreview>
+            <CustomInputMenu />
+          </ExamplePreview>
           <ExampleCode>{`function CustomInputMenu(): Node {
   return (
     <ContextMenu>
@@ -373,7 +457,9 @@ export function InputPage(): Node {
         <ExampleTitle>Programmatic Control</ExampleTitle>
         <ExampleDescription>controlInput runs actions on the field with that id; readInput reads its text and selection.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledInput /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledInput />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledInput(): Node {
   const selection = signal('Select some text, then read it');
   return (
@@ -397,7 +483,9 @@ export function InputPage(): Node {
         <ExampleTitle>Atomic Inline Tokens</ExampleTitle>
         <ExampleDescription>Tokens select and delete as a whole; onTokenClick receives the token id.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TokenInput /></ExamplePreview>
+          <ExamplePreview>
+            <TokenInput />
+          </ExamplePreview>
           <ExampleCode>{`function TokenInput(): Node {
   const clicked = signal('none');
   return (
@@ -417,7 +505,9 @@ export function InputPage(): Node {
         <ExampleTitle>Validation and paste decisions</ExampleTitle>
         <ExampleDescription>Validation rejects nonempty edits over eight bytes but still allows clearing. Paste can be observed or consumed before insertion.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SynchronousInput /></ExamplePreview>
+          <ExamplePreview>
+            <SynchronousInput />
+          </ExamplePreview>
           <ExampleCode>{`function SynchronousInput(): Node {
   const consume = signal(false);
   const paste = signal('Paste into this field to inspect the clipboard snapshot.');

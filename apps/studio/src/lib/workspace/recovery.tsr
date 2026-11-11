@@ -32,6 +32,7 @@ export interface Recovery {
 export function recoveryPath(root: ReadOnly<string>): Result<string, string> {
   try {
     const home = unwrap(homeDir());
+
     if (home === undefined) return Err('The home directory is unavailable. Draft recovery is disabled.');
     const folder = join(home, '.tsrust', 'studio', 'recovery');
     unwrap(mkdirAll(folder));
@@ -45,6 +46,7 @@ export function recoveryPath(root: ReadOnly<string>): Result<string, string> {
 // Validate the complete journal before changing any open buffers.
 export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Result<Recovery, string> {
   let baseline = '';
+
   match (readTextFile(path, 32 * 1024 * 1024)) {
     Ok(text) => {
       baseline = text;
@@ -59,13 +61,17 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
 
   try {
     const journal = JSON.parse<Journal>(baseline);
+
     if (journal.schemaVersion !== 1 || journal.root !== workspace.root) return Err('Draft recovery belongs to another workspace or version.');
     const zoom = journal.zoomLevel ?? 0;
+
     if (zoom < -40 || zoom > 40) return Err('Invalid recovery document.');
     const next = clone(workspace);
     const opened = journal.opened;
+
     if (opened !== undefined) {
       const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+
       for (const file of opened) {
         if (!file.startsWith(prefix)) return Err('This file is outside the open project directory.');
         // Deleted clean files need no recovery; dirty files are still required below.
@@ -84,6 +90,7 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
     for (const draft of journal.drafts) {
       unwrap(openFile(next, draft.path));
       const index = next.files.findIndex((file) => file.document.path === draft.path);
+
       if (index < 0 || next.files[index].kind !== 'text') return Err('Invalid recovery document.');
       edit(next.files[index].document, clone(draft.text));
       next.files[index].document.savedText = clone(draft.savedText);
@@ -91,6 +98,7 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
     }
 
     const active = journal.active;
+
     if (active !== undefined) selectFile(next, active);
     workspace.files = next.files;
     workspace.active = next.active;
@@ -107,6 +115,7 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
 export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutable<Recovery>): Result<void, string> {
   if (!recovery.ready) return Err('Draft recovery is unavailable. Save your work before restarting.');
   const drafts: Draft[] = [];
+
   for (const file of workspace.files) {
     if (file.kind === 'text' && dirty(file.document)) drafts.push({
       path: clone(file.document.path), text: clone(file.document.text), savedText: clone(file.document.savedText), durabilityPending: file.document.durabilityPending
@@ -117,9 +126,11 @@ export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutabl
     schemaVersion: 1, root: clone(workspace.root), drafts, opened: workspace.files.map((file) => clone(file.document.path)), active: clone(workspace.active), dockLayout: clone(workspace.dockLayout), zoomLevel: workspace.zoomLevel
   };
   const text = JSON.stringify(journal);
+
   if (text === recovery.baseline) return Ok();
   // shortcut: one Studio writer per workspace; coordinate first journal creation before supporting duplicate workspace windows.
   const expected = recovery.baseline === '' ? undefined : clone(recovery.baseline);
+
   match (writeTextFileAtomic(recovery.path, text, expected)) {
     Ok(_) => {
       recovery.baseline = text;

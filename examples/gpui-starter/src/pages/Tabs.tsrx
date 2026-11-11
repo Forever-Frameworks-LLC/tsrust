@@ -8,9 +8,15 @@ function BasicTabs(): Node {
       <Tab value="account">Account</Tab>
       <Tab value="profile">Profile</Tab>
       <Tab value="settings">Settings</Tab>
-      <TabsContent value="account"><Text>Make changes to your account here.</Text></TabsContent>
-      <TabsContent value="profile"><Text>Update your public profile.</Text></TabsContent>
-      <TabsContent value="settings"><Text>Choose your preferences.</Text></TabsContent>
+      <TabsContent value="account">
+        <Text>Make changes to your account here.</Text>
+      </TabsContent>
+      <TabsContent value="profile">
+        <Text>Update your public profile.</Text>
+      </TabsContent>
+      <TabsContent value="settings">
+        <Text>Choose your preferences.</Text>
+      </TabsContent>
     </Tabs>
   );
 }
@@ -18,11 +24,33 @@ function BasicTabs(): Node {
 function TabVariants(): Node {
   return (
     <View className="flex-col gap-4">
-      <Tabs><Tab>Account</Tab><Tab>Profile</Tab><Tab>Documents</Tab></Tabs>
-      <Tabs variant="underline"><Tab>Account</Tab><Tab>Profile</Tab><Tab>Documents</Tab></Tabs>
-      <Tabs variant="pill"><Tab>Account</Tab><Tab>Profile</Tab><Tab>Documents</Tab></Tabs>
-      <Tabs variant="outline"><Tab>Account</Tab><Tab>Profile</Tab><Tab>Documents</Tab></Tabs>
-      <Tabs variant="segmented"><Tab icon="bot" accessibilityLabel="Bot" /><Tab icon="calendar" accessibilityLabel="Calendar" /><Tab icon="map" accessibilityLabel="Map" /><Tab>Settings</Tab><Tab>About</Tab></Tabs>
+      <Tabs>
+        <Tab>Account</Tab>
+        <Tab>Profile</Tab>
+        <Tab>Documents</Tab>
+      </Tabs>
+      <Tabs variant="underline">
+        <Tab>Account</Tab>
+        <Tab>Profile</Tab>
+        <Tab>Documents</Tab>
+      </Tabs>
+      <Tabs variant="pill">
+        <Tab>Account</Tab>
+        <Tab>Profile</Tab>
+        <Tab>Documents</Tab>
+      </Tabs>
+      <Tabs variant="outline">
+        <Tab>Account</Tab>
+        <Tab>Profile</Tab>
+        <Tab>Documents</Tab>
+      </Tabs>
+      <Tabs variant="segmented">
+        <Tab icon="bot" accessibilityLabel="Bot" />
+        <Tab icon="calendar" accessibilityLabel="Calendar" />
+        <Tab icon="map" accessibilityLabel="Map" />
+        <Tab>Settings</Tab>
+        <Tab>About</Tab>
+      </Tabs>
     </View>
   );
 }
@@ -40,10 +68,22 @@ function FolderTabs(): Node {
 function TabSizes(): Node {
   return (
     <View className="flex-col gap-3">
-      <Tabs size="xsmall"><Tab>Extra small</Tab><Tab>Tab</Tab></Tabs>
-      <Tabs size="small"><Tab>Small</Tab><Tab>Tab</Tab></Tabs>
-      <Tabs><Tab>Medium</Tab><Tab>Tab</Tab></Tabs>
-      <Tabs size="large"><Tab>Large</Tab><Tab>Tab</Tab></Tabs>
+      <Tabs size="xsmall">
+        <Tab>Extra small</Tab>
+        <Tab>Tab</Tab>
+      </Tabs>
+      <Tabs size="small">
+        <Tab>Small</Tab>
+        <Tab>Tab</Tab>
+      </Tabs>
+      <Tabs>
+        <Tab>Medium</Tab>
+        <Tab>Tab</Tab>
+      </Tabs>
+      <Tabs size="large">
+        <Tab>Large</Tab>
+        <Tab>Tab</Tab>
+      </Tabs>
     </View>
   );
 }
@@ -61,11 +101,17 @@ function IconTabs(): Node {
 function AffixTabs(): Node {
   return (
     <Tabs className="w-full">
-      <TabsPrefix><Button size="xsmall" variant="ghost" icon="arrow-left" /><Button size="xsmall" variant="ghost" icon="arrow-right" /></TabsPrefix>
+      <TabsPrefix>
+        <Button size="xsmall" variant="ghost" icon="arrow-left" />
+        <Button size="xsmall" variant="ghost" icon="arrow-right" />
+      </TabsPrefix>
       <Tab>Account</Tab>
       <Tab>Profile</Tab>
       <Tab>Settings</Tab>
-      <TabsSuffix><Button size="xsmall" variant="ghost" icon="inbox" /><Button size="xsmall" variant="ghost" icon="ellipsis" /></TabsSuffix>
+      <TabsSuffix>
+        <Button size="xsmall" variant="ghost" icon="inbox" />
+        <Button size="xsmall" variant="ghost" icon="ellipsis" />
+      </TabsSuffix>
     </Tabs>
   );
 }
@@ -84,7 +130,14 @@ function ControlledTabs(): Node {
   const current = signal('overview');
   return (
     <View className="flex-col gap-2 w-96">
-      <Tabs variant="underline" menu={true} value={current.get()} onChange={(value) => { current.set(value); }}>
+      <Tabs
+        variant="underline"
+        menu={true}
+        value={current.get()}
+        onChange={(value) => {
+          current.set(value);
+        }}
+      >
         <Tab value="overview">Overview</Tab>
         <Tab value="analytics">Analytics</Tab>
         <Tab value="reports">Reports</Tab>
@@ -106,7 +159,9 @@ export function TabsPage(): Node {
         <ExampleTitle>Basic Tabs</ExampleTitle>
         <ExampleDescription>Tab and TabsContent pair by value; the tabs keep their own selection.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicTabs /></ExamplePreview>
+          <ExamplePreview>
+            <BasicTabs />
+          </ExamplePreview>
           <ExampleCode>{`function BasicTabs(): Node {
   return (
     <Tabs defaultValue="account" className="w-96">
@@ -125,7 +180,9 @@ export function TabsPage(): Node {
         <ExampleTitle>Tab Variants</ExampleTitle>
         <ExampleDescription>tab (default), underline, pill, outline and segmented.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TabVariants /></ExamplePreview>
+          <ExamplePreview>
+            <TabVariants />
+          </ExamplePreview>
           <ExampleCode>{`function TabVariants(): Node {
   return (
     <View className="flex-col gap-4">
@@ -143,7 +200,9 @@ export function TabsPage(): Node {
         <ExampleTitle>Folder Tabs</ExampleTitle>
         <ExampleDescription>Browser-style tabs; the selected tab joins the content below. TabSuffix adds a close button.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FolderTabs /></ExamplePreview>
+          <ExamplePreview>
+            <FolderTabs />
+          </ExamplePreview>
           <ExampleCode>{`function FolderTabs(): Node {
   return (
     <Tabs variant="folder" className="w-96">
@@ -159,7 +218,9 @@ export function TabsPage(): Node {
         <ExampleTitle>Tab Sizes</ExampleTitle>
         <ExampleDescription>xsmall to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TabSizes /></ExamplePreview>
+          <ExamplePreview>
+            <TabSizes />
+          </ExamplePreview>
           <ExampleCode>{`function TabSizes(): Node {
   return (
     <View className="flex-col gap-3">
@@ -176,7 +237,9 @@ export function TabsPage(): Node {
         <ExampleTitle>Tabs with Icons</ExampleTitle>
         <ExampleDescription>Icon-only tabs need an accessibility label.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><IconTabs /></ExamplePreview>
+          <ExamplePreview>
+            <IconTabs />
+          </ExamplePreview>
           <ExampleCode>{`function IconTabs(): Node {
   return (
     <Tabs>
@@ -192,7 +255,9 @@ export function TabsPage(): Node {
         <ExampleTitle>Tabs with Prefix and Suffix</ExampleTitle>
         <ExampleDescription>Controls before and after the tabs.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><AffixTabs /></ExamplePreview>
+          <ExamplePreview>
+            <AffixTabs />
+          </ExamplePreview>
           <ExampleCode>{`function AffixTabs(): Node {
   return (
     <Tabs className="w-full">
@@ -210,7 +275,9 @@ export function TabsPage(): Node {
         <ExampleTitle>Disabled Tabs</ExampleTitle>
         <ExampleDescription>Disabled tabs cannot be selected.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledTabs /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledTabs />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledTabs(): Node {
   return (
     <Tabs>
@@ -226,7 +293,9 @@ export function TabsPage(): Node {
         <ExampleTitle>Controlled Tabs</ExampleTitle>
         <ExampleDescription>value follows state; menu lists every tab for crowded bars.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledTabs /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledTabs />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledTabs(): Node {
   const current = signal('overview');
   return (

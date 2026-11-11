@@ -3,7 +3,9 @@ import { Button, Label, Node, Text, View, signal } from 'std:ui';
 import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview, ExampleCode, PageHeader } from '../example.tsrx';
 
 function BasicLabel(): Node {
-  return <Label>This is a label</Label>;
+  return (
+    <Label>This is a label</Label>
+  );
 }
 
 function SecondaryLabels(): Node {
@@ -59,13 +61,22 @@ function MaskedLabel(): Node {
   return (
     <View className="flex-row items-center gap-3">
       <Label masked={masked.get()} className="text-2xl">9,182.1 USD</Label>
-      <Button size="small" onPress={() => { masked.set(!masked.get()); }}>{masked.get() ? 'Show' : 'Hide'}</Button>
+      <Button
+        size="small"
+        onPress={() => {
+          masked.set(!masked.get());
+        }}
+      >
+        {masked.get() ? 'Show' : 'Hide'}
+      </Button>
     </View>
   );
 }
 
 function WrappedLabel(): Node {
-  return <Label className="w-[200px]">Label should support text wrap in default, if the text is too long, it should wrap to the next line.</Label>;
+  return (
+    <Label className="w-[200px]">Label should support text wrap in default, if the text is too long, it should wrap to the next line.</Label>
+  );
 }
 
 function LabelSizes(): Node {
@@ -88,7 +99,9 @@ export function LabelPage(): Node {
         <ExampleTitle>Basic Label</ExampleTitle>
         <ExampleDescription>Text content is the label.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicLabel /></ExamplePreview>
+          <ExamplePreview>
+            <BasicLabel />
+          </ExamplePreview>
           <ExampleCode>{`function BasicLabel(): Node {
   return <Label>This is a label</Label>;
 }`}</ExampleCode>
@@ -98,7 +111,9 @@ export function LabelPage(): Node {
         <ExampleTitle>Label with Secondary Text</ExampleTitle>
         <ExampleDescription>A Text child with variant="secondary" fills the muted secondary text.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SecondaryLabels /></ExamplePreview>
+          <ExamplePreview>
+            <SecondaryLabels />
+          </ExamplePreview>
           <ExampleCode>{`function SecondaryLabels(): Node {
   return (
     <View className="flex-col gap-2">
@@ -119,7 +134,9 @@ export function LabelPage(): Node {
         <ExampleTitle>Text Alignment</ExampleTitle>
         <ExampleDescription>Alignment utilities on a full-width label.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><AlignedLabels /></ExamplePreview>
+          <ExamplePreview>
+            <AlignedLabels />
+          </ExamplePreview>
           <ExampleCode>{`function AlignedLabels(): Node {
   return (
     <View className="flex-col gap-2 w-80">
@@ -135,7 +152,9 @@ export function LabelPage(): Node {
         <ExampleTitle>Text Highlighting</ExampleTitle>
         <ExampleDescription>Highlights every match, or only a match at the start.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><HighlightedLabels /></ExamplePreview>
+          <ExamplePreview>
+            <HighlightedLabels />
+          </ExamplePreview>
           <ExampleCode>{`function HighlightedLabels(): Node {
   return (
     <View className="flex-col gap-2">
@@ -154,7 +173,9 @@ export function LabelPage(): Node {
         <ExampleTitle>Color and Styling</ExampleTitle>
         <ExampleDescription>Text utilities style the label.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><StyledLabels /></ExamplePreview>
+          <ExamplePreview>
+            <StyledLabels />
+          </ExamplePreview>
           <ExampleCode>{`function StyledLabels(): Node {
   return (
     <View className="flex-col gap-2">
@@ -170,7 +191,9 @@ export function LabelPage(): Node {
         <ExampleTitle>Masked Labels</ExampleTitle>
         <ExampleDescription>Masked text draws as bullets.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><MaskedLabel /></ExamplePreview>
+          <ExamplePreview>
+            <MaskedLabel />
+          </ExamplePreview>
           <ExampleCode>{`function MaskedLabel(): Node {
   const masked = signal(true);
   return (
@@ -186,7 +209,9 @@ export function LabelPage(): Node {
         <ExampleTitle>Multi-line Text</ExampleTitle>
         <ExampleDescription>Labels wrap inside a narrow width.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><WrappedLabel /></ExamplePreview>
+          <ExamplePreview>
+            <WrappedLabel />
+          </ExamplePreview>
           <ExampleCode>{`function WrappedLabel(): Node {
   return <Label className="w-[200px]">Label should support text wrap in default, if the text is too long, it should wrap to the next line.</Label>;
 }`}</ExampleCode>
@@ -196,7 +221,9 @@ export function LabelPage(): Node {
         <ExampleTitle>Different Sizes</ExampleTitle>
         <ExampleDescription>Text size utilities.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LabelSizes /></ExamplePreview>
+          <ExamplePreview>
+            <LabelSizes />
+          </ExamplePreview>
           <ExampleCode>{`function LabelSizes(): Node {
   return (
     <View className="flex-col gap-1">

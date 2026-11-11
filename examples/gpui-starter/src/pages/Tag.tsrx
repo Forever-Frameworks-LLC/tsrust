@@ -89,7 +89,9 @@ export function TagPage(): Node {
         <ExampleTitle>Basic Tags</ExampleTitle>
         <ExampleDescription>Semantic variants.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicTags /></ExamplePreview>
+          <ExamplePreview>
+            <BasicTags />
+          </ExamplePreview>
           <ExampleCode>{`function BasicTags(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
@@ -108,7 +110,9 @@ export function TagPage(): Node {
         <ExampleTitle>Outline Tags</ExampleTitle>
         <ExampleDescription>Outline draws only the border and text.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><OutlineTags /></ExamplePreview>
+          <ExamplePreview>
+            <OutlineTags />
+          </ExamplePreview>
           <ExampleCode>{`function OutlineTags(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
@@ -127,7 +131,9 @@ export function TagPage(): Node {
         <ExampleTitle>Tag Sizes</ExampleTitle>
         <ExampleDescription>small and medium.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TagSizes /></ExamplePreview>
+          <ExamplePreview>
+            <TagSizes />
+          </ExamplePreview>
           <ExampleCode>{`function TagSizes(): Node {
   return (
     <View className="flex-row items-center gap-2">
@@ -142,7 +148,9 @@ export function TagPage(): Node {
         <ExampleTitle>Custom Colors</ExampleTitle>
         <ExampleDescription>Named color families.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PaletteTags /></ExamplePreview>
+          <ExamplePreview>
+            <PaletteTags />
+          </ExamplePreview>
           <ExampleCode>{`function PaletteTags(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
@@ -162,7 +170,9 @@ export function TagPage(): Node {
         <ExampleTitle>Custom Fill Colors</ExampleTitle>
         <ExampleDescription>Exact fill, text and border colors: hex or palette names such as sky-100.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CustomTag /></ExamplePreview>
+          <ExamplePreview>
+            <CustomTag />
+          </ExamplePreview>
           <ExampleCode>{`function CustomTag(): Node {
   return (
     <View className="flex-row gap-2">
@@ -177,7 +187,9 @@ export function TagPage(): Node {
         <ExampleTitle>Rounded Corners</ExampleTitle>
         <ExampleDescription>Pill shape or a radius in pixels.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RoundedTags /></ExamplePreview>
+          <ExamplePreview>
+            <RoundedTags />
+          </ExamplePreview>
           <ExampleCode>{`function RoundedTags(): Node {
   return (
     <View className="flex-row gap-2">
@@ -193,7 +205,9 @@ export function TagPage(): Node {
         <ExampleTitle>Combined Styles</ExampleTitle>
         <ExampleDescription>Options combine.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CombinedTags /></ExamplePreview>
+          <ExamplePreview>
+            <CombinedTags />
+          </ExamplePreview>
           <ExampleCode>{`function CombinedTags(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">

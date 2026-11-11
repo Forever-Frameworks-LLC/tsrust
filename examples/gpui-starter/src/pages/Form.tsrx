@@ -5,9 +5,15 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 function BasicForm(): Node {
   return (
     <Form className="w-96">
-      <Field label="Email" required={true} description="We never share your email."><Input placeholder="you@example.com" /></Field>
-      <Field label="Password" required={true}><Input type="password" /></Field>
-      <FormFooter><Button variant="primary">Sign in</Button></FormFooter>
+      <Field label="Email" required={true} description="We never share your email.">
+        <Input placeholder="you@example.com" />
+      </Field>
+      <Field label="Password" required={true}>
+        <Input type="password" />
+      </Field>
+      <FormFooter>
+        <Button variant="primary">Sign in</Button>
+      </FormFooter>
     </Form>
   );
 }
@@ -15,11 +21,21 @@ function BasicForm(): Node {
 function ColumnForm(): Node {
   return (
     <Form columns={2} className="w-full">
-      <Field label="First name"><Input /></Field>
-      <Field label="Last name"><Input /></Field>
-      <Field label="Address" colSpan={2}><Input /></Field>
-      <Field label="City"><Input /></Field>
-      <Field label="Postal code"><Input /></Field>
+      <Field label="First name">
+        <Input />
+      </Field>
+      <Field label="Last name">
+        <Input />
+      </Field>
+      <Field label="Address" colSpan={2}>
+        <Input />
+      </Field>
+      <Field label="City">
+        <Input />
+      </Field>
+      <Field label="Postal code">
+        <Input />
+      </Field>
     </Form>
   );
 }
@@ -27,8 +43,12 @@ function ColumnForm(): Node {
 function HorizontalForm(): Node {
   return (
     <Form labelLayout="horizontal" labelWidth={120} className="w-[480px]">
-      <Field label="Display name"><Input defaultValue="Ada" /></Field>
-      <Field label="Notifications" align="center"><Switch defaultChecked={true} /></Field>
+      <Field label="Display name">
+        <Input defaultValue="Ada" />
+      </Field>
+      <Field label="Notifications" align="center">
+        <Switch defaultChecked={true} />
+      </Field>
     </Form>
   );
 }
@@ -38,12 +58,28 @@ function RichForm(): Node {
   return (
     <Form className="w-96">
       <Field>
-        <FieldLabel><View className="flex-row items-center gap-1"><Icon name="key" /><Text>API key</Text></View></FieldLabel>
+        <FieldLabel>
+          <View className="flex-row items-center gap-1">
+            <Icon name="key" />
+            <Text>API key</Text>
+          </View>
+        </FieldLabel>
         <Input type="password" defaultValue="sk-123" />
-        <FieldDescription><Text variant="muted">Rotate it from the <Text className="text-primary">settings</Text> page.</Text></FieldDescription>
+        <FieldDescription>
+          <Text variant="muted">Rotate it from the <Text className="text-primary">settings</Text> page.</Text>
+        </FieldDescription>
       </Field>
-      <Field label="Show advanced"><Switch checked={advanced.get()} onChange={(on) => { advanced.set(on); }} /></Field>
-      <Field label="Timeout (seconds)" visible={advanced.get()}><NumberInput defaultValue={30} /></Field>
+      <Field label="Show advanced">
+        <Switch
+          checked={advanced.get()}
+          onChange={(on) => {
+            advanced.set(on);
+          }}
+        />
+      </Field>
+      <Field label="Timeout (seconds)" visible={advanced.get()}>
+        <NumberInput defaultValue={30} />
+      </Field>
     </Form>
   );
 }
@@ -56,7 +92,9 @@ export function FormPage(): Node {
         <ExampleTitle>Basic Form</ExampleTitle>
         <ExampleDescription>Labels above fields, a description and a footer.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicForm /></ExamplePreview>
+          <ExamplePreview>
+            <BasicForm />
+          </ExamplePreview>
           <ExampleCode>{`function BasicForm(): Node {
   return (
     <Form className="w-96">
@@ -72,7 +110,9 @@ export function FormPage(): Node {
         <ExampleTitle>Columns and Spans</ExampleTitle>
         <ExampleDescription>Two columns; the address spans both.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ColumnForm /></ExamplePreview>
+          <ExamplePreview>
+            <ColumnForm />
+          </ExamplePreview>
           <ExampleCode>{`function ColumnForm(): Node {
   return (
     <Form columns={2} className="w-full">
@@ -90,7 +130,9 @@ export function FormPage(): Node {
         <ExampleTitle>Horizontal Labels</ExampleTitle>
         <ExampleDescription>Labels beside fields at a fixed width.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><HorizontalForm /></ExamplePreview>
+          <ExamplePreview>
+            <HorizontalForm />
+          </ExamplePreview>
           <ExampleCode>{`function HorizontalForm(): Node {
   return (
     <Form labelLayout="horizontal" labelWidth={120} className="w-[480px]">
@@ -105,7 +147,9 @@ export function FormPage(): Node {
         <ExampleTitle>Rich Labels and Hidden Fields</ExampleTitle>
         <ExampleDescription>FieldLabel and FieldDescription children; visible=false hides a field.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RichForm /></ExamplePreview>
+          <ExamplePreview>
+            <RichForm />
+          </ExamplePreview>
           <ExampleCode>{`function RichForm(): Node {
   const advanced = signal(false);
   return (

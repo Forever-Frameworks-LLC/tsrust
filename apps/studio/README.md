@@ -11,6 +11,39 @@ When launching through Codex tools on macOS, use
 changes Cargo's effective environment and correctly invalidates native caches.
 Ordinary terminal launches can use the standard command above.
 
+Use Edit → Format Document (Option+Shift+F), Project → Check Project
+(Cmd+Shift+B), or the compact braces/check controls in the status bar. File → Save
+uses Cmd+S. Formatting supports .tsr/.tsrx, works on the unsaved buffer and leaves
+the result unsaved until Save. An intervening edit, close or reopen rejects an old
+formatting reply. Switching tabs does not retarget it. Compiler checks read saved
+project files and report their actual diagnostics in Output.
+
+Settings → Formatting exposes the supported rules and format/check on save.
+Both save hooks default to off. Global defaults are persisted in
+tsrust_studio.config.json. Project overrides in tsrust.config.json are partial:
+
+```json
+"format": {
+  "indentWidth": 2,
+  "jsxReturnParentheses": true,
+  "jsxChildrenOnNewLines": true,
+  "blankLinesAroundBlocks": true
+},
+"editor": {
+  "formatOnSave": true,
+  "checkOnSave": true
+}
+```
+
+Add those fields to the existing project object alongside name/build/schemaVersion.
+Indent width accepts 1–8 spaces. Project fields override editor defaults; the
+formatter and LSP resolve the nearest project's format rules. Formatting preserves
+mixed text and multiline literal layout so that reindentation cannot change their
+contents. On-save formatting must finish against the same buffer revision before
+Save; failure preserves the draft. A successful save can queue a background check
+without changing the user's selected tab or opening Output. These controls use the
+existing compiler checker; no separate lint engine is implied.
+
 Files open in closeable tabs. Edit text and press Cmd+S. A dot marks unsaved
 changes. Saves check the original disk bytes and reject
 conflicting external changes. Unsaved drafts are journaled under
@@ -71,8 +104,9 @@ resizable right session list switches independent shells and closes individual
 sessions. Its action menu interrupts the foreground job, copies a selection or
 restarts an exited shell. The terminal viewport fills its region without an inset
 frame. Editor and panel tab labels follow configured text size and zoom.
-Problems, Debug, Source Control, AI Chat and Extensions describe their unfinished
-integrations; Output runs the project checker described below.
+Problems lists source-labeled structured diagnostics and operation errors. Debug,
+Source Control, AI Chat and Extensions still describe unfinished integrations.
+LSP diagnostics remain pending the language-service connection.
 
 Native document tabs support reordering and split controls. Named Open tabs menus
 reveal clipped files. Required work includes tree file moves, full pointer and
@@ -93,9 +127,29 @@ Source layout:
 - `src/assets`: bundled icons, themes and translations with provenance/licenses.
 - `tests`: stable runtime suites importing the same application models.
 
-The Output panel runs a saved-file project check through the public CLI
-(`Cmd+Shift+B` or its play icon). Stop cancels that check. Results come from
-structured compiler diagnostics; this does not imply an LSP connection or a PTY.
-The `TSRUST` environment variable can select the compiler executable; otherwise
-Studio resolves `tsrust` through PATH. Checks are limited to five minutes and
-4 MiB of combined output and report errors without changing files.
+Project → Check Project (`Cmd+Shift+B`) starts a named task terminal running the
+actual public CLI. Project → Format Project runs the formatter in a separate task
+terminal, refusing unsaved open buffers. Task rows show running/success/failure;
+output remains available after exit. Cmd-click a `path:line:column` location
+(Ctrl-click outside macOS) to open its workspace file and highlight the rest of
+the destination line. External URLs and files outside the workspace are rejected.
+
+Edit → Format Document (`Option+Shift+F`) formats an explicit revision of the
+current unsaved buffer. File → Save (`Cmd+S`) retains the disk-conflict/recovery
+boundary. Settings → Formatting offers independent format/check switches for save
+and editor focus loss: neither enabled means manual only; both enabled means both
+triggers. Focus formatting changes the draft without saving. Background checking
+reads saved files, never silently saves drafts, and does not open panels or change
+the selected document. Output retains background-check output and cancellation;
+Problems shows its structured compiler diagnostics with source `check`, separate
+from the future LSP source.
+
+Global defaults live in `tsrust_studio.config.json`. A project's
+`tsrust.config.json` may override `format` rules and `editor.formatOnSave`,
+`editor.checkOnSave`, `editor.formatOnFocusChange`, `editor.checkOnFocusChange`.
+Rules include indentation width (1–8 spaces), JSX-return parentheses, separate
+component children, and blank lines around control-flow blocks. Project fields
+are partial overrides. The `TSRUST` environment variable selects the compiler;
+otherwise Studio resolves `tsrust` through PATH. Automated checks are bounded to
+five minutes and 4 MiB output. Manual task terminals use native scrollback and can
+be interrupted or removed through their session actions.

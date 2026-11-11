@@ -10,6 +10,7 @@ function workload(n: int, seed: int, input: string): int[][] {
   const second = unwrap(fromUtf8("b"));
   let rows: int[][] = [];
   let i = 0;
+
   while (i < n) {
     unwrap(writeAll(file, first));
     unwrap(syncData(file));
@@ -17,6 +18,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     unwrap(syncAll(file));
     unwrap(seek(file, -2, "current"));
     const bytes = unwrap(read(file, 2));
+
     if (length(bytes) !== 2) {
       throw "short sync readback";
     }

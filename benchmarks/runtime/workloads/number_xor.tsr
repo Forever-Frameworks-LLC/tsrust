@@ -11,6 +11,7 @@ function workload(n: int, seed: int): number {
   };
   let sum: number = Number(seed);
   let i = 0;
+
   while (i < n) {
     const jitter = (i * 17 + seed) % 5;
     const argument0: number = table0[(i * 13 + seed) % 16] + Number(jitter) * 0.25;

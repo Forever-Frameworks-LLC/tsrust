@@ -61,12 +61,14 @@ function observe(value: ReadOnly<SeekOrigin>): void {
   strictEqual(value.valueOf(), 'start');
   strictEqual(value.toString(), 'start');
   const character = value.at(1);
+
   if (character === undefined) {
     throw 'missing character';
   }
 
   strictEqual(character, 't');
   const point = value.codePointAt(0);
+
   if (point === undefined) {
     throw 'missing point';
   }

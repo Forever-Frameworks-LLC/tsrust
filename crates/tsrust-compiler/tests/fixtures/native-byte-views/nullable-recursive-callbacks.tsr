@@ -68,6 +68,7 @@ function main() {
   const childResult = child.read!();
   strictEqual(length(childResult), 2);
   const result = holder.read!();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 7);
@@ -81,6 +82,7 @@ function main() {
   const captured = read(first);
   filled.read = () => captured;
   const replacement = filled.read!();
+
   match (at(replacement, 0)) {
     Ok(value) => {
       strictEqual(value, 3);

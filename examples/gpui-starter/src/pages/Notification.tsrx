@@ -14,7 +14,9 @@ function NotificationTypes(): Node {
 }
 
 function TitledNotification(): Node {
-  return <Button onPress={() => { notify('Ada mentioned you in #general.', { title: 'New mention', icon: 'at-sign' }); }}>Show mention</Button>;
+  return (
+    <Button onPress={() => { notify('Ada mentioned you in #general.', { title: 'New mention', icon: 'at-sign' }); }}>Show mention</Button>
+  );
 }
 
 function PlacedNotifications(): Node {
@@ -56,7 +58,9 @@ export function NotificationPage(): Node {
         <ExampleTitle>Notification Types</ExampleTitle>
         <ExampleDescription>info, success, warning and error.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><NotificationTypes /></ExamplePreview>
+          <ExamplePreview>
+            <NotificationTypes />
+          </ExamplePreview>
           <ExampleCode>{`function NotificationTypes(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
@@ -73,7 +77,9 @@ export function NotificationPage(): Node {
         <ExampleTitle>Title and Icon</ExampleTitle>
         <ExampleDescription>A heading and a custom icon.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TitledNotification /></ExamplePreview>
+          <ExamplePreview>
+            <TitledNotification />
+          </ExamplePreview>
           <ExampleCode>{`function TitledNotification(): Node {
   return <Button onPress={() => { notify('Ada mentioned you in #general.', { title: 'New mention', icon: 'at-sign' }); }}>Show mention</Button>;
 }`}</ExampleCode>
@@ -83,7 +89,9 @@ export function NotificationPage(): Node {
         <ExampleTitle>Placement</ExampleTitle>
         <ExampleDescription>The corner toasts stack in.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PlacedNotifications /></ExamplePreview>
+          <ExamplePreview>
+            <PlacedNotifications />
+          </ExamplePreview>
           <ExampleCode>{`function PlacedNotifications(): Node {
   return (
     <View className="flex-row flex-wrap gap-2">
@@ -99,7 +107,9 @@ export function NotificationPage(): Node {
         <ExampleTitle>Action and Events</ExampleTitle>
         <ExampleDescription>An action button keeps the toast open; onEvent reports the first action, click or close.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ActionNotification /></ExamplePreview>
+          <ExamplePreview>
+            <ActionNotification />
+          </ExamplePreview>
           <ExampleCode>{`function ActionNotification(): Node {
   const last = signal('none');
   return (
@@ -115,7 +125,9 @@ export function NotificationPage(): Node {
         <ExampleTitle>Persistent and Dismiss</ExampleTitle>
         <ExampleDescription>autohide=false keeps a toast until closed; the same id replaces it; dismissNotification removes it.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PersistentNotification /></ExamplePreview>
+          <ExamplePreview>
+            <PersistentNotification />
+          </ExamplePreview>
           <ExampleCode>{`function PersistentNotification(): Node {
   const count = signal(0);
   return (

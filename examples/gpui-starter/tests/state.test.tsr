@@ -45,7 +45,13 @@ function SnapshotWitness(): Node {
   strictEqual(names.get()[0], 'Ada');
   names.set(nextNames);
   strictEqual(names.get()[0], 'Grace');
-  return <View><Text>{buffers.get()[0].path}</Text></View>;
+  return (
+    <View>
+      <Text>
+        {buffers.get()[0].path}
+      </Text>
+    </View>
+  );
 }
 
 test('data signals own independent constructor, read and replacement snapshots', () => {

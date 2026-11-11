@@ -6,6 +6,7 @@ type Tree = {
 function workload(n: int, seed: int): int {
   let sum = 0;
   let i = 0;
+
   while (i < n) {
     const tree: Tree = {
       value: i, children: [{
@@ -23,6 +24,7 @@ function workload(n: int, seed: int): int {
 
 function total(tree: Tree): int {
   let result = tree.value;
+
   for (const child of tree.children) {
     result = result + total(child);
   }

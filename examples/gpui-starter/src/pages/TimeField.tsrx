@@ -6,7 +6,12 @@ function BasicTimeField(): Node {
   const time = signal('09:30:00');
   return (
     <View className="flex-col gap-2 w-60">
-      <TimeField defaultValue="09:30" onChange={(value) => { time.set(clone(value)); }} />
+      <TimeField
+        defaultValue="09:30"
+        onChange={(value) => {
+          time.set(clone(value));
+        }}
+      />
       <Text variant="muted">Time: {time}</Text>
     </View>
   );
@@ -40,7 +45,9 @@ export function TimeFieldPage(): Node {
         <ExampleTitle>Basic Time Field</ExampleTitle>
         <ExampleDescription>Hours and minutes; arrow keys change the focused segment.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicTimeField /></ExamplePreview>
+          <ExamplePreview>
+            <BasicTimeField />
+          </ExamplePreview>
           <ExampleCode>{`function BasicTimeField(): Node {
   const time = signal('09:30:00');
   return (
@@ -56,7 +63,9 @@ export function TimeFieldPage(): Node {
         <ExampleTitle>Seconds and 12-Hour Clock</ExampleTitle>
         <ExampleDescription>seconds adds a segment; twelveHour adds AM/PM.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ClockTimeFields /></ExamplePreview>
+          <ExamplePreview>
+            <ClockTimeFields />
+          </ExamplePreview>
           <ExampleCode>{`function ClockTimeFields(): Node {
   return (
     <View className="flex-col gap-2 w-60">
@@ -71,7 +80,9 @@ export function TimeFieldPage(): Node {
         <ExampleTitle>States and Sizes</ExampleTitle>
         <ExampleDescription>invalid, disabled and sizes.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TimeFieldStates /></ExamplePreview>
+          <ExamplePreview>
+            <TimeFieldStates />
+          </ExamplePreview>
           <ExampleCode>{`function TimeFieldStates(): Node {
   return (
     <View className="flex-col gap-2 w-60">

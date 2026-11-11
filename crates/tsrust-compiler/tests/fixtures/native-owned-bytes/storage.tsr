@@ -23,6 +23,7 @@ function main() {
   const packet: Packet = {
     result: identity(build([1, 2, 3]))
   };
+
   match (packet.result) {
     Ok(bytes) => {
       strictEqual(observe(bytes), 3);
@@ -35,6 +36,7 @@ function main() {
 
   const results: Result<Bytes, ByteError>[] = [fromArray([4]), fromArray([256])];
   const first = results.remove(0);
+
   match (first) {
     Ok(bytes) => {
       strictEqual(length(bytes), 1);
@@ -45,6 +47,7 @@ function main() {
   }
 
   const second = results.remove(0);
+
   match (second) {
     Ok(bytes) => {
       throw "invalid input accepted";

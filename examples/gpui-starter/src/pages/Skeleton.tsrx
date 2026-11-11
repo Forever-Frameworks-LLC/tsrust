@@ -3,7 +3,9 @@ import { Node, Skeleton, Switch, Text, View, signal } from 'std:ui';
 import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview, ExampleCode, PageHeader } from '../example.tsrx';
 
 function BasicSkeleton(): Node {
-  return <Skeleton className="w-80" />;
+  return (
+    <Skeleton className="w-80" />
+  );
 }
 
 function TextSkeleton(): Node {
@@ -37,7 +39,9 @@ function SkeletonShapes(): Node {
 }
 
 function SecondarySkeleton(): Node {
-  return <Skeleton secondary={true} className="w-80" />;
+  return (
+    <Skeleton secondary={true} className="w-80" />
+  );
 }
 
 function ProfileSkeleton(): Node {
@@ -70,7 +74,9 @@ export function SkeletonPage(): Node {
         <ExampleTitle>Basic Skeleton</ExampleTitle>
         <ExampleDescription>A full-width line by default.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicSkeleton /></ExamplePreview>
+          <ExamplePreview>
+            <BasicSkeleton />
+          </ExamplePreview>
           <ExampleCode>{`function BasicSkeleton(): Node {
   return <Skeleton className="w-80" />;
 }`}</ExampleCode>
@@ -80,7 +86,9 @@ export function SkeletonPage(): Node {
         <ExampleTitle>Text Line Skeleton</ExampleTitle>
         <ExampleDescription>Lines of varying width.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TextSkeleton /></ExamplePreview>
+          <ExamplePreview>
+            <TextSkeleton />
+          </ExamplePreview>
           <ExampleCode>{`function TextSkeleton(): Node {
   return (
     <View className="flex-col gap-2">
@@ -96,7 +104,9 @@ export function SkeletonPage(): Node {
         <ExampleTitle>Circle Skeleton</ExampleTitle>
         <ExampleDescription>Avatar placeholders.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CircleSkeleton /></ExamplePreview>
+          <ExamplePreview>
+            <CircleSkeleton />
+          </ExamplePreview>
           <ExampleCode>{`function CircleSkeleton(): Node {
   return (
     <View className="flex-row gap-3">
@@ -111,7 +121,9 @@ export function SkeletonPage(): Node {
         <ExampleTitle>Different Shapes</ExampleTitle>
         <ExampleDescription>Sizes and radii come from utilities.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SkeletonShapes /></ExamplePreview>
+          <ExamplePreview>
+            <SkeletonShapes />
+          </ExamplePreview>
           <ExampleCode>{`function SkeletonShapes(): Node {
   return (
     <View className="flex-col gap-3 w-96">
@@ -128,7 +140,9 @@ export function SkeletonPage(): Node {
         <ExampleTitle>Secondary Variant</ExampleTitle>
         <ExampleDescription>A subtler fill.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SecondarySkeleton /></ExamplePreview>
+          <ExamplePreview>
+            <SecondarySkeleton />
+          </ExamplePreview>
           <ExampleCode>{`function SecondarySkeleton(): Node {
   return <Skeleton secondary={true} className="w-80" />;
 }`}</ExampleCode>
@@ -138,7 +152,9 @@ export function SkeletonPage(): Node {
         <ExampleTitle>Loading Profile Card</ExampleTitle>
         <ExampleDescription>Shapes compose into a layout.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ProfileSkeleton /></ExamplePreview>
+          <ExamplePreview>
+            <ProfileSkeleton />
+          </ExamplePreview>
           <ExampleCode>{`function ProfileSkeleton(): Node {
   return (
     <View className="flex-row items-center gap-4">
@@ -156,7 +172,9 @@ export function SkeletonPage(): Node {
         <ExampleTitle>Conditional Loading</ExampleTitle>
         <ExampleDescription>Swap the skeleton for content when loaded.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ConditionalSkeleton /></ExamplePreview>
+          <ExamplePreview>
+            <ConditionalSkeleton />
+          </ExamplePreview>
           <ExampleCode>{`function ConditionalSkeleton(): Node {
   const loading = signal(true);
   return (

@@ -5,6 +5,7 @@ import { alloc } from 'std:bytes';
 export async function main(): Task<void> {
   const input = unwrap(alloc(0));
   let count = 0;
+
   try {
     unwrap(randomInt(1, 1));
   } catch (error) {
@@ -28,6 +29,7 @@ export async function main(): Task<void> {
   const pool = new ThreadPool({
     workers: 1, capacity: 1
   });
+
   try {
     try {
       unwrap(await hashPassword(pool, input, {
@@ -52,6 +54,7 @@ export async function main(): Task<void> {
     }
 
     const encoded = unwrap(await hashPassword(pool, input));
+
     try {
       unwrap(await verifyPasswordBounded(pool, input, encoded, {
         maxMemoryKiB: 32, maxIterations: 2, maxParallelism: 1

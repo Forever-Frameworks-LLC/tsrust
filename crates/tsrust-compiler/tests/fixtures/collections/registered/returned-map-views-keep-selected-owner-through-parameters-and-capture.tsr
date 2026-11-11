@@ -54,6 +54,7 @@ function save(values: Map<int, ByteView>) {
 
 function inspect(values: ReadOnly<Map<int, ByteView>>): string {
   const selected = values.get(1);
+
   if (selected !== undefined) {
     return text(selected);
   }
@@ -87,11 +88,13 @@ export function main() {
   }
 
   strictEqual(inspect(values), "return");
+
   for (const [key, value] of values) {
     strictEqual(text(value), "return");
   }
 
   const wrapped = restoreWrapped(packageView(owner), packageView(owner));
+
   for (const [key, value] of wrapped) {
     strictEqual(text(value.part), "return");
     strictEqual(value.label, "wrapped");

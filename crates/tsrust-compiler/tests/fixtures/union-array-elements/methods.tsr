@@ -44,6 +44,7 @@ function main() {
   v.copyWithin(2, 0, 1);
   console.log(v.join(","), Array.isArray(v), Array.from(v).length);
   const last = v.at(-1);
+
   if (typeof last === "number") {
     console.log(last + 1);
   } else {
@@ -67,6 +68,7 @@ function main() {
   c.values.push("y");
   console.log(b.values.length, c.values.length, b.extra.length, c.extra[0] !== null, b);
   const arr: (int[] | string)[] = [[1, 2], "s"];
+
   for (const a of arr) {
     console.log(typeof a === "string" ? a : String(a.length));
   }

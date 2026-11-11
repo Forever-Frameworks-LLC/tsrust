@@ -10,6 +10,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     bases: 0, indices: 0, args: 0
   };
   let i = 0;
+
   while (i < n) {
     const value = i + seed;
     const bb = trace.bases;
@@ -20,6 +21,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const db = trace.bases - bb;
     const di = trace.indices - bi;
     const da = trace.args - ba;
+
     if (selected === undefined) {
       output.push([]);
     } else {
@@ -36,6 +38,7 @@ function workload(n: int, seed: int, input: string): int[][] {
 function makeCarrier(trace: Trace, value: int, input: string): string | null | undefined {
   trace.bases = trace.bases + 1;
   const tag = value % 5;
+
   if (tag === 0) {
     return null;
   }

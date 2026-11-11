@@ -5,21 +5,29 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 function BasicTooltip(): Node {
   return (
     <Tooltip text="This is a helpful tooltip">
-      <View className="rounded-md border border-border px-3 py-2"><Text>Hover me</Text></View>
+      <View className="rounded-md border border-border px-3 py-2">
+        <Text>Hover me</Text>
+      </View>
     </Tooltip>
   );
 }
 
 function ButtonTooltip(): Node {
-  return <Button tooltip="Save the current document">Save</Button>;
+  return (
+    <Button tooltip="Save the current document">Save</Button>
+  );
 }
 
 function KeyTooltips(): Node {
   return (
     <View className="flex-row gap-3">
       <Shortcut command="tooltip-delete" keys="secondary-backspace" />
-      <Tooltip text="Delete item" keys="delete"><Button>Delete</Button></Tooltip>
-      <Tooltip text="Delete everything" command="tooltip-delete"><Button variant="danger">Delete all</Button></Tooltip>
+      <Tooltip text="Delete item" keys="delete">
+        <Button>Delete</Button>
+      </Tooltip>
+      <Tooltip text="Delete everything" command="tooltip-delete">
+        <Button variant="danger">Delete all</Button>
+      </Tooltip>
     </View>
   );
 }
@@ -27,7 +35,9 @@ function KeyTooltips(): Node {
 function RichTooltip(): Node {
   return (
     <Tooltip>
-      <View className="rounded-md border border-border px-3 py-2"><Text>Hover for rich content</Text></View>
+      <View className="rounded-md border border-border px-3 py-2">
+        <Text>Hover for rich content</Text>
+      </View>
       <TooltipContent>
         <View className="flex-row items-center gap-1">
           <Icon name="info" />
@@ -43,9 +53,14 @@ function RichTooltip(): Node {
 function ComplexTooltip(): Node {
   return (
     <Tooltip>
-      <View className="rounded-md border border-border px-3 py-2"><Text>Hover for details</Text></View>
+      <View className="rounded-md border border-border px-3 py-2">
+        <Text>Hover for details</Text>
+      </View>
       <TooltipContent>
-        <View className="flex-row items-center gap-1"><Icon name="user" /><Text className="text-sm font-semibold">User Information</Text></View>
+        <View className="flex-row items-center gap-1">
+          <Icon name="user" />
+          <Text className="text-sm font-semibold">User Information</Text>
+        </View>
         <Text className="text-xs" variant="muted">Last login: 2 hours ago</Text>
         <Text className="text-xs text-emerald-500">Status: Active</Text>
       </TooltipContent>
@@ -71,7 +86,9 @@ export function TooltipPage(): Node {
         <ExampleTitle>Basic Tooltip with Text</ExampleTitle>
         <ExampleDescription>The children are the trigger.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicTooltip /></ExamplePreview>
+          <ExamplePreview>
+            <BasicTooltip />
+          </ExamplePreview>
           <ExampleCode>{`function BasicTooltip(): Node {
   return (
     <Tooltip text="This is a helpful tooltip">
@@ -85,7 +102,9 @@ export function TooltipPage(): Node {
         <ExampleTitle>Button with Tooltip</ExampleTitle>
         <ExampleDescription>Buttons and other controls take a tooltip prop.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ButtonTooltip /></ExamplePreview>
+          <ExamplePreview>
+            <ButtonTooltip />
+          </ExamplePreview>
           <ExampleCode>{`function ButtonTooltip(): Node {
   return <Button tooltip="Save the current document">Save</Button>;
 }`}</ExampleCode>
@@ -95,7 +114,9 @@ export function TooltipPage(): Node {
         <ExampleTitle>Tooltip with Keybinding</ExampleTitle>
         <ExampleDescription>keys shows a shortcut; command shows the keys bound to a Shortcut command.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><KeyTooltips /></ExamplePreview>
+          <ExamplePreview>
+            <KeyTooltips />
+          </ExamplePreview>
           <ExampleCode>{`function KeyTooltips(): Node {
   return (
     <View className="flex-row gap-3">
@@ -111,7 +132,9 @@ export function TooltipPage(): Node {
         <ExampleTitle>Custom Element Tooltip</ExampleTitle>
         <ExampleDescription>TooltipContent holds icons and styled text.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RichTooltip /></ExamplePreview>
+          <ExamplePreview>
+            <RichTooltip />
+          </ExamplePreview>
           <ExampleCode>{`function RichTooltip(): Node {
   return (
     <Tooltip>
@@ -133,7 +156,9 @@ export function TooltipPage(): Node {
         <ExampleTitle>Complex Tooltip Content</ExampleTitle>
         <ExampleDescription>Several lines with a heading.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ComplexTooltip /></ExamplePreview>
+          <ExamplePreview>
+            <ComplexTooltip />
+          </ExamplePreview>
           <ExampleCode>{`function ComplexTooltip(): Node {
   return (
     <Tooltip>
@@ -152,7 +177,9 @@ export function TooltipPage(): Node {
         <ExampleTitle>Tooltips in Form Elements</ExampleTitle>
         <ExampleDescription>Switch, Checkbox and Radio take tooltips too; tooltipDelay changes the wait.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FormTooltips /></ExamplePreview>
+          <ExamplePreview>
+            <FormTooltips />
+          </ExamplePreview>
           <ExampleCode>{`function FormTooltips(): Node {
   return (
     <View className="flex-col gap-2">

@@ -25,6 +25,7 @@ function main() {
   const resource = trackedResource();
   const identity = resourceId(resource);
   const moved = transfer(resource);
+
   if (moved !== undefined) {
     closeResource(moved);
   }
@@ -33,6 +34,7 @@ function main() {
   const cache: Cache = new LruCache<int, string>(2);
   unwrap(cache.set(1, 'one'));
   const found = cache.get(1);
+
   if (found !== undefined) {
     strictEqual(found, 'one');
   } else {

@@ -16,6 +16,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     return (callValue * 17 + bias + 3) % 1009;
   };
   let i = 0;
+
   while (i < n) {
     const tag = (i + seed) % 3;
     const value = (i * 13 + seed) % 97;
@@ -25,6 +26,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const beforeFactories = trace.factories;
     const observed: int[] = [];
     const selected = forward(tag === 0 ? callback : tag === 1 ? null : undefined, value, trace);
+
     if (selected !== undefined) {
       observed.push(selected);
     }

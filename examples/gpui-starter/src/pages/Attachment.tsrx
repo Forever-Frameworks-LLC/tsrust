@@ -6,18 +6,43 @@ function UploadStates(): Node {
   const removed = signal('');
   return (
     <View className="flex-col gap-3 w-[420px]">
-      <Attachment status="uploading" progress={42} onRemove={() => { removed.set('slides.key'); }}>
-        <AttachmentMedia><Icon name="presentation" /></AttachmentMedia>
-        <AttachmentContent><AttachmentTitle>slides.key</AttachmentTitle><AttachmentDescription>Keynote · 18 MB</AttachmentDescription></AttachmentContent>
+      <Attachment
+        status="uploading"
+        progress={42}
+        onRemove={() => {
+          removed.set('slides.key');
+        }}
+      >
+        <AttachmentMedia>
+          <Icon name="presentation" />
+        </AttachmentMedia>
+        <AttachmentContent>
+          <AttachmentTitle>slides.key</AttachmentTitle>
+          <AttachmentDescription>Keynote · 18 MB</AttachmentDescription>
+        </AttachmentContent>
       </Attachment>
-      <Attachment status="failed" onRetry={() => { removed.set('Retrying data.csv'); }}>
-        <AttachmentMedia><Icon name="file-spreadsheet" /></AttachmentMedia>
-        <AttachmentContent><AttachmentTitle>data.csv</AttachmentTitle><AttachmentDescription>CSV · 2 MB</AttachmentDescription></AttachmentContent>
+      <Attachment
+        status="failed"
+        onRetry={() => {
+          removed.set('Retrying data.csv');
+        }}
+      >
+        <AttachmentMedia>
+          <Icon name="file-spreadsheet" />
+        </AttachmentMedia>
+        <AttachmentContent>
+          <AttachmentTitle>data.csv</AttachmentTitle>
+          <AttachmentDescription>CSV · 2 MB</AttachmentDescription>
+        </AttachmentContent>
       </Attachment>
       <Attachment title="report.pdf" description="PDF · 2.4 MB" icon="file-text" tooltip="Open report">
-        <AttachmentActions><Button size="xsmall" variant="ghost" icon="download" /></AttachmentActions>
+        <AttachmentActions>
+          <Button size="xsmall" variant="ghost" icon="download" />
+        </AttachmentActions>
       </Attachment>
-      <Text variant="muted">{removed.get()}</Text>
+      <Text variant="muted">
+        {removed.get()}
+      </Text>
     </View>
   );
 }
@@ -27,15 +52,21 @@ function ImageAttachments(): Node {
     <AttachmentGroup className="w-[520px]">
       <Attachment vertical={true}>
         <AttachmentMedia src="https://picsum.photos/id/1015/320/240" />
-        <AttachmentContent><AttachmentTitle>river.jpg</AttachmentTitle></AttachmentContent>
+        <AttachmentContent>
+          <AttachmentTitle>river.jpg</AttachmentTitle>
+        </AttachmentContent>
       </Attachment>
       <Attachment vertical={true}>
         <AttachmentMedia src="https://picsum.photos/id/1025/320/240" />
-        <AttachmentContent><AttachmentTitle>dog.jpg</AttachmentTitle></AttachmentContent>
+        <AttachmentContent>
+          <AttachmentTitle>dog.jpg</AttachmentTitle>
+        </AttachmentContent>
       </Attachment>
       <Attachment vertical={true} status="processing">
         <AttachmentMedia src="https://picsum.photos/id/1043/320/240" />
-        <AttachmentContent><AttachmentTitle>city.jpg</AttachmentTitle></AttachmentContent>
+        <AttachmentContent>
+          <AttachmentTitle>city.jpg</AttachmentTitle>
+        </AttachmentContent>
       </Attachment>
     </AttachmentGroup>
   );
@@ -49,7 +80,9 @@ export function AttachmentPage(): Node {
         <ExampleTitle>Upload States</ExampleTitle>
         <ExampleDescription>status and progress; onRemove and onRetry add buttons.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><UploadStates /></ExamplePreview>
+          <ExamplePreview>
+            <UploadStates />
+          </ExamplePreview>
           <ExampleCode>{`function UploadStates(): Node {
   const removed = signal('');
   return (
@@ -75,7 +108,9 @@ export function AttachmentPage(): Node {
         <ExampleTitle>Images, Cards and Groups</ExampleTitle>
         <ExampleDescription>AttachmentMedia src shows an image; vertical makes a card; AttachmentGroup scrolls a row.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ImageAttachments /></ExamplePreview>
+          <ExamplePreview>
+            <ImageAttachments />
+          </ExamplePreview>
           <ExampleCode>{`function ImageAttachments(): Node {
   return (
     <AttachmentGroup className="w-[520px]">

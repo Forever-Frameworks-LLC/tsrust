@@ -1,0 +1,64 @@
+import { Channel, Sender } from 'std:futures';
+import { run } from 'std:process';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
+
+// Buffer bytes travel over stdin; formatting never needs a temporary source file.
+export async function formatBuffer(program: ReadOnly<string>, request: ReadOnly<FormattingRequest>): Task<Result<string, string>> {
+  try {
+    match (await run(program, ['format', '--stdin-filepath', clone(request.document.path), '--options', JSON.stringify(request.options), '--color=never'], {
+      cwd: clone(request.root), input: unwrap(fromUtf8(request.document.before)), deadlineMs: 30000, maxOutputBytes: 20 * 1024 * 1024
+    })) {
+      Err(error) => {
+        return Err(clone(error.message));
+      },
+      Ok(output) => {
+        if (!output.status.success) {
+          match (toUtf8(output.stderr)) {
+            Ok(text) => {
+              return Err(text === '' ? 'The formatter failed without an error message.' : clone(text));
+            },
+            Err(_) => {
+              return Err('The formatter output is not valid UTF-8.');
+            }
+          }
+        }
+
+        match (toUtf8(output.stdout)) {
+          Ok(text) => {
+            return Ok(clone(text));
+          },
+          Err(_) => {
+            return Err('The formatter output is not valid UTF-8.');
+          }
+        }
+      }
+    }
+  } catch (_) {
+    return Err('Could not encode formatter input.');
+  }
+}
+
+export async function formattingWorker(program: string, requests: Channel<FormattingRequest>, results: Sender<FormattingResult>): Task<void> {
+  while (true) {
+    try {
+      const request = await requests.receive();
+      const result: FormattingResult = {
+        request: clone(request), text: '', error: ''
+      };
+
+      match (await formatBuffer(program, request)) {
+        Ok(text) => {
+          result.text = clone(text);
+        },
+        Err(error) => {
+          result.error = clone(error);
+        }
+      }
+
+      await results.send(result);
+    } catch (_) {
+      return;
+    }
+  }
+}

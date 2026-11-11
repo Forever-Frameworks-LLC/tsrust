@@ -1,21 +1,25 @@
 function workload(n: int, seed: int): int {
   let sum = seed;
   let i = 0;
+
   while (i < n) {
     const values: int[] = [];
     const width = (i + seed) % 65;
     let j = 0;
+
     while (j < width) {
       values.push((i + seed + j) % 1009);
       j = j + 1;
     }
 
     const saved = clone(values);
+
     if (values.length > 0) {
       values[0] = i;
     }
 
     let removed = 0;
+
     while (saved.length > width / 2) {
       const index = (i + seed + removed) % saved.length;
       sum = sum + saved.remove(index);
@@ -25,6 +29,7 @@ function workload(n: int, seed: int): int {
     saved.push(seed);
     saved.push(i);
     let position = 1;
+
     for (const value of saved) {
       sum = sum + value * position;
       position = position + 1;

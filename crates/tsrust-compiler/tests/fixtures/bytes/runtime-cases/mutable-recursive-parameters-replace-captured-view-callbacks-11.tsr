@@ -51,6 +51,7 @@ export function run() {
   }
 
   const result = holder.read();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 3);

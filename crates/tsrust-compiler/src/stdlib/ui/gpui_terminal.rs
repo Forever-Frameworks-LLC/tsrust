@@ -25,13 +25,15 @@ fn register_cleanup(completion: async_channel::Receiver<()>, cx: &mut App) {
     pending.push(completion);
 }
 
-pub(super) enum TerminalEvent {Exit}
+pub(super) enum TerminalEvent {Exit, OpenLink(String)}
 impl EventEmitter<TerminalEvent> for TerminalView {}
 
 pub(super) struct TerminalView {
     session: Option<Session>,
     generation: u64,
     directory: String,
+    program: String,
+    args: Vec<String>,
     focus: FocusHandle,
     font_size: f32,
     bounds: Bounds<Pixels>,
@@ -48,8 +50,9 @@ pub(super) struct TerminalView {
 }
 
 impl TerminalView {
-    pub fn new(directory: String, font_size: f32, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let session = Session::start(std::path::Path::new(&directory), None, TerminalSize(WindowSize {num_cols: 80, num_lines: 24, cell_width: 8, cell_height: 16}), 10000);
+    pub fn new(directory: String, program: String, args: Vec<String>, font_size: f32, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let command = (!program.is_empty()).then(|| alacritty_terminal::tty::Shell::new(program.clone(), args.clone()));
+        let session = Session::start(std::path::Path::new(&directory), command, TerminalSize(WindowSize {num_cols: 80, num_lines: 24, cell_width: 8, cell_height: 16}), 10000);
         let (session, error) = match session {Ok(session) => (Some(session), String::new()), Err(error) => (None, error.to_string())};
         let wake = session.as_ref().map(|session| session.wake.clone());
         let events = cx.spawn(async move |this, cx| {
@@ -65,7 +68,7 @@ impl TerminalView {
         let focused = cx.on_focus(&focus, window, |this, _, cx| {if this.mode().contains(TermMode::FOCUS_IN_OUT) {if let Some(session) = &this.session {let _ = session.write(b"\x1b[I".to_vec());}} cx.notify();});
         let blurred = cx.on_blur(&focus, window, |this, _, cx| {if this.mode().contains(TermMode::FOCUS_IN_OUT) {if let Some(session) = &this.session {let _ = session.write(b"\x1b[O".to_vec());}} cx.notify();});
         static NEXT_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
-        Self {session, generation: NEXT_GENERATION.fetch_add(1, std::sync::atomic::Ordering::Relaxed), directory, focus, font_size, bounds: Bounds::default(), cell: size(px(8.), px(16.)), selecting: false, composition: String::new(), composition_selection: 0..0, error, _events: events, _quit: quit, _focus: vec![focused, blurred], scroll_remainder: 0., exit_notified: false}
+        Self {session, generation: NEXT_GENERATION.fetch_add(1, std::sync::atomic::Ordering::Relaxed), directory, program, args, focus, font_size, bounds: Bounds::default(), cell: size(px(8.), px(16.)), selecting: false, composition: String::new(), composition_selection: 0..0, error, _events: events, _quit: quit, _focus: vec![focused, blurred], scroll_remainder: 0., exit_notified: false}
     }
 
     pub fn configure(&mut self, font_size: f32, cx: &mut Context<Self>) {if self.font_size != font_size {self.font_size = font_size; cx.notify();}}
@@ -90,6 +93,30 @@ impl TerminalView {
         let column = (((position.x - self.bounds.left()).as_f32() / self.cell.width.as_f32()).floor().max(0.) as usize).min(term.columns() - 1);
         let line = (((position.y - self.bounds.top()).as_f32() / self.cell.height.as_f32()).floor().max(0.) as usize).min(term.screen_lines() - 1);
         viewport_to_point(term.grid().display_offset(), alacritty_terminal::index::Point::new(line, Column(column)))
+    }
+    fn link_at(&self, position: Point<Pixels>) -> Option<String> {
+        let point = self.point(position);
+        let term = self.session.as_ref()?.terminal.lock();
+        let grid = term.grid();
+        let mut first = point.line;
+        while first > grid.topmost_line() && grid[first - 1usize][Column(grid.columns() - 1)].flags.contains(Flags::WRAPLINE) {first -= 1;}
+        let mut text = String::new();
+        let mut hovered = None;
+        let mut row = first;
+        loop {
+            for column in 0..grid.columns() {
+                let cell = &grid[row][Column(column)];
+                if row == point.line && column == point.column.0 {hovered = Some(text.len());}
+                if cell.flags.intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER) {continue;}
+                text.push(cell.c);
+                if let Some(chars) = cell.zerowidth() {text.extend(chars);}
+                if text.len() > 8192 {return None;}
+            }
+            if row >= grid.bottommost_line() || !grid[row][Column(grid.columns() - 1)].flags.contains(Flags::WRAPLINE) {break;}
+            row += 1;
+        }
+        let link = super::super::terminal_links::file_link(&text, hovered?)?;
+        Some(serde_json::json!({"path": link.path, "line": link.line, "column": link.column}).to_string())
     }
     fn mouse(&mut self, button: u8, position: Point<Pixels>, modifiers: Modifiers, released: bool, motion: bool, cx: &mut Context<Self>) -> bool {
         let mode = self.mode();
@@ -144,7 +171,7 @@ impl TerminalView {
             "restart" => {
                 if self.session.as_ref().is_some_and(|session| !session.status().exited) {return Err("Exit the running shell before restarting it".into());}
                 let focused = self.focus.is_focused(window);
-                *self = Self::new(self.directory.clone(), self.font_size, window, cx);
+                *self = Self::new(self.directory.clone(), self.program.clone(), self.args.clone(), self.font_size, window, cx);
                 if focused {self.focus.focus(window, cx);}
             },
             "focus" => self.focus.focus(window, cx),
@@ -199,6 +226,9 @@ impl Render for TerminalView {
         div().id("terminal-view").size_full().min_h_0().overflow_hidden().bg(background).text_size(font_size).role(Role::Terminal).aria_value(output).track_focus(&self.focus).key_context("Terminal")
             .on_key_down(cx.listener(Self::key))
             .on_mouse_down(MouseButton::Left, cx.listener(|this, event: &MouseDownEvent, window, cx| {
+                if event.modifiers.platform || (!cfg!(target_os="macos") && event.modifiers.control) {
+                    if let Some(link) = this.link_at(event.position) {this.selecting = false; cx.emit(TerminalEvent::OpenLink(link)); cx.stop_propagation(); return;}
+                }
                 this.focus.focus(window, cx); if this.mouse(0, event.position, event.modifiers, false, false, cx) {return;} let position = this.point(event.position); this.selecting = true;
                 if let Some(session) = &this.session {session.terminal.lock().selection = Some(Selection::new(if event.click_count > 1 {SelectionType::Semantic} else {SelectionType::Simple}, position, Side::Left));}
                 cx.notify();

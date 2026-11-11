@@ -26,6 +26,7 @@ async function main(): Task<void> {
     return text('multipart exact');
   });
   const server = await app.listen('127.0.0.1:0');
+
   try {
     const client = new Client({
       noProxy: true

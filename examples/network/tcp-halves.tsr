@@ -15,6 +15,7 @@ async function main(): Task<void> {
   const listener = unwrap(await listenTcp(unwrap(parseAddress('127.0.0.1:0'))));
   const endpoint = unwrap(listener.localAddress());
   const server = serve(listener).start();
+
   try {
     const client = unwrap(await connectTcp(endpoint));
     const [input, output] = client.split();
@@ -24,6 +25,7 @@ async function main(): Task<void> {
     unwrap(await close(input));
   } catch (failure) {
     server.cancel();
+
     try {
       await server;
     } catch (cleanupFailure) {}

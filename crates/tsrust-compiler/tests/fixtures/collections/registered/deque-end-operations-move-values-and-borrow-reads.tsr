@@ -25,6 +25,7 @@ export function main() {
   words.pushBack('owned');
   {
     const word = words.front();
+
     if (word !== undefined) {
       strictEqual(word.length, 5);
     }

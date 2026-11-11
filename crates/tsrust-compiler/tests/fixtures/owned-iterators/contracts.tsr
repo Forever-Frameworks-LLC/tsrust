@@ -43,6 +43,7 @@ export function runOwnedIteratorContracts(): void {
   strictEqual(Iterator.from(empty).every(value => value > 0), true);
   const retry = Iterator.from([0, 1]).map(failFirst);
   let retryErrors = 0;
+
   try {
     retry.next();
   } catch (error) {
@@ -53,6 +54,7 @@ export function runOwnedIteratorContracts(): void {
   strictEqual(retryErrors, 1);
 
   const recovered = retry.next();
+
   if (recovered.done) {
     throw 'missing retry item';
   }
@@ -61,6 +63,7 @@ export function runOwnedIteratorContracts(): void {
   strictEqual(retry.next().done, true);
   const dropError = Iterator.from([0, 1]).map(failFirst).drop(1);
   let dropErrors = 0;
+
   try {
     dropError.next();
   } catch (error) {
@@ -71,6 +74,7 @@ export function runOwnedIteratorContracts(): void {
   strictEqual(dropErrors, 1);
 
   const afterDrop = dropError.next();
+
   if (afterDrop.done) {
     throw 'drop swallowed next item';
   }
@@ -78,6 +82,7 @@ export function runOwnedIteratorContracts(): void {
   strictEqual(afterDrop.value, 1);
   const takeError = Iterator.from([0, 1]).map(failFirst).take(1);
   let takeErrors = 0;
+
   try {
     takeError.next();
   } catch (error) {
@@ -100,6 +105,7 @@ export function runOwnedIteratorContracts(): void {
   {
     const owners = Iterator.from([first, second]);
     const step = owners.next();
+
     if (step.done) {
       throw 'missing owner';
     }
@@ -139,6 +145,7 @@ export function runOwnedIteratorContracts(): void {
     strictEqual(resourceId(value), selectedId);
     return true;
   });
+
   if (match === undefined) {
     throw 'missing selected owner';
   }
@@ -168,6 +175,7 @@ export function runOwnedIteratorContracts(): void {
       return useSome;
     };
     const source = Iterator.from([item, tail]);
+
     if (useSome) {
       strictEqual(source.some(predicate), true);
     } else {
@@ -186,6 +194,7 @@ export function runOwnedIteratorContracts(): void {
   const failedCapture = trackedResource();
   const failedCaptureId = resourceId(failedCapture);
   let terminalErrors = 0;
+
   try {
     const reject: Owned<Function<void, [value: Owned<TrackedResource>]>> = (value: Owned<TrackedResource>): void => {
       strictEqual(resourceId(failedCapture), failedCaptureId);

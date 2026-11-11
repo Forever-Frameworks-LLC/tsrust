@@ -136,6 +136,8 @@ impl Kit {
         if self.name=="Terminal" {
             if name=="id" && value.trim().is_empty() {return Err("Terminal id must not be empty".into());}
             if name=="fontSize" && !value.parse::<u32>().is_ok_and(|size|(8..=40).contains(&size)) {return Err("Terminal fontSize requires an integer from 8 through 40".into());}
+            if name=="program" && (value.trim().is_empty() || value.contains('\0')) {return Err("Terminal program must be nonempty and contain no NUL".into());}
+            if name=="args" && !serde_json::from_str::<Vec<String>>(value).is_ok_and(|args|args.iter().all(|arg|!arg.contains('\0'))) {return Err("Terminal args require a JSON array of strings without NUL".into());}
         }
         if self.name=="SpeechButton" && name=="stopTimeout" && value.parse::<u64>().is_err() {return Err("SpeechButton stopTimeout requires nonnegative integer milliseconds".into());}
         if self.name=="NumberInput" && matches!(name,"value"|"defaultValue"|"step"|"min"|"max") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (name!="step" || value>=0.)) {return Err(format!("NumberInput {name} requires a finite {}number",if name=="step"{"nonnegative "}else{""}));}

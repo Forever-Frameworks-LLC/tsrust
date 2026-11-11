@@ -6,7 +6,13 @@ function BasicCombobox(): Node {
   const framework = signal('');
   return (
     <View className="flex-col gap-2 w-72">
-      <Combobox placeholder="Select framework..." searchPlaceholder="Search..." onChange={(values) => { framework.set(values.length > 0 ? values[0] : ''); }}>
+      <Combobox
+        placeholder="Select framework..."
+        searchPlaceholder="Search..."
+        onChange={(values) => {
+          framework.set(values.length > 0 ? values[0] : '');
+        }}
+      >
         <SelectItem value="next">Next.js</SelectItem>
         <SelectItem value="svelte">SvelteKit</SelectItem>
         <SelectItem value="nuxt">Nuxt.js</SelectItem>
@@ -22,14 +28,23 @@ function MultiCombobox(): Node {
   const count = signal(0);
   return (
     <View className="flex-col gap-2 w-72">
-      <Combobox multiple={true} placeholder="Select frameworks" items={['Next.js', 'SvelteKit', 'Nuxt.js', 'Remix', 'Astro']} onChange={(values) => { count.set(values.length); }} />
+      <Combobox
+        multiple={true}
+        placeholder="Select frameworks"
+        items={['Next.js', 'SvelteKit', 'Nuxt.js', 'Remix', 'Astro']}
+        onChange={(values) => {
+          count.set(values.length);
+        }}
+      />
       <Text variant="muted">{count} selected</Text>
     </View>
   );
 }
 
 function PreselectedCombobox(): Node {
-  return <Combobox multiple={true} defaultValue={['Rust', 'Go']} items={['Rust', 'Go', 'Zig', 'C']} className="w-72" />;
+  return (
+    <Combobox multiple={true} defaultValue={['Rust', 'Go']} items={['Rust', 'Go', 'Zig', 'C']} className="w-72" />
+  );
 }
 
 function GroupedCombobox(): Node {
@@ -60,14 +75,18 @@ function DisabledItemsCombobox(): Node {
 }
 
 function CheckIconCombobox(): Node {
-  return <Combobox multiple={true} checkIcon="circle-check" items={['Apple', 'Banana', 'Cherry']} placeholder="Pick fruit" className="w-72" />;
+  return (
+    <Combobox multiple={true} checkIcon="circle-check" items={['Apple', 'Banana', 'Cherry']} placeholder="Pick fruit" className="w-72" />
+  );
 }
 
 function FooterCombobox(): Node {
   const teams = signal(2);
   return (
     <Combobox placeholder="Select team" items={['Design', 'Engineering', 'Marketing']} className="w-72">
-      <ComboboxFooter><Button size="small" variant="ghost" icon="plus" onPress={() => { teams.set(teams.get() + 1); }}>New team ({teams})</Button></ComboboxFooter>
+      <ComboboxFooter>
+        <Button size="small" variant="ghost" icon="plus" onPress={() => { teams.set(teams.get() + 1); }}>New team ({teams})</Button>
+      </ComboboxFooter>
     </Combobox>
   );
 }
@@ -75,7 +94,10 @@ function FooterCombobox(): Node {
 function TriggerCombobox(): Node {
   return (
     <Combobox items={['Ada Lovelace', 'Grace Hopper', 'Alan Turing']} className="w-72">
-      <ComboboxTrigger><Icon name="user" /><Text>Assign people</Text></ComboboxTrigger>
+      <ComboboxTrigger>
+        <Icon name="user" />
+        <Text>Assign people</Text>
+      </ComboboxTrigger>
     </Combobox>
   );
 }
@@ -121,7 +143,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Basic Single-Select</ExampleTitle>
         <ExampleDescription>Search filters the options; onChange receives the selected values.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <BasicCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function BasicCombobox(): Node {
   const framework = signal('');
   return (
@@ -143,7 +167,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Multi-Select</ExampleTitle>
         <ExampleDescription>multiple toggles each option; the list stays open.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><MultiCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <MultiCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function MultiCombobox(): Node {
   const count = signal(0);
   return (
@@ -159,7 +185,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Pre-selected Items</ExampleTitle>
         <ExampleDescription>defaultValue starts the selection.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><PreselectedCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <PreselectedCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function PreselectedCombobox(): Node {
   return <Combobox multiple={true} defaultValue={['Rust', 'Go']} items={['Rust', 'Go', 'Zig', 'C']} className="w-72" />;
 }`}</ExampleCode>
@@ -169,7 +197,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Grouped Items</ExampleTitle>
         <ExampleDescription>SelectGroup and SelectLabel, as in Select.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><GroupedCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <GroupedCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function GroupedCombobox(): Node {
   return (
     <Combobox placeholder="Select a timezone" className="w-72">
@@ -192,7 +222,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Disabled Items</ExampleTitle>
         <ExampleDescription>Disabled options show but cannot be chosen.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledItemsCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledItemsCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledItemsCombobox(): Node {
   return (
     <Combobox placeholder="Select a plan" className="w-72">
@@ -208,7 +240,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Custom Check Icon</ExampleTitle>
         <ExampleDescription>Any icon marks selected options.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CheckIconCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <CheckIconCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function CheckIconCombobox(): Node {
   return <Combobox multiple={true} checkIcon="circle-check" items={['Apple', 'Banana', 'Cherry']} placeholder="Pick fruit" className="w-72" />;
 }`}</ExampleCode>
@@ -218,7 +252,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Footer Action</ExampleTitle>
         <ExampleDescription>ComboboxFooter sits under the list.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><FooterCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <FooterCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function FooterCombobox(): Node {
   const teams = signal(2);
   return (
@@ -233,7 +269,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Custom Trigger</ExampleTitle>
         <ExampleDescription>ComboboxTrigger replaces the selected labels.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TriggerCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <TriggerCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function TriggerCombobox(): Node {
   return (
     <Combobox items={['Ada Lovelace', 'Grace Hopper', 'Alan Turing']} className="w-72">
@@ -247,7 +285,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Sizes</ExampleTitle>
         <ExampleDescription>small, medium and large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ComboboxSizes /></ExamplePreview>
+          <ExamplePreview>
+            <ComboboxSizes />
+          </ExamplePreview>
           <ExampleCode>{`function ComboboxSizes(): Node {
   return (
     <View className="flex-col gap-2 w-72">
@@ -263,7 +303,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Cleanable and Disabled</ExampleTitle>
         <ExampleDescription>A clear button, or no interaction at all.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CleanableCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <CleanableCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function CleanableCombobox(): Node {
   return (
     <View className="flex-col gap-2 w-72">
@@ -278,7 +320,9 @@ export function ComboboxPage(): Node {
         <ExampleTitle>Controlled Selection</ExampleTitle>
         <ExampleDescription>value holds the selected values one per line; buttons change it from outside.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledCombobox /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledCombobox />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledCombobox(): Node {
   const tags = signal('bug');
   return (

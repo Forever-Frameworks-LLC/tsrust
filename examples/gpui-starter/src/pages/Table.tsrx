@@ -16,19 +16,25 @@ function InvoiceTable(): Node {
       <TableBody>
         <TableRow>
           <TableCell className="font-medium">INV001</TableCell>
-          <TableCell><Tag variant="success">Paid</Tag></TableCell>
+          <TableCell>
+            <Tag variant="success">Paid</Tag>
+          </TableCell>
           <TableCell>Credit Card</TableCell>
           <TableCell align="right">$250.00</TableCell>
         </TableRow>
         <TableRow>
           <TableCell className="font-medium">INV002</TableCell>
-          <TableCell><Tag variant="warning">Pending</Tag></TableCell>
+          <TableCell>
+            <Tag variant="warning">Pending</Tag>
+          </TableCell>
           <TableCell>PayPal</TableCell>
           <TableCell align="right">$150.00</TableCell>
         </TableRow>
         <TableRow>
           <TableCell className="font-medium">INV003</TableCell>
-          <TableCell><Tag variant="danger">Unpaid</Tag></TableCell>
+          <TableCell>
+            <Tag variant="danger">Unpaid</Tag>
+          </TableCell>
           <TableCell>Bank Transfer</TableCell>
           <TableCell align="right">$350.00</TableCell>
         </TableRow>
@@ -48,16 +54,35 @@ function SmallTable(): Node {
   return (
     <View className="flex-col gap-6">
       <Table size="xsmall">
-        <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Role</TableHead></TableRow></TableHeader>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Role</TableHead>
+          </TableRow>
+        </TableHeader>
         <TableBody>
-          <TableRow><TableCell>Ada</TableCell><TableCell>Engineer</TableCell></TableRow>
-          <TableRow><TableCell>Grace</TableCell><TableCell>Admiral</TableCell></TableRow>
+          <TableRow>
+            <TableCell>Ada</TableCell>
+            <TableCell>Engineer</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>Grace</TableCell>
+            <TableCell>Admiral</TableCell>
+          </TableRow>
         </TableBody>
       </Table>
       <Table size="large">
-        <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Role</TableHead></TableRow></TableHeader>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Role</TableHead>
+          </TableRow>
+        </TableHeader>
         <TableBody>
-          <TableRow><TableCell>Ada</TableCell><TableCell>Engineer</TableCell></TableRow>
+          <TableRow>
+            <TableCell>Ada</TableCell>
+            <TableCell>Engineer</TableCell>
+          </TableRow>
         </TableBody>
       </Table>
     </View>
@@ -80,13 +105,32 @@ function DataRows(): Node {
   },];
   return (
     <Table>
-      <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead align="center">Active</TableHead></TableRow></TableHeader>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead align="center">Active</TableHead>
+        </TableRow>
+      </TableHeader>
       <TableBody>
         {...people.map((person) => (
           <TableRow>
-            <TableCell><View className="flex-row items-center gap-2"><Avatar name={clone(person.name)} size="xsmall" /><Text>{clone(person.name)}</Text></View></TableCell>
-            <TableCell><Text variant="muted">{clone(person.email)}</Text></TableCell>
-            <TableCell align="center"><Checkbox defaultChecked={person.active} /></TableCell>
+            <TableCell>
+              <View className="flex-row items-center gap-2">
+                <Avatar name={clone(person.name)} size="xsmall" />
+                <Text>
+                  {clone(person.name)}
+                </Text>
+              </View>
+            </TableCell>
+            <TableCell>
+              <Text variant="muted">
+                {clone(person.email)}
+              </Text>
+            </TableCell>
+            <TableCell align="center">
+              <Checkbox defaultChecked={person.active} />
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -102,7 +146,9 @@ export function TablePage(): Node {
         <ExampleTitle>Basic Table</ExampleTitle>
         <ExampleDescription>Header, body, footer totals and a caption; align="right" lines up amounts.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><InvoiceTable /></ExamplePreview>
+          <ExamplePreview>
+            <InvoiceTable />
+          </ExamplePreview>
           <ExampleCode>{`function InvoiceTable(): Node {
   return (
     <Table accessibilityLabel="Recent invoices">
@@ -150,7 +196,9 @@ export function TablePage(): Node {
         <ExampleTitle>Sizes</ExampleTitle>
         <ExampleDescription>size sets every cell's padding and text size.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SmallTable /></ExamplePreview>
+          <ExamplePreview>
+            <SmallTable />
+          </ExamplePreview>
           <ExampleCode>{`function SmallTable(): Node {
   return (
     <View className="flex-col gap-6">
@@ -176,7 +224,9 @@ export function TablePage(): Node {
         <ExampleTitle>Rows from Data</ExampleTitle>
         <ExampleDescription>Map an array to TableRow children; cells hold any content.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DataRows /></ExamplePreview>
+          <ExamplePreview>
+            <DataRows />
+          </ExamplePreview>
           <ExampleCode>{`interface Person {
   name: string;
   email: string;

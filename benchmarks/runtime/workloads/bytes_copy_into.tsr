@@ -2,6 +2,7 @@ import { alloc, length, at, copyInto } from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int[] {
   let size = 32;
+
   if (input === "4k") {
     size = 4096;
   }
@@ -14,6 +15,7 @@ function workload(n: int, seed: int, input: string): int[] {
   const target = unwrap(alloc(size + 1));
   const output: int[] = [];
   let i = 0;
+
   while (i < n) {
     unwrap(copyInto(target, 1, bytes));
     output.push(length(target));

@@ -37,9 +37,11 @@ function main() {
   strictEqual(seen, 0);
   let caught = 0;
   let visited = "";
+
   try {
     values.forEach((value) => {
       visited = visited + String(value);
+
       if (value === 1) {
         throw "stop";
       }
@@ -55,6 +57,7 @@ function main() {
   strictEqual(visited, "31");
   strictEqual(values.size, 3);
   let cleanup = 0;
+
   try {
     try {
       values.forEach((value) => {

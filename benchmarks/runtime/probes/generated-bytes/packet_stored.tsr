@@ -13,6 +13,7 @@ function workload(n: int, seed: int, input: string): int {
   const savedwriteFloat64 = writeFloat64;
   let checksum = 0;
   let i = 0;
+
   while (i < n) {
     unwrap(savedwriteInt(bytes, 1, 65, 1, order));
     checksum += unwrap(savedreadInt(bytes, 1, 1, order)) * 4;

@@ -39,7 +39,9 @@ function OutlineButtons(): Node {
 }
 
 function CompactButton(): Node {
-  return <Button compact={true}>Compact</Button>;
+  return (
+    <Button compact={true}>Compact</Button>
+  );
 }
 
 function ButtonSizes(): Node {
@@ -64,7 +66,9 @@ function IconButtons(): Node {
 }
 
 function CaretButton(): Node {
-  return <Button caret={true}>Options</Button>;
+  return (
+    <Button caret={true}>Options</Button>
+  );
 }
 
 function ButtonStates(): Node {
@@ -82,7 +86,13 @@ function TooltipButton(): Node {
   const saved = signal(0);
   return (
     <View className="flex-row items-center gap-3">
-      <Shortcut command="save" keys="secondary-s" onTrigger={() => { saved.set(saved.get() + 1); }} />
+      <Shortcut
+        command="save"
+        keys="secondary-s"
+        onTrigger={() => {
+          saved.set(saved.get() + 1);
+        }}
+      />
       <Button tooltip="Save" tooltipCommand="save" onPress={() => { saved.set(saved.get() + 1); }}>Save</Button>
       <Text>Saved {saved} times</Text>
     </View>
@@ -116,7 +126,9 @@ function HoverButton(): Node {
   return (
     <View className="flex-row items-center gap-3">
       <Button onHover={(on) => { hovered.set(on); }}>Hover me</Button>
-      <Text>{hovered.get() ? 'Hovering' : 'Not hovering'}</Text>
+      <Text>
+        {hovered.get() ? 'Hovering' : 'Not hovering'}
+      </Text>
     </View>
   );
 }
@@ -128,7 +140,12 @@ function GroupOfButtons(): Node {
       <ButtonGroup variant="primary">
         <Button onPress={() => { last.set('one'); }}>One</Button>
         <Button onPress={() => { last.set('two'); }}>Two</Button>
-        <Button icon="ellipsis" onPress={() => { last.set('more'); }} />
+        <Button
+          icon="ellipsis"
+          onPress={() => {
+            last.set('more');
+          }}
+        />
       </ButtonGroup>
       <Text>Last clicked: {last}</Text>
     </View>
@@ -139,7 +156,13 @@ function ToggleButtonGroup(): Node {
   const selected = signal('0');
   return (
     <View className="flex-col gap-3">
-      <ButtonGroup outline={true} multiple={true} onClick={(indexes) => { selected.set(clone(indexes)); }}>
+      <ButtonGroup
+        outline={true}
+        multiple={true}
+        onClick={(indexes) => {
+          selected.set(clone(indexes));
+        }}
+      >
         <GroupButton selected={selected.get().includes('0')}>Option 1</GroupButton>
         <GroupButton selected={selected.get().includes('1')}>Option 2</GroupButton>
         <GroupButton selected={selected.get().includes('2')}>Option 3</GroupButton>
@@ -159,7 +182,9 @@ function VerticalGroup(): Node {
 }
 
 function CustomVariant(): Node {
-  return <Button color="magenta" foreground="primary-foreground" hoverColor="magenta-light" activeColor="magenta">Custom Button</Button>;
+  return (
+    <Button color="magenta" foreground="primary-foreground" hoverColor="magenta-light" activeColor="magenta">Custom Button</Button>
+  );
 }
 
 function StyledKeyboardButton(): Node {
@@ -182,7 +207,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Basic Button</ExampleTitle>
         <ExampleDescription>A labelled button that runs a handler when clicked.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicButton /></ExamplePreview>
+          <ExamplePreview>
+            <BasicButton />
+          </ExamplePreview>
           <ExampleCode>{`function BasicButton(): Node {
   const clicks = signal(0);
   return (
@@ -198,7 +225,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Variants</ExampleTitle>
         <ExampleDescription>Without a variant a button uses GPUI Kit's neutral default style.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ButtonVariants /></ExamplePreview>
+          <ExamplePreview>
+            <ButtonVariants />
+          </ExamplePreview>
           <ExampleCode>{`function ButtonVariants(): Node {
   return (
     <View className="flex-row flex-wrap gap-3">
@@ -221,7 +250,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Outline Buttons</ExampleTitle>
         <ExampleDescription>Outline combines with any variant.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><OutlineButtons /></ExamplePreview>
+          <ExamplePreview>
+            <OutlineButtons />
+          </ExamplePreview>
           <ExampleCode>{`function OutlineButtons(): Node {
   return (
     <View className="flex-row gap-3">
@@ -236,7 +267,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Compact Button</ExampleTitle>
         <ExampleDescription>Compact reduces the horizontal padding.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CompactButton /></ExamplePreview>
+          <ExamplePreview>
+            <CompactButton />
+          </ExamplePreview>
           <ExampleCode>{`function CompactButton(): Node {
   return <Button compact={true}>Compact</Button>;
 }`}</ExampleCode>
@@ -246,7 +279,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Sizes</ExampleTitle>
         <ExampleDescription>xsmall, small, medium (the default) and large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ButtonSizes /></ExamplePreview>
+          <ExamplePreview>
+            <ButtonSizes />
+          </ExamplePreview>
           <ExampleCode>{`function ButtonSizes(): Node {
   return (
     <View className="flex-row items-center gap-3">
@@ -263,7 +298,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>With Icons</ExampleTitle>
         <ExampleDescription>A leading icon; a button with only an icon is square.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><IconButtons /></ExamplePreview>
+          <ExamplePreview>
+            <IconButtons />
+          </ExamplePreview>
           <ExampleCode>{`function IconButtons(): Node {
   return (
     <View className="flex-row items-center gap-3">
@@ -279,7 +316,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>With a dropdown caret icon</ExampleTitle>
         <ExampleDescription>A caret after the label marks a button that opens a menu.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CaretButton /></ExamplePreview>
+          <ExamplePreview>
+            <CaretButton />
+          </ExamplePreview>
           <ExampleCode>{`function CaretButton(): Node {
   return <Button caret={true}>Options</Button>;
 }`}</ExampleCode>
@@ -289,7 +328,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Button States</ExampleTitle>
         <ExampleDescription>Disabled, loading and selected. Loading shows a spinner and blocks clicks.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ButtonStates /></ExamplePreview>
+          <ExamplePreview>
+            <ButtonStates />
+          </ExamplePreview>
           <ExampleCode>{`function ButtonStates(): Node {
   const saving = signal(false);
   return (
@@ -306,7 +347,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>With Tooltip</ExampleTitle>
         <ExampleDescription>A tooltip on hover. With tooltipCommand it also shows the keys of that Shortcut command.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TooltipButton /></ExamplePreview>
+          <ExamplePreview>
+            <TooltipButton />
+          </ExamplePreview>
           <ExampleCode>{`function TooltipButton(): Node {
   const saved = signal(0);
   return (
@@ -323,7 +366,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Spinner and Progress Icons</ExampleTitle>
         <ExampleDescription>A spinner or a progress circle can take the icon's place.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ProgressIcons /></ExamplePreview>
+          <ExamplePreview>
+            <ProgressIcons />
+          </ExamplePreview>
           <ExampleCode>{`function ProgressIcons(): Node {
   const progress = signal(45.0);
   return (
@@ -340,7 +385,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Rounding</ExampleTitle>
         <ExampleDescription>Corner rounding from none to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ButtonRounding /></ExamplePreview>
+          <ExamplePreview>
+            <ButtonRounding />
+          </ExamplePreview>
           <ExampleCode>{`function ButtonRounding(): Node {
   return (
     <View className="flex-row items-center gap-3">
@@ -357,7 +404,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Hover</ExampleTitle>
         <ExampleDescription>onHover reports when the pointer enters and leaves.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><HoverButton /></ExamplePreview>
+          <ExamplePreview>
+            <HoverButton />
+          </ExamplePreview>
           <ExampleCode>{`function HoverButton(): Node {
   const hovered = signal(false);
   return (
@@ -373,7 +422,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Button Group</ExampleTitle>
         <ExampleDescription>Buttons joined into one control; group options apply to every button.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><GroupOfButtons /></ExamplePreview>
+          <ExamplePreview>
+            <GroupOfButtons />
+          </ExamplePreview>
           <ExampleCode>{`function GroupOfButtons(): Node {
   const last = signal('none');
   return (
@@ -393,7 +444,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Toggle Button Group</ExampleTitle>
         <ExampleDescription>With multiple, clicks toggle each button; onClick reports the selected indexes.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ToggleButtonGroup /></ExamplePreview>
+          <ExamplePreview>
+            <ToggleButtonGroup />
+          </ExamplePreview>
           <ExampleCode>{`function ToggleButtonGroup(): Node {
   const selected = signal('0');
   return (
@@ -413,7 +466,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Vertical Group</ExampleTitle>
         <ExampleDescription>Groups can stack vertically and take any size.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><VerticalGroup /></ExamplePreview>
+          <ExamplePreview>
+            <VerticalGroup />
+          </ExamplePreview>
           <ExampleCode>{`function VerticalGroup(): Node {
   return (
     <ButtonGroup vertical={true} size="small" compact={true}>
@@ -428,7 +483,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Custom Variant</ExampleTitle>
         <ExampleDescription>A custom fill, text, hover and pressed color, from theme color names or hex.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CustomVariant /></ExamplePreview>
+          <ExamplePreview>
+            <CustomVariant />
+          </ExamplePreview>
           <ExampleCode>{`function CustomVariant(): Node {
   return <Button color="magenta" foreground="primary-foreground" hoverColor="magenta-light" activeColor="magenta">Custom Button</Button>;
 }`}</ExampleCode>
@@ -438,7 +495,9 @@ export function ButtonPage(): Node {
         <ExampleTitle>Styled keyboard button</ExampleTitle>
         <ExampleDescription>Custom utilities own the appearance while the native button retains focus, Enter/Space activation and disabled behavior. Click once, then press Space or Enter; disabling preserves the count.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><StyledKeyboardButton /></ExamplePreview>
+          <ExamplePreview>
+            <StyledKeyboardButton />
+          </ExamplePreview>
           <ExampleCode>{`function StyledKeyboardButton(): Node {
   const count = signal(0);
   const disabled = signal(false);

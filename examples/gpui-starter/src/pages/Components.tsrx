@@ -15,7 +15,9 @@ function LabelledFields(): Node {
 function ComposedDialog(): Node {
   return (
     <Dialog>
-      <DialogTrigger><Button outline={true}>Edit profile</Button></DialogTrigger>
+      <DialogTrigger>
+        <Button outline={true}>Edit profile</Button>
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit profile</DialogTitle>
@@ -23,8 +25,12 @@ function ComposedDialog(): Node {
         </DialogHeader>
         <Input placeholder="Name" />
         <DialogFooter>
-          <DialogClose><Button outline={true}>Cancel</Button></DialogClose>
-          <DialogClose><Button variant="primary">Save</Button></DialogClose>
+          <DialogClose>
+            <Button outline={true}>Cancel</Button>
+          </DialogClose>
+          <DialogClose>
+            <Button variant="primary">Save</Button>
+          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -39,14 +45,21 @@ interface CardProps {
 function Card(props: CardProps): Node {
   return (
     <View className="flex-col gap-2 rounded-lg border border-border p-4 w-72">
-      <Text className="font-semibold">{props.title}</Text>
+      <Text className="font-semibold">
+        {props.title}
+      </Text>
       <View className="flex-col gap-1" children={props.children ?? []} />
     </View>
   );
 }
 
 function CardExample(): Node {
-  return <Card title="Storage"><Progress value={64} /><Text variant="muted">64 GB of 100 GB used</Text></Card>;
+  return (
+    <Card title="Storage">
+      <Progress value={64} />
+      <Text variant="muted">64 GB of 100 GB used</Text>
+    </Card>
+  );
 }
 
 export function ComponentsPage(): Node {
@@ -55,7 +68,9 @@ export function ComponentsPage(): Node {
       <Markdown content={"# Components"} />
       <Markdown content={"Components follow shadcn/ui's composition style: a component's text and\nparts are its children, not props.\n\n## Text goes in children\n\nText children fill a component's label. A `Text` with a variant styles part\nof it."} />
       <ExampleTabs>
-        <ExamplePreview><LabelledFields /></ExamplePreview>
+        <ExamplePreview>
+          <LabelledFields />
+        </ExamplePreview>
         <ExampleCode>{`function LabelledFields(): Node {
   return (
     <View className="flex-col gap-3 w-80">
@@ -68,7 +83,9 @@ export function ComponentsPage(): Node {
       </ExampleTabs>
       <Markdown content={"## Compose parts\n\nLarger components are built from named parts, such as `DialogTrigger` and\n`DialogContent`, or `TableHeader` and `TableRow`. Each part takes its own\n`className`."} />
       <ExampleTabs>
-        <ExamplePreview><ComposedDialog /></ExamplePreview>
+        <ExamplePreview>
+          <ComposedDialog />
+        </ExamplePreview>
         <ExampleCode>{`function ComposedDialog(): Node {
   return (
     <Dialog>
@@ -90,7 +107,9 @@ export function ComponentsPage(): Node {
       </ExampleTabs>
       <Markdown content={"## Your own components\n\nWrite a props interface and a function. `children?: Child[]` accepts nested\ncontent, which you pass on to a container."} />
       <ExampleTabs>
-        <ExamplePreview><CardExample /></ExamplePreview>
+        <ExamplePreview>
+          <CardExample />
+        </ExamplePreview>
         <ExampleCode>{`interface CardProps {
   title: string;
   children?: Child[];

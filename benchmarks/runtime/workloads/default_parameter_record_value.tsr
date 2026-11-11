@@ -26,6 +26,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     calls: 0, defaults: 0
   };
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 4;
     const value = (i * 13 + seed) % 97;
@@ -34,6 +35,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     const observed = mode === 0 ? apply(trace, value, input) : mode === 1 ? apply(trace, value, input, undefined) : mode === 2 ? apply(trace, value, input, {
       id: value, label: input.repeat(value % 3 + 1).concat(":present")
     }) : apply(trace, value, input, null);
+
     if (observed !== null) {
       output.push(["record", String(observed.id), clone(observed.label)]);
     } else {

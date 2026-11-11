@@ -21,6 +21,7 @@ type One = {
 
 function sum(values: int[]): int {
   let total = 0;
+
   for (const value of values) {
     total += value;
   }
@@ -49,6 +50,7 @@ function main() {
   console.log(Object.values(holder.size), Object.entries(holder.size), names(holder));
   const all = Object.values(holder);
   console.log(all.length, all);
+
   for (const value of all) {
     if (typeof value === "string") {
       console.log("text", value);

@@ -186,6 +186,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod visibility;",&module("visibility",source!("visibility.rs")))
         .replace("mod kit;",&module("kit",source!("kit.rs")))
         .replace("mod commands;",&module("commands",source!("commands.rs")))
+        .replace("mod terminal_links;",&module("terminal_links",source!("terminal_links.rs")))
         .replace("mod i18n;",&module("i18n",source!("i18n.rs")))
         .replace("mod update;",&module("update",source!("update.rs")))
         .replace("mod editable;",&module("editable",source!("editable.rs")))

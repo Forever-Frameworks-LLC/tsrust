@@ -10,6 +10,7 @@ async function produce(sender: Sender<SseEvent>): Task<void> {
 async function echo(socket: Owned<WebSocket>): Task<void> {
   while (true) {
     const message = await socket.receive();
+
     if (message === undefined || message.kind === 'close') {
       break;
     }

@@ -4,12 +4,23 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 
 function BasicToggle(): Node {
   const on = signal(false);
-  return <Toggle checked={on.get()} onChange={(checked) => { on.set(checked); }}>Bold</Toggle>;
+  return (
+    <Toggle checked={on.get()} onChange={(checked) => { on.set(checked); }}>Bold</Toggle>
+  );
 }
 
 function IconToggle(): Node {
   const on = signal(true);
-  return <Toggle icon="eye" tooltip="Show preview" checked={on.get()} onChange={(checked) => { on.set(checked); }} />;
+  return (
+    <Toggle
+      icon="eye"
+      tooltip="Show preview"
+      checked={on.get()}
+      onChange={(checked) => {
+        on.set(checked);
+      }}
+    />
+  );
 }
 
 function ToggleSizes(): Node {
@@ -38,9 +49,27 @@ function TextFormatting(): Node {
   const underline = signal(false);
   return (
     <ToggleGroup>
-      <Toggle icon="bold" checked={bold.get()} onChange={(on) => { bold.set(on); }} />
-      <Toggle icon="italic" checked={italic.get()} onChange={(on) => { italic.set(on); }} />
-      <Toggle icon="underline" checked={underline.get()} onChange={(on) => { underline.set(on); }} />
+      <Toggle
+        icon="bold"
+        checked={bold.get()}
+        onChange={(on) => {
+          bold.set(on);
+        }}
+      />
+      <Toggle
+        icon="italic"
+        checked={italic.get()}
+        onChange={(on) => {
+          italic.set(on);
+        }}
+      />
+      <Toggle
+        icon="underline"
+        checked={underline.get()}
+        onChange={(on) => {
+          underline.set(on);
+        }}
+      />
     </ToggleGroup>
   );
 }
@@ -69,7 +98,9 @@ export function TogglePage(): Node {
         <ExampleTitle>Basic Toggle</ExampleTitle>
         <ExampleDescription>A toggle with text content.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicToggle /></ExamplePreview>
+          <ExamplePreview>
+            <BasicToggle />
+          </ExamplePreview>
           <ExampleCode>{`function BasicToggle(): Node {
   const on = signal(false);
   return <Toggle checked={on.get()} onChange={(checked) => { on.set(checked); }}>Bold</Toggle>;
@@ -80,7 +111,9 @@ export function TogglePage(): Node {
         <ExampleTitle>Icon Toggle</ExampleTitle>
         <ExampleDescription>A toggle can show an icon instead of text.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><IconToggle /></ExamplePreview>
+          <ExamplePreview>
+            <IconToggle />
+          </ExamplePreview>
           <ExampleCode>{`function IconToggle(): Node {
   const on = signal(true);
   return <Toggle icon="eye" tooltip="Show preview" checked={on.get()} onChange={(checked) => { on.set(checked); }} />;
@@ -91,7 +124,9 @@ export function TogglePage(): Node {
         <ExampleTitle>Sizes</ExampleTitle>
         <ExampleDescription>xsmall, small, medium and large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ToggleSizes /></ExamplePreview>
+          <ExamplePreview>
+            <ToggleSizes />
+          </ExamplePreview>
           <ExampleCode>{`function ToggleSizes(): Node {
   return (
     <View className="flex-row items-center gap-3">
@@ -108,7 +143,9 @@ export function TogglePage(): Node {
         <ExampleTitle>Disabled State</ExampleTitle>
         <ExampleDescription>A disabled toggle keeps its state but cannot change.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DisabledToggle /></ExamplePreview>
+          <ExamplePreview>
+            <DisabledToggle />
+          </ExamplePreview>
           <ExampleCode>{`function DisabledToggle(): Node {
   return (
     <View className="flex-row gap-3">
@@ -123,7 +160,9 @@ export function TogglePage(): Node {
         <ExampleTitle>Toggle Group</ExampleTitle>
         <ExampleDescription>Toggles in a row; each reports its own change.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><TextFormatting /></ExamplePreview>
+          <ExamplePreview>
+            <TextFormatting />
+          </ExamplePreview>
           <ExampleCode>{`function TextFormatting(): Node {
   const bold = signal(true);
   const italic = signal(false);
@@ -142,7 +181,9 @@ export function TogglePage(): Node {
         <ExampleTitle>Segmented Group</ExampleTitle>
         <ExampleDescription>A segmented group draws as one control, in any size.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SegmentedGroup /></ExamplePreview>
+          <ExamplePreview>
+            <SegmentedGroup />
+          </ExamplePreview>
           <ExampleCode>{`function SegmentedGroup(): Node {
   const view = signal(0);
   return (

@@ -4,6 +4,7 @@ import { Document, dirty, markSaved } from './documents.tsr';
 export function saveDocument(document: Mutable<Document>): Result<void, FsError> {
   if (!dirty(document)) return Ok();
   const text = clone(document.text);
+
   match (writeTextFileAtomic(document.path, text, document.savedText)) {
     Ok(_) => {
       markSaved(document, text, true);

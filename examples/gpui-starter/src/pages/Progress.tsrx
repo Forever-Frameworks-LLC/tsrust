@@ -14,7 +14,9 @@ function ProgressValues(): Node {
 }
 
 function LoadingProgress(): Node {
-  return <Progress loading={true} className="w-80" />;
+  return (
+    <Progress loading={true} className="w-80" />
+  );
 }
 
 function ProgressSizes(): Node {
@@ -29,7 +31,9 @@ function ProgressSizes(): Node {
 }
 
 function StyledProgress(): Node {
-  return <Progress value={60} color="green" className="w-80 h-2 rounded-none" />;
+  return (
+    <Progress value={60} color="green" className="w-80 h-2 rounded-none" />
+  );
 }
 
 function DynamicProgress(): Node {
@@ -81,7 +85,9 @@ export function ProgressPage(): Node {
         <ExampleTitle>Different Progress Values</ExampleTitle>
         <ExampleDescription>Values from 0 to 100.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ProgressValues /></ExamplePreview>
+          <ExamplePreview>
+            <ProgressValues />
+          </ExamplePreview>
           <ExampleCode>{`function ProgressValues(): Node {
   return (
     <View className="flex-col gap-3 w-80">
@@ -98,7 +104,9 @@ export function ProgressPage(): Node {
         <ExampleTitle>Loading State</ExampleTitle>
         <ExampleDescription>An animated bar before the value is known.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LoadingProgress /></ExamplePreview>
+          <ExamplePreview>
+            <LoadingProgress />
+          </ExamplePreview>
           <ExampleCode>{`function LoadingProgress(): Node {
   return <Progress loading={true} className="w-80" />;
 }`}</ExampleCode>
@@ -108,7 +116,9 @@ export function ProgressPage(): Node {
         <ExampleTitle>Sizes</ExampleTitle>
         <ExampleDescription>xsmall to large heights.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ProgressSizes /></ExamplePreview>
+          <ExamplePreview>
+            <ProgressSizes />
+          </ExamplePreview>
           <ExampleCode>{`function ProgressSizes(): Node {
   return (
     <View className="flex-col gap-3 w-80">
@@ -125,7 +135,9 @@ export function ProgressPage(): Node {
         <ExampleTitle>Custom Style</ExampleTitle>
         <ExampleDescription>Color and utility classes.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><StyledProgress /></ExamplePreview>
+          <ExamplePreview>
+            <StyledProgress />
+          </ExamplePreview>
           <ExampleCode>{`function StyledProgress(): Node {
   return <Progress value={60} color="green" className="w-80 h-2 rounded-none" />;
 }`}</ExampleCode>
@@ -135,7 +147,9 @@ export function ProgressPage(): Node {
         <ExampleTitle>Dynamic Progress Updates</ExampleTitle>
         <ExampleDescription>Live values from state.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DynamicProgress /></ExamplePreview>
+          <ExamplePreview>
+            <DynamicProgress />
+          </ExamplePreview>
           <ExampleCode>{`function DynamicProgress(): Node {
   const value = signal<number>(30);
   return (
@@ -154,7 +168,9 @@ export function ProgressPage(): Node {
         <ExampleTitle>Progress Circle</ExampleTitle>
         <ExampleDescription>A circular indicator, with the same values, loading state and sizes.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CircleProgress /></ExamplePreview>
+          <ExamplePreview>
+            <CircleProgress />
+          </ExamplePreview>
           <ExampleCode>{`function CircleProgress(): Node {
   return (
     <View className="flex-row items-center gap-4">
@@ -171,7 +187,9 @@ export function ProgressPage(): Node {
         <ExampleTitle>With Inner Content</ExampleTitle>
         <ExampleDescription>Children draw inside the circle.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CircleContent /></ExamplePreview>
+          <ExamplePreview>
+            <CircleContent />
+          </ExamplePreview>
           <ExampleCode>{`function CircleContent(): Node {
   return (
     <ProgressCircle value={68} className="size-16">
@@ -185,7 +203,9 @@ export function ProgressPage(): Node {
         <ExampleTitle>Inline with Label</ExampleTitle>
         <ExampleDescription>A small circle beside text.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><InlineCircle /></ExamplePreview>
+          <ExamplePreview>
+            <InlineCircle />
+          </ExamplePreview>
           <ExampleCode>{`function InlineCircle(): Node {
   return (
     <View className="flex-row items-center gap-2">

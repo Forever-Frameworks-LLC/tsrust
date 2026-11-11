@@ -18,6 +18,7 @@ type Ready = {
 function render(id: int): Output {
   let checksum = 0;
   let escaped = 0;
+
   for (let y = 0; y < 64; y++) {
     for (let x = 0; x < 96; x++) {
       const cx = -2.0 + Number(x) * 3.0 / 96.0 + Number(id % 7) * 0.0001;
@@ -25,6 +26,7 @@ function render(id: int): Output {
       let zx = 0.0;
       let zy = 0.0;
       let iterations = 0;
+
       while (iterations < 256 && zx * zx + zy * zy <= 4.0) {
         const next = zx * zx - zy * zy + cx;
         zy = 2.0 * zx * zy + cy;
@@ -33,6 +35,7 @@ function render(id: int): Output {
       }
 
       checksum = (checksum + iterations * (y * 96 + x + 1)) % 1000000007;
+
       if (iterations < 256) escaped++;
     }
   }
@@ -50,9 +53,11 @@ async function main(): Task<void> {
   });
   app.post('/render', async (c) => {
     let id = 0;
+
     try {
       const input = JSON.parse<Input>(await c.req.text());
       id = input.id;
+
       if (id < 1 || id > 128) return c.text('invalid', 400);
     } catch (error) {
       return c.text('invalid', 400);
@@ -65,6 +70,7 @@ async function main(): Task<void> {
     address: server.address()
   };
   console.log(JSON.stringify(ready));
+
   try {
     await receive(signals);
   } finally {

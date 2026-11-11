@@ -7,12 +7,32 @@ function BasicList(): Node {
   return (
     <View className="flex-col gap-3 w-72">
       <View className="h-48 rounded-lg border border-border">
-        <List className="size-full" onConfirm={(value) => { chosen.set(value); }}>
-          <ListItem value="inbox"><Icon name="inbox" /><Text>Inbox</Text><ListItemSuffix><Text variant="muted">12</Text></ListItemSuffix></ListItem>
-          <ListItem value="drafts"><Icon name="file" /><Text>Drafts</Text></ListItem>
-          <ListItem value="sent"><Icon name="send" /><Text>Sent</Text></ListItem>
+        <List
+          className="size-full"
+          onConfirm={(value) => {
+            chosen.set(value);
+          }}
+        >
+          <ListItem value="inbox">
+            <Icon name="inbox" />
+            <Text>Inbox</Text>
+            <ListItemSuffix>
+              <Text variant="muted">12</Text>
+            </ListItemSuffix>
+          </ListItem>
+          <ListItem value="drafts">
+            <Icon name="file" />
+            <Text>Drafts</Text>
+          </ListItem>
+          <ListItem value="sent">
+            <Icon name="send" />
+            <Text>Sent</Text>
+          </ListItem>
           <ListSeparator />
-          <ListItem value="trash" disabled={true}><Icon name="trash" /><Text>Trash</Text></ListItem>
+          <ListItem value="trash" disabled={true}>
+            <Icon name="trash" />
+            <Text>Trash</Text>
+          </ListItem>
         </List>
       </View>
       <Text variant="muted">Confirmed: {chosen.get()}</Text>
@@ -33,7 +53,9 @@ function SearchList(): Node {
           <ListItem value="carrot">Carrot</ListItem>
           <ListItem value="leek">Leek</ListItem>
         </ListGroup>
-        <ListEmpty><Text variant="muted">No produce matches.</Text></ListEmpty>
+        <ListEmpty>
+          <Text variant="muted">No produce matches.</Text>
+        </ListEmpty>
       </List>
     </View>
   );
@@ -45,8 +67,23 @@ function CheckList(): Node {
   return (
     <View className="h-28 w-72 rounded-lg border border-border">
       <List className="size-full" selectable={false}>
-        <ListItem confirmed={wifi.get()} onClick={() => { wifi.set(!wifi.get()); }}><Text>Wi-Fi</Text></ListItem>
-        <ListItem confirmed={bluetooth.get()} checkIcon="circle-check" onClick={() => { bluetooth.set(!bluetooth.get()); }}><Text>Bluetooth</Text></ListItem>
+        <ListItem
+          confirmed={wifi.get()}
+          onClick={() => {
+            wifi.set(!wifi.get());
+          }}
+        >
+          <Text>Wi-Fi</Text>
+        </ListItem>
+        <ListItem
+          confirmed={bluetooth.get()}
+          checkIcon="circle-check"
+          onClick={() => {
+            bluetooth.set(!bluetooth.get());
+          }}
+        >
+          <Text>Bluetooth</Text>
+        </ListItem>
       </List>
     </View>
   );
@@ -55,6 +92,7 @@ function CheckList(): Node {
 function LongList(): Node {
   const count = signal(30);
   const rows: int[] = [];
+
   for (let index = 0; index < 200; index += 1) {
     rows.push(index);
   }
@@ -62,8 +100,18 @@ function LongList(): Node {
   return (
     <View className="flex-col gap-3 w-72">
       <View className="h-64 rounded-lg border border-border">
-        <List className="size-full" hasMore={count.get() < 200} loadMoreThreshold={5} onLoadMore={() => { count.set(count.get() + 30 > 200 ? 200 : count.get() + 30); }}>
-          {...rows.filter((row: int) => row < count.get()).map((row: int) => <ListItem><Text>Row {row + 1}</Text></ListItem>)}
+        <List
+          className="size-full"
+          hasMore={count.get() < 200}
+          loadMoreThreshold={5}
+          onLoadMore={() => {
+            count.set(count.get() + 30 > 200 ? 200 : count.get() + 30);
+          }}
+        >
+          {...rows.filter((row: int) => row < count.get()).map((row: int) => <ListItem>
+            <Text>Row {row + 1}</Text>
+          </ListItem>
+          )}
         </List>
       </View>
       <Text variant="muted">Loaded {count.get()} rows</Text>
@@ -79,7 +127,9 @@ export function ListPage(): Node {
         <ExampleTitle>Basic List</ExampleTitle>
         <ExampleDescription>Click a row or use the arrow keys and Enter; onConfirm reports the row's value.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicList /></ExamplePreview>
+          <ExamplePreview>
+            <BasicList />
+          </ExamplePreview>
           <ExampleCode>{`function BasicList(): Node {
   const chosen = signal('none');
   return (
@@ -103,7 +153,9 @@ export function ListPage(): Node {
         <ExampleTitle>Searchable Groups</ExampleTitle>
         <ExampleDescription>searchable adds a filter field; ListGroup sections and ListEmpty for no matches.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><SearchList /></ExamplePreview>
+          <ExamplePreview>
+            <SearchList />
+          </ExamplePreview>
           <ExampleCode>{`function SearchList(): Node {
   return (
     <View className="h-72 w-72 rounded-lg border border-border">
@@ -128,7 +180,9 @@ export function ListPage(): Node {
         <ExampleTitle>Confirmed Rows</ExampleTitle>
         <ExampleDescription>confirmed shows the check icon; toggle it from onClick.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CheckList /></ExamplePreview>
+          <ExamplePreview>
+            <CheckList />
+          </ExamplePreview>
           <ExampleCode>{`function CheckList(): Node {
   const wifi = signal(true);
   const bluetooth = signal(false);
@@ -147,7 +201,9 @@ export function ListPage(): Node {
         <ExampleTitle>Load More</ExampleTitle>
         <ExampleDescription>hasMore and onLoadMore append rows as you scroll toward the end.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><LongList /></ExamplePreview>
+          <ExamplePreview>
+            <LongList />
+          </ExamplePreview>
           <ExampleCode>{`function LongList(): Node {
   const count = signal(30);
   const rows: int[] = [];

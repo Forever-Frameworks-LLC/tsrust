@@ -1,9 +1,11 @@
 function workload(n: int, seed: int): string[] {
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const count = (i + seed) % 4;
     const values: int[] = [];
+
     if (count > 0) {
       values.push(seed);
     }
@@ -18,6 +20,7 @@ function workload(n: int, seed: int): string[] {
 
     const removed0 = values.pop();
     output.push(typeof removed0);
+
     if (removed0 === undefined) {
       output.push("undefined");
     } else {
@@ -25,6 +28,7 @@ function workload(n: int, seed: int): string[] {
     }
 
     output.push(String(values.length));
+
     if (values.length > 0) {
       output.push(describe(values[0]));
     } else {
@@ -39,6 +43,7 @@ function workload(n: int, seed: int): string[] {
 
     const removed1 = values.pop();
     output.push(typeof removed1);
+
     if (removed1 === undefined) {
       output.push("undefined");
     } else {
@@ -46,6 +51,7 @@ function workload(n: int, seed: int): string[] {
     }
 
     output.push(String(values.length));
+
     if (values.length > 0) {
       output.push(describe(values[0]));
     } else {

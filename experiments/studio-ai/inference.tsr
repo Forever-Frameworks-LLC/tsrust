@@ -5,6 +5,7 @@ import { chatPrompt } from './prompts.tsr';
 
 function main() {
   const arguments = unwrap(args());
+
   if (arguments.length !== 2) {
     throw 'Usage: inference MODEL.gguf tokenizer.json';
   }

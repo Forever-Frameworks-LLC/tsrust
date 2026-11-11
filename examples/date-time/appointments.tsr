@@ -34,6 +34,7 @@ function main() {
   strictEqual(offsetSeconds(early, zone), -14400);
   rejected(resolveDateTime(unwrap(parseDate('2024-03-10')), unwrap(parseTime('02:30:00')), zone, 'later'), 'NonexistentTime');
   const precise = unwrap(parseISO('2024-01-01T00:00:00.123456789Z'));
+
   match (toUnixMilliseconds(precise)) {
     Ok(_) => {
       throw 'lost nanoseconds';

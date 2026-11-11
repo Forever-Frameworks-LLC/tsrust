@@ -44,6 +44,7 @@ function main() {
   rejected(parseDecimal('999999999999999999999999999999999999999'), 'Range');
   const maximum = unwrap(parseDecimal('9223372036854775807'));
   strictEqual(unwrap(toInt(maximum)), 9223372036854775807);
+
   match (toNumber(maximum)) {
     Ok(_) => {
       throw 'lost integer precision';
@@ -54,6 +55,7 @@ function main() {
   }
 
   strictEqual(unwrap(toNumber(unwrap(parseDecimal('1.25')))), 1.25);
+
   match (toNumber(discount)) {
     Ok(_) => {
       throw 'lost decimal precision';

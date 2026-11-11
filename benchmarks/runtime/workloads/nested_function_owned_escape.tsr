@@ -9,12 +9,14 @@ function workload(n: int, seed: int, input: string): int[][] {
 
   const independentResult = independent();
   const later = [1, 2];
+
   if (independentResult !== 7) {
     throw 99;
   }
 
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const value = i % 5 + seed % 5 + 1;
     const actions = [make(value), make(value + 10)];
@@ -26,6 +28,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const item = take();
     const fail = failure(value);
     let caught = 0;
+
     try {
       fail();
     } catch {

@@ -15,12 +15,15 @@ function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   const change = resize;
   let i = 0;
+
   while (i < n) {
     const byte = (i + seed) % 256;
+
     match (alloc(2, byte)) {
       Ok(bytes) => {
         const initial = read(bytes, 0);
         let growth = -1;
+
         match (change(bytes, 4)) {
           Ok(_) => {
             growth = 1;
@@ -32,6 +35,7 @@ function workload(n: int, seed: int, input: string): int[][] {
 
         const zero = read(bytes, 3);
         let invalid = -1;
+
         match (resize(bytes, 0, 256)) {
           Ok(_) => {
             invalid = -2;
@@ -43,6 +47,7 @@ function workload(n: int, seed: int, input: string): int[][] {
 
         const preserved = length(bytes);
         let shrink = -1;
+
         match (resize(bytes, 1)) {
           Ok(_) => {
             shrink = 1;
@@ -53,6 +58,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         }
 
         let regrow = -1;
+
         match (resize(bytes, 3, 255)) {
           Ok(_) => {
             regrow = 1;

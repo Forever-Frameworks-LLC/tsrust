@@ -5,7 +5,9 @@ import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview,
 function BasicAlertDialog(): Node {
   return (
     <AlertDialog title="Update available" description="Version 2.0 is ready to install.">
-      <AlertDialogTrigger><Button outline={true}>Show alert</Button></AlertDialogTrigger>
+      <AlertDialogTrigger>
+        <Button outline={true}>Show alert</Button>
+      </AlertDialogTrigger>
     </AlertDialog>
   );
 }
@@ -14,8 +16,22 @@ function ConfirmAlertDialog(): Node {
   const result = signal('none');
   return (
     <View className="flex-row items-center gap-3">
-      <AlertDialog title="Are you absolutely sure?" description="This permanently deletes your account and removes your data." okText="Delete account" okVariant="danger" cancelText="Cancel" onOk={() => { result.set('deleted'); }} onCancel={() => { result.set('kept'); }}>
-        <AlertDialogTrigger><Button variant="danger">Delete account</Button></AlertDialogTrigger>
+      <AlertDialog
+        title="Are you absolutely sure?"
+        description="This permanently deletes your account and removes your data."
+        okText="Delete account"
+        okVariant="danger"
+        cancelText="Cancel"
+        onOk={() => {
+          result.set('deleted');
+        }}
+        onCancel={() => {
+          result.set('kept');
+        }}
+      >
+        <AlertDialogTrigger>
+          <Button variant="danger">Delete account</Button>
+        </AlertDialogTrigger>
       </AlertDialog>
       <Text variant="muted">Result: {result}</Text>
     </View>
@@ -25,12 +41,16 @@ function ConfirmAlertDialog(): Node {
 function IconAlertDialog(): Node {
   return (
     <AlertDialog icon="triangle-alert" confirm={true}>
-      <AlertDialogTrigger><Button outline={true}>Leave page</Button></AlertDialogTrigger>
+      <AlertDialogTrigger>
+        <Button outline={true}>Leave page</Button>
+      </AlertDialogTrigger>
       <AlertDialogHeader>
         <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
         <AlertDialogDescription>You have edits that have not been saved.</AlertDialogDescription>
       </AlertDialogHeader>
-      <AlertDialogContent><Text variant="muted">3 files changed</Text></AlertDialogContent>
+      <AlertDialogContent>
+        <Text variant="muted">3 files changed</Text>
+      </AlertDialogContent>
     </AlertDialog>
   );
 }
@@ -40,7 +60,17 @@ function ControlledAlertDialog(): Node {
   return (
     <View className="flex-row gap-3">
       <Button onPress={() => { open.set(true); }}>Open from state</Button>
-      <AlertDialog open={open.get()} onOpenChange={(next) => { open.set(next); }} centered={true} entrance="fade" title="Session expiring" description="You will be signed out in 2 minutes." okText="Stay signed in" />
+      <AlertDialog
+        open={open.get()}
+        onOpenChange={(next) => {
+          open.set(next);
+        }}
+        centered={true}
+        entrance="fade"
+        title="Session expiring"
+        description="You will be signed out in 2 minutes."
+        okText="Stay signed in"
+      />
     </View>
   );
 }
@@ -53,7 +83,9 @@ export function AlertDialogPage(): Node {
         <ExampleTitle>Basic Alert Dialog</ExampleTitle>
         <ExampleDescription>An acknowledgement with one OK button.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicAlertDialog /></ExamplePreview>
+          <ExamplePreview>
+            <BasicAlertDialog />
+          </ExamplePreview>
           <ExampleCode>{`function BasicAlertDialog(): Node {
   return (
     <AlertDialog title="Update available" description="Version 2.0 is ready to install.">
@@ -67,7 +99,9 @@ export function AlertDialogPage(): Node {
         <ExampleTitle>Confirm Dialog</ExampleTitle>
         <ExampleDescription>cancelText adds Cancel; onOk and onCancel report the choice.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ConfirmAlertDialog /></ExamplePreview>
+          <ExamplePreview>
+            <ConfirmAlertDialog />
+          </ExamplePreview>
           <ExampleCode>{`function ConfirmAlertDialog(): Node {
   const result = signal('none');
   return (
@@ -85,7 +119,9 @@ export function AlertDialogPage(): Node {
         <ExampleTitle>With Icon and Content</ExampleTitle>
         <ExampleDescription>An icon beside the title and extra content under the description.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><IconAlertDialog /></ExamplePreview>
+          <ExamplePreview>
+            <IconAlertDialog />
+          </ExamplePreview>
           <ExampleCode>{`function IconAlertDialog(): Node {
   return (
     <AlertDialog icon="triangle-alert" confirm={true}>
@@ -104,7 +140,9 @@ export function AlertDialogPage(): Node {
         <ExampleTitle>Controlled</ExampleTitle>
         <ExampleDescription>open follows state, centered and fading in.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledAlertDialog /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledAlertDialog />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledAlertDialog(): Node {
   const open = signal(false);
   return (

@@ -7,9 +7,21 @@ function BasicCarousel(): Node {
     <View className="w-80">
       <Carousel>
         <CarouselContent>
-          <CarouselItem><View className="flex-col h-40 items-center justify-center rounded-lg border border-border"><Text className="text-4xl font-semibold">1</Text></View></CarouselItem>
-          <CarouselItem><View className="flex-col h-40 items-center justify-center rounded-lg border border-border"><Text className="text-4xl font-semibold">2</Text></View></CarouselItem>
-          <CarouselItem><View className="flex-col h-40 items-center justify-center rounded-lg border border-border"><Text className="text-4xl font-semibold">3</Text></View></CarouselItem>
+          <CarouselItem>
+            <View className="flex-col h-40 items-center justify-center rounded-lg border border-border">
+              <Text className="text-4xl font-semibold">1</Text>
+            </View>
+          </CarouselItem>
+          <CarouselItem>
+            <View className="flex-col h-40 items-center justify-center rounded-lg border border-border">
+              <Text className="text-4xl font-semibold">2</Text>
+            </View>
+          </CarouselItem>
+          <CarouselItem>
+            <View className="flex-col h-40 items-center justify-center rounded-lg border border-border">
+              <Text className="text-4xl font-semibold">3</Text>
+            </View>
+          </CarouselItem>
         </CarouselContent>
         <CarouselPrevious />
         <CarouselNext />
@@ -22,11 +34,22 @@ function DotsCarousel(): Node {
   const slide = signal(0);
   return (
     <View className="flex-col gap-3 w-80">
-      <Carousel loop={true} onChange={(index) => { slide.set(index); }}>
+      <Carousel
+        loop={true}
+        onChange={(index) => {
+          slide.set(index);
+        }}
+      >
         <CarouselContent>
-          <CarouselItem accessibilityLabel="Sunrise"><View className="h-40 rounded-lg bg-amber-300" /></CarouselItem>
-          <CarouselItem accessibilityLabel="Ocean"><View className="h-40 rounded-lg bg-sky-400" /></CarouselItem>
-          <CarouselItem accessibilityLabel="Forest"><View className="h-40 rounded-lg bg-emerald-500" /></CarouselItem>
+          <CarouselItem accessibilityLabel="Sunrise">
+            <View className="h-40 rounded-lg bg-amber-300" />
+          </CarouselItem>
+          <CarouselItem accessibilityLabel="Ocean">
+            <View className="h-40 rounded-lg bg-sky-400" />
+          </CarouselItem>
+          <CarouselItem accessibilityLabel="Forest">
+            <View className="h-40 rounded-lg bg-emerald-500" />
+          </CarouselItem>
         </CarouselContent>
         <CarouselPrevious size="small" />
         <CarouselNext size="small" />
@@ -42,11 +65,29 @@ function ControlledCarousel(): Node {
   return (
     <View className="flex-row gap-6 items-center">
       <View className="w-64">
-        <Carousel vertical={true} selected={slide.get()} onChange={(index) => { slide.set(index); }}>
+        <Carousel
+          vertical={true}
+          selected={slide.get()}
+          onChange={(index) => {
+            slide.set(index);
+          }}
+        >
           <CarouselContent className="h-36">
-            <CarouselItem><View className="flex-col h-32 items-center justify-center rounded-lg border border-border"><Text>First</Text></View></CarouselItem>
-            <CarouselItem><View className="flex-col h-32 items-center justify-center rounded-lg border border-border"><Text>Second</Text></View></CarouselItem>
-            <CarouselItem><View className="flex-col h-32 items-center justify-center rounded-lg border border-border"><Text>Third</Text></View></CarouselItem>
+            <CarouselItem>
+              <View className="flex-col h-32 items-center justify-center rounded-lg border border-border">
+                <Text>First</Text>
+              </View>
+            </CarouselItem>
+            <CarouselItem>
+              <View className="flex-col h-32 items-center justify-center rounded-lg border border-border">
+                <Text>Second</Text>
+              </View>
+            </CarouselItem>
+            <CarouselItem>
+              <View className="flex-col h-32 items-center justify-center rounded-lg border border-border">
+                <Text>Third</Text>
+              </View>
+            </CarouselItem>
           </CarouselContent>
           <CarouselPagination />
         </Carousel>
@@ -67,7 +108,9 @@ export function CarouselPage(): Node {
         <ExampleTitle>Basic Carousel</ExampleTitle>
         <ExampleDescription>CarouselContent holds CarouselItem slides; CarouselPrevious and CarouselNext move between them.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicCarousel /></ExamplePreview>
+          <ExamplePreview>
+            <BasicCarousel />
+          </ExamplePreview>
           <ExampleCode>{`function BasicCarousel(): Node {
   return (
     <View className="w-80">
@@ -89,7 +132,9 @@ export function CarouselPage(): Node {
         <ExampleTitle>Looping with Dots</ExampleTitle>
         <ExampleDescription>loop wraps around; CarouselPagination shows a dot per slide; onChange reports the slide.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DotsCarousel /></ExamplePreview>
+          <ExamplePreview>
+            <DotsCarousel />
+          </ExamplePreview>
           <ExampleCode>{`function DotsCarousel(): Node {
   const slide = signal(0);
   return (
@@ -114,7 +159,9 @@ export function CarouselPage(): Node {
         <ExampleTitle>Controlled and Vertical</ExampleTitle>
         <ExampleDescription>selected controls the slide from outside; vertical slides up and down.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ControlledCarousel /></ExamplePreview>
+          <ExamplePreview>
+            <ControlledCarousel />
+          </ExamplePreview>
           <ExampleCode>{`function ControlledCarousel(): Node {
   const slide = signal(1);
   return (

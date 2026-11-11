@@ -16,6 +16,7 @@ function main() {
   match (fromArray([0, 65, 255])) {
     Ok(bytes) => {
       const add = append;
+
       match (add(bytes, [7, 8])) {
         Ok(_) => {},
         Err(error) => {
@@ -26,6 +27,7 @@ function main() {
       strictEqual(length(bytes), 5);
       strictEqual(read(bytes, 3), 7);
       strictEqual(read(bytes, 4), 8);
+
       match (append(bytes, [9, 256, -1])) {
         Ok(_) => {
           throw "invalid append accepted";
@@ -38,6 +40,7 @@ function main() {
 
       strictEqual(length(bytes), 5);
       strictEqual(read(bytes, 4), 8);
+
       match (append(bytes, [])) {
         Ok(_) => {},
         Err(error) => {
@@ -46,11 +49,13 @@ function main() {
       }
 
       const duplicate = copy;
+
       match (duplicate(bytes, 1, 4)) {
         Ok(part) => {
           strictEqual(length(part), 3);
           strictEqual(read(part, 0), 65);
           strictEqual(read(part, 2), 7);
+
           match (set(bytes, 1, 90)) {
             Ok(_) => {},
             Err(error) => {
@@ -59,6 +64,7 @@ function main() {
           }
 
           strictEqual(read(part, 0), 65);
+
           match (set(part, 1, 2)) {
             Ok(_) => {},
             Err(error) => {

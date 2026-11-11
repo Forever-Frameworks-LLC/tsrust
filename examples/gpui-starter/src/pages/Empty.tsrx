@@ -6,7 +6,9 @@ function BasicEmpty(): Node {
   return (
     <Empty>
       <EmptyHeader>
-        <EmptyMedia variant="icon"><Icon name="folder" /></EmptyMedia>
+        <EmptyMedia variant="icon">
+          <Icon name="folder" />
+        </EmptyMedia>
         <EmptyTitle>No projects yet</EmptyTitle>
         <EmptyDescription>Create your first project to get started.</EmptyDescription>
       </EmptyHeader>
@@ -21,17 +23,23 @@ function BasicEmpty(): Node {
 }
 
 function OutlineEmpty(): Node {
-  return <Empty icon="cloud" title="Cloud storage empty" description="Upload files to see them here." className="border border-dashed rounded-lg" />;
+  return (
+    <Empty icon="cloud" title="Cloud storage empty" description="Upload files to see them here." className="border border-dashed rounded-lg" />
+  );
 }
 
 function BackgroundEmpty(): Node {
-  return <Empty icon="bell" title="No notifications" description="You're all caught up." className="bg-muted rounded-lg" />;
+  return (
+    <Empty icon="bell" title="No notifications" description="You're all caught up." className="bg-muted rounded-lg" />
+  );
 }
 
 function AvatarEmpty(): Node {
   return (
     <Empty title="User offline" description="This user is currently offline.">
-      <EmptyMedia><Avatar name="Ada Lovelace" size="large" /></EmptyMedia>
+      <EmptyMedia>
+        <Avatar name="Ada Lovelace" size="large" />
+      </EmptyMedia>
       <Button size="small">Leave a message</Button>
     </Empty>
   );
@@ -41,7 +49,11 @@ function GroupEmpty(): Node {
   return (
     <Empty title="No team members" description="Invite your team to collaborate.">
       <EmptyMedia>
-        <AvatarGroup><Avatar name="Ada" /><Avatar name="Alan" /><Avatar name="Grace" /></AvatarGroup>
+        <AvatarGroup>
+          <Avatar name="Ada" />
+          <Avatar name="Alan" />
+          <Avatar name="Grace" />
+        </AvatarGroup>
       </EmptyMedia>
       <Button variant="primary" size="small">Invite members</Button>
     </Empty>
@@ -64,7 +76,9 @@ export function EmptyPage(): Node {
         <ExampleTitle>Basic Usage</ExampleTitle>
         <ExampleDescription>EmptyHeader holds the media, title and description; EmptyContent holds actions. The icon, title and description props are a shorthand.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicEmpty /></ExamplePreview>
+          <ExamplePreview>
+            <BasicEmpty />
+          </ExamplePreview>
           <ExampleCode>{`function BasicEmpty(): Node {
   return (
     <Empty>
@@ -88,7 +102,9 @@ export function EmptyPage(): Node {
         <ExampleTitle>Outline</ExampleTitle>
         <ExampleDescription>A dashed border.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><OutlineEmpty /></ExamplePreview>
+          <ExamplePreview>
+            <OutlineEmpty />
+          </ExamplePreview>
           <ExampleCode>{`function OutlineEmpty(): Node {
   return <Empty icon="cloud" title="Cloud storage empty" description="Upload files to see them here." className="border border-dashed rounded-lg" />;
 }`}</ExampleCode>
@@ -98,7 +114,9 @@ export function EmptyPage(): Node {
         <ExampleTitle>Background</ExampleTitle>
         <ExampleDescription>A muted fill.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BackgroundEmpty /></ExamplePreview>
+          <ExamplePreview>
+            <BackgroundEmpty />
+          </ExamplePreview>
           <ExampleCode>{`function BackgroundEmpty(): Node {
   return <Empty icon="bell" title="No notifications" description="You're all caught up." className="bg-muted rounded-lg" />;
 }`}</ExampleCode>
@@ -108,7 +126,9 @@ export function EmptyPage(): Node {
         <ExampleTitle>Avatar</ExampleTitle>
         <ExampleDescription>Custom media above the title.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><AvatarEmpty /></ExamplePreview>
+          <ExamplePreview>
+            <AvatarEmpty />
+          </ExamplePreview>
           <ExampleCode>{`function AvatarEmpty(): Node {
   return (
     <Empty title="User offline" description="This user is currently offline.">
@@ -123,7 +143,9 @@ export function EmptyPage(): Node {
         <ExampleTitle>Avatar Group</ExampleTitle>
         <ExampleDescription>A group as media.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><GroupEmpty /></ExamplePreview>
+          <ExamplePreview>
+            <GroupEmpty />
+          </ExamplePreview>
           <ExampleCode>{`function GroupEmpty(): Node {
   return (
     <Empty title="No team members" description="Invite your team to collaborate.">
@@ -140,7 +162,9 @@ export function EmptyPage(): Node {
         <ExampleTitle>Inputs and Custom Content</ExampleTitle>
         <ExampleDescription>Any content as the body.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><InputEmpty /></ExamplePreview>
+          <ExamplePreview>
+            <InputEmpty />
+          </ExamplePreview>
           <ExampleCode>{`function InputEmpty(): Node {
   return (
     <Empty icon="search" title="404 - Not Found" description="The page you're looking for doesn't exist.">

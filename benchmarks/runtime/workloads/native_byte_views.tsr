@@ -14,10 +14,12 @@ function first(part: ReadOnly<ByteView>): int {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const byte = (i + seed) % 256;
     const next = (byte + 1) % 256;
     const written = (byte + 2) % 256;
+
     match (fromArray([0, byte, next, 255, 7])) {
       Ok(bytes) => {
         let size = -1;
@@ -25,10 +27,12 @@ function workload(n: int, seed: int, input: string): int[][] {
         let tail = -1;
         let inner = -1;
         let copied = -1;
+
         match (view(bytes, 1, 4)) {
           Ok(part) => {
             size = length(part);
             head = first(part);
+
             match (at(part, 2)) {
               Ok(value) => {
                 tail = value;
@@ -64,6 +68,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         let success = -1;
         let writeCode = -1;
         let writeOffset = -9;
+
         match (viewMut(bytes, 1, 3)) {
           Ok(window) => {
             match (set(window, 1, written)) {
@@ -91,6 +96,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         }
 
         let through = -1;
+
         match (at(bytes, 2)) {
           Ok(value) => {
             through = value;
@@ -102,6 +108,7 @@ function workload(n: int, seed: int, input: string): int[][] {
 
         let rangeCode = -1;
         let rangeOffset = -9;
+
         match (view(bytes, 4, 9)) {
           Ok(part) => {
             rangeCode = -2;
@@ -113,6 +120,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         }
 
         let reversedOffset = -9;
+
         match (view(bytes, 3, 1)) {
           Ok(part) => {
             reversedOffset = -2;

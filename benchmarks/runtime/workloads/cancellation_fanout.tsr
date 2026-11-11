@@ -1,6 +1,7 @@
 import { CancellationToken } from 'std:futures';
 async function workload(n: int, seed: int): Task<int> {
   let sum: int = 0;
+
   for (let i: int = 0; i < n; i++) {
     const token = new CancellationToken();
     const shared = token.share();
@@ -13,6 +14,7 @@ async function workload(n: int, seed: int): Task<int> {
     await b.cancelled();
     await c.cancelled();
     await d.cancelled();
+
     if (a.isCancelled() && b.isCancelled() && c.isCancelled() && d.isCancelled()) {
       sum = (sum + 4 * (seed + i) + 6) % 1000000007;
     }

@@ -6,18 +6,31 @@ function Conversation(): Node {
   return (
     <MessageGroup className="w-[520px]">
       <Message>
-        <MessageAvatar><Avatar name="Grace Hopper" /></MessageAvatar>
-        <MessageHeader><Text className="font-medium">Grace</Text><Text variant="muted">9:40</Text></MessageHeader>
+        <MessageAvatar>
+          <Avatar name="Grace Hopper" />
+        </MessageAvatar>
+        <MessageHeader>
+          <Text className="font-medium">Grace</Text>
+          <Text variant="muted">9:40</Text>
+        </MessageHeader>
         <MessageContent>
-          <Bubble variant="secondary"><BubbleContent>Did the nightly build pass?</BubbleContent></Bubble>
+          <Bubble variant="secondary">
+            <BubbleContent>Did the nightly build pass?</BubbleContent>
+          </Bubble>
         </MessageContent>
       </Message>
       <Message align="end">
-        <MessageHeader><Text variant="muted">9:41</Text></MessageHeader>
+        <MessageHeader>
+          <Text variant="muted">9:41</Text>
+        </MessageHeader>
         <MessageContent>
-          <Bubble><BubbleContent>Green across all three platforms.</BubbleContent></Bubble>
+          <Bubble>
+            <BubbleContent>Green across all three platforms.</BubbleContent>
+          </Bubble>
         </MessageContent>
-        <MessageFooter><Text variant="muted">Read</Text></MessageFooter>
+        <MessageFooter>
+          <Text variant="muted">Read</Text>
+        </MessageFooter>
       </Message>
     </MessageGroup>
   );
@@ -27,7 +40,9 @@ function RichMessage(): Node {
   return (
     <View className="flex-col gap-4 w-[520px]">
       <Message>
-        <MessageAvatar><Avatar name="Build Bot" /></MessageAvatar>
+        <MessageAvatar>
+          <Avatar name="Build Bot" />
+        </MessageAvatar>
         <MessageContent>
           <View className="flex-col gap-2 rounded-lg border border-border p-3">
             <Text className="font-medium">Release 0.2.0</Text>
@@ -49,7 +64,9 @@ export function MessagePage(): Node {
         <ExampleTitle>Conversation</ExampleTitle>
         <ExampleDescription>MessageAvatar, MessageHeader, MessageContent and MessageFooter; align="end" for sent messages.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><Conversation /></ExamplePreview>
+          <ExamplePreview>
+            <Conversation />
+          </ExamplePreview>
           <ExampleCode>{`function Conversation(): Node {
   return (
     <MessageGroup className="w-[520px]">
@@ -76,7 +93,9 @@ export function MessagePage(): Node {
         <ExampleTitle>Rich Content and Short Form</ExampleTitle>
         <ExampleDescription>MessageContent holds any content; without parts, author and time props make the header and the children a bubble.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><RichMessage /></ExamplePreview>
+          <ExamplePreview>
+            <RichMessage />
+          </ExamplePreview>
           <ExampleCode>{`function RichMessage(): Node {
   return (
     <View className="flex-col gap-4 w-[520px]">

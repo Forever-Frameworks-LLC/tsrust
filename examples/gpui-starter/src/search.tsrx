@@ -11,8 +11,10 @@ function score(entry: ReadOnly<SearchEntry>, words: ReadOnly<string[]>): int {
   const page = entry.page.toLowerCase();
   const section = entry.section.toLowerCase();
   let total = 0;
+
   for (const word of words) {
     let best = 0;
+
     if (page.startsWith(word)) {
       best = 12;
     } else if (page.includes(word)) {
@@ -45,12 +47,14 @@ function score(entry: ReadOnly<SearchEntry>, words: ReadOnly<string[]>): int {
 export function rank(query: string, entries: ReadOnly<SearchEntry[]>, limit: int): int[] {
   const words = query.toLowerCase().split(' ').filter((word: string) => word.length > 0);
   const hits: Hit[] = [];
+
   if (words.length === 0) {
     return [];
   }
 
   for (let index = 0; index < entries.length; index += 1) {
     const value = score(entries[index], words);
+
     if (value > 0) {
       hits.push({
         entry: index, score: value
@@ -68,7 +72,11 @@ function results(query: string): Node[] {
   return rank(query, entries, 12).map((index: int) => {
     const hit = entries[index];
     const label = hit.section.length === 0 ? clone(hit.page) : `${hit.page} › ${hit.section}`;
-    return <CommandItem value={clone(hit.route)} icon={hit.section.length === 0 ? 'file-text' : 'hash'}>{label}</CommandItem>;
+    return (
+      <CommandItem value={clone(hit.route)} icon={hit.section.length === 0 ? 'file-text' : 'hash'}>
+        {label}
+      </CommandItem>
+    );
   });
 }
 
@@ -78,14 +86,52 @@ export function Search(): Node {
   const query = signal('');
   return (
     <View className="flex-row items-center">
-      <Shortcut command="open-search" keys="secondary-k" onTrigger={() => { open.set(true); }} />
-      <Button size="small" compact={true} icon="search" tooltip="Search docs" tooltipCommand="open-search" aria-label="Search docs" onPress={() => { open.set(true); }} />
-      <Dialog open={open.get()} onOpenChange={(next) => { open.set(next); }}>
+      <Shortcut
+        command="open-search"
+        keys="secondary-k"
+        onTrigger={() => {
+          open.set(true);
+        }}
+      />
+      <Button
+        size="small"
+        compact={true}
+        icon="search"
+        tooltip="Search docs"
+        tooltipCommand="open-search"
+        aria-label="Search docs"
+        onPress={() => {
+          open.set(true);
+        }}
+      />
+      <Dialog
+        open={open.get()}
+        onOpenChange={(next) => {
+          open.set(next);
+        }}
+      >
         <DialogContent className="w-[560px]">
           <View className="p-4">
-            <Command placeholder="Search components, examples and props..." filterable={false} autoFocus={true} query={query.get()} onQuery={(text) => { query.set(text); }} onSelect={(route) => { open.set(false); navigate(route); }} maxHeight={420}>
+            <Command
+              placeholder="Search components, examples and props..."
+              filterable={false}
+              autoFocus={true}
+              query={query.get()}
+              onQuery={(text) => {
+                query.set(text);
+              }}
+              onSelect={(route) => {
+                open.set(false);
+                navigate(route);
+              }}
+              maxHeight={420}
+            >
               {...results(query.get())}
-              <CommandEmpty><Text variant="muted">{query.get().length === 0 ? 'Type to search, such as "modal", "spreadsheet" or "loading".' : 'No matches.'}</Text></CommandEmpty>
+              <CommandEmpty>
+                <Text variant="muted">
+                  {query.get().length === 0 ? 'Type to search, such as "modal", "spreadsheet" or "loading".' : 'No matches.'}
+                </Text>
+              </CommandEmpty>
             </Command>
           </View>
         </DialogContent>

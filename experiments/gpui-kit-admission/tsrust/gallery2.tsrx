@@ -15,7 +15,17 @@ function Gallery(): Node {
   const bold = signal(true);
   return (
     <View className="flex-col size-full">
-      <Toolbar><Button onPress={() => { last.set('new'); }}>New</Button><Switch label="Dark" checked={dark.get()} onChange={(on) => { dark.set(on); setTheme(on ? 'dark' : 'light'); }} /></Toolbar>
+      <Toolbar>
+        <Button onPress={() => { last.set('new'); }}>New</Button>
+        <Switch
+          label="Dark"
+          checked={dark.get()}
+          onChange={(on) => {
+            dark.set(on);
+            setTheme(on ? 'dark' : 'light');
+          }}
+        />
+      </Toolbar>
       <ScrollArea className="grow">
         <View className="flex-col gap-4 p-6">
           <Markdown content={'## Markdown\n\nSome **bold** text, a [link](https://gpui-kit.com) and a list:\n\n- one\n- two'} />
@@ -26,31 +36,137 @@ function Gallery(): Node {
             <Chart kind="pie" labels={['A', 'B', 'C']} values={[50, 30, 20]} className="w-64 h-48" />
           </View>
           <View className="flex-row gap-4">
-            <List defaultSelected={1} onSelect={(value) => { last.set(clone(value)); }} className="w-48 h-48"><ListItem value="Inbox">Inbox</ListItem><ListItem value="Drafts">Drafts</ListItem><ListItem value="Sent">Sent</ListItem><ListItem value="Archive">Archive</ListItem><ListItem value="Spam">Spam</ListItem><ListItem value="Trash">Trash</ListItem></List>
-            <Tree onSelect={(id) => { last.set(clone(id)); }} className="w-56 h-48">
-              <TreeItem id="src" label="src" expanded={true}><TreeItem id="src/main.tsr" label="main.tsr" /><TreeItem id="src/ui.tsrx" label="ui.tsrx" /></TreeItem>
+            <List
+              defaultSelected={1}
+              onSelect={(value) => {
+                last.set(clone(value));
+              }}
+              className="w-48 h-48"
+            >
+              <ListItem value="Inbox">Inbox</ListItem>
+              <ListItem value="Drafts">Drafts</ListItem>
+              <ListItem value="Sent">Sent</ListItem>
+              <ListItem value="Archive">Archive</ListItem>
+              <ListItem value="Spam">Spam</ListItem>
+              <ListItem value="Trash">Trash</ListItem>
+            </List>
+            <Tree
+              onSelect={(id) => {
+                last.set(clone(id));
+              }}
+              className="w-56 h-48"
+            >
+              <TreeItem id="src" label="src" expanded={true}>
+                <TreeItem id="src/main.tsr" label="main.tsr" />
+                <TreeItem id="src/ui.tsrx" label="ui.tsrx" />
+              </TreeItem>
               <TreeItem id="README.md" label="README.md" />
             </Tree>
-            <Calendar value={day.get()} onChange={(date) => { day.set(clone(date)); }} />
+            <Calendar
+              value={day.get()}
+              onChange={(date) => {
+                day.set(clone(date));
+              }}
+            />
           </View>
           <Text>Day {day} · time {time} · framework {framework} · last {last}</Text>
           <View className="flex-row gap-4 items-center">
-            <TimeField value={time.get()} onChange={(value) => { time.set(clone(value)); }} />
-            <Combobox items={['React', 'Svelte', 'Solid', 'Vue']} value={framework.get()} placeholder="Framework" onChange={(value) => { framework.set(value.length > 0 ? value[0] : ''); }} className="w-56" />
-            <ToggleGroup><Toggle label="B" checked={bold.get()} onChange={(on) => { bold.set(on); }} /><Toggle label="I" /></ToggleGroup>
-            <ButtonGroup><GroupButton label="Day" onClick={() => { last.set('day'); }} /><GroupButton label="Week" onClick={() => { last.set('week'); }} /></ButtonGroup>
+            <TimeField
+              value={time.get()}
+              onChange={(value) => {
+                time.set(clone(value));
+              }}
+            />
+            <Combobox
+              items={['React', 'Svelte', 'Solid', 'Vue']}
+              value={framework.get()}
+              placeholder="Framework"
+              onChange={(value) => {
+                framework.set(value.length > 0 ? value[0] : '');
+              }}
+              className="w-56"
+            />
+            <ToggleGroup>
+              <Toggle
+                label="B"
+                checked={bold.get()}
+                onChange={(on) => {
+                  bold.set(on);
+                }}
+              />
+              <Toggle label="I" />
+            </ToggleGroup>
+            <ButtonGroup>
+              <GroupButton
+                label="Day"
+                onClick={() => {
+                  last.set('day');
+                }}
+              />
+              <GroupButton
+                label="Week"
+                onClick={() => {
+                  last.set('week');
+                }}
+              />
+            </ButtonGroup>
           </View>
-          <Form columns={2}><Field label="Name" required={true}><Input placeholder="Ada" /></Field><Field label="Email" description="Never shared."><Input placeholder="ada@example.com" /></Field></Form>
-          <Message author="Alice" time="10:24"><Text>Can you review this draft?</Text></Message>
-          <Message author="You" time="10:25" align="end" variant="primary"><Text>On it.</Text></Message>
-          <Carousel className="h-32"><CarouselSlide><Text>Slide one</Text></CarouselSlide><CarouselSlide><Text>Slide two</Text></CarouselSlide></Carousel>
-          <Command placeholder="Type a command" className="h-48"><CommandItem label="New file" onSelect={() => { last.set('new file'); }} /><CommandItem label="Settings" onSelect={() => { last.set('settings'); }} /></Command>
+          <Form columns={2}>
+            <Field label="Name" required={true}>
+              <Input placeholder="Ada" />
+            </Field>
+            <Field label="Email" description="Never shared.">
+              <Input placeholder="ada@example.com" />
+            </Field>
+          </Form>
+          <Message author="Alice" time="10:24">
+            <Text>Can you review this draft?</Text>
+          </Message>
+          <Message author="You" time="10:25" align="end" variant="primary">
+            <Text>On it.</Text>
+          </Message>
+          <Carousel className="h-32">
+            <CarouselSlide>
+              <Text>Slide one</Text>
+            </CarouselSlide>
+            <CarouselSlide>
+              <Text>Slide two</Text>
+            </CarouselSlide>
+          </Carousel>
+          <Command placeholder="Type a command" className="h-48">
+            <CommandItem
+              label="New file"
+              onSelect={() => {
+                last.set('new file');
+              }}
+            />
+            <CommandItem
+              label="Settings"
+              onSelect={() => {
+                last.set('settings');
+              }}
+            />
+          </Command>
           <Text>Last {last}</Text>
-          <CodeEditor language="rust" value={code.get()} onChange={(text) => { code.set(clone(text)); }} className="h-40" />
+          <CodeEditor
+            language="rust"
+            value={code.get()}
+            onChange={(text) => {
+              code.set(clone(text));
+            }}
+            className="h-40"
+          />
           <Image src="https://gpui-kit.com/favicon.ico" alt="logo" className="size-12" />
         </View>
       </ScrollArea>
-      <StatusBar><StatusBarLeft><Text>Ready</Text></StatusBarLeft><StatusBarRight><Text>UTF-8</Text></StatusBarRight></StatusBar>
+      <StatusBar>
+        <StatusBarLeft>
+          <Text>Ready</Text>
+        </StatusBarLeft>
+        <StatusBarRight>
+          <Text>UTF-8</Text>
+        </StatusBarRight>
+      </StatusBar>
     </View>
   );
 }

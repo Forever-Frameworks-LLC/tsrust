@@ -155,3 +155,26 @@ terminal viewport flush to its region; distinct terminal/sidebar colors are fine
 but do not wrap the viewport in contrasting padding that creates a second box.
 Use compact terminal session rows with subtle dividers; avoid loose rows whose
 spacing is dictated by the default List padding rather than their controls.
+
+## Formatting and check workflows — owner, 2026-11-11
+
+Expose formatting and checking in native menus and compact status-bar controls.
+Use parenthesized JSX returns, separate component children and blank lines around
+control-flow blocks in .tsr/.tsrx. Preserve visible text, literals and comments.
+Global defaults live in tsrust_studio.config.json; project format/editor settings
+in tsrust.config.json override them. Expose every supported rule in categorized
+settings, including opt-in format/check on save. Route formatting through unsaved
+buffer proposals with explicit document sessions/revisions; reject stale results,
+preserve recovery and disk-conflict checks, and never format a newer active tab
+because selection changed during the request. AI formatting returns a proposal
+through the same implementation and cannot grant itself apply/save permission.
+
+Manual Project menu checks and project formatting run the actual CLI in named
+native task terminals. Retain their output and provide clear running/exit state.
+Problems receives source-labeled diagnostics; do not label manual compiler output
+as LSP diagnostics. The language service still needs its real connection.
+Terminal file links and Problems rows share guarded workspace navigation and
+highlight the destination line. Never launch a URL or outside-workspace path from
+terminal text. Format/check automation supports manual, save, editor-focus-loss
+and both through independent persisted booleans. Focus formatting changes drafts,
+not disk; automated checks inspect saved files and never steal focus.

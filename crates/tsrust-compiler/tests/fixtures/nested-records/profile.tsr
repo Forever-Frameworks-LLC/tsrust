@@ -27,6 +27,7 @@ function main() {
   console.log(saved.profile.name);
   console.log(saved.profile.scores[1]);
   console.log(user.profile.name);
+
   for (const score of user.profile.scores) {
     console.log(score);
   }

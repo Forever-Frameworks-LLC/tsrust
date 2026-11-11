@@ -26,8 +26,18 @@ function CopiedClipboard(): Node {
   const copied = signal('');
   return (
     <View className="flex-row items-center gap-2">
-      <Clipboard value="sk-example-key" tooltip="Copy key" tooltipDelay={200} accessibilityLabel="Copy API key" onCopied={(text) => { copied.set(text); }} />
-      <Text>{copied.get() === '' ? 'Not copied' : `Copied ${copied.get()}`}</Text>
+      <Clipboard
+        value="sk-example-key"
+        tooltip="Copy key"
+        tooltipDelay={200}
+        accessibilityLabel="Copy API key"
+        onCopied={(text) => {
+          copied.set(text);
+        }}
+      />
+      <Text>
+        {copied.get() === '' ? 'Not copied' : `Copied ${copied.get()}`}
+      </Text>
     </View>
   );
 }
@@ -50,7 +60,9 @@ export function ClipboardPage(): Node {
         <ExampleTitle>Basic Clipboard</ExampleTitle>
         <ExampleDescription>Copies the value.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><BasicClipboard /></ExamplePreview>
+          <ExamplePreview>
+            <BasicClipboard />
+          </ExamplePreview>
           <ExampleCode>{`function BasicClipboard(): Node {
   return (
     <View className="flex-row items-center gap-2">
@@ -65,7 +77,9 @@ export function ClipboardPage(): Node {
         <ExampleTitle>Using Dynamic Values</ExampleTitle>
         <ExampleDescription>The value follows state.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><DynamicClipboard /></ExamplePreview>
+          <ExamplePreview>
+            <DynamicClipboard />
+          </ExamplePreview>
           <ExampleCode>{`function DynamicClipboard(): Node {
   const count = signal(1);
   return (
@@ -82,7 +96,9 @@ export function ClipboardPage(): Node {
         <ExampleTitle>Copied Callback and Tooltip</ExampleTitle>
         <ExampleDescription>onCopied receives the copied text.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><CopiedClipboard /></ExamplePreview>
+          <ExamplePreview>
+            <CopiedClipboard />
+          </ExamplePreview>
           <ExampleCode>{`function CopiedClipboard(): Node {
   const copied = signal('');
   return (
@@ -98,7 +114,9 @@ export function ClipboardPage(): Node {
         <ExampleTitle>Sizes</ExampleTitle>
         <ExampleDescription>small to large.</ExampleDescription>
         <ExampleTabs>
-          <ExamplePreview><ClipboardSizes /></ExamplePreview>
+          <ExamplePreview>
+            <ClipboardSizes />
+          </ExamplePreview>
           <ExampleCode>{`function ClipboardSizes(): Node {
   return (
     <View className="flex-row items-center gap-3">

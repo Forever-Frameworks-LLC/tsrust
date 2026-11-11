@@ -10,6 +10,7 @@ export interface FileDecoration {
 export function fileDecoration(name: ReadOnly<string>, directory: boolean): FileDecoration {
   if (!directory) {
     const extension = extname(name).slice(1).toLowerCase();
+
     for (const entry of catalog.icons) {
       if (entry.filenames.includes(name) || entry.extensions.includes(extension)) return {
         svg: clone(entry.svg), icon: clone(entry.icon), color: clone(entry.color)

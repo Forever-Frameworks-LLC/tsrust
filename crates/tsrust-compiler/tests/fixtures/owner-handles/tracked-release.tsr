@@ -63,10 +63,12 @@ function passive(resource: Owned<TrackedResource>): (owner: Mutable<Owner>, hand
     strictEqual(releaseCount(resourceId(resource)), 0);
     const state = stateResourceId(owner, handle);
     ok(state !== undefined);
+
     if (delta === 99) {
       const ownerRoot = root(owner);
       remove(owner, ownerRoot);
       strictEqual(releaseCount(resourceId(resource)), 0);
+
       if (state !== undefined) {
         strictEqual(releaseCount(state), 0);
       }
@@ -148,6 +150,7 @@ function queuedRelease(): void {
     {
       const result = enqueueResource(owner, item, 1, rejected);
       strictEqual(releaseCount(rejectedKey), 0);
+
       match (result) {
         Ok(_) => {
           ok(false);
@@ -164,6 +167,7 @@ function queuedRelease(): void {
     {
       const result = setResource(owner, item, rejectedState);
       strictEqual(releaseCount(rejectedStateKey), 0);
+
       match (result) {
         Ok(_) => {
           ok(false);
@@ -188,6 +192,7 @@ function queuedRelease(): void {
 function activeRelease(): void {
   const baseline = liveCount();
   const domain = runtime();
+
   for (let cycle = 0; cycle < 1000; cycle = cycle + 1) {
     const owner = domain();
     const ownerRoot = root(owner);
@@ -206,6 +211,7 @@ function activeRelease(): void {
       remove(o, ownerRoot);
       strictEqual(stateResourceId(o, h), undefined);
       strictEqual(releaseCount(resourceId(resource)), 0);
+
       if (state !== undefined) {
         strictEqual(releaseCount(state), 0);
       }
@@ -219,6 +225,7 @@ function activeRelease(): void {
     accepted(setResource(owner, item, state));
     accepted(enqueueResource(owner, item, 1, payload));
     let caught = false;
+
     try {
       drain(owner);
     } catch {
@@ -291,6 +298,7 @@ function component(owner: Mutable<Owner>, parent: ReadOnly<Handle>, key: string,
 function treeRelease(): void {
   const baseline = liveCount();
   const domain = runtime();
+
   for (let mode = 0; mode < 3; mode = mode + 1) {
     const ids: int[] = [];
     {
@@ -305,17 +313,20 @@ function treeRelease(): void {
       enqueue(owner, child, 0);
       enqueue(owner, grandchild, 0);
       strictEqual(drain(owner), 'ok;ok;ok;');
+
       if (mode === 2) {
         remove(owner, child);
         strictEqual(releaseCount(ids[0]), 0);
         strictEqual(releaseCount(ids[1]), 0);
         strictEqual(releaseCount(ids[6]), 0);
         strictEqual(releaseCount(ids[7]), 0);
+
         for (let i = 2; i < 6; i = i + 1) {
           strictEqual(releaseCount(ids[i]), 1);
         }
 
         remove(owner, parent);
+
         for (let i = 0; i < ids.length; i = i + 1) {
           strictEqual(releaseCount(ids[i]), 1);
         }
@@ -324,6 +335,7 @@ function treeRelease(): void {
       if (mode === 1) {
         enqueue(owner, grandchild, 99);
         strictEqual(drain(owner), 'ok;');
+
         for (let i = 0; i < ids.length; i = i + 1) {
           strictEqual(releaseCount(ids[i]), 1);
         }
@@ -400,6 +412,7 @@ function independentRelease(): void {
     const rejected = enqueueResource(survivor, escaped[0], 1, foreignPayload);
     strictEqual(releaseCount(foreignKey), 0);
     strictEqual(survivor.queue.length, 0);
+
     match (rejected) {
       Ok(_) => {
         ok(false);

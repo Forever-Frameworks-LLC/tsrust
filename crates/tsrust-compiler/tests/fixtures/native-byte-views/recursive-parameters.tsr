@@ -54,6 +54,7 @@ function main() {
   strictEqual(size(holder), 2);
   const callback = take(holder);
   const result = callback();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 7);

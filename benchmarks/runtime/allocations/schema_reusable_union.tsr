@@ -6,6 +6,7 @@ function createSchema(): Schema<int[]> {
 
 function workload(schema: Schema<int[]>, input: string): int[] {
   const result = schema.safeParseJson(input);
+
   if (result.success) {
     return result.data;
   } else {

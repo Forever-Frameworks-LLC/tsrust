@@ -14,6 +14,7 @@ type Loaded = {
 async function loadNote(trace: Owned<Trace>, fail: boolean): Task<Loaded> {
   const start = monotonicNow();
   await delay(1);
+
   if (fail) {
     throw 'DATABASE_PASSWORD=must-not-leak';
   }
@@ -28,6 +29,7 @@ async function handle(sender: ReadOnly<Sender<Event>>, input: Request, fail: boo
   const start = monotonicNow();
   await emitEvent(sender, trace, 'request-start', 'service.handle', 0, 0);
   let response = text('unavailable', 503);
+
   try {
     const job = loadNote(clone(trace), fail).start();
     const loaded = await job;
@@ -58,6 +60,7 @@ async function read(url: string, status: int): Task<string> {
   const response = await client.send(input);
   strictEqual(response.status(), status);
   const id = response.header('x-request-id');
+
   if (id === undefined) {
     throw 'Missing request id';
   }
@@ -65,6 +68,7 @@ async function read(url: string, status: int): Task<string> {
   const canonical = formatUuid(unwrap(parseUuid(id)));
   strictEqual(canonical, id);
   const body = await response.text();
+
   if (status === 200) {
     strictEqual(body, 'ready');
   } else {
@@ -78,6 +82,7 @@ async function exercise(control: Owned<Sender<Event>>, ok: Owned<Sender<Event>>,
   try {
     const app = routes(ok, failed);
     const server = await app.listen('127.0.0.1:0');
+
     try {
       const base = 'http://' + server.address();
       const first = base + '/ok?secret-query';
@@ -85,8 +90,10 @@ async function exercise(control: Owned<Sender<Event>>, ok: Owned<Sender<Event>>,
       const third = base + '/fail?secret-query';
       const outcomes = await allSettled([read(first, 200).start(), read(second, 200).start(), read(third, 503).start()]);
       const ids: string[] = [];
+
       while (outcomes.length > 0) {
         const outcome = outcomes.pop();
+
         if (outcome !== undefined) {
           ids.push(unwrap(outcome));
         }
@@ -113,8 +120,10 @@ export async function verifyObservability(): Task<void> {
   const failed = queue.sender();
   const outcomes = await allSettled([collect(queue).start(), exercise(control, ok, failed).start()]).timeout(5000);
   const total = emptyMetrics();
+
   while (outcomes.length > 0) {
     const outcome = outcomes.pop();
+
     if (outcome !== undefined) {
       const metrics = unwrap(outcome);
       total.started += metrics.started;

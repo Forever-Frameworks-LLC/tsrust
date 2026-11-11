@@ -19,6 +19,7 @@ function normal(): void {
 
 function early(): int {
   const file = make("early.bin");
+
   match (read(file, 0)) {
     Ok(_) => {
       return 1;
@@ -57,6 +58,7 @@ function callbackFailure(): void {
     read(local, 0);
     throw "expected";
   };
+
   try {
     action();
   } catch (error) {
@@ -66,6 +68,7 @@ function callbackFailure(): void {
 
 function returnFinally(flag: boolean): File {
   const file = make("return.bin");
+
   try {
     if (flag) {
       return file;
@@ -87,6 +90,7 @@ function partialFinally(flag: boolean): File {
   const pair: Pair = {
     first: make("partial-first.bin"), second: make("partial-second.bin")
   };
+
   try {
     if (flag) {
       return pair.first;
@@ -102,6 +106,7 @@ function main() {
   normal();
   strictEqual(early(), 1);
   replace();
+
   match (failed()) {
     Ok(_) => {
       throw "expected failure";
@@ -118,6 +123,7 @@ function main() {
   close(partialFinally(true));
   close(partialFinally(false));
   const file = make("fail-close.bin");
+
   match (close(file)) {
     Ok(_) => {},
     Err(error) => {

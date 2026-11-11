@@ -52,6 +52,7 @@ export function run() {
   const action = installer(read(first));
   action(holder);
   const result = holder.read();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 3);

@@ -4,14 +4,17 @@ function workload(n: int, seed: int, input: string): int {
   const schema = s.string().min(1);
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const value = schema.parse(clone(input));
+
     if (value !== 'hello') {
       throw 'Wrong parsed value';
     }
 
     checksum += value.length;
     let rejected = false;
+
     try {
       schema.parse('');
     } catch (error) {

@@ -1,5 +1,6 @@
 function total(rows: int[][]): int {
   let sum = 0;
+
   for (const row of rows) {
     for (const value of row) {
       sum = sum + value;

@@ -11,6 +11,7 @@ function workload(n: int, seed: int): int {
   };
   let digest = seed;
   let i = 0;
+
   while (i < n) {
     const at = (i * 13 + seed) % 4;
     const left = leftValues[at];
@@ -18,6 +19,7 @@ function workload(n: int, seed: int): int {
     const either = left || mark(probe, right, 1);
     const both = left && mark(probe, right, 2);
     let bits = 0;
+
     if (either) {
       bits = bits + 1;
     }

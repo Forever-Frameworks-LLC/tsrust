@@ -63,6 +63,7 @@ describe('compression runtime', () => {
       maxOutputBytes: 14
     })))), 'stored factory');
     const invalidInput = unwrap(fromUtf8('invalid level'));
+
     match (await pack(pool, invalidInput, {
       level: 10
     })) {

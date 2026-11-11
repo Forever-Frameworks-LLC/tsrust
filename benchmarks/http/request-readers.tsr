@@ -10,6 +10,7 @@ function routes(): Router {
       value: s.int()
     });
     const value = schema.parse(await c.req.json());
+
     if (value.value !== 40 || c.req.method() !== 'POST') {
       throw 'JSON mismatch';
     }
@@ -19,6 +20,7 @@ function routes(): Router {
   app.post('/stream', async (c) => {
     const body = c.req.body();
     const value = await body.text();
+
     if (value !== 'é' || c.req.method() !== 'POST') {
       throw 'Stream mismatch';
     }
@@ -30,13 +32,16 @@ function routes(): Router {
 
 async function batch(client: ReadOnly<Client>, url: ReadOnly<string>): Task<int> {
   let sum = 0;
+
   for (let index = 0; index < 128; index++) {
     const json = await client.send(request('POST', url + 'json', '{"value":40}'));
+
     if (json.status() !== 200 || await json.text() !== '40') {
       throw 'JSON response mismatch';
     }
 
     const stream = await client.send(request('POST', url + 'stream', 'é'));
+
     if (stream.status() !== 200 || await stream.text() !== '2') {
       throw 'Stream response mismatch';
     }
@@ -52,6 +57,7 @@ async function main(): Task<void> {
   const server = await app.listen('127.0.0.1:0');
   const client = new Client();
   const url = 'http://' + server.address() + '/';
+
   for (let warmup = 0; warmup < 8; warmup++) {
     await batch(client, url);
   }

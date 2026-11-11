@@ -26,6 +26,7 @@ export interface Entry {
 export function openWorkspace(path: string): Result<Workspace, string> {
   try {
     const root = unwrap(canonicalize(path));
+
     if (!unwrap(stat(root)).isDirectory) return Err('Choose a project directory.');
     return Ok({
       root, files: [], active: '', error: '', dockLayout: '', zoomLevel: 0
@@ -39,6 +40,7 @@ export function entries(path: string): Result<Entry[], string> {
   try {
     const children = unwrap(readDir(path, 10000));
     const visible: Entry[] = [];
+
     for (const child of children) {
       if (child.name !== 'target' && child.name !== '.git' && child.name !== 'node_modules') {
         visible.push({
@@ -65,7 +67,9 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
   try {
     const resolved = unwrap(canonicalize(path));
     const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+
     if (!resolved.startsWith(prefix)) return Err('This file is outside the open project directory.');
+
     if (workspace.files.some((file) => file.document.path === resolved)) {
       workspace.active = clone(resolved);
       workspace.error = '';
@@ -77,6 +81,7 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
     const extension = extname(resolved).toLowerCase();
     const image = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.tif', '.tiff', '.avif', '.svg'].includes(extension);
     const text = image ? '' : unwrap(readTextFile(resolved, 4 * 1024 * 1024));
+
     match (createDocument(clone(resolved), text)) {
       Err(message) => {
         return Err(clone(message));
@@ -99,9 +104,12 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
 // Closing a dirty document requires an explicit discard decision from the caller.
 export function closeFile(workspace: Mutable<Workspace>, path: string, discard: boolean = false): Result<void, string> {
   const index = workspace.files.findIndex((file) => file.document.path === path);
+
   if (index < 0) return Err('This file is not open.');
+
   if (!discard && dirty(workspace.files[index].document)) return Err('Save or discard the unsaved changes before closing.');
   workspace.files.splice(index, 1);
+
   if (workspace.active === path) {
     if (workspace.files.length === 0) {
       workspace.active = '';
@@ -119,6 +127,7 @@ export function closeFile(workspace: Mutable<Workspace>, path: string, discard: 
 export function moveFile(workspace: Mutable<Workspace>, path: string, direction: int): void {
   const index = workspace.files.findIndex((file) => file.document.path === path);
   const next = index + direction;
+
   if (index < 0 || next < 0 || next >= workspace.files.length) return;
   const file = clone(workspace.files[index]);
   workspace.files.splice(index, 1);
@@ -127,6 +136,7 @@ export function moveFile(workspace: Mutable<Workspace>, path: string, direction:
 
 export function projectFiles(path: string): Result<Entry[], string> {
   const files: Entry[] = [];
+
   match (entries(path)) {
     Err(message) => {
       return Err(clone(message));

@@ -19,14 +19,19 @@ export function runContentSearch(context: ReadOnly<SearchActionContext>, query: 
 
 function validateSearchHit(workspace: ReadOnly<Workspace>, hit: ReadOnly<SearchHit>): Result<void, string> {
   const file = workspace.files.find((entry) => entry.document.path === hit.path);
+
   if (file === undefined || file.kind !== 'text' || hit.matches.length === 0) return Err('This search result is no longer current. Run the search again.');
+
   try {
     const bytes = unwrap(fromUtf8(file.document.text));
     const count = length(bytes);
+
     if (hit.line < 1 || hit.offset < 0 || hit.offset > count || hit.preview.length > count - hit.offset) return Err('Invalid search result range.');
     const line = unwrap(toUtf8(unwrap(view(bytes, hit.offset, hit.offset + hit.preview.length))));
+
     if (line !== hit.preview) return Err('This search result is no longer current. Run the search again.');
     const first = hit.matches[0];
+
     if (first.start < 0 || first.end < first.start || first.end > hit.preview.length) return Err('Invalid search result range.');
     unwrap(toUtf8(unwrap(view(bytes, hit.offset + first.start, hit.offset + first.end))));
     return Ok();
@@ -38,6 +43,7 @@ function validateSearchHit(workspace: ReadOnly<Workspace>, hit: ReadOnly<SearchH
 export function openSearchResult(context: ReadOnly<SearchActionContext>, hit: ReadOnly<SearchHit>): Result<void, string> {
   if (!context.allowNavigation) return Err('Search result navigation is not permitted for this task.');
   const next = context.workspace.get();
+
   match (openFile(next, hit.path)) {
     Ok(_) => {},
     Err(error) => {
@@ -53,6 +59,7 @@ export function openSearchResult(context: ReadOnly<SearchActionContext>, hit: Re
   }
 
   publishWorkspace(next, context.workspace, context.recovery);
+
   if (context.focusEditor) {
     controlInput(clone(hit.path), 'setSelection', {
       start: hit.offset + hit.matches[0].start, end: hit.offset + hit.matches[0].end
