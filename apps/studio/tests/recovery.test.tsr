@@ -1,6 +1,6 @@
 import { test, strictEqual } from 'std:testing';
-import { createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
-import { openWorkspace, openFile } from '../src/workspace.tsr';
+import { createTempDir, writeTextFile, readTextFile, removeDirAll, removeFile } from 'std:fs';
+import { openWorkspace, openFile, closeFile, selectFile } from '../src/workspace.tsr';
 import { edit, dirty } from '../src/documents.tsr';
 import { persistRecovery, restoreRecovery } from '../src/recovery.tsr';
 import { saveDocument } from '../src/storage.tsr';
@@ -55,6 +55,73 @@ test('recovery restores exact drafts with fresh sessions and retains the origina
     }
 
     strictEqual(invalid.files.length, 0);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('workspace recovery retains clean tabs and selection while taking fresh disk contents', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-view-recovery-'));
+  try {
+    unwrap(writeTextFile(root + '/a.tsr', 'a'));
+    unwrap(writeTextFile(root + '/b.tsr', 'b'));
+    unwrap(writeTextFile(root + '/deleted.tsr', 'deleted'));
+    const workspace = unwrap(openWorkspace(root));
+    const recovery = unwrap(restoreRecovery(workspace, root + '/journal.json'));
+    for (const file of ['a.tsr', 'b.tsr', 'deleted.tsr']) unwrap(openFile(workspace, root + '/' + file));
+    const first = clone(workspace.files[0].document.path);
+    const second = clone(workspace.files[1].document.path);
+    const oldSession = clone(workspace.files[0].document.session);
+    strictEqual(selectFile(workspace, first), true);
+    edit(workspace.files[1].document, 'draft 日本語 🦀\r\n');
+    unwrap(persistRecovery(workspace, recovery));
+    unwrap(writeTextFile(root + '/a.tsr', 'changed on disk'));
+    unwrap(removeFile(root + '/deleted.tsr'));
+    const reopened = unwrap(openWorkspace(root));
+    const restored = unwrap(restoreRecovery(reopened, root + '/journal.json'));
+    strictEqual(reopened.files.length, 2);
+    strictEqual(reopened.active, first);
+    strictEqual(reopened.files[0].document.text, 'changed on disk');
+    strictEqual(dirty(reopened.files[0].document), false);
+    strictEqual(reopened.files[0].document.session === oldSession, false);
+    strictEqual(reopened.files[1].document.path, second);
+    strictEqual(reopened.files[1].document.text, 'draft 日本語 🦀\r\n');
+    strictEqual(reopened.files[1].document.savedText, 'b');
+    strictEqual(dirty(reopened.files[1].document), true);
+    unwrap(closeFile(reopened, first));
+    unwrap(persistRecovery(reopened, restored));
+    const closed = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(closed, root + '/journal.json'));
+    strictEqual(closed.files.length, 1);
+    strictEqual(closed.active, second);
+    strictEqual(closed.files[0].document.text, 'draft 日本語 🦀\r\n');
+    // Old v1 journals still recover drafts without optional view fields.
+    const legacyJournal = {
+      schemaVersion: 1, root: clone(workspace.root), drafts: [{
+        path: clone(first), text: 'legacy', savedText: 'a', durabilityPending: false
+      }]
+    };
+    unwrap(writeTextFile(root + '/legacy.json', JSON.stringify(legacyJournal)));
+    const legacy = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(legacy, root + '/legacy.json'));
+    strictEqual(legacy.files.length, 1);
+    strictEqual(legacy.files[0].document.text, 'legacy');
+    // Invalid view state cannot partially restore buffers or replace its journal.
+    const invalidJournal = {
+      schemaVersion: 1, root: clone(workspace.root), drafts: clone(legacyJournal.drafts), opened: [clone(first), root + '-outside/file.tsr'], active: clone(first)
+    };
+    const invalidText = JSON.stringify(invalidJournal);
+    unwrap(writeTextFile(root + '/invalid.json', invalidText));
+    const invalid = unwrap(openWorkspace(root));
+    match (restoreRecovery(invalid, root + '/invalid.json')) {
+      Ok(_) => {
+        throw 'outside workspace view was accepted';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(invalid.files.length, 0);
+    strictEqual(unwrap(readTextFile(root + '/invalid.json')), invalidText);
   } finally {
     unwrap(removeDirAll(root));
   }

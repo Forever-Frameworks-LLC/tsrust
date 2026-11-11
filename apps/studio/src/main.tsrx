@@ -1,3 +1,4 @@
+import { publishWorkspace } from './document-actions.tsr';
 import { accessibleName, message, initializeTranslations, localizeError } from './localization.tsr';
 import { View, Text, Button, Dock, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
 import { currentDir, args } from 'std:env';
@@ -68,9 +69,9 @@ function App(path: string): Node {
     }
   }
 
-  const browser = ProjectTree(workspace.get().root, workspace, font);
-  const fileSearch = FileSearch(workspace.get().root, workspace, font);
-  const contentSearch = ContentSearch(workspace);
+  const browser = ProjectTree(workspace.get().root, workspace, font, recovery);
+  const fileSearch = FileSearch(workspace.get().root, workspace, font, recovery);
+  const contentSearch = ContentSearch(workspace, recovery);
   const panelView = Panels(panel);
   const chatView = ChatPanel(chat);
   const error = computed<string>(() => localizeError(workspace.get().error));
@@ -88,7 +89,7 @@ function App(path: string): Node {
                     <Button icon="file-search" variant="ghost" onPress={() => { mode.set('filesearch'); sidebar.set(true); }}>{t("Open a file")}</Button>
                   </View>
                   <View hidden={workspace.get().files.length === 0} className="flex-col grow min-h-0">
-                    <Dock value={workspace.get().active} tabbed={true} className="size-full" onChange={(path) => { const next = workspace.get(); if (next.active !== path && selectFile(next, clone(path))) workspace.set(next); }} onClose={(path) => { closeTab(workspace, clone(path)); }}>
+                    <Dock value={workspace.get().active} tabbed={true} className="size-full" onChange={(path) => { const next = workspace.get(); if (next.active !== path && selectFile(next, clone(path))) publishWorkspace(next, workspace, recovery); }} onClose={(path) => { closeTab(workspace, recovery, clone(path)); }}>
                       {...workspace.get().files.map((file: ReadOnly<OpenFile>) => FilePanel(file, workspace, font, recovery))}
                     </Dock>
                   </View>

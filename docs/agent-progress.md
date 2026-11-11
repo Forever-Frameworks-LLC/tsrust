@@ -21,74 +21,63 @@ terminal toggle and clearly labeled planned panels. Standing authorization:
 **restart the dev supervisor whenever needed without asking again**, then leave
 one preview running. Editable drafts must survive those restarts.
 
-Current section follows31e070a3. Studio has persisted en/pt-BR locale with a
-native Settings selector, live preview/Save/Reload,89message catalogs and source/
-placeholder coverage check. Owned labels, accessible names/tooltips, search
-plurals, statuses and app errors translate; paths/code/theme/config identifiers
-and external technical diagnostics stay literal. Existing std:ui translations
-are reused. message() and accessibleName() match their distinct getter contracts;
-no generic covariance/ownership rule was weakened. Shared Button.tooltip and
-Input/Textarea.placeholder accept live/translated text. Canonical placeholders
-update in kit.rs without changing field identity/value, for native and HTML.
-Native Dock labels translate with stable action IDs. No new dependencies or
-installed registry edits; application orchestration remains .tsr/.tsrx.
+Current section follows localization checkpoint36fe5ddc. Recovery now retains
+clean open-file paths and active selection alongside dirty drafts, through optional
+v1 fields (legacy journals remain readable). Clean files read fresh disk contents;
+deleted clean files skip, while dirty restoration remains mandatory. All validation
+finishes against a temporary Workspace before application. Existing root/canonical
+path guards and atomic compare-before-write behavior remain in force. Shared
+publishWorkspace persists tree/file/content-search opens, Dock/keyboard closes,
+selection, focus, edits and saves. No new dependency or native compiler change.
+Native Dock drag order, splits, cursor/scroll and sidebar expansion are NOT yet
+serialized; document identities regenerate on restart as required for stale edits.
 
-**KEEP DEV RUNNING: PTY15272, supervisor94662, app94794.** Source main.tsrx is
-open in Studio itself, clean, with its package src tree expanded. Current command
-from apps/studio, desktop access, login=false/tty=true:
+**KEEP DEV RUNNING: PTY81403, supervisor12055, app13849.** Studio has README.md
+open clean, package workspace only. Current launch from apps/studio, login=false,
+tty=true, desktop access:
 env -u CODEX_TOOL_CALL_ID CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1
 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
 /Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
-Use this normalized environment for future Codex-driven native CLI launches.
-Ordinary user terminal launches do not require a Codex-specific wrapper.
+Do not restart merely to repeat acceptance. Automatic approval review first rejected
+Ctrl+C without a concrete replacement. Queued replacement81403 waiting for94662
+exit, then the same Ctrl+C was approved; no duplicate preview or permission question.
 
-Installed/target CLI SHA2561ffb409abf7eac1c72edd4d09d017441fa49f74657a5d1ea5e603831142c5c4d;
-LSP083ab7e1eb8bbee97385b597e8207b2a0e56ca267ec28135b6787ee79c471780 match independently.
-CLI/LSP buildPASS2m29s. New compiler UI text contract1/1PASS7.80s execution,
-2m21s setup: Button tooltips and Input/Textarea hints accept state getters and
-TextBinding; integers reject. Main checkPASS. Core placeholder regression1/1PASS
-0.00s execution/4.40s setup: immediate/updated escaped HTML, same identity and
-edited value. Final formatted settings/localization batch4/4PASS562.41ms execution
-(setup not separately timed):38themes,36layout combinations, locale defaults/
-round-trips/rejections, live getter, plurals/fallback, path-preserving errors.
-Public native buildPASS; generator parity/catalog/formatter checks pass. Earlier
-runs575.91ms and570.39ms remain observations, not final-source substitutes.
+Final formatted recovery suite2/2PASS29.90ms execution (setup not separately timed).
+New witness covers clean opening order/active selection, fresh external disk bytes,
+new sessions, exact Unicode/CRLF dirty baseline, deleted clean file, closed-tab
+absence, legacy journal and invalid outside-root transaction preservation. Original
+external-edit/compare-write/corrupt-journal case also passes. Earlier2/2PASS34.52ms
+used an earlier test-fixture form, not final-source proof. Initial project check
+rejected inline JSON.stringify record inference in the fixture; named records fixed
+it without weakening compiler behavior. Native dev compiled current main and
+callers successfully. Whole-project formatter/catalog/diff checks pass.
 
-Native app85970 verifies Portuguese Settings title/selector/actions, preview and
-Reload rollback, chrome/help text, native Dock actions, translated search hint/
-summary, preserved query and two split editor buffers. Both query and editor Undo
-survive language changes. App88329 after supervisor restart verifies persisted
-pt-BR plus exact journaled Unicode draft. Original English settings and test buffer
-restored; CUA selection-range API is unsupported, so keyboard selection removed
-only the test line. CUA completion: Verified live language switching. App94794
-then opened Studio's own main.tsrx; no functional tests replayed for cache profiling.
+Native app9214 opened README.md/config and selected README. Journal independently
+contained both paths/README active/drafts0. Replacement app13849 restored both
+clean tabs with README selected; closing config removed it from both UI and journal.
+CUA completed: Verified workspace tab restoration. Restart built15,992ms with app
+cache hit113.4ms/native+link0ms; preceding automatic build40,861ms had runtime hit
+and native+link16,488ms. Single observations, not benchmarks or leak acceptance.
+App RSS103936KiB/CPU0.0%, supervisor27920KiB/0.1%, one sample only.
+Home settings/.gitignore/project config hashes remain the exact original values
+recorded in the audit; recovery has only README and drafts0, no test text on disk.
 
-Cold restart exposed only runtime identity field9 (environment/config digest)
-differing; fields0–8 byte-identical. backend_sources::identity correctly hashes
-all effective Cargo environment inputs. Codex adds a changing CODEX_TOOL_CALL_ID;
-removing that launch-only value enabled a normalized second launch with application
-cache HIT120.0ms, native+link0.0ms, Built15,288ms (check13366.1ms,emit1035.0ms,
-backend188.2ms). First normalized cold launch Built72,131ms including runtime
-miss42,113.6ms. Single cold/warm observations, not a benchmark/speedup claim or
-runtime-cache-hit test: the application hit bypasses runtime lookup entirely.
-No compiler cache/environment guard was weakened. Current cache runtimee04c40abe7aadc77,
-app7894213dcc106299. Current public and test consumers retained. Removed
-5,724,164,099bytes obsolete native cache variants after identity comparison.
+Recovery SHA256e6919d35f37ce39e02cc4a99a9321527cd15b5d78b6b1af65d54916740aa186a;
+actions21a558865c7caf272c85b79bcb9931b7bb7cd3d50d54d7917fc47218936e5c5e;
+fixture8b4c54bc159bfcd6ec716dabadecbb1ddfb57f3c66ea01ef10621aef4ec2f614.
+Localization36fe5ddc: en/pt-BR89messages, live Settings preview/Save/Reload/native
+Dock labels, correct live tooltip/placeholder contracts and unchanged generic
+ownership; runtime4/4PASS562.41ms, UI contract1/1PASS7.80s, placeholder1/1PASS0s.
+Installed CLI/LSP still match target hashes in the audit; unchanged executables
+were not functionally retested here. CODEX_TOOL_CALL_ID launch normalization keeps
+compiler Cargo environment fingerprinting intact and enables application cache reuse.
 
-Original settings hash0c806c00cece149957766b2f47196beb82fceb1917e0d1f732997fcfae7fdddb;
-.gitignoread8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483;
-project config6facc291d6b15db7aac40cb3ad3230d45aba8bfc0c12d0e6c1bc817ce7bc8439
-unchanged. Recovery drafts0. App RSS50576KiB/CPU0.0%, supervisor5360KiB/0.0%,
-one observation, not leak acceptance. Earlier layout/Dock/storage evidence is
-preserved in the audit, including actual region moves and dirty-close guards.
-
-Remaining: AX selected-text-range and unnamed Select popup rows, pointer resize/
-edge drag and deliberate manual scroll, broader locale/RTL/native-control coverage,
-full keyboard/focus, pane/view persistence across reload, duplicate views, focused-
-group opening, tree moves, JSON key highlighting and complete editor/agent scope.
-Next coherent section: real worker/task and terminal/LSP integration, preserving
-workspace/path boundaries and drafts. Do not substitute planned panels for actual
-services or claim complete editor/Studio acceptance. Keep normalized dev running.
+Remaining: native Dock layout/view persistence and duplicate/focused-group views,
+AX selected-text-range/unnamed Select popup rows, pointer resize/edge drag/manual
+scroll, broader locale/RTL, IME/focus, tree moves, JSON key scopes and full editor/
+agent scope. Next dependency-ready work: native Dock serialization and reusable
+managed worker/task/terminal/LSP integration. Planned panels are not services.
+Full goal remains active; keep one normalized dev process running.
 
 Previous checkpointbd88e292 added separate persistent Settings, 38 named themes,
 content regex/case search, image routing, Markdown source/preview, status/panel

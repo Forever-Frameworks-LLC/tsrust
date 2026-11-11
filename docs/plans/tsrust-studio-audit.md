@@ -947,3 +947,54 @@ are one observation, not leak acceptance. Removed5,724,164,099bytes obsolete nat
 cache variants; current normalized dev/public/current and unchanged test consumers
 retained. Wider localization/RTL/IME, AX ranges, pointer gestures, view persistence
 and actual terminal/LSP/Git/AI services remain unfinished. Full Studio goal active.
+
+
+## Clean document restoration — 2026-11-11
+
+Follows localization checkpoint36fe5ddc. Optional opened/active fields extend the
+existing v1 draft journal without breaking old readers/writers in the current
+app. Legacy journals remain readable. Clean buffers read fresh disk contents;
+missing clean paths are skipped. Dirty restoration remains required, and all
+restoration occurs against a temporary workspace before committing to live state.
+Existing canonical open/root checks, fresh document sessions, dirty saved baselines,
+atomic writes and external journal-change detection remain intact. publishWorkspace
+centralizes recovery writes for file/tree/content-search opens, selection/focus,
+Dock/keyboard close, edit and save. No dependency or native/compiler changes.
+
+Final formatted std:testing recovery suite:2/2PASS29.90ms execution, setup not
+separately timed. New case covers multiple clean tabs/opening order, active file,
+fresh external contents, new session IDs, Unicode/CRLF draft and original disk
+baseline, a removed clean file, closed-tab absence, legacy v1 records and
+outside-root transactional failure with journal preservation. Existing case
+retains external document/journal/corrupt-input protections. Initial check failed
+on inline JSON.stringify generic inference in the fixture; named records repaired
+it. Earlier2/2PASS34.52ms precedes the final named invalid-journal fixture and is
+not substituted for final-source acceptance. Formatter/catalog/diff checks pass.
+
+Native app9214 opened README.md and tsrust.config.json, then selected README.
+Independent journal read confirmed both paths, README active, drafts0. Automatic
+review rejected Ctrl+C without a concrete replacement. Queued PTY81403 awaiting
+94662 exit, then retried the same Ctrl+C successfully. New supervisor12055/app13849
+restored both clean tabs and the selected README. Closed config using its named
+native tab close action; UI and independent journal read both show README only.
+CUA completion: Verified workspace tab restoration. No user-source buffer edited.
+Original home settings SHA2560c806c00cece149957766b2f47196beb82fceb1917e0d1f732997fcfae7fdddb,
+.gitignoread8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483,
+project config6facc291d6b15db7aac40cb3ad3230d45aba8bfc0c12d0e6c1bc817ce7bc8439
+remain unchanged. Recovery contains README only and drafts0.
+
+Normalized replacement launch built15,992ms: check14214.4ms,emit1037.1ms,
+backend50.7ms,application-cache hit113.4ms,native+link0ms. Earlier automatic dev
+build40,861ms:runtime hit,prepare6254.0ms,check13992.2ms,emit1065.4ms,
+backend192.0ms,native+link16488.0ms. Single observations, not comparable benchmarks.
+App RSS103936KiB/0.0% CPU, supervisor27920KiB/0.1%, one sample, no leak claim.
+Keep PTY81403 running; source changes reload automatically. Launch command remains
+env -u CODEX_TOOL_CALL_ID with shared target/jobs1/incremental0 from apps/studio.
+
+Exact source SHA256: recovery.tsr e6919d35f37ce39e02cc4a99a9321527cd15b5d78b6b1af65d54916740aa186a;
+document-actions.tsr21a558865c7caf272c85b79bcb9931b7bb7cd3d50d54d7917fc47218936e5c5e;
+recovery.test.tsr8b4c54bc159bfcd6ec716dabadecbb1ddfb57f3c66ea01ef10621aef4ec2f614.
+Native Dock tab drag order, split tree/sizes, cursor/scroll positions and sidebar
+expansion remain unpersisted; do not infer those from open-file restoration.
+Existing synchronous journal/one-writer/missing dirty file limitations remain.
+Full original Studio/AI/editor acceptance remains incomplete and active.

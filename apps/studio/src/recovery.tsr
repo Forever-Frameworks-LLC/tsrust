@@ -1,9 +1,9 @@
-import { readTextFile, writeTextFileAtomic, mkdirAll } from 'std:fs';
+import { readTextFile, writeTextFileAtomic, mkdirAll, stat } from 'std:fs';
 import { homeDir } from 'std:env';
-import { join } from 'std:path';
+import { join, separator } from 'std:path';
 import { fromUtf8, toHex } from 'std:bytes';
 import { sha256 } from 'std:crypto';
-import { Workspace, openFile } from './workspace.tsr';
+import { Workspace, openFile, selectFile } from './workspace.tsr';
 import { dirty, edit } from './documents.tsr';
 
 interface Draft {
@@ -17,6 +17,8 @@ interface Journal {
   schemaVersion: int;
   root: string;
   drafts: Draft[];
+  opened?: string[];
+  active?: string;
 }
 
 export interface Recovery {
@@ -57,6 +59,24 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
     const journal = JSON.parse<Journal>(baseline);
     if (journal.schemaVersion !== 1 || journal.root !== workspace.root) return Err('Draft recovery belongs to another workspace or version.');
     const next = clone(workspace);
+    const opened = journal.opened;
+    if (opened !== undefined) {
+      const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+      for (const file of opened) {
+        if (!file.startsWith(prefix)) return Err('This file is outside the open project directory.');
+        // Deleted clean files need no recovery; dirty files are still required below.
+        match (stat(file)) {
+          Ok(_) => {},
+          Err(error) => {
+            if (error.code === 'not-found') continue;
+            return Err(clone(error.message));
+          }
+        }
+
+        unwrap(openFile(next, file));
+      }
+    }
+
     for (const draft of journal.drafts) {
       unwrap(openFile(next, draft.path));
       const index = next.files.findIndex((file) => file.document.path === draft.path);
@@ -66,6 +86,8 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
       next.files[index].document.durabilityPending = draft.durabilityPending;
     }
 
+    const active = journal.active;
+    if (active !== undefined) selectFile(next, active);
     workspace.files = next.files;
     workspace.active = next.active;
     return Ok({
@@ -86,7 +108,7 @@ export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutabl
   }
 
   const journal: Journal = {
-    schemaVersion: 1, root: clone(workspace.root), drafts
+    schemaVersion: 1, root: clone(workspace.root), drafts, opened: workspace.files.map((file) => clone(file.document.path)), active: clone(workspace.active)
   };
   const text = JSON.stringify(journal);
   if (text === recovery.baseline) return Ok();

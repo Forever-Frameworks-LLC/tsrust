@@ -4,9 +4,9 @@ import { Workspace, closeFile } from './workspace.tsr';
 import { showSettings } from './settings-window.tsrx';
 import { StudioConfig } from './settings.tsr';
 import { Recovery } from './recovery.tsr';
-import { saveActive } from './document-actions.tsr';
+import { saveActive, publishWorkspace } from './document-actions.tsr';
 
-export function closeTab(workspace: Signal<Workspace>, path: string): void {
+export function closeTab(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: string): void {
   const next = workspace.get();
   match (closeFile(next, path)) {
     Ok(_) => {},
@@ -15,7 +15,7 @@ export function closeTab(workspace: Signal<Workspace>, path: string): void {
     }
   }
 
-  workspace.set(next);
+  publishWorkspace(next, workspace, recovery);
 }
 
 export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, mode: Signal<string>, font: Signal<int>, panel: Signal<string>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>): Node {
@@ -39,6 +39,6 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
     <Shortcut command="toggle-terminal" keys="secondary-j" onTrigger={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
     <Shortcut command="open-settings" keys="secondary-," onTrigger={() => { showSettings(font, settings); }} />
     <Shortcut command="search-workspace" keys="secondary-shift-f" onTrigger={() => { mode.set('search'); sidebar.set(true); }} />
-    <Shortcut command="close-tab" keys="secondary-w" onTrigger={() => { closeTab(workspace, workspace.get().active); }} />
+    <Shortcut command="close-tab" keys="secondary-w" onTrigger={() => { closeTab(workspace, recovery, workspace.get().active); }} />
   </View>;
 }

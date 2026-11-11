@@ -1,21 +1,23 @@
+import { Recovery } from './recovery.tsr';
+import { publishWorkspace } from './document-actions.tsr';
 import { accessibleName, message, localizeError } from './localization.tsr';
 import { View, Text, Input, Button, Node, Signal, signal, computed, controlInput, translateWith } from 'std:ui';
 import { Workspace, openFile } from './workspace.tsr';
 import { SearchHit, searchContents } from './search.tsr';
 
-function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Workspace>): Node {
+function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Workspace>, recovery: Signal<Recovery>): Node {
   const path = clone(hit.path);
   const offset = hit.offset;
   return <Button variant="ghost" className="w-full justify-start" onPress={() => {
     const next = workspace.get();
     match (openFile(next, path)) {
-      Ok(_) => { workspace.set(next); controlInput(clone(path), 'setCursor', { start: offset }); controlInput(clone(path), 'focus'); },
-      Err(message) => { next.error = clone(message); workspace.set(next); }
+      Ok(_) => { publishWorkspace(next, workspace, recovery); controlInput(clone(path), 'setCursor', { start: offset }); controlInput(clone(path), 'focus'); },
+      Err(message) => { next.error = clone(message); publishWorkspace(next, workspace, recovery); }
     }
   }}><Text className="truncate">{hit.path.slice(root.length + 1) + ':' + hit.line.toString() + '  ' + hit.preview.trim()}</Text></Button>;
 }
 
-export function ContentSearch(workspace: Signal<Workspace>): Node {
+export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>): Node {
   const query = signal('');
   const regex = signal(false);
   const sensitive = signal(false);
@@ -40,6 +42,6 @@ export function ContentSearch(workspace: Signal<Workspace>): Node {
       }} />
     </View>
     <Text>{summary.get()}</Text><Text className="text-destructive">{localizeError(error.get())}</Text>
-    <View className="flex-col grow min-h-0 overflow-y-auto">{...hits.get().map((hit: ReadOnly<SearchHit>) => ResultRow(hit, workspace.get().root, workspace))}</View>
+    <View className="flex-col grow min-h-0 overflow-y-auto">{...hits.get().map((hit: ReadOnly<SearchHit>) => ResultRow(hit, workspace.get().root, workspace, recovery))}</View>
   </View>;
 }

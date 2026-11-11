@@ -1,3 +1,5 @@
+import { Recovery } from './recovery.tsr';
+import { publishWorkspace } from './document-actions.tsr';
 import { localizeError } from './localization.tsr';
 import { Node, Text, Tree, TreeItem, Signal, computed } from 'std:ui';
 import { stat } from 'std:fs';
@@ -31,7 +33,7 @@ function directoryItems(path: string): Result<Node[], string> {
   }
 }
 
-export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Signal<int>): Node {
+export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>): Node {
   const treeClass = computed<string>(() => 'size-full min-w-0 font-mono text-[' + font.get().toString() + 'px]');
   match (directoryItems(path)) {
     Err(message) => {
@@ -45,7 +47,7 @@ export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Si
           Ok(metadata) => { if (metadata.isDirectory) return; },
           Err(error) => {
             next.error = clone(error.message);
-            workspace.set(next);
+            publishWorkspace(next, workspace, recovery);
             return;
           }
         }
@@ -53,7 +55,7 @@ export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Si
           Ok(_) => {},
           Err(message) => { next.error = clone(message); }
         }
-        workspace.set(next);
+        publishWorkspace(next, workspace, recovery);
       }}>
         {...children}
       </Tree>;

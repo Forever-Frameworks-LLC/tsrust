@@ -14,7 +14,11 @@ Ordinary terminal launches can use the standard command above.
 Files open in closeable tabs. Edit text and press Cmd+S, or use the title-bar save
 icon. A dot marks unsaved changes. Saves check the original disk bytes and reject
 conflicting external changes. Unsaved drafts are journaled under
-`~/.tsrust/studio/recovery` and restored on restart. Dirty tabs refuse to close;
+`~/.tsrust/studio/recovery` and restored on restart. The journal also retains
+open files and the active tab; clean buffers read current disk contents. Missing
+clean files are skipped, while a missing dirty file preserves the journal and
+reports recovery failure. Native drag order, splits, cursor/scroll positions and
+sidebar expansion are not restored yet. Dirty tabs refuse to close;
 explicit discard/close prompts and recovery of deleted files remain unfinished.
 Recovery currently assumes one Studio writer per workspace and writes
 synchronously; large-document performance and multi-window coordination remain

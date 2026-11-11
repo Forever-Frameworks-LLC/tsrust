@@ -379,7 +379,7 @@ Each item requires observed behavior; source changes alone do not close it.
 | 7 | Markdown preview | Native preview observed after shared row-state fix; preview survives tab switches |
 | 8 | Distinct JSON syntax categories | Pending |
 | 9 | Workspace launch argument; later code-dot/dock directory opening | Root uses launch argument/current directory; package default observed; alternate launch/drop pending |
-| 10 | Editable buffers, saving and recovery | Formatted suite18/18 passes; native Unicode typing/Cmd+S/undo/redo/tab switch and unsaved recovery across supervisor restart observed; IME/conflict/close UX and larger recovery scope pending |
+| 10 | Editable buffers, saving and recovery | Formatted suite18/18 passes; native Unicode typing/Cmd+S/undo/redo/tab switch and unsaved recovery across supervisor restart observed; clean open files/active selection now restore (recovery2/2 passes), native Dock layout persistence pending; IME/conflict/close UX and larger recovery scope pending |
 | 11 | Broad theme catalog; configuration round-trip | 38 themes including36 pinned upstream variants; all38 persistence round-trips pass; Catppuccin Latte native preview/Save/Reload observed; full catalog contrast/rendering pending |
 | 12 | Selected-tab auto-reveal; respect manual scrolling | New last tabs and clipped first/final files selected through named overflow are visibly revealed; manual scrolling remains unverified |
 | 13 | Useful status bar with truthful file/diagnostic/service state | File type/encoding, unsaved state and unconnected-LSP status implemented; type/LSP text observed; services not yet connected |

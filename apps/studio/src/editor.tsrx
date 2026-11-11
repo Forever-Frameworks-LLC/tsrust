@@ -4,7 +4,7 @@ import { extname } from 'std:path';
 import { Workspace, OpenFile, selectFile } from './workspace.tsr';
 import { dirty } from './documents.tsr';
 import { Recovery } from './recovery.tsr';
-import { updateDraft } from './document-actions.tsr';
+import { updateDraft, publishWorkspace } from './document-actions.tsr';
 
 export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>): Node {
   const path = clone(file.document.path);
@@ -41,7 +41,7 @@ export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>
       <Button icon="eye" variant="ghost" size="xsmall" selected={preview.get()} tooltip={message("Markdown preview")} aria-label={accessibleName("Markdown preview")} onPress={() => { preview.set(true); }} />
     </View>
     <View hidden={preview.get()} className="flex-col grow min-h-0">
-      <CodeEditor id={clone(file.document.path)} language={extname(file.document.path).slice(1)} value={text.get()} onChange={(value) => { updateDraft(workspace, recovery, editPath, value); }} onFocus={() => { const next = workspace.get(); if (next.active !== focusPath && selectFile(next, clone(focusPath))) workspace.set(next); }} appearance={false} bordered={false} accessibilityLabel={clone(file.document.path)} className={editorClass.get()} />
+      <CodeEditor id={clone(file.document.path)} language={extname(file.document.path).slice(1)} value={text.get()} onChange={(value) => { updateDraft(workspace, recovery, editPath, value); }} onFocus={() => { const next = workspace.get(); if (next.active !== focusPath && selectFile(next, clone(focusPath))) publishWorkspace(next, workspace, recovery); }} appearance={false} bordered={false} accessibilityLabel={clone(file.document.path)} className={editorClass.get()} />
     </View>
     <View hidden={!preview.get()} className="grow min-h-0 overflow-y-auto p-4"><Markdown content={text.get()} scrollable={true} /></View>
   </View></DockPanel>;
