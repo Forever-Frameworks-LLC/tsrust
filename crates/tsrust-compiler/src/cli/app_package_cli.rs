@@ -93,6 +93,8 @@ mod tests {
         let directory=crate::TempDirectory::new().unwrap();
         let input=directory.0.join("program");fs::write(&input,b"executable control").unwrap();
         let mut project=project();project.package.name=Some("Notes & Café".into());
+        project.package.sign=None;project.package.version=Some("supplied at package time".into());
+        project.package.repo=Some("supplied at package time".into());
         let binary=development_bundle(project,&input).unwrap();
         assert_eq!(fs::read(&binary).unwrap(),b"executable control");assert!(!input.exists());
         let contents=binary.parent().unwrap().parent().unwrap();
@@ -174,7 +176,10 @@ fn plist(options: &Options) -> String {
 
 /// Give native dev windows an application identity without signing or packaging.
 #[cfg(target_os="macos")]
-pub(crate) fn development_bundle(project:super::project_config::Project,executable:&Path)->Result<PathBuf,String>{
+pub(crate) fn development_bundle(mut project:super::project_config::Project,executable:&Path)->Result<PathBuf,String>{
+    // Dev needs identity only; release options can be supplied later on the CLI.
+    let PackageConfig{name,id,..}=project.package;
+    project.package=PackageConfig{name,id,..PackageConfig::default()};
     let mut options=options_for_project(std::iter::empty(),Some(project))?;
     options.id.push_str(".dev");
     let contents=executable.parent().ok_or("Missing development executable directory")?.join(format!("{}.app/Contents",options.name));
