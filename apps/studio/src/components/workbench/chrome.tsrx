@@ -1,11 +1,11 @@
-import { accessibleName, message } from './localization.tsr';
+import { accessibleName, message } from '../../lib/localization.tsr';
 import { View, Button, Shortcut, Signal, Node } from 'std:ui';
-import { Workspace, closeFile } from './workspace.tsr';
-import { showSettings } from './settings-window.tsrx';
-import { StudioConfig } from './settings.tsr';
-import { Recovery } from './recovery.tsr';
-import { saveActive, publishWorkspace } from './document-actions.tsr';
-import { zoomWorkspace } from './zoom.tsr';
+import { Workspace, closeFile } from '../../lib/workspace/workspace.tsr';
+import { showSettings } from '../settings/settings-window.tsrx';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { saveActive, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { zoomWorkspace } from '../../lib/workspace/zoom.tsr';
 
 export function closeTab(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: string): void {
   const next = workspace.get();

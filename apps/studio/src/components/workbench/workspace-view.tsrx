@@ -1,10 +1,10 @@
 import { View, Text, Button, Dock, Node, Signal, computed, signal, t } from 'std:ui';
-import { Workspace, OpenFile, selectFile } from './workspace.tsr';
-import { Recovery } from './recovery.tsr';
-import { publishWorkspace } from './document-actions.tsr';
-import { FilePanel } from './editor.tsrx';
+import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { FilePanel } from '../editor/editor.tsrx';
 import { closeTab } from './chrome.tsrx';
-import { localizeError } from './localization.tsr';
+import { localizeError } from '../../lib/localization.tsr';
 
 export function EditorWorkspace(workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, mode: Signal<string>, sidebar: Signal<boolean>): Node {
   const layoutFailed = signal(false);

@@ -1,9 +1,9 @@
-import { Recovery } from './recovery.tsr';
-import { publishWorkspace } from './document-actions.tsr';
-import { accessibleName, message, localizeError } from './localization.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import { View, Text, Input, Button, Node, Signal, signal, computed, controlInput, translateWith } from 'std:ui';
-import { Workspace, openFile } from './workspace.tsr';
-import { SearchHit, searchContents } from './search.tsr';
+import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
+import { SearchHit, searchContents } from '../../lib/explorer/search.tsr';
 
 function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Workspace>, recovery: Signal<Recovery>): Node {
   const path = clone(hit.path);

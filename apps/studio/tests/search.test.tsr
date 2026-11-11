@@ -1,8 +1,8 @@
 import { test, strictEqual } from 'std:testing';
 import { createTempDir, writeTextFile, removeDirAll, mkdirAll } from 'std:fs';
-import { openWorkspace, openFile } from '../src/workspace.tsr';
-import { edit } from '../src/documents.tsr';
-import { searchContents } from '../src/search.tsr';
+import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { edit } from '../src/lib/workspace/documents.tsr';
+import { searchContents } from '../src/lib/explorer/search.tsr';
 
 test('content search supports literal, case and regex matching with UTF-8 line offsets', () => {
   const root = unwrap(createTempDir(undefined, 'studio-search-'));

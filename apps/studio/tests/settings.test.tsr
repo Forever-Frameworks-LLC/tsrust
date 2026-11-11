@@ -1,6 +1,6 @@
 import { test, strictEqual } from 'std:testing';
 import { createTempDir, readTextFile, removeDirAll } from 'std:fs';
-import { defaultConfig, parseConfig, loadConfig, saveConfig, formatConfig, themes } from '../src/settings.tsr';
+import { defaultConfig, parseConfig, loadConfig, saveConfig, formatConfig, themes } from '../src/lib/settings/settings.tsr';
 
 test('settings validate before persistence and round trip their named theme and shared text size', () => {
   const root = unwrap(createTempDir(undefined, 'studio-settings-'));

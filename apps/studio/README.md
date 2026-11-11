@@ -19,8 +19,7 @@ open files and the active tab; clean buffers read current disk contents. Missing
 clean files are skipped, while a missing dirty file preserves the journal and
 reports recovery failure. Native Dock split axes/measured sizes, tab order and
 per-group selection are restored by stable panel values. Cursor/scroll positions
-and sidebar expansion are not restored yet. Automated divider drags still show
-no size change and remain a tracked interaction defect. Dirty tabs refuse to close;
+and sidebar expansion are not restored yet. Fast horizontal, vertical and sidebar resizing are verified in the native app. Dirty tabs refuse to close;
 explicit discard/close prompts and recovery of deleted files remain unfinished.
 Cmd++/Cmd+- adjust shared tree/editor text size between 8 and 48 pixels. Zoom
 is retained per workspace in its view-state journal, separately from the base
@@ -46,7 +45,7 @@ shared tree/editor text size. Settings opens a separate window backed by
 save changes immediately. The formatted JSON view fills the window; use Cmd+S or
 its Save action to apply JSON edits. The catalog has two Studio themes and 36 upstream
 community variants; source revision, authors, URLs and hashes are in
-`src/themes/sources.json`, with upstream license files alongside them.
+`src/assets/themes/sources.json`, with upstream license files alongside them.
 
 Layout settings use `navigationSide` and `activityBarSide` (`left` or `right`),
 plus `panelPosition` and `chatPosition` (`left`, `right` or `bottom`). Changes apply
@@ -57,7 +56,7 @@ an independent region, so chat and terminal can remain visible together.
 
 The Language selector immediately applies and persists `locale` (`en` or `pt-BR`).
 Reload rereads the saved configuration and discards unsaved JSON edits. Older
-settings default to English. Catalogs in `src/locales`
+settings default to English. Catalogs in `src/assets/locales`
 cover app controls, accessible names/tooltips, search summaries and owned errors.
 File names, file contents, theme names, configuration keys and external technical
 diagnostics retain their original text. Catalog keys use English message IDs as
@@ -76,3 +75,22 @@ manual-scroll acceptance, pane/view persistence, JSON key highlighting, LSP and
 terminal integration, broader locale/RTL coverage, full accessibility/IME acceptance and remaining editor/agent
 workflows. This is an active development checkpoint, not complete editor acceptance.
 See `docs/plans/tsrust-studio.md` at the repository root for full scope and evidence.
+
+
+Source layout:
+
+- `src/main.tsrx`: application entry and service lifetime.
+- `src/components`: native surfaces grouped by workbench, explorer, editor,
+  settings and tasks.
+- `src/lib`: document/recovery/workspace models, settings/actions, explorer
+  search/file decoration and localization.
+- `src/services`: background compiler/process orchestration.
+- `src/assets`: bundled icons, themes and translations with provenance/licenses.
+- `tests`: stable runtime suites importing the same application models.
+
+The Output panel runs a saved-file project check through the public CLI
+(`Cmd+Shift+B` or its play icon). Stop cancels that check. Results come from
+structured compiler diagnostics; this does not imply an LSP connection or a PTY.
+The `TSRUST` environment variable can select the compiler executable; otherwise
+Studio resolves `tsrust` through PATH. Checks are limited to five minutes and
+4 MiB of combined output and report errors without changing files.

@@ -1,8 +1,8 @@
-import { Recovery } from './recovery.tsr';
-import { publishWorkspace } from './document-actions.tsr';
-import { accessibleName, message, localizeError } from './localization.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import { View, Text, Input, Button, Node, Signal, signal, computed } from 'std:ui';
-import { Workspace, Entry, projectFiles, openFile } from './workspace.tsr';
+import { Workspace, Entry, projectFiles, openFile } from '../../lib/workspace/workspace.tsr';
 
 
 function SearchResult(file: ReadOnly<Entry>, root: string, workspace: Signal<Workspace>, query: Signal<string>, font: Signal<int>, recovery: Signal<Recovery>): Node {

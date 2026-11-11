@@ -1,11 +1,11 @@
-import { Recovery } from './recovery.tsr';
-import { publishWorkspace } from './document-actions.tsr';
-import { localizeError } from './localization.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { localizeError } from '../../lib/localization.tsr';
 import { Node, Text, Tree, TreeItem, Signal, computed } from 'std:ui';
 import { stat } from 'std:fs';
-import { StudioConfig } from './settings.tsr';
-import { fileDecoration } from './file-icons.tsr';
-import { Workspace, entries, openFile } from './workspace.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
+import { Workspace, entries, openFile } from '../../lib/workspace/workspace.tsr';
 
 function FileTreeItem(path: string, name: string, directory: boolean, children: Node[], settings: Signal<StudioConfig>): Node {
   const decoration = fileDecoration(name, directory);

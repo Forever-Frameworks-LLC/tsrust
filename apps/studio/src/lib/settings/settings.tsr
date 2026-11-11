@@ -1,8 +1,8 @@
 import { readTextFile, writeTextFileAtomic, mkdirAll } from 'std:fs';
 import { homeDir } from 'std:env';
 import { join } from 'std:path';
-import themeNames from './themes/names.json';
-import localeNames from './locales/names.json';
+import themeNames from '../../assets/themes/names.json';
+import localeNames from '../../assets/locales/names.json';
 
 export function themes(): string[] {
   return clone(themeNames);

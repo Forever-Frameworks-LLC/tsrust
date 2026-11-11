@@ -1,5 +1,5 @@
-import { Workspace } from './workspace.tsr';
-import { zoomFontSize } from './zoom.tsr';
+import { Workspace } from '../workspace/workspace.tsr';
+import { zoomFontSize } from '../workspace/zoom.tsr';
 import { Signal, useTheme, setLocale, setWindowTitle, translate } from 'std:ui';
 import { readTextFile } from 'std:fs';
 import { StudioConfig, parseConfig, formatConfig, saveConfig } from './settings.tsr';

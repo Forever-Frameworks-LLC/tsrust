@@ -1,8 +1,8 @@
 import { test, strictEqual } from 'std:testing';
 import { createTempDir, writeTextFile, readTextFile, removeFile, removeDirAll, stat, hardLink } from 'std:fs';
 import { platform } from 'std:os';
-import { createDocument, edit, dirty, markSaved } from '../src/documents.tsr';
-import { saveDocument } from '../src/storage.tsr';
+import { createDocument, edit, dirty, markSaved } from '../src/lib/workspace/documents.tsr';
+import { saveDocument } from '../src/lib/workspace/storage.tsr';
 
 test('saving writes exact draft bytes and advances only the disk baseline', () => {
   const root = unwrap(createTempDir(undefined, 'studio-save-'));

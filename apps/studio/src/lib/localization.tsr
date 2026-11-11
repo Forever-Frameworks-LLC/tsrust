@@ -1,6 +1,6 @@
 import { Reactive, setTranslations, translate, translateWith } from 'std:ui';
-import english from './locales/en.json';
-import portuguese from './locales/pt-BR.json';
+import english from '../assets/locales/en.json';
+import portuguese from '../assets/locales/pt-BR.json';
 
 export function initializeTranslations(): void {
   setTranslations('en', english);

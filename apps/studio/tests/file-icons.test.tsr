@@ -1,6 +1,6 @@
 import { test, strictEqual } from 'std:testing';
-import { fileDecoration } from '../src/file-icons.tsr';
-import { defaultConfig, parseConfig, formatConfig } from '../src/settings.tsr';
+import { fileDecoration } from '../src/lib/explorer/file-icons.tsr';
+import { defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
 
 test('file glyphs recognize names and extensions without decorating folders', () => {
   strictEqual(fileDecoration('main.tsr', false).svg.includes('fill-rule="evenodd"'), true);

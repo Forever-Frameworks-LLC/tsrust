@@ -1,9 +1,9 @@
 import { test, strictEqual } from 'std:testing';
 import { createTempDir, writeTextFile, readTextFile, removeDirAll, removeFile } from 'std:fs';
-import { openWorkspace, openFile, closeFile, selectFile } from '../src/workspace.tsr';
-import { edit, dirty } from '../src/documents.tsr';
-import { persistRecovery, restoreRecovery } from '../src/recovery.tsr';
-import { saveDocument } from '../src/storage.tsr';
+import { openWorkspace, openFile, closeFile, selectFile } from '../src/lib/workspace/workspace.tsr';
+import { edit, dirty } from '../src/lib/workspace/documents.tsr';
+import { persistRecovery, restoreRecovery } from '../src/lib/workspace/recovery.tsr';
+import { saveDocument } from '../src/lib/workspace/storage.tsr';
 
 test('recovery restores exact drafts with fresh sessions and retains the original disk baseline', () => {
   const root = unwrap(createTempDir(undefined, 'studio-recovery-'));

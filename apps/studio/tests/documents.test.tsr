@@ -1,5 +1,5 @@
 import { test, strictEqual } from 'std:testing';
-import { createDocument, dirty, reload, edit, propose, apply, markSaved } from '../src/documents.tsr';
+import { createDocument, dirty, reload, edit, propose, apply, markSaved } from '../src/lib/workspace/documents.tsr';
 
 test('proposals remain isolated until acceptance', () => {
   const document = unwrap(createDocument('src/main.tsr', 'original'));

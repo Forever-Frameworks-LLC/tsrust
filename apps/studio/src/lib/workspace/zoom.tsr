@@ -1,7 +1,7 @@
 import { Signal } from 'std:ui';
 import { Workspace } from './workspace.tsr';
 import { Recovery } from './recovery.tsr';
-import { StudioConfig } from './settings.tsr';
+import { StudioConfig } from '../settings/settings.tsr';
 import { publishWorkspace } from './document-actions.tsr';
 
 export function zoomFontSize(base: int, level: int): int {

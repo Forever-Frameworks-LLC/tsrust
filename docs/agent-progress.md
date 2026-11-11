@@ -155,6 +155,28 @@ existing/pinned standard language glyphs, with resource provenance. After that,
 real terminal/task/LSP integration remains required. Keep one preview and preserve
 owner feedback; no full suite unless meaningful family milestone requires it.
 
+Source organization now moved35files into components/{workbench,explorer,editor,
+settings,tasks}, lib/{workspace,settings,explorer}, services and assets/{themes,
+icons,locales}. main remains src/main.tsrx; config unchanged. All33relative-source/
+test module references resolve; locale audit recurses now119keys/2catalogsPASS.
+README reflects paths/features. Whole formatterPASS0changes after moved imports.
+Path migration prepared /tmp/studio-migrate-source-paths.py and
+/tmp/studio-source-moves.json, NOT RUN. Run only after stopping current supervisor,
+before replacement. Preserve freshest drafts/open paths/Dock selection/zoom.
+
+**Supervisor19300/PTY99098 currently SIGSTOP**,oldapp23352 stays open; paused reload
+loop prevents loading reorganized paths before migration. Native public build
+PTY18100 exited1, /tmp/studio-check-service-build.log. Root actualE0277: literal
+race erases borrowed futures to dynFuture WITHOUTSend inside a started owned worker.
+Existing emitter future_owned equates borrow lifetime with thread safety; literal
+all already avoids this with typed pinned futures. Fix shared literal race/settled
+adapter to preserve inferred Send without rejecting local borrowed cases. No UI
+fake success and no unnecessary async architecture. Restart by queued replacement
+first, CONT19300 then CtrlC99098 exact; migrate paths in waiting replacement before
+newdevlaunch. Owner restart permission standing, no question needed. Native project
+check service not yet accepted; initial preview still old. Current source checkpoint
+before compiler prerequisite, no full regressions.
+
 Current section after0f5ef449/ff925577: distinct TSRX glyph plus real project-check
 service IN PROGRESS. TSR coral Tr vs TSRX purple component brackets, original own
 SVG provenance updated. New .tsr worker uses std:futures channels and std:process

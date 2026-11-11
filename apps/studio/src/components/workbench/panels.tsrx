@@ -1,4 +1,4 @@
-import { accessibleName, message } from './localization.tsr';
+import { accessibleName, message } from '../../lib/localization.tsr';
 import { View, Text, Button, Tabs, Tab, Node, Signal, t } from 'std:ui';
 
 export function Panels(panel: Signal<string>, output: Node): Node {

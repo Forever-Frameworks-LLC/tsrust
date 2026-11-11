@@ -1,10 +1,10 @@
-import { Workspace } from './workspace.tsr';
-import { message, accessibleName, localizeError } from './localization.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { message, accessibleName, localizeError } from '../../lib/localization.tsr';
 import { View, Text, Button, CodeEditor, Select, SelectItem, NumberInput, Switch, Settings, SettingsPage, SettingsGroup, SettingItem, Shortcut, Node, Signal, signal, openWindow, translate } from 'std:ui';
 import { readTextFile } from 'std:fs';
 import { toInt } from 'std:numeric';
-import { configPath, parseConfig, formatConfig, defaultConfig, themes, StudioConfig } from './settings.tsr';
-import { SettingsSession, commitSettings, saveSettings, reloadSettings, showSettingsControls } from './settings-actions.tsr';
+import { configPath, parseConfig, formatConfig, defaultConfig, themes, StudioConfig } from '../../lib/settings/settings.tsr';
+import { SettingsSession, commitSettings, saveSettings, reloadSettings, showSettingsControls } from '../../lib/settings/settings-actions.tsr';
 
 function SettingsEditor(path: string, font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): Node {
   let initial = defaultConfig();

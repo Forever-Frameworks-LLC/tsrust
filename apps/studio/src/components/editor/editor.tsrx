@@ -1,10 +1,10 @@
-import { accessibleName, message } from './localization.tsr';
+import { accessibleName, message } from '../../lib/localization.tsr';
 import { View, Button, CodeEditor, Markdown, Image, DockPanel, Node, Signal, computed, signal, tWith } from 'std:ui';
 import { extname } from 'std:path';
-import { Workspace, OpenFile, selectFile } from './workspace.tsr';
-import { dirty } from './documents.tsr';
-import { Recovery } from './recovery.tsr';
-import { updateDraft, publishWorkspace } from './document-actions.tsr';
+import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
+import { dirty } from '../../lib/workspace/documents.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { updateDraft, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 
 export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>): Node {
   const path = clone(file.document.path);

@@ -1,7 +1,7 @@
 import { View, Text, Button, CodeEditor, Ticker, Shortcut, Node, Signal, signal, computed, t } from 'std:ui';
 import { Channel, Sender } from 'std:futures';
-import { CheckResult } from './project-check.tsr';
-import { message, accessibleName } from './localization.tsr';
+import { CheckResult } from '../../services/project-check.tsr';
+import { message, accessibleName } from '../../lib/localization.tsr';
 
 export function CheckPanel(panel: Signal<string>, requests: Sender<string>, shortcutRequests: Sender<string>, cancellations: Sender<string>, results: Channel<CheckResult>, font: Signal<int>): Node {
   const running = signal(false);
