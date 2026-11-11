@@ -217,6 +217,7 @@ enum KitState {
     Carousel(Entity<CarouselState>),
     #[cfg(feature="gpui-terminal")]
     Terminal(Entity<terminal_view::TerminalView>),
+    Image(Entity<ImageViewport>),
     Editor(Entity<EditorState>, std::collections::BTreeMap<String,String>),
     Tree(Entity<TreeState>, String),
     List(Entity<ListState<TsrustList>>),
@@ -1504,7 +1505,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AppMenuBar" | "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Terminal" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AppMenuBar" | "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Terminal" | "Tree" | "List" | "Image" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -1537,6 +1538,9 @@ impl Root {
             }
             if let Some(state) = self.states.get(&id) {
                 match state {
+                    KitState::Image(state) => {
+                        state.update(cx, |state,cx| {if state.props!=props {state.props=props.clone();cx.notify();}});
+                    }
                     KitState::AppMenuBar(bar, current) => {
                         let Some(node)=find(&self.node,id) else {continue};
                         let menus=application_menus(node);
@@ -1942,6 +1946,7 @@ impl Root {
                     cx.subscribe_in(&state, window, move |this, _, event: &terminal_view::TerminalEvent, _, cx| match event {terminal_view::TerminalEvent::Exit => this.emit(id, "exit", String::new(), cx), terminal_view::TerminalEvent::OpenLink(link) => this.emit(id, "openLink", link.clone(), cx)}).detach();
                     KitState::Terminal(state)
                 },
+                "Image" => {let root=cx.entity().downgrade();KitState::Image(cx.new(|_| ImageViewport {root,id,props:props.clone(),viewport:Size::default(),last_zoom:None,scroll:ScrollHandle::new(),last_scroll:String::new()}))},
                 "CodeEditor" => {
                     let (language,value)=(text("language"),props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default());
                     let state = cx.new(|cx| {
@@ -3096,6 +3101,9 @@ impl Root {
             "Markdown" => TextView::markdown(element_id, super::kit::highlighted_markdown(&kit.text("content"))).into_any_element(),
             "Html" => TextView::html(element_id, text("content")).into_any_element(),
             "Image" => {
+                if kit.prop("zoom").is_some() {
+                    return match self.states.get(&id) {Some(KitState::Image(state))=>state.clone().into_any_element(),_=>div().into_any_element()};
+                }
                 let fit = match kit.prop("fit") {Some("cover") => ObjectFit::Cover, Some("fill") => ObjectFit::Fill, Some("none") => ObjectFit::None, _ => ObjectFit::Contain};
                 let alt = text("alt");
                 let fallback = alt.clone();
@@ -3790,4 +3798,52 @@ fn tree_shape(root: &Node, id: u64) -> String {
     let mut out = String::new();
     if let Some(node) = find(root, id) {walk(node, &mut out);}
     out
+}
+
+
+/// A zoom-enabled image keeps its canvas size separate from its scroll viewport.
+struct ImageViewport {
+    root:WeakEntity<Root>,
+    id:u64,
+    props:std::collections::BTreeMap<String,String>,
+    viewport:Size<Pixels>,
+    last_zoom:Option<f32>,
+    scroll:ScrollHandle,
+    last_scroll:String,
+}
+impl Render for ImageViewport {
+    fn render(&mut self,window:&mut Window,cx:&mut Context<Self>)->impl IntoElement {
+        let path=self.props.get("src").cloned().unwrap_or_default();
+        let source:ImageSource=if std::path::Path::new(&path).is_file(){std::path::PathBuf::from(path).into()}else{SharedString::from(path).into()};
+        let ImageSource::Resource(resource)=source else {unreachable!("image path is a resource")};
+        let zoom=self.props.get("zoom").and_then(|value|value.parse::<f32>().ok()).unwrap_or(0.);
+        let mut ready=false;
+        let body=match window.use_asset::<ImgResourceLoader>(&resource,cx) {
+            Some(Ok(image)) if self.viewport.width>px(0.) && self.viewport.height>px(0.) => {
+                ready=true;
+                let natural=image.size(0);
+                let (width,height,effective)=super::kit::image_view_size((natural.width.0 as f32,natural.height.0 as f32),(self.viewport.width.into(),self.viewport.height.into()),zoom);
+                if self.last_zoom!=Some(effective) {
+                    self.last_zoom=Some(effective);
+                    let (root,id)=(self.root.clone(),self.id);
+                    cx.defer(move|cx| {let _=root.update(cx,|root,cx|root.emit(id,"zoomChange",effective.to_string(),cx));});
+                }
+                div().w(px(width.max(self.viewport.width.into()))).h(px(height.max(self.viewport.height.into()))).flex_shrink_0().flex().items_center().justify_center()
+                    .child(img(ImageSource::Resource(resource)).id("image").w(px(width)).h(px(height)).flex_shrink_0().object_fit(ObjectFit::Contain)).into_any_element()
+            },
+            _=>div().child(self.props.get("alt").cloned().unwrap_or_default()).into_any_element(),
+        };
+        let scroll=self.props.get("scrollTo").cloned().unwrap_or_default();
+        if ready && self.last_scroll!=scroll {
+            self.last_scroll=scroll.clone();
+            if let Ok(value)=serde_json::from_str::<serde_json::Value>(&scroll) {
+                self.scroll.set_offset(point(px(-value["x"].as_f64().unwrap_or(0.) as f32),px(-value["y"].as_f64().unwrap_or(0.) as f32)));
+            }
+        }
+        let state=cx.entity().downgrade();
+        div().relative().size_full().min_w_0().min_h_0().overflow_hidden()
+            .child(canvas(move|bounds,_,cx| {let _=state.update(cx,|state,cx|{if state.viewport!=bounds.size {state.viewport=bounds.size;cx.notify();}});},|_,_,_,_|{}).absolute().size_full())
+            .child(div().id("image-scroll").relative().size_full().overflow_scroll().track_scroll(&self.scroll).child(body))
+            .scrollbar(&self.scroll,gpui_kit::component::scroll::ScrollbarAxis::Both)
+    }
 }

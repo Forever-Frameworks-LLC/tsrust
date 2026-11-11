@@ -132,6 +132,11 @@ impl Kit {
         if matches!(self.name.as_str(),"Diff"|"DropdownMenu"|"ContextMenu") && name=="fontSize" && !value.parse::<u32>().is_ok_and(|size|(8..=40).contains(&size)) {return Err(format!("{} fontSize requires an integer from 8 through 40",self.name));}
         if self.name=="Diff" && matches!(name,"originalText"|"modifiedText") && value.len()>16*1024*1024 {return Err("Diff text snapshots exceed 16 MiB".into());}
         if self.name=="Diff" && name=="filePath" && (value.contains('\0') || value.len()>8192) {return Err("Invalid Diff filePath".into());}
+        if self.name=="Image" && name=="scrollTo" {
+            let parsed=if value.len()<=4096 {serde_json::from_str::<serde_json::Value>(value).ok()} else {None};
+            if !parsed.is_some_and(|value|value.as_object().is_some_and(|object|object.len()==3) && ["x","y"].iter().all(|name|value[name].as_f64().is_some_and(|n|n.is_finite() && n>=0. && n<=f32::MAX as f64)) && value["request"].as_u64().is_some()) {return Err("Image scrollTo requires JSON with nonnegative finite x/y pixels and an integer request identifier".into());}
+        }
+        if self.name=="Image" && name=="zoom" && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (value==0. || (1. ..=3200.).contains(&value))) {return Err("Image zoom requires Fit (0) or a percentage from 1 through 3200".into());}
         if self.name=="Settings" {
             if matches!(name,"defaultPage"|"defaultGroup") && value.parse::<usize>().is_err() {return Err(format!("Settings {name} requires a nonnegative integer"));}
             if matches!(name,"sidebarWidth"|"sidebarMinWidth"|"sidebarMaxWidth") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && value>=0. && value<=f32::MAX as f64) {return Err(format!("Settings {name} requires finite nonnegative native pixels"));}
@@ -544,5 +549,27 @@ mod terminal_tests {
         assert!(Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("id", " ").is_err());
         let node=Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("id", "shell").unwrap();
         assert!(crate::web::document(&node,"Terminal").contains("Native terminal is unavailable in HTML output."));
+    }
+}
+
+
+pub(crate) fn image_view_size(natural:(f32,f32),viewport:(f32,f32),zoom:f32)->(f32,f32,f32) {
+    let scale=if zoom==0. {(viewport.0/natural.0).min(viewport.1/natural.1).min(1.)} else {zoom/100.};
+    (natural.0*scale,natural.1*scale,scale*100.)
+}
+
+#[cfg(test)]
+mod image_view_tests {
+    #[test]
+    fn image_view_fits_both_axes_and_keeps_actual_zoom_independent_of_pane_size() {
+        use super::image_view_size;
+        assert_eq!(image_view_size((1600.,800.),(400.,300.),0.),(400.,200.,25.));
+        assert_eq!(image_view_size((800.,1600.),(400.,300.),0.),(150.,300.,18.75));
+        assert_eq!(image_view_size((100.,50.),(400.,300.),0.),(100.,50.,100.));
+        assert_eq!(image_view_size((1600.,800.),(400.,300.),200.),(3200.,1600.,200.));
+        for zoom in ["NaN","inf","-1","0.5","3201"] {assert!(super::Node::kit("Image",vec![],String::new()).unwrap().with_kit_prop("zoom",zoom).is_err());}
+        for scroll in [r#"{"x":-1,"y":0,"request":1}"#,r#"{"x":0,"y":0}"#,r#"{"x":0,"y":0,"request":1,"extra":true}"#] {assert!(super::Node::kit("Image",vec![],String::new()).unwrap().with_kit_prop("scrollTo",scroll).is_err());}
+        assert!(super::Node::kit("Image",vec![],String::new()).unwrap().with_kit_prop("scrollTo",r#"{"x":120,"y":80,"request":1}"#).is_ok());
+
     }
 }

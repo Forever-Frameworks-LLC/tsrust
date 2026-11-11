@@ -1,0 +1,79 @@
+import { operationProblem, replaceProblems } from '../src/lib/workspace/problems.tsr';
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+import { canonicalize, createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
+import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { edit, dirty } from '../src/lib/workspace/documents.tsr';
+import { QueuedFormatting } from '../src/lib/workspace/formatting-actions.tsr';
+import { saveTarget } from '../src/lib/workspace/document-actions.tsr';
+import { SaveActionContext, unsavedTargets, invokeSaveTool } from '../src/services/save-actions.tsr';
+
+function rejected<T>(value: Result<T, string>): boolean {
+  match (value) {
+    Ok(_) => {
+      return false;
+    },
+    Err(_) => {
+      return true;
+    }
+  }
+}
+
+test('Save All queues mixed text files, preserves explicit revisions, and continues beyond a disk conflict', () => {
+  const temporary = unwrap(createTempDir(undefined, 'studio-save-all-'));
+
+  try {
+    const root = unwrap(canonicalize(temporary));
+    const tsr = root + '/main.tsr';
+    const json = root + '/settings.json';
+    unwrap(writeTextFile(tsr, 'before'));
+    unwrap(writeTextFile(json, '{}'));
+    const initial = unwrap(openWorkspace(root));
+    unwrap(openFile(initial, tsr));
+    unwrap(openFile(initial, json));
+    edit(initial.files[0].document, 'draft');
+    edit(initial.files[1].document, '{"saved":true}');
+    const workspace = signal(initial);
+    const queue = signal<QueuedFormatting[]>([]);
+    const context: SaveActionContext = {
+      workspace, queue, allowSave: false
+    };
+    const targets = unsavedTargets(context.workspace.get());
+    strictEqual(targets.length, 2);
+    const payload = JSON.stringify({
+      targets: clone(targets)
+    });
+    strictEqual(rejected(invokeSaveTool(context, 'save_files', payload)), true);
+    strictEqual(context.queue.get().length, 0);
+    context.allowSave = true;
+    unwrap(invokeSaveTool(context, 'save_files', payload));
+    unwrap(invokeSaveTool(context, 'save_files', payload));
+    strictEqual(context.queue.get().length, 2);
+    unwrap(writeTextFile(tsr, 'external'));
+    const next = context.workspace.get();
+    let failures = 0;
+
+    for (const entry of context.queue.get()) {
+      if (rejected(saveTarget(next, entry.target))) failures += 1;
+    }
+
+    strictEqual(failures, 1);
+    const remaining = replaceProblems([operationProblem('formatter', clone(tsr), 'Conflict'), operationProblem('formatter', clone(json), 'Other failure')], 'formatter', [], clone(tsr));
+    strictEqual(remaining.length, 1);
+    strictEqual(remaining[0].path, json);
+    strictEqual(unwrap(readTextFile(tsr, 1024)), 'external');
+    strictEqual(unwrap(readTextFile(json, 1024)), '{"saved":true}');
+    strictEqual(dirty(next.files[0].document), true);
+    strictEqual(dirty(next.files[1].document), false);
+    strictEqual(next.files[0].document.saveConflict !== undefined, true);
+    strictEqual(next.active, json);
+    edit(next.files[1].document, 'newer');
+    strictEqual(rejected(saveTarget(next, targets[1])), true);
+    strictEqual(unwrap(readTextFile(json, 1024)), '{"saved":true}');
+    context.workspace.set(next);
+    strictEqual(rejected(invokeSaveTool(context, 'save_files', payload)), true);
+    strictEqual(context.queue.get().length, 2);
+  } finally {
+    unwrap(removeDirAll(temporary));
+  }
+});

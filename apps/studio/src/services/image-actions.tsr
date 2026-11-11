@@ -1,0 +1,102 @@
+import { Signal } from 'std:ui';
+import { JsonLimits } from 'std:json';
+import { Workspace } from '../lib/workspace/workspace.tsr';
+import { EditorTool } from './editor-tools.tsr';
+
+export interface ImageViewContext {
+  workspace: Signal<Workspace>;
+  allowViewChanges: boolean;
+}
+
+export interface ImageViewTarget {
+  path: string;
+  session: string;
+}
+
+interface ZoomArguments {
+  target: ImageViewTarget;
+  zoom: number;
+}
+
+export function imageZoomStep(current: number, direction: int): number {
+  const next = direction > 0 ? current * 1.25 : current / 1.25;
+  return Math.max(1, Math.min(3200, Math.round(next * 100) / 100));
+}
+
+export function setImageZoom(context: ReadOnly<ImageViewContext>, target: ReadOnly<ImageViewTarget>, zoom: number): Result<void, string> {
+  if (!context.allowViewChanges) return Err('Changing image views is not permitted by the host.');
+
+  if (!Number.isFinite(zoom) || (zoom !== 0 && (zoom < 1 || zoom > 3200))) return Err('Image zoom must be Fit (0) or between 1 and 3200 percent.');
+  const next = context.workspace.get();
+  const index = next.files.findIndex((file) => file.document.path === target.path && file.document.session === target.session && file.kind === 'image');
+
+  if (index < 0) return Err('This image view is closed or has been replaced.');
+  next.files[index].imageZoom = zoom;
+  context.workspace.set(next);
+  return Ok();
+}
+
+export function panImage(context: ReadOnly<ImageViewContext>, target: ReadOnly<ImageViewTarget>, x: number, y: number): Result<void, string> {
+  if (!context.allowViewChanges) return Err('Changing image views is not permitted by the host.');
+
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > 3.4028234663852886e38 || y > 3.4028234663852886e38) return Err('Image scroll offsets must be finite nonnegative pixels.');
+  const next = context.workspace.get();
+  const index = next.files.findIndex((file) => file.document.path === target.path && file.document.session === target.session && file.kind === 'image');
+
+  if (index < 0) return Err('This image view is closed or has been replaced.');
+  const request = (next.files[index].imageScroll?.request ?? 0) + 1;
+  next.files[index].imageScroll = {
+    x, y, request
+  };
+  context.workspace.set(next);
+  return Ok();
+}
+
+interface PanArguments {
+  target: ImageViewTarget;
+  x: number;
+  y: number;
+}
+
+export function imageTools(): EditorTool[] {
+  return [{
+    name: 'set_image_zoom', description: 'Set an explicit open image path/session to Fit (0) or 1–3200 percent of its natural size. Requires a host view-change grant. Does not select a tab or edit files. The image viewport supports scrolling in both directions.', inputSchema: '{"type":"object","properties":{"target":{"type":"object","properties":{"path":{"type":"string"},"session":{"type":"string"}},"required":["path","session"]},"zoom":{"type":"number","minimum":0,"maximum":3200}},"required":["target","zoom"]}'
+  }, {
+    name: 'pan_image', description: 'Scroll an explicit open image path/session to nonnegative x/y pixel offsets from its top-left. Requires a host view-change grant. Uses the same native scroll handle as trackpad/scrollbar input; offsets clamp to the image bounds. Does not select a tab or edit files.', inputSchema: '{"type":"object","properties":{"target":{"type":"object","properties":{"path":{"type":"string"},"session":{"type":"string"}},"required":["path","session"]},"x":{"type":"number","minimum":0},"y":{"type":"number","minimum":0}},"required":["target","x","y"]}'
+  }];
+}
+
+export function invokeImageTool(context: ReadOnly<ImageViewContext>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+  if (!['set_image_zoom', 'pan_image'].includes(name)) return Err('Unknown image action.');
+  const limits: JsonLimits = {
+    maxBytes: 32768, maxDepth: 4, maxEntries: 16, maxNodes: 32
+  };
+
+  try {
+    if (name === 'pan_image') {
+      const args = JSON.parse<PanArguments>(payload, limits);
+
+      match (panImage(context, args.target, args.x, args.y)) {
+        Ok(_) => {
+          return Ok('{"updated":true}');
+        },
+        Err(error) => {
+          return Err(clone(error));
+        }
+      }
+    }
+
+    const args = JSON.parse<ZoomArguments>(payload, limits);
+
+    match (setImageZoom(context, args.target, args.zoom)) {
+      Ok(_) => {
+        return Ok('{"updated":true}');
+      },
+      Err(error) => {
+        return Err(clone(error));
+      }
+    }
+  } catch (_) {
+    return Err('Invalid image action arguments.');
+  }
+}

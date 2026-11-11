@@ -8,6 +8,91 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Latest accepted image/Save All section — 2026-11-11, 16:48.
+Source checkpoint followsc87c2019; current section ready for local commit, no push. Last UI-only
+localization correction translates the100% label (2catalogs/253keys). Its dev reload
+PASS129.011s:check48.2769s,emit2.887s,backend178.3ms,native/link25.743s,runtimehit;
+wall time includes queued work, not a quiet benchmark. All buffers were clean before
+this automatic reload; journal remains drafts[].
+CURRENT dev supervisor44454 / PTY91897, latest app53634; keep it running. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-44454-1794434802879116000-0/Tsrust Studio.app.
+Launched require_escalated: the sandboxed launch built but NSPasteboard returned
+NULL/macOS XPC access failed. Normal GUI launch works. Standing restart permission
+applies; queue replacement before stopping old. Waiting with old supervisor active
+did not avoid a blank interval; do not assume concurrent preparation is available.
+
+ImagePreview is extracted from editor.tsrx. Default Fit never enlarges, follows
+pane bounds; controls offer zoom,100% natural size and Fit. Cmd+=/-/0 route to image
+zoom/Fit while an image is active; otherwise normal persisted text zoom remains.
+New optional std:ui Image.zoom (0Fit or1–3200%),scrollTo JSON{x,y,request} and
+onZoomChange use the GPUI asset cache, measured viewport and one ScrollHandle for
+native wheel/scrollbars and programmatic pan. Canvas cannot flex-shrink; scrollbar
+overlay belongs to the fixed outer viewport. Initial MAT caught horizontal shrink
+and floating bars; final native layout fixes are now built and visually accepted.
+services/image-actions.tsr exposes guarded executable set_image_zoom/pan_image
+with explicit path/session; no selection, document revision or file changes.
+
+File→Save All/Cmd+S queues every dirty text file, including JSON/non-active tabs,
+through services/save-actions.tsr. save_files uses the same executable queue with
+host-only live-save permission and explicit path/session/revision targets. Per-file
+format/proposal/CAS/recovery remain intact; stale targets reject without retargeting.
+One conflict does not stop later saves; per-file errors remain in Problems. One
+check-on-save runs after queued saves and any earlier check finish. saveTarget
+replaces saveActive. New image state is ephemeral OpenFile view state, not file data.
+
+Focused runtime2/2PASS24.31ms (image actions + Save All temp-file conflict/later JSON
+save/stale target/denied grants), /tmp/studio-image-save-tests.log. Geometry and
+invalid Image prop guard1/1PASS0.00s execution/3.74s setup,
+/tmp/studio-image-geometry.log. No unchanged suite replay/full matrix. Final SDK
+normal pair PASS2m45s /tmp/studio-image-scroll-layout-sdk.log, atomically installed:
+CLIe0c1d71b0b2c77a74c6ae1eb1d4f2da0d8a25cfe6c78fa59e325f96af15ad395 /
+LSPad9b6cb09f1ec0cbf6b1456f2217d4896e0dd74ba5aac95d33752fc4373673bd.
+Dev native gate PASS122.561s:check48.9842s,emit2.8864s,backend172.1ms,
+native/link69.9555s including runtimebuild49.283s/cachemiss. Operational observation,
+not a comparable benchmark/speedup claim. Do not repeat a standalone tsrust build
+for this section; its earlier pass did not warm the dev runtime variant.
+
+Live PNG MAT PASS: owner10open files/4dirty drafts recovered. Whole-image Fit64%,
+Actual100%, keyboard125%/100%/Fit, vertical wheel pan, horizontal scrollbar thumb
+pan and fixed right/bottom bars. Opening Terminal shrank pane and Fit became48%
+with full image still visible; closed panel afterward. File menu shows Save All.
+Owner exercised Save All, producing4protected conflicts. Owner then explicitly
+asked the agent to decide what to keep and save the actual files. Compared every
+recovery draft against its saved baseline:3formatting-only changes; editor.tsrx had
+formatting plus one // test marker. Formatting both variants with the public CLI
+proved equivalence after excluding that marker. Kept newer disk implementations
+(ImagePreview/Problems/check/terminal updates) and used Discard draft and reload
+for all4reviewed conflicts. Native counters reached0errors/no unsaved menu, no dirty
+tab markers; recovery journal independently confirms drafts[]. No newer source was
+overwritten. The last2dialogs had clipped footer buttons at normal height, so the
+window was temporarily zoomed to reach them. A restore-window action was rejected
+because the user changed the app; re-queried and left their current window state.
+Final fresh AX confirms10clean tabs,0errors/0warnings and no remaining dialogs;
+CUA final phase ended "Verified all tabs are saved". All10tabs remain open.
+The save-all witness was strengthened to ensure clearing one file's formatter
+error preserves another:1/1PASS27.55ms /tmp/studio-save-all-problems-test.log.
+ CUA horizontal wheel injection produced no
+visible movement; hardware trackpad horizontal gesture not claimed verified.
+Scrollbar pan works. An accidental sidebar drag during MAT was restored to its
+original592physical-pixel boundary. Left icon.png at Fit64%, all4drafts preserved during that earlier image MAT, then reconciled as above.
+Other image decoders and web viewport behavior not separately checked. CUA phase
+ENDED "Verified image zoom and panning"; reacquire actual .app path after reload.
+
+Whole formatter + idempotence PASS0files/0snippets/0fingerprints,
+/tmp/studio-image-save-checkpoint-format.log; generator--check,2locales/253keys,
+diff-check pass. README updated. Removed superseded standalone validation output
+apps/studio/target/studio (16:16 build, predates final layout); active dev
+bundle/shared caches retained. NEXT: local checkpoint, then real LSP connection/diagnostics/
+hover/completion/snippets before Git/debugger/extensions, followed by integrated AI.
+Known narrow UI follow-up: std:ui custom DialogFooter is currently appended inside
+Dialog.content in gpui_kit.rs instead of using the native Dialog.footer slot. This
+lets long conflict content clip its actions at shorter window heights. Fix that
+shared composition rather than shrinking each caller's Diff with arbitrary vh
+values; existing GPUI dialog footer-bounds tests cover the native slot. Data is
+already reconciled; do not recreate conflicts on real files just to test layout.
+No LSP transport yet. Existing executable AI adapters are plumbing; built-in agent
+hosting/action registration acceptance remains open. Never mark full goal complete.
+
 Latest small owner correction: .tsrx file icons now share .tsr's #CE7045 tint;
 their distinct glyphs remain. Existing file-icon suite2/2PASS0.33ms execution;
 whole formatter0files/0snippets/0fingerprints and diff-check pass. Dev supervisor

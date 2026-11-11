@@ -18,7 +18,7 @@ export interface QueuedFormatting {
 export function enqueueFormatting(queue: Mutable<QueuedFormatting[]>, workspace: ReadOnly<Workspace>, path: ReadOnly<string>, mode: string): void {
   const file = workspace.files.find((file) => file.document.path === path);
 
-  if (file === undefined || file.kind !== 'text' || !canFormat(path)) return;
+  if (file === undefined || file.kind !== 'text' || (mode !== 'save' && !canFormat(path))) return;
 
   if (queue.some((entry) => entry.target.path === path && entry.mode === mode)) return;
   queue.push({

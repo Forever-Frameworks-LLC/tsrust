@@ -3,6 +3,7 @@ import { Workspace } from './workspace.tsr';
 import { edit } from './documents.tsr';
 import { saveDocument } from './storage.tsr';
 import { Recovery, persistRecovery } from './recovery.tsr';
+import { FormattingTarget } from './formatting-actions.tsr';
 
 // All document navigation and edits persist the same workspace snapshot.
 export function publishWorkspace(next: Workspace, workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {
@@ -29,19 +30,19 @@ export function updateDraft(workspace: Signal<Workspace>, recovery: Signal<Recov
   publishWorkspace(next, workspace, recovery);
 }
 
-export function saveActive(workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {
-  const next = workspace.get();
-  const index = next.files.findIndex((file) => file.document.path === next.active);
+export function saveTarget(next: Mutable<Workspace>, target: ReadOnly<FormattingTarget>): Result<void, string> {
+  const index = next.files.findIndex((file) => file.document.path === target.path);
 
-  if (index < 0 || next.files[index].kind !== 'text') return;
-  next.error = '';
+  if (index < 0 || next.files[index].kind !== 'text') return Err('The save target is not an open text file.');
+
+  if (next.files[index].document.session !== target.session || next.files[index].document.revision !== target.revision) return Err('The document changed after Save was requested. Save again to include its latest edits.');
 
   match (saveDocument(next.files[index].document)) {
-    Ok(_) => {},
+    Ok(_) => {
+      return Ok();
+    },
     Err(error) => {
-      next.error = error.code === 'conflict' && next.files[index].document.saveConflict !== undefined ? '' : next.files[index].name + ': Save failed: ' + error.message;
+      return Err(error.code === 'conflict' ? 'This file changed on disk. Compare the versions before saving.' : 'Save failed: ' + error.message);
     }
   }
-
-  publishWorkspace(next, workspace, recovery);
 }

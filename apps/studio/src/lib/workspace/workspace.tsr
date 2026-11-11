@@ -2,10 +2,19 @@ import { canonicalize, stat, readDir, readTextFile } from 'std:fs';
 import { basename, extname, separator } from 'std:path';
 import { Document, createDocument, dirty } from './documents.tsr';
 
+export interface ImageScroll {
+  x: number;
+  y: number;
+  request: int;
+}
+
 export interface OpenFile {
   document: Document;
   name: string;
   kind: string;
+  imageZoom?: number;
+  imageEffectiveZoom?: number;
+  imageScroll?: ImageScroll;
 }
 
 export interface Workspace {

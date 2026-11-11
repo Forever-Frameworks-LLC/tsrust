@@ -1,6 +1,7 @@
+import { ImagePreview } from './image-preview.tsrx';
 import { QueuedFormatting, enqueueFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
-import { View, Button, CodeEditor, Markdown, Image, DockPanel, Node, Signal, computed, signal, tWith } from 'std:ui';
+import { View, Button, CodeEditor, Markdown, DockPanel, Node, Signal, computed, signal } from 'std:ui';
 import { extname } from 'std:path';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
 import { dirty } from '../../lib/workspace/documents.tsr';
@@ -35,15 +36,8 @@ export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>
   if (file.kind === 'image') {
     return (
       <DockPanel value={clone(path)} title={label.get()} padded={false} splitControls={true} closable={closable.get()}>
-        <View id={clone(file.document.session)} className="flex-col size-full min-h-0 p-4">
-          <Image
-            src={clone(file.document.path)}
-            fit="contain"
-            alt={tWith('Unable to decode {name}', {
-              name: clone(file.name)
-            })}
-            className="size-full"
-          />
+        <View id={clone(file.document.session)} className="size-full min-w-0 min-h-0">
+          {ImagePreview(file, workspace, font)}
         </View>
       </DockPanel>
     );

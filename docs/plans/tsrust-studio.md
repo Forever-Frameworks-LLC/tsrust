@@ -73,6 +73,15 @@ counters with explicit icon-count gaps. The conflict overlay host reserves no
 workspace height, preserving a single custom titlebar row; live macOS MAT passed.
 
 
+Image/Save All update, November 11: native PNG previews now have resize-aware Fit,
+percentage/actual-size zoom, keyboard controls and two-axis scrollbars. Live MAT
+verified full-image Fit in a smaller pane, zoom, vertical wheel pan and horizontal
+thumb pan. File → Save All/Cmd+S queues all dirty text files through existing
+formatting/CAS/recovery, retains per-file failures, and checks after the batch.
+The focused temporary-file witness covers continuing past conflicts and stale
+revision rejection. Executable image/save tool adapters share these operations;
+full agent hosting and non-PNG/web viewport acceptance remain open.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize
@@ -511,7 +520,7 @@ Each item requires observed behavior; source changes alone do not close it.
 | 1 | Separate Settings window; tsrust_studio.config.json persistence | Own custom-chrome window; Kit searchable General/Workbench pages with GUI theme/font/locale/region controls, immediate persistence, formatted full-height optional JSON and Save/Reload; external-write protection and legacy defaults verified |
 | 2 | Matching navigation/editor text sizing | Shared explicit font-mono family, zoom and per-workspace restart retention observed; Cmd+0 records reset and Settings Reload retains offset; full layout acceptance pending |
 | 3 | Content search, regex/case toggles; distinct filename command | Model regression passes literal/case/regex/UTF-8/open-draft cases; live regex/case toggles and result-line navigation observed; Enter/worker/cancellation pending |
-| 4 | Image and appropriate non-text viewers | Actual package PNG decoded in app; other image formats and failures pending |
+| 4 | Image and appropriate non-text viewers | Package PNG: Fit/resize/actual-size/keyboard zoom, vertical wheel and horizontal scrollbar pan verified; other image formats and failures pending |
 | 5 | Clearly distinguished active tab | Dark active-tab contrast observed; light/other themes pending |
 | 6 | Tab/tree drag/drop, resizable editor splits | Native tab reorder/draft/undo, direct right/down splits, nested-pane redraw, all visible editor AX nodes, named tabs/close actions, pane maximize/restore and focused save observed; nested split axes/sizes, dragged tab order and per-group selection restore with exact serialized equality; fast horizontal/vertical/sidebar divider drags now observed with managed GPUI release fix (13 resize regressions pass); edge gestures, duplicate views, cursor/scroll persistence, focused-group restoration and tree moves pending |
 | 7 | Markdown preview | Native preview observed after shared row-state fix; preview survives tab switches |

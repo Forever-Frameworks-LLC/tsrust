@@ -18,8 +18,8 @@ export function operationProblem(source: string, path: string, message: string):
   };
 }
 
-export function replaceProblems(current: ReadOnly<Problem[]>, source: ReadOnly<string>, next: Problem[]): Problem[] {
-  return current.filter((problem) => problem.source !== source).concat(next);
+export function replaceProblems(current: ReadOnly<Problem[]>, source: ReadOnly<string>, next: Problem[], path: string | undefined = undefined): Problem[] {
+  return current.filter((problem) => problem.source !== source || (path !== undefined && problem.path !== path)).concat(next);
 }
 
 // Compiler columns count Unicode scalars; CodeEditor selections use UTF-8 bytes.

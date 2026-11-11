@@ -12,8 +12,10 @@ changes Cargo's effective environment and correctly invalidates native caches.
 Ordinary terminal launches can use the standard command above.
 
 Use Edit → Format Document (Option+Shift+F), Project → Check Project
-(Cmd+Shift+B), or the compact braces/check controls in the status bar. File → Save
-uses Cmd+S. Formatting supports .tsr/.tsrx, works on the unsaved buffer and leaves
+(Cmd+Shift+B), or the compact braces/check controls in the status bar. File → Save All
+uses Cmd+S and saves every modified open text file, including non-active tabs.
+Each file retains its own format-on-save and disk-conflict checks; failures remain
+in Problems while other files continue saving. Check-on-save runs after the batch. Formatting supports .tsr/.tsrx, works on the unsaved buffer and leaves
 the result unsaved until Save. An intervening edit, close or reopen rejects an old
 formatting reply. Switching tabs does not retarget it. Compiler checks read saved
 project files and report their actual diagnostics in Output.
@@ -44,7 +46,7 @@ Save; failure preserves the draft. A successful save can queue a background chec
 without changing the user's selected tab or opening Output. These controls use the
 existing compiler checker; no separate lint engine is implied.
 
-Files open in closeable tabs. Edit text and press Cmd+S. A dot marks unsaved
+Files open in closeable tabs. Edit text and press Cmd+S to save all modified files. A dot marks unsaved
 changes. Saves check the original disk bytes and reject
 conflicting external changes. Unsaved drafts are journaled under
 `~/.tsrust/studio/recovery` and restored on restart. The journal also retains
@@ -72,8 +74,12 @@ the current editor. Project search currently runs synchronously, reads at most
 watching, cancellation and Enter-to-search remain required.
 
 PNG viewing and Markdown source/preview are verified in the app. Other routed
-image formats still need decoder acceptance. Cmd+=, Cmd+- and Cmd+0 control the
-shared tree/editor text size. Settings opens a separate window backed by
+image formats still need decoder acceptance. Image previews start in Fit mode,
+follow pane resizing, and provide percentage zoom, 100% natural size and scrollbars
+in both directions. Cmd+=/Cmd+- zoom the active image; Cmd+0 restores Fit. On text
+tabs those shortcuts control the shared tree/editor text size. Image view changes
+have guarded `set_image_zoom` and `pan_image` tools targeting explicit sessions;
+`save_files` queues explicit revisions through the same Save All implementation. Settings opens a separate window backed by
 `~/.tsrust/studio/tsrust_studio.config.json`. Its searchable, categorized controls
 save changes immediately. The formatted JSON view fills the window; use Cmd+S or
 its Save action to apply JSON edits. The catalog has two Studio themes and 36 upstream

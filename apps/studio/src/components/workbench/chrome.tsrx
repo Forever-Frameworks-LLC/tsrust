@@ -1,3 +1,4 @@
+import { unsavedTargets } from '../../services/save-actions.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { View, Button, Shortcut, AppMenuBar, AppMenu, MenuItem, Signal, Node } from 'std:ui';
 import { Workspace, closeFile } from '../../lib/workspace/workspace.tsr';
@@ -30,7 +31,7 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
           <MenuItem command="open-settings" label={message("Settings")} />
         </AppMenu>
         <AppMenu label={message("File")}>
-          <MenuItem command="save-file" label={message("Save")} disabled={workspace.get().active === ''} />
+          <MenuItem command="save-all" label={message("Save All")} disabled={unsavedTargets(workspace.get()).length === 0} />
           <MenuItem command="close-tab" label={message("Close Editor")} />
         </AppMenu>
         <AppMenu label={message("Edit")}>

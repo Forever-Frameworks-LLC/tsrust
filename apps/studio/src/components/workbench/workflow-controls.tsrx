@@ -1,8 +1,9 @@
-import { View, Button, Shortcut, Ticker, Node, Signal, computed } from 'std:ui';
+import { SaveActionContext, queueSaves, unsavedTargets } from '../../services/save-actions.tsr';
+import { View, Button, Shortcut, Ticker, Node, Signal, computed, signal } from 'std:ui';
 import { Channel, Sender } from 'std:futures';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { saveActive, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { saveTarget, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { EditorPolicy, projectEditorPolicy } from '../../lib/settings/formatting.tsr';
 import { QueuedFormatting, FormattingTarget, FormattingAuthority, FormattingRequest, FormattingResult, prepareFormatting, applyFormatting, canFormat } from '../../lib/workspace/formatting-actions.tsr';
@@ -12,7 +13,22 @@ import { Problem, operationProblem, replaceProblems } from '../../lib/workspace/
 import { TerminalWorkspace } from '../../lib/workspace/terminals.tsr';
 import { runProjectTask } from '../../services/project-tasks.tsr';
 
-export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, requests: ReadOnly<Sender<FormattingRequest>>, checks: ReadOnly<Sender<string>>, busy: Signal<boolean>, checking: Signal<boolean>, output: Signal<string>, mode: string, queuedTarget: FormattingTarget | undefined = undefined): void {
+function requestSaveAll(workspace: Signal<Workspace>, queue: Signal<QueuedFormatting[]>): void {
+  const context: SaveActionContext = {
+    workspace, queue, allowSave: true
+  };
+
+  match (queueSaves(context, unsavedTargets(context.workspace.get()))) {
+    Ok(_) => {},
+    Err(error) => {
+      const next = context.workspace.get();
+      next.error = clone(error);
+      context.workspace.set(next);
+    }
+  }
+}
+
+export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, requests: ReadOnly<Sender<FormattingRequest>>, checks: ReadOnly<Sender<string>>, busy: Signal<boolean>, checking: Signal<boolean>, output: Signal<string>, problems: Signal<Problem[]>, saveCheckPending: Signal<boolean>, mode: string, queuedTarget: FormattingTarget | undefined = undefined): void {
   const next = workspace.get();
   const targetPath = queuedTarget === undefined ? clone(next.active) : clone(queuedTarget.path);
 
@@ -22,6 +38,13 @@ export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Rec
     workspace.set(next);
     return;
   }
+
+  const index = next.files.findIndex((file) => file.document.path === targetPath);
+
+  if (index < 0) return;
+  const target: FormattingTarget = {
+    path: clone(targetPath), session: queuedTarget === undefined ? clone(next.files[index].document.session) : clone(queuedTarget.session), revision: queuedTarget === undefined ? next.files[index].document.revision : queuedTarget.revision
+  };
 
   const config = settings.get();
   const defaults: EditorPolicy = {
@@ -39,19 +62,27 @@ export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Rec
         return;
       }
 
-      if (mode === 'save' && (!policy.formatOnSave || !canFormat(next.active))) {
-        saveActive(workspace, recovery);
+      if (mode === 'save' && (!policy.formatOnSave || !canFormat(targetPath))) {
+        const saved = saveTarget(next, target);
+        const failures: Problem[] = [];
+        let success = false;
 
-        if (workspace.get().error === '' && policy.checkOnSave) beginCheck(checks, checking, output, false);
+        match (saved) {
+          Ok(_) => {
+            success = true;
+          },
+          Err(error) => {
+            if (next.files[index].document.saveConflict === undefined) failures.push(operationProblem('save', clone(targetPath), clone(error)));
+          }
+        }
+
+        problems.set(replaceProblems(problems.get(), 'save', failures, clone(targetPath)));
+        publishWorkspace(next, workspace, recovery);
+
+        if (success && policy.checkOnSave) saveCheckPending.set(true);
         return;
       }
 
-      const index = next.files.findIndex((file) => file.document.path === targetPath);
-
-      if (index < 0) return;
-      const target: FormattingTarget = {
-        path: clone(targetPath), session: queuedTarget === undefined ? clone(next.files[index].document.session) : clone(queuedTarget.session), revision: queuedTarget === undefined ? next.files[index].document.revision : queuedTarget.revision
-      };
       const authority: FormattingAuthority = {
         allowPropose: true, allowApply: true, allowSave: true
       };
@@ -80,15 +111,14 @@ export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Rec
 }
 
 export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, panel: Signal<string>, requests: ReadOnly<Channel<FormattingRequest>>, results: Channel<FormattingResult>, checks: ReadOnly<Channel<string>>, checking: Signal<boolean>, output: Signal<string>, problems: Signal<Problem[]>, terminals: Signal<TerminalWorkspace>, terminalError: Signal<string>, program: string, busy: Signal<boolean>, focusQueue: Signal<QueuedFormatting[]>): Node {
+  const saveCheckPending = signal(false);
   const available = computed<boolean>(() => canFormat(workspace.get().active));
   const buttonRequests = requests.sender();
   const shortcutRequests = requests.sender();
-  const saveRequests = requests.sender();
   const buttonProgram = clone(program);
   const formatProgram = clone(program);
   const formatButtonChecks = checks.sender();
   const formatShortcutChecks = checks.sender();
-  const saveChecks = checks.sender();
   const completionChecks = checks.sender();
   const focusRequests = requests.sender();
   const focusChecks = checks.sender();
@@ -116,7 +146,7 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
         tooltipCommand="format-document"
         aria-label={accessibleName("Format document")}
         onPress={() => {
-          requestAction(workspace, recovery, settings, buttonRequests, formatButtonChecks, busy, checking, output, 'format');
+          requestAction(workspace, recovery, settings, buttonRequests, formatButtonChecks, busy, checking, output, problems, saveCheckPending, 'format');
         }}
       />
       <Button
@@ -136,14 +166,14 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
         command="format-document"
         keys="alt-shift-f"
         onTrigger={() => {
-          requestAction(workspace, recovery, settings, shortcutRequests, formatShortcutChecks, busy, checking, output, 'format');
+          requestAction(workspace, recovery, settings, shortcutRequests, formatShortcutChecks, busy, checking, output, problems, saveCheckPending, 'format');
         }}
       />
       <Shortcut
-        command="save-file"
+        command="save-all"
         keys="secondary-s"
         onTrigger={() => {
-          requestAction(workspace, recovery, settings, saveRequests, saveChecks, busy, checking, output, 'save');
+          requestSaveAll(workspace, focusQueue);
         }}
       />
       <Shortcut
@@ -162,7 +192,7 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
       />
       <Ticker
         interval={100}
-        running={busy.get() || focusQueue.get().length > 0}
+        running={busy.get() || focusQueue.get().length > 0 || saveCheckPending.get()}
         onTick={(_frame) => {
           if (!busy.get()) {
             const pending = focusQueue.get();
@@ -171,11 +201,18 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
               const entry = pending.shift();
               focusQueue.set(pending);
 
-              if (entry !== undefined) requestAction(workspace, recovery, settings, focusRequests, focusChecks, busy, checking, output, clone(entry.mode), clone(entry.target));
+              if (entry !== undefined) requestAction(workspace, recovery, settings, focusRequests, focusChecks, busy, checking, output, problems, saveCheckPending, clone(entry.mode), clone(entry.target));
             }
           }
 
-          if (!busy.get()) return;
+          if (!busy.get()) {
+            if (saveCheckPending.get() && !checking.get() && !focusQueue.get().some((entry) => entry.mode === 'save')) {
+              saveCheckPending.set(false);
+              beginCheck(focusChecks, checking, output, false);
+            }
+
+            return;
+          }
 
           match (results.tryReceive()) {
             Err(error) => {
@@ -194,11 +231,13 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
               match (applyFormatting(next, result)) {
                 Ok(needed) => {
                   check = needed;
-                  problems.set(replaceProblems(problems.get(), 'formatter', []));
+                  problems.set(replaceProblems(problems.get(), 'formatter', [], clone(result.request.document.path)));
+
+                  if (result.request.mode === 'save') problems.set(replaceProblems(problems.get(), 'save', [], clone(result.request.document.path)));
                 },
                 Err(error) => {
                   const conflicted = next.files.some((file) => file.document.path === result.request.document.path && file.document.saveConflict !== undefined);
-                  problems.set(replaceProblems(problems.get(), 'formatter', conflicted ? [] : [operationProblem('formatter', clone(result.request.document.path), clone(error))]));
+                  problems.set(replaceProblems(problems.get(), 'formatter', conflicted ? [] : [operationProblem('formatter', clone(result.request.document.path), clone(error))], clone(result.request.document.path)));
 
                   if (result.request.mode === 'format') panel.set('problems');
                 }
@@ -207,7 +246,10 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
               publishWorkspace(next, workspace, recovery);
               busy.set(false);
 
-              if (check) beginCheck(completionChecks, checking, output, false);
+              if (check) {
+                if (result.request.mode === 'save') saveCheckPending.set(true);
+                else beginCheck(completionChecks, checking, output, false);
+              }
             }
           }
         }}
