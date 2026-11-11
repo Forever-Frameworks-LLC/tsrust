@@ -304,10 +304,10 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                   }}
                 />
               </SettingItem>
-              <SettingItem title={message("Parenthesize JSX returns")}>
+              <SettingItem title={message("Parenthesize TSRX returns")}>
                 <Switch
                   checked={draft.get().format.jsxReturnParentheses}
-                  accessibilityLabel={message("Parenthesize JSX returns")}
+                  accessibilityLabel={message("Parenthesize TSRX returns")}
                   onChange={(enabled) => {
                     const config = draft.get();
                     config.format.jsxReturnParentheses = enabled;

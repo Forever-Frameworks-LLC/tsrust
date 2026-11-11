@@ -176,7 +176,7 @@
   "Formatting rules": "Formatting rules",
   "Indent width": "Indent width",
   "Spaces per indentation level (1–8). Project format settings take precedence.": "Spaces per indentation level (1–8). Project format settings take precedence.",
-  "Parenthesize JSX returns": "Parenthesize JSX returns",
+  "Parenthesize TSRX returns": "Parenthesize TSRX returns",
   "Put component children on separate lines": "Put component children on separate lines",
   "Blank lines around control-flow blocks": "Blank lines around control-flow blocks",
   "A formatting request is already running.": "A formatting request is already running.",

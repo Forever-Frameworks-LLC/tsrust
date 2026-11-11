@@ -88,6 +88,10 @@ auto-detect color. CLI project-check success and formatter progress/batch summar
 now honor the existing color policy; JSON and raw source remain unstyled. A focused
 public CLI regression passed; exact live acceptance is in docs/agent-progress.md.
 
+Formatting settings terminology, November 11: the UI calls component syntax TSRX,
+including “Parenthesize TSRX returns”. Language-specific formatting/lint rule
+overrides remain planned; the existing persisted rule keys stay compatible.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize

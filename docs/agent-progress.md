@@ -8,6 +8,16 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Settings TSRX terminology — 2026-11-11 (after6453782e).
+Owner corrected the visible “Parenthesize JSX returns” wording to TSRX and noted
+future per-language rules. Settings title/accessibility name and both locale
+catalogs now say “Parenthesize TSRX returns”. Existing jsxReturnParentheses config
+key remains compatible; no formatter behavior/schema migration. Language-specific
+format/lint overrides recorded as planned in Studio plan, not implemented here.
+Locale coverage PASS2catalogs/253keys. Dev94719 watches the UI change; no SDK rebuild
+or automated regression needed for label-only correction. NEXT whole formatter,
+local checkpoint; preserve current preview and pending LSP priority.
+
 Terminal session row alignment — accepted 2026-11-11, follows80a40f04.
 Owner wants action buttons anchored right and long labels ellipsized. Shared native
 ListItem content now uses flex_1/min_w_0 and a nonshrinking suffix; std:ui content

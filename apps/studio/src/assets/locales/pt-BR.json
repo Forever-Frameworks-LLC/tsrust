@@ -176,7 +176,7 @@
   "Formatting rules": "Regras de formatação",
   "Indent width": "Largura da indentação",
   "Spaces per indentation level (1–8). Project format settings take precedence.": "Espaços por nível de indentação (1–8). As regras do projeto têm prioridade.",
-  "Parenthesize JSX returns": "Colocar retornos JSX entre parênteses",
+  "Parenthesize TSRX returns": "Colocar retornos TSRX entre parênteses",
   "Put component children on separate lines": "Colocar componentes filhos em linhas separadas",
   "Blank lines around control-flow blocks": "Linhas em branco ao redor dos blocos de controle",
   "A formatting request is already running.": "Já existe uma solicitação de formatação em andamento.",
