@@ -1385,7 +1385,7 @@ impl Root {
             if child.kit.as_deref().is_some_and(|kit| kit.name == "ListItemSuffix") {suffix = Some(child.identity.get()); continue;}
             content.push(self.element(child, &theme, mode(cx), cx));
         }
-        item = item.child(div().flex().items_center().gap_2().min_w_0().children(content));
+        item = item.child(div().flex().w_full().items_center().gap_2().min_w_0().children(content));
         let root = cx.entity().downgrade();
         if let Some(part) = suffix {
             let root = root.clone();

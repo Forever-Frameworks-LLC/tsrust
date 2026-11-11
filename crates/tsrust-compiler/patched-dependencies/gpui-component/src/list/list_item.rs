@@ -237,11 +237,12 @@ impl RenderOnce for ListItem {
             })
             .child(
                 h_flex()
-                    .w_full()
+                    .flex_1()
+                    .min_w_0()
                     .items_center()
                     .justify_between()
                     .gap_x_1()
-                    .child(div().w_full().children(self.children))
+                    .child(div().w_full().min_w_0().children(self.children))
                     .when_some(self.check_icon, |this, icon| {
                         this.child(
                             div().w_5().items_center().justify_center().when(
@@ -253,7 +254,9 @@ impl RenderOnce for ListItem {
                         )
                     }),
             )
-            .when_some(self.suffix, |this, suffix| this.child(suffix(window, cx)))
+            .when_some(self.suffix, |this, suffix| {
+                this.child(div().flex_shrink_0().child(suffix(window, cx)))
+            })
             .when(is_selectable && self.selected, |this| {
                 let bg = if cx.theme().list.active_highlight {
                     cx.theme().list_active

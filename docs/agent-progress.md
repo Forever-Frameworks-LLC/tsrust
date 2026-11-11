@@ -8,6 +8,29 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Terminal session row alignment — accepted 2026-11-11, follows80a40f04.
+Owner wants action buttons anchored right and long labels ellipsized. Shared native
+ListItem content now uses flex_1/min_w_0 and a nonshrinking suffix; std:ui content
+row fills the constrained width. Existing Studio min-w-0/truncate label gets the
+remaining space. No command semantics/AI action changes. Live MAT compared Terminal1
+and Check project rows at120pt/180pt/270pt rail widths: both ellipsis/trash columns
+stay aligned at the right edge, long labels ellipsize, full labels return when
+widened. Left the rail wider for inspection. CUA phase ended "Aligned terminal row
+action buttons". Check project was started through its real status command as the
+second row; still running when layout MAT finished, do not claim its result.
+
+SDK pair build PASS2m39s, /tmp/studio-terminal-alignment-sdk.log; atomically installed.
+Dev build PASS289.433s:check46.9594s,emit2.8636s,backend174.6ms,native/link238.8796s,
+runtime rebuild218.8535s. This included native dependency recompilation, not tests
+or a benchmark. No automated regression rerun for this style-only change.
+CURRENT supervisor64691/PTY94719, app64958; one preview, GUI launch with -u NO_COLOR.
+Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-64691-1794436254281332000-0/Tsrust Studio.app.
+Old58640/PTY9543 stopped. All10tabs remain clean; recovery journal drafts[].
+Whole formatter:0files/0snippets/0fingerprints; diff check passed. Keep dev running.
+NEXT remains real LSP/hover/completion/snippets before Git/debugger/extensions;
+known DialogFooter native slot follow-up remains below. No push.
+
 Terminal color correction — accepted 2026-11-11, source checkpoint follows815d4989.
 Owner reported CLI colors missing. Live native terminal probe proved ANSI red/green
 rendering already worked; TERM=xterm-256color,COLORTERM=truecolor, but NO_COLOR=1
