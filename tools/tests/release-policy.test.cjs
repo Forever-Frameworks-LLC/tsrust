@@ -29,10 +29,20 @@ test('only the unchanged, same-repository staging PR can promote', () => {
 });
 
 test('failed, manual, unrelated or substituted builds cannot publish', () => {
-  validateRun(run(), snapshot, repository);
+  validateRun(run(), snapshot, repository, pull());
   for (const mutation of [{path: '.github/workflows/other.yml'}, {event: 'workflow_dispatch'}, {conclusion: 'failure'},
-    {head_repository: {full_name: 'fork/project'}}, {head_branch: 'feature'}, {head_sha: 'new'}, {id: 43}, {pull_requests: []}]) {
-    assert.throws(() => validateRun({...run(), ...mutation}, snapshot, repository));
+    {head_repository: {full_name: 'fork/project'}}, {head_branch: 'feature'}, {head_sha: 'new'}, {id: 43}]) {
+    assert.throws(() => validateRun({...run(), ...mutation}, snapshot, repository, pull()));
+  }
+});
+
+test('mutable run PR associations do not replace a directly verified promotion PR', () => {
+  for (const associations of [[], [{number: 99}], undefined]) {
+    const value = {...run(), pull_requests: associations};
+    validateRun(value, snapshot, repository, pull());
+    for (const pr of [{...pull(), number: 99}, {...pull(), head: {...pull().head, sha: 'other'}}]) {
+      assert.throws(() => validateRun(value, snapshot, repository, pr));
+    }
   }
 });
 
@@ -117,7 +127,7 @@ test('missing, extra, dirty or wrong-source release artifacts are rejected befor
 }));
 
 
-for (const existingDraft of [false, true]) test(existingDraft ? 'publication safely resumes a partial draft' : 'publication reads notes from the validated merge instead of its stale checkout', async () => artifacts(async ({dist}) => {
+for (const [existingDraft, merged] of [[false, false], [true, false], [false, true]]) test(merged ? 'publication recovers a merged PR after GitHub drops its run association' : existingDraft ? 'publication safely resumes a partial draft' : 'publication reads notes from the validated merge instead of its stale checkout', async () => artifacts(async ({dist}) => {
   const cwd = process.cwd();
   process.chdir(path.dirname(dist));
   try {
@@ -125,16 +135,16 @@ for (const existingDraft of [false, true]) test(existingDraft ? 'publication saf
     fs.mkdirSync('.github');
     fs.writeFileSync('target/promotion.json', JSON.stringify(snapshot));
     fs.writeFileSync('.github/release-notes.md', 'Stale checkout notes');
-    const fixture = merger();
+    const fixture = merger(merged ? {pr: {merged: true, state: 'closed', base: {...pull().base, sha: 'merged'}}} : {});
     const events = [];
     const github = fixture.github;
-    github.rest.actions = {getWorkflowRun: async () => ({data: run()})};
+    github.rest.actions = {getWorkflowRun: async () => ({data: {...run(), pull_requests: merged ? [] : run().pull_requests}})};
     github.rest.git.createRef = async args => { events.push(['tag', args.sha]); };
     github.rest.repos = {
       getReleaseByTag: async () => existingDraft ? ({data: {id: 1, draft: true, assets: [{id: 9, name: 'partial.tar.gz'}]}}) : notFound(),
       getContent: async args => {
         assert.deepEqual(args, {...repo, path: '.github/release-notes.md', ref: 'merged'});
-        assert.equal(fixture.calls.length, 1);
+        assert.equal(fixture.calls.length, merged ? 0 : 1);
         events.push(['notes', args.ref]);
         return {data: {type: 'file', encoding: 'base64', content: Buffer.from('Validated release notes').toString('base64')}};
       },
@@ -149,7 +159,7 @@ for (const existingDraft of [false, true]) test(existingDraft ? 'publication saf
       deleteReleaseAsset: async ({asset_id}) => { events.push(['delete-draft-asset', asset_id]); },
       uploadReleaseAsset: async ({name, data}) => {
         assert.deepEqual(data, fs.readFileSync(path.join(dist, name)));
-        assert.equal(fixture.calls.length, 1);
+        assert.equal(fixture.calls.length, merged ? 0 : 1);
         events.push(['upload', name]);
       },
       updateRelease: async ({draft}) => {

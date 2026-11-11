@@ -14,10 +14,13 @@ Release-only managed worktree: /Users/seancotter/.codex/worktrees/toolchain-rele
 branch codex/release-0.2.0 from11f63fd4; release checkpoint includes this record. Original checkout is actively implementing
 Studio in a separate chat; do not edit, stage, reset or switch it. No authorization
 was given to send that chat messages. Shared Cargo target remains the original
-checkout's target, incremental off/jobs1. No release push has occurred yet. Candidate checkpoint3fbfad83 passed clean
+checkout's target, incremental off/jobs1. First release push completed at7b256e4a6621794e0a0834f5cd286659fad42182.
+PR#18 targets stag: https://github.com/Forever-Frameworks-LLC/tsrust/pull/18.
+CI42926496496 and Documentation42926496344 are running. No merge/publication yet.
+Candidate checkpoint3fbfad83 passed clean
 v0.2.0 preflight. Final CI setup audit found the newly selected GPUI closure was
 not fetched before offline suites, and Linux speech builds lacked ALSA headers;
-added the exact GPUI manifest fetch and libasound2-dev before the first push.
+added the exact GPUI manifest fetch and libasound2-dev before the first push;7b256e4a clean release preflight passed.
 
 Live remote: v0.1.2 latest, compiler0.1.2/LSP0.2.2/extension0.2.1. Promotion PR#17
 stag->main is open at9bcbfa1c; prior Release42654579465 passed Linux/Windows/editor,
@@ -48,6 +51,17 @@ remain and no warning suppression was added. New headless UI catalog suite8/8
 passes through public tsrust test,1.85ms execution,2m49 setup/build including queue. Preserve prior accepted full backend133
 suites/21host evidence and latest UI/byte-view regressions instead of rerunning them.
 
+Publisher recovery defect proven from live evidence: successful Release41942318885's
+promotion.json pins PR14/head7771cec6, while GitHub now reports PR17/head9bcbfa1c
+in run.pull_requests after stag reuse. This field is mutable, not durable provenance.
+The local repair fetches snapshot.pull directly, validates its repository/branch/
+number/head/base or merged state, and retains all exact run ID/event/head/source
+parents/tree/artifact checks. Added stale/missing-association and already-merged
+publication retry controls; distribution/policy26/26 pass (2.37s). This is a real
+publication-recovery repair, not a test-iteration push. PR#18 must include it before
+promotion; CI repeats for the changed trusted publisher input. Preserve first-run
+passed gates and check all final-head gates again.
+
 IMPORTANT publisher compatibility: main8efaaee2 still requires four archives,
 while accepted stag/candidate intentionally dropped Intel macOS and requires3.
 Do not weaken artifact validation or restore unsupported Intel builds. After the
@@ -57,8 +71,9 @@ trusted main using the existing successful Release artifacts (rerun only its gat
 if necessary to emit a new workflow_run event), checking exact tree/source/asset
 provenance. No tag/release before checks. Record any recovery result precisely.
 
-Raw active logs /tmp/tsrust-release-*.log are disposable. Sessions at this record:
-all previous local sessions completed. Compiler CLI repair18343 and lint94150
+Raw active logs /tmp/tsrust-release-*.log are disposable. Local checks completed.
+Monitor remote CI before merging PR#18, then promotion PR#17. All prior local
+sessions completed. Compiler CLI repair18343 and lint94150
 completed successfully. Baseline managed installation completed via65802; first
 attempt only needed its missing parent directory created. The baseline install
 uses the existing0.1.2 CLI into new ~/.local/share/tsrust/toolchain, preserving
