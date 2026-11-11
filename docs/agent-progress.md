@@ -8,6 +8,26 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Floating image controls — accepted 2026-11-11, follows70148fc1.
+ImagePreview now renders the image first across the full relative pane, followed
+by compact absolute top-right controls. Removed full-width row height/padding and
+bottom border. No backplate/frame introduced. Existing zoom/fit/accessibility/
+guarded AI view actions unchanged; no SDK/native runtime changes.
+
+Live PNG MAT PASS: toolbar is floating with no full-width separator/reserved row;
+Zoom in changed40%Fit→50%, Fit restored40%; controls stayed clickable. Left icon.png
+active in the first editor split, existing Problems source in the second. All10tabs
+clean,0errors/0warnings; terminal/chat still hidden, original docking settings
+preserved. CUA ended "Floated image controls without borders".
+Auto dev build PASS122.024s:check45.893s,emit2.8492s,backend180.2ms,native/link23.7084s,
+runtimehit; wall includes queued work, not a benchmark. CURRENT supervisor71128/
+PTY31480, app94501; one preview, no supervisor restart. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71128-1794439679671329000-0/Tsrust Studio.app.
+Required whole formatter1file/0snippets/0fingerprints; final idempotence0/0/0 and
+diff check passed. Pruned2obsolete program-cache variants, keeping current ones. No automated regressions for this style-only change; prior image behavior
+acceptance retained. NEXT real LSP/hover/completion/snippets, plus known DialogFooter
+slot and dense-layout minimum-width follow-ups. No push.
+
 Single workbench dividers — accepted 2026-11-11, follows1c67f8c2.
 Native Resizable handles already paint the divider for their axis/display order.
 Removed extra Region left/right/top wrapper borders, activity-bar left/right

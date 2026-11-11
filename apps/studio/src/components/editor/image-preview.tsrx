@@ -46,10 +46,24 @@ export function ImagePreview(file: ReadOnly<OpenFile>, workspace: Signal<Workspa
   const zoomInTarget = clone(target);
   const fitTarget = clone(target);
   const actualTarget = clone(target);
-  const toolbar = computed<string>(() => 'flex-row items-center justify-end gap-1 px-2 h-8 shrink-0 border-b border-border text-[' + font.get().toString() + 'px]');
+  const toolbar = computed<string>(() => 'absolute top-2 right-2 flex-row items-center gap-1 text-[' + font.get().toString() + 'px]');
   const label = computed<string>(() => Math.round(effective.get()).toString() + '%');
   return (
-    <View className="flex-col size-full min-w-0 min-h-0">
+    <View className="relative flex-col size-full min-w-0 min-h-0">
+      <View className="grow min-w-0 min-h-0">
+        <Image
+          src={clone(file.document.path)}
+          zoom={zoom.get()}
+          scrollTo={scroll.get()}
+          onZoomChange={(value) => {
+            reportZoom(workspace, target, value);
+          }}
+          alt={tWith('Unable to decode {name}', {
+            name: clone(file.name)
+          })}
+          className="size-full"
+        />
+      </View>
       <View className={toolbar.get()}>
         <Button
           icon="minus"
@@ -101,20 +115,6 @@ export function ImagePreview(file: ReadOnly<OpenFile>, workspace: Signal<Workspa
             {t('100%')}
           </Text>
         </Button>
-      </View>
-      <View className="grow min-w-0 min-h-0">
-        <Image
-          src={clone(file.document.path)}
-          zoom={zoom.get()}
-          scrollTo={scroll.get()}
-          onZoomChange={(value) => {
-            reportZoom(workspace, target, value);
-          }}
-          alt={tWith('Unable to decode {name}', {
-            name: clone(file.name)
-          })}
-          className="size-full"
-        />
       </View>
     </View>
   );
