@@ -118,7 +118,7 @@ impl TabVariant {
         };
 
         // A folder tab pads its content itself, see `FolderTabMetrics`.
-        if matches!(self, TabVariant::Underline | TabVariant::Folder) {
+        if matches!(self, TabVariant::Folder) {
             padding_x = px(0.);
         }
 

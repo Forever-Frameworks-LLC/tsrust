@@ -8,6 +8,28 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Panel tab underline — accepted 2026-11-11, follows191e9a0b.
+Owner wants the active underline across the entire padded tab, flush with the
+panel's left border. Removed Studio's spacer-only TabsPrefix. Shared Underline
+variant now uses normal per-size inner label padding and zero inter-tab gap,
+instead of unpadded labels with external gaps. Indicator tracks full tab bounds.
+Live macOS MAT PASS: Terminal underline starts exactly at panel content edge and
+extends beyond both sides of its label; selecting Problems moves the full padded
+underline to that tab. Text padding preserved; actions/copy/close stay at right.
+CUA phase ended "Extended underlines across padded tabs". Problems selected at end.
+No command/state/AI semantics changed. No automated suite for style-only change.
+
+SDK pair build PASS2m44s, /tmp/studio-tab-underline-sdk.log; atomically installed.
+Dev build PASS286.528s:check46.6555s,emit2.8551s,backend173.9ms,native/link236.278s,
+runtime rebuild216.2542s. Native dependency recompilation, not test time/benchmark.
+CURRENT supervisor71128/PTY31480, app71315; one preview, GUI launch with -u NO_COLOR.
+Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71128-1794436930520486000-0/Tsrust Studio.app.
+Old64691/PTY94719 stopped. All10tabs clean,0errors/0warnings, recovery drafts[].
+Whole formatter:0files/0snippets/0fingerprints; diff check passed. Keep dev running.
+NEXT remains real LSP/hover/completion/snippets before Git/debugger/extensions;
+known DialogFooter native slot follow-up remains below. No push.
+
 Settings TSRX terminology — 2026-11-11 (after6453782e).
 Owner corrected the visible “Parenthesize JSX returns” wording to TSRX and noted
 future per-language rules. Settings title/accessibility name and both locale

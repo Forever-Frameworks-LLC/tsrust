@@ -410,15 +410,7 @@ impl RenderOnce for TabBar {
                 (cx.theme().tokens.tab_bar_segmented.into(), padding, px(2.))
             }
             TabVariant::Underline => {
-                // This gap is same as the tab inner_paddings
-                let gap = match self.size {
-                    Size::XSmall => px(10.),
-                    Size::Small => px(12.),
-                    Size::Large => px(20.),
-                    _ => px(16.),
-                };
-
-                (cx.theme().transparent.into(), Edges::all(px(0.)), gap)
+                (cx.theme().transparent.into(), Edges::all(px(0.)), px(0.))
             }
             TabVariant::Folder => (
                 cx.theme().tokens.tab_bar.into(),
