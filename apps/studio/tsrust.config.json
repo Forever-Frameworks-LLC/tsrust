@@ -4,5 +4,9 @@
     "output": "target/studio"
   },
   "name": "studio",
+  "package": {
+    "name": "Tsrust Studio",
+    "id": "dev.tsrust.studio"
+  },
   "schemaVersion": 1
 }

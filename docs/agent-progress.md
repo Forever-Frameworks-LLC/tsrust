@@ -8,66 +8,94 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-10
 
-Owner explicitly authorized the complete Studio goal, including necessary compiler
-prerequisites; no reduced MVP or postponement behind unrelated v0.2.0 work.
-Persistent goal is active. One writer, no delegation, no pushes/publication/signing.
-Starting source11f63fd4 was clean. Full scope: [Studio plan](plans/tsrust-studio.md).
-[Bounded audit](plans/tsrust-studio-audit.md) records exact source locations,
-model identities, resource observations, proof limits and missing acceptance.
+Persistent full Studio goal is active. Owner authorized implementation and genuine
+compiler prerequisites; no reduced MVP, no postponement behind unrelated v0.2.0
+work. One writer, no delegation, no pushes/model publication/signing/tags/releases.
+Checkpoint3c59b679 starts ordinary apps/studio, revision-safe whole-buffer proposals,
+scalar Candle admission and honest stopped-inference evidence. Full required scope:
+[plan](plans/tsrust-studio.md); exact proof/model/resource details:
+[audit](plans/tsrust-studio-audit.md).
 
-Current section: native local-AI dependency/training admission and revision-safe
-proposal foundation. Ordinary `tsrust new apps/studio --ui` created the project
-(after making its parent apps directory); generated gallery replaced by a named
-scratch editor. `.tsr` document/proposal functions compare path, revision and
-base content; no disk or agent tool writes. UI signals reject record/array state;
-checked Rust bindings reject opaque resource/Drop owners. Both remain reusable
-capability prerequisites, not reasons to hide editor logic in Rust.
+Owner UI correction: no decorative app-name/filename headers, pretend tabs or
+nonfunctional controls, even demos. Follow VS Code/Visual Studio/Zed/IntelliJ
+workspace patterns. Removed that header and debug revision label; actual compact
+Find/Replace/theme controls work. Rule persisted in apps/studio/AGENTS.md and plan.
+Initial preview CUA proves Unicode paste/undo, keyboard entry,100-line scrolling,
+zoom/restore, both themes, actual search and replacement/undo. Initial search lost
+first S once; subsequent selected query typed Hello correctly. Initial-focus/first-
+key and unnamed upstream search AX controls remain gaps, not full keyboard/AX
+acceptance. Still an unsaved scratch editor, no file saving/recovery implemented.
 
-Passed: project check; document native suite4/4, execution0.115208ms,
-build/setup1610.7825ms. Sandbox time wrapper subsequently denied kern.clockrate;
-its exit1 is not a test failure or resource measurement. Whole formatter4files,
-then second pass0files; both0snippets/0fingerprints. Native training proof check
-passes; exact Candle core/nn0.11.0 sources resolved with defaults disabled through
-CLI bindings. Lock checked in, compiler-owned native adapter only; Tsrust owns
-iteration. Native training suite3/3PASS, execution1.5945ms, setup/build414405.813042ms
-including shared-target wait; maxRSS665583616B is a wrapper observation, not
-whole-machine memory. One shared target/jobs1/incremental0. Training proof is scalar
-SGD/autodiff only, not adapter training, checkpoint persistence or model quality.
+**Keep dev running.** Owner explicitly requested ongoing tsrust dev monitoring,
+profiling, leak/resource/recompile observations and evidence-led optimization.
+Current live tool PTY session15252, supervisorPID74090; current appPID76050 (changes
+after successful source rebuild), bundleID dev.tsrust.studio.dev. Command from
+apps/studio: repository target/debug/tsrust dev --verbose --color=always, with
+CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1 and repository CARGO_TARGET_DIR. Old standalone
+preview and first dev tree are stopped; exactly one dev Studio window is open.
+Do not stop/restart this supervisor casually. Auto-review rejected initial Ctrl+C;
+owner then explicitly approved ONE restart to load tested macOS identity fix.
+That restart is spent, oldPID70667/70994 reaped. Normal dev source rebuilds continue
+under the same retained supervisor. CUA phase complete: Verified Studio dev rebuild
+recovery. Do not open the superseded dev.tsrust.studio.preview bundle.
 
-Host confirmed Mac15,13 AppleM3/8GiB. Initial swap4864.19MiB; during single-job
-build3243.62MiB (not timing samples). Owner processes untouched. Official Qwen1.5B
-Q4_K_M and pinned tokenizer downloaded to ignored target/studio-models; official
-model size/SHA256 and tokenizer Git blobs verified. First inference suite native
-build50531.681334ms; invalid-limit controlPASS0.3185ms. Watchdog stopped actual
-model test after261.5MiB system swap growth,54.910s total; no answer/summary.
-Inference INCOMPLETE; concurrent external regression prevents attribution.
-Exact Candle Qwen dequantizes full embeddings at load, a memory-cost candidate
-requiring investigation. No unchanged retry until host/hypothesis changes.
-Native scratch preview built and independently open. CUA verified Unicode paste/undo,
-keyboard focus,100-line scrolling, zoom/restore and light/dark themes. Owner rejected
-the decorative Studio/Untitled header: removed it and the debug revision counter;
-replaced with compact actual Find/Replace/theme actions. Rebuilt/refreshed preview
-atomically; CUA proves matches, actual Hello->Hi replacement and undo, theme labels
-and paints, and closing search. One current dark preview left open. CUA complete.
-Owner rule persisted in apps/studio/AGENTS.md and plan; use actual editor references,
-no decorative headers, pretend tabs or nonfunctional controls, including demos.
-One initial search input observed tudio after typing Studio; a subsequent selected
-query typed Hello exactly. Search-focus/first-key loss and unnamed Kit search AX
-controls remain investigation gaps, not full keyboard/accessibility acceptance. Current exact CLI/model/lock hashes and stop conditions in audit.
-Next: finish/open one native Studio preview and verify keyboard/edit/theme
-behavior, record the model stop honestly, investigate embedding/device memory and
-retry only on changed host conditions or implementation. Preserve scalar training
-and document test passes. Second exact-model attempt after all other builds ended also stopped: setup/build
-7060.773708ms, invalid-limitPASS0.480042ms, total10.603s, swapdelta468.5MiB,
-sampled owned-tree RSS607256576B. No model answer/summary. Preserve both attempts;
-no more unchanged retries. Investigate native llama.cpp library bindings as a
-managed inference alternative (not a model server); Candle remains separate
-training candidate. Native CMake exists. No new alternative dependency admitted yet.
-Current inference primitive is buffered and cancellable
-between operations through existing TaskContext; no persistent streaming API yet.
-Full evaluation harness, adapters/quantization, safe isolated tools, complete editor,
-cloud/external agents and Windows remain required. No broad regression/timing or
-release claims. Update this handoff when pending operations become terminal.
+Current dev fix (source acceptance complete, local checkpoint pending): macOS UI
+programs get temporary .app metadata through the existing packaging plist helper,
+.dev identifier and configured name; backend dev stays a plain executable. No sign,
+notarize, archive, app.json updater identity or release artifact. Studio package
+metadata names the app; new CLI d8d5f8e3a2fd909797ff6b42f87a379882dc528babf0b5e03f517e4b93cb6c85.
+Focused CLI metadata/config tests2/2PASS (0.01s execution,8.73s compile/setup),
+process-group cleanup1/1PASS0.03s (0.33s setup), CLI buildPASS12.32s, whole formatter
+0files/0snippets/0fingerprints, diff checkPASS. Actual CUA now identifies dev bundle.
+Temporary syntax error produced exact source diagnostic while old app stayed usable
+(Find worked). Error removed; real Find->Find in file label edit rebuilt successfully,
+old app reaped, same supervisor alive, new label observed in native UI.
+
+Dev observations, NOT quiet-machine benchmark claims: first cold dev47,767ms,
+runtime prepare1671.1ms, runtime build/publish38815.8ms; metadata-only warm rebuild
+2787ms (check1947.8, emit301.6, native cachehit). New CLI restart46,762ms, runtime
+build/publish37338ms; semantic recovery rebuild11,903ms (check2067, emit297.9,
+runtime-cache prepare5016.6ms/hit; native+link9097.1ms includes preparation).
+Cache restore is an investigation target; do not weaken cache provenance/identity.
+Backend identity intentionally includes all environment inputs for arbitrary
+upstream build scripts; different launch environments may legitimately miss cache.
+
+Read-only native profiling worked. First dev supervisor leaks0; footprint124.0MiB,
+peak1.2GiB; app footprint100.0MiB/peak161.7MiB. Two app scans SAME PID70994 report
+exactly421 unreachable objects/20,368 bytes, chiefly3NSXPCConnection cycles plus
+NSMutableArrays; unchanged between scans. Attribution remains open, not leak-free
+or proof of growing Rust retention. Post-rebuild current supervisor82.5MiB/peak1.2GiB;
+current app118.2MiB/peak178.7MiB. RSS varies with macOS compression; do not call its
+changes leaks. Inspect stack/alloc evidence before changing owners or disabling features.
+Native macOS logs sandbox_extension_issue_file_to_process for temp bundle; window,
+AX and dev recovery still work. Record warning separately; no permissions weakened.
+Installed PATH tools were stale CLI0.1.2/LSP0.2.2. Repository-required atomic paired
+refresh succeeded: tsrust0.2.0/tsrust-lsp0.3.0. Existing VS Code config already points
+to repository debug pair; no owner editor process was controlled/restarted.
+
+Preserve earlier passed proofs: documents4/4 (formatted rerun0.207125ms, setup322.716ms,
+cachehit); Candle scalar training3/3, execution1.5945ms, setup/build414405.813042ms
+including unrelated shared-target wait. This proves autodiff/SGD/scalar orchestration,
+not adapters/checkpoint files/model training. Generic UI record/array signals and
+checked native opaque/Drop owners remain reusable capability gaps.
+
+Official Qwen1.5B Q4_K_M + pinned tokenizer under ignored target/studio-models;
+size/SHA256/Git blobs verified, exact identities in audit. Two bounded CPU Candle
+attempts stopped before answers on >256MiB system swap growth: attempt1 261.5MiB,
+54.910s total with concurrent external builds; attempt2 468.5MiB,10.603s after builds
+ended, sampled ownedRSS607256576B. Invalid-limit controls passed both attempts.
+No native inference/quality/minimum-machine acceptance. No unchanged retries.
+Candle0.11 Qwen fully dequantizes embeddings; concrete memory-cost candidate,
+not proven allocation attribution. Investigate compiled llama-cpp-2 Rust library
+as alternative managed inference (no separate server), retain Candle training proof.
+Primary research done, CMake available; no alternative dependency admitted yet.
+
+Next: checkpoint tested dev fix/evidence; profile runtime restore before optimizing,
+keep current dev process/window; continue native inference admission with changed
+backend hypothesis. Full held-out evaluation/training/quantized artifact qualification,
+revisioned document store/safe isolated tools, complete editor services, cloud/external
+agents and Windows remain required. No full regressions, comparative measurements,
+AI distribution or release acceptance claimed.
 
 ### Balanced global search spacing — 2026-11-10 (accepted with this checkpoint)
 

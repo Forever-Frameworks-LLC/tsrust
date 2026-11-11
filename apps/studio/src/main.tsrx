@@ -6,7 +6,7 @@ function App(): Node {
   return (
     <View className="flex-col size-full">
       <Toolbar size="small">
-        <Button onPress={() => { controlInput('source', 'openSearch'); }}>Find</Button>
+        <Button onPress={() => { controlInput('source', 'openSearch'); }}>Find in file</Button>
         <Button onPress={() => { controlInput('source', 'openReplace'); }}>Replace</Button>
         <Button onPress={() => { dark.set(!dark.get()); setTheme(dark.get() ? 'dark' : 'light'); }}>{dark.get() ? 'Light theme' : 'Dark theme'}</Button>
       </Toolbar>

@@ -3,7 +3,10 @@
 Native developer-tool application under active implementation. Created with
 `tsrust new apps/studio --ui`; application source remains `.tsr`/`.tsrx`.
 
-Run `tsrust dev` in this directory. The current independent preview is an unsaved
+Run `tsrust dev --verbose` in this directory for per-stage rebuild/cache diagnostics.
+On macOS, UI dev builds have a temporary native app identity; no signing or release
+packaging runs. Failed builds keep the previous app running. Successful rebuilds
+restart the child and currently reset this scratch buffer. The current independent preview is an unsaved
 scratch editor with working Find/Replace and light/dark theme controls. Closing
 it discards the scratch buffer. Project editing/saving and recovery are pending;
 do not use this development preview for irreplaceable work.

@@ -81,7 +81,7 @@ mod platform {
         let config=inputs.get(&root.join(project_config::FILE)).ok_or("Missing project configuration in build snapshot")?;
         let project=project_config::parse(root,std::str::from_utf8(config.bytes()).map_err(|e|e.to_string())?)?;
         let (reply,response)=mpsc::channel();
-        let mut request=crate::dev_frontend::Request{entry:project.entry,sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply};
+        let mut request=crate::dev_frontend::Request{entry:project.entry.clone(),sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply};
         loop {
             if STOP.load(Ordering::Relaxed) || &watcher.snapshot(root)!=expected {return Ok(None);}
             match worker.requests.try_send(request) {
@@ -169,6 +169,8 @@ mod platform {
             if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root){let _=cache.try_publish(&binary);}
         }
         if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
+        #[cfg(target_os="macos")]
+        let binary=if frontend.features.contains(&"ui"){crate::app_package_cli::development_bundle(project,&binary)?}else{binary};
         Ok(Some((files,binary)))
     }
     #[cfg(all(test,unix))]

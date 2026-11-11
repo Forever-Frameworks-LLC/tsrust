@@ -187,3 +187,60 @@ were added. This is a development scratch editor, not completed Studio.
 Formatted document suite rerun passes4/4 with cache hit: setup322.716ms,
 execution0.207125ms. Unchanged training acceptance is retained without replay.
 Whole-project formatter after owner correction reports0files/0snippets/0fingerprints.
+
+## Retained dev workflow and profiling — November 10
+
+Owner requested continuous ordinary `tsrust dev`, real recovery/recompile tests,
+resource/leak observations and optimization only when evidence identifies costs.
+Do not replace that with duplicate standalone previews or stop dev after a check.
+
+Fixed macOS UI dev identity: the supervisor previously spawned a bare temporary
+`program` executable, which native app discovery rejected. It now moves that fresh
+executable into a temporary .app using the existing package metadata/plist path,
+with a separate .dev identifier. Other-platform/backend dev execution is unchanged.
+No signer, notarizer, icon conversion, archive, updater manifest or release executes.
+Studio supplies package.name/id in its ordinary configuration. Focused metadata/
+config tests2/2, real plutil validation, process cleanup1/1 and compiler rebuild pass.
+Native CUA binds dev.tsrust.studio.dev, sees the working source editor and action bar.
+
+A deliberate parser error produced a precise source diagnostic while the previous
+app remained alive and Find still worked. Removing that error and changing the
+actual action label to Find in file rebuilt/replaced the child under the same
+supervisor; native AX/screenshot shows the changed label. Original supervisor was
+restarted once only after explicit owner approval following an automatic-review
+rejection. New dev session is retained; live identities are in the single handoff.
+
+Observed dev phases (single executions, no comparable benchmark claim):
+
+| Observation | Total | Important stages |
+|---|---:|---|
+| First cold dev |47,767ms|runtime prepare1671.1ms, runtime build/publish38815.8ms|
+| Metadata edit, same emitted program |2787ms|check1947.8ms, emit301.6ms, program cachehit|
+| Fresh supervisor with fixed CLI |46,762ms|check1898.8ms, emit292ms, runtime build/publish37338ms|
+| Valid semantic edit after parser-error recovery |11,903ms|check2067ms, emit297.9ms, runtime restore/prepare5016.6ms hit, native+link9097.1ms including prepare|
+
+The 5-second runtime-cache preparation is an investigation target. Cached runtime
+artifacts are currently copied/unpacked for safe independent compilation. Profile
+that boundary before changing it. Preserve shared-target locking, graph identity,
+artifact validation, cancellation and independent file ownership. All-environment
+cache identity is intentional because upstream build scripts may depend on
+arbitrary environment variables; do not remove that guard to manufacture hits.
+
+Read-only vmmap/leaks observations of the first dev tree: supervisor footprint
+124.0MiB, peak1.2GiB, zero detected leaks. App100.0MiB, peak161.7MiB. Two independent
+scans of appPID70994 report identical421 unreachable objects/20,368 bytes: mostly
+three NSXPCConnection/dispatch cycles and two NSMutableArray roots. That is a stable
+scanner finding, not a proved Rust leak, a leak-free result or a growth trend.
+Post-recovery supervisor82.5MiB/peak1.2GiB, new app118.2MiB/peak178.7MiB. macOS RSS
+varies with compression; physical footprint and retained allocation evidence matter.
+No allocation-content dumps, memory graphs or canonical logs were stored.
+
+The new native dev bundle emits a nonfatal macOS sandbox-extension warning for
+its temporary .app path; startup, AX, actions and rebuild recovery work. Do not
+hide it or weaken system protections. Investigate if it affects required workflows.
+
+Current CLI SHA256 d8d5f8e3a2fd909797ff6b42f87a379882dc528babf0b5e03f517e4b93cb6c85.
+Installed CLI/LSP atomically refreshed to current repository0.2.0/0.3.0; existing
+VS Code config already selects the repository pair. No LSP source changed and no
+owner editor was restarted. Whole formatter0files/0snippets/0fingerprints; earlier
+proposal/training proofs retained. Signing/publication remains unauthorized.

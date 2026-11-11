@@ -87,6 +87,22 @@ mod tests {
             assert!(options_for_project(arguments.into_iter().map(str::to_owned),None).is_err());
         }
     }
+    #[cfg(target_os="macos")]
+    #[test]
+    fn development_bundle_is_valid_native_metadata_without_release_side_effects(){
+        let directory=crate::TempDirectory::new().unwrap();
+        let input=directory.0.join("program");fs::write(&input,b"executable control").unwrap();
+        let mut project=project();project.package.name=Some("Notes & Café".into());
+        let binary=development_bundle(project,&input).unwrap();
+        assert_eq!(fs::read(&binary).unwrap(),b"executable control");assert!(!input.exists());
+        let contents=binary.parent().unwrap().parent().unwrap();
+        let metadata=contents.join("Info.plist");
+        assert!(Command::new("/usr/bin/plutil").args(["-lint"]).arg(&metadata).status().unwrap().success());
+        let text=fs::read_to_string(metadata).unwrap();
+        assert!(text.contains("dev.notes.dev"));assert!(text.contains("Notes &amp; Café"));
+        assert!(!contents.join("Resources/app.json").exists());
+        assert!(!directory.0.join("dist").exists());
+    }
 }
 
 fn run_tool(command: &mut Command, what: &str) -> Result<(), String> {
@@ -154,6 +170,19 @@ fn plist(options: &Options) -> String {
 </dict>
 </plist>
 "#, name = escape(&options.name), id = escape(&options.id), version = escape(&options.version))
+}
+
+/// Give native dev windows an application identity without signing or packaging.
+#[cfg(target_os="macos")]
+pub(crate) fn development_bundle(project:super::project_config::Project,executable:&Path)->Result<PathBuf,String>{
+    let mut options=options_for_project(std::iter::empty(),Some(project))?;
+    options.id.push_str(".dev");
+    let contents=executable.parent().ok_or("Missing development executable directory")?.join(format!("{}.app/Contents",options.name));
+    let binary=contents.join("MacOS").join(&options.name);
+    fs::create_dir_all(binary.parent().unwrap()).map_err(|error|error.to_string())?;
+    fs::write(contents.join("Info.plist"),plist(&options)).map_err(|error|error.to_string())?;
+    fs::rename(executable,&binary).map_err(|error|error.to_string())?;
+    Ok(binary)
 }
 
 /// A PNG becomes AppIcon.icns through sips and iconutil (both part of macOS).
