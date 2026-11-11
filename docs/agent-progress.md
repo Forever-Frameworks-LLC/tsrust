@@ -155,6 +155,50 @@ existing/pinned standard language glyphs, with resource provenance. After that,
 real terminal/task/LSP integration remains required. Keep one preview and preserve
 owner feedback; no full suite unless meaningful family milestone requires it.
 
+Latest search-results section — November 11, after ab9c975d.
+Result rows now have two lines, full-width padded click targets (minimum height
+3*font+16px), dividers, muted file paths, visible line numbers, monospace snippets
+and theme-colored match highlights. Snippets crop around the first match with
+UTF-8-safe boundaries and a bounded display window; original source/ranges remain
+available. One result and first highlighted occurrence per matching line.
+
+Shared search-actions.tsr now backs UI searches and result activation. Navigation
+opens the exact match and checks current source bytes before publishing workspace
+state; host context controls navigation/focus. Numeric bounds are checked before
+arithmetic to reject overflowing offsets and interior UTF-8 ranges safely.
+services/editor-tools.tsr provides two cataloged/callable routes, search_content
+and open_search_result, using those same actions. Registered routes were exercised
+against real host-owned Signal state; model transport and a full editor command
+catalog are NOT connected. Schemas currently mirror typed records (explicit source
+shortcut); generate them before expanding the catalog. Host identity/grants never
+come from model JSON. Input parsing has explicit byte/depth/entry/node bounds.
+
+Focused search.test.tsr3/3PASS20.35ms execution/setup5.380s: retained search/draft/
+regex behavior; Unicode/cropped/zero-width/long-match previews; registered tool
+search/open, denied grants including forged permission fields, stale data, invalid
+args/names, maximum-int offsets and invalid UTF-8 endpoints. Earlier runs stopped
+at unsupported native-range JSON/byte accessor and ownership diagnostics, fixed
+without compiler changes. First runtime2/3FAIL28.92ms was a fixture's /var vs
+/private/var expected path; corrected to canonicalize. Native RegexMatch is now
+copied into an ordinary SearchRange DTO, retaining correct byte endpoints.
+Whole formatter passed; locale coverage124keys/two catalogs and diff checks pass.
+No full matrix or compiler rebuild. SDK/installed pair unchanged at c2f44df5/1aa17d7a.
+
+Native MAT app47740: projectCheckWorker produced three separated rows, readable
+paths/line numbers and colored matches. Clicking line151 opened existing main.tsrx,
+scrolled to line151 and visibly selected projectCheckWorker exactly. Restored left
+settings/rightchrome via Open tabs/focus; no file text edited. Owner had opened
+recovery.tsr during work; retained it. Journal active chrome, zoom-1, drafts0.
+CUA: Verified spaced highlighted search results, then Displayed readable highlighted
+search results. Final accessible names include file:line and bounded preview; three
+results left visible in app52643. Final source rebuilt successfully in47.295s.
+LIVE supervisor37767/PTY50581/app52643, one preview. Earlier native runtime miss41.521s;
+app build83.963s, then runtime-hit rebuild51.539s and unchanged-app check32.327s.
+These are observations, not benchmark or leak acceptance. Formatter, locales, diff
+and two tool-schema JSON admission checks passed. Next: local checkpoint, then
+continue real editor/AI/service features. Keep
+current owner state and prior acceptance. Full goal active, no push/release.
+
 Owner update — every feature must have a direct integrated-AI action hookup.
 Recorded in apps/studio/AGENTS.md and the Studio plan's required action-parity
 section. UI/AI must share typed command implementations, trusted host identity,

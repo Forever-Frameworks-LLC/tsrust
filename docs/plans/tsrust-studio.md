@@ -143,7 +143,7 @@ Current source audit (November 11; AI action integration remains pending):
 
 | Existing feature family | Reusable implementation | Missing AI hookup |
 | --- | --- | --- |
-| Files and content search | workspace entries/projectFiles and searchContents, including draft search/regex/case | Shared command registration, scoped tool invocation and structured results |
+| Files and content search | workspace entries/projectFiles and shared search actions, including draft search/regex/case and UTF-8 match ranges | Search-content/result-navigation catalog adapters pass host-state/permission/stale-input checks; live agent transport, filename-search and presentation-command routes remain pending |
 | Open/select/close documents | workspace openFile/selectFile/closeFile and recovery publication | Explicit-target command path; retain dirty-close/recovery guards |
 | Edits, saves and proposals | document edit/propose/apply, saveDocument and stale byte/session/revision checks | Registered proposal/review transaction commands; no direct AI write bypass |
 | Selection and editor operations | std:ui readInput/controlInput expose snapshots and some actions | Domain-target adapters; checked undo/redo and remaining native operation hooks |
@@ -466,3 +466,10 @@ CmdShiftB or play, with verified Stop/child cleanup and actual success result.
 Shared compiler fixes preserve concrete race/settled future types and keep async
 GPUI entry on the OS main thread. Focused acceptance and remaining standalonequit
 uncertainty are in the audit. This is compiler-task integration; LSP/PTy remainpending.
+
+
+Search-result presentation now has separated full-width click targets, dividers,
+file/line labels and cropped UTF-8-safe match highlights. Activation selects the
+exact matching range. Shared UI/tool actions and tested search tool adapters are
+implemented; live AI transport and full command parity are still pending. Native
+visual/navigation evidence and focused boundary tests are recorded in the audit.

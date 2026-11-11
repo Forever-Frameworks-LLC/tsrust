@@ -117,5 +117,10 @@
   "Checking saved project files…": "Verificando arquivos salvos do projeto…",
   "Project check": "Verificação do projeto",
   "Project check output": "Saída da verificação do projeto",
-  "Cancel project check": "Cancelar verificação do projeto"
+  "Cancel project check": "Cancelar verificação do projeto",
+  "Search result navigation is not permitted for this task.": "A navegação para resultados da busca não é permitida para esta tarefa.",
+  "This search result is no longer current. Run the search again.": "Este resultado não está mais atualizado. Execute a busca novamente.",
+  "Invalid search result range.": "Intervalo do resultado de busca inválido.",
+  "Unknown editor tool.": "Ferramenta do editor desconhecida.",
+  "Invalid editor tool arguments.": "Argumentos da ferramenta do editor inválidos."
 }

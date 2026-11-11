@@ -1,8 +1,12 @@
 import { test, strictEqual } from 'std:testing';
-import { createTempDir, writeTextFile, removeDirAll, mkdirAll } from 'std:fs';
+import { createTempDir, writeTextFile, removeDirAll, mkdirAll, canonicalize } from 'std:fs';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
-import { searchContents } from '../src/lib/explorer/search.tsr';
+import { signal } from 'std:ui';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
+import { editorTools, invokeEditorTool } from '../src/services/editor-tools.tsr';
+import { searchContents, searchPreview, SearchResults } from '../src/lib/explorer/search.tsr';
 
 test('content search supports literal, case and regex matching with UTF-8 line offsets', () => {
   const root = unwrap(createTempDir(undefined, 'studio-search-'));
@@ -34,6 +38,103 @@ test('content search supports literal, case and regex matching with UTF-8 line o
     unwrap(openFile(workspace, root + '/image.png'));
     strictEqual(workspace.files[1].kind, 'image');
     strictEqual(unwrap(searchContents(workspace, 'UTF-8', false, true)).hits.length, 0);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('match previews retain UTF-8 ranges and bound long-line display around the hit', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-preview-'));
+  try {
+    const prefix = '界'.repeat(80);
+    unwrap(writeTextFile(root + '/source.tsr', prefix + '🦀needle🦀' + '界'.repeat(80)));
+    const hits = unwrap(searchContents(unwrap(openWorkspace(root)), 'needle', false, true)).hits;
+    strictEqual(hits[0].matches[0].start, 244);
+    const parts = searchPreview(hits[0]);
+    strictEqual(parts[0].text, '…');
+    strictEqual(parts[parts.length - 1].text, '…');
+    const matched = parts.find((part) => part.matched);
+    strictEqual(matched !== undefined, true);
+    if (matched !== undefined) strictEqual(matched.text, 'needle');
+    strictEqual(parts.map((part) => clone(part.text)).join('').length < 200, true);
+    const zero = unwrap(searchContents(unwrap(openWorkspace(root)), '^', true, true)).hits;
+    strictEqual(searchPreview(zero[0]).length > 0, true);
+    const all = unwrap(searchContents(unwrap(openWorkspace(root)), '.*', true, true)).hits;
+    strictEqual(searchPreview(all[0]).map((part) => clone(part.text)).join('').length < 200, true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('registered AI search tools share results and enforce host navigation and stale-hit guards', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-search-tools-'));
+  try {
+    unwrap(writeTextFile(root + '/source.tsr', '🦀 needle\n'));
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const context: SearchActionContext = {
+      workspace, recovery, allowNavigation: false, focusEditor: false
+    };
+    strictEqual(editorTools().length, 2);
+    const response = unwrap(invokeEditorTool(context, 'search_content', '{"query":"needle","caseSensitive":true}'));
+    const result = JSON.parse<SearchResults>(response);
+    strictEqual(result.hits[0].matches[0].start, 5);
+    const hit = JSON.stringify(result.hits[0]);
+    match (invokeEditorTool(context, 'open_search_result', hit.slice(0, -1) + ',"allowNavigation":true}')) {
+      Ok(_) => {
+        throw 'tool arguments escalated navigation permission';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(context.workspace.get().files.length, 0);
+    context.allowNavigation = true;
+    strictEqual(unwrap(invokeEditorTool(context, 'open_search_result', hit)), '{"opened":true}');
+    strictEqual(context.workspace.get().active, unwrap(canonicalize(root + '/source.tsr')));
+    const invalid = clone(result.hits[0]);
+    invalid.offset = 9223372036854775807;
+    match (invokeEditorTool(context, 'open_search_result', JSON.stringify(invalid))) {
+      Ok(_) => {
+        throw 'overflowing tool offset accepted';
+      },
+      Err(_) => {}
+    }
+
+    invalid.offset = 0;
+    invalid.matches[0].start = 1;
+    invalid.matches[0].end = 2;
+    match (invokeEditorTool(context, 'open_search_result', JSON.stringify(invalid))) {
+      Ok(_) => {
+        throw 'interior Unicode byte range accepted';
+      },
+      Err(_) => {}
+    }
+
+    const next = context.workspace.get();
+    edit(next.files[0].document, 'changed');
+    context.workspace.set(next);
+    match (invokeEditorTool(context, 'open_search_result', hit)) {
+      Ok(_) => {
+        throw 'stale search result accepted';
+      },
+      Err(_) => {}
+    }
+
+    match (invokeEditorTool(context, 'search_content', '{"query":2}')) {
+      Ok(_) => {
+        throw 'invalid tool arguments accepted';
+      },
+      Err(_) => {}
+    }
+
+    match (invokeEditorTool(context, 'unknown', '{}')) {
+      Ok(_) => {
+        throw 'unknown tool accepted';
+      },
+      Err(_) => {}
+    }
   } finally {
     unwrap(removeDirAll(root));
   }

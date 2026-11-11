@@ -1,0 +1,64 @@
+import { JsonLimits } from 'std:json';
+import { SearchActionContext, runContentSearch, openSearchResult } from '../lib/explorer/search-actions.tsr';
+import { SearchHit } from '../lib/explorer/search.tsr';
+
+export interface EditorTool {
+  name: string;
+  description: string;
+  inputSchema: string;
+}
+
+interface SearchArguments {
+  query: string;
+  regex?: boolean;
+  caseSensitive?: boolean;
+}
+
+// Tool catalog and UI-thread adapter for the integrated agent host.
+// shortcut: schemas mirror typed arguments; generate from compiler types before expanding this catalog.
+export function editorTools(): EditorTool[] {
+  return [{
+    name: 'search_content', description: 'Search saved files and unsaved buffers in the current workspace. Returns matching lines with UTF-8 ranges. One hit and first match per line.', inputSchema: '{"type":"object","properties":{"query":{"type":"string"},"regex":{"type":"boolean"},"caseSensitive":{"type":"boolean"}},"required":["query"]}'
+  }, {
+    name: 'open_search_result', description: 'Open a returned search hit and select its exact match. Requires host navigation permission; stale or outside-workspace targets are rejected.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"line":{"type":"integer","minimum":1},"offset":{"type":"integer","minimum":0},"preview":{"type":"string"},"matches":{"type":"array","minItems":1,"items":{"type":"object","properties":{"start":{"type":"integer","minimum":0},"end":{"type":"integer","minimum":0}},"required":["start","end"]}}},"required":["path","line","offset","preview","matches"]}'
+  }];
+}
+
+// Model arguments cannot supply capabilities or actor identity; the host owns context.
+export function invokeEditorTool(context: ReadOnly<SearchActionContext>, name: string, payload: ReadOnly<string>): Result<string, string> {
+  if (payload.length > 32 * 1024 * 1024) return Err('Invalid editor tool arguments.');
+  const limits: JsonLimits = {
+    maxBytes: 32 * 1024 * 1024, maxDepth: 16, maxEntries: 4096, maxNodes: 8192
+  };
+  const tools = editorTools();
+  if (!tools.some((tool) => tool.name === name)) return Err('Unknown editor tool.');
+  try {
+    if (name === 'search_content') {
+      const args = JSON.parse<SearchArguments>(payload, limits);
+      match (runContentSearch(context, clone(args.query), args.regex ?? false, args.caseSensitive ?? false)) {
+        Ok(result) => {
+          return Ok(JSON.stringify(result));
+        },
+        Err(error) => {
+          return Err(clone(error));
+        }
+      }
+    }
+
+    if (name === 'open_search_result') {
+      const hit = JSON.parse<SearchHit>(payload, limits);
+      match (openSearchResult(context, hit)) {
+        Ok(_) => {
+          return Ok('{"opened":true}');
+        },
+        Err(error) => {
+          return Err(clone(error));
+        }
+      }
+    }
+
+    return Err('Unknown editor tool.');
+  } catch (_) {
+    return Err('Invalid editor tool arguments.');
+  }
+}

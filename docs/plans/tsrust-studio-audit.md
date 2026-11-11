@@ -1327,3 +1327,45 @@ Final automatic rebuild45,660ms with runtime hit is one observation, not a bench
 Installed/target CLIc2f44df5a51101b64c603f11fd2b28cffe3a82c9fca7a8eb8555857c984d8287;
 LSP1aa17d7abef5ed53269091ad96412f5ba9883668b7f37845ceb6b7a5faf7f07c,
 atomically refreshed and independently SHA-verified.
+
+
+### Readable search results and shared action adapters — 2026-11-11
+
+Search rows use full-width padded buttons, a divider per row, separate muted file
+location and numbered monospace code preview, plus theme-colored match highlights.
+Accessible names/tooltips retain file:line and bounded preview text. Row minimum
+height follows shared zoom. Display context is cropped around the first match at
+UTF-8 boundaries, including long regex matches; original line/ranges are retained.
+One result/highlight per matching line avoids eager allocation of every occurrence.
+
+UI and callable search_content/open_search_result tools share search-actions.tsr.
+Returned data includes serializable UTF-8 ranges. Host-owned Signal context controls
+navigation and focus; JSON cannot grant permission. Activation checks workspace
+scope, current line bytes and valid endpoints before publishing, then selects the
+exact match. Offset bounds precede addition, including maximum-int inputs. Tool
+parsing has explicit byte/depth/entry/node limits and rejects unknown names/bad
+arguments. The catalog adapter was exercised against real host state; live model
+transport and complete editor command coverage remain pending. Schemas currently
+mirror typed arguments; the source records generation as required before expansion.
+
+Focused stable suite3/3PASS20.35ms execution, setup5.380s. Covers previous search/
+draft/regex cases, Unicode clipping, zero-width/long matches, registered tool calls,
+denied/forged navigation permission, stale targets, malformed args, unknown tools,
+integer-overflow and invalid UTF-8 ranges. Initial native DTO/accessor/ownership
+issues were corrected without compiler changes. First runtime2/3FAIL28.92ms was the
+fixture's macOS /var alias expectation; canonicalized expectation then passed.
+Whole formatter,124keys/two locales and diff checks pass. No broad matrix replay.
+
+Native app47740 showed three separated highlighted projectCheckWorker results.
+Clicking line151 opened existing main.tsrx, scrolled there and visibly selected the
+exact match. Restored left settings/right chrome via overflow/focus. Retained the
+owner-added recovery.tsr tab; drafts0/zoom-1 and global activechrome verified.
+CUA: Verified spaced highlighted search results. Supervisor37767/PTY50581 stays up.
+First native runtime miss41.521s, build83.963s; later hit51.539s and unchanged app
+check32.327s. Single observations, not benchmark/resource qualification. Compiler/
+installed pair unchanged at c2f44df5/1aa17d7a; no refresh or extra executable test.
+
+Final source rebuilt successfully in47.295s to app52643. Fresh native inspection
+confirmed accessible file:line/preview labels and left the three highlighted
+projectCheckWorker results visible. CUA: Displayed readable highlighted search
+results. No compiler/SDK change or supervisor restart was required for this feature.
