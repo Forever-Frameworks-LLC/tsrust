@@ -15,8 +15,8 @@ UTF-8/binary files report an error while preserving the current document.
 
 This stage is read-only: no editor writes or save controls are enabled. Safe
 editing, saves, external-change handling, recovery and tab closing remain required.
-Switching tabs currently resets native editor scroll state; retained native Kit
-state is the next UI correction. Initial search typing through CUA sometimes loses
+Native tab switching retains scroll, selection and each file’s Find query,
+verified in the running macOS app. Undo/redo with editable buffers remains unverified. Initial search typing through CUA sometimes loses
 its first character; raising the window and selecting/retyping the query worked,
 but focus/AX behavior is not fully accepted. Search controls also need AX names.
 

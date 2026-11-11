@@ -24,13 +24,14 @@ file Find through Cmd+F. Native std:ui Tree/TreeItem shows workspace contents
 directly, without a studio root row; the convenience button bar is removed. All previews are explicitly read-only. Saving,
 editable buffers, recovery and the complete editor/agent inventory remain required.
 
-**KEEP DEV RUNNING. Current live tool PTY session51314, supervisorPID15826,
-childPID29484** (child changes after source rebuild), bundle dev.tsrust.studio.dev.
+**KEEP DEV RUNNING. Current live tool PTY session6863, supervisorPID41326,
+childPID41377** (child changes after source rebuild), bundle dev.tsrust.studio.dev.
 Command, from apps/studio, with desktop access (require_escalated), login=false:
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
 /Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
 Owner explicitly approved replacing the old scratch supervisor after asking why
-its screen had not changed. That replacement is complete; do not restart casually.
+its screen had not changed. That replacement is complete. The owner subsequently authorized one replacement
+to load the tab-state fix; that is also complete. Do not restart casually.
 The first replacement under the restricted sandbox failed at NSPasteboard after
 XPC denial. Completing the same approved replacement with desktop access worked.
 Old supervisor74090/app76050 and failed replacement are stopped. Exactly one
@@ -50,10 +51,14 @@ produced exact schemaVersion. Focus/first-key attribution and unnamed Kit search
 AX controls remain gaps. A read-only typing attempt left source unchanged; this
 is not full editable, IME, selection or keyboard acceptance.
 
-**Confirmed remaining UI defect: tab switches reset native scroll state.**
-In stdlib/ui/gpui_kit.rs sync_kit.collect uses visible_root and retires hidden
-CodeEditor state. Correct retained native state/focus/disposal before enabling
-writes; do not mask it with opacity/overlaid controls. TabsContent's current native
+**Native tab scroll/selection/Find retention now passes in the running app.**
+Checkpoint76713c16 fixes sync_inputs/sync_kit disposal using all mounted identities,
+while creation/synchronization remain visible-only. Hidden AppMenuBar ownership
+still removes its external menus and reinstalls on reveal. Actual scroll position
+(line34 at the top), keyboard selection of the final brace (native Cmd+F adopted
+it), and independent setTheme/schemaVersion Find queries survive tab switches.
+Undo/redo with editable buffers and full AX/focus remain unverified.
+TabsContent's current native
 layout only gave the editor intrinsic height, so Studio composes Kit's real tab
 bar with full-height hidden document panels instead. browser.tsrx constructs its
 child Nodes once outside reactive JSX spread expressions; merely passing Signal
@@ -133,25 +138,35 @@ Model artifacts remain ignored under target/studio-models. No unchanged replay.
 Latest native Tree/root-removal rebuild13,356ms passed, with runtime preparation
 4,419.3ms. No unchanged acceptance executables were replayed for this layout change.
 
-Current active section: native panel state retention. The renderer now retains
-Kit state, ordinary input state and input options by all mounted node identities,
-including hidden panels; only visible nodes create/synchronize native state.
-Removed nodes dispose state; hidden AppMenuBar state is retired so its external
-menus reinstall when shown. New lifecycle regression1/1PASS,0.00s execution,3.66s
-setup. Compiler build after final safeguardPASS2m41s. Initial workspace/all-target
-checkPASS2m30s with warnings in unrelated test helpers. Final backend/all-target
-checkPASS3m26s and native app buildPASS. Final workspace/all-target checkPASS1m28s; all check/build handles are terminal. Current
-supervisor15826/app29484 remain on the old renderer; native retention is unverified.
+Native retention checkpoint76713c16: new lifecycle regression1/1PASS,0.00s execution,
+3.66s setup. Compiler build after final menu safeguardPASS2m41s. Final backend
+all-target compilationPASS3m26s; final workspace/all-target compilationPASS1m28s.
+Warnings are in unchanged test helpers; no node/renderer warning. Native Studio
+buildPASS. No unchanged runtime suite or AI executable was replayed.
 
-A one-time supervisor replacement request is pending through request_user_input_async;
-no permission has yet been received. Candidate repository CLI SHA256 is
-ebf586f90a92b181001b1a8d0012c6e7a415517453fd197063be1d6146f6c899;
-installed CLI/LSP and retained supervisor remain on the prior accepted images.
+Owner answered “Restart once and verify tab state.” Old session51314/supervisor15826/
+app29484 stopped normally, and one replacement is live: session6863/supervisor41326/
+app41377. Startup45,087ms, check2,069.4ms, emit312.5ms, native+link42,310.5ms,
+runtime preparation1,498.0ms and runtime build/publish36,864.4ms (cache miss).
+Development observations only, not comparable performance measurements. Exactly
+one Studio preview remains, and the new supervisor must stay running. CUA phase
+“Verified retained editor tab state” completed. Initial config Find typing still
+lost its first character; select-all/retyping gave the exact query. Native AX
+selected-text range is unavailable; keyboard selection was observed and then
+verified by Find inheriting it after a tab round trip. Missing search AX names
+and full focus/IME/editable acceptance remain open.
 
-Next: load the new renderer with an authorized dev
-supervisor replacement and check scroll, selection and search across file tabs.
-Keep the existing session running until replacement is authorized. Then implement
-revisioned editing, safe saves, external-change/draft/close protection.
+Repository/running/installed CLI SHA256 is now
+ebf586f90a92b181001b1a8d0012c6e7a415517453fd197063be1d6146f6c899.
+Installed CLI was staged and atomically replaced after native acceptance. LSP
+remains on the prior accepted4d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688;
+no language-service signatures changed in this renderer fix.
+
+Fresh vmmap baseline after native acceptance (two tabs): supervisor384.5M/peak384.5M;
+app253.1M/peak253.1M, units verbatim. Not a controlled comparison or leak proof.
+
+Next: keep session6863 alive. Implement revisioned editing, safe saves,
+external-change/draft/close protection in the actual package workspace.
 Native checked resource/streaming/session ownership, held-out AI work,
 all editor workflows, cloud/external agents and Windows remain required. Use the
 actual apps/studio package for visible acceptance as implementation proceeds.

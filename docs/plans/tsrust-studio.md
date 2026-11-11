@@ -296,7 +296,8 @@ change unrelated v0.2.0 acceptance or authorize a release.
   before removing the theme button; the current layout starts dark.
   File-opening tests pass3/3; native data-state/composition/navigation tests pass12/12.
   macOS dev identity and failed-build recovery are verified; existing proposal
-  revision guards pass4/4. Native tab scroll retention, full AX/focus, editing,
+  revision guards pass4/4. Native tab scroll/selection/per-file Find retention is
+  verified after the runtime fix. Full AX/focus, editing,
   safe saves, recovery and the rest of the editor inventory remain open. The
   current dev supervisor stays running; current evidence is in the audit.
 - Candle scalar optimizer proof3/3 passes. Three Candle CPU quantized-model

@@ -11,7 +11,7 @@ full implementation on November 10. The required inventory in
 |---|---|---|
 | Ordinary project | `tsrust new apps/studio --ui`; `apps/studio/tsrust.config.json` | Current native browser previews its own apps/studio package with working file tabs; project create/save and recovery remain required. The CLI requires the parent directory to exist. |
 | Editor | `stdlib/ui/gpui_kit.rs`, CodeEditor initialization and InputEvent subscription; `ui/kit.json` | Full-text `onChange`, controlled values, highlighting and `controlInput`/`readInput` exist. No Studio revision-aware LSP deltas, multi-cursor, IME or large-file acceptance yet. |
-| State | `std:ui` typed data snapshots | Compiler now accepts plain records, arrays and nullable data, with independent constructor/get/set snapshots and nested resource/callback rejection. Native snapshot/composition suites pass 12/12. Use an explicit scalar `computed<T>` for live text projections. Direct data-field JSX text lowering and hidden native Kit state retention remain gaps; this is not the complete document service. |
+| State | `std:ui` typed data snapshots | Compiler now accepts plain records, arrays and nullable data, with independent constructor/get/set snapshots and nested resource/callback rejection. Native snapshot/composition suites pass 12/12. Use an explicit scalar `computed<T>` for live text projections. Direct data-field JSX text lowering remains a gap; hidden native state retention is now verified in Studio; this is not the complete document service. |
 | Proposals | `apps/studio/src/documents.tsr` | Whole-buffer path/revision/base-content comparison implemented. Test typing-and-reverting, duplicate acceptance, wrong paths and Unicode. Atomic multi-file application, grouped undo, recovery and isolated tools remain absent. |
 | Language services | Existing `tsrust-lsp`, `std:process`, `std:io`, `std:json` | Build a revisioned LSP client in Tsrust; prove stdio framing, UTF-16/UTF-8 conversion, cancellation, crash recovery and stale answers. Existing standalone LSP acceptance is not Studio integration. |
 | Rust | rust-analyzer native executable | Inspect/install exact tool through managed tooling; prove lifecycle and project agreement. Not selected or installed by this audit. |
@@ -368,8 +368,8 @@ editor or compiler/LSP milestone regressions from these focused checks.
 Owner approved replacing the scratch supervisor with the built browser. A first
 sandboxed launch crashed at NSPasteboard generalPasteboard after XPC denial. The
 same authorized replacement was completed with desktop access, preserving the
-existing permission model. The retained live supervisor is PID15826/session51314,
-current child29484, bundle dev.tsrust.studio.dev. Cold dev47,677 ms; observed warm
+existing permission model. That earlier supervisor was PID15826/session51314,
+child29484, bundle dev.tsrust.studio.dev. Cold dev47,677 ms; observed warm
 source rebuilds14,767/14,566/14,624 ms, runtime preparation5,324.4/5,609.7/5,023.4 ms
 with runtime cache hits. These are development observations, not quiet-machine
 benchmarks. This supervisor includes the accepted streaming cache buffers.
@@ -383,9 +383,10 @@ without replacing the active file. Find targets the active config file and match
 schemaVersion. Initial CUA typing again lost the first character; raising the window
 and select-all/retyping yielded the exact query. AX labels/focus remain open. A
 read-only typing attempt left source unchanged; full editable/IME acceptance is
-not implied. Switching tabs loses scroll position: sync_kit's collect currently
-uses visible_root and retires hidden CodeEditor state. Fix retention and verify
-focus, scroll, selection, undo and disposal before enabling writes. The browser
+not implied. This earlier viewer lost scroll position: sync_kit's collect
+used visible_root and retired hidden CodeEditor state. The retention fix and
+subsequent native acceptance are recorded below; undo and full focus acceptance
+with editable buffers remain required. The browser
 also constructs child Nodes once outside reactive JSX list expressions so passing
 a Signal alone does not rebuild and reset directory state.
 
@@ -436,8 +437,30 @@ unrelated test helpers. The final native Studio executable builds successfully.
 The final workspace/all-target compilation also passed in1m28s. Warnings
 remain confined to unchanged test helpers; no renderer/node warning was emitted.
 
-The live dev supervisor15826 embeds the earlier renderer templates. It and app29484
-remain running. Native scroll/selection/search retention has not yet been accepted;
-the new runtime must be loaded before that check. A one-time supervisor replacement
-request is pending because the owner asked to keep the dev session running. No unchanged native test suites
-or AI executables were replayed.
+Owner authorized “Restart once and verify tab state.” The old supervisor15826/
+app29484 stopped normally; session6863/supervisor41326/app41377 now uses the fixed
+renderer and remains running. Exactly one Studio preview is present. Startup was
+45,087ms: check2,069.4ms, emit312.5ms, runtime preparation1,498.0ms, runtime
+build/publish36,864.4ms and native+link42,310.5ms. Runtime cache missed. These are
+development setup observations, not benchmark comparisons.
+
+Actual CUA verifies main.tsrx scroll position (line34 at the top) survives a trip
+to the config tab. Keyboard-selected final brace survives a tab round trip: native
+Cmd+F adopts that selection as its query. Separate setTheme and schemaVersion Find
+queries remain attached to their own documents across tab switches. CUA phase
+“Verified retained editor tab state” completed. AX selected-text range is unsupported;
+initial config search typing still dropped its first character and needed
+select-all/retyping. Search AX names, full focus/IME, editable undo/redo and actual
+hidden application-menu side effects remain unverified. No unchanged native test
+suites or AI executables were replayed.
+
+Accepted CLI was atomically refreshed at /Users/seancotter/.cargo/bin/tsrust;
+repository, installed and live supervisor use SHA256
+ebf586f90a92b181001b1a8d0012c6e7a415517453fd197063be1d6146f6c899.
+LSP stays on its prior accepted image; no intelligence API changed.
+
+After native tab-state acceptance, vmmap -summary on the new processes reports
+supervisor41326 physical footprint384.5M/peak384.5M and app41377
+253.1M/peak253.1M, with two open tabs and per-file Find queries. Units are verbatim.
+This is a fresh-session baseline, not a controlled comparison or leak/growth proof.
+No allocation contents were dumped.
